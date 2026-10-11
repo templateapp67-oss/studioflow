@@ -1,0 +1,22 @@
+import { INITIAL_SALON_PROFILE } from '../mockData';
+import { DEFAULT_LOYALTY_CONFIG } from '../loyaltyData';
+import { DEFAULT_EXTRAS } from './workspaceDefaults';
+import { CATEGORY_TEMPLATES } from '../categoryTemplates';
+import type { SalonProfile, SalonService, Stylist, ClientRecord } from '../types';
+const record=(value:any):Record<string,any>=>value&&typeof value==='object'&&!Array.isArray(value)?value:{};
+const list=(value:any)=>Array.isArray(value)?value.filter(item=>item&&typeof item==='object'&&!Array.isArray(item)):[];
+export function normalizeWorkspace(value:unknown, identity:Record<string,any>={}) {
+ const draft=record(value);const raw=record(draft.profile);
+ const base:SalonProfile={...INITIAL_SALON_PROFILE,businessName:identity.salon_name||'',ownerName:identity.full_name||'',phone:identity.phone_number||'',whatsapp:identity.whatsapp||'',email:identity.email||'',city:identity.city||'',postalCode:identity.postal_code||'',address:'',about:'',tagline:'',ownerPhotoUrl:'',subdomain:'',instagramHandle:'',requireDeposit:true,depositPercentage:25};
+ const profile={...base,...raw,requireDeposit:true,depositPercentage:25};
+ for(const [key,fallback] of Object.entries(base)) if(typeof fallback==='string'&&typeof profile[key]!=='string') profile[key]=fallback;
+ if(!CATEGORY_TEMPLATES[profile.businessType])profile.businessType='hair_salon';
+ const loyalty=record(draft.loyaltyConfig),extras=record(draft.extras);
+ return {...draft,profile:profile as SalonProfile,
+  services:list(draft.services).map(s=>({...s,name:typeof s.name==='string'?s.name:'',description:typeof s.description==='string'?s.description:'',category:typeof s.category==='string'?s.category:'',price:Number.isFinite(s.price)?s.price:0,durationMinutes:Number.isFinite(s.durationMinutes)?s.durationMinutes:30})) as SalonService[],
+  stylists:list(draft.stylists).map(s=>({...s,name:typeof s.name==='string'?s.name:'',role:typeof s.role==='string'?s.role:'',avatarUrl:typeof s.avatarUrl==='string'?s.avatarUrl:'',specialties:Array.isArray(s.specialties)?s.specialties.filter(x=>typeof x==='string'):[],rating:Number.isFinite(s.rating)?s.rating:0})) as Stylist[],
+  clients:list(draft.clients) as ClientRecord[],
+  loyaltyConfig:{...DEFAULT_LOYALTY_CONFIG,...loyalty,tierThresholds:{...DEFAULT_LOYALTY_CONFIG.tierThresholds,...record(loyalty.tierThresholds)},tierMultipliers:{...DEFAULT_LOYALTY_CONFIG.tierMultipliers,...record(loyalty.tierMultipliers)},rewards:Array.isArray(loyalty.rewards)?list(loyalty.rewards):DEFAULT_LOYALTY_CONFIG.rewards},
+  extras:{...DEFAULT_EXTRAS,...extras,gallery:Array.isArray(extras.gallery)?extras.gallery.filter(x=>typeof x==='string'&&x.trim()):[],policies:{...DEFAULT_EXTRAS.policies,...record(extras.policies)},whiteLabel:{...DEFAULT_EXTRAS.whiteLabel,...record(extras.whiteLabel)}},
+  onboardingComplete:draft.onboardingComplete===true};
+}

@@ -1,0 +1,60 @@
+import React from 'react';
+import {act,create} from 'react-test-renderer';
+import assert from 'node:assert/strict';
+import {CATEGORY_TEMPLATES} from '../src/categoryTemplates';
+import {INITIAL_SALON_PROFILE} from '../src/mockData';
+import {applyTemplateDesign} from '../src/lib/templateSelection';
+import {InlineEditable} from '../src/components/InlineEditable';
+import {BookingModal} from '../src/components/BookingModal';
+import {supabase} from '../src/lib/supabase';
+import {depositPaise,signatureMatches} from '../supabase/functions/studioflow-payments/payment-security';
+(globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;
+const event={stopPropagation(){},preventDefault(){}};
+for(const template of Object.values(CATEGORY_TEMPLATES)){
+ const selected=applyTemplateDesign(INITIAL_SALON_PROFILE,template);
+ assert.equal(selected.businessType,template.id);assert.equal(selected.tagline,template.tagline);assert.equal(selected.coverImageUrl,template.coverImageUrl);assert.ok(selected.themeAccentKey);
+ const custom=applyTemplateDesign({...INITIAL_SALON_PROFILE,businessName:'Owner Salon',tagline:'Owner Copy',coverImageUrl:'https://example.com/custom.jpg'},template);
+ assert.equal(custom.businessName,'Owner Salon');assert.equal(custom.tagline,'Owner Copy');assert.equal(custom.coverImageUrl,'https://example.com/custom.jpg');
+}
+const saves:unknown[]=[];let editor:any;
+await act(async()=>{editor=create(<InlineEditable value={100} type="price" onSave={value=>saves.push(value)}/>);});
+await act(async()=>editor.root.findByProps({role:'button'}).props.onClick(event));
+await act(async()=>editor.root.findByType('input').props.onChange({target:{value:'0'}}));
+await act(async()=>editor.root.findByProps({title:'Save (Enter)'}).props.onClick(event));assert.deepEqual(saves,[0]);
+await act(async()=>editor.root.findByProps({role:'button'}).props.onClick(event));
+await act(async()=>editor.root.findByType('input').props.onChange({target:{value:'-50'}}));
+await act(async()=>editor.root.findByProps({title:'Save (Enter)'}).props.onClick(event));assert.deepEqual(saves,[0]);assert.ok(editor.root.findByProps({role:'alert'}));
+await act(async()=>editor.root.findByProps({title:'Cancel (Esc)'}).props.onClick(event));assert.deepEqual(saves,[0]);await act(async()=>editor.unmount());
+assert.equal(depositPaise(999),24975);assert.equal(depositPaise(100.12),2503);assert.equal(depositPaise(0.12),3);assert.equal(depositPaise(100.13),2504);
+const secret='TEST-ONLY-SECRET',message='order_test|pay_test';
+const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(secret),{name:'HMAC',hash:'SHA-256'},false,['sign']);
+const bytes=new Uint8Array(await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(message)));const signature=Array.from(bytes,x=>x.toString(16).padStart(2,'0')).join('');
+assert.equal(await signatureMatches(secret,message,signature),true);assert.equal(await signatureMatches(secret,message+'tampered',signature),false);assert.equal(await signatureMatches(secret,message,'wrong'),false);
+// Booking flow uses the real component with isolated provider/API fixtures.
+const functionsPrototype=Object.getPrototypeOf(supabase.functions);const oldRpc=supabase.rpc,oldInvoke=functionsPrototype.invoke;
+(supabase as any).rpc=async()=>({data:[{time:'11:00',label:'11:00 AM',available:true,stylistId:'stylist'}],error:null});
+let reservationCount=0;let capturedOrder:any;const paid={id:'fixture-booking',status:'confirmed',amountPaid:249.75,paymentStatus:'paid_deposit'};
+functionsPrototype.invoke=async(_name:string,{body}:any)=>({data:body.action==='status'?{configured:true}:body.action==='create'?{keyId:'rzp_test_fixture',orderId:'order_fixture',amount:24975,currency:'INR'}:{booking:paid},error:null});
+(globalThis as any).window={addEventListener(){},removeEventListener(){},Razorpay:class{constructor(options:any){capturedOrder=options;}on(){}open(){void capturedOrder.handler({razorpay_order_id:'order_fixture',razorpay_payment_id:'pay_fixture',razorpay_signature:'signature'});}}};
+const services=[{...CATEGORY_TEMPLATES.hair_salon.services[0],id:'one',name:'First Service',price:500},{...CATEGORY_TEMPLATES.hair_salon.services[0],id:'two',name:'Second Service',price:999}];
+const text=(node:any):string=>typeof node==='string'?node:(node.children||[]).map(text).join(' ');
+const button=(root:any,label:string)=>root.findAll((node:any)=>node.type==='button'&&text(node).includes(label)).at(-1);
+let modal:any;
+try{
+ await act(async()=>{modal=create(<BookingModal isOpen onClose={()=>{}} profile={{...INITIAL_SALON_PROFILE,subdomain:'fixture-salon'}} initialService={services[0]} services={services} stylists={[{...CATEGORY_TEMPLATES.hair_salon.stylists[0],id:'stylist'}]} onAddAppointment={async apt=>{reservationCount++;return {...apt,id:'fixture-booking'};}}/>);});
+ const option=modal.root.findAll((node:any)=>node.type==='div'&&node.props.onClick&&text(node).includes('Second Service')).at(-1);
+ await act(async()=>option.props.onClick());
+ await act(async()=>button(modal.root,'Continue to Date').props.onClick());
+ assert.ok(text(modal.toJSON()).includes('Second Service'),'Customer service selection must survive rerender');
+ const dateInput=modal.root.findAll((node:any)=>node.type==='input'&&node.props.type==='date')[0];
+ await act(async()=>dateInput.props.onChange({target:{value:'2026-12-01'}}));
+ await act(async()=>button(modal.root,'11:00 AM').props.onClick());
+ await act(async()=>button(modal.root,'Guest').props.onClick());
+ await act(async()=>modal.root.findByProps({placeholder:'e.g. Aarti Sharma'}).props.onChange({target:{value:'Fixture Client'}}));
+ const phone=modal.root.findAll((node:any)=>node.type==='input'&&node.props.type==='tel')[0];
+ await act(async()=>phone.props.onChange({target:{value:'9876543210'}}));
+ await act(async()=>modal.root.findAll((node:any)=>node.props.onSubmit)[0].props.onSubmit(event));
+ await act(async()=>button(modal.root,'& Book').props.onClick());
+ assert.equal(reservationCount,1);assert.equal(capturedOrder.amount,24975);assert.equal(capturedOrder.order_id,'order_fixture');assert.ok(text(modal.toJSON()).includes('Booking confirmed. Verified advance'));
+}finally{if(modal)await act(async()=>modal.unmount());supabase.rpc=oldRpc;functionsPrototype.invoke=oldInvoke;}
+console.log('PASS: 14 design selections preserve owner content; inline zero/invalid/cancel; exact 25% paisa and HMAC; service → slot → client details → checkout → verified confirmation using isolated API fixtures.');
