@@ -218,10 +218,12 @@ export const PromotionsManagement: React.FC<PromotionsManagementProps> = ({
   const patchDraft = <K extends keyof SeasonalPromotion>(key: K, value: SeasonalPromotion[K]) => {
     setPromoDraft((prev) => {
       const updated = { ...prev, [key]: value };
-      // Also sync immediately to profile so it updates live
-      setProfile((p) => ({ ...p, promotions: updated }));
       return updated;
     });
+    setProfile((p) => ({
+      ...p,
+      promotions: { ...promoDraft, [key]: value }
+    }));
   };
 
   // Quick apply preset
