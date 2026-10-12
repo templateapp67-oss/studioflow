@@ -36,6 +36,7 @@ export const TestimonialModal: React.FC<TestimonialModalProps> = ({
   const [avatarUrl, setAvatarUrl] = useState(TESTIMONIAL_PRESET_AVATARS[0]);
   const [customAvatarInput, setCustomAvatarInput] = useState('');
   const [useCustomAvatar, setUseCustomAvatar] = useState(false);
+  const [approved, setApproved] = useState(true);
   const [formError, setFormError] = useState('');
 
   // Synchronize fields when modal opens or editing testimonial changes
@@ -47,6 +48,7 @@ export const TestimonialModal: React.FC<TestimonialModalProps> = ({
         setRating(editingTestimonial.rating || 5);
         setServiceName(editingTestimonial.serviceName || '');
         setComment(editingTestimonial.comment || '');
+        setApproved(editingTestimonial.approved !== false && editingTestimonial.status !== 'pending' && editingTestimonial.status !== 'rejected');
         
         const isPreset = TESTIMONIAL_PRESET_AVATARS.includes(editingTestimonial.avatarUrl);
         if (isPreset) {
@@ -69,6 +71,7 @@ export const TestimonialModal: React.FC<TestimonialModalProps> = ({
         setAvatarUrl(TESTIMONIAL_PRESET_AVATARS[Math.floor(Math.random() * TESTIMONIAL_PRESET_AVATARS.length)]);
         setCustomAvatarInput('');
         setUseCustomAvatar(false);
+        setApproved(true);
         setFormError('');
       }
     }
@@ -106,6 +109,8 @@ export const TestimonialModal: React.FC<TestimonialModalProps> = ({
         month: 'short',
         year: 'numeric'
       }),
+      approved,
+      status: approved ? 'approved' : 'pending',
     };
 
     onSave(saved);
@@ -321,6 +326,30 @@ export const TestimonialModal: React.FC<TestimonialModalProps> = ({
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Website Approval Status Toggle */}
+          <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-3 flex items-start gap-2.5">
+            <input
+              id="testimonial-approved-checkbox"
+              type="checkbox"
+              checked={approved}
+              onChange={(e) => setApproved(e.target.checked)}
+              className="mt-0.5 w-4 h-4 text-emerald-600 rounded-md border-emerald-300 focus:ring-emerald-500 cursor-pointer"
+            />
+            <label htmlFor="testimonial-approved-checkbox" className="text-xs text-slate-700 cursor-pointer select-none">
+              <span className="font-bold text-slate-900 block flex items-center gap-1.5">
+                <span>Approve & display on live website</span>
+                <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded font-bold ${approved ? 'bg-emerald-200 text-emerald-800' : 'bg-slate-200 text-slate-700'}`}>
+                  {approved ? 'LIVE' : 'PENDING'}
+                </span>
+              </span>
+              <span className="text-slate-500 text-[11px] block mt-0.5">
+                {approved 
+                  ? 'This testimonial will be published on your public salon website.' 
+                  : 'Saved as pending. It will not be shown to customers until approved in the dashboard.'}
+              </span>
+            </label>
           </div>
 
           {/* Footer Actions */}

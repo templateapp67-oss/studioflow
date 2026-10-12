@@ -17,6 +17,8 @@ export interface Testimonial {
   comment: string;
   avatarUrl: string;
   date: string;
+  approved?: boolean;
+  status?: 'approved' | 'pending' | 'rejected';
 }
 
 export interface CategoryStandardData {

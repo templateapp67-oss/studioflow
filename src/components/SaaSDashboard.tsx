@@ -10,6 +10,8 @@ import { ServiceManagement } from './ServiceManagement';
 import { PromoStudio } from './PromoStudio';
 import { LoyaltyManagement } from './LoyaltyManagement';
 import { SocialConnectivityStep } from './SocialConnectivityStep';
+import { ReviewManagement } from './ReviewManagement';
+import { MonthlyRevenueChart } from './MonthlyRevenueChart';
 import { DEFAULT_LOYALTY_CONFIG, TIER_METADATA, calculateLoyaltyTier, calculateRewardProgress } from '../loyaltyData';
 
 interface SaaSDashboardProps {
@@ -30,7 +32,7 @@ interface SaaSDashboardProps {
   gallery?:string[];setGallery?:(images:string[])=>void;
 }
 
-type TabType = 'website_sections' | 'overview' | 'calendar' | 'services' | 'team' | 'clients' | 'loyalty' | 'marketing' | 'social_connectivity' | 'appearance' | 'website';
+type TabType = 'testimonials' | 'revenue_analytics' | 'website_sections' | 'overview' | 'calendar' | 'services' | 'team' | 'clients' | 'loyalty' | 'marketing' | 'social_connectivity' | 'appearance' | 'website';
 
 export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
   profile,
@@ -132,6 +134,8 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
     catch{setSmsSentNotice('Select and copy the draft above to share it.');}
   };
 
+  const pendingReviewsCount = (profile.websiteTestimonials || []).filter(r => !r.approved || r.status === 'pending').length;
+
   return (
     <div className="min-h-screen pt-24 pb-16 flex flex-col items-center bg-[#f9f9ff] text-[#151c27]">
       <div className="max-w-[1240px] w-full px-4 sm:px-6">
@@ -185,10 +189,12 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
         <div className="flex border-b border-gray-200 mb-6 gap-2 overflow-x-auto">
           {[
             { id: 'overview', label: 'Overview', icon: 'dashboard' },
+            { id: 'revenue_analytics', label: 'Revenue Analytics', icon: 'show_chart' },
             { id: 'calendar', label: 'Appointments', icon: 'calendar_month' },
             { id: 'services', label: 'Services Menu', icon: 'spa' },
             { id: 'team', label: 'Team Management', icon: 'badge' },
             { id: 'clients', label: 'Clients CRM', icon: 'group' },
+            { id: 'testimonials', label: 'Reviews & Testimonials', icon: 'rate_review' },
             { id: 'loyalty', label: 'Loyalty & Rewards', icon: 'military_tech' },
             { id: 'marketing', label: 'Promo Image & Social', icon: 'photo_camera_back' },
             { id: 'social_connectivity', label: 'Step 06 • Social Connectivity', icon: 'share' },
@@ -210,6 +216,20 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
               >
                 <span className="material-symbols-outlined text-lg">{tab.icon}</span>
                 <span>{tab.label}</span>
+                {tab.id === 'revenue_analytics' && (
+                  <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-full">
+                    Recharts
+                  </span>
+                )}
+                {tab.id === 'testimonials' && (
+                  <span className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-full border ${
+                    pendingReviewsCount > 0 
+                      ? 'bg-amber-100 text-amber-900 border-amber-300' 
+                      : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                  }`}>
+                    {pendingReviewsCount > 0 ? `${pendingReviewsCount} Pending` : 'Curated'}
+                  </span>
+                )}
                 {tab.id === 'loyalty' && (
                   <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-full">
                     {loyaltyConfig.rewards.filter((r) => r.isActive).length} Perks
@@ -237,18 +257,35 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
         </div>
 
         {activeTab==='website_sections'&&<WebsiteContentManager profile={profile} setProfile={setProfile} gallery={gallery} setGallery={setGallery}/>}
+        {activeTab==='testimonials'&&<ReviewManagement profile={profile} setProfile={setProfile} services={services} appointments={appointments} clients={clients} onNavigateToPreview={onNavigateToPreview}/>}
+        {activeTab==='revenue_analytics'&& (
+          <div className="flex flex-col gap-6">
+            <MonthlyRevenueChart
+              appointments={appointments}
+              primaryColor={currentPrimaryColor}
+              onViewAppointments={() => setActiveTab('calendar')}
+            />
+          </div>
+        )}
         {/* TAB CONTENT: OVERVIEW */}
         {activeTab === 'overview' && (
           <div className="flex flex-col gap-6">
             {/* KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white border border-gray-200 p-5 rounded-2xl shadow-xs">
+              <div 
+                onClick={() => setActiveTab('revenue_analytics')}
+                className="bg-white border border-gray-200 p-5 rounded-2xl shadow-xs cursor-pointer hover:border-slate-400 transition-all hover:shadow-sm group"
+                title="View full Recharts Monthly Revenue Analytics"
+              >
                 <div className="flex justify-between items-center text-gray-500 mb-2">
-                  <span className="text-xs font-bold font-mono-caps">Total Revenue (₹)</span>
-                  <span className="material-symbols-outlined text-[#b0004a]">payments</span>
+                  <span className="text-xs font-bold font-mono-caps group-hover:text-slate-900 transition-colors">Total Revenue (₹)</span>
+                  <span className="material-symbols-outlined text-[#b0004a] group-hover:scale-110 transition-transform">show_chart</span>
                 </div>
                 <div className="font-display font-extrabold text-2xl">₹{totalRevenue.toLocaleString('en-IN')}</div>
-                <div className="text-[11px] text-emerald-600 font-bold mt-1">Recorded payments</div>
+                <div className="text-[11px] text-emerald-600 font-bold mt-1 flex items-center justify-between">
+                  <span>Recorded payments</span>
+                  <span className="text-[10px] text-slate-400 group-hover:text-[#b0004a] transition-colors font-semibold">View Chart →</span>
+                </div>
               </div>
 
               <div className="bg-white border border-gray-200 p-5 rounded-2xl shadow-xs">
@@ -278,6 +315,45 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
                 <div className="text-[11px] text-emerald-600 font-bold mt-1">From completed appointments</div>
               </div>
             </div>
+
+            {/* Reviews & Social Proof Highlight */}
+            <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 rounded-2xl p-4 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-700 flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined text-xl">rate_review</span>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-sm text-slate-900">Reviews & Testimonials Management</span>
+                    <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
+                      pendingReviewsCount > 0 
+                        ? 'bg-amber-100 text-amber-900 border-amber-300' 
+                        : 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                    }`}>
+                      {pendingReviewsCount > 0 ? `${pendingReviewsCount} Pending Approval` : 'All Approved'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-600 mt-0.5">
+                    Curate client feedback, approve pending testimonials, or add new 5-star experiences to display on your salon website.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab('testimonials')}
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs shrink-0 flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>Manage Reviews</span>
+                <span className="material-symbols-outlined text-sm">arrow_forward</span>
+              </button>
+            </div>
+
+            {/* Recharts Monthly Revenue Line Chart Section */}
+            <MonthlyRevenueChart
+              appointments={appointments}
+              primaryColor={currentPrimaryColor}
+              onViewAppointments={() => setActiveTab('calendar')}
+            />
 
             {/* Upcoming Appointments Table */}
             <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-xs">

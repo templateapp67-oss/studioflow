@@ -72,7 +72,7 @@ export function TemplatePreviewModal({templateId, onSelectPreview, onClose, onCh
           doc.documentElement.style.fontFamily = 'Inter, sans-serif';
           setFrameDocument(doc);
         }} style={{width:device==='mobile'?390:device==='tablet'?768:1280,maxWidth:device==='mobile'?'100%':undefined,height:'100%'}} className="block mx-auto bg-white border border-slate-300 rounded-xl shadow-lg"/>
-        {frameDocument?.getElementById('template-root') && createPortal(<AppErrorBoundary resetKey={templateId} onRecover={onClose}><Suspense fallback={<p className="p-8 text-center">Loading live template…</p>}><LiveWebsite key={templateId} readOnly previewDocument={frameDocument} profile={profile} services={t.services} stylists={t.stylists} onAddAppointment={async () => {throw new Error('This is a template demo. Customize and publish your salon to accept bookings.');}}/></Suspense></AppErrorBoundary>,frameDocument.getElementById('template-root')!)}
+        {frameDocument?.getElementById('template-root') && createPortal(<AppErrorBoundary resetKey={templateId} onRecover={onClose}><Suspense fallback={<p className="p-8 text-center">Loading live template…</p>}><LiveWebsite key={templateId} readOnly isOwnerMode={true} previewDocument={frameDocument} profile={profile} services={t.services} stylists={t.stylists} onAddAppointment={async () => {throw new Error('This is a template demo. Customize and publish your salon to accept bookings.');}}/></Suspense></AppErrorBoundary>,frameDocument.getElementById('template-root')!)}
       </div>
     </div>
   </dialog>;

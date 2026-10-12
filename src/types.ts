@@ -122,8 +122,41 @@ export interface PromoCampaign {
   customOfferText: string; promoCode: string; headline: string; subtext: string;
   aspectRatio: string; aesthetic: string; imageUrl: string; customPrompt: string;
 }
+
+export type PromotionPlacement = 'top_announcement_bar' | 'floating_alert' | 'hero_banner' | 'all';
+export type PromotionType = 'seasonal_banner' | 'flash_sale' | 'announcement';
+export type PromotionTheme = 
+  | 'festive_diwali' 
+  | 'flash_sale_24h' 
+  | 'summer_refresh' 
+  | 'monsoon_rejuvenation' 
+  | 'bridal_season' 
+  | 'new_year_glow' 
+  | 'weekend_rush' 
+  | 'custom';
+
+export interface SeasonalPromotion {
+  enabled: boolean;
+  type: PromotionType;
+  theme: PromotionTheme;
+  title: string;
+  highlightBadge: string;
+  message: string;
+  discountPercent?: number;
+  discountText: string;
+  promoCode: string;
+  selectedServiceId?: string;
+  placement: PromotionPlacement;
+  accentColor?: string;
+  textColor?: string;
+  expiryDate?: string;
+  buttonText?: string;
+  imageUrl?: string;
+}
+
 export interface SalonProfile {
   promoCampaign?: PromoCampaign;
+  promotions?: SeasonalPromotion;
   websiteSections?: Record<string, boolean>;
   sectionHeadings?: Record<string, string>;
   websiteTestimonials?: import('./templateData').Testimonial[];

@@ -40,7 +40,10 @@ import {
   Monitor, 
   Share2, 
   RefreshCw, 
-  Scissors
+  Scissors,
+  Tag,
+  Flame,
+  Zap
 } from 'lucide-react';
 import { SalonProfile, SalonService, Stylist, Appointment, BusinessTypeId } from '../types';
 import { CATEGORY_TEMPLATES } from '../categoryTemplates';
@@ -64,6 +67,8 @@ interface SalonWebsitePreviewProps {
   setStylists?: React.Dispatch<React.SetStateAction<Stylist[]>>;
   onAddAppointment: (appointment: Appointment) => Promise<Appointment>;
   readOnly?: boolean;
+  isOwnerMode?: boolean;
+  isAdmin?: boolean;
   previewDocument?: Document;
   onEnterClientPreview?:()=>void;
   gallery?: string[];
@@ -85,6 +90,8 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
   setStylists: setStylistsProp,
   onAddAppointment,
   readOnly = false,
+  isOwnerMode,
+  isAdmin,
   previewDocument,onEnterClientPreview,
   gallery,
   policies,branding,loyaltyConfig,onManageDashboard,
@@ -103,6 +110,15 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
 
   const activeStylists = (readOnly || setStylistsProp) ? stylists : internalStylists;
   const setStylists = setStylistsProp || setInternalStylists;
+
+  // Role & mode check: booking triggers and forms are strictly restricted to external end-customers
+  const isOwnerOrAdminMode = Boolean(
+    isOwnerMode ||
+    isAdmin ||
+    !readOnly ||
+    Boolean(setProfileProp) ||
+    Boolean(onEnterClientPreview)
+  );
 
   // Viewport & Editor Controls
   const [deviceMode, setDeviceMode] = useState<DeviceMode>('desktop');
@@ -179,9 +195,14 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
   const [selectedStylist, setSelectedStylist] = useState<Stylist>(activeStylists[0] || activeTemplate.stylists[0]);
   const [selectedGalleryPhoto, setSelectedGalleryPhoto] = useState<string | null>(null);
 
-  // Dynamic client testimonials state
-  const activeReviews=activeProfile.websiteTestimonials??[];
-  const setActiveReviews:React.Dispatch<React.SetStateAction<Testimonial[]>>=next=>setProfile(prev=>({...prev,websiteTestimonials:typeof next==='function'?next(prev.websiteTestimonials??[]):next}));
+  // Dynamic client testimonials state - strictly displays approved reviews on the live storefront
+  const configuredReviews = activeProfile.websiteTestimonials !== undefined
+    ? activeProfile.websiteTestimonials
+    : (standardData.reviews || []).map(r => ({ ...r, approved: true, status: 'approved' as const }));
+  const activeReviews = configuredReviews.filter(
+    r => r.approved !== false && r.status !== 'pending' && r.status !== 'rejected'
+  );
+  const setActiveReviews:React.Dispatch<React.SetStateAction<Testimonial[]>>=next=>setProfile(prev=>({...prev,websiteTestimonials:typeof next==='function'?next(prev.websiteTestimonials??configuredReviews):next}));
   const [testimonialIndex, setTestimonialIndex] = useState(0);
 
   useEffect(() => {
@@ -221,6 +242,52 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
   const showNotification = (msg: string) => {
     setNotificationToast(msg);
     setTimeout(() => setNotificationToast(null), 3500);
+  };
+
+  // Seasonal Promotions & Flash Sale State
+  const seasonalPromotion = activeProfile.promotions;
+  const isPromoEnabled = Boolean(seasonalPromotion?.enabled);
+  const [isTopPromoDismissed, setIsTopPromoDismissed] = useState<boolean>(false);
+  const [isFloatingPromoMinimized, setIsFloatingPromoMinimized] = useState<boolean>(false);
+  const [copiedPromoCode, setCopiedPromoCode] = useState<boolean>(false);
+  const [countdownRemaining, setCountdownRemaining] = useState<string>('24h : 00m : 00s');
+
+  useEffect(() => {
+    if (!isPromoEnabled) return;
+    const calculateCountdown = () => {
+      if (seasonalPromotion?.expiryDate) {
+        const target = new Date(seasonalPromotion.expiryDate).getTime() + (23 * 3600 + 59 * 60 + 59) * 1000;
+        const now = Date.now();
+        const diff = Math.max(0, target - now);
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        return `${String(hours).padStart(2, '0')}h : ${String(minutes).padStart(2, '0')}m : ${String(seconds).padStart(2, '0')}s`;
+      } else {
+        const now = new Date();
+        const midnight = new Date();
+        midnight.setHours(23, 59, 59, 999);
+        const diff = Math.max(0, midnight.getTime() - now.getTime());
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        return `${String(hours).padStart(2, '0')}h : ${String(minutes).padStart(2, '0')}m : ${String(seconds).padStart(2, '0')}s`;
+      }
+    };
+
+    setCountdownRemaining(calculateCountdown());
+    const interval = setInterval(() => {
+      setCountdownRemaining(calculateCountdown());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isPromoEnabled, seasonalPromotion?.expiryDate]);
+
+  const handleCopyPromoCode = (code: string) => {
+    if (!code) return;
+    navigator.clipboard?.writeText(code);
+    setCopiedPromoCode(true);
+    setTimeout(() => setCopiedPromoCode(false), 2000);
   };
 
   useEffect(() => {
@@ -291,6 +358,10 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
   };
 
   const handleOpenBooking = (srv?: SalonService) => {
+    if (isOwnerOrAdminMode) {
+      showNotification('Customer booking modal is restricted to end-customers on the live published storefront.');
+      return;
+    }
     if (srv) {
       setSelectedService(srv);
     } else {
@@ -634,9 +705,16 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
               {/* Fast Test Booking Modal Button */}
               <button
                 type="button"
-                onClick={() => handleOpenBooking()}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                onClick={() => {
+                  if (isOwnerOrAdminMode) {
+                    showNotification('Customer booking flow is restricted to end-customers on the live published storefront.');
+                    return;
+                  }
+                  handleOpenBooking();
+                }}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer opacity-85 hover:opacity-100"
                 id="test-booking-flow-btn"
+                title={isOwnerOrAdminMode ? 'Customer booking flow is restricted to end-customers on live storefront' : 'Test Booking (₹)'}
               >
                 <CalendarCheck className="w-4 h-4" />
                 <span>Test Booking (₹)</span>
@@ -817,6 +895,64 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
             />
           </div>
         </div>}
+
+        {/* ============================================================ */}
+        {/* SEASONAL PROMOTIONAL / FLASH SALE TOP ANNOUNCEMENT BAR */}
+        {/* ============================================================ */}
+        {isPromoEnabled && !isTopPromoDismissed && (seasonalPromotion?.placement === 'top_announcement_bar' || seasonalPromotion?.placement === 'all') && (
+          <div 
+            className="px-4 md:px-8 py-2.5 text-white flex flex-wrap items-center justify-between gap-2.5 shadow-xs transition-all relative z-20"
+            style={{ backgroundColor: seasonalPromotion.accentColor || '#d97706' }}
+            role="banner"
+            aria-label="Promotional announcement"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="text-[10px] md:text-xs font-mono font-extrabold px-2 py-0.5 rounded-full bg-white/20 text-white shrink-0 shadow-2xs">
+                {seasonalPromotion.highlightBadge || '✨ SPECIAL OFFER'}
+              </span>
+              <span className="text-xs md:text-sm font-bold truncate">
+                {seasonalPromotion.title}
+              </span>
+              {seasonalPromotion.discountText && (
+                <span className="hidden sm:inline-block text-xs font-mono font-extrabold bg-black/20 px-2 py-0.5 rounded text-amber-200">
+                  {seasonalPromotion.discountText}
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {seasonalPromotion.promoCode && (
+                <button
+                  type="button"
+                  onClick={() => handleCopyPromoCode(seasonalPromotion.promoCode)}
+                  className="px-2.5 py-1 rounded-lg bg-black/20 hover:bg-black/30 text-white text-[11px] font-mono font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                  title="Click to copy promo code"
+                >
+                  <span>{seasonalPromotion.promoCode}</span>
+                  {copiedPromoCode ? <Check className="w-3 h-3 text-emerald-300" /> : <Copy className="w-3 h-3 text-white/80" />}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  const targetService = activeServices.find(s => s.id === seasonalPromotion.selectedServiceId);
+                  handleOpenBooking(targetService);
+                }}
+                className="px-3 py-1 rounded-lg bg-white text-slate-900 hover:bg-slate-100 text-xs font-extrabold shadow-xs transition-all cursor-pointer"
+              >
+                {seasonalPromotion.buttonText || 'Book Offer'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsTopPromoDismissed(true)}
+                className="text-white/80 hover:text-white p-1 rounded-full cursor-pointer ml-1"
+                aria-label="Dismiss banner"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* ============================================================ */}
         {/* SECTION: SALON SITE NAV HEADER & STICKY BOOKING TRIGGER */}
@@ -1020,6 +1156,73 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
                       <div className="text-sm font-bold flex items-center gap-1 text-amber-400">
                         <Star className="w-3.5 h-3.5 fill-amber-400" />
                         <span>{activeReviews.length ? `${(activeReviews.reduce((sum,r)=>sum+r.rating,0)/activeReviews.length).toFixed(1)} (${activeReviews.length} experiences)` : 'No reviews yet'}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Seasonal Promotional Banner / Flash Sale Hero Card */}
+                {isPromoEnabled && (seasonalPromotion?.placement === 'hero_banner' || seasonalPromotion?.placement === 'all') && (
+                  <div 
+                    className="mt-6 p-4 md:p-5 rounded-2xl border-2 backdrop-blur-md shadow-xl transition-all relative overflow-hidden text-left"
+                    style={{
+                      borderColor: seasonalPromotion.accentColor || '#d97706',
+                      background: 'rgba(15, 23, 42, 0.82)'
+                    }}
+                  >
+                    <div 
+                      className="absolute -right-8 -bottom-8 w-36 h-36 rounded-full blur-2xl opacity-25 pointer-events-none"
+                      style={{ backgroundColor: seasonalPromotion.accentColor || '#d97706' }}
+                    />
+                    <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="space-y-1 max-w-xl">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span 
+                            className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full text-white uppercase shadow-xs"
+                            style={{ backgroundColor: seasonalPromotion.accentColor || '#d97706' }}
+                          >
+                            {seasonalPromotion.highlightBadge}
+                          </span>
+                          <span className="text-xs font-mono font-extrabold text-amber-300">
+                            {seasonalPromotion.discountText}
+                          </span>
+                          {seasonalPromotion.type === 'flash_sale' && (
+                            <span className="text-[11px] font-mono font-bold text-rose-300 flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {countdownRemaining}
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="font-extrabold text-base md:text-lg text-white">
+                          {seasonalPromotion.title}
+                        </h3>
+                        <p className="text-xs text-slate-300">
+                          {seasonalPromotion.message}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {seasonalPromotion.promoCode && (
+                          <button
+                            type="button"
+                            onClick={() => handleCopyPromoCode(seasonalPromotion.promoCode)}
+                            className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-mono text-xs font-bold flex items-center gap-1 border border-white/20 cursor-pointer transition-colors"
+                            title="Click to copy code"
+                          >
+                            <span>Code: <strong>{seasonalPromotion.promoCode}</strong></span>
+                            {copiedPromoCode ? <Check className="w-3 h-3 text-emerald-300" /> : <Copy className="w-3 h-3 text-white/80" />}
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const targetService = activeServices.find(s => s.id === seasonalPromotion.selectedServiceId);
+                            handleOpenBooking(targetService);
+                          }}
+                          className="px-4 py-2 rounded-xl text-xs font-extrabold text-white shadow-md transition-transform hover:scale-105 active:scale-95 cursor-pointer"
+                          style={{ backgroundColor: seasonalPromotion.accentColor || '#d97706' }}
+                        >
+                          {seasonalPromotion.buttonText || 'Book Offer'}
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -1596,6 +1799,10 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
                     <button
                       type="button"
                       onClick={() => {
+                        if (isOwnerOrAdminMode) {
+                          showNotification('Specialist booking is restricted to end-customers on the live published storefront.');
+                          return;
+                        }
                         setSelectedStylist(st);
                         setIsBookingOpen(true);
                       }}
@@ -1643,7 +1850,7 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
                 Client experiences shared by the salon in {activeProfile.city}.
               </p>
 
-              {!readOnly&&onManageDashboard&&<button className="underline text-sm mt-3" onClick={()=>onManageDashboard('website_sections')}>Manage client experiences in Dashboard</button>}
+              {!readOnly&&onManageDashboard&&<button className="underline text-sm mt-3 cursor-pointer" onClick={()=>onManageDashboard('testimonials')}>Manage client experiences in Dashboard</button>}
               {isEditMode && (
                 <div className="mt-4 flex justify-center">
                   <button
@@ -2030,30 +2237,122 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
         </a>
       )}
 
-      {/* Booking Modal Flow */}
-      <BookingModal
-        isOpen={isBookingOpen}
-        onClose={() => setIsBookingOpen(false)}
-        profile={activeProfile}
-        services={activeServices}
-        stylists={activeStylists}
-        initialService={selectedService}
-        initialStylist={selectedStylist}
-        onAddAppointment={onAddAppointment}
-        themeAccentHex={activeAccent.primaryHex}
-        onShowToast={(toastData) => {
-          setToastMessage({
-            id: toastData.id,
-            title: toastData.title,
-            clientName: toastData.clientName,
-            serviceName: toastData.serviceName,
-            stylistName: toastData.stylistName,
-            dateTime: toastData.dateTime,
-            refCode: toastData.refCode,
-            price: toastData.price
-          });
-        }}
-      />
+      {/* Floating Flash Sale / Seasonal Alert Pill */}
+      {isPromoEnabled && (seasonalPromotion?.placement === 'floating_alert' || seasonalPromotion?.placement === 'all') && (
+        <div className="fixed bottom-6 left-6 z-40 max-w-sm w-full transition-all animate-in slide-in-from-bottom-4 duration-300">
+          {isFloatingPromoMinimized ? (
+            <button
+              type="button"
+              onClick={() => setIsFloatingPromoMinimized(false)}
+              className="p-3 rounded-full text-white shadow-2xl flex items-center gap-2 hover:scale-105 transition-transform cursor-pointer border-2 border-white/30"
+              style={{ backgroundColor: seasonalPromotion.accentColor || '#e11d48' }}
+              title="Open Flash Sale Offer"
+            >
+              <Zap className="w-5 h-5 animate-pulse" />
+              <span className="text-xs font-extrabold pr-1">{seasonalPromotion.highlightBadge}</span>
+            </button>
+          ) : (
+            <div 
+              className="p-4 rounded-2xl bg-slate-950/95 backdrop-blur-md text-white shadow-2xl border-2 flex flex-col gap-2.5 relative"
+              style={{ borderColor: seasonalPromotion.accentColor || '#e11d48' }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span 
+                    className="w-7 h-7 rounded-lg flex items-center justify-center text-white shrink-0 shadow-xs"
+                    style={{ backgroundColor: seasonalPromotion.accentColor || '#e11d48' }}
+                  >
+                    <Zap className="w-4 h-4 animate-pulse" />
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-white/10 text-amber-300">
+                      {seasonalPromotion.highlightBadge}
+                    </span>
+                    <span className="text-[11px] font-mono font-bold text-rose-400 flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {countdownRemaining}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsFloatingPromoMinimized(true)}
+                  className="text-slate-400 hover:text-white p-1 rounded-full cursor-pointer"
+                  title="Minimize promotion alert"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div>
+                <h4 className="font-extrabold text-xs sm:text-sm text-white">
+                  {seasonalPromotion.title}
+                </h4>
+                <p className="text-[11px] text-slate-300 mt-0.5 line-clamp-2">
+                  {seasonalPromotion.message}
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-slate-800 gap-2">
+                {seasonalPromotion.promoCode ? (
+                  <button
+                    type="button"
+                    onClick={() => handleCopyPromoCode(seasonalPromotion.promoCode)}
+                    className="text-xs font-mono text-amber-300 bg-white/5 hover:bg-white/10 px-2 py-1 rounded-lg border border-white/10 flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <span>Code: <strong>{seasonalPromotion.promoCode}</strong></span>
+                    {copiedPromoCode ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-slate-400" />}
+                  </button>
+                ) : (
+                  <span className="text-[11px] font-mono font-bold text-emerald-400">
+                    {seasonalPromotion.discountText}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const targetService = activeServices.find(s => s.id === seasonalPromotion.selectedServiceId);
+                    handleOpenBooking(targetService);
+                  }}
+                  className="px-3.5 py-1.5 rounded-xl text-xs font-extrabold text-white shadow-md transition-transform hover:scale-105 active:scale-95 cursor-pointer shrink-0"
+                  style={{ backgroundColor: seasonalPromotion.accentColor || '#e11d48' }}
+                >
+                  {seasonalPromotion.buttonText || 'Claim Deal'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Booking Modal Flow - strictly restricted to end-customers on live storefront */}
+      {!isOwnerOrAdminMode && isBookingOpen && (
+        <BookingModal
+          isOpen={isBookingOpen}
+          onClose={() => setIsBookingOpen(false)}
+          profile={activeProfile}
+          services={activeServices}
+          stylists={activeStylists}
+          initialService={selectedService}
+          initialStylist={selectedStylist}
+          onAddAppointment={onAddAppointment}
+          themeAccentHex={activeAccent.primaryHex}
+          isOwnerMode={isOwnerOrAdminMode}
+          isAdmin={isAdmin}
+          onShowToast={(toastData) => {
+            setToastMessage({
+              id: toastData.id,
+              title: toastData.title,
+              clientName: toastData.clientName,
+              serviceName: toastData.serviceName,
+              stylistName: toastData.stylistName,
+              dateTime: toastData.dateTime,
+              refCode: toastData.refCode,
+              price: toastData.price
+            });
+          }}
+        />
+      )}
 
       {/* Gallery Lightbox Modal */}
       {selectedGalleryPhoto && (() => {
