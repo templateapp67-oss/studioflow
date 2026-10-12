@@ -75,6 +75,7 @@ export const OwnerWorkspace: React.FC<Props> = ({
 }) => {
   const [active, setActive] = useState(18);
   const [notice, setNotice] = useState('');
+  const [calendarViewMode, setCalendarViewMode] = useState<'weekly_grid' | 'table'>('weekly_grid');
   const [showUnsavedWarningModal, setShowUnsavedWarningModal] = useState(false);
   const [isSavingInProgress, setIsSavingInProgress] = useState(false);
 
@@ -132,10 +133,130 @@ export const OwnerWorkspace: React.FC<Props> = ({
     if (active === 14) return <WebsitePublishPanel published={published} onPublish={onPublish} />;
     if (active === 18) return <section><div className="metric-grid"><Metric icon="payments" label="Revenue collected" value={`₹${revenue.toLocaleString('en-IN')}`} /><Metric icon="event_available" label="Bookings" value={String(appointments.length)} /><Metric icon="groups" label="Team members" value={String(stylists.length)} /><Metric icon="fact_check" label="Setup complete" value={`${completion}%`} /></div><div className="workspace-card intro-card"><div><p className="eyebrow">Business control centre</p><h2>Good to see you, {profile.ownerName.split(' ')[0]}</h2><p className="muted">Your website, bookings and brand are managed from one white-label workspace.</p></div><button className="primary-action" onClick={()=>onOpenDashboard()}>Open detailed dashboard</button></div><div className="workspace-card flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 mb-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200"><div><div className="flex items-center gap-1.5 text-xs font-mono font-bold text-amber-900 uppercase"><span className="material-symbols-outlined text-sm">local_offer</span><span>Seasonal Promotions & Flash Sales</span></div><h3 className="font-bold text-sm text-slate-900 mt-0.5">{profile.promotions?.enabled ? `${profile.promotions.title} (${profile.promotions.discountText})` : 'No active seasonal promotional banner'}</h3><p className="text-xs text-slate-600">{profile.promotions?.enabled ? 'Active on published website. Click to update themes, discounts, or timers.' : 'Boost client bookings by activating festive banners or 24h flash sale alerts.'}</p></div><button className="secondary-action text-xs font-bold shrink-0 cursor-pointer" onClick={()=>setActive(27)}>Manage Promotions</button></div><WebsitePublishPanel published={published} onPublish={onPublish} onPublished={()=>setActive(14)} /></section>;
     if (active === 19) return <ActionPage eyebrow="Dashboard · 19" title="Website & design manager" text="Edit your template, content, media and theme, then check the result in the live preview." icon="design_services" action="Open setup editor" onAction={onOpenWizard} secondary="Client Preview" onSecondary={handleAttemptOpenClientPreview} />;
-    if (active === 20) return <section className="workspace-card"><p className="eyebrow">Dashboard · 20</p><h2>Bookings & calendar</h2><div className="table-wrap"><table><thead><tr><th>Client</th><th>Service</th><th>Date & time</th><th>Team</th><th>Status</th></tr></thead><tbody>{appointments.map((item) => <tr key={item.id}><td><strong>{item.clientName}</strong><small>{item.clientPhone}</small></td><td>{item.serviceName}</td><td>{item.date}<small>{item.time}</small></td><td>{item.stylistName}</td><td><span className={`status ${item.status}`}>{item.status}</span></td></tr>)}</tbody></table></div></section>;
+    if (active === 20) {
+      const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      const timeSlots = ['10:00 AM', '11:00 AM', '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM', '6:00 PM', '7:00 PM'];
+      return (
+        <section className="workspace-card">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-5 border-b pb-4">
+            <div>
+              <p className="eyebrow">Dashboard · 20</p>
+              <h2 className="text-xl font-bold">Bookings & Calendar Schedule</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex bg-slate-100 p-1 rounded-xl">
+                <button 
+                  onClick={() => setCalendarViewMode('weekly_grid')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${calendarViewMode === 'weekly_grid' ? 'bg-white shadow-xs text-indigo-700' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  Weekly Grid
+                </button>
+                <button 
+                  onClick={() => setCalendarViewMode('table')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${calendarViewMode === 'table' ? 'bg-white shadow-xs text-indigo-700' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  Table View
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {calendarViewMode === 'weekly_grid' ? (
+            <div className="space-y-4">
+              <p className="text-xs text-slate-500">Visual weekly grid format displaying upcoming client visits across time slots and weekdays.</p>
+              <div className="overflow-x-auto border border-slate-200 rounded-2xl">
+                <div className="min-w-[950px] grid grid-cols-8 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700 text-center py-2.5">
+                  <div className="px-2">Time Slot</div>
+                  {daysOfWeek.map((day) => (
+                    <div key={day} className="px-2">{day}</div>
+                  ))}
+                </div>
+                <div className="min-w-[950px] divide-y divide-slate-100 bg-white">
+                  {timeSlots.map((timeSlot) => (
+                    <div key={timeSlot} className="grid grid-cols-8 min-h-[90px] items-stretch">
+                      <div className="p-2.5 text-[11px] font-mono font-bold text-slate-500 bg-slate-50/70 border-r border-slate-100 flex items-center justify-center text-center">
+                        {timeSlot}
+                      </div>
+                      {daysOfWeek.map((day, dIdx) => {
+                        const matchedAppts = appointments.filter((a) => {
+                          const t = (a.time || '').toLowerCase();
+                          const slotHour = timeSlot.split(':')[0];
+                          return t.includes(slotHour);
+                        });
+                        const dayAppts = matchedAppts.filter((_, idx) => idx % 7 === dIdx);
+                        return (
+                          <div key={day} className="p-1.5 border-r border-slate-100 flex flex-col gap-1.5 overflow-y-auto max-h-[130px]">
+                            {dayAppts.map((app) => (
+                              <div key={app.id} className="p-2 rounded-xl bg-indigo-50/80 border border-indigo-200 text-xs flex flex-col gap-1 shadow-2xs hover:bg-indigo-100/80 transition-colors">
+                                <div className="flex justify-between items-start">
+                                  <span className="font-bold text-indigo-900 truncate max-w-[90px]">{app.clientName}</span>
+                                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${app.status === 'completed' ? 'bg-emerald-100 text-emerald-800' : app.status === 'confirmed' ? 'bg-indigo-200 text-indigo-900' : 'bg-amber-100 text-amber-800'}`}>
+                                    {app.status}
+                                  </span>
+                                </div>
+                                <div className="text-[10px] text-slate-600 truncate">{app.serviceName}</div>
+                                <div className="text-[9px] text-slate-500 font-mono truncate">Team: {app.stylistName}</div>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Client</th>
+                    <th>Service</th>
+                    <th>Date & time</th>
+                    <th>Team</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {appointments.map((item) => (
+                    <tr key={item.id}>
+                      <td>
+                        <strong>{item.clientName}</strong>
+                        <small>{item.clientPhone}</small>
+                      </td>
+                      <td>{item.serviceName}</td>
+                      <td>
+                        {item.date}
+                        <small>{item.time}</small>
+                      </td>
+                      <td>{item.stylistName}</td>
+                      <td>
+                        <span className={`status ${item.status}`}>{item.status}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      );
+    }
     if (active === 21) return <section className="space-y-6"><div className="metric-grid"><Metric icon="account_balance_wallet" label="Collected" value={`₹${revenue.toLocaleString('en-IN')}`} /><Metric icon="receipt_long" label="Average ticket" value={`₹${appointments.length ? Math.round(revenue / appointments.length).toLocaleString('en-IN') : 0}`} /><Metric icon="pending_actions" label="Pending value" value={`₹${appointments.filter((a) => a.paymentStatus !== 'paid_full').reduce((s, a) => s + Math.max(0, a.servicePrice - a.amountPaid), 0).toLocaleString('en-IN')}`} /><Metric icon="trending_up" label="Paid bookings" value={`${appointments.filter((a) => a.amountPaid > 0).length}`} /></div><MonthlyRevenueChart appointments={appointments} primaryColor={accent} /><section className="workspace-card revenue-panel"><h2>Revenue mix</h2>{['paid_full', 'paid_deposit', 'pay_at_salon'].map((status) => { const count = appointments.filter((a) => a.paymentStatus === status).length; return <div className="revenue-row" key={status}><span>{status.replaceAll('_', ' ')}</span><div><i style={{ width: `${appointments.length ? Math.max(8, count / appointments.length * 100) : 0}%` }} /></div><strong>{count}</strong></div>; })}</section></section>;
     if (active === 22) return <ActionPage eyebrow="Marketing" title="Promotions & Social Hub" text="Configure seasonal banners, flash sale alerts, and social campaigns for your salon website." icon="campaign" action="Configure Promotions" onAction={()=>setActive(27)} secondary="Open Promo Studio" onSecondary={()=>onOpenDashboard('marketing')}/>;
-    if (active === 23) return <section className="workspace-card"><p className="eyebrow">Dashboard · 23</p><h2>Salon settings & policies</h2><div className="form-grid single"><Field label="Cancellation window (hours)" value={extras.cancellationWindow} type="number" onChange={(v) => saveExtras({ ...extras, cancellationWindow: Number(v) })} />{Object.entries(extras.policies).map(([key, value]) => <label key={key}><span className="field-label">{key.replace(/([A-Z])/g, ' $1')}</span><textarea value={value} onChange={(e) => saveExtras({ ...extras, policies: { ...extras.policies, [key]: e.target.value } })} className="workspace-textarea" /></label>)}</div></section>;
+    if (active === 23) return <section className="workspace-card"><p className="eyebrow">Dashboard · 23</p><h2>Salon settings & automated reminders</h2><div className="form-grid single">
+      <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+        <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2"><span className="material-symbols-outlined text-indigo-600">notifications_active</span> Automated Client Reminders (24h Before Visit)</h3>
+        <p className="text-xs text-slate-600">Configure automated notification dispatch before scheduled client appointments to reduce no-shows.</p>
+        <div className="space-y-2 pt-2">
+          <Toggle label="Automated 24-Hour Email Reminders" hint="Send confirmation and reminder emails automatically 24 hours prior to client appointments." checked={extras.enableEmailReminders} onChange={(v) => saveExtras({ ...extras, enableEmailReminders: v })} />
+          <Toggle label="Automated 24-Hour SMS / WhatsApp Reminders" hint="Send instant SMS & WhatsApp reminders 24 hours prior to scheduled client visits." checked={extras.enableSmsReminders} onChange={(v) => saveExtras({ ...extras, enableSmsReminders: v })} />
+        </div>
+      </div>
+      <Field label="Cancellation window (hours)" value={extras.cancellationWindow} type="number" onChange={(v) => saveExtras({ ...extras, cancellationWindow: Number(v) })} />
+      {Object.entries(extras.policies).map(([key, value]) => <label key={key}><span className="field-label">{key.replace(/([A-Z])/g, ' $1')}</span><textarea value={value} onChange={(e) => saveExtras({ ...extras, policies: { ...extras.policies, [key]: e.target.value } })} className="workspace-textarea" /></label>)}
+    </div></section>;
     if (active === 24) return <ReferralPanel />;
     if (active === 26) return <ReviewManagement profile={profile} setProfile={setProfile} services={services} appointments={appointments} onNavigateToPreview={handleAttemptOpenClientPreview} />;
     if (active === 27) return <PromotionsManagement profile={profile} setProfile={setProfile} services={services} onNavigateToPreview={handleAttemptOpenClientPreview} onSaveNow={onSaveNow} />;

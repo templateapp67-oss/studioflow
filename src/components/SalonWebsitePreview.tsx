@@ -2,7 +2,7 @@ import { WebsiteSections } from './WebsiteSections';
 import { websiteSections, socialUrl } from '../lib/websiteContent';
 import type { LoyaltyConfig } from '../types';
 import { websiteLink } from '../lib/supabase';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   CheckCircle2, 
@@ -43,7 +43,10 @@ import {
   Scissors,
   Tag,
   Flame,
-  Zap
+  Zap,
+  Search,
+  User,
+  Calendar
 } from 'lucide-react';
 import { SalonProfile, SalonService, Stylist, Appointment, BusinessTypeId } from '../types';
 import { CATEGORY_TEMPLATES } from '../categoryTemplates';
@@ -57,6 +60,7 @@ import { SidePanelCustomizer, SectionVisibilityState, DEFAULT_SECTION_VISIBILITY
 import { InteractiveMapSetup } from './InteractiveMapSetup';
 import { computeHeroAIStyling, extractImageMoodAsync, HeroAIStyling } from '../utils/heroImageMood';
 import { TestimonialModal } from './ClientTestimonials';
+import { StylistProfileModal, getTodayAvailability, getStylistBio } from './StylistProfileModal';
 
 interface SalonWebsitePreviewProps {
   profile: SalonProfile;
@@ -217,9 +221,55 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
   const [editingTestimonial, setEditingTestimonial] = useState<Testimonial | null>(null);
 
   // Editable section custom headings
-  const defaultHeadings={servicesTitle:'Curated Services & Treatments',servicesSubtitle:'Explore our services with transparent pricing in INR (₹).',stylistsTitle:'Meet Our Specialists & Stylists',stylistsSubtitle:'Meet the team caring for your salon experience.',testimonialsTitle:'Client Experiences',galleryTitle:'Studio Lookbook & Client Transformations',locationTitle:'Visit Our Salon'};
+  const defaultHeadings = {
+    servicesTitle: 'Curated Services & Treatments',
+    servicesSubtitle: 'Explore our services with transparent pricing in INR (₹).',
+    stylistsTitle: 'Meet Our Stylists',
+    stylistsSubtitle: 'Meet our master stylists, discover their specializations, and view live weekly availability.',
+    testimonialsTitle: 'Client Experiences',
+    galleryTitle: 'Studio Lookbook & Client Transformations',
+    locationTitle: 'Visit Our Salon'
+  };
   const sectionHeadings={...defaultHeadings,...Object.fromEntries(Object.entries(activeProfile.sectionHeadings||{}).filter(([,v])=>v))};
   const setSectionHeadings:React.Dispatch<React.SetStateAction<typeof sectionHeadings>>=next=>setProfile(prev=>({...prev,sectionHeadings:typeof next==='function'?next({...defaultHeadings,...prev.sectionHeadings}):next}));
+
+  // Stylists Interactive Filter & Profile Modal State
+  const [selectedProfileStylist, setSelectedProfileStylist] = useState<Stylist | null>(null);
+  const [stylistFilterSpecialty, setStylistFilterSpecialty] = useState<string>('All');
+  const [stylistSearchTerm, setStylistSearchTerm] = useState<string>('');
+  const [stylistOnlyAvailableToday, setStylistOnlyAvailableToday] = useState<boolean>(false);
+
+  // Dynamic specialties and filtered stylist list
+  const allStylistSpecialties = useMemo(() => {
+    const set = new Set<string>();
+    activeStylists.forEach(st => {
+      st.specialties?.forEach(sp => {
+        if (sp && sp.trim()) set.add(sp.trim());
+      });
+    });
+    return Array.from(set);
+  }, [activeStylists]);
+
+  const filteredStylists = useMemo(() => {
+    return activeStylists.filter(st => {
+      if (stylistFilterSpecialty !== 'All') {
+        const match = st.specialties?.some(sp => sp.toLowerCase() === stylistFilterSpecialty.toLowerCase());
+        if (!match) return false;
+      }
+      if (stylistSearchTerm.trim()) {
+        const q = stylistSearchTerm.toLowerCase();
+        const matchName = st.name.toLowerCase().includes(q);
+        const matchRole = st.role.toLowerCase().includes(q);
+        const matchSpec = st.specialties?.some(sp => sp.toLowerCase().includes(q));
+        if (!matchName && !matchRole && !matchSpec) return false;
+      }
+      if (stylistOnlyAvailableToday) {
+        const today = getTodayAvailability(st);
+        if (!today.isAvailableToday) return false;
+      }
+      return true;
+    });
+  }, [activeStylists, stylistFilterSpecialty, stylistSearchTerm, stylistOnlyAvailableToday]);
 
   // Top AI Prompt state
   const [topAiPrompt, setTopAiPrompt] = useState<string>('');
@@ -1690,136 +1740,286 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
               )}
             </div>
 
-            {/* Stylists Grid */}
-            <motion.div 
-              variants={{
-                hidden: { opacity: 0 },
-                show: {
-                  opacity: 1,
-                  transition: { staggerChildren: 0.1 }
-                }
-              }}
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true }}
-              className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5"
-            >
-              {activeStylists.map((st) => (
-                <motion.div
-                  variants={{
-                    hidden: { opacity: 0, y: 10 },
-                    show: { opacity: 1, y: 0 }
-                  }}
-                  key={st.id}
-                  className={`rounded-2xl border p-5 flex flex-col justify-between gap-4 transition-all shadow-xs ${
-                    isDarkCanvas ? 'bg-neutral-900 border-neutral-800' : 'bg-white border-slate-200'
-                  }`}
-                >
-                  <div className="flex items-start gap-3.5">
-                    <div className="relative shrink-0">
-                      <img
-                        src={st.avatarUrl || undefined}
-                        alt={st.name}
-                        className="w-16 h-16 rounded-2xl object-cover border border-slate-100 shadow-xs"
-                      />
-                      <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full" />
-                    </div>
+            {/* Stylists Filter & Search Toolbar */}
+            {activeStylists.length > 0 && (
+              <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 mb-6">
+                {/* Specialty Filter Pills */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setStylistFilterSpecialty('All')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      stylistFilterSpecialty === 'All'
+                        ? 'bg-slate-900 text-white shadow-xs'
+                        : isDarkCanvas
+                          ? 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
+                          : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    All Specialists ({activeStylists.length})
+                  </button>
+                  {allStylistSpecialties.slice(0, 5).map((spec) => (
+                    <button
+                      key={spec}
+                      type="button"
+                      onClick={() => setStylistFilterSpecialty(spec)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        stylistFilterSpecialty === spec
+                          ? 'bg-slate-900 text-white shadow-xs'
+                          : isDarkCanvas
+                            ? 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
+                            : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      {spec}
+                    </button>
+                  ))}
+                </div>
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-1">
-                        <h3 className={`font-extrabold text-base truncate ${isDarkCanvas ? 'text-white' : 'text-slate-900'}`}>
-                          <InlineEditable
-                            value={st.name}
-                            onSave={(val) => handleUpdateStylistName(st.id, String(val))}
-                            isEditingActive={isEditMode}
-                            label="Specialist Name"
+                {/* Search Bar & Available Today Toggle */}
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1 md:w-56">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                    <input
+                      type="text"
+                      value={stylistSearchTerm}
+                      onChange={(e) => setStylistSearchTerm(e.target.value)}
+                      placeholder="Search specialist or skill..."
+                      className={`w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border focus:outline-none focus:ring-1 focus:ring-slate-900 ${
+                        isDarkCanvas 
+                          ? 'bg-neutral-900 border-neutral-700 text-white placeholder-neutral-500' 
+                          : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
+                      }`}
+                    />
+                    {stylistSearchTerm && (
+                      <button
+                        type="button"
+                        onClick={() => setStylistSearchTerm('')}
+                        className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setStylistOnlyAvailableToday(!stylistOnlyAvailableToday)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 border ${
+                      stylistOnlyAvailableToday
+                        ? 'bg-emerald-600 text-white border-emerald-500 shadow-xs'
+                        : isDarkCanvas
+                          ? 'bg-neutral-900 border-neutral-800 text-neutral-400'
+                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className={`w-2 h-2 rounded-full ${stylistOnlyAvailableToday ? 'bg-white' : 'bg-emerald-500'}`} />
+                    <span>Available Today</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Stylists Grid */}
+            {activeStylists.length === 0 ? (
+              <div className="p-10 text-center text-slate-400 bg-white/40 rounded-2xl border border-dashed border-slate-300">
+                <User className="w-10 h-10 mx-auto text-slate-300 mb-2" />
+                <p className="text-sm font-semibold">Specialist team profiles coming soon.</p>
+              </div>
+            ) : filteredStylists.length === 0 ? (
+              <div className="p-8 text-center text-slate-500 bg-white/40 rounded-2xl border border-slate-200">
+                <p className="text-xs font-bold">No specialists found matching your search.</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStylistFilterSpecialty('All');
+                    setStylistSearchTerm('');
+                    setStylistOnlyAvailableToday(false);
+                  }}
+                  className="mt-2 text-xs text-indigo-600 underline font-bold cursor-pointer"
+                >
+                  Clear all filters
+                </button>
+              </div>
+            ) : (
+              <motion.div 
+                variants={{
+                  hidden: { opacity: 0 },
+                  show: {
+                    opacity: 1,
+                    transition: { staggerChildren: 0.1 }
+                  }
+                }}
+                initial="hidden"
+                whileInView="show"
+                viewport={{ once: true }}
+                className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"
+              >
+                {filteredStylists.map((st) => {
+                  const today = getTodayAvailability(st);
+                  const bio = getStylistBio(st);
+                  return (
+                    <motion.div
+                      variants={{
+                        hidden: { opacity: 0, y: 10 },
+                        show: { opacity: 1, y: 0 }
+                      }}
+                      key={st.id}
+                      className={`rounded-3xl border p-5 flex flex-col justify-between gap-4 transition-all shadow-xs hover:shadow-md ${
+                        isDarkCanvas ? 'bg-neutral-900 border-neutral-800' : 'bg-white border-slate-200'
+                      }`}
+                    >
+                      {/* Top Availability Status Strip */}
+                      <div className={`px-3 py-1.5 rounded-xl border text-[11px] font-mono font-bold flex items-center justify-between gap-1.5 ${today.badgeClass}`}>
+                        <span className="flex items-center gap-1.5">
+                          <span className={`w-2 h-2 rounded-full ${today.isAvailableToday ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                          <span>{today.isAvailableToday ? `Available: ${today.hoursText}` : 'Weekly Day Off'}</span>
+                        </span>
+                        <span className="text-[10px] uppercase font-sans font-extrabold opacity-75">
+                          {today.isAvailableToday ? 'Open Slots' : 'Advance'}
+                        </span>
+                      </div>
+
+                      {/* Stylist Profile Header */}
+                      <div className="flex items-start gap-3.5">
+                        <div className="relative shrink-0">
+                          <img
+                            src={st.avatarUrl || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&auto=format&fit=crop&q=80'}
+                            alt={st.name}
+                            className="w-16 h-16 rounded-2xl object-cover border border-slate-100 shadow-xs"
                           />
-                        </h3>
-                        <div className={`flex items-center gap-1 border px-2 py-0.5 rounded-lg text-xs font-extrabold shrink-0 ${
-                          isDarkCanvas
-                            ? 'bg-amber-950/80 border-amber-500/60 text-amber-200'
-                            : 'bg-amber-100/90 border-amber-300 text-amber-950 shadow-2xs'
-                        }`}>
-                          <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-600 shrink-0" />
-                          <InlineEditable
-                            value={st.rating}
-                            onSave={(val) => handleUpdateStylistRating(st.id, Number(val))}
-                            isEditingActive={isEditMode}
-                            type="number"
-                            label="Rating"
-                          />
+                          <span className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white ${
+                            today.isAvailableToday ? 'bg-emerald-500' : 'bg-slate-400'
+                          }`} />
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-1">
+                            <h3 className={`font-extrabold text-base truncate ${isDarkCanvas ? 'text-white' : 'text-slate-900'}`}>
+                              <InlineEditable
+                                value={st.name}
+                                onSave={(val) => handleUpdateStylistName(st.id, String(val))}
+                                isEditingActive={isEditMode}
+                                label="Specialist Name"
+                              />
+                            </h3>
+                            <div className={`flex items-center gap-1 border px-2 py-0.5 rounded-lg text-xs font-extrabold shrink-0 ${
+                              isDarkCanvas
+                                ? 'bg-amber-950/80 border-amber-500/60 text-amber-200'
+                                : 'bg-amber-100/90 border-amber-300 text-amber-950 shadow-2xs'
+                            }`}>
+                              <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-600 shrink-0" />
+                              <InlineEditable
+                                value={st.rating}
+                                onSave={(val) => handleUpdateStylistRating(st.id, Number(val))}
+                                isEditingActive={isEditMode}
+                                type="number"
+                                label="Rating"
+                              />
+                            </div>
+                          </div>
+
+                          <p className={`text-xs font-semibold truncate mt-0.5 ${isDarkCanvas ? 'text-neutral-300' : 'text-slate-600'}`}>
+                            <InlineEditable
+                              value={st.role}
+                              onSave={(val) => handleUpdateStylistRole(st.id, String(val))}
+                              isEditingActive={isEditMode}
+                              label="Specialist Role"
+                            />
+                          </p>
+
+                          <div className="flex items-center gap-1 text-[10px] text-slate-400 font-mono mt-1">
+                            <ShieldCheck className="w-3 h-3 text-emerald-500 shrink-0" />
+                            <span>Verified Senior Artist</span>
+                          </div>
                         </div>
                       </div>
 
-                      <p className={`text-xs font-semibold truncate mt-1 ${isDarkCanvas ? 'text-neutral-300' : 'text-slate-600'}`}>
-                        <InlineEditable
-                          value={st.role}
-                          onSave={(val) => handleUpdateStylistRole(st.id, String(val))}
-                          isEditingActive={isEditMode}
-                          label="Specialist Role"
-                        />
+                      {/* Brief Bio / Summary Excerpt */}
+                      <p className={`text-xs line-clamp-2 leading-relaxed ${isDarkCanvas ? 'text-neutral-400' : 'text-slate-500'}`}>
+                        {bio}
                       </p>
 
-                      <div className={`flex items-center gap-1.5 text-[11px] font-bold mt-1.5 ${isDarkCanvas ? 'text-emerald-400' : 'text-emerald-700'}`}>
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
-                        <span>Accepting Online Bookings</span>
+                      {/* Specialties tags */}
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider block">
+                          Specializations
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {st.specialties && st.specialties.slice(0, 3).map((spec, i) => (
+                            <span
+                              key={i}
+                              className={`text-[11px] font-semibold px-2 py-0.5 rounded-lg border ${
+                                isDarkCanvas
+                                  ? 'bg-neutral-800/80 border-neutral-700 text-neutral-200'
+                                  : 'bg-slate-100 border-slate-200/80 text-slate-800'
+                              }`}
+                            >
+                              {spec}
+                            </span>
+                          ))}
+                          {st.specialties && st.specialties.length > 3 && (
+                            <span className="text-[10px] text-slate-400 font-mono self-center">
+                              +{st.specialties.length - 3} more
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </div>
 
-                  {/* Specialties tags */}
-                  <div className={`pt-2.5 border-t flex flex-wrap gap-1.5 ${isDarkCanvas ? 'border-neutral-800' : 'border-slate-100'}`}>
-                    {st.specialties && st.specialties.map((spec, i) => (
-                      <span
-                        key={i}
-                        className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg border ${
-                          isDarkCanvas
-                            ? 'bg-neutral-800/80 border-neutral-700 text-neutral-200'
-                            : 'bg-slate-100 border-slate-200/80 text-slate-800'
-                        }`}
-                      >
-                        {spec}
-                      </span>
-                    ))}
-                  </div>
+                      {/* Dual Action Buttons: View Profile & Book Specialist */}
+                      <div className={`pt-3 border-t flex flex-col gap-2 ${isDarkCanvas ? 'border-neutral-800' : 'border-slate-100'}`}>
+                        <div className="flex items-center gap-2">
+                          {isEditMode && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteStylist(st.id)}
+                              className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 transition-colors shrink-0 cursor-pointer"
+                              title="Delete specialist"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
 
-                  {/* Book / Manage */}
-                  <div className={`pt-2.5 border-t flex items-center justify-between gap-2 ${isDarkCanvas ? 'border-neutral-800' : 'border-slate-100'}`}>
-                    {isEditMode && (
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteStylist(st.id)}
-                        className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 transition-colors shrink-0 cursor-pointer"
-                        title="Delete specialist"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
+                          <button
+                            type="button"
+                            onClick={() => setSelectedProfileStylist(st)}
+                            className={`flex-1 text-xs font-bold px-3 py-2.5 rounded-xl border transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                              isDarkCanvas
+                                ? 'border-neutral-700 bg-neutral-800 hover:bg-neutral-700 text-white'
+                                : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-800'
+                            }`}
+                          >
+                            <User className="w-3.5 h-3.5 text-slate-500" />
+                            <span>View Profile & Hours</span>
+                          </button>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (isOwnerOrAdminMode) {
-                          showNotification('Specialist booking is restricted to end-customers on the live published storefront.');
-                          return;
-                        }
-                        setSelectedStylist(st);
-                        setIsBookingOpen(true);
-                      }}
-                      className="w-full text-xs font-extrabold px-4 py-2.5 rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all hover:opacity-90 active:scale-[0.98]"
-                      style={{
-                        backgroundColor: isDarkCanvas ? '#ffffff' : activeAccent.primaryHex,
-                        color: isDarkCanvas ? '#0f172a' : 'var(--accent-text-color, #ffffff)',
-                      }}
-                    >
-                      <span>Select for Service</span>
-                      <ChevronRight className="w-4 h-4 shrink-0" />
-                    </button>
-                  </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (isOwnerOrAdminMode) {
+                                showNotification('Specialist booking is restricted to end-customers on the live published storefront.');
+                                return;
+                              }
+                              setSelectedStylist(st);
+                              setIsBookingOpen(true);
+                            }}
+                            className="flex-1 text-xs font-extrabold px-3 py-2.5 rounded-xl shadow-xs flex items-center justify-center gap-1 cursor-pointer transition-all hover:opacity-90 active:scale-[0.98]"
+                            style={{
+                              backgroundColor: isDarkCanvas ? '#ffffff' : activeAccent.primaryHex,
+                              color: isDarkCanvas ? '#0f172a' : 'var(--accent-text-color, #ffffff)',
+                            }}
+                          >
+                            <CalendarCheck className="w-3.5 h-3.5 shrink-0" />
+                            <span>Book {st.name.split(' ')[0]}</span>
+                          </button>
+                        </div>
+                      </div>
 
-                </motion.div>
-              ))}
-            </motion.div>
+                    </motion.div>
+                  );
+                })}
+              </motion.div>
+            )}
           </motion.section>
         )}
 
@@ -2515,6 +2715,27 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
         editingTestimonial={editingTestimonial}
         defaultCity={activeProfile.city}
         availableServices={activeServices.map((s) => s.name)}
+      />
+
+      {/* Dynamic Stylist Profile & Availability Modal */}
+      <StylistProfileModal
+        stylist={selectedProfileStylist}
+        isOpen={Boolean(selectedProfileStylist)}
+        onClose={() => setSelectedProfileStylist(null)}
+        services={activeServices}
+        onBookStylist={(st, srv) => {
+          if (isOwnerOrAdminMode) {
+            showNotification('Specialist booking is restricted to end-customers on the live published storefront.');
+            return;
+          }
+          setSelectedStylist(st);
+          if (srv) setSelectedService(srv);
+          setIsBookingOpen(true);
+        }}
+        isOwnerOrAdminMode={isOwnerOrAdminMode}
+        primaryAccentColor={activeAccent.primaryHex}
+        salonWhatsapp={activeProfile.whatsapp}
+        salonName={activeProfile.businessName}
       />
 
     </div>

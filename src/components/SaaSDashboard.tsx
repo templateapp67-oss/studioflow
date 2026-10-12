@@ -32,7 +32,7 @@ interface SaaSDashboardProps {
   gallery?:string[];setGallery?:(images:string[])=>void;
 }
 
-type TabType = 'testimonials' | 'revenue_analytics' | 'website_sections' | 'overview' | 'calendar' | 'services' | 'team' | 'clients' | 'loyalty' | 'marketing' | 'social_connectivity' | 'appearance' | 'website';
+type TabType = 'testimonials' | 'revenue_analytics' | 'website_sections' | 'overview' | 'calendar' | 'services' | 'team' | 'clients' | 'loyalty' | 'loyalty_analytics' | 'marketing' | 'social_connectivity' | 'appearance' | 'website';
 
 export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
   profile,
@@ -134,6 +134,46 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
     catch{setSmsSentNotice('Select and copy the draft above to share it.');}
   };
 
+  const handleExportClientCsv = () => {
+    const headers = ['Client Name', 'Phone', 'Total Visits', 'Total Spent (INR)', 'Loyalty Points', 'Loyalty Tier', 'Favorite Stylist', 'Notes'];
+    const rows = clients.map((cli) => {
+      const tier = cli.loyaltyTier || calculateLoyaltyTier(cli.lifetimePoints || 0, loyaltyConfig.tierThresholds);
+      return [
+        `"${(cli.name || '').replace(/"/g, '""')}"`,
+        `"${(cli.phone || '').replace(/"/g, '""')}"`,
+        cli.totalVisits || 0,
+        cli.totalSpent || 0,
+        cli.points || 0,
+        `"${tier}"`,
+        `"${(cli.favoriteStylist || '').replace(/"/g, '""')}"`,
+        `"${(cli.notes || '').replace(/"/g, '""')}"`
+      ].join(',');
+    });
+
+    const csvContent = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `salon-client-records-${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    setSmsSentNotice('Client contact list and visit history successfully exported as CSV!');
+    setTimeout(() => setSmsSentNotice(''), 4000);
+  };
+
+  const [editingClientNotesId, setEditingClientNotesId] = useState<string | null>(null);
+  const [clientNotesInput, setClientNotesInput] = useState<string>('');
+
+  const handleSaveClientNotes = (clientId: string) => {
+    setClients(prev => prev.map(c => c.id === clientId ? { ...c, notes: clientNotesInput } : c));
+    setEditingClientNotesId(null);
+    setSmsSentNotice('Client private notes and preferences updated successfully.');
+    setTimeout(() => setSmsSentNotice(''), 3000);
+  };
+
   const pendingReviewsCount = (profile.websiteTestimonials || []).filter(r => !r.approved || r.status === 'pending').length;
 
   return (
@@ -196,6 +236,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
             { id: 'clients', label: 'Clients CRM', icon: 'group' },
             { id: 'testimonials', label: 'Reviews & Testimonials', icon: 'rate_review' },
             { id: 'loyalty', label: 'Loyalty & Rewards', icon: 'military_tech' },
+            { id: 'loyalty_analytics', label: 'Loyalty Analytics', icon: 'analytics' },
             { id: 'marketing', label: 'Promo Image & Social', icon: 'photo_camera_back' },
             { id: 'social_connectivity', label: 'Step 06 • Social Connectivity', icon: 'share' },
             { id: 'appearance', label: 'Appearance', icon: 'palette' },
@@ -469,15 +510,32 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
                 </p>
               </div>
 
-              <button
-                onClick={() => setActiveTab('loyalty')}
-                className="text-xs font-bold px-4 py-2 rounded-xl text-white shadow-xs flex items-center gap-1.5 cursor-pointer hover:opacity-95"
-                style={{ backgroundColor: currentPrimaryColor }}
-              >
-                <span className="material-symbols-outlined text-sm">military_tech</span>
-                <span>Open Loyalty & Rewards Hub</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleExportClientCsv}
+                  className="text-xs font-bold px-4 py-2 rounded-xl text-slate-700 bg-white border border-slate-200 shadow-xs flex items-center gap-1.5 cursor-pointer hover:bg-slate-50"
+                  title="Export client contact list and visit history as CSV"
+                >
+                  <span className="material-symbols-outlined text-sm">download</span>
+                  <span>Data Export (CSV)</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('loyalty')}
+                  className="text-xs font-bold px-4 py-2 rounded-xl text-white shadow-xs flex items-center gap-1.5 cursor-pointer hover:opacity-95"
+                  style={{ backgroundColor: currentPrimaryColor }}
+                >
+                  <span className="material-symbols-outlined text-sm">military_tech</span>
+                  <span>Open Loyalty & Rewards Hub</span>
+                </button>
+              </div>
             </div>
+
+            {smsSentNotice && (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center gap-2" role="status">
+                <span className="material-symbols-outlined text-emerald-600">check_circle</span>
+                <span>{smsSentNotice}</span>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {clients.map((cli) => {
@@ -513,12 +571,64 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
                         </div>
                       </div>
 
-                      {/* Notes */}
-                      {cli.notes && (
-                        <div className="text-gray-600 italic bg-gray-50 p-2 rounded-lg border border-gray-100 text-[11px] mt-2">
-                          "{cli.notes}"
+                      {/* Private Notes & Preferences */}
+                      <div className="mt-2.5 pt-2.5 border-t border-gray-100">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-[10px] font-mono-caps font-bold text-gray-500 flex items-center gap-1">
+                            <span className="material-symbols-outlined text-xs">notes</span>
+                            <span>Private Notes & Preferences</span>
+                          </span>
+                          {editingClientNotesId !== cli.id && (
+                            <button
+                              onClick={() => {
+                                setEditingClientNotesId(cli.id);
+                                setClientNotesInput(cli.notes || '');
+                              }}
+                              className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 cursor-pointer flex items-center gap-0.5"
+                            >
+                              <span className="material-symbols-outlined text-xs">edit</span>
+                              <span>{cli.notes ? 'Edit Note' : 'Add Note'}</span>
+                            </button>
+                          )}
                         </div>
-                      )}
+
+                        {editingClientNotesId === cli.id ? (
+                          <div className="flex flex-col gap-2 mt-1">
+                            <textarea
+                              value={clientNotesInput}
+                              onChange={(e) => setClientNotesInput(e.target.value)}
+                              placeholder="Add private comments, hair type, allergies, or styling preferences..."
+                              className="w-full text-xs p-2 border border-indigo-200 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-indigo-500 bg-white"
+                              rows={2}
+                            />
+                            <div className="flex justify-end gap-1.5">
+                              <button
+                                onClick={() => setEditingClientNotesId(null)}
+                                className="px-2 py-1 text-[10px] font-bold rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 cursor-pointer"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                onClick={() => handleSaveClientNotes(cli.id)}
+                                className="px-2.5 py-1 text-[10px] font-bold rounded-lg text-white shadow-xs cursor-pointer hover:opacity-95"
+                                style={{ backgroundColor: currentPrimaryColor }}
+                              >
+                                Save Note
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div 
+                            onClick={() => {
+                              setEditingClientNotesId(cli.id);
+                              setClientNotesInput(cli.notes || '');
+                            }}
+                            className="text-gray-600 italic bg-gray-50 p-2 rounded-lg border border-gray-100 text-[11px] cursor-pointer hover:bg-gray-100/70 transition-colors min-h-[32px] flex items-center"
+                          >
+                            {cli.notes ? `"${cli.notes}"` : <span className="text-gray-400 not-italic">Click to add private client notes or preferences...</span>}
+                          </div>
+                        )}
+                      </div>
 
                       {/* Loyalty Progress Card */}
                       <div className="mt-3 p-2.5 rounded-lg border border-amber-200 bg-amber-50/50 flex flex-col gap-1.5">
@@ -583,6 +693,112 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
             onNavigateToPreview={onNavigateToPreview}
           />
         )}
+
+        {/* TAB CONTENT: LOYALTY ANALYTICS */}
+        {activeTab === 'loyalty_analytics' && (() => {
+          const totalLifetimePoints = clients.reduce((sum, c) => sum + (c.lifetimePoints || c.points || 0), 0);
+          const totalVisitsCount = clients.reduce((sum, c) => sum + (c.totalVisits || 0), 0);
+          const avgPointsPerVisit = totalVisitsCount > 0 ? Math.round(totalLifetimePoints / totalVisitsCount) : 0;
+          const sortedTopClients = [...clients].sort((a, b) => (b.lifetimePoints || b.points || 0) - (a.lifetimePoints || a.points || 0));
+
+          return (
+            <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-xs flex flex-col gap-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-gray-100 pb-4">
+                <div>
+                  <h2 className="font-display font-bold text-xl text-gray-900">
+                    Loyalty Program & Engagement Analytics
+                  </h2>
+                  <p className="text-xs text-gray-500">
+                    Visualizing top-performing clients, average points earned per visit, and loyalty program engagement trends.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setActiveTab('loyalty')}
+                  className="text-xs font-bold px-4 py-2 rounded-xl text-white shadow-xs flex items-center gap-1.5 cursor-pointer hover:opacity-95"
+                  style={{ backgroundColor: currentPrimaryColor }}
+                >
+                  <span className="material-symbols-outlined text-sm">military_tech</span>
+                  <span>Open Loyalty & Rewards Hub</span>
+                </button>
+              </div>
+
+              {/* Metric Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="p-4 rounded-xl border border-gray-200 bg-gray-50 flex flex-col gap-1 shadow-2xs">
+                  <span className="text-xs font-mono-caps text-gray-500 font-bold">Total Lifetime Points</span>
+                  <span className="text-2xl font-extrabold text-gray-900 font-display">{totalLifetimePoints.toLocaleString()} pts</span>
+                  <span className="text-[11px] text-emerald-600 font-bold mt-1">Across all active client accounts</span>
+                </div>
+                <div className="p-4 rounded-xl border border-gray-200 bg-gray-50 flex flex-col gap-1 shadow-2xs">
+                  <span className="text-xs font-mono-caps text-gray-500 font-bold">Avg Points Per Visit</span>
+                  <span className="text-2xl font-extrabold text-indigo-700 font-display">{avgPointsPerVisit} pts</span>
+                  <span className="text-[11px] text-indigo-600 font-bold mt-1">Calculated from completed client visits</span>
+                </div>
+                <div className="p-4 rounded-xl border border-gray-200 bg-gray-50 flex flex-col gap-1 shadow-2xs">
+                  <span className="text-xs font-mono-caps text-gray-500 font-bold">Enrolled Clients</span>
+                  <span className="text-2xl font-extrabold text-gray-900 font-display">{clients.length} clients</span>
+                  <span className="text-[11px] text-amber-600 font-bold mt-1">100% active reward participation</span>
+                </div>
+                <div className="p-4 rounded-xl border border-gray-200 bg-gray-50 flex flex-col gap-1 shadow-2xs">
+                  <span className="text-xs font-mono-caps text-gray-500 font-bold">Total Client Spend</span>
+                  <span className="text-2xl font-extrabold text-emerald-700 font-display">₹{clients.reduce((s, c) => s + (c.totalSpent || 0), 0).toLocaleString('en-IN')}</span>
+                  <span className="text-[11px] text-emerald-600 font-bold mt-1">Lifetime tracked revenue</span>
+                </div>
+              </div>
+
+              {/* Top-Performing Clients Section */}
+              <div className="space-y-4 pt-2">
+                <h3 className="font-display font-bold text-lg text-gray-900 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-amber-500">emoji_events</span>
+                  <span>Top-Performing Clients & VIP Leaderboard</span>
+                </h3>
+                <div className="overflow-x-auto border border-gray-200 rounded-xl">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-200 text-gray-600 font-mono-caps text-[11px]">
+                        <th className="py-3 px-4">Rank & Client Name</th>
+                        <th className="py-3 px-4">Phone</th>
+                        <th className="py-3 px-4">Loyalty Tier</th>
+                        <th className="py-3 px-4">Points Balance</th>
+                        <th className="py-3 px-4">Lifetime Points</th>
+                        <th className="py-3 px-4">Total Spend</th>
+                        <th className="py-3 px-4">Visits</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {sortedTopClients.map((cli, index) => {
+                        const tier = cli.loyaltyTier || calculateLoyaltyTier(cli.lifetimePoints || 0, loyaltyConfig.tierThresholds);
+                        const tierMeta = TIER_METADATA[tier];
+                        return (
+                          <tr key={cli.id} className="hover:bg-gray-50/80 transition-colors">
+                            <td className="py-3 px-4 font-bold text-gray-900 flex items-center gap-2">
+                              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-mono font-bold ${index === 0 ? 'bg-amber-100 text-amber-800' : index === 1 ? 'bg-slate-200 text-slate-800' : index === 2 ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-600'}`}>
+                                #{index + 1}
+                              </span>
+                              <span>{cli.name}</span>
+                            </td>
+                            <td className="py-3 px-4 font-mono text-gray-500">{cli.phone}</td>
+                            <td className="py-3 px-4">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono-caps font-bold border ${tierMeta.badgeBg} ${tierMeta.borderColor} inline-flex items-center gap-1`}>
+                                <span className="material-symbols-outlined text-xs">{tierMeta.icon}</span>
+                                <span>{tierMeta.name}</span>
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 font-mono font-bold text-amber-700">{cli.points || 0} pts</td>
+                            <td className="py-3 px-4 font-mono font-bold text-purple-700">{cli.lifetimePoints || cli.points || 0} pts</td>
+                            <td className="py-3 px-4 font-mono font-bold text-emerald-700">₹{cli.totalSpent.toLocaleString('en-IN')}</td>
+                            <td className="py-3 px-4 font-mono">{cli.totalVisits} visits</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* TAB CONTENT: PROMO STUDIO & AI MARKETING */}
         {activeTab === 'marketing' && (
