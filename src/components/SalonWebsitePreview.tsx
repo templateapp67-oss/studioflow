@@ -1,8 +1,9 @@
+import {CustomerSalonWebsite} from './CustomerSalonWebsite';
 import { WebsiteSections } from './WebsiteSections';
 import { websiteSections, socialUrl } from '../lib/websiteContent';
 import type { LoyaltyConfig } from '../types';
 import { websiteLink } from '../lib/supabase';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   CheckCircle2, 
@@ -40,13 +41,7 @@ import {
   Monitor, 
   Share2, 
   RefreshCw, 
-  Scissors,
-  Tag,
-  Flame,
-  Zap,
-  Search,
-  User,
-  Calendar
+  Scissors
 } from 'lucide-react';
 import { SalonProfile, SalonService, Stylist, Appointment, BusinessTypeId } from '../types';
 import { CATEGORY_TEMPLATES } from '../categoryTemplates';
@@ -60,9 +55,8 @@ import { SidePanelCustomizer, SectionVisibilityState, DEFAULT_SECTION_VISIBILITY
 import { InteractiveMapSetup } from './InteractiveMapSetup';
 import { computeHeroAIStyling, extractImageMoodAsync, HeroAIStyling } from '../utils/heroImageMood';
 import { TestimonialModal } from './ClientTestimonials';
-import { StylistProfileModal, getTodayAvailability, getStylistBio } from './StylistProfileModal';
 
-interface SalonWebsitePreviewProps {
+export interface SalonWebsitePreviewProps {
   profile: SalonProfile;
   setProfile?: React.Dispatch<React.SetStateAction<SalonProfile>>;
   services: SalonService[];
@@ -71,8 +65,6 @@ interface SalonWebsitePreviewProps {
   setStylists?: React.Dispatch<React.SetStateAction<Stylist[]>>;
   onAddAppointment: (appointment: Appointment) => Promise<Appointment>;
   readOnly?: boolean;
-  isOwnerMode?: boolean;
-  isAdmin?: boolean;
   previewDocument?: Document;
   onEnterClientPreview?:()=>void;
   gallery?: string[];
@@ -80,12 +72,20 @@ interface SalonWebsitePreviewProps {
   branding?:{platformName:string;poweredBy:boolean;supportEmail:string};
   loyaltyConfig?:LoyaltyConfig;
   onManageDashboard?:(section:string)=>void;
+  onCustomerAccount?:(mode?:'signin'|'signup')=>void;
+  customerSignedIn?:boolean;
   onSelectCategory?: (categoryId: BusinessTypeId) => void;
 }
 
 type DeviceMode = 'desktop' | 'tablet' | 'mobile';
 
-export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
+export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = props => {
+ const [editing,setEditing]=useState(false);
+ if(props.readOnly)return <CustomerSalonWebsite {...props}/>;
+ return <><div className="pt-28 px-4 pb-4 flex flex-wrap gap-3 bg-white text-slate-900"><button className="secondary-action" onClick={()=>setEditing(value=>!value)}>{editing?'Show redesigned website':'Open owner editing tools'}</button><button className="secondary-action" onClick={props.onEnterClientPreview}>Customer device preview</button></div>{editing?<SalonWebsiteEditor {...props}/>:<CustomerSalonWebsite {...props} readOnly/>}</>;
+};
+
+const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
   profile,
   setProfile: setProfileProp,
   services,
@@ -94,11 +94,9 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
   setStylists: setStylistsProp,
   onAddAppointment,
   readOnly = false,
-  isOwnerMode,
-  isAdmin,
   previewDocument,onEnterClientPreview,
   gallery,
-  policies,branding,loyaltyConfig,onManageDashboard,
+  policies,branding,loyaltyConfig,onManageDashboard,onCustomerAccount,customerSignedIn,
   onSelectCategory,
 }) => {
   // Fallback internal state if setters not passed
@@ -114,15 +112,6 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
 
   const activeStylists = (readOnly || setStylistsProp) ? stylists : internalStylists;
   const setStylists = setStylistsProp || setInternalStylists;
-
-  // Role & mode check: booking triggers and forms are strictly restricted to external end-customers
-  const isOwnerOrAdminMode = Boolean(
-    isOwnerMode ||
-    isAdmin ||
-    !readOnly ||
-    Boolean(setProfileProp) ||
-    Boolean(onEnterClientPreview)
-  );
 
   // Viewport & Editor Controls
   const [deviceMode, setDeviceMode] = useState<DeviceMode>('desktop');
@@ -148,7 +137,7 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
     (activeProfile.themeAccentKey as AccentPaletteKey) || DEFAULT_CATEGORY_ACCENTS[selectedCategoryKey] || 'slate'
   );
   const [isDarkCanvas, setIsDarkCanvas] = useState<boolean>(
-    activeTemplate.themeStyle.isDark || selectedAccentKey === 'obsidian'
+    activeProfile.darkCanvas ?? (activeTemplate.themeStyle.isDark || selectedAccentKey === 'obsidian')
   );
 
   // Synchronize accent changes when profile.themeAccentKey changes externally
@@ -162,15 +151,15 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
     }
   }, [activeProfile.themeAccentKey, selectedAccentKey]);
 
-  useEffect(()=>{setIsDarkCanvas(activeTemplate.themeStyle.isDark || selectedAccentKey==='obsidian');},[activeTemplate.themeStyle.isDark,selectedAccentKey]);
+  useEffect(()=>{setIsDarkCanvas(activeProfile.darkCanvas ?? (activeTemplate.themeStyle.isDark || selectedAccentKey==='obsidian'));},[activeProfile.darkCanvas,activeTemplate.themeStyle.isDark,selectedAccentKey]);
 
-  const activeAccent = ACCENT_PALETTES[selectedAccentKey] || ACCENT_PALETTES.slate;
+  const activeAccent = {...(ACCENT_PALETTES[selectedAccentKey] || ACCENT_PALETTES.slate), ...(activeProfile.customAccentColor ? {primaryHex:activeProfile.customAccentColor} : {})};
   const primaryAccentColor = activeProfile.customAccentColor || activeAccent.primaryHex;
 
   // Update primary accent CSS variable across the document
   useEffect(() => {
     applyPrimaryAccentCssVar(primaryAccentColor, activeAccent.secondaryHex, previewDocument);
-  }, [primaryAccentColor, activeAccent, previewDocument]);
+  }, [primaryAccentColor, activeAccent.secondaryHex, previewDocument]);
 
   // Dynamic Image-Based AI Styling State
   const [heroAIStyling, setHeroAIStyling] = useState<HeroAIStyling>(() =>
@@ -199,14 +188,9 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
   const [selectedStylist, setSelectedStylist] = useState<Stylist>(activeStylists[0] || activeTemplate.stylists[0]);
   const [selectedGalleryPhoto, setSelectedGalleryPhoto] = useState<string | null>(null);
 
-  // Dynamic client testimonials state - strictly displays approved reviews on the live storefront
-  const configuredReviews = activeProfile.websiteTestimonials !== undefined
-    ? activeProfile.websiteTestimonials
-    : (standardData.reviews || []).map(r => ({ ...r, approved: true, status: 'approved' as const }));
-  const activeReviews = configuredReviews.filter(
-    r => r.approved !== false && r.status !== 'pending' && r.status !== 'rejected'
-  );
-  const setActiveReviews:React.Dispatch<React.SetStateAction<Testimonial[]>>=next=>setProfile(prev=>({...prev,websiteTestimonials:typeof next==='function'?next(prev.websiteTestimonials??configuredReviews):next}));
+  // Dynamic client testimonials state
+  const activeReviews=activeProfile.websiteTestimonials??[];
+  const setActiveReviews:React.Dispatch<React.SetStateAction<Testimonial[]>>=next=>setProfile(prev=>({...prev,websiteTestimonials:typeof next==='function'?next(prev.websiteTestimonials??[]):next}));
   const [testimonialIndex, setTestimonialIndex] = useState(0);
 
   useEffect(() => {
@@ -221,55 +205,9 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
   const [editingTestimonial, setEditingTestimonial] = useState<Testimonial | null>(null);
 
   // Editable section custom headings
-  const defaultHeadings = {
-    servicesTitle: 'Curated Services & Treatments',
-    servicesSubtitle: 'Explore our services with transparent pricing in INR (₹).',
-    stylistsTitle: 'Meet Our Stylists',
-    stylistsSubtitle: 'Meet our master stylists, discover their specializations, and view live weekly availability.',
-    testimonialsTitle: 'Client Experiences',
-    galleryTitle: 'Studio Lookbook & Client Transformations',
-    locationTitle: 'Visit Our Salon'
-  };
+  const defaultHeadings={servicesTitle:'Curated Services & Treatments',servicesSubtitle:'Explore our services with transparent pricing in INR (₹).',stylistsTitle:'Meet Our Specialists & Stylists',stylistsSubtitle:'Meet the team caring for your salon experience.',testimonialsTitle:'Client Experiences',galleryTitle:'Studio Lookbook & Client Transformations',locationTitle:'Visit Our Salon'};
   const sectionHeadings={...defaultHeadings,...Object.fromEntries(Object.entries(activeProfile.sectionHeadings||{}).filter(([,v])=>v))};
   const setSectionHeadings:React.Dispatch<React.SetStateAction<typeof sectionHeadings>>=next=>setProfile(prev=>({...prev,sectionHeadings:typeof next==='function'?next({...defaultHeadings,...prev.sectionHeadings}):next}));
-
-  // Stylists Interactive Filter & Profile Modal State
-  const [selectedProfileStylist, setSelectedProfileStylist] = useState<Stylist | null>(null);
-  const [stylistFilterSpecialty, setStylistFilterSpecialty] = useState<string>('All');
-  const [stylistSearchTerm, setStylistSearchTerm] = useState<string>('');
-  const [stylistOnlyAvailableToday, setStylistOnlyAvailableToday] = useState<boolean>(false);
-
-  // Dynamic specialties and filtered stylist list
-  const allStylistSpecialties = useMemo(() => {
-    const set = new Set<string>();
-    activeStylists.forEach(st => {
-      st.specialties?.forEach(sp => {
-        if (sp && sp.trim()) set.add(sp.trim());
-      });
-    });
-    return Array.from(set);
-  }, [activeStylists]);
-
-  const filteredStylists = useMemo(() => {
-    return activeStylists.filter(st => {
-      if (stylistFilterSpecialty !== 'All') {
-        const match = st.specialties?.some(sp => sp.toLowerCase() === stylistFilterSpecialty.toLowerCase());
-        if (!match) return false;
-      }
-      if (stylistSearchTerm.trim()) {
-        const q = stylistSearchTerm.toLowerCase();
-        const matchName = st.name.toLowerCase().includes(q);
-        const matchRole = st.role.toLowerCase().includes(q);
-        const matchSpec = st.specialties?.some(sp => sp.toLowerCase().includes(q));
-        if (!matchName && !matchRole && !matchSpec) return false;
-      }
-      if (stylistOnlyAvailableToday) {
-        const today = getTodayAvailability(st);
-        if (!today.isAvailableToday) return false;
-      }
-      return true;
-    });
-  }, [activeStylists, stylistFilterSpecialty, stylistSearchTerm, stylistOnlyAvailableToday]);
 
   // Top AI Prompt state
   const [topAiPrompt, setTopAiPrompt] = useState<string>('');
@@ -292,52 +230,6 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
   const showNotification = (msg: string) => {
     setNotificationToast(msg);
     setTimeout(() => setNotificationToast(null), 3500);
-  };
-
-  // Seasonal Promotions & Flash Sale State
-  const seasonalPromotion = activeProfile.promotions;
-  const isPromoEnabled = Boolean(seasonalPromotion?.enabled);
-  const [isTopPromoDismissed, setIsTopPromoDismissed] = useState<boolean>(false);
-  const [isFloatingPromoMinimized, setIsFloatingPromoMinimized] = useState<boolean>(false);
-  const [copiedPromoCode, setCopiedPromoCode] = useState<boolean>(false);
-  const [countdownRemaining, setCountdownRemaining] = useState<string>('24h : 00m : 00s');
-
-  useEffect(() => {
-    if (!isPromoEnabled) return;
-    const calculateCountdown = () => {
-      if (seasonalPromotion?.expiryDate) {
-        const target = new Date(seasonalPromotion.expiryDate).getTime() + (23 * 3600 + 59 * 60 + 59) * 1000;
-        const now = Date.now();
-        const diff = Math.max(0, target - now);
-        const hours = Math.floor(diff / (1000 * 60 * 60));
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-        return `${String(hours).padStart(2, '0')}h : ${String(minutes).padStart(2, '0')}m : ${String(seconds).padStart(2, '0')}s`;
-      } else {
-        const now = new Date();
-        const midnight = new Date();
-        midnight.setHours(23, 59, 59, 999);
-        const diff = Math.max(0, midnight.getTime() - now.getTime());
-        const hours = Math.floor(diff / (1000 * 60 * 60));
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-        return `${String(hours).padStart(2, '0')}h : ${String(minutes).padStart(2, '0')}m : ${String(seconds).padStart(2, '0')}s`;
-      }
-    };
-
-    setCountdownRemaining(calculateCountdown());
-    const interval = setInterval(() => {
-      setCountdownRemaining(calculateCountdown());
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [isPromoEnabled, seasonalPromotion?.expiryDate]);
-
-  const handleCopyPromoCode = (code: string) => {
-    if (!code) return;
-    navigator.clipboard?.writeText(code);
-    setCopiedPromoCode(true);
-    setTimeout(() => setCopiedPromoCode(false), 2000);
   };
 
   useEffect(() => {
@@ -408,10 +300,6 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
   };
 
   const handleOpenBooking = (srv?: SalonService) => {
-    if (isOwnerOrAdminMode) {
-      showNotification('Customer booking modal is restricted to end-customers on the live published storefront.');
-      return;
-    }
     if (srv) {
       setSelectedService(srv);
     } else {
@@ -424,26 +312,26 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
   // Inline Service Actions
   const handleUpdateServicePrice = (serviceId: string, newPrice: number) => {
     setServices((prev) =>
-      prev.map((s) => (s.id === serviceId ? { ...s, price: Number.isFinite(Number(newPrice)) && Number(newPrice)>=0 ? Number(newPrice) : s.price } : s))
+      prev.map((s) => (s.id === serviceId ? { ...s, origin:'custom', price: Number.isFinite(Number(newPrice)) && Number(newPrice)>=0 ? Number(newPrice) : s.price } : s))
     );
     showNotification(`Updated service price to ₹${newPrice}`);
   };
 
   const handleUpdateServiceName = (serviceId: string, newName: string) => {
     setServices((prev) =>
-      prev.map((s) => (s.id === serviceId ? { ...s, name: String(newName) } : s))
+      prev.map((s) => (s.id === serviceId ? { ...s, origin:'custom', name: String(newName) } : s))
     );
   };
 
   const handleUpdateServiceDesc = (serviceId: string, newDesc: string) => {
     setServices((prev) =>
-      prev.map((s) => (s.id === serviceId ? { ...s, description: String(newDesc) } : s))
+      prev.map((s) => (s.id === serviceId ? { ...s, origin:'custom', description: String(newDesc) } : s))
     );
   };
 
   const handleUpdateServiceDuration = (serviceId: string, newDuration: number) => {
     setServices((prev) =>
-      prev.map((s) => (s.id === serviceId ? { ...s, durationMinutes: Number(newDuration) } : s))
+      prev.map((s) => (s.id === serviceId ? { ...s, origin:'custom', durationMinutes: Number(newDuration) } : s))
     );
   };
 
@@ -457,14 +345,15 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
             ? `Duration will be displayed on public menu for "${s.name}".`
             : `Duration hidden on public menu for "${s.name}".`
         );
-        return { ...s, showDuration: newShow };
+        return { ...s, origin:'custom', showDuration: newShow };
       })
     );
   };
 
   const handleAddNewService = () => {
     const newSrv: SalonService = {
-      id: `srv-${Date.now()}`,
+      id: `srv-${crypto.randomUUID()}`,
+      origin:'custom',
       name: 'New Signature Treatment',
       category: activeSubCategory === 'All' ? (activeTemplate.subCategories[0] || 'General') : activeSubCategory,
       durationMinutes: 45,
@@ -755,16 +644,9 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
               {/* Fast Test Booking Modal Button */}
               <button
                 type="button"
-                onClick={() => {
-                  if (isOwnerOrAdminMode) {
-                    showNotification('Customer booking flow is restricted to end-customers on the live published storefront.');
-                    return;
-                  }
-                  handleOpenBooking();
-                }}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer opacity-85 hover:opacity-100"
+                onClick={() => handleOpenBooking()}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
                 id="test-booking-flow-btn"
-                title={isOwnerOrAdminMode ? 'Customer booking flow is restricted to end-customers on live storefront' : 'Test Booking (₹)'}
               >
                 <CalendarCheck className="w-4 h-4" />
                 <span>Test Booking (₹)</span>
@@ -883,7 +765,7 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
         setSelectedAccentKey={setSelectedAccentKey}
         primaryAccentColor={primaryAccentColor}
         isDarkCanvas={isDarkCanvas}
-        setIsDarkCanvas={setIsDarkCanvas}
+        setIsDarkCanvas={dark => {setIsDarkCanvas(dark);setProfile(prev=>({...prev,darkCanvas:dark}));}}
         sectionVisibility={sectionVisibility}
         setSectionVisibility={setSectionVisibility}
         onAIGeneratePrompt={handleAIGeneratePrompt}
@@ -947,68 +829,10 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
         </div>}
 
         {/* ============================================================ */}
-        {/* SEASONAL PROMOTIONAL / FLASH SALE TOP ANNOUNCEMENT BAR */}
-        {/* ============================================================ */}
-        {isPromoEnabled && !isTopPromoDismissed && (seasonalPromotion?.placement === 'top_announcement_bar' || seasonalPromotion?.placement === 'all') && (
-          <div 
-            className="px-4 md:px-8 py-2.5 text-white flex flex-wrap items-center justify-between gap-2.5 shadow-xs transition-all relative z-20"
-            style={{ backgroundColor: seasonalPromotion.accentColor || '#d97706' }}
-            role="banner"
-            aria-label="Promotional announcement"
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <span className="text-[10px] md:text-xs font-mono font-extrabold px-2 py-0.5 rounded-full bg-white/20 text-white shrink-0 shadow-2xs">
-                {seasonalPromotion.highlightBadge || '✨ SPECIAL OFFER'}
-              </span>
-              <span className="text-xs md:text-sm font-bold truncate">
-                {seasonalPromotion.title}
-              </span>
-              {seasonalPromotion.discountText && (
-                <span className="hidden sm:inline-block text-xs font-mono font-extrabold bg-black/20 px-2 py-0.5 rounded text-amber-200">
-                  {seasonalPromotion.discountText}
-                </span>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              {seasonalPromotion.promoCode && (
-                <button
-                  type="button"
-                  onClick={() => handleCopyPromoCode(seasonalPromotion.promoCode)}
-                  className="px-2.5 py-1 rounded-lg bg-black/20 hover:bg-black/30 text-white text-[11px] font-mono font-bold flex items-center gap-1 cursor-pointer transition-colors"
-                  title="Click to copy promo code"
-                >
-                  <span>{seasonalPromotion.promoCode}</span>
-                  {copiedPromoCode ? <Check className="w-3 h-3 text-emerald-300" /> : <Copy className="w-3 h-3 text-white/80" />}
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  const targetService = activeServices.find(s => s.id === seasonalPromotion.selectedServiceId);
-                  handleOpenBooking(targetService);
-                }}
-                className="px-3 py-1 rounded-lg bg-white text-slate-900 hover:bg-slate-100 text-xs font-extrabold shadow-xs transition-all cursor-pointer"
-              >
-                {seasonalPromotion.buttonText || 'Book Offer'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsTopPromoDismissed(true)}
-                className="text-white/80 hover:text-white p-1 rounded-full cursor-pointer ml-1"
-                aria-label="Dismiss banner"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ============================================================ */}
         {/* SECTION: SALON SITE NAV HEADER & STICKY BOOKING TRIGGER */}
         {/* ============================================================ */}
         {sectionVisibility.header && (
-          <header className={`px-6 md:px-10 py-4 flex justify-between items-center border-b transition-colors ${
+          <header className={`px-6 md:px-10 py-4 flex flex-wrap gap-4 justify-between items-center border-b transition-colors ${
             isDarkCanvas ? 'bg-[#121216]/95 backdrop-blur-md border-neutral-800 text-white' : 'bg-white/95 backdrop-blur-md border-slate-100 text-slate-900'
           }`}>
             <div className="flex items-center gap-3">
@@ -1058,7 +882,8 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              {readOnly&&<nav aria-label="Customer account" className="flex flex-wrap items-center gap-2 text-xs"><button className="border rounded-xl px-3 py-2 font-semibold" onClick={()=>onCustomerAccount?onCustomerAccount('signin'):location.assign(`/?customer=1&return=${encodeURIComponent(activeProfile.subdomain||'')}`)}>Customer Login</button><button className="border rounded-xl px-3 py-2 font-semibold" onClick={()=>onCustomerAccount?onCustomerAccount('signup'):location.assign(`/?customer=1&auth=signup&return=${encodeURIComponent(activeProfile.subdomain||'')}`)}>Sign up</button>{customerSignedIn&&<a className="underline" href={`/?customer=1&return=${encodeURIComponent(activeProfile.subdomain||'')}`}>My bookings</a>}</nav>}
               <div className="hidden lg:flex flex-col text-right">
                 <span className="text-[11px] font-mono text-slate-400">Direct Appointments</span>
                 <span className="text-xs font-bold font-mono">
@@ -1082,6 +907,7 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
                 <span>Book Appointment</span>
               </button>
             </div>
+            <nav aria-label="Salon website sections" className="w-full flex flex-wrap gap-x-5 gap-y-3 border-t border-current/10 pt-3 text-xs font-semibold">{[['promo','Offers'],['videos','Videos & reels'],['testimonials','Client experiences'],['social','Social media'],['bookings','Bookings & calendar'],['share','Share & referral'],['policies','Salon policies']].filter(([key])=>sectionVisibility[key]).map(([key,label])=><a key={key} className="hover:underline" href={`#salon-${key}`}>{label}</a>)}</nav>
           </header>
         )}
 
@@ -1206,73 +1032,6 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
                       <div className="text-sm font-bold flex items-center gap-1 text-amber-400">
                         <Star className="w-3.5 h-3.5 fill-amber-400" />
                         <span>{activeReviews.length ? `${(activeReviews.reduce((sum,r)=>sum+r.rating,0)/activeReviews.length).toFixed(1)} (${activeReviews.length} experiences)` : 'No reviews yet'}</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Seasonal Promotional Banner / Flash Sale Hero Card */}
-                {isPromoEnabled && (seasonalPromotion?.placement === 'hero_banner' || seasonalPromotion?.placement === 'all') && (
-                  <div 
-                    className="mt-6 p-4 md:p-5 rounded-2xl border-2 backdrop-blur-md shadow-xl transition-all relative overflow-hidden text-left"
-                    style={{
-                      borderColor: seasonalPromotion.accentColor || '#d97706',
-                      background: 'rgba(15, 23, 42, 0.82)'
-                    }}
-                  >
-                    <div 
-                      className="absolute -right-8 -bottom-8 w-36 h-36 rounded-full blur-2xl opacity-25 pointer-events-none"
-                      style={{ backgroundColor: seasonalPromotion.accentColor || '#d97706' }}
-                    />
-                    <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="space-y-1 max-w-xl">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span 
-                            className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full text-white uppercase shadow-xs"
-                            style={{ backgroundColor: seasonalPromotion.accentColor || '#d97706' }}
-                          >
-                            {seasonalPromotion.highlightBadge}
-                          </span>
-                          <span className="text-xs font-mono font-extrabold text-amber-300">
-                            {seasonalPromotion.discountText}
-                          </span>
-                          {seasonalPromotion.type === 'flash_sale' && (
-                            <span className="text-[11px] font-mono font-bold text-rose-300 flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {countdownRemaining}
-                            </span>
-                          )}
-                        </div>
-                        <h3 className="font-extrabold text-base md:text-lg text-white">
-                          {seasonalPromotion.title}
-                        </h3>
-                        <p className="text-xs text-slate-300">
-                          {seasonalPromotion.message}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {seasonalPromotion.promoCode && (
-                          <button
-                            type="button"
-                            onClick={() => handleCopyPromoCode(seasonalPromotion.promoCode)}
-                            className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-mono text-xs font-bold flex items-center gap-1 border border-white/20 cursor-pointer transition-colors"
-                            title="Click to copy code"
-                          >
-                            <span>Code: <strong>{seasonalPromotion.promoCode}</strong></span>
-                            {copiedPromoCode ? <Check className="w-3 h-3 text-emerald-300" /> : <Copy className="w-3 h-3 text-white/80" />}
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const targetService = activeServices.find(s => s.id === seasonalPromotion.selectedServiceId);
-                            handleOpenBooking(targetService);
-                          }}
-                          className="px-4 py-2 rounded-xl text-xs font-extrabold text-white shadow-md transition-transform hover:scale-105 active:scale-95 cursor-pointer"
-                          style={{ backgroundColor: seasonalPromotion.accentColor || '#d97706' }}
-                        >
-                          {seasonalPromotion.buttonText || 'Book Offer'}
-                        </button>
                       </div>
                     </div>
                   </div>
@@ -1540,6 +1299,7 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
                       : 'bg-white border-slate-200 hover:border-slate-300 shadow-xs'
                   }`}
                 >
+                  {srv.imageUrl&&<div className="service-editor-image"><img src={srv.imageUrl} alt={srv.name} width={600} height={400} loading="lazy"/></div>}
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -1740,294 +1500,140 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
               )}
             </div>
 
-            {/* Stylists Filter & Search Toolbar */}
-            {activeStylists.length > 0 && (
-              <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 mb-6">
-                {/* Specialty Filter Pills */}
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setStylistFilterSpecialty('All')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      stylistFilterSpecialty === 'All'
-                        ? 'bg-slate-900 text-white shadow-xs'
-                        : isDarkCanvas
-                          ? 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
-                          : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
-                    }`}
-                  >
-                    All Specialists ({activeStylists.length})
-                  </button>
-                  {allStylistSpecialties.slice(0, 5).map((spec) => (
-                    <button
-                      key={spec}
-                      type="button"
-                      onClick={() => setStylistFilterSpecialty(spec)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        stylistFilterSpecialty === spec
-                          ? 'bg-slate-900 text-white shadow-xs'
-                          : isDarkCanvas
-                            ? 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
-                            : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
-                      }`}
-                    >
-                      {spec}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Search Bar & Available Today Toggle */}
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1 md:w-56">
-                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
-                    <input
-                      type="text"
-                      value={stylistSearchTerm}
-                      onChange={(e) => setStylistSearchTerm(e.target.value)}
-                      placeholder="Search specialist or skill..."
-                      className={`w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border focus:outline-none focus:ring-1 focus:ring-slate-900 ${
-                        isDarkCanvas 
-                          ? 'bg-neutral-900 border-neutral-700 text-white placeholder-neutral-500' 
-                          : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
-                      }`}
-                    />
-                    {stylistSearchTerm && (
-                      <button
-                        type="button"
-                        onClick={() => setStylistSearchTerm('')}
-                        className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 cursor-pointer"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    )}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setStylistOnlyAvailableToday(!stylistOnlyAvailableToday)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 border ${
-                      stylistOnlyAvailableToday
-                        ? 'bg-emerald-600 text-white border-emerald-500 shadow-xs'
-                        : isDarkCanvas
-                          ? 'bg-neutral-900 border-neutral-800 text-neutral-400'
-                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    <span className={`w-2 h-2 rounded-full ${stylistOnlyAvailableToday ? 'bg-white' : 'bg-emerald-500'}`} />
-                    <span>Available Today</span>
-                  </button>
-                </div>
-              </div>
-            )}
-
             {/* Stylists Grid */}
-            {activeStylists.length === 0 ? (
-              <div className="p-10 text-center text-slate-400 bg-white/40 rounded-2xl border border-dashed border-slate-300">
-                <User className="w-10 h-10 mx-auto text-slate-300 mb-2" />
-                <p className="text-sm font-semibold">Specialist team profiles coming soon.</p>
-              </div>
-            ) : filteredStylists.length === 0 ? (
-              <div className="p-8 text-center text-slate-500 bg-white/40 rounded-2xl border border-slate-200">
-                <p className="text-xs font-bold">No specialists found matching your search.</p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setStylistFilterSpecialty('All');
-                    setStylistSearchTerm('');
-                    setStylistOnlyAvailableToday(false);
+            <motion.div 
+              variants={{
+                hidden: { opacity: 0 },
+                show: {
+                  opacity: 1,
+                  transition: { staggerChildren: 0.1 }
+                }
+              }}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true }}
+              className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5"
+            >
+              {activeStylists.map((st) => (
+                <motion.div
+                  variants={{
+                    hidden: { opacity: 0, y: 10 },
+                    show: { opacity: 1, y: 0 }
                   }}
-                  className="mt-2 text-xs text-indigo-600 underline font-bold cursor-pointer"
+                  key={st.id}
+                  className={`rounded-2xl border p-5 flex flex-col justify-between gap-4 transition-all shadow-xs ${
+                    isDarkCanvas ? 'bg-neutral-900 border-neutral-800' : 'bg-white border-slate-200'
+                  }`}
                 >
-                  Clear all filters
-                </button>
-              </div>
-            ) : (
-              <motion.div 
-                variants={{
-                  hidden: { opacity: 0 },
-                  show: {
-                    opacity: 1,
-                    transition: { staggerChildren: 0.1 }
-                  }
-                }}
-                initial="hidden"
-                whileInView="show"
-                viewport={{ once: true }}
-                className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"
-              >
-                {filteredStylists.map((st) => {
-                  const today = getTodayAvailability(st);
-                  const bio = getStylistBio(st);
-                  return (
-                    <motion.div
-                      variants={{
-                        hidden: { opacity: 0, y: 10 },
-                        show: { opacity: 1, y: 0 }
-                      }}
-                      key={st.id}
-                      className={`rounded-3xl border p-5 flex flex-col justify-between gap-4 transition-all shadow-xs hover:shadow-md ${
-                        isDarkCanvas ? 'bg-neutral-900 border-neutral-800' : 'bg-white border-slate-200'
-                      }`}
-                    >
-                      {/* Top Availability Status Strip */}
-                      <div className={`px-3 py-1.5 rounded-xl border text-[11px] font-mono font-bold flex items-center justify-between gap-1.5 ${today.badgeClass}`}>
-                        <span className="flex items-center gap-1.5">
-                          <span className={`w-2 h-2 rounded-full ${today.isAvailableToday ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-                          <span>{today.isAvailableToday ? `Available: ${today.hoursText}` : 'Weekly Day Off'}</span>
-                        </span>
-                        <span className="text-[10px] uppercase font-sans font-extrabold opacity-75">
-                          {today.isAvailableToday ? 'Open Slots' : 'Advance'}
-                        </span>
-                      </div>
+                  <div className="flex items-start gap-3.5">
+                    <div className="relative shrink-0">
+                      <img
+                        src={st.avatarUrl || undefined}
+                        alt={st.name}
+                        className="w-16 h-16 rounded-2xl object-cover border border-slate-100 shadow-xs"
+                      />
+                      <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full" />
+                    </div>
 
-                      {/* Stylist Profile Header */}
-                      <div className="flex items-start gap-3.5">
-                        <div className="relative shrink-0">
-                          <img
-                            src={st.avatarUrl || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&auto=format&fit=crop&q=80'}
-                            alt={st.name}
-                            className="w-16 h-16 rounded-2xl object-cover border border-slate-100 shadow-xs"
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1">
+                        <h3 className={`font-extrabold text-base truncate ${isDarkCanvas ? 'text-white' : 'text-slate-900'}`}>
+                          <InlineEditable
+                            value={st.name}
+                            onSave={(val) => handleUpdateStylistName(st.id, String(val))}
+                            isEditingActive={isEditMode}
+                            label="Specialist Name"
                           />
-                          <span className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white ${
-                            today.isAvailableToday ? 'bg-emerald-500' : 'bg-slate-400'
-                          }`} />
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-1">
-                            <h3 className={`font-extrabold text-base truncate ${isDarkCanvas ? 'text-white' : 'text-slate-900'}`}>
-                              <InlineEditable
-                                value={st.name}
-                                onSave={(val) => handleUpdateStylistName(st.id, String(val))}
-                                isEditingActive={isEditMode}
-                                label="Specialist Name"
-                              />
-                            </h3>
-                            <div className={`flex items-center gap-1 border px-2 py-0.5 rounded-lg text-xs font-extrabold shrink-0 ${
-                              isDarkCanvas
-                                ? 'bg-amber-950/80 border-amber-500/60 text-amber-200'
-                                : 'bg-amber-100/90 border-amber-300 text-amber-950 shadow-2xs'
-                            }`}>
-                              <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-600 shrink-0" />
-                              <InlineEditable
-                                value={st.rating}
-                                onSave={(val) => handleUpdateStylistRating(st.id, Number(val))}
-                                isEditingActive={isEditMode}
-                                type="number"
-                                label="Rating"
-                              />
-                            </div>
-                          </div>
-
-                          <p className={`text-xs font-semibold truncate mt-0.5 ${isDarkCanvas ? 'text-neutral-300' : 'text-slate-600'}`}>
-                            <InlineEditable
-                              value={st.role}
-                              onSave={(val) => handleUpdateStylistRole(st.id, String(val))}
-                              isEditingActive={isEditMode}
-                              label="Specialist Role"
-                            />
-                          </p>
-
-                          <div className="flex items-center gap-1 text-[10px] text-slate-400 font-mono mt-1">
-                            <ShieldCheck className="w-3 h-3 text-emerald-500 shrink-0" />
-                            <span>Verified Senior Artist</span>
-                          </div>
+                        </h3>
+                        <div className={`flex items-center gap-1 border px-2 py-0.5 rounded-lg text-xs font-extrabold shrink-0 ${
+                          isDarkCanvas
+                            ? 'bg-amber-950/80 border-amber-500/60 text-amber-200'
+                            : 'bg-amber-100/90 border-amber-300 text-amber-950 shadow-2xs'
+                        }`}>
+                          <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-600 shrink-0" />
+                          <InlineEditable
+                            value={st.rating}
+                            onSave={(val) => handleUpdateStylistRating(st.id, Number(val))}
+                            isEditingActive={isEditMode}
+                            type="number"
+                            label="Rating"
+                          />
                         </div>
                       </div>
 
-                      {/* Brief Bio / Summary Excerpt */}
-                      <p className={`text-xs line-clamp-2 leading-relaxed ${isDarkCanvas ? 'text-neutral-400' : 'text-slate-500'}`}>
-                        {bio}
+                      <p className={`text-xs font-semibold truncate mt-1 ${isDarkCanvas ? 'text-neutral-300' : 'text-slate-600'}`}>
+                        <InlineEditable
+                          value={st.role}
+                          onSave={(val) => handleUpdateStylistRole(st.id, String(val))}
+                          isEditingActive={isEditMode}
+                          label="Specialist Role"
+                        />
                       </p>
 
-                      {/* Specialties tags */}
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider block">
-                          Specializations
-                        </span>
-                        <div className="flex flex-wrap gap-1.5">
-                          {st.specialties && st.specialties.slice(0, 3).map((spec, i) => (
-                            <span
-                              key={i}
-                              className={`text-[11px] font-semibold px-2 py-0.5 rounded-lg border ${
-                                isDarkCanvas
-                                  ? 'bg-neutral-800/80 border-neutral-700 text-neutral-200'
-                                  : 'bg-slate-100 border-slate-200/80 text-slate-800'
-                              }`}
-                            >
-                              {spec}
-                            </span>
-                          ))}
-                          {st.specialties && st.specialties.length > 3 && (
-                            <span className="text-[10px] text-slate-400 font-mono self-center">
-                              +{st.specialties.length - 3} more
-                            </span>
-                          )}
-                        </div>
+                      <div className={`flex items-center gap-1.5 text-[11px] font-bold mt-1.5 ${isDarkCanvas ? 'text-emerald-400' : 'text-emerald-700'}`}>
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
+                        <span>Accepting Online Bookings</span>
                       </div>
+                    </div>
+                  </div>
 
-                      {/* Dual Action Buttons: View Profile & Book Specialist */}
-                      <div className={`pt-3 border-t flex flex-col gap-2 ${isDarkCanvas ? 'border-neutral-800' : 'border-slate-100'}`}>
-                        <div className="flex items-center gap-2">
-                          {isEditMode && (
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteStylist(st.id)}
-                              className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 transition-colors shrink-0 cursor-pointer"
-                              title="Delete specialist"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          )}
+                  {/* Specialties tags */}
+                  <div className={`pt-2.5 border-t flex flex-wrap gap-1.5 ${isDarkCanvas ? 'border-neutral-800' : 'border-slate-100'}`}>
+                    {st.specialties && st.specialties.map((spec, i) => (
+                      <span
+                        key={i}
+                        className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg border ${
+                          isDarkCanvas
+                            ? 'bg-neutral-800/80 border-neutral-700 text-neutral-200'
+                            : 'bg-slate-100 border-slate-200/80 text-slate-800'
+                        }`}
+                      >
+                        {spec}
+                      </span>
+                    ))}
+                  </div>
 
-                          <button
-                            type="button"
-                            onClick={() => setSelectedProfileStylist(st)}
-                            className={`flex-1 text-xs font-bold px-3 py-2.5 rounded-xl border transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                              isDarkCanvas
-                                ? 'border-neutral-700 bg-neutral-800 hover:bg-neutral-700 text-white'
-                                : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-800'
-                            }`}
-                          >
-                            <User className="w-3.5 h-3.5 text-slate-500" />
-                            <span>View Profile & Hours</span>
-                          </button>
+                  {/* Book / Manage */}
+                  <div className={`pt-2.5 border-t flex items-center justify-between gap-2 ${isDarkCanvas ? 'border-neutral-800' : 'border-slate-100'}`}>
+                    {isEditMode && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteStylist(st.id)}
+                        className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 transition-colors shrink-0 cursor-pointer"
+                        title="Delete specialist"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
 
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (isOwnerOrAdminMode) {
-                                showNotification('Specialist booking is restricted to end-customers on the live published storefront.');
-                                return;
-                              }
-                              setSelectedStylist(st);
-                              setIsBookingOpen(true);
-                            }}
-                            className="flex-1 text-xs font-extrabold px-3 py-2.5 rounded-xl shadow-xs flex items-center justify-center gap-1 cursor-pointer transition-all hover:opacity-90 active:scale-[0.98]"
-                            style={{
-                              backgroundColor: isDarkCanvas ? '#ffffff' : activeAccent.primaryHex,
-                              color: isDarkCanvas ? '#0f172a' : 'var(--accent-text-color, #ffffff)',
-                            }}
-                          >
-                            <CalendarCheck className="w-3.5 h-3.5 shrink-0" />
-                            <span>Book {st.name.split(' ')[0]}</span>
-                          </button>
-                        </div>
-                      </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedStylist(st);
+                        setIsBookingOpen(true);
+                      }}
+                      className="w-full text-xs font-extrabold px-4 py-2.5 rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all hover:opacity-90 active:scale-[0.98]"
+                      style={{
+                        backgroundColor: isDarkCanvas ? '#ffffff' : activeAccent.primaryHex,
+                        color: isDarkCanvas ? '#0f172a' : 'var(--accent-text-color, #ffffff)',
+                      }}
+                    >
+                      <span>Select for Service</span>
+                      <ChevronRight className="w-4 h-4 shrink-0" />
+                    </button>
+                  </div>
 
-                    </motion.div>
-                  );
-                })}
-              </motion.div>
-            )}
+                </motion.div>
+              ))}
+            </motion.div>
           </motion.section>
         )}
 
         {/* ============================================================ */}
         {/* 5. CLIENT REVIEWS & TESTIMONIALS SECTION */}
         {/* ============================================================ */}
-        {sectionVisibility.testimonials && (activeReviews.length>0 || !readOnly) && (
-          <section className={`p-6 md:p-12 border-b ${
+        {sectionVisibility.testimonials && (
+          <section id="salon-testimonials" className={`p-6 md:p-12 border-b ${
             isDarkCanvas ? 'bg-[#0f0f13] border-neutral-800' : 'bg-white border-slate-200'
           }`}>
             <div className="text-center max-w-3xl mx-auto mb-8">
@@ -2050,7 +1656,7 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
                 Client experiences shared by the salon in {activeProfile.city}.
               </p>
 
-              {!readOnly&&onManageDashboard&&<button className="underline text-sm mt-3 cursor-pointer" onClick={()=>onManageDashboard('testimonials')}>Manage client experiences in Dashboard</button>}
+              {!readOnly&&onManageDashboard&&<button className="underline text-sm mt-3" onClick={()=>onManageDashboard('website_sections')}>Edit featured client experiences</button>}
               {isEditMode && (
                 <div className="mt-4 flex justify-center">
                   <button
@@ -2065,6 +1671,7 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
               )}
             </div>
 
+            {!activeReviews.length&&<p className="text-center mb-6 text-sm">Client experiences will appear here after they are shared by the salon.</p>}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {(activeReviews || []).length > 0 && (
                 <div
@@ -2336,7 +1943,7 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
           </section>
         )}
 
-        <WebsiteSections profile={activeProfile} services={activeServices} onBook={handleOpenBooking} onManage={onManageDashboard} readOnly={readOnly} policies={policies} loyaltyConfig={loyaltyConfig}/>
+        <WebsiteSections onCustomerAccount={onCustomerAccount} profile={activeProfile} services={activeServices} onBook={handleOpenBooking} onManage={onManageDashboard} setProfile={setProfile} isEditingActive={isEditMode && !readOnly} readOnly={readOnly} policies={policies} loyaltyConfig={loyaltyConfig}/>
         {branding?.poweredBy&&<p className="text-center text-xs py-4">Powered by {branding.platformName||'StudioFlow'}</p>}
         {/* 8. FOOTER WITH DYNAMIC SOCIAL LINKS */}
         <footer className={`py-8 px-6 md:px-12 border-t text-center ${
@@ -2437,122 +2044,30 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
         </a>
       )}
 
-      {/* Floating Flash Sale / Seasonal Alert Pill */}
-      {isPromoEnabled && (seasonalPromotion?.placement === 'floating_alert' || seasonalPromotion?.placement === 'all') && (
-        <div className="fixed bottom-6 left-6 z-40 max-w-sm w-full transition-all animate-in slide-in-from-bottom-4 duration-300">
-          {isFloatingPromoMinimized ? (
-            <button
-              type="button"
-              onClick={() => setIsFloatingPromoMinimized(false)}
-              className="p-3 rounded-full text-white shadow-2xl flex items-center gap-2 hover:scale-105 transition-transform cursor-pointer border-2 border-white/30"
-              style={{ backgroundColor: seasonalPromotion.accentColor || '#e11d48' }}
-              title="Open Flash Sale Offer"
-            >
-              <Zap className="w-5 h-5 animate-pulse" />
-              <span className="text-xs font-extrabold pr-1">{seasonalPromotion.highlightBadge}</span>
-            </button>
-          ) : (
-            <div 
-              className="p-4 rounded-2xl bg-slate-950/95 backdrop-blur-md text-white shadow-2xl border-2 flex flex-col gap-2.5 relative"
-              style={{ borderColor: seasonalPromotion.accentColor || '#e11d48' }}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span 
-                    className="w-7 h-7 rounded-lg flex items-center justify-center text-white shrink-0 shadow-xs"
-                    style={{ backgroundColor: seasonalPromotion.accentColor || '#e11d48' }}
-                  >
-                    <Zap className="w-4 h-4 animate-pulse" />
-                  </span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-white/10 text-amber-300">
-                      {seasonalPromotion.highlightBadge}
-                    </span>
-                    <span className="text-[11px] font-mono font-bold text-rose-400 flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {countdownRemaining}
-                    </span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsFloatingPromoMinimized(true)}
-                  className="text-slate-400 hover:text-white p-1 rounded-full cursor-pointer"
-                  title="Minimize promotion alert"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div>
-                <h4 className="font-extrabold text-xs sm:text-sm text-white">
-                  {seasonalPromotion.title}
-                </h4>
-                <p className="text-[11px] text-slate-300 mt-0.5 line-clamp-2">
-                  {seasonalPromotion.message}
-                </p>
-              </div>
-
-              <div className="flex items-center justify-between pt-2 border-t border-slate-800 gap-2">
-                {seasonalPromotion.promoCode ? (
-                  <button
-                    type="button"
-                    onClick={() => handleCopyPromoCode(seasonalPromotion.promoCode)}
-                    className="text-xs font-mono text-amber-300 bg-white/5 hover:bg-white/10 px-2 py-1 rounded-lg border border-white/10 flex items-center gap-1 cursor-pointer transition-colors"
-                  >
-                    <span>Code: <strong>{seasonalPromotion.promoCode}</strong></span>
-                    {copiedPromoCode ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-slate-400" />}
-                  </button>
-                ) : (
-                  <span className="text-[11px] font-mono font-bold text-emerald-400">
-                    {seasonalPromotion.discountText}
-                  </span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    const targetService = activeServices.find(s => s.id === seasonalPromotion.selectedServiceId);
-                    handleOpenBooking(targetService);
-                  }}
-                  className="px-3.5 py-1.5 rounded-xl text-xs font-extrabold text-white shadow-md transition-transform hover:scale-105 active:scale-95 cursor-pointer shrink-0"
-                  style={{ backgroundColor: seasonalPromotion.accentColor || '#e11d48' }}
-                >
-                  {seasonalPromotion.buttonText || 'Claim Deal'}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Booking Modal Flow - strictly restricted to end-customers on live storefront */}
-      {!isOwnerOrAdminMode && isBookingOpen && (
-        <BookingModal
-          isOpen={isBookingOpen}
-          onClose={() => setIsBookingOpen(false)}
-          profile={activeProfile}
-          services={activeServices}
-          stylists={activeStylists}
-          initialService={selectedService}
-          initialStylist={selectedStylist}
-          onAddAppointment={onAddAppointment}
-          themeAccentHex={activeAccent.primaryHex}
-          isOwnerMode={isOwnerOrAdminMode}
-          isAdmin={isAdmin}
-          onShowToast={(toastData) => {
-            setToastMessage({
-              id: toastData.id,
-              title: toastData.title,
-              clientName: toastData.clientName,
-              serviceName: toastData.serviceName,
-              stylistName: toastData.stylistName,
-              dateTime: toastData.dateTime,
-              refCode: toastData.refCode,
-              price: toastData.price
-            });
-          }}
-        />
-      )}
+      {/* Booking Modal Flow */}
+      <BookingModal
+        isOpen={isBookingOpen}
+        onClose={() => setIsBookingOpen(false)}
+        profile={activeProfile}
+        services={activeServices}
+        stylists={activeStylists}
+        initialService={selectedService}
+        initialStylist={selectedStylist}
+        onAddAppointment={onAddAppointment}
+        themeAccentHex={activeAccent.primaryHex}
+        onShowToast={(toastData) => {
+          setToastMessage({
+            id: toastData.id,
+            title: toastData.title,
+            clientName: toastData.clientName,
+            serviceName: toastData.serviceName,
+            stylistName: toastData.stylistName,
+            dateTime: toastData.dateTime,
+            refCode: toastData.refCode,
+            price: toastData.price
+          });
+        }}
+      />
 
       {/* Gallery Lightbox Modal */}
       {selectedGalleryPhoto && (() => {
@@ -2715,27 +2230,6 @@ export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = ({
         editingTestimonial={editingTestimonial}
         defaultCity={activeProfile.city}
         availableServices={activeServices.map((s) => s.name)}
-      />
-
-      {/* Dynamic Stylist Profile & Availability Modal */}
-      <StylistProfileModal
-        stylist={selectedProfileStylist}
-        isOpen={Boolean(selectedProfileStylist)}
-        onClose={() => setSelectedProfileStylist(null)}
-        services={activeServices}
-        onBookStylist={(st, srv) => {
-          if (isOwnerOrAdminMode) {
-            showNotification('Specialist booking is restricted to end-customers on the live published storefront.');
-            return;
-          }
-          setSelectedStylist(st);
-          if (srv) setSelectedService(srv);
-          setIsBookingOpen(true);
-        }}
-        isOwnerOrAdminMode={isOwnerOrAdminMode}
-        primaryAccentColor={activeAccent.primaryHex}
-        salonWhatsapp={activeProfile.whatsapp}
-        salonName={activeProfile.businessName}
       />
 
     </div>

@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { supabase, captureReferral } from '../lib/supabase';
 
-export function AuthPage({ compact = false, recovery = false, onRecovered }: { compact?: boolean; recovery?: boolean; onRecovered?: () => void }) {
-  const customer = new URLSearchParams(location.search).has('customer');
-  const [mode, setMode] = useState<'signin'|'signup'|'forgot'>(captureReferral() ? 'signup' : 'signin');
+export function AuthPage({ compact = false, recovery = false, onRecovered, customerMode, initialMode, returnSlug }: { key?:React.Key; compact?: boolean; recovery?: boolean; onRecovered?: () => void; customerMode?:boolean; initialMode?:'signin'|'signup'; returnSlug?:string }) {
+  const customer = customerMode ?? new URLSearchParams(location.search).has('customer');
+  const customerReturn=returnSlug||new URLSearchParams(location.search).get('return');
+  const redirectPath=customer?`/?customer=1${customerReturn?'&return='+encodeURIComponent(customerReturn):''}`:'/';
+  const [mode, setMode] = useState<'signin'|'signup'|'forgot'>(initialMode || (new URLSearchParams(location.search).get('auth')==='signup' || (!customer&&captureReferral()) ? 'signup' : 'signin'));
   const signup = mode === 'signup';
   const [name, setName] = useState(''); const [salon, setSalon] = useState('');
   const [email, setEmail] = useState(''); const [password, setPassword] = useState('');
@@ -33,7 +35,7 @@ export function AuthPage({ compact = false, recovery = false, onRecovered }: { c
         const url = new URL(location.href); url.searchParams.delete('ref'); history.replaceState(null, '', url);
         if (ref.trim()) localStorage.setItem('studioflow_pending_ref', ref.trim().toUpperCase());
       }
-      const result = signup ? await supabase.auth.signUp({ email: email.trim(), password, options: { emailRedirectTo: `${location.origin}${customer ? '/?customer=1' : '/'}`, data: { full_name: name.trim(), salon_name: salon.trim(), referral_code: ref.trim().toUpperCase(), source: 'studioflow' } } }) : await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      const result = signup ? await supabase.auth.signUp({ email: email.trim(), password, options: { emailRedirectTo: `${location.origin}${redirectPath}`, data: { full_name: name.trim(), salon_name: salon.trim(), referral_code: ref.trim().toUpperCase(), source: 'studioflow' } } }) : await supabase.auth.signInWithPassword({ email: email.trim(), password });
       if (result.error) throw result.error;
       if (signup && !result.data.session) { setConfirmationPending(true); setMessage('Check your email to confirm your account, then sign in. If you already have an account, use Sign in or Forgot password.'); }
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Could not complete this request. Please try again.'); }
@@ -41,7 +43,7 @@ export function AuthPage({ compact = false, recovery = false, onRecovered }: { c
   };
   const resend = async () => {
     setBusy(true); setMessage('');
-    const { error } = await supabase.auth.resend({ type: 'signup', email: email.trim(), options: { emailRedirectTo: `${location.origin}${customer ? '/?customer=1' : '/'}` } });
+    const { error } = await supabase.auth.resend({ type: 'signup', email: email.trim(), options: { emailRedirectTo: `${location.origin}${redirectPath}` } });
     setMessage(error ? error.message : 'Confirmation email requested. Check your inbox and spam folder.'); setBusy(false);
   };
   return <main className={compact ? '' : 'min-h-screen bg-[#f9f9ff] px-4 py-12 flex items-center justify-center'}>

@@ -1,0 +1,30 @@
+import React from 'react';
+import {act,create} from 'react-test-renderer';
+import assert from 'node:assert/strict';
+import {OwnerWorkspace} from '../src/components/OwnerWorkspace';
+import {CATEGORY_TEMPLATES} from '../src/categoryTemplates';
+import {INITIAL_SALON_PROFILE} from '../src/mockData';
+import {DEFAULT_EXTRAS} from '../src/lib/workspaceDefaults';
+import {applyTemplateDesign} from '../src/lib/templateSelection';
+(globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;
+(globalThis as any).location={search:''};
+(globalThis as any).window={setTimeout:()=>0};
+const text=(node:any):string=>typeof node==='string'?node:(node?.children||[]).map(text).join(' ');
+for(const template of Object.values(CATEGORY_TEMPLATES)){
+ let view:any;const profile=applyTemplateDesign(INITIAL_SALON_PROFILE,template);
+ const props={profile,setProfile:()=>{},services:template.services,setServices:()=>{},stylists:template.stylists,setStylists:()=>{},appointments:[],extras:DEFAULT_EXTRAS,setExtras:()=>{},published:null,onPublish:async()=>{},sessionEmail:'owner@example.com',templates:Object.values(CATEGORY_TEMPLATES),onOpenPreview:()=>{},onOpenDashboard:()=>{},onOpenWizard:()=>{}};
+ await act(async()=>{view=create(<OwnerWorkspace {...props}/>)});
+ const nav=view.root.findByProps({'aria-label':'Owner workspace'});const buttons=nav.findAllByType('button');assert.equal(buttons.length,25,template.id);
+ assert.ok(buttons.every((b:any)=>typeof b.props.onClick==='function'));
+ await act(async()=>buttons.find((b:any)=>b.props.title.startsWith('10 ')).props.onClick());
+ assert.ok(text(view.toJSON()).includes('Upload Custom Hero Banner (Max 5MB)'),template.id);
+ await act(async()=>buttons.find((b:any)=>b.props.title.startsWith('25 ')).props.onClick());
+ assert.ok(text(view.toJSON()).includes('Branding & white-label settings'),template.id);
+ await act(async()=>view.unmount());
+}
+(globalThis as any).location.search='?module=4';
+const template=Object.values(CATEGORY_TEMPLATES)[0];let team:any;
+await act(async()=>{team=create(<OwnerWorkspace profile={INITIAL_SALON_PROFILE} setProfile={()=>{}} services={template.services} setServices={()=>{}} stylists={template.stylists} setStylists={()=>{}} appointments={[]} extras={DEFAULT_EXTRAS} setExtras={()=>{}} published={null} onPublish={async()=>{}} sessionEmail="owner@example.com" templates={Object.values(CATEGORY_TEMPLATES)} onOpenPreview={()=>{}} onOpenDashboard={()=>{}} onOpenWizard={()=>{}}/>)});
+assert.ok(team.root.findAll((n:any)=>n.props['aria-current']==='page').some((n:any)=>n.props.title.startsWith('04 ')));
+await act(async()=>team.unmount());
+console.log('PASS: all 14 templates expose 25 callable owner modules, hero upload controls and branding; owner module link opens Team module 04.');

@@ -9,6 +9,9 @@ export interface GalleryPhoto {
 }
 
 export interface Testimonial {
+  reviewImageUrl?:string;
+  isDemo?:boolean;
+  verified?:boolean;
   id: string;
   name: string;
   location: string;
@@ -17,8 +20,6 @@ export interface Testimonial {
   comment: string;
   avatarUrl: string;
   date: string;
-  approved?: boolean;
-  status?: 'approved' | 'pending' | 'rejected';
 }
 
 export interface CategoryStandardData {

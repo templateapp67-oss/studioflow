@@ -1,105 +1,10 @@
+import {shortVideoSource,secureMediaUrl,videoSource} from '../lib/socialVideoSource';
+import {createDemoVideos,showcaseVideos} from '../lib/showcaseVideos';
 import { socialUrl } from '../lib/websiteContent';
 import React, { useState } from 'react';
 import { SalonProfile, SocialVideo, VideoCategoryTag } from '../types';
 
-export const DEFAULT_SHOWCASE_VIDEOS: SocialVideo[] = [
-  {
-    id: 'video-sc-1',
-    youtubeUrl: 'https://www.youtube.com/shorts/kJQP7kiw5Fk',
-    videoId: 'kJQP7kiw5Fk',
-    title: 'Chrome aura set',
-    channelTitle: 'Pinky Nails Studio',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?auto=format&fit=crop&w=600&q=80',
-    categoryTag: 'SHORT',
-    isOwnerVideo: true,
-    views: '48.2k views',
-    transformationTag: '3D Aura Nail Art'
-  },
-  {
-    id: 'video-sc-2',
-    youtubeUrl: 'https://www.youtube.com/shorts/fJ9rUzIMcZQ',
-    videoId: 'fJ9rUzIMcZQ',
-    title: 'Lash lift reveal',
-    channelTitle: 'Pinky Lash & Brow Bar',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1598371839696-5c5bb00bdc28?auto=format&fit=crop&w=600&q=80',
-    categoryTag: 'SHORT',
-    isOwnerVideo: true,
-    views: '32.1k views',
-    transformationTag: 'Keratin Lash Lift'
-  },
-  {
-    id: 'video-sc-3',
-    youtubeUrl: 'https://www.youtube.com/shorts/tgbNymZ7vqY',
-    videoId: 'tgbNymZ7vqY',
-    title: 'French tip clean line',
-    channelTitle: 'Pinky Nails Studio',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=600&q=80',
-    categoryTag: 'SHORT',
-    isOwnerVideo: false,
-    views: '54.9k views',
-    transformationTag: 'Micro French Tip'
-  },
-  {
-    id: 'video-sc-4',
-    youtubeUrl: 'https://www.youtube.com/shorts/pAgnJDJN4VA',
-    videoId: 'pAgnJDJN4VA',
-    title: 'Brow lamination brush-up',
-    channelTitle: 'Pinky Lash & Brow Bar',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=600&q=80',
-    categoryTag: 'SHORT',
-    isOwnerVideo: false,
-    views: '29.3k views',
-    transformationTag: 'Brow Sculpting'
-  },
-  {
-    id: 'video-sc-5',
-    youtubeUrl: 'https://www.youtube.com/shorts/3JZ_D3ELwOQ',
-    videoId: '3JZ_D3ELwOQ',
-    title: 'Gel removal ASMR',
-    channelTitle: 'Pinky Nails Studio',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1632345031435-8727fec88f2d?auto=format&fit=crop&w=600&q=80',
-    categoryTag: 'SHORT',
-    isOwnerVideo: false,
-    views: '61.0k views',
-    transformationTag: 'Gentle Care ASMR'
-  },
-  {
-    id: 'video-sc-6',
-    youtubeUrl: 'https://www.youtube.com/watch?v=fJ9rUzIMcZQ',
-    videoId: 'fJ9rUzIMcZQ',
-    title: 'Master Balayage & High-Gloss Hair Transformation',
-    channelTitle: 'Miraki Hair Studio',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=600&q=80',
-    categoryTag: 'SHOWCASE',
-    isOwnerVideo: false,
-    views: '12.4k views',
-    transformationTag: 'Hair Transformation'
-  },
-  {
-    id: 'video-sc-7',
-    youtubeUrl: 'https://www.youtube.com/shorts/3JZ_D3ELwOQ',
-    videoId: '3JZ_D3ELwOQ',
-    title: 'Precision Fade & Beard Sculpting Reel',
-    channelTitle: 'Miraki Barbering',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=600&q=80',
-    categoryTag: 'SHORT',
-    isOwnerVideo: false,
-    views: '28.1k views',
-    transformationTag: 'Gentlemen Cut'
-  },
-  {
-    id: 'video-sc-8',
-    youtubeUrl: 'https://www.youtube.com/watch?v=L_LUpnjgPso',
-    videoId: 'L_LUpnjgPso',
-    title: 'Glass Skin Facial & Organic HydraGlow Therapy',
-    channelTitle: 'Miraki Skin & Aesthetics',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=600&q=80',
-    categoryTag: 'LONG',
-    isOwnerVideo: false,
-    views: '19.8k views',
-    transformationTag: 'Skincare Glow'
-  }
-];
+export const DEFAULT_SHOWCASE_VIDEOS = createDemoVideos('nail_studio');
 
 export function extractYouTubeId(url: string): string | null {
   if (!url) return null;
@@ -122,10 +27,14 @@ export const SocialConnectivityStep: React.FC<SocialConnectivityStepProps> = ({
 }) => {
   const instagram=profile.instagramHandle||'', facebook=profile.facebookPage||'', youtube=profile.youtubeChannel||'', tiktok=profile.tiktokProfile||'';
   const isInstaConnected=!!instagram.trim(), isFbConnected=!!facebook.trim(), isYtConnected=!!youtube.trim(), isTtConnected=!!tiktok.trim();
-  const videos=profile.socialVideos||[];
+  const videos=showcaseVideos(profile);
+  const [editingVideo,setEditingVideo]=useState<SocialVideo|null>(null);
+  const replaceVideo=(video:SocialVideo)=>{setEditingVideo(video);setVideoUrlInput(video.youtubeUrl);setPreviewUrlInput(video.previewVideoUrl||'');setPosterUrlInput(video.thumbnailUrl?.startsWith('https://img.youtube.com/vi/')?'':video.thumbnailUrl||'');setVideoTitleInput(video.title);setVideoCategoryInput(video.categoryTag);setManagingVideo(null);setIsAddModalOpen(true);setUrlError(null);};
   // Modal / Form state for Add Social Video
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
   const [videoUrlInput, setVideoUrlInput] = useState<string>('');
+  const [previewUrlInput,setPreviewUrlInput]=useState('');
+  const [posterUrlInput,setPosterUrlInput]=useState('');
   const [videoTitleInput, setVideoTitleInput] = useState<string>('');
   const [videoCategoryInput, setVideoCategoryInput] = useState<VideoCategoryTag>('SHORT');
   const [urlError, setUrlError] = useState<string | null>(null);
@@ -153,6 +62,7 @@ export const SocialConnectivityStep: React.FC<SocialConnectivityStepProps> = ({
       youtubeChannel: updatedYt,
       tiktokProfile: updatedTt,
       socialVideos: updatedVids,
+      demoVideosInitialized:true,
     }));
   };
 
@@ -165,33 +75,36 @@ export const SocialConnectivityStep: React.FC<SocialConnectivityStepProps> = ({
     e.preventDefault();
     setUrlError(null);
 
-    const extractedId = extractYouTubeId(videoUrlInput);
-    if (!extractedId) {
-      setUrlError('Please paste a valid YouTube video or shorts URL (e.g., https://youtube.com/shorts/... or https://youtu.be/...)');
+    const source = shortVideoSource(videoUrlInput);
+    if (!source) {
+      setUrlError('Only YouTube Shorts (/shorts/) or Instagram Reels (/reel/) links are allowed here. Full-length videos are not supported.');
       return;
     }
 
+    if((previewUrlInput.trim()&&!secureMediaUrl(previewUrlInput))||(posterUrlInput.trim()&&!secureMediaUrl(posterUrlInput))){setUrlError('Preview and cover image URLs must use HTTPS.');return;}
     const title = videoTitleInput.trim() || `Client Transformation Reel #${videos.length + 1}`;
     const newVideo: SocialVideo = {
-      id: `vid-owner-${Date.now()}`,
-      youtubeUrl: videoUrlInput,
-      videoId: extractedId,
+      id: editingVideo?.id || `vid-owner-${Date.now()}`,
+      isDemo:false,
+      youtubeUrl: source.url,
+      videoId: source.id,
+      previewVideoUrl:secureMediaUrl(previewUrlInput),
       title,
       channelTitle: profile?.businessName || 'Your Salon Channel',
-      thumbnailUrl: `https://img.youtube.com/vi/${extractedId}/hqdefault.jpg`,
-      categoryTag: videoCategoryInput,
+      thumbnailUrl: secureMediaUrl(posterUrlInput)||(source.platform==='YouTube'?`https://img.youtube.com/vi/${source.id}/hqdefault.jpg`:profile.coverImageUrl||''),
+      categoryTag: 'SHORT',
       isOwnerVideo: true, // "yours"
       views: '',
       transformationTag: 'Client Transformation'
     };
 
-    const updated = [newVideo, ...videos];
+    const updated = editingVideo ? videos.map(video=>video.id===editingVideo.id?newVideo:video) : [newVideo, ...videos];
     syncToProfile(instagram, facebook, youtube, tiktok, updated);
 
-    setVideoUrlInput('');
+    setVideoUrlInput('');setPreviewUrlInput('');setPosterUrlInput('');
     setVideoTitleInput('');
     setIsAddModalOpen(false);
-    setAddSuccessMessage('New social video added successfully to your website feed!');
+    setAddSuccessMessage(editingVideo?'Video replaced successfully on your website.':'New social video added successfully to your website feed!');setEditingVideo(null);
     setTimeout(() => setAddSuccessMessage(null), 4000);
   };
 
@@ -510,14 +423,14 @@ export const SocialConnectivityStep: React.FC<SocialConnectivityStepProps> = ({
                 </h3>
               </div>
               <p className="text-xs text-purple-200 mt-1 leading-relaxed">
-                Paste a YouTube URL only — thumbnail, title, description and channel fill in automatically.
+                Add YouTube Shorts or Instagram Reels only. Full-length videos stay out of this feed.
               </p>
             </div>
 
             <div className="pt-2">
               <button
                 type="button"
-                onClick={() => setIsAddModalOpen(true)}
+                onClick={() => {setEditingVideo(null);setVideoUrlInput('');setPreviewUrlInput('');setPosterUrlInput('');setVideoTitleInput('');setIsAddModalOpen(true);}}
                 className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-[#b0004a] to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
               >
                 <span className="material-symbols-outlined text-base">add_circle</span>
@@ -637,7 +550,7 @@ export const SocialConnectivityStep: React.FC<SocialConnectivityStepProps> = ({
                           {vid.title}
                         </h4>
                         <p className="text-[10px] text-gray-500 truncate mt-0.5">
-                          {vid.transformationTag || 'Transformation Reel'} · {vid.views || '1.2k views'}
+                          {vid.isDemo?'Demo / Reference · Replace with your own video':vid.transformationTag || 'Owner video'}{vid.views?` · ${vid.views}`:''}
                         </p>
                       </div>
                     </div>
@@ -650,7 +563,7 @@ export const SocialConnectivityStep: React.FC<SocialConnectivityStepProps> = ({
                         className="px-3 py-1.5 rounded-lg border border-gray-300 bg-white hover:bg-gray-100 text-gray-800 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
                       >
                         <span className="material-symbols-outlined text-sm">settings</span>
-                        <span>MANAGE</span>
+                        <span>MANAGE / REPLACE</span>
                       </button>
                     </div>
                   </div>
@@ -962,7 +875,7 @@ export const SocialConnectivityStep: React.FC<SocialConnectivityStepProps> = ({
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-[#b0004a] text-xl">add_to_queue</span>
                 <h3 className="font-display font-bold text-lg text-gray-900">
-                  Add Social Video URL
+                  {editingVideo?'Replace Video URL & Title':'Add Social Video URL'}
                 </h3>
               </div>
               <button
@@ -978,7 +891,7 @@ export const SocialConnectivityStep: React.FC<SocialConnectivityStepProps> = ({
             </div>
 
             <p className="text-xs text-gray-600 leading-relaxed">
-              Paste a YouTube or YouTube Shorts video link below. Thumbnail, channel info, and embed details will auto-generate for your website!
+              Add a YouTube Shorts or Instagram Reel link only. YouTube covers are automatic. For Instagram hover playback, add your own playable MP4/WebM preview URL.
             </p>
 
             {urlError && (
@@ -991,18 +904,24 @@ export const SocialConnectivityStep: React.FC<SocialConnectivityStepProps> = ({
             <form onSubmit={handleAddVideoSubmit} className="flex flex-col gap-4">
               <div>
                 <label className="text-xs font-bold text-gray-700 uppercase font-mono-caps block mb-1">
-                  YouTube Video URL *
+                  YouTube Shorts / Instagram Reel URL *
                 </label>
                 <input
                   type="text"
                   required
                   value={videoUrlInput}
                   onChange={(e) => setVideoUrlInput(e.target.value)}
-                  placeholder="https://www.youtube.com/watch?v=... or https://youtube.com/shorts/..."
+                  placeholder="https://youtube.com/shorts/... or https://instagram.com/reel/..."
                   className="w-full text-xs font-mono p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#b0004a] focus:outline-none text-gray-900"
                 />
               </div>
 
+              <label className="text-xs font-bold text-gray-700">Cover image URL (optional)
+                <input type="url" value={posterUrlInput} onChange={e=>setPosterUrlInput(e.target.value)} placeholder="https://your-site.com/reel-cover.jpg" className="block w-full mt-1 p-3 rounded-xl border border-gray-300 text-gray-900"/>
+              </label>
+              <label className="text-xs font-bold text-gray-700">Short preview URL (optional MP4 / WebM, up to 3 minutes)
+                <input type="url" value={previewUrlInput} onChange={e=>setPreviewUrlInput(e.target.value)} placeholder="https://your-site.com/reel-preview.mp4" className="block w-full mt-1 p-3 rounded-xl border border-gray-300 text-gray-900"/>
+              </label>
               <div>
                 <label className="text-xs font-bold text-gray-700 uppercase font-mono-caps block mb-1">
                   Video Title (Optional)
@@ -1018,10 +937,10 @@ export const SocialConnectivityStep: React.FC<SocialConnectivityStepProps> = ({
 
               <div>
                 <label className="text-xs font-bold text-gray-700 uppercase font-mono-caps block mb-1">
-                  Video Format Category
+                  Video format — Shorts / Reels only
                 </label>
                 <div className="grid grid-cols-3 gap-2">
-                  {(['SHORT', 'SHOWCASE', 'LONG'] as VideoCategoryTag[]).map((cat) => (
+                  {(['SHORT'] as VideoCategoryTag[]).map((cat) => (
                     <button
                       key={cat}
                       type="button"
@@ -1050,7 +969,7 @@ export const SocialConnectivityStep: React.FC<SocialConnectivityStepProps> = ({
                   type="submit"
                   className="px-6 py-2.5 rounded-xl bg-[#b0004a] hover:bg-[#d81b60] text-white text-xs font-bold shadow-md cursor-pointer transition-all"
                 >
-                  Save & Add Video
+                  {editingVideo?'Save replacement':'Save & Add Video'}
                 </button>
               </div>
             </form>
@@ -1095,10 +1014,10 @@ export const SocialConnectivityStep: React.FC<SocialConnectivityStepProps> = ({
             <div className="flex flex-col gap-3">
               <div>
                 <label className="text-[11px] font-bold text-gray-700 uppercase font-mono-caps block mb-1">
-                  Change Category Tag
+                  Video format — Shorts / Reels only
                 </label>
                 <div className="grid grid-cols-3 gap-2">
-                  {(['SHORT', 'SHOWCASE', 'LONG'] as VideoCategoryTag[]).map((tag) => (
+                  {(['SHORT'] as VideoCategoryTag[]).map((tag) => (
                     <button
                       key={tag}
                       type="button"
@@ -1130,7 +1049,7 @@ export const SocialConnectivityStep: React.FC<SocialConnectivityStepProps> = ({
                 </button>
               </div>
 
-              <div className="pt-2 border-t border-gray-100 flex justify-between items-center mt-2">
+              <button type="button" className="primary-action" onClick={()=>replaceVideo(managingVideo)}>Replace video / Edit URL & title</button><div className="pt-2 border-t border-gray-100 flex justify-between items-center mt-2">
                 <button
                   type="button"
                   onClick={() => handleDeleteVideo(managingVideo.id)}
@@ -1174,13 +1093,7 @@ export const SocialConnectivityStep: React.FC<SocialConnectivityStepProps> = ({
             </div>
 
             <div className="aspect-video w-full rounded-xl bg-black overflow-hidden border border-slate-800">
-              <iframe
-                src={`https://www.youtube.com/embed/${previewActiveVideo.videoId}?autoplay=1`}
-                title={previewActiveVideo.title}
-                className="w-full h-full border-0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
+              {secureMediaUrl(previewActiveVideo.previewVideoUrl)?<video className="w-full h-full" src={previewActiveVideo.previewVideoUrl} autoPlay muted playsInline controls/>:videoSource(previewActiveVideo)?.platform==='YouTube'?<iframe src={`https://www.youtube.com/embed/${previewActiveVideo.videoId}?autoplay=1&mute=1&playsinline=1`} title={previewActiveVideo.title} className="w-full h-full border-0" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen/>:<a href={videoSource(previewActiveVideo)?.url} target="_blank" rel="noopener noreferrer" className="block p-6 text-white underline">Open Reel on Instagram</a>}
             </div>
           </div>
         </div>

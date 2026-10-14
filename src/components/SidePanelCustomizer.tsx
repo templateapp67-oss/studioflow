@@ -1,4 +1,5 @@
-import { WEBSITE_SECTIONS } from '../lib/websiteContent';
+import { CATEGORY_STANDARDIZED_DATA } from '../templateData';
+import { WEBSITE_SECTIONS, SECTION_LABELS } from '../lib/websiteContent';
 import React, { useState, useEffect } from 'react';
 import { 
   Palette, 
@@ -554,7 +555,7 @@ export const SidePanelCustomizer: React.FC<SidePanelCustomizerProps> = ({
                   Curated Studio Banner Presets:
                 </span>
                 <div className="grid grid-cols-2 gap-2">
-                  {CURATED_HERO_PRESETS.map((preset, idx) => {
+                  {[{name:CATEGORY_TEMPLATES[selectedCategoryKey]?.shortName||'Studio banner',url:CATEGORY_TEMPLATES[selectedCategoryKey]?.coverImageUrl,tag:'Studio'},...(CATEGORY_STANDARDIZED_DATA[selectedCategoryKey]?.gallery||[]).map(photo=>({name:photo.title,url:photo.url,tag:photo.tag}))].filter(preset=>preset.url).map((preset, idx) => {
                     const isSelected = profile.coverImageUrl === preset.url;
                     return (
                       <button
@@ -1012,167 +1013,15 @@ export const SidePanelCustomizer: React.FC<SidePanelCustomizerProps> = ({
             </div>
 
             <div className="flex flex-col gap-2">
-              
-              <div className="p-2.5 rounded-xl border border-slate-200 bg-white flex items-center justify-between">
-                <div>
-                  <div className="font-bold text-slate-900">Sticky Top Header</div>
-                  <div className="text-[10px] text-slate-400">Branding, location & booking CTA</div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleToggleSection('header')}
-                  className={`p-1.5 rounded-lg cursor-pointer transition-colors ${
-                    sectionVisibility.header ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-400'
-                  }`}
-                >
-                  {sectionVisibility.header ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                </button>
-              </div>
-
-              <div className="p-2.5 rounded-xl border border-slate-200 bg-white flex items-center justify-between">
-                <div>
-                  <div className="font-bold text-slate-900">Hero & Direct Booking</div>
-                  <div className="text-[10px] text-slate-400">Tagline, cover, headline & INR CTA</div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleToggleSection('hero')}
-                  className={`p-1.5 rounded-lg cursor-pointer transition-colors ${
-                    sectionVisibility.hero ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-400'
-                  }`}
-                >
-                  {sectionVisibility.hero ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                </button>
-              </div>
-
-              <div className="p-2.5 rounded-xl border border-slate-200 bg-white flex items-center justify-between">
-                <div>
-                  <div className="font-bold text-slate-900">Quick Metrics Bar</div>
-                  <div className="text-[10px] text-slate-400">Starting INR rates, rating & reviews</div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleToggleSection('metrics')}
-                  className={`p-1.5 rounded-lg cursor-pointer transition-colors ${
-                    sectionVisibility.metrics ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-400'
-                  }`}
-                >
-                  {sectionVisibility.metrics ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                </button>
-              </div>
-
-              <div className="p-2.5 rounded-xl border border-slate-200 bg-white flex items-center justify-between">
-                <div>
-                  <div className="font-bold text-slate-900">Story & Hygiene Badges</div>
-                  <div className="text-[10px] text-slate-400">Founder quote & medical sterilizations</div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleToggleSection('about')}
-                  className={`p-1.5 rounded-lg cursor-pointer transition-colors ${
-                    sectionVisibility.about ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-400'
-                  }`}
-                >
-                  {sectionVisibility.about ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                </button>
-              </div>
-
-              <div className="p-2.5 rounded-xl border border-slate-200 bg-white flex items-center justify-between">
-                <div>
-                  <div className="font-bold text-slate-900">Services & INR (₹) Menu</div>
-                  <div className="text-[10px] text-slate-400">Categorized treatments & prices</div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleToggleSection('services')}
-                  className={`p-1.5 rounded-lg cursor-pointer transition-colors ${
-                    sectionVisibility.services ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-400'
-                  }`}
-                >
-                  {sectionVisibility.services ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                </button>
-              </div>
-
-              <div className="p-2.5 rounded-xl border border-slate-200 bg-white flex items-center justify-between">
-                <div>
-                  <div className="font-bold text-slate-900">Master Stylists Roster</div>
-                  <div className="text-[10px] text-slate-400">Specialist cards, ratings & skills</div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleToggleSection('stylists')}
-                  className={`p-1.5 rounded-lg cursor-pointer transition-colors ${
-                    sectionVisibility.stylists ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-400'
-                  }`}
-                >
-                  {sectionVisibility.stylists ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                </button>
-              </div>
-
-              <div className="p-2.5 rounded-xl border border-slate-200 bg-white flex items-center justify-between">
-                <div>
-                  <div className="font-bold text-slate-900">Client Reviews & Testimonials</div>
-                  <div className="text-[10px] text-slate-400">5-star reviews & verified feedback</div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleToggleSection('testimonials')}
-                  className={`p-1.5 rounded-lg cursor-pointer transition-colors ${
-                    sectionVisibility.testimonials ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-400'
-                  }`}
-                >
-                  {sectionVisibility.testimonials ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                </button>
-              </div>
-
-              <div className="p-2.5 rounded-xl border border-slate-200 bg-white flex items-center justify-between">
-                <div>
-                  <div className="font-bold text-slate-900">Studio Lookbook Gallery</div>
-                  <div className="text-[10px] text-slate-400">Makeovers & client transformation photos</div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleToggleSection('gallery')}
-                  className={`p-1.5 rounded-lg cursor-pointer transition-colors ${
-                    sectionVisibility.gallery ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-400'
-                  }`}
-                >
-                  {sectionVisibility.gallery ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                </button>
-              </div>
-
-              <div className="p-2.5 rounded-xl border border-slate-200 bg-white flex items-center justify-between">
-                <div>
-                  <div className="font-bold text-slate-900">Location, Map & Timings</div>
-                  <div className="text-[10px] text-slate-400">Map card, operating hours & directions</div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleToggleSection('location')}
-                  className={`p-1.5 rounded-lg cursor-pointer transition-colors ${
-                    sectionVisibility.location ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-400'
-                  }`}
-                >
-                  {sectionVisibility.location ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                </button>
-              </div>
-
-              <div className="p-2.5 rounded-xl border border-slate-200 bg-white flex items-center justify-between">
-                <div>
-                  <div className="font-bold text-slate-900">Floating WhatsApp Chat</div>
-                  <div className="text-[10px] text-slate-400">1-click WhatsApp booking bubble</div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleToggleSection('whatsappFloat')}
-                  className={`p-1.5 rounded-lg cursor-pointer transition-colors ${
-                    sectionVisibility.whatsappFloat ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-400'
-                  }`}
-                >
-                  {sectionVisibility.whatsappFloat ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                </button>
-              </div>
-
+              {Object.keys(WEBSITE_SECTIONS).map(key => {
+                const section = key as keyof SectionVisibilityState;
+                return <div key={section} className="p-2.5 rounded-xl border border-slate-200 bg-white flex items-center justify-between gap-3">
+                  <span className="font-bold text-slate-900">{SECTION_LABELS[section]}</span>
+                  <button type="button" aria-label={`Show ${SECTION_LABELS[section]}`} aria-pressed={sectionVisibility[section]} onClick={() => handleToggleSection(section)} className={`p-2 rounded-lg ${sectionVisibility[section] ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-400'}`}>
+                    {sectionVisibility[section] ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                  </button>
+                </div>;
+              })}
             </div>
           </div>
         )}

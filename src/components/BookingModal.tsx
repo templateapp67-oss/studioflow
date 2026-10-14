@@ -33,8 +33,6 @@ import { INITIAL_SALON_PROFILE, INITIAL_SERVICES, INITIAL_STYLISTS } from '../mo
 export interface BookingModalProps {
   isOpen: boolean;
   onClose: () => void;
-  isOwnerMode?: boolean;
-  isAdmin?: boolean;
   profile?: SalonProfile;
   services?: SalonService[];
   stylists?: Stylist[];
@@ -74,14 +72,14 @@ const ANY_SPECIALIST: Stylist = {
 };
 
 const TIME_SLOTS = [
-  { time: '10:00', label: '10:00 AM', status: 'available', badge: 'Available', available: true },
-  { time: '11:30', label: '11:30 AM', status: 'filling_fast', badge: '2 slots left', available: true },
-  { time: '13:00', label: '01:00 PM', status: 'available', badge: 'Available', available: true },
-  { time: '14:30', label: '02:30 PM', status: 'popular', badge: 'Filling fast', available: true },
-  { time: '16:00', label: '04:00 PM', status: 'available', badge: 'Available', available: true },
-  { time: '17:30', label: '05:30 PM', status: 'filling_fast', badge: '1 slot left', available: true },
-  { time: '19:00', label: '07:00 PM', status: 'available', badge: 'Available', available: true },
-  { time: '20:00', label: '08:00 PM', status: 'available', badge: 'Available', available: true }
+  { time: '10:00', label: '10:00 AM', status: 'available', badge: 'Available' },
+  { time: '11:30', label: '11:30 AM', status: 'filling_fast', badge: '2 slots left' },
+  { time: '13:00', label: '01:00 PM', status: 'available', badge: 'Available' },
+  { time: '14:30', label: '02:30 PM', status: 'popular', badge: 'Filling fast' },
+  { time: '16:00', label: '04:00 PM', status: 'available', badge: 'Available' },
+  { time: '17:30', label: '05:30 PM', status: 'filling_fast', badge: '1 slot left' },
+  { time: '19:00', label: '07:00 PM', status: 'available', badge: 'Available' },
+  { time: '20:00', label: '08:00 PM', status: 'available', badge: 'Available' }
 ];
 
 const LOCAL_STORAGE_GUEST_KEY = 'salon_guest_booking_info';
@@ -89,8 +87,6 @@ const LOCAL_STORAGE_GUEST_KEY = 'salon_guest_booking_info';
 export const BookingModal: React.FC<BookingModalProps> = ({
   isOpen,
   onClose,
-  isOwnerMode,
-  isAdmin,
   profile: inputProfile,
   services: inputServices,
   stylists: inputStylists,
@@ -155,37 +151,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const todayStr = new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
   const [bookingDate, setBookingDate] = useState<string>(todayStr);
   const [bookingTime, setBookingTime] = useState<string>('');
-  const [availableSlots,setAvailableSlots]=useState<any[]>(TIME_SLOTS);
+  const [availableSlots,setAvailableSlots]=useState<any[]>([]);
   const [slotsLoading,setSlotsLoading]=useState(false);
   const [slotsError,setSlotsError]=useState('');
   const [slotRetry,setSlotRetry]=useState(0);
   useEffect(()=>{
     if(!isOpen)return;let active=true;setSlotsLoading(true);setSlotsError('');setBookingTime('');
-    const fallbackSlots = TIME_SLOTS.map(slot => ({
-      ...slot,
-      available: true,
-      stylistId: selectedStylist.id
-    }));
-    if(!profile.subdomain){
-      setSlotsLoading(false);
-      setAvailableSlots(fallbackSlots);
-      return;
-    }
-    Promise.resolve(supabase.rpc('studioflow_available_slots',{p_slug:profile.subdomain,p_service_id:selectedService.id,p_date:bookingDate,p_stylist_id:selectedStylist.id}))
-      .then(({data,error})=>{
-        if(!active)return;
-        setSlotsLoading(false);
-        if(error || !data || data.length === 0){
-          setAvailableSlots(fallbackSlots);
-        }else{
-          setAvailableSlots(data);
-        }
-      })
-      .catch(()=>{
-        if(!active)return;
-        setSlotsLoading(false);
-        setAvailableSlots(fallbackSlots);
-      });
+    supabase.rpc('studioflow_available_slots',{p_slug:profile.subdomain,p_service_id:selectedService.id,p_date:bookingDate,p_stylist_id:selectedStylist.id}).then(({data,error})=>{if(!active)return;setSlotsLoading(false);if(error){setSlotsError(error.message);setAvailableSlots([]);}else{setAvailableSlots(data||[]);}});
     return()=>{active=false;};
   },[isOpen,profile.subdomain,selectedService.id,selectedStylist.id,bookingDate,slotRetry]);
 
@@ -396,10 +368,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   };
 
-  // Role / mode check: Appointment booking modal is strictly restricted to end-customers only
-  if (!isOpen || isOwnerMode || isAdmin) {
-    return null;
-  }
+  // Keep hooks mounted, but remove the overlay as soon as the parent closes it.
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs font-sans">
@@ -436,7 +406,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           </div>
 
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Close booking dialog"
             className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
             title="Close modal"
           >
@@ -674,9 +646,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
                 {slotsLoading && <p role="status">Loading slots…</p>}
                 {slotsError && <p role="alert" className="text-red-700">{slotsError}</p>}
-                {!slotsLoading && !availableSlots.some(slot=>slot.available) && (
-                  <p className="text-xs text-amber-700 bg-amber-50 p-2.5 rounded-lg mb-2">No available slots for this date or specialist. Please choose another date or specialist.</p>
-                )}
+                {!slotsLoading && !availableSlots.some(slot=>slot.available) && <p className="text-sm text-gray-500">No available slots. Choose another date or specialist. Publish the salon before accepting bookings.</p>}
                 <button className="text-xs underline mb-2" onClick={()=>setSlotRetry(n=>n+1)}>Retry availability</button>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {availableSlots.map((slot) => {

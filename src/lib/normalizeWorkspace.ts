@@ -1,3 +1,7 @@
+import {headerSettings} from './headerNavigation';
+import {serviceOrigin} from './serviceCatalogue';
+import {clientExperiences,lookbookPhotos} from './demoWebsiteContent';
+import { showcaseVideos } from './showcaseVideos';
 import { INITIAL_SALON_PROFILE } from '../mockData';
 import { DEFAULT_LOYALTY_CONFIG } from '../loyaltyData';
 import { DEFAULT_EXTRAS } from './workspaceDefaults';
@@ -11,12 +15,18 @@ export function normalizeWorkspace(value:unknown, identity:Record<string,any>={}
  const profile={...base,...raw,requireDeposit:true,depositPercentage:25};
  for(const [key,fallback] of Object.entries(base)) if(typeof fallback==='string'&&typeof profile[key]!=='string') profile[key]=fallback;
  if(!CATEGORY_TEMPLATES[profile.businessType])profile.businessType='hair_salon';
+ profile.socialVideos=showcaseVideos(profile as SalonProfile);profile.demoVideosInitialized=true;
  const loyalty=record(draft.loyaltyConfig),extras=record(draft.extras);
+ profile.websiteTestimonials=clientExperiences(profile as SalonProfile);profile.demoTestimonialsInitialized=true;
+ const savedGallery=lookbookPhotos(profile as SalonProfile,Array.isArray(extras.gallery)?extras.gallery.filter(x=>typeof x==='string'&&x.trim()):[]);
+ profile.demoGalleryInitialized=true;profile.demoGalleryType=profile.businessType;
+ profile.headerNavigation=headerSettings(profile as SalonProfile);
+ profile.serviceCatalogueInitialized=raw.serviceCatalogueInitialized===true||list(draft.services).length>0;
  return {...draft,profile:profile as SalonProfile,
-  services:list(draft.services).map(s=>({...s,name:typeof s.name==='string'?s.name:'',description:typeof s.description==='string'?s.description:'',category:typeof s.category==='string'?s.category:'',price:Number.isFinite(s.price)?s.price:0,durationMinutes:Number.isFinite(s.durationMinutes)?s.durationMinutes:30})) as SalonService[],
+  services:list(draft.services).map(s=>({...s,origin:serviceOrigin(s as SalonService),name:typeof s.name==='string'?s.name:'',description:typeof s.description==='string'?s.description:'',category:typeof s.category==='string'?s.category:'',price:Number.isFinite(s.price)?s.price:0,durationMinutes:Number.isFinite(s.durationMinutes)?s.durationMinutes:30})) as SalonService[],
   stylists:list(draft.stylists).map(s=>({...s,name:typeof s.name==='string'?s.name:'',role:typeof s.role==='string'?s.role:'',avatarUrl:typeof s.avatarUrl==='string'?s.avatarUrl:'',specialties:Array.isArray(s.specialties)?s.specialties.filter(x=>typeof x==='string'):[],rating:Number.isFinite(s.rating)?s.rating:0})) as Stylist[],
   clients:list(draft.clients) as ClientRecord[],
   loyaltyConfig:{...DEFAULT_LOYALTY_CONFIG,...loyalty,tierThresholds:{...DEFAULT_LOYALTY_CONFIG.tierThresholds,...record(loyalty.tierThresholds)},tierMultipliers:{...DEFAULT_LOYALTY_CONFIG.tierMultipliers,...record(loyalty.tierMultipliers)},rewards:Array.isArray(loyalty.rewards)?list(loyalty.rewards):DEFAULT_LOYALTY_CONFIG.rewards},
-  extras:{...DEFAULT_EXTRAS,...extras,gallery:Array.isArray(extras.gallery)?extras.gallery.filter(x=>typeof x==='string'&&x.trim()):[],policies:{...DEFAULT_EXTRAS.policies,...record(extras.policies)},whiteLabel:{...DEFAULT_EXTRAS.whiteLabel,...record(extras.whiteLabel)}},
+  extras:{...DEFAULT_EXTRAS,...extras,gallery:savedGallery,policies:{...DEFAULT_EXTRAS.policies,...record(extras.policies)},whiteLabel:{...DEFAULT_EXTRAS.whiteLabel,...record(extras.whiteLabel)}},
   onboardingComplete:draft.onboardingComplete===true};
 }

@@ -1,3 +1,5 @@
+import {ServiceManagement} from './ServiceManagement';
+import {servicesForTemplate} from '../lib/serviceCatalogue';
 import { applyTemplateDesign } from '../lib/templateSelection';
 import { websiteLink } from '../lib/supabase';
 import React, { useState } from 'react';
@@ -43,28 +45,9 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
     const tmpl = templates.find(t => t.id === typeId);
     if (!tmpl) return;
 
-    setProfile(prev=>applyTemplateDesign(prev,tmpl));
-
-    if (!services.length) setServices(tmpl.services);
+    setServices(servicesForTemplate(services,profile,tmpl));
+    setProfile(prev=>({...applyTemplateDesign(prev,tmpl),serviceCatalogueInitialized:true}));
     // Add your actual team in the next steps; sample identities are not imported.
-  };
-
-  const handleAddService = () => {
-    const newSrv: SalonService = {
-      id: `srv-custom-${Date.now()}`,
-      name: 'Custom Specialty Service',
-      category: 'General',
-      durationMinutes: 45,
-      price: 60,
-      description: 'High-quality personalized service.',
-      icon: 'content_cut',
-      popular: false
-    };
-    setServices((prev) => [...prev, newSrv]);
-  };
-
-  const handleRemoveService = (id: string) => {
-    setServices((prev) => prev.filter((s) => s.id !== id));
   };
 
   const startAIGeneration = () => { onComplete(); };
@@ -232,11 +215,11 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-2">
                 {/* Left: Founder Photo Upload Card */}
                 <div className="p-4 rounded-xl border border-gray-200 bg-gray-50 flex flex-col items-center justify-center text-center gap-3">
-                  <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-[#b0004a] shadow-md relative group">
+                  <div className="w-24 h-24 rounded-xl overflow-hidden border-2 border-[#b0004a] shadow-md relative group">
                     <img
                       src={profile.ownerPhotoUrl}
                       alt={profile.ownerName}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain"
                     />
                   </div>
                   <div>
@@ -379,87 +362,8 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
             </div>
           )}
 
-          {/* STEP 5: Services & Pricing */}
-          {currentStep === 5 && (
-            <div className="flex flex-col gap-6 animate-fade-in">
-              <div className="flex justify-between items-end">
-                <div>
-                  <span className="font-mono-caps text-xs font-bold text-[#b0004a] tracking-widest">
-                    SERVICES MENU
-                  </span>
-                  <h2 className="font-display text-3xl font-bold mt-1">Configure your services & pricing</h2>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleAddService}
-                  className="bg-[#b0004a] text-white text-xs font-bold px-3.5 py-2 rounded-lg hover:bg-[#d81b60] flex items-center gap-1 shadow-sm"
-                >
-                  <span className="material-symbols-outlined text-sm">add</span>
-                  <span>Add Service</span>
-                </button>
-              </div>
-
-              <div className="flex flex-col gap-3 max-h-[340px] overflow-y-auto pr-1">
-                {services.map((srv) => (
-                  <div
-                    key={srv.id}
-                    className="p-3.5 rounded-xl border border-gray-200 bg-gray-50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs"
-                  >
-                    <div className="flex items-center gap-3 w-full sm:w-auto">
-                      <div className="w-8 h-8 rounded-lg bg-[#b0004a]/10 text-[#b0004a] flex items-center justify-center shrink-0">
-                        <span className="material-symbols-outlined text-lg">{srv.icon || 'spa'}</span>
-                      </div>
-                      <input
-                        type="text"
-                        value={srv.name}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setServices((prev) => prev.map((s) => (s.id === srv.id ? { ...s, name: val } : s)));
-                        }}
-                        className="font-bold text-gray-900 bg-transparent border-b border-gray-300 focus:outline-none focus:border-[#b0004a] text-sm w-full sm:w-64"
-                      />
-                    </div>
-
-                    <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-                      <div className="flex items-center gap-1">
-                        <span className="text-gray-500 font-mono-caps">Price (₹):</span>
-                        <input
-                          type="number"
-                          value={srv.price}
-                          onChange={(e) => {
-                            const val = Number(e.target.value);
-                            setServices((prev) => prev.map((s) => (s.id === srv.id ? { ...s, price: val } : s)));
-                          }}
-                          className="w-20 p-1.5 rounded border border-gray-300 text-center font-bold"
-                        />
-                      </div>
-
-                      <div className="flex items-center gap-1">
-                        <span className="text-gray-500 font-mono-caps">Duration (min):</span>
-                        <input
-                          type="number"
-                          value={srv.durationMinutes}
-                          onChange={(e) => {
-                            const val = Number(e.target.value);
-                            setServices((prev) => prev.map((s) => (s.id === srv.id ? { ...s, durationMinutes: val } : s)));
-                          }}
-                          className="w-16 p-1.5 rounded border border-gray-300 text-center font-bold"
-                        />
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveService(srv.id)}
-                        className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
-                      >
-                        <span className="material-symbols-outlined text-lg">delete</span>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* STEP 5: Shared business service catalogue */}
+          {currentStep === 5 && <ServiceManagement services={services} setServices={setServices} profile={profile} primaryAccentColor="#b0004a"/>}
 
           {/* STEP 06: SOCIAL CONNECTIVITY */}
           {currentStep === 6 && (
