@@ -1,5 +1,6 @@
 import { paymentRequest, payBookingDeposit, reconcileBookingPayment } from '../lib/platformPayments';
 import { supabase } from '../lib/supabase';
+import {getContrastTextColor} from '../themeAccents';
 import React, { useState, useEffect, useRef, useId } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -104,6 +105,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   currency: aliasCurrency,
   onConfirmBooking: aliasOnConfirmBooking
 }) => {
+  const bookingAccent=/^#[0-9a-f]{6}$/i.test(themeAccentHex)?themeAccentHex:'#0f172a';
+  const bookingAccentText=getContrastTextColor(bookingAccent);
+  const actionStyle={backgroundColor:bookingAccent,color:bookingAccentText,border:'1px solid #94a3b8'};
   // Safe resolved values
   const profile = inputProfile || {
     ...INITIAL_SALON_PROFILE,
@@ -393,7 +397,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           <div className="flex items-center gap-3">
             <span
               className="w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-xs"
-              style={{ backgroundColor: themeAccentHex }}
+              style={actionStyle}
             >
               <CalendarCheck className="w-5 h-5" />
             </span>
@@ -483,7 +487,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   {(services || []).map((srv) => {
                     const isSelected = selectedService.id === srv.id;
                     return (
-                      <div
+                      <button
+                        type="button" aria-pressed={isSelected}
                         key={srv.id}
                         onClick={() => setSelectedService(srv)}
                         className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
@@ -520,7 +525,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                             </span>
                           )}
                         </div>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
@@ -533,7 +538,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {/* Option 1: Any Available (Default) */}
-                  <div
+                  <button
+                    type="button" aria-pressed={selectedStylist.id===ANY_SPECIALIST.id} aria-label="Select Any Specialist"
                     onClick={() => setSelectedStylist(ANY_SPECIALIST)}
                     className={`p-2.5 rounded-xl border cursor-pointer transition-all flex flex-col items-center text-center gap-1.5 ${
                       selectedStylist.id === ANY_SPECIALIST.id
@@ -548,13 +554,14 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       <div className="font-bold text-[11px] text-slate-900 truncate">Any Specialist</div>
                       <div className="text-[10px] text-emerald-700 font-medium">Fastest Slot</div>
                     </div>
-                  </div>
+                  </button>
 
                   {/* Individual Specialists */}
                   {(stylists || []).map((st) => {
                     const isSelected = selectedStylist.id === st.id;
                     return (
-                      <div
+                      <button
+                        type="button" aria-pressed={isSelected} aria-label={`Select specialist ${st.name}`}
                         key={st.id}
                         onClick={() => setSelectedStylist(st)}
                         className={`p-2.5 rounded-xl border cursor-pointer transition-all flex flex-col items-center text-center gap-1.5 ${
@@ -572,10 +579,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                           <div className="font-bold text-[11px] text-slate-900 truncate">{st.name.split(' ')[0]}</div>
                           <div className="text-[10px] text-slate-500 truncate">★ {st.rating}</div>
                         </div>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
+                <p role="status" className="text-xs text-slate-700 mt-3">Selected specialist: <strong>{selectedStylist.name}</strong>. Use Continue to Date &amp; Slot below.</p>
               </div>
 
               </motion.div>
@@ -796,7 +804,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   </p>
                 ) : (
                   <p className="text-[11px] text-slate-400 mt-1">
-                    We will send a 4-digit verification code to this WhatsApp number on the next step.
+                    Use your WhatsApp number for booking contact details. Sign in or create a customer account when saving your booking.
                   </p>
                 )}
               </div>
@@ -1000,7 +1008,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   type="button"
                   onClick={handleReset}
                   className="flex-1 py-2.5 rounded-xl text-white text-xs font-bold transition-all shadow-xs cursor-pointer hover:opacity-90"
-                  style={{ backgroundColor: themeAccentHex }}
+                  style={actionStyle}
                 >
                   Book Another Service
                 </button>
@@ -1014,7 +1022,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 type="button"
                 onClick={() => setCurrentStep('datetime')}
                 className="w-full py-3 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95 active:scale-[0.99] mt-2"
-                style={{ backgroundColor: themeAccentHex }}
+                style={actionStyle}
               >
                 <span>Continue to Date & Slot</span>
                 <ArrowRight className="w-4 h-4" />
@@ -1034,7 +1042,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   onClick={() => setCurrentStep('guest')}
                   disabled={!bookingTime || slotsLoading}
                   className="flex-1 py-3 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95"
-                  style={{ backgroundColor: themeAccentHex }}
+                  style={actionStyle}
                 >
                   <span>Continue to Guest Details</span>
                   <ArrowRight className="w-4 h-4" />
@@ -1053,7 +1061,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 <button
                   type="submit" form={guestFormId}
                   className="flex-1 py-3 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95"
-                  style={{ backgroundColor: themeAccentHex }}
+                  style={actionStyle}
                 >
                   <span>Review & Pay 25% Advance</span>
                   <ArrowRight className="w-4 h-4" />
@@ -1075,7 +1083,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   onClick={handleFinalSubmitBooking}
                   disabled={isSubmitting || !gatewayReady}
                   className="flex-1 py-3.5 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95"
-                  style={{ backgroundColor: themeAccentHex }}
+                  style={actionStyle}
                 >
                   <CalendarCheck className="w-4 h-4" />
                   <span>{isSubmitting ? 'Opening secure payment…' : `Pay ₹${advanceTokenAmount.toLocaleString('en-IN')} & Book`}</span>
