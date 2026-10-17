@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {welcomeTemplate,sendWelcome} from '../backend/functions/studioflow-welcome-whatsapp/core';
+const job={customer_id:'customer-qa',phone:'+919876543210',name:'QA Customer',referral_code:'QA-CODE123'};
+const config={token:'mock-token',phoneId:'1234',version:'v99.0',template:'nexora_welcome',language:'en_US'};
+const body=welcomeTemplate(job,config.template,config.language);assert.equal(body.to,'919876543210');const params=body.template.components[0].parameters.map(p=>p.text);assert.equal(params[1],'customer-qa');assert.ok(params[2].endsWith('?app=1&auth=signin'));assert.ok(params[3].endsWith('customer_ref=QA-CODE123'));assert.ok(!JSON.stringify(body).includes('password'));assert.ok(!JSON.stringify(body).includes('mock-token'));
+let posted:any;const accepted=await sendWelcome(job,config,async(url:any,options:any)=>{posted={url,options};return new Response(JSON.stringify({messages:[{id:'wamid.test'}]}),{status:200})});assert.equal(accepted.status,'accepted');assert.equal(JSON.parse(posted.options.body).template.components[0].parameters.length,4);assert.equal(posted.options.headers.Authorization,'Bearer mock-token');
+assert.equal((await sendWelcome(job,config,async()=>new Response('{}',{status:429}) as any)).status,'retry');
+assert.equal((await sendWelcome(job,config,async()=>new Response('{}',{status:400}) as any)).status,'failed');
+assert.equal((await sendWelcome(job,config,async()=>new Response('{}',{status:200}) as any)).status,'unknown');
+assert.equal((await sendWelcome(job,config,async()=>{throw new Error('timeout')})).status,'unknown');
+console.log('PASS: welcome contains correct User ID/login/referral, no password or token, pinned provider URL/auth, accepted vs failed vs throttled vs unknown results. No real messages sent.');

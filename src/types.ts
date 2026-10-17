@@ -120,11 +120,16 @@ export interface SocialVideo {
 }
 
 export interface PromoCampaign {
+  logoUrl?:string;
+  endsAt?:string; lastMinute?:boolean;
   enabled: boolean; selectedServiceId: string; campaignTheme: string; discountPercent: number;
   customOfferText: string; promoCode: string; headline: string; subtext: string;
   aspectRatio: string; aesthetic: string; imageUrl: string; customPrompt: string;
 }
 export interface SalonProfile {
+  photoGalleryInitialized?:boolean;
+  photoGalleryType?:BusinessTypeId;
+  photoGallery?:import('./lib/photoGallery').SalonGalleryPhoto[];
   headerNavigation?:import('./lib/headerNavigation').HeaderLinkSetting[];
   serviceCatalogueInitialized?:boolean;
   demoTestimonialsInitialized?:boolean;
@@ -176,6 +181,7 @@ export interface SalonProfile {
   foundingYear?: string;
   workingHoursMonFri?: string;
   workingHoursSat?: string;
+  workingHoursTue?: string;
   workingHoursSun?: string;
 }
 
@@ -205,6 +211,7 @@ export interface DaySchedule {
 }
 
 export interface Stylist {
+  experienceYears?:number;
   id: string;
   name: string;
   role: string;

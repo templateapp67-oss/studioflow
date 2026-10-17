@@ -1,0 +1,2 @@
+import {build} from 'esbuild';import {spawnSync} from 'node:child_process';
+const built=await build({entryPoints:['scripts/verify-referrals.tsx'],bundle:true,platform:'node',format:'esm',packages:'external',write:false,loader:{'.css':'empty','.jpg':'dataurl','.png':'dataurl','.webp':'dataurl'}});const result=spawnSync(process.execPath,['--input-type=module'],{input:built.outputFiles[0].text,stdio:['pipe','inherit','inherit']});if(result.error)throw result.error;process.exitCode=result.status??1;

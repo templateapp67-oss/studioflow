@@ -1,3 +1,4 @@
+import {CustomerRewardClaims} from './CustomerRewardClaims';
 import { websiteLink } from '../lib/supabase';
 import React, { useState } from 'react';
 import { 
@@ -313,6 +314,7 @@ We look forward to pampering you soon! 💆‍♀️💇‍♂️`;
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-xs flex flex-col gap-6">
       
+      <CustomerRewardClaims/>
       {/* HEADER SECTION */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-5">
         <div>

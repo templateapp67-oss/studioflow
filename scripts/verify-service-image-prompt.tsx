@@ -1,0 +1,22 @@
+import React from 'react';import {create,act} from 'react-test-renderer';import assert from 'node:assert/strict';
+import {createServiceImageVariation,serviceImagePrompt} from '../src/lib/serviceImagePrompt';import {ServiceImagePrompt} from '../src/components/ServiceImagePrompt';import {CATEGORY_TEMPLATES} from '../src/categoryTemplates';
+(globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;
+for(const template of Object.values(CATEGORY_TEMPLATES))for(const service of template.services){const prompt=serviceImagePrompt(service.name,service.category,service.description);for(const text of [service.name,service.category,service.description,'3:2','not a collage','MANDATORY NEXORA BRANDING','spelled exactly "Nexora"','Do not omit Nexora branding'])assert.ok(prompt.includes(text));}
+let copied='',fail=false;Object.defineProperty(globalThis,'navigator',{configurable:true,value:{clipboard:{writeText:async(text:string)=>{if(fail)throw new Error('Blocked');copied=text;}}}});
+const props={name:'Hair cut',category:'Precision Cuts',description:'A personalised cut.',enabled:true};
+let editor:any;await act(async()=>{editor=create(<ServiceImagePrompt {...props}/>)});
+const prompt=editor.root.findByType('textarea');assert.equal(prompt.props.readOnly,true);assert.ok(prompt.props.value.includes(props.name));
+const firstPrompt=prompt.props.value;const button=(text:string)=>editor.root.findAllByType('button').find((node:any)=>node.children.join('')===text);
+await act(async()=>editor.update(<ServiceImagePrompt {...props}/>));assert.equal(editor.root.findByType('textarea').props.value,firstPrompt,'Rerenders must keep the current creative brief');
+const link=editor.root.findByType('a');assert.equal(link.props.href,'https://chatgpt.com/images');assert.equal(link.props.target,'_blank');assert.ok(link.props.rel.includes('noopener'));assert.ok(!link.props.href.includes('?'),'Prompt must not leak into URL');
+await act(async()=>button('Copy image prompt').props.onClick());assert.equal(copied,prompt.props.value);assert.match(editor.root.findByProps({role:'status'}).children.join(''),/copied/);
+fail=true;await act(async()=>button('Copy image prompt').props.onClick());assert.match(editor.root.findByProps({role:'status'}).children.join(''),/copy it manually/);
+await act(async()=>button('New variation').props.onClick());
+const refreshed=editor.root.findByType('textarea').props.value;assert.notEqual(refreshed,firstPrompt);assert.equal(editor.root.findAllByProps({role:'status'}).length,0,'Old copy status must clear after a new brief');
+for(const field of [props.name,props.category,props.description,'Nexora'])assert.ok(refreshed.includes(field));
+assert.notEqual(refreshed.split('Image 1:')[1].split('Use these distinct')[0],firstPrompt.split('Image 1:')[1].split('Use these distinct')[0],'Real art direction must change, not just the identifier');
+const fixed=serviceImagePrompt(props.name,props.category,props.description,'fixed-test-brief');assert.equal(fixed,serviceImagePrompt(props.name,props.category,props.description,'fixed-test-brief'));
+const briefs=Array.from({length:100},()=>serviceImagePrompt(props.name,props.category,props.description,createServiceImageVariation()));assert.equal(new Set(briefs.map(brief=>brief.split('Image 1:')[1].split('Use these distinct')[0])).size,100,'Independent briefs must vary actual camera/light/decor directions');
+await act(async()=>editor.update(<ServiceImagePrompt {...props} description="Another service description"/>));assert.ok(editor.root.findByType('textarea').props.value.includes('Another service description'));
+await act(async()=>editor.update(<ServiceImagePrompt {...props} enabled={false}/>));assert.equal(editor.root.findAllByType('a').length,0);assert.equal(editor.root.findAllByType('textarea').length,0);
+await act(async()=>editor.unmount());console.log('PASS: every template service prompt includes all three selected fields; copy success/failure, prompt gating, separate verified ChatGPT Images tab and no prompt/API key in URL.');

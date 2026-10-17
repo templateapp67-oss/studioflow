@@ -148,7 +148,7 @@ for(const template of Object.values(CATEGORY_TEMPLATES)) {
  const profile={...INITIAL_SALON_PROFILE,businessType:template.id,subdomain:'test-salon',socialVideos:[]};
  const html=renderToStaticMarkup(<SalonWebsitePreview profile={profile} services={[]} stylists={[]} gallery={[]} readOnly onManageDashboard={()=>{}} onCustomerAccount={()=>{}} customerSignedIn onAddAppointment={async apt=>apt}/>);
  const header=(html.match(/<header[\s\S]*?<\/header>/g)||[]).find(h=>h.includes('Customer account'));assert.ok(header,template.id);
- for(const label of ['Login','Sign up','My Bookings'])assert.ok(header.includes(label),`${template.id}: ${label} must be inside salon header`);
+ for(const label of ['Manage your customer account','My Bookings'])assert.ok(header.includes(label),`${template.id}: ${label} must be inside salon header`);assert.ok(!header.includes('Customer Login')&&!header.includes('Sign up'),`${template.id}: signed-in header must hide guest buttons`);
  for(const label of ['Replace / Manage video','Edit this section','owner-content','Edit featured client experiences','The salon owner can replace'])assert.ok(!html.includes(label),`${template.id}: public page must hide ${label}`);
  assert.equal((html.match(/class="sf-reel-media"/g)||[]).length,5);assert.equal((html.match(/<iframe/g)||[]).length,0);
 }
@@ -160,7 +160,7 @@ for(const template of Object.values(CATEGORY_TEMPLATES)) {
  const order=['hero','dock','services','team','experiences','location','footer'];let previous=-1;for(const section of order){const at=html.indexOf(`data-layout="${section}"`);assert.ok(at>previous,`${template.id}: ${section} must appear in requested order`);previous=at;}
  const dock=html.match(/<nav data-layout="dock"[\s\S]*?<\/nav>/)?.[0]||'';for(const label of ['Offers','Services','Our Team','Lookbook','Reviews','Location'])assert.ok(dock.includes(label),`${template.id}: ${label} dock link missing`);
  assert.ok(html.includes('WhatsApp Inquiry'));assert.ok(html.includes('Rich warm mood'));assert.ok(html.includes('Verified checkout'));assert.ok(html.includes('Service categories'));assert.ok(html.includes('Choose for online booking'));assert.ok(!html.includes('Verified client'),'Owner-entered reviews must not be labelled verified by default');
- for(const service of template.services){assert.ok(html.includes(service.name.replaceAll('&','&amp;')));assert.ok(html.includes(`${service.durationMinutes} min`));}
+ for(const service of template.services){assert.ok(html.includes(service.name.replaceAll('&','&amp;').replaceAll("'",'&#x27;')));assert.ok(html.includes(`${service.durationMinutes} min`));}
 }
 console.log('PASS: all 14 templates follow hero → dock → services → specialists → experiences/lookbook → location → footer; category pricing, duration, WhatsApp and specialist booking controls are present.');
 
@@ -265,16 +265,20 @@ const editorButton=(name:string)=>serviceEditor.root.findAll(n=>n.type==='button
 await act(async()=>editorButton('Add service').props.onClick());
 const serviceDialog=()=>serviceEditor.root.findByProps({role:'dialog'});
 const inputService=(index:number,value:string)=>serviceDialog().findAllByType('input')[index].props.onChange({target:{value}});
-await act(async()=>{inputService(0,'Custom scalp care');inputService(1,'Owner category');inputService(2,'-1');inputService(3,'55');serviceDialog().findByType('textarea').props.onChange({target:{value:'Custom service detail'}});});
+const chosenStarter=CATEGORY_TEMPLATES[INITIAL_SALON_PROFILE.businessType].services[0];
+await act(async()=>serviceDialog().findByProps({'aria-label':'Service name'}).props.onChange({target:{value:chosenStarter.name}}));
+const chosenDescription=serviceDialog().findAllByType('input').find(n=>n.props.type==='radio')!.props.value;
+const addNumber=(index:number,value:string)=>serviceDialog().findAllByType('input').filter(n=>n.props.type==='number')[index].props.onChange({target:{value}});
+await act(async()=>{serviceDialog().findAllByType('input').find(n=>n.props.type==='radio')!.props.onChange();addNumber(0,'-1');addNumber(1,'55');});
 await act(async()=>serviceDialog().findByType('form').props.onSubmit({preventDefault(){}}));assert.equal(editedMenu.length,0);assert.ok(serviceEditor.root.findByProps({role:'alert'}));
-await act(async()=>inputService(2,'1250.50'));
+await act(async()=>addNumber(0,'1250.50'));
 const pickServicePhoto=async(file:File)=>{await act(async()=>{serviceDialog().findByProps({'aria-label':'Upload service image'}).props.onChange({target:{files:[file],value:'photo'}});await new Promise(resolve=>setTimeout(resolve,30));});};
 await pickServicePhoto(new File([new Uint8Array(4)],'large-service.jpg',{type:'image/jpeg'}));
 assert.ok(canvasSizes.some(([width,height])=>width===1200&&height===900),'Service upload must resize the long edge to 1200px');
 assert.equal(serviceUploads.length,1);assert.ok(serviceUploads[0].path.startsWith('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/services/'));assert.ok(serviceUploads[0].file.size<=2*1024*1024);
-assert.equal(serviceDialog().findAllByType('img').length,1,'Uploaded photo must preview before saving');
+assert.equal(serviceDialog().findAllByProps({alt:'Service photo preview'}).length,1,'Uploaded photo must preview before saving');
 await act(async()=>serviceDialog().findByType('form').props.onSubmit({preventDefault(){}}));
-assert.equal(editedMenu.length,1);assert.equal(editedMenu[0].price,1250.5);assert.equal(editedMenu[0].category,'Owner category');assert.equal(editedMenu[0].description,'Custom service detail');assert.equal(editedMenu[0].origin,'custom');const savedServiceId=editedMenu[0].id;
+assert.equal(editedMenu.length,1);assert.equal(editedMenu[0].price,1250.5);assert.equal(editedMenu[0].category,chosenStarter.category);assert.equal(editedMenu[0].description,chosenDescription);assert.equal(editedMenu[0].origin,'custom');const savedServiceId=editedMenu[0].id;
 assert.equal(editedMenu[0].imagePath,serviceUploads[0].path);assert.ok(editedMenu[0].imageUrl?.endsWith(serviceUploads[0].path));
 const initialServicePhoto=editedMenu[0].imageUrl;
 for(const template of Object.values(CATEGORY_TEMPLATES)){
@@ -284,9 +288,9 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
  const html=renderToStaticMarkup(<CustomerSalonWebsite profile={saved.profile} services={menu} stylists={[]} onAddAppointment={async apt=>apt}/>);
  assert.ok(html.includes('sf-service-image'));assert.ok(html.includes(initialServicePhoto!));assert.ok(html.includes('width="600" height="400"'));
 }
-await act(async()=>serviceEditor.root.findByProps({'aria-label':'Edit Custom scalp care'}).props.onClick());
+await act(async()=>serviceEditor.root.findByProps({'aria-label':`Edit ${chosenStarter.name}`}).props.onClick());
 await pickServicePhoto(new File([new Uint8Array(4)],'replacement.png',{type:'image/png'}));
-await act(async()=>{inputService(0,'Updated scalp care');inputService(1,'Updated category');inputService(2,'1499.75');inputService(3,'60');serviceDialog().findByType('textarea').props.onChange({target:{value:'Edited description'}});});
+await act(async()=>{inputService(0,'Updated scalp care');inputService(1,'Updated category');inputService(2,'1499.75');inputService(3,'60');serviceDialog().findAllByType('textarea').find(n=>n.props.maxLength===2000)!.props.onChange({target:{value:'Edited description'}});});
 await act(async()=>serviceDialog().findByType('form').props.onSubmit({preventDefault(){}}));
 assert.equal(editedMenu[0].id,savedServiceId);assert.equal(editedMenu[0].price,1499.75);assert.equal(editedMenu[0].durationMinutes,60);assert.equal(editedMenu[0].description,'Edited description');assert.notEqual(editedMenu[0].imageUrl,initialServicePhoto);assert.equal(editedMenu[0].imagePath,serviceUploads[1].path);
 await act(async()=>serviceEditor.root.findByProps({'aria-label':'Edit Updated scalp care'}).props.onClick());
@@ -334,7 +338,7 @@ const openHeader=()=>headerView.root.findByProps({'aria-label':'Open website men
 for(const link of headerLinks({...INITIAL_SALON_PROFILE,subdomain:'nav-studio'})){
  await act(async()=>openHeader());assert.equal(headerDoc.body.style.overflow,'hidden');
  const nav=headerView.root.findByProps({'aria-label':'Mobile website navigation'});
- assert.equal(nav.findAllByType('a').length,7);
+ assert.equal(nav.findAllByType('a').length,8);assert.ok(nav.findByProps({href:'/?app=1&install=1'}));
  await act(async()=>nav.findByProps({href:link.href}).props.onClick({preventDefault(){}}));
  assert.equal(headerView.root.findAllByProps({role:'dialog'}).length,0,'Selecting any mobile menu link must close the drawer');assert.equal(headerDoc.body.style.overflow,'');
 }
@@ -513,3 +517,6 @@ await act(async()=>demoEditor.root.findAll((node:any)=>node.type==='form'&&node.
 assert.equal(demoProfile.socialVideos,beforeRejected);assert.ok(demoText(demoEditor.root).includes('Full-length videos are not supported'));
 await act(async()=>demoEditor.unmount());
 console.log('PASS: five Shorts per theme, legacy full demo replacement without resurrecting deletions, owner full videos preserved but hidden, and owner setup rejects full-video URLs rather than relabelling them as Shorts.');
+
+for(const template of Object.values(CATEGORY_TEMPLATES)){const profile={...INITIAL_SALON_PROFILE,businessType:template.id};const html=renderToStaticMarkup(<SalonWebsitePreview profile={profile} services={[]} stylists={[]} gallery={[]} readOnly onAddAppointment={async apt=>apt}/>);for(const label of ['Nexora app announcement','Install and share Nexora customer app','/promo/nexora-customer-app-ad.png','Share App &amp; Poster','Download ad image','/?app=1&amp;install=1'])assert.ok(html.includes(label),`${template.id}: missing app campaign ${label}`);}
+console.log('PASS: all 14 templates include app announcement, install guide route, shareable poster, image download and mobile app menu.');

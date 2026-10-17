@@ -23,3 +23,24 @@ export async function discardServicePhoto(imagePath:string){
   await supabase.storage.from('studioflow-media').remove([imagePath]);
  }catch{/* Best-effort cleanup of abandoned uploads; saved service data is unaffected. */}
 }
+
+/** Import in the browser, then use the same owner-scoped upload and validation. */
+export async function servicePhotoFromUrl(value:string):Promise<File>{
+ let url:URL;
+ try{url=new URL(value);}catch{throw new Error('Enter a valid HTTPS image URL.');}
+ if(url.protocol!=='https:'||url.username||url.password)throw new Error('Enter a valid HTTPS image URL.');
+ const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),20000);
+ try{
+  const response=await fetch(url.href,{credentials:'omit',referrerPolicy:'no-referrer',signal:controller.signal});
+  if(!response.ok)throw new Error('Image URL could not be loaded. Download the image and upload it instead.');
+  const mime=(response.headers.get('content-type')||'').split(';')[0].toLowerCase();
+  if(!['image/jpeg','image/png','image/webp'].includes(mime))throw new Error('The URL must point directly to a JPG, PNG or WebP image.');
+  if(Number(response.headers.get('content-length'))>20*1024*1024)throw new Error('Choose an image smaller than 20 MB.');
+  if(!response.body)throw new Error('The image is empty.');
+  const reader=response.body.getReader();const chunks:Uint8Array[]=[];let size=0;
+  while(true){const part=await reader.read();if(part.done)break;size+=part.value.byteLength;if(size>20*1024*1024){await reader.cancel();throw new Error('Choose an image smaller than 20 MB.');}chunks.push(part.value);}
+  if(!size)throw new Error('The image is empty.');
+  return new File(chunks as BlobPart[],`service-import.${mime==='image/png'?'png':mime==='image/webp'?'webp':'jpg'}`,{type:mime});
+ }catch(error){if(error instanceof TypeError)throw new Error('This host blocks image import. Download the photo and use Upload photo instead.');throw error;}
+ finally{clearTimeout(timer);}
+}

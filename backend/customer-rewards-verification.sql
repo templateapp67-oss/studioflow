@@ -1,0 +1,31 @@
+begin;
+do $$
+declare owner_a uuid:=gen_random_uuid(); customer_a uuid:=gen_random_uuid(); customer_b uuid:=gen_random_uuid(); request_a uuid:=gen_random_uuid(); claim jsonb; duplicate jsonb; dashboard jsonb; slug_a text:='rewards-qa-'||substr(owner_a::text,1,8); config jsonb; n integer;
+begin
+ insert into auth.users(id,aud,role,email,created_at,updated_at) select u,'authenticated','authenticated','reward-qa-'||u||'@example.invalid',now(),now() from unnest(array[owner_a,customer_a,customer_b]) u;
+ config:='{"programEnabled":true,"pointsPerVisit":100,"pointsPerHundredSpent":10,"tierThresholds":{"bronze":0,"silver":200,"gold":800,"platinum":1800},"rewards":[{"id":"qa-voucher","title":"QA Reward","isActive":true,"requiredPoints":200,"rewardType":"flat_discount","discountValue":100}]}';
+ insert into public.studioflow_accounts(user_id,draft) values(owner_a,jsonb_build_object('profile',jsonb_build_object('businessName','QA Rewards'),'loyaltyConfig',config));
+ insert into public.studioflow_websites(owner_id,slug,content) values(owner_a,slug_a,jsonb_build_object('profile',jsonb_build_object('businessName','QA Rewards'),'loyaltyConfig',config));
+ insert into public.studioflow_bookings(owner_id,customer_id,stylist_id,starts_at,ends_at,status,payload) values(owner_a,customer_a,'qa',now()-interval '10 days',now()-interval '10 days'+interval '30 minutes','completed','{"serviceName":"QA Visit","servicePrice":2000}');
+ perform set_config('request.jwt.claim.sub',customer_a::text,true);execute 'set local role authenticated';
+ dashboard:=public.studioflow_customer_rewards_dashboard();
+ if (select (v->>'points')::integer from jsonb_array_elements(dashboard->'wallets') v where v->>'slug'=slug_a)<>300 then raise exception 'FAIL earned points';end if;
+ claim:=public.studioflow_customer_redeem_reward(slug_a,'qa-voucher',request_a);
+ duplicate:=public.studioflow_customer_redeem_reward(slug_a,'qa-voucher',request_a);
+ if claim->>'code'<>duplicate->>'code' then raise exception 'FAIL idempotency';end if;
+ dashboard:=public.studioflow_customer_rewards_dashboard();
+ if (select (v->>'points')::integer from jsonb_array_elements(dashboard->'wallets') v where v->>'slug'=slug_a)<>100 then raise exception 'FAIL deduction';end if;
+ begin perform public.studioflow_customer_redeem_reward(slug_a,'qa-voucher',gen_random_uuid());raise exception 'FAIL insufficient points accepted';exception when others then if sqlerrm='FAIL insufficient points accepted' then raise;end if;end;
+ begin perform public.studioflow_owner_use_reward((claim->>'id')::uuid);raise exception 'FAIL customer marked used';exception when insufficient_privilege then null;end;
+ perform set_config('request.jwt.claim.sub',customer_b::text,true);
+ select count(*) into n from public.studioflow_customer_reward_claims where id=(claim->>'id')::uuid;
+ if n<>0 then raise exception 'FAIL cross customer RLS';end if;
+ if jsonb_array_length(public.studioflow_customer_rewards_dashboard()->'claims')<>0 then raise exception 'FAIL private claims';end if;
+ perform set_config('request.jwt.claim.sub',owner_a::text,true);
+ select count(*) into n from public.studioflow_customer_reward_claims where id=(claim->>'id')::uuid;if n<>1 then raise exception 'FAIL owner visibility';end if;
+ perform public.studioflow_owner_use_reward((claim->>'id')::uuid);
+ if (select status from public.studioflow_customer_reward_claims where id=(claim->>'id')::uuid)<>'used' then raise exception 'FAIL owner consume';end if;
+ execute 'reset role';
+ raise notice 'PASS earned points, salon scope, idempotency, deduction, insufficient balance, cross-customer privacy, owner-only consumption';
+end $$;
+rollback;

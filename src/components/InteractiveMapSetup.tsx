@@ -1,3 +1,4 @@
+import {loadLeaflet} from '../lib/loadLeaflet';
 import React, { useEffect, useRef, useState } from 'react';
 import { 
   MapPin, 
@@ -25,24 +26,6 @@ const INDIAN_STATES = [
   'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 
   'Delhi', 'Jammu & Kashmir', 'Ladakh', 'Puducherry', 'Chandigarh'
 ];
-
-let leafletLoading: Promise<void> | undefined;
-function loadLeaflet() {
-  if ((window as any).L) return Promise.resolve();
-  if (leafletLoading) return leafletLoading;
-  leafletLoading = new Promise<void>((resolve, reject) => {
-    if (!document.getElementById('leaflet-css')) {
-      const css = document.createElement('link'); css.id='leaflet-css';css.rel='stylesheet';
-      css.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';document.head.appendChild(css);
-    }
-    const script=document.createElement('script');script.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    const timeout=setTimeout(()=>{script.remove();leafletLoading=undefined;reject(new Error('Map load timed out'));},15000);
-    script.onload=()=>{clearTimeout(timeout);resolve();};
-    script.onerror=()=>{clearTimeout(timeout);script.remove();leafletLoading=undefined;reject(new Error('Map load failed'));};
-    document.body.appendChild(script);
-  });
-  return leafletLoading;
-}
 
 export const InteractiveMapSetup: React.FC<InteractiveMapSetupProps> = ({
   profile,

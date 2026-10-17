@@ -1,0 +1,17 @@
+import type {SalonProfile} from '../types';
+import {CATEGORY_TEMPLATES} from '../categoryTemplates';
+import {ACCENT_PALETTES,DEFAULT_CATEGORY_ACCENTS,type AccentPaletteKey} from '../themeAccents';
+export type BrandAssetMode='logo'|'favicon'|'both';
+export function brandIdentityContext(profile:SalonProfile){
+ const template=CATEGORY_TEMPLATES[profile.businessType]||CATEGORY_TEMPLATES.hair_salon;
+ const palette=ACCENT_PALETTES[profile.themeAccentKey as AccentPaletteKey]||ACCENT_PALETTES[DEFAULT_CATEGORY_ACCENTS[template.id]];
+ const primary=profile.customAccentColor||(template.id==='barber'?'#c49a6c':palette.primaryHex);
+ const colors=Array.from(new Set([primary,palette.secondaryHex,'#0369a1','#be185d','#b45309'].map(color=>color.toLowerCase()))).slice(0,3);
+ return {firstWord:profile.businessName.trim().split(/\s+/)[0]||'',template,primary,colors};
+}
+export function brandIdentityPrompt(profile:SalonProfile,mode:BrandAssetMode,colors:string[]){
+ const {firstWord,template}=brandIdentityContext(profile);
+ if(!firstWord||colors.length!==3||new Set(colors.map(c=>c.toLowerCase())).size!==3||colors.some(c=>!/^#[a-f0-9]{6}$/i.test(c)))return '';
+ const logo=mode==='logo'||mode==='both',favicon=mode==='favicon'||mode==='both';
+ return `Design a professional ${mode==='both'?'matching salon logo and website favicon identity':mode==='logo'?'salon brand logo':'website favicon'} using the following brief.\n\nBRAND\nFull salon name (context only): ${profile.businessName.trim()}\nExact brand word to use: "${firstWord}" (the FIRST WORD of the salon name only). Do not add the remaining words to the logo.\nBusiness category: ${template.shortName}\nSelected website template: ${template.title}\nTemplate aesthetic: ${template.layoutStyle.replaceAll('_',' ')}; ${template.paletteLabel}; ${profile.themePreset||template.themePreset}. Match this category and template aesthetic, not a generic barber identity for every business.\n\nTHREE DISTINCT COLOR VARIANTS\n${colors.map((color,index)=>`Variant ${index+1}: ${color.toUpperCase()} as the main brand color, supported by neutral white/charcoal where contrast requires.`).join('\n')}\nKeep the same recognizable identity and professional quality across the three color variants.\n\nDELIVERABLES\n${logo?`LOGO: Create 3 separate logo designs, one in each specified color. Render the exact word "${firstWord}" legibly with a distinctive category-appropriate symbol. Transparent-background PNG, ideally 1600 × 800 px, crisp vector-style edges, centered with generous clear space, suitable for the selected template header. Do not show a store mockup, business card, wall, photograph or presentation board.\n`:''}${favicon?`FAVICON: Create 3 separate square favicon files, one in each specified color${logo?', visually matching the logo in that same color':''}. Use a bold simplified monogram or symbol inspired by "${firstWord}", such as the initial "${Array.from(firstWord)[0]}". No tiny full-name text. PNG, ideally 512 × 512 px, square 1:1, transparent or a clean solid high-contrast background, readable at 16 × 16 and 32 × 32 px. Keep all artwork safely inside the square.\n`:''}\nProvide ${mode==='both'?'6':'3'} separate downloadable PNG files, not a collage or grid. Label the downloads by asset type and color variant. No third-party logos, stock watermarks or unrelated slogans. If generation is limited to one image at a time, create the first requested file and let me ask for the remaining files separately.`;
+}

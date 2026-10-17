@@ -1,3 +1,4 @@
+import {seedTemplatePackages} from './lib/packageCatalogue';
 import { CategoryTemplateConfig, BusinessTypeOption } from './types';
 import { SALON_IMAGES } from './assets/images';
 
@@ -1617,6 +1618,8 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
     ]
   }
 };
+
+for(const template of Object.values(CATEGORY_TEMPLATES))template.services=seedTemplatePackages(template);
 
 export const ALL_CATEGORY_OPTIONS: BusinessTypeOption[] = [
   {

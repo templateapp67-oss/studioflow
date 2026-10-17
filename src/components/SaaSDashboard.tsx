@@ -1,3 +1,5 @@
+import {OwnerCustomerContacts} from './OwnerCustomerContacts';
+import {OwnerDemoBookings} from './OwnerDemoBookings';
 import { WebsiteContentManager } from './WebsiteContentManager';
 import { uploadSalonImage, websiteLink } from '../lib/supabase';
 import React, { useState, useEffect } from 'react';
@@ -13,6 +15,7 @@ import { SocialConnectivityStep } from './SocialConnectivityStep';
 import { DEFAULT_LOYALTY_CONFIG, TIER_METADATA, calculateLoyaltyTier, calculateRewardProgress } from '../loyaltyData';
 
 interface SaaSDashboardProps {
+  ownerId?:string;
   profile: SalonProfile;
   setProfile: React.Dispatch<React.SetStateAction<SalonProfile>>;
   services: SalonService[];
@@ -30,7 +33,7 @@ interface SaaSDashboardProps {
   gallery?:string[];setGallery?:(images:string[])=>void;
 }
 
-type TabType = 'website_sections' | 'overview' | 'calendar' | 'services' | 'team' | 'clients' | 'loyalty' | 'marketing' | 'social_connectivity' | 'appearance' | 'website';
+type TabType = 'contacts' |  'demo' | 'website_sections' | 'overview' | 'calendar' | 'services' | 'team' | 'clients' | 'loyalty' | 'marketing' | 'social_connectivity' | 'appearance' | 'website';
 
 export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
   profile,
@@ -45,7 +48,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
   setClients = (_clients: React.SetStateAction<ClientRecord[]>) => {},
   loyaltyConfig: externalLoyaltyConfig,
   setLoyaltyConfig: externalSetLoyaltyConfig,
-  onNavigateToPreview,initialTab='overview',gallery,setGallery,
+  ownerId='',onNavigateToPreview,initialTab='overview',gallery,setGallery,
 }) => {
   const [internalLoyaltyConfig, setInternalLoyaltyConfig] = useState<LoyaltyConfig>(DEFAULT_LOYALTY_CONFIG);
   const loyaltyConfig = externalLoyaltyConfig || internalLoyaltyConfig;
@@ -186,9 +189,11 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
           {[
             { id: 'overview', label: 'Overview', icon: 'dashboard' },
             { id: 'calendar', label: 'Appointments', icon: 'calendar_month' },
+            { id: 'demo', label: '₹0 Demo Bookings', icon: 'science' },
             { id: 'services', label: 'Business Services & Custom Offerings', icon: 'spa' },
             { id: 'team', label: 'Team Management', icon: 'badge' },
             { id: 'clients', label: 'Clients CRM', icon: 'group' },
+            { id:'contacts',label:'Customers & WhatsApp',icon:'contacts' },
             { id: 'loyalty', label: 'Loyalty & Rewards', icon: 'military_tech' },
             { id: 'marketing', label: 'Promo Image & Social', icon: 'photo_camera_back' },
             { id: 'social_connectivity', label: 'Step 06 • Social Connectivity', icon: 'share' },
@@ -336,6 +341,8 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
           </div>
         )}
 
+        {activeTab==='demo'&&<OwnerDemoBookings ownerId={ownerId}/>}
+
         {/* TAB CONTENT: APPOINTMENTS */}
         {activeTab === 'calendar' && (
           <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-xs">
@@ -372,6 +379,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
         {/* TAB CONTENT: TEAM MANAGEMENT */}
         {activeTab === 'team' && (
           <TeamManagement
+            businessType={profile.businessType}
             stylists={stylists}
             setStylists={setStylists}
             primaryAccentColor={currentPrimaryColor}
@@ -495,6 +503,8 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
           </div>
         )}
 
+        {(activeTab==='clients'||activeTab==='marketing')&&<section className="workspace-card mb-5"><h2>Customer exports & WhatsApp campaigns</h2><p className="muted">Manage real customer contacts, CSV/Excel/phone exports and permission-based campaign drafts.</p><button className="primary-action" onClick={()=>setActiveTab('contacts')}>Open Customers & WhatsApp</button></section>}
+        {activeTab==='contacts'&&<OwnerCustomerContacts profile={profile}/>}
         {/* TAB CONTENT: LOYALTY & REWARDS PROGRAM */}
         {activeTab === 'loyalty' && (
           <LoyaltyManagement

@@ -1,5 +1,8 @@
+import {StaffTitleField,StaffPhotoField} from './StaffProfileFields';
+import {STAFF_TITLES,validStaffUrl} from '../lib/staffProfile';
+import type {BusinessTypeId} from '../types';
 import { uploadSalonImage } from '../lib/supabase';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   X, 
   Upload, 
@@ -20,6 +23,7 @@ interface AddStaffModalProps {
   onAddStaff: (newStaff: Stylist) => void;
   primaryAccentColor?: string; // e.g. '#900C3F' or '#800020'
   services?: SalonService[];
+  businessType?:BusinessTypeId;
 }
 
 // 6 Curated circular avatar presets (40x40px)
@@ -32,22 +36,6 @@ const PRESET_AVATARS = [
   'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&auto=format&fit=crop&q=80'
 ];
 
-const PRIMARY_ROLES = [
-  'Senior Stylist',
-  'Junior Stylist',
-  'Hair Dresser',
-  'Makeup Artist',
-  'Nail Artist',
-  'Spa Therapist',
-  'Salon Manager',
-  'Receptionist',
-  'Barber',
-  'Senior Barber',
-  'Color Specialist',
-  'Beauty Expert',
-  'Other'
-];
-
 const ACCESS_ROLES: StaffAccessRole[] = [
   'Service Provider (Assigned)',
   'Manager (Full Access)',
@@ -55,13 +43,6 @@ const ACCESS_ROLES: StaffAccessRole[] = [
 ];
 
 const STATUS_OPTIONS: StaffStatus[] = ['Available', 'Busy', 'On Leave', 'Inactive'];
-
-// Exact Assigned Services list
-const ASSIGNED_SERVICES_LIST = [
-  { id: 'srv-p1', name: 'Luxury Spa Pedicure', subtag: 'Pedicure & Manicure' },
-  { id: 'srv-p2', name: 'Gel Polish Overlay', subtag: 'Nail Art & Gel' },
-  { id: 'srv-p3', name: 'Lash Lift & Tint', subtag: 'Lash & Brow' }
-];
 
 // Exact Specializations & Skills list
 const DEFAULT_SKILLS = [
@@ -90,18 +71,21 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
   onClose,
   onAddStaff,
   primaryAccentColor = '#900C3F',
-  services = []
+  services = [],
+  businessType='hair_salon'
 }) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [photoFile,setPhotoFile]=useState<File|null>(null);
+  const [photoBusy,setPhotoBusy]=useState(false);
+  const [saving,setSaving]=useState(false);
+  const saveLock=useRef(false);
 
   // Form States
   const [selectedPhoto, setSelectedPhoto] = useState<string>(PRESET_AVATARS[0]);
-  const [customPhotoUrl, setCustomPhotoUrl] = useState<string>(PRESET_AVATARS[0]);
-  const [uploadedPreviewUrl, setUploadedPreviewUrl] = useState<string | null>(null);
   
   // Basic Info
+  const [experienceYears,setExperienceYears]=useState('');
   const [fullName, setFullName] = useState<string>('');
-  const [primaryRole, setPrimaryRole] = useState<string>('Senior Stylist');
+  const [primaryRole, setPrimaryRole] = useState<string>(STAFF_TITLES[businessType][0]);
   const [appAccessRole, setAppAccessRole] = useState<StaffAccessRole>('Service Provider (Assigned)');
   
   // Contact, Commission & Status
@@ -112,12 +96,9 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
   // Privacy Settings
   const [hideMobileNumber, setHideMobileNumber] = useState<boolean>(false);
   
-  // Assigned Services (default active: Luxury Spa Pedicure, Gel Polish Overlay)
-  const [selectedServices, setSelectedServices] = useState<string[]>([
-    'Luxury Spa Pedicure',
-    'Gel Polish Overlay'
-  ]);
-  
+  // Empty means no service restriction; explicit selections use current catalogue IDs.
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+
   // Bio
   const [bio, setBio] = useState<string>('');
   const [isGeneratingBio, setIsGeneratingBio] = useState<boolean>(false);
@@ -138,54 +119,9 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
     { day: 'Sunday', enabled: true, fromTime: '10:00 AM', toTime: '04:00 PM' }
   ]);
 
-  // Clean up any active Blob URL on component unmount
-  useEffect(() => {
-    return () => {
-      if (uploadedPreviewUrl && uploadedPreviewUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(uploadedPreviewUrl);
-      }
-    };
-  }, [uploadedPreviewUrl]);
-
-  // Software Permissions Modal Dialog
-  const [showPermissionsModal, setShowPermissionsModal] = useState<boolean>(false);
-  const [formError, setFormError] = useState<string>('');
-
-  if (!isOpen) return null;
-
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      setFormError('Please choose an image smaller than 5 MB.');
-      return;
-    }
-    try {
-      const url = await uploadSalonImage(file);
-      setUploadedPreviewUrl(url); setSelectedPhoto(url); setCustomPhotoUrl(url); setFormError('');
-    } catch (error) { setFormError(error instanceof Error ? error.message : 'Photo upload failed'); }
-
-  };
-
-  const handleRemoveUploadedPhoto = () => {
-    setUploadedPreviewUrl(null);
-    setSelectedPhoto(PRESET_AVATARS[0]);
-    setCustomPhotoUrl(PRESET_AVATARS[0]);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
-  const handleSelectPreset = (url: string) => {
-    setUploadedPreviewUrl(null);
-    setSelectedPhoto(url);
-    setCustomPhotoUrl(url);
-  };
-
-  const handleCustomPhotoChange = (url: string) => {
-    setUploadedPreviewUrl(null);
-    setCustomPhotoUrl(url);
-    setSelectedPhoto(url);
-  };
-
+  const [showPermissionsModal,setShowPermissionsModal]=useState(false);
+  const [formError,setFormError]=useState('');
+  if(!isOpen)return null;
   // Toggle Assigned Service
   const handleToggleService = (serviceName: string) => {
     setSelectedServices((prev) =>
@@ -268,18 +204,26 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
   };
 
   // Submit Handler
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim()) {
       setFormError('Full Name is required.');
       return;
     }
 
+    if(saveLock.current||photoBusy)return;
+    if(!primaryRole.trim()){setFormError('Designation is required.');return}
+    if(!photoFile&&!validStaffUrl(selectedPhoto)){setFormError('Enter a valid image URL or select a photo.');return}
+    if(experienceYears!==''&&(!Number.isFinite(Number(experienceYears))||Number(experienceYears)<0||Number(experienceYears)>80)){setFormError('Experience must be between 0 and 80 years.');return}
+    saveLock.current=true;setSaving(true);setFormError('');
+    try{
+    const photoUrl=photoFile?await uploadSalonImage(photoFile):selectedPhoto;
     const newStaff: Stylist = {
       id: `staff-${Date.now()}`,
       name: fullName.trim(),
-      role: primaryRole,
-      avatarUrl: selectedPhoto || PRESET_AVATARS[0],
+      experienceYears:experienceYears===''?undefined:Number(experienceYears),
+      role: primaryRole.trim(),
+      avatarUrl: photoUrl,
       rating: 4.9,
       specialties: selectedSkills.length > 0 ? selectedSkills : ['General Styling'],
       phone: mobileNumber.trim(),
@@ -294,6 +238,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
 
     onAddStaff(newStaff);
     onClose();
+    }catch(e){setFormError(e instanceof Error?e.message:'Save failed. Please retry.')}finally{saveLock.current=false;setSaving(false)}
   };
 
   return (
@@ -323,7 +268,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
 
           <button
             type="button"
-            onClick={onClose}
+            disabled={saving||photoBusy} onClick={()=>{if(!saveLock.current&&!photoBusy)onClose()}}
             className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
             aria-label="Close modal"
           >
@@ -334,7 +279,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
         {/* ========================================================= */}
         {/* SCROLLABLE FORM BODY */}
         {/* ========================================================= */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6"><fieldset disabled={saving||photoBusy} className="contents">
           {formError && (
             <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
@@ -342,129 +287,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
             </div>
           )}
 
-          {/* ========================================================= */}
-          {/* SECTION 1: STAFF PHOTO */}
-          {/* ========================================================= */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-              STAFF PHOTO
-            </label>
-
-            <span className="block text-xs text-gray-600 mb-2.5">
-              {uploadedPreviewUrl ? 'Custom Photo Uploaded' : 'Select Preset Avatar or Upload Photo'}
-            </span>
-
-            {/* Hidden file input */}
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileUpload}
-              accept="image/png,image/jpeg,image/webp,image/jpg"
-              className="hidden"
-            />
-
-            {uploadedPreviewUrl ? (
-              /* Custom Uploaded Photo Preview State */
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3.5 p-3 rounded-xl border border-gray-200 bg-gray-50/70">
-                <div className="relative w-12 h-12 rounded-full overflow-hidden ring-2 ring-[#900C3F] ring-offset-2 shadow-sm shrink-0">
-                  <img
-                    src={uploadedPreviewUrl}
-                    alt="Uploaded Staff Avatar"
-                    className="w-full h-full object-cover"
-                  />
-                  <span className="absolute inset-0 bg-black/20 flex items-center justify-center text-white">
-                    <Check className="w-4 h-4 stroke-[3]" />
-                  </span>
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-gray-900">Custom Uploaded Photo</span>
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                      Active
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-gray-500 truncate mt-0.5">
-                    Preview generated from local device
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2 w-full sm:w-auto mt-1 sm:mt-0">
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="px-3 py-1.5 rounded-lg border border-gray-300 hover:border-gray-400 bg-white text-gray-700 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
-                  >
-                    <Upload className="w-3.5 h-3.5 text-gray-500" />
-                    <span>Change</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleRemoveUploadedPhoto}
-                    className="px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-100 text-gray-600 text-xs font-medium transition-colors cursor-pointer"
-                  >
-                    Choose Presets
-                  </button>
-                </div>
-              </div>
-            ) : (
-              /* Preset Avatars Selection Row */
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                {/* 6 Circular Avatar Presets (40x40px) */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  {PRESET_AVATARS.map((url, idx) => {
-                    const isSelected = selectedPhoto === url;
-                    return (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => handleSelectPreset(url)}
-                        className={`relative w-10 h-10 rounded-full overflow-hidden transition-all cursor-pointer ${
-                          isSelected
-                            ? 'ring-2 ring-[#900C3F] ring-offset-2 scale-105 shadow-sm'
-                            : 'opacity-70 hover:opacity-100 hover:scale-105'
-                        }`}
-                      >
-                        <img
-                          src={url}
-                          alt={`Preset ${idx + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                        {isSelected && (
-                          <span className="absolute inset-0 bg-black/25 flex items-center justify-center text-white">
-                            <Check className="w-3.5 h-3.5 stroke-[3]" />
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-
-                  {/* Upload Photo Button */}
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="h-10 px-3.5 rounded-lg border border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-700 text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer"
-                  >
-                    <Upload className="w-4 h-4 text-gray-500" />
-                    <span>Upload Photo</span>
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Photo URL Input */}
-            <div className="mt-3">
-              <input
-                type="text"
-                value={customPhotoUrl}
-                onChange={(e) => handleCustomPhotoChange(e.target.value)}
-                placeholder="https://images.unsplash.com/photo-1618077360395-f3068be8e001?q=80&w=200&auto=format&fit=crop"
-                className="w-full px-3.5 py-2 text-xs rounded-lg border border-gray-300 text-gray-600 font-mono focus:outline-none focus:ring-2 focus:ring-[#900C3F] focus:border-transparent bg-gray-50/50 truncate"
-              />
-            </div>
-          </div>
-
+          <StaffPhotoField value={selectedPhoto} file={photoFile} onBusy={setPhotoBusy} onChange={(url,file)=>{setSelectedPhoto(url);setPhotoFile(file)}}/>
           {/* ========================================================= */}
           {/* SECTION 2: BASIC INFORMATION (2-COLUMN GRID) */}
           {/* ========================================================= */}
@@ -486,22 +309,9 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                PRIMARY ROLE <span className="text-rose-500">*</span>
-              </label>
-              <select
-                value={primaryRole}
-                onChange={(e) => setPrimaryRole(e.target.value)}
-                className="w-full px-3.5 py-2 text-sm rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#900C3F] focus:border-transparent bg-white text-gray-800"
-              >
-                {PRIMARY_ROLES.map((role) => (
-                  <option key={role} value={role}>
-                    {role}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <StaffTitleField businessType={businessType} value={primaryRole} onChange={setPrimaryRole}/>
+            <label className="text-xs font-bold">Experience (years)<input aria-label="Experience in years" type="number" min="0" max="80" step="0.5" value={experienceYears} onChange={e=>setExperienceYears(e.target.value)} placeholder="e.g. 5" className="w-full border border-gray-300 rounded-xl p-2 mt-1"/></label>
+
           </div>
 
           {/* ========================================================= */}
@@ -630,14 +440,15 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
               ASSIGNED SERVICES
             </label>
 
+            <p className="text-xs text-gray-500 mb-2">Select services this staff member can provide. No selection allows all salon services.</p>
             <div className="flex flex-wrap gap-2.5">
-              {ASSIGNED_SERVICES_LIST.map((srv) => {
-                const isSelected = selectedServices.includes(srv.name);
+              {services.map((srv) => {
+                const isSelected = selectedServices.includes(srv.id);
                 return (
                   <button
                     key={srv.id}
                     type="button"
-                    onClick={() => handleToggleService(srv.name)}
+                    onClick={() => handleToggleService(srv.id)}
                     className={`px-3.5 py-2 rounded-xl text-left border transition-all cursor-pointer flex flex-col gap-0.5 ${
                       isSelected
                         ? 'border-[#900C3F] bg-[#900C3F]/5 text-gray-900 shadow-xs'
@@ -655,7 +466,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
                       <span>{srv.name}</span>
                     </div>
                     <span className="text-[10px] text-gray-500 font-medium pl-5.5">
-                      {srv.subtag}
+                      {srv.category}
                     </span>
                   </button>
                 );
@@ -832,7 +643,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
               ))}
             </div>
           </div>
-        </form>
+        </fieldset></form>
 
         {/* ========================================================= */}
         {/* 3. FOOTER (STICKY BOTTOM CONTAINER) */}
@@ -840,7 +651,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
         <div className="px-6 py-4 border-t border-gray-200 bg-white flex items-center justify-end gap-3 shrink-0">
           <button
             type="button"
-            onClick={onClose}
+            disabled={saving||photoBusy} onClick={()=>{if(!saveLock.current&&!photoBusy)onClose()}}
             className="px-4 py-2 text-xs font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
           >
             Cancel
@@ -848,7 +659,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
 
           <button
             type="button"
-            onClick={handleSubmit}
+            disabled={saving||photoBusy} onClick={handleSubmit}
             className="px-4 py-2 text-xs font-medium rounded-md text-white shadow-sm flex items-center gap-1.5 transition-all hover:opacity-95 active:scale-98 cursor-pointer"
             style={{ backgroundColor: primaryAccentColor }}
           >

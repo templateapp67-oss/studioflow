@@ -1,0 +1,32 @@
+begin;
+do $$
+declare actor uuid:=gen_random_uuid();other uuid:=gen_random_uuid();unconfirmed uuid:=gen_random_uuid();duplicate uuid:=gen_random_uuid();j jsonb;metadata jsonb;
+begin
+ metadata:='{"full_name":"Welcome QA","customer_referral_code":"","date_of_birth":"1995-04-20","whatsapp_number":"+919876543210","whatsapp_welcome_opt_in":true}';
+ insert into auth.users(id,aud,role,email,email_confirmed_at,created_at,updated_at,raw_user_meta_data) values(actor,'authenticated','authenticated','welcome-qa-'||actor||'@example.invalid',now(),now(),now(),metadata),(other,'authenticated','authenticated','welcome-qa-'||other||'@example.invalid',now(),now(),now(),metadata||'{"whatsapp_welcome_opt_in":false}'),(unconfirmed,'authenticated','authenticated','welcome-qa-'||unconfirmed||'@example.invalid',null,now(),now(),metadata);
+ if not exists(select 1 from nexora_welcome_private.jobs where customer_id=actor and status='pending') or exists(select 1 from nexora_welcome_private.jobs where customer_id=other) then raise exception 'FAIL explicit welcome consent';end if;
+ perform set_config('request.jwt.claim.sub',actor::text,true);execute 'set local role authenticated';
+ if public.studioflow_customer_welcome_status()->>'status'<>'pending' then raise exception 'FAIL own queue status';end if;
+ begin perform public.studioflow_welcome_claim(actor,1);raise exception 'FAIL client sends arbitrary welcome';exception when insufficient_privilege then null;end;
+ begin execute 'select * from nexora_welcome_private.jobs';raise exception 'FAIL queue privacy';exception when insufficient_privilege then null;end;
+ perform set_config('request.jwt.claim.sub',other::text,true);
+ if public.studioflow_customer_welcome_status()->>'status'<>'not_requested' then raise exception 'FAIL cross-account status';end if;
+ execute 'reset role';execute 'set local role service_role';
+ if public.studioflow_welcome_verify_worker(repeat('0',64)) then raise exception 'FAIL invalid worker token';end if;
+ if jsonb_array_length(public.studioflow_welcome_claim(unconfirmed,1))<>0 then raise exception 'FAIL unconfirmed send';end if;
+ j:=public.studioflow_welcome_claim(actor,1);
+ if jsonb_array_length(j)<>1 or j->0->>'referral_code' is null then raise exception 'FAIL claim/referral';end if;
+ if j::text like '%password%' or j::text like '%date_of_birth%' then raise exception 'FAIL unnecessary sensitive payload';end if;
+ if jsonb_array_length(public.studioflow_welcome_claim(actor,1))<>0 then raise exception 'FAIL duplicate in-flight send';end if;
+ perform public.studioflow_welcome_complete(actor,'accepted','wamid.qa',null);
+ if jsonb_array_length(public.studioflow_welcome_claim(actor,1))<>0 then raise exception 'FAIL duplicate accepted send';end if;
+ execute 'reset role';
+ insert into auth.users(id,aud,role,email,email_confirmed_at,created_at,updated_at,raw_user_meta_data) values(duplicate,'authenticated','authenticated','welcome-qa-'||duplicate||'@example.invalid',now(),now(),now(),metadata);
+ execute 'set local role service_role';
+ if jsonb_array_length(public.studioflow_welcome_claim(duplicate,1))<>0 then raise exception 'FAIL phone abuse limit';end if;
+ execute 'reset role';
+ if (select status from nexora_welcome_private.jobs where customer_id=duplicate)<>'suppressed' then raise exception 'FAIL phone suppression';end if;
+ if (select enabled from nexora_welcome_private.worker_config) then raise exception 'FAIL test activated sender';end if;
+ raise notice 'PASS consent, private status, service-only sending, email confirmation, personalized referral payload, no password data, duplicate claim/acceptance prevention and phone abuse limit. No message sent.';
+end $$;
+rollback;

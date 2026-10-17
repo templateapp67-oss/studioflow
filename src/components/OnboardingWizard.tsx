@@ -437,8 +437,8 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                   <legend className="px-2 font-bold text-sm">Salon opening hours</legend>
                   <p className="text-xs text-gray-500">These hours appear in your website’s location section. Use “Closed” for a day off; individual staff schedules are set in the team step.</p>
                   {([
-                    ['workingHoursMonFri', 'Monday – Friday', '09:00 AM – 07:00 PM'],
-                    ['workingHoursSat', 'Saturday', '09:00 AM – 07:00 PM'],
+                    ['workingHoursMonFri', 'Monday – Friday (except Tuesday)', '09:00 AM – 07:00 PM'],
+                    ['workingHoursTue', 'Tuesday', '09:00 AM – 07:00 PM'],
                     ['workingHoursSun', 'Sunday', 'Closed'],
                   ] as const).map(([key, label, placeholder]) => (
                     <label key={key} className="block text-sm font-medium">

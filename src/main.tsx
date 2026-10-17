@@ -21,6 +21,8 @@ try {
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
+import {registerCustomerPwa} from './lib/customerPwa';
+registerCustomerPwa();
 import './index.css';
 
 createRoot(document.getElementById('root')!).render(

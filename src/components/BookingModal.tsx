@@ -1,6 +1,6 @@
 import { paymentRequest, payBookingDeposit, reconcileBookingPayment } from '../lib/platformPayments';
 import { supabase } from '../lib/supabase';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useId } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   X,
@@ -127,8 +127,17 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     });
   } : () => {});
 
+  const guestFormId=useId();
+  const dialogRef=useRef<HTMLDivElement>(null),overlayRef=useRef<HTMLDivElement>(null),scrollRef=useRef<HTMLDivElement>(null);
+  useEffect(()=>{
+    if(!isOpen)return;const dialog=dialogRef.current;if(!dialog)return;const doc=dialog.ownerDocument;const win=doc.defaultView;const previous=doc.activeElement as HTMLElement|null;const old=doc.body.style.overflow;doc.body.style.overflow='hidden';dialog?.querySelector<HTMLButtonElement>('[aria-label="Close booking dialog"]')?.focus();
+    const fit=()=>{const viewport=win?.visualViewport;overlayRef.current?.style.setProperty('--booking-viewport-height',`${viewport?.height||win?.innerHeight||800}px`)};fit();win?.visualViewport?.addEventListener('resize',fit);win?.addEventListener('resize',fit);
+    const key=(event:KeyboardEvent)=>{if(event.key==='Escape'){event.preventDefault();onClose()}if(event.key==='Tab'&&dialog){const items=(Array.from(dialog.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href]')) as HTMLElement[]).filter(el=>el.getClientRects().length);if(event.shiftKey&&doc.activeElement===items[0]){event.preventDefault();items.at(-1)?.focus()}else if(!event.shiftKey&&doc.activeElement===items.at(-1)){event.preventDefault();items[0]?.focus()}}};doc.addEventListener('keydown',key);
+    return()=>{doc.body.style.overflow=old;doc.removeEventListener('keydown',key);win?.visualViewport?.removeEventListener('resize',fit);win?.removeEventListener('resize',fit);previous?.focus()};
+  },[isOpen]);
   // Navigation Steps: 'service' -> 'datetime' -> 'guest' -> 'payment' -> 'confirmed'
   const [currentStep, setCurrentStep] = useState<BookingStep>('service');
+  useEffect(()=>{if(scrollRef.current)scrollRef.current.scrollTop=0;},[currentStep]);
 
   // Step 1: Branch, Service & Specialist
 
@@ -372,15 +381,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs font-sans">
+    <div ref={overlayRef} className="sf-booking-overlay font-sans">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 15 }}
-        className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 w-full max-w-xl max-h-[92vh] flex flex-col overflow-hidden text-slate-800"
+        ref={dialogRef} role="dialog" aria-modal="true" aria-label="Book an appointment" className="sf-booking-dialog bg-white text-slate-800"
       >
         {/* MODAL HEADER */}
-        <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/70">
+        <div className="sf-booking-header border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
           <div className="flex items-center gap-3">
             <span
               className="w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-xs"
@@ -418,7 +427,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
         {/* PROGRESS STEPPER BAR (Non-confirmed steps) */}
         {currentStep !== 'confirmed' && (
-          <div className="bg-slate-100/70 px-5 py-2 border-b border-slate-200 flex items-center justify-between text-[11px] font-mono">
+          <div className="sf-booking-steps bg-slate-100/70 border-b border-slate-200 flex items-center justify-between text-[11px] font-mono">
             <div className="flex items-center gap-1 sm:gap-2">
               <span className={`px-2 py-0.5 rounded-md font-bold ${currentStep === 'service' ? 'bg-slate-900 text-white' : 'text-slate-600 bg-white border border-slate-200'}`}>
                 1. Service
@@ -446,7 +455,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         )}
 
         {/* MODAL BODY (SCROLLABLE) */}
-        <div className="p-4 sm:p-6 overflow-y-auto flex-1 flex flex-col gap-4">
+        <div ref={scrollRef} className="sf-booking-body">
 
           {/* ========================================================= */}
           {/* STEP 1: SELECT LOCATION, SERVICE & SPECIALIST */}
@@ -470,7 +479,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     All prices in ₹ INR
                   </span>
                 </div>
-                <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto pr-1">
+                <div className="grid grid-cols-1 gap-2">
                   {(services || []).map((srv) => {
                     const isSelected = selectedService.id === srv.id;
                     return (
@@ -569,17 +578,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </div>
               </div>
 
-              {/* Step Navigation Action */}
-              <button
-                type="button"
-                onClick={() => setCurrentStep('datetime')}
-                className="w-full py-3 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95 active:scale-[0.99] mt-2"
-                style={{ backgroundColor: themeAccentHex }}
-              >
-                <span>Continue to Date & Slot</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </motion.div>
+              </motion.div>
           )}
 
           {/* ========================================================= */}
@@ -712,35 +711,14 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </button>
               </div>
 
-              {/* Step Navigation Actions */}
-              <div className="flex items-center gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setCurrentStep('service')}
-                  className="px-4 py-3 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-50 cursor-pointer flex items-center gap-1.5"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>Back</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCurrentStep('guest')}
-                  disabled={!bookingTime || slotsLoading}
-                  className="flex-1 py-3 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95"
-                  style={{ backgroundColor: themeAccentHex }}
-                >
-                  <span>Continue to Guest Details</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            </motion.div>
+              </motion.div>
           )}
 
           {/* ========================================================= */}
           {/* STEP 3: ENTER GUEST INFO (NAME, WHATSAPP, EMAIL) */}
           {/* ========================================================= */}
           {currentStep === 'guest' && (
-            <motion.form
+            <motion.form id={guestFormId}
               onSubmit={handleProceedToOtp}
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
@@ -854,26 +832,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </label>
               </div>
 
-              {/* Navigation Actions */}
-              <div className="flex items-center gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setCurrentStep('datetime')}
-                  className="px-4 py-3 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-50 cursor-pointer flex items-center gap-1.5"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>Back</span>
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-3 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95"
-                  style={{ backgroundColor: themeAccentHex }}
-                >
-                  <span>Review & Pay 25% Advance</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            </motion.form>
+              </motion.form>
           )}
 
           {currentStep === 'payment' && (
@@ -927,29 +886,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
               {submitError && <p role="alert" className="rounded-xl bg-red-50 p-3 text-red-700 text-sm">{submitError}</p>}
               {reservedBooking.current&&<button type="button" disabled={isSubmitting} className="text-sm underline" onClick={async()=>{setIsSubmitting(true);setSubmitError('');try{const saved=await reconcileBookingPayment(reservedBooking.current!.id);setServerStatus(saved.status);setPaidAmount(saved.amountPaid);setBookingRef(saved.id);setCurrentStep('confirmed');}catch(error){setSubmitError(error instanceof Error?error.message:'Could not verify payment');}finally{setIsSubmitting(false);}}}>Recheck payment status</button>}
-              {/* Final Step Actions */}
-              <div className="flex items-center gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setCurrentStep('guest')}
-                  disabled={!bookingTime || slotsLoading}
-                  className="px-4 py-3 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-50 cursor-pointer flex items-center gap-1.5"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>Back</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleFinalSubmitBooking}
-                  disabled={isSubmitting || !gatewayReady}
-                  className="flex-1 py-3.5 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95"
-                  style={{ backgroundColor: themeAccentHex }}
-                >
-                  <CalendarCheck className="w-4 h-4" />
-                  <span>{isSubmitting ? 'Opening secure payment…' : `Pay ₹${advanceTokenAmount.toLocaleString('en-IN')} & Book`}</span>
-                </button>
-              </div>
-            </motion.div>
+              </motion.div>
           )}
 
           {/* ========================================================= */}
@@ -1072,6 +1009,79 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           )}
 
         </div>
+        {currentStep!=='confirmed'&&<footer className="sf-booking-actions">{currentStep === 'service' && (<>{/* Step Navigation Action */}
+              <button
+                type="button"
+                onClick={() => setCurrentStep('datetime')}
+                className="w-full py-3 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95 active:scale-[0.99] mt-2"
+                style={{ backgroundColor: themeAccentHex }}
+              >
+                <span>Continue to Date & Slot</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </>)}{currentStep === 'datetime' && (<>{/* Step Navigation Actions */}
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep('service')}
+                  className="px-4 py-3 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-50 cursor-pointer flex items-center gap-1.5"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Back</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep('guest')}
+                  disabled={!bookingTime || slotsLoading}
+                  className="flex-1 py-3 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95"
+                  style={{ backgroundColor: themeAccentHex }}
+                >
+                  <span>Continue to Guest Details</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </>)}{currentStep === 'guest' && (<>{/* Navigation Actions */}
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep('datetime')}
+                  className="px-4 py-3 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-50 cursor-pointer flex items-center gap-1.5"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Back</span>
+                </button>
+                <button
+                  type="submit" form={guestFormId}
+                  className="flex-1 py-3 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95"
+                  style={{ backgroundColor: themeAccentHex }}
+                >
+                  <span>Review & Pay 25% Advance</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </>)}{currentStep === 'payment' && (<>{/* Final Step Actions */}
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep('guest')}
+                  disabled={!bookingTime || slotsLoading}
+                  className="px-4 py-3 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-50 cursor-pointer flex items-center gap-1.5"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Back</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleFinalSubmitBooking}
+                  disabled={isSubmitting || !gatewayReady}
+                  className="flex-1 py-3.5 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95"
+                  style={{ backgroundColor: themeAccentHex }}
+                >
+                  <CalendarCheck className="w-4 h-4" />
+                  <span>{isSubmitting ? 'Opening secure payment…' : `Pay ₹${advanceTokenAmount.toLocaleString('en-IN')} & Book`}</span>
+                </button>
+              </div>
+            </>)}</footer>}
       </motion.div>
     </div>
   );

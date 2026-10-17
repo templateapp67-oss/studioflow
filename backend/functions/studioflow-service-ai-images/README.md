@@ -1,0 +1,5 @@
+Creates three original service photos through OpenAI Images (`gpt-image-1.5`, low quality, 1536×1024 JPEG). Requires a signed-in salon owner. API credentials are stored in Supabase Vault as `nexora_service_images_openai`; only service-role RPCs may retrieve them. No key is shipped in the client or this function source.
+
+Generation is explicit, never automatic: maximum four sets per owner and thirty across the project per rolling 24 hours, with a minute cooldown. The server ledger serializes reservations and request IDs prevent repeat API requests after a network retry. Results are stored under the authenticated owner's existing `studioflow-media/<uid>/services/<uuid>.jpg` paths. Selecting a result uses the existing atomic service image URL/path save and booking catalogue.
+
+The live credential/model check succeeded. A live image request returned `credit_balance_exhausted` on 2026-10-17. Add credits to the connected OpenAI Platform account before live image creation can succeed. The UI reports this failure and does not substitute stock photos. Automated provider/UI success tests use mock images and are not evidence of a successful paid generation.

@@ -1,3 +1,5 @@
+import {photoGallery,type PhotoCategory} from '../lib/photoGallery';
+import {CustomerAppPromotion} from './CustomerAppPromotion';
 import {CustomerSalonWebsite} from './CustomerSalonWebsite';
 import { WebsiteSections } from './WebsiteSections';
 import { websiteSections, socialUrl } from '../lib/websiteContent';
@@ -74,6 +76,8 @@ export interface SalonWebsitePreviewProps {
   onManageDashboard?:(section:string)=>void;
   onCustomerAccount?:(mode?:'signin'|'signup')=>void;
   customerSignedIn?:boolean;
+  customerName?:string;
+  customerPhotoUrl?:string;
   onSelectCategory?: (categoryId: BusinessTypeId) => void;
 }
 
@@ -179,7 +183,10 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
   }, [activeProfile.coverImageUrl, primaryAccentColor]);
 
   const baseStandardData = CATEGORY_STANDARDIZED_DATA[selectedCategoryKey] || CATEGORY_STANDARDIZED_DATA.hair_salon;
-  const standardData = gallery !== undefined ? {...baseStandardData, gallery: gallery.map((url,i)=>({...baseStandardData.gallery[0],id:`uploaded-${i}`,url,title:`Salon showcase ${i+1}`}))} : baseStandardData;
+  const categoryPhotos=photoGallery(activeProfile,gallery||[]);
+  const standardData={...baseStandardData,gallery:categoryPhotos.map(photo=>({...photo,tag:photo.category}))};
+  const [galleryCategory,setGalleryCategory]=useState<PhotoCategory|'All'>('All');
+ useEffect(()=>{setGalleryCategory('All');},[activeProfile.businessType]);
 
   // Interactive filters & booking modals
   const [activeSubCategory, setActiveSubCategory] = useState<string>('All');
@@ -1778,8 +1785,9 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
               </span>
             </div>
 
+            <div className="flex gap-2 overflow-x-auto mb-4" aria-label="Photo gallery categories">{(['All',...Array.from(new Set(categoryPhotos.map(p=>p.category)))] as const).map(cat=><button key={cat} type="button" className="secondary-action" aria-pressed={galleryCategory===cat} onClick={()=>setGalleryCategory(cat)}>{cat} ({categoryPhotos.filter(p=>cat==='All'||p.category===cat).length})</button>)}</div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {(standardData.gallery || []).map((photo, idx) => (
+              {(standardData.gallery || []).filter(photo=>galleryCategory==='All'||photo.category===galleryCategory).map((photo, idx) => (
                 <div
                   key={idx}
                   onClick={() => setSelectedGalleryPhoto(photo.url)}
@@ -1864,10 +1872,10 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
                     <div>
                       <div className="font-bold text-slate-900 text-sm">Operating Hours</div>
                       <div className="text-slate-700 font-mono text-[11.5px] mt-0.5 font-semibold">
-                        Monday – Friday: {activeProfile.workingHoursMonFri || `${standardData.openHourText} – ${standardData.closeHourText}`}
+                        Monday – Friday (except Tuesday): {activeProfile.workingHoursMonFri || `${standardData.openHourText} – ${standardData.closeHourText}`}
                       </div>
                       <div className="text-xs text-slate-600 mt-1">
-                        Saturday: {activeProfile.workingHoursSat || `${standardData.openHourText} – ${standardData.closeHourText}`}
+                        Tuesday: {activeProfile.workingHoursTue || 'Contact studio for hours'}
                       </div>
                       <div className="text-slate-700 font-mono text-[11.5px] font-semibold mt-0.5">
                         Sunday: {activeProfile.workingHoursSun || '10:00 AM – 07:00 PM (By Advance Booking)'}
@@ -1945,6 +1953,7 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
 
         <WebsiteSections onCustomerAccount={onCustomerAccount} profile={activeProfile} services={activeServices} onBook={handleOpenBooking} onManage={onManageDashboard} setProfile={setProfile} isEditingActive={isEditMode && !readOnly} readOnly={readOnly} policies={policies} loyaltyConfig={loyaltyConfig}/>
         {branding?.poweredBy&&<p className="text-center text-xs py-4">Powered by {branding.platformName||'StudioFlow'}</p>}
+        <CustomerAppPromotion/>
         {/* 8. FOOTER WITH DYNAMIC SOCIAL LINKS */}
         <footer className={`py-8 px-6 md:px-12 border-t text-center ${
           isDarkCanvas ? 'bg-[#0b0b0e] border-neutral-900 text-neutral-400' : 'bg-slate-50 border-slate-200 text-slate-500'

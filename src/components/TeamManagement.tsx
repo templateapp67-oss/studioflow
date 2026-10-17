@@ -1,4 +1,8 @@
-import React, { useState } from 'react';
+import {StaffTitleField,StaffPhotoField} from './StaffProfileFields';
+import {validStaffUrl} from '../lib/staffProfile';
+import {uploadSalonImage} from '../lib/supabase';
+import type {BusinessTypeId} from '../types';
+import React, { useState, useRef } from 'react';
 import { Stylist, SalonService } from '../types';
 import { 
   UserPlus, 
@@ -29,6 +33,7 @@ interface TeamManagementProps {
   setStylists: React.Dispatch<React.SetStateAction<Stylist[]>>;
   primaryAccentColor: string;
   services?: SalonService[];
+  businessType?:BusinessTypeId;
   onNavigateToPreview?: () => void;
 }
 
@@ -87,8 +92,14 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
   setStylists,
   primaryAccentColor,
   services = [],
+  businessType='hair_salon',
   onNavigateToPreview
 }) => {
+  const [photoFile,setPhotoFile]=useState<File|null>(null);
+  const [photoBusy,setPhotoBusy]=useState(false);
+  const [saving,setSaving]=useState(false);
+  const [editError,setEditError]=useState('');
+  const saveLock=useRef(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpecialtyFilter, setSelectedSpecialtyFilter] = useState<string>('all');
   
@@ -101,16 +112,20 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
   const [formData, setFormData] = useState<{
     name: string;
     role: string;
+    experienceYears:string;
     avatarUrl: string;
     rating: number;
     specialties: string[];
     customSpecialtyInput: string;
+    assignedServices: string[];
   }>({
     name: '',
     role: '',
+    experienceYears:'',
     avatarUrl: AVATAR_PRESETS[0].url,
     rating: 4.9,
     specialties: ['Hair Cutting', 'Hair Coloring'],
+    assignedServices: [],
     customSpecialtyInput: ''
   });
 
@@ -125,22 +140,27 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     setFormData({
       name: '',
       role: 'Senior Hair Stylist',
+      experienceYears:'',
       avatarUrl: AVATAR_PRESETS[Math.floor(Math.random() * AVATAR_PRESETS.length)].url,
       rating: 4.9,
       specialties: ['Hair Cutting', 'Hair Coloring'],
-      customSpecialtyInput: ''
+      assignedServices: [],
+    customSpecialtyInput: ''
     });
     setIsAddModalOpen(true);
   };
 
   const handleOpenEditModal = (st: Stylist) => {
+    setPhotoFile(null);setPhotoBusy(false);setEditError('');
     setEditingStylist(st);
     setFormData({
       name: st.name,
       role: st.role,
+      experienceYears:st.experienceYears===undefined?'':String(st.experienceYears),
       avatarUrl: st.avatarUrl,
       rating: st.rating,
       specialties: [...st.specialties],
+      assignedServices: services.filter(s => (st.assignedServices || []).includes(s.id) || (st.assignedServices || []).includes(s.name)).map(s => s.id),
       customSpecialtyInput: ''
     });
   };
@@ -183,22 +203,33 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     showNotification(`Specialist "${newStaff.name}" (${newStaff.role}) successfully onboarded!`);
   };
 
-  const handleSaveEditStylist = (e: React.FormEvent) => {
+  const handleSaveEditStylist = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingStylist || !formData.name.trim()) return;
 
+    if(saveLock.current||photoBusy)return;
+    if(!formData.role.trim()){setEditError('Designation is required.');return}
+    if(!photoFile&&formData.avatarUrl!==editingStylist.avatarUrl&&!validStaffUrl(formData.avatarUrl)){setEditError('Enter a valid image URL or select a photo.');return}
+    if(formData.experienceYears!==''&&(!Number.isFinite(Number(formData.experienceYears))||Number(formData.experienceYears)<0||Number(formData.experienceYears)>80)){setEditError('Experience must be between 0 and 80 years.');return}
+    saveLock.current=true;setSaving(true);setEditError('');
+    try{
+    const photoUrl=photoFile?await uploadSalonImage(photoFile):formData.avatarUrl;
     const updated: Stylist = {
       ...editingStylist,
       name: formData.name.trim(),
+      experienceYears:formData.experienceYears===''?undefined:Number(formData.experienceYears),
       role: formData.role.trim() || 'Stylist Specialist',
-      avatarUrl: formData.avatarUrl || editingStylist.avatarUrl,
+      avatarUrl: photoUrl,
       rating: Number(formData.rating) || 4.8,
+      assignedServices: formData.assignedServices,
       specialties: formData.specialties.length > 0 ? formData.specialties : ['Hair Cutting']
     };
 
     setStylists((prev) => prev.map((s) => (s.id === editingStylist.id ? updated : s)));
     setEditingStylist(null);
     showNotification(`Stylist profile for "${updated.name}" updated!`);
+    }catch(e){setEditError(e instanceof Error?e.message:'Save failed. Please retry.')}finally{saveLock.current=false;setSaving(false)}
+
   };
 
   const handleDeleteStylist = (id: string) => {
@@ -530,6 +561,8 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
       {/* PIXEL-PERFECT ADD NEW STAFF MODAL */}
       <AddStaffModal
+        key={String(isAddModalOpen)}
+        businessType={businessType}
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onAddStaff={handleSaveNewStaffMember}
@@ -557,7 +590,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                 </div>
               </div>
               <button
-                onClick={() => setEditingStylist(null)}
+                disabled={saving||photoBusy} onClick={()=>{if(!saveLock.current&&!photoBusy)setEditingStylist(null)}}
                 className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100"
               >
                 <X className="w-5 h-5" />
@@ -565,7 +598,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
             </div>
 
             {/* Modal Form */}
-            <form onSubmit={handleSaveEditStylist} className="flex flex-col gap-4">
+            <form onSubmit={handleSaveEditStylist} className="flex flex-col gap-4">{editError&&<p role="alert" className="text-xs text-rose-700">{editError}</p>}<fieldset disabled={saving||photoBusy} className="contents">
               
               {/* Full Name */}
               <div>
@@ -581,20 +614,11 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                 />
               </div>
 
+              <label className="text-xs font-bold">Experience (years)<input aria-label="Experience in years" type="number" min="0" max="80" step="0.5" value={formData.experienceYears} onChange={e=>setFormData(prev=>({...prev,experienceYears:e.target.value}))} className="w-full px-3 py-2 rounded-xl border border-gray-300 mt-1" placeholder="e.g. 5"/></label>
               {/* Role / Designation & Rating */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Designation / Title
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 focus:border-gray-500 focus:ring-2 focus:ring-gray-200 outline-none"
-                  />
-                </div>
+                <StaffTitleField businessType={businessType} value={formData.role} onChange={role=>setFormData(prev=>({...prev,role}))}/>
+
 
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">
@@ -615,56 +639,16 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                 </div>
               </div>
 
-              {/* Avatar Selection */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">
-                  Stylist Profile Photo
-                </label>
-                
-                <div className="flex items-center gap-3 mb-2">
-                  <img
-                    src={formData.avatarUrl || AVATAR_PRESETS[0].url}
-                    alt="Preview"
-                    className="w-12 h-12 rounded-xl object-cover border border-gray-200 shadow-xs shrink-0"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = AVATAR_PRESETS[0].url;
-                    }}
-                  />
-                  <input
-                    type="url"
-                    value={formData.avatarUrl}
-                    onChange={(e) => setFormData({ ...formData, avatarUrl: e.target.value })}
-                    className="flex-1 px-3 py-2 text-xs rounded-xl border border-gray-300 text-gray-700 font-mono focus:border-gray-500 outline-none"
-                  />
-                </div>
+              <fieldset className="border border-gray-200 rounded-xl p-3">
+                <legend className="text-xs font-bold">Assigned booking services</legend>
+                <p className="text-xs text-gray-500 mb-2">No selection allows all salon services. Select services to restrict this staff member.</p>
+                {services.map(service => <label key={service.id} className="flex items-center gap-2 text-xs py-1.5">
+                  <input type="checkbox" checked={formData.assignedServices.includes(service.id)} onChange={e => setFormData({...formData, assignedServices: e.target.checked ? [...formData.assignedServices, service.id] : formData.assignedServices.filter(id => id !== service.id)})}/>
+                  {service.name}
+                </label>)}
+              </fieldset>
 
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-[11px] text-gray-500">Or pick preset avatar:</span>
-                  <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
-                    {AVATAR_PRESETS.map((preset, idx) => {
-                      const isSelected = formData.avatarUrl === preset.url;
-                      return (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => setFormData({ ...formData, avatarUrl: preset.url })}
-                          className={`relative rounded-xl overflow-hidden aspect-square border-2 transition-all cursor-pointer ${
-                            isSelected ? 'border-slate-900 scale-105 shadow-sm' : 'border-transparent opacity-75 hover:opacity-100'
-                          }`}
-                        >
-                          <img src={preset.url} alt={preset.label} className="w-full h-full object-cover" />
-                          {isSelected && (
-                            <span className="absolute inset-0 bg-black/30 flex items-center justify-center text-white">
-                              <Check className="w-3.5 h-3.5" />
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-
+              <StaffPhotoField value={formData.avatarUrl} file={photoFile} onBusy={setPhotoBusy} onChange={(avatarUrl,file)=>{setFormData(prev=>({...prev,avatarUrl}));setPhotoFile(file)}}/>
               {/* Specialties / Skills Tags */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">
@@ -734,7 +718,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
               <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-gray-100">
                 <button
                   type="button"
-                  onClick={() => setEditingStylist(null)}
+                  disabled={saving||photoBusy} onClick={()=>{if(!saveLock.current&&!photoBusy)setEditingStylist(null)}}
                   className="px-4 py-2.5 text-xs font-bold rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50 cursor-pointer"
                 >
                   Cancel
@@ -748,7 +732,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                   <span>Save Stylist Changes</span>
                 </button>
               </div>
-            </form>
+            </fieldset></form>
           </div>
         </div>
       )}

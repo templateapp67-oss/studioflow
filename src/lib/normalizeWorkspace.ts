@@ -1,3 +1,4 @@
+import {photoGallery} from './photoGallery';
 import {headerSettings} from './headerNavigation';
 import {serviceOrigin} from './serviceCatalogue';
 import {clientExperiences,lookbookPhotos} from './demoWebsiteContent';
@@ -18,7 +19,8 @@ export function normalizeWorkspace(value:unknown, identity:Record<string,any>={}
  profile.socialVideos=showcaseVideos(profile as SalonProfile);profile.demoVideosInitialized=true;
  const loyalty=record(draft.loyaltyConfig),extras=record(draft.extras);
  profile.websiteTestimonials=clientExperiences(profile as SalonProfile);profile.demoTestimonialsInitialized=true;
- const savedGallery=lookbookPhotos(profile as SalonProfile,Array.isArray(extras.gallery)?extras.gallery.filter(x=>typeof x==='string'&&x.trim()):[]);
+ if(profile.photoGalleryInitialized){profile.photoGallery=photoGallery(profile as SalonProfile);profile.photoGalleryType=profile.businessType;}
+ const savedGallery=profile.photoGalleryInitialized?photoGallery(profile as SalonProfile).map(p=>p.url):lookbookPhotos(profile as SalonProfile,Array.isArray(extras.gallery)?extras.gallery.filter(x=>typeof x==='string'&&x.trim()):[]);
  profile.demoGalleryInitialized=true;profile.demoGalleryType=profile.businessType;
  profile.headerNavigation=headerSettings(profile as SalonProfile);
  profile.serviceCatalogueInitialized=raw.serviceCatalogueInitialized===true||list(draft.services).length>0;

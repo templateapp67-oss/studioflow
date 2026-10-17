@@ -4,7 +4,9 @@ export const supabase = createClient('https://zilwgiuiygqqardzutxi.supabase.co',
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: 'studioflow_supabase_session' },
 });
 export function captureReferral() {
-  const code = new URLSearchParams(location.search).get('ref')?.trim().toUpperCase();
+  const params=new URLSearchParams(location.search);
+  if(params.has('app')||params.has('customer')||params.has('customer_ref'))return '';
+  const code = params.get('ref')?.trim().toUpperCase();
   try {
    if (code && /^[A-Z0-9-]{6,32}$/.test(code)) localStorage.setItem('studioflow_pending_ref', code);
    return code || localStorage.getItem('studioflow_pending_ref') || '';

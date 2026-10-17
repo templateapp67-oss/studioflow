@@ -1,0 +1,11 @@
+import React from 'react';
+import assert from 'node:assert/strict';
+import {renderToStaticMarkup} from 'react-dom/server';
+import {CustomerAppPromotion,shareCustomerApp,CUSTOMER_APP_INSTALL_ROUTE,customerAppCaption} from '../src/components/CustomerAppPromotion';
+(globalThis as any).location={origin:'https://nexora.example'};
+let copied='';Object.defineProperty(globalThis,'navigator',{configurable:true,value:{clipboard:{writeText:async(t:string)=>{copied=t}}}});
+await shareCustomerApp();assert.ok(copied.includes('https://nexora.example'+CUSTOMER_APP_INSTALL_ROUTE));assert.ok(copied.includes('Install'));
+let shared:any;Object.defineProperty(globalThis,'navigator',{configurable:true,value:{share:async(data:any)=>{shared=data}}});await shareCustomerApp();assert.equal(shared.url,'https://nexora.example'+CUSTOMER_APP_INSTALL_ROUTE);assert.ok(!shared.text.includes('https://'),'Native share must include one link only');
+const html=renderToStaticMarkup(<CustomerAppPromotion/>);assert.ok(html.includes('Add to Home screen'));assert.ok(html.includes('Download ad image'));assert.ok(html.includes('download="nexora-customer-app-ad.png"'));assert.ok(html.includes('loading="lazy"'));assert.ok(customerAppCaption('https://nexora.example').includes('Chrome'));
+let cancelled=false;Object.defineProperty(globalThis,'navigator',{configurable:true,value:{share:async()=>{const e=new Error('Cancelled');e.name='AbortError';throw e}}});try{await shareCustomerApp()}catch(e){cancelled=(e as Error).name==='AbortError'}assert.equal(cancelled,true);
+console.log('PASS: app promotion has honest Chrome installation steps, downloadable poster, exact app route, native share/clipboard fallbacks and cancellation.');

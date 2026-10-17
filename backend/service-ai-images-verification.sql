@@ -1,0 +1,21 @@
+begin;
+do $$declare owner uuid; req uuid:=gen_random_uuid(); first_claim jsonb; cached jsonb; i integer;begin
+ select user_id into owner from public.studioflow_accounts order by created_at limit 1;
+ if owner is null then raise exception 'An owner fixture is required';end if;
+ if has_function_privilege('authenticated','public.studioflow_service_ai_images_claim(uuid,uuid)','EXECUTE') or has_function_privilege('anon','public.studioflow_service_ai_images_claim(uuid,uuid)','EXECUTE') then raise exception 'Client can access protected generation/key function';end if;
+ if has_table_privilege('authenticated','vault.decrypted_secrets','SELECT') or has_table_privilege('anon','vault.decrypted_secrets','SELECT') then raise exception 'Client can access secrets';end if;
+ perform set_config('request.jwt.claims','{"role":"authenticated"}',true);
+ begin perform studioflow_private.service_ai_images_claim(owner,req);raise exception 'Untrusted role accepted';exception when insufficient_privilege then null;end;
+ perform set_config('request.jwt.claims','{"role":"service_role"}',true);
+ first_claim:=studioflow_private.service_ai_images_claim(owner,req);
+ if first_claim->>'proceed'<>'true' or length(first_claim->>'apiKey')<10 then raise exception 'Trusted generation configuration unavailable';end if;
+ cached:=studioflow_private.service_ai_images_claim(owner,req);
+ if cached->>'proceed'<>'false' or cached ? 'apiKey' then raise exception 'Duplicate claim leaked key or created another generation';end if;
+ perform studioflow_private.service_ai_images_finish(owner,(first_claim->>'id')::uuid,'[{"imagePath":"qa-1"},{"imagePath":"qa-2"},{"imagePath":"qa-3"}]','');
+ cached:=studioflow_private.service_ai_images_claim(owner,req);
+ if cached->>'status'<>'complete' or jsonb_array_length(cached->'images')<>3 then raise exception 'Cached generation result unavailable';end if;
+ for i in 1..4 loop insert into studioflow_private.service_ai_image_jobs(owner_id,request_id,created_at) values(owner,gen_random_uuid(),now()-interval '2 minutes');end loop;
+ begin perform studioflow_private.service_ai_images_claim(owner,gen_random_uuid());raise exception 'Daily limit not enforced';exception when raise_exception then if sqlerrm not like 'Daily image generation limit%' then raise;end if;end;
+end $$;
+select 'PASS: owner-required service access, no client key access, idempotent jobs, cached three-image results and daily limits; fixtures rolled back, no provider calls' as verification;
+rollback;

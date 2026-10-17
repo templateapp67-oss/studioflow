@@ -1,0 +1,13 @@
+# Quick services, discounts and last-minute deals
+
+The customer home adds three pink/white, horizontally scrollable sections from the reference image. Each row has previous/next controls and native touch scrolling. Existing category, exact-template and search filters apply to all three.
+
+Data flows through the existing `studioflow_customer_catalog` Supabase RPC. Published salons use `studioflow_websites.content.services` and `content.profile.promoCampaign`, exactly as their website. Active templates now return their services, public team fields and a separate `customerDemoOffer` from `studioflow_templates.config`. All 14 template configs have an explicitly sample 20% promotion. These samples are never copied to real owner promotions and disappear when a real salon replaces that template category. The existing full website template preview reads the same public catalogue.
+
+Quick Services includes only published durations greater than zero and at most 30 minutes; its booking CTA preserves the exact salon and service. Demo actions open a read-only template preview. Special Discounts requires an enabled, unexpired campaign whose selected service still exists. Last-Minute Deals additionally requires owner opt-in and expiry within the next 24 hours. Template sample deals display a demo label instead of a fabricated countdown. No reviews, ratings or distances are invented.
+
+Owners configure expiry in their local time and Last-Minute eligibility in Promo Studio, then publish the website. That single publication updates website and app. Expiry is stored as UTC ISO time, and the active feed refreshes on the existing realtime/focus/30-second catalogue refresh. Website promotions also expire automatically. The shared publishing function preserves these campaign fields while existing privacy filtering remains intact.
+
+Promotions remain advertising, as in the existing website: promo codes do not automatically reduce the protected booking price. Offer details explain the published service price and booking summary. Real reservations, 25% deposits and payment verification continue through the existing trusted booking/payment paths.
+
+Verification: all 14 website wiring checks; exact quick-service booking and offer-navigation interactions; disabled, removed-service, invalid-expiry, expired and beyond-24-hour campaigns; template-to-real replacement; Supabase anon catalogue query (14 templates, 14 sample offers, 5 template services <=30 minutes, no private template staff fields); publishing content preserves expiry/eligibility. Security advisors contain no finding for the updated catalogue function.

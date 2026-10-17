@@ -1,4 +1,6 @@
-import { uploadSalonImage, websiteLink } from '../lib/supabase';
+import {BrandImageField} from './BrandImageField';
+import {renderCampaignBanner,downloadCampaignAd,type CampaignAd} from '../lib/campaignBanner';
+import { websiteLink } from '../lib/supabase';
 import React, { useState, useRef, useEffect } from 'react';
 import { SalonProfile, SalonService } from '../types';
 import { CATEGORY_STANDARDIZED_DATA } from '../templateData';
@@ -9,6 +11,7 @@ interface PromoStudioProps {
   setProfile: React.Dispatch<React.SetStateAction<SalonProfile>>;
   primaryAccentColor?: string;
   onNavigateToPreview?: () => void;
+  onAdReady?: (ad:CampaignAd|null) => void;
 }
 
 type AspectRatioType = '1:1' | '9:16' | '16:9';
@@ -21,6 +24,7 @@ export const PromoStudio: React.FC<PromoStudioProps> = ({
   services,
   primaryAccentColor = '#b0004a',
   onNavigateToPreview,
+  onAdReady,
 }) => {
   // 1. Service Selection
   const [selectedServiceId, setSelectedServiceId] = useState<string>(
@@ -53,6 +57,8 @@ export const PromoStudio: React.FC<PromoStudioProps> = ({
   const [generationNotice, setGenerationNotice] = useState<string | null>(null);
   const [selectedCuratedPhotoUrl, setSelectedCuratedPhotoUrl] = useState<string>(profile.promoCampaign?.imageUrl||'');
 
+  const [logoUrl,setLogoUrl]=useState(profile.promoCampaign?.logoUrl??profile.logoUrl??'');
+  const [readyAd,setReadyAd]=useState<CampaignAd|null>(null),[exportBusy,setExportBusy]=useState(false),[exportError,setExportError]=useState('');
   // 4. Copy & Share Templates
   const [whatsappTemplate, setWhatsappTemplate] = useState<string>('');
   const [instagramCaption, setInstagramCaption] = useState<string>('');
@@ -60,7 +66,7 @@ export const PromoStudio: React.FC<PromoStudioProps> = ({
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Hidden canvas for exporting high-res PNG image
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const exportTicket=useRef(0);useEffect(()=>()=>{exportTicket.current++},[]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -148,11 +154,14 @@ ${bookingUrl}
     setInstagramCaption(igText);
   }, [selectedServiceId, campaignTheme, discountPercent, aesthetic, profile?.businessName, profile?.city, profile?.subdomain, profile?.address, customOfferText, promoCode, headline, subtext]);
 
+  const [endsAt,setEndsAt]=useState(profile.promoCampaign?.endsAt||'');
+  const [lastMinute,setLastMinute]=useState(profile.promoCampaign?.lastMinute??false);
+  const localExpiry=endsAt&&Number.isFinite(Date.parse(endsAt))?new Date(Date.parse(endsAt)-new Date(endsAt).getTimezoneOffset()*60000).toISOString().slice(0,16):'';
   const [enabled,setEnabled]=useState(profile.promoCampaign?.enabled??false);
   useEffect(()=>{
-    const campaign={enabled,selectedServiceId,campaignTheme,discountPercent,customOfferText,promoCode,headline,subtext,aspectRatio,aesthetic,imageUrl:generatedImageUrl||selectedCuratedPhotoUrl,customPrompt};
+    const campaign={enabled,endsAt,lastMinute,selectedServiceId,campaignTheme,discountPercent,customOfferText,promoCode,headline,subtext,aspectRatio,aesthetic,logoUrl,imageUrl:generatedImageUrl||selectedCuratedPhotoUrl,customPrompt};
     setProfile(prev=>JSON.stringify(prev.promoCampaign)===JSON.stringify(campaign)?prev:{...prev,promoCampaign:campaign});
-  },[enabled,selectedServiceId,campaignTheme,discountPercent,customOfferText,promoCode,headline,subtext,aspectRatio,aesthetic,generatedImageUrl,selectedCuratedPhotoUrl,customPrompt,setProfile]);
+  },[enabled,endsAt,lastMinute,selectedServiceId,campaignTheme,discountPercent,customOfferText,promoCode,headline,subtext,aspectRatio,aesthetic,logoUrl,generatedImageUrl,selectedCuratedPhotoUrl,customPrompt,setProfile]);
 
   // Handle AI Image Generation
   const handleGenerateImage = async () => {
@@ -172,134 +181,10 @@ ${bookingUrl}
   const discountedPrice = Math.round(selectedService.price * (1 - discountPercent / 100));
 
   // Export Canvas as High-Res PNG
-  const handleDownloadBanner = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let width = 1080;
-    let height = 1080;
-    if (aspectRatio === '9:16') {
-      width = 1080;
-      height = 1920;
-    } else if (aspectRatio === '16:9') {
-      width = 1920;
-      height = 1080;
-    }
-
-    canvas.width = width;
-    canvas.height = height;
-
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.src = activeBackgroundUrl;
-
-    img.onload = () => {
-      // 1. Draw Background Image
-      const scale = Math.max(width / img.width, height / img.height);
-      const x = (width / 2) - (img.width / 2) * scale;
-      const y = (height / 2) - (img.height / 2) * scale;
-      ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
-
-      // 2. Draw Multi-stop Dark Gradient Overlay for Readability
-      const gradient = ctx.createLinearGradient(0, 0, 0, height);
-      gradient.addColorStop(0, 'rgba(10, 15, 25, 0.7)');
-      gradient.addColorStop(0.4, 'rgba(10, 15, 25, 0.4)');
-      gradient.addColorStop(0.7, 'rgba(10, 15, 25, 0.85)');
-      gradient.addColorStop(1, 'rgba(10, 15, 25, 0.98)');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, width, height);
-
-      // 3. Top Header: Salon Branding
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 36px "Plus Jakarta Sans", sans-serif';
-      ctx.textAlign = 'left';
-      ctx.fillText((profile?.businessName || 'Our Salon').toUpperCase(), 60, 90);
-
-      ctx.fillStyle = '#cbd5e1';
-      ctx.font = '500 24px "Plus Jakarta Sans", sans-serif';
-      ctx.fillText(`${profile.city || 'India'} • Verified 5.0 ★ Luxury Sanctuary`, 60, 130);
-
-      // 4. Offer Badge Chip
-      const badgeText = (customOfferText || `${discountPercent}% OFF`).toUpperCase();
-      ctx.fillStyle = primaryAccentColor;
-      ctx.beginPath();
-      ctx.roundRect(60, 170, ctx.measureText(badgeText).width + 60, 56, 28);
-      ctx.fill();
-
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 24px "Space Mono", monospace';
-      ctx.fillText(badgeText, 90, 206);
-
-      // 5. Main Service Title & Headline
-      const serviceY = height * 0.52;
-      ctx.fillStyle = '#f8fafc';
-      ctx.font = '800 64px "Playfair Display", Georgia, serif';
-      ctx.fillText(selectedService.name, 60, serviceY);
-
-      ctx.fillStyle = '#e2e8f0';
-      ctx.font = 'bold 32px "Plus Jakarta Sans", sans-serif';
-      ctx.fillText(headline, 60, serviceY + 50);
-
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = '400 24px "Plus Jakarta Sans", sans-serif';
-      ctx.fillText(subtext, 60, serviceY + 95);
-
-      // 6. Pricing Block
-      const priceY = height * 0.78;
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '800 72px "Space Mono", monospace';
-      ctx.fillText(`₹${discountedPrice.toLocaleString('en-IN')}`, 60, priceY);
-
-      // Strikethrough original price
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = '500 36px "Space Mono", monospace';
-      const origText = `₹${selectedService.price.toLocaleString('en-IN')}`;
-      const origX = 60 + ctx.measureText(`₹${discountedPrice.toLocaleString('en-IN')}`).width + 30;
-      ctx.fillText(origText, origX, priceY - 15);
-      // Draw strikethrough line
-      const origWidth = ctx.measureText(origText).width;
-      ctx.strokeStyle = '#ef4444';
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.moveTo(origX - 5, priceY - 26);
-      ctx.lineTo(origX + origWidth + 5, priceY - 26);
-      ctx.stroke();
-
-      // Promo Code Pill
-      ctx.fillStyle = '#1e293b';
-      ctx.beginPath();
-      ctx.roundRect(60, priceY + 25, 340, 50, 12);
-      ctx.fill();
-      ctx.strokeStyle = '#475569';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      ctx.fillStyle = '#38bdf8';
-      ctx.font = 'bold 22px "Space Mono", monospace';
-      ctx.fillText(`CODE: ${promoCode}`, 80, priceY + 58);
-
-      // 7. Bottom Call To Action & Subdomain
-      const bottomY = height - 70;
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 28px "Plus Jakarta Sans", sans-serif';
-      ctx.fillText(`Book Online: ${websiteLink(profile.subdomain || '')}`, 60, bottomY);
-
-      // Trigger Download
-      const link = document.createElement('a');
-      link.download = `${(profile?.businessName || 'salon').toLowerCase().replace(/\s+/g, '-')}-promo-${selectedService.name.toLowerCase().replace(/\s+/g, '-')}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-
-      showToast('🎉 High-resolution promotional banner downloaded!');
-    };
-
-    img.onerror = () => {
-      showToast('Downloaded fallback promo banner image.');
-    };
-  };
+  useEffect(()=>{exportTicket.current++;setReadyAd(null);onAdReady?.(null);},[activeBackgroundUrl,logoUrl,aspectRatio,headline,subtext,customOfferText,discountPercent,promoCode,selectedServiceId,profile.businessName,profile.city,profile.subdomain,selectedService.name,selectedService.price,primaryAccentColor,whatsappTemplate,onAdReady]);
+  const prepareReadyAd=async(download=false)=>{if(exportBusy)return;setExportBusy(true);setExportError('');const ticket=exportTicket.current;try{const blob=await renderCampaignBanner({imageUrl:activeBackgroundUrl,logoUrl,aspectRatio,salon:profile.businessName,city:profile.city,service:selectedService.name,headline,subtext,offer:customOfferText||`${discountPercent}% OFF`,price:discountedPrice,originalPrice:selectedService.price,code:promoCode,bookingUrl:websiteLink(profile.subdomain||''),accent:primaryAccentColor});if(ticket!==exportTicket.current)throw new Error('The ad changed while exporting. Prepare it again to use the latest version.');const file=new File([blob],`${(profile.businessName||'salon').replace(/[^a-z0-9]/gi,'-')}-ad.png`,{type:'image/png'});const ad={file,caption:whatsappTemplate};setReadyAd(ad);onAdReady?.(ad);if(download)downloadCampaignAd(file);showToast(download?'Ready ad PNG downloaded.':'Ready ad added to your customer campaign below.');}catch(e){setExportError(e instanceof Error?e.message:'Ad export failed. Please retry.');}finally{setExportBusy(false)}};
+  const handleDownloadBanner=()=>void prepareReadyAd(true);
+  const shareReadyAd=async()=>{if(!readyAd)return;try{if(navigator.canShare?.({files:[readyAd.file]})){await navigator.share({files:[readyAd.file],title:profile.businessName,text:readyAd.caption});showToast('Share screen opened. Choose WhatsApp and your opted-in recipients.');}else{downloadCampaignAd(readyAd.file);showToast('Ad downloaded. Open WhatsApp, choose your broadcast list, and attach this image.');}}catch(e){if(!(e instanceof Error&&e.name==='AbortError'))setExportError('Sharing could not open. Download the ad and attach it in WhatsApp.')}};
 
   // Share to WhatsApp Handler
   const handleShareToWhatsApp = () => {
@@ -373,9 +258,12 @@ ${bookingUrl}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
         <section className="col-span-full bg-white border rounded-xl p-4 flex flex-wrap items-center gap-4">
-          <label className="flex gap-2 items-center font-bold text-sm"><input type="checkbox" checked={enabled} onChange={e=>setEnabled(e.target.checked)}/>Show this promotion on my salon website</label>
-          <label className="text-sm cursor-pointer underline">Upload promo photo<input className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" onChange={async e=>{const file=e.target.files?.[0];if(!file)return;try{const url=await uploadSalonImage(file);setGeneratedImageUrl(url);}catch(error){setGenerationNotice(error instanceof Error?error.message:'Upload failed');}e.target.value='';}}/></label>
-          <p className="text-xs text-gray-500">Changes autosave and appear in preview and your published site. Offer codes are display information; checkout discounts are not applied automatically.</p>
+          <label className="flex gap-2 items-center font-bold text-sm"><input type="checkbox" checked={enabled} onChange={e=>setEnabled(e.target.checked)}/>Show this promotion on my salon website & customer app</label>
+          <label className="text-sm flex flex-col gap-1">Offer expiry (your local time)<input type="datetime-local" className="border rounded p-2" value={localExpiry} onChange={e=>setEndsAt(e.target.value?new Date(e.target.value).toISOString():'')}/></label>
+          <label className="text-sm flex gap-2 items-center"><input type="checkbox" checked={lastMinute} onChange={e=>setLastMinute(e.target.checked)}/>Include in Last-Minute Deals during the final 24 hours</label>
+          {lastMinute&&!endsAt&&<p className="text-sm text-amber-700">Set an expiry to feature this promotion in Last-Minute Deals.</p>}
+          {endsAt&&Date.parse(endsAt)<=Date.now()&&<p className="text-sm text-amber-700">This promotion has expired and is hidden from customers.</p>}
+          <p className="text-xs text-gray-500">Changes autosave to your workspace. Publish your website to update both the website and customer app. Offer codes are display information; checkout discounts are not applied automatically.</p>
         </section>
         {/* LEFT COLUMN: CONTROLS & CAMPAIGN CONFIGURATION (5 COLS) */}
         <div className="lg:col-span-5 flex flex-col gap-5">
@@ -549,6 +437,7 @@ ${bookingUrl}
               </div>
             </div>
 
+            <div className="space-y-4 border-t pt-4"><h3 className="font-bold text-sm">Your ad images & logo</h3><BrandImageField label="Ad background image" uploadName="Ad Image" value={activeBackgroundUrl} onChange={url=>{setGeneratedImageUrl(null);setSelectedCuratedPhotoUrl(url)}}/><BrandImageField label="Ad logo" logo uploadName="Ad Logo" value={logoUrl} onChange={setLogoUrl}/><p className="text-xs text-slate-500">These images are used in this ad. Logo proportions and transparent PNG backgrounds are preserved.</p></div>
             {/* AI Prompt Input */}
             <div>
               <label className="text-[10px] font-bold font-mono-caps text-gray-500 block mb-1">
@@ -633,6 +522,7 @@ ${bookingUrl}
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleDownloadBanner}
+                  disabled={exportBusy}
                   className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border border-white/20"
                 >
                   <span className="material-symbols-outlined text-sm">download</span>
@@ -641,6 +531,7 @@ ${bookingUrl}
               </div>
             </div>
 
+            <div className="flex flex-wrap gap-2"><button type="button" className="primary-action" disabled={exportBusy} onClick={()=>void prepareReadyAd(false)}>{exportBusy?'Preparing ad…':'Use ready ad in customer campaign'}</button><button type="button" className="secondary-action" disabled={!readyAd||exportBusy} onClick={()=>void shareReadyAd()}>Share ready ad / WhatsApp broadcast</button></div>{exportError&&<p role="alert" className="bg-rose-50 text-rose-800 rounded-xl p-3">{exportError}</p>}
             {/* BANNER STAGE */}
             <div className="flex items-center justify-center p-2 bg-black/40 rounded-xl overflow-hidden min-h-[380px]">
               <div
@@ -669,14 +560,14 @@ ${bookingUrl}
                         className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-white text-xs shadow-md"
                         style={{ backgroundColor: primaryAccentColor }}
                       >
-                        {(profile?.businessName || 'S').charAt(0)}
+                        {logoUrl?<img src={logoUrl} alt="Ad logo" className="w-full h-full object-contain bg-white"/>:(profile?.businessName || 'S').charAt(0)}
                       </span>
                       <div>
                         <div className="font-display font-extrabold text-sm tracking-wide text-white drop-shadow-md">
                           {(profile?.businessName || 'OUR SALON').toUpperCase()}
                         </div>
                         <div className="text-[10px] text-gray-300 font-mono">
-                          {profile.city || 'India'} • ★ 4.98 Verified Sanctuary
+                          {profile.city || 'India'}
                         </div>
                       </div>
                     </div>
@@ -740,7 +631,7 @@ ${bookingUrl}
           </div>
 
           {/* HIDDEN CANVAS FOR HIGH-RES EXPORTS */}
-          <canvas ref={canvasRef} className="hidden" />
+
 
           {/* PRE-FILLED SHARE TEMPLATES & ACTIONS */}
           <div className="p-5 rounded-2xl border border-gray-200 bg-white flex flex-col gap-4 shadow-xs">
@@ -807,6 +698,7 @@ ${bookingUrl}
 
                   <button
                     onClick={handleDownloadBanner}
+                  disabled={exportBusy}
                     className="px-4 py-2.5 rounded-xl border border-gray-300 hover:border-gray-400 bg-white text-gray-800 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
                   >
                     <span className="material-symbols-outlined text-sm">image</span>
@@ -851,6 +743,7 @@ ${bookingUrl}
 
                   <button
                     onClick={handleDownloadBanner}
+                  disabled={exportBusy}
                     className="px-4 py-2.5 rounded-xl border border-gray-300 hover:border-gray-400 bg-white text-gray-800 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
                   >
                     <span className="material-symbols-outlined text-sm">download</span>

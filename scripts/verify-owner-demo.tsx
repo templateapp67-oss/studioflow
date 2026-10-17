@@ -1,0 +1,16 @@
+import React from 'react';
+import {act,create} from 'react-test-renderer';
+import assert from 'node:assert/strict';
+import {OwnerDemoBookings} from '../src/components/OwnerDemoBookings';
+import {supabase} from '../src/lib/supabase';
+(globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;
+(globalThis as any).window={addEventListener(){},removeEventListener(){}};
+(globalThis as any).document={visibilityState:'visible'};
+let row={id:'demo-1',owner_id:'salon-owner',status:'confirmed',payload:{demo:true,clientName:'Customer Demo',serviceName:'Haircut',stylistName:'Staff',date:'2026-10-20',time:'11:00',clientPhone:'9876543210',servicePrice:0,amountPaid:0}};
+let updates=0;const queries:any[]=[];
+(supabase as any).from=(table:string)=>{assert.equal(table,'studioflow_demo_bookings');const filters:any={};let patch:any;const chain:any={select:()=>chain,eq:(k:string,v:string)=>{filters[k]=v;return chain},order:()=>chain,update:(p:any)=>{patch=p;return chain},then:(resolve:any)=>{assert.equal(filters.owner_id,'salon-owner');queries.push({...filters});if(patch){assert.equal(filters.id,'demo-1');assert.equal(filters.status,'confirmed');assert.deepEqual(Object.keys(patch),['status']);row={...row,...patch};updates++}return Promise.resolve({data:[row],error:null}).then(resolve)}};return chain};
+let view:any;await act(async()=>{view=create(<OwnerDemoBookings ownerId="salon-owner"/>)});
+assert.ok(JSON.stringify(view.toJSON()).includes('Customer Demo'));assert.ok(JSON.stringify(view.toJSON()).includes('₹0 DEMO'));
+await act(async()=>view.root.findAllByType('button').find((b:any)=>b.props.children==='Complete demo').props.onClick());assert.equal(updates,1);assert.equal(row.status,'completed');assert.ok(!view.root.findAllByType('button').some((b:any)=>b.props.children==='Complete demo'));
+await act(async()=>view.unmount());assert.ok(queries.length>=3);
+console.log('PASS: owner demo panel fetches only salon owner records, renders customer details/₹0 label, completes isolated demo and refreshes status.');
