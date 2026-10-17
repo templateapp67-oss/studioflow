@@ -160,8 +160,25 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     initialStylist || (stylists && stylists[0]) || ANY_SPECIALIST
   );
 
+  const [specialistCheck,setSpecialistCheck]=useState<{key:string;ids:string[];published:boolean;error:string}|null>(null);
+  const [specialistRetry,setSpecialistRetry]=useState(0);
+  const specialistKey=JSON.stringify([profile.subdomain,selectedService.id]);
+  const specialistsReady=specialistCheck?.key===specialistKey&&!specialistCheck.error;
+  const eligibleStylists=specialistsReady?stylists.filter(st=>specialistCheck!.ids.includes(st.id)):[];
+  useEffect(()=>{
+    if(!isOpen)return;let active=true;
+    void supabase.rpc('studioflow_booking_specialists',{p_slug:profile.subdomain,p_service_id:selectedService.id}).then(({data,error})=>{
+      if(!active)return;
+      if(error||!data||!Array.isArray(data.specialistIds)){setSpecialistCheck({key:specialistKey,ids:[],published:false,error:error?.message||'Could not check specialists. Please retry.'});return;}
+      setSpecialistCheck({key:specialistKey,ids:data.specialistIds,published:data.published,error:''});
+      setSelectedStylist(current=>current.id===ANY_SPECIALIST.id||data.specialistIds.includes(current.id)?current:ANY_SPECIALIST);
+    });return()=>{active=false;};
+  },[isOpen,specialistKey,specialistRetry]);
+  const chooseService=(service:SalonService)=>{setSelectedService(service);if(service.id!==selectedService.id)setSelectedStylist(ANY_SPECIALIST);};
+
   // Step 2: Date & Time Slot
   const todayStr = new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  const tomorrowStr=new Date(Date.parse(`${todayStr}T12:00:00Z`)+86400000).toISOString().slice(0,10);
   const [bookingDate, setBookingDate] = useState<string>(todayStr);
   const [bookingTime, setBookingTime] = useState<string>('');
   const [availableSlots,setAvailableSlots]=useState<any[]>([]);
@@ -490,7 +507,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       <button
                         type="button" aria-pressed={isSelected}
                         key={srv.id}
-                        onClick={() => setSelectedService(srv)}
+                        onClick={() => chooseService(srv)}
                         className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
                           isSelected
                             ? 'border-slate-900 bg-slate-50 ring-1 ring-slate-900 shadow-xs'
@@ -557,7 +574,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   </button>
 
                   {/* Individual Specialists */}
-                  {(stylists || []).map((st) => {
+                  {eligibleStylists.map((st) => {
                     const isSelected = selectedStylist.id === st.id;
                     return (
                       <button
@@ -583,6 +600,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     );
                   })}
                 </div>
+                {!specialistsReady&&<p role="status" className="text-xs text-slate-700 mt-3">{specialistCheck?.key===specialistKey&&specialistCheck.error?'Could not check specialists.':'Checking specialists for this service…'}</p>}
+                {specialistCheck?.key===specialistKey&&specialistCheck.error&&<button type="button" className="text-xs underline" onClick={()=>setSpecialistRetry(n=>n+1)}>Retry specialist check</button>}
+                {specialistsReady&&!eligibleStylists.length&&<p role="status" className="text-xs text-amber-800 mt-3">{specialistCheck!.published?'No specialists are assigned to this service. Choose another service or contact the salon.':'This salon is not published yet. The owner needs to publish it before online booking.'}</p>}
+                <p className="text-xs text-slate-700 mt-3">Only specialists assigned to this service are listed. Changing service selects Any Specialist.</p>
                 <p role="status" className="text-xs text-slate-700 mt-3">Selected specialist: <strong>{selectedStylist.name}</strong>. Use Continue to Date &amp; Slot below.</p>
               </div>
 
@@ -618,19 +639,17 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   <button
                     type="button"
                     onClick={() => {
-                      const d = new Date();
-                      d.setDate(d.getDate() + 1);
-                      setBookingDate(d.toISOString().split('T')[0]);
+                      setBookingDate(tomorrowStr);
                     }}
                     className={`px-3 py-1.5 text-xs font-bold rounded-lg border cursor-pointer ${
-                      bookingDate !== todayStr ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-700 border-slate-200'
+                      bookingDate === tomorrowStr ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-700 border-slate-200'
                     }`}
                   >
                     Tomorrow
                   </button>
                   <div className="flex-1">
                     <input
-                      type="date"
+                      type="date" aria-label="Appointment date"
                       value={bookingDate}
                       min={todayStr}
                       onChange={(e) => setBookingDate(e.target.value)}
@@ -653,7 +672,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
                 {slotsLoading && <p role="status">Loading slots…</p>}
                 {slotsError && <p role="alert" className="text-red-700">{slotsError}</p>}
-                {!slotsLoading && !availableSlots.some(slot=>slot.available) && <p className="text-sm text-gray-500">No available slots. Choose another date or specialist. Publish the salon before accepting bookings.</p>}
+                {!slotsLoading && !availableSlots.some(slot=>slot.available) && <p className="text-sm text-gray-500">No available slots for this service, specialist and date. Choose another date or check Any Specialist.</p>}
+                {!slotsLoading&&selectedStylist.id!==ANY_SPECIALIST.id&&!availableSlots.some(slot=>slot.available)&&<button type="button" className="secondary-action mb-3" onClick={()=>setSelectedStylist(ANY_SPECIALIST)}>Check Any Specialist</button>}
                 <button className="text-xs underline mb-2" onClick={()=>setSlotRetry(n=>n+1)}>Retry availability</button>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {availableSlots.map((slot) => {
@@ -1021,6 +1041,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               <button
                 type="button"
                 onClick={() => setCurrentStep('datetime')}
+                disabled={!specialistsReady||!eligibleStylists.length}
                 className="w-full py-3 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95 active:scale-[0.99] mt-2"
                 style={actionStyle}
               >

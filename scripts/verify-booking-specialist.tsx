@@ -1,11 +1,11 @@
 import React from 'react';import {act,create} from 'react-test-renderer';import assert from 'node:assert/strict';
 import {BookingModal} from '../src/components/BookingModal';import {CATEGORY_TEMPLATES} from '../src/categoryTemplates';import {INITIAL_SALON_PROFILE} from '../src/mockData';import {supabase} from '../src/lib/supabase';
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;
-const calls:any[]=[];supabase.rpc=(async(name:string,args:any)=>{calls.push({name,args});return {data:[{time:'12:00',label:'12:00 PM',available:true,stylistId:'qa-staff'}],error:null};}) as any;
+let eligibleIds:string[]=[];const calls:any[]=[];supabase.rpc=(async(name:string,args:any)=>{calls.push({name,args});if(name==='studioflow_booking_specialists')return {data:{published:true,specialistIds:eligibleIds},error:null};return {data:[{time:'12:00',label:'12:00 PM',available:true,stylistId:'qa-staff'}],error:null};}) as any;
 globalThis.fetch=async()=>new Response(JSON.stringify({configured:true}),{headers:{'Content-Type':'application/json'}});
 const text=(node:any):string=>typeof node==='string'?node:node?.children?.map(text).join('')||'';
 for(const template of Object.values(CATEGORY_TEMPLATES)){
- let editor:any;await act(async()=>{editor=create(<BookingModal isOpen onClose={()=>{}} profile={{...INITIAL_SALON_PROFILE,businessType:template.id,subdomain:'qa-salon'}} services={template.services} stylists={template.stylists} themeAccentHex="#ffffff"/>)});
+ eligibleIds=template.stylists.map(st=>st.id);let editor:any;await act(async()=>{editor=create(<BookingModal isOpen onClose={()=>{}} profile={{...INITIAL_SALON_PROFILE,businessType:template.id,subdomain:'qa-salon'}} services={template.services} stylists={template.stylists} themeAccentHex="#ffffff"/>)});
  const button=(label:string)=>editor.root.findAllByType('button').find((node:any)=>text(node).includes(label));
  const next=button('Continue to Date & Slot');assert.equal(next.props.style.color,'#1e293b','White accent needs dark readable action text');assert.ok(next.props.style.border);
  const specialist=editor.root.findByProps({'aria-label':`Select specialist ${template.stylists[0].name}`});await act(async()=>specialist.props.onClick());assert.equal(specialist.props['aria-pressed'],true);assert.equal(calls.at(-1).args.p_stylist_id,template.stylists[0].id);
@@ -18,4 +18,13 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
  assert.ok(button('Pay ₹'),'Guest form can advance to payment review without making payment');assert.equal(button('Pay ₹').props.style.color,'#1e293b');
  await act(async()=>editor.unmount());
 }
-assert.ok(calls.every(call=>call.name==='studioflow_available_slots'),'No booking or payment created by this test');console.log('PASS: all 14 templates, white-accent contrast, specialist/any selection and RPC wiring, date/slot gating, guest form and payment review. No bookings or payments created.');
+const template=CATEGORY_TEMPLATES.nail_studio;
+eligibleIds=template.stylists.map(st=>st.id);
+let restricted:any;await act(async()=>{restricted=create(<BookingModal isOpen onClose={()=>{}} profile={{...INITIAL_SALON_PROFILE,subdomain:'qa-salon'}} services={template.services} stylists={template.stylists} initialStylist={template.stylists[0]}/>)});
+eligibleIds=[template.stylists[1].id,template.stylists[2].id];
+const treatment=restricted.root.findAllByType('button').find((node:any)=>text(node).includes(template.services[1].name));await act(async()=>treatment.props.onClick());
+assert.equal(restricted.root.findAllByProps({'aria-label':`Select specialist ${template.stylists[0].name}`}).length,0,'Unassigned specialist must disappear for the new service');assert.equal(restricted.root.findByProps({'aria-label':'Select Any Specialist'}).props['aria-pressed'],true,'Changing treatment resets stale specialist');
+assert.equal(restricted.root.findAllByProps({'aria-label':`Select specialist ${template.stylists[1].name}`}).length,1);
+eligibleIds=[];await act(async()=>restricted.root.findAllByType('button').find((node:any)=>text(node).includes(template.services[2].name)).props.onClick());assert.equal(restricted.root.findAllByType('button').find((node:any)=>text(node).includes('Continue to Date & Slot')).props.disabled,true,'Do not show fake availability when no specialist is eligible');
+await act(async()=>restricted.unmount());
+assert.ok(calls.every(call=>['studioflow_available_slots','studioflow_booking_specialists'].includes(call.name)),'No booking or payment created by this test');console.log('PASS: all 14 templates, white-accent contrast, specialist/any selection and RPC wiring, date/slot gating, guest form and payment review. No bookings or payments created.');
