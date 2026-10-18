@@ -933,3 +933,20 @@
 .service-prompt-feedback { padding:10px 12px; margin-top:12px; border:1px solid #86efac; border-radius:10px; background:#f0fdf4; color:#14532d; font-size:12px; font-weight:650; }
 .service-prompt-toast { position:fixed; z-index:10000; top:max(16px,env(safe-area-inset-top)); left:50%; transform:translateX(-50%); width:max-content; max-width:calc(100vw - 32px); padding:14px 20px; border:1px solid #86efac; border-radius:14px; background:#f0fdf4; color:#14532d; box-shadow:0 12px 35px #0003; font:700 14px/1.5 Arial,sans-serif; pointer-events:none; }
 .service-prompt-feedback.is-error,.service-prompt-toast.is-error { background:#fffbeb; color:#92400e; border-color:#fcd34d; }
+
+/* Owner-facing instructions for the basic content review. */
+.content-review-guide{margin-top:1.2rem;padding:1.15rem;border:1px solid #f3c8df;border-radius:1rem;background:#fff5fa;color:#334155}
+.content-review h3{font-size:1rem;font-weight:750;color:#172033;margin-bottom:.5rem}
+.content-review-guide p,.content-review-guide li,.content-review-about p{font-size:.88rem;line-height:1.65}
+.content-review-guide ol{list-style:decimal;padding-left:1.3rem;margin-top:.75rem}
+.content-review-guide li+li{margin-top:.6rem}
+.content-review-summary{margin-top:1.2rem;color:#334155;font-size:.9rem}
+.content-review-summary span{font-size:.8rem;color:#64748b}
+.content-review .review-list{grid-template-columns:repeat(3,minmax(0,1fr))}
+.content-review .review-list p{font-size:.8rem;line-height:1.55;color:#475569}
+.content-review .review-list .secondary-action{margin-top:auto;font-size:.8rem;white-space:normal}
+.content-review-about{padding:1.1rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:1rem;margin-bottom:1rem}
+.content-review-about .secondary-action{margin:.7rem .5rem 0 0}
+.content-review-about [role=status]{color:#065f46;margin-top:.65rem}
+@media(max-width:900px){.content-review .review-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:540px){.content-review .review-list{grid-template-columns:1fr}.content-review-guide{padding:.9rem}.content-review .action-buttons{flex-wrap:wrap}}
