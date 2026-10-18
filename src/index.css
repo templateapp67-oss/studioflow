@@ -950,3 +950,17 @@
 .content-review-about [role=status]{color:#065f46;margin-top:.65rem}
 @media(max-width:900px){.content-review .review-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:540px){.content-review .review-list{grid-template-columns:1fr}.content-review-guide{padding:.9rem}.content-review .action-buttons{flex-wrap:wrap}}
+
+.about-builder{margin:1rem 0 1.4rem;padding:1.05rem;border:1px solid #f1c7df;border-radius:1rem;background:#fff8fc;color:#334155}
+.about-builder summary{font-size:.95rem;font-weight:750;cursor:pointer;color:#831843;padding:.2rem 0}
+.about-builder .form-grid{margin-top:1rem}
+.about-builder-context{margin:.85rem 0;padding:.8rem;background:white;border:1px solid #e2e8f0;border-radius:.7rem;font-size:.85rem;line-height:1.6;overflow-wrap:anywhere}
+.about-service-ideas{display:flex;flex-wrap:wrap;gap:.45rem;margin:.65rem 0 1rem}
+.about-service-ideas .secondary-action{font-size:.78rem;white-space:normal}
+.about-draft-preview{margin-top:1rem;padding:1rem;border-radius:.8rem;background:white;border:1px solid #e2e8f0}
+.about-replace-confirm{display:flex;align-items:flex-start;gap:.6rem;margin:1rem 0;font-size:.85rem;line-height:1.5}
+.about-replace-confirm input{margin-top:.25rem;flex-shrink:0;accent-color:#be185d}
+.about-builder .action-buttons{margin-top:.8rem;flex-wrap:wrap}
+.about-builder-notice{color:#065f46;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:.65rem;padding:.7rem;margin-top:.8rem;font-size:.85rem}
+.about-builder button:disabled{opacity:.5;cursor:not-allowed}
+@media(max-width:540px){.about-builder{padding:.85rem}.about-draft-preview{padding:.75rem}.about-builder .secondary-action{white-space:normal}}
