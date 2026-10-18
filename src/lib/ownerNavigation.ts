@@ -15,8 +15,7 @@ export const WEBSITE_EDIT_STEPS = [
  {id:23,label:'Salon policies',icon:'policy',hint:'Cancellation, privacy aur salon policy text review karein.'},
  {id:11,label:'Content review',icon:'fact_check',hint:'Basic completeness checklist dekhein aur missing details edit karein.'},
  {id:12,label:'Preview website',icon:'preview',hint:'Publish se pehle mobile/desktop preview, images aur booking flow check karein.'},
- {id:13,label:'Publish / update',icon:'publish',hint:'Save status check karke website publish karein ya published site update karein.'},
- {id:14,label:'Live website & link',icon:'language',hint:'Published website ka link kholein aur final customer experience check karein.'},
+ {id:13,label:'Publish & live website',icon:'publish',hint:'Website publish/update karein, phir isi page se live website kholein ya uska link copy karein.'},
 ] as const;
 export const OWNER_BUSINESS_TOOLS = [
  {id:18,label:'Business overview',icon:'monitoring'},
@@ -29,7 +28,7 @@ export const OWNER_BUSINESS_TOOLS = [
  {id:1,label:'Account & login',icon:'account_circle'},
 ] as const;
 export function ownerModule(raw:string|null){
- const n=Number(raw);const canonical=({15:6,17:4,19:16} as Record<number,number>)[n]||n;
+ const n=Number(raw);const canonical=({14:13,15:6,17:4,19:16} as Record<number,number>)[n]||n;
  return [...WEBSITE_EDIT_STEPS,...OWNER_BUSINESS_TOOLS].some(s=>s.id===canonical)?canonical:2;
 }
 export function adjacentOwnerStep(id:number,direction:-1|1){const index=WEBSITE_EDIT_STEPS.findIndex(s=>s.id===id);return index<0?null:WEBSITE_EDIT_STEPS[index+direction]?.id??null;}
