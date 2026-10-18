@@ -1,39 +1,40 @@
-import {workspaceSnapshot,sameWorkspace,mergeWorkspace,revisionConflict,conflictMessage,type ConflictChoice} from './lib/workspaceSync';
-import {useCustomerProfile} from './components/customer/useCustomerProfile';
-const WebsiteCustomerAccount=lazy(()=>import('./components/WebsiteCustomerAccount').then(m=>({default:m.WebsiteCustomerAccount})));
-import {applyWebsiteFavicon, websiteFavicon} from './lib/websiteFavicon';
+import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
+import type { Session } from '@supabase/supabase-js';
+import { workspaceSnapshot, sameWorkspace, mergeWorkspace, revisionConflict, conflictMessage, type ConflictChoice } from './lib/workspaceSync';
+import { useCustomerProfile } from './components/customer/useCustomerProfile';
+import { applyWebsiteFavicon, websiteFavicon } from './lib/websiteFavicon';
 import { CATEGORY_TEMPLATES } from './categoryTemplates';
 import { requestedTemplate, templateDraft } from './lib/templateEntry';
-import {BusinessNotificationLink} from './components/BusinessNotificationLink';
-import {SalonBookingsDialog} from './components/SalonBookingsDialog';
-import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
+import { BusinessNotificationLink } from './components/BusinessNotificationLink';
+import { SalonBookingsDialog } from './components/SalonBookingsDialog';
 import { loadScreen } from './lib/loadScreen';
 import { WebsitePublishPanel } from './components/WebsitePublishPanel';
 import { WebsiteDeviceFrame } from './components/WebsiteDeviceFrame';
-import {servicesForTemplate} from './lib/serviceCatalogue';
+import { servicesForTemplate } from './lib/serviceCatalogue';
 import { applyTemplateDesign } from './lib/templateSelection';
 import { normalizeWorkspace } from './lib/normalizeWorkspace';
-import type { Session } from '@supabase/supabase-js';
 import { AppView, SalonProfile, SalonService, Stylist, Appointment, ClientRecord, BusinessTypeId, LoyaltyConfig, CategoryTemplateConfig } from './types';
 import { INITIAL_SALON_PROFILE } from './mockData';
 import { calculateLoyaltyTier, DEFAULT_LOYALTY_CONFIG } from './loyaltyData';
 import { ACCENT_PALETTES, applyPrimaryAccentCssVar, AccentPaletteKey } from './themeAccents';
 import { Header } from './components/Header';
-const LandingPage=lazy(()=>loadScreen(()=>import('./components/LandingPage').then(m=>({default:m.LandingPage}))));
-const OnboardingWizard=lazy(()=>loadScreen(()=>import('./components/OnboardingWizard').then(m=>({default:m.OnboardingWizard}))));
-const SalonWebsitePreview=lazy(()=>loadScreen(()=>import('./components/SalonWebsitePreview').then(m=>({default:m.SalonWebsitePreview}))));
-const SaaSDashboard=lazy(()=>loadScreen(()=>import('./components/SaaSDashboard').then(m=>({default:m.SaaSDashboard}))));
 import { DEFAULT_EXTRAS } from './lib/workspaceDefaults';
-const OwnerWorkspace=lazy(()=>loadScreen(()=>import('./components/OwnerWorkspace').then(m=>({default:m.OwnerWorkspace}))));
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { AuthPage } from './components/AuthPage';
 import { CustomerBookings } from './components/CustomerBookings';
-import {useCustomerWelcomeDelivery} from './components/CustomerWelcomeDelivery';
-import {CustomerInvitePage} from './components/CustomerInvitePage';
-import {isCustomerInviteEntry} from './lib/customerReferral';
-import {CustomerReferralBridge} from './components/CustomerReferralBridge';
+import { useCustomerWelcomeDelivery } from './components/CustomerWelcomeDelivery';
+import { CustomerInvitePage } from './components/CustomerInvitePage';
+import { isCustomerInviteEntry } from './lib/customerReferral';
+import { CustomerReferralBridge } from './components/CustomerReferralBridge';
 import { CustomerApp } from './components/CustomerApp';
 import { supabase, captureReferral } from './lib/supabase';
+
+const WebsiteCustomerAccount = lazy(() => import('./components/WebsiteCustomerAccount').then(m => ({ default: m.WebsiteCustomerAccount })));
+const LandingPage = lazy(() => loadScreen(() => import('./components/LandingPage').then(m => ({ default: m.LandingPage }))));
+const OnboardingWizard = lazy(() => loadScreen(() => import('./components/OnboardingWizard').then(m => ({ default: m.OnboardingWizard }))));
+const SalonWebsitePreview = lazy(() => loadScreen(() => import('./components/SalonWebsitePreview').then(m => ({ default: m.SalonWebsitePreview }))));
+const SaaSDashboard = lazy(() => loadScreen(() => import('./components/SaaSDashboard').then(m => ({ default: m.SaaSDashboard }))));
+const OwnerWorkspace = lazy(() => loadScreen(() => import('./components/OwnerWorkspace').then(m => ({ default: m.OwnerWorkspace }))));
 
 export default function App(){return <AppErrorBoundary><Suspense fallback={<Loading text="Loading StudioFlow…" />}><CustomerReferralBridge/><Application /></Suspense></AppErrorBoundary>;}
 function readRecoveryFlag(){try{return sessionStorage.getItem('studioflow_recovery')==='1';}catch{return false;}}
