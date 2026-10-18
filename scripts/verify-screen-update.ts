@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';import {recoverScreen,loadScreen,isChunkLoadError,installScreenRecovery} from '../src/lib/loadScreen';
+const store=new Map<string,string>();const urls:string[]=[];let reloads=0,listener:any;
+(globalThis as any).sessionStorage={getItem:(k:string)=>store.get(k)||null,setItem:(k:string,v:string)=>store.set(k,v)};
+Object.defineProperty(globalThis,'navigator',{value:{onLine:true},configurable:true});
+(globalThis as any).window={location:{href:'https://nexora.example/?site=artbyuma&module=4&ref=INVITE#services-section',replace:(url:string)=>urls.push(url),reload:()=>reloads++},addEventListener:(_:string,callback:any)=>listener=callback};
+assert.equal(recoverScreen(),true);const next=new URL(urls[0]);assert.equal(next.searchParams.get('site'),'artbyuma');assert.equal(next.searchParams.get('module'),'4');assert.equal(next.searchParams.get('ref'),'INVITE');assert.equal(next.hash,'#services-section');assert.ok(next.searchParams.get('__sf_update'));assert.ok(next.searchParams.get('__sf_reload'));assert.equal(recoverScreen(),false);assert.equal(urls.length,1);assert.equal(recoverScreen(true),true);assert.equal(urls.length,2);
+assert.equal(isChunkLoadError({message:'Failed to fetch dynamically imported module'}),true);await assert.rejects(loadScreen(async()=>{throw new Error('Application exception')}),/Application exception/);assert.equal(urls.length,2);
+store.clear();(globalThis as any).navigator.onLine=false;assert.equal(recoverScreen(),false);assert.equal(store.size,0);(globalThis as any).navigator.onLine=true;
+installScreenRecovery();let prevented=false;listener({preventDefault(){prevented=true}});assert.equal(prevented,true);assert.equal(urls.length,3);prevented=false;listener({preventDefault(){prevented=true}});assert.equal(prevented,false);
+(globalThis as any).sessionStorage={getItem(){throw new Error('Blocked storage')},setItem(){throw new Error('Blocked storage')}};assert.equal(recoverScreen(),false);assert.equal(recoverScreen(true),true);assert.equal(reloads,1);
+console.log('PASS: fresh-document recovery preserves site, builder step, referral and hash; one auto reload per build, manual escape, offline guard, plain-object errors and preload hook. No account/storage clearing or API calls.');

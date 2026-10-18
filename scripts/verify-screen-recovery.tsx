@@ -16,7 +16,7 @@ assert.throws(()=>renderToStaticMarkup(<OwnerWorkspace profile={raw.profile as a
 const d=normalizeWorkspace(raw,{full_name:'Saved Owner'});
 assert.equal(d.profile.businessName,'Saved Salon');assert.equal(d.profile.ownerName,'Saved Owner');assert.equal(d.stylists[0].name,'Saved Stylist');assert.deepEqual(d.stylists[0].specialties,[]);
 for(const sample of [d,normalizeWorkspace({}),normalizeWorkspace({profile:{businessName:'Existing'},extras:{whiteLabel:{platformName:'My Brand'}},loyaltyConfig:{rewards:[]}})]) {
- assert.ok(renderToStaticMarkup(<OwnerWorkspace {...sample} appointments={[]} templates={[]} setProfile={noop} setServices={noop} setStylists={noop} setExtras={noop} onPublish={async()=>{}} sessionEmail="" published={null} onOpenPreview={noop} onOpenDashboard={noop} onOpenWizard={noop}/>).includes('Owner Workspace'));
+ assert.ok(renderToStaticMarkup(<OwnerWorkspace {...sample} appointments={[]} templates={[]} setProfile={noop} setServices={noop} setStylists={noop} setExtras={noop} onPublish={async()=>{}} sessionEmail="" published={null} onOpenPreview={noop} onOpenDashboard={noop} onOpenWizard={noop}/>).includes('Website editing steps'));
  renderToStaticMarkup(<SaaSDashboard {...sample} appointments={[]} setProfile={noop} setServices={noop} setStylists={noop} setAppointments={noop}/>);
  renderToStaticMarkup(<SalonWebsitePreview {...sample} gallery={sample.extras.gallery} readOnly onAddAppointment={async()=>{throw new Error('Demo');}}/>);
 }
