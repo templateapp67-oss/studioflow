@@ -127,6 +127,10 @@ export interface PromoCampaign {
   aspectRatio: string; aesthetic: string; imageUrl: string; customPrompt: string;
 }
 export interface SalonProfile {
+  bookingAddOnServiceIds?:string[];
+  comparisonPhotos?:import('./lib/conversionFeatures').ComparisonPhoto[];
+  reviewSource?:import('./lib/conversionFeatures').ReviewSource;
+  defaultWebsiteLanguage?:import('./lib/conversionFeatures').WebsiteLanguage;
   photoGalleryInitialized?:boolean;
   photoGalleryType?:BusinessTypeId;
   photoGallery?:import('./lib/photoGallery').SalonGalleryPhoto[];
@@ -229,6 +233,8 @@ export interface Stylist {
 }
 
 export interface Appointment {
+  addOnIds?:string[];
+  requestId?:string;
   id: string;
   clientName: string;
   clientPhone: string;

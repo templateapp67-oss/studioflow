@@ -1,3 +1,5 @@
+import {useWebsiteLanguage} from './WebsiteLanguage';
+import type {DirectBookingSlot} from './SpecialistWeek';
 import { paymentRequest, payBookingDeposit, reconcileBookingPayment } from '../lib/platformPayments';
 import { supabase } from '../lib/supabase';
 import {getContrastTextColor} from '../themeAccents';
@@ -39,6 +41,7 @@ export interface BookingModalProps {
   stylists?: Stylist[];
   initialService?: SalonService;
   initialStylist?: Stylist;
+  initialSlot?: DirectBookingSlot;
   onAddAppointment?: (appointment: Appointment) => void | Promise<Appointment>;
   themeAccentHex?: string;
   onShowToast?: (toast: {
@@ -93,6 +96,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   stylists: inputStylists,
   initialService: inputInitialService,
   initialStylist: inputInitialStylist,
+  initialSlot,
   onAddAppointment: inputOnAddAppointment,
   themeAccentHex = '#0f172a',
   onShowToast,
@@ -105,6 +109,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   currency: aliasCurrency,
   onConfirmBooking: aliasOnConfirmBooking
 }) => {
+  const {t}=useWebsiteLanguage();
+  const [addOnIds,setAddOnIds]=useState<string[]>([]);
+  const [serverTotal,setServerTotal]=useState<number|null>(null);
+  const bookingRequest=useRef(crypto.randomUUID());
   const bookingAccent=/^#[0-9a-f]{6}$/i.test(themeAccentHex)?themeAccentHex:'#0f172a';
   const bookingAccentText=getContrastTextColor(bookingAccent);
   const actionStyle={backgroundColor:bookingAccent,color:bookingAccentText,border:'1px solid #94a3b8'};
@@ -174,8 +182,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       setSelectedStylist(current=>current.id===ANY_SPECIALIST.id||data.specialistIds.includes(current.id)?current:ANY_SPECIALIST);
     });return()=>{active=false;};
   },[isOpen,specialistKey,specialistRetry]);
-  const chooseService=(service:SalonService)=>{setSelectedService(service);if(service.id!==selectedService.id)setSelectedStylist(ANY_SPECIALIST);};
+  const chooseService=(service:SalonService)=>{setAddOnIds([]);setServerTotal(null);setSelectedService(service);if(service.id!==selectedService.id)setSelectedStylist(ANY_SPECIALIST);};
 
+  const extras=services.filter(s=>(profile.bookingAddOnServiceIds||[]).includes(s.id)&&s.id!==selectedService.id);
+  const selectedExtras=extras.filter(s=>addOnIds.includes(s.id));
+  const bookingServiceIds=[selectedService.id,...selectedExtras.map(s=>s.id)];
+  const bundleKey=JSON.stringify(bookingServiceIds);
+  const totalPrice=serverTotal??Math.round((selectedService.price+selectedExtras.reduce((sum,s)=>sum+s.price,0))*100)/100;
   // Step 2: Date & Time Slot
   const todayStr = new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
   const tomorrowStr=new Date(Date.parse(`${todayStr}T12:00:00Z`)+86400000).toISOString().slice(0,10);
@@ -187,9 +200,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [slotRetry,setSlotRetry]=useState(0);
   useEffect(()=>{
     if(!isOpen)return;let active=true;setSlotsLoading(true);setSlotsError('');setBookingTime('');
-    supabase.rpc('studioflow_available_slots',{p_slug:profile.subdomain,p_service_id:selectedService.id,p_date:bookingDate,p_stylist_id:selectedStylist.id}).then(({data,error})=>{if(!active)return;setSlotsLoading(false);if(error){setSlotsError(error.message);setAvailableSlots([]);}else{setAvailableSlots(data||[]);}});
+    const slotsRequest=selectedExtras.length?supabase.rpc('studioflow_android_slots',{p_slug:profile.subdomain,p_services:bookingServiceIds,p_date:bookingDate,p_stylist:selectedStylist.id===ANY_SPECIALIST.id?'any':selectedStylist.id}):supabase.rpc('studioflow_available_slots',{p_slug:profile.subdomain,p_service_id:selectedService.id,p_date:bookingDate,p_stylist_id:selectedStylist.id});
+    slotsRequest.then(({data,error})=>{if(!active)return;setSlotsLoading(false);if(error){setSlotsError(error.message);setAvailableSlots([]);}else{setAvailableSlots((data||[]).map((s:any)=>({...s,available:s.available!==false})));if(initialSlot&&selectedService.id===initialService?.id&&bookingDate===initialSlot.date&&selectedStylist.id===initialSlot.stylistId&&(data||[]).some((s:any)=>s.time===initialSlot.time&&s.available!==false))setBookingTime(initialSlot.time);}});
     return()=>{active=false;};
-  },[isOpen,profile.subdomain,selectedService.id,selectedStylist.id,bookingDate,slotRetry]);
+  },[isOpen,profile.subdomain,selectedService.id,selectedStylist.id,bookingDate,slotRetry,bundleKey]);
 
 
   // Step 3: Guest Information
@@ -238,6 +252,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   useEffect(()=>{if(isOpen&&initialService)setSelectedService(initialService);},[isOpen,initialService?.id]);
   useEffect(()=>{if(isOpen&&initialStylist)setSelectedStylist(initialStylist);},[isOpen,initialStylist?.id]);
 
+  useEffect(()=>{if(isOpen){setAddOnIds([]);setServerTotal(null);reservedBooking.current=null;reservedRequest.current='';bookingRequest.current=crypto.randomUUID();if(initialSlot){setBookingDate(initialSlot.date);setCurrentStep('datetime');}else setCurrentStep('service');}},[isOpen,initialSlot?.date,initialSlot?.time]);
   // Clean and validate Indian 10-digit mobile number
   const sanitizeIndianPhone = (raw: string) => {
     const digits = raw.replace(/\D/g, '');
@@ -287,8 +302,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   };
 
   // Platform deposit: 25%, rounded up to the nearest paisa
-  const advanceTokenAmount = Math.ceil(selectedService.price * 100 * 0.25) / 100;
-  const remainingAmount = selectedService.price - (paymentMethod === 'pay_advance_token' ? advanceTokenAmount : 0);
+  const advanceTokenAmount = Math.ceil(totalPrice * 100 * 0.25) / 100;
+  const remainingAmount = totalPrice - (paymentMethod === 'pay_advance_token' ? advanceTokenAmount : 0);
 
   // Confirm booking & generate reference
   const handleFinalSubmitBooking = async () => {
@@ -315,7 +330,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       clientEmail: guestEmail.trim() || `${cleanPhone}@guest.in`,
       serviceId: selectedService.id,
       serviceName: selectedService.name,
-      servicePrice: selectedService.price,
+      servicePrice: totalPrice,
+      addOnIds:selectedExtras.map(s=>s.id),requestId:bookingRequest.current,
       stylistId: selectedStylist.id,
       stylistName: selectedStylist.name,
       date: bookingDate,
@@ -327,11 +343,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     };
 
     if (!gatewayReady) throw new Error(gatewayError || 'Payment gateway is loading. Please try again.');
-    const requestKey=JSON.stringify([selectedService.id,selectedStylist.id,bookingDate,bookingTime,guestName.trim(),cleanPhone]);
+    const requestKey=JSON.stringify([bundleKey,selectedStylist.id,bookingDate,bookingTime,guestName.trim(),cleanPhone]);
     if(reservedBooking.current&&reservedRequest.current!==requestKey)throw new Error('A booking is already reserved. Finish its payment or close this form and choose a new slot.');
-    if(!reservedBooking.current){const reservation=await onAddAppointment(newApt);if(!reservation)throw new Error('Booking was not saved. Please retry.');reservedBooking.current=reservation;reservedRequest.current=requestKey;setBookingRef(reservation.id);}
+    if(!reservedBooking.current){const reservation=await onAddAppointment(newApt);if(!reservation)throw new Error('Booking was not saved. Please retry.');reservedBooking.current=reservation;reservedRequest.current=requestKey;setServerTotal(reservation.servicePrice);setBookingRef(reservation.id);}
     const saved=await payBookingDeposit(reservedBooking.current);
-    setBookingRef(saved.id);setServerStatus(saved.status);setPaidAmount(saved.amountPaid);setSelectedService(prev=>({...prev,price:saved.servicePrice??prev.price,name:saved.serviceName||prev.name}));setSelectedStylist(prev=>({...prev,name:saved.stylistName||prev.name}));
+    setBookingRef(saved.id);setServerStatus(saved.status);setPaidAmount(saved.amountPaid);setServerTotal(saved.servicePrice??totalPrice);setSelectedStylist(prev=>({...prev,name:saved.stylistName||prev.name}));
     setCurrentStep('confirmed');
 
     if (onShowToast) {
@@ -343,7 +359,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         stylistName: newApt.stylistName,
         dateTime: `${bookingDate} at ${bookingTime}`,
         refCode: refNum,
-        price: selectedService.price
+        price: totalPrice
       });
     }
     } catch (error) { setSubmitError(error instanceof Error ? error.message : 'Booking could not be saved. Try another slot.'); }
@@ -363,11 +379,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     const msg = `Namaste ${guestName}! Your booking request with ${profile.businessName} is ${serverStatus || 'saved'}!\n\n` +
       `📅 Date: ${bookingDate}\n` +
       `⏰ Time: ${bookingTime} IST\n` +
-      `💇 Service: ${selectedService.name} (₹${selectedService.price})\n` +
+      `💇 Service: ${selectedService.name} (₹${totalPrice})\n` +
       `👤 Specialist: ${selectedStylist.name}\n` +
       `📍 Branch: ${profile.businessName}, ${profile.address}, ${profile.city}\n` +
       `🔖 Reference: ${bookingRef}\n` +
-      `💳 Payment: ${`Paid ₹${paidAmount.toLocaleString('en-IN')} · Balance ₹${(selectedService.price-paidAmount).toLocaleString('en-IN')}`}\n\n` +
+      `💳 Payment: ${`Paid ₹${paidAmount.toLocaleString('en-IN')} · Balance ₹${(totalPrice-paidAmount).toLocaleString('en-IN')}`}\n\n` +
       `Thank you for booking with us!`;
 
     const whatsappUrl = `https://api.whatsapp.com/send?phone=91${cleanPhone}&text=${encodeURIComponent(msg)}`;
@@ -379,7 +395,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     const formattedPhone = (profile.whatsapp || '').replace(/\D/g, '');
     const msg = `Namaste ${profile.businessName}! 🌟\n\n` +
       `I would like to book a quick appointment with these details:\n` +
-      `💇‍♂️ Service: ${selectedService.name} (₹${selectedService.price.toLocaleString('en-IN')})\n` +
+      `💇‍♂️ Service: ${selectedService.name} (₹${totalPrice.toLocaleString('en-IN')})\n` +
       `📅 Date: ${bookingDate}\n` +
       `⏰ Time: ${bookingTime} IST\n` +
       `👤 Specialist: ${selectedStylist.name}\n\n` +
@@ -391,7 +407,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   // Reset modal state to start fresh
   const handleReset = () => {
-    reservedBooking.current=null;reservedRequest.current='';setPaidAmount(0);setSubmitError('');
+    setAddOnIds([]);setServerTotal(null);reservedBooking.current=null;reservedRequest.current='';setPaidAmount(0);setSubmitError('');
     setCurrentStep('service');
 
     setBookingRef('');
@@ -421,7 +437,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-bold text-base text-slate-900 leading-tight">
-                  {currentStep === 'confirmed' ? 'Appointment Saved' : 'Book an Appointment'}
+                  {currentStep === 'confirmed' ? 'Appointment Saved' : t('Book an Appointment')}
                 </h3>
                 {currentStep !== 'confirmed' && (
                   <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">
@@ -863,6 +879,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               </motion.form>
           )}
 
+          {currentStep === 'payment' && extras.length>0&&<section className="sf-booking-addons"><h3>{t('Add-on services')}</h3><p>Optional extras · Prices and time are added to your booking. Adding/removing an extra returns you to slot selection.</p>{extras.map(extra=><label key={extra.id}><input type="checkbox" checked={addOnIds.includes(extra.id)} disabled={!!reservedBooking.current||isSubmitting} onChange={e=>{const checked=e.target.checked;setAddOnIds(ids=>checked?[...ids,extra.id].slice(0,9):ids.filter(id=>id!==extra.id));setServerTotal(null);setCurrentStep('datetime');}}/>{extra.name} · +₹{extra.price} · {extra.durationMinutes} min</label>)}<strong>Service + extras: ₹{totalPrice.toLocaleString('en-IN')} · {selectedService.durationMinutes+selectedExtras.reduce((sum,s)=>sum+s.durationMinutes,0)} min</strong></section>}
           {currentStep === 'payment' && (
             <motion.div
               initial={{ opacity: 0, x: 10 }}
@@ -892,7 +909,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   <div className="text-right">
                     <span className="text-slate-400 font-mono text-[10px] uppercase">Total Fee</span>
                     <div className="font-bold text-base text-slate-900 font-mono">
-                      ₹{selectedService.price.toLocaleString('en-IN')}
+                      ₹{totalPrice.toLocaleString('en-IN')}
                     </div>
                   </div>
                 </div>
@@ -909,7 +926,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </div>
               </div>
 
-              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-sm"><strong>Secure platform checkout · 25% advance</strong><p className="mt-2">Pay ₹{advanceTokenAmount.toLocaleString('en-IN')} now via Razorpay. Balance ₹{(selectedService.price-advanceTokenAmount).toLocaleString('en-IN')} is due at the salon.</p><p className="mt-2 text-xs">Your appointment confirms after the platform verifies payment. Unpaid reservations expire after 15 minutes.</p></div>
+              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-sm"><strong>Secure platform checkout · 25% advance</strong><p className="mt-2">Pay ₹{advanceTokenAmount.toLocaleString('en-IN')} now via Razorpay. Balance ₹{(totalPrice-advanceTokenAmount).toLocaleString('en-IN')} is due at the salon.</p><p className="mt-2 text-xs">Your appointment confirms after the platform verifies payment. Unpaid reservations expire after 15 minutes.</p></div>
               {gatewayError&&<p role="alert" className="p-3 rounded-xl bg-amber-50 text-amber-900 text-sm">{gatewayError}</p>}
 
               {submitError && <p role="alert" className="rounded-xl bg-red-50 p-3 text-red-700 text-sm">{submitError}</p>}
@@ -927,7 +944,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               transition={{ duration: 0.3 }}
               className="flex flex-col items-center text-center gap-4 py-3"
             >
-              <p className="p-3 bg-amber-50 text-amber-900 rounded-xl text-sm">{serverStatus === 'confirmed' ? `Booking confirmed. Verified advance: ₹${paidAmount.toLocaleString('en-IN')}. Balance due at salon: ₹${(selectedService.price-paidAmount).toLocaleString('en-IN')}.` : 'Payment verification is pending. Check payment status before retrying.'}</p>
+              <p className="p-3 bg-amber-50 text-amber-900 rounded-xl text-sm">{serverStatus === 'confirmed' ? `Booking confirmed. Verified advance: ₹${paidAmount.toLocaleString('en-IN')}. Balance due at salon: ₹${(totalPrice-paidAmount).toLocaleString('en-IN')}.` : 'Payment verification is pending. Check payment status before retrying.'}</p>
               {/* Animated Celebratory Checkmark */}
               <div className="relative flex items-center justify-center">
                 <motion.div
@@ -993,7 +1010,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 <div className="flex justify-between items-center text-slate-700 font-sans">
                   <span>Payment Mode:</span>
                   <strong className="text-emerald-700">
-                    {`Paid ₹${paidAmount.toLocaleString('en-IN')} · Balance ₹${(selectedService.price-paidAmount).toLocaleString('en-IN')}`}
+                    {`Paid ₹${paidAmount.toLocaleString('en-IN')} · Balance ₹${(totalPrice-paidAmount).toLocaleString('en-IN')}`}
                   </strong>
                 </div>
 
