@@ -28,3 +28,11 @@ export function templateStaffAssignments(selected:string[],services:SalonService
  const valid=services.filter(s=>selected.includes(s.id)||selected.includes(s.name)).map(s=>s.id);
  return valid.length?valid:services.map(s=>s.id);
 }
+
+/** Explicit owner action only; preserve existing menu entries and their prices. */
+export function addStaffCategoryMenu(services:SalonService[],type:BusinessTypeId):SalonService[]{
+ const eligible=staffBookingServices(services,type),ids=new Set(services.map(s=>s.id));
+ const missing=CATEGORY_TEMPLATES[type].services.filter(s=>!eligible.some(old=>normalize(old.name)===normalize(s.name)&&normalize(old.category)===normalize(s.category)));
+ const added=missing.slice(0,Math.max(0,500-services.length)).map(s=>({...s,id:ids.has(s.id)?`staff-menu-${type}-${crypto.randomUUID()}`:s.id,origin:'template' as const}));
+ return [...services,...added];
+}

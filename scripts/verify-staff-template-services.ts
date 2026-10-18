@@ -1,4 +1,4 @@
-import assert from 'node:assert/strict';import {CATEGORY_TEMPLATES} from '../src/categoryTemplates';import {staffBookingServices,templateStaffAssignments} from '../src/lib/staffBookingServices';
+import assert from 'node:assert/strict';import {CATEGORY_TEMPLATES} from '../src/categoryTemplates';import {staffBookingServices,templateStaffAssignments,addStaffCategoryMenu} from '../src/lib/staffBookingServices';
 const templates=Object.values(CATEGORY_TEMPLATES),mixed=templates.flatMap(t=>t.services);
 for(const template of templates){
  const eligible=staffBookingServices(mixed,template.id),own=new Set(template.services.map(s=>s.id));
@@ -13,3 +13,5 @@ for(const template of templates){
  assert.equal(staffBookingServices([first,{...first,id:'duplicate'}],template.id).length,1,'identical services deduplicated');
 }
 console.log('PASS: all 14 templates isolate actual services/packages, preserve relevant custom services, remove old cross-template assignments and exclude renamed foreign IDs/copied names; empty selection expands only eligible IDs.');
+
+const before=CATEGORY_TEMPLATES.nail_studio.services;const added=addStaffCategoryMenu(before,'hair_salon');assert.deepEqual(added.slice(0,before.length),before);assert.ok(staffBookingServices(added,'hair_salon').length>=5);assert.deepEqual(addStaffCategoryMenu(added,'hair_salon'),added);console.log('PASS: explicit add-category menu action preserves existing services and prices, adds bookable catalogue IDs, and is idempotent.');

@@ -378,7 +378,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
 
         {/* TAB CONTENT: TEAM MANAGEMENT */}
         {activeTab === 'team' && (
-          <TeamManagement
+          <TeamManagement setServices={setServices}
             businessType={profile.businessType}
             stylists={stylists}
             setStylists={setStylists}

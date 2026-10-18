@@ -30,6 +30,7 @@ interface AddStaffModalProps {
   primaryAccentColor?: string; // e.g. '#900C3F' or '#800020'
   services?: SalonService[];
   businessType?:BusinessTypeId;
+  onAddCategoryServices?:(category:BusinessTypeId)=>void;
 }
 
 // 6 Curated circular avatar presets (40x40px)
@@ -78,6 +79,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
   onAddStaff,
   primaryAccentColor = '#900C3F',
   services = [],
+  onAddCategoryServices,
   businessType='hair_salon' as BusinessTypeId
 }) => {
   const [staffCategory,setStaffCategory]=useState<BusinessTypeId>(businessType);
@@ -458,7 +460,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
 
             <p className="text-xs text-gray-500 mb-2">Only {templateName} services are listed. No selection assigns all services shown below.</p>
             <div className="flex flex-wrap gap-2.5">
-              {!bookingServices.length&&<p className="text-xs text-amber-800">Add services for this template in Step 5 first.</p>}{bookingServices.map((srv) => {
+              {!bookingServices.length&&<p className="text-xs text-amber-800">No services for this category in your menu. Add them below, then review prices and duration in Step 5.</p>}{!bookingServices.length&&onAddCategoryServices&&<button type="button" className="secondary-action" onClick={()=>onAddCategoryServices(staffCategory)}>Add {templateName} services to menu</button>}{bookingServices.map((srv) => {
                 const isSelected = selectedServices.includes(srv.id);
                 return (
                   <button

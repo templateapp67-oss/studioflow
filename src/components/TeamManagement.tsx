@@ -1,6 +1,6 @@
 import {STAFF_SKILLS,categorySkills} from '../lib/staffSkills';
 import {STAFF_TITLES} from '../lib/staffProfile';
-import {staffBookingServices,templateStaffAssignments} from '../lib/staffBookingServices';
+import {staffBookingServices,templateStaffAssignments,addStaffCategoryMenu} from '../lib/staffBookingServices';
 import {CATEGORY_TEMPLATES} from '../categoryTemplates';
 import {StaffPortfolioEditor} from './StaffPortfolioEditor';
 import type {StaffWorkPhoto} from '../types';
@@ -39,6 +39,7 @@ interface TeamManagementProps {
   setStylists: React.Dispatch<React.SetStateAction<Stylist[]>>;
   primaryAccentColor: string;
   services?: SalonService[];
+  setServices?:React.Dispatch<React.SetStateAction<SalonService[]>>;
   businessType?:BusinessTypeId;
   onNavigateToPreview?: () => void;
 }
@@ -98,6 +99,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
   setStylists,
   primaryAccentColor = '#900C3F',
   services = [],
+  setServices,
   businessType='hair_salon' as BusinessTypeId,
   onNavigateToPreview
 }) => {
@@ -589,6 +591,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
         onAddStaff={handleSaveNewStaffMember}
         primaryAccentColor={primaryAccentColor || '#900C3F'}
         services={services}
+        onAddCategoryServices={setServices?(category)=>setServices(old=>addStaffCategoryMenu(old,category)):undefined}
       />}
 
       {/* EDIT STYLIST MODAL */}
@@ -663,7 +666,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
               <fieldset className="border border-gray-200 rounded-xl p-3">
                 <legend className="text-xs font-bold">Assigned booking services</legend>
                 <p className="text-xs text-gray-500 mb-2">Only {templateName} services are listed. No selection assigns all services shown below. Saving removes assignments from other templates.</p>
-                {!bookingServices.length&&<p className="text-xs text-amber-800">No services for this template. Add services in Step 5 first.</p>}{bookingServices.map(service => <label key={service.id} className="flex items-center gap-2 text-xs py-1.5">
+                {!bookingServices.length&&<p className="text-xs text-amber-800">No services for this category in your menu. Add them below, then review prices and duration in Step 5.</p>}{!bookingServices.length&&setServices&&<button type="button" className="secondary-action my-2" onClick={()=>setServices(old=>addStaffCategoryMenu(old,formData.businessType))}>Add {templateName} services to menu</button>}{bookingServices.map(service => <label key={service.id} className="flex items-center gap-2 text-xs py-1.5">
                   <input type="checkbox" checked={formData.assignedServices.includes(service.id)} onChange={e => setFormData({...formData, assignedServices: e.target.checked ? [...formData.assignedServices, service.id] : formData.assignedServices.filter(id => id !== service.id)})}/>
                   {service.name}
                 </label>)}
