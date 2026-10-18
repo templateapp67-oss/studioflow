@@ -21,6 +21,7 @@ try {
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
+import {AppUpdateManager} from './components/AppUpdateManager';
 import {installScreenRecovery} from './lib/loadScreen';
 installScreenRecovery();
 import {registerCustomerPwa} from './lib/customerPwa';
@@ -29,6 +30,7 @@ import './index.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
+    <AppUpdateManager/>
     <App />
   </StrictMode>,
 );

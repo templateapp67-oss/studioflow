@@ -1,0 +1,18 @@
+import React from 'react';import {act,create} from 'react-test-renderer';import assert from 'node:assert/strict';import {AppUpdateManager} from '../src/components/AppUpdateManager';import {applyAppVersion,latestAppVersion,updateReadiness} from '../src/lib/appUpdates';
+(globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;
+const listeners=new Map<string,any>();let blocking=true,fetches:any[]=[],updates:string[]=[];
+(globalThis as any).document={visibilityState:'visible',activeElement:{matches:()=>false},querySelector:()=>blocking?{}:null,addEventListener:(type:string,fn:any)=>listeners.set(type,fn),removeEventListener:(type:string)=>listeners.delete(type)};
+Object.defineProperty(globalThis,'navigator',{value:{onLine:true},configurable:true});
+(globalThis as any).window={location:{href:'https://nexora.example/?app=1&site=artbyuma#book',replace:(url:string)=>updates.push(url)},addEventListener(){},removeEventListener(){}};
+const memory=new Map<string,string>();(globalThis as any).sessionStorage={getItem:(k:string)=>memory.get(k)||null,setItem:(k:string,v:string)=>memory.set(k,v)};
+const remote='22222222-2222-4222-8222-222222222222',current='11111111-1111-4111-8111-111111111111';
+globalThis.fetch=(async(url:any,options:any)=>{fetches.push({url,options});return new Response(JSON.stringify({version:remote}),{headers:{'Content-Type':'application/json'}})}) as any;
+assert.equal(await latestAppVersion(),remote);assert.equal(fetches[0].options.cache,'no-store');assert.equal(fetches[0].options.credentials,'omit');
+let ui:any;const reload=(v:string)=>{updates.push(v);return true};const button=(label:string)=>ui.root.findAllByType('button').find((b:any)=>b.children.join('')===label);
+await act(async()=>{ui=create(<AppUpdateManager currentBuild={current} autoAfterMs={25} reload={reload}/>)});assert.equal(button('Update now').props.disabled,true);await act(async()=>{await new Promise(r=>setTimeout(r,600))});assert.equal(updates.length,0,'Open dialog/payment must block automatic update');
+blocking=false;const field={tagName:'INPUT',value:'QA draft',isConnected:true,matches:()=>true,closest:()=>null};await act(async()=>listeners.get('input')({target:field}));await act(async()=>{await new Promise(r=>setTimeout(r,600))});assert.equal(updates.length,0,'Unsaved form must not automatically refresh');assert.equal(button('Update now').props.disabled,false);await act(async()=>button('Update now').props.onClick());assert.deepEqual(updates,[remote]);await act(async()=>ui.unmount());
+updates=[];await act(async()=>{ui=create(<AppUpdateManager currentBuild={current} autoAfterMs={25} reload={reload}/>)});await act(async()=>{await new Promise(r=>setTimeout(r,650))});assert.deepEqual(updates,[remote],'Safe idle page automatically applies the update once');await act(async()=>ui.unmount());
+updates=[];await act(async()=>{ui=create(<AppUpdateManager currentBuild={current} autoAfterMs={25} reload={reload}/>)});await act(async()=>button('5 min later').props.onClick());await act(async()=>{await new Promise(r=>setTimeout(r,600))});assert.equal(updates.length,0);assert.equal(ui.toJSON(),null);await act(async()=>ui.unmount());
+applyAppVersion(remote);const url=new URL(updates[0]);assert.equal(url.searchParams.get('app'),'1');assert.equal(url.searchParams.get('site'),'artbyuma');assert.equal(url.hash,'#book');assert.equal(url.searchParams.get('__sf_update'),remote);
+blocking=true;assert.equal(updateReadiness(new Set()).safe,false);(globalThis as any).navigator.onLine=false;
+console.log('PASS: no-cache release detection, guarded booking/payment/open forms, unsaved-edit protection, one safe auto refresh, manual action, 5-minute defer, and customer-app salon/hash preservation. No real navigation, payment or auth changes.');

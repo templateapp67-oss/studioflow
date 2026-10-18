@@ -6,9 +6,10 @@ import path from 'path';
 import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
+  const screenBuild=randomUUID();
   return {
-    plugins: [react(), tailwindcss(),retainScreenAssets()],
-    define:{'import.meta.env.VITE_SCREEN_BUILD':JSON.stringify(randomUUID())},
+    plugins: [react(), tailwindcss(),retainScreenAssets(),{name:'nexora-app-version',generateBundle(){this.emitFile({type:'asset',fileName:'app-version.json',source:JSON.stringify({version:screenBuild})})}}],
+    define:{'import.meta.env.VITE_SCREEN_BUILD':JSON.stringify(screenBuild)},
     build:{rollupOptions:{output:{inlineDynamicImports:true}}},
     resolve: {
       alias: {
