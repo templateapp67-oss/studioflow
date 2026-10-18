@@ -1,3 +1,4 @@
+import {readySalonPolicies} from './salonPolicies';
 export type Extras = {
   gallery: string[];
   cancellationWindow: number;
@@ -8,11 +9,7 @@ export type Extras = {
 
 export const DEFAULT_EXTRAS: Extras = {
   gallery: [], cancellationWindow: 24, bookingLeadHours: 2,
-  policies: {
-    cancellation: 'Free cancellation up to 24 hours before the appointment.',
-    lateArrival: 'Appointments may be shortened after a 15-minute delay.',
-    refund: 'Deposits are transferable once and are otherwise non-refundable.',
-  },
+  policies: readySalonPolicies(24),
   whiteLabel: { platformName: 'StudioFlow', supportEmail: 'support@yourbrand.com', customDomain: '', poweredBy: false, faviconUrl: '' },
 };
 

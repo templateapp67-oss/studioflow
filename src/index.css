@@ -1026,3 +1026,18 @@
 .sf-booking-addons{padding:16px;margin:12px;border:1px solid #f3c8df;border-radius:12px;background:#fff5fa;color:#172033}.sf-booking-addons h3{font-weight:750}.sf-booking-addons p{font-size:12px;line-height:1.5;margin:8px 0}.sf-booking-addons label{display:flex;align-items:center;gap:10px;margin:10px 0;font-size:13px}.sf-booking-addons input{width:18px;height:18px;flex-shrink:0;accent-color:#be185d}.sf-booking-addons strong{font-size:13px}
 @media(max-width:900px){.sf-week-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.sf-source-review-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:600px){.sf-week-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.sf-comparison-grid,.conversion-choice-grid,.sf-source-review-grid{grid-template-columns:1fr}.sf-specialist-week,.sf-review-source,.conversion-editor{padding:14px}.sf-language-switch select{max-width:85px;font-size:11px}.sf-header-actions{gap:7px}.sf-week-grid article>div{max-height:170px}}
+
+/* Detailed Hinglish policy copy with a readable single-column flow on phones. */
+.salon-policy-editor h3{font-size:1rem;font-weight:750;line-height:1.5;color:#172033}
+.salon-policy-editor p,.salon-policy-editor li{font-size:.88rem;line-height:1.75}
+.salon-policy-guide{margin:1.2rem 0;padding:1.1rem;background:#fff5fa;border:1px solid #f3c8df;border-radius:1rem;color:#334155}
+.salon-policy-guide ol{list-style:decimal;padding-left:1.3rem;margin:.65rem 0}.salon-policy-guide li+li{margin-top:.4rem}
+.salon-policy-window{display:block;margin:1.3rem 0;max-width:35rem}.salon-policy-window small,.salon-policy-edit-card small{display:block;color:#64748b;font-size:.76rem;line-height:1.6;margin-top:.5rem}
+.salon-policy-edit-card{border:1px solid #e2e8f0;border-radius:1rem;padding:1.2rem;margin:1rem 0;background:white}
+.salon-policy-edit-card label{display:block;margin-top:1rem}.salon-policy-edit-card textarea{font-family:inherit;line-height:1.75;min-height:18rem;resize:vertical}
+.salon-policy-edit-card details{margin-top:1rem}.salon-policy-edit-card summary{cursor:pointer;color:#831843;font-size:.85rem;font-weight:700}.salon-policy-copy{white-space:pre-wrap;padding:1rem;background:#f8fafc;margin:.8rem 0;border-radius:.75rem}
+.salon-policy-notice{padding:.85rem;background:#ecfdf5;color:#065f46;border-radius:.75rem;margin-top:1rem}
+.sf-policy-intro{margin:14px 0;color:var(--sf-muted,#475569);font-size:14px;line-height:1.8}
+.sf-policy-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.sf-policy-grid article{padding:22px;border:1px solid var(--sf-line,#e2e8f0);border-radius:16px;background:#fff;color:#172033;min-width:0}.sf-policy-grid h3{font-size:18px;line-height:1.5;font-weight:750}.sf-policy-number{font-size:11px!important;font-weight:800;letter-spacing:.08em;color:#831843;margin-bottom:8px!important}.sf-policy-summary{font-size:13px;line-height:1.7;color:#64748b;margin:10px 0!important}.sf-policy-body{white-space:pre-wrap;font-size:14px;line-height:1.9;overflow-wrap:anywhere}.sf-policy-note{margin:18px 0!important;font-size:13px;line-height:1.8;color:var(--sf-muted,#475569)}
+@media(max-width:1050px){.sf-policy-grid{grid-template-columns:1fr}.sf-policy-grid article{padding:20px}.sf-policy-body{max-width:75ch}}
+@media(max-width:600px){.salon-policy-edit-card{padding:1rem}.salon-policy-edit-card textarea{min-height:23rem}.sf-policy-grid article{padding:16px}.sf-policy-grid h3{font-size:16px}.sf-policy-body{font-size:13px}}
