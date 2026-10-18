@@ -1005,3 +1005,9 @@
 .content-editor-jumps{display:flex;gap:.5rem;flex-wrap:wrap;margin:.8rem 0 1.3rem}
 .content-editor-jumps a{padding:.55rem .75rem;color:#831843;background:#fdf2f8;border:1px solid #f3c8df;border-radius:.6rem;font-size:.8rem;font-weight:700}
 .content-editor-anchor{scroll-margin-top:17rem}
+@media(max-width:720px){
+ .owner-guided-shell{padding-top:8rem}
+ .owner-guided-shell .owner-sidebar{top:8rem}
+ .owner-guided-shell .workspace-topbar{top:12.9rem}
+ .owner-guided-shell .owner-step-intro h1,.owner-guided-shell .content-editor-anchor{scroll-margin-top:21rem}
+}
