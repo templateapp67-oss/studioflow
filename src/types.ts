@@ -216,6 +216,7 @@ export interface DaySchedule {
 
 export interface StaffWorkPhoto {id:string;imageUrl:string;caption:string;serviceId?:string;consented:boolean;}
 export interface Stylist {
+  businessType?:BusinessTypeId;
   workGallery?:StaffWorkPhoto[];
   expertiseServiceIds?:string[];
   experienceYears?:number;

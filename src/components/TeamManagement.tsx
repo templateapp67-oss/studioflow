@@ -1,3 +1,5 @@
+import {STAFF_SKILLS,categorySkills} from '../lib/staffSkills';
+import {STAFF_TITLES} from '../lib/staffProfile';
 import {staffBookingServices,templateStaffAssignments} from '../lib/staffBookingServices';
 import {CATEGORY_TEMPLATES} from '../categoryTemplates';
 import {StaffPortfolioEditor} from './StaffPortfolioEditor';
@@ -99,8 +101,6 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
   businessType='hair_salon' as BusinessTypeId,
   onNavigateToPreview
 }) => {
-  const bookingServices=staffBookingServices(services,businessType);
-  const templateName=CATEGORY_TEMPLATES[businessType]?.shortName||businessType;
   const [photoFile,setPhotoFile]=useState<File|null>(null);
   const [photoBusy,setPhotoBusy]=useState(false);
   const [saving,setSaving]=useState(false);
@@ -116,6 +116,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
   // Form states for Add / Edit
   const [formData, setFormData] = useState<{
+    businessType:BusinessTypeId;
     workGallery:StaffWorkPhoto[];
     name: string;
     role: string;
@@ -126,6 +127,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     customSpecialtyInput: string;
     assignedServices: string[];
   }>({
+    businessType,
     workGallery:[],
     name: '',
     role: '',
@@ -137,6 +139,8 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     customSpecialtyInput: ''
   });
 
+  const bookingServices=staffBookingServices(services,formData.businessType);
+  const templateName=CATEGORY_TEMPLATES[formData.businessType]?.shortName||formData.businessType;
   const [notification, setNotification] = useState<string | null>(null);
 
   const showNotification = (msg: string) => {
@@ -146,7 +150,8 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
   const handleOpenAddModal = () => {
     setFormData({
-      workGallery:[],
+      businessType,
+    workGallery:[],
     name: '',
       role: 'Senior Hair Stylist',
       experienceYears:'',
@@ -163,14 +168,15 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     setPhotoFile(null);setPhotoBusy(false);setEditError('');
     setEditingStylist(st);
     setFormData({
+      businessType:st.businessType||businessType,
       workGallery:(st.workGallery||[]).map(p=>({...p})),
       name: st.name,
       role: st.role,
       experienceYears:st.experienceYears===undefined?'':String(st.experienceYears),
       avatarUrl: st.avatarUrl,
       rating: st.rating,
-      specialties: [...st.specialties],
-      assignedServices: bookingServices.filter(s => (st.assignedServices || []).includes(s.id) || (st.assignedServices || []).includes(s.name)).map(s => s.id),
+      specialties: categorySkills(st.specialties||[],st.businessType||businessType),
+      assignedServices: staffBookingServices(services,st.businessType||businessType).filter(s => (st.assignedServices || []).includes(s.id) || (st.assignedServices || []).includes(s.name)).map(s => s.id),
       customSpecialtyInput: ''
     });
   };
@@ -191,6 +197,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     if ('key' in e && e.key !== 'Enter') return;
     e.preventDefault();
     const trimmed = formData.customSpecialtyInput.trim();
+    if(trimmed&&!categorySkills([trimmed],formData.businessType).length){setEditError('This skill belongs to another category. Choose a skill for the selected website category.');return;}
     if (trimmed && !formData.specialties.includes(trimmed)) {
       setFormData((prev) => ({
         ...prev,
@@ -227,6 +234,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     const photoUrl=photoFile?await uploadSalonImage(photoFile):formData.avatarUrl;
     const updated: Stylist = {
       ...editingStylist,
+      businessType:formData.businessType,
       workGallery:formData.workGallery.filter(p=>p.imageUrl),
       name: formData.name.trim(),
       experienceYears:formData.experienceYears===''?undefined:Number(formData.experienceYears),
@@ -234,7 +242,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
       avatarUrl: photoUrl,
       rating: Number.isFinite(Number(formData.rating))?Math.max(0,Math.min(5,Number(formData.rating))):0,
       assignedServices: templateStaffAssignments(formData.assignedServices,bookingServices),
-      specialties: formData.specialties
+      specialties: categorySkills(formData.specialties,formData.businessType)
     };
 
     setStylists((prev) => prev.map((s) => (s.id === editingStylist.id ? updated : s)));
@@ -580,7 +588,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
         onClose={() => setIsAddModalOpen(false)}
         onAddStaff={handleSaveNewStaffMember}
         primaryAccentColor={primaryAccentColor || '#900C3F'}
-        services={bookingServices}
+        services={services}
       />}
 
       {/* EDIT STYLIST MODAL */}
@@ -630,7 +638,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
               <label className="text-xs font-bold">Experience (years)<input aria-label="Experience in years" type="number" min="0" max="80" step="0.5" value={formData.experienceYears} onChange={e=>setFormData(prev=>({...prev,experienceYears:e.target.value}))} className="w-full px-3 py-2 rounded-xl border border-gray-300 mt-1" placeholder="e.g. 5"/></label>
               {/* Role / Designation & Rating */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <StaffTitleField businessType={businessType} value={formData.role} onChange={role=>setFormData(prev=>({...prev,role}))}/>
+                <StaffTitleField businessType={formData.businessType} onCategoryChange={category=>{setEditError('');setFormData(prev=>({...prev,businessType:category,role:['Salon Manager','Receptionist',...STAFF_TITLES[category]].includes(prev.role)?prev.role:STAFF_TITLES[category][0],assignedServices:[],specialties:categorySkills(prev.specialties,category),customSpecialtyInput:'',workGallery:prev.workGallery.map(photo=>({...photo,serviceId:staffBookingServices(services,category).some(s=>s.id===photo.serviceId)?photo.serviceId:''}))}))}} value={formData.role} onChange={role=>setFormData(prev=>({...prev,role}))}/>
 
 
                 <div>
@@ -669,7 +677,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                   Specialties & Skills
                 </label>
                 <div className="flex flex-wrap gap-1.5 mb-2">
-                  {COMMON_SPECIALTIES.map((spec) => {
+                  {STAFF_SKILLS[formData.businessType].map((spec) => {
                     const isSelected = formData.specialties.includes(spec);
                     return (
                       <button

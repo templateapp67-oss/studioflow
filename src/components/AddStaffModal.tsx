@@ -1,3 +1,4 @@
+import {STAFF_SKILLS,categorySkills} from '../lib/staffSkills';
 import {staffBookingServices,templateStaffAssignments} from '../lib/staffBookingServices';
 import {CATEGORY_TEMPLATES} from '../categoryTemplates';
 import {StaffPortfolioEditor} from './StaffPortfolioEditor';
@@ -79,8 +80,9 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
   services = [],
   businessType='hair_salon' as BusinessTypeId
 }) => {
-  const bookingServices=staffBookingServices(services,businessType);
-  const templateName=CATEGORY_TEMPLATES[businessType]?.shortName||businessType;
+  const [staffCategory,setStaffCategory]=useState<BusinessTypeId>(businessType);
+  const bookingServices=staffBookingServices(services,staffCategory);
+  const templateName=CATEGORY_TEMPLATES[staffCategory]?.shortName||staffCategory;
   const dialog=useCustomerDialog(()=>{if(!saveLock.current&&!photoBusy)onClose()});
   const [workGallery,setWorkGallery]=useState<StaffWorkPhoto[]>([]);
   const [photoFile,setPhotoFile]=useState<File|null>(null);
@@ -115,7 +117,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
   // Specializations & Skills (default active: Balayage)
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [customSkillInput, setCustomSkillInput] = useState<string>('');
-  const [allAvailableSkills, setAllAvailableSkills] = useState<string[]>(DEFAULT_SKILLS);
+  const [allAvailableSkills, setAllAvailableSkills] = useState<string[]>(STAFF_SKILLS[businessType]);
 
   // Weekly Schedule (Monday to Sunday)
   const [weeklySchedule, setWeeklySchedule] = useState<DaySchedule[]>([
@@ -154,6 +156,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
     if (e) e.preventDefault();
     const trimmed = customSkillInput.trim();
     if (!trimmed) return;
+    if(!categorySkills([trimmed],staffCategory).length){setFormError('This skill belongs to another category. Choose a skill for the selected website category.');return;}
     if (!allAvailableSkills.includes(trimmed)) {
       setAllAvailableSkills((prev) => [...prev, trimmed]);
     }
@@ -234,9 +237,10 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
       name: fullName.trim(),
       experienceYears:experienceYears===''?undefined:Number(experienceYears),
       role: primaryRole.trim(),
+      businessType:staffCategory,
       avatarUrl: photoUrl,
       rating: 0,
-      specialties: selectedSkills.length > 0 ? selectedSkills : ['General Styling'],
+      specialties: categorySkills(selectedSkills,staffCategory),
       phone: mobileNumber.trim(),
       commissionRate: Number(commissionRate) || 15,
       status: currentStatus,
@@ -321,7 +325,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
               />
             </div>
 
-            <StaffTitleField businessType={businessType} value={primaryRole} onChange={setPrimaryRole}/>
+            <StaffTitleField businessType={staffCategory} onCategoryChange={category=>{setStaffCategory(category);setPrimaryRole(STAFF_TITLES[category][0]);setSelectedServices([]);setSelectedSkills(old=>categorySkills(old,category));setAllAvailableSkills(STAFF_SKILLS[category]);setCustomSkillInput('');setWorkGallery(old=>old.map(photo=>({...photo,serviceId:staffBookingServices(services,category).some(s=>s.id===photo.serviceId)?photo.serviceId:''})));setFormError('')}} value={primaryRole} onChange={setPrimaryRole}/>
             <label className="text-xs font-bold">Experience (years)<input aria-label="Experience in years" type="number" min="0" max="80" step="0.5" value={experienceYears} onChange={e=>setExperienceYears(e.target.value)} placeholder="e.g. 5" className="w-full border border-gray-300 rounded-xl p-2 mt-1"/></label>
 
           </div>
