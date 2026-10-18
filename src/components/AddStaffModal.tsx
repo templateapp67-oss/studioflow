@@ -679,11 +679,10 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
           <button
             type="button"
             disabled={saving||photoBusy} onClick={handleSubmit}
-            className="px-4 py-2 text-xs font-medium rounded-md text-white shadow-sm flex items-center gap-1.5 transition-all hover:opacity-95 active:scale-98 cursor-pointer"
-            style={{ backgroundColor: primaryAccentColor }}
+            aria-busy={saving||photoBusy} className="sf-staff-save-button px-4 py-2 text-xs font-medium rounded-md text-white shadow-sm flex items-center gap-1.5 cursor-pointer"
           >
             <UserCheck className="w-4 h-4" />
-            <span>Add Staff Member</span>
+            <span>{saving?'Saving…':photoBusy?'Processing photo…':'Save Staff Member'}</span>
           </button>
         </div>
 

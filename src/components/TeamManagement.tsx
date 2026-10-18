@@ -337,8 +337,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
           {/* ADD NEW STYLIST BUTTON */}
           <button
             onClick={handleOpenAddModal}
-            className="text-xs font-bold px-4 py-2.5 rounded-xl text-white flex items-center gap-2 shadow-sm transition-all hover:opacity-95 active:scale-[0.98] cursor-pointer"
-            style={{ backgroundColor: primaryAccentColor }}
+            className="sf-staff-save-button text-xs font-bold px-4 py-2.5 rounded-xl text-white flex items-center gap-2 shadow-sm cursor-pointer"
             type="button" aria-label="Add new staff profile" id="add-new-stylist-btn"
           >
             <UserPlus className="w-4 h-4" />
@@ -750,11 +749,10 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 text-xs font-bold rounded-xl text-white shadow-sm flex items-center gap-1.5 cursor-pointer hover:opacity-95"
-                  style={{ backgroundColor: primaryAccentColor }}
+                  disabled={saving||photoBusy} aria-busy={saving||photoBusy} className="sf-staff-save-button px-5 py-2.5 text-xs font-bold rounded-xl text-white shadow-sm flex items-center gap-1.5 cursor-pointer"
                 >
                   <Check className="w-4 h-4" />
-                  <span>Save Stylist Changes</span>
+                  <span>{saving?'Saving…':photoBusy?'Processing photo…':'Save Stylist Changes'}</span>
                 </button>
               </div>
             </fieldset></form>
