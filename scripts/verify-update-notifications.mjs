@@ -1,0 +1,21 @@
+import {build} from 'esbuild';
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import {readFileSync} from 'node:fs';
+const bundled=await build({entryPoints:['src/lib/updateNotifications.ts'],bundle:true,platform:'node',format:'cjs',write:false});
+const storage=new Map(),events=[],sent=[];let permission='default',prompts=0,fail=false;
+class FakeNotification{static get permission(){return permission}static async requestPermission(){prompts++;return permission}constructor(...args){sent.push(args)}close(){}}
+const context={exports:{},module:{exports:{}},Notification:FakeNotification,URL,Event,Set,localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},window:{isSecureContext:true,location:{origin:'https://example.test',href:'https://example.test/?app=1&site=artbyuma&access_token=SECRET'},dispatchEvent:e=>events.push(e.type)},navigator:{serviceWorker:{getRegistration:async()=>({active:{},showNotification:async(...args)=>{if(fail)throw Error('blocked');sent.push(args)}})}}};
+vm.runInNewContext(bundled.outputFiles[0].text,context);const api=context.module.exports;
+const version='12345678-1234-1234-1234-123456789abc';
+assert.equal(api.updateNotificationState(),'disabled');assert.equal(prompts,0);assert.equal(await api.notifyAppUpdate(version),false);
+permission='denied';assert.equal(await api.enableUpdateNotifications(),'denied');assert.equal(sent.length,0);
+permission='granted';assert.equal(await api.enableUpdateNotifications(),'enabled');assert.equal(await api.notifyAppUpdate(version),true);assert.equal(await api.notifyAppUpdate(version),false);assert.equal(sent.length,1);assert.equal(sent[0][1].tag,`nexora-update-${version}`);assert.equal(sent[0][1].data.url,'https://example.test/?app=1&site=artbyuma');assert.ok(!JSON.stringify(sent).includes('SECRET'));
+api.disableUpdateNotifications();assert.equal(api.updateNotificationState(),'disabled');assert.equal(await api.notifyAppUpdate('another-version-123456789'),false);
+await api.enableUpdateNotifications();fail=true;assert.equal(await api.notifyAppUpdate('another-version-123456789'),false);fail=false;assert.equal(await api.notifyAppUpdate('another-version-123456789'),true);assert.equal(await api.notifyAppUpdate('bad'),false);
+context.Notification=undefined;assert.equal(api.updateNotificationState(),'unsupported');
+const handlers={},focused=[],opened=[];const origin='https://example.test';
+vm.runInNewContext(readFileSync('public/customer-sw.js','utf8'),{self:{location:{origin},addEventListener:(type,fn)=>handlers[type]=fn,clients:{matchAll:async()=>[{url:origin+'/?module=4',focus:async()=>focused.push(true)}],openWindow:async url=>opened.push(url)}},URL});
+let task;handlers.notificationclick({notification:{data:{type:'nexora-update',url:origin+'/?app=1'},close(){}},waitUntil:p=>task=p});await task;assert.equal(focused.length,1);assert.equal(opened.length,0);
+handlers.notificationclick({notification:{data:{type:'nexora-update',url:'https://evil.test/'},close(){}},waitUntil:p=>task=p});await task;assert.equal(focused.length,1);
+console.log('PASS: opt-in, denied/unsupported, per-release dedupe, failure retry, safe routing, worker focus without navigation');
