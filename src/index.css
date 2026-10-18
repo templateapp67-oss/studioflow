@@ -964,3 +964,44 @@
 .about-builder-notice{color:#065f46;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:.65rem;padding:.7rem;margin-top:.8rem;font-size:.85rem}
 .about-builder button:disabled{opacity:.5;cursor:not-allowed}
 @media(max-width:540px){.about-builder{padding:.85rem}.about-draft-preview{padding:.75rem}.about-builder .secondary-action{white-space:normal}}
+
+/* One ordered website editor; operational tools stay in their own group. */
+.owner-guided-shell .owner-sidebar-guide{padding:.5rem .55rem .8rem;color:#f8fafc}
+.owner-guided-shell .owner-sidebar-guide>strong{font-size:.95rem}
+.owner-guided-shell .owner-sidebar-guide p{font-size:.76rem;line-height:1.6;color:#cbd5e1;margin-top:.35rem}
+.owner-guided-shell .owner-sidebar nav ol{list-style:none;padding:0;margin:0;display:grid;gap:.2rem}
+.owner-guided-shell .owner-nav{grid-template-columns:1.9rem 1.2rem minmax(0,1fr);align-items:start;padding:.65rem .55rem;min-width:0;width:100%;justify-items:start}
+.owner-guided-shell .owner-nav strong{display:block;white-space:normal;overflow:visible;text-overflow:clip;font-size:.8rem;line-height:1.45;overflow-wrap:anywhere}
+.owner-guided-shell .owner-nav .nav-no{display:grid;place-items:center;width:1.7rem;height:1.7rem;background:#263247;border:1px solid #4b5563;color:#f8fafc;border-radius:.5rem;font-size:.78rem;font-weight:800}
+.owner-guided-shell .owner-nav.active .nav-no{background:white;color:#9d174d;border-color:white}
+.owner-guided-shell .owner-nav .material-symbols-outlined{padding-top:.2rem}
+.owner-guided-shell .owner-nav strong{align-self:center}
+.owner-guided-shell .business-tool-nav{grid-template-columns:1.5rem minmax(0,1fr)}
+.owner-guided-shell .owner-tools{border-top:1px solid #334155;margin-top:1rem;padding-top:.8rem}
+.owner-guided-shell .owner-tools>summary{cursor:pointer;color:#e2e8f0;font-weight:700;font-size:.8rem;line-height:1.6;padding:.5rem}
+.owner-mobile-step{display:none}
+.owner-step-intro{background:#fff;border:1px solid #ead9e5;border-radius:1rem;padding:1.3rem;margin-bottom:1.3rem}
+.owner-step-intro h1{font-size:1.4rem;font-weight:800;color:#172033;scroll-margin-top:15rem;outline:none}
+.owner-step-intro>p:not(.eyebrow){color:#475569;font-size:.88rem;line-height:1.6;margin-top:.5rem}
+.owner-step-intro .owner-step-save-hint{font-size:.78rem!important;color:#64748b!important}
+.owner-step-actions{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin-top:1rem;flex-wrap:wrap}
+.owner-step-actions button{white-space:normal;text-align:left;max-width:100%}
+.owner-step-actions button:disabled{opacity:.45;cursor:not-allowed}
+.owner-step-footer{border-top:1px solid #e2e8f0;margin-top:1.5rem;padding:1.25rem 0 6rem}
+.owner-step-footer>p{color:#64748b;font-size:.8rem}
+@media(min-width:721px) and (max-width:1100px){.owner-guided-shell{grid-template-columns:17rem minmax(0,1fr)}.owner-guided-shell .owner-brand p{display:block}.owner-guided-shell .owner-brand{justify-content:flex-start}}
+@media(max-width:720px){
+ .owner-guided-shell .owner-sidebar{height:auto;overflow:visible;padding:.6rem 1rem;z-index:35}
+ .owner-guided-shell .owner-sidebar-guide,.owner-guided-shell .owner-sidebar>nav,.owner-guided-shell .owner-tools{display:none}
+ .owner-guided-shell .owner-mobile-step{display:grid;gap:.3rem;color:#e2e8f0;font-size:.7rem}
+ .owner-mobile-step select{display:block;width:100%;max-width:100%;min-width:0;background:#fff;color:#172033;border:1px solid #cbd5e1;padding:.55rem;border-radius:.6rem;font-size:.85rem}
+ .owner-guided-shell .workspace-topbar{top:10.1rem;min-height:4rem;height:auto;padding:.75rem 1rem;z-index:30}
+ .owner-guided-shell .workspace-topbar small{display:block;font-size:.6rem}
+ .owner-guided-shell .workspace-topbar strong{font-size:.88rem}
+ .owner-guided-shell .topbar-actions .avatar{display:none}
+ .owner-step-intro{padding:1rem}.owner-step-intro h1{font-size:1.15rem;scroll-margin-top:17rem}
+ .owner-step-actions{align-items:stretch}.owner-step-actions button{flex:1;min-width:120px;font-size:.77rem}
+}
+.content-editor-jumps{display:flex;gap:.5rem;flex-wrap:wrap;margin:.8rem 0 1.3rem}
+.content-editor-jumps a{padding:.55rem .75rem;color:#831843;background:#fdf2f8;border:1px solid #f3c8df;border-radius:.6rem;font-size:.8rem;font-weight:700}
+.content-editor-anchor{scroll-margin-top:17rem}
