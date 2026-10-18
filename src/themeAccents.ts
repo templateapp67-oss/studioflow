@@ -212,6 +212,10 @@ export function getContrastTextColor(hex: string): '#ffffff' | '#1e293b' {
  * and all templates using var(--primary-accent) or var(--theme-primary).
  * Automatically calculates relative luminance and updates dynamic text contrast variables.
  */
+export function accentInkOnLight(hex:string){
+  return (1.05/(getLuminance(hex)+0.05))>=4.5?hex:'#1e293b';
+}
+
 export function applyPrimaryAccentCssVar(primaryHex: string, secondaryHex?: string, targetDocument?: Document) {
   const root = targetDocument?.documentElement ?? (typeof document !== 'undefined' ? document.documentElement : null);
   if (root) {
@@ -221,6 +225,7 @@ export function applyPrimaryAccentCssVar(primaryHex: string, secondaryHex?: stri
     root.style.setProperty('--primary-accent', primaryHex);
     root.style.setProperty('--theme-primary', primaryHex);
     root.style.setProperty('--color-primary', primaryHex);
+    root.style.setProperty('--accent-ink-on-light', accentInkOnLight(primaryHex));
 
     // Dynamic contrast & luminance CSS variables
     root.style.setProperty('--accent-luminance', luminance.toFixed(4));

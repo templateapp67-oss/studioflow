@@ -23,8 +23,8 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={() => setCurrentView('landing')}
           className="flex items-center gap-base cursor-pointer group"
         >
-          <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>spa</span>
-          <span className="font-display-lg text-display-lg-mobile tracking-tighter text-primary">{brandName||'StudioFlow'}</span>
+          <span className="material-symbols-outlined workspace-brand-text" style={{ fontVariationSettings: "'FILL' 1" }}>spa</span>
+          <span className="font-display-lg text-display-lg-mobile tracking-tighter workspace-brand-text">{brandName||'StudioFlow'}</span>
         </div>
 
         {/* View Switcher Navigation */}

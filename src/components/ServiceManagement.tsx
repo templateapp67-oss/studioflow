@@ -1,3 +1,4 @@
+import {getContrastTextColor} from '../themeAccents';
 import {isPackage} from '../lib/packageCatalogue';
 import {ServiceImageTemplates} from './ServiceImageTemplates';
 import {serviceDescriptionSuggestions} from '../lib/serviceDescriptions';
@@ -79,7 +80,7 @@ export function ServiceManagement({services,setServices,primaryAccentColor,profi
   setCategory('All');setSearch('');setNotice(`${service.name} ${editing?'updated':'added'}. Changes are queued for cloud save.`);close(form.imagePath);
  };
  const filtered=services.filter(service=>(offering==='all'||(offering==='packages'?isPackage(service):!isPackage(service)))&&(category==='All'||service.category===category)&&`${service.name} ${service.description} ${service.category}`.toLowerCase().includes(search.toLowerCase()));
- return <section id="services-management-section" className="service-editor" style={{'--service-accent':primaryAccentColor} as React.CSSProperties}>
+ return <section id="services-management-section" className="service-editor" style={{'--service-accent':primaryAccentColor,'--service-accent-text':getContrastTextColor(primaryAccentColor)} as React.CSSProperties}>
   <header className="service-editor-header"><div><p className="eyebrow">Your business catalogue</p><h2>Business Services & Custom Service Offerings</h2><p>Add your treatments, categories, INR pricing, appointment duration and service or package photos. Edit any card to upload, replace or import an image URL. Packages use the same saved photo in both website sections. Your saved menu appears in every theme and live preview.</p></div><div className="service-editor-actions">{onNavigateToPreview&&<button type="button" className="secondary-action" onClick={onNavigateToPreview}><Eye size={16}/>Preview menu</button>}<button type="button" className="primary-action" onClick={()=>open()} disabled={services.length>=MAX_SERVICES}><Plus size={16}/>Add service</button></div></header>
   {notice&&<p className="service-editor-notice" role="status">{notice}</p>}
   <div className="service-editor-categories" role="group" aria-label="Offering type"><button type="button" aria-pressed={offering==='all'} onClick={()=>{setOffering('all');setCategory('All');setSearch('');}}>All offerings</button><button type="button" aria-pressed={offering==='services'} onClick={()=>{setOffering('services');setCategory('All');setSearch('');}}>Services</button><button type="button" aria-pressed={offering==='packages'} onClick={()=>{setOffering('packages');setCategory('All');setSearch('');}}>Packages &amp; Signature Rituals ({services.filter(isPackage).length})</button></div>
