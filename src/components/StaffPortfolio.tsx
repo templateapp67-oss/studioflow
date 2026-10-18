@@ -1,0 +1,10 @@
+import React from 'react';
+import type {StaffWorkPhoto,SalonService} from '../types';
+import {secureMediaUrl} from '../lib/socialVideoSource';
+export type StaffPortfolioData={name:string;specialties?:string[];assignedServices?:string[];expertiseServiceIds?:string[];workGallery?:StaffWorkPhoto[]};
+export function StaffPortfolio({staff,services=[]}:{staff:StaffPortfolioData;services?:Pick<SalonService,'id'|'name'|'category'|'durationMinutes'|'price'>[]}){
+ const assigned=staff.expertiseServiceIds??staff.assignedServices;
+ const expertise=assigned?services.filter(s=>(!staff.expertiseServiceIds&&!assigned.length)||assigned.includes(s.id)||assigned.includes(s.name)):[];
+ const photos=(staff.workGallery||[]).filter(p=>p.consented&&secureMediaUrl(p.imageUrl)).slice(0,12);
+ return <><section aria-label="Service expertise"><h3>Service expertise</h3>{!!staff.specialties?.length&&<div className="sf-stylist-skills">{staff.specialties.map(skill=><span key={skill}>{skill}</span>)}</div>}{expertise.length?<div className="sf-staff-expertise">{expertise.map(s=><article key={s.id}><strong>{s.name}</strong><p>{s.category} · {s.durationMinutes} min · ₹{Number(s.price).toLocaleString('en-IN')}</p></article>)}</div>:<p>Specific service details have not been published yet. Contact the salon to discuss this specialist’s expertise.</p>}</section><section aria-label="Individual work gallery"><h3>{staff.name.split(' ')[0]}’s work gallery</h3><p>Work shared by this specialist’s salon.</p>{photos.length?<div className="sf-staff-work-grid">{photos.map(photo=><figure key={photo.id}><a href={photo.imageUrl} target="_blank" rel="noopener noreferrer" aria-label={`Open ${photo.caption||'work photo'} full size`}><img loading="lazy" src={photo.imageUrl} alt={photo.caption||`${staff.name} portfolio work`} onError={e=>{e.currentTarget.hidden=true}}/></a><figcaption>{photo.caption||'Specialist work'}{services.find(s=>s.id===photo.serviceId)&&<small>{services.find(s=>s.id===photo.serviceId)!.name}</small>}</figcaption></figure>)}</div>:<p>This specialist hasn’t shared work photos yet.</p>}</section></>
+}

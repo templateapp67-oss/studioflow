@@ -1,3 +1,6 @@
+import {StaffPortfolioEditor} from './StaffPortfolioEditor';
+import {useCustomerDialog} from './customer/BookingFlow';
+import type {StaffWorkPhoto} from '../types';
 import {StaffTitleField,StaffPhotoField} from './StaffProfileFields';
 import {STAFF_TITLES,validStaffUrl} from '../lib/staffProfile';
 import type {BusinessTypeId} from '../types';
@@ -74,6 +77,8 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
   services = [],
   businessType='hair_salon'
 }) => {
+  const dialog=useCustomerDialog(()=>{if(!saveLock.current&&!photoBusy)onClose()});
+  const [workGallery,setWorkGallery]=useState<StaffWorkPhoto[]>([]);
   const [photoFile,setPhotoFile]=useState<File|null>(null);
   const [photoBusy,setPhotoBusy]=useState(false);
   const [saving,setSaving]=useState(false);
@@ -89,7 +94,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
   const [appAccessRole, setAppAccessRole] = useState<StaffAccessRole>('Service Provider (Assigned)');
   
   // Contact, Commission & Status
-  const [mobileNumber, setMobileNumber] = useState<string>('+91 98765 43210');
+  const [mobileNumber, setMobileNumber] = useState<string>('');
   const [commissionRate, setCommissionRate] = useState<number>(15);
   const [currentStatus, setCurrentStatus] = useState<StaffStatus>('Available');
   
@@ -104,7 +109,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
   const [isGeneratingBio, setIsGeneratingBio] = useState<boolean>(false);
   
   // Specializations & Skills (default active: Balayage)
-  const [selectedSkills, setSelectedSkills] = useState<string[]>(['Balayage']);
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [customSkillInput, setCustomSkillInput] = useState<string>('');
   const [allAvailableSkills, setAllAvailableSkills] = useState<string[]>(DEFAULT_SKILLS);
 
@@ -219,12 +224,13 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
     try{
     const photoUrl=photoFile?await uploadSalonImage(photoFile):selectedPhoto;
     const newStaff: Stylist = {
-      id: `staff-${Date.now()}`,
+      id: `staff-${crypto.randomUUID()}`,
+      workGallery:workGallery.filter(p=>p.imageUrl),
       name: fullName.trim(),
       experienceYears:experienceYears===''?undefined:Number(experienceYears),
       role: primaryRole.trim(),
       avatarUrl: photoUrl,
-      rating: 4.9,
+      rating: 0,
       specialties: selectedSkills.length > 0 ? selectedSkills : ['General Styling'],
       phone: mobileNumber.trim(),
       commissionRate: Number(commissionRate) || 15,
@@ -243,7 +249,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-black/60 backdrop-blur-xs font-sans text-gray-800"
+      className="sf-staff-editor-overlay fixed inset-0 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-black/60 backdrop-blur-xs font-sans text-gray-800"
       id="add-staff-modal-container"
     >
       <motion.div
@@ -251,6 +257,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 15 }}
         transition={{ duration: 0.2, ease: 'easeOut' }}
+        ref={dialog as React.RefObject<HTMLDivElement>} role="dialog" aria-modal="true" aria-label="Create staff profile"
         className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-[680px] max-h-[90vh] flex flex-col overflow-hidden relative"
       >
         {/* ========================================================= */}
@@ -475,6 +482,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
           </div>
 
           {/* ========================================================= */}
+          <StaffPortfolioEditor value={workGallery} onChange={setWorkGallery} services={services} onBusy={setPhotoBusy}/>
           {/* SECTION 7: PROFESSIONAL BIOGRAPHY */}
           {/* ========================================================= */}
           <div>

@@ -1,5 +1,5 @@
 export type Service={id:string;name:string;category?:string;price:number;durationMinutes:number;description?:string;imageUrl?:string};
-export type Stylist={experienceYears?:number;bio?:string;status?:string;id:string;name:string;role?:string;avatarUrl?:string;specialties?:string[];assignedServices?:string[];rating?:number};
+export type Stylist={workGallery?:import('../../types').StaffWorkPhoto[];expertiseServiceIds?:string[];experienceYears?:number;bio?:string;status?:string;id:string;name:string;role?:string;avatarUrl?:string;specialties?:string[];assignedServices?:string[];rating?:number};
 export type Salon={slug:string;owner_id:string;demoTemplateId?:string;content:{profile:any;services?:Service[];stylists?:Stylist[];gallery?:string[];policies?:Record<string,unknown>;loyaltyConfig?:any}};
 export type Booking={id:string;owner_id:string;status:string;starts_at?:string;ends_at?:string;hold_expires_at?:string;payload:any};
 export type Slot={time:string;label:string;stylistId:string};

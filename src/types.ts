@@ -214,7 +214,10 @@ export interface DaySchedule {
   toTime: string;
 }
 
+export interface StaffWorkPhoto {id:string;imageUrl:string;caption:string;serviceId?:string;consented:boolean;}
 export interface Stylist {
+  workGallery?:StaffWorkPhoto[];
+  expertiseServiceIds?:string[];
   experienceYears?:number;
   id: string;
   name: string;

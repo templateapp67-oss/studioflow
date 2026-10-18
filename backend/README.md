@@ -56,3 +56,11 @@ Owner profile state now includes `bookingAddOnServiceIds` (step 5), `comparisonP
 Customer Rewards issues account-linked codes using the owner's configured prefix (existing NX codes remain valid). GLOW10-XXXX is a sample, not a valid coupon. Legacy CRM-generated vouchers remain in-salon only; do not authorize them online from editable phone numbers.
 
 Frontend verification: `node scripts/verify-booking-coupons.mjs` and `node scripts/verify-conversion-features.mjs`. A rollback-only database verification also passed real reward issuance, 1000/100/900/225 pricing, add-ons, category/expiry/minimum rejection, wrong account/salon, tampered totals, reservation reuse, cancellation release and single consumption after simulated internal settlement. No real gateway payment was made and QA data was rolled back.
+
+## Staff creation and individual portfolios
+
+Step 6 (`?module=4`) has a prominent Add new staff profile button and a creation card. Add/Edit staff supports up to 12 work photos with upload/HTTPS URL, caption, related service, and explicit publication permission. The existing owner autosave / revision guard persists `stylists[].workGallery` in the shared Supabase workspace. A published salon synchronizes through the existing save function; first publication remains Step 17.
+
+`staff-portfolios.sql` updates the existing safe website projection. It publishes only permission-checked HTTPS work photos and current catalogue IDs derived from each staff member's assigned services (`expertiseServiceIds`). Phone, schedule, commission and software access stay excluded. Gallery content is individual to each profile and has no fake sample work. Website and customer app use the shared public profile component.
+
+Checks: `node scripts/verify-staff-portfolios.mjs`; `backend/staff-portfolios-verification.sql` is rollback-only and checks real save/synchronization, expertise mapping and private-field removal. QA records are not retained.

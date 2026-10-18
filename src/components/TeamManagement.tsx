@@ -1,3 +1,5 @@
+import {StaffPortfolioEditor} from './StaffPortfolioEditor';
+import type {StaffWorkPhoto} from '../types';
 import {StaffTitleField,StaffPhotoField} from './StaffProfileFields';
 import {validStaffUrl} from '../lib/staffProfile';
 import {uploadSalonImage} from '../lib/supabase';
@@ -90,7 +92,7 @@ const COMMON_SPECIALTIES = [
 export const TeamManagement: React.FC<TeamManagementProps> = ({
   stylists,
   setStylists,
-  primaryAccentColor,
+  primaryAccentColor = '#900C3F',
   services = [],
   businessType='hair_salon',
   onNavigateToPreview
@@ -110,6 +112,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
   // Form states for Add / Edit
   const [formData, setFormData] = useState<{
+    workGallery:StaffWorkPhoto[];
     name: string;
     role: string;
     experienceYears:string;
@@ -119,6 +122,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     customSpecialtyInput: string;
     assignedServices: string[];
   }>({
+    workGallery:[],
     name: '',
     role: '',
     experienceYears:'',
@@ -138,7 +142,8 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
   const handleOpenAddModal = () => {
     setFormData({
-      name: '',
+      workGallery:[],
+    name: '',
       role: 'Senior Hair Stylist',
       experienceYears:'',
       avatarUrl: AVATAR_PRESETS[Math.floor(Math.random() * AVATAR_PRESETS.length)].url,
@@ -154,6 +159,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     setPhotoFile(null);setPhotoBusy(false);setEditError('');
     setEditingStylist(st);
     setFormData({
+      workGallery:(st.workGallery||[]).map(p=>({...p})),
       name: st.name,
       role: st.role,
       experienceYears:st.experienceYears===undefined?'':String(st.experienceYears),
@@ -216,13 +222,14 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     const photoUrl=photoFile?await uploadSalonImage(photoFile):formData.avatarUrl;
     const updated: Stylist = {
       ...editingStylist,
+      workGallery:formData.workGallery.filter(p=>p.imageUrl),
       name: formData.name.trim(),
       experienceYears:formData.experienceYears===''?undefined:Number(formData.experienceYears),
       role: formData.role.trim() || 'Stylist Specialist',
       avatarUrl: photoUrl,
-      rating: Number(formData.rating) || 4.8,
+      rating: Number.isFinite(Number(formData.rating))?Math.max(0,Math.min(5,Number(formData.rating))):0,
       assignedServices: formData.assignedServices,
-      specialties: formData.specialties.length > 0 ? formData.specialties : ['Hair Cutting']
+      specialties: formData.specialties
     };
 
     setStylists((prev) => prev.map((s) => (s.id === editingStylist.id ? updated : s)));
@@ -277,7 +284,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
       </AnimatePresence>
 
       {/* Header section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-5">
+      <div className="sf-team-heading flex flex-col sm:items-start justify-between gap-4 border-b border-gray-100 pb-5">
         <div>
           <div className="flex items-center gap-2.5">
             <span
@@ -302,7 +309,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div className="sf-team-actions flex flex-wrap items-center gap-2.5">
           {onNavigateToPreview && (
             <button
               onClick={onNavigateToPreview}
@@ -317,10 +324,10 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
             onClick={handleOpenAddModal}
             className="text-xs font-bold px-4 py-2.5 rounded-xl text-white flex items-center gap-2 shadow-sm transition-all hover:opacity-95 active:scale-[0.98] cursor-pointer"
             style={{ backgroundColor: primaryAccentColor }}
-            id="add-new-stylist-btn"
+            type="button" aria-label="Add new staff profile" id="add-new-stylist-btn"
           >
             <UserPlus className="w-4 h-4" />
-            <span>Add New Stylist</span>
+            <span>Add new staff profile</span>
           </button>
         </div>
       </div>
@@ -403,6 +410,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <button type="button" className="sf-add-staff-card" onClick={handleOpenAddModal}><UserPlus size={28}/><strong>Create a new staff profile</strong><span>Name, photo, services, experience & work gallery</span></button>
           {filteredStylists.map((st) => (
             <div
               key={st.id}
@@ -529,7 +537,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
       {/* Delete Confirmation Modal */}
       {deletingStylistId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+        <div className="sf-staff-editor-overlay fixed inset-0 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
           <div className="bg-white rounded-2xl p-5 max-w-sm w-full border border-gray-200 shadow-2xl flex flex-col gap-4">
             <div className="flex items-center gap-3 text-rose-600">
               <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center shrink-0">
@@ -560,7 +568,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
       )}
 
       {/* PIXEL-PERFECT ADD NEW STAFF MODAL */}
-      <AddStaffModal
+      {isAddModalOpen&&<AddStaffModal
         key={String(isAddModalOpen)}
         businessType={businessType}
         isOpen={isAddModalOpen}
@@ -568,12 +576,12 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
         onAddStaff={handleSaveNewStaffMember}
         primaryAccentColor={primaryAccentColor || '#900C3F'}
         services={services}
-      />
+      />}
 
       {/* EDIT STYLIST MODAL */}
       {editingStylist && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
-          <div className="bg-white rounded-2xl p-6 max-w-lg w-full border border-gray-200 shadow-2xl flex flex-col gap-4 my-8 max-h-[90vh] overflow-y-auto">
+        <div className="sf-staff-editor-overlay fixed inset-0 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
+          <div role="dialog" aria-modal="true" aria-label="Edit staff profile" className="bg-white rounded-2xl p-6 max-w-lg w-full border border-gray-200 shadow-2xl flex flex-col gap-4 my-8 max-h-[90dvh] overflow-y-auto">
             
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
@@ -586,7 +594,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                 </span>
                 <div>
                   <h3 className="font-bold text-base text-gray-900">Edit Stylist Profile</h3>
-                  <p className="text-xs text-gray-500">Update specialist details, avatar, and specialties</p>
+                  <p className="text-xs text-gray-500">Update details, service expertise and individual work gallery</p>
                 </div>
               </div>
               <button
@@ -641,7 +649,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
               <fieldset className="border border-gray-200 rounded-xl p-3">
                 <legend className="text-xs font-bold">Assigned booking services</legend>
-                <p className="text-xs text-gray-500 mb-2">No selection allows all salon services. Select services to restrict this staff member.</p>
+                <p className="text-xs text-gray-500 mb-2">No selection allows all salon services. Selected services also appear as expertise on the public profile after publishing.</p>
                 {services.map(service => <label key={service.id} className="flex items-center gap-2 text-xs py-1.5">
                   <input type="checkbox" checked={formData.assignedServices.includes(service.id)} onChange={e => setFormData({...formData, assignedServices: e.target.checked ? [...formData.assignedServices, service.id] : formData.assignedServices.filter(id => id !== service.id)})}/>
                   {service.name}
@@ -649,6 +657,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
               </fieldset>
 
               <StaffPhotoField value={formData.avatarUrl} file={photoFile} onBusy={setPhotoBusy} onChange={(avatarUrl,file)=>{setFormData(prev=>({...prev,avatarUrl}));setPhotoFile(file)}}/>
+              <StaffPortfolioEditor value={formData.workGallery} services={services} onChange={workGallery=>setFormData(prev=>({...prev,workGallery}))} onBusy={setPhotoBusy}/>
               {/* Specialties / Skills Tags */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">

@@ -1,0 +1,18 @@
+import React,{useState} from 'react';import {act,create} from 'react-test-renderer';import assert from 'node:assert/strict';
+import {TeamManagement} from '../src/components/TeamManagement';import {StaffPortfolio} from '../src/components/StaffPortfolio';import {INITIAL_SALON_PROFILE} from '../src/mockData';import type {Stylist,SalonService} from '../src/types';
+(globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;
+(globalThis as any).document={activeElement:null,body:{style:{overflow:''}},addEventListener(){},removeEventListener(){}};
+const text=(n:any):string=>Array.isArray(n)?n.map(text).join(''):typeof n==='string'?n:n?.children?.map(text).join('')||'';
+const services:SalonService[]=[{id:'nails',name:'Nail art',category:'Nails',price:1000,durationMinutes:60,description:'',icon:'spa'},{id:'hair',name:'Hair cut',category:'Hair',price:500,durationMinutes:30,description:'',icon:'spa'}];
+let saved:Stylist[]=[];function Harness(){const [team,setTeam]=useState<Stylist[]>([]);saved=team;return <TeamManagement stylists={team} setStylists={setTeam} services={services} businessType="nail_studio"/>}
+let ui:any;await act(async()=>{ui=create(<Harness/>)});
+const button=(label:string)=>ui.root.findAllByType('button').find((n:any)=>text(n).includes(label));
+await act(async()=>button('Add new staff profile').props.onClick());assert.ok(ui.root.findByProps({'aria-label':'Create staff profile'}));
+await act(async()=>ui.root.findByProps({placeholder:'e.g. Sarah Jenkins'}).props.onChange({target:{value:'QA Specialist'}}));
+await act(async()=>button('+ Add work photo').props.onClick());await act(async()=>ui.root.findByProps({placeholder:'https://…'}).props.onChange({target:{value:'https://example.com/qa-work.jpg'}}));await act(async()=>button('Apply URL').props.onClick());await act(async()=>ui.root.findByProps({'aria-label':'Work photo 1 caption'}).props.onChange({target:{value:'Fine nail detail'}}));await act(async()=>ui.root.findByProps({'aria-label':'Work photo 1 service'}).props.onChange({target:{value:'nails'}}));
+const consent=()=>ui.root.findAllByType('input').find((n:any)=>n.props.type==='checkbox'&&text(n.parent).includes('I have permission'));
+await act(async()=>consent().props.onChange({target:{checked:true}}));
+await act(async()=>button('Add Staff Member').props.onClick({preventDefault(){}}));assert.equal(saved.length,1);assert.equal(saved[0].workGallery?.[0].caption,'Fine nail detail');assert.equal(saved[0].workGallery?.[0].consented,true);assert.equal(saved[0].rating,0);assert.equal(saved[0].phone,'');assert.match(saved[0].id,/^staff-/);
+await act(async()=>ui.unmount());
+const staff={...saved[0],expertiseServiceIds:['nails'],workGallery:[...saved[0].workGallery!,{id:'hidden',imageUrl:'https://example.com/private.jpg',caption:'Not permitted',consented:false},{id:'bad',imageUrl:'javascript:alert(1)',caption:'unsafe',consented:true}]};await act(async()=>{ui=create(<StaffPortfolio staff={staff} services={services}/>)});assert.equal(ui.root.findAllByType('img').length,1);assert.match(text(ui.toJSON()),/Nail art/);assert.ok(!text(ui.toJSON()).includes('Hair cut'));assert.ok(!text(ui.toJSON()).includes('Not permitted'));await act(async()=>ui.update(<StaffPortfolio staff={{name:'Other specialist',expertiseServiceIds:[],workGallery:[]}} services={services}/>));assert.equal(ui.root.findAllByType('img').length,0);assert.ok(!text(ui.toJSON()).includes('Nail art'));assert.match(text(ui.toJSON()),/hasn’t shared work photos/);await act(async()=>ui.unmount());
+console.log('PASS: visible Add staff, independent new profile, consented portfolio URL/caption/service saved, no fake contact/rating, only matched expertise and safe consented photos shown; no network writes.');
