@@ -1,3 +1,5 @@
+import {staffBookingServices,templateStaffAssignments} from '../lib/staffBookingServices';
+import {CATEGORY_TEMPLATES} from '../categoryTemplates';
 import {StaffPortfolioEditor} from './StaffPortfolioEditor';
 import {useCustomerDialog} from './customer/BookingFlow';
 import type {StaffWorkPhoto} from '../types';
@@ -75,8 +77,10 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
   onAddStaff,
   primaryAccentColor = '#900C3F',
   services = [],
-  businessType='hair_salon'
+  businessType='hair_salon' as BusinessTypeId
 }) => {
+  const bookingServices=staffBookingServices(services,businessType);
+  const templateName=CATEGORY_TEMPLATES[businessType]?.shortName||businessType;
   const dialog=useCustomerDialog(()=>{if(!saveLock.current&&!photoBusy)onClose()});
   const [workGallery,setWorkGallery]=useState<StaffWorkPhoto[]>([]);
   const [photoFile,setPhotoFile]=useState<File|null>(null);
@@ -217,6 +221,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
     }
 
     if(saveLock.current||photoBusy)return;
+    if(!bookingServices.length){setFormError('Add a service for this template in Step 5 before assigning staff.');return;}
     if(!primaryRole.trim()){setFormError('Designation is required.');return}
     if(!photoFile&&!validStaffUrl(selectedPhoto)){setFormError('Enter a valid image URL or select a photo.');return}
     if(experienceYears!==''&&(!Number.isFinite(Number(experienceYears))||Number(experienceYears)<0||Number(experienceYears)>80)){setFormError('Experience must be between 0 and 80 years.');return}
@@ -237,7 +242,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
       status: currentStatus,
       accessRole: appAccessRole,
       hidePhone: hideMobileNumber,
-      assignedServices: selectedServices,
+      assignedServices: templateStaffAssignments(selectedServices,bookingServices),
       bio: bio.trim(),
       schedule: weeklySchedule
     };
@@ -447,9 +452,9 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
               ASSIGNED SERVICES
             </label>
 
-            <p className="text-xs text-gray-500 mb-2">Select services this staff member can provide. No selection allows all salon services.</p>
+            <p className="text-xs text-gray-500 mb-2">Only {templateName} services are listed. No selection assigns all services shown below.</p>
             <div className="flex flex-wrap gap-2.5">
-              {services.map((srv) => {
+              {!bookingServices.length&&<p className="text-xs text-amber-800">Add services for this template in Step 5 first.</p>}{bookingServices.map((srv) => {
                 const isSelected = selectedServices.includes(srv.id);
                 return (
                   <button
@@ -482,7 +487,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
           </div>
 
           {/* ========================================================= */}
-          <StaffPortfolioEditor value={workGallery} onChange={setWorkGallery} services={services} onBusy={setPhotoBusy}/>
+          <StaffPortfolioEditor value={workGallery} onChange={setWorkGallery} services={bookingServices} onBusy={setPhotoBusy}/>
           {/* SECTION 7: PROFESSIONAL BIOGRAPHY */}
           {/* ========================================================= */}
           <div>

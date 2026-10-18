@@ -427,7 +427,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
 
               {currentStep === 7 && (
                 <div className="space-y-4">
-                  <TeamManagement stylists={stylists} setStylists={setStylists} services={services} primaryAccentColor="#b0004a" />
+                  <TeamManagement businessType={profile.businessType} stylists={stylists} setStylists={setStylists} services={services} primaryAccentColor="#b0004a" />
                   <p className="text-xs text-gray-500">Team changes are saved on this device and shared with your dashboard and website preview. Remove sample specialists and add your actual team.</p>
                 </div>
               )}

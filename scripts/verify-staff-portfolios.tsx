@@ -3,7 +3,7 @@ import {TeamManagement} from '../src/components/TeamManagement';import {StaffPor
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;
 (globalThis as any).document={activeElement:null,body:{style:{overflow:''}},addEventListener(){},removeEventListener(){}};
 const text=(n:any):string=>Array.isArray(n)?n.map(text).join(''):typeof n==='string'?n:n?.children?.map(text).join('')||'';
-const services:SalonService[]=[{id:'nails',name:'Nail art',category:'Nails',price:1000,durationMinutes:60,description:'',icon:'spa'},{id:'hair',name:'Hair cut',category:'Hair',price:500,durationMinutes:30,description:'',icon:'spa'}];
+const services:SalonService[]=[{id:'nails',name:'Nail art',category:'Gel Extensions',price:1000,durationMinutes:60,description:'',icon:'spa'},{id:'hair',name:'Hair cut',category:'Hair',price:500,durationMinutes:30,description:'',icon:'spa'}];
 let saved:Stylist[]=[];function Harness(){const [team,setTeam]=useState<Stylist[]>([]);saved=team;return <TeamManagement stylists={team} setStylists={setTeam} services={services} businessType="nail_studio"/>}
 let ui:any;await act(async()=>{ui=create(<Harness/>)});
 const button=(label:string)=>ui.root.findAllByType('button').find((n:any)=>text(n).includes(label));

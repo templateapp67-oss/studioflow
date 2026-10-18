@@ -1,3 +1,5 @@
+import {staffBookingServices,templateStaffAssignments} from '../lib/staffBookingServices';
+import {CATEGORY_TEMPLATES} from '../categoryTemplates';
 import {StaffPortfolioEditor} from './StaffPortfolioEditor';
 import type {StaffWorkPhoto} from '../types';
 import {StaffTitleField,StaffPhotoField} from './StaffProfileFields';
@@ -94,9 +96,11 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
   setStylists,
   primaryAccentColor = '#900C3F',
   services = [],
-  businessType='hair_salon',
+  businessType='hair_salon' as BusinessTypeId,
   onNavigateToPreview
 }) => {
+  const bookingServices=staffBookingServices(services,businessType);
+  const templateName=CATEGORY_TEMPLATES[businessType]?.shortName||businessType;
   const [photoFile,setPhotoFile]=useState<File|null>(null);
   const [photoBusy,setPhotoBusy]=useState(false);
   const [saving,setSaving]=useState(false);
@@ -166,7 +170,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
       avatarUrl: st.avatarUrl,
       rating: st.rating,
       specialties: [...st.specialties],
-      assignedServices: services.filter(s => (st.assignedServices || []).includes(s.id) || (st.assignedServices || []).includes(s.name)).map(s => s.id),
+      assignedServices: bookingServices.filter(s => (st.assignedServices || []).includes(s.id) || (st.assignedServices || []).includes(s.name)).map(s => s.id),
       customSpecialtyInput: ''
     });
   };
@@ -214,6 +218,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     if (!editingStylist || !formData.name.trim()) return;
 
     if(saveLock.current||photoBusy)return;
+    if(!bookingServices.length){setEditError('Add a service for this template in Step 5 before saving booking assignments.');return;}
     if(!formData.role.trim()){setEditError('Designation is required.');return}
     if(!photoFile&&formData.avatarUrl!==editingStylist.avatarUrl&&!validStaffUrl(formData.avatarUrl)){setEditError('Enter a valid image URL or select a photo.');return}
     if(formData.experienceYears!==''&&(!Number.isFinite(Number(formData.experienceYears))||Number(formData.experienceYears)<0||Number(formData.experienceYears)>80)){setEditError('Experience must be between 0 and 80 years.');return}
@@ -228,7 +233,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
       role: formData.role.trim() || 'Stylist Specialist',
       avatarUrl: photoUrl,
       rating: Number.isFinite(Number(formData.rating))?Math.max(0,Math.min(5,Number(formData.rating))):0,
-      assignedServices: formData.assignedServices,
+      assignedServices: templateStaffAssignments(formData.assignedServices,bookingServices),
       specialties: formData.specialties
     };
 
@@ -575,7 +580,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
         onClose={() => setIsAddModalOpen(false)}
         onAddStaff={handleSaveNewStaffMember}
         primaryAccentColor={primaryAccentColor || '#900C3F'}
-        services={services}
+        services={bookingServices}
       />}
 
       {/* EDIT STYLIST MODAL */}
@@ -649,15 +654,15 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
               <fieldset className="border border-gray-200 rounded-xl p-3">
                 <legend className="text-xs font-bold">Assigned booking services</legend>
-                <p className="text-xs text-gray-500 mb-2">No selection allows all salon services. Selected services also appear as expertise on the public profile after publishing.</p>
-                {services.map(service => <label key={service.id} className="flex items-center gap-2 text-xs py-1.5">
+                <p className="text-xs text-gray-500 mb-2">Only {templateName} services are listed. No selection assigns all services shown below. Saving removes assignments from other templates.</p>
+                {!bookingServices.length&&<p className="text-xs text-amber-800">No services for this template. Add services in Step 5 first.</p>}{bookingServices.map(service => <label key={service.id} className="flex items-center gap-2 text-xs py-1.5">
                   <input type="checkbox" checked={formData.assignedServices.includes(service.id)} onChange={e => setFormData({...formData, assignedServices: e.target.checked ? [...formData.assignedServices, service.id] : formData.assignedServices.filter(id => id !== service.id)})}/>
                   {service.name}
                 </label>)}
               </fieldset>
 
               <StaffPhotoField value={formData.avatarUrl} file={photoFile} onBusy={setPhotoBusy} onChange={(avatarUrl,file)=>{setFormData(prev=>({...prev,avatarUrl}));setPhotoFile(file)}}/>
-              <StaffPortfolioEditor value={formData.workGallery} services={services} onChange={workGallery=>setFormData(prev=>({...prev,workGallery}))} onBusy={setPhotoBusy}/>
+              <StaffPortfolioEditor value={formData.workGallery} services={bookingServices} onChange={workGallery=>setFormData(prev=>({...prev,workGallery}))} onBusy={setPhotoBusy}/>
               {/* Specialties / Skills Tags */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">
