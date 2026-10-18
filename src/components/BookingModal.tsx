@@ -1,3 +1,4 @@
+import {BookingCoupon,useBookingCoupon} from './BookingCoupon';
 import {useWebsiteLanguage} from './WebsiteLanguage';
 import type {DirectBookingSlot} from './SpecialistWeek';
 import { paymentRequest, payBookingDeposit, reconcileBookingPayment } from '../lib/platformPayments';
@@ -188,7 +189,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const selectedExtras=extras.filter(s=>addOnIds.includes(s.id));
   const bookingServiceIds=[selectedService.id,...selectedExtras.map(s=>s.id)];
   const bundleKey=JSON.stringify(bookingServiceIds);
-  const totalPrice=serverTotal??Math.round((selectedService.price+selectedExtras.reduce((sum,s)=>sum+s.price,0))*100)/100;
+  const coupon=useBookingCoupon(profile.subdomain,bookingServiceIds);
+  const totalPrice=serverTotal??coupon.quote?.finalPrice??Math.round((selectedService.price+selectedExtras.reduce((sum,s)=>sum+s.price,0))*100)/100;
   // Step 2: Date & Time Slot
   const todayStr = new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
   const tomorrowStr=new Date(Date.parse(`${todayStr}T12:00:00Z`)+86400000).toISOString().slice(0,10);
@@ -252,7 +254,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   useEffect(()=>{if(isOpen&&initialService)setSelectedService(initialService);},[isOpen,initialService?.id]);
   useEffect(()=>{if(isOpen&&initialStylist)setSelectedStylist(initialStylist);},[isOpen,initialStylist?.id]);
 
-  useEffect(()=>{if(isOpen){setAddOnIds([]);setServerTotal(null);reservedBooking.current=null;reservedRequest.current='';bookingRequest.current=crypto.randomUUID();if(initialSlot){setBookingDate(initialSlot.date);setCurrentStep('datetime');}else setCurrentStep('service');}},[isOpen,initialSlot?.date,initialSlot?.time]);
+  useEffect(()=>{if(isOpen){coupon.remove();setAddOnIds([]);setServerTotal(null);reservedBooking.current=null;reservedRequest.current='';bookingRequest.current=crypto.randomUUID();if(initialSlot){setBookingDate(initialSlot.date);setCurrentStep('datetime');}else setCurrentStep('service');}},[isOpen,initialSlot?.date,initialSlot?.time]);
   // Clean and validate Indian 10-digit mobile number
   const sanitizeIndianPhone = (raw: string) => {
     const digits = raw.replace(/\D/g, '');
@@ -331,6 +333,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       serviceId: selectedService.id,
       serviceName: selectedService.name,
       servicePrice: totalPrice,
+      couponCode:coupon.quote?.code,couponExpectedTotal:coupon.quote?.finalPrice,
       addOnIds:selectedExtras.map(s=>s.id),requestId:bookingRequest.current,
       stylistId: selectedStylist.id,
       stylistName: selectedStylist.name,
@@ -343,7 +346,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     };
 
     if (!gatewayReady) throw new Error(gatewayError || 'Payment gateway is loading. Please try again.');
-    const requestKey=JSON.stringify([bundleKey,selectedStylist.id,bookingDate,bookingTime,guestName.trim(),cleanPhone]);
+    const requestKey=JSON.stringify([bundleKey,selectedStylist.id,bookingDate,bookingTime,guestName.trim(),cleanPhone,coupon.quote?.code]);
     if(reservedBooking.current&&reservedRequest.current!==requestKey)throw new Error('A booking is already reserved. Finish its payment or close this form and choose a new slot.');
     if(!reservedBooking.current){const reservation=await onAddAppointment(newApt);if(!reservation)throw new Error('Booking was not saved. Please retry.');reservedBooking.current=reservation;reservedRequest.current=requestKey;setServerTotal(reservation.servicePrice);setBookingRef(reservation.id);}
     const saved=await payBookingDeposit(reservedBooking.current);
@@ -407,6 +410,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   // Reset modal state to start fresh
   const handleReset = () => {
+    coupon.remove();
     setAddOnIds([]);setServerTotal(null);reservedBooking.current=null;reservedRequest.current='';setPaidAmount(0);setSubmitError('');
     setCurrentStep('service');
 
@@ -879,7 +883,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               </motion.form>
           )}
 
-          {currentStep === 'payment' && extras.length>0&&<section className="sf-booking-addons"><h3>{t('Add-on services')}</h3><p>Optional extras · Prices and time are added to your booking. Adding/removing an extra returns you to slot selection.</p>{extras.map(extra=><label key={extra.id}><input type="checkbox" checked={addOnIds.includes(extra.id)} disabled={!!reservedBooking.current||isSubmitting} onChange={e=>{const checked=e.target.checked;setAddOnIds(ids=>checked?[...ids,extra.id].slice(0,9):ids.filter(id=>id!==extra.id));setServerTotal(null);setCurrentStep('datetime');}}/>{extra.name} · +₹{extra.price} · {extra.durationMinutes} min</label>)}<strong>Service + extras: ₹{totalPrice.toLocaleString('en-IN')} · {selectedService.durationMinutes+selectedExtras.reduce((sum,s)=>sum+s.durationMinutes,0)} min</strong></section>}
+          {currentStep === 'payment' && <BookingCoupon coupon={coupon} disabled={!!reservedBooking.current||isSubmitting}/>}
+          {currentStep === 'payment' && extras.length>0&&<section className="sf-booking-addons"><h3>{t('Add-on services')}</h3><p>Optional extras · Prices and time are added to your booking. Adding/removing an extra returns you to slot selection.</p>{extras.map(extra=><label key={extra.id}><input type="checkbox" checked={addOnIds.includes(extra.id)} disabled={!!reservedBooking.current||isSubmitting} onChange={e=>{const checked=e.target.checked;setAddOnIds(ids=>checked?[...ids,extra.id].slice(0,9):ids.filter(id=>id!==extra.id));setServerTotal(null);setCurrentStep('datetime');}}/>{extra.name} · +₹{extra.price} · {extra.durationMinutes} min</label>)}<strong>Payable total: ₹{totalPrice.toLocaleString('en-IN')} · {selectedService.durationMinutes+selectedExtras.reduce((sum,s)=>sum+s.durationMinutes,0)} min</strong></section>}
           {currentStep === 'payment' && (
             <motion.div
               initial={{ opacity: 0, x: 10 }}
@@ -1119,7 +1124,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 <button
                   type="button"
                   onClick={handleFinalSubmitBooking}
-                  disabled={isSubmitting || !gatewayReady}
+                  disabled={isSubmitting || !gatewayReady || coupon.busy || (!reservedBooking.current && !!coupon.code.trim() && !coupon.quote)}
                   className="flex-1 py-3.5 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95"
                   style={actionStyle}
                 >

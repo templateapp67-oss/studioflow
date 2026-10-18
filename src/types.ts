@@ -233,6 +233,11 @@ export interface Stylist {
 }
 
 export interface Appointment {
+  couponCode?:string;
+  couponExpectedTotal?:number;
+  originalPrice?:number;
+  discountAmount?:number;
+  coupon?:import('./components/BookingCoupon').CouponQuote;
   addOnIds?:string[];
   requestId?:string;
   id: string;

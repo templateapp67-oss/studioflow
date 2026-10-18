@@ -777,12 +777,13 @@ We look forward to pampering you soon! 💆‍♀️💇‍♂️`;
                   </div>
 
                   <div className="flex justify-between text-[11px] font-mono text-gray-600">
-                    <span>Coupon Prefix:</span>
+                    <span>Code format · example only:</span>
                     <span className="font-bold text-purple-700 bg-purple-50 px-1.5 py-0.2 rounded border border-purple-200">
                       {reward.couponCodePrefix}-XXXX
                     </span>
                   </div>
 
+                  <p className="text-xs text-gray-600">XXXX example hai. Online booking ke liye customer Rewards se points redeem karke actual account-linked code lein. CRM vouchers salon par manually redeem hote hain.</p>
                   <div className="flex justify-between text-[11px] font-mono text-gray-600">
                     <span>Applicable Category:</span>
                     <span className="font-bold text-gray-800">{reward.applicableCategory || 'All'}</span>
@@ -1286,7 +1287,7 @@ We look forward to pampering you soon! 💆‍♀️💇‍♂️`;
             {/* Vouchers Claimed */}
             {historyClient.redeemedRewards && historyClient.redeemedRewards.length > 0 && (
               <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold font-mono-caps text-gray-700">Issued Reward Vouchers</label>
+                <label className="text-xs font-bold font-mono-caps text-gray-700">CRM vouchers · in-salon redemption</label>
                 <div className="flex flex-col gap-1.5 max-h-32 overflow-y-auto">
                   {historyClient.redeemedRewards.map((red) => (
                     <div key={red.id} className="p-2.5 rounded-lg border border-purple-200 bg-purple-50 text-xs flex justify-between items-center">

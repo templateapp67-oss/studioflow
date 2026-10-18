@@ -1,0 +1,22 @@
+import React from 'react';import {act,create} from 'react-test-renderer';import assert from 'node:assert/strict';
+import {BookingCoupon,useBookingCoupon} from '../src/components/BookingCoupon';import {supabase} from '../src/lib/supabase';
+(globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;
+let latest:ReturnType<typeof useBookingCoupon>,calls=0,pending:any;
+const quote={claimId:'claim',code:'GLOW10-TEST123',title:'10% OFF',originalPrice:1000,discountAmount:100,finalPrice:900,advanceAmount:225};
+supabase.rpc=(async (_:string,args:any)=>{calls++;if(args.p_code==='DELAY')return new Promise(resolve=>{pending=resolve});if(args.p_code==='WRONG')return {error:{message:'Coupon not found for your account at this salon'}};return {data:quote,error:null}}) as any;
+function Harness({ids=['base']}:{ids?:string[]}){latest=useBookingCoupon('qa',ids);return <BookingCoupon coupon={latest}/>}
+const text=(n:any):string=>typeof n==='string'?n:n?.children?.map(text).join('')||'';
+let ui:any;await act(async()=>{ui=create(<Harness/>)});await act(async()=>latest.change('glow10-test123'));await act(async()=>latest.apply());assert.equal(latest.quote?.finalPrice,900);assert.equal(latest.code,quote.code);assert.equal(calls,1);assert.match(text(ui.toJSON()),/₹1,000.*−₹100.*₹900.*₹225.*₹675/);
+await act(async()=>latest.change('wrong'));assert.equal(latest.quote,null);await act(async()=>latest.apply());assert.match(latest.notice,/Coupon not found/);
+await act(async()=>latest.change(quote.code));await act(async()=>latest.apply());await act(async()=>ui.update(<Harness ids={['base','extra']}/>));assert.equal(latest.quote,null);
+await act(async()=>latest.change('delay'));let promise:Promise<void>;await act(async()=>{promise=latest.apply()});await act(async()=>latest.remove());await act(async()=>{pending({data:quote});await promise});assert.equal(latest.quote,null);assert.equal(latest.code,'');await act(async()=>ui.unmount());
+console.log('PASS: 1000 minus 100 = 900, 225 advance, 675 balance; real-code normalization, errors, service invalidation, stale response rejection. No booking or payment created.');
+
+import {BookingModal} from '../src/components/BookingModal';import {INITIAL_SALON_PROFILE} from '../src/mockData';import {CATEGORY_TEMPLATES} from '../src/categoryTemplates';
+globalThis.fetch=async()=>new Response(JSON.stringify({configured:true}),{headers:{'Content-Type':'application/json'}});
+const profile={...INITIAL_SALON_PROFILE,subdomain:'qa'},staff={...CATEGORY_TEMPLATES.hair_salon.stylists[0],id:'staff'},service={...CATEGORY_TEMPLATES.hair_salon.services[0],id:'base',price:1000,durationMinutes:30},extra={...service,id:'extra',price:400};
+supabase.rpc=(async(name:string)=>name==='studioflow_coupon_quote'?{data:quote,error:null}:name==='studioflow_booking_specialists'?{data:{published:true,specialistIds:['staff']},error:null}:{data:[{time:'12:00',label:'12:00 PM',available:true,stylistId:'staff'}],error:null}) as any;
+let reservations=0;await act(async()=>{ui=create(<BookingModal isOpen onClose={()=>{}} profile={profile} services={[service,extra]} stylists={[staff]} onAddAppointment={async a=>{reservations++;return a}}/>)});
+const button=(label:string)=>ui.root.findAllByType('button').find((n:any)=>text(n).includes(label));await act(async()=>button('Continue to Date & Slot').props.onClick());await act(async()=>button('12:00 PM').props.onClick());await act(async()=>button('Continue to Guest Details').props.onClick());await act(async()=>{ui.root.findByProps({placeholder:'e.g. Aarti Sharma'}).props.onChange({target:{value:'QA Guest'}});ui.root.findByProps({placeholder:'98765 43210'}).props.onChange({target:{value:'9876543210'}})});const guest=()=>ui.root.findAll(n=>typeof n.props.onSubmit==='function')[0];await act(async()=>guest().props.onSubmit({preventDefault(){}}));
+
+await act(async()=>ui.root.findByProps({'aria-label':'Coupon code'}).props.onChange({target:{value:quote.code}}));assert.equal(button('Pay ₹').props.disabled,true);await act(async()=>button('Apply coupon').props.onClick());assert.equal(button('Pay ₹').props.disabled,false);assert.match(text(button('Pay ₹')),/225/);assert.ok(ui.root.findByProps({'aria-label':'Coupon price breakdown'}));await act(async()=>button('Remove coupon').props.onClick());assert.match(text(button('Pay ₹')),/250/);assert.equal(reservations,0);await act(async()=>ui.unmount());console.log('PASS: website checkout Apply guard, discounted 225 advance, Remove restores 250; no reservation or payment.');
