@@ -928,3 +928,8 @@
 #global-nav .workspace-brand-text { color:var(--accent-ink-on-light,#9f1239); }
 .sf-share-feedback { padding:12px 14px; border:1px solid #86efac; border-radius:12px; background:#f0fdf4; color:#14532d; font-size:13px; font-weight:650; line-height:1.6; margin-top:12px; }
 .sf-share-manual { display:block; width:100%; margin-top:10px; padding:10px; border:1px solid #cbd5e1; border-radius:10px; background:#fff; color:#1e293b; font-size:12px; }
+
+.service-prompt-version { display:inline-flex; padding:4px 8px; margin-left:6px; border-radius:999px; background:#fce7f3; color:#9d174d; font:700 11px/1.4 Arial,sans-serif; vertical-align:middle; }
+.service-prompt-feedback { padding:10px 12px; margin-top:12px; border:1px solid #86efac; border-radius:10px; background:#f0fdf4; color:#14532d; font-size:12px; font-weight:650; }
+.service-prompt-toast { position:fixed; z-index:10000; top:max(16px,env(safe-area-inset-top)); left:50%; transform:translateX(-50%); width:max-content; max-width:calc(100vw - 32px); padding:14px 20px; border:1px solid #86efac; border-radius:14px; background:#f0fdf4; color:#14532d; box-shadow:0 12px 35px #0003; font:700 14px/1.5 Arial,sans-serif; pointer-events:none; }
+.service-prompt-feedback.is-error,.service-prompt-toast.is-error { background:#fffbeb; color:#92400e; border-color:#fcd34d; }
