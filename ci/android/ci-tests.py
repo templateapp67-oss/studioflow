@@ -72,5 +72,8 @@ try:
 except Exception as e:
  report['native_runtime_passed']=False;report['error']=scrub(str(e));save();print(scrub(str(e)),flush=True);sys.exit(1)
 finally:
+ adb(['exec-out','screencap','-p'],check=False,binary=out/'last-screen.png')
+ (out/'last-anr.txt').write_text(adb(['shell','dumpsys','activity','lastanr'],check=False))
+ (out/'exit-info.txt').write_text(adb(['shell','dumpsys','activity','exit-info','com.nexora.customer'],check=False))
  adb(['pull','/sdcard/Android/data/com.nexora.customer/files/qa',str(out/'screenshots')],check=False)
  (Path(os.environ['RUNNER_TEMP'])/'nexora-ci-private.pem').unlink(missing_ok=True)

@@ -7,6 +7,7 @@ on:
       - ci/android/Nexora-Android-source.zip
       - ci/android/ci-key.py
       - ci/android/ci-tests.py
+      - ci/android/overrides/**
   workflow_dispatch:
 permissions:
   contents: read
@@ -54,11 +55,19 @@ jobs:
         run: |
           echo 'f8ad7bd44255d835553a342573237948f621394db8582bfa6a326c5eba58a08d  ci/android/Nexora-Android-source.zip' | sha256sum -c -
           unzip -q ci/android/Nexora-Android-source.zip -d android
+          cp -R ci/android/overrides/. android/Nexora-Android/
           sed -i 's/networkTimeout=10000/networkTimeout=120000/' android/Nexora-Android/gradle/wrapper/gradle-wrapper.properties
           sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
           mkdir -p qa-tools
           cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" qa-tools/
           keytool -genkeypair -keystore "$RUNNER_TEMP/ci-signing.keystore" -storepass android -keypass android -alias AndroidDebugKey -keyalg RSA -keysize 2048 -validity 2 -dname 'CN=Nexora Ephemeral QA'
+      - uses: actions/cache/restore@v4
+        id: gradle-cache
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: nexora-gradle-1.2.2-v1
       - name: Build baseline and updated application
         env:
           NEXORA_DEBUG_KEYSTORE: ${{ runner.temp }}/ci-signing.keystore
@@ -94,5 +103,12 @@ jobs:
             android/Nexora-Android/app/build/test-results/testDebugUnitTest/
             qa-results/
             qa-tools/
+      - if: always() && steps.gradle-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: nexora-gradle-1.2.2-v1
       - if: always()
         run: rm -f "$RUNNER_TEMP/nexora-ci-private.pem" "$RUNNER_TEMP/ci-signing.keystore"
