@@ -208,7 +208,12 @@
 .owner-brand img { width: 100%; height: 100%; object-fit: cover; }.owner-brand p { display: grid; line-height: 1.2; }.owner-brand strong { color: white; font-size: .95rem; }.owner-brand small { color: #94a3b8; font-size: .72rem; margin-top: .25rem; }
 .owner-sidebar nav > p { margin: 1.25rem .65rem .45rem; color: #64748b; font: 700 .65rem/1 var(--font-mono); text-transform: uppercase; letter-spacing: .12em; }
 .owner-nav { width: 100%; display: grid; grid-template-columns: 1.7rem 1.35rem minmax(0,1fr) auto; align-items: center; gap: .45rem; padding: .58rem .55rem; margin: .15rem 0; border-radius: .7rem; color: #aeb9c9; text-align: left; transition: .18s ease; }
-.owner-nav:hover { color: white; background: #202b3e; }.owner-nav.active { color: white; background: linear-gradient(100deg, #86198f, #be185d); box-shadow: 0 8px 24px #0004; }.owner-nav .material-symbols-outlined { font-size: 1.15rem; }.owner-nav strong { font-s…19869 tokens truncated…ild { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.owner-nav:hover { color: white; background: #202b3e; }
+.owner-nav.active { color: white; background: linear-gradient(100deg, #86198f, #be185d); box-shadow: 0 8px 24px #0004; }
+.owner-nav .material-symbols-outlined { font-size: 1.15rem; }
+.owner-nav strong { font-size: .84rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.owner-nav .nav-no { display: grid; place-items: center; width: 1.5rem; height: 1.5rem; border-radius: .45rem; background: #1f2937; color: #94a3b8; font-size: .75rem; font-weight: 700; }
+.owner-nav.active .nav-no { background: white; color: #9d174d; }
 .sf-website-account-settings.cr-app { min-height: 0; padding: 12px; }
 .cr-whatsapp-input { display: flex; align-items: center; gap: 8px; }
 .cr-whatsapp-input > span { font-weight: 700; }
