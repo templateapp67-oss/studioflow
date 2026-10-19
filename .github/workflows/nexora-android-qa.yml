@@ -24,6 +24,9 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
       - name: Prepare ephemeral QA encryption key
         run: |
           python3 -m pip install --quiet cryptography
@@ -39,6 +42,8 @@ jobs:
           unzip -q ci/android/Nexora-Android-source.zip -d android
           sed -i 's/networkTimeout=10000/networkTimeout=120000/' android/Nexora-Android/gradle/wrapper/gradle-wrapper.properties
           sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+          mkdir -p qa-tools
+          cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" qa-tools/
           keytool -genkeypair -keystore "$RUNNER_TEMP/ci-signing.keystore" -storepass android -keypass android -alias AndroidDebugKey -keyalg RSA -keysize 2048 -validity 2 -dname 'CN=Nexora Ephemeral QA'
       - name: Build baseline and updated application
         env:
@@ -80,5 +85,6 @@ jobs:
             android/Nexora-Android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
             android/Nexora-Android/app/build/test-results/testDebugUnitTest/
             qa-results/
+            qa-tools/
       - if: always()
         run: rm -f "$RUNNER_TEMP/nexora-ci-private.pem" "$RUNNER_TEMP/ci-signing.keystore"
