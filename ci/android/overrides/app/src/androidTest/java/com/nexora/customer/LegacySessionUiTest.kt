@@ -43,7 +43,10 @@ class LegacySessionUiTest {
             h.screenshot("legacy-session-prefilled")
             h.js(s,"document.querySelector('button[aria-label=\\\"Back to profile\\\"]')?.click()")
             h.js(s,"Array.from(document.querySelectorAll('button')).find(x=>x.textContent.trim()==='Log Out')?.click()")
-            h.until(s,"Legacy logout failed","document.body.innerText.includes('Sign in / Create customer account')")
+            h.until(s,"Legacy logout failed","document.body.innerText.includes('Sign in / Create customer account')&&localStorage.getItem('studioflow_supabase_session')===null")
+            // AndroidJUnitRunner force-stops the process after this class. Allow Chromium's
+            // asynchronous local-storage disk commit to finish before that forced termination.
+            Thread.sleep(5500)
         }
         assertTrue("Migration flag missing",context.getSharedPreferences("MainActivity",Context.MODE_PRIVATE).getBoolean("legacy_migrated",false))
         val end=System.currentTimeMillis()+10000
