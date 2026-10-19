@@ -47,7 +47,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
  useEffect(()=>{setGalleryCategory('All');setPhoto(null);},[profile.businessType]);
  const whatsapp=profile.whatsapp?.replace(/[^0-9]/g,'');
  const wa=whatsapp?`https://wa.me/${whatsapp}?text=${encodeURIComponent(`Hello ${profile.businessName}, I would like to enquire about an appointment.`)}`:'';
- const book=(selected?:SalonService,specialist?:Stylist)=>{setDirectSlot(undefined);setService(selected||services[0]);setChosen(specialist);setBooking(true);};
+ const book=(selected?:SalonService,specialist?:Stylist)=>{setDirectSlot(undefined);setService(selected||services[0]);setChosen(current=>specialist||current);setBooking(true);};
  const customer=(mode:'signin'|'signup')=>onCustomerAccount?onCustomerAccount(mode):location.assign(`/?customer=1&auth=${mode}&return=${encodeURIComponent(profile.subdomain||'')}`);
  const mapUrl=Number.isFinite(profile.latitude)&&Number.isFinite(profile.longitude)?`https://www.google.com/maps/search/?api=1&query=${profile.latitude},${profile.longitude}`:`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([profile.address,profile.city,profile.postalCode].filter(Boolean).join(', '))}`;
  const dock=[['promo','Offers','salon-promo'],['services','Services','services-section'],['stylists','Our Team','salon-team'],['gallery','Lookbook','salon-lookbook'],['testimonials','Reviews','salon-testimonials'],['location','Location','salon-location']].filter(([key])=>visible[key]);

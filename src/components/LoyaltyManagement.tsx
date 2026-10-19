@@ -1,5 +1,6 @@
 import {CustomerRewardClaims} from './CustomerRewardClaims';
 import { websiteLink } from '../lib/supabase';
+import { downloadClientsCsv } from '../lib/clientExports';
 import React, { useState } from 'react';
 import { 
   ClientRecord, 
@@ -530,6 +531,17 @@ We look forward to pampering you soon! 💆‍♀️💇‍♂️`;
                   </button>
                 );
               })}
+
+              <button
+                type="button"
+                onClick={() => downloadClientsCsv(clients, `${profile?.subdomain || 'salon'}-clients.csv`)}
+                className="px-3 py-1.5 rounded-lg text-xs font-bold font-mono-caps flex items-center gap-1 transition-all cursor-pointer border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 shadow-xs ml-auto"
+                title="Export current ClientRecord entries to CSV"
+                aria-label="Export clients to CSV"
+              >
+                <span className="material-symbols-outlined text-sm">download</span>
+                <span>Export CSV</span>
+              </button>
             </div>
           </div>
 

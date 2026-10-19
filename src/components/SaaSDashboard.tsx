@@ -3,6 +3,7 @@ import {OwnerDemoBookings} from './OwnerDemoBookings';
 import { WebsiteContentManager } from './WebsiteContentManager';
 import { uploadSalonImage, websiteLink } from '../lib/supabase';
 import React, { useState, useEffect } from 'react';
+import { downloadClientsCsv } from '../lib/clientExports';
 import { SalonProfile, SalonService, Stylist, Appointment, ClientRecord, LoyaltyConfig } from '../types';
 import { ACCENT_PALETTES, AccentPaletteKey, applyPrimaryAccentCssVar, getContrastTextColor, getLuminance } from '../themeAccents';
 import { validateAndReadImageFile, compressAndResizeImage } from '../utils/imageUploadHelper';
@@ -401,17 +402,36 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
                 </p>
               </div>
 
-              <button
-                onClick={() => setActiveTab('loyalty')}
-                className="text-xs font-bold px-4 py-2 rounded-xl text-white shadow-xs flex items-center gap-1.5 cursor-pointer hover:opacity-95"
-                style={{ backgroundColor: currentPrimaryColor }}
-              >
-                <span className="material-symbols-outlined text-sm">military_tech</span>
-                <span>Open Loyalty & Rewards Hub</span>
-              </button>
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => downloadClientsCsv(clients, `${profile.subdomain || 'salon'}-clients.csv`)}
+                  className="text-xs font-bold px-4 py-2 rounded-xl border border-gray-300 bg-white text-gray-700 shadow-xs flex items-center gap-1.5 cursor-pointer hover:bg-gray-50 active:scale-[0.98] transition-all"
+                  aria-label="Export clients to CSV"
+                >
+                  <span className="material-symbols-outlined text-sm">download</span>
+                  <span>Export Clients CSV</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('loyalty')}
+                  className="text-xs font-bold px-4 py-2 rounded-xl text-white shadow-xs flex items-center gap-1.5 cursor-pointer hover:opacity-95"
+                  style={{ backgroundColor: currentPrimaryColor }}
+                >
+                  <span className="material-symbols-outlined text-sm">military_tech</span>
+                  <span>Open Loyalty & Rewards Hub</span>
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {clients.length === 0 && (
+                <div className="col-span-full py-12 text-center text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                  <span className="material-symbols-outlined text-3xl text-gray-400 mb-1">group_off</span>
+                  <p className="text-sm font-semibold text-gray-700">No client records found</p>
+                  <p className="text-xs text-gray-400 mt-1">Bookings and completed salon appointments will automatically populate client CRM entries.</p>
+                </div>
+              )}
               {clients.map((cli) => {
                 const tier = cli.loyaltyTier || calculateLoyaltyTier(cli.lifetimePoints || 0, loyaltyConfig.tierThresholds);
                 const tierMeta = TIER_METADATA[tier];
