@@ -212,13 +212,13 @@ try{
  await act(async()=>reviewForm.root.findAll((n:any)=>n.type==='input'&&n.props.maxLength===100)[0].props.onChange({target:{value:'Customer Name'}}));
  await act(async()=>reviewForm.root.findByType('textarea').props.onChange({target:{value:'A lovely salon visit with careful service.'}}));
  await act(async()=>reviewForm.root.findByProps({'aria-label':'4 stars'}).props.onClick());
- await act(async()=>reviewForm.root.findByType('select').props.onChange({target:{value:'Haircut'}}));
+ await act(async()=>reviewForm.root.findByProps({'aria-label':'Review service (optional)'}).props.onChange({target:{value:'Haircut'}}));
  const draftList=reviewForm.root.findByProps({className:'sf-review-template-list'});assert.equal(draftList.findAllByType('button').length,5);
  await act(async()=>draftList.findAllByType('button')[0].props.onClick());assert.ok(reviewForm.root.findByType('textarea').props.value.includes('Haircut'));assert.equal(reviewForm.root.findByProps({'aria-label':'4 stars'}).props['aria-pressed'],true);
- await act(async()=>reviewForm.root.findByType('select').props.onChange({target:{value:'Beard trim'}}));assert.ok(reviewForm.root.findByType('textarea').props.value.includes('Beard trim'));assert.ok(!reviewForm.root.findByType('textarea').props.value.includes('Haircut'));
+ await act(async()=>reviewForm.root.findByProps({'aria-label':'Review service (optional)'}).props.onChange({target:{value:'Beard trim'}}));assert.ok(reviewForm.root.findByType('textarea').props.value.includes('Beard trim'));assert.ok(!reviewForm.root.findByType('textarea').props.value.includes('Haircut'));
  await act(async()=>reviewForm.root.findAll((n:any)=>n.type==='button'&&demoText(n)==='Write my own review')[0].props.onClick());assert.equal(reviewForm.root.findByType('textarea').props.value,'');
  await act(async()=>reviewForm.root.findByType('textarea').props.onChange({target:{value:'A lovely salon visit with careful service.'}}));
- await act(async()=>reviewForm.root.findByType('select').props.onChange({target:{value:'Haircut'}}));assert.equal(reviewForm.root.findByType('textarea').props.value,'A lovely salon visit with careful service.');
+ await act(async()=>reviewForm.root.findByProps({'aria-label':'Review service (optional)'}).props.onChange({target:{value:'Haircut'}}));assert.equal(reviewForm.root.findByType('textarea').props.value,'A lovely salon visit with careful service.');
 
  const photoEvent={target:{files:[{name:'review.jpg',type:'image/jpeg',size:1024}],value:'review.jpg'}};
  await act(async()=>reviewForm.root.findAll((n:any)=>n.type==='input'&&n.props.type==='file')[0].props.onChange(photoEvent));

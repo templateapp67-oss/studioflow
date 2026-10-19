@@ -194,6 +194,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   // Step 2: Date & Time Slot
   const todayStr = new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
   const tomorrowStr=new Date(Date.parse(`${todayStr}T12:00:00Z`)+86400000).toISOString().slice(0,10);
+  const maxDateStr=new Date(Date.parse(`${todayStr}T12:00:00Z`)+90*86400000).toISOString().slice(0,10);
   const [bookingDate, setBookingDate] = useState<string>(todayStr);
   const [bookingTime, setBookingTime] = useState<string>('');
   const [availableSlots,setAvailableSlots]=useState<any[]>([]);
@@ -203,7 +204,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   useEffect(()=>{
     if(!isOpen)return;let active=true;setSlotsLoading(true);setSlotsError('');setBookingTime('');
     const slotsRequest=selectedExtras.length?supabase.rpc('studioflow_android_slots',{p_slug:profile.subdomain,p_services:bookingServiceIds,p_date:bookingDate,p_stylist:selectedStylist.id===ANY_SPECIALIST.id?'any':selectedStylist.id}):supabase.rpc('studioflow_available_slots',{p_slug:profile.subdomain,p_service_id:selectedService.id,p_date:bookingDate,p_stylist_id:selectedStylist.id});
-    slotsRequest.then(({data,error})=>{if(!active)return;setSlotsLoading(false);if(error){setSlotsError(error.message);setAvailableSlots([]);}else{setAvailableSlots((data||[]).map((s:any)=>({...s,available:s.available!==false})));if(initialSlot&&selectedService.id===initialService?.id&&bookingDate===initialSlot.date&&selectedStylist.id===initialSlot.stylistId&&(data||[]).some((s:any)=>s.time===initialSlot.time&&s.available!==false))setBookingTime(initialSlot.time);}});
+    slotsRequest.then(({data,error})=>{if(!active)return;setSlotsLoading(false);if(error){setSlotsError(error.message);setAvailableSlots([]);setBookingTime('');}else{setAvailableSlots((data||[]).map((s:any)=>({...s,available:s.available!==false})));if(initialSlot&&selectedService.id===initialService?.id&&bookingDate===initialSlot.date&&selectedStylist.id===initialSlot.stylistId&&(data||[]).some((s:any)=>s.time===initialSlot.time&&s.available!==false))setBookingTime(initialSlot.time);}});
     return()=>{active=false;};
   },[isOpen,profile.subdomain,selectedService.id,selectedStylist.id,bookingDate,slotRetry,bundleKey]);
 
@@ -213,6 +214,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [guestPhone, setGuestPhone] = useState<string>('');
   const [guestEmail, setGuestEmail] = useState<string>('');
   const [guestPhoneError, setGuestPhoneError] = useState<string>('');
+  const [guestNameError, setGuestNameError] = useState<string>('');
   const [rememberGuest, setRememberGuest] = useState<boolean>(true);
   const [isPrefilled, setIsPrefilled] = useState<boolean>(false);
 
@@ -276,9 +278,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   // Handle Proceed from Guest Info to OTP Step
   const handleProceedToOtp = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!guestName.trim()) {
+    if (guestName.trim().length < 2) {
+      setGuestNameError('Please enter your full name');
       return;
     }
+    setGuestNameError('');
     if (!validatePhone(guestPhone)) {
       return;
     }
@@ -672,6 +676,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       type="date" aria-label="Appointment date"
                       value={bookingDate}
                       min={todayStr}
+                      max={maxDateStr}
                       onChange={(e) => setBookingDate(e.target.value)}
                       className="w-full p-1.5 text-xs rounded-lg border border-slate-300 bg-white font-mono focus:ring-2 focus:ring-slate-900 outline-none"
                     />
@@ -798,11 +803,17 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     type="text"
                     required
                     value={guestName}
-                    onChange={(e) => setGuestName(e.target.value)}
+                    onChange={(e) => {setGuestName(e.target.value);if (guestNameError) setGuestNameError('');}}
                     placeholder="e.g. Aarti Sharma"
-                    className="w-full pl-9 pr-3 py-2.5 text-xs rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-slate-900 outline-none"
+                    className={"w-full pl-9 pr-3 py-2.5 text-xs rounded-xl border bg-white focus:ring-2 outline-none "+(guestNameError ? "border-rose-400 focus:ring-rose-400" : "border-slate-300 focus:ring-slate-900")}
                   />
                 </div>
+                {guestNameError && (
+                  <p className="text-[11px] text-rose-600 font-medium mt-1.5 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{guestNameError}</span>
+                  </p>
+                )}
               </div>
 
               {/* WhatsApp Mobile Number (Strict 10-Digit Indian Mobile) */}

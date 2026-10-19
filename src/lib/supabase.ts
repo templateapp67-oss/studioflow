@@ -12,7 +12,8 @@ export function captureReferral() {
    return code || localStorage.getItem('studioflow_pending_ref') || '';
   } catch {return code || '';}
 }
-export const websiteLink = (slug: string) => `${location.origin}/?site=${encodeURIComponent(slug)}`;
+const browserOrigin = () => (typeof location === 'undefined' ? '' : location.origin);
+export const websiteLink = (slug: string) => `${browserOrigin()}/?site=${encodeURIComponent(slug)}`;
 export async function uploadSalonImage(file: File) {
  if(!['image/jpeg','image/png','image/webp'].includes(file.type) || file.size>5*1024*1024) throw new Error('Use JPG, PNG or WebP images smaller than 5 MB.');
  const {data,error}=await supabase.auth.getUser();if(error||!data.user)throw new Error('Sign in before uploading photos.');

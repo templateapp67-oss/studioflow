@@ -1,3 +1,44 @@
+# StudioFlow / Nexora — Salon Website Builder & Platform
+
+AI-assisted salon website builder, owner workspace, public salon websites and the Nexora customer app (`/?app=1`), backed by Supabase (Auth, Postgres RPCs, Storage, Edge Functions).
+
+## Quickstart
+
+```bash
+npm install
+cp .env.example .env   # add GEMINI_API_KEY for live AI endpoints (optional)
+npm run dev            # app + /api/* on http://localhost:3000
+```
+
+Production: `npm run build && npm start` (serves `dist/` plus `/api/*` from `dist/server.cjs`).
+Static hosting (`.openai/hosting.json` → `dist/`): the UI stays fully usable; AI endpoints
+(`generate-bio`, `generate-promo-image`, `generate-promo-copy`, `ai-recommendations`) degrade to
+honest local fallbacks when the server is unreachable, and AI copy is only applied when the server
+reports `"source": "ai"`.
+
+### Production deployment (Vercel)
+
+`vercel.json` serves the SPA for every non-file route with immutable caching for `/assets/*`
+and must-revalidate caching for `index.html`, plus baseline security headers. Tenant
+routing resolves in this order: `?site=<slug>` (share links, QR codes), then the first
+hostname label as a subdomain alias (`<slug>.your-domain.com` — requires a wildcard `*`
+DNS record plus the wildcard domain in the Vercel project settings). Apex domains, `www`,
+and `*.vercel.app` preview URLs always serve the owner app; unknown subdomains render the
+"Website unavailable" state with a retry action instead of crashing. Fully custom per-salon
+domains remain an external DNS step (see `backend/GAP-AUDIT.md`). The `/api/*` AI endpoints
+need the Node server (`npm start`); on static-only hosting they 404 and every caller falls
+back to honest local results.
+
+## Checks
+
+- `npm test` — app + edge TypeScript checks, then every offline `scripts/verify-*.mjs` suite.
+- `npm run test:live` — live Supabase integration (needs network + a configured test project with
+  email autoconfirm; uses disposable accounts, cleans up media; delete its test users/rows after).
+- `npm run build` — production bundle; also emits `dist/app-version.json` for the update manager.
+
+Backend migrations, RLS model and publish flow: `backend/README.md`. Remaining external
+dependencies (payment provider, WhatsApp broadcast, AI credentials, custom domains, Auth email):
+`backend/GAP-AUDIT.md`.
 
 ### Automatic website and installed web-app updates
 

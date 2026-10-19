@@ -63,6 +63,8 @@ export const PromoStudio: React.FC<PromoStudioProps> = ({
   const [whatsappTemplate, setWhatsappTemplate] = useState<string>('');
   const [instagramCaption, setInstagramCaption] = useState<string>('');
   const [activeTemplateTab, setActiveTemplateTab] = useState<'whatsapp' | 'instagram'>('whatsapp');
+  const [enhancingCopy, setEnhancingCopy] = useState<boolean>(false);
+  const [copyNotice, setCopyNotice] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Hidden canvas for exporting high-res PNG image
@@ -163,16 +165,35 @@ ${bookingUrl}
     setProfile(prev=>JSON.stringify(prev.promoCampaign)===JSON.stringify(campaign)?prev:{...prev,promoCampaign:campaign});
   },[enabled,endsAt,lastMinute,selectedServiceId,campaignTheme,discountPercent,customOfferText,promoCode,headline,subtext,aspectRatio,aesthetic,logoUrl,generatedImageUrl,selectedCuratedPhotoUrl,customPrompt,setProfile]);
 
-  // Handle AI Image Generation
+  // Handle AI Image Generation (server when available, curated photography fallback)
   const handleGenerateImage = async () => {
     setIsGeneratingImage(true);
     setGenerationNotice(null);
-
-    setGeneratedImageUrl(null);
-    const photo = curatedPhotos.find(p => p.url !== selectedCuratedPhotoUrl) || curatedPhotos[0];
-    if (photo) { setSelectedCuratedPhotoUrl(photo.url); setGenerationNotice('Selected curated photography. Customize the text and export your banner below.'); }
-    else setGenerationNotice('Choose a photo before exporting your banner.');
-    setIsGeneratingImage(false);
+    const curatedFallback = () => {
+      setGeneratedImageUrl(null);
+      const photo = curatedPhotos.find(p => p.url !== selectedCuratedPhotoUrl) || curatedPhotos[0];
+      if (photo) { setSelectedCuratedPhotoUrl(photo.url); setGenerationNotice('Selected curated photography. Customize the text and export your banner below.'); }
+      else setGenerationNotice('Choose a photo before exporting your banner.');
+      setIsGeneratingImage(false);
+    };
+    try {
+      const res = await fetch('/api/generate-promo-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: customPrompt || undefined, serviceName: selectedService.name, category: selectedService.category, style: aesthetic, aspectRatio }),
+      });
+      if (!res.ok) throw new Error('Image service unavailable');
+      const data = await res.json();
+      if (data?.success && typeof data.imageUrl === 'string' && data.imageUrl) {
+        setGeneratedImageUrl(data.imageUrl);
+        setGenerationNotice('Custom promotional image generated. Customize the text and export your banner below.');
+        setIsGeneratingImage(false);
+        return;
+      }
+      throw new Error(data?.fallbackNotice || 'AI image unavailable');
+    } catch {
+      curatedFallback();
+    }
   };
 
   // Active Background Image Source
@@ -185,6 +206,34 @@ ${bookingUrl}
   const prepareReadyAd=async(download=false)=>{if(exportBusy)return;setExportBusy(true);setExportError('');const ticket=exportTicket.current;try{const blob=await renderCampaignBanner({imageUrl:activeBackgroundUrl,logoUrl,aspectRatio,salon:profile.businessName,city:profile.city,service:selectedService.name,headline,subtext,offer:customOfferText||`${discountPercent}% OFF`,price:discountedPrice,originalPrice:selectedService.price,code:promoCode,bookingUrl:websiteLink(profile.subdomain||''),accent:primaryAccentColor});if(ticket!==exportTicket.current)throw new Error('The ad changed while exporting. Prepare it again to use the latest version.');const file=new File([blob],`${(profile.businessName||'salon').replace(/[^a-z0-9]/gi,'-')}-ad.png`,{type:'image/png'});const ad={file,caption:whatsappTemplate};setReadyAd(ad);onAdReady?.(ad);if(download)downloadCampaignAd(file);showToast(download?'Ready ad PNG downloaded.':'Ready ad added to your customer campaign below.');}catch(e){setExportError(e instanceof Error?e.message:'Ad export failed. Please retry.');}finally{setExportBusy(false)}};
   const handleDownloadBanner=()=>void prepareReadyAd(true);
   const shareReadyAd=async()=>{if(!readyAd)return;try{if(navigator.canShare?.({files:[readyAd.file]})){await navigator.share({files:[readyAd.file],title:profile.businessName,text:readyAd.caption});showToast('Share screen opened. Choose WhatsApp and your opted-in recipients.');}else{downloadCampaignAd(readyAd.file);showToast('Ad downloaded. Open WhatsApp, choose your broadcast list, and attach this image.');}}catch(e){if(!(e instanceof Error&&e.name==='AbortError'))setExportError('Sharing could not open. Download the ad and attach it in WhatsApp.')}};
+
+  // Enhance promo copy with server AI when available; local templates stay untouched otherwise.
+  const enhanceCopyWithAI = async () => {
+    if (enhancingCopy) return;
+    setEnhancingCopy(true);
+    setCopyNotice(null);
+    try {
+      const res = await fetch('/api/generate-promo-copy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ businessName: profile.businessName, serviceName: selectedService.name, price: selectedService.price, offer: customOfferText, city: profile.city, discountPercent }),
+      });
+      if (!res.ok) throw new Error('Copy service unavailable');
+      const data = await res.json();
+      if (data?.source === 'ai' && typeof data.whatsapp === 'string' && typeof data.instagramCaption === 'string' && data.whatsapp && data.instagramCaption) {
+        setWhatsappTemplate(data.whatsapp);
+        setInstagramCaption(data.instagramCaption);
+        if (typeof data.headline === 'string' && data.headline) setHeadline(data.headline);
+        setCopyNotice('AI-enhanced copy applied. Review it before sharing.');
+      } else {
+        throw new Error('AI copy unavailable');
+      }
+    } catch {
+      setCopyNotice('AI copy is unavailable right now. Your salon templates below are ready to share.');
+    } finally {
+      setEnhancingCopy(false);
+    }
+  };
 
   // Share to WhatsApp Handler
   const handleShareToWhatsApp = () => {
@@ -637,6 +686,17 @@ ${bookingUrl}
           <div className="p-5 rounded-2xl border border-gray-200 bg-white flex flex-col gap-4 shadow-xs">
             
             {/* TABS: WHATSAPP VS INSTAGRAM */}
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => void enhanceCopyWithAI()}
+                disabled={enhancingCopy}
+                className="px-4 py-2 rounded-xl border border-fuchsia-300 bg-fuchsia-50 hover:bg-fuchsia-100 text-fuchsia-900 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-colors disabled:opacity-60"
+              >
+                <span className="material-symbols-outlined text-sm">auto_awesome</span>
+                <span>{enhancingCopy ? 'Enhancing…' : 'Enhance copy with AI'}</span>
+              </button>
+              {copyNotice && <span className="text-[11px] text-gray-600">{copyNotice}</span>}
+            </div>
             <div className="flex border-b border-gray-200 gap-4">
               <button
                 onClick={() => setActiveTemplateTab('whatsapp')}

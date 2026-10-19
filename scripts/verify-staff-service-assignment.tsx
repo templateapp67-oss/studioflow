@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {AddStaffModal} from '../src/components/AddStaffModal';
 import {TeamManagement} from '../src/components/TeamManagement';
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;
+(globalThis as any).document={body:{style:{}},activeElement:null,addEventListener(){},removeEventListener(){},createElement:()=>({style:{}})};
 const services:any=[{id:'cut-id',name:'Current Haircut',category:'Hair',price:450,durationMinutes:30},{id:'spa-id',name:'Current Spa',category:'Spa',price:900,durationMinutes:60}];
 let saved:any;let modal:any;
 await act(async()=>{modal=create(<AddStaffModal isOpen onClose={()=>{}} onAddStaff={s=>saved=s} services={services}/>)});

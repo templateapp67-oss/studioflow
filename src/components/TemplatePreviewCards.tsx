@@ -39,7 +39,7 @@ export function TemplatePreviewModal({templateId, onSelectPreview, onClose, onCh
   useEffect(() => {
     const el = dialog.current;
     if (el && !el.open) { if(typeof el.showModal==='function') el.showModal(); else el.setAttribute('open',''); }
-    const previousOverflow = document.body.style.overflow;
+    if(typeof document==='undefined')return;const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     const escape = (event:KeyboardEvent) => { if(event.key === 'Escape') { event.preventDefault(); onClose(); } };
     window.addEventListener('keydown', escape);

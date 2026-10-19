@@ -13,12 +13,9 @@ export function staffBookingServices(services:SalonService[],type:BusinessTypeId
  const seen=new Set<string>();
  return services.filter(service=>{
   const name=normalize(service.name),category=normalize(service.category);
-  if(!categories.has(category)||foreignNames.has(name))return false;
-  if(!ownIds.has(service.id)){
-   if(foreignIds.has(service.id)||foreignNames.has(name))return false;
-   if(foreign.some(t=>service.id.startsWith('template-pkg-'+t.id+'-')||name.startsWith(normalize(t.shortName)+' ')))return false;
-   if(!categories.has(category))return false;
-  }
+  if(foreignIds.has(service.id)||foreignNames.has(name))return false;
+  if(foreign.some(t=>service.id.startsWith('template-pkg-'+t.id+'-')||name.startsWith(normalize(t.shortName)+' ')))return false;
+  if(ownIds.has(service.id)&&!categories.has(category))return false;
   const key=JSON.stringify([name,category,service.price,service.durationMinutes]);
   if(seen.has(key))return false;seen.add(key);return true;
  });

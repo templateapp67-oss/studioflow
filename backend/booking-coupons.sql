@@ -55,12 +55,6 @@ CREATE OR REPLACE FUNCTION public.studioflow_coupon_quote(p_slug text, p_service
  SET search_path TO ''
 AS $function$select studioflow_private.coupon_quote(p_slug,p_services,p_code)$function$
 ;
-CREATE OR REPLACE FUNCTION public.studioflow_coupon_book(p_slug text, p_request jsonb)
- RETURNS jsonb
- LANGUAGE sql
- SET search_path TO ''
-AS $function$select studioflow_private.coupon_book(p_slug,p_request)$function$
-;
 CREATE OR REPLACE FUNCTION studioflow_private.consume_booking_coupon()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -128,6 +122,12 @@ begin
  update public.studioflow_bookings set payload=payload||jsonb_build_object('originalPrice',quote->'originalPrice','discountAmount',quote->'discountAmount','servicePrice',quote->'finalPrice','coupon',quote,'source','nexora_coupon_booking') where id=(result->>'id')::uuid returning * into b;
  return to_jsonb(b);
 end $function$
+;
+CREATE OR REPLACE FUNCTION public.studioflow_coupon_book(p_slug text, p_request jsonb)
+ RETURNS jsonb
+ LANGUAGE sql
+ SET search_path TO ''
+AS $function$select studioflow_private.coupon_book(p_slug,p_request)$function$
 ;
 drop trigger if exists studioflow_consume_booking_coupon on public.studioflow_bookings;
 create trigger studioflow_consume_booking_coupon after update of status on public.studioflow_bookings for each row execute function studioflow_private.consume_booking_coupon();

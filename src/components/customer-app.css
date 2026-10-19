@@ -256,3 +256,10 @@
 .cr-home-directory button:hover{filter:brightness(.97)}.cr-home-directory button:focus-visible{outline:2px solid #7253ed;outline-offset:2px}#customer-salon-stories{scroll-margin-top:16px}
 .cr-dark .cr-home-directory{background:#24202e;color:#f5efff;border-color:#50445e}.cr-dark .cr-directory-shortcuts button,.cr-dark .cr-directory-popular button{background:#2e273a;color:#eee3ff;border-color:#605174}.cr-dark .cr-directory-intro,.cr-dark .cr-directory-status{color:#c4b6d5!important}.cr-dark .cr-directory-search input{color:#f5efff}
 @media(max-width:400px){.cr-home-directory{padding:17px 13px}.cr-directory-shortcuts{gap:5px}.cr-directory-shortcuts button{font-size:9px;padding:6px 8px;min-height:33px}.cr-directory-search input{font-size:10px!important}}
+.cr-ai-recommendations h3{margin:0 0 8px}
+.cr-customer-reel{display:block;width:100%;border:1px solid var(--cr-line,#e2e8f0);border-radius:16px;overflow:hidden;background:#020617;color:#fff;cursor:pointer;padding:0;font:inherit;text-align:left}
+.cr-customer-reel img,.cr-customer-reel video{display:block;width:100%;aspect-ratio:9/16;object-fit:cover}
+.cr-details-dialog{max-width:560px}
+.cr-reference-avatar{padding:0;border-radius:50%}
+.cr-review-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto}
+.cr-map-legend i.demo{background:#64748b}

@@ -6,7 +6,7 @@ assert.equal(Object.keys(STAFF_TITLES).length,14);assert.deepEqual(staffCrop(160
 let revoked=0,draw:any[]=[],canvas:any;
 const originalCreate=URL.createObjectURL,originalRevoke=URL.revokeObjectURL;URL.createObjectURL=()=> 'blob:test';URL.revokeObjectURL=()=>{revoked++};
 (globalThis as any).Image=class{naturalWidth=1600;naturalHeight=900;onload:any;set src(_:string){queueMicrotask(()=>this.onload())}};
-(globalThis as any).document={createElement:()=>{canvas={getContext:()=>({fillRect(){},drawImage(...args:any[]){draw=args}}),toBlob:(fn:any)=>fn(new Blob(['jpeg'],{type:'image/jpeg'}))};return canvas}};
+(globalThis as any).document={createElement:()=>{canvas={getContext:()=>({fillRect(){},drawImage(...args:any[]){draw=args}}),toBlob:(fn:any)=>fn(new Blob(['jpeg'],{type:'image/jpeg'}))};return canvas},body:{style:{}},activeElement:null,addEventListener(){},removeEventListener(){}};
 const file=await prepareStaffPhoto(new File(['png'],'input.png',{type:'image/png'}));assert.equal(file.type,'image/jpeg');assert.equal(canvas.width,640);assert.equal(canvas.height,640);assert.deepEqual(draw.slice(1),[350,0,900,900,0,0,640,640]);assert.equal(revoked,1);await assert.rejects(prepareStaffPhoto(new File(['svg'],'bad.svg',{type:'image/svg+xml'})));URL.createObjectURL=originalCreate;URL.revokeObjectURL=originalRevoke;
 let uploads=0,fail=true,saved:any;let tree:any;
 (supabase.auth as any).getUser=async()=>({data:{user:{id:'test-owner'}},error:null});

@@ -30,7 +30,7 @@ create policy customer_preferences_insert on public.studioflow_customer_preferen
 create policy customer_preferences_update on public.studioflow_customer_preferences for update to authenticated using(customer_id=(select auth.uid())) with check(customer_id=(select auth.uid()));
 create policy customer_preferences_delete on public.studioflow_customer_preferences for delete to authenticated using(customer_id=(select auth.uid()));
 
-create function public.studioflow_customer_catalog() returns jsonb
+create or replace function public.studioflow_customer_catalog() returns jsonb
 language sql stable security invoker set search_path='' as $$
  select jsonb_build_object(
  'templates',(select coalesce(jsonb_agg(jsonb_build_object('id',t.id,'title',t.config->>'title','shortName',t.config->>'shortName','tagline',t.config->>'tagline','coverImageUrl',t.config->>'coverImageUrl','themePreset',t.config->>'themePreset','subCategories',coalesce(t.config->'subCategories','[]'::jsonb)) order by t.id),'[]'::jsonb) from public.studioflow_templates t where t.active),

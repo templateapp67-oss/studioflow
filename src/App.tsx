@@ -3,6 +3,7 @@ import type { Session } from '@supabase/supabase-js';
 import { workspaceSnapshot, sameWorkspace, mergeWorkspace, revisionConflict, conflictMessage, type ConflictChoice } from './lib/workspaceSync';
 import { useCustomerProfile } from './components/customer/useCustomerProfile';
 import { applyWebsiteFavicon, websiteFavicon } from './lib/websiteFavicon';
+import { resolveSiteSlug } from './lib/resolveSite';
 import { CATEGORY_TEMPLATES } from './categoryTemplates';
 import { requestedTemplate, templateDraft } from './lib/templateEntry';
 import { BusinessNotificationLink } from './components/BusinessNotificationLink';
@@ -48,7 +49,7 @@ function Application() {
  const [inviteEntry]=useState(isCustomerInviteEntry);
  const customerApp=new URLSearchParams(location.search).has('app');
  const customer=new URLSearchParams(location.search).has('customer');
- const slug=new URLSearchParams(location.search).get('site');
+ const slug=resolveSiteSlug(typeof location==='undefined'?undefined:location);
  const entryTemplate=requestedTemplate(location.search);
  const createTemplate=new URLSearchParams(location.search).get('create')==='1';
  const ownerSlug=new URLSearchParams(location.search).get('owner');
@@ -199,16 +200,16 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
 function PublishedWebsite({slug,session}:{slug:string;session:Session|null}){
  const customerAccount=useCustomerProfile(session,0);
  const [showBookings,setShowBookings]=useState(false);
- const [site,setSite]=useState<any>(null);const [error,setError]=useState('');
+ const [site,setSite]=useState<any>(null);const [error,setError]=useState('');const [retry,setRetry]=useState(0);
  const [authMode,setAuthMode]=useState<'signin'|'signup'|null>(null);
  useEffect(()=>{if(!authMode)return;const previous=document.activeElement as HTMLElement|null;const dialog=document.querySelector<HTMLElement>('[role=dialog][aria-label="Customer account"]');dialog?.querySelector<HTMLElement>('input,button')?.focus();const keyboard=(event:KeyboardEvent)=>{if(event.key==='Escape')setAuthMode(null);if(event.key==='Tab'&&dialog){const items=Array.from(dialog.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),a[href]'));const first=items[0],last=items.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}}};document.addEventListener('keydown',keyboard);return()=>{document.removeEventListener('keydown',keyboard);previous?.focus();};},[authMode]);
  useEffect(()=>{if(session)setAuthMode(null);},[session?.user.id]);
  useEffect(()=>{let active=true,loaded=false;
   const refresh=async()=>{if(document.hidden)return;const {data,error}=await supabase.from('studioflow_websites').select('content').eq('slug',slug).maybeSingle();if(!active)return;if(error||!data){if(!loaded)setError(error?.message||'This salon website is not published.');return;}loaded=true;setError('');setSite((prev:any)=>JSON.stringify(prev)===JSON.stringify(data.content)?prev:data.content);};
   void refresh();const channel=supabase.channel(`public-site-${slug}`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'studioflow_websites',filter:`slug=eq.${slug}`},()=>void refresh()).subscribe();const interval=setInterval(()=>void refresh(),15000);window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',refresh);return()=>{active=false;void supabase.removeChannel(channel);clearInterval(interval);window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',refresh);};
- },[slug]);
+ },[slug,retry]);
  useEffect(()=>{if(!site)return;const previousTitle=document.title;document.title=site.profile?.businessName||'Salon website';const restoreIcon=applyWebsiteFavicon(document,websiteFavicon(site.branding,site.profile));return()=>{document.title=previousTitle;restoreIcon();};},[site?.profile?.businessName,site?.branding?.faviconUrl,site?.profile?.logoUrl]);
- if(error)return <main className="p-10"><h1 className="text-2xl font-bold">Website unavailable</h1><p>{error}</p><a href="/">Open StudioFlow</a></main>;
+ if(error)return <main className="p-10"><h1 className="text-2xl font-bold">Website unavailable</h1><p>{error}</p><div className="mt-4 flex gap-3"><button className="primary-action" onClick={()=>{setError('');setRetry(r=>r+1);}}>Try again</button><a className="secondary-action" href="/">Open StudioFlow</a></div></main>;
  if(!site)return <Loading text="Loading salon website…" />;
  const book=async(apt:Appointment)=>{if(!session){setAuthMode('signin');throw new Error('Please log in or create a customer account to continue your booking.');}const {data,error}=await supabase.rpc(apt.couponCode?'studioflow_coupon_book':'studioflow_book',{p_slug:slug,p_request:apt});if(error)throw error;return data?.payload||data;};
  const content=normalizeWorkspace({...site,extras:{gallery:site.gallery,policies:site.policies,whiteLabel:site.branding}});
