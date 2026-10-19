@@ -13,7 +13,7 @@ begin
  return result;
 end $$;
 revoke all on function studioflow_private.seed_starter_packages(jsonb,jsonb) from public,anon,authenticated;
-create function studioflow_private.initialize_starter_packages() returns trigger language plpgsql security definer set search_path='' as $$
+create or replace function studioflow_private.initialize_starter_packages() returns trigger language plpgsql security definer set search_path='' as $$
 declare template text:=coalesce(new.draft->'profile'->>'businessType',new.template_id,'hair_salon'); candidates jsonb; menu jsonb;
 begin
  if auth.uid() is not null and auth.uid()<>new.user_id then raise exception 'Own workspace required' using errcode='42501';end if;
@@ -27,6 +27,7 @@ begin
  return new;
 end $$;
 revoke all on function studioflow_private.initialize_starter_packages() from public,anon,authenticated;
+drop trigger if exists studioflow_initialize_packages on public.studioflow_accounts;
 create trigger studioflow_initialize_packages before insert or update of draft on public.studioflow_accounts for each row execute function studioflow_private.initialize_starter_packages();
 -- Existing owner menus and published snapshots receive real service IDs. Existing
 -- offerings are preserved, and the marker prevents deleted packages resurfacing.

@@ -283,10 +283,16 @@ Return strictly valid JSON in this format:
       server: { middlewareMode: true },
       appType: "spa",
     });
+    app.all("/api/*", (_req, res) => {
+      res.status(404).json({error:'Unknown API endpoint'});
+    });
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
+    app.all("/api/*", (_req, res) => {
+      res.status(404).json({error:'Unknown API endpoint'});
+    });
     app.get("*", (_req, res) => {
       res.sendFile(path.join(distPath, "index.html"));
     });

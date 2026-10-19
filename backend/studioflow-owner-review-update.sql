@@ -1,5 +1,5 @@
 -- Owners may submit a clearly attributed owner update; verified visit is reserved for customers.
-alter table public.studioflow_reviews drop constraint studioflow_reviews_check;
+alter table public.studioflow_reviews drop constraint if exists studioflow_reviews_check;
 create or replace function studioflow_review_private.review_json(r public.studioflow_reviews) returns jsonb
 language sql stable security definer set search_path='' as $$
  select jsonb_build_object('id',r.id,'name',r.name,'rating',r.rating,'comment',r.comment,'serviceName',r.service_name,'imageUrl',r.image_url,'date',r.created_at,'isMine',r.customer_id=auth.uid(),'isOwnerReview',r.customer_id=r.owner_id,'verified',r.customer_id<>r.owner_id and exists(select 1 from public.studioflow_bookings b where b.owner_id=r.owner_id and b.customer_id=r.customer_id and b.status='completed'));

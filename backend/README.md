@@ -3,21 +3,27 @@
 Project: zilwgiuiygqqardzutxi. Uses the existing Auth, profiles, growth_partners, growth_onboarding and partner_referrals tables. StudioFlow drafts and published content have separate tables so the other Nexora editor is not overwritten. Business identity is mirrored into profiles.
 
 Applied SQL, in order:
-1. studioflow-schema.sql
-2. studioflow-template-catalog.sql (14 templates present in this Site)
-3. studioflow-backend-validation.sql
-4. studioflow-storage-and-booking-status.sql
-5. studioflow-availability.sql
-6. studioflow-book-available-slot.sql
-7. studioflow-save-conflict.sql
-8. studioflow-audit-fixes.sql
-9. studioflow-dashboard-wiring.sql
+1. studioflow-shared-tables.sql (profiles, growth_*, partner_referrals; extends shared tables, never replaces)
+2. studioflow-schema.sql
+3. studioflow-template-catalog.sql (14 templates present in this Site)
+4. studioflow-backend-validation.sql
+5. studioflow-storage-and-booking-status.sql
+6. studioflow-availability.sql
+7. studioflow-book-available-slot.sql
+8. studioflow-save-conflict.sql
+9. studioflow-audit-fixes.sql
+10. studioflow-dashboard-wiring.sql
+11. studioflow-android-foundation.sql (android schema, customer tables, profile/referral/notify RPCs)
+12. All remaining feature migrations
+13. studioflow-customer-wiring-gaps.sql (multi-service slots/book/reschedule cores, storage, realtime)
+14. booking-coupons.sql, booking-add-ons.sql, customer-demo-bookings.sql (bind to the multi-service cores)
+15. customer-discovery-sections.sql, starter-packages-onboarding-guard.sql (refinements that must win last)
 
 Drafts and customer details are private. Only sanitized published content and the template catalog are publicly readable. Owner writes and public bookings use RPC wrappers with private, restricted database implementations. Workspace saves use revision checks to prevent lost updates across tabs. Images use owner paths in the public studioflow-media bucket.
 
 Referral codes come from growth_partners. Signup metadata and the incoming ref parameter are validated and linked once, and start/publish progress updates the shared referral dashboard. No reward amounts are fabricated.
 
-Run `node scripts/verify-supabase.mjs` only against this configured test target with email autoconfirm enabled. It uses disposable test accounts and verifies real signup/login, persistence, RLS, publish, referral, bookings and storage. It signs out and removes test media; delete its exact test users and booking rows afterward. `studioflow-verification.sql` verifies database behavior inside a rolled-back transaction without persistent QA rows.
+Run `node scripts/verify-sql-migrations.mjs` to prove every migration applies in dependency order against a stubbed Supabase surface (offline). Run `node scripts/verify-supabase.mjs` only against this configured test target with email autoconfirm enabled. It uses disposable test accounts and verifies real signup/login, persistence, RLS, publish, referral, bookings and storage. It signs out and removes test media; delete its exact test users and booking rows afterward. `studioflow-verification.sql` verifies database behavior inside a rolled-back transaction without persistent QA rows.
 
 Payments: no live payment provider is configured. Booking prices come from published services; amountPaid stays zero. Deposit-required requests remain pending and cannot be manually confirmed. Cash-at-salon requests can be confirmed without a deposit. Refunds, online charging and commission settlement require a verified payment provider integration.
 
