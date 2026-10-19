@@ -42,7 +42,7 @@ const button=(root:any,label:string)=>root.findAll((node:any)=>node.type==='butt
 let modal:any;
 try{
  await act(async()=>{modal=create(<BookingModal isOpen onClose={()=>{}} profile={{...INITIAL_SALON_PROFILE,subdomain:'fixture-salon'}} initialService={services[0]} services={services} stylists={[{...CATEGORY_TEMPLATES.hair_salon.stylists[0],id:'stylist'}]} onAddAppointment={async apt=>{reservationCount++;return {...apt,id:'fixture-booking'};}}/>);});
- const option=modal.root.findAll((node:any)=>node.type==='div'&&node.props.onClick&&text(node).includes('Second Service')).at(-1);
+ const option=modal.root.findAll((node:any)=>node.type==='button'&&node.props.onClick&&text(node).includes('Second Service')).at(-1);
  await act(async()=>option.props.onClick());
  await act(async()=>button(modal.root,'Continue to Date').props.onClick());
  assert.ok(text(modal.toJSON()).includes('Second Service'),'Customer service selection must survive rerender');

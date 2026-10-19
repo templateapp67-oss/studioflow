@@ -1,17 +1,20 @@
 {
-  "name": "react-example",
+  "name": "studioflow",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
     "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
-    "start": "node server.ts",
+    "start": "node dist/server.cjs",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "test:address": "node --import tsx scripts/verify-address-stability.tsx",
-    "test:wiring": "node scripts/verify-website-wiring.mjs"
+    "lint:edge": "tsc -p tsconfig.edge.json --noEmit",
+    "test": "npm run lint && npm run lint:edge && npm run build && node scripts/run-all-verifications.mjs",
+    "test:address": "node scripts/verify-address-stability.mjs",
+    "test:wiring": "node scripts/verify-website-wiring.mjs",
+    "test:live": "node scripts/verify-supabase.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

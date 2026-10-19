@@ -226,7 +226,6 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
     }
 
     if(saveLock.current||photoBusy)return;
-    if(!bookingServices.length){setFormError('Add a service for this template in Step 5 before assigning staff.');return;}
     if(!primaryRole.trim()){setFormError('Designation is required.');return}
     if(!photoFile&&!validStaffUrl(selectedPhoto)){setFormError('Enter a valid image URL or select a photo.');return}
     if(experienceYears!==''&&(!Number.isFinite(Number(experienceYears))||Number(experienceYears)<0||Number(experienceYears)>80)){setFormError('Experience must be between 0 and 80 years.');return}

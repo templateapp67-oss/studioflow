@@ -16,7 +16,7 @@ export function WebsiteSections({profile,services,onBook,onManage,policies,loyal
  const promotionNow=usePromotionClock();
  const canManage=!readOnly&&!!onManage;
  const [shareNotice,setShareNotice]=useState(''),[linkCopied,setLinkCopied]=useState(false),[manualCopy,setManualCopy]=useState(false);
- const shareUrl=profile.subdomain?websiteLink(profile.subdomain):location.href;
+ const shareUrl=profile.subdomain?websiteLink(profile.subdomain):(typeof location==='undefined'?'':location.href);
  const copyLink=async()=>{setShareNotice('');setLinkCopied(false);setManualCopy(false);try{await navigator.clipboard.writeText(shareUrl);setLinkCopied(true);setShareNotice('Link copied! Share this salon link with your friends.');}catch{setManualCopy(true);setShareNotice('Automatic copy did not work. Select and copy the link below.');}};
  const share=async()=>{if(!navigator.share){await copyLink();return;}setShareNotice('');setLinkCopied(false);setManualCopy(false);try{await navigator.share({title:profile.businessName,url:shareUrl});setShareNotice('Salon link shared. Thank you!');}catch(e){if(!(e instanceof Error&&e.name==='AbortError')){setManualCopy(true);setShareNotice('Sharing did not work. Copy the salon link below.');}}};
  const allVisible=websiteSections(profile);

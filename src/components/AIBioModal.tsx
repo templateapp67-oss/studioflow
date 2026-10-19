@@ -27,14 +27,32 @@ export const AIBioModal: React.FC<AIBioModalProps> = ({
 
   const handleGenerate = async () => {
     setLoading(true);
-    // High quality fallback auto-composition
-    setTimeout(() => {
+    const fallback = () => {
       const generatedTagline = `Redefining ${businessType.replace('_', ' ')} with bespoke luxury & precision care.`;
       const generatedBio = `Welcome to ${businessName || 'our studio'}, founded by ${ownerName || 'our team'}. We are a modern sanctuary dedicated to ${specialties || 'exceptional salon services'}. Blending a ${vibe.toLowerCase()} aesthetic with high-performance botanical products, our mission is to make every client feel renewed, confident, and celebrated.`;
       onApply(generatedBio, generatedTagline);
       setLoading(false);
       onClose();
-    }, 1200);
+    };
+    try {
+      const res = await fetch('/api/generate-bio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ businessName, businessType, ownerName, vibe, specialties }),
+      });
+      if (!res.ok) throw new Error('Bio service unavailable');
+      const data = await res.json();
+      if (typeof data?.bio === 'string' && typeof data?.tagline === 'string' && data.bio && data.tagline) {
+        onApply(data.bio, data.tagline);
+        setLoading(false);
+        onClose();
+        return;
+      }
+      throw new Error('Empty bio response');
+    } catch {
+      // Server/AI unavailable (offline or static hosting): use local composition.
+      setTimeout(fallback, 600);
+    }
   };
 
   return (

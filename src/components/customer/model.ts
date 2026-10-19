@@ -7,7 +7,7 @@ export const menu=(s:Salon)=>Array.isArray(s.content.services)?s.content.service
 export const staff=(s:Salon)=>Array.isArray(s.content.stylists)?s.content.stylists:[];
 export const rupees=(n:unknown)=>'₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2});
 export const starting=(s:Salon)=>{const p=menu(s).map(x=>Number(x.price)).filter(Number.isFinite);return p.length?Math.min(...p):null;};
-export const salonLink=(slug:string)=>location.origin+'/?app=1&site='+encodeURIComponent(slug);
+export const salonLink=(slug:string)=>(typeof location==='undefined'?'':location.origin)+'/?app=1&site='+encodeURIComponent(slug);
 export const istDate=(offset=0)=>{const now=new Date(Date.now()+offset*86400000);return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).format(now);};
 export const dateLabel=(date:string)=>new Date(date+'T12:00:00+05:30').toLocaleDateString('en-IN',{day:'numeric',month:'short',weekday:'short'});
 export const advance=(amount:number)=>Math.ceil(Math.round(amount*100)/4)/100;

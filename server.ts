@@ -25,8 +25,9 @@ async function startServer() {
       if (!apiKey) {
         // Fallback response if key is missing
         return res.json({
-          tagline: `Elevating ${businessType.replace('_', ' ')} with bespoke luxury & precision care.`,
-          bio: `Welcome to ${businessName}, founded by ${ownerName}. We are a modern sanctuary dedicated to ${specialties || 'exceptional salon services'}. Blending a ${vibe || 'luxury'} aesthetic with high-performance organic products, our mission is to make every client feel renewed and confident.`
+          source: "template",
+          tagline: `Elevating ${(businessType || "salon").replace('_', ' ')} with bespoke luxury & precision care.`,
+          bio: `Welcome to ${businessName || "our studio"}, founded by ${ownerName || "our team"}. We are a modern sanctuary dedicated to ${specialties || 'exceptional salon services'}. Blending a ${vibe || 'luxury'} aesthetic with high-performance organic products, our mission is to make every client feel renewed and confident.`
         });
       }
 
@@ -59,7 +60,7 @@ Return strictly valid JSON in this format:
       const text = response.text;
       if (text) {
         const parsed = JSON.parse(text);
-        return res.json(parsed);
+        return res.json({ source: "ai", ...parsed });
       } else {
         throw new Error('Empty AI response');
       }
@@ -67,6 +68,7 @@ Return strictly valid JSON in this format:
       console.error('Gemini generation error:', err);
       // Fallback
       return res.json({
+        source: "template",
         tagline: `Redefining beauty & relaxation in a luxury space.`,
         bio: `Welcome to ${req.body.businessName || 'our studio'}. Our passionate team offers bespoke salon treatments designed to accentuate your unique natural style.`
       });
@@ -197,12 +199,13 @@ Return strictly JSON with the following keys:
 
       const text = response.text;
       if (text) {
-        return res.json(JSON.parse(text));
+        return res.json({ source: "ai", ...JSON.parse(text) });
       }
       throw new Error("Empty copy response");
     } catch (err) {
       console.error("Copy generation error:", err);
       return res.json({
+        source: "template",
         whatsapp: `✨ *EXCLUSIVE SALON OFFER* ✨\n\nHey beautiful! Treat yourself to *${req.body.serviceName || 'our signature treatment'}* at *${req.body.businessName || 'our salon'}*.\n\n🎉 *Special Deal*: ${req.body.offer || 'Exclusive Discount This Week'}\n💰 *Price*: ₹${req.body.price || 'Special Rate'}\n\n📲 Book your appointment now!`,
         instagramCaption: `✨ Elevate your everyday glow! ✨\n\nBook your *${req.body.serviceName || 'treatment'}* today at ${req.body.businessName || 'our studio'}.\n\n👇 Tap link in bio to book your appointment!\n\n#Salon #Beauty #SelfCare #SalonDeals`,
         headline: `Special Offer: ${req.body.serviceName || 'Signature Service'}`,
