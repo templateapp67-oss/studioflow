@@ -27,6 +27,20 @@ jobs:
         with:
           packages: platform-tools
           log-accepted-android-sdk-licenses: false
+      - name: Enable hardware accelerated Android
+        run: |
+          lscpu
+          id
+          ls -l /dev/kvm || true
+          if [ ! -c /dev/kvm ]; then
+            sudo modprobe kvm || true
+            sudo modprobe kvm_intel || sudo modprobe kvm_amd || true
+          fi
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          ls -l /dev/kvm
+          test -r /dev/kvm && test -w /dev/kvm
       - name: Prepare ephemeral QA encryption key
         run: |
           python3 -m pip install --quiet cryptography
@@ -56,20 +70,6 @@ jobs:
           sed -i 's/versionCode = 5; versionName = "1.2.1-qa-baseline"/versionCode = 6; versionName = "1.2.2"/' app/build.gradle.kts
           node android-web/verify-bridge.mjs
           bash gradlew --no-daemon --console=plain --max-workers=2 :app:assembleDebug :app:testDebugUnitTest :app:assembleDebugAndroidTest
-      - name: Enable hardware accelerated Android
-        run: |
-          lscpu
-          id
-          ls -l /dev/kvm || true
-          if [ ! -c /dev/kvm ]; then
-            sudo modprobe kvm || true
-            sudo modprobe kvm_intel || sudo modprobe kvm_amd || true
-          fi
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
-          ls -l /dev/kvm
-          test -r /dev/kvm && test -w /dev/kvm
       - uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
