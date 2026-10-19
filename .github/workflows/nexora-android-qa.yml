@@ -53,7 +53,7 @@ jobs:
           retention-days: 1
       - name: Prepare source and temporary signing identity
         run: |
-          echo 'f8ad7bd44255d835553a342573237948f621394db8582bfa6a326c5eba58a08d  ci/android/Nexora-Android-source.zip' | sha256sum -c -
+          echo 'b0d059ba0dd779066d834fee34fa285bce93554e24ec2d82d1e92342d50de55c  ci/android/Nexora-Android-source.zip' | sha256sum -c -
           unzip -q ci/android/Nexora-Android-source.zip -d android
           cp -R ci/android/overrides/. android/Nexora-Android/
           sed -i 's/networkTimeout=10000/networkTimeout=120000/' android/Nexora-Android/gradle/wrapper/gradle-wrapper.properties

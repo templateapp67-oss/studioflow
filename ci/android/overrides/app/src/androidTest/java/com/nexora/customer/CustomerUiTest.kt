@@ -67,6 +67,7 @@ class CustomerUiTest {
             until(s,"Selected slot not ready","!!Array.from(document.querySelectorAll('button')).find(x=>x.textContent.trim()==='Confirm Booking'&&!x.disabled)")
             js(s,"Array.from(document.querySelectorAll('button')).find(x=>x.textContent.trim()==='Confirm Booking').click()")
             until(s,"Booking summary missing","document.body.innerText.includes('25% Advance Deposit (Pay Now)')&&document.body.innerText.includes('Pay at Salon)')")
+            until(s,"Summary header hides the booking content","!document.querySelector('.cr-dialog-header .sf-coupon-box')&&document.querySelectorAll('[aria-label=\"Booking summary\"] .sf-coupon-box').length===1&&document.querySelector('.cr-dialog-header').getBoundingClientRect().height<120&&document.querySelector('.cr-dialog-content').getBoundingClientRect().height>180")
             screenshot("booking-summary")
             // Stop at the summary. Payment/reservation controls are intentionally never clicked.
             js(s,"document.querySelector('button[aria-label=\\\"Close booking\\\"]')?.click()")
