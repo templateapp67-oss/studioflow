@@ -1,0 +1,83 @@
+name: Nexora Android 15 verification
+on:
+  push:
+    branches: [codex/android-1.2.2-device-qa]
+    paths:
+      - .github/workflows/nexora-android-qa.yml
+      - ci/android/Nexora-Android-source.zip
+      - ci/android/ci-key.py
+      - ci/android/ci-tests.py
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: nexora-android-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Prepare ephemeral QA encryption key
+        run: |
+          python3 -m pip install --quiet cryptography
+          python3 ci/android/ci-key.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qa-public-key-${{ github.run_id }}-${{ github.run_attempt }}
+          path: qa-public-key/
+          retention-days: 1
+      - name: Prepare source and temporary signing identity
+        run: |
+          echo 'f8ad7bd44255d835553a342573237948f621394db8582bfa6a326c5eba58a08d  ci/android/Nexora-Android-source.zip' | sha256sum -c -
+          unzip -q ci/android/Nexora-Android-source.zip -d android
+          sed -i 's/networkTimeout=10000/networkTimeout=120000/' android/Nexora-Android/gradle/wrapper/gradle-wrapper.properties
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+          keytool -genkeypair -keystore "$RUNNER_TEMP/ci-signing.keystore" -storepass android -keypass android -alias AndroidDebugKey -keyalg RSA -keysize 2048 -validity 2 -dname 'CN=Nexora Ephemeral QA'
+      - name: Build baseline and updated application
+        env:
+          NEXORA_DEBUG_KEYSTORE: ${{ runner.temp }}/ci-signing.keystore
+        run: |
+          cd android/Nexora-Android
+          sed -i 's/versionCode = 6; versionName = "1.2.2"/versionCode = 5; versionName = "1.2.1-qa-baseline"/' app/build.gradle.kts
+          bash gradlew --no-daemon --console=plain --max-workers=2 :app:assembleDebug
+          cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/ci-baseline.apk"
+          sed -i 's/versionCode = 5; versionName = "1.2.1-qa-baseline"/versionCode = 6; versionName = "1.2.2"/' app/build.gradle.kts
+          node android-web/verify-bridge.mjs
+          bash gradlew --no-daemon --console=plain --max-workers=2 :app:assembleDebug :app:testDebugUnitTest :app:assembleDebugAndroidTest
+      - name: Enable hardware accelerated Android
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          test -r /dev/kvm && test -w /dev/kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          ram-size: 3072M
+          heap-size: 512M
+          cores: 2
+          emulator-boot-timeout: 300
+          disable-animations: false
+          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu software -feature -Vulkan -accel on -camera-back none
+          script: python3 ci/android/ci-tests.py
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexora-android-qa-${{ github.run_id }}-${{ github.run_attempt }}
+          retention-days: 7
+          path: |
+            android/Nexora-Android/app/build/outputs/apk/debug/app-debug.apk
+            android/Nexora-Android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+            android/Nexora-Android/app/build/test-results/testDebugUnitTest/
+            qa-results/
+      - if: always()
+        run: rm -f "$RUNNER_TEMP/nexora-ci-private.pem" "$RUNNER_TEMP/ci-signing.keystore"
