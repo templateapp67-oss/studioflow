@@ -23,6 +23,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - uses: android-actions/setup-android@v3
       - name: Prepare ephemeral QA encryption key
         run: |
           python3 -m pip install --quiet cryptography
