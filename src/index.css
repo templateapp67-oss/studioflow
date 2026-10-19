@@ -248,6 +248,13 @@
 .service-cropper .service-editor-actions { gap:8px; }
 
 .service-editor-dialog select { width:100%; min-height:46px; font-size:16px; font-weight:400; padding:10px 12px; border:1px solid #cbd5e1; border-radius:10px; background:white; color:#0f172a; }
+
+.workspace-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 0 1rem;
+}
 .service-editor-dialog select:disabled { opacity:.6; }
 .service-description-choices { display:flex; flex-direction:column; gap:10px; min-width:0; }
 .service-description-choices legend { font-size:14px; font-weight:600; margin-bottom:10px; }

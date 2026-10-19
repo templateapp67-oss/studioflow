@@ -1,7 +1,7 @@
 import React,{useState,useRef,useEffect} from 'react';
 import {Search,SlidersHorizontal,CalendarDays,Clock,Tag,Play} from 'lucide-react';
 import {menu,rupees,type Salon} from './model';
-export type HomeSearchAction={query:string;today?:boolean;evening?:boolean;offers?:boolean;advanced?:boolean};
+export type HomeSearchAction={query:string;today?:boolean;evening?:boolean;offers?:boolean;advanced?:boolean;group?:string};
 export function CustomerHomeSearch({name,salons,loading,error,query,setQuery,search,reels,open,book}:{name:string;salons:Salon[];loading:boolean;error:string;query:string;setQuery:(value:string)=>void;search:(action:HomeSearchAction)=>void;reels:()=>void;open?:(salon:Salon)=>void;book?:(salon:Salon,ids?:string[])=>void}){
  const [today,setToday]=useState(false),[evening,setEvening]=useState(false),[offers,setOffers]=useState(false);
  const [suggestions,setSuggestions]=useState(false);const container=useRef<HTMLDivElement>(null);
