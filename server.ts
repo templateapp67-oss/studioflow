@@ -211,6 +211,69 @@ Return strictly JSON with the following keys:
     }
   });
 
+  // AI Personalized Recommendations Endpoint with Gemini
+  app.post("/api/ai-recommendations", async (req, res) => {
+    try {
+      const { bookingHistory = [], favorites = [], availableServices = [] } = req.body;
+      const apiKey = process.env.GEMINI_API_KEY;
+
+      if (!apiKey || availableServices.length === 0) {
+        return res.json({
+          recommendations: availableServices.slice(0, 4).map((s: any) => ({
+            salonSlug: s.salonSlug,
+            serviceId: s.serviceId,
+            serviceName: s.serviceName,
+            aiReason: `Based on your interest in ${s.category || 'luxury wellness'}, this signature treatment is curated for you.`
+          }))
+        });
+      }
+
+      const ai = new GoogleGenAI({
+        apiKey,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          },
+        },
+      });
+
+      const prompt = `You are an AI beauty and wellness concierge for Nexora salon platform.
+User's past booking history: ${JSON.stringify(bookingHistory.slice(0, 10))}
+User's favorite salons: ${JSON.stringify(favorites)}
+Available services across salons: ${JSON.stringify(availableServices.slice(0, 30).map((s: any, i: number) => ({ id: i, salonSlug: s.salonSlug, serviceId: s.serviceId, name: s.serviceName, category: s.category, price: s.price })))}
+
+Select up to 4 best matching services from the available services based on the user's history and preferences, and write a short, engaging, personalized AI recommendation reason ("aiReason") for each.
+Return strictly valid JSON in this format:
+{"recommendations": [{"index": number, "aiReason": "..."}]}`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json'
+        }
+      });
+
+      const text = response.text;
+      if (text) {
+        const parsed = JSON.parse(text);
+        return res.json(parsed);
+      } else {
+        throw new Error("Empty AI recommendations response");
+      }
+    } catch (err) {
+      console.error("AI recommendations error:", err);
+      return res.json({
+        recommendations: (req.body.availableServices || []).slice(0, 4).map((s: any) => ({
+          salonSlug: s.salonSlug,
+          serviceId: s.serviceId,
+          serviceName: s.serviceName,
+          aiReason: `Curated recommendation matching your style and beauty preferences.`
+        }))
+      });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
