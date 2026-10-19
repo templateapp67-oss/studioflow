@@ -1,0 +1,7 @@
+{
+  "baseline_commit": "a53fde930dcdd00192bd0e0b83ef98fa5f46862c",
+  "baseline_exit_code": 1,
+  "same_preexisting_assertion": true,
+  "changed_component": "customer/BookingFlow.tsx",
+  "failing_assertion_component": "SalonWebsitePreview"
+}

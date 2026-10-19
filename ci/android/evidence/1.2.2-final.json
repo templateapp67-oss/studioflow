@@ -1,0 +1,55 @@
+{
+  "android_api": 35,
+  "physical_redmi_test": false,
+  "baseline_kind": "Same 1.2.2 source with code5 for package-update state retention; not historical 1.1.1 binary",
+  "tests": {
+    "upgrade-seed": {
+      "passed": true,
+      "count": 1
+    },
+    "upgrade-retention": {
+      "passed": true,
+      "count": 1
+    },
+    "guest-ui": {
+      "passed": true,
+      "count": 6
+    },
+    "legacy-session": {
+      "passed": true,
+      "count": 1
+    },
+    "authenticated-ui": {
+      "passed": true,
+      "count": 1
+    }
+  },
+  "native_runtime_passed": true,
+  "version_name": "1.2.2",
+  "version_code": 6,
+  "native_tests_passed": 10,
+  "unit_tests_passed": 14,
+  "bridge_tests_passed": 6,
+  "website_assets_matched": 21,
+  "signer_matches_original_apk": true,
+  "tested_payload_unchanged_after_signing": true,
+  "apk_sha256": "da8648a6e3e92aecbaf252e5d4f9d9c8f6e496a066a746ed996d015d95c2b013",
+  "apk_bytes": 26744740,
+  "final_apk_signed_with_original_key": true,
+  "app_crash_or_anr_observed": false,
+  "unrelated_emulator_launcher_boot_anr_observed": false,
+  "website_version": 142,
+  "website_source_commit": "1de78028b436abd27b7f3f165820e6a293220409",
+  "android_runtime_run_id": 39231474482,
+  "android_runtime_commit": "c18c409ca1d7f39ad236c066c7681ff1018ef948",
+  "source_zip_sha256": "b0d059ba0dd779066d834fee34fa285bce93554e24ec2d82d1e92342d50de55c",
+  "release_library_version": 3,
+  "apk_original_package_version_code": 3,
+  "final_apk_package_version_code": 6,
+  "ci_production_signing_key_used": false,
+  "qa_fixture_deleted": true,
+  "qa_sessions_revoked": true,
+  "bookings_created": 0,
+  "payments_created": 0,
+  "messages_sent": 0
+}
