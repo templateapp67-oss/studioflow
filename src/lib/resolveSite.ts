@@ -38,7 +38,7 @@ export function resolveSiteSlug(loc?: SiteLocation | null): string | null {
     if (query && query.trim()) return query.trim();
   }
   const host = hostnameFrom(loc || {});
-  if (!host || host === 'localhost' || host.endsWith('.localhost')) return null;
+  if (!host || host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.run.app')) return null;
   if (/^\d+\.\d+\.\d+\.\d+$/.test(host) || host.includes(':')) return null;
   if (PLATFORM_SUFFIXES.some((suffix) => host.endsWith(suffix))) return null;
   const parts = host.split('.');
