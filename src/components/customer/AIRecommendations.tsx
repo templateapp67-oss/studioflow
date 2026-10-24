@@ -1,5 +1,5 @@
 import React,{useEffect,useState} from 'react';
-import {Sparkles,Clock,Scissors,ArrowRight,RefreshCw,Lightbulb} from 'lucide-react';
+import {Sparkles,Clock,Scissors,ArrowRight,RefreshCw} from 'lucide-react';
 import {Salon,Booking,Service,menu,rupees} from './model';
 import {DiscoveryPhoto} from './DiscoverySections';
 import {barberServiceImage,BARBER_REFERENCE_IMAGES} from '../../lib/barberReference';
@@ -105,12 +105,12 @@ export function CustomerAIRecommendations({salons,favorites,bookings,open,book}:
   if(items.length === 0 && !loading) return null;
 
   return (
-    <section className="cr-recommendations cr-ai-recommendations" style={{background: 'linear-gradient(135deg, rgba(99,102,241,0.06) 0%, rgba(168,85,247,0.06) 100%)', borderRadius: '24px', padding: '24px', margin: '24px 0', border: '1px solid rgba(99,102,241,0.15)'}}>
+    <section className="cr-recommendations cr-ai-recommendations">
       <div className="cr-row">
         <div className="cr-recommend-heading">
-          <span className="cr-zip-heading-icon" style={{background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)', color: '#fff'}}><Sparkles size={18}/></span>
+          <span className="cr-zip-heading-icon"><Sparkles size={18}/></span>
           <div>
-            <h2>Recommended For You <span className="cr-label" style={{background: '#6366f1', color: '#fff'}}>AI PERSONALIZED</span></h2>
+            <h2>Recommended For You <span className="cr-label">AI PERSONALIZED</span></h2>
             <p>Smart service suggestions powered by Gemini based on your booking history & preferences</p>
           </div>
         </div>
@@ -121,17 +121,17 @@ export function CustomerAIRecommendations({salons,favorites,bookings,open,book}:
 
       {loading ? (
         <div style={{display:'flex',justifyContent:'center',alignItems:'center',padding:'40px',color:'#6b7280'}}>
-          <Sparkles size={20} className="animate-pulse" style={{marginRight:'8px', color:'#6366f1'}}/> Generating AI recommendations tailored for you…
+          <Sparkles size={20} className="animate-pulse" style={{marginRight:'8px'}}/> Generating AI recommendations tailored for you…
         </div>
       ) : (
-        <div className="cr-recommend-grid" style={{marginTop:'16px'}}>
+        <div className="cr-recommend-grid">
           {items.map(({salon, service, aiReason}, idx) => (
-            <article className="cr-pick" key={salon.slug + service.id + idx} style={{background:'#fff', borderRadius:'16px', padding:'16px', boxShadow:'0 4px 16px rgba(0,0,0,0.04)'}}>
+            <article className="cr-pick" key={salon.slug + service.id + idx}>
               <button className="cr-pick-photo" aria-label={`View ${service.name}`} onClick={()=>open(salon)}>
                 <DiscoveryPhoto salon={salon} src={service.imageUrl || (salon.content.profile.businessType==='barber'?(/hair\s*cut/i.test(service.name)?BARBER_REFERENCE_IMAGES.fade:barberServiceImage(service.name)):undefined)} alt={service.name}/>
               </button>
               <div className="cr-row">
-                <span className="cr-pick-tag" style={{background:'#f5f3ff', color:'#7c3aed'}}>✨ AI MATCH</span>
+                <span className="cr-pick-tag">✨ AI MATCH</span>
                 <span className="cr-minutes"><Clock size={12}/>{service.durationMinutes} mins</span>
               </div>
               <button className="cr-text-button" onClick={()=>open(salon)}>
@@ -140,10 +140,10 @@ export function CustomerAIRecommendations({salons,favorites,bookings,open,book}:
               <button className="cr-pick-salon" onClick={()=>open(salon)}>
                 <Scissors size={12}/>{salon.content.profile.businessName}
               </button>
-              <div className="cr-pick-reason" style={{background:'#fdf4ff', borderLeft:'3px solid #a855f7', padding:'8px 10px', borderRadius:'0 8px 8px 0', margin:'8px 0'}}>
-                <span><Sparkles size={13} style={{color:'#a855f7'}}/> {aiReason}</span>
+              <div className="cr-pick-reason">
+                <span><Sparkles size={13}/> {aiReason}</span>
               </div>
-              <div className="cr-row cr-pick-price" style={{marginTop:'12px'}}>
+              <div className="cr-row cr-pick-price">
                 <div>
                   <small>PRICE</small>
                   <b>{rupees(service.price)}</b>
