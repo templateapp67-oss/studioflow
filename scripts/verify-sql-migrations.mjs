@@ -109,4 +109,43 @@ for(const b of bucketsUsed){assert.ok(['studioflow-media','nexora-customer-priva
 const pub=await db.query(`select count(*)::int c from pg_publication_tables where pubname='supabase_realtime' and tablename in ('studioflow_websites','studioflow_templates','studioflow_bookings','studioflow_accounts','studioflow_demo_bookings','studioflow_customer_reward_claims')`);
 assert.equal(pub.rows[0].c,6,'Realtime publication complete');
 console.log(`PASS: live catalog serves all ${rpcs.length} client RPCs, ${new Set(tables).size} RLS tables, 2 buckets, 6 realtime tables.`);
+
+// Exercise the targeted, repeatable live catalog repair against a deliberately
+// stale Template 04 row. The service catalogue and every other template must
+// remain byte-for-byte equivalent at the JSON value level.
+const {rows: [beforeRepair]} = await db.query(`select id,title,config,active from public.studioflow_templates where id='beauty_parlour'`);
+assert.ok(beforeRepair, 'Beauty parlour template seed row exists');
+const serviceCatalogue = beforeRepair.config.services;
+const otherTemplateRows = await db.query(`select id,title,config,active from public.studioflow_templates where id<>'beauty_parlour' order by id`);
+await db.exec(`update public.studioflow_templates
+  set title='Roop Mahal Beauty Parlour & Makeover Space', config=config || jsonb_build_object(
+    'paletteLabel','Rose Gold & Ivory Theme',
+    'coverImageUrl','https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?auto=format&fit=crop&w=1200&q=80',
+    'ownerPhotoUrl','https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=500&q=80',
+    'themeStyle','{"heroBackground":"bg-[#fffaf6]"}'::jsonb,
+    'stylists','[{"id":"bp-st-1","avatarUrl":"https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e"}]'::jsonb
+  ) where id='beauty_parlour'`);
+await applyFile('roop-mahal-template-sync.sql');
+const {rows: [repaired]} = await db.query(`select id,title,config,active from public.studioflow_templates where id='beauty_parlour'`);
+assert.equal(repaired.title,'Roop Mahal Beauty Parlour & Makeover Space');
+assert.equal(repaired.config.paletteLabel,'Warm Cream, Soft Rose, Deep Maroon & Champagne Gold');
+assert.equal(repaired.config.coverImageUrl,'/templates/roop-mahal/hero-bridal.jpg');
+assert.equal(repaired.config.ownerPhotoUrl,'/templates/roop-mahal/staff-sunita.jpg');
+assert.equal(repaired.config.themeStyle.heroBackground,'bg-[#FFF8F1]');
+assert.equal(repaired.config.themeStyle.badgeBg,'bg-[#D9A6A1]/25');
+assert.equal(repaired.config.themeStyle.accentBg,'bg-[#6D2638]');
+assert.equal(repaired.config.themeStyle.cardBorder,'border-[#C5A16B]/40');
+assert.equal(repaired.config.themeStyle.heroTextColor,'text-[#352622]');
+assert.deepEqual(repaired.config.services,serviceCatalogue,'Catalog sync must preserve every existing service record');
+assert.deepEqual(repaired.config.stylists.map(s=>s.avatarUrl),[
+  '/templates/roop-mahal/staff-sunita.jpg',
+  '/templates/roop-mahal/staff-meenakshi.jpg',
+  '/templates/roop-mahal/staff-pooja.jpg',
+]);
+assert.deepEqual(await db.query(`select id,title,config,active from public.studioflow_templates where id<>'beauty_parlour' order by id`),otherTemplateRows,'Catalog sync may not modify other templates');
+const stableConfig=JSON.stringify(repaired.config);
+await applyFile('roop-mahal-template-sync.sql');
+const {rows: [repairedAgain]} = await db.query(`select config from public.studioflow_templates where id='beauty_parlour'`);
+assert.equal(JSON.stringify(repairedAgain.config),stableConfig,'Template 04 catalog sync must be idempotent');
+console.log('PASS: Template 04 SQL sync repairs legacy stock/catalog design only; services and Templates 01–03 & 05–14 remain unchanged.');
 await db.close();

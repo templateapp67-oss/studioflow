@@ -363,7 +363,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
     about: 'Serving patrons for over 18 years in Connaught Place, Roop Mahal blends classic Indian herbal beauty secrets like turmeric, saffron, and sandalwood with modern waxing and gold facials.',
     icon: 'brush',
     layoutStyle: 'curved_elegant',
-    paletteLabel: 'Warm Cream, Deep Maroon & Champagne Gold',
+    paletteLabel: 'Warm Cream, Soft Rose, Deep Maroon & Champagne Gold',
     themePreset: 'rose_gold_ivory',
     subCategories: ['Threading & Waxing', 'Herbal Facials', 'D-Tan & Bleach', 'Festive Glow Combos'],
     defaultCity: 'New Delhi',
