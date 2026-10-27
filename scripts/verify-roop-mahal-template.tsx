@@ -6,9 +6,16 @@ import { act, create } from 'react-test-renderer';
 import { CATEGORY_TEMPLATES } from '../src/categoryTemplates';
 import { CustomerSalonWebsite } from '../src/components/CustomerSalonWebsite';
 import { SalonWebsitePreview } from '../src/components/SalonWebsitePreview';
+import { DiscoverySections } from '../src/components/customer/DiscoverySections';
+import { TemplateDemoSalon } from '../src/components/customer/TemplateDemoSalon';
+import { withTemplateDemos } from '../src/components/customer/templateDemos';
 import { normalizeWorkspace } from '../src/lib/normalizeWorkspace';
-import { withPhotoGallery } from '../src/lib/photoGallery';
-import { ROOP_MAHAL_IMAGES, ROOP_MAHAL_PALETTE } from '../src/lib/roopMahalReference';
+import { photoGallery, withPhotoGallery } from '../src/lib/photoGallery';
+import {
+  ROOP_MAHAL_IMAGES,
+  ROOP_MAHAL_PALETTE,
+  upgradeBeautyParlourTemplate,
+} from '../src/lib/roopMahalReference';
 import { applyTemplateDesign } from '../src/lib/templateSelection';
 import { INITIAL_SALON_PROFILE } from '../src/mockData';
 
@@ -69,11 +76,11 @@ for (const line of selectorLines) {
 }
 
 // ============================================================================
-// 2. Verify all 17 distinct non-repeating AI image files exist on disk
+// 2. Verify all 20 distinct non-repeating AI image files exist on disk
 // ============================================================================
 const imageEntries = Object.entries(ROOP_MAHAL_IMAGES);
-assert.equal(imageEntries.length, 17);
-assert.equal(new Set(imageEntries.map(([, p]) => p)).size, 17, 'Every Roop Mahal image path must be unique');
+assert.equal(imageEntries.length, 20);
+assert.equal(new Set(imageEntries.map(([, p]) => p)).size, 20, 'Every Roop Mahal image path must be unique');
 for (const [key, relPath] of imageEntries) {
   const diskPath = `public${relPath}`;
   assert.ok(existsSync(diskPath), `Missing image asset for ${key}: ${diskPath}`);
@@ -748,6 +755,138 @@ assert.ok(JSON.stringify(tree.toJSON()).includes('Select Service') || JSON.strin
 
 await act(async () => tree.unmount());
 
+// ============================================================================
+// 14. Stale Supabase template catalog & legacy beauty_parlour draft upgrade
+// ============================================================================
+const staleSupabaseBeautyRow = {
+  id: 'beauty_parlour',
+  title: 'Roop Mahal Beauty Parlour & Makeover Space',
+  shortName: 'Beauty Parlour',
+  tagline: 'Timeless Indian Beauty, Herbal Facials, Threading & Radiance Care',
+  paletteLabel: 'Rose Gold & Ivory Theme',
+  themePreset: 'rose_gold_ivory',
+  ownerPhotoUrl: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=500&q=80',
+  coverImageUrl: 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?auto=format&fit=crop&w=1200&q=80',
+  themeStyle: { heroBackground: 'bg-[#fffaf6]', heroTextColor: 'text-gray-900' },
+  services: tmpl.services,
+  stylists: [
+    {
+      id: 'bp-st-1',
+      name: 'Sunita Agarwal',
+      role: 'Master Aesthetician',
+      avatarUrl: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=400&q=80',
+      specialties: ['Gold Facials', 'Threading', 'Herbal Recipes'],
+      rating: 4.96,
+    },
+    {
+      id: 'bp-st-2',
+      name: 'Meenakshi Joshi',
+      role: 'Senior Skin Therapist',
+      avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80',
+      specialties: ['Rica Waxing', 'Anti-Tan Peels'],
+      rating: 4.92,
+    },
+    {
+      id: 'bp-st-3',
+      name: 'Pooja Sundaram',
+      role: 'Threading & Henna Expert',
+      avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80',
+      specialties: ['Eyebrow Arching', 'Festive Combos'],
+      rating: 4.87,
+    },
+  ],
+  demoOffer: {
+    enabled: true,
+    selectedServiceId: 'bp-1',
+    headline: 'Sample 20% OFF',
+    discountPercent: 20,
+    lastMinute: true,
+  },
+};
+
+const upgradedCatalogRow = upgradeBeautyParlourTemplate(staleSupabaseBeautyRow);
+assert.equal(upgradedCatalogRow.coverImageUrl, ROOP_MAHAL_IMAGES.heroBridal);
+assert.equal(upgradedCatalogRow.ownerPhotoUrl, ROOP_MAHAL_IMAGES.staffSunita);
+assert.equal(upgradedCatalogRow.paletteLabel, CATEGORY_TEMPLATES.beauty_parlour.paletteLabel);
+assert.equal(upgradedCatalogRow.tagline, CATEGORY_TEMPLATES.beauty_parlour.tagline);
+assert.deepEqual(
+  upgradedCatalogRow.stylists.map((s) => s.avatarUrl),
+  [ROOP_MAHAL_IMAGES.staffSunita, ROOP_MAHAL_IMAGES.staffMeenakshi, ROOP_MAHAL_IMAGES.staffPooja],
+);
+assert.deepEqual(upgradedCatalogRow.services, tmpl.services, 'Service records must remain 100% unchanged');
+
+// Non-beauty_parlour templates pass through untouched by exact reference
+for (const other of Object.values(CATEGORY_TEMPLATES).filter((t) => t.id !== 'beauty_parlour')) {
+  assert.equal(upgradeBeautyParlourTemplate(other), other, `Template ${other.id} must remain untouched`);
+}
+
+// Customer App withTemplateDemos + TemplateDemoSalon + DiscoverySections with stale Supabase meta
+const demoSalons = withTemplateDemos([], [staleSupabaseBeautyRow as any]);
+assert.equal(demoSalons.length, 1);
+assert.equal(demoSalons[0].content.profile.coverImageUrl, ROOP_MAHAL_IMAGES.heroBridal);
+const demoSalonHtml = renderToStaticMarkup(<TemplateDemoSalon salon={demoSalons[0]} back={() => {}} />);
+assert.ok(demoSalonHtml.includes(ROOP_MAHAL_IMAGES.heroBridal));
+assert.ok(demoSalonHtml.includes(ROOP_MAHAL_IMAGES.staffSunita));
+assert.ok(!demoSalonHtml.includes('1516975080664'), 'Stale Unsplash cover must never leak into TemplateDemoSalon');
+const discoveryHtml = renderToStaticMarkup(<DiscoverySections salons={demoSalons} open={() => {}} book={() => {}} />);
+assert.ok(discoveryHtml.includes(ROOP_MAHAL_IMAGES.serviceThreading), 'Quick Services must use Roop Mahal AI service photo');
+assert.ok(discoveryHtml.includes(ROOP_MAHAL_IMAGES.heroBridal), 'Special Discounts must use Roop Mahal AI hero photo');
+assert.ok(!discoveryHtml.includes('1516975080664'), 'Stale Unsplash cover must never leak into DiscoverySections');
+
+// Legacy saved beauty_parlour draft upgrades stock defaults while preserving real owner uploads & services
+const legacySavedDraft = normalizeWorkspace({
+  profile: {
+    ...INITIAL_SALON_PROFILE,
+    businessType: 'beauty_parlour',
+    businessName: 'Roop Mahal Studio',
+    coverImageUrl: 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?auto=format&fit=crop&w=1200&q=80',
+    ownerPhotoUrl: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=500&q=80',
+    tagline: 'Timeless Indian Beauty, Herbal Facials, Threading & Radiance Care',
+    photoGalleryInitialized: true,
+    photoGalleryType: 'beauty_parlour',
+    photoGallery: [
+      { id: 'template-gallery-beauty_parlour-1', category: 'Skin', url: 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?auto=format&fit=crop&w=800&q=80', title: 'Old Demo 1', isDemo: true },
+      { id: 'owner-real-gallery-1', category: 'Bridal', url: 'https://cdn.example.com/real-salon-bride.jpg', title: 'Real Bride', isDemo: false },
+    ],
+  },
+  services: tmpl.services,
+  stylists: [
+    ...staleSupabaseBeautyRow.stylists,
+    {
+      id: 'custom-staff-1',
+      name: 'Kavya Sharma',
+      role: 'Bridal Stylist',
+      avatarUrl: 'https://cdn.example.com/real-staff-kavya.jpg',
+      specialties: ['Bridal Draping'],
+      rating: 4.9,
+    },
+  ],
+});
+assert.equal(legacySavedDraft.profile.coverImageUrl, ROOP_MAHAL_IMAGES.heroBridal);
+assert.equal(legacySavedDraft.profile.ownerPhotoUrl, ROOP_MAHAL_IMAGES.staffSunita);
+assert.equal(legacySavedDraft.stylists[0].avatarUrl, ROOP_MAHAL_IMAGES.staffSunita);
+assert.equal(legacySavedDraft.stylists[3].avatarUrl, 'https://cdn.example.com/real-staff-kavya.jpg', 'Real staff photo must never be overwritten');
+const upgradedGallery = photoGallery(legacySavedDraft.profile);
+assert.equal(upgradedGallery.length, 2, 'Intentional deletions of demo items must be respected');
+assert.equal(upgradedGallery[0].url, ROOP_MAHAL_IMAGES.galleryBridalDetail, 'Remaining legacy demo item upgrades to Roop Mahal AI photo');
+assert.equal(upgradedGallery[1].url, 'https://cdn.example.com/real-salon-bride.jpg', 'Salon-uploaded gallery photo must never be overwritten');
+
+// Real owner cover photo & custom tagline must NEVER be overwritten
+const customOwnerDraft = normalizeWorkspace({
+  profile: {
+    ...INITIAL_SALON_PROFILE,
+    businessType: 'beauty_parlour',
+    coverImageUrl: 'https://cdn.example.com/real-salon-cover.jpg',
+    ownerPhotoUrl: 'https://cdn.example.com/real-owner-portrait.jpg',
+    tagline: 'Bespoke Bridal & Herbal Parlour in Connaught Place',
+  },
+  services: tmpl.services,
+  stylists: [],
+});
+assert.equal(customOwnerDraft.profile.coverImageUrl, 'https://cdn.example.com/real-salon-cover.jpg');
+assert.equal(customOwnerDraft.profile.ownerPhotoUrl, 'https://cdn.example.com/real-owner-portrait.jpg');
+assert.equal(customOwnerDraft.profile.tagline, 'Bespoke Bridal & Herbal Parlour in Connaught Place');
+
 console.log(
-  'PASS: Template 04 (Roop Mahal) design + all 15 Explicit Section Visibility Rules verified across all 11 edge-case scenarios while keeping Templates 01–03 & 05–14 unchanged.',
+  'PASS: Template 04 (Roop Mahal) design + Explicit Section Visibility Rules + stale Supabase catalog & legacy draft upgrades verified with Templates 01–03 & 05–14 unchanged.',
 );

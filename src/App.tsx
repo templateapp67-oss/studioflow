@@ -5,6 +5,7 @@ import { useCustomerProfile } from './components/customer/useCustomerProfile';
 import { applyWebsiteFavicon, websiteFavicon } from './lib/websiteFavicon';
 import { resolveSiteSlug } from './lib/resolveSite';
 import { CATEGORY_TEMPLATES } from './categoryTemplates';
+import { upgradeBeautyParlourTemplate, upgradeLegacyBeautyParlourStylists } from './lib/roopMahalReference';
 import { requestedTemplate, templateDraft } from './lib/templateEntry';
 import { BusinessNotificationLink } from './components/BusinessNotificationLink';
 import { SalonBookingsDialog } from './components/SalonBookingsDialog';
@@ -60,7 +61,7 @@ function Application() {
   const {data,error}=await supabase.rpc('studioflow_ensure_account',{p_ref:skipReferral?'':captureReferral()||null});if(error)throw error;
   const [catalog,identity]=await Promise.all([supabase.from('studioflow_templates').select('config').eq('active',true),supabase.from('profiles').select('full_name,salon_name,phone_number,whatsapp,city,postal_code').eq('id',session.user.id).maybeSingle()]);
   if(catalog.error)throw catalog.error;if(identity.error)throw identity.error;
-  if(active){setTemplates((catalog.data||[]).map(t=>t.config as CategoryTemplateConfig));setAccount({...data,identity:identity.data});localStorage.removeItem('studioflow_pending_ref');}
+  if(active){setTemplates((catalog.data||[]).map(t=>upgradeBeautyParlourTemplate(t.config as CategoryTemplateConfig)));setAccount({...data,identity:identity.data});localStorage.removeItem('studioflow_pending_ref');}
  })().catch(e=>{if(active)setError(e.message||'Could not load your account');});return()=>{active=false;};
  },[session?.user.id,retry,slug,customer,customerApp,recovery,skipReferral,ownerSlug]);
  if(recovery&&session)return <AuthPage recovery onRecovered={()=>{setRecovery(false);setRetry(r=>r+1);}} />;
@@ -80,9 +81,10 @@ function TemplateEntry({templateId}:{templateId:BusinessTypeId}){
  const template=CATEGORY_TEMPLATES[templateId];
  const [remote,setRemote]=useState<any>(null);
  useEffect(()=>{let active=true;void supabase.rpc('studioflow_customer_catalog').then(({data,error})=>{if(active&&!error)setRemote((data?.templates||[]).find((t:any)=>t.id===templateId)||null)});return()=>{active=false}},[templateId]);
- const source=remote?{...template,title:remote.title||template.title,tagline:remote.tagline||template.tagline,coverImageUrl:remote.coverImageUrl||template.coverImageUrl,services:remote.services?.length?remote.services:template.services,stylists:remote.stylists?.length?remote.stylists:template.stylists}:template;
+ const mergedRemote=remote?upgradeBeautyParlourTemplate(remote):null;
+ const source=mergedRemote?{...template,title:mergedRemote.title||template.title,tagline:mergedRemote.tagline||template.tagline,coverImageUrl:mergedRemote.coverImageUrl||template.coverImageUrl,services:mergedRemote.services?.length?mergedRemote.services:template.services,stylists:mergedRemote.stylists?.length?mergedRemote.stylists:template.stylists}:template;
  const draft=templateDraft(source);
- if(remote?.demoOffer)draft.profile.promoCampaign={selectedServiceId:'',campaignTheme:'flash_discount',discountPercent:0,customOfferText:'',promoCode:'',subtext:'',aspectRatio:'16:9',aesthetic:'minimalist_chic',imageUrl:source.coverImageUrl,customPrompt:'',...remote.demoOffer,headline:'TEMPLATE DEMO · '+(remote.demoOffer.headline||'Sample offer')};
+ if(mergedRemote?.demoOffer)draft.profile.promoCampaign={selectedServiceId:'',campaignTheme:'flash_discount',discountPercent:0,customOfferText:'',promoCode:'',subtext:'',aspectRatio:'16:9',aesthetic:'minimalist_chic',imageUrl:source.coverImageUrl,customPrompt:'',...mergedRemote.demoOffer,headline:'TEMPLATE DEMO · '+(mergedRemote.demoOffer.headline||'Sample offer')};
  const create=()=>location.assign(`/?template=${encodeURIComponent(templateId)}&create=1`);
  return <><div className="sticky top-0 z-[90] bg-white border-b px-4 py-3 flex flex-wrap justify-between items-center gap-3"><a className="font-semibold" href="https://nexora-beauty-network.templateapp67.chatgpt.site/templates/">← All templates</a><span>{template.shortName} · Demo template</span><button className="primary-action" onClick={create}>Create my website with this template</button></div><SalonWebsitePreview readOnly profile={draft.profile} services={draft.services} stylists={draft.stylists} gallery={draft.extras.gallery} onCustomerAccount={create} onAddAppointment={async()=>{throw new Error('This is a template preview. Choose Create my website to set up your own bookings.');}} /></>;
 }
@@ -169,7 +171,7 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
  },[session.user.id,refreshBookings,applySnapshot]);
  useEffect(()=>{const onFocus=()=>void refreshBookings();window.addEventListener('focus',onFocus);return()=>window.removeEventListener('focus',onFocus);},[refreshBookings]);
  useEffect(()=>{const p=ACCENT_PALETTES[(profile.themeAccentKey as AccentPaletteKey)||'slate'];applyPrimaryAccentCssVar(profile.customAccentColor||p?.primaryHex||'#0f172a',p?.secondaryHex||'#334155');},[profile.customAccentColor,profile.themeAccentKey]);
- const applyTemplate=(id:BusinessTypeId)=>{const t=templates.find(t=>t.id===id);if(!t)return;setServices(servicesForTemplate(services,profile,t));setProfile(p=>({...applyTemplateDesign(p,t),serviceCatalogueInitialized:true}));if(!stylists.length)setStylists(t.stylists);};
+ const applyTemplate=(id:BusinessTypeId)=>{const t=templates.find(t=>t.id===id)||CATEGORY_TEMPLATES[id];if(!t)return;setServices(servicesForTemplate(services,profile,t));setProfile(p=>({...applyTemplateDesign(p,t),serviceCatalogueInitialized:true}));if(!stylists.length)setStylists(t.stylists);else if(id==='beauty_parlour')setStylists(prev=>upgradeLegacyBeautyParlourStylists(prev,'beauty_parlour'));};
  const chooseTemplate=(id:BusinessTypeId)=>{applyTemplate(id);setCurrentView('wizard');};
  const publish=async()=>{await flush();const {data,error}=await supabase.rpc('studioflow_publish');if(error)throw error;setPublished(data);};
  const book=async(apt:Appointment)=>{await flush();if(!published)throw new Error('Publish your salon website before accepting bookings.');const {data,error}=await supabase.rpc(apt.couponCode?'studioflow_coupon_book':'studioflow_book',{p_slug:published.slug,p_request:apt});if(error)throw error;await refreshBookings();return (data?.payload||data) as Appointment;};

@@ -838,6 +838,23 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
         {/* ============================================================ */}
         {/* SECTION: SALON SITE NAV HEADER & STICKY BOOKING TRIGGER */}
         {/* ============================================================ */}
+        {selectedCategoryKey === 'beauty_parlour' && !isEditMode ? (
+          <CustomerSalonWebsite
+            profile={{ ...activeProfile, businessType: 'beauty_parlour' }}
+            services={activeServices}
+            stylists={activeStylists}
+            gallery={gallery}
+            policies={policies}
+            branding={branding}
+            loyaltyConfig={loyaltyConfig}
+            onManageDashboard={onManageDashboard}
+            onCustomerAccount={onCustomerAccount}
+            customerSignedIn={customerSignedIn}
+            onAddAppointment={onAddAppointment}
+            readOnly
+          />
+        ) : (
+        <>
         {sectionVisibility.header && (
           <header className={`px-6 md:px-10 py-4 flex flex-wrap gap-4 justify-between items-center border-b transition-colors ${
             isDarkCanvas ? 'bg-[#121216]/95 backdrop-blur-md border-neutral-800 text-white' : 'bg-white/95 backdrop-blur-md border-slate-100 text-slate-900'
@@ -2034,6 +2051,8 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
             </div>}
           </div>
         </footer>
+        </>
+        )}
 
       </div>
 

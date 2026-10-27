@@ -359,11 +359,11 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
     id: 'beauty_parlour',
     title: 'Roop Mahal Beauty Parlour & Makeover Space',
     shortName: 'Beauty Parlour',
-    tagline: 'Timeless Indian Beauty, Herbal Facials, Threading & Radiance Care',
+    tagline: 'Bridal Makeovers, Signature Facials, Hair Care & Everyday Beauty Studio',
     about: 'Serving patrons for over 18 years in Connaught Place, Roop Mahal blends classic Indian herbal beauty secrets like turmeric, saffron, and sandalwood with modern waxing and gold facials.',
     icon: 'brush',
     layoutStyle: 'curved_elegant',
-    paletteLabel: 'Rose Gold & Ivory Theme',
+    paletteLabel: 'Warm Cream, Deep Maroon & Champagne Gold',
     themePreset: 'rose_gold_ivory',
     subCategories: ['Threading & Waxing', 'Herbal Facials', 'D-Tan & Bleach', 'Festive Glow Combos'],
     defaultCity: 'New Delhi',
@@ -373,7 +373,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
     whatsapp: '+91 98110 99882',
     ownerName: 'Sunita Agarwal',
     ownerRole: 'Founder & Herbal Beauty Master',
-    ownerPhotoUrl: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=500&q=80',
+    ownerPhotoUrl: '/templates/roop-mahal/staff-sunita.jpg',
     coverImageUrl: '/templates/roop-mahal/hero-bridal.jpg',
     instagramHandle: '@roopmahal.delhi',
     themeStyle: {
@@ -447,7 +447,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         id: 'bp-st-1',
         name: 'Sunita Agarwal',
         role: 'Master Aesthetician',
-        avatarUrl: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=400&q=80',
+        avatarUrl: '/templates/roop-mahal/staff-sunita.jpg',
         specialties: ['Gold Facials', 'Threading', 'Herbal Recipes'],
         rating: 4.96
       },
@@ -455,7 +455,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         id: 'bp-st-2',
         name: 'Meenakshi Joshi',
         role: 'Senior Skin Therapist',
-        avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80',
+        avatarUrl: '/templates/roop-mahal/staff-meenakshi.jpg',
         specialties: ['Rica Waxing', 'Anti-Tan Peels'],
         rating: 4.92
       },
@@ -463,7 +463,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         id: 'bp-st-3',
         name: 'Pooja Sundaram',
         role: 'Threading & Henna Expert',
-        avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80',
+        avatarUrl: '/templates/roop-mahal/staff-pooja.jpg',
         specialties: ['Eyebrow Arching', 'Festive Combos'],
         rating: 4.87
       }
