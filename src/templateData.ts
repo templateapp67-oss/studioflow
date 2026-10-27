@@ -137,8 +137,8 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
 
   beauty_parlour: {
     foundingYear: '2016',
-    foundingNarrative: 'Gulabini is a curated women’s botanical beauty sanctuary in South Delhi, celebrating traditional Indian herbal recipes alongside modern pain-free waxing, organic facial therapies, and bridal skincare.',
-    specialties: ['Kesar & Haldi Bridal Facials', 'Rica Brazilian Peel Waxing', 'Organic Hair Spa', 'Threading Artistry'],
+    foundingNarrative: 'Roop Mahal is a Connaught Place beauty parlour and makeover space celebrating Indian bridal artistry, signature herbal facials, graceful hair styling, and thoughtful everyday beauty care.',
+    specialties: ['Bridal Makeovers & Shringaar', 'Signature Herbal Facials', 'Festive Hair Styling', 'Everyday Beauty Care'],
     certifications: [
       { icon: 'verified', title: '100% Female Staff Sanctuary', description: 'Private, secure, and serene environment managed completely by women.' },
       { icon: 'eco', title: 'Cold-Pressed Herbal Ingredients', description: 'Kashmiri saffron, sandalwood, and virgin coconut botanical elixirs.' },
@@ -153,9 +153,9 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
       { id: 'bp-g5', url: '/templates/roop-mahal/gallery-studio-stations.jpg', title: 'Roop Mahal Makeover Studio', tag: 'Salon Interior' }
     ],
     reviews: [
-      { id: 'bp-r1', name: 'Neelam Oberoi', location: 'Greater Kailash 1, New Delhi', rating: 5, serviceName: 'Shahnaz Husain Gold Radiance Facial', comment: 'The most trustworthy beauty parlour in South Delhi. Sunita ji treats every client with maternal warmth and immaculate hygiene.', avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80', date: '3 days ago' },
-      { id: 'bp-r2', name: 'Ritu Varma', location: 'Hauz Khas, New Delhi', rating: 5, serviceName: 'Rica White Chocolate Full Body Wax', comment: 'Pain-free waxing with strictly no double dipping. The private rooms are spotless and scented with pure jasmine.', avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80', date: '1 week ago' },
-      { id: 'bp-r3', name: 'Tanya Grover', location: 'Defence Colony, New Delhi', rating: 5, serviceName: 'Bridal Pre-Glow Herbal Body Polish', comment: 'Booked my complete pre-bridal package here. My skin looked luminous on my wedding day. Highest recommendation!', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80', date: '2 weeks ago' }
+      { id: 'bp-r1', name: 'Neelam Oberoi', location: 'Connaught Place, New Delhi', rating: 5, serviceName: 'Shahnaz Husain 24K Gold Glow Facial', comment: 'Roop Mahal’s bridal artistry and warm, attentive care made the whole visit feel special.', avatarUrl: '', date: '3 days ago' },
+      { id: 'bp-r2', name: 'Ritu Varma', location: 'Connaught Place, New Delhi', rating: 5, serviceName: 'Rica White Chocolate Full Body Waxing', comment: 'A calm, welcoming space and thoughtful care from consultation through the finish.', avatarUrl: '', date: '1 week ago' },
+      { id: 'bp-r3', name: 'Tanya Grover', location: 'Connaught Place, New Delhi', rating: 5, serviceName: 'Karva Chauth & Diwali Shringaar Combo', comment: 'The team helped me feel radiant for my celebration with a beautifully considered makeover.', avatarUrl: '', date: '2 weeks ago' }
     ],
     totalReviewCount: 840,
     averageRating: 4.97,

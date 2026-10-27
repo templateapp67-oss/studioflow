@@ -4,6 +4,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { act, create } from 'react-test-renderer';
 import { CATEGORY_TEMPLATES } from '../src/categoryTemplates';
+import { CATEGORY_STANDARDIZED_DATA } from '../src/templateData';
 import { CustomerSalonWebsite } from '../src/components/CustomerSalonWebsite';
 import { SalonWebsitePreview } from '../src/components/SalonWebsitePreview';
 import { DiscoverySections } from '../src/components/customer/DiscoverySections';
@@ -53,6 +54,11 @@ assert.deepEqual(ROOP_MAHAL_PALETTE, {
   darkBrown: '#352622',
   white: '#FFFFFF',
 });
+assert.equal(CATEGORY_TEMPLATES.beauty_parlour.paletteLabel, 'Warm Cream, Soft Rose, Deep Maroon & Champagne Gold');
+assert.match(CATEGORY_STANDARDIZED_DATA.beauty_parlour.foundingNarrative, /Roop Mahal/);
+assert.doesNotMatch(CATEGORY_STANDARDIZED_DATA.beauty_parlour.foundingNarrative, /Gulabini/);
+assert.ok(CATEGORY_STANDARDIZED_DATA.beauty_parlour.gallery.every(photo => photo.url.startsWith('/templates/roop-mahal/')));
+assert.ok(CATEGORY_STANDARDIZED_DATA.beauty_parlour.reviews.every(review => !review.avatarUrl), 'Template 04 sample reviews must not surface unrelated Western stock avatars');
 
 const roopCss = readFileSync('src/roopMahal.css', 'utf8');
 for (const hex of Object.values(ROOP_MAHAL_PALETTE)) {
