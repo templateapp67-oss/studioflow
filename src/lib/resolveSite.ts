@@ -35,7 +35,7 @@ function hostnameFrom(loc: SiteLocation): string {
 export function resolveSiteSlug(loc?: SiteLocation | null): string | null {
   if (loc) {
     const query = new URLSearchParams(loc.search || '').get('site');
-    if (query && query.trim()) return query.trim();
+    if (query && query.trim()) return query.trim().toLowerCase();
   }
   const host = hostnameFrom(loc || {});
   if (!host || host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.run.app')) return null;

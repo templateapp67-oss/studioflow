@@ -955,6 +955,20 @@
   white-space: nowrap;
 }
 
+.sf-page[data-template="beauty_parlour"] .sf-rm-bridal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.sf-page[data-template="beauty_parlour"] .sf-rm-bridal-note {
+  margin: 10px 0 0;
+  color: var(--rm-muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
 /* ==========================================================================
    9. OUR TEAM SECTION — Warm Cream #FFF8F1, Rounded Photos, Soft Shadows
    ========================================================================== */
@@ -1959,7 +1973,8 @@
     flex-direction: column;
   }
 
-  .sf-page[data-template="beauty_parlour"] .sf-rm-hero-actions .sf-button {
+  .sf-page[data-template="beauty_parlour"] .sf-rm-hero-actions .sf-button,
+  .sf-page[data-template="beauty_parlour"] .sf-rm-bridal-actions .sf-button {
     width: 100%;
   }
 

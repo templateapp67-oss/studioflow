@@ -233,6 +233,16 @@ export function roopMahalBridalServices(services: SalonService[]): SalonService[
     .slice(0, 3);
 }
 
+export function roopMahalBridalInquiryUrl(rawPhone?: string | null, salonName?: string | null): string {
+  const rawDigits = String(rawPhone || '').replace(/\D/g, '');
+  const phoneDigits = rawDigits.length === 10 ? `91${rawDigits}` : rawDigits;
+  if (!/^[1-9]\d{7,14}$/.test(phoneDigits)) return '';
+
+  const name = salonName?.trim() || 'Roop Mahal';
+  const message = `Hello ${name}, I’m planning a bridal or special-occasion makeover. Please share your consultation options, availability and service details.`;
+  return `https://wa.me/${phoneDigits}?text=${encodeURIComponent(message)}`;
+}
+
 export interface RoopMahalContactSummary {
   fullAddress: string;
   landmark: string;
