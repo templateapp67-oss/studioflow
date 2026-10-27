@@ -57,6 +57,7 @@ import { SidePanelCustomizer, SectionVisibilityState, DEFAULT_SECTION_VISIBILITY
 import { InteractiveMapSetup } from './InteractiveMapSetup';
 import { computeHeroAIStyling, extractImageMoodAsync, HeroAIStyling } from '../utils/heroImageMood';
 import { TestimonialModal } from './ClientTestimonials';
+import { generateStudioCopy, studioAiPreset, studioCopyFallback, STUDIO_AI_HEADINGS, STUDIO_AI_VIBES } from '../lib/studioAi';
 
 export interface SalonWebsitePreviewProps {
   profile: SalonProfile;
@@ -443,59 +444,39 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
     showNotification(editingTestimonial ? 'Featured testimonial updated successfully!' : 'New testimonial added to website!');
   };
 
-  // AI Studio Prompts Engine
-  const handleAIGeneratePrompt = (presetType: string, customPrompt?: string) => {
+  // AI Studio Prompts Engine — live server AI first, honest offline fallback second.
+  const handleAIGeneratePrompt = async (presetType: string, customPrompt?: string) => {
+    if (isAiLoading) return;
     setIsAiLoading(true);
-    setTimeout(() => {
-      if (presetType === 'luxury') {
-        setProfile((prev) => ({
-          ...prev,
-          tagline: `Bespoke Botanical Luxury & Haute Artistry in ${prev.city}`,
-          about: `Step into ${prev.businessName}, an exclusive sanctuary where world-class precision meets restorative organic wellness. From runway-ready styling to deep ayurvedic scalp therapies, every moment is crafted to elevate your radiance.`
-        }));
-        setSectionHeadings((prev) => ({
-          ...prev,
-          servicesTitle: 'Haute Beauty & Wellness Experiences',
-          servicesSubtitle: 'Uncompromising luxury treatments with transparent INR (₹) rates.'
-        }));
-      } else if (presetType === 'bridal') {
-        setProfile((prev) => ({
-          ...prev,
-          tagline: `Royal Indian Bridal Makeovers & Festive Luxury Packages`,
-          about: `Celebrate your milestone moments with ${prev.businessName}. Our award-winning bridal artisans specialize in HD makeup, intricate bridal hairstyles, pre-wedding skin detox, and luxury festive rejuvenation.`
-        }));
-        setSectionHeadings((prev) => ({
-          ...prev,
-          servicesTitle: 'Bridal & Festive Ceremony Menus',
-          servicesSubtitle: 'Complete bespoke pre-bridal and wedding day packages in INR (₹).'
-        }));
-      } else if (presetType === 'ayurvedic') {
-        setProfile((prev) => ({
-          ...prev,
-          tagline: `Authentic Ayurvedic Healing & Pure Herbal Rejuvenation`,
-          about: `Rooted in ancient Vedic traditions, ${prev.businessName} brings you pure herbal infusions, therapeutic scalp detoxes, and dosha-balancing treatments administered by certified master vaidyas.`
-        }));
-        setSectionHeadings((prev) => ({
-          ...prev,
-          servicesTitle: 'Traditional Ayurvedic Rituals',
-          servicesSubtitle: 'Pure herbal therapies and holistic body polishes in INR (₹).'
-        }));
-      } else if (presetType === 'genz') {
-        setProfile((prev) => ({
-          ...prev,
-          tagline: `Next-Gen Hair Artistry, Bold Colors & Trendsetting Cuts`,
-          about: `Welcome to ${prev.businessName}—the ultimate style destination for trendsetters. We turn hair into art with precision fades, vivid balayage, express blowouts, and aesthetic nail glam.`
-        }));
-      } else if (customPrompt) {
-        setProfile((prev) => ({
-          ...prev,
-          tagline: `Elevated Salon Care Tailored for ${prev.city}`,
-          about: `At ${prev.businessName}, we combine innovative techniques with personalized care inspired by "${customPrompt}". Discover customized beauty services crafted to celebrate your unique individuality.`
-        }));
-      }
+    const preset = studioAiPreset(presetType);
+    const vibe = preset === 'custom' && customPrompt?.trim() ? customPrompt.trim() : STUDIO_AI_VIBES[preset];
+    const specialties = activeServices.slice(0, 5).map(s => s.name).filter(Boolean).join(', ')
+      || activeTemplate.subCategories.join(', ');
+    const applyHeadings = () => {
+      const headings = STUDIO_AI_HEADINGS[preset];
+      if (headings) setSectionHeadings(prev => ({ ...prev, ...headings }));
+    };
+    try {
+      const result = await generateStudioCopy({
+        businessName: activeProfile.businessName,
+        businessType: activeProfile.businessType,
+        ownerName: activeProfile.ownerName,
+        vibe,
+        specialties,
+      });
+      setProfile(prev => ({ ...prev, tagline: result.tagline, about: result.bio }));
+      applyHeadings();
+      showNotification('AI copy applied to your website canvas. Review it before publishing.');
+    } catch {
+      // Server/AI unreachable (offline or static hosting): curated local copy,
+      // explicitly labelled so it is never mistaken for AI-generated text.
+      const fallback = studioCopyFallback(activeProfile, preset, customPrompt);
+      setProfile(prev => ({ ...prev, tagline: fallback.tagline, about: fallback.bio }));
+      applyHeadings();
+      showNotification('AI is unavailable right now — curated offline copy applied instead (not AI-generated).');
+    } finally {
       setIsAiLoading(false);
-      showNotification('AI regenerated copy and headline variations applied to canvas!');
-    }, 600);
+    }
   };
 
   // Device width class
@@ -690,7 +671,7 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
                 className="px-3 py-1 bg-purple-700 hover:bg-purple-800 disabled:opacity-50 text-white font-bold text-[11px] rounded-lg transition-colors flex items-center gap-1 cursor-pointer shrink-0"
               >
                 <Wand2 className="w-3 h-3" />
-                <span>Generate</span>
+                <span>{isAiLoading ? 'Generating…' : 'Generate'}</span>
               </button>
             </div>
 

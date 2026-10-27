@@ -1031,13 +1031,175 @@ export const SidePanelCustomizer: React.FC<SidePanelCustomizerProps> = ({
         {/* ============================================================ */}
         {activeTab === 'ai' && (
           <div className="flex flex-col gap-4">
+            {/* Update active template design — same settings as Owner workspace Step 3 (Logo, colours & hero) */}
+            <div className="bg-slate-900 text-white rounded-2xl p-3.5 space-y-3">
+              <div>
+                <h4 className="font-bold text-xs flex items-center gap-1.5">
+                  <Palette className="w-4 h-4 text-amber-400" />
+                  <span>Update template design</span>
+                </h4>
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  Active: {CATEGORY_TEMPLATES[selectedCategoryKey]?.shortName || selectedCategoryKey}.
+                  Same settings as module 10 (Logo, colours &amp; hero) — changes save with your workspace.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                  Template
+                </label>
+                <select
+                  value={selectedCategoryKey}
+                  onChange={(e) => {
+                    const catId = e.target.value as BusinessTypeId;
+                    onSelectCategory?.(catId);
+                    showToast(`Switched template to ${CATEGORY_TEMPLATES[catId]?.shortName || catId}`);
+                  }}
+                  className="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none"
+                >
+                  {Object.values(CATEGORY_TEMPLATES).map((tmpl) => (
+                    <option key={tmpl.id} value={tmpl.id}>
+                      {tmpl.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                  Brand colour
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {Object.values(ACCENT_PALETTES).map((pal) => {
+                    const isSelected = pal.key === selectedAccentKey && !profile.customAccentColor;
+                    return (
+                      <button
+                        key={pal.key}
+                        type="button"
+                        title={pal.name}
+                        onClick={() => handleSelectPalette(pal.key)}
+                        className={`w-7 h-7 rounded-full border flex items-center justify-center transition-all cursor-pointer ${
+                          isSelected ? 'border-white ring-2 ring-amber-400' : 'border-white/30 hover:border-white'
+                        }`}
+                        style={{ backgroundColor: pal.primaryHex }}
+                      >
+                        {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="flex items-center gap-2 mt-2">
+                  <input
+                    type="color"
+                    value={customHex}
+                    onChange={(e) => handleCustomColorApply(e.target.value)}
+                    className="w-8 h-8 rounded-lg border border-white/30 cursor-pointer p-0.5 bg-white shrink-0"
+                    title="Custom brand colour"
+                  />
+                  <input
+                    type="text"
+                    value={customHex}
+                    onChange={(e) => handleCustomColorApply(e.target.value)}
+                    className="flex-1 px-2.5 py-1.5 text-[11px] font-mono rounded-lg border border-white/30 bg-white text-slate-900 uppercase focus:outline-none"
+                    placeholder="#0F172A"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                  Hero banner
+                </label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {[{ name: CATEGORY_TEMPLATES[selectedCategoryKey]?.shortName || 'Studio banner', url: CATEGORY_TEMPLATES[selectedCategoryKey]?.coverImageUrl }, ...(CATEGORY_STANDARDIZED_DATA[selectedCategoryKey]?.gallery || []).map(photo => ({ name: photo.title, url: photo.url }))].filter(preset => preset.url).slice(0, 6).map((preset, idx) => {
+                    const isSelected = profile.coverImageUrl === preset.url;
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        title={preset.name}
+                        onClick={() => {
+                          setProfile((p) => ({ ...p, coverImageUrl: preset.url }));
+                          setCustomHeroUrlInput(preset.url);
+                          showToast(`Applied "${preset.name}" banner`);
+                        }}
+                        className={`relative rounded-lg overflow-hidden border h-12 transition-all cursor-pointer ${
+                          isSelected ? 'border-amber-400 ring-2 ring-amber-400/40' : 'border-white/20 hover:border-white'
+                        }`}
+                      >
+                        <img src={preset.url} alt={preset.name} className="w-full h-full object-cover" />
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="flex gap-1.5 mt-2">
+                  <input
+                    type="text"
+                    value={customHeroUrlInput}
+                    onChange={(e) => setCustomHeroUrlInput(e.target.value)}
+                    placeholder="Paste hero image URL…"
+                    className="flex-1 bg-white border border-white/30 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-900 outline-none font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (customHeroUrlInput.trim()) {
+                        setProfile((p) => ({ ...p, coverImageUrl: customHeroUrlInput.trim() }));
+                        showToast('Custom hero banner applied!');
+                      }
+                    }}
+                    className="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold text-[11px] rounded-lg cursor-pointer shrink-0"
+                  >
+                    Apply
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsLogoModalOpen(true)}
+                  className="py-2 px-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-95 text-white font-bold rounded-xl text-[11px] flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Generate AI logos</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('branding')}
+                  className="py-2 px-2 bg-white hover:bg-slate-100 text-slate-900 font-bold rounded-xl text-[11px] cursor-pointer"
+                >
+                  Logo &amp; media →
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsDarkCanvas(false)}
+                  className={`py-1.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 cursor-pointer ${!isDarkCanvas ? 'bg-white text-slate-900' : 'bg-white/10 text-slate-300 hover:bg-white/20'}`}
+                >
+                  <Sun className="w-3.5 h-3.5" />
+                  <span>Light</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsDarkCanvas(true)}
+                  className={`py-1.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 cursor-pointer ${isDarkCanvas ? 'bg-white text-slate-900' : 'bg-white/10 text-slate-300 hover:bg-white/20'}`}
+                >
+                  <Moon className="w-3.5 h-3.5" />
+                  <span>Dark</span>
+                </button>
+              </div>
+            </div>
+
             <div className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200/60 p-3.5 rounded-xl flex flex-col gap-2">
               <div className="flex items-center gap-2 text-purple-900 font-bold">
                 <Sparkles className="w-4 h-4 text-purple-600" />
                 <span>AI Salon Copywriter</span>
               </div>
               <p className="text-[11px] text-purple-800 leading-relaxed">
-                Generate high-converting headlines, seasonal offers, and story descriptions tailored for Indian clientele.
+                Generate high-converting headlines, seasonal offers, and story descriptions with live AI when the server is reachable. If AI is unavailable, curated offline copy is applied and the preview notice says so.
               </p>
             </div>
 
@@ -1059,7 +1221,7 @@ export const SidePanelCustomizer: React.FC<SidePanelCustomizerProps> = ({
                   if (onAIGeneratePrompt) {
                     onAIGeneratePrompt('custom', aiCustomText);
                     setAiCustomText('');
-                    showToast('AI regenerated copy applied!');
+                    showToast('Copy requested — the preview notice confirms AI or offline result.');
                   }
                 }}
                 className="mt-2 w-full py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
