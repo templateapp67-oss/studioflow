@@ -259,6 +259,9 @@ export interface Appointment {
   paymentStatus: 'paid_deposit' | 'paid_full' | 'pay_at_salon';
   amountPaid: number;
   createdAt: string;
+  walkIn?: boolean;
+  posMethod?: string;
+  origin?: string;
 }
 
 export type LoyaltyTier = 'bronze' | 'silver' | 'gold' | 'platinum';

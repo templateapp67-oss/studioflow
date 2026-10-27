@@ -18,6 +18,7 @@ Applied SQL, in order:
 13. studioflow-customer-wiring-gaps.sql (multi-service slots/book/reschedule cores, storage, realtime)
 14. booking-coupons.sql, booking-add-ons.sql, customer-demo-bookings.sql (bind to the multi-service cores)
 15. customer-discovery-sections.sql, starter-packages-onboarding-guard.sql (refinements that must win last)
+16. studioflow-pos-refunds.sql (nullable walk-in customer_id, Razorpay refund queue, owner POS collect/complete)
 
 Drafts and customer details are private. Only sanitized published content and the template catalog are publicly readable. Owner writes and public bookings use RPC wrappers with private, restricted database implementations. Workspace saves use revision checks to prevent lost updates across tabs. Images use owner paths in the public studioflow-media bucket.
 
@@ -25,7 +26,7 @@ Referral codes come from growth_partners. Signup metadata and the incoming ref p
 
 Run `node scripts/verify-sql-migrations.mjs` to prove every migration applies in dependency order against a stubbed Supabase surface (offline). Run `node scripts/verify-supabase.mjs` only against this configured test target with email autoconfirm enabled. It uses disposable test accounts and verifies real signup/login, persistence, RLS, publish, referral, bookings and storage. It signs out and removes test media; delete its exact test users and booking rows afterward. `studioflow-verification.sql` verifies database behavior inside a rolled-back transaction without persistent QA rows.
 
-Payments: no live payment provider is configured. Booking prices come from published services; amountPaid stays zero. Deposit-required requests remain pending and cannot be manually confirmed. Cash-at-salon requests can be confirmed without a deposit. Refunds, online charging and commission settlement require a verified payment provider integration.
+Payments: online 25% advances go through the `studioflow-payments` edge function and Razorpay. Booking prices come from published services. Deposit-required website/app requests remain pending until verify/webhook settlement. Expired unpaid holds are cancelled; captured payments on expired or cancelled bookings are refunded through Razorpay. Owners record walk-in guests and remaining cash/UPI/card balances with `studioflow_owner_walk_in` / `studioflow_complete_visit`. Commission settlement is still not connected to a payment ledger.
 
 Browser QA is unavailable in this managed environment. TypeScript, production build, database assertions and real HTTP integration checks are used instead.
 
