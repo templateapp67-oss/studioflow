@@ -18,11 +18,12 @@ export async function payBookingDeposit(booking:Appointment):Promise<Appointment
  return new Promise((resolve,reject)=>{
   let verifying=false;
   const checkout=new (window as any).Razorpay({key:order.keyId,amount:order.amount,currency:order.currency,order_id:order.orderId,name:'Salon booking',description:'Mandatory 25% advance',prefill:{name:booking.clientName,contact:booking.clientPhone,email:booking.clientEmail},
-   handler:async(response:any)=>{verifying=true;try{const result=await paymentRequest('verify',{bookingId:booking.id,orderId:response.razorpay_order_id,paymentId:response.razorpay_payment_id,signature:response.razorpay_signature});if(result.booking?.refund_required)throw new Error('Payment received after the reservation expired. Contact platform support with your booking reference for a refund.');resolve(result.booking);}catch(error){reject(error);}},
+   handler:async(response:any)=>{verifying=true;try{const result=await paymentRequest('verify',{bookingId:booking.id,orderId:response.razorpay_order_id,paymentId:response.razorpay_payment_id,signature:response.razorpay_signature});if(result.booking?.refund_required||result.refund_required)throw new Error(result.refunded?'This reservation expired. The captured advance was refunded automatically to the original payment method.':'Payment received after the reservation expired. A refund has been requested; check your original payment method shortly.');resolve(result.booking);}catch(error){reject(error);}},
    modal:{ondismiss:()=>{if(!verifying)reject(new Error('Checkout closed. Your slot is held for up to 15 minutes. Retry payment or check payment status.'));}}
   });
   checkout.on('payment.failed',()=>reject(new Error('Payment failed. Retry checkout or check payment status before paying again.')));
   checkout.open();
  });
 }
-export async function reconcileBookingPayment(id:string):Promise<Appointment>{const result=await paymentRequest('reconcile',{bookingId:id});if(result.booking?.refund_required)throw new Error('Payment needs a refund after the slot expired. Contact platform support with your booking reference.');return result.booking;}
+export async function reconcileBookingPayment(id:string):Promise<Appointment>{const result=await paymentRequest('reconcile',{bookingId:id});if(result.booking?.refund_required||result.refund_required)throw new Error(result.refunded?'This reservation expired. The captured advance was refunded automatically.':'Payment after expiry is being refunded to the original method. Do not pay again.');return result.booking;}
+export async function refundBookingPayment(id:string){return paymentRequest('refundBooking',{bookingId:id});}

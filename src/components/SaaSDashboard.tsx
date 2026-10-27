@@ -14,6 +14,7 @@ import { PromoStudio } from './PromoStudio';
 import { LoyaltyManagement } from './LoyaltyManagement';
 import { SocialConnectivityStep } from './SocialConnectivityStep';
 import { DEFAULT_LOYALTY_CONFIG, TIER_METADATA, calculateLoyaltyTier, calculateRewardProgress } from '../loyaltyData';
+import { OwnerPosPanel } from './OwnerPosPanel';
 
 interface SaaSDashboardProps {
   ownerId?:string;
@@ -32,6 +33,7 @@ interface SaaSDashboardProps {
   onNavigateToPreview?: () => void;
   initialTab?:string;
   gallery?:string[];setGallery?:(images:string[])=>void;
+  onRefreshBookings?:()=>Promise<void>|void;
 }
 
 type TabType = 'contacts' |  'demo' | 'website_sections' | 'overview' | 'calendar' | 'services' | 'team' | 'clients' | 'loyalty' | 'marketing' | 'social_connectivity' | 'appearance' | 'website';
@@ -49,7 +51,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
   setClients = (_clients: React.SetStateAction<ClientRecord[]>) => {},
   loyaltyConfig: externalLoyaltyConfig,
   setLoyaltyConfig: externalSetLoyaltyConfig,
-  ownerId='',onNavigateToPreview,initialTab='overview',gallery,setGallery,
+  ownerId='',onNavigateToPreview,initialTab='overview',gallery,setGallery,onRefreshBookings,
 }) => {
   const [internalLoyaltyConfig, setInternalLoyaltyConfig] = useState<LoyaltyConfig>(DEFAULT_LOYALTY_CONFIG);
   const loyaltyConfig = externalLoyaltyConfig || internalLoyaltyConfig;
@@ -324,10 +326,10 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
                         <td className="py-3 px-2 text-right">
                           {apt.status === 'confirmed' ? (
                             <button
-                              onClick={() => updateAppointmentStatus(apt.id, 'completed')}
+                              onClick={() => setActiveTab('calendar')}
                               className="text-xs bg-emerald-600 text-white font-bold px-2.5 py-1 rounded hover:bg-emerald-700 cursor-pointer"
                             >
-                              Complete
+                              Collect / Complete
                             </button>
                           ) : (
                             <span className="text-slate-400 font-bold">{apt.status}</span>
@@ -346,9 +348,12 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
 
         {/* TAB CONTENT: APPOINTMENTS */}
         {activeTab === 'calendar' && (
-          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-xs">
+          <div className="flex flex-col gap-4">
+            <OwnerPosPanel slug={profile.subdomain} services={services} stylists={stylists} appointments={appointments} onChanged={async()=>{await onRefreshBookings?.();}}/>
+            <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-xs">
             <h2 className="font-display font-bold text-xl mb-4">Calendar & Appointment Schedule</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {appointments.length===0&&<p className="text-sm text-gray-500 col-span-full">No appointments yet. Use walk-in booking above for guests at the salon.</p>}
               {appointments.map((apt) => (
                 <div key={apt.id} className="p-4 rounded-xl border border-gray-200 bg-gray-50 flex justify-between items-center">
                   <div>
@@ -358,10 +363,11 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
                   </div>
                   <div className="text-right">
                     <div className="font-bold text-base">₹{apt.servicePrice.toLocaleString('en-IN')}</div>
-                    <div className="text-[10px] text-gray-400 font-mono">Paid Advance: ₹{apt.amountPaid}</div>
+                    <div className="text-[10px] text-gray-400 font-mono">{apt.paymentStatus==='paid_full'?'Paid in full':'Collected'}: ₹{apt.amountPaid}</div>
                   </div>
                 </div>
               ))}
+            </div>
             </div>
           </div>
         )}
