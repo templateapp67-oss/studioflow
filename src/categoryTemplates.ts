@@ -239,8 +239,8 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
     id: 'unisex_salon',
     title: 'Aura Unisex Salon & Wellness Lounge',
     shortName: 'Unisex Salon',
-    tagline: 'Harmonious Beauty, Contemporary Hair & Inclusive Self-Care',
-    about: 'Aura Unisex Salon offers a balanced, contemporary space in Koramangala. Designed for modern professionals and families seeking premium hair services, de-tan treatments, and express grooming under one roof.',
+    tagline: 'Look Good. Feel Fresh. Be You. — Hair, skin, grooming and wellness for everyone',
+    about: 'At Aura, we believe everyone deserves to look good and feel confident. From a fresh haircut to relaxing salon care, our team is here to make every visit special. Friendly experts, quality products and a clean, relaxing space in the heart of Koramangala.',
     icon: 'diversity_3',
     layoutStyle: 'contemporary_balanced',
     paletteLabel: 'Warm Neutral & Pastel Pink/Grey',
@@ -254,7 +254,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
     ownerName: 'Priya Nair',
     ownerRole: 'Executive Salon Director',
     ownerPhotoUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=500&q=80',
-    coverImageUrl: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=1200&q=80',
+    coverImageUrl: 'https://nexorasalon.online/templates/aura-unisex/hero.webp',
     instagramHandle: '@aurasalon.blr',
     themeStyle: {
       heroBackground: 'bg-[#fff5f5]',
@@ -279,8 +279,9 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         category: 'Unisex Haircuts',
         durationMinutes: 45,
         price: 650,
-        description: 'Consultation, scalp revitalizer wash, tailored cut, and heat-protective styling.',
+        description: 'A hair wash, haircut and styling to suit your everyday look.',
         icon: 'content_cut',
+        imageUrl: 'https://nexorasalon.online/templates/aura-unisex/service-cut.webp',
         popular: true
       },
       {
@@ -289,8 +290,9 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         category: 'Skin Cleanups',
         durationMinutes: 40,
         price: 850,
-        description: 'Gentle fruit peel scrub, pore steam, blackhead removal, and saffron brightening mask.',
+        description: 'A gentle face cleanup with steam, scrub and a face mask.',
         icon: 'face',
+        imageUrl: 'https://nexorasalon.online/templates/aura-unisex/service-facial.webp',
         popular: true
       },
       {
@@ -299,8 +301,9 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         category: 'Botanical Color',
         durationMinutes: 90,
         price: 2800,
-        description: 'L’Oréal Inoa oil-based color with 100% white hair coverage and zero scalp stinging.',
-        icon: 'brush'
+        description: 'Full hair colour with an ammonia-free formula. Ask our team for the right shade.',
+        icon: 'brush',
+        imageUrl: 'https://nexorasalon.online/templates/aura-unisex/service-colour.webp'
       },
       {
         id: 'us-4',
@@ -308,8 +311,9 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         category: 'Hands & Feet Care',
         durationMinutes: 50,
         price: 850,
-        description: 'Dead sea salt soak, heel filing, warm paraffin dip, and tension-relief foot massage.',
-        icon: 'pan_tool'
+        description: 'A foot soak, nail care and a warm paraffin treatment for soft, fresh feet.',
+        icon: 'pan_tool',
+        imageUrl: 'https://nexorasalon.online/templates/aura-unisex/service-pedicure.webp'
       },
       {
         id: 'us-5',
@@ -317,8 +321,9 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         category: 'Botanical Color',
         durationMinutes: 45,
         price: 1650,
-        description: 'Rebuilds broken disulphide bonds caused by chemical processing and pollution.',
-        icon: 'auto_awesome'
+        description: 'A hair care treatment to help care for dry or damaged hair.',
+        icon: 'auto_awesome',
+        imageUrl: 'https://nexorasalon.online/templates/aura-unisex/service-repair.webp'
       }
     ],
     stylists: [
