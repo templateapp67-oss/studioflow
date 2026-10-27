@@ -36,6 +36,24 @@ assert.ok(custom.bio.includes('emerald spa glow')&&custom.bio.includes('Royal Ja
 assert.ok(studioCopyFallback(salon,'custom','   ').bio.includes('personalized care'));
 assert.ok(studioCopyFallback({businessName:'  ',city:'  '},'luxury').bio.includes('our salon'));
 
+// ---------- regression: every template image must load from a deployed source ----------
+// The unisex template once pointed at /templates/aura-unisex/*.webp files that were
+// never committed, so its hero/gallery/service preview was broken everywhere.
+const templateUrls: string[] = [];
+for (const t of Object.values(CATEGORY_TEMPLATES)) {
+  templateUrls.push(t.coverImageUrl, t.ownerPhotoUrl);
+  for (const s of t.services) { if ((s as any).imageUrl) templateUrls.push((s as any).imageUrl); }
+  for (const st of t.stylists) templateUrls.push(st.avatarUrl);
+}
+for (const d of Object.values(CATEGORY_STANDARDIZED_DATA)) {
+  for (const g of d.gallery) templateUrls.push(g.url);
+  for (const r of d.reviews) templateUrls.push(r.avatarUrl);
+}
+assert.ok(templateUrls.length > 100);
+for (const url of templateUrls) assert.match(url, /^(https:\/\/images\.unsplash\.com\/|data:image\/|\/|blob:)/, url);
+// Unisex cover mirrors its gallery hero (same pattern as the barber template).
+assert.equal(CATEGORY_TEMPLATES.unisex_salon.coverImageUrl.split('?')[0], CATEGORY_STANDARDIZED_DATA.unisex_salon.gallery[0].url.split('?')[0]);
+
 // ---------- lib: live server AI honours source:"ai" only ----------
 const realFetch=(globalThis as any).fetch;
 let sentBody:any=null;

@@ -254,7 +254,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
     ownerName: 'Priya Nair',
     ownerRole: 'Executive Salon Director',
     ownerPhotoUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=500&q=80',
-    coverImageUrl: 'https://nexorasalon.online/templates/aura-unisex/hero.webp',
+    coverImageUrl: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1200&q=80',
     instagramHandle: '@aurasalon.blr',
     themeStyle: {
       heroBackground: 'bg-[#fff5f5]',
@@ -281,7 +281,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         price: 650,
         description: 'A hair wash, haircut and styling to suit your everyday look.',
         icon: 'content_cut',
-        imageUrl: 'https://nexorasalon.online/templates/aura-unisex/service-cut.webp',
+        imageUrl: 'https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&w=800&q=80',
         popular: true
       },
       {
@@ -292,7 +292,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         price: 850,
         description: 'A gentle face cleanup with steam, scrub and a face mask.',
         icon: 'face',
-        imageUrl: 'https://nexorasalon.online/templates/aura-unisex/service-facial.webp',
+        imageUrl: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=800&q=80',
         popular: true
       },
       {
@@ -303,7 +303,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         price: 2800,
         description: 'Full hair colour with an ammonia-free formula. Ask our team for the right shade.',
         icon: 'brush',
-        imageUrl: 'https://nexorasalon.online/templates/aura-unisex/service-colour.webp'
+        imageUrl: 'https://images.unsplash.com/photo-1605497788044-5a32c7078486?auto=format&fit=crop&w=800&q=80'
       },
       {
         id: 'us-4',
@@ -313,7 +313,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         price: 850,
         description: 'A foot soak, nail care and a warm paraffin treatment for soft, fresh feet.',
         icon: 'pan_tool',
-        imageUrl: 'https://nexorasalon.online/templates/aura-unisex/service-pedicure.webp'
+        imageUrl: 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?auto=format&fit=crop&w=800&q=80'
       },
       {
         id: 'us-5',
@@ -323,7 +323,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         price: 1650,
         description: 'A hair care treatment to help care for dry or damaged hair.',
         icon: 'auto_awesome',
-        imageUrl: 'https://nexorasalon.online/templates/aura-unisex/service-repair.webp'
+        imageUrl: 'https://images.unsplash.com/photo-1560750588-73207b1ef5b8?auto=format&fit=crop&w=800&q=80'
       }
     ],
     stylists: [

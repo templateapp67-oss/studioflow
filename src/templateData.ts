@@ -115,12 +115,12 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
       { icon: 'military_tech', title: 'Friendly Expert Team', description: 'Specialists in unisex cuts, colour and skin care with transparent ₹ pricing.' }
     ],
     gallery: [
-      { id: 'us-g1', url: 'https://nexorasalon.online/templates/aura-unisex/hero.webp', title: 'Aura Salon — Look Good. Feel Fresh. Be You.', tag: 'Salon Hero' },
-      { id: 'us-g2', url: 'https://nexorasalon.online/templates/aura-unisex/hero-men.webp', title: "Men's Haircut & Grooming", tag: 'Men\'s Grooming' },
-      { id: 'us-g3', url: 'https://nexorasalon.online/templates/aura-unisex/hero-women.webp', title: "Women's Hair & Beauty", tag: 'Women\'s Beauty' },
-      { id: 'us-g4', url: 'https://nexorasalon.online/templates/aura-unisex/about-interior.webp', title: 'Bright Unisex Salon with Sage Green Chairs', tag: 'Salon Interior' },
-      { id: 'us-g5', url: 'https://nexorasalon.online/templates/aura-unisex/about-work.webp', title: 'Priya Nair — Salon Care', tag: 'Our Work' },
-      { id: 'us-g6', url: 'https://nexorasalon.online/templates/aura-unisex/wellness.webp', title: 'Calm, Clean Wellness Room for All Customers', tag: 'Wellness' }
+      { id: 'us-g1', url: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80', title: 'Aura Salon — Look Good. Feel Fresh. Be You.', tag: 'Salon Hero' },
+      { id: 'us-g2', url: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=800&q=80', title: "Men's Haircut & Grooming", tag: 'Men\'s Grooming' },
+      { id: 'us-g3', url: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80', title: "Women's Hair & Beauty", tag: 'Women\'s Beauty' },
+      { id: 'us-g4', url: 'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&w=800&q=80', title: 'Bright Unisex Salon with Sage Green Chairs', tag: 'Salon Interior' },
+      { id: 'us-g5', url: 'https://images.unsplash.com/photo-1580618672591-eb180b1a973f?auto=format&fit=crop&w=800&q=80', title: 'Priya Nair — Salon Care', tag: 'Our Work' },
+      { id: 'us-g6', url: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=800&q=80', title: 'Calm, Clean Wellness Room for All Customers', tag: 'Wellness' }
     ],
     reviews: [
       { id: 'us-r1', name: 'Aditi Sharma', location: 'Koramangala, Bengaluru', rating: 5, serviceName: 'Designer Unisex Haircut & Moroccan Conditioning', comment: 'The team explained the service and price before starting. The visit was comfortable and the team was helpful.', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80', date: '2 days ago' },

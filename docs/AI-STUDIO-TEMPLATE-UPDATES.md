@@ -23,3 +23,12 @@ both paths.
 Verification: `node scripts/verify-ai-studio.mjs` (live-AI contract, fallback copy,
 timeout, and every AI-tab template control), plus TypeScript and the production
 build. Existing website-wiring and screen-recovery suites still pass.
+
+## Unisex template image repair
+
+The Aura/Unisex template was the only one whose hero cover, 6 gallery photos and
+5 service images pointed at `/templates/aura-unisex/*.webp` files that were never
+committed to the repo, so its AI Studio preview was broken on every deployment.
+Those 12 URLs now use the same Unsplash CDN pattern as the other 13 templates
+(titles, prices, text and all other templates untouched). The verify suite fails
+if any template image ever points outside Unsplash/local/data URLs again.
