@@ -106,31 +106,31 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
 
   unisex_salon: {
     foundingYear: '2020',
-    foundingNarrative: 'Aura Luxe was created to give contemporary families, professionals, and couples a unified sanctuary where hair design, clinical aesthetic rituals, and restorative pedicures meet under one roof.',
-    specialties: ['Couple Spa & Hair Rituals', 'Cysteine Anti-Frizz', 'Korean Glass Skin Facials', 'Spa Pedicures'],
+    foundingNarrative: 'Aura was created as a welcoming unisex sanctuary in Koramangala where everyone — men, women and families — can look good and feel confident. From fresh haircuts and Inoa colour to de-tan cleanups and paraffin pedicures, our friendly team makes every visit comfortable, clean and relaxing.',
+    specialties: ['Unisex Haircuts & Styling', 'Ammonia-Free Inoa Colour', 'Organic De-Tan Cleanups', 'Paraffin Spa Pedicures'],
     certifications: [
-      { icon: 'verified', title: 'Hospital-Grade Hygiene', description: 'Dual UV-C autoclaves ensuring pristine equipment for every station.' },
-      { icon: 'spa', title: 'Clean Dermatology Formulations', description: 'Hypoallergenic European & Korean aesthetic care lines.' },
-      { icon: 'group', title: 'Private & Shared Suites', description: 'Dedicated VIP consultation rooms and couple treatment chambers.' },
-      { icon: 'military_tech', title: 'ISO 9001 Salon Certified', description: 'Standardized operational procedures for time, safety, and hygiene.' }
+      { icon: 'verified', title: 'Hospital-Grade Hygiene', description: 'Dual UV-C autoclaves and sealed linen ensuring pristine equipment for every station.' },
+      { icon: 'spa', title: 'Clean Dermatology Formulations', description: 'Hypoallergenic European & Korean aesthetic care lines, ammonia-free colour.' },
+      { icon: 'group', title: 'Inclusive Care for Everyone', description: 'Dedicated Men’s Grooming, Women’s Beauty and Wellness zones under one roof.' },
+      { icon: 'military_tech', title: 'Friendly Expert Team', description: 'Specialists in unisex cuts, colour and skin care with transparent ₹ pricing.' }
     ],
     gallery: [
-      { id: 'us-g1', url: 'https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=800&q=80', title: 'Modern Minimalist Styling Floor', tag: 'Interior' },
-      { id: 'us-g2', url: 'https://images.unsplash.com/photo-1560750588-73207b1ef5b8?auto=format&fit=crop&w=800&q=80', title: 'Deep Conditioning Scalp Basin', tag: 'Wash Station' },
-      { id: 'us-g3', url: 'https://images.unsplash.com/photo-1519699047748-de8e457a634e?auto=format&fit=crop&w=800&q=80', title: 'Cysteine Smoothing Transformation', tag: 'Hair Result' },
-      { id: 'us-g4', url: 'https://images.unsplash.com/photo-1512290900672-1f55b9e07506?auto=format&fit=crop&w=800&q=80', title: 'Hydra-Facial Clinical Room', tag: 'Skin Care' },
-      { id: 'us-g5', url: 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?auto=format&fit=crop&w=800&q=80', title: 'Private Couple Treatment Suite', tag: 'Private Lounge' },
-      { id: 'us-g6', url: 'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&w=800&q=80', title: 'Deluxe Manicure & Pedicure Bay', tag: 'Nail Spa' }
+      { id: 'us-g1', url: 'https://nexorasalon.online/templates/aura-unisex/hero.webp', title: 'Aura Salon — Look Good. Feel Fresh. Be You.', tag: 'Salon Hero' },
+      { id: 'us-g2', url: 'https://nexorasalon.online/templates/aura-unisex/hero-men.webp', title: "Men's Haircut & Grooming", tag: 'Men\'s Grooming' },
+      { id: 'us-g3', url: 'https://nexorasalon.online/templates/aura-unisex/hero-women.webp', title: "Women's Hair & Beauty", tag: 'Women\'s Beauty' },
+      { id: 'us-g4', url: 'https://nexorasalon.online/templates/aura-unisex/about-interior.webp', title: 'Bright Unisex Salon with Sage Green Chairs', tag: 'Salon Interior' },
+      { id: 'us-g5', url: 'https://nexorasalon.online/templates/aura-unisex/about-work.webp', title: 'Priya Nair — Salon Care', tag: 'Our Work' },
+      { id: 'us-g6', url: 'https://nexorasalon.online/templates/aura-unisex/wellness.webp', title: 'Calm, Clean Wellness Room for All Customers', tag: 'Wellness' }
     ],
     reviews: [
-      { id: 'us-r1', name: 'Simran & Kunal Bajaj', location: 'Cyber City, Gurugram', rating: 5, serviceName: 'Couple Weekend Makeover Package', comment: 'We booked the couple package for our anniversary. Outstanding care, private suite, and both our hair transformations turned out phenomenal!', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80', date: '3 days ago' },
-      { id: 'us-r2', name: 'Deepak Sharma', location: 'Golf Course Road, Gurugram', rating: 5, serviceName: 'Signature Haircut & Beard Shaping', comment: 'Always prompt, hygienic, and extremely professional. The booking system with ₹ pricing makes scheduling effortless.', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80', date: '1 week ago' },
-      { id: 'us-r3', name: 'Megha Taneja', location: 'DLF Phase 5, Gurugram', rating: 5, serviceName: 'Hydra-Dermabrasion Glow Facial', comment: 'My skin was glowing instantly without any redness. Certified products and lovely hospitality from the team.', avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80', date: '2 weeks ago' }
+      { id: 'us-r1', name: 'Aditi Sharma', location: 'Koramangala, Bengaluru', rating: 5, serviceName: 'Designer Unisex Haircut & Moroccan Conditioning', comment: 'The team explained the service and price before starting. The visit was comfortable and the team was helpful.', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80', date: '2 days ago' },
+      { id: 'us-r2', name: 'Rohan Mehta', location: 'Koramangala, Bengaluru', rating: 5, serviceName: 'Express Glow Organic Cleanup & De-Tan', comment: 'Booking was easy. The team listened to what I wanted and shared simple tips for care at home.', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80', date: '1 week ago' },
+      { id: 'us-r3', name: 'Neha Kapoor', location: 'Koramangala, Bengaluru', rating: 5, serviceName: 'Global Ammonia-Free Inoa Hair Color', comment: 'I liked the care and attention during my appointment. The salon was clean and welcoming and I felt comfortable throughout.', avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80', date: '2 weeks ago' }
     ],
     totalReviewCount: 710,
     averageRating: 4.95,
-    landmark: 'Near Cyber Hub Gateway Tower, Sector 24',
-    parkingInfo: 'Reserved 2-hour underground parking slots available',
+    landmark: 'Outer Ring Road, 4th Block, Koramangala — opposite Koramangala Bus Depot',
+    parkingInfo: 'Street parking and nearby commercial complex parking available',
     openHourText: '10:00 AM',
     closeHourText: '8:30 PM'
   },
