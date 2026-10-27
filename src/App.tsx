@@ -6,7 +6,7 @@ import { applyWebsiteFavicon, websiteFavicon } from './lib/websiteFavicon';
 import { resolveSiteSlug } from './lib/resolveSite';
 import { CATEGORY_TEMPLATES } from './categoryTemplates';
 import { upgradeBeautyParlourTemplate, upgradeLegacyBeautyParlourStylists } from './lib/roopMahalReference';
-import { requestedTemplate, templateDraft } from './lib/templateEntry';
+import { developmentTemplateForSiteSlug, requestedTemplate, templateDraft } from './lib/templateEntry';
 import { BusinessNotificationLink } from './components/BusinessNotificationLink';
 import { SalonBookingsDialog } from './components/SalonBookingsDialog';
 import { loadScreen } from './lib/loadScreen';
@@ -68,7 +68,7 @@ function Application() {
  if(customerApp&&!authReady)return <Loading text="Opening Nexora…" />;
  if(inviteEntry&&!recovery)return <CustomerInvitePage session={session}/>;
  if(customerApp)return <CustomerApp session={session}/>;
- if(slug)return <PublishedWebsite slug={slug} session={session} />;
+ if(slug)return <PublishedWebsite key={slug} slug={slug} session={session} />;
  if(entryTemplate&&!createTemplate&&!slug&&!customer&&!recovery)return <TemplateEntry templateId={entryTemplate.id} />;
  if(!authReady)return <Loading text="Checking your session…" />;
  if(!session)return <><div className="bg-white border-b px-4 py-3 text-center text-sm">Looking for a salon appointment? <a className="text-violet-600 font-semibold" href="/?app=1">Open Nexora Customer App →</a></div><AuthPage /></>;
@@ -200,10 +200,11 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
   </AppErrorBoundary>
  </div>;
 }
-function PublishedWebsite({slug,session}:{slug:string;session:Session|null}){
+function PublishedWebsite({slug,session}:{key?:React.Key;slug:string;session:Session|null}){
  const customerAccount=useCustomerProfile(session,0);
  const [showBookings,setShowBookings]=useState(false);
  const [site,setSite]=useState<any>(null);const [error,setError]=useState('');const [retry,setRetry]=useState(0);const [countdown, setCountdown] = useState(0);
+ const [devFallbackTemplate,setDevFallbackTemplate]=useState<BusinessTypeId|null>(null);
  const [authMode,setAuthMode]=useState<'signin'|'signup'|null>(null);
 
   useEffect(() => {
@@ -227,7 +228,10 @@ function PublishedWebsite({slug,session}:{slug:string;session:Session|null}){
  useEffect(()=>{if(!authMode)return;const previous=document.activeElement as HTMLElement|null;const dialog=document.querySelector<HTMLElement>('[role=dialog][aria-label="Customer account"]');dialog?.querySelector<HTMLElement>('input,button')?.focus();const keyboard=(event:KeyboardEvent)=>{if(event.key==='Escape')setAuthMode(null);if(event.key==='Tab'&&dialog){const items=Array.from(dialog.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),a[href]'));const first=items[0],last=items.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}}};document.addEventListener('keydown',keyboard);return()=>{document.removeEventListener('keydown',keyboard);previous?.focus();};},[authMode]);
  useEffect(()=>{if(session)setAuthMode(null);},[session?.user.id]);
  useEffect(()=>{let active=true,loaded=false;
-   const refresh=async()=>{if(document.hidden)return;const {data,error}=await supabase.from('studioflow_websites').select('content').eq('slug',slug).maybeSingle();if(!active)return;if(error||!data){if(!loaded)setError(error?.message||'This salon website is not published.');return;}
+   const refresh=async()=>{if(document.hidden)return;const {data,error}=await supabase.from('studioflow_websites').select('content').eq('slug',slug).maybeSingle();if(!active)return;
+   if(error){if(!loaded){setDevFallbackTemplate(null);setError(error.message||'Could not load this salon website.');}return;}
+   if(!data){if(!loaded){const fallback=developmentTemplateForSiteSlug(slug,import.meta.env.DEV);if(fallback){setDevFallbackTemplate(fallback.id);setError('');}else{setDevFallbackTemplate(null);setError('This salon website is not published.');}}return;}
+   setDevFallbackTemplate(null);
    let parsedContent = data.content;
    if (typeof data.content === 'string') {
      try {
@@ -242,6 +246,7 @@ function PublishedWebsite({slug,session}:{slug:string;session:Session|null}){
   void refresh();const channel=supabase.channel(`public-site-${slug}`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'studioflow_websites',filter:`slug=eq.${slug}`},()=>void refresh()).subscribe();const interval=setInterval(()=>void refresh(),15000);window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',refresh);return()=>{active=false;void supabase.removeChannel(channel);clearInterval(interval);window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',refresh);};
  },[slug,retry]);
  useEffect(()=>{if(!site)return;const previousTitle=document.title;document.title=site.profile?.businessName||'Salon website';const restoreIcon=applyWebsiteFavicon(document,websiteFavicon(site.branding,site.profile));return()=>{document.title=previousTitle;restoreIcon();};},[site?.profile?.businessName,site?.branding?.faviconUrl,site?.profile?.logoUrl]);
+ if(devFallbackTemplate)return <TemplateEntry templateId={devFallbackTemplate}/>;
  if(error)return <main className="p-10"><h1 className="text-2xl font-bold">Website unavailable</h1><p>{error.includes('not published') ? 'The salon owner has not published this website yet.' : error}</p><p className="text-sm text-slate-500 mt-2">Retrying automatically in {countdown} seconds...</p><div className="mt-4 flex flex-col gap-3"><div className="flex gap-3"><button className="primary-action" onClick={()=>{setError('');setSite(null);setRetry(r=>r+1);}}>Try again</button><a className="secondary-action" href="/">Open StudioFlow</a></div><details className="mt-4 p-4 border rounded-xl"><summary className="font-semibold cursor-pointer">Need help publishing?</summary><p className="mt-2 text-sm text-slate-600">If you are the salon owner, please sign in to your Salon Workspace, complete the setup, and click the 'Publish' button in the dashboard to make your website live.</p></details></div></main>;
  if(!site)return <Loading text="Loading salon website…" />;
  const book=async(apt:Appointment)=>{if(!session){setAuthMode('signin');throw new Error('Please log in or create a customer account to continue your booking.');}const {data,error}=await supabase.rpc(apt.couponCode?'studioflow_coupon_book':'studioflow_book',{p_slug:slug,p_request:apt});if(error)throw error;return data?.payload||data;};

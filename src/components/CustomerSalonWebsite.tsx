@@ -24,6 +24,7 @@ import {
  hasValidRoopPrice,
  isValidRoopService,
  isValidRoopStaff,
+ roopMahalBridalInquiryUrl,
  roopMahalBridalServices,
  roopMahalContactSummary,
 } from '../lib/roopMahalReference';
@@ -106,6 +107,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
  const mapUrl=Number.isFinite(profile.latitude)&&Number.isFinite(profile.longitude)?`https://www.google.com/maps/search/?api=1&query=${profile.latitude},${profile.longitude}`:`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([profile.address,profile.city,profile.postalCode].filter(Boolean).join(', '))}`;
 
  const roopContact=roopMahal?roopMahalContactSummary(profile,mapUrl,wa):null;
+ const roopBridalInquiryUrl=roopMahal?roopMahalBridalInquiryUrl(profile.whatsapp,profile.businessName):'';
  const roopShowLocation=roopMahal?Boolean(visible.location&&(roopContact?.hasAnyContactDetail||roopExt.keepContactSectionVisible)):visible.location;
  const roopBridalItems=roopMahal?roopMahalBridalServices(roopServices):[];
  const roopHasBridalImage=roopExt.bridalHighlightImageUrl!==undefined?Boolean(String(roopExt.bridalHighlightImageUrl||'').trim()):!roopExt.disableImageFallbacks;
@@ -338,7 +340,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
    )
   )}
   {roopMahal&&visible.about&&<RoopMahalAboutSection profile={profile} knowMoreHref={roopKnowMoreHref}/>}
-  {roopShowBridal&&<RoopMahalBridalHighlight profile={profile} services={roopServices} hasServicesTarget={roopHasServicesDestination}/>}
+  {roopShowBridal&&<RoopMahalBridalHighlight profile={profile} services={roopServices} hasServicesTarget={roopHasServicesDestination} whatsappUrl={roopBridalInquiryUrl}/>}
   {visible.stylists&&<section data-layout="team" id="salon-team" className={`sf-section sf-section-tint${roopMahal?' sf-rm-team-section':''}`}><div className="sf-container"><div className="sf-section-heading"><div><p className="sf-eyebrow">{roopMahal?'Our Team':'People behind the craft'}</p><h2>{heading('stylistsTitle',roopMahal?'Meet Our Beauty Experts':t('Meet Our Specialists'))}</h2><p>{heading('stylistsSubtitle',roopMahal?'Our team is here to help you look your best for every special moment.':'Find your specialist. Choose them for your next appointment.')}</p></div></div>{(!roopMahal||team.length>0)&&<div className={`sf-team-grid${roopMahal?' sf-rm-team-grid':''}`} tabIndex={0} aria-label="Our specialists. Swipe or scroll horizontally to explore.">{team.map(st=>roopMahal?<RoopMahalTeamCard key={st.id} staff={st} profile={profile} selected={chosen?.id===st.id} bookingAvailable={roopBookingFlowAvailable} onView={()=>setViewStaff(st.id)} onToggle={()=>setChosen(current=>current?.id===st.id?undefined:st)} onBook={()=>{setChosen(st);book(undefined,st)}}/>:<SpecialistCard key={st.id} staff={st} profile={profile} selected={chosen?.id===st.id} onView={()=>setViewStaff(st.id)} onGallery={()=>setViewStaff(st.id)} onToggle={()=>setChosen(current=>current?.id===st.id?undefined:st)} onBook={()=>{setChosen(st);book(undefined,st)}}/>)}</div>}{chosen&&(!roopMahal||roopBookingFlowAvailable)&&<SpecialistWeek key={chosen.id} profile={profile} staff={chosen} services={roopMahal?roopServices:services} onSlot={(selected,slot)=>{setService(selected);setDirectSlot(slot);setBooking(true)}}/>}{!team.length&&<p className="sf-empty">Meet our specialists at your next studio visit.</p>}</div></section>}
   <div data-layout="experiences">
    {roopMahal?<>{gallerySection}{testimonialsSection}</>:<>{testimonialsSection}{gallerySection}</>}

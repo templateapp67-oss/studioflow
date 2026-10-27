@@ -368,10 +368,12 @@ export function RoopMahalBridalHighlight({
   profile,
   services,
   hasServicesTarget = true,
+  whatsappUrl = '',
 }: {
   profile?: SalonProfile;
   services: SalonService[];
   hasServicesTarget?: boolean;
+  whatsappUrl?: string;
 }) {
   const ext = (profile || {}) as ExtendedRoopProfile;
   const [imgFailed, setImgFailed] = useState(false);
@@ -432,11 +434,33 @@ export function RoopMahalBridalHighlight({
                 Enquire with our beauty parlour for bridal and occasion makeover availability.
               </p>
             )}
-            {hasServicesTarget && (
-              <a href="#services-section" className="sf-button sf-rm-btn-primary">
-                View Services
-                <ArrowUpRight size={16} />
-              </a>
+            {(hasServicesTarget || whatsappUrl) && (
+              <div className="sf-rm-bridal-actions">
+                {whatsappUrl && (
+                  <a
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="sf-button sf-rm-btn-primary"
+                    aria-label="Enquire on WhatsApp about bridal and occasion makeovers"
+                  >
+                    <MessageCircle size={16} />
+                    Enquire on WhatsApp
+                    <ArrowUpRight size={16} />
+                  </a>
+                )}
+                {hasServicesTarget && (
+                  <a href="#services-section" className="sf-button sf-rm-btn-secondary">
+                    View Services
+                    <ArrowUpRight size={16} />
+                  </a>
+                )}
+              </div>
+            )}
+            {whatsappUrl && (
+              <p className="sf-rm-bridal-note">
+                This opens a WhatsApp draft; it does not create or confirm an appointment.
+              </p>
             )}
           </div>
         </div>

@@ -15,6 +15,7 @@ import { photoGallery, withPhotoGallery } from '../src/lib/photoGallery';
 import {
   ROOP_MAHAL_IMAGES,
   ROOP_MAHAL_PALETTE,
+  roopMahalBridalInquiryUrl,
   upgradeBeautyParlourTemplate,
 } from '../src/lib/roopMahalReference';
 import { applyTemplateDesign } from '../src/lib/templateSelection';
@@ -80,6 +81,25 @@ for (const line of selectorLines) {
     );
   }
 }
+
+const validBridalInquiry = new URL(
+  roopMahalBridalInquiryUrl('+91 98110 99882', 'Roop Mahal Beauty Parlour & Makeover Space'),
+);
+assert.equal(validBridalInquiry.pathname, '/919811099882', 'Bridal inquiry uses the salon WhatsApp number');
+assert.match(
+  validBridalInquiry.searchParams.get('text') || '',
+  /Roop Mahal Beauty Parlour.*bridal or special-occasion makeover/,
+);
+assert.equal(
+  new URL(roopMahalBridalInquiryUrl('98110 99882', 'Roop Mahal')).pathname,
+  '/919811099882',
+  'Indian 10-digit numbers are normalized for WhatsApp',
+);
+assert.equal(
+  roopMahalBridalInquiryUrl('not-a-number', 'Roop Mahal'),
+  '',
+  'Invalid WhatsApp numbers must not produce an inquiry link',
+);
 
 // ============================================================================
 // 2. Verify all 20 distinct non-repeating AI image files exist on disk
@@ -246,6 +266,8 @@ for (const text of [
   'We would love to welcome you to our beauty parlour.',
   'Call Now',
   'WhatsApp Us',
+  'Enquire on WhatsApp',
+  'This opens a WhatsApp draft; it does not create or confirm an appointment.',
   'Get Directions',
   'Opening Hours',
   '10:00 AM – 08:00 PM',
@@ -492,6 +514,7 @@ assert.ok(!noContactHtml.includes('id="salon-location"'), 'Contact section must 
 assert.ok(!noContactHtml.includes('href="#salon-location"'), 'Zero links may point to hidden #salon-location');
 assert.ok(!noContactHtml.includes('Call Now'));
 assert.ok(!noContactHtml.includes('WhatsApp Us'));
+assert.ok(!noContactHtml.includes('Enquire on WhatsApp'), 'Bridal WhatsApp inquiry must be hidden without a valid number');
 assert.ok(!noContactHtml.includes('Get Directions'));
 assert.ok(!noContactHtml.includes('Opening Hours'));
 assert.ok(noContactHtml.includes('data-col-count="3"'), 'Footer must hide empty Contact column and adjust to 3 columns');

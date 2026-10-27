@@ -1,6 +1,7 @@
 import {resolveSiteSlug} from '../src/lib/resolveSite';
 const cases: Array<[string, any, string | null]> = [
   ['query param wins', {search: '?site=glow-studio', hostname: 'other.example.com'}, 'glow-studio'],
+  ['query slugs are case-insensitive', {search: '?site=Roop-Mahal', hostname: 'nexora.app'}, 'roop-mahal'],
   ['query on apex host', {search: '?site=a', hostname: 'nexora.app'}, 'a'],
   ['subdomain alias', {search: '', hostname: 'glow-studio.nexora.app'}, 'glow-studio'],
   ['hostname from href', {search: '', href: 'https://glow-studio.nexora.app/?app=1'}, 'glow-studio'],
