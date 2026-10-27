@@ -146,12 +146,11 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
       { icon: 'grade', title: 'Awarded Best South Delhi Parlour', description: 'Voted top neighbourhood beauty parlour 3 consecutive years.' }
     ],
     gallery: [
-      { id: 'bp-g1', url: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=800&q=80', title: 'Bridal Herbal Face Treatment', tag: 'Facial Glow' },
-      { id: 'bp-g2', url: 'https://images.unsplash.com/photo-1560750588-73207b1ef5b8?auto=format&fit=crop&w=800&q=80', title: 'Organic Steam Hair Spa Therapy', tag: 'Hair Spa' },
-      { id: 'bp-g3', url: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=800&q=80', title: 'Herbal Rose Water & Clay Masking', tag: 'Ayurvedic Skin' },
-      { id: 'bp-g4', url: 'https://images.unsplash.com/photo-1512290900672-1f55b9e07506?auto=format&fit=crop&w=800&q=80', title: 'Private Treatment Suite & Linens', tag: 'Interior' },
-      { id: 'bp-g5', url: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80', title: 'Pain-Free Threading & Brow Shaping', tag: 'Brows' },
-      { id: 'bp-g6', url: 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?auto=format&fit=crop&w=800&q=80', title: 'Floral Foot Soak & Pedicure', tag: 'Body Care' }
+      { id: 'bp-g1', url: '/templates/roop-mahal/gallery-bridal-detail.jpg', title: 'Bridal Makeup & Shringaar', tag: 'Bridal Makeup' },
+      { id: 'bp-g2', url: '/templates/roop-mahal/gallery-party-makeup.jpg', title: 'Soft-Glam Party Makeup', tag: 'Party Makeup' },
+      { id: 'bp-g3', url: '/templates/roop-mahal/gallery-hair-styling.jpg', title: 'Festive Updo & Hair Styling', tag: 'Hair Styling' },
+      { id: 'bp-g4', url: '/templates/roop-mahal/gallery-royal-bridal.jpg', title: 'Herbal Facial & Beauty Care', tag: 'Beauty Treatments' },
+      { id: 'bp-g5', url: '/templates/roop-mahal/gallery-studio-stations.jpg', title: 'Roop Mahal Makeover Studio', tag: 'Salon Interior' }
     ],
     reviews: [
       { id: 'bp-r1', name: 'Neelam Oberoi', location: 'Greater Kailash 1, New Delhi', rating: 5, serviceName: 'Shahnaz Husain Gold Radiance Facial', comment: 'The most trustworthy beauty parlour in South Delhi. Sunita ji treats every client with maternal warmth and immaculate hygiene.', avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80', date: '3 days ago' },
