@@ -16,6 +16,8 @@ import { WebsiteContentManager } from './WebsiteContentManager';
 import { PromoStudio } from './PromoStudio';
 import {servicesForTemplate} from '../lib/serviceCatalogue';
 import { applyTemplateDesign } from '../lib/templateSelection';
+import { upgradeLegacyBeautyParlourStylists } from '../lib/roopMahalReference';
+import { CATEGORY_TEMPLATES } from '../categoryTemplates';
 import { SocialConnectivityStep } from './SocialConnectivityStep';
 import { type Extras } from '../lib/workspaceDefaults';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -72,7 +74,7 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
   const flash = (message: string) => { setNotice(message); window.setTimeout(() => setNotice(''), 2600); };
   const saveExtras = (next: Extras) => setExtras(next);
   const patchProfile = (key: keyof SalonProfile, value: unknown) => setProfile((prev) => ({ ...prev, [key]: value }));
-  const chooseTemplate = (id: BusinessTypeId) => { const template = templates.find(t => t.id === id); if (!template) return; setServices(servicesForTemplate(services,profile,template)); setProfile((prev) => ({...applyTemplateDesign(prev, template),serviceCatalogueInitialized:true})); if(!stylists.length)setStylists(template.stylists); flash(`${template.shortName} template applied`); };
+  const chooseTemplate = (id: BusinessTypeId) => { const template = templates.find(t => t.id === id) || CATEGORY_TEMPLATES[id]; if (!template) return; setServices(servicesForTemplate(services,profile,template)); setProfile((prev) => ({...applyTemplateDesign(prev, template),serviceCatalogueInitialized:true})); if(!stylists.length)setStylists(template.stylists); else if(id==='beauty_parlour')setStylists(prev=>upgradeLegacyBeautyParlourStylists(prev,'beauty_parlour')); flash(`${template.shortName} template applied`); };
 
 
   const renderContent = () => {

@@ -28,10 +28,101 @@ export const ROOP_MAHAL_IMAGES = {
   galleryHairStyling: '/templates/roop-mahal/gallery-hair-styling.jpg',
   galleryRoyalBridal: '/templates/roop-mahal/gallery-royal-bridal.jpg',
   galleryStudioStations: '/templates/roop-mahal/gallery-studio-stations.jpg',
+  staffSunita: '/templates/roop-mahal/staff-sunita.jpg',
+  staffMeenakshi: '/templates/roop-mahal/staff-meenakshi.jpg',
+  staffPooja: '/templates/roop-mahal/staff-pooja.jpg',
   staffFallback: '/templates/roop-mahal/staff-fallback.jpg',
 } as const;
 
-export function roopMahalServiceImage(service: Pick<SalonService, 'id' | 'name' | 'category'>): string {
+export const LEGACY_ROOP_MAHAL_STOCK_IDS = {
+  coverPhotoId: 'photo-1516975080664-ed2fc6a32937',
+  ownerPhotoId: 'photo-1573497019940-1c28c88b4f3e',
+  stylistPhotoIds: [
+    'photo-1573497019940-1c28c88b4f3e',
+    'photo-1544005313-94ddf0286df2',
+    'photo-1517841905240-472988babdf9',
+  ],
+} as const;
+
+export const LEGACY_ROOP_MAHAL_TAGLINES = new Set([
+  'Timeless Indian Beauty, Herbal Facials, Threading & Radiance Care',
+]);
+
+const DEFAULT_ROOP_STYLIST_PORTRAITS: Record<string, string> = {
+  'bp-st-1': ROOP_MAHAL_IMAGES.staffSunita,
+  'bp-st-2': ROOP_MAHAL_IMAGES.staffMeenakshi,
+  'bp-st-3': ROOP_MAHAL_IMAGES.staffPooja,
+};
+
+export function isLegacyRoopStockCover(url?: string | null): boolean {
+  const value = url?.trim() || '';
+  if (!value) return false;
+  return (
+    value.includes('images.unsplash.com') &&
+    value.includes(LEGACY_ROOP_MAHAL_STOCK_IDS.coverPhotoId)
+  );
+}
+
+export function isLegacyRoopStockOwnerPhoto(url?: string | null): boolean {
+  const value = url?.trim() || '';
+  if (!value) return false;
+  return (
+    value.includes('images.unsplash.com') &&
+    value.includes(LEGACY_ROOP_MAHAL_STOCK_IDS.ownerPhotoId)
+  );
+}
+
+export function isLegacyRoopStockTagline(tagline?: string | null): boolean {
+  const value = tagline?.trim() || '';
+  if (!value) return false;
+  return LEGACY_ROOP_MAHAL_TAGLINES.has(value);
+}
+
+export function upgradeLegacyBeautyParlourStylists<T extends Pick<Stylist, 'id' | 'avatarUrl'>>(
+  stylists: T[],
+  businessType?: string,
+): T[] {
+  if (businessType !== 'beauty_parlour' || !Array.isArray(stylists)) return stylists;
+  return stylists.map((stylist) => {
+    const replacement = DEFAULT_ROOP_STYLIST_PORTRAITS[stylist.id];
+    const current = stylist.avatarUrl?.trim() || '';
+    const isLegacyUnsplashStock =
+      current.includes('images.unsplash.com') &&
+      LEGACY_ROOP_MAHAL_STOCK_IDS.stylistPhotoIds.some((stockId) => current.includes(stockId));
+    if (replacement && (!current || isLegacyUnsplashStock)) {
+      return { ...stylist, avatarUrl: replacement };
+    }
+    return stylist;
+  });
+}
+
+export function upgradeBeautyParlourTemplate<T extends { id: string }>(remote: T): T {
+  if (!remote || remote.id !== 'beauty_parlour') return remote;
+  const local = CATEGORY_TEMPLATES.beauty_parlour;
+  const raw = remote as Record<string, any>;
+  const remoteStylists =
+    Array.isArray(raw.stylists) && raw.stylists.length > 0
+      ? upgradeLegacyBeautyParlourStylists(raw.stylists, 'beauty_parlour')
+      : local.stylists;
+  const next: Record<string, any> = {
+    ...raw,
+    title: local.title,
+    shortName: local.shortName,
+    tagline: local.tagline,
+    coverImageUrl: local.coverImageUrl,
+    themePreset: local.themePreset,
+    stylists: remoteStylists,
+  };
+  if ('paletteLabel' in raw || 'themeStyle' in raw || 'ownerPhotoUrl' in raw) {
+    next.paletteLabel = local.paletteLabel;
+    next.themeStyle = local.themeStyle;
+    next.ownerPhotoUrl = local.ownerPhotoUrl;
+    next.about = local.about;
+  }
+  return next as T;
+}
+
+export function roopMahalServiceImage(service: { id?: string; name?: string; category?: string }): string {
   if (service.id === 'bp-1') return ROOP_MAHAL_IMAGES.serviceThreading;
   if (service.id === 'bp-2') return ROOP_MAHAL_IMAGES.serviceGoldFacial;
   if (service.id === 'bp-3') return ROOP_MAHAL_IMAGES.serviceWaxing;
@@ -52,19 +143,19 @@ export function roopMahalServiceImage(service: Pick<SalonService, 'id' | 'name' 
 
 export function hasOwnerCustomCover(profile: SalonProfile): boolean {
   const url = profile.coverImageUrl?.trim();
-  if (!url) return false;
+  if (!url || isLegacyRoopStockCover(url)) return false;
   return !Object.values(CATEGORY_TEMPLATES).some((t) => t.coverImageUrl === url);
 }
 
 export function hasOwnerCustomPhoto(profile: SalonProfile): boolean {
   const url = profile.ownerPhotoUrl?.trim();
-  if (!url) return false;
+  if (!url || isLegacyRoopStockOwnerPhoto(url)) return false;
   return !Object.values(CATEGORY_TEMPLATES).some((t) => t.ownerPhotoUrl === url);
 }
 
 export function hasOwnerCustomTagline(profile: SalonProfile): boolean {
   const tagline = profile.tagline?.trim();
-  if (!tagline) return false;
+  if (!tagline || isLegacyRoopStockTagline(tagline)) return false;
   return !Object.values(CATEGORY_TEMPLATES).some((t) => t.tagline === tagline);
 }
 
