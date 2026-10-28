@@ -39,7 +39,14 @@ const SalonWebsitePreview = lazy(() => loadScreen(() => import('./components/Sal
 const SaaSDashboard = lazy(() => loadScreen(() => import('./components/SaaSDashboard').then(m => ({ default: m.SaaSDashboard }))));
 const OwnerWorkspace = lazy(() => loadScreen(() => import('./components/OwnerWorkspace').then(m => ({ default: m.OwnerWorkspace }))));
 
-export default function App(){return <AppErrorBoundary><Suspense fallback={<Loading text="Loading StudioFlow…" />}><CustomerReferralBridge/><Application /></Suspense></AppErrorBoundary>;}
+export default function App(){
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(console.error);
+    }
+  }, []);
+  return <AppErrorBoundary><Suspense fallback={<Loading text="Loading StudioFlow…" />}><CustomerReferralBridge/><Application /></Suspense></AppErrorBoundary>;
+}
 function readRecoveryFlag(){try{return sessionStorage.getItem('studioflow_recovery')==='1';}catch{return false;}}
 function Application() {
  const [session,setSession]=useState<Session|null>(null); const [authReady,setAuthReady]=useState(false);

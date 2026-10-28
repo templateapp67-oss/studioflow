@@ -6,7 +6,7 @@ import { GoogleGenAI } from "@google/genai";
 async function startServer() {
   const app = express();
   const portArg = process.argv.indexOf('--port');
-  const PORT = Number(portArg >= 0 ? process.argv[portArg + 1] : process.env.PORT || 3000);
+  const PORT = 3000;
   if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) throw new Error('Invalid server port');
 
   app.use(express.json());

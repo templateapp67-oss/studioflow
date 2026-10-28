@@ -13,6 +13,7 @@ import {OwnerCustomerContacts} from './OwnerCustomerContacts';
 import { HeroBannerEditor } from './HeroBannerEditor';
 import {BrandImageField} from './BrandImageField';
 import { WebsiteContentManager } from './WebsiteContentManager';
+import { EnvironmentDiagnostic } from './EnvironmentDiagnostic';
 import { PromoStudio } from './PromoStudio';
 import {servicesForTemplate} from '../lib/serviceCatalogue';
 import { applyTemplateDesign } from '../lib/templateSelection';
@@ -78,6 +79,7 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
 
 
   const renderContent = () => {
+    if (active === 30) return <section className="workspace-card"><EnvironmentDiagnostic profile={profile}/></section>;
     if (active === 27) return <section className="workspace-card"><AboutStudioEditor profile={profile} setProfile={setProfile}/></section>;
     if (active === 28) return <PromoStudio profile={profile} setProfile={setProfile} services={services} onAdReady={setCampaignAd}/>;
     if (active === 29) return <LoyaltyManagement clients={clients} setClients={setClients} loyaltyConfig={loyaltyConfig} setLoyaltyConfig={setLoyaltyConfig} profile={profile} primaryAccentColor={accent} onNavigateToPreview={onOpenPreview}/>;

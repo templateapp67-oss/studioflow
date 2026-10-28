@@ -807,7 +807,7 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
       {/* 2. UNIFIED SALON WEBSITE PREVIEW CANVAS */}
       {/* ============================================================ */}
       <div 
-        className={`mt-4 transition-all duration-300 ${deviceWidthClass} shadow-2xl rounded-2xl overflow-hidden border border-slate-200 my-4 ${
+        className={`mt-4 transition-all duration-300 ${deviceWidthClass} shadow-2xl rounded-2xl overflow-y-auto border border-slate-200 my-4 ${
           isDarkCanvas ? 'bg-[#0f0f13] text-neutral-100' : 'bg-white text-slate-900'
         }`}
         id="salon-website-canvas"
