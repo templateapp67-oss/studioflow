@@ -20,6 +20,7 @@ import { SanctuaryGallery } from "./hair-spa/SanctuaryGallery";
 import { BookingSection } from "./hair-spa/BookingSection";
 import { FAQSection } from "./hair-spa/FAQSection";
 import { ContactSection } from "./hair-spa/ContactSection";
+import { OffersSection } from "./hair-spa/OffersSection";
 import { HairSpaFooter } from "./hair-spa/HairSpaFooter";
 import { GalleryLightbox } from "./hair-spa/GalleryLightbox";
 import {
@@ -433,6 +434,7 @@ export function HairSpaWebsite({
           <BrandPhilosophy />
           <ServicesSection />
           <FeaturedRituals />
+          <OffersSection />
           <ScalpCareJourney />
           <TeamSection />
           <BotanicalIngredients />

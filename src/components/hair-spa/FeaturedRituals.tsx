@@ -32,9 +32,9 @@ export function FeaturedRituals() {
               </Reveal>
             </div>
             {packagesAvailable ? (
-              <div className="kp-package-grid">
+              <div className="kp-package-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
                 {model.packages.map((item) => (
-                  <article className="sf-service-card" key={item.id}>
+                  <article className="sf-service-card kp-package-card flex flex-col h-full justify-between" key={item.id}>
                     <div className="kp-service-photo">
                       <ServicePhoto
                         service={item}
@@ -42,34 +42,38 @@ export function FeaturedRituals() {
                         className="sf-service-image"
                       />
                     </div>
-                    <div className="kp-service-content">
-                      <p className="kp-service-category">
-                        {item.category || "Combination treatment"}
-                      </p>
-                      <h3>{item.name}</h3>
-                      <p className="kp-service-description">
-                        {item.description}
-                      </p>
-                      <div className="kp-service-meta">
-                        {item.showDuration !== false &&
-                          item.durationMinutes > 0 && (
-                            <span>
-                              <Clock3 size={14} aria-hidden="true" />
-                              {item.durationMinutes} min
-                            </span>
-                          )}
-                        {item.price > 0 && (
-                          <strong>{model.formatMoney(item.price)}</strong>
-                        )}
+                    <div className="kp-service-content flex-1 flex flex-col justify-between p-6">
+                      <div>
+                        <p className="kp-service-category">
+                          {item.category || "Combination treatment"}
+                        </p>
+                        <h3>{item.name}</h3>
+                        <p className="kp-service-description flex-1">
+                          {item.description}
+                        </p>
                       </div>
-                      <button
-                        type="button"
-                        className="kp-card-link"
-                        onClick={() => model.book(item)}
-                      >
-                        Choose this combination{" "}
-                        <ArrowUpRight size={15} aria-hidden="true" />
-                      </button>
+                      <div className="mt-4">
+                        <div className="kp-service-meta mb-3">
+                          {item.showDuration !== false &&
+                            item.durationMinutes > 0 && (
+                              <span>
+                                <Clock3 size={14} aria-hidden="true" />
+                                {item.durationMinutes} min
+                              </span>
+                            )}
+                          {item.price > 0 && (
+                            <strong>{model.formatMoney(item.price)}</strong>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          className="kp-card-link"
+                          onClick={() => model.book(item)}
+                        >
+                          Choose this combination{" "}
+                          <ArrowUpRight size={15} aria-hidden="true" />
+                        </button>
+                      </div>
                     </div>
                   </article>
                 ))}

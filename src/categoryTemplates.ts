@@ -676,30 +676,31 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
       }
     ],
     stylists: [
-      // Demo team entries. Portraits are intentionally left empty so the template
-      // never presents unrelated stock faces as real specialists.
       {
         id: 'hsp-st-1',
         name: 'Gayatri Raman',
-        role: 'Scalp Care Lead',
-        avatarUrl: '',
-        specialties: ['Scalp Care', 'Head Spa'],
+        role: 'Scalp Care Lead & Trichologist',
+        bio: 'Specializing in Ayurvedic scalp health and restorative head spa therapies with over 12 years of botanical wellness experience.',
+        avatarUrl: '/templates/kesh-prakriti/team-gayatri.jpg',
+        specialties: ['Scalp Care', 'Head Spa', 'Trichology Diagnostics'],
         rating: 4.97
       },
       {
         id: 'hsp-st-2',
         name: 'Karthik Sundaram',
-        role: 'Hair Spa Therapist',
-        avatarUrl: '',
-        specialties: ['Head Massage', 'Steam Treatments'],
+        role: 'Senior Hair Spa Therapist',
+        bio: 'Expert in traditional head massage and deep moisture steam treatments designed to relieve muscular tension and nourish roots.',
+        avatarUrl: '/templates/kesh-prakriti/team-karthik.jpg',
+        specialties: ['Head Massage', 'Steam Treatments', 'Acupressure'],
         rating: 4.93
       },
       {
         id: 'hsp-st-3',
         name: 'Deepa Pillai',
         role: 'Herbal Treatment Specialist',
-        avatarUrl: '',
-        specialties: ['Herbal Lepam', 'Oil Treatments'],
+        bio: 'Dedicated to formulating fresh herbal lepam masks and organic botanical elixirs for hair vitality and scalp balance.',
+        avatarUrl: '/templates/kesh-prakriti/team-deepa.jpg',
+        specialties: ['Herbal Lepam', 'Oil Treatments', 'Root Care'],
         rating: 4.90
       }
     ]

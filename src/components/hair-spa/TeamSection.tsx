@@ -86,6 +86,9 @@ export function TeamSection() {
               {person.role?.trim() && (
                 <p className="kp-team-role">{person.role}</p>
               )}
+              {person.bio?.trim() && (
+                <p className="kp-team-bio text-sm opacity-85 mt-2">{person.bio}</p>
+              )}
               <button
                 type="button"
                 className="kp-team-profile-link"

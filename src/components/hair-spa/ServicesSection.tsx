@@ -55,7 +55,7 @@ export function ServicesSection() {
             </div>
           )}
           <motion.div
-            className="kp-service-grid sf-service-row"
+            className="kp-service-grid sf-service-row grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch"
             variants={staggerContainer}
             initial={model.reduced || !model.canObserve ? "visible" : "hidden"}
             whileInView={model.canObserve ? "visible" : undefined}
@@ -69,7 +69,7 @@ export function ServicesSection() {
               )
               .map((item, index) => (
                 <motion.article
-                  className={`kp-service-card sf-service-card${index === 0 ? " is-featured" : ""}`}
+                  className={`kp-service-card sf-service-card flex flex-col h-full justify-between${index === 0 ? " is-featured" : ""}`}
                   key={item.id}
                   variants={staggerItem}
                   whileHover={model.reduced ? undefined : { y: -5 }}
@@ -83,33 +83,37 @@ export function ServicesSection() {
                     />
                     <span className="kp-service-number">0{index + 1}</span>
                   </div>
-                  <div className="kp-service-content">
-                    <p className="kp-service-category">
-                      {item.category || "HAIR & SCALP CARE"}
-                    </p>
-                    <h3>{item.name}</h3>
-                    <p className="kp-service-description">{item.description}</p>
-                    <div className="kp-service-meta">
-                      {item.showDuration !== false &&
-                        item.durationMinutes > 0 && (
-                          <span>
-                            <Clock3 size={14} />
-                            {item.durationMinutes} min
-                          </span>
-                        )}
-                      {item.price > 0 && (
-                        <strong>{model.formatMoney(item.price)}</strong>
-                      )}
+                  <div className="kp-service-content flex-1 flex flex-col justify-between p-6">
+                    <div>
+                      <p className="kp-service-category">
+                        {item.category || "HAIR & SCALP CARE"}
+                      </p>
+                      <h3>{item.name}</h3>
+                      <p className="kp-service-description flex-1">{item.description}</p>
                     </div>
-                    <button
-                      type="button"
-                      className="kp-card-link"
-                      onClick={() => model.book(item)}
-                      aria-label={`Book ${item.name}`}
-                    >
-                      Choose for online booking{" "}
-                      <ArrowUpRight size={15} aria-hidden="true" />
-                    </button>
+                    <div className="mt-4">
+                      <div className="kp-service-meta mb-3">
+                        {item.showDuration !== false &&
+                          item.durationMinutes > 0 && (
+                            <span>
+                              <Clock3 size={14} />
+                              {item.durationMinutes} min
+                            </span>
+                          )}
+                        {item.price > 0 && (
+                          <strong>{model.formatMoney(item.price)}</strong>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        className="kp-card-link"
+                        onClick={() => model.book(item)}
+                        aria-label={`Book ${item.name}`}
+                      >
+                        Choose for online booking{" "}
+                        <ArrowUpRight size={15} aria-hidden="true" />
+                      </button>
+                    </div>
                   </div>
                 </motion.article>
               ))}

@@ -1,5 +1,6 @@
 import { useHairSpa } from "./context";
 import { Reveal } from "./Reveal";
+import { AnimatePresence, motion } from "motion/react";
 
 export function SanctuaryGallery() {
   const model = useHairSpa();
@@ -58,29 +59,36 @@ export function SanctuaryGallery() {
         ) : (
           <>
             {/* Desktop / tablet mosaic */}
-            <div className="kp-gallery-grid">
-              {model.visibleGallery.map(({ image, index }, position) => (
-                <button
-                  key={`${image.src}-${index}`}
-                  type="button"
-                  className={`kp-gallery-image kp-gallery-${position + 1}`}
-                  onClick={() => model.setActivePhoto(index)}
-                  aria-label={`Enlarge image ${position + 1} of ${filteredCount}: ${image.alt}`}
-                >
-                  <img
-                    src={image.src}
-                    alt={image.alt}
-                    loading="lazy"
-                    decoding="async"
-                  />
-                  <span>
-                    {image.isDemo ? "DEMO / SAMPLE · " : ""}
-                    {String(position + 1).padStart(2, "0")} /{" "}
-                    {String(filteredCount).padStart(2, "0")}
-                  </span>
-                </button>
-              ))}
-            </div>
+            <motion.div className="kp-gallery-grid" layout>
+              <AnimatePresence mode="popLayout">
+                {model.visibleGallery.map(({ image, index }, position) => (
+                  <motion.button
+                    key={`${image.src}-${index}`}
+                    layout
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.3 }}
+                    type="button"
+                    className={`kp-gallery-image kp-gallery-${position + 1}`}
+                    onClick={() => model.setActivePhoto(index)}
+                    aria-label={`Enlarge image ${position + 1} of ${filteredCount}: ${image.alt}`}
+                  >
+                    <img
+                      src={image.src}
+                      alt={image.alt}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    <span>
+                      {image.isDemo ? "DEMO / SAMPLE · " : ""}
+                      {String(position + 1).padStart(2, "0")} /{" "}
+                      {String(filteredCount).padStart(2, "0")}
+                    </span>
+                  </motion.button>
+                ))}
+              </AnimatePresence>
+            </motion.div>
 
             {/* Mobile swipe track */}
             <div

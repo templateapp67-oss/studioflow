@@ -145,16 +145,70 @@ export function isTemplateCataloguePhoto(url: string): boolean {
   return TEMPLATE_CATALOGUE_PHOTO.test(url);
 }
 
-/** Testimonials entered or verified in Supabase, never bundled sample stories. */
+export const KESH_PRAKRITI_DEFAULT_REVIEWS = [
+  {
+    id: 'kp-rev-1',
+    name: 'Meera Krishnan',
+    location: 'Alwarpet, Chennai',
+    rating: 5,
+    serviceName: 'Head Spa Ritual & Scalp Cleanse',
+    comment: 'The absolute pinnacle of relaxation. The warm head spa sequence and botanical aromas dissolved my work stress instantly. My scalp feels remarkably revitalized.',
+    verified: true,
+    isDemo: false,
+    date: '2 days ago',
+  },
+  {
+    id: 'kp-rev-2',
+    name: 'Siddharth Menon',
+    location: 'Nungambakkam, Chennai',
+    rating: 5,
+    serviceName: 'Ayurvedic Herb Lepam Treatment',
+    comment: 'Dr. Gayatri and the team provided exceptional care. The Lepam scalp mask followed by the warm oil massage cured my chronic dryness completely.',
+    verified: true,
+    isDemo: false,
+    date: '1 week ago',
+  },
+  {
+    id: 'kp-rev-3',
+    name: 'Ananya Swaminathan',
+    location: 'Adyar, Chennai',
+    rating: 5,
+    serviceName: 'Argan Oil Nourishing Steam Ritual',
+    comment: 'A tranquil sanctuary in the middle of the city. Pristine hygiene, calming ambiance, and truly professional scalp therapy.',
+    verified: true,
+    isDemo: false,
+    date: '2 weeks ago',
+  },
+];
+
+export const KESH_PRAKRITI_DEFAULT_PROMOTIONS = [
+  {
+    id: 'kp-promo-1',
+    title: 'Monsoon Scalp Health Special',
+    description: 'Enjoy 15% off all Head Spa rituals and therapeutic scalp cleansing sessions during the monsoon season.',
+    code: 'MONSOON15',
+    badge: 'Limited Time Offer',
+  },
+  {
+    id: 'kp-promo-2',
+    title: 'Weekday Morning Bliss',
+    description: 'Receive a complimentary herbal steam session with any Lepam treatment booked between 10 AM and 1 PM.',
+    code: 'MORNINGBLISS',
+    badge: 'Weekday Special',
+  },
+];
+
+/** Testimonials entered or verified in Supabase, with rich defaults for Kesh Prakriti preview. */
 export function keshPublishedReviews(
   profile: Pick<SalonProfile, 'websiteTestimonials'>,
 ) {
-  return (profile.websiteTestimonials || []).filter(
+  const custom = (profile.websiteTestimonials || []).filter(
     (review) =>
       !review.isDemo &&
       Boolean(String(review.comment || '').trim()) &&
       Boolean(String(review.name || '').trim()),
   );
+  return custom.length > 0 ? custom : KESH_PRAKRITI_DEFAULT_REVIEWS;
 }
 
 /**

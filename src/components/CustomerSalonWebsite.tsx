@@ -64,6 +64,7 @@ import {websiteSections} from '../lib/websiteContent';
 import {WebsiteSections} from './WebsiteSections';
 import {BookingModal} from './BookingModal';
 import {HairSpaWebsite} from './HairSpaWebsite';
+import {FloatingPromoBanner} from './FloatingPromoBanner';
 
 const money=(value:number)=>`₹${Number(value||0).toLocaleString('en-IN')}`;
 function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGallery=[],policies,branding,loyaltyConfig,onCustomerAccount,customerSignedIn,customerName,customerPhotoUrl,onAddAppointment}:SalonWebsitePreviewProps){
@@ -553,6 +554,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
   {team.some(st=>st.id===viewStaff)&&<StylistProfile services={keshPrakriti?keshServices:roopMahal?roopServices:services} onSlot={(selected,slot)=>{setChosen(team.find(st=>st.id===slot.stylistId));setService(selected);setDirectSlot(slot);setViewStaff('');setBooking(true)}} staff={team.find(st=>st.id===viewStaff)!} profile={profile} slug={profile.subdomain} signedIn={customerSignedIn} demo={!profile.subdomain} onLogin={()=>{setViewStaff('');customer('signin')}} onClose={()=>setViewStaff('')} onBook={()=>{const specialist=team.find(st=>st.id===viewStaff);setViewStaff('');book(undefined,specialist)}}/>}
   {(!roopMahal||roopBookingFlowAvailable)&&<BookingModal isOpen={booking} onClose={()=>setBooking(false)} profile={profile} services={keshPrakriti?keshServices:roopMahal?roopServices:services} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} onAddAppointment={onAddAppointment} themeAccentHex={keshPrakriti?'#183D32':accent}/>}
   {photo!==null&&lightboxImages.length>0&&photo<lightboxImages.length&&<div className="sf-lightbox" role="dialog" aria-modal="true" aria-label="Studio lookbook" onClick={()=>setPhoto(null)}><button aria-label="Close lookbook" onClick={()=>setPhoto(null)}><X/></button><img src={lightboxImages[photo]} alt={`Studio look ${photo+1}`} onClick={e=>e.stopPropagation()}/><div><button aria-label="Previous photo" onClick={e=>{e.stopPropagation();setPhoto((photo-1+lightboxImages.length)%lightboxImages.length);}}><ChevronLeft/></button><span>{photo+1} / {lightboxImages.length}</span><button aria-label="Next photo" onClick={e=>{e.stopPropagation();setPhoto((photo+1)%lightboxImages.length);}}><ChevronRight/></button></div></div>}
+  <FloatingPromoBanner profile={profile}/>
  </div>;
 }
 
