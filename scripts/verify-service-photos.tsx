@@ -11,7 +11,7 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
  const html=renderToStaticMarkup(<CustomerSalonWebsite profile={{...INITIAL_SALON_PROFILE,businessType:template.id}} services={services} stylists={[]} onAddAppointment={async a=>a}/>);
  const count=services.length+services.filter(s=>/package|combo|bundle/i.test(s.name+' '+s.category)).length;
  assert.equal((html.match(/class="sf-service-image"/g)||[]).length,count,template.id+' all services and packages need photos');
- for(const service of services)assert.ok(html.includes(defaultServiceImage(service,template.id).replaceAll('&','&amp;')));
+ for(const service of services){const expectedPhoto=service.imageUrl||defaultServiceImage(service,template.id);assert.ok(html.includes(expectedPhoto.replaceAll('&','&amp;')));}
  const custom={...services[0],name:'QA package',category:'Packages',imageUrl:'https://example.com/owner-photo.jpg'};
  const changed=renderToStaticMarkup(<CustomerSalonWebsite profile={{...INITIAL_SALON_PROFILE,businessType:template.id}} services={[custom]} stylists={[]} onAddAppointment={async a=>a}/>);
  assert.equal((changed.match(/class="sf-service-image"><img[^>]*src="https:\/\/example.com\/owner-photo.jpg"/g)||[]).length,2,'same owner image in both sections');

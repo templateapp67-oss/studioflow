@@ -1,0 +1,71 @@
+.kp-step-button {
+  width: 100%;
+  min-height: 145px;
+  display: block;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+.kp-step-button:focus-visible {
+  outline: 2px solid var(--kp-terra);
+  outline-offset: 6px;
+}
+.kp-step-button[aria-selected="true"] .kp-step-icon {
+  background: var(--kp-forest);
+  color: var(--kp-ivory);
+}
+.kp-step-title {
+  display: block;
+  margin: 0 0 8px;
+  color: var(--kp-forest);
+  font-family: var(--kp-serif);
+  font-size: 28px;
+  line-height: 1.15;
+}
+.kp-journey-detail {
+  width: min(680px, 100%);
+  min-height: 145px;
+  margin: 38px auto 0;
+  padding: 27px clamp(20px, 4vw, 42px);
+  border: 1px solid rgba(24, 61, 50, 0.16);
+  background: rgba(249, 246, 239, 0.58);
+  text-align: center;
+}
+.kp-journey-detail .kp-eyebrow {
+  margin: 0 0 5px;
+}
+.kp-journey-detail h3 {
+  margin: 0 0 7px;
+  color: var(--kp-forest);
+  font-family: var(--kp-serif);
+  font-size: 31px;
+  font-weight: 500;
+}
+.kp-journey-detail > p:last-child {
+  max-width: 560px;
+  margin: 0 auto;
+  color: #666a62;
+  font-size: 12px;
+  line-height: 1.8;
+}
+@media (max-width: 760px) {
+  .kp-step-button {
+    min-height: 0;
+    padding-bottom: 4px;
+  }
+  .kp-step-title {
+    min-height: 39px;
+    margin: 0 0 6px;
+    padding-left: 50px;
+    font-size: 26px;
+  }
+  .kp-journey-detail {
+    margin-top: 18px;
+    text-align: left;
+  }
+  .kp-journey-detail > p:last-child {
+    margin: 0;
+  }
+}

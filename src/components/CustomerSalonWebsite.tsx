@@ -63,6 +63,7 @@ import {ACCENT_PALETTES,DEFAULT_CATEGORY_ACCENTS,AccentPaletteKey,getContrastTex
 import {websiteSections} from '../lib/websiteContent';
 import {WebsiteSections} from './WebsiteSections';
 import {BookingModal} from './BookingModal';
+import {HairSpaWebsite} from './HairSpaWebsite';
 
 const money=(value:number)=>`₹${Number(value||0).toLocaleString('en-IN')}`;
 function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGallery=[],policies,branding,loyaltyConfig,onCustomerAccount,customerSignedIn,customerName,customerPhotoUrl,onAddAppointment}:SalonWebsitePreviewProps){
@@ -297,6 +298,13 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
    </section>
   )
  );
+
+ if(profile.businessType==='hair_spa')return <>
+  <HairSpaWebsite profile={profile} services={services} stylists={team} galleryPhotos={galleryEntries} shared={shared} enabledSections={['promo','videos','social','loyalty','policies','bookings','share'].filter(section=>visible[section])} showPackages={visible.packages} customerSignedIn={customerSignedIn} customerName={customerName} customerPhotoUrl={customerPhotoUrl} onBook={(selected,specialist)=>book(selected,specialist)} onAccount={mode=>customer(mode||'signin')} onMyBookings={()=>setMyBookings(true)} onViewSpecialist={id=>setViewStaff(id)}/>
+  {myBookings&&<SalonBookingsDialog profile={profile} onClose={()=>setMyBookings(false)}/>}
+  {team.some(st=>st.id===viewStaff)&&<StylistProfile services={services} onSlot={(selected,slot)=>{setChosen(team.find(st=>st.id===slot.stylistId));setService(selected);setDirectSlot(slot);setViewStaff('');setBooking(true)}} staff={team.find(st=>st.id===viewStaff)!} profile={profile} slug={profile.subdomain} signedIn={customerSignedIn} demo={!profile.subdomain} onLogin={()=>{setViewStaff('');customer('signin')}} onClose={()=>setViewStaff('')} onBook={()=>{const specialist=team.find(st=>st.id===viewStaff);setViewStaff('');book(undefined,specialist)}}/>}
+  <BookingModal isOpen={booking} onClose={()=>setBooking(false)} profile={profile} services={services} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>
+ </>;
 
  const testimonialsSection=visible.testimonials&&(!pinkyNails||pinkyHasReviews||customerSignedIn)&&(
   <section id="salon-testimonials" className={`sf-section${roopMahal?' sf-rm-reviews-section':''}${pinkyNails?' sf-pn-reviews-section':''}`}>
