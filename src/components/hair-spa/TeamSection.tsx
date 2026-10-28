@@ -3,8 +3,7 @@ import { useHairSpa } from "./context";
 import { ArrowUpRight, Leaf } from "lucide-react";
 import { motion } from "motion/react";
 import { Reveal } from "./Reveal";
-import { validStaffUrl } from "../../lib/staffProfile";
-import { safePhotoUrl } from "../../lib/keshPrakriti";
+import { keshTeamPortrait } from "../../lib/keshPrakriti";
 import {
   revealViewport,
   staggerContainer,
@@ -12,23 +11,34 @@ import {
 } from "../../utils/motion";
 
 /**
- * Render the saved portrait, including bundled template portraits. Missing or
- * invalid photos retain an honest placeholder rather than a stock fallback.
+ * The portrait for one specialist.
+ *
+ * Resolution order: the salon's own saved photo, then the bundled demo
+ * portrait for the three people the template ships with, then an honest
+ * labelled placeholder. The image box always keeps its ratio, so a portrait
+ * that fails to load can never collapse the card or push the grid around.
  */
-function SpecialistPhoto({ name, avatarUrl }: { name: string; avatarUrl?: string }) {
-  const [failedUrl, setFailedUrl] = useState<string | undefined>();
-  const usable = Boolean(avatarUrl && (validStaffUrl(avatarUrl) || safePhotoUrl(avatarUrl)) && failedUrl !== avatarUrl);
+function SpecialistPhoto({
+  name,
+  avatarUrl,
+}: {
+  name: string;
+  avatarUrl?: string;
+}) {
+  const portrait = keshTeamPortrait({ name, avatarUrl });
+  const [failedSrc, setFailedSrc] = useState<string>("");
+  const usable = Boolean(portrait.src) && failedSrc !== portrait.src;
   return (
-    <div className="kp-team-photo">
+    <div className="kp-team-photo" data-portrait={portrait.isDemo ? "demo" : "saved"}>
       {usable ? (
         <img
-          src={avatarUrl}
-          alt={`${name}, salon team member`}
+          src={portrait.src}
+          alt={`${name}, ${portrait.isDemo ? "demo / sample portrait" : "salon team member"}`}
           loading="lazy"
           decoding="async"
-          width={320}
-          height={320}
-          onError={() => setFailedUrl(avatarUrl)}
+          width={1408}
+          height={768}
+          onError={() => setFailedSrc(portrait.src)}
         />
       ) : (
         <span
@@ -38,6 +48,9 @@ function SpecialistPhoto({ name, avatarUrl }: { name: string; avatarUrl?: string
         >
           <Leaf size={25} aria-hidden="true" />
         </span>
+      )}
+      {usable && portrait.isDemo && (
+        <small className="kp-photo-note">Demo / sample portrait</small>
       )}
     </div>
   );
@@ -65,7 +78,10 @@ export function TeamSection() {
           </Reveal>
           <Reveal>
             <p>
-              Meet our team. You can choose a team member when you book, or let us help you find someone.
+              The hands behind every ritual. Choose the person you would like
+              when you book, or tell us what you need and we will match you with
+              the right specialist. Each of them will explain what they are
+              using before they begin.
             </p>
           </Reveal>
         </div>
@@ -86,24 +102,36 @@ export function TeamSection() {
               {person.role?.trim() && (
                 <p className="kp-team-role">{person.role}</p>
               )}
+              {Boolean(person.specialties?.length) && (
+                <ul className="kp-team-specialties">
+                  {person.specialties.slice(0, 3).map((specialty) => (
+                    <li key={specialty}>{specialty}</li>
+                  ))}
+                </ul>
+              )}
               {person.bio?.trim() && (
                 <p className="kp-team-bio">{person.bio}</p>
               )}
-              <button
-                type="button"
-                className="kp-team-profile-link"
-                onClick={() => model.onViewSpecialist(person.id)}
-              >
-                View profile &amp; reviews
-              </button>
-              <button
-                type="button"
-                className="kp-card-link"
-                onClick={() => model.book(undefined, person)}
-              >
-                Request {person.name.split(" ")[0]}{" "}
-                <ArrowUpRight size={15} aria-hidden="true" />
-              </button>
+              <div className="kp-team-actions">
+                <button
+                  type="button"
+                  className="kp-team-profile-link"
+                  onClick={() => model.onViewSpecialist(person.id)}
+                >
+                  View profile &amp; reviews
+                </button>
+                <button
+                  type="button"
+                  className="kp-card-link"
+                  onClick={() => model.book(undefined, person)}
+                >
+                  Request{" "}
+                  {person.name
+                    .replace(/^(dr|mr|mrs|ms)\.?\s+/i, "")
+                    .split(" ")[0]}{" "}
+                  <ArrowUpRight size={15} aria-hidden="true" />
+                </button>
+              </div>
             </motion.li>
           ))}
         </motion.ul>

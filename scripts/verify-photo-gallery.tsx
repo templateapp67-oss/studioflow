@@ -14,8 +14,10 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
  }else if(template.id==='hair_spa'){
   // Template 06 renders its own gallery: bundled sample photography must be labelled,
   // and the saved-photo path must be used without any owner controls.
-  assert.ok(html.includes('Spa (4)'),'hair spa sample gallery counts its spa photographs');
-  assert.equal((html.match(/DEMO \/ SAMPLE · /g)||[]).length,7,'all seven bundled sample photographs are labelled');
+  // The gallery is count-driven: every bundled photograph is labelled and each
+  // category filter reports the number of photos behind it.
+  for(const category of ['Interior','Treatments','Rituals','Botanicals']) assert.ok(html.includes(category+' (2)'),`hair spa sample gallery counts its ${category} photographs`);
+  assert.equal((html.match(/DEMO \/ SAMPLE · /g)||[]).length,8,'all eight bundled sample photographs are labelled');
   assert.ok(html.includes('Demo / sample photographs'),'hair spa gallery explains that the photos are samples');
   assert.equal((html.match(/id="gallery"/g)||[]).length,1,'the sanctuary gallery is a single section');
   assert.ok(!html.includes('Delete photo')&&!html.includes('Replace / Edit'));

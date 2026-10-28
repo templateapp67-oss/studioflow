@@ -351,7 +351,7 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
   continue;
  }
  const nav=template.id==='hair_spa'?(html.match(/<nav class="kp-desktop-nav"[\s\S]*?<\/nav>/)?.[0]||''):html.match(/<nav class="sf-header-links"[\s\S]*?<\/nav>/)![0];
- if(template.id==='hair_spa'){for(const label of ['Our Philosophy','Services','Your Visit','The Sanctuary','Contact'])assert.ok(nav.includes(label),`${template.id}: missing editorial link ${label}`);for(const href of ['#philosophy','#treatments','#journey','#gallery','#contact'])assert.ok(html.includes(`href="${href}"`),`${template.id}: broken anchor ${href}`);assert.ok(!html.includes('href="#sanctuary"'),'the sanctuary is the gallery, not a duplicated anchor');}
+ if(template.id==='hair_spa'){for(const label of ['Our Philosophy','Treatments','Scalp Care','The Sanctuary','Gallery','Contact'])assert.ok(nav.includes(label),`${template.id}: missing editorial link ${label}`);for(const href of ['#philosophy','#treatments','#journey','#sanctuary','#gallery','#contact'])assert.ok(html.includes(`href="${href}"`),`${template.id}: broken anchor ${href}`);assert.ok(html.includes('id="sanctuary"')&&html.includes('id="gallery"'),'the sanctuary story and the gallery are two resolving sections');}
  else{for(const [,label] of HEADER_LINKS)assert.ok(nav.includes(label),`${template.id}: missing header link ${label}`);for(const link of headerLinks(profile))if(link.href.startsWith('#'))assert.ok(html.includes(`id="${link.href.slice(1)}"`),`${template.id}: broken anchor ${link.href}`);}
  const hidden={...profile,websiteSections:{gallery:false,packages:false,about:false}};
  assert.ok(headerLinks(hidden).every(link=>!['gallery','packages','about'].includes(link.id)));

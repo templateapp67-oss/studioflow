@@ -275,7 +275,7 @@ for (const person of template.stylists) {
   assert.ok(demo.includes(`src="${person.avatarUrl}"`), `portrait rendered for ${person.name}`);
 }
 assert.ok(!demo.includes('aria-label="Photo not added for Gayatri Raman"'));
-for (const category of ['Spa', 'Sanctuary', 'Botanicals']) assert.ok(demo.includes(`${category} (`), `${category} filter present`);
+for (const category of ['Interior', 'Treatments', 'Rituals', 'Botanicals']) assert.ok(demo.includes(`${category} (`), `${category} filter present`);
 // The signature index curates the same services data and never re-renders a card.
 assert.ok(demo.includes('SIGNATURE TREATMENTS'), 'curated signature index present');
 assert.equal((demo.match(/kp-service-card/g) || []).length, 10, 'ten menu cards, one per service');
@@ -320,7 +320,7 @@ const composition = renderToStaticMarkup(
 );
 const demoMain = composition.slice(composition.indexOf('<main'), composition.indexOf('</main>'));
 const demoSections = topLevelSections(demoMain);
-for (const required of ['home', 'philosophy', 'treatments', 'journey', 'team', 'gallery', 'booking', 'faq', 'contact']) {
+for (const required of ['home', 'philosophy', 'treatments', 'journey', 'team', 'sanctuary', 'gallery', 'booking', 'faq', 'contact']) {
   assert.equal(demoSections.filter((section) => section.id === required).length, 1, `${required} must render exactly once`);
 }
 const sectionIds = demoSections.map((section) => section.id);
@@ -329,7 +329,8 @@ const order: Array<[string, string]> = [
   ['philosophy', 'treatments'],
   ['treatments', 'journey'],
   ['journey', 'team'],
-  ['team', 'gallery'],
+  ['team', 'sanctuary'],
+  ['sanctuary', 'gallery'],
   ['gallery', 'booking'],
   ['booking', 'faq'],
   ['faq', 'contact'],
@@ -342,7 +343,7 @@ const catalogue = demoSections.find((section) => section.id === 'treatments')!;
 assert.ok(catalogue.body.includes('id="salon-packages"'), 'packages live inside the single catalogue section');
 assert.equal(demoMain.split('id="salon-packages"').length - 1, 1, 'exactly one packages group on the page');
 // Sections that were merged or deleted must not come back as duplicates.
-for (const retired of ['sanctuary', 'offers', 'experiences', 'rituals', 'botanicals', 'quick-nav', 'gallery-grid']) {
+for (const retired of ['offers', 'experiences', 'rituals', 'botanicals', 'quick-nav', 'gallery-grid']) {
   assert.ok(!composition.includes(`id="${retired}"`), `retired section #${retired} must stay removed`);
   assert.ok(!composition.includes(`href="#${retired}"`), `no anchor may point at retired section #${retired}`);
 }
