@@ -1,5 +1,6 @@
 import type { SalonProfile, SalonService } from '../types';
 import type { SalonGalleryPhoto } from './photoGallery';
+import { socialUrl } from './websiteContent';
 
 /**
  * Template 06 — Kesh Prakriti Hair Spa & Scalp Sanctuary (hair_spa).
@@ -114,11 +115,6 @@ export const KESH_PRAKRITI_SAMPLE_GALLERY: KeshGalleryPhoto[] = [
   {id: 'kesh-sample-7', category: 'Spa', url: KESH_PRAKRITI_IMAGES.facial, title: 'Face cleanup at the salon', isDemo: true},
 ];
 
-/** Every local Template 06 URL — used so saved demo photos survive reloads. */
-export const KESH_PRAKRITI_IMAGE_URLS: string[] = Array.from(
-  new Set(Object.values(KESH_PRAKRITI_IMAGES)),
-);
-
 /** A saved cover photo is used for the hero when the owner uploaded one. */
 export function keshHeroImage(
   profile: Pick<SalonProfile, 'coverImageUrl' | 'businessType'>,
@@ -173,12 +169,6 @@ export function isTemplateCataloguePhoto(url: string): boolean {
   return TEMPLATE_CATALOGUE_PHOTO.test(url);
 }
 
-// Sample offers are shown in the template preview only, never as live offers.
-export const KESH_PRAKRITI_DEFAULT_PROMOTIONS = [
-  {id: 'kp-promo-1', title: 'Hair Spa Offer', description: 'Sample offer: 10% off a hair spa. Ask the salon about current offers and terms.', code: 'HAIR10', badge: 'Sample offer'},
-  {id: 'kp-promo-2', title: 'Weekday Care', description: 'Sample offer: ₹100 off a face cleanup on weekdays. Ask the salon about current offers and terms.', code: 'CARE100', badge: 'Sample offer'},
-];
-
 /** Show only customer reviews saved for this salon. */
 export function keshPublishedReviews(profile: Pick<SalonProfile, 'websiteTestimonials'>) {
   return (profile.websiteTestimonials || []).filter(
@@ -194,6 +184,61 @@ export function keshPackages(services: SalonService[]): SalonService[] {
   return services.filter((service) =>
     /package|combo|bundle/i.test(`${service.category || ''} ${service.name || ''}`),
   );
+}
+
+/**
+ * A short, curated index for the service menu. It always reads from the same
+ * saved catalogue the cards use — nothing is written twice — and prefers
+ * popular treatments from different categories so the selection feels edited
+ * rather than repeated.
+ */
+export function keshSignatureServices(
+  services: SalonService[],
+  limit = 3,
+): SalonService[] {
+  const ordered = [...services].sort(
+    (a, b) => Number(Boolean(b.popular)) - Number(Boolean(a.popular)),
+  );
+  const picks: SalonService[] = [];
+  const add = (service: SalonService) => {
+    if (picks.length >= limit) return;
+    if (picks.some((pick) => pick.id === service.id)) return;
+    picks.push(service);
+  };
+  // The salon's own "popular" flag reads as its signature list: take up to two,
+  // then widen the selection by category so the index is not one long tribe.
+  ordered.filter((service) => service.popular).slice(0, 2).forEach(add);
+  const categories = new Set(
+    picks
+      .map((service) => String(service.category || '').trim().toLowerCase())
+      .filter(Boolean),
+  );
+  for (const service of ordered) {
+    if (picks.length >= limit) break;
+    const category = String(service.category || '').trim().toLowerCase();
+    if (category && categories.has(category)) continue;
+    if (category) categories.add(category);
+    add(service);
+  }
+  for (const service of ordered) add(service);
+  return picks;
+}
+
+/** Verified social profiles only; empty fields are never rendered. */
+export function keshSocialLinks(
+  profile: Pick<
+    SalonProfile,
+    'instagramHandle' | 'facebookPage' | 'youtubeChannel' | 'tiktokProfile'
+  >,
+): Array<[string, string]> {
+  return (
+    [
+      ['Instagram', socialUrl(profile.instagramHandle, 'instagram')],
+      ['Facebook', socialUrl(profile.facebookPage, 'facebook')],
+      ['YouTube', socialUrl(profile.youtubeChannel, 'youtube')],
+      ['TikTok', socialUrl(profile.tiktokProfile, 'tiktok')],
+    ] as Array<[string, string]>
+  ).filter(([, url]) => Boolean(url));
 }
 
 export function keshServiceCategories(services: SalonService[]): string[] {
@@ -225,13 +270,32 @@ export function keshOpeningHours(
     .filter(([, hours]) => hours.length > 0);
 }
 
+/**
+ * Only questions that are not already answered by the menu, the booking
+ * explanation or the contact details. Nothing here repeats a service card,
+ * an offer banner or a whole section of the page.
+ */
 export const KESH_PRAKRITI_FAQ: ReadonlyArray<readonly [string, string]> = [
-  ['How do I choose a service?', 'See the service menu for prices and timings. If you are not sure, call or WhatsApp the salon and we will help you choose.'],
-  ['How do I book an appointment?', 'Choose a service and an available date and time. Your appointment is booked only after you receive confirmation.'],
-  ['What time zone are the appointments in?', 'All appointment times are shown in Indian Standard Time (IST).'],
-  ['What if I have sensitive skin or allergies?', 'Please tell the team before your appointment and ask about the products used for your service.'],
-  ['How can I change or cancel my booking?', 'Open My Bookings or contact the salon as early as possible. Please check the salon’s booking and cancellation policy for notice periods and any advance payment terms.'],
-  ['How do I ask about offers?', 'Check the offers shown on this website or call the salon. Confirm the offer dates, eligible services and terms before booking.'],
+  [
+    'How far in advance should I book?',
+    'Online booking shows the appointment times the salon has opened. For a same-day visit, call or message the salon and the team will tell you what is possible.',
+  ],
+  [
+    'What should I tell the team before my service?',
+    'Please mention allergies, sensitive skin, recent colour or chemical treatments, and anything a doctor has advised you about. The team can then explain which services and products suit you.',
+  ],
+  [
+    'How do I change or cancel an appointment?',
+    'Open My Bookings to see your appointment, or contact the salon as early as you can. Ask about the salon’s cancellation and advance payment terms when you book.',
+  ],
+  [
+    'Can I book for more than one person?',
+    'The online booking flow reserves one appointment at a time. For a group or family visit, call or message the salon so the team can plan the times together.',
+  ],
+  [
+    'What time zone are appointment times shown in?',
+    'Every time on this website and in your confirmation is shown in Indian Standard Time (IST).',
+  ],
 ];
 
 /** Details the contact section is allowed to show. */

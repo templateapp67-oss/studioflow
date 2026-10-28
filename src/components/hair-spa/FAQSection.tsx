@@ -1,5 +1,5 @@
 import { useHairSpa } from "./context";
-import { ArrowRight, ChevronDown, Phone } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { Reveal } from "./Reveal";
 
@@ -17,7 +17,11 @@ export function FAQSection() {
               <em>answered.</em>
             </h2>
             <p>
-              Have a question? Our team is happy to help.
+              The things guests ask us most. Anything else, the team is happy
+              to help —{" "}
+              {model.phone
+                ? "you will find their number in the contact section below."
+                : "get in touch using the contact details below."}
             </p>
             {!model.profile.subdomain && (
               <p className="kp-muted">
@@ -25,15 +29,6 @@ export function FAQSection() {
                 before a change or cancellation. Confirm the salon’s own notice,
                 advance and refund rules before booking.
               </p>
-            )}
-            {model.phone && (
-              <a
-                className="kp-inline-link"
-                href={`tel:${model.phone.replace(/\s/g, "")}`}
-              >
-                <Phone size={16} aria-hidden="true" />
-                Call the salon <ArrowRight size={16} aria-hidden="true" />
-              </a>
             )}
           </Reveal>
           <div className="kp-faq-list">

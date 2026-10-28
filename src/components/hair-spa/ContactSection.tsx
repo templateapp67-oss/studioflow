@@ -1,6 +1,5 @@
 import { useHairSpa } from "./context";
 import {
-  ArrowRight,
   ArrowUpRight,
   Leaf,
   Mail,
@@ -97,14 +96,10 @@ export function ContactSection() {
               before travelling.
             </p>
           )}
-          <button
-            type="button"
-            className="kp-button"
-            onClick={() => model.book(model.firstService)}
-          >
-            {model.services.length ? "Book an appointment" : "See our services"}{" "}
-            <ArrowRight size={16} aria-hidden="true" />
-          </button>
+          <p className="kp-contact-note">
+            Prefer to book online? Use the booking section on this page — every
+            booking button opens the same appointment flow.
+          </p>
         </Reveal>
       </div>
     </section>

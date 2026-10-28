@@ -10,29 +10,33 @@ import {
   staggerItem,
 } from "../../utils/motion";
 
+/**
+ * The visit journey only. It never lists treatments, prices or medical claims —
+ * those live in the service menu and the salon's own saved details.
+ */
 const journeySteps = [
   {
     number: "01",
-    title: "Tell us",
-    text: "Tell our team about your hair, skin or grooming needs. Feel free to ask questions.",
+    title: "Consultation",
+    text: "We start with a conversation: what your hair and skin have been through, what you are hoping for, and any sensitivities we should know about.",
     Icon: MessageCircle,
   },
   {
     number: "02",
-    title: "Choose",
-    text: "Choose a service from the menu. We can explain what is included and help you decide.",
+    title: "Your treatment",
+    text: "Together we choose the right treatment from the menu, explain what it includes and how long it takes, then settle you in.",
     Icon: Sparkles,
   },
   {
     number: "03",
-    title: "Relax",
-    text: "Enjoy your service. Let us know if you need anything during your visit.",
+    title: "The experience",
+    text: "The room is quiet and the pace is yours. Tell us at any point if you would like the pressure, temperature or music changed.",
     Icon: Leaf,
   },
   {
     number: "04",
     title: "Aftercare",
-    text: "Before you leave, ask the team how to care for your hair or skin at home.",
+    text: "Before you leave we share simple at-home care that suits your hair and skin, and answer any questions about your next visit.",
     Icon: Check,
   },
 ] as const;
@@ -76,9 +80,9 @@ export function ScalpCareJourney() {
           <Reveal>
             <p className="kp-eyebrow">YOUR VISIT</p>
             <h2>
-              Good care in
+              Four gentle steps
               <br />
-              <em>four simple steps.</em>
+              to <em>your visit.</em>
             </h2>
           </Reveal>
         </div>

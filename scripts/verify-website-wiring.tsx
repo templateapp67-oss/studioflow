@@ -157,15 +157,28 @@ console.log('PASS: all 14 public templates retain customer header access and fiv
 for(const template of Object.values(CATEGORY_TEMPLATES)) {
  const profile={...INITIAL_SALON_PROFILE,businessType:template.id,businessName:'Test Studio',whatsapp:'919876543210',websiteTestimonials:[]};
  const html=renderToStaticMarkup(<SalonWebsitePreview profile={profile} services={template.services} stylists={template.stylists} gallery={['https://example.com/look.jpg']} readOnly onAddAppointment={async apt=>apt}/>);
- const order=['hero','dock','services','team','experiences','location','footer'];let previous=-1;for(const section of order){const at=html.indexOf(`data-layout="${section}"`);assert.ok(at>previous,`${template.id}: ${section} must appear in requested order`);previous=at;}
- const dock=html.match(/<nav data-layout="dock"[\s\S]*?<\/nav>/)?.[0]||'';for(const label of ['Offers','Services','Our Team','Lookbook','Reviews','Location'])assert.ok(dock.includes(label),`${template.id}: ${label} dock link missing`);
- assert.ok(html.includes('WhatsApp Inquiry'));
+ // Template 06 is an editorial single-page site: the sticky header is the only
+ // navigation, so it has no dock duplicating the same links.
+ const order=template.id==='hair_spa'?['hero','services','team','gallery','location','footer']:['hero','dock','services','team','experiences','location','footer'];let previous=-1;for(const section of order){const at=html.indexOf(`data-layout="${section}"`);assert.ok(at>previous,`${template.id}: ${section} must appear in requested order`);previous=at;}
+ if(template.id==='hair_spa'){
+  assert.ok(!html.includes('data-layout="dock"'),'hair spa keeps one navigation in the header');
+  assert.ok(html.includes('kp-footer-social'),'hair spa social profiles live in the footer');
+  assert.ok(!html.includes('data-section="social"'),'hair spa does not repeat social profiles as a section');
+  assert.ok(html.includes('href="#treatments"')&&html.includes('href="#gallery"'),'header links resolve');
+  assert.ok(html.includes('wa.me/'),'hair spa keeps a real WhatsApp contact path');
+ }else{
+  const dock=html.match(/<nav data-layout="dock"[\s\S]*?<\/nav>/)?.[0]||'';for(const label of ['Offers','Services','Our Team','Lookbook','Reviews','Location'])assert.ok(dock.includes(label),`${template.id}: ${label} dock link missing`);
+  assert.ok(html.includes('WhatsApp Inquiry'));
+ }
 if(template.id==='hair_spa'){
  // Template 06 uses its own editorial hero instead of the shared "Rich warm mood" badge copy.
  assert.ok(!html.includes('Rich warm mood'),'Hair spa hero must not leak shared design-reference copy');
  assert.ok(html.includes('Test Studio'),'Hair spa hero shows the saved salon name');
 }else assert.ok(html.includes('Rich warm mood'));
-if(template.id==='hair_spa')assert.ok(!html.includes('Verified checkout'),'Hair spa demo must not imply an active verified checkout');else assert.ok(html.includes('Verified checkout'));assert.ok(html.includes('Service categories'));assert.ok(html.includes('Choose for online booking'));assert.ok(!html.includes('Verified client'),'Owner-entered reviews must not be labelled verified by default');
+if(template.id==='hair_spa')assert.ok(!html.includes('Verified checkout'),'Hair spa demo must not imply an active verified checkout');else assert.ok(html.includes('Verified checkout'));assert.ok(html.includes('Service categories'));
+ // Template 06 names its booking action in the salon's own words.
+ if(template.id==='hair_spa')assert.ok(html.includes('Book this service'),'hair spa service cards expose the booking action');else assert.ok(html.includes('Choose for online booking'));
+ assert.ok(!html.includes('Verified client'),'Owner-entered reviews must not be labelled verified by default');
  for(const service of template.services){assert.ok(html.includes(service.name.replaceAll('&','&amp;').replaceAll("'",'&#x27;')));assert.ok(html.includes(`${service.durationMinutes} min`));}
 }
 console.log('PASS: all 14 templates follow hero → dock → services → specialists → experiences/lookbook → location → footer; category pricing, duration, WhatsApp and specialist booking controls are present.');
@@ -193,7 +206,7 @@ for(const template of Object.values(CATEGORY_TEMPLATES)) {
   assert.equal(initial.profile.websiteTestimonials.length,3,template.id);assert.ok(initial.profile.websiteTestimonials.every(r=>r.isDemo&&!r.verified));
  }
  assert.ok(initial.extras.gallery.length>=4,template.id);
- const html=renderToStaticMarkup(<SalonWebsitePreview profile={initial.profile} services={[]} stylists={[]} gallery={initial.extras.gallery} readOnly onAddAppointment={async apt=>apt}/>);if(template.id==='hair_spa'){assert.ok(html.includes('A CONSIDERED EXPERIENCE'));assert.ok(!html.includes('Demo testimonial'),'Hair spa never presents sample reviews as authentic');assert.ok(html.includes('Demo / sample'));assert.ok(!html.includes('4.97')&&!html.includes('390 experiences'),'hair_spa must not print an invented average rating or review count');}else{assert.ok(html.includes('Demo testimonial'));assert.ok(html.includes('Demo lookbook'));assert.ok(!html.includes('Client experiences will appear here'));}
+ const html=renderToStaticMarkup(<SalonWebsitePreview profile={initial.profile} services={[]} stylists={[]} gallery={initial.extras.gallery} readOnly onAddAppointment={async apt=>apt}/>);if(template.id==='hair_spa'){assert.ok(html.includes('Rooted in'),'hair spa renders its own philosophy copy');assert.ok(html.includes('THE SERVICE MENU'),'hair spa owns a single service catalogue');assert.ok(!html.includes('Demo testimonial'),'Hair spa never presents sample reviews as authentic');assert.ok(html.includes('Demo / sample'));assert.ok(!html.includes('4.97')&&!html.includes('390 experiences'),'hair_spa must not print an invented average rating or review count');assert.ok(!html.includes('id="testimonials"'),'no empty testimonials section without published reviews');}else{assert.ok(html.includes('Demo testimonial'));assert.ok(html.includes('Demo lookbook'));assert.ok(!html.includes('Client experiences will appear here'));}
  const deleted=normalizeWorkspace({profile:{...initial.profile,websiteTestimonials:[]},extras:{gallery:[]}});assert.equal(clientExperiences(deleted.profile).length,0);assert.equal(lookbookPhotos(deleted.profile,deleted.extras.gallery).length,0);
  const real={...initial.profile.websiteTestimonials[0],id:'real-review',isDemo:false,name:'Actual client',comment:'Actual client experience'};
  const own=normalizeWorkspace({profile:{...initial.profile,websiteTestimonials:[real]},extras:{gallery:['https://example.com/owner-photo.jpg']}});assert.deepEqual(own.profile.websiteTestimonials,[real]);assert.deepEqual(own.extras.gallery,['https://example.com/owner-photo.jpg']);
@@ -327,7 +340,7 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
  const html=renderToStaticMarkup(<CustomerSalonWebsite profile={profile} services={template.services} stylists={[]} onAddAppointment={async apt=>apt}/>);
  assert.equal(html.includes('sf-barber-hero'),template.id==='barber','Reference barber hero must stay isolated');
  const nav=template.id==='hair_spa'?(html.match(/<nav class="kp-desktop-nav"[\s\S]*?<\/nav>/)?.[0]||''):html.match(/<nav class="sf-header-links"[\s\S]*?<\/nav>/)![0];
- if(template.id==='hair_spa'){for(const label of ['Our Philosophy','Treatments','Scalp Care','The Sanctuary','Gallery','Contact'])assert.ok(nav.includes(label),`${template.id}: missing editorial link ${label}`);for(const href of ['#philosophy','#treatments','#journey','#sanctuary','#gallery','#contact'])assert.ok(html.includes(`href="${href}"`),`${template.id}: broken anchor ${href}`);}
+ if(template.id==='hair_spa'){for(const label of ['Our Philosophy','Services','Your Visit','The Sanctuary','Contact'])assert.ok(nav.includes(label),`${template.id}: missing editorial link ${label}`);for(const href of ['#philosophy','#treatments','#journey','#gallery','#contact'])assert.ok(html.includes(`href="${href}"`),`${template.id}: broken anchor ${href}`);assert.ok(!html.includes('href="#sanctuary"'),'the sanctuary is the gallery, not a duplicated anchor');}
  else{for(const [,label] of HEADER_LINKS)assert.ok(nav.includes(label),`${template.id}: missing header link ${label}`);for(const link of headerLinks(profile))if(link.href.startsWith('#'))assert.ok(html.includes(`id="${link.href.slice(1)}"`),`${template.id}: broken anchor ${link.href}`);}
  const hidden={...profile,websiteSections:{gallery:false,packages:false,about:false}};
  assert.ok(headerLinks(hidden).every(link=>!['gallery','packages','about'].includes(link.id)));

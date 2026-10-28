@@ -28,7 +28,7 @@ export function BookingSection() {
           </h2>
           <p>
             {canReserve
-              ? "Choose a service, date and time. Your appointment is booked once you receive confirmation."
+              ? "Choose your treatment, a time that suits you and the team member you would like. One flow, one confirmation — your appointment is reserved only after the salon accepts it."
               : canBook
                 ? "Online booking opens once this website is live. Until then, contact the salon to plan your visit."
                 : "The service menu is being updated. Contact the salon to ask what is available."}
