@@ -1,11 +1,3 @@
-if (typeof globalThis !== 'undefined' && typeof (globalThis as any).IntersectionObserver === 'undefined') {
-  (globalThis as any).IntersectionObserver = class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  };
-}
-
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform, useReducedMotion } from 'framer-motion';
 import {

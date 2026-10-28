@@ -3,7 +3,7 @@ import {CATEGORY_TEMPLATES} from '../src/categoryTemplates';import {isPackage,se
 for(const t of Object.values(CATEGORY_TEMPLATES)){
  const packages=t.services.filter(isPackage);assert.equal(packages.length,5,t.id);assert.equal(new Set(packages.map(p=>p.id)).size,5);assert.deepEqual(seedTemplatePackages(t),t.services,'Seed must be idempotent');
  for(const p of packages)assert.equal(serviceValidation(p),'');
- const html=renderToStaticMarkup(<CustomerSalonWebsite profile={{...INITIAL_SALON_PROFILE,businessType:t.id}} services={t.services} stylists={[]} onAddAppointment={async a=>a}/>);const section=html.split('id="salon-packages"')[1].split('</section>')[0];assert.equal((section.match(/class="sf-service-card"/g)||[]).length,5);assert.equal((section.match(/class="sf-service-image"/g)||[]).length,5);
+ const html=renderToStaticMarkup(<CustomerSalonWebsite profile={{...INITIAL_SALON_PROFILE,businessType:t.id}} services={t.services} stylists={[]} onAddAppointment={async a=>a}/>);const section=html.split('id="salon-packages"')[1].split('</section>')[0];assert.equal((section.match(/class="sf-service-card(?:\s|\")/g)||[]).length,5,t.id+' package cards');assert.equal((section.match(/class="sf-service-image"/g)||[]).length,5,t.id+' package images');
 }
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;(globalThis as any).document={activeElement:null,addEventListener(){},removeEventListener(){}};
 let menu:SalonService[]=[];function Fixture(){const [services,setServices]=useState(CATEGORY_TEMPLATES.beauty_parlour.services);menu=services;return <ServiceManagement profile={{...INITIAL_SALON_PROFILE,businessType:'beauty_parlour'}} services={services} setServices={setServices} primaryAccentColor="#b70064"/>}

@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "./roopMahal.css";
 @import "./pinkyNails.css";
+@import "./components/hairSpaWebsite.css";
 @import "./keshPrakriti.css";
 
 @theme {
