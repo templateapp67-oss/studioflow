@@ -41,12 +41,16 @@ const PINKY_MARKERS = [
   'sf-pinky-nails',
   'sf-pn-header',
   'sf-pn-hero',
+  'sf-pn-trust',
   'sf-pn-services-section',
   'sf-pn-about-section',
   'sf-pn-art-section',
+  'sf-pn-why-section',
   'sf-pn-gallery-section',
   'sf-pn-team-section',
+  'sf-pn-steps-section',
   'sf-pn-reviews-section',
+  'sf-pn-faq-section',
   'sf-pn-booking-banner',
   'sf-pn-location-section',
   'sf-pn-footer',
@@ -70,6 +74,7 @@ assert.deepEqual(PINKY_NAILS_PALETTE, {
   warmWhite: '#FFFCFA',
   roseGold: '#C49A86',
   darkText: '#30242A',
+  lightBorder: '#EADDE2',
   white: '#FFFFFF',
 });
 assert.equal(tmpl.id, 'nail_studio', 'Template 05 must keep its existing id');
@@ -208,7 +213,29 @@ for (const text of [
   'Beautiful Finishes',
   'Your Nails, Your Style',
   'Our Nail Services',
-  'Find the right nail service for your style and care.',
+  'Find the right service for your nails and personal style.',
+  'Give your nails the care they need.',
+  'Find colours and designs to suit your style.',
+  'Choose from the services available at the studio.',
+  'Why Choose Pinky Nails Studio?',
+  'Attention to Detail',
+  'Stylish Nail Looks',
+  'A Clean and Comfortable Space',
+  'Easy Appointment Booking',
+  'Booking Your Visit Is Easy',
+  'Choose a Service',
+  'Explore the available services and choose the one you need.',
+  'Select Your Time',
+  'Choose an available date and time using the existing booking system.',
+  'Confirm Your Appointment',
+  'Follow the booking steps and confirm your appointment.',
+  'Frequently Asked Questions',
+  'How can I book an appointment?',
+  'Where can I see the available services?',
+  'How can I check service prices?',
+  'Can I choose an available appointment time?',
+  'How can I contact the studio?',
+  'Studio illustration',
   'Book Now',
   'Your Nails Deserve Special Care',
   'Clean Nail Care',
@@ -230,7 +257,7 @@ for (const text of [
   'Visit Pinky Nails Studio',
   'We look forward to welcoming you to our studio.',
   'Call Now',
-  'WhatsApp Inquiry',
+  'WhatsApp Us',
   'Get Directions',
   'Opening Hours',
   'Quick Links',
@@ -311,6 +338,7 @@ assert.ok(!bareHtml.includes('sf-pn-hero-desc'), 'Empty hero description must be
 assert.ok(!bareHtml.includes('sf-pn-about-media'), 'About media column must collapse when unavailable');
 assert.ok(!bareHtml.includes('sf-pn-booking-media'), 'Booking banner media must collapse when unavailable');
 assert.ok(!bareHtml.includes('sf-pn-team-portrait-frame'), 'Team portrait must hide when unavailable');
+assert.ok(bareHtml.includes('sf-pn-trust'), 'Trust highlights are template copy and stay visible');
 assertAllHashLinksHaveTargets(bareHtml, 'no-images');
 
 const noServicesHtml = renderToStaticMarkup(
@@ -387,6 +415,8 @@ assert.ok(!noContactHtml.includes('WhatsApp Inquiry'));
 assert.ok(!noContactHtml.includes('Get Directions'));
 assert.ok(!noContactHtml.includes('Opening Hours'));
 assert.ok(noContactHtml.includes('data-col-count="3"'), 'Footer hides the empty contact column');
+assert.ok(!noContactHtml.includes('How can I contact the studio?'), 'Contact FAQ hides without contact details');
+assert.ok(noContactHtml.includes('How can I book an appointment?'), 'Booking FAQ still has a valid answer');
 assertAllHashLinksHaveTargets(noContactHtml, 'no-contact');
 
 const phoneOnly = pinkyNailsContactSummary({ ...noContactProfile, phone: '+91 98490 77654' } as any, 'https://maps.example', '');
@@ -418,6 +448,8 @@ for (const label of ['Book Appointment', 'Book Now', 'Book with Staff']) {
   assert.ok(!bookingOffHtml.includes(`>${label}`), `${label} must hide when booking is unavailable`);
 }
 assert.ok(!bookingOffHtml.includes('sf-pn-booking-banner'), 'Booking banner hides without a booking system');
+assert.ok(!bookingOffHtml.includes('Select Your Time'), 'Booking steps hide when time selection is unavailable');
+assert.ok(!bookingOffHtml.includes('How can I book an appointment?'), 'Booking FAQ hides without a booking flow');
 
 // ============================================================================
 // 9. Interaction: category filters, booking buttons, gallery lightbox
@@ -455,6 +487,27 @@ await act(async () => galleryButtons[1].props.onClick());
 assert.ok(tree.root.findByProps({ 'aria-label': 'Studio lookbook' }), 'Gallery opens the existing lightbox');
 await act(async () => tree.root.findByProps({ 'aria-label': 'Close lookbook' }).props.onClick());
 assert.equal(tree.root.findAllByProps({ 'aria-label': 'Studio lookbook' }).length, 0, 'Lightbox close works');
+
+const faqButtons = tree.root.findAll(
+  (n: any) => n.type === 'button' && n.props['aria-controls'] && String(n.props['aria-controls']).endsWith('-panel'),
+);
+assert.ok(faqButtons.length >= 4, 'FAQ accordion renders its questions');
+const firstFaqOpen = faqButtons[0].props['aria-expanded'];
+await act(async () => faqButtons[0].props.onClick());
+assert.equal(
+  tree.root.findAll((n: any) => n.type === 'button' && n.props['aria-controls'] === faqButtons[0].props['aria-controls'])[0].props['aria-expanded'],
+  !firstFaqOpen,
+  'FAQ question toggles open and closed',
+);
+await act(async () => faqButtons[1].props.onClick());
+assert.equal(
+  tree.root.findAll((n: any) => n.type === 'button' && n.props['aria-controls'] === faqButtons[1].props['aria-controls'])[0].props['aria-expanded'],
+  true,
+);
+assert.ok(
+  tree.root.findAll((n: any) => n.type === 'button' && n.props['aria-controls'] === faqButtons[0].props['aria-controls'])[0].props['aria-expanded'] === false,
+  'Only one FAQ answer stays open at a time',
+);
 
 await act(async () => tree.root.findByProps({ 'aria-label': 'Open website menu' }).props.onClick());
 assert.ok(tree.root.findByProps({ id: 'salon-mobile-menu' }));

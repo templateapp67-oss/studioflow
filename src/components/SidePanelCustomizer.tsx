@@ -1,5 +1,5 @@
 import { CATEGORY_STANDARDIZED_DATA } from '../templateData';
-import { WEBSITE_SECTIONS, SECTION_LABELS } from '../lib/websiteContent';
+import { WEBSITE_SECTIONS, SECTION_LABELS, websiteSections } from '../lib/websiteContent';
 import React, { useState, useEffect } from 'react';
 import { 
   Palette, 
@@ -1023,6 +1023,39 @@ export const SidePanelCustomizer: React.FC<SidePanelCustomizerProps> = ({
                 </div>;
               })}
             </div>
+
+            {selectedCategoryKey === 'nail_studio' && (
+              <div className="mt-2 flex flex-col gap-2">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Pinky Nails Studio sections</p>
+                {([
+                  ['trust', 'Trust highlights'],
+                  ['whyChooseUs', 'Why choose us'],
+                  ['bookingSteps', 'How booking works'],
+                  ['faq', 'Frequently asked questions'],
+                ] as Array<[string, string]>).map(([key, label]) => {
+                  const visible = (websiteSections(profile) as Record<string, boolean>)[key] !== false;
+                  return (
+                    <div key={key} className="p-2.5 rounded-xl border border-slate-200 bg-white flex items-center justify-between gap-3">
+                      <span className="font-bold text-slate-900">{label}</span>
+                      <button
+                        type="button"
+                        aria-label={`Show ${label}`}
+                        aria-pressed={visible}
+                        onClick={() =>
+                          setProfile((prev) => ({
+                            ...prev,
+                            websiteSections: { ...websiteSections(prev), [key]: !visible },
+                          }))
+                        }
+                        className={`p-2 rounded-lg ${visible ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-400'}`}
+                      >
+                        {visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 

@@ -54,6 +54,7 @@ import { INITIAL_SALON_PROFILE } from '../mockData';
 import { BookingModal } from './BookingModal';
 import { InlineEditable } from './InlineEditable';
 import { SidePanelCustomizer, SectionVisibilityState, DEFAULT_SECTION_VISIBILITY } from './SidePanelCustomizer';
+import { PinkyNailsFaqEditor } from './PinkyNailsFaqEditor';
 import { InteractiveMapSetup } from './InteractiveMapSetup';
 import { computeHeroAIStyling, extractImageMoodAsync, HeroAIStyling } from '../utils/heroImageMood';
 import { TestimonialModal } from './ClientTestimonials';
@@ -1968,6 +1969,9 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
           </section>
         )}
 
+        {activeProfile.businessType === 'nail_studio' && (
+          <PinkyNailsFaqEditor profile={activeProfile} setProfile={setProfile} readOnly={readOnly} />
+        )}
         <WebsiteSections onCustomerAccount={onCustomerAccount} profile={activeProfile} services={activeServices} onBook={handleOpenBooking} onManage={onManageDashboard} setProfile={setProfile} isEditingActive={isEditMode && !readOnly} readOnly={readOnly} policies={policies} loyaltyConfig={loyaltyConfig}/>
         {branding?.poweredBy&&<p className="text-center text-xs py-4">Powered by {branding.platformName||'StudioFlow'}</p>}
         <CustomerAppPromotion/>

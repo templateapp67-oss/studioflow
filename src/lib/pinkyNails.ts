@@ -14,6 +14,7 @@ export const PINKY_NAILS_PALETTE = {
   warmWhite: '#FFFCFA',
   roseGold: '#C49A86',
   darkText: '#30242A',
+  lightBorder: '#EADDE2',
   white: '#FFFFFF',
 } as const;
 
@@ -57,7 +58,7 @@ export const PINKY_NAILS_COPY = {
   heroHighlights: ['Nail Art', 'Nail Care', 'Beautiful Finishes'] as const,
   heroBadge: 'Your Nails, Your Style',
   servicesTitle: 'Our Nail Services',
-  servicesSubtitle: 'Find the right nail service for your style and care.',
+  servicesSubtitle: 'Find the right service for your nails and personal style.',
   aboutTitle: 'Your Nails Deserve Special Care',
   aboutDescription:
     'At Pinky Nails Studio, we believe beautiful nails start with good care and attention to detail. Enjoy a clean, comfortable space and a nail look that suits your style.',
@@ -66,6 +67,29 @@ export const PINKY_NAILS_COPY = {
     ['Stylish Nail Art', 'Colours, finishes and designs chosen around your style.'],
     ['Comfortable Studio', 'A calm, welcoming space with time for your nails.'],
   ] as const,
+  trustTitle: 'Why clients choose the studio',
+  trustHighlights: [
+    ['Nail Care', 'Give your nails the care they need.'],
+    ['Nail Art', 'Find colours and designs to suit your style.'],
+    ['Easy Booking', 'Choose from the services available at the studio.'],
+  ] as const,
+  whyTitle: 'Why Choose Pinky Nails Studio?',
+  whySubtitle: 'A simple, comfortable nail studio experience.',
+  whyItems: [
+    ['Attention to Detail', 'Every nail is shaped, cleaned and finished with care.'],
+    ['Stylish Nail Looks', 'Colours and designs chosen around your personal style.'],
+    ['A Clean and Comfortable Space', 'A tidy desk, fresh tools and a calm studio to sit back in.'],
+    ['Easy Appointment Booking', 'Pick your service and a time that suits you in a few steps.'],
+  ] as const,
+  stepsTitle: 'Booking Your Visit Is Easy',
+  stepsSubtitle: 'Three simple steps from your phone to the studio chair.',
+  steps: [
+    ['Choose a Service', 'Explore the available services and choose the one you need.'],
+    ['Select Your Time', 'Choose an available date and time using the existing booking system.'],
+    ['Confirm Your Appointment', 'Follow the booking steps and confirm your appointment.'],
+  ] as const,
+  faqTitle: 'Frequently Asked Questions',
+  faqSubtitle: 'Simple answers about booking and visiting the studio.',
   artTitle: 'A Little Colour, A Lot of Style',
   artDescription: 'Explore nail looks that match your mood, occasion and personal style.',
   galleryTitle: 'Nail Art Gallery',
@@ -216,6 +240,75 @@ export function pinkyNailsServiceImage(service: { id?: string; name?: string; ca
   if (/chrome|glaze|glazed|pearl|donut|cat-eye|cat eye/.test(text)) return PINKY_NAILS_IMAGES.serviceGlazeChrome;
   if (/art|handpaint|3d|paint|design|jelly/.test(text)) return PINKY_NAILS_IMAGES.serviceHandpaintedArt;
   return PINKY_NAILS_IMAGES.serviceRussianManicure;
+}
+
+export interface PinkyFaqItem {
+  id: string;
+  question: string;
+  answer: string;
+}
+
+export function pinkyFaqItems(
+  profile: SalonProfile,
+  contact: { phone: string; whatsappUrl: string; fullAddress: string; hasDirections: boolean },
+  hasServices: boolean,
+  bookingAvailable: boolean,
+): PinkyFaqItem[] {
+  const items: PinkyFaqItem[] = [];
+  if (bookingAvailable) {
+    items.push({
+      id: 'faq-booking',
+      question: 'How can I book an appointment?',
+      answer:
+        'Tap the Book Appointment button on this page, choose your service, your nail artist and an available time, then confirm your booking.',
+    });
+  }
+  if (hasServices) {
+    items.push({
+      id: 'faq-services',
+      question: 'Where can I see the available services?',
+      answer: `Every service the studio offers is listed in the "Our Nail Services" section on this page.`,
+    });
+    items.push({
+      id: 'faq-prices',
+      question: 'How can I check service prices?',
+      answer:
+        'Each service card shows the price and the time the service takes. The price you see is the studio price for that service.',
+    });
+  }
+  if (bookingAvailable) {
+    items.push({
+      id: 'faq-time',
+      question: 'Can I choose an available appointment time?',
+      answer:
+        'Yes. While booking, the system shows the dates and time slots that are free, and you can pick the one that suits you.',
+    });
+  }
+  const contactBits = [
+    contact.phone ? `Call the studio on ${contact.phone}.` : '',
+    contact.whatsappUrl ? 'Send a message on WhatsApp using the WhatsApp button on this page.' : '',
+    contact.fullAddress ? `Visit us at ${contact.fullAddress}.` : '',
+    contact.hasDirections ? 'Use Get Directions to open the studio location on the map.' : '',
+  ].filter(Boolean);
+  if (contactBits.length) {
+    items.push({
+      id: 'faq-contact',
+      question: 'How can I contact the studio?',
+      answer: contactBits.join(' '),
+    });
+  }
+  const custom = (profile as SalonProfile & { faqItems?: PinkyFaqItem[] }).faqItems;
+  if (Array.isArray(custom) && custom.length) {
+    const cleaned = custom
+      .filter((item) => item && item.question?.trim() && item.answer?.trim())
+      .map((item, index) => ({
+        id: item.id || `faq-owner-${index + 1}`,
+        question: item.question.trim(),
+        answer: item.answer.trim(),
+      }));
+    return cleaned;
+  }
+  return items;
 }
 
 export interface PinkyContactSummary {

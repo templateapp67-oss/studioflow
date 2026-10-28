@@ -12,17 +12,53 @@
   --pn-berry: #702D4B;
   --pn-warm-white: #FFFCFA;
   --pn-rose-gold: #C49A86;
+  --pn-line: #EADDE2;
   --pn-ink: #30242A;
   --pn-muted: #7A626B;
-  --pn-serif: 'Playfair Display', 'Marcellus', Georgia, 'Times New Roman', serif;
+  --pn-serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
   --sf-bg: #FFFCFA;
   --sf-ink: #30242A;
   --sf-muted: #7A626B;
-  --sf-line: #F4C8D5;
+  --sf-line: #EADDE2;
   --sf-soft: #FFF5F7;
   background: #FFFCFA;
   color: #30242A;
-  font: 15px/1.68 system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  font: 15px/1.68 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+}
+
+.sf-page[data-template="nail_studio"] .sf-pn-hero-title,
+.sf-page[data-template="nail_studio"] .sf-pn-section-heading h2,
+.sf-page[data-template="nail_studio"] .sf-pn-about-copy h2,
+.sf-page[data-template="nail_studio"] .sf-pn-art-copy h2,
+.sf-page[data-template="nail_studio"] .sf-pn-team-head h2,
+.sf-page[data-template="nail_studio"] .sf-pn-booking-copy h2,
+.sf-page[data-template="nail_studio"] .sf-pn-trust-card h2,
+.sf-page[data-template="nail_studio"] .sf-pn-why-card h3,
+.sf-page[data-template="nail_studio"] .sf-pn-step-card h3,
+.sf-page[data-template="nail_studio"] .sf-pn-service-body h3,
+.sf-page[data-template="nail_studio"] .sf-pn-team-body h3,
+.sf-page[data-template="nail_studio"] .sf-pn-review-card blockquote,
+.sf-page[data-template="nail_studio"] .sf-pn-contact-card h3 {
+  font-family: var(--pn-serif);
+  font-weight: 600;
+  letter-spacing: -.005em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sf-page[data-template="nail_studio"] .sf-pn-service-card,
+  .sf-page[data-template="nail_studio"] .sf-pn-service-media .sf-service-image img,
+  .sf-page[data-template="nail_studio"] .sf-pn-masonry-item,
+  .sf-page[data-template="nail_studio"] .sf-pn-faq-chevron {
+    transition: none !important;
+  }
+
+  .sf-page[data-template="nail_studio"] .sf-pn-service-card:hover {
+    transform: none;
+  }
+
+  .sf-page[data-template="nail_studio"] .sf-pn-masonry-item:hover {
+    transform: none;
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -95,12 +131,12 @@
   background: #702D4B;
   border: 1px solid #702D4B;
   color: #FFFCFA;
-  border-radius: 999px;
+  border-radius: 12px;
   padding: 12px 22px;
   font-size: 13.5px;
   font-weight: 700;
   letter-spacing: .01em;
-  box-shadow: 0 10px 22px rgba(112, 45, 75, .22);
+  box-shadow: 0 10px 22px rgba(112, 45, 75, .18);
 }
 
 .sf-page[data-template="nail_studio"] .sf-pn-btn-primary:hover {
@@ -111,9 +147,9 @@
 
 .sf-page[data-template="nail_studio"] .sf-pn-btn-ghost {
   background: #FFFCFA;
-  border: 1px solid #F4C8D5;
+  border: 1px solid #EADDE2;
   color: #702D4B;
-  border-radius: 999px;
+  border-radius: 12px;
   padding: 12px 20px;
   font-size: 13.5px;
   font-weight: 700;
@@ -129,7 +165,7 @@
   background: transparent;
   border: 1px solid #C49A86;
   color: #702D4B;
-  border-radius: 999px;
+  border-radius: 12px;
   padding: 11px 20px;
   font-size: 13px;
   font-weight: 700;
@@ -144,7 +180,7 @@
   background: #FFFCFA;
   border: 1px solid #FFFCFA;
   color: #702D4B;
-  border-radius: 999px;
+  border-radius: 12px;
   padding: 13px 24px;
   font-size: 14px;
   font-weight: 800;
@@ -165,7 +201,7 @@
   top: 0;
   z-index: 60;
   background: #FFFCFA;
-  border-bottom: 1px solid #F4C8D5;
+  border-bottom: 1px solid #EADDE2;
   box-shadow: 0 6px 22px rgba(112, 45, 75, .06);
   backdrop-filter: none;
 }
@@ -282,7 +318,7 @@
 }
 
 .sf-page[data-template="nail_studio"] .sf-pn-header-cta {
-  border-radius: 999px;
+  border-radius: 12px;
   padding: 11px 20px;
   font-size: 13px;
   background: #702D4B;
@@ -433,6 +469,7 @@
 }
 
 .sf-page[data-template="nail_studio"] .sf-pn-hero-grid {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 35fr) minmax(0, 40fr) minmax(0, 25fr);
   grid-template-areas:
@@ -486,20 +523,33 @@
 
 .sf-page[data-template="nail_studio"] .sf-pn-hero-main {
   grid-area: main;
+  position: relative;
   margin: 0;
   border-radius: 30px;
-  overflow: hidden;
   aspect-ratio: 4 / 5;
   background: #F4C8D5;
   box-shadow: 0 26px 50px rgba(112, 45, 75, .18);
 }
 
+.sf-page[data-template="nail_studio"] .sf-pn-hero-main::before {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  inset: 16px -16px -16px 16px;
+  border-radius: 34px;
+  background: linear-gradient(150deg, #F4C8D5 0%, #FFF5F7 62%, #EADDE2 100%);
+  border: 1px solid #EADDE2;
+}
+
 .sf-page[data-template="nail_studio"] .sf-pn-hero-main img {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: center 35%;
   display: block;
+  border-radius: 30px;
 }
 
 .sf-page[data-template="nail_studio"] .sf-pn-hero-side {
@@ -611,7 +661,7 @@
   display: flex;
   flex-direction: column;
   background: #FFFCFA;
-  border: 1px solid #F4C8D5;
+  border: 1px solid #EADDE2;
   border-radius: 18px;
   overflow: hidden;
   box-shadow: 0 12px 28px rgba(112, 45, 75, .08);
@@ -1076,6 +1126,26 @@
   width: 100%;
 }
 
+.sf-page[data-template="nail_studio"] .sf-pn-team-portrait-frame {
+  display: block;
+  position: relative;
+}
+
+.sf-page[data-template="nail_studio"] .sf-pn-team-portrait-frame figcaption {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  background: rgba(255, 252, 250, .95);
+  border: 1px solid #EADDE2;
+  color: #702D4B;
+  border-radius: 8px;
+  padding: 3px 8px;
+  font-size: 9.5px;
+  font-weight: 750;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
 .sf-page[data-template="nail_studio"] .sf-pn-team-portrait-frame img {
   width: 100%;
   height: 100%;
@@ -1092,7 +1162,7 @@
 
 .sf-page[data-template="nail_studio"] .sf-pn-team-card {
   background: #FFFCFA;
-  border: 1px solid #F4C8D5;
+  border: 1px solid #EADDE2;
   border-radius: 24px;
   overflow: hidden;
   box-shadow: 0 14px 30px rgba(112, 45, 75, .1);
@@ -1283,7 +1353,7 @@
 
 .sf-page[data-template="nail_studio"] .sf-pn-review-card {
   background: #FFFCFA;
-  border: 1px solid #F4C8D5;
+  border: 1px solid #EADDE2;
   border-radius: 22px;
   padding: 22px;
   box-shadow: 0 12px 26px rgba(112, 45, 75, .08);
@@ -1826,6 +1896,270 @@
 }
 
 /* ------------------------------------------------------------------ */
+/* Trust highlights                                                    */
+/* ------------------------------------------------------------------ */
+.sf-page[data-template="nail_studio"] .sf-pn-trust {
+  background: #FFFCFA;
+  padding: 22px 0 6px;
+}
+
+.sf-page[data-template="nail_studio"] .sf-pn-trust-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.sf-page[data-template="nail_studio"] .sf-pn-trust-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #FFF5F7;
+  border: 1px solid #EADDE2;
+  border-radius: 18px;
+  padding: 16px 18px;
+  min-width: 0;
+}
+
+.sf-page[data-template="nail_studio"] .sf-pn-trust-icon {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: #FFFCFA;
+  border: 1px solid #F4C8D5;
+  color: #702D4B;
+}
+
+.sf-page[data-template="nail_studio"] .sf-pn-trust-card h2 {
+  margin: 0 0 3px;
+  font-family: var(--pn-serif);
+  font-size: 16px;
+  line-height: 1.25;
+  font-weight: 600;
+  color: #30242A;
+}
+
+.sf-page[data-template="nail_studio"] .sf-pn-trust-card p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #7A626B;
+}
+
+/* ------------------------------------------------------------------ */
+/* Why choose us                                                       */
+/* ------------------------------------------------------------------ */
+.sf-page[data-template="nail_studio"] .sf-pn-why-section {
+  background: #FFF5F7;
+  padding: 60px 0;
+}
+
+.sf-page[data-template="nail_studio"] .sf-pn-why-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.sf-page[data-template="nail_studio"] .sf-pn-why-card {
+  background: #FFFCFA;
+  border: 1px solid #EADDE2;
+  border-radius: 18px;
+  padding: 22px 20px;
+  box-shadow: 0 10px 24px rgba(112, 45, 75, .06);
+  min-width: 0;
+}
+
+.sf-page[data-template="nail_studio"] .sf-pn-why-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #FFF5F7;
+  border: 1px solid #F4C8D5;
+  color: #702D4B;
+  margin-bottom: 12px;
+}
+
+.sf-page[data-template="nail_studio"] .sf-pn-why-card h3 {
+  margin: 0 0 6px;
+  font-family: var(--pn-serif);
+  font-size: 17px;
+  line-height: 1.28;
+  font-weight: 600;
+  color: #30242A;
+}
+
+.sf-page[data-template="nail_studio"] .sf-pn-why-card p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: #7A626B;
+}
+
+/* ------------------------------------------------------------------ */
+/* How booking works                                                   */
+/* ------------------------------------------------------------------ */
+.sf-page[data-template="nail_studio"] .sf-pn-steps-section {
+  background: #FFFCFA;
+  padding: 60px 0;
+}
+
+.sf-page[data-template="nail_studio"] .sf-pn-steps-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  counter-reset: pn-step;
+}
+
+.sf-page[data-template="nail_studio"] .sf-pn-step-card {
+  position: relative;
+  background: #FFF5F7;
+  border: 1px solid #EADDE2;
+  border-radius: 18px;
+  padding: 24px 22px 22px;
+  min-width: 0;
+}
+
+.sf-page[data-template="nail_studio"] .sf-pn-step-number {
+  position: absolute;
+  top: 16px;
+  right: 18px;
+  font-family: var(--pn-serif);
+  font-size: 30px;
+  line-height: 1;
+  color: #F4C8D5;
+  font-weight: 600;
+}
+
+.sf-page[data-template="nail_studio"] .sf-pn-step-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: #FFFCFA;
+  border: 1px solid #F4C8D5;
+  color: #702D4B;
+  margin-bottom: 12px;
+}
+
+.sf-page[data-template="nail_studio"] .sf-pn-step-card h3 {
+  margin: 0 0 6px;
+  font-family: var(--pn-serif);
+  font-size: 17px;
+  line-height: 1.28;
+  font-weight: 600;
+  color: #30242A;
+}
+
+.sf-page[data-template="nail_studio"] .sf-pn-step-card p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: #7A626B;
+}
+
+/* ------------------------------------------------------------------ */
+/* FAQ accordion                                                       */
+/* ------------------------------------------------------------------ */
+.sf-page[data-template="nail_studio"] .sf-pn-faq-section {
+  background: #FFFCFA;
+  padding: 60px 0;
+}
+
+.sf-page[data-template="nail_studio"] .sf-pn-faq-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  max-width: 840px;
+}
+
+.sf-page[data-template="nail_studio"] .sf-pn-faq-item {
+  background: #FFF5F7;
+  border: 1px solid #EADDE2;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.sf-page[data-template="nail_studio"] .sf-pn-faq-item.is-open {
+  border-color: #C49A86;
+  background: #FFFCFA;
+}
+
+.sf-page[data-template="nail_studio"] .sf-pn-faq-item h3 {
+  margin: 0;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.sf-page[data-template="nail_studio"] .sf-pn-faq-item h3 button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: 0;
+  padding: 14px 16px;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #30242A;
+  text-align: left;
+  cursor: pointer;
+  min-height: 48px;
+}
+
+.sf-page[data-template="nail_studio"] .sf-pn-faq-item h3 button:hover {
+  color: #702D4B;
+}
+
+.sf-page[data-template="nail_studio"] .sf-pn-faq-icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  border-radius: 8px;
+  background: #FFFCFA;
+  border: 1px solid #F4C8D5;
+  color: #702D4B;
+}
+
+.sf-page[data-template="nail_studio"] .sf-pn-faq-item h3 button > span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+
+.sf-page[data-template="nail_studio"] .sf-pn-faq-chevron {
+  flex: 0 0 auto;
+  color: #C49A86;
+  transition: transform .18s ease;
+}
+
+.sf-page[data-template="nail_studio"] .sf-pn-faq-item.is-open .sf-pn-faq-chevron {
+  transform: rotate(180deg);
+  color: #702D4B;
+}
+
+.sf-page[data-template="nail_studio"] .sf-pn-faq-item [role='region'] p {
+  margin: 0;
+  padding: 0 16px 16px 54px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: #6B565E;
+  overflow-wrap: anywhere;
+}
+
+/* ------------------------------------------------------------------ */
 /* Existing extra sections (packages, dock, loyalty, policies, promo)  */
 /* ------------------------------------------------------------------ */
 .sf-page[data-template="nail_studio"] .sf-dock {
@@ -2037,6 +2371,14 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .sf-page[data-template="nail_studio"] .sf-pn-why-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sf-page[data-template="nail_studio"] .sf-pn-steps-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .sf-page[data-template="nail_studio"] .sf-pn-about-grid {
     grid-template-columns: minmax(0, 1fr);
     gap: 30px;
@@ -2172,6 +2514,36 @@
     padding: 6px 11px;
   }
 
+  .sf-page[data-template="nail_studio"] .sf-pn-trust {
+    padding: 16px 0 4px;
+  }
+
+  .sf-page[data-template="nail_studio"] .sf-pn-trust-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .sf-page[data-template="nail_studio"] .sf-pn-trust-card {
+    padding: 13px 14px;
+    border-radius: 16px;
+  }
+
+  .sf-page[data-template="nail_studio"] .sf-pn-why-grid,
+  .sf-page[data-template="nail_studio"] .sf-pn-steps-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .sf-page[data-template="nail_studio"] .sf-pn-why-section,
+  .sf-page[data-template="nail_studio"] .sf-pn-steps-section,
+  .sf-page[data-template="nail_studio"] .sf-pn-faq-section {
+    padding: 42px 0;
+  }
+
+  .sf-page[data-template="nail_studio"] .sf-pn-faq-item [role='region'] p {
+    padding-left: 16px;
+  }
+
   .sf-page[data-template="nail_studio"] .sf-pn-services-section,
   .sf-page[data-template="nail_studio"] .sf-pn-about-section,
   .sf-page[data-template="nail_studio"] .sf-pn-art-section,
@@ -2255,7 +2627,27 @@
     max-width: 420px;
   }
 
-  .sf-page[data-template="nail_studio"] .sf-pn-team-portrait-frame img {
+  .sf-page[data-template="nail_studio"] .sf-pn-team-portrait-frame {
+  display: block;
+  position: relative;
+}
+
+.sf-page[data-template="nail_studio"] .sf-pn-team-portrait-frame figcaption {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  background: rgba(255, 252, 250, .95);
+  border: 1px solid #EADDE2;
+  color: #702D4B;
+  border-radius: 8px;
+  padding: 3px 8px;
+  font-size: 9.5px;
+  font-weight: 750;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.sf-page[data-template="nail_studio"] .sf-pn-team-portrait-frame img {
     object-position: center 24%;
   }
 

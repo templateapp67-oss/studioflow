@@ -14,11 +14,22 @@ import {
   Sparkles,
   Star,
   Youtube,
+  CalendarCheck2,
+  Palette,
+  HandHeart,
+  ChevronDown,
+  ListChecks,
+  Clock3,
+  HelpCircle,
+  BadgeCheck,
+  Home,
+  Scissors,
 } from 'lucide-react';
 import type { PhotoCategory, SalonGalleryPhoto } from '../lib/photoGallery';
 import type { SalonProfile, SalonService, Stylist } from '../types';
 import {
   PINKY_NAILS_COPY,
+  type PinkyFaqItem,
   PINKY_NAILS_IMAGES,
   PINKY_NAILS_PALETTE,
   hasOwnerCustomNailCover,
@@ -658,11 +669,162 @@ export function PinkyNailsTeamPortrait({ profile }: { profile?: SalonProfile }) 
     <figure className="sf-pn-team-portrait-frame">
       <img
         src={src}
-        alt="Nail artist in the studio"
+        alt="Studio illustration of a nail artist at work"
         loading="lazy"
         onError={() => setFailed(true)}
       />
+      <figcaption>Studio illustration</figcaption>
     </figure>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Trust highlights — three small cards right under the hero           */
+/* ------------------------------------------------------------------ */
+export function PinkyNailsTrustHighlights() {
+  const icons = [HandHeart, Palette, CalendarCheck2];
+  return (
+    <section className="sf-pn-trust" aria-label="Studio highlights">
+      <div className="sf-container sf-pn-trust-grid">
+        {PINKY_NAILS_COPY.trustHighlights.map(([title, text], index) => {
+          const Icon = icons[index] || Sparkles;
+          return (
+            <article key={title} className="sf-pn-trust-card">
+              <span className="sf-pn-trust-icon" aria-hidden="true">
+                <Icon size={19} />
+              </span>
+              <div>
+                <h2>{title}</h2>
+                <p>{text}</p>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Why choose us — four clean cards on soft pink                       */
+/* ------------------------------------------------------------------ */
+export function PinkyNailsWhyChooseUs({ profile }: { profile?: SalonProfile }) {
+  const icons = [BadgeCheck, Palette, Home, CalendarCheck2];
+  return (
+    <section className="sf-section sf-pn-why-section" aria-label="Why choose Pinky Nails Studio">
+      <div className="sf-container">
+        <SectionHeading
+          eyebrow="Why choose us"
+          title={profile?.sectionHeadings?.whyTitle || PINKY_NAILS_COPY.whyTitle}
+          description={PINKY_NAILS_COPY.whySubtitle}
+          align="center"
+        />
+        <div className="sf-pn-why-grid">
+          {PINKY_NAILS_COPY.whyItems.map(([title, text], index) => {
+            const Icon = icons[index] || Sparkles;
+            return (
+              <article key={title} className="sf-pn-why-card">
+                <span className="sf-pn-why-icon" aria-hidden="true">
+                  <Icon size={20} />
+                </span>
+                <h3>{title}</h3>
+                <p>{text}</p>
+              </article>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* How booking works — three numbered steps                           */
+/* ------------------------------------------------------------------ */
+export function PinkyNailsBookingSteps({
+  heading,
+  showTimeStep = true,
+  showConfirmStep = true,
+}: {
+  heading?: string;
+  showTimeStep?: boolean;
+  showConfirmStep?: boolean;
+}) {
+  const steps = PINKY_NAILS_COPY.steps.slice(0, 1 + (showTimeStep ? 1 : 0) + (showConfirmStep ? 1 : 0));
+  const icons = [ListChecks, Clock3, BadgeCheck];
+  return (
+    <section className="sf-pn-steps-section" aria-label="How booking works">
+      <div className="sf-container">
+        <SectionHeading
+          eyebrow="How it works"
+          title={heading || PINKY_NAILS_COPY.stepsTitle}
+          description={PINKY_NAILS_COPY.stepsSubtitle}
+        />
+        <ol className="sf-pn-steps-grid">
+          {steps.map(([title, text], index) => {
+            const Icon = icons[index] || ListChecks;
+            return (
+              <li key={title} className="sf-pn-step-card">
+                <span className="sf-pn-step-number" aria-hidden="true">{index + 1}</span>
+                <span className="sf-pn-step-icon" aria-hidden="true">
+                  <Icon size={18} />
+                </span>
+                <h3>{title}</h3>
+                <p>{text}</p>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* FAQ accordion — answers only from real studio + app information     */
+/* ------------------------------------------------------------------ */
+export function PinkyNailsFaq({ items, heading }: { items: PinkyFaqItem[]; heading?: string }) {
+  const [openId, setOpenId] = useState<string | null>(items[0]?.id ?? null);
+  useEffect(() => {
+    if (openId && !items.some((item) => item.id === openId)) setOpenId(null);
+  }, [items, openId]);
+  if (!items.length) return null;
+  return (
+    <section id="salon-faq" className="sf-section sf-pn-faq-section">
+      <div className="sf-container">
+        <SectionHeading
+          eyebrow="Questions"
+          title={heading || PINKY_NAILS_COPY.faqTitle}
+          description={PINKY_NAILS_COPY.faqSubtitle}
+        />
+        <ul className="sf-pn-faq-list">
+          {items.map((item) => {
+            const open = openId === item.id;
+            return (
+              <li key={item.id} className={`sf-pn-faq-item${open ? ' is-open' : ''}`}>
+                <h3>
+                  <button
+                    type="button"
+                    aria-expanded={open}
+                    aria-controls={`${item.id}-panel`}
+                    onClick={() => setOpenId(open ? null : item.id)}
+                  >
+                    <span className="sf-pn-faq-icon" aria-hidden="true">
+                      <HelpCircle size={16} />
+                    </span>
+                    <span>{item.question}</span>
+                    <ChevronDown size={18} aria-hidden="true" className="sf-pn-faq-chevron" />
+                  </button>
+                </h3>
+                <div id={`${item.id}-panel`} role="region" aria-label={item.question} hidden={!open}>
+                  <p>{item.answer}</p>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </section>
   );
 }
 
@@ -797,10 +959,10 @@ export function PinkyNailsContactSection({
                     href={contact.whatsappUrl}
                     target="_blank"
                     rel="noreferrer"
-                    aria-label="Chat with the studio on WhatsApp"
+                    aria-label="WhatsApp Inquiry"
                   >
                     <MessageCircle size={15} />
-                    WhatsApp Inquiry
+                    WhatsApp Us
                     <ArrowUpRight size={14} />
                   </a>
                 )}
