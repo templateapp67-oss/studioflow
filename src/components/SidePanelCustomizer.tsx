@@ -39,6 +39,7 @@ import { CATEGORY_TEMPLATES } from '../categoryTemplates';
 import { SALON_IMAGES } from '../assets/images';
 import { validateAndReadImageFile, compressAndResizeImage } from '../utils/imageUploadHelper';
 import { AILogoSuiteModal } from './AILogoSuiteModal';
+import { PINKY_NAILS_AI_PRESETS } from '../lib/pinkyNails';
 import { ImageCompressorWidget } from './ImageCompressorWidget';
 
 export interface SectionVisibilityState {
@@ -124,6 +125,16 @@ export const SidePanelCustomizer: React.FC<SidePanelCustomizerProps> = ({
   setServices,
   onSelectCategory
 }) => {
+  const isNailStudio = profile.businessType === 'nail_studio' || selectedCategoryKey === 'nail_studio';
+  const aiPresetOptions = isNailStudio
+    ? PINKY_NAILS_AI_PRESETS.map(preset => ({ id: preset.id, label: preset.label, hint: preset.hint }))
+    : [
+        { id: 'luxury', label: '✨ Ultra-Luxury & Botanical', hint: 'High-ticket premium salon wording' },
+        { id: 'bridal', label: '👰 Festive & Bridal Packages', hint: 'Diwali, Wedding & Makeover headlines' },
+        { id: 'genz', label: '⚡ Modern Trendsetter Tone', hint: 'Punchy, bold styling & color studio' },
+        { id: 'ayurvedic', label: '🌿 Holistic Ayurvedic Glow', hint: 'Herbal, wellness & scalp healing copy' },
+      ];
+
   const [activeTab, setActiveTab] = useState<CustomizerTab>('theme');
   const [customHex, setCustomHex] = useState<string>(primaryAccentColor || '#0f172a');
   const [aiCustomText, setAiCustomText] = useState<string>('');
@@ -1067,10 +1078,12 @@ export const SidePanelCustomizer: React.FC<SidePanelCustomizerProps> = ({
             <div className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200/60 p-3.5 rounded-xl flex flex-col gap-2">
               <div className="flex items-center gap-2 text-purple-900 font-bold">
                 <Sparkles className="w-4 h-4 text-purple-600" />
-                <span>AI Salon Copywriter</span>
+                <span>{isNailStudio ? 'AI Nail Studio Copywriter' : 'AI Salon Copywriter'}</span>
               </div>
               <p className="text-[11px] text-purple-800 leading-relaxed">
-                Generate high-converting headlines, seasonal offers, and story descriptions tailored for Indian clientele.
+                {isNailStudio
+                  ? 'Rewrite the hero line, about story and section headings for your nail studio. Changes apply to the website on this canvas straight away.'
+                  : 'Generate high-converting headlines, seasonal offers, and story descriptions tailored for Indian clientele.'}
               </p>
             </div>
 
@@ -1083,7 +1096,9 @@ export const SidePanelCustomizer: React.FC<SidePanelCustomizerProps> = ({
                 rows={3}
                 value={aiCustomText}
                 onChange={(e) => setAiCustomText(e.target.value)}
-                placeholder="e.g. Write luxury organic tagline for bridal studio in Indiranagar Bengaluru..."
+                placeholder={isNailStudio
+                  ? 'e.g. Write a short intro for a nail studio in Jaipur that does chrome and handpainted art...'
+                  : 'e.g. Write luxury organic tagline for bridal studio in Indiranagar Bengaluru...'}
                 className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 text-slate-900 focus:border-slate-900 focus:outline-none"
               />
               <button
@@ -1108,53 +1123,20 @@ export const SidePanelCustomizer: React.FC<SidePanelCustomizerProps> = ({
                 1-Click AI Presets
               </span>
 
-              <button
-                type="button"
-                onClick={() => onAIGeneratePrompt && onAIGeneratePrompt('luxury')}
-                className="p-2.5 rounded-xl border border-slate-200 hover:border-slate-300 bg-white text-left flex items-center justify-between group cursor-pointer"
-              >
-                <div>
-                  <div className="font-bold text-slate-900">✨ Ultra-Luxury & Botanical</div>
-                  <div className="text-[10px] text-slate-400">High-ticket premium salon wording</div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => onAIGeneratePrompt && onAIGeneratePrompt('bridal')}
-                className="p-2.5 rounded-xl border border-slate-200 hover:border-slate-300 bg-white text-left flex items-center justify-between group cursor-pointer"
-              >
-                <div>
-                  <div className="font-bold text-slate-900">👰 Festive & Bridal Packages</div>
-                  <div className="text-[10px] text-slate-400">Diwali, Wedding & Makeover headlines</div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => onAIGeneratePrompt && onAIGeneratePrompt('genz')}
-                className="p-2.5 rounded-xl border border-slate-200 hover:border-slate-300 bg-white text-left flex items-center justify-between group cursor-pointer"
-              >
-                <div>
-                  <div className="font-bold text-slate-900">⚡ Modern Trendsetter Tone</div>
-                  <div className="text-[10px] text-slate-400">Punchy, bold styling & color studio</div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => onAIGeneratePrompt && onAIGeneratePrompt('ayurvedic')}
-                className="p-2.5 rounded-xl border border-slate-200 hover:border-slate-300 bg-white text-left flex items-center justify-between group cursor-pointer"
-              >
-                <div>
-                  <div className="font-bold text-slate-900">🌿 Holistic Ayurvedic Glow</div>
-                  <div className="text-[10px] text-slate-400">Herbal, wellness & scalp healing copy</div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
-              </button>
+              {aiPresetOptions.map(preset => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => onAIGeneratePrompt && onAIGeneratePrompt(preset.id)}
+                  className="p-2.5 rounded-xl border border-slate-200 hover:border-slate-300 bg-white text-left flex items-center justify-between group cursor-pointer"
+                >
+                  <div>
+                    <div className="font-bold text-slate-900">{preset.label}</div>
+                    <div className="text-[10px] text-slate-400">{preset.hint}</div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                </button>
+              ))}
             </div>
 
           </div>

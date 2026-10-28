@@ -55,6 +55,7 @@ import { BookingModal } from './BookingModal';
 import { InlineEditable } from './InlineEditable';
 import { SidePanelCustomizer, SectionVisibilityState, DEFAULT_SECTION_VISIBILITY } from './SidePanelCustomizer';
 import { PinkyNailsFaqEditor } from './PinkyNailsFaqEditor';
+import { PINKY_NAILS_AI_PRESETS, pinkyNailsAiRewrite } from '../lib/pinkyNails';
 import { InteractiveMapSetup } from './InteractiveMapSetup';
 import { computeHeroAIStyling, extractImageMoodAsync, HeroAIStyling } from '../utils/heroImageMood';
 import { TestimonialModal } from './ClientTestimonials';
@@ -447,8 +448,22 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
   // AI Studio Prompts Engine
   const handleAIGeneratePrompt = (presetType: string, customPrompt?: string) => {
     setIsAiLoading(true);
+    const nailStudio = activeProfile.businessType === 'nail_studio' || selectedCategoryKey === 'nail_studio';
     setTimeout(() => {
-      if (presetType === 'luxury') {
+      if (nailStudio) {
+        const rewrite = pinkyNailsAiRewrite(
+          presetType === 'luxury' || presetType === 'bridal' || presetType === 'ayurvedic' || presetType === 'genz'
+            ? presetType
+            : 'custom',
+          { businessName: activeProfile.businessName, city: activeProfile.city, customPrompt },
+        );
+        setProfile((prev) => ({
+          ...prev,
+          tagline: rewrite.tagline,
+          about: rewrite.about,
+          sectionHeadings: { ...prev.sectionHeadings, ...rewrite.sectionHeadings },
+        }));
+      } else if (presetType === 'luxury') {
         setProfile((prev) => ({
           ...prev,
           tagline: `Bespoke Botanical Luxury & Haute Artistry in ${prev.city}`,
@@ -497,6 +512,22 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
       setIsAiLoading(false);
       showNotification('AI regenerated copy and headline variations applied to canvas!');
     }, 600);
+  };
+
+  // AI preset chips — Template 05 uses nail wording for the same preset ids
+  const aiPresetChips = activeProfile.businessType === 'nail_studio' || selectedCategoryKey === 'nail_studio'
+    ? PINKY_NAILS_AI_PRESETS.map(preset => ({ id: preset.id, label: preset.label, hint: preset.hint }))
+    : [
+        { id: 'luxury', label: '✨ Luxury & Organic', hint: 'High-ticket premium salon wording' },
+        { id: 'bridal', label: '👰 Bridal & Festive', hint: 'Diwali, wedding and makeover headlines' },
+        { id: 'ayurvedic', label: '🌿 Ayurvedic Glow', hint: 'Herbal, wellness and scalp healing copy' },
+        { id: 'genz', label: '⚡ Gen-Z Trendsetter', hint: 'Punchy, bold styling and color studio' },
+      ];
+  const aiPresetChipClass: Record<string, string> = {
+    luxury: 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200',
+    bridal: 'bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-200',
+    ayurvedic: 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200',
+    genz: 'bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border-indigo-200',
   };
 
   // Device width class
@@ -565,6 +596,12 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
 
             {/* Mode Switcher: Inline Edit Mode vs Preview Mode */}
             <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+              {selectedCategoryKey === 'nail_studio' ? (
+                <span className="px-3 py-1.5 rounded-lg text-[11px] font-semibold text-slate-600 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                  <span>Template 05 edits apply live from Customize & AI Studio</span>
+                </span>
+              ) : (
               <button
                 type="button"
                 onClick={() => setIsEditMode(!isEditMode)}
@@ -579,6 +616,7 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
                 <span>Inline Edit Mode</span>
                 {isEditMode && <span className="w-2 h-2 rounded-full bg-white animate-pulse" />}
               </button>
+              )}
 
               <button
                 type="button"
@@ -700,34 +738,17 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 shrink-0">
                 AI Presets:
               </span>
-              <button
-                type="button"
-                onClick={() => handleAIGeneratePrompt('luxury')}
-                className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold whitespace-nowrap transition-colors cursor-pointer border border-slate-200"
-              >
-                ✨ Luxury & Organic
-              </button>
-              <button
-                type="button"
-                onClick={() => handleAIGeneratePrompt('bridal')}
-                className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-800 text-[11px] font-semibold whitespace-nowrap transition-colors cursor-pointer border border-rose-200"
-              >
-                👰 Bridal & Festive
-              </button>
-              <button
-                type="button"
-                onClick={() => handleAIGeneratePrompt('ayurvedic')}
-                className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-semibold whitespace-nowrap transition-colors cursor-pointer border border-emerald-200"
-              >
-                🌿 Ayurvedic Glow
-              </button>
-              <button
-                type="button"
-                onClick={() => handleAIGeneratePrompt('genz')}
-                className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-800 text-[11px] font-semibold whitespace-nowrap transition-colors cursor-pointer border border-indigo-200"
-              >
-                ⚡ Gen-Z Trendsetter
-              </button>
+              {aiPresetChips.map(preset => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  title={preset.hint}
+                  onClick={() => handleAIGeneratePrompt(preset.id)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-colors cursor-pointer border ${aiPresetChipClass[preset.id] || aiPresetChipClass.luxury}`}
+                >
+                  {preset.label}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -783,8 +804,16 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
         onSelectCategory={handleCategorySwitch}
       />}
 
+      {/* Template 05: FAQ editor sits above the canvas because the nail canvas
+          is the real customer website, not the legacy inline-edit canvas. */}
+      {!readOnly && selectedCategoryKey === 'nail_studio' && (
+        <div className="w-full max-w-[1240px] px-4">
+          <PinkyNailsFaqEditor profile={activeProfile} setProfile={setProfile} readOnly={readOnly} />
+        </div>
+      )}
+
       {/* Edit Mode Notice Banner */}
-      {isEditMode && (
+      {isEditMode && selectedCategoryKey !== 'nail_studio' && (
         <div className="w-full max-w-[1240px] px-4 mt-4">
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center justify-between gap-3 text-xs text-amber-900 shadow-xs">
             <div className="flex items-center gap-2">
@@ -839,7 +868,22 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
         {/* ============================================================ */}
         {/* SECTION: SALON SITE NAV HEADER & STICKY BOOKING TRIGGER */}
         {/* ============================================================ */}
-        {selectedCategoryKey === 'beauty_parlour' && !isEditMode ? (
+        {selectedCategoryKey === 'nail_studio' ? (
+          <CustomerSalonWebsite
+            profile={{ ...activeProfile, businessType: 'nail_studio' }}
+            services={activeServices}
+            stylists={activeStylists}
+            gallery={gallery}
+            policies={policies}
+            branding={branding}
+            loyaltyConfig={loyaltyConfig}
+            onManageDashboard={onManageDashboard}
+            onCustomerAccount={onCustomerAccount}
+            customerSignedIn={customerSignedIn}
+            onAddAppointment={onAddAppointment}
+            readOnly
+          />
+        ) : selectedCategoryKey === 'beauty_parlour' && !isEditMode ? (
           <CustomerSalonWebsite
             profile={{ ...activeProfile, businessType: 'beauty_parlour' }}
             services={activeServices}
@@ -1969,9 +2013,6 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
           </section>
         )}
 
-        {activeProfile.businessType === 'nail_studio' && (
-          <PinkyNailsFaqEditor profile={activeProfile} setProfile={setProfile} readOnly={readOnly} />
-        )}
         <WebsiteSections onCustomerAccount={onCustomerAccount} profile={activeProfile} services={activeServices} onBook={handleOpenBooking} onManage={onManageDashboard} setProfile={setProfile} isEditingActive={isEditMode && !readOnly} readOnly={readOnly} policies={policies} loyaltyConfig={loyaltyConfig}/>
         {branding?.poweredBy&&<p className="text-center text-xs py-4">Powered by {branding.platformName||'StudioFlow'}</p>}
         <CustomerAppPromotion/>

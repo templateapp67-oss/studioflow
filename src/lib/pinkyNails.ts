@@ -416,3 +416,109 @@ export function upgradeNailStudioTemplate<T extends { id: string }>(remote: T): 
   }
   return next as T;
 }
+
+/* ------------------------------------------------------------------ */
+/* AI Studio presets — Template 05 only.                               */
+/* Hair, bridal-makeup and ayurvedic wording from the shared AI panel   */
+/* does not fit a nail studio, so the nail template gets its own copy   */
+/* for the same preset buttons.                                         */
+/* ------------------------------------------------------------------ */
+
+export type PinkyNailAiPresetId = 'luxury' | 'bridal' | 'ayurvedic' | 'genz';
+
+export interface PinkyNailAiPresetMeta {
+  id: PinkyNailAiPresetId;
+  label: string;
+  hint: string;
+}
+
+export const PINKY_NAILS_AI_PRESETS: readonly PinkyNailAiPresetMeta[] = [
+  { id: 'luxury', label: '✨ Premium Nail Studio', hint: 'Calm, premium nail studio wording' },
+  { id: 'bridal', label: '💍 Wedding & Festive Nails', hint: 'Nail sets for weddings and functions' },
+  { id: 'ayurvedic', label: '🌿 Nail Care Focus', hint: 'Care-first wording for everyday nails' },
+  { id: 'genz', label: '⚡ Trend & Nail Art', hint: 'Colour, chrome and handpainted art' },
+] as const;
+
+export interface PinkyNailAiRewrite {
+  tagline: string;
+  about: string;
+  sectionHeadings: {
+    servicesTitle?: string;
+    servicesSubtitle?: string;
+    whyTitle?: string;
+  };
+}
+
+function nailAiSentence(text?: string): string {
+  const value = text?.trim().replace(/\s+/g, ' ');
+  if (!value) return '';
+  return /[.!?]$/.test(value) ? value : `${value}.`;
+}
+
+/**
+ * Copy written for the pinky nails hero (tagline), about section and the
+ * services/why headings. No hygiene, award, brand or pricing claims.
+ */
+export function pinkyNailsAiRewrite(
+  preset: PinkyNailAiPresetId | 'custom',
+  options: { businessName?: string; city?: string; customPrompt?: string },
+): PinkyNailAiRewrite {
+  const studio = options.businessName?.trim() || 'our nail studio';
+  const city = options.city?.trim();
+
+  switch (preset) {
+    case 'bridal':
+      return {
+        tagline: 'Nail Sets for Weddings and Special Days',
+        about: `Getting ready for a wedding, festival or family function? At ${studio} you can choose nail art and finishes for the occasion, and we will work on the colours and design along with you.`,
+        sectionHeadings: {
+          servicesTitle: 'Wedding & Festive Nail Services',
+          servicesSubtitle: 'Nail sets for weddings, festivals and family functions.',
+          whyTitle: 'Why Book Your Occasion Nails With Us?',
+        },
+      };
+    case 'ayurvedic':
+      return {
+        tagline: 'Gentle Nail Care and Simple Finishes',
+        about: `Good nails start with regular care. At ${studio} we take time with shaping, cuticle care and a simple finish you can wear every day, in a studio that is kept tidy for every appointment.`,
+        sectionHeadings: {
+          servicesTitle: 'Everyday Nail Care',
+          servicesSubtitle: 'Simple care services for neat, well-kept nails.',
+          whyTitle: 'Why Clients Choose Our Nail Care',
+        },
+      };
+    case 'genz':
+      return {
+        tagline: 'Bold Colours, Chrome and Handpainted Art',
+        about: `From chrome finishes to handpainted art, ${studio} keeps up with the nail looks you see online. Pick a design from the menu or bring a reference picture, and we will work on it together.`,
+        sectionHeadings: {
+          servicesTitle: 'Nail Art & Trend Looks',
+          servicesSubtitle: 'Chrome, glitter and handpainted designs for every mood.',
+          whyTitle: 'Why Choose Pinky Nails Studio?',
+        },
+      };
+    case 'custom': {
+      const note = nailAiSentence(options.customPrompt);
+      const shortNote = note.length > 140 ? `${note.slice(0, 137).trim()}…` : note;
+      return {
+        tagline: shortNote
+          ? shortNote.replace(/[.!?…]$/, '').replace(/^./, (ch) => ch.toUpperCase())
+          : 'Nail Art and Nail Care, Done with Care',
+        about: shortNote
+          ? `At ${studio}, ${shortNote.charAt(0).toLowerCase()}${shortNote.slice(1)} Explore nail art, nail care and finishes, and ask the studio about the look you have in mind.`
+          : `At ${studio}, every visit starts with clean tools and a calm space. Choose your colours and finishes, and we will shape a nail look that feels like you.`,
+        sectionHeadings: {},
+      };
+    }
+    default:
+      return {
+        tagline: 'Stylish Nails, Done with Care',
+        about: `At ${studio} every visit starts with clean tools and a calm space. Choose your colours and finishes, and we will shape a nail look that feels like you.${city ? ` You will find us in ${city}.` : ''}`,
+        sectionHeadings: {
+          servicesTitle: 'Nail Art & Nail Care Menu',
+          servicesSubtitle: 'Pick the nail service that suits your style and the time you have.',
+          whyTitle: 'Why Choose Pinky Nails Studio?',
+        },
+      };
+  }
+}
