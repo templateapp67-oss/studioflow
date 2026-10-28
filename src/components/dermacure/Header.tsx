@@ -26,6 +26,7 @@ export function Header({
     setMenu,
     mobileNav,
     reduced,
+    scrollTo,
   } = useDermacure();
   if (!visible.header) return null;
   return (
@@ -35,6 +36,10 @@ export function Header({
           className="dc-logo"
           href="#home"
           aria-label={`${profile.businessName} home`}
+          onClick={(event) => {
+            event.preventDefault();
+            scrollTo("home");
+          }}
         >
           {profile.logoUrl ? (
             <EditorialImage
@@ -58,7 +63,14 @@ export function Header({
         </a>
         <nav className="dc-desktop-nav" aria-label="Website navigation">
           {nav.map(([label, id]) => (
-            <a key={id} href={`#${id}`}>
+            <a
+              key={id}
+              href={`#${id}`}
+              onClick={(event) => {
+                event.preventDefault();
+                scrollTo(id);
+              }}
+            >
               {label}
             </a>
           ))}
@@ -119,7 +131,14 @@ export function Header({
             transition={reduced ? { duration: 0 } : undefined}
           >
             {nav.map(([label, id]) => (
-              <a key={id} href={`#${id}`} onClick={() => setMenu(false)}>
+              <a
+                key={id}
+                href={`#${id}`}
+                onClick={(event) => {
+                  event.preventDefault();
+                  scrollTo(id);
+                }}
+              >
                 {label}
                 <ArrowUpRight size={16} />
               </a>

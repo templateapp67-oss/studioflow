@@ -7,7 +7,14 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
  const profile={...INITIAL_SALON_PROFILE,businessType:template.id};const samples=standardGallery(template.id);assert.equal(samples.length,5);assert.equal(new Set(samples.map(p=>p.url)).size,5);assert.equal(photoGallery(profile).length,5);assert.ok(samples.every(p=>p.id.includes(template.id)));
  const html=renderToStaticMarkup(<CustomerSalonWebsite profile={profile} services={[]} stylists={[]} readOnly onAddAppointment={async a=>a}/>);
  if(template.id==='skincare_clinic'){
-  assert.ok(!html.includes('id="clinic-gallery"'),'Dermacure does not present demo photos as actual clinic photos');
+  // Template 07 shows only photographs the clinic published itself. When the
+  // clinic has none, the section falls back to bundled reference photography
+  // and labels every tile "DEMO / SAMPLE" — it never passes a stock photo off
+  // as the clinic's own room.
+  assert.equal((html.match(/DEMO \/ SAMPLE · /g)||[]).length,8,'Dermacure labels every bundled reference photograph');
+  assert.ok(html.includes('Demo / sample photographs of a clinic interior'),'Dermacure explains that the photographs are samples');
+  assert.ok(!html.includes('clinic-published photo'),'no reference photo is described as clinic-published');
+  assert.equal((html.match(/id="clinic-gallery"/g)||[]).length,1,'the clinic gallery is a single section');
   const owned={...profile,photoGalleryInitialized:true,photoGalleryType:template.id,photoGallery:[{id:'clinic-owned',category:'Skin' as const,url:'https://example.com/clinic-owned.jpg',title:'Actual clinic',isDemo:false}]};
   const saved=renderToStaticMarkup(<CustomerSalonWebsite profile={owned} services={[]} stylists={[]} readOnly onAddAppointment={async a=>a}/>);
   assert.ok(saved.includes('https://example.com/clinic-owned.jpg'));assert.ok(saved.includes('Skin (1)'));assert.ok(!saved.includes('Delete photo'));

@@ -1731,3 +1731,184 @@
   margin-top: 16px;
   line-height: 1.7;
 }
+
+/* ==========================================================================
+   Dermacure · About pillars, clinician portraits and the clinic gallery
+   --------------------------------------------------------------------------
+   Added with the About / team / gallery completion pass. Every rule is scoped
+   to `.dc-*`, so no other template reads it.
+   ========================================================================== */
+
+/* --- Shared section intro + empty state -------------------------------- */
+.dc-section-intro {
+  max-width: 64ch;
+  margin: -6px 0 26px;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+.dc-empty {
+  margin: 18px 0 0;
+  padding: 22px;
+  border: 1px dashed var(--champagne);
+  border-radius: 14px;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+/* --- About / philosophy: copy, actions and the three pillars ----------- */
+.dc-philosophy-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 28px;
+}
+.dc-text-link-muted {
+  color: var(--muted);
+  border-bottom-color: transparent;
+}
+.dc-text-link-muted:hover,
+.dc-text-link-muted:focus-visible {
+  color: var(--bronze);
+  border-bottom-color: var(--champagne);
+}
+.dc-philosophy-pillars {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(22px, 3vw, 38px);
+  margin-top: clamp(44px, 6vw, 72px);
+  padding-top: 34px;
+  border-top: 1px solid var(--champagne);
+}
+.dc-pillar-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  color: var(--bronze);
+  background: var(--ivory-deep);
+  border: 1px solid var(--champagne);
+}
+.dc-pillar h3 {
+  margin: 16px 0 8px;
+}
+.dc-pillar p {
+  margin: 0;
+  max-width: 42ch;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* --- Clinician portraits: fixed ratio, demo note, specialty chips ------ */
+.dc-staff-photo {
+  position: relative;
+}
+.dc-team-grid .dc-staff-photo img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  object-position: center 28%;
+  border-radius: 14px;
+  background: var(--ivory-deep);
+}
+.dc-staff-photo .dc-staff-initial {
+  width: 100%;
+}
+.dc-photo-note {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  padding: 6px 10px;
+  border-radius: 0 10px 0 14px;
+  background: #50372ddd;
+  color: #fff;
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.dc-staff-specialties {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0 12px;
+  padding: 0;
+  list-style: none;
+}
+.dc-staff-specialties li {
+  padding: 4px 9px;
+  border: 1px solid var(--champagne);
+  border-radius: 999px;
+  color: #866145;
+  font-size: 0.66rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+/* --- Gallery: a count-aware mosaic, never a ragged half row ------------ */
+.dc-gallery-note {
+  margin-bottom: 20px;
+}
+.dc-gallery-grid[data-count] {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.dc-gallery-tile {
+  display: flex;
+  flex-direction: column;
+}
+.dc-gallery-grid[data-count] .dc-gallery-tile-1 {
+  grid-column: span 2;
+}
+.dc-gallery-grid[data-count] .dc-gallery-tile-1 img {
+  aspect-ratio: 16 / 9;
+}
+.dc-gallery-grid[data-count="1"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+.dc-gallery-grid[data-count="2"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.dc-gallery-grid[data-count="1"] .dc-gallery-tile-1,
+.dc-gallery-grid[data-count="2"] .dc-gallery-tile-1 {
+  grid-column: auto;
+}
+.dc-gallery-grid[data-count="1"] .dc-gallery-tile-1 img,
+.dc-gallery-grid[data-count="2"] .dc-gallery-tile-1 img {
+  aspect-ratio: 4 / 3;
+}
+
+@media (max-width: 900px) {
+  .dc-philosophy-pillars {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dc-gallery-grid[data-count] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 480px) {
+  .dc-gallery-grid[data-count],
+  .dc-gallery-grid[data-count="2"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dc-gallery-grid[data-count] .dc-gallery-tile-1 {
+    grid-column: auto;
+  }
+  .dc-gallery-grid[data-count] .dc-gallery-tile-1 img {
+    aspect-ratio: 4 / 3;
+  }
+}
+
+/* Eight page links plus the account action and CTA need one tighter step
+   before the desktop row hands over to the drawer at 1200px. */
+@media (max-width: 1400px) and (min-width: 1201px) {
+  .dc-desktop-nav {
+    gap: 13px;
+  }
+  .dc-desktop-nav a {
+    font-size: 0.71rem;
+  }
+  .dc-header-cta {
+    padding: 12px 14px;
+  }
+}

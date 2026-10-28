@@ -77,6 +77,8 @@ export function useDermacureState({
       : []),
     ["Technology", "technology"],
     ...(visible.gallery ? [["Results", "results"]] : []),
+    ...(visible.stylists ? [["Our Team", "salon-team"]] : []),
+    ...(visible.gallery ? [["Gallery", "clinic-gallery"]] : []),
     ...(visible.location ? [["Contact", "contact"]] : []),
   ].filter(([, target]) => {
     const key = (
@@ -85,6 +87,7 @@ export function useDermacureState({
         about: "about",
         treatments: "services",
         results: "gallery",
+        "clinic-gallery": "gallery",
         contact: "contact",
       } as Record<string, string>
     )[target];
@@ -225,6 +228,65 @@ export function useDermacureState({
   const bookingLabel = bookingAvailable
     ? "Book Consultation"
     : "Contact the Clinic";
+  /**
+   * One navigation helper for every header, drawer and footer link.
+   *
+   * It scrolls immediately, retries on the next frame while a lazily mounted
+   * section appears, and finally follows the native anchor — so a clinic
+   * section that is hidden or absent never leaves a link that silently does
+   * nothing. While the mobile drawer is open the scroll is queued until the
+   * drawer has released its body scroll lock.
+   */
+  const pendingScroll = useRef<string | null>(null);
+  const scrollTo = (target: string) => {
+    if (typeof document === "undefined") return;
+    if (menu) {
+      pendingScroll.current = target;
+      setMenu(false);
+      return;
+    }
+    const find = () =>
+      document.getElementById(target) ||
+      document.querySelector<HTMLElement>(`[data-nav-target="${target}"]`);
+    const followAnchor = () => {
+      if (typeof location !== "undefined" && location.hash !== `#${target}`) {
+        location.hash = `#${target}`;
+      }
+    };
+    const reveal = (attempt: number): boolean => {
+      const node = find();
+      if (node) {
+        node.scrollIntoView({
+          behavior: reduced ? "auto" : "smooth",
+          block: "start",
+        });
+        return true;
+      }
+      if (attempt >= 2) {
+        followAnchor();
+        return false;
+      }
+      if (typeof requestAnimationFrame === "function") {
+        requestAnimationFrame(() => reveal(attempt + 1));
+        return true;
+      }
+      followAnchor();
+      return false;
+    };
+    reveal(0);
+  };
+  useEffect(() => {
+    if (menu || !pendingScroll.current) return;
+    const target = pendingScroll.current;
+    pendingScroll.current = null;
+    const frame = requestAnimationFrame(() => {
+      document.getElementById(target)?.scrollIntoView({
+        behavior: reduced ? "auto" : "smooth",
+        block: "start",
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [menu, reduced]);
   return {
     profile,
     services,
@@ -254,6 +316,7 @@ export function useDermacureState({
     nav,
     booking,
     bookingLabel,
+    scrollTo,
     bookingNotice,
     canShowBookings,
   };

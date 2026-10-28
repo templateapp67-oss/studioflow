@@ -2,14 +2,22 @@ import { useDermacure } from "./context";
 import { socialUrl } from "../../lib/websiteContent";
 
 export function Footer() {
-  const { profile, nav, visible, policies, services, address } = useDermacure();
+  const { profile, nav, visible, policies, services, address, scrollTo } =
+    useDermacure();
   return (
     <>
       <footer className="dc-footer">
         <div className="dc-container">
           <div className="dc-footer-grid">
             <div>
-              <a href="#home" className="dc-footer-logo">
+              <a
+                href="#home"
+                className="dc-footer-logo"
+                onClick={(event) => {
+                  event.preventDefault();
+                  scrollTo("home");
+                }}
+              >
                 ✳ &nbsp;{profile.businessName}
               </a>
               <p>Thoughtful skin care for a more confident you.</p>
@@ -17,7 +25,14 @@ export function Footer() {
             <div>
               <h3>EXPLORE</h3>
               {nav.map(([label, id]) => (
-                <a key={id} href={`#${id}`}>
+                <a
+                  key={id}
+                  href={`#${id}`}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    scrollTo(id);
+                  }}
+                >
                   {label}
                 </a>
               ))}
@@ -26,7 +41,14 @@ export function Footer() {
               <div>
                 <h3>TREATMENTS</h3>
                 {services.slice(0, 4).map((service) => (
-                  <a key={service.id} href="#directory">
+                  <a
+                    key={service.id}
+                    href="#directory"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      scrollTo("directory");
+                    }}
+                  >
                     {service.name}
                   </a>
                 ))}
@@ -101,7 +123,15 @@ export function Footer() {
               © {new Date().getFullYear()} {profile.businessName}. All rights
               reserved.
             </span>
-            <a href="#home">BACK TO TOP ↑</a>
+            <a
+              href="#home"
+              onClick={(event) => {
+                event.preventDefault();
+                scrollTo("home");
+              }}
+            >
+              BACK TO TOP ↑
+            </a>
           </div>
         </div>
       </footer>
