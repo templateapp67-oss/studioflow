@@ -16,6 +16,8 @@ import {
   hasOwnerCustomNailTagline,
   isLegacyNailStudioStockImage,
   isValidNailService,
+  PINKY_NAILS_AI_PRESETS,
+  pinkyNailsAiRewrite,
   pinkyNailsContactSummary,
   pinkyNailsServiceImage,
   upgradeNailStudioTemplate,
@@ -620,6 +622,81 @@ assert.equal(isValidNailService({ ...tmpl.services[0], deleted: true } as any), 
 assert.equal(isValidNailService(tmpl.services[0]), true);
 assert.equal(pinkyNailsServiceImage({ id: 'ns-4', name: 'x', category: 'y' }), PINKY_NAILS_IMAGES.serviceGlazeChrome);
 
+// ============================================================================
+// 12. AI Studio copy for Template 05 (and the editor canvas that shows it)
+// ============================================================================
+const decodeHtml = (html: string) => html.replace(/&amp;/g, '&').replace(/&#x27;/g, "'").replace(/&quot;/g, '"');
+const aiProfile = applyTemplateDesign({ ...INITIAL_SALON_PROFILE, businessType: 'nail_studio' } as any, tmpl);
+
+for (const preset of PINKY_NAILS_AI_PRESETS) {
+  const rewrite = pinkyNailsAiRewrite(preset.id, {
+    businessName: aiProfile.businessName,
+    city: aiProfile.city,
+  });
+  assert.ok(rewrite.tagline.trim(), `${preset.id} preset must set a hero line`);
+  assert.ok(rewrite.about.trim(), `${preset.id} preset must set about copy`);
+  assert.equal(
+    hasOwnerCustomNailTagline({ ...aiProfile, tagline: rewrite.tagline }),
+    true,
+    `${preset.id} preset hero line must render on the Template 05 hero`,
+  );
+
+  const aiHtml = decodeHtml(
+    renderToStaticMarkup(
+      <CustomerSalonWebsite
+        profile={{
+          ...aiProfile,
+          tagline: rewrite.tagline,
+          about: rewrite.about,
+          sectionHeadings: { ...aiProfile.sectionHeadings, ...rewrite.sectionHeadings },
+        }}
+        services={tmpl.services}
+        stylists={tmpl.stylists}
+        onAddAppointment={async (a) => a}
+      />,
+    ),
+  );
+  assert.ok(aiHtml.includes(rewrite.tagline), `${preset.id} preset must change the hero heading on canvas`);
+  assert.ok(aiHtml.includes(rewrite.about.slice(0, 40)), `${preset.id} preset must change the about section on canvas`);
+  if (rewrite.sectionHeadings.servicesTitle) {
+    assert.ok(aiHtml.includes(rewrite.sectionHeadings.servicesTitle), `${preset.id} preset must change the services heading`);
+  }
+  if (rewrite.sectionHeadings.whyTitle) {
+    assert.ok(aiHtml.includes(rewrite.sectionHeadings.whyTitle), `${preset.id} preset must change the why-choose-us heading`);
+  }
+  const generated = `${rewrite.tagline} ${rewrite.about} ${Object.values(rewrite.sectionHeadings).join(' ')}`.toLowerCase();
+  for (const wrong of ['ayurvedic', 'scalp', 'hair colour', 'balayage', 'bridal makeup', 'skin detox']) {
+    assert.equal(generated.includes(wrong), false, `${preset.id} preset must not use salon/hair wording (${wrong})`);
+  }
+}
+
+const customRewrite = pinkyNailsAiRewrite('custom', {
+  businessName: aiProfile.businessName,
+  city: aiProfile.city,
+  customPrompt: 'chrome and handpainted art studio',
+});
+assert.ok(customRewrite.tagline.startsWith('Chrome'), 'Custom AI prompt becomes the hero line');
+assert.ok(customRewrite.about.includes('chrome and handpainted art studio'), 'Custom AI prompt feeds the about copy');
+
+const previewSource = readFileSync('src/components/SalonWebsitePreview.tsx', 'utf8');
+assert.ok(
+  previewSource.includes("selectedCategoryKey === 'nail_studio' ? (") &&
+    previewSource.includes("businessType: 'nail_studio'"),
+  'Owner editing tools must render the real Template 05 site for nail_studio so AI changes are visible',
+);
+assert.ok(
+  previewSource.includes('pinkyNailsAiRewrite(') && previewSource.includes('PINKY_NAILS_AI_PRESETS'),
+  'Owner AI Studio must use the Template 05 nail copy',
+);
+assert.ok(
+  previewSource.includes('<PinkyNailsFaqEditor'),
+  'Template 05 FAQ editor must stay reachable from the editing tools',
+);
+const customizerSource = readFileSync('src/components/SidePanelCustomizer.tsx', 'utf8');
+assert.ok(
+  customizerSource.includes('PINKY_NAILS_AI_PRESETS') && customizerSource.includes('isNailStudio'),
+  'AI Studio tab must show nail wording for Template 05',
+);
 console.log(
-  'PASS: Template 05 (Pinky Nails Studio) nail-art editorial redesign, palette, AI image set, services/staff intact, empty states, booking, gallery lightbox and Templates 01–04 & 06–14 unchanged.',
+  'PASS: Template 05 (Pinky Nails Studio) nail-art editorial redesign, palette, AI image set, services/staff intact, empty states, booking, gallery lightbox, nail AI Studio copy and Templates 01–04 & 06–14 unchanged.',
 );
