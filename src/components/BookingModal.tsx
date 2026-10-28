@@ -1,3 +1,4 @@
+import type { ConsultationDetails } from "./dermacure/consultation";
 import {BookingCoupon,useBookingCoupon} from './BookingCoupon';
 import {useWebsiteLanguage} from './WebsiteLanguage';
 import type {DirectBookingSlot} from './SpecialistWeek';
@@ -6,7 +7,7 @@ import { supabase } from '../lib/supabase';
 import { sendBookingConfirmationEmail, sendBookingReminderEmail } from '../lib/emailService';
 import {getContrastTextColor} from '../themeAccents';
 import React, { useState, useEffect, useRef, useId } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import {
   X,
   CalendarCheck,
@@ -44,6 +45,7 @@ export interface BookingModalProps {
   initialService?: SalonService;
   initialStylist?: Stylist;
   initialSlot?: DirectBookingSlot;
+  consultation?: ConsultationDetails;
   onAddAppointment?: (appointment: Appointment) => void | Promise<Appointment>;
   themeAccentHex?: string;
   onShowToast?: (toast: {
@@ -91,6 +93,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   initialService: inputInitialService,
   initialStylist: inputInitialStylist,
   initialSlot,
+  consultation,
   onAddAppointment: inputOnAddAppointment,
   themeAccentHex = '#0f172a',
   onShowToast,
@@ -104,6 +107,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   onConfirmBooking: aliasOnConfirmBooking
 }) => {
   const {t}=useWebsiteLanguage();
+  const reducedMotion=useReducedMotion();
   const [addOnIds,setAddOnIds]=useState<string[]>([]);
   const [serverTotal,setServerTotal]=useState<number|null>(null);
   const bookingRequest=useRef(crypto.randomUUID());
@@ -203,6 +207,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
 
   // Step 3: Guest Information
+  const [consultationMessage,setConsultationMessage]=useState('');
   const [guestName, setGuestName] = useState<string>('');
   const [guestPhone, setGuestPhone] = useState<string>('');
   const [guestEmail, setGuestEmail] = useState<string>('');
@@ -253,6 +258,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   useEffect(()=>{if(isOpen&&initialStylist)setSelectedStylist(initialStylist);},[isOpen,initialStylist?.id]);
 
   useEffect(()=>{if(isOpen){coupon.remove();setAddOnIds([]);setServerTotal(null);reservedBooking.current=null;reservedRequest.current='';bookingRequest.current=crypto.randomUUID();if(initialSlot){setBookingDate(initialSlot.date);setCurrentStep('datetime');}else setCurrentStep('service');}},[isOpen,initialSlot?.date,initialSlot?.time]);
+  useEffect(()=>{if(isOpen&&consultation){setGuestName(consultation.name);setGuestPhone(consultation.phone);setConsultationMessage(consultation.message);setIsPrefilled(true);}},[isOpen,consultation]);
   // Clean and validate Indian 10-digit mobile number
   const sanitizeIndianPhone = (raw: string) => {
     const digits = raw.replace(/\D/g, '');
@@ -349,6 +355,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     const requestKey=JSON.stringify([bundleKey,selectedStylist.id,bookingDate,bookingTime,guestName.trim(),cleanPhone,coupon.quote?.code]);
     if(reservedBooking.current&&reservedRequest.current!==requestKey)throw new Error('A booking is already reserved. Finish its payment or close this form and choose a new slot.');
     if(!reservedBooking.current){const reservation=await onAddAppointment(newApt);if(!reservation)throw new Error('Booking was not saved. Please retry.');reservedBooking.current=reservation;reservedRequest.current=requestKey;setServerTotal(reservation.servicePrice);setBookingRef(reservation.id);}
+    if(consultation && consultationMessage.trim()){
+      const {error}=await supabase.rpc('studioflow_save_booking_message',{p_booking:reservedBooking.current.id,p_message:consultationMessage.trim()});
+      if(error)throw new Error('Your booking is held, but your consultation message could not be saved. Retry before payment, or contact the clinic.');
+    }
     const saved=await payBookingDeposit(reservedBooking.current);
     setBookingRef(saved.id);setServerStatus(saved.status);setPaidAmount(saved.amountPaid);setServerTotal(saved.servicePrice??totalPrice);setSelectedStylist(prev=>({...prev,name:saved.stylistName||prev.name}));
     setCurrentStep('confirmed');
@@ -538,9 +548,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   return (
     <div ref={overlayRef} className="sf-booking-overlay font-sans">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 15 }}
+        initial={reducedMotion ? false : { opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 15 }}
+        exit={reducedMotion ? undefined : { opacity: 0, scale: 0.95, y: 15 }}
         ref={dialogRef} role="dialog" aria-modal="true" aria-label="Book an appointment" className="sf-booking-dialog bg-white text-slate-800"
       >
         {/* MODAL HEADER */}
@@ -617,9 +627,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           {/* ========================================================= */}
           {currentStep === 'service' && (
             <motion.div
-              initial={{ opacity: 0, x: 10 }}
+              initial={reducedMotion ? false : { opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
+              exit={reducedMotion ? undefined : { opacity: 0, x: -10 }}
               className="flex flex-col gap-4"
             >
               <div className="p-3 rounded-xl border bg-slate-50"><strong className="text-sm">{profile.businessName}</strong><p className="text-xs text-slate-500">{profile.address} · {profile.city}</p></div>
@@ -749,9 +759,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           {/* ========================================================= */}
           {currentStep === 'datetime' && (
             <motion.div
-              initial={{ opacity: 0, x: 10 }}
+              initial={reducedMotion ? false : { opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
+              exit={reducedMotion ? undefined : { opacity: 0, x: -10 }}
               className="flex flex-col gap-4"
             >
               <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-900">Choose a time below. The server checks availability again when you save your booking.</p>
@@ -883,9 +893,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           {currentStep === 'guest' && (
             <motion.form id={guestFormId}
               onSubmit={handleProceedToOtp}
-              initial={{ opacity: 0, x: 10 }}
+              initial={reducedMotion ? false : { opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
+              exit={reducedMotion ? undefined : { opacity: 0, x: -10 }}
               className="flex flex-col gap-4"
             >
               <div className="flex items-center justify-between">
@@ -902,6 +912,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 )}
               </div>
 
+              {consultation && <label className="text-sm text-slate-700">Optional consultation message<textarea className="w-full min-h-24 border rounded-xl p-3 mt-2" rows={3} maxLength={1000} value={consultationMessage} onChange={e=>setConsultationMessage(e.target.value)}/><small>Shared privately with the clinic. Do not include medical records.</small></label>}
               {/* Full Name */}
               <div>
                 <label className="text-xs font-bold font-mono-caps text-slate-700 block mb-1">
@@ -1008,9 +1019,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           {currentStep === 'payment' && extras.length>0&&<section className="sf-booking-addons"><h3>{t('Add-on services')}</h3><p>Optional extras · Prices and time are added to your booking. Adding/removing an extra returns you to slot selection.</p>{extras.map(extra=><label key={extra.id}><input type="checkbox" checked={addOnIds.includes(extra.id)} disabled={!!reservedBooking.current||isSubmitting} onChange={e=>{const checked=e.target.checked;setAddOnIds(ids=>checked?[...ids,extra.id].slice(0,9):ids.filter(id=>id!==extra.id));setServerTotal(null);setCurrentStep('datetime');}}/>{extra.name} · +₹{extra.price} · {extra.durationMinutes} min</label>)}<strong>Payable total: ₹{totalPrice.toLocaleString('en-IN')} · {selectedService.durationMinutes+selectedExtras.reduce((sum,s)=>sum+s.durationMinutes,0)} min</strong></section>}
           {currentStep === 'payment' && (
             <motion.div
-              initial={{ opacity: 0, x: 10 }}
+              initial={reducedMotion ? false : { opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
+              exit={reducedMotion ? undefined : { opacity: 0, x: -10 }}
               className="flex flex-col gap-4"
             >
               {/* WhatsApp Verified Ribbon */}
@@ -1065,31 +1076,31 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           {/* ========================================================= */}
           {currentStep === 'confirmed' && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={reducedMotion ? false : { opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3 }}
+              transition={reducedMotion ? {duration:0} : { duration: 0.3 }}
               className="flex flex-col items-center text-center gap-4 py-3"
             >
               <p className="p-3 bg-amber-50 text-amber-900 rounded-xl text-sm">{serverStatus === 'confirmed' ? `Booking confirmed. Verified advance: ₹${paidAmount.toLocaleString('en-IN')}. Balance due at salon: ₹${(totalPrice-paidAmount).toLocaleString('en-IN')}.` : 'Payment verification is pending. Check payment status before retrying.'}</p>
               {/* Animated Celebratory Checkmark */}
               <div className="relative flex items-center justify-center">
                 <motion.div
-                  initial={{ scale: 0.8, opacity: 0.8 }}
-                  animate={{ scale: [0.8, 1.35, 1.2], opacity: [0.6, 0.2, 0] }}
-                  transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut' }}
+                  initial={reducedMotion ? false : { scale: 0.8, opacity: 0.8 }}
+                  animate={reducedMotion ? {scale:1,opacity:0} : { scale: [0.8, 1.35, 1.2], opacity: [0.6, 0.2, 0] }}
+                  transition={reducedMotion ? {duration:0} : { duration: 1.8, repeat: Infinity, ease: 'easeOut' }}
                   className="absolute w-20 h-20 rounded-full bg-emerald-400 -z-10"
                 />
                 <motion.div
-                  initial={{ scale: 0, rotate: -20 }}
+                  initial={reducedMotion ? false : { scale: 0, rotate: -20 }}
                   animate={{ scale: 1, rotate: 0 }}
-                  transition={{ type: 'spring', stiffness: 350, damping: 20 }}
+                  transition={reducedMotion ? {duration:0} : { type: 'spring', stiffness: 350, damping: 20 }}
                   className="w-16 h-16 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-600/30 relative"
                 >
                   <CheckCircle2 className="w-9 h-9" />
                   <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: [0, 1.25, 1] }}
-                    transition={{ delay: 0.25 }}
+                    initial={reducedMotion ? false : { scale: 0 }}
+                    animate={reducedMotion ? {scale:1} : { scale: [0, 1.25, 1] }}
+                    transition={reducedMotion ? {duration:0} : { delay: 0.25 }}
                     className="absolute -top-1.5 -right-1.5 bg-amber-400 text-slate-950 p-1 rounded-full shadow-xs"
                   >
                     <Sparkles className="w-3.5 h-3.5 fill-slate-950" />

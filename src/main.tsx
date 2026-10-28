@@ -27,6 +27,7 @@ installScreenRecovery();
 import {registerCustomerPwa} from './lib/customerPwa';
 registerCustomerPwa();
 import './index.css';
+import './components/dermacure.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

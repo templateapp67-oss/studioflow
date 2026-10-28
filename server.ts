@@ -1,3 +1,5 @@
+import "dotenv/config";
+import {sitemapHandler} from "./server/sitemap";
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
@@ -6,10 +8,12 @@ import { GoogleGenAI } from "@google/genai";
 async function startServer() {
   const app = express();
   const portArg = process.argv.indexOf('--port');
-  const PORT = 3000;
+  const PORT = Number(portArg>=0?process.argv[portArg+1]:process.env.PORT||3000);
   if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) throw new Error('Invalid server port');
 
   app.use(express.json());
+
+  app.get("/sitemap.xml", sitemapHandler);
 
   // API Routes
   app.get("/api/health", (_req, res) => {

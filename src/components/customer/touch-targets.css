@@ -1,0 +1,18 @@
+/* Loaded after all customer styles. The clickable element, not just its icon,
+   owns the target. Do not use an invisible overlap that steals adjacent taps. */
+.cr-app.cr-zip-ui button,
+.cr-app.cr-zip-ui a,
+.cr-app.cr-zip-ui [role="button"],
+.cr-app.cr-zip-ui summary,
+.cr-app.cr-zip-ui select,
+.cr-app.cr-zip-ui input:not([type="checkbox"]):not([type="radio"]){min-height:44px}
+.cr-app.cr-zip-ui a{display:inline-flex;align-items:center}
+.cr-app.cr-zip-ui .cr-icon,
+.cr-app.cr-zip-ui .cr-dots button,
+.cr-app.cr-zip-ui .cr-header-carousel .cr-dots button{min-width:44px;min-height:44px}
+.cr-app.cr-zip-ui .cr-dots button{background:transparent!important;position:relative}
+.cr-app.cr-zip-ui .cr-dots button::after{content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:8px;height:8px;background:#8b849c;border-radius:50%}
+.cr-app.cr-zip-ui .cr-dots button[aria-current="true"]::after{background:var(--cr-primary);width:18px;border-radius:8px}
+.cr-app.cr-zip-ui .cr-dots{display:flex;flex-wrap:wrap;justify-content:center;gap:0}
+.cr-app.cr-zip-ui .cr-directory-account{flex-wrap:wrap}
+@media(max-width:640px){.cr-app.cr-zip-ui .cr-directory-navbar{height:auto;flex-wrap:wrap}.cr-app.cr-zip-ui .cr-directory-account{max-width:100%;gap:6px}.cr-app.cr-zip-ui .cr-reference-brand-group{min-width:0;flex-wrap:wrap}.cr-app.cr-zip-ui .cr-salon-header{flex-wrap:wrap}.cr-app.cr-zip-ui .cr-salon-header>strong{overflow-wrap:anywhere;min-width:0}}

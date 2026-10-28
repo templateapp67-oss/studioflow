@@ -27,6 +27,7 @@ import {CustomerProfilePage} from './customer/Profile';
 import './customer-app.css';
 import './customer/zip-ui.css';
 import './customer/reference-layout.css';
+import './customer/touch-targets.css';
 type Tab='explore'|'home'|'bookings'|'favorites'|'rewards'|'profile';
 export function CustomerInstall({iconOnly=false}:{iconOnly?:boolean}){
  const [ready,setReady]=useState(canInstallCustomerApp),[help,setHelp]=useState(false),[installed,setInstalled]=useState(()=>window.matchMedia('(display-mode: standalone)').matches);

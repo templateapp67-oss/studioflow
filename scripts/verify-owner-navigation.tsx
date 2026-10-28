@@ -3,7 +3,7 @@ import {WEBSITE_EDIT_STEPS as steps,OWNER_BUSINESS_TOOLS as tools,ownerModule,ad
 import {OwnerWorkspace} from '../src/components/OwnerWorkspace';
 import {INITIAL_SALON_PROFILE} from '../src/mockData';import {DEFAULT_EXTRAS} from '../src/lib/workspaceDefaults';import {DEFAULT_LOYALTY_CONFIG} from '../src/loyaltyData';
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;
-assert.equal(new Set(steps.map(s=>s.id)).size,17);assert.equal(steps[0].id,2);assert.equal(steps.at(-1)?.id,13);
+assert.equal(new Set(steps.map(s=>s.id)).size,18);assert.equal(steps[0].id,2);assert.ok(steps.some(s=>s.id===31&&s.label==='SEO & Social Metadata'),'SEO is a distinct guided step');assert.equal(steps.at(-1)?.id,13);
 assert.equal(steps.some(s=>tools.some(t=>Number(t.id)===Number(s.id))),false);
 for(let i=0;i<steps.length;i++){assert.equal(adjacentOwnerStep(steps[i].id,-1),steps[i-1]?.id??null);assert.equal(adjacentOwnerStep(steps[i].id,1),steps[i+1]?.id??null);assert.equal(ownerModule(String(steps[i].id)),steps[i].id);}
 assert.equal(ownerModule('14'),13);assert.equal(ownerModule('15'),6);assert.equal(ownerModule('17'),4);assert.equal(ownerModule('19'),16);assert.equal(ownerModule('bad'),2);assert.equal(ownerModule(null),2);assert.equal(adjacentOwnerStep(20,1),null);
@@ -15,7 +15,7 @@ const update=()=>{writes++;};let ui:any;
 const props={profile:INITIAL_SALON_PROFILE,setProfile:update,services:[],setServices:update,stylists:[],setStylists:update,appointments:[],clients:[],setClients:update,loyaltyConfig:DEFAULT_LOYALTY_CONFIG,setLoyaltyConfig:update,extras:DEFAULT_EXTRAS,setExtras:update,published:null,onPublish:async()=>{publishes++;},sessionEmail:'owner@example.com',templates:[],onOpenPreview:()=>{preview++;},onOpenDashboard:()=>{},onOpenWizard:()=>{}};
 await act(async()=>{ui=create(<OwnerWorkspace {...props}/>,{createNodeMock:()=>({focus(){},scrollIntoView(){}})});});
 const title=()=>ui.root.findByType('h1').children.join('');const byText=(text:string)=>ui.root.findAllByType('button').find((n:any)=>n.children.join('')===text);
-assert.equal(title(),'Business details');const nav=ui.root.findByProps({'aria-label':'Website editing steps'});assert.equal(nav.findAllByType('li').length,17);assert.deepEqual(nav.findAllByProps({className:'nav-no'}).map((n:any)=>n.children.join('')),Array.from({length:17},(_,i)=>String(i+1)));
+assert.equal(title(),'Business details');const nav=ui.root.findByProps({'aria-label':'Website editing steps'});assert.equal(nav.findAllByType('li').length,18);assert.deepEqual(nav.findAllByProps({className:'nav-no'}).map((n:any)=>n.children.join('')),Array.from({length:18},(_,i)=>String(i+1)));
 assert.equal(byText('← Previous step').props.disabled,true);
 await act(async()=>byText('Next: Choose template →').props.onClick());assert.equal(title(),'Choose template');assert.equal(new URL(location.href).searchParams.get('module'),'9');assert.equal(new URL(location.href).searchParams.get('keep'),'value');
 await act(async()=>byText('← Previous step').props.onClick());assert.equal(title(),'Business details');
@@ -24,4 +24,4 @@ await act(async()=>select.props.onChange({target:{value:'11'}}));await act(async
 location.search='?module=12';await act(async()=>listeners.get('popstate')());assert.equal(title(),'Preview website');await act(async()=>byText('Open interactive preview').props.onClick());assert.equal(preview,1);
 await act(async()=>select.props.onChange({target:{value:'14'}}));assert.equal(title(),'Publish & live website');assert.equal(ui.root.findAllByProps({'aria-label':'Publish and share website'}).length,1);assert.equal(byText('Back to step 1').props.disabled,undefined);
 assert.equal(writes,0,'Navigation must not change profile, services or rewards');assert.equal(publishes,0,'Next must not publish');
-await act(async()=>ui.unmount());assert.equal(listeners.has('popstate'),false);console.log('PASS: sequential 1–17, aliases, previous/next, mobile selector, URL preservation, Back handling, About routing and no save/publish side effects.');
+await act(async()=>ui.unmount());assert.equal(listeners.has('popstate'),false);console.log('PASS: sequential 1–18, aliases, previous/next, mobile selector, URL preservation, Back handling, About routing and no save/publish side effects.');

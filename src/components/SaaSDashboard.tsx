@@ -412,6 +412,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
                       <div className="font-bold text-sm text-gray-900">{apt.clientName}</div>
                       <div className="text-xs text-gray-500 mt-0.5">{apt.serviceName} with {apt.stylistName}</div>
                       <div className="text-xs font-mono font-bold text-[#b0004a] mt-1">{apt.date} @ {apt.time} IST</div>
+                      {apt.consultationMessage && <p className="text-sm mt-2 whitespace-pre-wrap">Consultation message: {apt.consultationMessage}</p>}
                       {apt.clientEmail && <div className="text-[11px] text-gray-500 font-mono mt-0.5">✉ {apt.clientEmail}</div>}
                     </div>
                     <div className="text-right">
