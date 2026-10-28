@@ -35,25 +35,35 @@ export function BrandPhilosophy() {
             </span>
           </Reveal>
           <Reveal className="kp-philosophy-copy">
-            <p className="kp-eyebrow">OUR APPROACH</p>
+            <p className="kp-eyebrow">OUR PHILOSOPHY</p>
             <h2>
-              Good care, <em>made for you.</em>
+              Rooted in
+              <br />
+              <em>simple rituals.</em>
             </h2>
             <p>
-              Tell us what you need, and our team will help you choose the right service.
+              Kesh Prakriti began with a small idea: that a salon should feel
+              like a pause, not another appointment to get through. We keep the
+              room quiet, the pace unhurried and the welcome warm.
             </p>
             <p>
-              Whether it is a hair spa, cleanup or a special occasion, we want you to feel comfortable and welcome.
+              Our approach is led by attention rather than a fixed script. We
+              ask what your hair and skin have been through, recommend only
+              what suits you, and never add pressure to your visit.
+            </p>
+            <p className="kp-philosophy-signature">
+              — The {model.profile.businessName} team
             </p>
             <a
               className="kp-inline-link"
-              href="#journey"
+              href={model.stylists.length ? "#team" : "#treatments"}
               onClick={(event) => {
                 event.preventDefault();
-                model.scrollTo("journey");
+                model.scrollTo(model.stylists.length ? "team" : "treatments");
               }}
             >
-              How your visit works <ArrowRight size={16} />
+              {model.stylists.length ? "Meet the people who care for you" : "See what we offer"}{" "}
+              <ArrowRight size={16} />
             </a>
           </Reveal>
         </div>

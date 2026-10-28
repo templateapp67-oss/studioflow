@@ -70,7 +70,7 @@ for (const [key, url] of Object.entries(KESH_PRAKRITI_IMAGES)) {
 const templateSources = [
   'src/components/HairSpaWebsite.tsx',
   'src/lib/keshPrakriti.ts',
-  ...['BookingSection', 'BotanicalIngredients', 'BrandPhilosophy', 'ContactSection', 'ExperienceSection', 'FAQSection', 'FeaturedRituals', 'GalleryLightbox', 'HairSpaFooter', 'HairSpaHeader', 'HeroSection', 'QuickNavigation', 'Reveal', 'GallerySection', 'SanctuarySection', 'ScalpCareJourney', 'ServicesSection', 'TeamSection'].map(
+  ...['BookingSection', 'BrandPhilosophy', 'ContactSection', 'FAQSection', 'GalleryLightbox', 'HairSpaFooter', 'HairSpaHeader', 'HeroSection', 'Reveal', 'SanctuaryGallery', 'ScalpCareJourney', 'ServicesSection', 'TeamSection', 'TestimonialsSection'].map(
     (name) => `src/components/hair-spa/${name}.tsx`,
   ),
 ];
@@ -210,9 +210,14 @@ assert.ok(published.includes('hello@kesh.example'));
 assert.ok(published.includes('Saved photo'), 'saved gallery photo must be used');
 assert.ok(!published.includes('DEMO / SAMPLE · 01'), 'saved gallery photos are never labelled as demo');
 assert.ok(!published.includes('Demo testimonial'), 'no sample testimonials on the published site');
-assert.ok(published.includes('No client reviews have been published'), 'honest empty review state');
+assert.ok(!published.includes('id="testimonials"') && !published.includes('kp-review-card'), 'no empty review section without published reviews');
 assert.ok(published.includes('Book an Appointment'));
 assert.ok(published.includes('SALON PACKAGES') && published.includes('Book this package'), 'saved package shown');
+// One authoritative catalogue: each menu entry renders one card, and packages
+// are lifted into their own group instead of being repeated in the grid.
+assert.equal((published.match(/Book this service/g) || []).length, 2, 'each menu service renders exactly one card');
+assert.equal((published.match(/Book this package/g) || []).length, 1, 'the package renders exactly once');
+assert.ok(!published.includes('SAMPLE OFFERS') && !published.includes('HAIR10'), 'the template never invents offers');
 assert.ok(!published.includes('kills') && !published.includes('trichologist'), 'no medical claims');
 // Hero loading strategy + alt text.
 const heroTag = (published.match(/<img[^>]*kp-hero-image[^>]*>/) || [''])[0];
@@ -225,7 +230,21 @@ for (const anchor of anchors) {
   assert.ok(published.includes(`id="${anchor}"`), `dead anchor #${anchor}`);
 }
 assert.ok(anchors.includes('treatments') && anchors.includes('philosophy') && anchors.includes('gallery') && anchors.includes('contact'));
-console.log('PASS: published storefront renders saved menu, prices, durations, hours, address, gallery and honest review/FAQ states with live anchors and a prioritised hero image.');
+// Genuine reviews are the only reason a testimonials section exists.
+const reviewed = renderToStaticMarkup(
+  <CustomerSalonWebsite
+    profile={{...publishedProfile, websiteTestimonials: [{id: 'rv-1', name: 'Actual client', location: 'Chennai', rating: 5, serviceName: 'Head Spa & Scalp Cleanse', comment: 'The calmest hour of my week.', avatarUrl: '', date: '2026-09-01', verified: true}]}}
+    services={services}
+    stylists={[]}
+    readOnly
+    onAddAppointment={async (appointment) => appointment}
+    gallery={[]}
+  />,
+);
+assert.ok(reviewed.includes('id="testimonials"') && reviewed.includes('The calmest hour of my week.'), 'published reviews render in their own section');
+assert.ok(reviewed.includes('Verified visit'), 'verification comes from saved review data');
+assert.ok(reviewed.includes('href="#testimonials"'), 'navigation exposes the published reviews');
+console.log('PASS: published storefront renders saved menu, prices, durations, hours, address, gallery, published reviews and honest empty states with live anchors and a prioritised hero image.');
 
 // Empty published catalogue: nothing invented, no dead contact links.
 const emptyProfile = {...publishedProfile, phone: '', whatsapp: '', email: '', address: '', city: '', postalCode: '', workingHoursMonFri: '', workingHoursSat: ''};
@@ -257,6 +276,14 @@ for (const person of template.stylists) {
 }
 assert.ok(!demo.includes('aria-label="Photo not added for Gayatri Raman"'));
 for (const category of ['Spa', 'Sanctuary', 'Botanicals']) assert.ok(demo.includes(`${category} (`), `${category} filter present`);
+// The signature index curates the same services data and never re-renders a card.
+assert.ok(demo.includes('SIGNATURE TREATMENTS'), 'curated signature index present');
+assert.equal((demo.match(/kp-service-card/g) || []).length, 10, 'ten menu cards, one per service');
+assert.equal((demo.match(/kp-package-card/g) || []).length, 5, 'five package cards, one per package');
+assert.equal((demo.match(/sf-service-image/g) || []).length, 15, 'every service photo renders once');
+// No verified ingredient data exists in the project, so the ingredient section
+// is absent rather than filled with invented content.
+assert.ok(!demo.includes('id="botanical"') && !demo.includes('HAIR CARE WITH HERBS'), 'no unverified ingredient section');
 console.log('PASS: template demo labels every bundled photo, offers no fake online booking and renders the bundled team portraits.');
 
 // ---------------------------------------------------------------------------
@@ -289,15 +316,20 @@ await act(async () => {
     />,
   );
 });
-// Service category filter narrows the menu and resets safely.
+// Service category filter narrows the menu and resets safely. Packages are a
+// group inside the same section, so they are not a second filterable grid.
 const filterButtons = () => ui.root.findAll((node: any) => node.type === 'button' && ['All', 'Scalp Detox', 'Moisture', 'Packages'].includes(text(node)));
-assert.equal(filterButtons().length, 4);
+assert.equal(filterButtons().length, 3);
+assert.deepEqual(filterButtons().map(text), ['All', 'Scalp Detox', 'Moisture']);
 const articleNames = () => ui.root.findAll((node: any) => node.type === 'article' && String(node.props.className || '').includes('kp-service-card')).map(text);
-assert.equal(articleNames().length, 3);
+assert.equal(articleNames().length, 2);
+const packageGroups = () => ui.root.findAll((node: any) => node.type === 'section' && node.props.id === 'salon-packages');
+assert.equal(packageGroups().length, 1, 'one packages group inside the catalogue section');
+assert.equal(text(packageGroups()[0]).match(/Book this package/g)?.length, 1, 'the package is listed once');
 await act(async () => filterButtons().find((node: any) => text(node) === 'Moisture').props.onClick());
 assert.deepEqual(articleNames().map((value: string) => value.match(/Argan Steam Ritual/)?.[0]).filter(Boolean), ['Argan Steam Ritual']);
 await act(async () => filterButtons().find((node: any) => text(node) === 'All').props.onClick());
-assert.equal(articleNames().length, 3);
+assert.equal(articleNames().length, 2);
 
 // Booking hand-off passes the exact saved service.
 await act(async () => buttonBy(ui, 'Book this service').props.onClick());
@@ -326,7 +358,7 @@ assert.ok(lightbox().length <= 1);
 
 // FAQ: only one answer open, aria-expanded tracks state.
 const faqButtons = () => ui.root.findAll((node: any) => node.type === 'button' && String(node.props.className || '').includes('kp-faq-question'));
-assert.equal(faqButtons().length, 6);
+assert.equal(faqButtons().length, 5);
 const expanded = () => faqButtons().filter((node: any) => node.props['aria-expanded']);
 assert.equal(expanded().length, 1);
 await act(async () => faqButtons()[2].props.onClick());
@@ -364,8 +396,9 @@ await act(async () => {
     />,
   );
 });
+assert.equal(ui.root.findAll((node: any) => node.type === 'button' && text(node).includes('Book this service')).length, 0, 'no CTA promises booking when the flow is unavailable');
 await act(async () => buttonBy(ui, 'Contact us').props.onClick());
-await act(async () => buttonBy(ui, 'Book this service').props.onClick());
+await act(async () => buttonBy(ui, 'Ask about this service').props.onClick());
 assert.equal(unexpectedBooking, 0, 'unpublished booking must not open the checkout');
 await act(async () => ui.unmount());
 console.log('PASS: category filters, saved-service booking hand-off, bounded lightbox, accessible FAQ and drawer behaviour, and a contact fallback when online booking is not available.');

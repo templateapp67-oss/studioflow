@@ -87,7 +87,7 @@ export function TeamSection() {
                 <p className="kp-team-role">{person.role}</p>
               )}
               {person.bio?.trim() && (
-                <p className="kp-team-bio text-sm opacity-85 mt-2">{person.bio}</p>
+                <p className="kp-team-bio">{person.bio}</p>
               )}
               <button
                 type="button"

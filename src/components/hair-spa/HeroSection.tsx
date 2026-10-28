@@ -67,8 +67,8 @@ export function HeroSection() {
           animate="visible"
           transition={{ delay: 0.16 }}
         >
-          From a relaxing head massage to everyday grooming and wedding makeup,
-          enjoy friendly care at your neighbourhood salon.
+          A neighbourhood sanctuary for slow, thoughtful hair and skin rituals
+          — unhurried hands, honest advice and an hour that belongs to you.
         </motion.p>
         <motion.div
           className="kp-hero-actions"

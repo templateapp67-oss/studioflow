@@ -25,9 +25,13 @@ const body = {style: {overflow: ''}};
 const template = CATEGORY_TEMPLATES.hair_spa;
 const profile = {...INITIAL_SALON_PROFILE, businessType: 'hair_spa' as const, subdomain: '', phone: '+919876543210', websiteTestimonials: []};
 const markup = renderToStaticMarkup(<CustomerSalonWebsite profile={profile} services={template.services} stylists={template.stylists} readOnly onAddAppointment={async (appointment) => appointment} />);
-for (const id of ['philosophy', 'treatments', 'journey', 'team', 'sanctuary', 'gallery', 'contact']) {
+// One destination per section: the sanctuary IS the gallery, so there is no
+// second "sanctuary" anchor duplicating it.
+for (const id of ['philosophy', 'treatments', 'journey', 'team', 'gallery', 'contact']) {
   assert.ok(markup.includes(`href="#${id}"`) && markup.includes(`id="${id}"`), `navigation resolves to ${id}`);
 }
+assert.ok(!markup.includes('href="#sanctuary"'), 'no duplicate sanctuary anchor');
+assert.ok(!markup.includes('href="#experiences"'), 'no empty experiences anchor');
 for (const person of template.stylists) {
   assert.ok(existsSync('public' + person.avatarUrl));
   assert.ok(markup.includes(`src="${person.avatarUrl}"`));
@@ -44,21 +48,22 @@ for (const [name, photo] of [['Traditional Head Massage', 'indian-head-massage.j
   assert.ok(existsSync(`public/templates/kesh-prakriti/${photo}`));
 }
 assert.ok(markup.includes('Sample booking policy') && markup.includes('These are sample services and prices'), 'sample policy and menu are identified');
-assert.ok(markup.includes('SAMPLE OFFERS') && markup.includes('Sample only'), 'sample offers are clearly labelled');
-assert.equal((markup.match(/id="offers"/g) || []).length, 1, 'offers anchor is unique');
-assert.ok(markup.includes('How can I change or cancel my booking?'), 'booking and cancellation information is available');
+assert.ok(!markup.includes('SAMPLE OFFERS') && !markup.includes('HAIR10'), 'the template never invents offers');
+assert.ok(!markup.includes('id="offers"'), 'no separate offers strip competes with the service menu');
+assert.ok(markup.includes('How do I change or cancel an appointment?'), 'booking and cancellation information is available');
 const realService = {...template.services[0], id: 'owner-1', name: 'Owner Hair Service', price: 1234};
 const liveProfile = {...profile, subdomain: 'real-salon'};
 const live = renderToStaticMarkup(<CustomerSalonWebsite profile={liveProfile} services={[realService]} stylists={[]} readOnly onAddAppointment={async (appointment) => appointment} />);
 assert.ok(live.includes('Owner Hair Service') && live.includes('₹1,234'), 'saved services and prices are preserved');
 assert.ok(!live.includes('SAMPLE OFFERS') && !live.includes('HAIR10'), 'preview offers are not shown on live sites');
+assert.ok(!live.includes('Promotions & offers'), 'an owner without a live campaign gets no empty promo section');
 assert.ok(!live.includes('Meera Krishnan'), 'sample reviews are not shown as real');
 
 const shared: any = {profile, services: template.services, readOnly: true, onBook() {}, onCustomerAccount() {}};
 let ui: any;
 await act(async () => {ui = create(<HairSpaWebsite profile={profile} services={template.services} stylists={template.stylists} galleryPhotos={[]} shared={shared} enabledSections={[]} showPackages bookingAvailable={false} onBook={() => {}} onAccount={() => {}} onMyBookings={() => {}} onViewSpecialist={() => {}} />);});
 const nav = () => ui.root.findAll((n: any) => n.type === 'nav' && n.props['aria-label'] === 'Website navigation')[0];
-for (const id of ['philosophy', 'treatments', 'journey', 'team', 'sanctuary', 'gallery', 'contact']) {
+for (const id of ['philosophy', 'treatments', 'journey', 'team', 'gallery', 'contact']) {
   let prevented = false;
   await act(async () => nav().findAll((n: any) => n.type === 'a' && n.props.href === `#${id}`)[0].props.onClick({preventDefault() {prevented = true;}}));
   assert.ok(prevented);

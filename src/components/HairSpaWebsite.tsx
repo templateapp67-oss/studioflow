@@ -3,29 +3,26 @@ import { useReducedMotion, useScroll, useTransform } from "motion/react";
 import type { SalonProfile, SalonService, Stylist } from "../types";
 import type { SalonGalleryPhoto } from "../lib/photoGallery";
 import { WebsiteSections } from "./WebsiteSections";
-import { CustomerAppPromotion } from "./CustomerAppPromotion";
+import {
+  AppAnnouncementStrip,
+  CustomerAppPromotion,
+} from "./CustomerAppPromotion";
 import { HairSpaContext } from "./hair-spa/context";
 import { HairSpaHeader } from "./hair-spa/HairSpaHeader";
 import { HeroSection } from "./hair-spa/HeroSection";
-import { QuickNavigation } from "./hair-spa/QuickNavigation";
 import { BrandPhilosophy } from "./hair-spa/BrandPhilosophy";
 import { ServicesSection } from "./hair-spa/ServicesSection";
-import { FeaturedRituals } from "./hair-spa/FeaturedRituals";
 import { ScalpCareJourney } from "./hair-spa/ScalpCareJourney";
 import { TeamSection } from "./hair-spa/TeamSection";
-import { BotanicalIngredients } from "./hair-spa/BotanicalIngredients";
-import { SanctuarySection } from "./hair-spa/SanctuarySection";
-import { ExperienceSection } from "./hair-spa/ExperienceSection";
-import { GallerySection } from "./hair-spa/GallerySection";
+import { SanctuaryGallery } from "./hair-spa/SanctuaryGallery";
+import { TestimonialsSection } from "./hair-spa/TestimonialsSection";
 import { BookingSection } from "./hair-spa/BookingSection";
 import { FAQSection } from "./hair-spa/FAQSection";
 import { ContactSection } from "./hair-spa/ContactSection";
-import { OffersSection } from "./hair-spa/OffersSection";
 import { HairSpaFooter } from "./hair-spa/HairSpaFooter";
 import { GalleryLightbox } from "./hair-spa/GalleryLightbox";
 import {
   KESH_PRAKRITI_FAQ,
-  KESH_PRAKRITI_IMAGES,
   keshContactSummary,
   keshGallery,
   keshHeroImage,
@@ -33,15 +30,9 @@ import {
   keshPublishedReviews,
   keshServiceCategories,
 } from "../lib/keshPrakriti";
-
-const navLinks = [
-  ["Our Philosophy", "philosophy"],
-  ["Treatments", "treatments"],
-  ["Scalp Care", "journey"],
-  ["The Sanctuary", "sanctuary"],
-  ["Gallery", "gallery"],
-  ["Contact", "contact"],
-] as const;
+import { promotionActive, usePromotionClock } from "../lib/promotionStatus";
+import { showcaseVideos } from "../lib/showcaseVideos";
+import { reelSource } from "../lib/socialVideoSource";
 
 const questions = KESH_PRAKRITI_FAQ;
 
@@ -97,6 +88,7 @@ export function HairSpaWebsite({
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [smallScreen, setSmallScreen] = useState(false);
   const reduceMotion = useReducedMotion();
+  const promotionNow = usePromotionClock();
   const canUseHeroScroll =
     typeof window !== "undefined" &&
     typeof IntersectionObserver !== "undefined";
@@ -253,8 +245,6 @@ export function HairSpaWebsite({
 
   const hero = keshHeroImage(profile);
   const firstService = services[0];
-  const featuredService =
-    services.find((service) => service.popular) || firstService;
   const serviceCategories = keshServiceCategories(services);
   /* A stale filter must never hide the whole menu after the catalogue changes. */
   const activeServiceCategory =
@@ -272,7 +262,7 @@ export function HairSpaWebsite({
   }));
   const shownGallery = displayImages.slice(0, 8);
   const galleryCategories = Array.from(
-    new Set(["Spa", "Sanctuary", "Botanicals", ...shownGallery.map((image) => image.category)]),
+    new Set(shownGallery.map((image) => image.category)),
   );
   const activeGalleryCategory =
     galleryCategory === "All" || galleryCategories.includes(galleryCategory)
@@ -314,7 +304,6 @@ export function HairSpaWebsite({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [activePhoto, visibleGallery.length]);
 
-  const hasPromo = enabledSections.includes("promo");
   const hasTeam = stylists.length > 0;
   const hasGallery = shownGallery.length > 0;
   const hasContact = contact.hasAnyContact || contact.hours.length > 0;
@@ -332,53 +321,68 @@ export function HairSpaWebsite({
     }
     scrollTo(hasContact ? "contact" : services.length ? "treatments" : "home");
   };
+  const realReviews = keshPublishedReviews(profile);
+  const hasReviews = realReviews.length > 0;
+  /**
+   * Owner sections only render when the owner actually saved content for them.
+   * WebsiteSections would otherwise print a "coming soon" placeholder, and this
+   * page is not allowed to ship empty sections.
+   */
+  const ownerContent: Record<string, boolean> = {
+    promo: promotionActive(profile.promoCampaign, promotionNow),
+    videos: showcaseVideos(profile).some((video) => Boolean(reelSource(video))),
+    loyalty: Boolean(
+      shared.loyaltyConfig?.programEnabled &&
+        shared.loyaltyConfig.rewards?.some((reward) => reward.isActive),
+    ),
+    policies: Boolean(
+      shared.policies &&
+        Object.values(shared.policies).some((value) =>
+          String(value || "").trim(),
+        ),
+    ),
+    // Social profiles are part of the footer and the booking section owns
+    // booking, so neither is repeated as a full-width section here.
+    social: false,
+    bookings: false,
+    share: true,
+  };
+  const ownerSections = enabledSections.filter(
+    (section) => ownerContent[section] !== false,
+  );
+  const promotionSections = ownerSections.filter(
+    (section) => section === "promo",
+  );
+  const videoSections = ownerSections.filter((section) => section === "videos");
+  const closingSections = ownerSections.filter(
+    (section) => section !== "promo" && section !== "videos",
+  );
+  const hasPoliciesSection = ownerSections.includes("policies");
+  /* One navigation, one destination per section: no duplicated page links. */
   const pageLinks = (
     [
       ["Our Philosophy", "philosophy", true],
-      ["Treatments", "treatments", true],
-      ["Scalp Care", "journey", true],
+      ["Services", "treatments", true],
+      ["Your Visit", "journey", true],
       ["Our Team", "team", hasTeam],
-      ["The Sanctuary", "sanctuary", true],
-      ["Gallery", "gallery", hasGallery],
+      ["The Sanctuary", "gallery", hasGallery],
+      ["Reviews", "testimonials", hasReviews],
       ["Contact", "contact", hasContact],
     ] as Array<[string, string, boolean]>
   )
     .filter(([, , visible]) => visible)
     .map(([label, id]) => [label, id] as const);
-  const dockLinks = (
-    [
-      // Offers always resolves: the promo block when a campaign is live, or the
-      // "no promotion is running" strip that renders in its place.
-      ["Offers", hasPromo ? "salon-promo" : "offers", true],
-      ["Services", "treatments", services.length > 0],
-      ["Packages", "salon-packages", showPackages && packages.length > 0],
-      ["Our Team", "team", hasTeam],
-      ["Lookbook", "gallery", hasGallery],
-      // The experiences section always renders (real reviews or an honest empty
-      // state), so this anchor is always valid.
-      ["Reviews & experience", "experiences", true],
-      ["Location", "contact", hasContact],
-    ] as Array<[string, string, boolean]>
-  )
-    .filter(([, , visible]) => visible)
-    .map(([label, id]) => [label, id, true] as [string, string, boolean]);
-
-  const realReviews = keshPublishedReviews(profile);
 
   const pageModel = {
     profile,
     services,
     stylists,
-    galleryPhotos,
-    shared,
-    enabledSections,
     showPackages,
     customerSignedIn,
     customerName,
     customerPhotoUrl,
     bookingAvailable: bookable,
     book,
-    onBook,
     onAccount,
     onMyBookings,
     onViewSpecialist,
@@ -393,19 +397,16 @@ export function HairSpaWebsite({
     serviceCategory: activeServiceCategory,
     setServiceCategory,
     galleryCategory: activeGalleryCategory,
-    setGalleryCategory,
     activePhoto,
     setActivePhoto,
     galleryTrackRef,
     galleryIndex,
     setGalleryIndex,
-    reduceMotion,
     reduced,
     canObserve,
     parallaxY,
     heroImage: hero.src,
     heroIsOwnerPhoto: hero.isOwnerPhoto,
-    heroFallbackImage: KESH_PRAKRITI_IMAGES.hero,
     phone: contact.phone,
     email: contact.email,
     wa: contact.whatsappUrl,
@@ -419,15 +420,11 @@ export function HairSpaWebsite({
     selectGalleryCategory,
     galleryCategoryCount,
     firstService,
-    featuredService,
-    serviceCategories,
     packages,
     pageLinks,
-    navLinks,
     questions,
-    dockLinks,
+    hasPoliciesSection,
     realReviews,
-    displayImages,
     shownGallery,
     galleryCategories,
     visibleGallery,
@@ -442,25 +439,40 @@ export function HairSpaWebsite({
         </a>
         <HairSpaHeader />
         <main id="kp-main-content" tabIndex={-1}>
+          {/* 1 · Brand introduction and the two primary actions. */}
           <HeroSection />
-          <QuickNavigation />
+          {/* Platform-level app announcement (not a brand section). */}
+          <AppAnnouncementStrip />
+          {/* 2 · Values, approach and the brand's point of view. */}
           <BrandPhilosophy />
+          {/* 3 · The one service catalogue: signature index, menu, packages. */}
           <ServicesSection />
-          <FeaturedRituals />
-          <OffersSection />
+          {promotionSections.length > 0 && (
+            <div className="kp-existing-sections kp-existing-promotion">
+              <WebsiteSections {...shared} sections={promotionSections} />
+            </div>
+          )}
+          {/* 4 · The four-step visit, with no treatment catalogue here. */}
           <ScalpCareJourney />
           <TeamSection />
-          <BotanicalIngredients />
-          <SanctuarySection />
-          <ExperienceSection />
-          <GallerySection />
+          {/* 5 · Sanctuary photography; the only other place services appear
+              is the menu above, so the gallery stays purely visual. */}
+          <SanctuaryGallery />
+          {videoSections.length > 0 && (
+            <div className="kp-existing-sections kp-existing-videos">
+              <WebsiteSections {...shared} sections={videoSections} />
+            </div>
+          )}
+          {/* 6 · Genuine reviews only — the section is absent without them. */}
+          <TestimonialsSection />
+          {/* 7 · The single booking workflow every CTA points at. */}
           <BookingSection />
           <FAQSection />
           <ContactSection />
-          {enabledSections.length > 0 && (
-            <section className="kp-existing-sections">
-              <WebsiteSections {...shared} sections={enabledSections} />
-            </section>
+          {closingSections.length > 0 && (
+            <div className="kp-existing-sections kp-existing-closing">
+              <WebsiteSections {...shared} sections={closingSections} />
+            </div>
           )}
           <CustomerAppPromotion />
         </main>

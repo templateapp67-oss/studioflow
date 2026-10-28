@@ -9,9 +9,10 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
  if(template.id==='hair_spa'){
   // Template 06 renders its own gallery: bundled sample photography must be labelled,
   // and the saved-photo path must be used without any owner controls.
-  assert.ok(html.includes('Spa (4)'),'hair spa sample gallery shows its four labelled demo photos');
-  assert.equal((html.match(/DEMO \/ SAMPLE · /g)||[]).length,4);
-  assert.ok(html.includes('demo / sample photographs'),'hair spa gallery explains that the photos are samples');
+  assert.ok(html.includes('Spa (4)'),'hair spa sample gallery counts its spa photographs');
+  assert.equal((html.match(/DEMO \/ SAMPLE · /g)||[]).length,7,'all seven bundled sample photographs are labelled');
+  assert.ok(html.includes('Demo / sample photographs'),'hair spa gallery explains that the photos are samples');
+  assert.equal((html.match(/id="gallery"/g)||[]).length,1,'the sanctuary gallery is a single section');
   assert.ok(!html.includes('Delete photo')&&!html.includes('Replace / Edit'));
   const savedHtml=renderToStaticMarkup(<CustomerSalonWebsite profile={{...profile,photoGalleryInitialized:true,photoGalleryType:'hair_spa',photoGallery:[{id:'hp-1',category:'Spa' as const,url:'https://cdn.example.com/saved-spa-photo.jpg',title:'Saved spa photo',isDemo:false}]}} services={[]} stylists={[]} readOnly onAddAppointment={async a=>a}/>);
   assert.ok(savedHtml.includes('Saved spa photo'),'saved salon photo is used in the hair spa gallery');
