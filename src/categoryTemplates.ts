@@ -692,8 +692,10 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
     whatsapp: '+91 98124 55432',
     ownerName: 'Dr. Tanvi Deshmukh',
     ownerRole: 'MD Dermatology & Aesthetic Consultant',
-    ownerPhotoUrl: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=500&q=80',
-    coverImageUrl: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=1200&q=80',
+    // Bundled reference photography, served from this repository (never a
+    // remote stock host) so the template renders offline and in CI.
+    ownerPhotoUrl: '/templates/dermacure/reference-consultation.webp',
+    coverImageUrl: '/templates/dermacure/hero-wide.webp',
     instagramHandle: '@dermacure.clinic',
     themeStyle: {
       heroBackground: 'bg-[#f0f9ff]',
@@ -765,7 +767,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         id: 'sk-st-1',
         name: 'Dr. Tanvi Deshmukh',
         role: 'MD Dermatologist',
-        avatarUrl: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=400&q=80',
+        avatarUrl: '/templates/dermacure/team-tanvi.jpg',
         specialties: ['HydraFacial', 'Laser Toning', 'Chemical Peels'],
         rating: 4.99
       },
@@ -773,7 +775,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         id: 'sk-st-2',
         name: 'Dr. Sameer Gill',
         role: 'Clinical Cosmetologist',
-        avatarUrl: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=400&q=80',
+        avatarUrl: '/templates/dermacure/team-sameer.jpg',
         specialties: ['Carbon Laser', 'Acne Scar Revision'],
         rating: 4.95
       },
@@ -781,7 +783,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         id: 'sk-st-3',
         name: 'Neha Saxena',
         role: 'Senior Aesthetic Therapist',
-        avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80',
+        avatarUrl: '/templates/dermacure/team-neha.jpg',
         specialties: ['LED Phototherapy', 'Hydra Infusion'],
         rating: 4.91
       }

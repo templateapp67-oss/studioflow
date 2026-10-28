@@ -5,6 +5,7 @@ import { DermacureWebsite } from "../src/components/DermacureWebsite";
 import { WebsiteLanguageProvider } from "../src/components/WebsiteLanguage";
 import { INITIAL_SALON_PROFILE } from "../src/mockData";
 import { CATEGORY_TEMPLATES } from "../src/categoryTemplates";
+import { existsSync } from "node:fs";
 
 const template = CATEGORY_TEMPLATES.skincare_clinic;
 const profile = {
@@ -33,6 +34,9 @@ const render = (
         onBook={() => {}}
         onMyBookings={() => {}}
         onAccount={() => {}}
+        stylists={template.stylists}
+        onViewStaff={() => {}}
+        onBookStaff={() => {}}
         bookingAvailable
         {...overrides}
       />
@@ -72,6 +76,87 @@ assert.ok(!empty.includes('href="#treatments"'));
 assert.ok(!empty.includes('href="#about"'));
 assert.ok(!empty.includes('href="#results"'));
 assert.ok(empty.includes("Online booking is not currently available"));
+// ---------------------------------------------------------------------------
+// About, clinicians and gallery: every destination resolves, every portrait and
+// every reference photograph is a bundled local file, and the copy is real.
+// ---------------------------------------------------------------------------
+const desktopNav = html.match(/<nav class="dc-desktop-nav"[\s\S]*?<\/nav>/)?.[0] || "";
+for (const label of ["Home", "About", "Treatments", "Technology", "Results", "Our Team", "Gallery", "Contact"])
+  assert.ok(desktopNav.includes(label), `header shows ${label}`);
+for (const id of ["home", "about", "treatments", "technology", "results", "salon-team", "clinic-gallery", "directory", "journey", "booking", "contact"])
+  assert.ok(html.includes(`id="${id}"`), `header destination ${id} exists`);
+assert.equal((html.match(/id="clinic-gallery"/g) || []).length, 1, "one clinic gallery");
+assert.equal((html.match(/id="salon-team"/g) || []).length, 1, "one care-team section");
+
+// About / philosophy is fully written: the requested copy, three pillars, the
+// dark statement banner, the editorial quote and the four-step approach.
+for (const line of [
+  "OUR PHILOSOPHY",
+  "Skin Health.",
+  "Science.",
+  "Self-Confidence.",
+  "thoughtful skin care begins with understanding the individual",
+  "scientific understanding meets attentive care",
+  "Discover Our Approach",
+])
+  assert.ok(html.includes(line), `About copy is missing: ${line}`);
+for (const [pillar, note] of [
+  ["Guided by Science", "SCIENCE-LED CARE"],
+  ["Care That Considers You", "PERSONALISED ATTENTION"],
+  ["Built Around Trust", "TRUST &amp; TRANSPARENCY"],
+]) {
+  assert.ok(html.includes(pillar), `philosophy pillar ${pillar} is written`);
+  assert.ok(html.includes(note), `philosophy pillar ${pillar} keeps its label`);
+}
+assert.equal((html.match(/class="dc-pillar-card"/g) || []).length, 3, "exactly three philosophy pillars");
+// Dark cinematic statement banner: its own section, one CTA, decorative image.
+assert.ok(html.includes('id="philosophy-statement"'), "the statement banner is a real section");
+assert.ok(html.includes("Every Skin Journey") && html.includes("Thoughtful Care."), "statement headline is written");
+assert.ok(html.includes("not on promises of perfection"), "statement copy is written");
+assert.equal((html.match(/class="dc-philosophy-banner-image"/g) || []).length, 1, "the banner background is one decorative image");
+assert.ok(html.includes('aria-hidden="true"'), "the banner photograph is decorative, not content");
+// Editorial quote — brand copy, not a quoted clinician.
+assert.ok(html.includes("Good skin care begins with understanding"), "the editorial quote is rendered");
+assert.ok(!/Dr\.?\s+[A-Z][a-z]+\s+(MD|MBBS)/.test(html), "no invented medical degrees");
+// Our approach: the four requested steps, in order, in one section.
+const journey = html.split('id="journey"')[1].split("</section>")[0];
+for (const step of ["Listen", "Assess", "Personalise", "Guide"])
+  assert.ok(journey.includes(`>${step}<`), `journey step ${step} is listed`);
+assert.ok(journey.includes("A More Considered"), "journey keeps the requested heading");
+assert.equal((journey.match(/<li/g) || []).length, 4, "the journey is four steps, not a duplicated list");
+assert.ok(!html.includes("Lorem ipsum") && !html.includes("Coming soon"), "no placeholder copy in the About section");
+// No fabricated credential strip: nothing claims a certification, award or
+// patient count on this section.
+for (const claim of ["US-FDA", "Board-Certified", "award", "years of experience", "happy patients", "5000+"])
+  assert.ok(!html.includes(claim), `no fabricated credential: ${claim}`);
+
+// Clinician portraits resolve to bundled files and are labelled as samples.
+const { dermacureTeamPortrait, DERMACURE_TEAM_PORTRAITS, DERMACURE_SAMPLE_GALLERY, safeClinicUrl } = await import("../src/lib/dermacureSite");
+for (const person of template.stylists) {
+  const portrait = dermacureTeamPortrait(person);
+  assert.ok(portrait.src && existsSync("public" + portrait.src), `${person.name} has a bundled portrait`);
+  assert.ok(html.includes(`src="${portrait.src}"`), `${person.name}'s portrait is rendered`);
+  assert.ok(html.includes("Demo / sample portrait"), "demo portraits are labelled");
+}
+assert.equal(dermacureTeamPortrait({ name: "Dr. Tanvi Deshmukh" }).src, DERMACURE_TEAM_PORTRAITS["tanvi deshmukh"], "honorifics are ignored when matching a portrait");
+assert.equal(dermacureTeamPortrait({ name: "Dr. Tanvi Deshmukh", avatarUrl: "https://cdn.example.com/clinic.jpg" }).isDemo, false, "a saved photo always wins");
+assert.equal(dermacureTeamPortrait({ name: "Unknown Person", avatarUrl: "" }).src, "", "no invented portrait for an unknown clinician");
+for (const specialty of template.stylists.flatMap((p) => p.specialties || []))
+  assert.ok(html.includes(specialty), `specialty ${specialty} is listed on the card`);
+
+// Gallery: eight bundled photographs, labelled, and a count-driven mosaic.
+assert.equal((html.match(/DEMO \/ SAMPLE · /g) || []).length, 8, "all eight reference photographs are labelled");
+assert.ok(html.includes('data-count="8"'), "the mosaic is sized from the photo count");
+for (const entry of DERMACURE_SAMPLE_GALLERY) {
+  assert.ok(entry.url.startsWith("/templates/dermacure/"), `gallery photo is bundled: ${entry.url}`);
+  assert.ok(existsSync("public" + entry.url), `gallery photo exists: ${entry.url}`);
+  assert.ok(html.includes(`src="${entry.url}"`), `gallery renders ${entry.url}`);
+}
+for (const category of ["Clinic", "Treatments", "Technology"])
+  assert.ok(html.includes(`>${category} (`), `gallery filter ${category} is present`);
+assert.equal(safeClinicUrl("javascript:alert(1)"), "", "unsafe gallery URLs are dropped");
+assert.equal(safeClinicUrl("/templates/dermacure/clinic.webp"), "/templates/dermacure/clinic.webp", "bundled paths are accepted");
+
 console.log(
   "PASS: Dermacure sections, catalogue, booking entry and hidden/empty states render without dead section links.",
 );
@@ -304,3 +389,4 @@ const navMarkup=customNav.match(/<nav class="dc-desktop-nav"[\s\S]*?<\/nav>/)?.[
 assert.ok(!navMarkup.includes('href="#about"'));
 assert.ok(!navMarkup.includes('My Bookings'));
 console.log('PASS: hidden header/hero and disabled owner navigation links are respected.');
+

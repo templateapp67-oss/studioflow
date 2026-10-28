@@ -16,6 +16,7 @@ import { socialUrl } from './websiteContent';
  */
 export const KESH_PRAKRITI_IMAGES = {
   hero: '/templates/kesh-prakriti/hero-sanctuary.jpg',
+  heroSanctuary: '/templates/kesh-prakriti/hero-sanctuary.jpg',
   philosophy: '/templates/kesh-prakriti/philosophy.jpg',
   botanical: '/templates/kesh-prakriti/botanical.jpg',
   sanctuary: '/templates/kesh-prakriti/sanctuary.jpg',
@@ -70,50 +71,108 @@ export function keshPrakritiServiceImage(
 }
 
 /**
- * Reference gallery for the bundled demo: studio photographs, each shown
- * with an explicit "Demo / sample" label by the Template 06 gallery.
+ * Reference gallery for the bundled demo: studio photographs of the spa
+ * interior, treatments, rituals and botanicals, each shown with an explicit
+ * "Demo / sample" label by the Template 06 gallery.
+ *
+ * The gallery is data-driven: whatever is in this list (or whatever the owner
+ * saves) becomes the grid, the filters and the lightbox — nothing about the
+ * layout is hard-coded per photo.
  */
 export type KeshGalleryPhoto = Omit<SalonGalleryPhoto, 'category'> & { category: string };
+
+/** How many photographs the Template 06 gallery will show at most. */
+export const KESH_PRAKRITI_GALLERY_LIMIT = 8;
 
 export const KESH_PRAKRITI_SAMPLE_GALLERY: KeshGalleryPhoto[] = [
   {
     id: 'kesh-sample-1',
-    category: 'Sanctuary',
+    category: 'Interior',
     url: KESH_PRAKRITI_IMAGES.sanctuary,
-    title: 'Treatment room reference photo',
+    title: 'The treatment room, set for a quiet hour',
     isDemo: true,
   },
   {
     id: 'kesh-sample-2',
-    category: 'Spa',
+    category: 'Treatments',
     url: KESH_PRAKRITI_IMAGES.headSpa,
-    title: 'Head spa ritual reference photo',
+    title: 'A head spa ritual at the basin',
     isDemo: true,
   },
   {
     id: 'kesh-sample-3',
     category: 'Botanicals',
     url: KESH_PRAKRITI_IMAGES.botanical,
-    title: 'Botanical ingredients reference photo',
+    title: 'Fresh botanicals and ritual herbs',
     isDemo: true,
   },
   {
     id: 'kesh-sample-4',
-    category: 'Botanicals',
-    url: KESH_PRAKRITI_IMAGES.oils,
-    title: 'Hair oil and comb reference photo',
+    category: 'Interior',
+    url: KESH_PRAKRITI_IMAGES.heroSanctuary,
+    title: 'The sanctuary, in late afternoon light',
     isDemo: true,
   },
   {
     id: 'kesh-sample-5',
-    category: 'Spa',
+    category: 'Treatments',
     url: KESH_PRAKRITI_IMAGES.steam,
-    title: 'Hair spa steam treatment',
+    title: 'Warm steam and herbal infusion',
     isDemo: true,
   },
-  {id: 'kesh-sample-6', category: 'Spa', url: KESH_PRAKRITI_IMAGES.headMassage, title: 'Traditional head massage', isDemo: true},
-  {id: 'kesh-sample-7', category: 'Spa', url: KESH_PRAKRITI_IMAGES.facial, title: 'Face cleanup at the salon', isDemo: true},
+  {
+    id: 'kesh-sample-6',
+    category: 'Rituals',
+    url: KESH_PRAKRITI_IMAGES.lepam,
+    title: 'A herbal lepam being prepared',
+    isDemo: true,
+  },
+  {
+    id: 'kesh-sample-7',
+    category: 'Rituals',
+    url: KESH_PRAKRITI_IMAGES.headMassage,
+    title: 'Traditional head massage with warm oil',
+    isDemo: true,
+  },
+  {
+    id: 'kesh-sample-8',
+    category: 'Botanicals',
+    url: KESH_PRAKRITI_IMAGES.oils,
+    title: 'Cold-pressed oils and wooden combs',
+    isDemo: true,
+  },
 ];
+
+/**
+ * Bundled portraits for the demo team. They are only used when a specialist
+ * has no saved photo of their own, so the team section never shows an empty
+ * grey card for the three people the template ships with.
+ */
+export const KESH_PRAKRITI_TEAM_PORTRAITS: Record<string, string> = {
+  'gayatri raman': '/templates/kesh-prakriti/team-gayatri.jpg',
+  'karthik sundaram': '/templates/kesh-prakriti/team-karthik.jpg',
+  'deepa pillai': '/templates/kesh-prakriti/team-deepa.jpg',
+};
+
+/**
+ * Resolve one portrait: the salon's saved photo when it is a real image URL,
+ * then the bundled demo portrait when the name matches one of the template's
+ * specialists, then nothing (the section draws a labelled placeholder).
+ */
+export function keshTeamPortrait(person: {
+  name?: string;
+  avatarUrl?: string;
+}): { src: string; isDemo: boolean } {
+  const saved = safePhotoUrl(person?.avatarUrl);
+  if (saved) return { src: saved, isDemo: false };
+  const key = String(person?.name || '')
+    .toLowerCase()
+    .replace(/^dr\.?\s+/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const bundled = KESH_PRAKRITI_TEAM_PORTRAITS[key];
+  return bundled ? { src: bundled, isDemo: true } : { src: '', isDemo: false };
+}
 
 /** A saved cover photo is used for the hero when the owner uploaded one. */
 export function keshHeroImage(

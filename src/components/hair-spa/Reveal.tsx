@@ -10,6 +10,8 @@ export function Reveal({
   children: ReactNode;
   className?: string;
   delay?: number;
+  /** Accepted so lists can pass a React key without a wrapper element. */
+  key?: string;
 }) {
   const reduced = useReducedMotion();
   const canObserve = typeof IntersectionObserver !== "undefined";

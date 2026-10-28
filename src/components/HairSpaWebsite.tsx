@@ -23,6 +23,7 @@ import { HairSpaFooter } from "./hair-spa/HairSpaFooter";
 import { GalleryLightbox } from "./hair-spa/GalleryLightbox";
 import {
   KESH_PRAKRITI_FAQ,
+  KESH_PRAKRITI_GALLERY_LIMIT,
   keshContactSummary,
   keshGallery,
   keshHeroImage,
@@ -211,16 +212,50 @@ export function HairSpaWebsite({
     return () => cancelAnimationFrame(frame);
   }, [menuOpen, reduced]);
 
+  /**
+   * Every header, drawer and footer link lands here. It scrolls to the section
+   * immediately, retries once on the next frame while a lazily rendered section
+   * mounts, and finally falls back to the native anchor so a link is never a
+   * no-op that leaves the page looking stuck.
+   */
   const scrollTo = (id: string) => {
     if (typeof document === "undefined") return;
-    const target = document.getElementById(id);
-    if (!target) return;
     if (menuOpen) {
       pendingScrollRef.current = id;
       setMenuOpen(false);
-    } else {
-      target.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+      return;
     }
+    const findTarget = () =>
+      document.getElementById(id) ||
+      document.querySelector<HTMLElement>(`[data-nav-target="${id}"]`);
+    // The section is not on this page at all (for example a saved section that
+    // is not enabled): still move the URL so the visitor is never left nowhere.
+    const followAnchor = () => {
+      if (typeof location !== "undefined" && location.hash !== `#${id}`) {
+        location.hash = `#${id}`;
+      }
+    };
+    const reveal = (attempt: number): boolean => {
+      const target = findTarget();
+      if (target) {
+        target.scrollIntoView({
+          behavior: reduced ? "auto" : "smooth",
+          block: "start",
+        });
+        return true;
+      }
+      if (attempt >= 2) {
+        followAnchor();
+        return false;
+      }
+      if (typeof requestAnimationFrame === "function") {
+        requestAnimationFrame(() => reveal(attempt + 1));
+        return true;
+      }
+      followAnchor();
+      return false;
+    };
+    reveal(0);
   };
   const goToGalleryImage = (index: number) => {
     const track = galleryTrackRef.current;
@@ -260,7 +295,7 @@ export function HairSpaWebsite({
     caption: photo.title || "Sanctuary photo",
     category: photo.category,
   }));
-  const shownGallery = displayImages.slice(0, 8);
+  const shownGallery = displayImages.slice(0, KESH_PRAKRITI_GALLERY_LIMIT);
   const galleryCategories = Array.from(
     new Set(shownGallery.map((image) => image.category)),
   );
@@ -362,10 +397,11 @@ export function HairSpaWebsite({
   const pageLinks = (
     [
       ["Our Philosophy", "philosophy", true],
-      ["Services", "treatments", true],
-      ["Your Visit", "journey", true],
+      ["Treatments", "treatments", true],
+      ["Scalp Care", "journey", true],
       ["Our Team", "team", hasTeam],
-      ["The Sanctuary", "gallery", hasGallery],
+      ["The Sanctuary", "sanctuary", true],
+      ["Gallery", "gallery", hasGallery],
       ["Reviews", "testimonials", hasReviews],
       ["Contact", "contact", hasContact],
     ] as Array<[string, string, boolean]>

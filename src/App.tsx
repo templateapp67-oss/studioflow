@@ -16,6 +16,8 @@ import { WebsiteDeviceFrame } from './components/WebsiteDeviceFrame';
 import { servicesForTemplate } from './lib/serviceCatalogue';
 import { applyTemplateDesign } from './lib/templateSelection';
 import { normalizeWorkspace } from './lib/normalizeWorkspace';
+import { bootstrapSalonAccount, loadTemplateCatalogue } from './lib/accountBootstrap';
+import { messageOf, withTimeout } from './lib/asyncDeadline';
 import { AppView, SalonProfile, SalonService, Stylist, Appointment, ClientRecord, BusinessTypeId, LoyaltyConfig, CategoryTemplateConfig } from './types';
 import { INITIAL_SALON_PROFILE } from './mockData';
 import { calculateLoyaltyTier, DEFAULT_LOYALTY_CONFIG } from './loyaltyData';
@@ -65,11 +67,37 @@ function Application() {
  useEffect(()=>{captureReferral();let active=true;supabase.auth.getSession().then(({data,error})=>{if(active){setSession(data.session);setAuthReady(true);if(error)setError(error.message);}});const {data}=supabase.auth.onAuthStateChange((event,next)=>{if(event==='PASSWORD_RECOVERY'){try{sessionStorage.setItem('studioflow_recovery','1');}catch{}setRecovery(true);}setSession(next);setAuthReady(true);});return()=>{active=false;data.subscription.unsubscribe();};},[]);
  useEffect(()=>{if(!session||slug||customer||customerApp||recovery)return;let active=true;setAccount(null);setError('');
  (async()=>{
-  if(ownerSlug){const target=await supabase.from('studioflow_websites').select('slug').eq('slug',ownerSlug).eq('owner_id',session.user.id).maybeSingle();if(target.error)throw target.error;if(!target.data)throw new Error('Sign in with the owner account for this salon to manage its website.');}
-  const {data,error}=await supabase.rpc('studioflow_ensure_account',{p_ref:skipReferral?'':captureReferral()||null});if(error)throw error;
-  const [catalog,identity]=await Promise.all([supabase.from('studioflow_templates').select('config').eq('active',true),supabase.from('profiles').select('full_name,salon_name,phone_number,whatsapp,city,postal_code').eq('id',session.user.id).maybeSingle()]);
-  if(catalog.error)throw catalog.error;if(identity.error)throw identity.error;
-  if(active){setTemplates((catalog.data||[]).map(t=>upgradeNailStudioTemplate(upgradeBeautyParlourTemplate(t.config as CategoryTemplateConfig))));setAccount({...data,identity:identity.data});localStorage.removeItem('studioflow_pending_ref');}
+  if(ownerSlug){const target=await withTimeout(supabase.from('studioflow_websites').select('slug').eq('slug',ownerSlug).eq('owner_id',session.user.id).maybeSingle(),15000,'Checking this salon website');if(target.error)throw target.error;if(!target.data)throw new Error('Sign in with the owner account for this salon to manage its website.');}
+  // Bounded, self-healing bootstrap: the RPC is tried first, the already-saved
+  // workspace row is used when it fails or stalls, and only a total failure
+  // reaches the error screen (never an endless "Loading your salon" spinner).
+  const bootstrap=await bootstrapSalonAccount({
+   userId:session.user.id,
+   pRef:skipReferral?'':captureReferral()||null,
+   ensureAccount:pRef=>supabase.rpc('studioflow_ensure_account',{p_ref:pRef}),
+   loadAccountRow:()=>supabase.from('studioflow_accounts').select('draft,revision').eq('user_id',session.user.id).maybeSingle(),
+  });
+  if(!active)return;
+  if(!bootstrap.account){
+   // Last resort: a draft this browser already cached. The workspace opens on
+   // it (the save path then reconciles with the cloud) instead of failing.
+   const cachedDraft=(()=>{try{const raw=localStorage.getItem(`studioflow_draft_${session.user.id}`);const parsed=raw?JSON.parse(raw):null;return parsed?.draft?.profile?parsed:null;}catch{return null;}})();
+   if(!cachedDraft)throw new Error(bootstrap.error||'Could not load your account');
+   setTemplates(Object.values(CATEGORY_TEMPLATES));
+   setAccount({user_id:session.user.id,draft:cachedDraft.draft,revision:Number(cachedDraft.revision||0),identity:null});
+   return;
+  }
+  // Templates and profile details are conveniences: a slow or failing read
+  // must not keep the salon closed, so both are best-effort and time-boxed.
+  const [catalogue,identity]=await Promise.all([
+   loadTemplateCatalogue<CategoryTemplateConfig>({
+    load:()=>supabase.from('studioflow_templates').select('config').eq('active',true),
+    fallback:Object.values(CATEGORY_TEMPLATES),
+    upgrade:config=>upgradeNailStudioTemplate(upgradeBeautyParlourTemplate(config as CategoryTemplateConfig)),
+   }),
+   Promise.resolve(supabase.from('profiles').select('full_name,salon_name,phone_number,whatsapp,city,postal_code').eq('id',session.user.id).maybeSingle()).then(({data,error:identityError})=>({data,error:identityError})).catch(()=>({data:null,error:null})),
+  ]);
+  if(active){setTemplates(catalogue.templates);setAccount({...bootstrap.account,identity:identity.error?null:identity.data});localStorage.removeItem('studioflow_pending_ref');}
  })().catch(e=>{if(active)setError(e.message||'Could not load your account');});return()=>{active=false;};
  },[session?.user.id,retry,slug,customer,customerApp,recovery,skipReferral,ownerSlug]);
  if(recovery&&session)return <AuthPage recovery onRecovered={()=>{setRecovery(false);setRetry(r=>r+1);}} />;
@@ -82,7 +110,7 @@ function Application() {
  if(!session)return <><div className="bg-white border-b px-4 py-3 text-center text-sm">Looking for a salon appointment? <a className="text-violet-600 font-semibold" href="/?app=1">Open Nexora Customer App →</a></div><AuthPage /></>;
  if(customer)return <CustomerBookings session={session} />;
  if(error)return <main className="p-8"><h1 className="text-2xl font-bold">Account could not load</h1><p role="alert" className="my-4">{error.includes('database') || error.includes('connection') ? 'There was a database connection issue. Please check your internet or try again later.' : error}</p><button className="primary-action" onClick={()=>setRetry(r=>r+1)}>Retry</button><button className="secondary-action ml-3" onClick={()=>void supabase.auth.signOut()}>Sign out</button><button className="secondary-action ml-3" onClick={()=>{localStorage.removeItem('studioflow_pending_ref');const url=new URL(location.href);url.searchParams.delete('ref');history.replaceState(null,'',url);setSkipReferral(true);setRetry(r=>r+1);}}>Continue without pending referral</button></main>;
- if(!account||account.user_id!==session.user.id)return <Loading text="Loading your salon from Supabase…" />;
+ if(!account||account.user_id!==session.user.id)return <AccountLoading onRetry={()=>setRetry(r=>r+1)} onSignOut={()=>void supabase.auth.signOut()} />;
  return <Workspace key={session.user.id} session={session} account={account} templates={templates} />;
 }
 function TemplateEntry({templateId}:{templateId:BusinessTypeId}){
@@ -97,6 +125,23 @@ function TemplateEntry({templateId}:{templateId:BusinessTypeId}){
  return <><div data-template-preview-toolbar className="sticky top-0 z-[90] bg-white border-b px-4 py-3 flex flex-wrap justify-between items-center gap-3"><a className="font-semibold" href="https://nexora-beauty-network.templateapp67.chatgpt.site/templates/">← All templates</a><span>{template.shortName} · Demo template</span><button className="primary-action" onClick={create}>Create my website with this template</button></div><SalonWebsitePreview readOnly profile={draft.profile} services={draft.services} stylists={draft.stylists} gallery={draft.extras.gallery} onCustomerAccount={create} onAddAppointment={async()=>{throw new Error('This is a template preview. Choose Create my website to set up your own bookings.');}} /></>;
 }
 function Loading({text}:{text:string}){return <main role="status" className="min-h-screen flex items-center justify-center bg-[#f9f9ff]"><p>{text}</p></main>;}
+/**
+ * Account loader that never becomes a dead end. It is a plain waiting message
+ * for the first few seconds, then explains the delay and offers a retry — the
+ * bootstrap behind it is time-boxed, so this state always resolves.
+ */
+function AccountLoading({onRetry,onSignOut}:{onRetry:()=>void;onSignOut:()=>void}){
+ const [seconds,setSeconds]=useState(0);
+ useEffect(()=>{const timer=setInterval(()=>setSeconds(value=>value+1),1000);return()=>clearInterval(timer);},[]);
+ const slow=seconds>=6;
+ return <main role="status" aria-live="polite" className="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#f9f9ff] px-6 text-center">
+  <p className="font-semibold">Loading your salon from Supabase…</p>
+  {slow?<>
+   <p className="max-w-md text-sm text-slate-600">This is taking longer than usual ({seconds}s). Your workspace opens from its last saved copy when the live copy cannot be reached.</p>
+   <div className="flex flex-wrap justify-center gap-3"><button className="primary-action" onClick={onRetry}>Retry now</button><button className="secondary-action" onClick={onSignOut}>Sign out</button></div>
+  </>:<p className="text-sm text-slate-500">Fetching your saved workspace. This usually takes a second.</p>}
+ </main>;
+}
 
 export function Workspace({session,account,templates}:{key?:React.Key;session:Session;account:any;templates:CategoryTemplateConfig[]}) {
  const cacheKey=`studioflow_draft_${session.user.id}`;
@@ -237,7 +282,13 @@ function PublishedWebsite({slug,session}:{key?:React.Key;slug:string;session:Ses
  useEffect(()=>{if(!authMode)return;const previous=document.activeElement as HTMLElement|null;const dialog=document.querySelector<HTMLElement>('[role=dialog][aria-label="Customer account"]');dialog?.querySelector<HTMLElement>('input,button')?.focus();const keyboard=(event:KeyboardEvent)=>{if(event.key==='Escape')setAuthMode(null);if(event.key==='Tab'&&dialog){const items=Array.from(dialog.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),a[href]'));const first=items[0],last=items.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}}};document.addEventListener('keydown',keyboard);return()=>{document.removeEventListener('keydown',keyboard);previous?.focus();};},[authMode]);
  useEffect(()=>{if(session)setAuthMode(null);},[session?.user.id]);
  useEffect(()=>{let active=true,loaded=false;
-   const refresh=async()=>{if(document.hidden)return;const {data,error}=await supabase.from('studioflow_websites').select('content').eq('slug',slug).maybeSingle();if(!active)return;
+   const refresh=async()=>{if(document.hidden)return;
+   // A stalled read used to leave the published site on "Loading salon
+   // website…" forever. Every read now has a deadline and surfaces the retry UI.
+   let loadedRow:{data:any;error:any};
+   try{loadedRow=await withTimeout(supabase.from('studioflow_websites').select('content').eq('slug',slug).maybeSingle(),15000,'Loading this salon website');}
+   catch(deadline){loadedRow={data:null,error:{message:messageOf(deadline,'This salon website took too long to respond. Retrying will try again.')}};}
+   const {data,error}=loadedRow;if(!active)return;
    if(error){if(!loaded){setDevFallbackTemplate(null);setError(error.message||'Could not load this salon website.');}return;}
    if(!data){if(!loaded){const fallback=developmentTemplateForSiteSlug(slug,import.meta.env.DEV);if(fallback){setDevFallbackTemplate(fallback.id);setError('');}else{setDevFallbackTemplate(null);setError('This salon website is not published.');}}return;}
    setDevFallbackTemplate(null);

@@ -177,7 +177,8 @@ owner workspace, and every other template's markup and CSS.
 | 5 | Owner promo | `salon-promo` | A live campaign only | Stand-in offers |
 | 6 | Your Visit | `journey` | Four steps of the visit | Treatments, claims |
 | 7 | Our Team | `team` | Saved stylists | Invented credentials |
-| 8 | Sanctuary Gallery | `gallery` | Photographs + filters | Prices, CTAs |
+| 8 | The Sanctuary | `sanctuary` | The room's story (see §7.5) | Prices, photographs |
+| 8b | Gallery | `gallery` | Photographs + filters | Prices, CTAs |
 | 9 | Videos | `salon-videos` | Saved reels only | — |
 | 10 | Reviews | `testimonials` | Published reviews; absent when none | Sample quotes, ratings |
 | 11 | Booking | `booking` | The single booking CTA | A second form |
@@ -245,7 +246,10 @@ empty salon):
 
 1. **Pre-existing failing suites.** `verify-owner-modules` and `verify-owner-navigation` fail on
    the baseline commit as well. They exercise owner workspace modules, not Template 06.
-2. **Inactive `isKeshPrakriti` branch in `CustomerWebsiteHeader.tsx`.** Unreachable for this
+2. **Inactive `isKeshPrakriti` branch in `CustomerWebsiteHeader.tsx`.** Its anchors
+   (`#salon-philosophy`, `#salon-botanicals`, `#salon-lookbook`) are the retired
+   pre-§7 ones, which is one more reason it must stay unreachable; the Template 06
+   header in `hair-spa/HairSpaHeader.tsx` owns the live links. Unreachable for this
    template (verified by render), but it still ships ~120 lines of unused header code and stale
    anchors. Removing it touches a shared component used by 13 other templates, so it is left for
    a dedicated change with its own review; the new assertion fails if it ever renders alongside
@@ -258,3 +262,72 @@ empty salon):
 5. **No live browser was available in this environment,** so layout was validated by CSS review
    plus static renders rather than screenshots. The header breakpoint step is the one visual
    judgement not confirmed by a pixel-level check.
+
+---
+
+## 7. Follow-up pass — About page, portraits, gallery and loading halts
+
+Added after the consolidation above, on the same template and without touching
+booking, payments, publishing or any other template.
+
+### 7.1 Freezing on "Loading your salon from Supabase…"
+
+The workspace used to render that message until
+`studioflow_ensure_account` settled. A stalled RPC, an unexpected response shape
+or an unreadable `profiles`/`studioflow_templates` row left the screen spinning
+forever — which also made every header link look dead, because the page they
+belonged to never painted.
+
+| Layer | Change |
+| --- | --- |
+| `src/lib/asyncDeadline.ts` | `withTimeout` (rejects instead of pending, always clears its timer), `messageOf`, `settleWithin`. Accepts Supabase's thenable query builders. |
+| `src/lib/accountBootstrap.ts` | `bootstrapSalonAccount`: RPC (12s deadline) → saved `studioflow_accounts` row → honest error. `salonAccountFromRpc` / `salonAccountFromRow` normalise both shapes (including the older `{account: row}` envelope). `loadTemplateCatalogue` treats the template list as decorative and falls back to the bundled `CATEGORY_TEMPLATES`. |
+| `src/App.tsx` | Uses the bootstrap; profile details and templates are best-effort; the browser's cached draft is the last resort; the spinner became `AccountLoading`, which explains a delay after 6s and offers **Retry now** / **Sign out**. The published-site read is wrapped in a 15s deadline so `Loading salon website…` also resolves into the retry UI. |
+
+### 7.2 Header navigation
+
+`pageLinks` now carries the seven destinations the salon asked for — Our
+Philosophy, Treatments, Scalp Care, Our Team, The Sanctuary, Gallery, Contact —
+each resolving to its own section. `scrollTo` scrolls immediately, retries on the
+next animation frame while a lazily rendered section mounts, and finally follows
+the native anchor so a link is never a silent no-op. The footer renders the same
+list, so header and footer never diverge.
+
+### 7.3 About / Our Philosophy
+
+`BrandPhilosophy` is fully written: a lead paragraph, three body paragraphs on
+Ayurvedic scalp tradition, botanical ingredients and organic sanctuary care, the
+team signature, two wayfinding actions, and three pillars (Ayurvedic scalp
+wisdom · Botanical ingredients · Organic sanctuary care) with icon, heading and
+copy. No placeholder text, no invented certifications, no medical claims.
+
+### 7.4 Team portraits
+
+`keshTeamPortrait` resolves a portrait in this order: the salon's saved photo,
+then the bundled demo portrait for the three template specialists (Dr. Gayatri
+Raman, Karthik Sundaram, Deepa Pillai), then a labelled placeholder. The photo
+box has a fixed 4:3 ratio so a failed load cannot collapse the card, demo
+portraits carry a "Demo / sample portrait" note, and each card lists up to three
+specialties from the saved team record.
+
+### 7.5 Gallery
+
+- `#sanctuary` and `#gallery` are now two sibling sections: the room's story
+  (warm towels, courtyard plants, one guest per room) and the photographs.
+- The bundled sample gallery grew to eight photographs across four categories —
+  Interior, Treatments, Rituals, Botanicals — and the grid is driven by
+  `data-count`, so one photo, four photos and eight photos all land in a
+  deliberate mosaic instead of a ragged half-row.
+- A tile whose image cannot decode keeps its footprint and shows a labelled
+  "Photograph unavailable" placeholder; the first two tiles load eagerly, the
+  rest lazily.
+
+### 7.6 Validation
+
+| Check | Result |
+| --- | --- |
+| `npm run lint` (tsc) | pass |
+| `npm run build` | pass |
+| `node scripts/run-all-verifications.mjs` | 69/69 suites pass |
+| `scripts/verify-kesh-resilience` (new) | deadlines, RPC→row fallback, hung RPC, template fallback, App source guards, header fallback anchor |
+| `scripts/verify-kesh-navigation-gallery` | labels, seven anchors, portraits, specialties, philosophy pillars, eight bundled photos, count-driven mosaic |
