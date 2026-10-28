@@ -198,20 +198,20 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
   hair_spa: {
     foundingYear: '',
     foundingNarrative:
-      'Kesh Prakriti is a hair spa and scalp sanctuary template. Every word, price, review and photograph on the live site comes from the salon owner: this template only ships neutral sample copy describing the ritual types a hair spa typically offers.',
-    specialties: ['Scalp Cleanse Rituals', 'Ayurvedic Lepam Treatments', 'Steam & Oil Rituals', 'Root Care Massage'],
+      'Welcome to Kesh Prakriti, a friendly salon for hair, skin and grooming care. Visit us for everyday services, a relaxing head massage or a special occasion.',
+    specialties: ['Hair Spa & Head Massage', 'Threading & Waxing', 'Face Cleanup & D-Tan', 'Bridal & Groom Makeup'],
     certifications: [
-      { icon: 'eco', title: 'Botanical Formulas', description: 'Sample copy — describe the products and botanicals your sanctuary actually uses.' },
-      { icon: 'spa', title: 'Quiet Treatment Rooms', description: 'Sample copy — describe your own treatment rooms and what guests can expect.' },
-      { icon: 'sanitizer', title: 'Fresh Linen Per Guest', description: 'Sample copy — state the hygiene standards your team follows.' },
-      { icon: 'verified', title: 'Trained Ritual Specialists', description: 'Sample copy — list the training and qualifications your specialists hold.' }
+      { icon: 'eco', title: 'Herbal Hair Care', description: 'Sample copy — tell customers about the products you use.' },
+      { icon: 'spa', title: 'Comfortable Salon', description: 'Sample copy — tell customers what to expect at your salon.' },
+      { icon: 'sanitizer', title: 'Clean Towels', description: 'Sample copy — share the hygiene practices your salon follows.' },
+      { icon: 'verified', title: 'Our Team', description: 'Sample copy — tell customers about your team and their experience.' }
     ],
     // Bundled demo photographs live in /public/templates/kesh-prakriti and are
     // always labelled "Demo / sample" until the owner uploads their own photos.
     gallery: [
-      { id: 'sp-g1', url: '/templates/kesh-prakriti/head-spa.jpg', title: 'Head spa treatment bed', tag: 'Sample' },
-      { id: 'sp-g2', url: '/templates/kesh-prakriti/lepam.jpg', title: 'Herbal lepam preparation', tag: 'Sample' },
-      { id: 'sp-g3', url: '/templates/kesh-prakriti/steam.jpg', title: 'Steam ritual room', tag: 'Sample' },
+      { id: 'sp-g1', url: '/templates/kesh-prakriti/indian-head-massage.jpg', title: 'Traditional head massage', tag: 'Sample' },
+      { id: 'sp-g2', url: '/templates/kesh-prakriti/indian-facial.jpg', title: 'Face cleanup at the salon', tag: 'Sample' },
+      { id: 'sp-g3', url: '/templates/kesh-prakriti/indian-grooming.jpg', title: 'Beard grooming', tag: 'Sample' },
       { id: 'sp-g4', url: '/templates/kesh-prakriti/oils.jpg', title: 'Warm oil bottles', tag: 'Sample' },
       { id: 'sp-g5', url: '/templates/kesh-prakriti/sanctuary.jpg', title: 'Sanctuary interior', tag: 'Sample' },
       { id: 'sp-g6', url: '/templates/kesh-prakriti/botanical.jpg', title: 'Botanical ingredients', tag: 'Sample' }

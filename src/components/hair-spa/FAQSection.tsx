@@ -17,15 +17,22 @@ export function FAQSection() {
               <em>answered.</em>
             </h2>
             <p>
-              Still curious? We are happy to help you decide on a treatment.
+              Have a question? Our team is happy to help.
             </p>
+            {!model.profile.subdomain && (
+              <p className="kp-muted">
+                Sample booking policy: please inform the salon at least 24 hours
+                before a change or cancellation. Confirm the salon’s own notice,
+                advance and refund rules before booking.
+              </p>
+            )}
             {model.phone && (
               <a
                 className="kp-inline-link"
                 href={`tel:${model.phone.replace(/\s/g, "")}`}
               >
                 <Phone size={16} aria-hidden="true" />
-                Call the sanctuary <ArrowRight size={16} aria-hidden="true" />
+                Call the salon <ArrowRight size={16} aria-hidden="true" />
               </a>
             )}
           </Reveal>

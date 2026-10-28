@@ -33,13 +33,12 @@ export function QuickNavigation() {
           ))}
         </nav>
       )}
-      {!hasPromo && (
+      {!hasPromo && Boolean(model.profile.subdomain) && (
         <section className="kp-offers-note" id="offers" aria-label="Current offers">
           <div className="kp-container">
             <span className="kp-eyebrow">CURRENT OFFERINGS</span>
             <p>
-              No promotion is running on this website right now. Ask the
-              sanctuary about current offers when you plan your visit.
+              No offers are listed right now. Please ask the salon about current offers.
             </p>
           </div>
         </section>

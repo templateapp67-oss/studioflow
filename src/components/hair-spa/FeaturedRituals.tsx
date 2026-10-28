@@ -16,7 +16,7 @@ export function FeaturedRituals() {
           <div className="kp-container">
             <div className="kp-section-heading">
               <Reveal>
-                <p className="kp-eyebrow">SIGNATURE COMBINATIONS</p>
+                <p className="kp-eyebrow">SALON PACKAGES</p>
                 <h2>
                   More time for
                   <br />
@@ -25,9 +25,7 @@ export function FeaturedRituals() {
               </Reveal>
               <Reveal>
                 <p>
-                  Combination treatments are listed here only when they are part
-                  of the current service catalogue, with the same saved prices
-                  and durations shown elsewhere.
+                  Save time with a package. Check the services, price and duration before booking.
                 </p>
               </Reveal>
             </div>
@@ -45,7 +43,7 @@ export function FeaturedRituals() {
                     <div className="kp-service-content flex-1 flex flex-col justify-between p-6">
                       <div>
                         <p className="kp-service-category">
-                          {item.category || "Combination treatment"}
+                          {item.category || "Salon package"}
                         </p>
                         <h3>{item.name}</h3>
                         <p className="kp-service-description flex-1">
@@ -70,7 +68,7 @@ export function FeaturedRituals() {
                           className="kp-card-link"
                           onClick={() => model.book(item)}
                         >
-                          Choose this combination{" "}
+                          Book this package{" "}
                           <ArrowUpRight size={15} aria-hidden="true" />
                         </button>
                       </div>
@@ -82,15 +80,14 @@ export function FeaturedRituals() {
               /* No invented bundles: honest empty state with a working action. */
               <div className="kp-empty-services">
                 <p>
-                  No combination treatments are listed at the moment. The full
-                  treatment menu above is up to date.
+                  No packages are listed right now. You can still choose from our service menu.
                 </p>
                 <button
                   type="button"
                   className="kp-card-link"
                   onClick={() => model.scrollTo("treatments")}
                 >
-                  View the treatment menu{" "}
+                  View services{" "}
                   <ArrowRight size={15} aria-hidden="true" />
                 </button>
               </div>
@@ -112,8 +109,8 @@ export function FeaturedRituals() {
               </div>
             ) : (
               <img
-                src={KESH_PRAKRITI_IMAGES.headSpa}
-                alt="Reference photograph of a head spa ritual with soft steam"
+                src={KESH_PRAKRITI_IMAGES.headMassage}
+                alt="Sample photo of a traditional head massage at an Indian salon"
                 loading="lazy"
                 decoding="async"
                 width={1200}
@@ -123,15 +120,15 @@ export function FeaturedRituals() {
             )}
             <span className="kp-feature-seal">
               <Leaf size={18} aria-hidden="true" />
-              TIME, JUST FOR YOU
+              DEMO / SAMPLE · TIME FOR YOU
             </span>
           </Reveal>
           <Reveal className="kp-feature-copy">
-            <p className="kp-eyebrow">A MOMENT TO RETURN TO YOURSELF</p>
+            <p className="kp-eyebrow">TAKE A LITTLE TIME FOR YOURSELF</p>
             <h2>
               Care that feels
               <br />
-              <em>like a deep breath.</em>
+              <em>good for you.</em>
             </h2>
             {model.featuredService ? (
               <>
@@ -158,13 +155,12 @@ export function FeaturedRituals() {
                   className="kp-button"
                   onClick={() => model.book(model.featuredService)}
                 >
-                  Book this ritual <ArrowRight size={16} aria-hidden="true" />
+                  Book this service <ArrowRight size={16} aria-hidden="true" />
                 </button>
               </>
             ) : (
               <p>
-                The treatment menu is being updated. Contact the sanctuary to
-                ask what is currently available.
+                The service menu is being updated. Contact the salon to ask what is available.
               </p>
             )}
           </Reveal>

@@ -19,17 +19,16 @@ export function ExperienceSection() {
       <div className="kp-container">
         <div className="kp-section-heading">
           <Reveal>
-            <p className="kp-eyebrow">A CONSIDERED EXPERIENCE</p>
+            <p className="kp-eyebrow">YOUR EXPERIENCE</p>
             <h2 id="kp-experience-title">
-              Every visit begins
+              Every visit starts
               <br />
-              <em>with listening.</em>
+              <em>with a conversation.</em>
             </h2>
           </Reveal>
           <Reveal>
             <p>
-              Care is personal. Make time to share what matters to you, ask
-              questions and choose a ritual that feels comfortable.
+              Tell us what you need and ask any questions. We are here to help you feel comfortable.
             </p>
           </Reveal>
         </div>
@@ -53,21 +52,21 @@ export function ExperienceSection() {
               <article>
                 <span aria-hidden="true">01</span>
                 <h3>Listen first</h3>
-                <p>Your concerns and preferences shape the conversation.</p>
+                <p>Tell us what you need and what you prefer.</p>
               </article>
               <article>
                 <span aria-hidden="true">02</span>
                 <h3>Choose together</h3>
-                <p>Explore the service menu and ask the team for guidance.</p>
+                <p>See the service menu and ask our team for help.</p>
               </article>
               <article>
                 <span aria-hidden="true">03</span>
                 <h3>Make space</h3>
-                <p>Enjoy a calm moment devoted to your own wellbeing.</p>
+                <p>Enjoy a little time for yourself.</p>
               </article>
             </div>
             <p className="kp-empty-services">
-              No client reviews have been published for this sanctuary yet.
+              No client reviews have been published for this salon yet.
               Reviews appear here after customers share their experience.
             </p>
           </>

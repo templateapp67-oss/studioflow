@@ -45,7 +45,7 @@ export function HeroSection() {
           initial={model.reduced ? "visible" : "hidden"}
           animate="visible"
         >
-          {model.profile.businessName} <i /> HAIR SPA &amp; SCALP SANCTUARY
+          {model.profile.businessName} <i /> SALON &amp; HAIR SPA
         </motion.p>
         <motion.h1
           id="kp-hero-title"
@@ -54,11 +54,11 @@ export function HeroSection() {
           animate="visible"
           transition={{ delay: 0.08 }}
         >
-          Where Hair Wellness
+          Good care for
           <br />
-          <em>Meets the Wisdom</em>
+          <em>your hair, skin</em>
           <br />
-          of Nature.
+          and you.
         </motion.h1>
         <motion.p
           className="kp-hero-intro"
@@ -67,9 +67,8 @@ export function HeroSection() {
           animate="visible"
           transition={{ delay: 0.16 }}
         >
-          Discover a thoughtful approach to hair and scalp care through
-          personalised rituals, botanical-inspired treatments and a tranquil
-          sanctuary designed around your wellbeing.
+          From a relaxing head massage to everyday grooming and wedding makeup,
+          enjoy friendly care at your neighbourhood salon.
         </motion.p>
         <motion.div
           className="kp-hero-actions"
@@ -82,12 +81,12 @@ export function HeroSection() {
             type="button"
             className="kp-button kp-button-ivory"
             onClick={() =>
-              model.scrollTo(treatmentsAvailable ? "treatments" : "contact")
+              model.scrollTo("treatments")
             }
           >
             {treatmentsAvailable
-              ? "Explore Treatments"
-              : "Ask about treatments"}{" "}
+              ? "View Services"
+              : "Ask about services"}{" "}
             <ArrowRight size={16} aria-hidden="true" />
           </button>
           {/* With an empty menu there is nothing to book, so the second action
@@ -97,7 +96,7 @@ export function HeroSection() {
             className="kp-text-link kp-light"
             onClick={() => model.book(model.firstService)}
           >
-            {model.bookingAvailable ? "Book Your Ritual" : "Contact the sanctuary"}{" "}
+            {model.bookingAvailable ? "Book an Appointment" : "Contact the salon"}{" "}
             <ArrowUpRight size={16} aria-hidden="true" />
           </button>
         </motion.div>
@@ -107,7 +106,7 @@ export function HeroSection() {
         className="kp-scroll-cue"
         onClick={() => model.scrollTo("philosophy")}
       >
-        <span>SCROLL TO FEEL THE DIFFERENCE</span>
+        <span>SCROLL TO EXPLORE</span>
         <ArrowDown size={15} aria-hidden="true" />
       </button>
       {/* Demo/reference imagery is always labelled on the page it appears. */}

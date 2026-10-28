@@ -24,7 +24,7 @@ export function HairSpaHeader() {
           </span>
           <span>
             <strong>{model.profile.businessName}</strong>
-            <small>HAIR SPA · SCALP SANCTUARY</small>
+            <small>SALON · HAIR SPA</small>
           </span>
         </a>
         <nav className="kp-desktop-nav" aria-label="Website navigation">
@@ -76,7 +76,7 @@ export function HairSpaHeader() {
           className="kp-button kp-header-cta"
           onClick={() => model.book(model.firstService)}
         >
-          {model.bookingAvailable ? "Book Your Ritual" : "Contact us"}{" "}
+          {model.bookingAvailable ? "Book an Appointment" : "Contact us"}{" "}
           <ArrowUpRight size={15} aria-hidden="true" />
         </button>
         <button
@@ -190,7 +190,7 @@ export function HairSpaHeader() {
                   model.book(model.firstService);
                 }}
               >
-                {model.bookingAvailable ? "Book Your Ritual" : "Contact us"}{" "}
+                {model.bookingAvailable ? "Book an Appointment" : "Contact us"}{" "}
                 <ArrowRight size={16} aria-hidden="true" />
               </button>
             </motion.nav>

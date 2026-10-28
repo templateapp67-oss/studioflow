@@ -20,15 +20,14 @@ export function SanctuarySection() {
         />
         <div className="kp-container kp-sanctuary-content">
           <Reveal>
-            <p className="kp-eyebrow kp-light">THE SANCTUARY</p>
+            <p className="kp-eyebrow kp-light">OUR SALON</p>
             <h2>
-              A little space
+              A welcoming place
               <br />
-              to <em>exhale.</em>
+              to <em>relax.</em>
             </h2>
             <p>
-              A calm, welcoming environment for thoughtful hair and scalp care.
-              Your time here is yours.
+              Take a break from your day and enjoy some time for yourself.
             </p>
             <button
               className="kp-button kp-button-ivory"

@@ -13,7 +13,7 @@ export function developmentTemplateForSiteSlug(slug:string,isDevelopment:boolean
  if(!isDevelopment)return null;
  const key=slug.trim().toLowerCase().replace(/[^a-z0-9]/g,'');
  if(!key)return null;
- const alias=aliases[slug.trim().toLowerCase()];
+ const alias=aliases[slug.trim().toLowerCase()] || (key === 'keshprakritihairspa' ? 'hair_spa' : undefined);
  if(alias&&Object.hasOwn(CATEGORY_TEMPLATES,alias))return CATEGORY_TEMPLATES[alias];
  return Object.values(CATEGORY_TEMPLATES).find(template=>{
   const id=template.id.toLowerCase().replace(/[^a-z0-9]/g,'');

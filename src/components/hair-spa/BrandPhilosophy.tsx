@@ -22,7 +22,7 @@ export function BrandPhilosophy() {
             ) : (
               <img
                 src={PHILOSOPHY_IMAGE}
-                alt="Reference photograph of warm botanical details in a hair wellness space"
+                alt="Sample photo of herbal hair care at a salon"
                 loading="lazy"
                 decoding="async"
                 width={1200}
@@ -31,22 +31,19 @@ export function BrandPhilosophy() {
               />
             )}
             <span className="kp-image-note">
-              Demo / sample · A quieter kind of care
+              Demo / sample · Care for you
             </span>
           </Reveal>
           <Reveal className="kp-philosophy-copy">
-            <p className="kp-eyebrow">CARE, WITH INTENTION</p>
+            <p className="kp-eyebrow">OUR APPROACH</p>
             <h2>
-              A More Thoughtful Approach to Hair <em>&amp; Scalp Care.</em>
+              Good care, <em>made for you.</em>
             </h2>
             <p>
-              Every visit begins with a conversation about what you would like
-              to change or care for, so you can choose a treatment that feels
-              right for you.
+              Tell us what you need, and our team will help you choose the right service.
             </p>
             <p>
-              From a calming spa ritual to botanical-inspired care, the
-              experience is designed to feel personal, unhurried and welcoming.
+              Whether it is a hair spa, cleanup or a special occasion, we want you to feel comfortable and welcome.
             </p>
             <a
               className="kp-inline-link"
@@ -56,7 +53,7 @@ export function BrandPhilosophy() {
                 model.scrollTo("journey");
               }}
             >
-              Discover our approach <ArrowRight size={16} />
+              How your visit works <ArrowRight size={16} />
             </a>
           </Reveal>
         </div>

@@ -2,7 +2,7 @@ import { useHairSpa } from "./context";
 import { Reveal } from "./Reveal";
 import { AnimatePresence, motion } from "motion/react";
 
-export function SanctuaryGallery() {
+export function GallerySection() {
   const model = useHairSpa();
   const total = model.shownGallery.length;
   const filteredCount = model.visibleGallery.length;
@@ -12,18 +12,18 @@ export function SanctuaryGallery() {
       <div className="kp-container">
         <div className="kp-section-heading">
           <Reveal>
-            <p className="kp-eyebrow">A GLIMPSE INSIDE</p>
+            <p className="kp-eyebrow">OUR GALLERY</p>
             <h2>
-              Find your moment
+              A look inside
               <br />
-              <em>of calm.</em>
+              <em>our salon.</em>
             </h2>
           </Reveal>
           <Reveal>
             <p>
               {showingDemo
-                ? "These are demo / sample photographs that ship with the template. The sanctuary's own saved photos appear here once they are added."
-                : "Photographs saved by the sanctuary. Swipe through on mobile to explore."}
+                ? "These are sample photos. The salon’s own photos will appear here when added."
+                : "Take a look at our salon and services. Swipe on your phone to see more."}
             </p>
           </Reveal>
         </div>
@@ -54,7 +54,7 @@ export function SanctuaryGallery() {
 
         {filteredCount === 0 ? (
           <p className="kp-empty-services" role="status">
-            No photographs in this category yet.
+            No photos in this category yet.
           </p>
         ) : (
           <>
@@ -71,7 +71,7 @@ export function SanctuaryGallery() {
                     transition={{ duration: 0.3 }}
                     type="button"
                     className={`kp-gallery-image kp-gallery-${position + 1}`}
-                    onClick={() => model.setActivePhoto(index)}
+                    onClick={() => model.setActivePhoto(position)}
                     aria-label={`Enlarge image ${position + 1} of ${filteredCount}: ${image.alt}`}
                   >
                     <img
@@ -95,7 +95,7 @@ export function SanctuaryGallery() {
               ref={model.galleryTrackRef}
               className="kp-gallery-mobile"
               role="region"
-              aria-label="Sanctuary gallery, swipe horizontally"
+              aria-label="Salon gallery, swipe horizontally"
               aria-roledescription="carousel"
               tabIndex={0}
               onKeyDown={(event) => {
@@ -128,8 +128,8 @@ export function SanctuaryGallery() {
                 <button
                   key={`mobile-${image.src}-${index}`}
                   type="button"
-                  onClick={() => model.setActivePhoto(index)}
-                  aria-label={`Enlarge sanctuary image ${position + 1}: ${image.alt}`}
+                  onClick={() => model.setActivePhoto(position)}
+                  aria-label={`Enlarge salon image ${position + 1}: ${image.alt}`}
                 >
                   <img
                     src={image.src}
