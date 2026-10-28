@@ -4,6 +4,7 @@ import { WebsiteContentManager } from './WebsiteContentManager';
 import { uploadSalonImage, websiteLink } from '../lib/supabase';
 import React, { useState, useEffect } from 'react';
 import { downloadClientsCsv } from '../lib/clientExports';
+import { sendBookingConfirmationEmail, sendBookingReminderEmail } from '../lib/emailService';
 import { SalonProfile, SalonService, Stylist, Appointment, ClientRecord, LoyaltyConfig } from '../types';
 import { ACCENT_PALETTES, AccentPaletteKey, applyPrimaryAccentCssVar, getContrastTextColor, getLuminance } from '../themeAccents';
 import { validateAndReadImageFile, compressAndResizeImage } from '../utils/imageUploadHelper';
@@ -62,6 +63,56 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
   const [marketingSms, setMarketingSms] = useState<string>('');
   const [marketingLoading, setMarketingLoading] = useState<boolean>(false);
   const [smsSentNotice, setSmsSentNotice] = useState<string>('');
+  const [aptEmailFeedback, setAptEmailFeedback] = useState<Record<string, string>>({});
+  const [sendingAptEmailId, setSendingAptEmailId] = useState<string>('');
+  const [customAptEmail, setCustomAptEmail] = useState<Record<string, string>>({});
+  const [showEmailInputForId, setShowEmailInputForId] = useState<string | null>(null);
+
+  const handleSendAptEmail = async (apt: Appointment, type: 'confirmation' | 'reminder') => {
+    const targetEmail = (customAptEmail[apt.id] || apt.clientEmail || '').trim();
+    if (!targetEmail || !targetEmail.includes('@')) {
+      setShowEmailInputForId(apt.id);
+      setAptEmailFeedback(prev => ({ ...prev, [apt.id]: 'Please enter a valid recipient email below.' }));
+      return;
+    }
+    setSendingAptEmailId(apt.id);
+    setAptEmailFeedback(prev => ({ ...prev, [apt.id]: `Sending ${type} email to ${targetEmail}…` }));
+    try {
+      const payload = {
+        to: targetEmail,
+        clientName: apt.clientName || 'Valued Guest',
+        clientPhone: apt.clientPhone || '',
+        bookingRef: apt.id.slice(0, 8).toUpperCase(),
+        serviceName: apt.serviceName,
+        servicePrice: apt.servicePrice,
+        amountPaid: apt.amountPaid || 0,
+        stylistName: apt.stylistName,
+        date: apt.date,
+        time: apt.time,
+        salonName: profile.businessName || 'StudioFlow Salon',
+        salonAddress: profile.address,
+        salonCity: profile.city,
+        salonPhone: profile.phone,
+        salonWhatsapp: profile.whatsapp,
+        salonSlug: profile.subdomain,
+      };
+      const res = type === 'confirmation'
+        ? await sendBookingConfirmationEmail(payload)
+        : await sendBookingReminderEmail(payload);
+      if (res.success) {
+        setAptEmailFeedback(prev => ({
+          ...prev,
+          [apt.id]: res.delivered ? `Email sent to ${targetEmail}` : `Email dispatched to ${targetEmail}`,
+        }));
+      } else {
+        setAptEmailFeedback(prev => ({ ...prev, [apt.id]: res.error || 'Failed to dispatch email' }));
+      }
+    } catch (err: any) {
+      setAptEmailFeedback(prev => ({ ...prev, [apt.id]: err?.message || 'Email delivery failed' }));
+    } finally {
+      setSendingAptEmailId('');
+    }
+  };
 
   const currentAccentKey: AccentPaletteKey = (profile.themeAccentKey as AccentPaletteKey) || 'slate';
   const currentPalette = ACCENT_PALETTES[currentAccentKey] || ACCENT_PALETTES.slate;
@@ -355,15 +406,79 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {appointments.length===0&&<p className="text-sm text-gray-500 col-span-full">No appointments yet. Use walk-in booking above for guests at the salon.</p>}
               {appointments.map((apt) => (
-                <div key={apt.id} className="p-4 rounded-xl border border-gray-200 bg-gray-50 flex justify-between items-center">
-                  <div>
-                    <div className="font-bold text-sm">{apt.clientName}</div>
-                    <div className="text-xs text-gray-500">{apt.serviceName} with {apt.stylistName}</div>
-                    <div className="text-xs font-mono font-bold text-[#b0004a] mt-1">{apt.date} @ {apt.time}</div>
+                <div key={apt.id} className="p-4 rounded-xl border border-gray-200 bg-white hover:border-gray-300 shadow-xs flex flex-col justify-between gap-3 text-xs">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="font-bold text-sm text-gray-900">{apt.clientName}</div>
+                      <div className="text-xs text-gray-500 mt-0.5">{apt.serviceName} with {apt.stylistName}</div>
+                      <div className="text-xs font-mono font-bold text-[#b0004a] mt-1">{apt.date} @ {apt.time} IST</div>
+                      {apt.clientEmail && <div className="text-[11px] text-gray-500 font-mono mt-0.5">✉ {apt.clientEmail}</div>}
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold text-base text-gray-900 font-mono">₹{apt.servicePrice.toLocaleString('en-IN')}</div>
+                      <div className="text-[10px] text-gray-500 font-mono mt-0.5">
+                        {apt.paymentStatus === 'paid_full' ? 'Paid in full' : 'Collected'}: ₹{apt.amountPaid}
+                      </div>
+                      <span className={`inline-block mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${
+                        apt.status === 'confirmed' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                        apt.status === 'completed' ? 'bg-blue-50 text-blue-700 border border-blue-200' :
+                        'bg-gray-100 text-gray-600'
+                      }`}>
+                        {apt.status}
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <div className="font-bold text-base">₹{apt.servicePrice.toLocaleString('en-IN')}</div>
-                    <div className="text-[10px] text-gray-400 font-mono">{apt.paymentStatus==='paid_full'?'Paid in full':'Collected'}: ₹{apt.amountPaid}</div>
+
+                  {/* Email Feedback Banner */}
+                  {aptEmailFeedback[apt.id] && (
+                    <div className="p-2 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-900 text-[11px] flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
+                      <span className="font-medium">{aptEmailFeedback[apt.id]}</span>
+                    </div>
+                  )}
+
+                  {/* Optional Custom Email Input */}
+                  {(showEmailInputForId === apt.id || (!apt.clientEmail && !customAptEmail[apt.id])) && (
+                    <div className="pt-2 border-t border-gray-100 flex gap-2">
+                      <input
+                        type="email"
+                        placeholder="customer@email.com"
+                        value={customAptEmail[apt.id] || apt.clientEmail || ''}
+                        onChange={(e) => setCustomAptEmail(prev => ({ ...prev, [apt.id]: e.target.value }))}
+                        className="flex-1 text-[11px] px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      />
+                    </div>
+                  )}
+
+                  {/* Email Action Triggers */}
+                  <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-gray-100">
+                    <button
+                      type="button"
+                      disabled={sendingAptEmailId === apt.id}
+                      onClick={() => void handleSendAptEmail(apt, 'confirmation')}
+                      className="px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 font-medium text-[11px] flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
+                      title="Dispatch automated booking confirmation email via Resend"
+                    >
+                      <span>✉</span>
+                      <span>{sendingAptEmailId === apt.id ? 'Sending…' : 'Send Confirmation'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={sendingAptEmailId === apt.id}
+                      onClick={() => void handleSendAptEmail(apt, 'reminder')}
+                      className="px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 font-medium text-[11px] flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
+                      title="Dispatch 24-hour reminder email with location & appointment details"
+                    >
+                      <span>⏰</span>
+                      <span>{sendingAptEmailId === apt.id ? 'Sending…' : 'Send 24h Reminder'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowEmailInputForId(showEmailInputForId === apt.id ? null : apt.id)}
+                      className="text-[10px] text-gray-400 hover:text-gray-700 ml-auto transition-colors cursor-pointer underline"
+                    >
+                      {showEmailInputForId === apt.id ? 'Close' : 'Change Email'}
+                    </button>
                   </div>
                 </div>
               ))}
