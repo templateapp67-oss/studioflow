@@ -277,6 +277,186 @@ Return strictly valid JSON in this format:
     }
   });
 
+  // Email Service Status Endpoint
+  app.get("/api/email-service-status", (_req, res) => {
+    const resendApiKey = process.env.RESEND_API_KEY;
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'StudioFlow <onboarding@resend.dev>';
+    res.json({
+      status: "ok",
+      provider: "resend",
+      configured: Boolean(resendApiKey),
+      from: fromEmail,
+      mode: resendApiKey ? "live" : "preview"
+    });
+  });
+
+  // Automated Booking Email Endpoint (Resend integration)
+  app.post("/api/send-booking-email", async (req, res) => {
+    try {
+      const {
+        type = 'confirmation',
+        to,
+        clientName,
+        bookingRef,
+        serviceName,
+        servicePrice = 0,
+        amountPaid = 0,
+        stylistName = 'Specialist',
+        date,
+        time,
+        salonName = 'StudioFlow Salon',
+        salonAddress = '',
+        salonCity = '',
+        salonPhone = '',
+        salonWhatsapp = ''
+      } = req.body;
+
+      if (!to || typeof to !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to.trim())) {
+        return res.status(400).json({ error: 'Valid recipient email address is required.' });
+      }
+
+      const recipient = to.trim();
+      const resendApiKey = process.env.RESEND_API_KEY;
+      const fromEmail = process.env.RESEND_FROM_EMAIL || 'StudioFlow <onboarding@resend.dev>';
+      const isReminder = type === 'reminder';
+      const ref = bookingRef || 'NX-BOOKING';
+      const subject = isReminder
+        ? `Reminder: Your appointment tomorrow at ${salonName}`
+        : `Booking Confirmed: ${serviceName || 'Salon Service'} at ${salonName} (${ref})`;
+
+      const price = Number(servicePrice) || 0;
+      const paid = Number(amountPaid) || 0;
+      const balance = Math.max(0, price - paid);
+      const fullAddress = [salonAddress, salonCity].filter(Boolean).join(', ') || 'Salon Studio';
+
+      // HTML template
+      const html = isReminder
+        ? `<!DOCTYPE html><html><body style="margin:0;padding:24px;font-family:system-ui,-apple-system,sans-serif;background:#f8fafc;color:#1e293b;">
+          <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px;border:1px solid #e2e8f0;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.06);">
+            <div style="background:#0f172a;color:#ffffff;padding:28px 24px;text-align:center;">
+              <span style="background:rgba(255,255,255,0.18);padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#fcd34d;">Appointment Reminder</span>
+              <h1 style="margin:8px 0 0;font-size:22px;font-weight:800;">See You Tomorrow at ${salonName}!</h1>
+            </div>
+            <div style="padding:24px;">
+              <p style="margin:0 0 16px;font-size:14px;line-height:1.6;">Hello <strong>${clientName || 'Guest'}</strong>, your salon visit is scheduled for tomorrow:</p>
+              <div style="background:#fff5f9;border:1px solid #fbcfe8;border-radius:12px;padding:18px;text-align:center;margin-bottom:20px;">
+                <div style="font-size:22px;font-weight:900;color:#9f1239;font-family:monospace;">${date} @ ${time} IST</div>
+                <div style="font-size:14px;font-weight:700;color:#334155;margin-top:4px;">${serviceName} with ${stylistName}</div>
+                <div style="font-size:11px;color:#64748b;margin-top:4px;">Ref: ${ref}</div>
+              </div>
+              <div style="background:#f1f5f9;border-radius:10px;padding:12px 16px;font-size:13px;color:#475569;margin-bottom:18px;">
+                <strong>Location:</strong> ${fullAddress}
+              </div>
+              ${salonPhone ? `<p style="font-size:13px;text-align:center;color:#64748b;">Questions? Contact the salon at <a href="tel:${salonPhone}" style="color:#9f1239;font-weight:700;">${salonPhone}</a></p>` : ''}
+            </div>
+            <div style="background:#f8fafc;padding:16px;border-top:1px solid #e2e8f0;text-align:center;font-size:11px;color:#94a3b8;">
+              ${salonName} • Automated notification by StudioFlow
+            </div>
+          </div>
+        </body></html>`
+        : `<!DOCTYPE html><html><body style="margin:0;padding:24px;font-family:system-ui,-apple-system,sans-serif;background:#f8fafc;color:#1e293b;">
+          <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px;border:1px solid #e2e8f0;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.06);">
+            <div style="background:linear-gradient(135deg,#702d4b,#9f1239);color:#ffffff;padding:32px 24px;text-align:center;">
+              <span style="background:rgba(255,255,255,0.2);padding:4px 12px;border-radius:99px;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Confirmed Appointment</span>
+              <h1 style="margin:10px 0 0;font-size:24px;font-weight:800;">Booking Confirmed!</h1>
+              <p style="margin:6px 0 0;font-size:14px;opacity:0.9;">${salonName}</p>
+            </div>
+            <div style="padding:24px;">
+              <p style="margin:0 0 16px;font-size:14px;line-height:1.6;">Namaste <strong>${clientName || 'Guest'}</strong>, your booking is confirmed with ${salonName}.</p>
+              <div style="border:1px dashed #cbd5e1;background:#f8fafc;border-radius:12px;padding:14px 18px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                  <div style="font-size:10px;text-transform:uppercase;color:#64748b;font-weight:700;">Booking Reference</div>
+                  <div style="font-size:18px;font-family:monospace;font-weight:800;color:#0f172a;">${ref}</div>
+                </div>
+                <span style="background:#ecfdf5;color:#047857;padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700;">Confirmed</span>
+              </div>
+              <table style="width:100%;font-size:13px;border-collapse:collapse;margin-bottom:20px;">
+                <tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:8px 0;color:#64748b;">Service:</td><td style="padding:8px 0;text-align:right;font-weight:700;">${serviceName}</td></tr>
+                <tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:8px 0;color:#64748b;">Specialist:</td><td style="padding:8px 0;text-align:right;font-weight:600;">${stylistName}</td></tr>
+                <tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:8px 0;color:#64748b;">Date & Time:</td><td style="padding:8px 0;text-align:right;font-weight:800;color:#be185d;font-family:monospace;">${date} @ ${time} IST</td></tr>
+                <tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:8px 0;color:#64748b;">Salon Address:</td><td style="padding:8px 0;text-align:right;">${fullAddress}</td></tr>
+              </table>
+              <div style="background:#fff5f9;border:1px solid #fbcfe8;border-radius:12px;padding:14px;margin-bottom:20px;font-size:13px;">
+                <div style="font-weight:700;color:#9f1239;margin-bottom:6px;">Payment Summary</div>
+                <div>Service Total: <strong>₹${price.toLocaleString('en-IN')}</strong></div>
+                ${paid > 0 ? `<div style="color:#047857;">Advance Paid: <strong>-₹${paid.toLocaleString('en-IN')}</strong></div>` : ''}
+                <div style="margin-top:6px;font-size:14px;font-weight:800;color:#9f1239;">Balance Due at Salon: ₹${balance.toLocaleString('en-IN')}</div>
+              </div>
+              <div style="font-size:12px;color:#64748b;line-height:1.6;background:#f8fafc;padding:12px;border-radius:8px;">
+                • Please arrive 10 minutes before your slot.<br/>
+                • Show your reference code (${ref}) at reception.<br/>
+                • Balance can be paid via cash, UPI, or card at the salon.
+              </div>
+            </div>
+            <div style="background:#f8fafc;padding:16px;border-top:1px solid #e2e8f0;text-align:center;font-size:11px;color:#94a3b8;">
+              ${salonName} • Automated confirmation by StudioFlow
+            </div>
+          </div>
+        </body></html>`;
+
+      const text = `${salonName} - ${isReminder ? 'Appointment Reminder' : 'Booking Confirmation'}\n\n` +
+        `Client: ${clientName || 'Guest'}\n` +
+        `Reference: ${ref}\n` +
+        `Service: ${serviceName}\n` +
+        `Specialist: ${stylistName}\n` +
+        `Date & Time: ${date} at ${time} IST\n` +
+        `Address: ${fullAddress}\n` +
+        `Total: Rs. ${price} | Paid: Rs. ${paid} | Balance Due: Rs. ${balance}\n\n` +
+        `Please arrive 10 minutes prior to your appointment.\n${salonPhone ? `Phone: ${salonPhone}\n` : ''}`;
+
+      // If Resend is configured, call Resend API directly
+      if (resendApiKey) {
+        const response = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: fromEmail,
+            to: [recipient],
+            subject,
+            html,
+            text,
+          }),
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          const errMsg = data?.message || data?.error || 'Failed to send via Resend';
+          console.error('Resend API error:', errMsg);
+          return res.status(502).json({ error: errMsg, delivered: false });
+        }
+
+        return res.json({
+          success: true,
+          delivered: true,
+          emailId: data.id,
+          to: recipient,
+          type,
+          subject,
+        });
+      }
+
+      // If Resend API key is not in dev server env, succeed gracefully with preview info
+      console.log(`[Email Service] Automated ${type} email prepared for ${recipient}: "${subject}"`);
+      return res.json({
+        success: true,
+        delivered: false,
+        simulated: true,
+        emailId: `sim_${Date.now()}`,
+        to: recipient,
+        type,
+        subject,
+        notice: 'Email generated. Add RESEND_API_KEY to your environment to send live emails via Resend.',
+      });
+    } catch (err: any) {
+      console.error('Send booking email error:', err);
+      return res.status(500).json({ error: err?.message || 'Failed to process booking email' });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

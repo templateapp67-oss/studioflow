@@ -2,6 +2,7 @@
 @import "./roopMahal.css";
 @import "./pinkyNails.css";
 @import "./components/hairSpaWebsite.css";
+@import "./keshPrakriti.css";
 
 @theme {
   --color-surface-tint: #bc004f;
@@ -672,6 +673,12 @@
 .sf-barber-pillars h3{margin:8px 0 4px;font-size:15px}
 .sf-barber-pillars p{margin:0;font-size:13px}
 .sf-connections-section,.sf-offers-section,.sf-packages{scroll-margin-top:calc(var(--sf-header-height) + 56px)}
+.sf-service-row.grid{grid-auto-flow:row;overflow:visible}
+.sf-packages .sf-service-row{grid-auto-flow:row;overflow:visible}
+.sf-packages .sf-service-card{height:100%}
+.sf-service-card{border:1px solid var(--sf-line);border-radius:18px;background:#fff;overflow:hidden;display:flex;flex-direction:column;min-width:0;height:100%;justify-content:space-between}
+.sf-service-card p,.sf-service-card .flex-1 p{margin:0 16px 10px;font-size:13px;color:var(--sf-muted)}
+.sf-service-card .flex-1{display:flex;flex-direction:column;flex:1 1 0%}
 /* Footer */
 .sf-footer{background:#0f172a;color:#cbd5e1;padding-block:48px 90px;text-align:center}
 .sf-footer a{color:#fff}

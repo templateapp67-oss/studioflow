@@ -3,6 +3,7 @@ import {useWebsiteLanguage} from './WebsiteLanguage';
 import type {DirectBookingSlot} from './SpecialistWeek';
 import { paymentRequest, payBookingDeposit, reconcileBookingPayment } from '../lib/platformPayments';
 import { supabase } from '../lib/supabase';
+import { sendBookingConfirmationEmail, sendBookingReminderEmail } from '../lib/emailService';
 import {getContrastTextColor} from '../themeAccents';
 import React, { useState, useEffect, useRef, useId } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -234,6 +235,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   // Step 6: Confirmation State
   const [bookingRef, setBookingRef] = useState<string>('');
   const [copiedRef, setCopiedRef] = useState<boolean>(false);
+  const [emailStatusMessage, setEmailStatusMessage] = useState<string>('');
+  const [isSendingEmail, setIsSendingEmail] = useState<boolean>(false);
+  const [recipientEmailInput, setRecipientEmailInput] = useState<string>('');
 
   // Load persistent guest details from localStorage
   useEffect(() => {
@@ -357,6 +361,42 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     setBookingRef(saved.id);setServerStatus(saved.status);setPaidAmount(saved.amountPaid);setServerTotal(saved.servicePrice??totalPrice);setSelectedStylist(prev=>({...prev,name:saved.stylistName||prev.name}));
     setCurrentStep('confirmed');
 
+    // Trigger automated booking confirmation email if guest provided email address
+    const targetEmail = (guestEmail || '').trim();
+    if (targetEmail && targetEmail.includes('@')) {
+      setRecipientEmailInput(targetEmail);
+      setIsSendingEmail(true);
+      setEmailStatusMessage(`Sending confirmation email to ${targetEmail}…`);
+      void sendBookingConfirmationEmail({
+        to: targetEmail,
+        clientName: guestName.trim() || 'Valued Guest',
+        clientPhone: `+91 ${cleanPhone}`,
+        bookingRef: saved.id || refNum,
+        serviceName: selectedService.name,
+        servicePrice: totalPrice,
+        amountPaid: saved.amountPaid || paidAmount,
+        stylistName: saved.stylistName || selectedStylist.name,
+        date: bookingDate,
+        time: bookingTime,
+        salonName: profile.businessName || 'StudioFlow Salon',
+        salonAddress: profile.address,
+        salonCity: profile.city,
+        salonPhone: profile.phone,
+        salonWhatsapp: profile.whatsapp,
+        salonSlug: profile.subdomain,
+      }).then(res => {
+        setIsSendingEmail(false);
+        if (res.success) {
+          setEmailStatusMessage(res.delivered ? `Confirmation email delivered to ${targetEmail}!` : `Confirmation email prepared for ${targetEmail}`);
+        } else {
+          setEmailStatusMessage(res.error || 'Automated confirmation email queued.');
+        }
+      }).catch(err => {
+        setIsSendingEmail(false);
+        setEmailStatusMessage(err instanceof Error ? err.message : 'Email delivery failed');
+      });
+    }
+
     if (onShowToast) {
       onShowToast({
         id: String(Date.now()),
@@ -371,6 +411,84 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     }
     } catch (error) { setSubmitError(error instanceof Error ? error.message : 'Booking could not be saved. Try another slot.'); }
     finally { setIsSubmitting(false); }
+  };
+
+  const handleSendManualConfirmationEmail = async (overrideEmail?: string) => {
+    const to = (overrideEmail || recipientEmailInput || guestEmail).trim();
+    if (!to || !to.includes('@')) {
+      setEmailStatusMessage('Please enter a valid email address.');
+      return;
+    }
+    setIsSendingEmail(true);
+    setEmailStatusMessage(`Sending confirmation email to ${to}…`);
+    try {
+      const res = await sendBookingConfirmationEmail({
+        to,
+        clientName: guestName.trim() || 'Valued Guest',
+        clientPhone: guestPhone,
+        bookingRef: bookingRef || 'NX-BOOKING',
+        serviceName: selectedService.name,
+        servicePrice: totalPrice,
+        amountPaid: paidAmount,
+        stylistName: selectedStylist.name,
+        date: bookingDate,
+        time: bookingTime,
+        salonName: profile.businessName || 'StudioFlow Salon',
+        salonAddress: profile.address,
+        salonCity: profile.city,
+        salonPhone: profile.phone,
+        salonWhatsapp: profile.whatsapp,
+        salonSlug: profile.subdomain,
+      });
+      if (res.success) {
+        setEmailStatusMessage(res.delivered ? `Confirmation email delivered to ${to}!` : `Confirmation email sent to ${to}`);
+      } else {
+        setEmailStatusMessage(res.error || 'Failed to dispatch email');
+      }
+    } catch (err: any) {
+      setEmailStatusMessage(err?.message || 'Email delivery failed');
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
+  const handleSendManualReminderEmail = async () => {
+    const to = (recipientEmailInput || guestEmail).trim();
+    if (!to || !to.includes('@')) {
+      setEmailStatusMessage('Please enter a valid email address.');
+      return;
+    }
+    setIsSendingEmail(true);
+    setEmailStatusMessage(`Sending 24h reminder email to ${to}…`);
+    try {
+      const res = await sendBookingReminderEmail({
+        to,
+        clientName: guestName.trim() || 'Valued Guest',
+        clientPhone: guestPhone,
+        bookingRef: bookingRef || 'NX-BOOKING',
+        serviceName: selectedService.name,
+        servicePrice: totalPrice,
+        amountPaid: paidAmount,
+        stylistName: selectedStylist.name,
+        date: bookingDate,
+        time: bookingTime,
+        salonName: profile.businessName || 'StudioFlow Salon',
+        salonAddress: profile.address,
+        salonCity: profile.city,
+        salonPhone: profile.phone,
+        salonWhatsapp: profile.whatsapp,
+        salonSlug: profile.subdomain,
+      });
+      if (res.success) {
+        setEmailStatusMessage(res.delivered ? `Reminder email delivered to ${to}!` : `Reminder email prepared for ${to}`);
+      } else {
+        setEmailStatusMessage(res.error || 'Failed to dispatch reminder');
+      }
+    } catch (err: any) {
+      setEmailStatusMessage(err?.message || 'Reminder delivery failed');
+    } finally {
+      setIsSendingEmail(false);
+    }
   };
 
   // Copy booking reference
@@ -1034,6 +1152,65 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   <MessageSquare className="w-3.5 h-3.5" />
                   <span>Payment verified by platform · Booking saved in Supabase</span>
+                </div>
+              </div>
+
+              {/* Automated Email Confirmation & Reminder Card */}
+              <div className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col gap-3 text-left">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center">
+                      <Mail className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="font-bold text-xs text-slate-900">Email Confirmation & 24h Reminder</div>
+                      <div className="text-[10px] text-slate-500">Supabase Edge Function · Resend Integration</div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full font-medium">
+                    Automated
+                  </span>
+                </div>
+
+                {emailStatusMessage && (
+                  <div className="p-2.5 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-900 text-xs flex items-start gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
+                    <span className="flex-1 text-[11px] font-medium leading-relaxed">{emailStatusMessage}</span>
+                  </div>
+                )}
+
+                {/* Email address input if missing or to override */}
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type="email"
+                      value={recipientEmailInput || guestEmail}
+                      onChange={(e) => setRecipientEmailInput(e.target.value)}
+                      placeholder="client@example.com"
+                      className="w-full text-xs px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    disabled={isSendingEmail || !(recipientEmailInput || guestEmail)}
+                    onClick={handleSendManualConfirmationEmail}
+                    className="py-2 px-3 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 disabled:opacity-50 text-slate-700 font-medium text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Mail className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>{isSendingEmail ? 'Sending…' : 'Resend Receipt'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isSendingEmail || !(recipientEmailInput || guestEmail)}
+                    onClick={handleSendManualReminderEmail}
+                    className="py-2 px-3 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 disabled:opacity-50 text-slate-700 font-medium text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Clock className="w-3.5 h-3.5 text-amber-600" />
+                    <span>{isSendingEmail ? 'Sending…' : 'Send 24h Reminder'}</span>
+                  </button>
                 </div>
               </div>
 

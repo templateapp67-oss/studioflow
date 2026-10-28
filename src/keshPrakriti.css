@@ -1,0 +1,279 @@
+/* ==========================================================================
+   Template 06 — Kesh Prakriti Hair Spa & Scalp Sanctuary (hair_spa)
+   Design System & Tokens:
+   - Forest Green:     #183D32 (Primary brand, headings, buttons)
+   - Dark Botanical:   #102B24 (Footer, dark sections, overlays)
+   - Warm Ivory:       #F9F6EF (Main background)
+   - Soft Sage:        #E4EBDD (Alternate sections, subtle accents)
+   - Muted Terracotta: #B96F50 (Secondary highlights)
+   - Champagne Gold:   #C5A46D (Fine borders & premium details)
+   - Charcoal:         #252923 (Body text)
+   - Pure White:       #FFFFFF (Cards, forms, contrast)
+   All selectors are scoped to .sf-page[data-template="hair_spa"] or .sf-kp-*
+   so all other templates remain completely unaffected (zero-regression).
+   ========================================================================== */
+
+.sf-page[data-template="hair_spa"] {
+  --kp-forest: #183D32;
+  --kp-dark-botanical: #102B24;
+  --kp-warm-ivory: #F9F6EF;
+  --kp-soft-sage: #E4EBDD;
+  --kp-sage-light: #F1F5EC;
+  --kp-terracotta: #B96F50;
+  --kp-gold: #C5A46D;
+  --kp-gold-light: #E0CFAC;
+  --kp-charcoal: #252923;
+  --kp-charcoal-muted: #565D53;
+  --kp-border: #DEE4D8;
+  --kp-white: #FFFFFF;
+  --kp-serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --kp-sans: 'Manrope', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  --sf-bg: #F9F6EF;
+  --sf-ink: #252923;
+  --sf-muted: #565D53;
+  --sf-line: #DEE4D8;
+  --sf-soft: #E4EBDD;
+  --sf-accent: #183D32;
+
+  background-color: var(--kp-warm-ivory);
+  color: var(--kp-charcoal);
+  font-family: var(--kp-sans);
+  line-height: 1.68;
+  letter-spacing: -0.01em;
+}
+
+/* Editorial Typography */
+.sf-page[data-template="hair_spa"] h1,
+.sf-page[data-template="hair_spa"] h2,
+.sf-page[data-template="hair_spa"] h3,
+.sf-page[data-template="hair_spa"] .sf-kp-serif {
+  font-family: var(--kp-serif);
+  font-feature-settings: 'liga', 'kern';
+  letter-spacing: -0.015em;
+}
+
+/* Subtle selection */
+.sf-page[data-template="hair_spa"] ::selection {
+  background-color: #E4EBDD;
+  color: #183D32;
+}
+
+/* Brand Wordmark & Logo */
+.sf-kp-logo-svg {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+}
+
+/* Sticky Header */
+.sf-kp-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  width: 100%;
+}
+
+.sf-kp-header.is-scrolled {
+  background-color: rgba(249, 246, 239, 0.95);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(197, 164, 109, 0.3);
+  box-shadow: 0 4px 20px -2px rgba(24, 61, 50, 0.05);
+}
+
+.sf-kp-header.is-transparent {
+  background-color: rgba(249, 246, 239, 0.85);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(222, 228, 216, 0.5);
+}
+
+/* Navigation Links */
+.sf-kp-nav-link {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #183D32;
+  text-decoration: none;
+  position: relative;
+  padding: 0.25rem 0;
+  transition: color 0.2s ease;
+}
+
+.sf-kp-nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background-color: #C5A46D;
+  transition: width 0.25s ease;
+}
+
+.sf-kp-nav-link:hover {
+  color: #102B24;
+}
+
+.sf-kp-nav-link:hover::after {
+  width: 100%;
+}
+
+/* Primary Button */
+.sf-kp-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: #183D32;
+  color: #F9F6EF;
+  font-family: var(--kp-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0.75rem 1.75rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(197, 164, 109, 0.4);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(24, 61, 50, 0.12);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sf-kp-btn-primary:hover {
+  background-color: #102B24;
+  border-color: #C5A46D;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(24, 61, 50, 0.2);
+}
+
+.sf-kp-btn-primary:active {
+  transform: translateY(0);
+}
+
+/* Secondary / Outline Button */
+.sf-kp-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: transparent;
+  color: #183D32;
+  font-family: var(--kp-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0.75rem 1.75rem;
+  border-radius: 9999px;
+  border: 1px solid #183D32;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sf-kp-btn-secondary:hover {
+  background-color: #E4EBDD;
+  border-color: #183D32;
+  transform: translateY(-1px);
+}
+
+/* Hero Section */
+.sf-kp-hero {
+  position: relative;
+  min-height: 85vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background-color: #102B24;
+}
+
+.sf-kp-hero-bg {
+  position: absolute;
+  inset: -10% 0;
+  width: 100%;
+  height: 120%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.sf-kp-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(16, 43, 36, 0.45) 0%,
+    rgba(16, 43, 36, 0.7) 60%,
+    rgba(16, 43, 36, 0.92) 100%
+  );
+}
+
+/* Service Card Hover & Elevation */
+.sf-kp-service-card {
+  background-color: #FFFFFF;
+  border: 1px solid var(--kp-border);
+  border-radius: 1.25rem;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: space-between;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sf-kp-service-card:hover {
+  transform: translateY(-4px);
+  border-color: #C5A46D;
+  box-shadow: 0 16px 36px -8px rgba(24, 61, 50, 0.1);
+}
+
+.sf-kp-service-card .sf-kp-card-media {
+  overflow: hidden;
+  position: relative;
+  aspect-ratio: 16 / 10;
+}
+
+.sf-kp-service-card .sf-kp-card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sf-kp-service-card:hover .sf-kp-card-media img {
+  transform: scale(1.04);
+}
+
+/* Mobile Drawer */
+.sf-kp-mobile-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(16, 43, 36, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+}
+
+.sf-kp-mobile-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(340px, 85vw);
+  background-color: #F9F6EF;
+  border-left: 1px solid rgba(197, 164, 109, 0.4);
+  box-shadow: -10px 0 30px rgba(16, 43, 36, 0.2);
+  display: flex;
+  flex-direction: column;
+  z-index: 101;
+}
+
+/* Reduced Motion Override */
+@media (prefers-reduced-motion: reduce) {
+  .sf-page[data-template="hair_spa"] *,
+  .sf-page[data-template="hair_spa"] *::before,
+  .sf-page[data-template="hair_spa"] *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

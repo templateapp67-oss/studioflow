@@ -746,7 +746,7 @@ assert.ok(skinTab, `Expected existing ${tmpl.services[1].category} category tab`
 await act(async () => skinTab.props.onClick());
 const filteredServiceCards = tree.root
   .findByProps({ id: 'services-section' })
-  .findAll((n: any) => n.type === 'article' && n.props.className === 'sf-service-card');
+  .findAll((n: any) => n.type === 'article' && String(n.props.className || '').split(/\s+/).includes('sf-service-card'));
 assert.ok(filteredServiceCards.length >= 1 && filteredServiceCards.length < tmpl.services.length);
 await act(async () => categoryGroup.findAllByType('button')[0].props.onClick());
 

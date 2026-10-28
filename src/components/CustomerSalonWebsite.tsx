@@ -64,6 +64,20 @@ import {websiteSections} from '../lib/websiteContent';
 import {WebsiteSections} from './WebsiteSections';
 import {BookingModal} from './BookingModal';
 import {HairSpaWebsite} from './HairSpaWebsite';
+import {
+ KeshPrakritiHero,
+ KeshPrakritiPhilosophy,
+ KeshPrakritiFeatured,
+ KeshPrakritiServices,
+ KeshPrakritiJourney,
+ KeshPrakritiBotanicals,
+ KeshPrakritiGallery,
+ KeshPrakritiTestimonials,
+ KeshPrakritiBooking,
+ KeshPrakritiFaq,
+ KeshPrakritiContact,
+ KeshPrakritiFooter,
+} from './KeshPrakritiSections';
 
 const money=(value:number)=>`₹${Number(value||0).toLocaleString('en-IN')}`;
 function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGallery=[],policies,branding,loyaltyConfig,onCustomerAccount,customerSignedIn,customerName,customerPhotoUrl,onAddAppointment}:SalonWebsitePreviewProps){
@@ -76,7 +90,9 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
  const barber=profile.businessType==='barber';
  const roopMahal=profile.businessType==='beauty_parlour';
  const pinkyNails=profile.businessType==='nail_studio';
- const accent=profile.customAccentColor||(barber?'#c49a6c':roopMahal?'#6D2638':pinkyNails?'#702D4B':palette.primaryHex);
+ const keshPrakriti=profile.businessType==='hair_spa';
+ const keshServices=(services&&services.length>0)?services:(CATEGORY_TEMPLATES.hair_spa?.services||[]);
+ const accent=profile.customAccentColor||(barber?'#c49a6c':roopMahal?'#6D2638':pinkyNails?'#702D4B':keshPrakriti?'#183D32':palette.primaryHex);
  const [category,setCategory]=useState('All'),[chosen,setChosen]=useState<Stylist|undefined>(),[service,setService]=useState<SalonService|undefined>(),[booking,setBooking]=useState(false),[photo,setPhoto]=useState<number|null>(null);
  const [brokenGalleryIds,setBrokenGalleryIds]=useState<string[]>([]);
  useEffect(()=>{setCategory('All');setChosen(undefined);setService(undefined);setBooking(false);setBrokenGalleryIds([]);},[profile.businessType]);
@@ -138,7 +154,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
  const book=(selected?:SalonService,specialist?:Stylist)=>{
   if(roopMahal&&!roopBookingFlowAvailable)return;
   if(pinkyNails&&!pinkyBookingFlowAvailable)return;
-  const pool=roopMahal?roopServices:pinkyNails?pinkyServices:services;
+  const pool=keshPrakriti?keshServices:roopMahal?roopServices:pinkyNails?pinkyServices:services;
   setDirectSlot(undefined);setService(selected||pool[0]);setChosen(current=>specialist||current);setBooking(true);
  };
  const customer=(mode:'signin'|'signup')=>onCustomerAccount?onCustomerAccount(mode):location.assign(`/?customer=1&auth=${mode}&return=${encodeURIComponent(profile.subdomain||'')}`);
@@ -300,10 +316,10 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
  );
 
  if(profile.businessType==='hair_spa')return <>
-  <HairSpaWebsite profile={profile} services={services} stylists={team} galleryPhotos={galleryEntries} shared={shared} enabledSections={['promo','videos','social','loyalty','policies','bookings','share'].filter(section=>visible[section])} showPackages={visible.packages} customerSignedIn={customerSignedIn} customerName={customerName} customerPhotoUrl={customerPhotoUrl} onBook={(selected,specialist)=>book(selected,specialist)} onAccount={mode=>customer(mode||'signin')} onMyBookings={()=>setMyBookings(true)} onViewSpecialist={id=>setViewStaff(id)}/>
+  <HairSpaWebsite profile={profile} services={keshServices} stylists={team} galleryPhotos={galleryEntries} shared={shared} enabledSections={['promo','videos','social','loyalty','policies','bookings','share'].filter(section=>visible[section])} showPackages={visible.packages} customerSignedIn={customerSignedIn} customerName={customerName} customerPhotoUrl={customerPhotoUrl} onBook={(selected,specialist)=>book(selected,specialist)} onAccount={mode=>customer(mode||'signin')} onMyBookings={()=>setMyBookings(true)} onViewSpecialist={id=>setViewStaff(id)}/>
   {myBookings&&<SalonBookingsDialog profile={profile} onClose={()=>setMyBookings(false)}/>}
   {team.some(st=>st.id===viewStaff)&&<StylistProfile services={services} onSlot={(selected,slot)=>{setChosen(team.find(st=>st.id===slot.stylistId));setService(selected);setDirectSlot(slot);setViewStaff('');setBooking(true)}} staff={team.find(st=>st.id===viewStaff)!} profile={profile} slug={profile.subdomain} signedIn={customerSignedIn} demo={!profile.subdomain} onLogin={()=>{setViewStaff('');customer('signin')}} onClose={()=>setViewStaff('')} onBook={()=>{const specialist=team.find(st=>st.id===viewStaff);setViewStaff('');book(undefined,specialist)}}/>}
-  <BookingModal isOpen={booking} onClose={()=>setBooking(false)} profile={profile} services={services} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>
+  <BookingModal isOpen={booking} onClose={()=>setBooking(false)} profile={profile} services={keshServices} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>
  </>;
 
  const testimonialsSection=visible.testimonials&&(!pinkyNails||pinkyHasReviews||customerSignedIn)&&(
@@ -322,16 +338,153 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
   </section>
  );
 
- return <div className={`sf-page${barber?' sf-barber':''}${roopMahal?' sf-roop-mahal':''}${pinkyNails?' sf-pinky-nails':''}`} data-template={profile.businessType} style={{'--sf-header-height':visible.header?'72px':'0px','--sf-accent':accent,'--sf-accent-text':getContrastTextColor(accent)} as React.CSSProperties}>
-  {visible.header&&<CustomerWebsiteHeader profile={profile} signedIn={customerSignedIn} customerName={customerName} customerPhotoUrl={customerPhotoUrl} onAccount={customer} onMyBookings={()=>setMyBookings(true)} onBook={roopMahal?(roopBookingFlowAvailable?()=>book():undefined):pinkyNails?(pinkyBookingFlowAvailable?()=>book():undefined):()=>book()} bookingAvailable={roopMahal?roopBookingFlowAvailable:pinkyNails?pinkyBookingFlowAvailable:true} availableTargets={roopMahal?roopAvailableTargets:pinkyNails?pinkyAvailableTargets:undefined} hasTeam={Boolean(visible.stylists&&team.length)}/>}
-  <div data-layout="hero" id="salon-home">
-   {visible.hero&&(barber?<BarberReferenceHero profile={profile} services={services} team={team} showMetrics={visible.metrics} onBook={book} whatsapp={wa}/>:roopMahal?<RoopMahalHero profile={profile} onBook={roopBookingFlowAvailable?book:undefined} bookingAvailable={roopBookingFlowAvailable} hasServicesTarget={roopHasServicesDestination}/>:pinkyNails?<PinkyNailsHero profile={profile} onBook={pinkyBookingFlowAvailable?book:undefined} bookingAvailable={pinkyBookingFlowAvailable} hasServicesTarget={pinkyAvailableTargets.has('services-section')}/>:<section className="sf-hero"><img className="sf-hero-image" src={profile.coverImageUrl||template.coverImageUrl} alt="Salon studio interior"/><div className="sf-hero-overlay"/><div className="sf-container sf-hero-content"><div className="sf-badges"><span><ShieldCheck size={14}/>Verified checkout</span>{profile.city&&<span><MapPin size={14}/>{profile.city}</span>}<span className="sf-mood"><i/>Rich warm mood</span></div><p className="sf-eyebrow">{template.shortName}</p><h1>{profile.businessName||'Your next look starts here.'}</h1><p className="sf-hero-intro">{profile.tagline||'Thoughtful care. Expert technique. A little time for you.'}</p><div className="sf-hero-actions"><button className="sf-button" onClick={()=>book()}><CalendarCheck size={18}/>{t('Book Appointment')}<ArrowUpRight size={18}/></button>{wa?<a className="sf-button sf-button-whatsapp" href={wa} target="_blank" rel="noreferrer"><MessageCircle size={18}/>WhatsApp Inquiry</a>:profile.phone&&<a className="sf-button sf-button-outline" href={`tel:${profile.phone}`}>Call the studio</a>}</div><p className="sf-hero-note">Secure 25% advance · Balance payable at the salon</p>{visible.metrics&&<div className="sf-hero-facts"><span><Clock size={16}/>{profile.workingHoursMonFri||'View studio hours below'}</span>{services.length>0&&<span>{services.length} services · From {money(Math.min(...services.map(s=>s.price)))}</span>}</div>}</div></section>)}
-  </div>
-  {dock.length>0&&<nav data-layout="dock" aria-label="Salon quick actions" className="sf-dock"><div className="sf-container sf-dock-scroll">{dock.map(([,label,id])=><a key={id} href={`#${id}`}>{t(label)}<ArrowUpRight size={13}/></a>)}</div></nav>}
-  <AppAnnouncementStrip/>
-  {pinkyShowTrust&&<PinkyNailsTrustHighlights/>}
-  {visible.promo&&<section className="sf-section sf-offers-section"><div className="sf-container"><WebsiteSections {...shared} sections={['promo']}/></div></section>}
-  {visible.services&&(
+ return <div className={`sf-page${barber?' sf-barber':''}${roopMahal?' sf-roop-mahal':''}${pinkyNails?' sf-pinky-nails':''}${keshPrakriti?' sf-kesh-prakriti':''}`} data-template={profile.businessType} style={{'--sf-header-height':visible.header?'72px':'0px','--sf-accent':accent,'--sf-accent-text':getContrastTextColor(accent)} as React.CSSProperties}>
+  {visible.header&&<CustomerWebsiteHeader profile={profile} signedIn={customerSignedIn} customerName={customerName} customerPhotoUrl={customerPhotoUrl} onAccount={customer} onMyBookings={()=>setMyBookings(true)} onBook={keshPrakriti?()=>book():roopMahal?(roopBookingFlowAvailable?()=>book():undefined):pinkyNails?(pinkyBookingFlowAvailable?()=>book():undefined):()=>book()} bookingAvailable={keshPrakriti?true:roopMahal?roopBookingFlowAvailable:pinkyNails?pinkyBookingFlowAvailable:true} availableTargets={roopMahal?roopAvailableTargets:pinkyNails?pinkyAvailableTargets:undefined} hasTeam={Boolean(visible.stylists&&team.length)}/>}
+
+   {keshPrakriti ? (
+    <>
+     <div data-layout="hero" id="salon-home">
+      {visible.hero && (
+       <KeshPrakritiHero
+        profile={profile}
+        onBook={(s) => book(s)}
+        bookingAvailable={true}
+        whatsappUrl={wa}
+       />
+      )}
+     </div>
+     {dock.length > 0 && (
+      <nav data-layout="dock" aria-label="Salon quick actions" className="sf-dock">
+       <div className="sf-container sf-dock-scroll">
+        {dock.map(([, label, id]) => (
+         <a key={id} href={`#${id}`}>
+          {t(label)}
+          <ArrowUpRight size={13} />
+         </a>
+        ))}
+       </div>
+      </nav>
+     )}
+     <AppAnnouncementStrip />
+     {visible.promo && (
+      <section id="salon-promo" className="sf-section sf-offers-section">
+       <div className="sf-container">
+        <WebsiteSections {...shared} sections={['promo']} />
+       </div>
+      </section>
+     )}
+     {visible.about && <KeshPrakritiPhilosophy profile={profile} />}
+     <KeshPrakritiFeatured services={keshServices} onBook={(s) => book(s)} />
+     {visible.services && (
+      <KeshPrakritiServices services={keshServices} onBook={(s) => book(s)} />
+     )}
+     {visible.stylists && (
+      <section data-layout="team" id="salon-team" className="sf-section sf-section-tint sf-kp-team-section">
+       <div className="sf-container">
+        <div className="sf-section-heading">
+         <div>
+          <p className="sf-eyebrow">Scalp Wellness Specialists</p>
+          <h2>{heading('stylistsTitle', 'Meet Our Trichology & Spa Specialists')}</h2>
+          <p>{heading('stylistsSubtitle', 'Our certified therapists guide your scalp diagnostic and custom treatment.')}</p>
+         </div>
+        </div>
+        {team.length > 0 && (
+         <div className="sf-team-grid" tabIndex={0} aria-label="Our specialists. Swipe or scroll horizontally to explore.">
+          {team.map((st) => (
+           <SpecialistCard
+            key={st.id}
+            staff={st}
+            profile={profile}
+            selected={chosen?.id === st.id}
+            onView={() => setViewStaff(st.id)}
+            onGallery={() => setViewStaff(st.id)}
+            onToggle={() => setChosen((current) => (current?.id === st.id ? undefined : st))}
+            onBook={() => {
+             setChosen(st);
+             book(undefined, st);
+            }}
+           />
+          ))}
+         </div>
+        )}
+        {chosen && (
+         <SpecialistWeek
+          key={chosen.id}
+          profile={profile}
+          staff={chosen}
+          services={keshServices}
+          onSlot={(selected, slot) => {
+           setService(selected);
+           setDirectSlot(slot);
+           setBooking(true);
+          }}
+         />
+        )}
+        {!team.length && <p className="sf-empty">Meet our specialists at your next sanctuary visit.</p>}
+       </div>
+      </section>
+     )}
+     <div data-layout="experiences">
+      <KeshPrakritiJourney />
+      <KeshPrakritiBotanicals />
+      {visible.gallery && <KeshPrakritiGallery galleryEntries={galleryEntries} />}
+      {visible.testimonials && (
+       <>
+        <KeshPrakritiTestimonials />
+        <div className="sf-container my-8">
+         <CustomerReviewPanel
+          businessType={profile.businessType}
+          slug={profile.subdomain}
+          fallbackReviews={profile.reviewSource && profile.reviewSource.mode !== 'off' ? [] : reviews}
+          signedIn={customerSignedIn}
+          services={keshServices.map((s) => s.name)}
+          onLogin={() => customer('signin')}
+         />
+        </div>
+       </>
+      )}
+      {['videos', 'loyalty'].filter((section) => visible[section]).map((section) => (
+       <section className="sf-section sf-standalone-panel" key={section}>
+        <div className="sf-container">
+         <WebsiteSections {...shared} sections={[section]} />
+        </div>
+       </section>
+      ))}
+     </div>
+     {visible.bookings && (
+      <KeshPrakritiBooking profile={profile} services={keshServices} onBook={(s) => book(s)} />
+     )}
+     <KeshPrakritiFaq />
+     {visible.location && (
+      <KeshPrakritiContact profile={profile} mapUrl={mapUrl} whatsappUrl={wa} />
+     )}
+     {['policies'].filter((section) => visible[section]).map((section) => (
+      <section className="sf-section sf-standalone-panel" key={section}>
+       <div className="sf-container">
+        <WebsiteSections {...shared} sections={[section]} />
+       </div>
+      </section>
+     ))}
+     {(visible.social || visible.share) && (
+      <section className="sf-section sf-connections-section">
+       <div className="sf-container">
+        <WebsiteSections {...shared} sections={['social', 'share']} />
+       </div>
+      </section>
+     )}
+     <CustomerAppPromotion />
+     <KeshPrakritiFooter profile={profile} services={keshServices} onBook={(s) => book(s)} />
+    </>
+   ) : (
+   <>
+    <div data-layout="hero" id="salon-home">
+     {visible.hero&&(barber?<BarberReferenceHero profile={profile} services={services} team={team} showMetrics={visible.metrics} onBook={book} whatsapp={wa}/>:roopMahal?<RoopMahalHero profile={profile} onBook={roopBookingFlowAvailable?book:undefined} bookingAvailable={roopBookingFlowAvailable} hasServicesTarget={roopHasServicesDestination}/>:pinkyNails?<PinkyNailsHero profile={profile} onBook={pinkyBookingFlowAvailable?book:undefined} bookingAvailable={pinkyBookingFlowAvailable} hasServicesTarget={pinkyAvailableTargets.has('services-section')}/>:<section className="sf-hero"><img className="sf-hero-image" src={profile.coverImageUrl||template.coverImageUrl} alt="Salon studio interior"/><div className="sf-hero-overlay"/><div className="sf-container sf-hero-content"><div className="sf-badges"><span><ShieldCheck size={14}/>Verified checkout</span>{profile.city&&<span><MapPin size={14}/>{profile.city}</span>}<span className="sf-mood"><i/>Rich warm mood</span></div><p className="sf-eyebrow">{template.shortName}</p><h1>{profile.businessName||'Your next look starts here.'}</h1><p className="sf-hero-intro">{profile.tagline||'Thoughtful care. Expert technique. A little time for you.'}</p><div className="sf-hero-actions"><button className="sf-button" onClick={()=>book()}><CalendarCheck size={18}/>{t('Book Appointment')}<ArrowUpRight size={18}/></button>{wa?<a className="sf-button sf-button-whatsapp" href={wa} target="_blank" rel="noreferrer"><MessageCircle size={18}/>WhatsApp Inquiry</a>:profile.phone&&<a className="sf-button sf-button-outline" href={`tel:${profile.phone}`}>Call the studio</a>}</div><p className="sf-hero-note">Secure 25% advance · Balance payable at the salon</p>{visible.metrics&&<div className="sf-hero-facts"><span><Clock size={16}/>{profile.workingHoursMonFri||'View studio hours below'}</span>{services.length>0&&<span>{services.length} services · From {money(Math.min(...services.map(s=>s.price)))}</span>}</div>}</div></section>)}
+    </div>
+    {dock.length>0&&<nav data-layout="dock" aria-label="Salon quick actions" className="sf-dock"><div className="sf-container sf-dock-scroll">{dock.map(([,label,id])=><a key={id} href={`#${id}`}>{t(label)}<ArrowUpRight size={13}/></a>)}</div></nav>}
+    <AppAnnouncementStrip/>
+    {pinkyShowTrust&&<PinkyNailsTrustHighlights/>}
+    {visible.promo&&<section className="sf-section sf-offers-section"><div className="sf-container"><WebsiteSections {...shared} sections={['promo']}/></div></section>}
+    {visible.services&&(
    pinkyNails?(
     <section data-layout="services" id="services-section" className="sf-section sf-pn-services-section">
      <div className="sf-container">
@@ -349,7 +502,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
        </div>
       )}
       {pinkyCoreServices.length>0?(
-       <div className="sf-service-row sf-pn-service-grid">
+       <div className="sf-service-row sf-pn-service-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
         {pinkyCoreServices.filter(item=>activeCategory==='All'||(item.category||'').trim()===activeCategory).map(item=><PinkyNailsServiceCard key={item.id} service={item} bookingAvailable={pinkyBookingFlowAvailable} onBook={selected=>book(selected)}/>)}
        </div>
       ):(
@@ -374,14 +527,14 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
        </div>
       )}
       {roopServices.length>0?(
-       <div className="sf-service-row" tabIndex={0} aria-label="Service menu. Swipe or scroll horizontally to explore treatments.">
+       <div className="sf-service-row grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch" tabIndex={0} aria-label="Service menu. Swipe or scroll horizontally to explore treatments.">
         {roopServices.filter(s=>activeCategory==='All'||(s.category||'').trim()===activeCategory).map(s=>{
          const validPrice=hasValidRoopPrice(s.price);
          const validDuration=hasValidRoopDuration(s);
          const showBottom=validPrice||validDuration||roopBookingFlowAvailable;
          const catLabel=s.category?.trim()||'';
          return (
-          <article className="sf-service-card" key={s.id}>
+          <article className="sf-service-card flex flex-col h-full justify-between" key={s.id}>
            <ServicePhoto service={s} type={profile.businessType}/>
            {(catLabel||s.popular)&&(
             <div className="sf-card-top">
@@ -390,7 +543,9 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
             </div>
            )}
            <h3 tabIndex={0}>{s.name.trim()}</h3>
-           {Boolean(s.description?.trim())&&<p tabIndex={0} aria-label={`Description of ${s.name}`}>{s.description.trim()}</p>}
+           <div className="flex-1">
+            {Boolean(s.description?.trim())&&<p tabIndex={0} aria-label={`Description of ${s.name}`}>{s.description.trim()}</p>}
+           </div>
            {showBottom&&(
             <div className="sf-service-bottom">
              {(validPrice||validDuration)&&(
@@ -412,7 +567,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
      </div>
     </section>
    ):(
-    <section data-layout="services" id="services-section" className="sf-section"><div className="sf-container"><div className="sf-section-heading"><div><p className="sf-eyebrow">The service edit</p><h2>{heading('servicesTitle',t('Curated Services & Treatments'))}</h2><p>{heading('servicesSubtitle','Expert care, transparent prices. Find the treatment that feels right for you.')}</p></div><span className="sf-section-count">{services.length} services</span></div><div className="sf-category-tabs" role="group" aria-label="Service categories">{['All',...categories].map(item=><button key={item} aria-pressed={activeCategory===item} onClick={()=>setCategory(item)}>{item}</button>)}</div><div className="sf-service-row" tabIndex={0} aria-label="Service menu. Swipe or scroll horizontally to explore treatments.">{services.filter(s=>activeCategory==='All'||(s.category||'Signature services')===activeCategory).map(s=><article className="sf-service-card" key={s.id}><ServicePhoto service={s} type={profile.businessType}/><div className="sf-card-top"><span className="sf-category-label">{s.category||'Signature services'}</span>{s.popular&&<span className="sf-popular">Popular</span>}</div><h3 tabIndex={0}>{s.name}</h3><p tabIndex={0} aria-label={`Description of ${s.name}`}>{s.description}</p><div className="sf-service-bottom"><div><strong>{money(s.price)}</strong>{s.showDuration!==false&&<span><Clock size={13}/>{s.durationMinutes} min</span>}</div><button className="sf-button sf-button-small" onClick={()=>book(s)}>{t('Book')}<ArrowUpRight size={14}/></button></div></article>)}</div>{!services.length&&<p className="sf-empty">The studio is updating its service menu. Contact us for treatment details.</p>}</div></section>
+     <section data-layout="services" id="services-section" className="sf-section"><div className="sf-container"><div className="sf-section-heading"><div><p className="sf-eyebrow">The service edit</p><h2>{heading('servicesTitle',t('Curated Services & Treatments'))}</h2><p>{heading('servicesSubtitle','Expert care, transparent prices. Find the treatment that feels right for you.')}</p></div><span className="sf-section-count">{services.length} services</span></div><div className="sf-category-tabs" role="group" aria-label="Service categories">{['All',...categories].map(item=><button key={item} aria-pressed={activeCategory===item} onClick={()=>setCategory(item)}>{item}</button>)}</div><div className="sf-service-row grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch" tabIndex={0} aria-label="Service menu. Swipe or scroll horizontally to explore treatments.">{services.filter(s=>activeCategory==='All'||(s.category||'Signature services')===activeCategory).map(s=><article className="sf-service-card" key={s.id}><ServicePhoto service={s} type={profile.businessType}/><div className="sf-card-top"><span className="sf-category-label">{s.category||'Signature services'}</span>{s.popular&&<span className="sf-popular">Popular</span>}</div><h3 tabIndex={0}>{s.name}</h3><div className="flex-1"><p tabIndex={0} aria-label={`Description of ${s.name}`}>{s.description}</p></div><div className="sf-service-bottom"><div><strong>{money(s.price)}</strong>{s.showDuration!==false&&<span><Clock size={13}/>{s.durationMinutes} min</span>}</div><button className="sf-button sf-button-small" onClick={()=>book(s)}>{t('Book')}<ArrowUpRight size={14}/></button></div></article>)}</div>{!services.length&&<p className="sf-empty">The studio is updating its service menu. Contact us for treatment details.</p>}</div></section>
    )
   )}
   {visible.packages&&(
@@ -427,17 +582,19 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
        </div>
       </div>
       {packages.length>0?(
-       <div className="sf-service-row">
+       <div className="sf-service-row grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
         {packages.map(item=>{
          const validPrice=hasValidRoopPrice(item.price);
          const validDuration=hasValidRoopDuration(item);
          const showBottom=validPrice||validDuration||roopBookingFlowAvailable;
          return (
-          <article className="sf-service-card" key={item.id}>
+          <article className="sf-service-card flex flex-col h-full justify-between" key={item.id}>
            <ServicePhoto service={item} type={profile.businessType}/>
            {Boolean(item.category?.trim())&&<span className="sf-category-label">{item.category.trim()}</span>}
            <h3 tabIndex={0}>{item.name.trim()}</h3>
-           {Boolean(item.description?.trim())&&<p tabIndex={0} aria-label={`Description of ${item.name}`}>{item.description.trim()}</p>}
+           <div className="flex-1">
+            {Boolean(item.description?.trim())&&<p tabIndex={0} aria-label={`Description of ${item.name}`}>{item.description.trim()}</p>}
+           </div>
            {showBottom&&(
             <div className="sf-service-bottom">
              {(validPrice||validDuration)&&(
@@ -459,7 +616,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
      </div>
     </section>
    ):(
-    <section id="salon-packages" className="sf-section sf-packages"><div className="sf-container"><div className="sf-section-heading"><div><p className="sf-eyebrow">A little more time for you</p><h2>{heading('packagesTitle',t('Packages & Signature Rituals'))}</h2><p>Curated combinations from our service catalogue.</p></div></div>{packages.length?<div className="sf-service-row">{packages.map(item=><article className="sf-service-card" key={item.id}><ServicePhoto service={item} type={profile.businessType}/><span className="sf-category-label">{item.category}</span><h3 tabIndex={0}>{item.name}</h3><p tabIndex={0} aria-label={`Description of ${item.name}`}>{item.description}</p><div className="sf-service-bottom"><div><strong>{money(item.price)}</strong>{item.showDuration!==false&&<span>{item.durationMinutes} min</span>}</div><button className="sf-button sf-button-small" onClick={()=>book(item)}>{t('Book')}<ArrowUpRight size={14}/></button></div></article>)}</div>:<p className="sf-empty">Ask the studio about tailored packages and combinations.</p>}</div></section>
+    <section id="salon-packages" className="sf-section sf-packages"><div className="sf-container"><div className="sf-section-heading"><div><p className="sf-eyebrow">A little more time for you</p><h2>{heading('packagesTitle',t('Packages & Signature Rituals'))}</h2><p>Curated combinations from our service catalogue.</p></div></div>{packages.length?<div className="sf-service-row grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">{packages.map(item=><article className="sf-service-card flex flex-col h-full justify-between" key={item.id}><ServicePhoto service={item} type={profile.businessType}/><span className="sf-category-label">{item.category}</span><h3 tabIndex={0}>{item.name}</h3><div className="flex-1"><p tabIndex={0} aria-label={`Description of ${item.name}`}>{item.description}</p></div><div className="sf-service-bottom"><div><strong>{money(item.price)}</strong>{item.showDuration!==false&&<span>{item.durationMinutes} min</span>}</div><button className="sf-button sf-button-small" onClick={()=>book(item)}>{t('Book')}<ArrowUpRight size={14}/></button></div></article>)}</div>:<p className="sf-empty">Ask the studio about tailored packages and combinations.</p>}</div></section>
    )
   )}
   {roopMahal&&visible.about&&<RoopMahalAboutSection profile={profile} knowMoreHref={roopKnowMoreHref}/>}
@@ -533,9 +690,11 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
   {(visible.social||visible.share)&&<section className="sf-section sf-connections-section"><div className="sf-container"><WebsiteSections {...shared} sections={['social','share']}/></div></section>}
   <CustomerAppPromotion/>
   {pinkyNails?(pinkyShowFooter&&<PinkyNailsFooter profile={profile} services={pinkyServices} branding={branding} mapUrl={mapUrl} whatsappUrl={wa} hasTeam={Boolean(visible.stylists&&team.length)} availableTargets={pinkyAvailableTargets} bookingAvailable={pinkyBookingFlowAvailable} onBook={pinkyBookingFlowAvailable?book:undefined}/>):roopMahal?(roopShowFooter&&<RoopMahalFooter profile={profile} services={roopServices} branding={branding} mapUrl={mapUrl} whatsappUrl={wa} hasTeam={Boolean(visible.stylists&&team.length)} availableTargets={roopAvailableTargets} bookingAvailable={roopBookingFlowAvailable} onBook={roopBookingFlowAvailable?book:undefined}/>):<footer data-layout="footer" className="sf-footer"><div className="sf-container"><strong>{profile.businessName}</strong><p>{profile.city} · Crafted care, every visit.</p>{branding?.poweredBy&&<small>Powered by {branding.platformName||'StudioFlow'}</small>}<a href="#">Back to top ↑</a></div></footer>}
+  </>
+ )}
   {myBookings&&<SalonBookingsDialog profile={profile} onClose={()=>setMyBookings(false)}/>}
-  {team.some(st=>st.id===viewStaff)&&<StylistProfile services={roopMahal?roopServices:services} onSlot={(selected,slot)=>{setChosen(team.find(st=>st.id===slot.stylistId));setService(selected);setDirectSlot(slot);setViewStaff('');setBooking(true)}} staff={team.find(st=>st.id===viewStaff)!} profile={profile} slug={profile.subdomain} signedIn={customerSignedIn} demo={!profile.subdomain} onLogin={()=>{setViewStaff('');customer('signin')}} onClose={()=>setViewStaff('')} onBook={()=>{const specialist=team.find(st=>st.id===viewStaff);setViewStaff('');book(undefined,specialist)}}/>}
-  {(!roopMahal||roopBookingFlowAvailable)&&<BookingModal isOpen={booking} onClose={()=>setBooking(false)} profile={profile} services={roopMahal?roopServices:services} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>}
+  {team.some(st=>st.id===viewStaff)&&<StylistProfile services={keshPrakriti?keshServices:roopMahal?roopServices:services} onSlot={(selected,slot)=>{setChosen(team.find(st=>st.id===slot.stylistId));setService(selected);setDirectSlot(slot);setViewStaff('');setBooking(true)}} staff={team.find(st=>st.id===viewStaff)!} profile={profile} slug={profile.subdomain} signedIn={customerSignedIn} demo={!profile.subdomain} onLogin={()=>{setViewStaff('');customer('signin')}} onClose={()=>setViewStaff('')} onBook={()=>{const specialist=team.find(st=>st.id===viewStaff);setViewStaff('');book(undefined,specialist)}}/>}
+  {(!roopMahal||roopBookingFlowAvailable)&&<BookingModal isOpen={booking} onClose={()=>setBooking(false)} profile={profile} services={keshPrakriti?keshServices:roopMahal?roopServices:services} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} onAddAppointment={onAddAppointment} themeAccentHex={keshPrakriti?'#183D32':accent}/>}
   {photo!==null&&lightboxImages.length>0&&photo<lightboxImages.length&&<div className="sf-lightbox" role="dialog" aria-modal="true" aria-label="Studio lookbook" onClick={()=>setPhoto(null)}><button aria-label="Close lookbook" onClick={()=>setPhoto(null)}><X/></button><img src={lightboxImages[photo]} alt={`Studio look ${photo+1}`} onClick={e=>e.stopPropagation()}/><div><button aria-label="Previous photo" onClick={e=>{e.stopPropagation();setPhoto((photo-1+lightboxImages.length)%lightboxImages.length);}}><ChevronLeft/></button><span>{photo+1} / {lightboxImages.length}</span><button aria-label="Next photo" onClick={e=>{e.stopPropagation();setPhoto((photo+1)%lightboxImages.length);}}><ChevronRight/></button></div></div>}
  </div>;
 }

@@ -3,10 +3,13 @@ import {payBookingDeposit,reconcileBookingPayment} from '../lib/platformPayments
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase, websiteLink } from '../lib/supabase';
+import { sendBookingConfirmationEmail, sendBookingReminderEmail } from '../lib/emailService';
 
 export function CustomerBookings({ session,embedded=false,onClose }: { key?:React.Key;session: Session;embedded?:boolean;onClose?:()=>void }) {
   const [bookings, setBookings] = useState<any[]>([]); const [error, setError] = useState('');
   const [loading, setLoading] = useState(true); const [busy, setBusy] = useState('');
+  const [emailFeedback, setEmailFeedback] = useState<Record<string, string>>({});
+  const [sendingEmailId, setSendingEmailId] = useState('');
   const returnSlug = new URLSearchParams(location.search).get('return');
   const requests=useRef(0);
   const refresh = useCallback(async () => {
@@ -23,13 +26,87 @@ export function CustomerBookings({ session,embedded=false,onClose }: { key?:Reac
     const { error } = await supabase.rpc('studioflow_update_booking', { p_id: id, p_status: 'cancelled' });
     if (error) setError(error.message); else await refresh(); setBusy('');
   };
+
+  const handleSendEmail = async (bookingId: string, b: any, type: 'confirmation' | 'reminder') => {
+    const to = session.user.email || b.clientEmail || b.email;
+    if (!to) {
+      setEmailFeedback(prev => ({ ...prev, [bookingId]: 'No email address found on account' }));
+      return;
+    }
+    setSendingEmailId(bookingId);
+    setEmailFeedback(prev => ({ ...prev, [bookingId]: `Sending ${type} email to ${to}…` }));
+    try {
+      const emailPayload = {
+        to,
+        clientName: b.clientName || 'Valued Guest',
+        clientPhone: b.clientPhone || '',
+        bookingRef: b.bookingRef || bookingId.slice(0, 8).toUpperCase(),
+        serviceName: b.serviceName || 'Salon Service',
+        servicePrice: b.servicePrice || 0,
+        amountPaid: b.amountPaid || 0,
+        stylistName: b.stylistName || 'Salon Specialist',
+        date: b.date || '',
+        time: b.time || '',
+        salonName: b.salonName || 'StudioFlow Salon',
+        salonAddress: b.salonAddress,
+        salonCity: b.salonCity,
+        salonPhone: b.salonPhone,
+        salonWhatsapp: b.salonWhatsapp,
+        salonSlug: b.salonSlug
+      };
+      const res = type === 'confirmation' 
+        ? await sendBookingConfirmationEmail(emailPayload)
+        : await sendBookingReminderEmail(emailPayload);
+      if (res.success) {
+        setEmailFeedback(prev => ({ 
+          ...prev, 
+          [bookingId]: res.delivered ? `Email sent to ${to}` : `Email dispatched to ${to}`
+        }));
+      } else {
+        setEmailFeedback(prev => ({ ...prev, [bookingId]: res.error || 'Failed to dispatch email' }));
+      }
+    } catch (err: any) {
+      setEmailFeedback(prev => ({ ...prev, [bookingId]: err?.message || 'Email delivery failed' }));
+    } finally {
+      setSendingEmailId('');
+    }
+  };
+
   return <main className={embedded?'sf-customer-bookings':'min-h-screen bg-[#f9f9ff] p-4 sm:p-8'}><section className={embedded?'sf-customer-bookings-content':'workspace-card max-w-4xl mx-auto'}>
     {!embedded&&<p className="eyebrow">StudioFlow · Customer account</p>}{!embedded&&<h1 className="text-3xl font-bold">My bookings</h1>}<p className="muted my-3">{session.user.email}</p>
     <div className="flex gap-3 flex-wrap mb-6">{embedded?<button className="secondary-action" onClick={onClose}>Back to salon</button>:returnSlug && <a className="primary-action" href={websiteLink(returnSlug)}>Return to salon / Book appointment</a>}<button className="secondary-action" onClick={() => void refresh()}>Refresh</button><BusinessNotificationLink/><button className="secondary-action" onClick={() => void supabase.auth.signOut()}>Sign out</button></div>
     {error && <p role="alert" className="text-red-700 my-4">{error}</p>}
-    {loading ? <p role="status">Loading bookings…</p> : error ? null : !bookings.length ? <p>You have no bookings yet. Choose a service at the salon to book your first appointment.</p> : <div className="space-y-4">{bookings.map(({ id, status, payload: b,hold_expires_at }) => <article key={id} className="border rounded-xl p-4">
-      <div className="flex justify-between gap-3"><h2 className="font-bold">{b.serviceName}</h2><span className="capitalize">{status}</span></div><p>{b.date} · {b.time} IST · {b.stylistName}</p><p>₹{b.servicePrice} · Paid ₹{b.amountPaid || 0}</p>{status === 'pending' && <div className="mt-3"><p className="text-amber-800 text-sm">{hold_expires_at&&new Date(hold_expires_at).getTime()>Date.now()?'Reserved for payment. A verified 25% advance confirms your appointment.':'Payment reservation expired. Choose a new slot if you have not paid.'}</p>{hold_expires_at&&new Date(hold_expires_at).getTime()>Date.now()&&<button disabled={!!busy} className="primary-action mt-2 mr-2" onClick={()=>void payment(id,b)}>Pay 25% deposit</button>}<button disabled={!!busy} className="secondary-action mt-2" onClick={()=>void payment(id,b,true)}>Recheck payment status</button></div>}
-      {['pending', 'confirmed'].includes(status) && <button disabled={!!busy} className="secondary-action mt-3" onClick={() => void cancel(id)}>{busy === id ? 'Cancelling…' : 'Cancel appointment'}</button>}
+    {loading ? <p role="status">Loading bookings…</p> : error ? null : !bookings.length ? <p>You have no bookings yet. Choose a service at the salon to book your first appointment.</p> : <div className="space-y-4">{bookings.map(({ id, status, payload: b,hold_expires_at }) => <article key={id} className="border rounded-xl p-4 bg-white shadow-xs">
+      <div className="flex justify-between gap-3"><h2 className="font-bold text-base text-slate-900">{b.serviceName}</h2><span className="capitalize font-semibold text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700">{status}</span></div><p className="text-sm text-slate-600 mt-1">{b.date} · {b.time} IST · Specialist: {b.stylistName}</p><p className="text-sm font-medium text-slate-800 mt-0.5">₹{b.servicePrice} · Paid: ₹{b.amountPaid || 0}</p>
+      {emailFeedback[id] && (
+        <div className="mt-2.5 p-2 bg-indigo-50 border border-indigo-100 text-indigo-900 text-xs rounded-lg flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+          <span>{emailFeedback[id]}</span>
+        </div>
+      )}
+      {status === 'pending' && <div className="mt-3"><p className="text-amber-800 text-sm">{hold_expires_at&&new Date(hold_expires_at).getTime()>Date.now()?'Reserved for payment. A verified 25% advance confirms your appointment.':'Payment reservation expired. Choose a new slot if you have not paid.'}</p>{hold_expires_at&&new Date(hold_expires_at).getTime()>Date.now()&&<button disabled={!!busy} className="primary-action mt-2 mr-2" onClick={()=>void payment(id,b)}>Pay 25% deposit</button>}<button disabled={!!busy} className="secondary-action mt-2" onClick={()=>void payment(id,b,true)}>Recheck payment status</button></div>}
+      <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-slate-100">
+        <button 
+          disabled={sendingEmailId === id} 
+          className="text-xs px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors cursor-pointer"
+          onClick={() => void handleSendEmail(id, b, 'confirmation')}
+        >
+          {sendingEmailId === id ? 'Sending…' : '✉ Email Receipt'}
+        </button>
+        <button 
+          disabled={sendingEmailId === id} 
+          className="text-xs px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors cursor-pointer"
+          onClick={() => void handleSendEmail(id, b, 'reminder')}
+        >
+          {sendingEmailId === id ? 'Sending…' : '⏰ Email Reminder'}
+        </button>
+        {['pending', 'confirmed'].includes(status) && (
+          <button disabled={!!busy} className="text-xs px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg font-medium transition-colors cursor-pointer ml-auto" onClick={() => void cancel(id)}>
+            {busy === id ? 'Cancelling…' : 'Cancel appointment'}
+          </button>
+        )}
+      </div>
     </article>)}</div>}
   </section></main>;
 }
+

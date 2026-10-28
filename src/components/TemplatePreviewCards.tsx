@@ -11,8 +11,9 @@ const LiveWebsite = lazy(() => loadScreen(() => import('./SalonWebsitePreview').
 
 export function TemplateThumbnail({ template: t }: { template: CategoryTemplateConfig }) {
   const isRoopMahal = t.id === 'beauty_parlour';
+  const isKeshPrakriti = t.id === 'hair_spa';
   const accent = ACCENT_PALETTES[DEFAULT_CATEGORY_ACCENTS[t.id]];
-  const accentHex = isRoopMahal ? '#6D2638' : accent.primaryHex;
+  const accentHex = isKeshPrakriti ? '#183D32' : isRoopMahal ? '#6D2638' : accent.primaryHex;
   const split = isRoopMahal || ['modern_minimalist', 'clinical_clean', 'contemporary_balanced', 'urban_monochrome'].includes(t.layoutStyle);
   const rounded = ['curved_elegant', 'chic_nude', 'zen_emerald', 'earth_bamboo'].includes(t.layoutStyle);
   return <div aria-hidden="true" className="p-4 pb-0 bg-slate-100">
