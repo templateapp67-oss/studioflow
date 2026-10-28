@@ -3,10 +3,17 @@ import {CATEGORY_STANDARDIZED_DATA} from '../templateData';
 import {barberServiceImage} from './barberReference';
 import {roopMahalServiceImage} from './roopMahalReference';
 import {pinkyNailsServiceImage} from './pinkyNails';
+import {KESH_PRAKRITI_IMAGES,keshPrakritiServiceImage} from './keshPrakriti';
 
 /** Category-matched image templates shared by the editor and storefront. */
 export function serviceImageTemplates(service:Pick<SalonService,'id'|'name'|'category'>,type:BusinessTypeId='hair_salon'):Array<{id:string;url:string;label:string}> {
  const text=`${service.category} ${service.name}`.toLowerCase();
+ // Template 06 ships its own local spa photography, so hair-spa menu cards never
+ // borrow unrelated stock portraits from another category.
+ if(type==='hair_spa'){
+  const local=Array.from(new Set([keshPrakritiServiceImage(service),KESH_PRAKRITI_IMAGES.sanctuary,KESH_PRAKRITI_IMAGES.botanical]));
+  return local.slice(0,3).map((url,index)=>({id:`hair_spa-${index+1}`,url,label:`Image template ${index+1}`}));
+ }
  let source=type;
  if(/nail|manicure|pedicure/.test(text))source='nail_studio';
  else if(/lash|brow|thread/.test(text))source='lash_brow';

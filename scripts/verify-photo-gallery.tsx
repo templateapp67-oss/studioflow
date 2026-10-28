@@ -5,7 +5,20 @@ import {normalizeWorkspace} from '../src/lib/normalizeWorkspace';import {applyTe
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;(globalThis as any).window={addEventListener(){},removeEventListener(){},matchMedia:()=>({matches:false,addEventListener(){},removeEventListener(){}})};(globalThis as any).document={hidden:false,body:{style:{}},addEventListener(){},removeEventListener(){}};
 for(const template of Object.values(CATEGORY_TEMPLATES)){
  const profile={...INITIAL_SALON_PROFILE,businessType:template.id};const samples=standardGallery(template.id);assert.equal(samples.length,5);assert.equal(new Set(samples.map(p=>p.url)).size,5);assert.equal(photoGallery(profile).length,5);assert.ok(samples.every(p=>p.id.includes(template.id)));
- const html=renderToStaticMarkup(<CustomerSalonWebsite profile={profile} services={[]} stylists={[]} readOnly onAddAppointment={async a=>a}/>);assert.ok(html.includes(`${defaultGalleryCategory(template.id)} (5)`));assert.equal((html.match(/aria-label="View salon look /g)||[]).length,5);assert.ok(!html.includes('Delete photo')&&!html.includes('Replace / Edit'));
+ const html=renderToStaticMarkup(<CustomerSalonWebsite profile={profile} services={[]} stylists={[]} readOnly onAddAppointment={async a=>a}/>);
+ if(template.id==='hair_spa'){
+  // Template 06 renders its own gallery: bundled sample photography must be labelled,
+  // and the saved-photo path must be used without any owner controls.
+  assert.ok(html.includes('Spa (4)'),'hair spa sample gallery shows its four labelled demo photos');
+  assert.equal((html.match(/DEMO \/ SAMPLE · /g)||[]).length,4);
+  assert.ok(html.includes('demo / sample photographs'),'hair spa gallery explains that the photos are samples');
+  assert.ok(!html.includes('Delete photo')&&!html.includes('Replace / Edit'));
+  const savedHtml=renderToStaticMarkup(<CustomerSalonWebsite profile={{...profile,photoGalleryInitialized:true,photoGalleryType:'hair_spa',photoGallery:[{id:'hp-1',category:'Spa' as const,url:'https://cdn.example.com/saved-spa-photo.jpg',title:'Saved spa photo',isDemo:false}]}} services={[]} stylists={[]} readOnly onAddAppointment={async a=>a}/>);
+  assert.ok(savedHtml.includes('Saved spa photo'),'saved salon photo is used in the hair spa gallery');
+  assert.ok(!savedHtml.includes('DEMO / SAMPLE'),'saved salon photo is not labelled as demo');
+ }else{
+  assert.ok(html.includes(`${defaultGalleryCategory(template.id)} (5)`));assert.equal((html.match(/aria-label="View salon look /g)||[]).length,5);assert.ok(!html.includes('Delete photo')&&!html.includes('Replace / Edit'));
+ }
  const removed=withPhotoGallery(profile,samples.filter(p=>p.id!==samples[0].id));const normalized=normalizeWorkspace(JSON.parse(JSON.stringify({profile:removed,extras:{gallery:[]}})));assert.equal(photoGallery(normalized.profile).length,4);assert.equal(normalized.extras.gallery.length,4);assert.equal(photoGallery(applyTemplateDesign(normalized.profile,template)).length,4);
  const empty=withPhotoGallery(profile,[]);assert.equal(photoGallery(normalizeWorkspace({profile:empty}).profile).length,0);
 }

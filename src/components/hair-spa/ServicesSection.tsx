@@ -31,8 +31,8 @@ export function ServicesSection() {
             <Reveal>
               <p>
                 Choose a little time for yourself. Explore the rituals available
-                at Kesh Prakriti, with details and pricing from the current
-                service menu.
+                at {model.profile.businessName}, with the details, duration and
+                pricing saved in the current service menu.
               </p>
             </Reveal>
           </div>
@@ -45,6 +45,7 @@ export function ServicesSection() {
               {["All", ...model.serviceCategories].map((category) => (
                 <button
                   key={category}
+                  type="button"
                   aria-pressed={model.serviceCategory === category}
                   onClick={() => model.setServiceCategory(category)}
                 >
@@ -101,10 +102,13 @@ export function ServicesSection() {
                       )}
                     </div>
                     <button
+                      type="button"
                       className="kp-card-link"
-                      onClick={() => model.onBook(item)}
+                      onClick={() => model.book(item)}
+                      aria-label={`Book ${item.name}`}
                     >
-                      Choose for online booking <ArrowUpRight size={15} />
+                      Choose for online booking{" "}
+                      <ArrowUpRight size={15} aria-hidden="true" />
                     </button>
                   </div>
                 </motion.article>
@@ -112,7 +116,17 @@ export function ServicesSection() {
           </motion.div>
           {model.services.length === 0 && (
             <div className="kp-empty-services">
-              Please contact the sanctuary to learn about current treatments.
+              <p>
+                The treatment menu is being updated. Please contact the
+                sanctuary to ask about current treatments.
+              </p>
+              <button
+                type="button"
+                className="kp-card-link"
+                onClick={() => model.scrollTo("contact")}
+              >
+                Contact the sanctuary
+              </button>
             </div>
           )}
         </div>

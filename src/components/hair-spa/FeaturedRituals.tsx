@@ -1,10 +1,14 @@
+import { useState } from "react";
 import { useHairSpa } from "./context";
 import { ArrowRight, ArrowUpRight, Clock3, Leaf } from "lucide-react";
 import { Reveal } from "./Reveal";
 import { ServicePhoto } from "../ServicePhoto";
+import { KESH_PRAKRITI_IMAGES } from "../../lib/keshPrakriti";
 
 export function FeaturedRituals() {
   const model = useHairSpa();
+  const [imageFailed, setImageFailed] = useState(false);
+  const packagesAvailable = model.packages.length > 0;
   return (
     <>
       {model.showPackages && (
@@ -21,14 +25,15 @@ export function FeaturedRituals() {
               </Reveal>
               <Reveal>
                 <p>
-                  Explore package and combination options when they are included
-                  in the current service catalogue.
+                  Combination treatments are listed here only when they are part
+                  of the current service catalogue, with the same saved prices
+                  and durations shown elsewhere.
                 </p>
               </Reveal>
             </div>
-            {model.packages.length > 0 ? (
+            {packagesAvailable ? (
               <div className="kp-package-grid">
-                {model.packages.map((item, index) => (
+                {model.packages.map((item) => (
                   <article className="sf-service-card" key={item.id}>
                     <div className="kp-service-photo">
                       <ServicePhoto
@@ -38,7 +43,9 @@ export function FeaturedRituals() {
                       />
                     </div>
                     <div className="kp-service-content">
-                      <p className="kp-service-category">{item.category}</p>
+                      <p className="kp-service-category">
+                        {item.category || "Combination treatment"}
+                      </p>
                       <h3>{item.name}</h3>
                       <p className="kp-service-description">
                         {item.description}
@@ -47,7 +54,7 @@ export function FeaturedRituals() {
                         {item.showDuration !== false &&
                           item.durationMinutes > 0 && (
                             <span>
-                              <Clock3 size={14} />
+                              <Clock3 size={14} aria-hidden="true" />
                               {item.durationMinutes} min
                             </span>
                           )}
@@ -56,21 +63,33 @@ export function FeaturedRituals() {
                         )}
                       </div>
                       <button
+                        type="button"
                         className="kp-card-link"
-                        onClick={() => model.onBook(item)}
+                        onClick={() => model.book(item)}
                       >
-                        Enquire about this combination{" "}
-                        <ArrowUpRight size={15} />
+                        Choose this combination{" "}
+                        <ArrowUpRight size={15} aria-hidden="true" />
                       </button>
                     </div>
                   </article>
                 ))}
               </div>
             ) : (
-              <p className="kp-empty-services">
-                Ask the sanctuary whether package options are currently
-                available.
-              </p>
+              /* No invented bundles: honest empty state with a working action. */
+              <div className="kp-empty-services">
+                <p>
+                  No combination treatments are listed at the moment. The full
+                  treatment menu above is up to date.
+                </p>
+                <button
+                  type="button"
+                  className="kp-card-link"
+                  onClick={() => model.scrollTo("treatments")}
+                >
+                  View the treatment menu{" "}
+                  <ArrowRight size={15} aria-hidden="true" />
+                </button>
+              </div>
             )}
           </div>
         </section>
@@ -79,13 +98,27 @@ export function FeaturedRituals() {
       <section className="kp-ritual-feature">
         <div className="kp-container kp-feature-grid">
           <Reveal className="kp-feature-image">
-            <img
-              src={model.galleryImages[0].src}
-              alt="A quiet spa setting for a considered wellness ritual"
-              loading="lazy"
-            />
+            {imageFailed ? (
+              <div
+                className="kp-image-placeholder"
+                role="img"
+                aria-label="Reference photograph unavailable"
+              >
+                <span>Demo / sample photograph</span>
+              </div>
+            ) : (
+              <img
+                src={KESH_PRAKRITI_IMAGES.headSpa}
+                alt="Reference photograph of a head spa ritual with soft steam"
+                loading="lazy"
+                decoding="async"
+                width={1200}
+                height={655}
+                onError={() => setImageFailed(true)}
+              />
+            )}
             <span className="kp-feature-seal">
-              <Leaf size={18} />
+              <Leaf size={18} aria-hidden="true" />
               TIME, JUST FOR YOU
             </span>
           </Reveal>
@@ -96,7 +129,7 @@ export function FeaturedRituals() {
               <br />
               <em>like a deep breath.</em>
             </h2>
-            {model.featuredService && (
+            {model.featuredService ? (
               <>
                 <p className="kp-feature-treatment">
                   {model.featuredService.name}
@@ -106,7 +139,7 @@ export function FeaturedRituals() {
                   {model.featuredService.showDuration !== false &&
                     model.featuredService.durationMinutes > 0 && (
                       <span>
-                        <Clock3 size={14} />
+                        <Clock3 size={14} aria-hidden="true" />
                         {model.featuredService.durationMinutes} min
                       </span>
                     )}
@@ -116,15 +149,19 @@ export function FeaturedRituals() {
                     </strong>
                   )}
                 </div>
+                <button
+                  type="button"
+                  className="kp-button"
+                  onClick={() => model.book(model.featuredService)}
+                >
+                  Book this ritual <ArrowRight size={16} aria-hidden="true" />
+                </button>
               </>
-            )}
-            {model.featuredService && (
-              <button
-                className="kp-button"
-                onClick={() => model.onBook(model.featuredService)}
-              >
-                Explore this ritual <ArrowRight size={16} />
-              </button>
+            ) : (
+              <p>
+                The treatment menu is being updated. Contact the sanctuary to
+                ask what is currently available.
+              </p>
             )}
           </Reveal>
         </div>

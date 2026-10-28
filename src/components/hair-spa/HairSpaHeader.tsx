@@ -17,13 +17,13 @@ export function HairSpaHeader() {
             event.preventDefault();
             model.scrollTo("home");
           }}
-          aria-label="Kesh Prakriti home"
+          aria-label={`${model.profile.businessName} home`}
         >
           <span className="kp-mark">
             <Leaf size={19} />
           </span>
           <span>
-            <strong>Kesh Prakriti</strong>
+            <strong>{model.profile.businessName}</strong>
             <small>HAIR SPA · SCALP SANCTUARY</small>
           </span>
         </a>
@@ -72,13 +72,16 @@ export function HairSpaHeader() {
           )}
         </div>
         <button
+          type="button"
           className="kp-button kp-header-cta"
-          onClick={() => model.onBook(model.firstService)}
+          onClick={() => model.book(model.firstService)}
         >
-          Book Your Ritual <ArrowUpRight size={15} />
+          {model.bookingAvailable ? "Book Your Ritual" : "Contact us"}{" "}
+          <ArrowUpRight size={15} aria-hidden="true" />
         </button>
         <button
           ref={model.menuButtonRef}
+          type="button"
           className="kp-menu-toggle"
           aria-label={model.menuOpen ? "Close navigation" : "Open navigation"}
           aria-expanded={model.menuOpen}
@@ -130,7 +133,7 @@ export function HairSpaHeader() {
                     model.scrollTo(id);
                   }}
                 >
-                  <span>0{i + 1}</span>
+                  <span aria-hidden="true">0{i + 1}</span>
                   {label}
                   <ArrowUpRight size={16} />
                 </a>
@@ -180,13 +183,15 @@ export function HairSpaHeader() {
                 )}
               </div>
               <button
+                type="button"
                 className="kp-button"
                 onClick={() => {
                   model.setMenuOpen(false);
-                  model.onBook(model.firstService);
+                  model.book(model.firstService);
                 }}
               >
-                Book Your Ritual <ArrowRight size={16} />
+                {model.bookingAvailable ? "Book Your Ritual" : "Contact us"}{" "}
+                <ArrowRight size={16} aria-hidden="true" />
               </button>
             </motion.nav>
           </>

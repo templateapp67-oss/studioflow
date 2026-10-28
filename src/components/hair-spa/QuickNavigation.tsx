@@ -2,36 +2,44 @@ import { useHairSpa } from "./context";
 import { ArrowUpRight } from "lucide-react";
 import { AppAnnouncementStrip } from "../CustomerAppPromotion";
 
+/**
+ * Quick section navigation. Only sections that actually rendered get a link;
+ * when the salon has no active promotion the strip explains that instead of
+ * linking to an empty `#offers` target.
+ */
 export function QuickNavigation() {
   const model = useHairSpa();
+  const hasPromo = model.enabledSections.includes("promo");
   return (
     <>
-      <nav
-        data-layout="dock"
-        className="kp-quick-nav"
-        aria-label="Quick section navigation"
-      >
-        {model.dockLinks.map(([label, id]) => (
-          <a
-            key={id}
-            href={`#${id}`}
-            onClick={(event) => {
-              event.preventDefault();
-              model.scrollTo(id);
-            }}
-          >
-            {label}
-            <ArrowUpRight size={12} />
-          </a>
-        ))}
-      </nav>
-      {!model.enabledSections.includes("promo") && (
-        <section className="kp-offers-note" id="offers">
+      {model.dockLinks.length > 1 && (
+        <nav
+          data-layout="dock"
+          className="kp-quick-nav"
+          aria-label="Quick section navigation"
+        >
+          {model.dockLinks.map(([label, id]) => (
+            <a
+              key={id}
+              href={`#${id}`}
+              onClick={(event) => {
+                event.preventDefault();
+                model.scrollTo(id);
+              }}
+            >
+              {label}
+              <ArrowUpRight size={12} aria-hidden="true" />
+            </a>
+          ))}
+        </nav>
+      )}
+      {!hasPromo && (
+        <section className="kp-offers-note" id="offers" aria-label="Current offers">
           <div className="kp-container">
             <span className="kp-eyebrow">CURRENT OFFERINGS</span>
             <p>
-              Ask the sanctuary about any current offers when you plan your
-              visit.
+              No promotion is running on this website right now. Ask the
+              sanctuary about current offers when you plan your visit.
             </p>
           </div>
         </section>

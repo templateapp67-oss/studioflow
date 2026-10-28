@@ -64,20 +64,6 @@ import {websiteSections} from '../lib/websiteContent';
 import {WebsiteSections} from './WebsiteSections';
 import {BookingModal} from './BookingModal';
 import {HairSpaWebsite} from './HairSpaWebsite';
-import {
- KeshPrakritiHero,
- KeshPrakritiPhilosophy,
- KeshPrakritiFeatured,
- KeshPrakritiServices,
- KeshPrakritiJourney,
- KeshPrakritiBotanicals,
- KeshPrakritiGallery,
- KeshPrakritiTestimonials,
- KeshPrakritiBooking,
- KeshPrakritiFaq,
- KeshPrakritiContact,
- KeshPrakritiFooter,
-} from './KeshPrakritiSections';
 
 const money=(value:number)=>`₹${Number(value||0).toLocaleString('en-IN')}`;
 function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGallery=[],policies,branding,loyaltyConfig,onCustomerAccount,customerSignedIn,customerName,customerPhotoUrl,onAddAppointment}:SalonWebsitePreviewProps){
@@ -91,7 +77,9 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
  const roopMahal=profile.businessType==='beauty_parlour';
  const pinkyNails=profile.businessType==='nail_studio';
  const keshPrakriti=profile.businessType==='hair_spa';
- const keshServices=(services&&services.length>0)?services:(CATEGORY_TEMPLATES.hair_spa?.services||[]);
+ // A published sanctuary only ever shows its own saved menu. The bundled demo
+ // menu is used for the template preview, which has no live slug.
+ const keshServices=(services&&services.length>0)?services:(!profile.subdomain?CATEGORY_TEMPLATES.hair_spa?.services||[]:[]);
  const accent=profile.customAccentColor||(barber?'#c49a6c':roopMahal?'#6D2638':pinkyNails?'#702D4B':keshPrakriti?'#183D32':palette.primaryHex);
  const [category,setCategory]=useState('All'),[chosen,setChosen]=useState<Stylist|undefined>(),[service,setService]=useState<SalonService|undefined>(),[booking,setBooking]=useState(false),[photo,setPhoto]=useState<number|null>(null);
  const [brokenGalleryIds,setBrokenGalleryIds]=useState<string[]>([]);
@@ -316,7 +304,10 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
  );
 
  if(profile.businessType==='hair_spa')return <>
-  <HairSpaWebsite profile={profile} services={keshServices} stylists={team} galleryPhotos={galleryEntries} shared={shared} enabledSections={['promo','videos','social','loyalty','policies','bookings','share'].filter(section=>visible[section])} showPackages={visible.packages} customerSignedIn={customerSignedIn} customerName={customerName} customerPhotoUrl={customerPhotoUrl} onBook={(selected,specialist)=>book(selected,specialist)} onAccount={mode=>customer(mode||'signin')} onMyBookings={()=>setMyBookings(true)} onViewSpecialist={id=>setViewStaff(id)}/>
+  {/* Template 06 renders all of its sections through HairSpaWebsite. Online
+      booking is only offered once the site is published (a real slug exists),
+      so a template preview never fabricates availability. */}
+  <HairSpaWebsite profile={profile} services={keshServices} stylists={team} galleryPhotos={galleryEntries} shared={shared} bookingAvailable={Boolean(profile.subdomain)} enabledSections={['promo','videos','social','loyalty','policies','share'].filter(section=>visible[section])} showPackages={visible.packages} customerSignedIn={customerSignedIn} customerName={customerName} customerPhotoUrl={customerPhotoUrl} onBook={(selected,specialist)=>book(selected,specialist)} onAccount={mode=>customer(mode||'signin')} onMyBookings={()=>setMyBookings(true)} onViewSpecialist={id=>setViewStaff(id)}/>
   {myBookings&&<SalonBookingsDialog profile={profile} onClose={()=>setMyBookings(false)}/>}
   {team.some(st=>st.id===viewStaff)&&<StylistProfile services={services} onSlot={(selected,slot)=>{setChosen(team.find(st=>st.id===slot.stylistId));setService(selected);setDirectSlot(slot);setViewStaff('');setBooking(true)}} staff={team.find(st=>st.id===viewStaff)!} profile={profile} slug={profile.subdomain} signedIn={customerSignedIn} demo={!profile.subdomain} onLogin={()=>{setViewStaff('');customer('signin')}} onClose={()=>setViewStaff('')} onBook={()=>{const specialist=team.find(st=>st.id===viewStaff);setViewStaff('');book(undefined,specialist)}}/>}
   <BookingModal isOpen={booking} onClose={()=>setBooking(false)} profile={profile} services={keshServices} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>
@@ -341,141 +332,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
  return <div className={`sf-page${barber?' sf-barber':''}${roopMahal?' sf-roop-mahal':''}${pinkyNails?' sf-pinky-nails':''}${keshPrakriti?' sf-kesh-prakriti':''}`} data-template={profile.businessType} style={{'--sf-header-height':visible.header?'72px':'0px','--sf-accent':accent,'--sf-accent-text':getContrastTextColor(accent)} as React.CSSProperties}>
   {visible.header&&<CustomerWebsiteHeader profile={profile} signedIn={customerSignedIn} customerName={customerName} customerPhotoUrl={customerPhotoUrl} onAccount={customer} onMyBookings={()=>setMyBookings(true)} onBook={keshPrakriti?()=>book():roopMahal?(roopBookingFlowAvailable?()=>book():undefined):pinkyNails?(pinkyBookingFlowAvailable?()=>book():undefined):()=>book()} bookingAvailable={keshPrakriti?true:roopMahal?roopBookingFlowAvailable:pinkyNails?pinkyBookingFlowAvailable:true} availableTargets={roopMahal?roopAvailableTargets:pinkyNails?pinkyAvailableTargets:undefined} hasTeam={Boolean(visible.stylists&&team.length)}/>}
 
-   {keshPrakriti ? (
-    <>
-     <div data-layout="hero" id="salon-home">
-      {visible.hero && (
-       <KeshPrakritiHero
-        profile={profile}
-        onBook={(s) => book(s)}
-        bookingAvailable={true}
-        whatsappUrl={wa}
-       />
-      )}
-     </div>
-     {dock.length > 0 && (
-      <nav data-layout="dock" aria-label="Salon quick actions" className="sf-dock">
-       <div className="sf-container sf-dock-scroll">
-        {dock.map(([, label, id]) => (
-         <a key={id} href={`#${id}`}>
-          {t(label)}
-          <ArrowUpRight size={13} />
-         </a>
-        ))}
-       </div>
-      </nav>
-     )}
-     <AppAnnouncementStrip />
-     {visible.promo && (
-      <section id="salon-promo" className="sf-section sf-offers-section">
-       <div className="sf-container">
-        <WebsiteSections {...shared} sections={['promo']} />
-       </div>
-      </section>
-     )}
-     {visible.about && <KeshPrakritiPhilosophy profile={profile} />}
-     <KeshPrakritiFeatured services={keshServices} onBook={(s) => book(s)} />
-     {visible.services && (
-      <KeshPrakritiServices services={keshServices} onBook={(s) => book(s)} />
-     )}
-     {visible.stylists && (
-      <section data-layout="team" id="salon-team" className="sf-section sf-section-tint sf-kp-team-section">
-       <div className="sf-container">
-        <div className="sf-section-heading">
-         <div>
-          <p className="sf-eyebrow">Scalp Wellness Specialists</p>
-          <h2>{heading('stylistsTitle', 'Meet Our Trichology & Spa Specialists')}</h2>
-          <p>{heading('stylistsSubtitle', 'Our certified therapists guide your scalp diagnostic and custom treatment.')}</p>
-         </div>
-        </div>
-        {team.length > 0 && (
-         <div className="sf-team-grid" tabIndex={0} aria-label="Our specialists. Swipe or scroll horizontally to explore.">
-          {team.map((st) => (
-           <SpecialistCard
-            key={st.id}
-            staff={st}
-            profile={profile}
-            selected={chosen?.id === st.id}
-            onView={() => setViewStaff(st.id)}
-            onGallery={() => setViewStaff(st.id)}
-            onToggle={() => setChosen((current) => (current?.id === st.id ? undefined : st))}
-            onBook={() => {
-             setChosen(st);
-             book(undefined, st);
-            }}
-           />
-          ))}
-         </div>
-        )}
-        {chosen && (
-         <SpecialistWeek
-          key={chosen.id}
-          profile={profile}
-          staff={chosen}
-          services={keshServices}
-          onSlot={(selected, slot) => {
-           setService(selected);
-           setDirectSlot(slot);
-           setBooking(true);
-          }}
-         />
-        )}
-        {!team.length && <p className="sf-empty">Meet our specialists at your next sanctuary visit.</p>}
-       </div>
-      </section>
-     )}
-     <div data-layout="experiences">
-      <KeshPrakritiJourney />
-      <KeshPrakritiBotanicals />
-      {visible.gallery && <KeshPrakritiGallery galleryEntries={galleryEntries} />}
-      {visible.testimonials && (
-       <>
-        <KeshPrakritiTestimonials />
-        <div className="sf-container my-8">
-         <CustomerReviewPanel
-          businessType={profile.businessType}
-          slug={profile.subdomain}
-          fallbackReviews={profile.reviewSource && profile.reviewSource.mode !== 'off' ? [] : reviews}
-          signedIn={customerSignedIn}
-          services={keshServices.map((s) => s.name)}
-          onLogin={() => customer('signin')}
-         />
-        </div>
-       </>
-      )}
-      {['videos', 'loyalty'].filter((section) => visible[section]).map((section) => (
-       <section className="sf-section sf-standalone-panel" key={section}>
-        <div className="sf-container">
-         <WebsiteSections {...shared} sections={[section]} />
-        </div>
-       </section>
-      ))}
-     </div>
-     {visible.bookings && (
-      <KeshPrakritiBooking profile={profile} services={keshServices} onBook={(s) => book(s)} />
-     )}
-     <KeshPrakritiFaq />
-     {visible.location && (
-      <KeshPrakritiContact profile={profile} mapUrl={mapUrl} whatsappUrl={wa} />
-     )}
-     {['policies'].filter((section) => visible[section]).map((section) => (
-      <section className="sf-section sf-standalone-panel" key={section}>
-       <div className="sf-container">
-        <WebsiteSections {...shared} sections={[section]} />
-       </div>
-      </section>
-     ))}
-     {(visible.social || visible.share) && (
-      <section className="sf-section sf-connections-section">
-       <div className="sf-container">
-        <WebsiteSections {...shared} sections={['social', 'share']} />
-       </div>
-      </section>
-     )}
-     <CustomerAppPromotion />
-     <KeshPrakritiFooter profile={profile} services={keshServices} onBook={(s) => book(s)} />
-    </>
-   ) : (
+   {(
    <>
     <div data-layout="hero" id="salon-home">
      {visible.hero&&(barber?<BarberReferenceHero profile={profile} services={services} team={team} showMetrics={visible.metrics} onBook={book} whatsapp={wa}/>:roopMahal?<RoopMahalHero profile={profile} onBook={roopBookingFlowAvailable?book:undefined} bookingAvailable={roopBookingFlowAvailable} hasServicesTarget={roopHasServicesDestination}/>:pinkyNails?<PinkyNailsHero profile={profile} onBook={pinkyBookingFlowAvailable?book:undefined} bookingAvailable={pinkyBookingFlowAvailable} hasServicesTarget={pinkyAvailableTargets.has('services-section')}/>:<section className="sf-hero"><img className="sf-hero-image" src={profile.coverImageUrl||template.coverImageUrl} alt="Salon studio interior"/><div className="sf-hero-overlay"/><div className="sf-container sf-hero-content"><div className="sf-badges"><span><ShieldCheck size={14}/>Verified checkout</span>{profile.city&&<span><MapPin size={14}/>{profile.city}</span>}<span className="sf-mood"><i/>Rich warm mood</span></div><p className="sf-eyebrow">{template.shortName}</p><h1>{profile.businessName||'Your next look starts here.'}</h1><p className="sf-hero-intro">{profile.tagline||'Thoughtful care. Expert technique. A little time for you.'}</p><div className="sf-hero-actions"><button className="sf-button" onClick={()=>book()}><CalendarCheck size={18}/>{t('Book Appointment')}<ArrowUpRight size={18}/></button>{wa?<a className="sf-button sf-button-whatsapp" href={wa} target="_blank" rel="noreferrer"><MessageCircle size={18}/>WhatsApp Inquiry</a>:profile.phone&&<a className="sf-button sf-button-outline" href={`tel:${profile.phone}`}>Call the studio</a>}</div><p className="sf-hero-note">Secure 25% advance · Balance payable at the salon</p>{visible.metrics&&<div className="sf-hero-facts"><span><Clock size={16}/>{profile.workingHoursMonFri||'View studio hours below'}</span>{services.length>0&&<span>{services.length} services · From {money(Math.min(...services.map(s=>s.price)))}</span>}</div>}</div></section>)}

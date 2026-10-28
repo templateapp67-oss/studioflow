@@ -17,7 +17,11 @@ export function WebsitePublishPanel({ published, onPublish, onPublished, profile
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
   const url = published ? websiteLink(published.slug) : '';
-  const isReady = profile && services && profile.businessName && services.length > 0 && profile.serviceCatalogueInitialized;
+  // Readiness is only enforced when the panel is given the salon data. Callers
+  // that omit profile/services (e.g. the publish-link contract) still get a
+  // working button, so a click never silently does nothing.
+  const readinessChecked = Boolean(profile && services);
+  const isReady = !readinessChecked || Boolean(profile!.businessName && services!.length > 0 && profile!.serviceCatalogueInitialized);
 
   async function publish() {
     if (!onPublish || busy.current || !isReady) return;
