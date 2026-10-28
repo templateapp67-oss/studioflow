@@ -163,7 +163,7 @@ export const DEFAULT_CATEGORY_ACCENTS: Record<BusinessTypeId, AccentPaletteKey> 
   barber: 'mahogany',
   unisex_salon: 'slate',
   beauty_parlour: 'rose',
-  nail_studio: 'purple',
+  nail_studio: 'rose',
   hair_spa: 'emerald',
   skincare_clinic: 'ocean',
   makeup_studio: 'crimson',

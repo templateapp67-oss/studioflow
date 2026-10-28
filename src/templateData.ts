@@ -176,12 +176,11 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
       { icon: 'brush', title: 'Certified Russian Manicurists', description: 'Precision e-file cuticle techniques that last up to 4 weeks without peeling.' }
     ],
     gallery: [
-      { id: 'ns-g1', url: SALON_IMAGES.nailArt, title: 'Glossy Chrome Gel Nail Art & Aura Design', tag: 'Nail Art' },
-      { id: 'ns-g2', url: SALON_IMAGES.lashBrow, title: 'Lash Extensions & Laminated Brows', tag: 'Lash & Brow' },
-      { id: 'ns-g3', url: SALON_IMAGES.hero, title: 'Modern Nail, Lash & Brow Studio Interior', tag: 'Studio Interior' },
-      { id: 'ns-g4', url: SALON_IMAGES.toolsSetup, title: 'Sterilized Salon Tools & Gel Polish Flatlay', tag: 'Tools & Setup' },
-      { id: 'ns-g5', url: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=800&q=80', title: 'Russian Dry Manicure Cuticle Precision', tag: 'Cuticle Care' },
-      { id: 'ns-g6', url: 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?auto=format&fit=crop&w=800&q=80', title: 'Luxury Jelly Pedicure Station', tag: 'Pedicure Lounge' }
+      { id: 'ns-g1', url: '/templates/pinky-nails/gallery-chrome-art.jpg', title: 'Pearlescent Chrome Glaze Nail Art', tag: 'Nail Art' },
+      { id: 'ns-g2', url: '/templates/pinky-nails/gallery-french-tips.jpg', title: 'Soft Pink French Manicure', tag: 'French Tips' },
+      { id: 'ns-g3', url: '/templates/pinky-nails/gallery-floral-art.jpg', title: 'Hand-painted Floral Nail Art', tag: 'Handpainted Art' },
+      { id: 'ns-g4', url: '/templates/pinky-nails/gallery-pedicure-care.jpg', title: 'Luxury Rose Petal Pedicure Station', tag: 'Pedicure Lounge' },
+      { id: 'ns-g5', url: '/templates/pinky-nails/gallery-glitter-gold.jpg', title: 'Gold Glitter Encapsulation Nails', tag: 'Glitter Art' }
     ],
     reviews: [
       { id: 'ns-r1', name: 'Ayesha Shroff', location: 'Jubilee Hills, Hyderabad', rating: 5, serviceName: 'Russian Dry E-File Gel Manicure', comment: 'My nails have never looked this clean. The Russian technique is unbelievable—zero hangnails and still perfect after 3 weeks!', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80', date: '3 days ago' },

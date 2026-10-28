@@ -6,6 +6,7 @@ import { applyWebsiteFavicon, websiteFavicon } from './lib/websiteFavicon';
 import { resolveSiteSlug } from './lib/resolveSite';
 import { CATEGORY_TEMPLATES } from './categoryTemplates';
 import { upgradeBeautyParlourTemplate, upgradeLegacyBeautyParlourStylists } from './lib/roopMahalReference';
+import { upgradeNailStudioTemplate } from './lib/pinkyNails';
 import { developmentTemplateForSiteSlug, requestedTemplate, templateDraft } from './lib/templateEntry';
 import { BusinessNotificationLink } from './components/BusinessNotificationLink';
 import { SalonBookingsDialog } from './components/SalonBookingsDialog';
@@ -61,7 +62,7 @@ function Application() {
   const {data,error}=await supabase.rpc('studioflow_ensure_account',{p_ref:skipReferral?'':captureReferral()||null});if(error)throw error;
   const [catalog,identity]=await Promise.all([supabase.from('studioflow_templates').select('config').eq('active',true),supabase.from('profiles').select('full_name,salon_name,phone_number,whatsapp,city,postal_code').eq('id',session.user.id).maybeSingle()]);
   if(catalog.error)throw catalog.error;if(identity.error)throw identity.error;
-  if(active){setTemplates((catalog.data||[]).map(t=>upgradeBeautyParlourTemplate(t.config as CategoryTemplateConfig)));setAccount({...data,identity:identity.data});localStorage.removeItem('studioflow_pending_ref');}
+  if(active){setTemplates((catalog.data||[]).map(t=>upgradeNailStudioTemplate(upgradeBeautyParlourTemplate(t.config as CategoryTemplateConfig))));setAccount({...data,identity:identity.data});localStorage.removeItem('studioflow_pending_ref');}
  })().catch(e=>{if(active)setError(e.message||'Could not load your account');});return()=>{active=false;};
  },[session?.user.id,retry,slug,customer,customerApp,recovery,skipReferral,ownerSlug]);
  if(recovery&&session)return <AuthPage recovery onRecovered={()=>{setRecovery(false);setRetry(r=>r+1);}} />;
@@ -81,7 +82,7 @@ function TemplateEntry({templateId}:{templateId:BusinessTypeId}){
  const template=CATEGORY_TEMPLATES[templateId];
  const [remote,setRemote]=useState<any>(null);
  useEffect(()=>{let active=true;void supabase.rpc('studioflow_customer_catalog').then(({data,error})=>{if(active&&!error)setRemote((data?.templates||[]).find((t:any)=>t.id===templateId)||null)});return()=>{active=false}},[templateId]);
- const mergedRemote=remote?upgradeBeautyParlourTemplate(remote):null;
+ const mergedRemote=remote?upgradeNailStudioTemplate(upgradeBeautyParlourTemplate(remote)):null;
  const source=mergedRemote?{...template,title:mergedRemote.title||template.title,tagline:mergedRemote.tagline||template.tagline,coverImageUrl:mergedRemote.coverImageUrl||template.coverImageUrl,services:mergedRemote.services?.length?mergedRemote.services:template.services,stylists:mergedRemote.stylists?.length?mergedRemote.stylists:template.stylists}:template;
  const draft=templateDraft(source);
  if(mergedRemote?.demoOffer)draft.profile.promoCampaign={selectedServiceId:'',campaignTheme:'flash_discount',discountPercent:0,customOfferText:'',promoCode:'',subtext:'',aspectRatio:'16:9',aesthetic:'minimalist_chic',imageUrl:source.coverImageUrl,customPrompt:'',...mergedRemote.demoOffer,headline:'TEMPLATE DEMO · '+(mergedRemote.demoOffer.headline||'Sample offer')};

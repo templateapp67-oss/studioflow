@@ -20,6 +20,28 @@ import {
  RoopMahalTeamCard,
 } from './RoopMahalSections';
 import {
+ PinkyNailsAboutSection,
+ PinkyNailsArtFeature,
+ PinkyNailsBookingBanner,
+ PinkyNailsBookingSteps,
+ PinkyNailsFaq,
+ PinkyNailsTrustHighlights,
+ PinkyNailsWhyChooseUs,
+ PinkyNailsContactSection,
+ PinkyNailsFooter,
+ PinkyNailsGallery,
+ PinkyNailsHero,
+ PinkyNailsServiceCard,
+ PinkyNailsTeamCard,
+ PinkyNailsTeamPortrait,
+} from './PinkyNailsSections';
+import {
+ isValidNailService,
+ isValidNailStaff,
+ pinkyFaqItems,
+ pinkyNailsContactSummary,
+} from '../lib/pinkyNails';
+import {
  hasValidRoopDuration,
  hasValidRoopPrice,
  isValidRoopService,
@@ -52,7 +74,8 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
  const palette=ACCENT_PALETTES[(profile.themeAccentKey||DEFAULT_CATEGORY_ACCENTS[profile.businessType]) as AccentPaletteKey]||ACCENT_PALETTES.slate;
  const barber=profile.businessType==='barber';
  const roopMahal=profile.businessType==='beauty_parlour';
- const accent=profile.customAccentColor||(barber?'#c49a6c':roopMahal?'#6D2638':palette.primaryHex);
+ const pinkyNails=profile.businessType==='nail_studio';
+ const accent=profile.customAccentColor||(barber?'#c49a6c':roopMahal?'#6D2638':pinkyNails?'#702D4B':palette.primaryHex);
  const [category,setCategory]=useState('All'),[chosen,setChosen]=useState<Stylist|undefined>(),[service,setService]=useState<SalonService|undefined>(),[booking,setBooking]=useState(false),[photo,setPhoto]=useState<number|null>(null);
  const [brokenGalleryIds,setBrokenGalleryIds]=useState<string[]>([]);
  useEffect(()=>{setCategory('All');setChosen(undefined);setService(undefined);setBooking(false);setBrokenGalleryIds([]);},[profile.businessType]);
@@ -70,20 +93,28 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
   keepContactSectionVisible?:boolean;
  };
 
+ const pinkyExt=profile as typeof profile&{bookingEnabled?:boolean;disableImageFallbacks?:boolean;keepContactSectionVisible?:boolean;teamPortraitImageUrl?:string|null};
+ const pinkyServices=pinkyNails?services.filter(isValidNailService):services;
  const roopServices=roopMahal?services.filter(isValidRoopService):services;
  const packages=(roopMahal?roopServices:services).filter(item=>/package|combo|bundle/i.test(`${item.category} ${item.name}`));
  const categories=roopMahal
   ?Array.from(new Set(roopServices.map(s=>(s.category||'').trim()).filter(Boolean)))
   :Array.from(new Set(services.map(s=>s.category||'Signature services')));
  const activeCategory=categories.includes(category)?category:'All';
- const team=roopMahal?stylists.filter(isValidRoopStaff):stylists.filter(s=>s.status!=='Inactive');
+ const team=roopMahal?stylists.filter(isValidRoopStaff):pinkyNails?stylists.filter(isValidNailStaff):stylists.filter(s=>s.status!=='Inactive');
+ const pinkyCoreServices=pinkyNails?pinkyServices:pinkyServices;
+ const nailCategories=pinkyNails?Array.from(new Set(pinkyCoreServices.map(s=>(s.category||'').trim()).filter(Boolean))):[];
  const reviews=clientExperiences(profile);
  const roopReviews=Array.isArray(profile.websiteTestimonials)?profile.websiteTestimonials:reviews;
+ const pinkyReviews=Array.isArray(profile.websiteTestimonials)?profile.websiteTestimonials:reviews;
+ const pinkyHasReviews=pinkyReviews.some(item=>String(item?.comment||'').trim().length>0)||reviews.some(item=>String(item?.comment||'').trim().length>0);
  const galleryEntries=photoGallery(profile,inputGallery);
  const roopGalleryEntries=roopMahal
   ?galleryEntries.filter(entry=>Boolean(entry?.url?.trim())&&!brokenGalleryIds.includes(entry.id)&&(!roopExt.disableImageFallbacks||!entry.isDemo))
   :galleryEntries;
  const gallery=(roopMahal?roopGalleryEntries:galleryEntries).map(item=>item.url);
+ const pinkyGalleryEntries=pinkyNails?galleryEntries.filter(entry=>Boolean(entry?.url?.trim())&&!brokenGalleryIds.includes(entry.id)&&(!pinkyExt.disableImageFallbacks||!entry.isDemo)):[];
+ const lightboxImages=pinkyNails?pinkyGalleryEntries.map(entry=>entry.url):gallery;
  const [galleryCategory,setGalleryCategory]=useState<PhotoCategory|'All'>('All');
  useEffect(()=>{setGalleryCategory('All');setPhoto(null);},[profile.businessType]);
  const roopGalleryCategories=Array.from(new Set(roopGalleryEntries.map(p=>p.category)));
@@ -93,6 +124,11 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
 
  const whatsapp=profile.whatsapp?.replace(/[^0-9]/g,'');
  const wa=whatsapp?`https://wa.me/${whatsapp}?text=${encodeURIComponent(`Hello ${profile.businessName}, I would like to enquire about an appointment.`)}`:'';
+ const pinkyBookingFlowAvailable=Boolean(
+  typeof onAddAppointment==='function'&&
+  pinkyExt.bookingEnabled!==false&&
+  pinkyServices.length>0
+ );
  const roopBookingFlowAvailable=Boolean(
   typeof onAddAppointment==='function'&&
   roopExt.bookingEnabled!==false&&
@@ -100,7 +136,8 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
  );
  const book=(selected?:SalonService,specialist?:Stylist)=>{
   if(roopMahal&&!roopBookingFlowAvailable)return;
-  const pool=roopMahal?roopServices:services;
+  if(pinkyNails&&!pinkyBookingFlowAvailable)return;
+  const pool=roopMahal?roopServices:pinkyNails?pinkyServices:services;
   setDirectSlot(undefined);setService(selected||pool[0]);setChosen(current=>specialist||current);setBooking(true);
  };
  const customer=(mode:'signin'|'signup')=>onCustomerAccount?onCustomerAccount(mode):location.assign(`/?customer=1&auth=${mode}&return=${encodeURIComponent(profile.subdomain||'')}`);
@@ -141,7 +178,59 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
     ?'#salon-team'
     :'';
 
- const dock=[['promo','Offers','salon-promo'],['services','Services','services-section'],['stylists','Our Team','salon-team'],['gallery','Lookbook','salon-lookbook'],['testimonials','Reviews','salon-testimonials'],['location','Location','salon-location']].filter(([key,,id])=>visible[key]&&(!roopMahal||roopAvailableTargets.has(id)));
+ const pinkySectionFlag=(key:string)=>Boolean((profile.websiteSections as Record<string,boolean>|undefined)?.[key]!==false);
+ const pinkyShowTrust=Boolean(pinkyNails&&pinkySectionFlag('trust'));
+ const pinkyShowWhy=Boolean(pinkyNails&&pinkySectionFlag('whyChooseUs'));
+ const pinkyShowSteps=Boolean(pinkyNails&&pinkySectionFlag('bookingSteps'));
+ const pinkyShowFaq=Boolean(pinkyNails&&pinkySectionFlag('faq'));
+ const pinkyContact=pinkyNails?pinkyNailsContactSummary(profile,mapUrl,wa):null;
+ const pinkyShowLocation=Boolean(pinkyNails&&visible.location&&(pinkyContact?.hasAnyContactDetail||pinkyExt.keepContactSectionVisible));
+ const pinkyShowFooter=(profile.websiteSections as Record<string,boolean>|undefined)?.footer!==false;
+ const pinkyShowBookingBanner=Boolean(pinkyNails&&visible.bookings&&pinkyBookingFlowAvailable);
+ const pinkyAvailableTargets=new Set<string>(['salon-home']);
+ if(visible.promo)pinkyAvailableTargets.add('salon-promo');
+ if(visible.services&&pinkyServices.length>0)pinkyAvailableTargets.add('services-section');
+ if(visible.packages)pinkyAvailableTargets.add('salon-packages');
+ if(visible.about)pinkyAvailableTargets.add('salon-about');
+ if(visible.stylists&&team.length>0)pinkyAvailableTargets.add('salon-team');
+ if(visible.gallery&&pinkyGalleryEntries.length>0)pinkyAvailableTargets.add('salon-lookbook');
+ if(visible.testimonials)pinkyAvailableTargets.add('salon-testimonials');
+ if(pinkyShowLocation)pinkyAvailableTargets.add('salon-location');
+ if(visible.bookings)pinkyAvailableTargets.add('salon-bookings');
+ if(roopHasPolicies)pinkyAvailableTargets.add('salon-policies');
+ if(visible.videos)pinkyAvailableTargets.add('salon-videos');
+ if(visible.loyalty)pinkyAvailableTargets.add('salon-loyalty');
+ if(visible.social)pinkyAvailableTargets.add('salon-social');
+ if(visible.share)pinkyAvailableTargets.add('salon-share');
+ const pinkyFaqList=pinkyNails&&pinkyShowFaq&&pinkyContact
+  ?pinkyFaqItems(
+    profile,
+    {
+      phone:pinkyContact.phone,
+      whatsappUrl:pinkyContact.whatsappUrl,
+      fullAddress:pinkyContact.fullAddress,
+      hasDirections:pinkyContact.hasDirections,
+    },
+    Boolean(visible.services&&pinkyServices.length>0),
+    pinkyBookingFlowAvailable,
+  )
+  :[];
+ const pinkyKnowMoreHref=pinkyAvailableTargets.has('salon-location')
+  ?'#salon-location'
+  :pinkyAvailableTargets.has('services-section')
+   ?'#services-section'
+   :pinkyAvailableTargets.has('salon-team')
+    ?'#salon-team'
+    :'';
+ const pinkyTeamPortraitVisible=Boolean(
+  pinkyNails&&(
+   pinkyExt.teamPortraitImageUrl!==undefined
+    ?String(pinkyExt.teamPortraitImageUrl||'').trim()
+    :!pinkyExt.disableImageFallbacks
+  )
+ );
+ const dock=[['promo','Offers','salon-promo'],['services','Services','services-section'],['stylists','Our Team','salon-team'],['gallery','Lookbook','salon-lookbook'],['testimonials','Reviews','salon-testimonials'],['location','Location','salon-location']].filter(([key,,id])=>visible[key]&&(!roopMahal||roopAvailableTargets.has(id))&&(!pinkyNails||pinkyAvailableTargets.has(id)));
+
  const heading=(key:string,fallback:string)=>profile.sectionHeadings?.[key]||fallback;
  const shared={profile,services:roopMahal?roopServices:services,onBook:(selected?:SalonService)=>book(selected),readOnly:true,policies,onMyBookings:()=>setMyBookings(true),loyaltyConfig,customerSignedIn,onCustomerAccount:()=>customer('signin')};
 
@@ -209,32 +298,58 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
   )
  );
 
- const testimonialsSection=visible.testimonials&&(
-  <section id="salon-testimonials" className={`sf-section${roopMahal?' sf-rm-reviews-section':''}`}>
+ const testimonialsSection=visible.testimonials&&(!pinkyNails||pinkyHasReviews||customerSignedIn)&&(
+  <section id="salon-testimonials" className={`sf-section${roopMahal?' sf-rm-reviews-section':''}${pinkyNails?' sf-pn-reviews-section':''}`}>
    <div className="sf-container">
     <div className="sf-section-heading">
      <div>
-      <p className="sf-eyebrow">{roopMahal?'Customer Reviews':'The studio, through your eyes'}</p>
-      <h2>{heading('testimonialsTitle',roopMahal?'Happy Clients, Happy Smiles':t('Client Experiences'))}</h2>
-      <p>{roopMahal?'See what our customers have shared about their experience.':'Client stories and reviews from our studio.'}</p>
+      <p className="sf-eyebrow">{roopMahal?'Customer Reviews':pinkyNails?'Client Love':'The studio, through your eyes'}</p>
+      <h2>{heading('testimonialsTitle',roopMahal?'Happy Clients, Happy Smiles':pinkyNails?'Love from Our Clients':t('Client Experiences'))}</h2>
+      <p>{roopMahal?'See what our customers have shared about their experience.':pinkyNails?'Real reviews shared by clients of the studio.':'Client stories and reviews from our studio.'}</p>
      </div>
     </div>
     <ExternalReviewFeed profile={profile}/>
-    <CustomerReviewPanel businessType={profile.businessType} slug={profile.subdomain} fallbackReviews={profile.reviewSource&&profile.reviewSource.mode!=='off'?[]:(roopMahal?roopReviews:reviews)} signedIn={customerSignedIn} services={(roopMahal?roopServices:services).map(s=>s.name)} onLogin={()=>customer('signin')}/>
+    <CustomerReviewPanel businessType={profile.businessType} slug={profile.subdomain} fallbackReviews={profile.reviewSource&&profile.reviewSource.mode!=='off'?[]:(roopMahal?roopReviews:pinkyNails?pinkyReviews:reviews)} signedIn={customerSignedIn} services={(roopMahal?roopServices:services).map(s=>s.name)} onLogin={()=>customer('signin')}/>
    </div>
   </section>
  );
 
- return <div className={`sf-page${barber?' sf-barber':''}${roopMahal?' sf-roop-mahal':''}`} data-template={profile.businessType} style={{'--sf-header-height':visible.header?'72px':'0px','--sf-accent':accent,'--sf-accent-text':getContrastTextColor(accent)} as React.CSSProperties}>
-  {visible.header&&<CustomerWebsiteHeader profile={profile} signedIn={customerSignedIn} customerName={customerName} customerPhotoUrl={customerPhotoUrl} onAccount={customer} onMyBookings={()=>setMyBookings(true)} onBook={roopMahal?(roopBookingFlowAvailable?()=>book():undefined):()=>book()} bookingAvailable={roopMahal?roopBookingFlowAvailable:true} availableTargets={roopMahal?roopAvailableTargets:undefined} hasTeam={Boolean(visible.stylists&&team.length)}/>}
+ return <div className={`sf-page${barber?' sf-barber':''}${roopMahal?' sf-roop-mahal':''}${pinkyNails?' sf-pinky-nails':''}`} data-template={profile.businessType} style={{'--sf-header-height':visible.header?'72px':'0px','--sf-accent':accent,'--sf-accent-text':getContrastTextColor(accent)} as React.CSSProperties}>
+  {visible.header&&<CustomerWebsiteHeader profile={profile} signedIn={customerSignedIn} customerName={customerName} customerPhotoUrl={customerPhotoUrl} onAccount={customer} onMyBookings={()=>setMyBookings(true)} onBook={roopMahal?(roopBookingFlowAvailable?()=>book():undefined):pinkyNails?(pinkyBookingFlowAvailable?()=>book():undefined):()=>book()} bookingAvailable={roopMahal?roopBookingFlowAvailable:pinkyNails?pinkyBookingFlowAvailable:true} availableTargets={roopMahal?roopAvailableTargets:pinkyNails?pinkyAvailableTargets:undefined} hasTeam={Boolean(visible.stylists&&team.length)}/>}
   <div data-layout="hero" id="salon-home">
-   {visible.hero&&(barber?<BarberReferenceHero profile={profile} services={services} team={team} showMetrics={visible.metrics} onBook={book} whatsapp={wa}/>:roopMahal?<RoopMahalHero profile={profile} onBook={roopBookingFlowAvailable?book:undefined} bookingAvailable={roopBookingFlowAvailable} hasServicesTarget={roopHasServicesDestination}/>:<section className="sf-hero"><img className="sf-hero-image" src={profile.coverImageUrl||template.coverImageUrl} alt="Salon studio interior"/><div className="sf-hero-overlay"/><div className="sf-container sf-hero-content"><div className="sf-badges"><span><ShieldCheck size={14}/>Verified checkout</span>{profile.city&&<span><MapPin size={14}/>{profile.city}</span>}<span className="sf-mood"><i/>Rich warm mood</span></div><p className="sf-eyebrow">{template.shortName}</p><h1>{profile.businessName||'Your next look starts here.'}</h1><p className="sf-hero-intro">{profile.tagline||'Thoughtful care. Expert technique. A little time for you.'}</p><div className="sf-hero-actions"><button className="sf-button" onClick={()=>book()}><CalendarCheck size={18}/>{t('Book Appointment')}<ArrowUpRight size={18}/></button>{wa?<a className="sf-button sf-button-whatsapp" href={wa} target="_blank" rel="noreferrer"><MessageCircle size={18}/>WhatsApp Inquiry</a>:profile.phone&&<a className="sf-button sf-button-outline" href={`tel:${profile.phone}`}>Call the studio</a>}</div><p className="sf-hero-note">Secure 25% advance · Balance payable at the salon</p>{visible.metrics&&<div className="sf-hero-facts"><span><Clock size={16}/>{profile.workingHoursMonFri||'View studio hours below'}</span>{services.length>0&&<span>{services.length} services · From {money(Math.min(...services.map(s=>s.price)))}</span>}</div>}</div></section>)}
+   {visible.hero&&(barber?<BarberReferenceHero profile={profile} services={services} team={team} showMetrics={visible.metrics} onBook={book} whatsapp={wa}/>:roopMahal?<RoopMahalHero profile={profile} onBook={roopBookingFlowAvailable?book:undefined} bookingAvailable={roopBookingFlowAvailable} hasServicesTarget={roopHasServicesDestination}/>:pinkyNails?<PinkyNailsHero profile={profile} onBook={pinkyBookingFlowAvailable?book:undefined} bookingAvailable={pinkyBookingFlowAvailable} hasServicesTarget={pinkyAvailableTargets.has('services-section')}/>:<section className="sf-hero"><img className="sf-hero-image" src={profile.coverImageUrl||template.coverImageUrl} alt="Salon studio interior"/><div className="sf-hero-overlay"/><div className="sf-container sf-hero-content"><div className="sf-badges"><span><ShieldCheck size={14}/>Verified checkout</span>{profile.city&&<span><MapPin size={14}/>{profile.city}</span>}<span className="sf-mood"><i/>Rich warm mood</span></div><p className="sf-eyebrow">{template.shortName}</p><h1>{profile.businessName||'Your next look starts here.'}</h1><p className="sf-hero-intro">{profile.tagline||'Thoughtful care. Expert technique. A little time for you.'}</p><div className="sf-hero-actions"><button className="sf-button" onClick={()=>book()}><CalendarCheck size={18}/>{t('Book Appointment')}<ArrowUpRight size={18}/></button>{wa?<a className="sf-button sf-button-whatsapp" href={wa} target="_blank" rel="noreferrer"><MessageCircle size={18}/>WhatsApp Inquiry</a>:profile.phone&&<a className="sf-button sf-button-outline" href={`tel:${profile.phone}`}>Call the studio</a>}</div><p className="sf-hero-note">Secure 25% advance · Balance payable at the salon</p>{visible.metrics&&<div className="sf-hero-facts"><span><Clock size={16}/>{profile.workingHoursMonFri||'View studio hours below'}</span>{services.length>0&&<span>{services.length} services · From {money(Math.min(...services.map(s=>s.price)))}</span>}</div>}</div></section>)}
   </div>
   {dock.length>0&&<nav data-layout="dock" aria-label="Salon quick actions" className="sf-dock"><div className="sf-container sf-dock-scroll">{dock.map(([,label,id])=><a key={id} href={`#${id}`}>{t(label)}<ArrowUpRight size={13}/></a>)}</div></nav>}
   <AppAnnouncementStrip/>
+  {pinkyShowTrust&&<PinkyNailsTrustHighlights/>}
   {visible.promo&&<section className="sf-section sf-offers-section"><div className="sf-container"><WebsiteSections {...shared} sections={['promo']}/></div></section>}
   {visible.services&&(
-   roopMahal?(
+   pinkyNails?(
+    <section data-layout="services" id="services-section" className="sf-section sf-pn-services-section">
+     <div className="sf-container">
+      <div className="sf-pn-section-heading">
+       <div>
+        <p className="sf-pn-eyebrow">Nail Menu</p>
+        <h2>{heading('servicesTitle','Our Nail Services')}</h2>
+        <p className="sf-pn-section-desc">{heading('servicesSubtitle','Find the right service for your nails and personal style.')}</p>
+       </div>
+       {pinkyCoreServices.length>0&&<span className="sf-section-count">{pinkyCoreServices.length} services</span>}
+      </div>
+      {pinkyCoreServices.length>0&&nailCategories.length>1&&(
+       <div className="sf-category-tabs" role="group" aria-label="Service categories">
+        {['All',...nailCategories].map(item=><button key={item} aria-pressed={activeCategory===item} onClick={()=>setCategory(item)}>{item}</button>)}
+       </div>
+      )}
+      {pinkyCoreServices.length>0?(
+       <div className="sf-service-row sf-pn-service-grid">
+        {pinkyCoreServices.filter(item=>activeCategory==='All'||(item.category||'').trim()===activeCategory).map(item=><PinkyNailsServiceCard key={item.id} service={item} bookingAvailable={pinkyBookingFlowAvailable} onBook={selected=>book(selected)}/>)}
+       </div>
+      ):(
+       <p className="sf-empty">Nail services will appear here once they are added.</p>
+      )}
+     </div>
+    </section>
+   ):roopMahal?(
     <section data-layout="services" id="services-section" className="sf-section sf-rm-services-section">
      <div className="sf-container">
       <div className="sf-section-heading">
@@ -340,15 +455,62 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
    )
   )}
   {roopMahal&&visible.about&&<RoopMahalAboutSection profile={profile} knowMoreHref={roopKnowMoreHref}/>}
+  {pinkyNails&&visible.about&&<PinkyNailsAboutSection profile={profile} knowMoreHref={pinkyKnowMoreHref}/>}
+  {pinkyNails&&visible.services&&pinkyServices.length>0&&<PinkyNailsArtFeature profile={profile} hasServicesTarget={pinkyAvailableTargets.has('services-section')}/>}
+  {pinkyShowWhy&&<PinkyNailsWhyChooseUs profile={profile}/>}
+  {pinkyNails&&pinkyAvailableTargets.has('salon-lookbook')&&<PinkyNailsGallery entries={pinkyGalleryEntries} heading={heading('galleryTitle','Nail Art Gallery')} category={galleryCategory} onCategory={setGalleryCategory} onOpen={entry=>setPhoto(pinkyGalleryEntries.findIndex(item=>item.id===entry.id))} onBroken={id=>setBrokenGalleryIds(prev=>prev.includes(id)?prev:[...prev,id])}/>}
   {roopShowBridal&&<RoopMahalBridalHighlight profile={profile} services={roopServices} hasServicesTarget={roopHasServicesDestination} whatsappUrl={roopBridalInquiryUrl}/>}
-  {visible.stylists&&<section data-layout="team" id="salon-team" className={`sf-section sf-section-tint${roopMahal?' sf-rm-team-section':''}`}><div className="sf-container"><div className="sf-section-heading"><div><p className="sf-eyebrow">{roopMahal?'Our Team':'People behind the craft'}</p><h2>{heading('stylistsTitle',roopMahal?'Meet Our Beauty Experts':t('Meet Our Specialists'))}</h2><p>{heading('stylistsSubtitle',roopMahal?'Our team is here to help you look your best for every special moment.':'Find your specialist. Choose them for your next appointment.')}</p></div></div>{(!roopMahal||team.length>0)&&<div className={`sf-team-grid${roopMahal?' sf-rm-team-grid':''}`} tabIndex={0} aria-label="Our specialists. Swipe or scroll horizontally to explore.">{team.map(st=>roopMahal?<RoopMahalTeamCard key={st.id} staff={st} profile={profile} selected={chosen?.id===st.id} bookingAvailable={roopBookingFlowAvailable} onView={()=>setViewStaff(st.id)} onToggle={()=>setChosen(current=>current?.id===st.id?undefined:st)} onBook={()=>{setChosen(st);book(undefined,st)}}/>:<SpecialistCard key={st.id} staff={st} profile={profile} selected={chosen?.id===st.id} onView={()=>setViewStaff(st.id)} onGallery={()=>setViewStaff(st.id)} onToggle={()=>setChosen(current=>current?.id===st.id?undefined:st)} onBook={()=>{setChosen(st);book(undefined,st)}}/>)}</div>}{chosen&&(!roopMahal||roopBookingFlowAvailable)&&<SpecialistWeek key={chosen.id} profile={profile} staff={chosen} services={roopMahal?roopServices:services} onSlot={(selected,slot)=>{setService(selected);setDirectSlot(slot);setBooking(true)}}/>}{!team.length&&<p className="sf-empty">Meet our specialists at your next studio visit.</p>}</div></section>}
+  {pinkyNails?(
+   visible.stylists&&team.length>0?(
+    <section data-layout="team" id="salon-team" className="sf-section sf-pn-team-section">
+     <div className="sf-container">
+      <div className={`sf-pn-team-head${pinkyTeamPortraitVisible?'':' is-no-media'}`}>
+       <div>
+        <p className="sf-pn-eyebrow">Our Team</p>
+        <h2>{heading('stylistsTitle','Meet Our Nail Artists')}</h2>
+        <p>{heading('stylistsSubtitle','Meet the team that helps you get the nail look you love.')}</p>
+       </div>
+       <PinkyNailsTeamPortrait profile={profile}/>
+      </div>
+      <div className="sf-pn-team-grid">
+       {team.map(st=><PinkyNailsTeamCard key={st.id} staff={st} selected={chosen?.id===st.id} bookingAvailable={pinkyBookingFlowAvailable} onView={()=>setViewStaff(st.id)} onToggle={()=>setChosen(current=>current?.id===st.id?undefined:st)} onBook={()=>{setChosen(st);book(undefined,st)}}/>)}
+      </div>
+      {chosen&&pinkyBookingFlowAvailable&&<SpecialistWeek key={chosen.id} profile={profile} staff={chosen} services={pinkyServices} onSlot={(selected,slot)=>{setService(selected);setDirectSlot(slot);setBooking(true)}}/>}
+     </div>
+    </section>
+   ):(
+    <section data-layout="team" id="salon-team" className="sf-section sf-pn-team-section">
+     <div className="sf-container">
+      <div className="sf-pn-team-head is-no-media">
+       <div>
+        <p className="sf-pn-eyebrow">Our Team</p>
+        <h2>{heading('stylistsTitle','Meet Our Nail Artists')}</h2>
+        <p>{heading('stylistsSubtitle','Meet the team that helps you get the nail look you love.')}</p>
+       </div>
+      </div>
+      <p className="sf-pn-team-empty">Our nail artists will be listed here soon. Ask the studio about your appointment.</p>
+     </div>
+    </section>
+   )
+  ):visible.stylists&&<section data-layout="team" id="salon-team" className={`sf-section sf-section-tint${roopMahal?' sf-rm-team-section':''}`}><div className="sf-container"><div className="sf-section-heading"><div><p className="sf-eyebrow">{roopMahal?'Our Team':'People behind the craft'}</p><h2>{heading('stylistsTitle',roopMahal?'Meet Our Beauty Experts':t('Meet Our Specialists'))}</h2><p>{heading('stylistsSubtitle',roopMahal?'Our team is here to help you look your best for every special moment.':'Find your specialist. Choose them for your next appointment.')}</p></div></div>{(!roopMahal||team.length>0)&&<div className={`sf-team-grid${roopMahal?' sf-rm-team-grid':''}`} tabIndex={0} aria-label="Our specialists. Swipe or scroll horizontally to explore.">{team.map(st=>roopMahal?<RoopMahalTeamCard key={st.id} staff={st} profile={profile} selected={chosen?.id===st.id} bookingAvailable={roopBookingFlowAvailable} onView={()=>setViewStaff(st.id)} onToggle={()=>setChosen(current=>current?.id===st.id?undefined:st)} onBook={()=>{setChosen(st);book(undefined,st)}}/>:<SpecialistCard key={st.id} staff={st} profile={profile} selected={chosen?.id===st.id} onView={()=>setViewStaff(st.id)} onGallery={()=>setViewStaff(st.id)} onToggle={()=>setChosen(current=>current?.id===st.id?undefined:st)} onBook={()=>{setChosen(st);book(undefined,st)}}/>)}</div>}{chosen&&(!roopMahal||roopBookingFlowAvailable)&&<SpecialistWeek key={chosen.id} profile={profile} staff={chosen} services={roopMahal?roopServices:services} onSlot={(selected,slot)=>{setService(selected);setDirectSlot(slot);setBooking(true)}}/>}{!team.length&&<p className="sf-empty">Meet our specialists at your next studio visit.</p>}</div></section>}
+  {pinkyShowSteps&&<PinkyNailsBookingSteps heading={heading('bookingStepsTitle','Booking Your Visit Is Easy')} showTimeStep={pinkyBookingFlowAvailable} showConfirmStep={pinkyBookingFlowAvailable}/>}
   <div data-layout="experiences">
-   {roopMahal?<>{gallerySection}{testimonialsSection}</>:<>{testimonialsSection}{gallerySection}</>}
+   {roopMahal?<>{gallerySection}{testimonialsSection}</>:pinkyNails?testimonialsSection:<>{testimonialsSection}{gallerySection}</>}
    {['videos','loyalty'].filter(section=>visible[section]).map(section=><section className="sf-section sf-standalone-panel" key={section}><div className="sf-container"><WebsiteSections {...shared} sections={[section]}/></div></section>)}
   </div>
-  {!roopMahal&&visible.about&&<section id="salon-about" className="sf-section sf-about-section"><div className={`sf-container sf-about-grid${barber||profile.ownerPhotoUrl?' sf-about-with-photo':''}`}>{(barber||profile.ownerPhotoUrl)&&<div className={`sf-about-photo${barber?' sf-barber-about-photo':''}`}><img src={profile.ownerPhotoUrl||BARBER_REFERENCE_IMAGES.aboutPrimary} alt={profile.ownerPhotoUrl?`${profile.ownerName||'Our specialist'} at the studio`:'Barbershop interior'} loading="lazy"/></div>}<div><p className="sf-eyebrow">{barber?'The craft':'Our studio'}</p><h2>{barber?<>Old-world craftsmanship,<br/><em>modern</em> standards.</>:'About our studio'}</h2><p>{profile.about||`Welcome to ${profile.businessName||'our studio'}. Explore our services and meet the team behind your next visit.`}</p>{barber&&<div className="sf-barber-pillars">{[['Precision','Care shaped around your preferences.'],['Tradition','Timeless grooming rituals and expert technique.'],['Atmosphere','A comfortable studio and time for yourself.']].map(([title,text])=><article key={title}><Check size={17}/><h3>{title}</h3><p>{text}</p></article>)}</div>}</div></div></section>}
+  {!roopMahal&&!pinkyNails&&visible.about&&<section id="salon-about" className="sf-section sf-about-section"><div className={`sf-container sf-about-grid${barber||profile.ownerPhotoUrl?' sf-about-with-photo':''}`}>{(barber||profile.ownerPhotoUrl)&&<div className={`sf-about-photo${barber?' sf-barber-about-photo':''}`}><img src={profile.ownerPhotoUrl||BARBER_REFERENCE_IMAGES.aboutPrimary} alt={profile.ownerPhotoUrl?`${profile.ownerName||'Our specialist'} at the studio`:'Barbershop interior'} loading="lazy"/></div>}<div><p className="sf-eyebrow">{barber?'The craft':'Our studio'}</p><h2>{barber?<>Old-world craftsmanship,<br/><em>modern</em> standards.</>:'About our studio'}</h2><p>{profile.about||`Welcome to ${profile.businessName||'our studio'}. Explore our services and meet the team behind your next visit.`}</p>{barber&&<div className="sf-barber-pillars">{[['Precision','Care shaped around your preferences.'],['Tradition','Timeless grooming rituals and expert technique.'],['Atmosphere','A comfortable studio and time for yourself.']].map(([title,text])=><article key={title}><Check size={17}/><h3>{title}</h3><p>{text}</p></article>)}</div>}</div></div></section>}
   {roopShowBookingBanner&&<RoopMahalBookingBanner profile={profile} bookingAvailable={roopBookingFlowAvailable} onBook={()=>book()}/>}
-  {roopMahal?(
+  {pinkyShowFaq&&pinkyFaqList.length>0&&<PinkyNailsFaq items={pinkyFaqList} heading={heading('faqTitle','Frequently Asked Questions')}/>}
+  {pinkyShowBookingBanner&&<PinkyNailsBookingBanner profile={profile} bookingAvailable={pinkyBookingFlowAvailable} onBook={()=>book()}/>}
+  {pinkyNails?(
+   pinkyShowLocation&&(
+    <section data-layout="location" id="salon-location" className="sf-section sf-pn-location-section">
+     <div className="sf-container">
+      <PinkyNailsContactSection profile={profile} mapUrl={mapUrl} whatsappUrl={wa} headingText={heading('locationTitle','Visit Pinky Nails Studio')}/>
+     </div>
+    </section>
+   )
+  ):roopMahal?(
    roopShowLocation&&(
     <section data-layout="location" id="salon-location" className="sf-section sf-location sf-rm-location-section">
      <div className="sf-container">
@@ -362,11 +524,11 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
   {['bookings','policies'].filter(section=>visible[section]).map(section=><section className="sf-section sf-standalone-panel" key={section}><div className="sf-container"><WebsiteSections {...shared} sections={[section]}/></div></section>)}
   {(visible.social||visible.share)&&<section className="sf-section sf-connections-section"><div className="sf-container"><WebsiteSections {...shared} sections={['social','share']}/></div></section>}
   <CustomerAppPromotion/>
-  {roopMahal?(roopShowFooter&&<RoopMahalFooter profile={profile} services={roopServices} branding={branding} mapUrl={mapUrl} whatsappUrl={wa} hasTeam={Boolean(visible.stylists&&team.length)} availableTargets={roopAvailableTargets} bookingAvailable={roopBookingFlowAvailable} onBook={roopBookingFlowAvailable?book:undefined}/>):<footer data-layout="footer" className="sf-footer"><div className="sf-container"><strong>{profile.businessName}</strong><p>{profile.city} · Crafted care, every visit.</p>{branding?.poweredBy&&<small>Powered by {branding.platformName||'StudioFlow'}</small>}<a href="#">Back to top ↑</a></div></footer>}
+  {pinkyNails?(pinkyShowFooter&&<PinkyNailsFooter profile={profile} services={pinkyServices} branding={branding} mapUrl={mapUrl} whatsappUrl={wa} hasTeam={Boolean(visible.stylists&&team.length)} availableTargets={pinkyAvailableTargets} bookingAvailable={pinkyBookingFlowAvailable} onBook={pinkyBookingFlowAvailable?book:undefined}/>):roopMahal?(roopShowFooter&&<RoopMahalFooter profile={profile} services={roopServices} branding={branding} mapUrl={mapUrl} whatsappUrl={wa} hasTeam={Boolean(visible.stylists&&team.length)} availableTargets={roopAvailableTargets} bookingAvailable={roopBookingFlowAvailable} onBook={roopBookingFlowAvailable?book:undefined}/>):<footer data-layout="footer" className="sf-footer"><div className="sf-container"><strong>{profile.businessName}</strong><p>{profile.city} · Crafted care, every visit.</p>{branding?.poweredBy&&<small>Powered by {branding.platformName||'StudioFlow'}</small>}<a href="#">Back to top ↑</a></div></footer>}
   {myBookings&&<SalonBookingsDialog profile={profile} onClose={()=>setMyBookings(false)}/>}
   {team.some(st=>st.id===viewStaff)&&<StylistProfile services={roopMahal?roopServices:services} onSlot={(selected,slot)=>{setChosen(team.find(st=>st.id===slot.stylistId));setService(selected);setDirectSlot(slot);setViewStaff('');setBooking(true)}} staff={team.find(st=>st.id===viewStaff)!} profile={profile} slug={profile.subdomain} signedIn={customerSignedIn} demo={!profile.subdomain} onLogin={()=>{setViewStaff('');customer('signin')}} onClose={()=>setViewStaff('')} onBook={()=>{const specialist=team.find(st=>st.id===viewStaff);setViewStaff('');book(undefined,specialist)}}/>}
   {(!roopMahal||roopBookingFlowAvailable)&&<BookingModal isOpen={booking} onClose={()=>setBooking(false)} profile={profile} services={roopMahal?roopServices:services} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>}
-  {photo!==null&&gallery.length>0&&photo<gallery.length&&<div className="sf-lightbox" role="dialog" aria-modal="true" aria-label="Studio lookbook" onClick={()=>setPhoto(null)}><button aria-label="Close lookbook" onClick={()=>setPhoto(null)}><X/></button><img src={gallery[photo]} alt={`Studio look ${photo+1}`} onClick={e=>e.stopPropagation()}/><div><button aria-label="Previous photo" onClick={e=>{e.stopPropagation();setPhoto((photo-1+gallery.length)%gallery.length);}}><ChevronLeft/></button><span>{photo+1} / {gallery.length}</span><button aria-label="Next photo" onClick={e=>{e.stopPropagation();setPhoto((photo+1)%gallery.length);}}><ChevronRight/></button></div></div>}
+  {photo!==null&&lightboxImages.length>0&&photo<lightboxImages.length&&<div className="sf-lightbox" role="dialog" aria-modal="true" aria-label="Studio lookbook" onClick={()=>setPhoto(null)}><button aria-label="Close lookbook" onClick={()=>setPhoto(null)}><X/></button><img src={lightboxImages[photo]} alt={`Studio look ${photo+1}`} onClick={e=>e.stopPropagation()}/><div><button aria-label="Previous photo" onClick={e=>{e.stopPropagation();setPhoto((photo-1+lightboxImages.length)%lightboxImages.length);}}><ChevronLeft/></button><span>{photo+1} / {lightboxImages.length}</span><button aria-label="Next photo" onClick={e=>{e.stopPropagation();setPhoto((photo+1)%lightboxImages.length);}}><ChevronRight/></button></div></div>}
  </div>;
 }
 

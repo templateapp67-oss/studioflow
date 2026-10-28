@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./roopMahal.css";
+@import "./pinkyNails.css";
 
 @theme {
   --color-surface-tint: #bc004f;

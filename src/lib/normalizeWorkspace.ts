@@ -8,6 +8,7 @@ import { DEFAULT_LOYALTY_CONFIG } from '../loyaltyData';
 import { DEFAULT_EXTRAS } from './workspaceDefaults';
 import { CATEGORY_TEMPLATES } from '../categoryTemplates';
 import { isLegacyRoopStockCover, isLegacyRoopStockOwnerPhoto, isLegacyRoopStockTagline, upgradeLegacyBeautyParlourStylists } from './roopMahalReference';
+import { isLegacyNailStudioStockImage, isLegacyNailStudioStockTagline } from './pinkyNails';
 import type { SalonProfile, SalonService, Stylist, ClientRecord } from '../types';
 const record=(value:any):Record<string,any>=>value&&typeof value==='object'&&!Array.isArray(value)?value:{};
 const list=(value:any)=>Array.isArray(value)?value.filter(item=>item&&typeof item==='object'&&!Array.isArray(item)):[];
@@ -21,6 +22,11 @@ export function normalizeWorkspace(value:unknown, identity:Record<string,any>={}
   if(isLegacyRoopStockCover(profile.coverImageUrl))profile.coverImageUrl=CATEGORY_TEMPLATES.beauty_parlour.coverImageUrl;
   if(isLegacyRoopStockOwnerPhoto(profile.ownerPhotoUrl))profile.ownerPhotoUrl=CATEGORY_TEMPLATES.beauty_parlour.ownerPhotoUrl;
   if(isLegacyRoopStockTagline(profile.tagline))profile.tagline=CATEGORY_TEMPLATES.beauty_parlour.tagline;
+ }
+ if(profile.businessType==='nail_studio'){
+  if(!profile.coverImageUrl||isLegacyNailStudioStockImage(profile.coverImageUrl))profile.coverImageUrl=CATEGORY_TEMPLATES.nail_studio.coverImageUrl;
+  if(!profile.ownerPhotoUrl||isLegacyNailStudioStockImage(profile.ownerPhotoUrl))profile.ownerPhotoUrl=CATEGORY_TEMPLATES.nail_studio.ownerPhotoUrl;
+  if(!profile.tagline||isLegacyNailStudioStockTagline(profile.tagline))profile.tagline=CATEGORY_TEMPLATES.nail_studio.tagline;
  }
  profile.socialVideos=showcaseVideos(profile as SalonProfile);profile.demoVideosInitialized=true;
  const loyalty=record(draft.loyaltyConfig),extras=record(draft.extras);

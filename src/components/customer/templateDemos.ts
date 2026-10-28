@@ -1,5 +1,6 @@
 import {CATEGORY_TEMPLATES} from '../../categoryTemplates';
 import {upgradeBeautyParlourTemplate} from '../../lib/roopMahalReference';
+import {upgradeNailStudioTemplate} from '../../lib/pinkyNails';
 import type {CustomerTemplate} from './useCustomerCatalog';
 import type {Salon} from './model';
 
@@ -13,7 +14,7 @@ export function withTemplateDemos(published:Salon[],templates:CustomerTemplate[]
  const occupied=new Set(real.map(s=>s.content.profile.businessType));
  const seen=new Set<string>();
  const demos=templates.flatMap(rawMeta=>{
-  const meta=upgradeBeautyParlourTemplate(rawMeta);
+  const meta=upgradeNailStudioTemplate(upgradeBeautyParlourTemplate(rawMeta));
   const t=Object.hasOwn(CATEGORY_TEMPLATES,meta.id)?CATEGORY_TEMPLATES[meta.id]:null;
   if(!t||occupied.has(meta.id)||seen.has(meta.id))return [];
   seen.add(meta.id);
