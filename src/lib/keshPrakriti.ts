@@ -115,11 +115,6 @@ export const KESH_PRAKRITI_SAMPLE_GALLERY: KeshGalleryPhoto[] = [
   {id: 'kesh-sample-7', category: 'Spa', url: KESH_PRAKRITI_IMAGES.facial, title: 'Face cleanup at the salon', isDemo: true},
 ];
 
-/** Every local Template 06 URL — used so saved demo photos survive reloads. */
-export const KESH_PRAKRITI_IMAGE_URLS: string[] = Array.from(
-  new Set(Object.values(KESH_PRAKRITI_IMAGES)),
-);
-
 /** A saved cover photo is used for the hero when the owner uploaded one. */
 export function keshHeroImage(
   profile: Pick<SalonProfile, 'coverImageUrl' | 'businessType'>,

@@ -287,6 +287,98 @@ assert.ok(!demo.includes('id="botanical"') && !demo.includes('HAIR CARE WITH HER
 console.log('PASS: template demo labels every bundled photo, offers no fake online booking and renders the bundled team portraits.');
 
 // ---------------------------------------------------------------------------
+// 4b. Section responsibilities: one job per section, one source per catalogue.
+// ---------------------------------------------------------------------------
+/** Sections that are direct children of <main>, in document order. */
+const topLevelSections = (html: string) => {
+  const out: Array<{id: string; body: string}> = [];
+  const stack: Array<{id: string; start: number}> = [];
+  const pattern = /<section\b([^>]*)>|<\/section>/g;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(html))) {
+    if (match[0].startsWith('<section')) {
+      stack.push({id: /id="([\w-]+)"/.exec(match[1])?.[1] || '', start: match.index + match[0].length});
+    } else {
+      const open = stack.pop();
+      if (open && stack.length === 0) out.push({id: open.id, body: html.slice(open.start, match.index)});
+    }
+  }
+  return out;
+};
+// A published salon with a saved menu, team, photos and contact details is the
+// only render that exercises every section at once.
+const composition = renderToStaticMarkup(
+  <CustomerSalonWebsite
+    profile={publishedProfile}
+    services={services}
+    stylists={template.stylists}
+    gallery={[]}
+    readOnly
+    onAddAppointment={async (appointment) => appointment}
+    onCustomerAccount={() => {}}
+  />,
+);
+const demoMain = composition.slice(composition.indexOf('<main'), composition.indexOf('</main>'));
+const demoSections = topLevelSections(demoMain);
+for (const required of ['home', 'philosophy', 'treatments', 'journey', 'team', 'gallery', 'booking', 'faq', 'contact']) {
+  assert.equal(demoSections.filter((section) => section.id === required).length, 1, `${required} must render exactly once`);
+}
+const sectionIds = demoSections.map((section) => section.id);
+const order: Array<[string, string]> = [
+  ['home', 'philosophy'],
+  ['philosophy', 'treatments'],
+  ['treatments', 'journey'],
+  ['journey', 'team'],
+  ['team', 'gallery'],
+  ['gallery', 'booking'],
+  ['booking', 'faq'],
+  ['faq', 'contact'],
+];
+for (const [before, after] of order) {
+  assert.ok(sectionIds.indexOf(before) < sectionIds.indexOf(after), `${before} must precede ${after}`);
+}
+// The packages block is a group inside the catalogue, never a second services section.
+const catalogue = demoSections.find((section) => section.id === 'treatments')!;
+assert.ok(catalogue.body.includes('id="salon-packages"'), 'packages live inside the single catalogue section');
+assert.equal(demoMain.split('id="salon-packages"').length - 1, 1, 'exactly one packages group on the page');
+// Sections that were merged or deleted must not come back as duplicates.
+for (const retired of ['sanctuary', 'offers', 'experiences', 'rituals', 'botanicals', 'quick-nav', 'gallery-grid']) {
+  assert.ok(!composition.includes(`id="${retired}"`), `retired section #${retired} must stay removed`);
+  assert.ok(!composition.includes(`href="#${retired}"`), `no anchor may point at retired section #${retired}`);
+}
+for (const file of ['FeaturedRituals', 'OffersSection', 'QuickNavigation', 'BotanicalIngredients', 'SanctuarySection', 'ExperienceSection', 'GallerySection']) {
+  assert.ok(!existsSync(`src/components/hair-spa/${file}.tsx`), `${file} was merged or removed and must not return`);
+}
+// Nothing may be rendered twice: ids are unique and every anchor resolves.
+const renderedIds = Array.from(composition.matchAll(/\sid="([\w-]+)"/g), (match) => match[1]);
+assert.deepEqual(renderedIds.filter((id, index) => renderedIds.indexOf(id) !== index), [], 'duplicate element ids');
+const demoAnchors = Array.from(new Set(Array.from(composition.matchAll(/href="#([\w-]+)"/g), (match) => match[1])));
+for (const anchor of demoAnchors) assert.ok(renderedIds.includes(anchor), `dead anchor #${anchor}`);
+// One name per destination: the header and the footer share the same page links.
+const headerNav = composition.match(/<nav class="kp-desktop-nav"[\s\S]*?<\/nav>/)?.[0] || '';
+const headerHrefs = Array.from(headerNav.matchAll(/href="#([\w-]+)"/g), (match) => match[1]);
+assert.ok(headerHrefs.length >= 5, 'header exposes the page sections');
+assert.deepEqual(headerHrefs.filter((id, index) => headerHrefs.indexOf(id) !== index), [], 'header links are not duplicated');
+for (const id of headerHrefs) assert.equal(demoSections.filter((section) => section.id === id).length, 1, `header link #${id} must target one section`);
+const footerNav = composition.match(/<div class="kp-footer-links">[\s\S]*?<\/div>/)?.[0] || '';
+for (const id of headerHrefs) assert.ok(footerNav.includes(`href="#${id}"`), `footer repeats the same page link #${id}`);
+// One page, one header and one main landmark: the shared customer header must
+// never render on top of the Template 06 header.
+assert.equal((composition.match(/<header/g) || []).length, 1, 'exactly one header');
+assert.equal((composition.match(/<main/g) || []).length, 1, 'exactly one main landmark');
+// Accessibility floor for the whole page: one h1, no skipped heading levels, named controls.
+const headings = Array.from(composition.matchAll(/<h([1-6])[^>]*>/g), (match) => Number(match[1]));
+assert.equal(headings.filter((level) => level === 1).length, 1, 'exactly one h1');
+for (let index = 1; index < headings.length; index += 1) {
+  assert.ok(headings[index] <= headings[index - 1] + 1, `heading level jumps from h${headings[index - 1]} to h${headings[index]}`);
+}
+for (const [tag, body] of composition.matchAll(/<(button|a)\b([^>]*)>([\s\S]*?)<\/\1>/g) as any) {
+  const label = String(body).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  assert.ok(label || /aria-label(?:ledby)?=/.test(tag), `unnamed ${tag}`);
+}
+console.log('PASS: every section owns one job — a single catalogue with packages inside it, one gallery, one booking section, unique ids, resolving anchors shared by header and footer, and no retired duplicate sections.');
+
+// ---------------------------------------------------------------------------
 // 5. Interaction: filters, gallery lightbox, FAQ, menu and booking hand-off.
 // ---------------------------------------------------------------------------
 let booked: any = null;

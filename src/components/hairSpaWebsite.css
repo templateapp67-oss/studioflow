@@ -302,14 +302,6 @@
 .kp-scroll-cue svg {
   color: var(--kp-gold);
 }
-.kp-hero-index {
-  letter-spacing: 0.15em;
-  color: #fffc;
-  font-size: 9px;
-  position: absolute;
-  bottom: 35px;
-  right: max(32px, 50vw - 675px);
-}
 .kp-section {
   padding: 120px 0;
 }
@@ -1290,12 +1282,6 @@
   .kp-wordmark {
     min-width: 190px;
   }
-  .kp-desktop-nav {
-    gap: 15px;
-  }
-  .kp-desktop-nav a {
-    font-size: 10px;
-  }
   .kp-container {
     width: calc(100% - 50px);
   }
@@ -1307,6 +1293,27 @@
   }
   .kp-service-content {
     padding: 19px;
+  }
+}
+/* Seven page links plus the account links and the CTA are wider than a small
+   laptop once the header is 1281px, so tighten the desktop row first and only
+   then hand navigation to the drawer. */
+@media (max-width: 1400px) {
+  .kp-desktop-nav {
+    gap: 16px;
+  }
+  .kp-desktop-nav a {
+    font-size: 10px;
+  }
+  .kp-account-links {
+    gap: 6px;
+  }
+  .kp-account-links button {
+    font-size: 8.5px;
+  }
+  .kp-header-cta {
+    min-height: 41px;
+    padding: 0 14px;
   }
 }
 @media (max-width: 1280px) {
@@ -1477,10 +1484,6 @@
     font-size: 7px;
     bottom: 26px;
     left: 21px;
-  }
-  .kp-hero-index {
-    bottom: 27px;
-    right: 20px;
   }
   .kp-section {
     padding: 78px 0;
@@ -1855,12 +1858,6 @@
   text-align: right;
   margin: 0;
   font-weight: 700;
-}
-@media (max-width: 420px) {
-  .kp-hours-list dl > div {
-    gap: 8px;
-    font-size: 10px;
-  }
 }
 .kp-hours-list {
   width: 100%;
