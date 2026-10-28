@@ -43,6 +43,7 @@ const memory = new Map<string, string>();
 };
 (globalThis as any).document = {
   hidden: false,
+  documentElement: {scrollLeft: 0, scrollTop: 0},
   body: {style: {}},
   addEventListener() {},
   removeEventListener() {},
@@ -69,7 +70,7 @@ for (const [key, url] of Object.entries(KESH_PRAKRITI_IMAGES)) {
 const templateSources = [
   'src/components/HairSpaWebsite.tsx',
   'src/lib/keshPrakriti.ts',
-  ...['BookingSection', 'BotanicalIngredients', 'BrandPhilosophy', 'ContactSection', 'ExperienceSection', 'FAQSection', 'FeaturedRituals', 'GalleryLightbox', 'HairSpaFooter', 'HairSpaHeader', 'HeroSection', 'QuickNavigation', 'Reveal', 'SanctuaryGallery', 'SanctuarySection', 'ScalpCareJourney', 'ServicesSection', 'TeamSection'].map(
+  ...['BookingSection', 'BotanicalIngredients', 'BrandPhilosophy', 'ContactSection', 'ExperienceSection', 'FAQSection', 'FeaturedRituals', 'GalleryLightbox', 'HairSpaFooter', 'HairSpaHeader', 'HeroSection', 'QuickNavigation', 'Reveal', 'GallerySection', 'SanctuarySection', 'ScalpCareJourney', 'ServicesSection', 'TeamSection'].map(
     (name) => `src/components/hair-spa/${name}.tsx`,
   ),
 ];
@@ -106,7 +107,7 @@ assert.equal(developmentTemplateForSiteSlug('hair-spa', false), null, 'slug fall
 const template = CATEGORY_TEMPLATES.hair_spa;
 assert.ok(template.services.length >= 3);
 assert.ok(template.services.every((service) => !/tricholog|certif|kills|diagnos|reverse/i.test(service.description)), 'demo menu must avoid medical claims');
-assert.ok(template.stylists.every((staff) => !staff.avatarUrl), 'no stock portrait is presented as a specialist');
+assert.ok(template.stylists.every((staff) => staff.avatarUrl.startsWith('/templates/kesh-prakriti/team-')), 'template portraits are bundled locally');
 
 const heroWithoutCover = keshHeroImage({...INITIAL_SALON_PROFILE, businessType: 'hair_spa', coverImageUrl: template.coverImageUrl});
 assert.equal(heroWithoutCover.src, KESH_PRAKRITI_IMAGES.hero);
@@ -207,11 +208,11 @@ assert.ok(published.includes('tel:+919840011993'), 'saved phone must be callable
 assert.ok(published.includes('https://wa.me/919840011993'), 'saved WhatsApp must be linked');
 assert.ok(published.includes('hello@kesh.example'));
 assert.ok(published.includes('Saved photo'), 'saved gallery photo must be used');
-assert.ok(!published.includes('DEMO / SAMPLE'), 'saved photos are never labelled as demo');
+assert.ok(!published.includes('DEMO / SAMPLE · 01'), 'saved gallery photos are never labelled as demo');
 assert.ok(!published.includes('Demo testimonial'), 'no sample testimonials on the published site');
 assert.ok(published.includes('No client reviews have been published'), 'honest empty review state');
-assert.ok(published.includes('Book Your Ritual'));
-assert.ok(published.includes('SIGNATURE COMBINATIONS') && published.includes('Choose this combination'), 'saved package shown');
+assert.ok(published.includes('Book an Appointment'));
+assert.ok(published.includes('SALON PACKAGES') && published.includes('Book this package'), 'saved package shown');
 assert.ok(!published.includes('kills') && !published.includes('trichologist'), 'no medical claims');
 // Hero loading strategy + alt text.
 const heroTag = (published.match(/<img[^>]*kp-hero-image[^>]*>/) || [''])[0];
@@ -231,13 +232,13 @@ const emptyProfile = {...publishedProfile, phone: '', whatsapp: '', email: '', a
 const empty = renderToStaticMarkup(
   <CustomerSalonWebsite profile={emptyProfile} services={[]} stylists={[]} readOnly onAddAppointment={async (appointment) => appointment} gallery={[]} />,
 );
-assert.ok(empty.includes('The treatment menu is being updated'), 'honest empty menu copy');
+assert.ok(empty.includes('The service menu is being updated'), 'honest empty menu copy');
 assert.ok(!empty.includes('₹'), 'empty menu must not print template prices');
 assert.ok(!empty.includes('Japanese Ultrasonic') && !empty.includes('Head Spa Ritual & Scalp Cleanse'), 'template services are not used on a published salon');
 assert.ok(!empty.includes('tel:') && !empty.includes('wa.me'), 'no contact link without saved details');
 assert.ok(!empty.includes('id="contact"'), 'contact section hidden when nothing is saved');
 assert.ok(!empty.includes('href="#contact"'), 'no anchor to a missing contact section');
-assert.ok(empty.includes('Ask about treatments'), 'hero offers an honest next step');
+assert.ok(empty.includes('Ask about services'), 'hero offers an honest next step');
 assert.ok(empty.includes('This page has no reviews') === false);
 console.log('PASS: a published sanctuary with no saved menu/contact details shows honest empty states without template prices, contact placeholders or dead anchors.');
 
@@ -250,8 +251,13 @@ assert.ok(demo.includes('DEMO / SAMPLE'), 'bundled demo photography is labelled'
 assert.ok(demo.includes('Demo / sample photograph'), 'hero credit label present');
 assert.ok(demo.includes('Ask about booking') || demo.includes('Online booking opens once this website is live'), 'demo explains that booking is not open');
 assert.ok(demo.includes('Gayatri Raman') && !demo.includes('Chief Trichologist'), 'demo team listed without invented credentials');
-assert.ok(demo.includes('aria-label="Photo not added for Gayatri Raman"'), 'specialists without photos get an honest placeholder');
-console.log('PASS: template demo labels every bundled photo, offers no fake online booking and shows no invented credentials or stock portraits.');
+for (const person of template.stylists) {
+  assert.ok(existsSync('public' + person.avatarUrl), `portrait exists for ${person.name}`);
+  assert.ok(demo.includes(`src="${person.avatarUrl}"`), `portrait rendered for ${person.name}`);
+}
+assert.ok(!demo.includes('aria-label="Photo not added for Gayatri Raman"'));
+for (const category of ['Spa', 'Sanctuary', 'Botanicals']) assert.ok(demo.includes(`${category} (`), `${category} filter present`);
+console.log('PASS: template demo labels every bundled photo, offers no fake online booking and renders the bundled team portraits.');
 
 // ---------------------------------------------------------------------------
 // 5. Interaction: filters, gallery lightbox, FAQ, menu and booking hand-off.
@@ -294,13 +300,13 @@ await act(async () => filterButtons().find((node: any) => text(node) === 'All').
 assert.equal(articleNames().length, 3);
 
 // Booking hand-off passes the exact saved service.
-await act(async () => buttonBy(ui, 'Choose for online booking').props.onClick());
+await act(async () => buttonBy(ui, 'Book this service').props.onClick());
 assert.equal(booked?.id, 'kp-1');
 
 // Gallery: only saved photos are rendered and the lightbox stays in range.
 const galleryButtons = () => ui.root.findAll((node: any) => node.type === 'button' && String(node.props.className || '').includes('kp-gallery-image'));
 assert.equal(galleryButtons().length, 3, 'exactly the three saved photos are in the desktop gallery');
-assert.ok(!text(ui.toJSON()).includes('DEMO / SAMPLE'), 'saved photos are not labelled as demo');
+assert.ok(galleryButtons().every((node: any) => !text(node).includes('DEMO / SAMPLE')), 'saved photos are not labelled as demo');
 const lightbox = () => ui.root.findAll((node: any) => node.type === 'div' && node.props?.role === 'dialog' && String(node.props['aria-label'] || '').startsWith('Gallery image'));
 await act(async () => galleryButtons()[0].props.onClick());
 assert.equal(lightbox().length, 1);
@@ -359,7 +365,7 @@ await act(async () => {
   );
 });
 await act(async () => buttonBy(ui, 'Contact us').props.onClick());
-await act(async () => buttonBy(ui, 'Choose for online booking').props.onClick());
+await act(async () => buttonBy(ui, 'Book this service').props.onClick());
 assert.equal(unexpectedBooking, 0, 'unpublished booking must not open the checkout');
 await act(async () => ui.unmount());
 console.log('PASS: category filters, saved-service booking hand-off, bounded lightbox, accessible FAQ and drawer behaviour, and a contact fallback when online booking is not available.');

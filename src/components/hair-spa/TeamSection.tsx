@@ -4,6 +4,7 @@ import { ArrowUpRight, Leaf } from "lucide-react";
 import { motion } from "motion/react";
 import { Reveal } from "./Reveal";
 import { validStaffUrl } from "../../lib/staffProfile";
+import { safePhotoUrl } from "../../lib/keshPrakriti";
 import {
   revealViewport,
   staggerContainer,
@@ -11,23 +12,23 @@ import {
 } from "../../utils/motion";
 
 /**
- * Specialist card that only renders a photo the salon actually saved. There is
- * no stock portrait fallback, so no invented person is ever shown.
+ * Render the saved portrait, including bundled template portraits. Missing or
+ * invalid photos retain an honest placeholder rather than a stock fallback.
  */
 function SpecialistPhoto({ name, avatarUrl }: { name: string; avatarUrl?: string }) {
-  const [failed, setFailed] = useState(false);
-  const usable = Boolean(avatarUrl && validStaffUrl(avatarUrl) && !failed);
+  const [failedUrl, setFailedUrl] = useState<string | undefined>();
+  const usable = Boolean(avatarUrl && (validStaffUrl(avatarUrl) || safePhotoUrl(avatarUrl)) && failedUrl !== avatarUrl);
   return (
     <div className="kp-team-photo">
       {usable ? (
         <img
           src={avatarUrl}
-          alt={`${name}, specialist at the sanctuary`}
+          alt={`${name}, salon team member`}
           loading="lazy"
           decoding="async"
           width={320}
           height={320}
-          onError={() => setFailed(true)}
+          onError={() => setFailedUrl(avatarUrl)}
         />
       ) : (
         <span
@@ -55,7 +56,7 @@ export function TeamSection() {
       <div className="kp-container">
         <div className="kp-section-heading">
           <Reveal>
-            <p className="kp-eyebrow">THE PEOPLE WHO CARE</p>
+            <p className="kp-eyebrow">OUR TEAM</p>
             <h2 id="kp-team-title">
               Meet your
               <br />
@@ -64,8 +65,7 @@ export function TeamSection() {
           </Reveal>
           <Reveal>
             <p>
-              Get to know the team listed by the sanctuary. Choose someone when
-              you send a booking request, or leave the selection open.
+              Meet our team. You can choose a team member when you book, or let us help you find someone.
             </p>
           </Reveal>
         </div>
@@ -80,7 +80,7 @@ export function TeamSection() {
             <motion.li className="kp-team-card" variants={staggerItem} key={person.id}>
               <SpecialistPhoto name={person.name} avatarUrl={person.avatarUrl} />
               <p className="kp-eyebrow">
-                SANCTUARY TEAM · {String(index + 1).padStart(2, "0")}
+                SALON TEAM · {String(index + 1).padStart(2, "0")}
               </p>
               <h3>{person.name}</h3>
               {person.role?.trim() && (

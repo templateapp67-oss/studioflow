@@ -27,16 +27,14 @@ export function ContactSection() {
     >
       <div className="kp-container kp-contact-grid">
         <Reveal>
-          <p className="kp-eyebrow">COME AS YOU ARE</p>
+          <p className="kp-eyebrow">GET IN TOUCH</p>
           <h2 id="kp-contact-title">
             We&apos;d love to
             <br />
             <em>hear from you.</em>
           </h2>
           <p>
-            Reach out to ask a question or plan your visit. Prices, durations
-            and availability are always the values saved in the live booking
-            system.
+            Call or WhatsApp us with your questions, or get in touch to plan your visit.
           </p>
           <div className="kp-contact-actions">
             {model.phone && (
@@ -46,7 +44,7 @@ export function ContactSection() {
             )}
             {model.wa && (
               <a href={model.wa} target="_blank" rel="noreferrer">
-                <MessageCircle size={17} aria-hidden="true" /> WhatsApp Inquiry{" "}
+                <MessageCircle size={17} aria-hidden="true" /> WhatsApp us{" "}
                 <ArrowUpRight size={15} aria-hidden="true" />
               </a>
             )}
@@ -62,7 +60,7 @@ export function ContactSection() {
             )}
             {!model.hasAnyContact && (
               <p className="kp-muted">
-                Contact details have not been added yet. Ask at the sanctuary or
+                Contact details have not been added yet. Ask at the salon or
                 check back soon.
               </p>
             )}
@@ -72,7 +70,7 @@ export function ContactSection() {
           <span className="kp-contact-leaf">
             <Leaf size={23} aria-hidden="true" />
           </span>
-          <p className="kp-eyebrow">VISIT THE SANCTUARY</p>
+          <p className="kp-eyebrow">VISIT THE SALON</p>
           <h3>{model.profile.businessName}</h3>
           {model.address && <address>{model.address}</address>}
           {model.landmark && <p className="kp-muted">Near {model.landmark}</p>}
@@ -95,7 +93,7 @@ export function ContactSection() {
             </div>
           ) : (
             <p className="kp-muted">
-              Opening hours are not listed yet. Please contact the sanctuary
+              Opening hours are not listed yet. Please contact the salon
               before travelling.
             </p>
           )}
@@ -104,7 +102,7 @@ export function ContactSection() {
             className="kp-button"
             onClick={() => model.book(model.firstService)}
           >
-            {model.services.length ? "Book a treatment" : "See the treatment menu"}{" "}
+            {model.services.length ? "Book an appointment" : "See our services"}{" "}
             <ArrowRight size={16} aria-hidden="true" />
           </button>
         </Reveal>

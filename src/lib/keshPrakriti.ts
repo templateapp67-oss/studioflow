@@ -22,6 +22,13 @@ export const KESH_PRAKRITI_IMAGES = {
   lepam: '/templates/kesh-prakriti/lepam.jpg',
   steam: '/templates/kesh-prakriti/steam.jpg',
   oils: '/templates/kesh-prakriti/oils.jpg',
+  headMassage: '/templates/kesh-prakriti/indian-head-massage.jpg',
+  facial: '/templates/kesh-prakriti/indian-facial.jpg',
+  grooming: '/templates/kesh-prakriti/indian-grooming.jpg',
+  bridal: '/templates/kesh-prakriti/indian-bridal.jpg',
+  threading: '/templates/kesh-prakriti/indian-threading.jpg',
+  waxing: '/templates/kesh-prakriti/indian-waxing.jpg',
+  groomMakeup: '/templates/kesh-prakriti/indian-groom-makeup.jpg',
   /** Poster used for the booking banner background. */
   bookingBanner: '/templates/kesh-prakriti/steam.jpg',
   /** Neutral botanical tile shown when a specialist has not added a photo. */
@@ -31,6 +38,13 @@ export const KESH_PRAKRITI_IMAGES = {
 export type KeshImageKey = keyof typeof KESH_PRAKRITI_IMAGES;
 
 const SERVICE_IMAGE_RULES: Array<[RegExp, KeshImageKey]> = [
+  [/groom makeup/i, 'groomMakeup'],
+  [/bridal|makeup/i, 'bridal'],
+  [/beard|grooming/i, 'grooming'],
+  [/thread|brow/i, 'threading'],
+  [/wax/i, 'waxing'],
+  [/facial|cleanup|d-tan|skin/i, 'facial'],
+  [/head massage|oil massage/i, 'headMassage'],
   [/head\s*spa|ultrasonic|micro-?mist|ozone|steam|steam/i, 'headSpa'],
   [/lepam|ayurved|herbal|mask|bhringraj|brahmi/i, 'lepam'],
   [/argan|oil|nourish|moisture|hydrat/i, 'oils'],
@@ -44,21 +58,26 @@ export function keshPrakritiServiceImage(
   service: Pick<SalonService, 'id' | 'name' | 'category'> & { imageUrl?: string },
 ): string {
   if (service.imageUrl?.trim()) return service.imageUrl.trim();
-  const text = `${service.category || ''} ${service.name || ''}`;
-  for (const [pattern, key] of SERVICE_IMAGE_RULES) {
-    if (pattern.test(text)) return KESH_PRAKRITI_IMAGES[key];
+  // Prefer the service name so a mixed category (such as bridal & groom
+  // makeup) does not assign the same photo to unrelated services.
+  for (const text of [service.name || '', service.category || '']) {
+    for (const [pattern, key] of SERVICE_IMAGE_RULES) {
+      if (pattern.test(text)) return KESH_PRAKRITI_IMAGES[key];
+    }
   }
   return KESH_PRAKRITI_IMAGES.sanctuary;
 }
 
 /**
- * Reference gallery for the bundled demo: four studio photographs, each shown
+ * Reference gallery for the bundled demo: studio photographs, each shown
  * with an explicit "Demo / sample" label by the Template 06 gallery.
  */
-export const KESH_PRAKRITI_SAMPLE_GALLERY: SalonGalleryPhoto[] = [
+export type KeshGalleryPhoto = Omit<SalonGalleryPhoto, 'category'> & { category: string };
+
+export const KESH_PRAKRITI_SAMPLE_GALLERY: KeshGalleryPhoto[] = [
   {
     id: 'kesh-sample-1',
-    category: 'Spa',
+    category: 'Sanctuary',
     url: KESH_PRAKRITI_IMAGES.sanctuary,
     title: 'Treatment room reference photo',
     isDemo: true,
@@ -72,18 +91,27 @@ export const KESH_PRAKRITI_SAMPLE_GALLERY: SalonGalleryPhoto[] = [
   },
   {
     id: 'kesh-sample-3',
-    category: 'Spa',
+    category: 'Botanicals',
     url: KESH_PRAKRITI_IMAGES.botanical,
     title: 'Botanical ingredients reference photo',
     isDemo: true,
   },
   {
     id: 'kesh-sample-4',
-    category: 'Spa',
+    category: 'Botanicals',
     url: KESH_PRAKRITI_IMAGES.oils,
     title: 'Hair oil and comb reference photo',
     isDemo: true,
   },
+  {
+    id: 'kesh-sample-5',
+    category: 'Spa',
+    url: KESH_PRAKRITI_IMAGES.steam,
+    title: 'Hair spa steam treatment',
+    isDemo: true,
+  },
+  {id: 'kesh-sample-6', category: 'Spa', url: KESH_PRAKRITI_IMAGES.headMassage, title: 'Traditional head massage', isDemo: true},
+  {id: 'kesh-sample-7', category: 'Spa', url: KESH_PRAKRITI_IMAGES.facial, title: 'Face cleanup at the salon', isDemo: true},
 ];
 
 /** Every local Template 06 URL — used so saved demo photos survive reloads. */
@@ -108,7 +136,7 @@ export function keshHeroImage(
  * bundled template's own labelled reference photos are shown instead of
  * inherited stock imagery or a broken/blank gallery.
  */
-export function keshGallery(photos: SalonGalleryPhoto[]): SalonGalleryPhoto[] {
+export function keshGallery(photos: SalonGalleryPhoto[]): KeshGalleryPhoto[] {
   const seen = new Set<string>();
   const saved = photos.filter((photo) => {
     if (photo?.isDemo) return false;
@@ -145,70 +173,17 @@ export function isTemplateCataloguePhoto(url: string): boolean {
   return TEMPLATE_CATALOGUE_PHOTO.test(url);
 }
 
-export const KESH_PRAKRITI_DEFAULT_REVIEWS = [
-  {
-    id: 'kp-rev-1',
-    name: 'Meera Krishnan',
-    location: 'Alwarpet, Chennai',
-    rating: 5,
-    serviceName: 'Head Spa Ritual & Scalp Cleanse',
-    comment: 'The absolute pinnacle of relaxation. The warm head spa sequence and botanical aromas dissolved my work stress instantly. My scalp feels remarkably revitalized.',
-    verified: true,
-    isDemo: false,
-    date: '2 days ago',
-  },
-  {
-    id: 'kp-rev-2',
-    name: 'Siddharth Menon',
-    location: 'Nungambakkam, Chennai',
-    rating: 5,
-    serviceName: 'Ayurvedic Herb Lepam Treatment',
-    comment: 'Dr. Gayatri and the team provided exceptional care. The Lepam scalp mask followed by the warm oil massage cured my chronic dryness completely.',
-    verified: true,
-    isDemo: false,
-    date: '1 week ago',
-  },
-  {
-    id: 'kp-rev-3',
-    name: 'Ananya Swaminathan',
-    location: 'Adyar, Chennai',
-    rating: 5,
-    serviceName: 'Argan Oil Nourishing Steam Ritual',
-    comment: 'A tranquil sanctuary in the middle of the city. Pristine hygiene, calming ambiance, and truly professional scalp therapy.',
-    verified: true,
-    isDemo: false,
-    date: '2 weeks ago',
-  },
-];
-
+// Sample offers are shown in the template preview only, never as live offers.
 export const KESH_PRAKRITI_DEFAULT_PROMOTIONS = [
-  {
-    id: 'kp-promo-1',
-    title: 'Monsoon Scalp Health Special',
-    description: 'Enjoy 15% off all Head Spa rituals and therapeutic scalp cleansing sessions during the monsoon season.',
-    code: 'MONSOON15',
-    badge: 'Limited Time Offer',
-  },
-  {
-    id: 'kp-promo-2',
-    title: 'Weekday Morning Bliss',
-    description: 'Receive a complimentary herbal steam session with any Lepam treatment booked between 10 AM and 1 PM.',
-    code: 'MORNINGBLISS',
-    badge: 'Weekday Special',
-  },
+  {id: 'kp-promo-1', title: 'Hair Spa Offer', description: 'Sample offer: 10% off a hair spa. Ask the salon about current offers and terms.', code: 'HAIR10', badge: 'Sample offer'},
+  {id: 'kp-promo-2', title: 'Weekday Care', description: 'Sample offer: ₹100 off a face cleanup on weekdays. Ask the salon about current offers and terms.', code: 'CARE100', badge: 'Sample offer'},
 ];
 
-/** Testimonials entered or verified in Supabase, with rich defaults for Kesh Prakriti preview. */
-export function keshPublishedReviews(
-  profile: Pick<SalonProfile, 'websiteTestimonials'>,
-) {
-  const custom = (profile.websiteTestimonials || []).filter(
-    (review) =>
-      !review.isDemo &&
-      Boolean(String(review.comment || '').trim()) &&
-      Boolean(String(review.name || '').trim()),
+/** Show only customer reviews saved for this salon. */
+export function keshPublishedReviews(profile: Pick<SalonProfile, 'websiteTestimonials'>) {
+  return (profile.websiteTestimonials || []).filter(
+    (review) => !review.isDemo && Boolean(String(review.comment || '').trim()) && Boolean(String(review.name || '').trim()),
   );
-  return custom.length > 0 ? custom : KESH_PRAKRITI_DEFAULT_REVIEWS;
 }
 
 /**
@@ -251,30 +226,12 @@ export function keshOpeningHours(
 }
 
 export const KESH_PRAKRITI_FAQ: ReadonlyArray<readonly [string, string]> = [
-  [
-    'How do I choose a treatment?',
-    'Every service card lists what is included, how long it takes and the current price. If you are unsure, contact the sanctuary and the team will help you compare options.',
-  ],
-  [
-    'How do I book, and is my slot held?',
-    'Choose a treatment, then pick an available date and time in the booking panel. The booking is only reserved after the server confirms it — an available slot can still be taken by another guest until then.',
-  ],
-  [
-    'Are the times shown in Indian Standard Time?',
-    'Yes. Date and time selection uses Asia/Kolkata (IST).',
-  ],
-  [
-    'Which product is used in my treatment?',
-    'Product and ingredient information is only listed when it has been added to the service menu. Ask the team before your visit if you have a sensitivity or allergy concern.',
-  ],
-  [
-    'What if I need to change or cancel?',
-    'Open My Bookings with the account used for the booking to review or cancel an appointment, or contact the sanctuary using the details shown here.',
-  ],
-  [
-    'How can I contact the sanctuary?',
-    'Phone, WhatsApp, email and directions appear in the contact section only when the salon has saved those details. Nothing here is a placeholder phone number.',
-  ],
+  ['How do I choose a service?', 'See the service menu for prices and timings. If you are not sure, call or WhatsApp the salon and we will help you choose.'],
+  ['How do I book an appointment?', 'Choose a service and an available date and time. Your appointment is booked only after you receive confirmation.'],
+  ['What time zone are the appointments in?', 'All appointment times are shown in Indian Standard Time (IST).'],
+  ['What if I have sensitive skin or allergies?', 'Please tell the team before your appointment and ask about the products used for your service.'],
+  ['How can I change or cancel my booking?', 'Open My Bookings or contact the salon as early as possible. Please check the salon’s booking and cancellation policy for notice periods and any advance payment terms.'],
+  ['How do I ask about offers?', 'Check the offers shown on this website or call the salon. Confirm the offer dates, eligible services and terms before booking.'],
 ];
 
 /** Details the contact section is allowed to show. */
@@ -295,7 +252,7 @@ export function keshContactSummary(profile: SalonProfile) {
       : '';
   const whatsappUrl = whatsappDigits
     ? `https://wa.me/${whatsappDigits}?text=${encodeURIComponent(
-        `Hello ${profile.businessName || 'the sanctuary'}, I would like to ask about a visit.`,
+        `Hello ${profile.businessName || 'the salon'}, I would like to ask about an appointment.`,
       )}`
     : '';
   return {

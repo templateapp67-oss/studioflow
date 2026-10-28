@@ -12,17 +12,14 @@ export function BotanicalIngredients() {
       <section className="kp-botanical kp-section" id="botanical">
         <div className="kp-container kp-botanical-grid">
           <Reveal className="kp-botanical-copy">
-            <p className="kp-eyebrow">ROOTED IN NATURE</p>
+            <p className="kp-eyebrow">HAIR CARE WITH HERBS</p>
             <h2>
-              Inspired by the
+              Familiar care,
               <br />
-              <em>quiet of botanicals.</em>
+              <em>made with care.</em>
             </h2>
             <p>
-              Our approach draws inspiration from nature&apos;s textures, familiar
-              rituals and the calm of a thoughtfully prepared space. Ask the
-              team about the ingredients and products used in your chosen
-              treatment before your visit.
+              From hair oils to herbal packs, ask our team about the products used in your service. Please tell us about any allergies or sensitive skin before your visit.
             </p>
             {/* Only link to the contact section when it actually renders. */}
             <a
@@ -33,7 +30,7 @@ export function BotanicalIngredients() {
                 model.scrollTo(model.hasAnyContact ? "contact" : "treatments");
               }}
             >
-              {model.hasAnyContact ? "Ask us a question" : "Explore the treatment menu"}{" "}
+              {model.hasAnyContact ? "Ask us a question" : "See our services"}{" "}
               <ArrowRight size={16} aria-hidden="true" />
             </a>
           </Reveal>
@@ -57,7 +54,7 @@ export function BotanicalIngredients() {
                 onError={() => setImageFailed(true)}
               />
             )}
-            <span>Demo / sample · Nature, never rushed.</span>
+            <span>Demo / sample · Herbal hair care.</span>
           </Reveal>
         </div>
       </section>

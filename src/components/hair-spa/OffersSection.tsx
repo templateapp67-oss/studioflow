@@ -6,23 +6,25 @@ import { Reveal } from "./Reveal";
 export function OffersSection() {
   const model = useHairSpa();
   const promotions = KESH_PRAKRITI_DEFAULT_PROMOTIONS;
+  // The live site uses the salon’s own saved offers in WebsiteSections.
+  if (model.profile.subdomain) return null;
 
   return (
     <section className="kp-offers kp-section py-16" id="offers">
       <div className="kp-container">
         <div className="kp-section-heading mb-10">
           <Reveal>
-            <p className="kp-eyebrow">INTRODUCTORY OFFERS</p>
+            <p className="kp-eyebrow">SAMPLE OFFERS</p>
             <h2>
-              Current sanctuary
+              Special offers
               <br />
-              <em>privileges &amp; specials.</em>
+              <em>for your next visit.</em>
             </h2>
           </Reveal>
           <Reveal>
             <p>
-              Thoughtful care designed for your well-being. Mention these offer codes
-              when reserving your ritual at {model.profile.businessName}.
+              These are sample offers for the template. Please check with the salon
+              for current offers, dates and terms.
             </p>
           </Reveal>
         </div>
@@ -54,14 +56,14 @@ export function OffersSection() {
 
               <div className="pt-4 border-t border-[#DEE4D8] flex items-center justify-between">
                 <span className="text-xs text-[#252923] opacity-75">
-                  Valid for all sanctuary bookings
+                  Sample only · Terms may vary
                 </span>
                 <button
                   type="button"
                   className="kp-card-link inline-flex items-center gap-1.5 text-sm font-semibold text-[#183D32] hover:text-[#B96F50] transition-colors"
-                  onClick={() => model.book()}
+                  onClick={() => model.scrollTo("treatments")}
                 >
-                  Book with offer <ArrowRight size={15} aria-hidden="true" />
+                  See services <ArrowRight size={15} aria-hidden="true" />
                 </button>
               </div>
             </article>

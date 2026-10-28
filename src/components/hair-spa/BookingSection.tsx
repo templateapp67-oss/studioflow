@@ -20,18 +20,18 @@ export function BookingSection() {
     >
       <div className="kp-container kp-booking-content">
         <Reveal>
-          <p className="kp-eyebrow kp-light">A MOMENT FOR YOURSELF</p>
+          <p className="kp-eyebrow kp-light">READY FOR A VISIT?</p>
           <h2 id="kp-booking-title">
-            Your Hair Wellness
+            Your next salon visit
             <br />
-            <em>Journey Starts Here.</em>
+            <em>starts here.</em>
           </h2>
           <p>
             {canReserve
-              ? "Choose a treatment, date and time, then confirm in the booking panel. Live availability and prices come from the sanctuary's booking system."
+              ? "Choose a service, date and time. Your appointment is booked once you receive confirmation."
               : canBook
-                ? "Online booking opens once this website is live. Until then, contact the sanctuary to plan your visit."
-                : "The treatment menu is being updated. Contact the sanctuary to ask which treatments are currently available."}
+                ? "Online booking opens once this website is live. Until then, contact the salon to plan your visit."
+                : "The service menu is being updated. Contact the salon to ask what is available."}
           </p>
           <button
             type="button"
@@ -39,10 +39,10 @@ export function BookingSection() {
             onClick={() => model.book(model.firstService)}
           >
             {canReserve
-              ? "Book Your Ritual"
+              ? "Book an Appointment"
               : canBook
                 ? "Ask about booking"
-                : "Contact the sanctuary"}{" "}
+                : "Contact the salon"}{" "}
             <ArrowRight size={16} aria-hidden="true" />
           </button>
           {canBook && model.firstService?.showDuration !== false && (

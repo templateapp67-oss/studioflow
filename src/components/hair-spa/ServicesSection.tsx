@@ -21,18 +21,17 @@ export function ServicesSection() {
         <div className="kp-container">
           <div className="kp-section-heading">
             <Reveal>
-              <p className="kp-eyebrow">THE TREATMENT MENU</p>
+              <p className="kp-eyebrow">OUR SERVICES</p>
               <h2>
-                Discover Your
+                Choose your
                 <br />
-                <em>Signature Ritual.</em>
+                <em>salon service.</em>
               </h2>
             </Reveal>
             <Reveal>
               <p>
-                Choose a little time for yourself. Explore the rituals available
-                at {model.profile.businessName}, with the details, duration and
-                pricing saved in the current service menu.
+                Find the services, prices and timings available at {model.profile.businessName}. If you need help choosing, just ask our team.
+                {!model.profile.subdomain && " These are sample services and prices; please confirm the menu with the salon."}
               </p>
             </Reveal>
           </div>
@@ -86,7 +85,7 @@ export function ServicesSection() {
                   <div className="kp-service-content flex-1 flex flex-col justify-between p-6">
                     <div>
                       <p className="kp-service-category">
-                        {item.category || "HAIR & SCALP CARE"}
+                        {item.category || "SALON SERVICES"}
                       </p>
                       <h3>{item.name}</h3>
                       <p className="kp-service-description flex-1">{item.description}</p>
@@ -110,7 +109,7 @@ export function ServicesSection() {
                         onClick={() => model.book(item)}
                         aria-label={`Book ${item.name}`}
                       >
-                        Choose for online booking{" "}
+                        {model.bookingAvailable ? "Book this service" : "Ask about this service"}{" "}
                         <ArrowUpRight size={15} aria-hidden="true" />
                       </button>
                     </div>
@@ -121,15 +120,14 @@ export function ServicesSection() {
           {model.services.length === 0 && (
             <div className="kp-empty-services">
               <p>
-                The treatment menu is being updated. Please contact the
-                sanctuary to ask about current treatments.
+                The service menu is being updated. Please contact the salon to ask what is available.
               </p>
               <button
                 type="button"
                 className="kp-card-link"
-                onClick={() => model.scrollTo("contact")}
+                onClick={() => model.scrollTo(model.hasAnyContact || model.openingHours.length ? "contact" : "home")}
               >
-                Contact the sanctuary
+                Contact the salon
               </button>
             </div>
           )}

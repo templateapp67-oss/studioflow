@@ -16,7 +16,7 @@ import { TeamSection } from "./hair-spa/TeamSection";
 import { BotanicalIngredients } from "./hair-spa/BotanicalIngredients";
 import { SanctuarySection } from "./hair-spa/SanctuarySection";
 import { ExperienceSection } from "./hair-spa/ExperienceSection";
-import { SanctuaryGallery } from "./hair-spa/SanctuaryGallery";
+import { GallerySection } from "./hair-spa/GallerySection";
 import { BookingSection } from "./hair-spa/BookingSection";
 import { FAQSection } from "./hair-spa/FAQSection";
 import { ContactSection } from "./hair-spa/ContactSection";
@@ -86,6 +86,7 @@ export function HairSpaWebsite({
   const heroRef = useRef<HTMLElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const mobileNavRef = useRef<HTMLElement>(null);
+  const pendingScrollRef = useRef<string | null>(null);
   const galleryTrackRef = useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -160,13 +161,13 @@ export function HairSpaWebsite({
         document.activeElement &&
         mobileNavRef.current?.contains(document.activeElement)
       ) {
-        menuButtonRef.current?.focus();
+        menuButtonRef.current?.focus({ preventScroll: true });
       }
     };
   }, [menuOpen]);
 
   const businessName = profile.businessName?.trim() || "Hair Spa & Scalp Sanctuary";
-  const metaDescription = `Explore ${businessName} — treatments, prices, opening hours and online booking for hair spa and scalp care.`;
+  const metaDescription = `Explore services, prices, opening hours and online booking at ${businessName}.`;
   useEffect(() => {
     if (typeof document === "undefined" || !document.head) return;
     const previousTitle = document.title;
@@ -206,17 +207,28 @@ export function HairSpaWebsite({
   const contact = keshContactSummary(profile);
   const reduced = Boolean(reduceMotion);
   const canObserve = typeof IntersectionObserver !== "undefined";
-  /**
-   * Anchors always resolve: a link scrolls to its section only when that
-   * section is actually rendered, otherwise the click is a no-op instead of a
-   * dead `#hash`.
-   */
+  // Wait until the mobile drawer has released its body scroll lock before
+  // scrolling; otherwise navigation can be swallowed by the locked page.
+  useEffect(() => {
+    if (menuOpen || !pendingScrollRef.current) return;
+    const id = pendingScrollRef.current;
+    pendingScrollRef.current = null;
+    const frame = requestAnimationFrame(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [menuOpen, reduced]);
+
   const scrollTo = (id: string) => {
-    setMenuOpen(false);
     if (typeof document === "undefined") return;
     const target = document.getElementById(id);
     if (!target) return;
-    target.scrollIntoView({ behavior: reduced ? "auto" : "smooth" });
+    if (menuOpen) {
+      pendingScrollRef.current = id;
+      setMenuOpen(false);
+    } else {
+      target.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+    }
   };
   const goToGalleryImage = (index: number) => {
     const track = galleryTrackRef.current;
@@ -231,6 +243,7 @@ export function HairSpaWebsite({
   };
   const selectGalleryCategory = (category: string) => {
     setGalleryCategory(category);
+    setActivePhoto(-1);
     setGalleryIndex(0);
     galleryTrackRef.current?.scrollTo({
       left: 0,
@@ -259,7 +272,7 @@ export function HairSpaWebsite({
   }));
   const shownGallery = displayImages.slice(0, 8);
   const galleryCategories = Array.from(
-    new Set(shownGallery.map((image) => image.category)),
+    new Set(["Spa", "Sanctuary", "Botanicals", ...shownGallery.map((image) => image.category)]),
   );
   const activeGalleryCategory =
     galleryCategory === "All" || galleryCategories.includes(galleryCategory)
@@ -303,7 +316,7 @@ export function HairSpaWebsite({
 
   const hasPromo = enabledSections.includes("promo");
   const hasTeam = stylists.length > 0;
-  const hasGallery = visibleGallery.length > 0;
+  const hasGallery = shownGallery.length > 0;
   const hasContact = contact.hasAnyContact || contact.hours.length > 0;
   const bookable = bookingAvailable && services.length > 0;
   /**
@@ -322,7 +335,7 @@ export function HairSpaWebsite({
   const pageLinks = (
     [
       ["Our Philosophy", "philosophy", true],
-      ["Treatments", "treatments", services.length > 0],
+      ["Treatments", "treatments", true],
       ["Scalp Care", "journey", true],
       ["Our Team", "team", hasTeam],
       ["The Sanctuary", "sanctuary", true],
@@ -440,7 +453,7 @@ export function HairSpaWebsite({
           <BotanicalIngredients />
           <SanctuarySection />
           <ExperienceSection />
-          <SanctuaryGallery />
+          <GallerySection />
           <BookingSection />
           <FAQSection />
           <ContactSection />

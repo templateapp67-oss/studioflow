@@ -20,12 +20,11 @@ export function HairSpaFooter() {
             </span>
             <span>
               <strong>{model.profile.businessName}</strong>
-              <small>HAIR SPA · SCALP SANCTUARY</small>
+              <small>SALON · HAIR SPA</small>
             </span>
           </a>
           <p>
-            Thoughtful hair and scalp care, inspired by nature and centred
-            around you.
+            Friendly care for your hair, skin and everyday grooming.
           </p>
           <div className="kp-footer-links">
             <span>EXPLORE</span>

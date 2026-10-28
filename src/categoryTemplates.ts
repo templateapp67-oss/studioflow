@@ -589,22 +589,22 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
   // 6. Hair Spa & Treatment
   hair_spa: {
     id: 'hair_spa',
-    title: 'Kesh Prakriti Hair Spa & Scalp Sanctuary',
-    shortName: 'Hair Spa & Treatment',
-    tagline: 'Deep Zen Head Spa, Micro-Mist Scalp Detox & Botanical Revitalization',
-    about: 'A quiet hair spa and scalp-care sanctuary template for salon owners. Replace this introduction with your own story, treatment approach and team details from the workspace.',
+    title: 'Kesh Prakriti Salon & Hair Spa',
+    shortName: 'Salon & Hair Spa',
+    tagline: 'Hair, skin and grooming care for every occasion',
+    about: 'Welcome to Kesh Prakriti. From a relaxing head massage to everyday grooming and wedding-ready makeup, we are here to help you look and feel your best.',
     icon: 'spa',
     layoutStyle: 'zen_emerald',
-    paletteLabel: 'Forest Green & Soft Sage Botanical Theme',
+    paletteLabel: 'Forest Green & Soft Sage',
     themePreset: 'emerald_sage',
-    subCategories: ['Scalp Detox', 'Ayurvedic Lepam', 'Intense Moisture Steam', 'Hair Fall Defense'],
+    subCategories: ['Hair Care', 'Skin Care', 'Threading & Waxing', 'Men’s Grooming', 'Bridal & Groom Makeup'],
     defaultCity: 'Chennai, Tamil Nadu',
     defaultAddress: 'Alwarpet High Road, Near TTK Road, Alwarpet',
     defaultPostalCode: '600018',
     phone: '+91 98400 11993',
     whatsapp: '+91 98400 11993',
     ownerName: 'Dr. Gayatri Raman',
-    ownerRole: 'Trichologist & Scalp Wellness Director',
+    ownerRole: 'Scalp Care Lead & Trichologist',
     ownerPhotoUrl: '',
     coverImageUrl: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1200&q=80',
     instagramHandle: '@keshprakriti.chennai',
@@ -625,71 +625,38 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
       headerBanner: 'bg-[#F9F6EF] border-b border-[#C5A46D]/30'
     },
     services: [
-      // Demo menu for the bundled template. No treatment, medical or safety claim
-      // is made here; owners replace these entries with their own saved services.
-      {
-        id: 'hsp-1',
-        name: 'Head Spa Ritual & Scalp Cleanse',
-        category: 'Scalp Detox',
-        durationMinutes: 70,
-        price: 1950,
-        description: 'A warm head spa sequence with a gentle scalp cleanse, steam and a slow rinse. Ask the team what is included before booking.',
-        icon: 'water_drop',
-        popular: true
-      },
-      {
-        id: 'hsp-2',
-        name: 'Ayurvedic Herb Lepam Treatment',
-        category: 'Ayurvedic Lepam',
-        durationMinutes: 60,
-        price: 1650,
-        description: 'A fresh herb paste applied along the scalp and hairline, followed by a warm oil head massage.',
-        icon: 'eco',
-        popular: true
-      },
-      {
-        id: 'hsp-3',
-        name: 'Argan Oil Nourishing Steam Ritual',
-        category: 'Intense Moisture Steam',
-        durationMinutes: 75,
-        price: 2100,
-        description: 'An oil-infused treatment finished under warm steam for dry, frizz-prone hair.',
-        icon: 'spa'
-      },
-      {
-        id: 'hsp-4',
-        name: 'Tea Tree & Neem Scalp Cleanse',
-        category: 'Scalp Detox',
-        durationMinutes: 50,
-        price: 1450,
-        description: 'A clarifying scalp cleanse for product build-up and flakes. Product details are confirmed by the team before use.',
-        icon: 'healing'
-      },
-      {
-        id: 'hsp-5',
-        name: 'Root Care & Scalp Massage Ritual',
-        category: 'Hair Fall Defense',
-        durationMinutes: 65,
-        price: 2400,
-        description: 'A focused scalp massage and root-care routine. Suitable treatments are discussed with you at the sanctuary.',
-        icon: 'vital_signs'
-      }
+      // Sample prices and services for the template. Published salons use their saved menu.
+      {id: 'hsp-1', name: 'Hair Spa', category: 'Hair Care', durationMinutes: 60, price: 900, description: 'A relaxing hair wash, conditioning treatment and gentle head massage.', icon: 'spa', popular: true},
+      {id: 'hsp-2', name: 'Traditional Head Massage', category: 'Hair Care', durationMinutes: 30, price: 350, description: 'A relaxing head massage with warm hair oil. Please tell us about any allergies before your visit.', icon: 'spa', popular: true},
+      {id: 'hsp-3', name: 'Herbal Hair Pack', category: 'Hair Care', durationMinutes: 45, price: 650, description: 'A herbal hair pack followed by a wash. Ask our team about the ingredients before booking.', icon: 'eco'},
+      {id: 'hsp-4', name: 'Eyebrow Threading', category: 'Threading & Waxing', durationMinutes: 15, price: 60, description: 'Neat eyebrow shaping with threading.', icon: 'face'},
+      {id: 'hsp-5', name: 'Full Arms Waxing', category: 'Threading & Waxing', durationMinutes: 30, price: 400, description: 'Full arms waxing for smooth skin. Ask us about the wax used.', icon: 'spa'},
+      {id: 'hsp-6', name: 'D-Tan Face Pack', category: 'Skin Care', durationMinutes: 30, price: 500, description: 'A face cleanse followed by a D-Tan pack. Let us know if you have sensitive skin.', icon: 'face'},
+      {id: 'hsp-7', name: 'Face Cleanup', category: 'Skin Care', durationMinutes: 45, price: 700, description: 'A simple face cleanup with cleansing, gentle exfoliation and a face pack.', icon: 'face'},
+      {id: 'hsp-8', name: 'Beard Grooming', category: 'Men’s Grooming', durationMinutes: 30, price: 250, description: 'Beard trimming and shaping to suit your style.', icon: 'content_cut'},
+      {id: 'hsp-9', name: 'Bridal Makeup', category: 'Bridal & Groom Makeup', durationMinutes: 120, price: 6500, description: 'Makeup for your wedding day. Discuss your look, products and inclusions with our team before booking.', icon: 'face'},
+      {id: 'hsp-10', name: 'Groom Makeup', category: 'Bridal & Groom Makeup', durationMinutes: 60, price: 2500, description: 'A natural makeup look for the groom. Discuss your preferences and inclusions before booking.', icon: 'face'},
+      {id: 'template-pkg-hair_spa-1', name: 'Hair Spa & Head Massage Combo', category: 'Packages', durationMinutes: 90, price: 1150, description: 'Hair spa and a traditional head massage. Ask the salon about the services included.', icon: 'spa'},
+      {id: 'template-pkg-hair_spa-2', name: 'Cleanup & Threading Combo', category: 'Packages', durationMinutes: 60, price: 730, description: 'Face cleanup and eyebrow threading in one visit.', icon: 'face'},
+      {id: 'template-pkg-hair_spa-3', name: 'D-Tan & Threading Combo', category: 'Packages', durationMinutes: 45, price: 530, description: 'D-Tan face pack and eyebrow threading.', icon: 'face'},
+      {id: 'template-pkg-hair_spa-4', name: 'Herbal Hair Care Combo', category: 'Packages', durationMinutes: 75, price: 950, description: 'Herbal hair pack and a relaxing head massage.', icon: 'eco'},
+      {id: 'template-pkg-hair_spa-5', name: 'Grooming Combo', category: 'Packages', durationMinutes: 60, price: 700, description: 'Beard grooming and a D-Tan face pack.', icon: 'content_cut'}
     ],
     stylists: [
       {
         id: 'hsp-st-1',
-        name: 'Gayatri Raman',
+        name: 'Dr. Gayatri Raman',
         role: 'Scalp Care Lead & Trichologist',
-        bio: 'Specializing in Ayurvedic scalp health and restorative head spa therapies with over 12 years of botanical wellness experience.',
+        bio: 'Gayatri helps clients choose hair and scalp care that suits their needs.',
         avatarUrl: '/templates/kesh-prakriti/team-gayatri.jpg',
-        specialties: ['Scalp Care', 'Head Spa', 'Trichology Diagnostics'],
+        specialties: ['Scalp Care', 'Hair Spa', 'Hair Care'],
         rating: 4.97
       },
       {
         id: 'hsp-st-2',
         name: 'Karthik Sundaram',
         role: 'Senior Hair Spa Therapist',
-        bio: 'Expert in traditional head massage and deep moisture steam treatments designed to relieve muscular tension and nourish roots.',
+        bio: 'Karthik offers relaxing head massages and hair spa services.',
         avatarUrl: '/templates/kesh-prakriti/team-karthik.jpg',
         specialties: ['Head Massage', 'Steam Treatments', 'Acupressure'],
         rating: 4.93
@@ -698,7 +665,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         id: 'hsp-st-3',
         name: 'Deepa Pillai',
         role: 'Herbal Treatment Specialist',
-        bio: 'Dedicated to formulating fresh herbal lepam masks and organic botanical elixirs for hair vitality and scalp balance.',
+        bio: 'Deepa looks after herbal hair packs and oil treatments.',
         avatarUrl: '/templates/kesh-prakriti/team-deepa.jpg',
         specialties: ['Herbal Lepam', 'Oil Treatments', 'Root Care'],
         rating: 4.90

@@ -13,26 +13,26 @@ import {
 const journeySteps = [
   {
     number: "01",
-    title: "Understand",
-    text: "Start with what you would like support with. Share your hair or scalp concerns with the team, and ask anything you want clarified before choosing a treatment.",
+    title: "Tell us",
+    text: "Tell our team about your hair, skin or grooming needs. Feel free to ask questions.",
     Icon: MessageCircle,
   },
   {
     number: "02",
-    title: "Personalise",
-    text: "Explore the services in the current menu and find an option that feels suitable. The team can explain what is included and help you compare choices.",
+    title: "Choose",
+    text: "Choose a service from the menu. We can explain what is included and help you decide.",
     Icon: Sparkles,
   },
   {
     number: "03",
-    title: "Experience",
-    text: "Take time for your chosen hair spa or scalp-care ritual in a calm setting. Let the team know if you need an adjustment or have a question during your visit.",
+    title: "Relax",
+    text: "Enjoy your service. Let us know if you need anything during your visit.",
     Icon: Leaf,
   },
   {
     number: "04",
-    title: "Continue",
-    text: "Before you leave, ask the team about aftercare that is relevant to the service you received. Any product or routine recommendations should be discussed with your specialist.",
+    title: "Aftercare",
+    text: "Before you leave, ask the team how to care for your hair or skin at home.",
     Icon: Check,
   },
 ] as const;
@@ -74,11 +74,11 @@ export function ScalpCareJourney() {
       <div className="kp-container">
         <div className="kp-section-heading kp-centered">
           <Reveal>
-            <p className="kp-eyebrow">YOUR VISIT, AT YOUR PACE</p>
+            <p className="kp-eyebrow">YOUR VISIT</p>
             <h2>
-              A simple path to
+              Good care in
               <br />
-              <em>feeling looked after.</em>
+              <em>four simple steps.</em>
             </h2>
           </Reveal>
         </div>
