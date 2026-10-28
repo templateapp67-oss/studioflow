@@ -24,6 +24,7 @@ export function Header({
     menuTrigger,
     menu,
     setMenu,
+    activeSection,
     mobileNav,
     reduced,
     scrollTo,
@@ -66,6 +67,8 @@ export function Header({
             <a
               key={id}
               href={`#${id}`}
+              className={activeSection === id ? "is-active" : undefined}
+              aria-current={activeSection === id ? "location" : undefined}
               onClick={(event) => {
                 event.preventDefault();
                 scrollTo(id);
@@ -87,6 +90,7 @@ export function Header({
           )}
         </nav>
         <button
+          type="button"
           className="dc-account"
           onClick={onAccount}
           aria-label="Customer account"
@@ -104,10 +108,11 @@ export function Header({
             ? `${customerName || "My account"} · Manage your customer account`
             : "Customer Login / Sign up"}
         </button>
-        <button className="dc-header-cta" onClick={booking}>
+        <button type="button" className="dc-header-cta" onClick={booking}>
           {bookingLabel} <ArrowUpRight size={15} />
         </button>
         <button
+          type="button"
           ref={menuTrigger}
           className="dc-menu-toggle"
           aria-label={menu ? "Close menu" : "Open menu"}
@@ -120,6 +125,18 @@ export function Header({
       </header>
       <AnimatePresence>
         {menu && (
+          <motion.div
+            key="dc-nav-backdrop"
+            className="dc-nav-backdrop"
+            aria-hidden="true"
+            initial={reduced ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={reduced ? undefined : { opacity: 0, pointerEvents: "none" }}
+            transition={reduced ? { duration: 0 } : { duration: 0.18 }}
+            onClick={() => setMenu(false)}
+          />
+        )}
+        {menu && (
           <motion.nav
             ref={mobileNav}
             id="dc-mobile-nav"
@@ -127,13 +144,19 @@ export function Header({
             aria-label="Mobile navigation"
             initial={reduced ? false : { opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={reduced ? undefined : { opacity: 0, y: -10 }}
+            exit={
+              reduced
+                ? undefined
+                : { opacity: 0, y: -10, pointerEvents: "none" }
+            }
             transition={reduced ? { duration: 0 } : undefined}
           >
             {nav.map(([label, id]) => (
               <a
                 key={id}
                 href={`#${id}`}
+                className={activeSection === id ? "is-active" : undefined}
+                aria-current={activeSection === id ? "location" : undefined}
                 onClick={(event) => {
                   event.preventDefault();
                   scrollTo(id);
@@ -156,6 +179,7 @@ export function Header({
               </a>
             )}
             <button
+              type="button"
               onClick={() => {
                 setMenu(false);
                 onAccount();
@@ -166,6 +190,7 @@ export function Header({
                 : "Customer Login / Sign up"}
             </button>
             <button
+              type="button"
               onClick={() => {
                 setMenu(false);
                 booking();

@@ -87,6 +87,7 @@
   --gold: #c19a6b;
   --bronze: #9d6b49;
   --brown: #50372d;
+  --espresso: #50372d;
   --charcoal: #211d1b;
   --ink: #302b27;
   --muted: #766b62;
@@ -2164,4 +2165,46 @@
   .dc-gallery-grid[data-count] .dc-gallery-tile-1 img {
     aspect-ratio: 4 / 3;
   }
+}
+
+/* --- Header navigation: active section + drawer scrim ------------------- */
+.dc-desktop-nav a {
+  position: relative;
+}
+.dc-desktop-nav a.is-active {
+  color: var(--espresso, #50372d);
+  font-weight: 600;
+}
+.dc-desktop-nav a.is-active:after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 11px;
+  height: 1px;
+  background: var(--gold);
+}
+.dc-logo {
+  min-height: 44px;
+}
+.dc-nav-backdrop {
+  display: none;
+}
+@media (max-width: 1200px) {
+  .dc-nav-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 38;
+    border: 0;
+    background: #211d1b8c;
+    backdrop-filter: blur(2px);
+  }
+}
+.dc-mobile-nav a.is-active {
+  color: var(--espresso, #50372d);
+  font-weight: 600;
+}
+.dc-mobile-nav a.is-active svg {
+  color: var(--gold);
 }
