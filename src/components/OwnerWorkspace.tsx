@@ -30,6 +30,7 @@ import { ReferralPanel } from './ReferralPanel';
 import { WebsitePublishPanel } from './WebsitePublishPanel';
 import { OwnerPosPanel } from './OwnerPosPanel';
 import type { CategoryTemplateConfig } from '../types';
+import { SyncIndicator } from './SyncIndicator';
 
 type Props = {
   profile: SalonProfile;
@@ -53,6 +54,8 @@ type Props = {
   onOpenDashboard: (section?:string) => void;
   onOpenWizard: () => void;
   onRefreshBookings?: () => Promise<void>|void;
+  sync: string;
+  syncError: string;
 };
 
 const Field = ({ label, value, onChange, type = 'text' }: { label: string; value: string | number; onChange: (value: string) => void; type?: string }) => <label className="block"><span className="field-label">{label}</span><input type={type} value={value} onChange={(e) => onChange(e.target.value)} className="workspace-input" /></label>;
@@ -61,7 +64,7 @@ const Metric = ({ icon, label, value }: { icon: string; label: string; value: st
 const Nav = ({id,label,icon,active,onClick,number}:{key?:React.Key;id:number;label:string;icon:string;active:number;onClick:(id:number)=>void;number?:number}) => <button type="button" onClick={()=>onClick(id)} aria-current={active===id?'page':undefined} title={`${number?`${number}. `:''}${label}`} className={`owner-nav ${number?'website-step-nav':'business-tool-nav'}${active===id?' active':''}`}>{number&&<span className="nav-no">{number}</span>}<span className="material-symbols-outlined" aria-hidden="true">{icon}</span><strong>{label}</strong></button>;
 const ActionPage = ({ eyebrow, title, text, icon, action, onAction, secondary, onSecondary }: { eyebrow: string; title: string; text: string; icon: string; action: string; onAction: () => void; secondary?: string; onSecondary?: () => void }) => <section className="workspace-card action-page"><div className="action-icon"><span className="material-symbols-outlined">{icon}</span></div><p className="eyebrow">{eyebrow}</p><h2>{title}</h2><p className="muted">{text}</p><div className="action-buttons"><button className="primary-action" onClick={onAction}>{action}</button>{secondary && <button className="secondary-action" onClick={onSecondary}>{secondary}</button>}</div></section>;
 
-export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services, setServices, stylists, setStylists, appointments, clients, setClients, loyaltyConfig, setLoyaltyConfig, extras, setExtras, published, onPublish, sessionEmail, templates, onOpenPreview, onOpenDashboard, onOpenWizard, onRefreshBookings }) => {
+export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services, setServices, stylists, setStylists, appointments, clients, setClients, loyaltyConfig, setLoyaltyConfig, extras, setExtras, published, onPublish, sessionEmail, templates, onOpenPreview, onOpenDashboard, onOpenWizard, onRefreshBookings, sync, syncError }) => {
   const [active, setActive] = useState(() => ownerModule(new URLSearchParams(location.search).get('module')));
   const headingRef=useRef<HTMLHeadingElement>(null);
   const navigate=(id:number)=>{const next=ownerModule(String(id));setActive(next);const url=new URL(location.href);url.searchParams.set('module',String(next));history.pushState(null,'',url);};
@@ -114,7 +117,8 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
   const currentLabel=currentStep?.label||OWNER_BUSINESS_TOOLS.find(tool=>tool.id===active)?.label||'Owner workspace';
   const previous=adjacentOwnerStep(active,-1),next=adjacentOwnerStep(active,1);
   const stepControls=<div className="owner-step-actions"><button type="button" className="secondary-action" disabled={previous===null} onClick={()=>previous!==null&&navigate(previous)}>← Previous step</button>{next!==null?<button type="button" className="primary-action" onClick={()=>navigate(next)}>Next: {WEBSITE_EDIT_STEPS[stepIndex+1].label} →</button>:<button type="button" className="secondary-action" onClick={()=>navigate(2)}>Back to step 1</button>}</div>;
-  return <main className="owner-shell owner-guided-shell">
+  return <>
+  <main className="owner-shell owner-guided-shell">
     <aside className="owner-sidebar">
       <div className="owner-brand"><div style={{background:accent}}>{profile.logoUrl?<img src={profile.logoUrl} alt=""/>:<span>{profile.businessName.slice(0,1)}</span>}</div><p><strong>{extras.whiteLabel.platformName||profile.businessName}</strong><small>Website editor</small></p></div>
       <div className="owner-sidebar-guide"><strong>Edit your website</strong><p>1 se {WEBSITE_EDIT_STEPS.length} tak ek-ek step edit karein. Kisi bhi step par seedha ja sakte hain.</p></div>
@@ -129,5 +133,7 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
         <div key={active}>{renderContent()}</div>{currentStep&&<footer className="owner-step-footer"><p>Step {stepIndex+1} / {WEBSITE_EDIT_STEPS.length} · {currentLabel}</p>{stepControls}</footer>}
       </div>
     </div>
-  </main>;
+  </main>
+  <SyncIndicator sync={sync} syncError={syncError} />
+  </>;
 };
