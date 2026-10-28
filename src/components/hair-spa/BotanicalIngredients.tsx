@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { useHairSpa } from "./context";
 import { ArrowRight } from "lucide-react";
 import { Reveal } from "./Reveal";
+import { KESH_PRAKRITI_IMAGES } from "../../lib/keshPrakriti";
 
 export function BotanicalIngredients() {
   const model = useHairSpa();
+  const [imageFailed, setImageFailed] = useState(false);
   return (
     <>
       <section className="kp-botanical kp-section" id="botanical">
@@ -16,29 +19,45 @@ export function BotanicalIngredients() {
               <em>quiet of botanicals.</em>
             </h2>
             <p>
-              Our approach draws inspiration from nature's textures, familiar
-              rituals and the restorative feeling of a thoughtfully prepared
-              space. Ask the team about the ingredients and products used in
-              your chosen treatment.
+              Our approach draws inspiration from nature&apos;s textures, familiar
+              rituals and the calm of a thoughtfully prepared space. Ask the
+              team about the ingredients and products used in your chosen
+              treatment before your visit.
             </p>
+            {/* Only link to the contact section when it actually renders. */}
             <a
               className="kp-inline-link"
-              href="#contact"
+              href={model.hasAnyContact ? "#contact" : "#treatments"}
               onClick={(event) => {
                 event.preventDefault();
-                model.scrollTo("contact");
+                model.scrollTo(model.hasAnyContact ? "contact" : "treatments");
               }}
             >
-              Ask us a question <ArrowRight size={16} />
+              {model.hasAnyContact ? "Ask us a question" : "Explore the treatment menu"}{" "}
+              <ArrowRight size={16} aria-hidden="true" />
             </a>
           </Reveal>
           <Reveal className="kp-botanical-image">
-            <img
-              src="https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&w=1300&q=85"
-              alt="Sunlit green leaves with gentle natural textures"
-              loading="lazy"
-            />
-            <span>Nature, never rushed.</span>
+            {imageFailed ? (
+              <div
+                className="kp-image-placeholder"
+                role="img"
+                aria-label="Reference photograph unavailable"
+              >
+                <span>Demo / sample photograph</span>
+              </div>
+            ) : (
+              <img
+                src={KESH_PRAKRITI_IMAGES.botanical}
+                alt="Reference photograph of fresh botanical ingredients and herbal hair-care oils"
+                loading="lazy"
+                decoding="async"
+                width={1200}
+                height={655}
+                onError={() => setImageFailed(true)}
+              />
+            )}
+            <span>Demo / sample · Nature, never rushed.</span>
           </Reveal>
         </div>
       </section>

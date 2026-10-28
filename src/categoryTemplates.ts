@@ -592,7 +592,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
     title: 'Kesh Prakriti Hair Spa & Scalp Sanctuary',
     shortName: 'Hair Spa & Treatment',
     tagline: 'Deep Zen Head Spa, Micro-Mist Scalp Detox & Botanical Revitalization',
-    about: 'Nestled in quiet Alwarpet, Chennai, Kesh Prakriti specializes in trichology-backed scalp rejuvenation. Using Japanese ultrasonic mist and traditional Indian medicinal herbs, we reverse scalp stress, hair thinning, and urban pollution.',
+    about: 'A quiet hair spa and scalp-care sanctuary template for salon owners. Replace this introduction with your own story, treatment approach and team details from the workspace.',
     icon: 'spa',
     layoutStyle: 'zen_emerald',
     paletteLabel: 'Forest Green & Soft Sage Botanical Theme',
@@ -605,7 +605,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
     whatsapp: '+91 98400 11993',
     ownerName: 'Dr. Gayatri Raman',
     ownerRole: 'Trichologist & Scalp Wellness Director',
-    ownerPhotoUrl: 'https://images.unsplash.com/photo-1594824813596-f9479e43b1a2?auto=format&fit=crop&w=500&q=80',
+    ownerPhotoUrl: '',
     coverImageUrl: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1200&q=80',
     instagramHandle: '@keshprakriti.chennai',
     themeStyle: {
@@ -625,77 +625,81 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
       headerBanner: 'bg-[#F9F6EF] border-b border-[#C5A46D]/30'
     },
     services: [
+      // Demo menu for the bundled template. No treatment, medical or safety claim
+      // is made here; owners replace these entries with their own saved services.
       {
         id: 'hsp-1',
-        name: 'Japanese Ultrasonic Head Spa & Scalp Detox',
+        name: 'Head Spa Ritual & Scalp Cleanse',
         category: 'Scalp Detox',
         durationMinutes: 70,
         price: 1950,
-        description: 'Micro-camera follicle diagnosis, volcanic clay scrub, waterfall rinse, and herb-steamed scalp bath.',
+        description: 'A warm head spa sequence with a gentle scalp cleanse, steam and a slow rinse. Ask the team what is included before booking.',
         icon: 'water_drop',
         popular: true
       },
       {
         id: 'hsp-2',
-        name: 'Ayurvedic Bhringraj & Brahmi Kesh Lepam',
+        name: 'Ayurvedic Herb Lepam Treatment',
         category: 'Ayurvedic Lepam',
         durationMinutes: 60,
         price: 1650,
-        description: 'Fresh ground cold-pressed herbs, warm castor oil massage, and soothing banana leaf wrap.',
+        description: 'A fresh herb paste applied along the scalp and hairline, followed by a warm oil head massage.',
         icon: 'eco',
         popular: true
       },
       {
         id: 'hsp-3',
-        name: 'Moroccan Argan Deep Nourishing Steam Ritual',
+        name: 'Argan Oil Nourishing Steam Ritual',
         category: 'Intense Moisture Steam',
         durationMinutes: 75,
         price: 2100,
-        description: 'Cold-pressed bio-argan oil infusion under warm ozone steam for dry, frizzy, brittle hair strands.',
+        description: 'An oil-infused treatment finished under warm steam for dry, frizz-prone hair.',
         icon: 'spa'
       },
       {
         id: 'hsp-4',
-        name: 'Anti-Dandruff Tea Tree & Neem Ozone Therapy',
+        name: 'Tea Tree & Neem Scalp Cleanse',
         category: 'Scalp Detox',
         durationMinutes: 50,
         price: 1450,
-        description: 'Purifies flaky scalp, kills fungal colonies, and regulates natural sebum production.',
+        description: 'A clarifying scalp cleanse for product build-up and flakes. Product details are confirmed by the team before use.',
         icon: 'healing'
       },
       {
         id: 'hsp-5',
-        name: 'Peptide Root Density & Hair Fall Defense Ritual',
+        name: 'Root Care & Scalp Massage Ritual',
         category: 'Hair Fall Defense',
         durationMinutes: 65,
         price: 2400,
-        description: 'Redensyl and Biotinyl peptide infusion stimulated with galvanic high-frequency current.',
+        description: 'A focused scalp massage and root-care routine. Suitable treatments are discussed with you at the sanctuary.',
         icon: 'vital_signs'
       }
     ],
     stylists: [
+      // Demo team entries. Portraits are intentionally left empty so the template
+      // never presents unrelated stock faces as real specialists.
       {
         id: 'hsp-st-1',
-        name: 'Dr. Gayatri Raman',
-        role: 'Chief Trichologist',
-        avatarUrl: 'https://images.unsplash.com/photo-1594824813596-f9479e43b1a2?auto=format&fit=crop&w=400&q=80',
-        specialties: ['Scalp Diagnostics', 'Follicle Rejuvenation', 'Japanese Head Spa'],
+        name: 'Gayatri Raman',
+        role: 'Scalp Care Lead',
+        avatarUrl: '',
+        specialties: ['Scalp Care', 'Head Spa'],
         rating: 4.97
       },
       {
         id: 'hsp-st-2',
         name: 'Karthik Sundaram',
-        role: 'Senior Scalp Therapist',
-        avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=400&q=80',
-        specialties: ['Acupressure Massage', 'Ozone Steam Therapies'],
+        role: 'Hair Spa Therapist',
+        avatarUrl: '',
+        specialties: ['Head Massage', 'Steam Treatments'],
         rating: 4.93
       },
       {
         id: 'hsp-st-3',
         name: 'Deepa Pillai',
-        role: 'Botanical Mask Specialist',
-        avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80',
-        specialties: ['Kesh Lepam', 'Argan Moisture Infusion'],
+        role: 'Herbal Treatment Specialist',
+        avatarUrl: '',
+        specialties: ['Herbal Lepam', 'Oil Treatments'],
         rating: 4.90
       }
     ]

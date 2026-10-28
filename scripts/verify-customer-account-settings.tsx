@@ -4,7 +4,9 @@ import {CustomerWebsiteHeader} from '../src/components/CustomerWebsiteHeader';im
 const photo='https://example.com/private-signed-avatar.jpg';
 for(const template of Object.values(CATEGORY_TEMPLATES)){
  const props={profile:{...INITIAL_SALON_PROFILE,businessType:template.id},services:[],stylists:[],readOnly:true,onAddAppointment:async(a:any)=>a,onCustomerAccount:()=>{}};
- const html=renderToStaticMarkup(<CustomerSalonWebsite {...props} customerSignedIn customerName="Customer One" customerPhotoUrl={photo}/>);assert.ok(html.includes(photo));assert.ok(html.includes('Customer One'));assert.ok(!html.includes('Customer Login')&&!html.includes('Sign up'));assert.ok(html.includes('My profile &amp; settings'));
+ const html=renderToStaticMarkup(<CustomerSalonWebsite {...props} customerSignedIn customerName="Customer One" customerPhotoUrl={photo}/>);assert.ok(html.includes(photo));assert.ok(html.includes('Customer One'));assert.ok(!html.includes('Customer Login')&&!html.includes('Sign up'));
+ if(template.id==='hair_spa')assert.ok(html.includes('Manage your customer account'),'hair spa header exposes the signed-in account action');
+ else assert.ok(html.includes('My profile &amp; settings'));
  const guest=renderToStaticMarkup(<CustomerSalonWebsite {...props}/>);assert.ok(guest.includes('Customer Login')&&guest.includes('Sign up'));assert.ok(!guest.includes(photo));
 }
 let calls=0,header:any;await act(async()=>{header=create(<CustomerWebsiteHeader profile={INITIAL_SALON_PROFILE} signedIn customerName="Customer One" customerPhotoUrl={photo} onAccount={()=>calls++}/>)});await act(async()=>header.root.findByProps({'aria-label':'Open website menu'}).props.onClick());assert.ok(!JSON.stringify(header.toJSON()).includes('Customer Login'));await act(async()=>header.root.findByProps({'aria-label':'Manage your customer account'}).props.onClick());assert.equal(calls,1);await act(async()=>header.update(<CustomerWebsiteHeader profile={INITIAL_SALON_PROFILE} onAccount={()=>{}}/>));assert.ok(!JSON.stringify(header.toJSON()).includes(photo));await act(async()=>header.unmount());

@@ -19,7 +19,7 @@ export function HairSpaFooter() {
               <Leaf size={19} />
             </span>
             <span>
-              <strong>Kesh Prakriti</strong>
+              <strong>{model.profile.businessName}</strong>
               <small>HAIR SPA · SCALP SANCTUARY</small>
             </span>
           </a>
@@ -29,7 +29,7 @@ export function HairSpaFooter() {
           </p>
           <div className="kp-footer-links">
             <span>EXPLORE</span>
-            {model.navLinks.slice(0, 4).map(([label, id]) => (
+            {model.pageLinks.slice(0, 5).map(([label, id]) => (
               <a
                 key={id}
                 href={`#${id}`}
@@ -44,16 +44,22 @@ export function HairSpaFooter() {
           </div>
           <div className="kp-footer-contact">
             <span>CONNECT</span>
-            {model.phone && <a href={`tel:${model.phone}`}>{model.phone}</a>}
-            {model.profile.email && (
-              <a href={`mailto:${model.profile.email}`}>
-                {model.profile.email}
+            {model.phone && (
+              <a href={`tel:${model.phone.replace(/\s/g, "")}`}>{model.phone}</a>
+            )}
+            {model.email && <a href={`mailto:${model.email}`}>{model.email}</a>}
+            {model.wa && (
+              <a href={model.wa} target="_blank" rel="noreferrer">
+                WhatsApp <ArrowUpRight size={13} aria-hidden="true" />
               </a>
             )}
             {model.mapHref && (
               <a href={model.mapHref} target="_blank" rel="noreferrer">
-                Directions <ArrowUpRight size={13} />
+                Directions <ArrowUpRight size={13} aria-hidden="true" />
               </a>
+            )}
+            {!model.hasAnyContact && (
+              <p className="kp-muted">Contact details haven&apos;t been added yet.</p>
             )}
           </div>
         </div>

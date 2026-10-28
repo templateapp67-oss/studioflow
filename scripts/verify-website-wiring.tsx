@@ -159,7 +159,13 @@ for(const template of Object.values(CATEGORY_TEMPLATES)) {
  const html=renderToStaticMarkup(<SalonWebsitePreview profile={profile} services={template.services} stylists={template.stylists} gallery={['https://example.com/look.jpg']} readOnly onAddAppointment={async apt=>apt}/>);
  const order=['hero','dock','services','team','experiences','location','footer'];let previous=-1;for(const section of order){const at=html.indexOf(`data-layout="${section}"`);assert.ok(at>previous,`${template.id}: ${section} must appear in requested order`);previous=at;}
  const dock=html.match(/<nav data-layout="dock"[\s\S]*?<\/nav>/)?.[0]||'';for(const label of ['Offers','Services','Our Team','Lookbook','Reviews','Location'])assert.ok(dock.includes(label),`${template.id}: ${label} dock link missing`);
- assert.ok(html.includes('WhatsApp Inquiry'));assert.ok(html.includes('Rich warm mood'));if(template.id==='hair_spa')assert.ok(!html.includes('Verified checkout'),'Hair spa demo must not imply an active verified checkout');else assert.ok(html.includes('Verified checkout'));assert.ok(html.includes('Service categories'));assert.ok(html.includes('Choose for online booking'));assert.ok(!html.includes('Verified client'),'Owner-entered reviews must not be labelled verified by default');
+ assert.ok(html.includes('WhatsApp Inquiry'));
+if(template.id==='hair_spa'){
+ // Template 06 uses its own editorial hero instead of the shared "Rich warm mood" badge copy.
+ assert.ok(!html.includes('Rich warm mood'),'Hair spa hero must not leak shared design-reference copy');
+ assert.ok(html.includes('Test Studio'),'Hair spa hero shows the saved salon name');
+}else assert.ok(html.includes('Rich warm mood'));
+if(template.id==='hair_spa')assert.ok(!html.includes('Verified checkout'),'Hair spa demo must not imply an active verified checkout');else assert.ok(html.includes('Verified checkout'));assert.ok(html.includes('Service categories'));assert.ok(html.includes('Choose for online booking'));assert.ok(!html.includes('Verified client'),'Owner-entered reviews must not be labelled verified by default');
  for(const service of template.services){assert.ok(html.includes(service.name.replaceAll('&','&amp;').replaceAll("'",'&#x27;')));assert.ok(html.includes(`${service.durationMinutes} min`));}
 }
 console.log('PASS: all 14 templates follow hero → dock → services → specialists → experiences/lookbook → location → footer; category pricing, duration, WhatsApp and specialist booking controls are present.');
@@ -181,14 +187,19 @@ try{
 
 for(const template of Object.values(CATEGORY_TEMPLATES)) {
  const initial=normalizeWorkspace({profile:{...INITIAL_SALON_PROFILE,businessType:template.id,websiteTestimonials:[]},extras:{gallery:[]}});
- assert.equal(initial.profile.websiteTestimonials.length,3,template.id);assert.ok(initial.profile.websiteTestimonials.every(r=>r.isDemo&&!r.verified));assert.ok(initial.extras.gallery.length>=4,template.id);
- const html=renderToStaticMarkup(<SalonWebsitePreview profile={initial.profile} services={[]} stylists={[]} gallery={initial.extras.gallery} readOnly onAddAppointment={async apt=>apt}/>);if(template.id==='hair_spa'){assert.ok(html.includes('A CONSIDERED EXPERIENCE'));assert.ok(!html.includes('Demo testimonial'),'Hair spa never presents sample reviews as authentic');assert.ok(html.includes('Demo / sample'));}else{assert.ok(html.includes('Demo testimonial'));assert.ok(html.includes('Demo lookbook'));assert.ok(!html.includes('Client experiences will appear here'));}
+ if(template.id==='hair_spa'){ // Template 06 ships no bundled testimonials: reviews only appear once real ones are published.
+  assert.equal(initial.profile.websiteTestimonials.length,0,'hair_spa must not seed demo reviews');
+ }else{
+  assert.equal(initial.profile.websiteTestimonials.length,3,template.id);assert.ok(initial.profile.websiteTestimonials.every(r=>r.isDemo&&!r.verified));
+ }
+ assert.ok(initial.extras.gallery.length>=4,template.id);
+ const html=renderToStaticMarkup(<SalonWebsitePreview profile={initial.profile} services={[]} stylists={[]} gallery={initial.extras.gallery} readOnly onAddAppointment={async apt=>apt}/>);if(template.id==='hair_spa'){assert.ok(html.includes('A CONSIDERED EXPERIENCE'));assert.ok(!html.includes('Demo testimonial'),'Hair spa never presents sample reviews as authentic');assert.ok(html.includes('Demo / sample'));assert.ok(!html.includes('4.97')&&!html.includes('390 experiences'),'hair_spa must not print an invented average rating or review count');}else{assert.ok(html.includes('Demo testimonial'));assert.ok(html.includes('Demo lookbook'));assert.ok(!html.includes('Client experiences will appear here'));}
  const deleted=normalizeWorkspace({profile:{...initial.profile,websiteTestimonials:[]},extras:{gallery:[]}});assert.equal(clientExperiences(deleted.profile).length,0);assert.equal(lookbookPhotos(deleted.profile,deleted.extras.gallery).length,0);
  const real={...initial.profile.websiteTestimonials[0],id:'real-review',isDemo:false,name:'Actual client',comment:'Actual client experience'};
  const own=normalizeWorkspace({profile:{...initial.profile,websiteTestimonials:[real]},extras:{gallery:['https://example.com/owner-photo.jpg']}});assert.deepEqual(own.profile.websiteTestimonials,[real]);assert.deepEqual(own.extras.gallery,['https://example.com/owner-photo.jpg']);
  const next=Object.values(CATEGORY_TEMPLATES).find(t=>t.id!==template.id)!;const switched=normalizeWorkspace({...initial,profile:applyTemplateDesign(initial.profile,next)});assert.ok(switched.profile.websiteTestimonials.every(r=>r.id.includes(next.id)));assert.ok(switched.extras.gallery.every(url=>lookbookPhotos({...switched.profile,demoGalleryInitialized:false},[]).includes(url)));
 }
-console.log('PASS: all 14 templates seed three labelled demo reviews and category lookbook photos; owner content stays intact; deletion persists; switching themes replaces only demo content.');
+console.log('PASS: 13 templates seed three labelled demo reviews (Template 06 ships none) and every template seeds category lookbook photos; owner content stays intact; deletion persists; switching themes replaces only demo content.');
 
 // Customer photo + rating + text submission uses the real form with isolated backend fixtures.
 const reviewOldRpc=supabase.rpc,oldGetUser=supabase.auth.getUser,oldStorageFrom=supabase.storage.from;

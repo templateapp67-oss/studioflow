@@ -7,11 +7,11 @@ export function FAQSection() {
   const model = useHairSpa();
   return (
     <>
-      <section className="kp-faq kp-section">
+      <section className="kp-faq kp-section" id="faq" aria-labelledby="kp-faq-title">
         <div className="kp-container kp-faq-grid">
           <Reveal>
             <p className="kp-eyebrow">A FEW THINGS TO KNOW</p>
-            <h2>
+            <h2 id="kp-faq-title">
               Questions,
               <br />
               <em>answered.</em>
@@ -20,9 +20,12 @@ export function FAQSection() {
               Still curious? We are happy to help you decide on a treatment.
             </p>
             {model.phone && (
-              <a className="kp-inline-link" href={`tel:${model.phone}`}>
-                <Phone size={16} />
-                Call the sanctuary <ArrowRight size={16} />
+              <a
+                className="kp-inline-link"
+                href={`tel:${model.phone.replace(/\s/g, "")}`}
+              >
+                <Phone size={16} aria-hidden="true" />
+                Call the sanctuary <ArrowRight size={16} aria-hidden="true" />
               </a>
             )}
           </Reveal>
@@ -30,8 +33,11 @@ export function FAQSection() {
             {model.questions.map(([question, answer], index) => (
               <div className="kp-faq-item" key={question}>
                 <button
+                  type="button"
+                  className="kp-faq-question"
                   aria-expanded={model.faqOpen === index}
                   aria-controls={`kp-faq-${index}`}
+                  id={`kp-faq-button-${index}`}
                   onClick={() =>
                     model.setFaqOpen((current) =>
                       current === index ? null : index,
@@ -50,7 +56,7 @@ export function FAQSection() {
                       id={`kp-faq-${index}`}
                       className="kp-faq-answer"
                       role="region"
-                      aria-label={question}
+                      aria-labelledby={`kp-faq-button-${index}`}
                       initial={
                         model.reduced ? false : { height: 0, opacity: 0 }
                       }

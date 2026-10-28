@@ -25,6 +25,10 @@ export interface HairSpaPageModel {
   customerSignedIn?: boolean;
   customerName?: string;
   customerPhotoUrl?: string;
+  /** Booking is only offered when a published menu and booking flow exist. */
+  bookingAvailable: boolean;
+  /** Books when possible, otherwise scrolls to a real contact/menu section. */
+  book: (service?: SalonService, specialist?: Stylist) => void;
   onBook: (service?: SalonService, specialist?: Stylist) => void;
   onAccount: (mode?: "signin" | "signup") => void;
   onMyBookings: () => void;
@@ -51,13 +55,20 @@ export interface HairSpaPageModel {
   canObserve: boolean;
   parallaxY: MotionValue<string>;
   heroImage: string;
-  phone: string | undefined;
-  wa: string | undefined;
+  heroIsOwnerPhoto: boolean;
+  heroFallbackImage: string;
+  phone: string;
+  email: string;
+  wa: string;
   address: string;
+  landmark: string;
+  openingHours: Array<[string, string]>;
+  hasAnyContact: boolean;
   mapHref: string;
   scrollTo: (id: string) => void;
   goToGalleryImage: (index: number) => void;
   selectGalleryCategory: (category: string) => void;
+  galleryCategoryCount: (category: string) => number;
   firstService: SalonService | undefined;
   featuredService: SalonService | undefined;
   serviceCategories: string[];
@@ -65,12 +76,11 @@ export interface HairSpaPageModel {
   pageLinks: readonly NavLink[];
   navLinks: readonly NavLink[];
   questions: readonly (readonly [string, string])[];
-  galleryImages: readonly { src: string; alt: string }[];
   dockLinks: [string, string, boolean][];
   realReviews: NonNullable<SalonProfile["websiteTestimonials"]>;
   displayImages: GalleryImage[];
   shownGallery: GalleryImage[];
-  galleryCategories: (string | undefined)[];
+  galleryCategories: string[];
   visibleGallery: { image: GalleryImage; index: number }[];
   formatMoney: (price: number) => string;
 }

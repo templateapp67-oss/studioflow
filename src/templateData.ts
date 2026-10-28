@@ -196,33 +196,34 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
   },
 
   hair_spa: {
-    foundingYear: '2020',
-    foundingNarrative: 'Trichology Sanctuary is an oasis engineered to heal scalp inflammation, revive thinning follicles, and restore biological hair health through micro-mist ozone chambers and deep Ayurvedic hair rituals.',
-    specialties: ['Trichology Scalp Barrier Therapy', 'Ozone Steam Follicle Infusion', 'Dandruff Peeling Detox', 'Caviar Hair Hydration'],
+    foundingYear: '',
+    foundingNarrative:
+      'Kesh Prakriti is a hair spa and scalp sanctuary template. Every word, price, review and photograph on the live site comes from the salon owner: this template only ships neutral sample copy describing the ritual types a hair spa typically offers.',
+    specialties: ['Scalp Cleanse Rituals', 'Ayurvedic Lepam Treatments', 'Steam & Oil Rituals', 'Root Care Massage'],
     certifications: [
-      { icon: 'verified', title: 'Trichological Scalp Camera Diagnostics', description: '500x digital magnification mapping pore density and sebum before treatment.' },
-      { icon: 'spa', title: 'Cold-Pressed Botanical Elixirs', description: 'Handcrafted bhringraj, brahmi, and rosemary essential blends.' },
-      { icon: 'air', title: 'Japanese Ultrasonic Micro-Mister', description: 'Splits water particles to microscopic size for 90% deeper moisture penetration.' },
-      { icon: 'science', title: 'Clinical Trichology Protocol', description: 'Non-invasive therapies supervised by certified scalp wellness experts.' }
+      { icon: 'eco', title: 'Botanical Formulas', description: 'Sample copy — describe the products and botanicals your sanctuary actually uses.' },
+      { icon: 'spa', title: 'Quiet Treatment Rooms', description: 'Sample copy — describe your own treatment rooms and what guests can expect.' },
+      { icon: 'sanitizer', title: 'Fresh Linen Per Guest', description: 'Sample copy — state the hygiene standards your team follows.' },
+      { icon: 'verified', title: 'Trained Ritual Specialists', description: 'Sample copy — list the training and qualifications your specialists hold.' }
     ],
+    // Bundled demo photographs live in /public/templates/kesh-prakriti and are
+    // always labelled "Demo / sample" until the owner uploads their own photos.
     gallery: [
-      { id: 'sp-g1', url: 'https://images.unsplash.com/photo-1560750588-73207b1ef5b8?auto=format&fit=crop&w=800&q=80', title: 'Japanese Head Spa Ozone Mist Dome', tag: 'Micro-Mist' },
-      { id: 'sp-g2', url: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80', title: 'Digital 500x Scalp Diagnostic Camera', tag: 'Trichology' },
-      { id: 'sp-g3', url: 'https://images.unsplash.com/photo-1519699047748-de8e457a634e?auto=format&fit=crop&w=800&q=80', title: 'Botanical Hair Mask Application', tag: 'Herbal Therapy' },
-      { id: 'sp-g4', url: 'https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=800&q=80', title: 'Serene Zen Head Wash Beds', tag: 'Interior' },
-      { id: 'sp-g5', url: 'https://images.unsplash.com/photo-1605497788044-5a32c7078486?auto=format&fit=crop&w=800&q=80', title: 'Silky Gloss Follicle Restoration', tag: 'Results' },
-      { id: 'sp-g6', url: 'https://images.unsplash.com/photo-1512290900672-1f55b9e07506?auto=format&fit=crop&w=800&q=80', title: 'Aromatherapy Scalp Pressure Points', tag: 'Acupressure' }
+      { id: 'sp-g1', url: '/templates/kesh-prakriti/head-spa.jpg', title: 'Head spa treatment bed', tag: 'Sample' },
+      { id: 'sp-g2', url: '/templates/kesh-prakriti/lepam.jpg', title: 'Herbal lepam preparation', tag: 'Sample' },
+      { id: 'sp-g3', url: '/templates/kesh-prakriti/steam.jpg', title: 'Steam ritual room', tag: 'Sample' },
+      { id: 'sp-g4', url: '/templates/kesh-prakriti/oils.jpg', title: 'Warm oil bottles', tag: 'Sample' },
+      { id: 'sp-g5', url: '/templates/kesh-prakriti/sanctuary.jpg', title: 'Sanctuary interior', tag: 'Sample' },
+      { id: 'sp-g6', url: '/templates/kesh-prakriti/botanical.jpg', title: 'Botanical ingredients', tag: 'Sample' }
     ],
-    reviews: [
-      { id: 'sp-r1', name: 'Priya Nambiar', location: 'Kakkanad, Kochi', rating: 5, serviceName: 'Intense Anti-Hairfall Keratin Stem Cell Infusion', comment: 'I was losing hair severely postpartum. After 3 sessions of their ozone mist treatment, shedding dropped drastically. Pure clinical magic!', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80', date: '3 days ago' },
-      { id: 'sp-r2', name: 'Gautam Menon', location: 'Panampilly Nagar, Kochi', rating: 5, serviceName: 'Deep Scalp Clarifying & Peeling Treatment', comment: 'The digital scalp diagnostic before and after was eye-opening. Cleared my chronic scalp buildup in one session.', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80', date: '1 week ago' },
-      { id: 'sp-r3', name: 'Divya Kurup', location: 'Marine Drive, Kochi', rating: 5, serviceName: 'Ayurvedic Kesh Vardhana Head Massage', comment: 'The warm herbal oils and head acupressure melted away months of desk stress. Felt completely rejuvenated.', avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80', date: '2 weeks ago' }
-    ],
-    totalReviewCount: 390,
-    averageRating: 4.97,
-    landmark: 'Main Avenue, Panampilly Nagar, Near Central Park',
-    parkingInfo: 'Dedicated customer car parking available in front of clinic',
-    openHourText: '09:30 AM',
+    // No reviews are bundled: testimonials may only come from real published
+    // customer reviews, so the demo shows an honest empty state instead.
+    reviews: [],
+    totalReviewCount: 0,
+    averageRating: 0,
+    landmark: '',
+    parkingInfo: '',
+    openHourText: '10:00 AM',
     closeHourText: '8:00 PM'
   },
 

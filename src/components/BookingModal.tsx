@@ -72,22 +72,14 @@ const ANY_SPECIALIST: Stylist = {
   id: 'any_available',
   name: 'Any Available Specialist',
   role: 'First available professional',
-  avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+  avatarUrl: '',
   specialties: ['General', 'Quick Allocation'],
   rating: 4.95,
 };
 
-const TIME_SLOTS = [
-  { time: '10:00', label: '10:00 AM', status: 'available', badge: 'Available' },
-  { time: '11:30', label: '11:30 AM', status: 'filling_fast', badge: '2 slots left' },
-  { time: '13:00', label: '01:00 PM', status: 'available', badge: 'Available' },
-  { time: '14:30', label: '02:30 PM', status: 'popular', badge: 'Filling fast' },
-  { time: '16:00', label: '04:00 PM', status: 'available', badge: 'Available' },
-  { time: '17:30', label: '05:30 PM', status: 'filling_fast', badge: '1 slot left' },
-  { time: '19:00', label: '07:00 PM', status: 'available', badge: 'Available' },
-  { time: '20:00', label: '08:00 PM', status: 'available', badge: 'Available' }
-];
-
+// Availability is never hard-coded: every time slot comes from the
+// studioflow_available_slots / studioflow_android_slots RPC for the selected
+// service, specialist and date.
 const LOCAL_STORAGE_GUEST_KEY = 'salon_guest_booking_info';
 
 export const BookingModal: React.FC<BookingModalProps> = ({

@@ -22,27 +22,16 @@ import { FAQSection } from "./hair-spa/FAQSection";
 import { ContactSection } from "./hair-spa/ContactSection";
 import { HairSpaFooter } from "./hair-spa/HairSpaFooter";
 import { GalleryLightbox } from "./hair-spa/GalleryLightbox";
-
-const heroImage =
-  "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=2200&q=85";
-const galleryImages = [
-  {
-    src: "https://images.unsplash.com/photo-1560750588-73207b1ef5b8?auto=format&fit=crop&w=1100&q=80",
-    alt: "Quiet spa treatment room with warm natural light",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1519699047748-de8e457a634e?auto=format&fit=crop&w=900&q=80",
-    alt: "Relaxing hair and scalp care ritual",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=900&q=80",
-    alt: "Calm, softly lit wellness interior",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1512290900672-1f55b9e07506?auto=format&fit=crop&w=900&q=80",
-    alt: "Botanical-inspired wellness details",
-  },
-];
+import {
+  KESH_PRAKRITI_FAQ,
+  KESH_PRAKRITI_IMAGES,
+  keshContactSummary,
+  keshGallery,
+  keshHeroImage,
+  keshPackages,
+  keshPublishedReviews,
+  keshServiceCategories,
+} from "../lib/keshPrakriti";
 
 const navLinks = [
   ["Our Philosophy", "philosophy"],
@@ -53,32 +42,7 @@ const navLinks = [
   ["Contact", "contact"],
 ] as const;
 
-const questions = [
-  [
-    "Which treatment should I choose?",
-    "Explore the treatment descriptions and choose what feels relevant to your hair or scalp concerns. If you are unsure, contact the team before selecting a ritual.",
-  ],
-  [
-    "How long does a session take?",
-    "Session lengths vary by service. Where a duration is listed, you will find it with that treatment; the team can help with any questions.",
-  ],
-  [
-    "Do I need to book in advance?",
-    "Send a booking enquiry using the treatment button. The team will follow up to discuss your preferred visit time.",
-  ],
-  [
-    "Can I discuss my scalp concerns first?",
-    "Yes. You can contact the spa using the details below to ask a question before choosing a service.",
-  ],
-  [
-    "How should I prepare for my visit?",
-    "No special preparation information is currently listed. Please contact the team if you would like guidance before your visit.",
-  ],
-  [
-    "How can I contact the spa?",
-    "Use the phone, WhatsApp or directions links shown in the contact section, when those details are available.",
-  ],
-] as const;
+const questions = KESH_PRAKRITI_FAQ;
 
 function formatMoney(price: number) {
   return `₹${Number(price).toLocaleString("en-IN")}`;
@@ -95,6 +59,7 @@ export function HairSpaWebsite({
   customerSignedIn,
   customerName,
   customerPhotoUrl,
+  bookingAvailable = true,
   onBook,
   onAccount,
   onMyBookings,
@@ -110,6 +75,8 @@ export function HairSpaWebsite({
   customerSignedIn?: boolean;
   customerName?: string;
   customerPhotoUrl?: string;
+  /** False for a template preview or when the service menu is empty. */
+  bookingAvailable?: boolean;
   onBook: (service?: SalonService, specialist?: Stylist) => void;
   onAccount: (mode?: "signin" | "signup") => void;
   onMyBookings: () => void;
@@ -197,58 +164,58 @@ export function HairSpaWebsite({
     };
   }, [menuOpen]);
 
+  const businessName = profile.businessName?.trim() || "Hair Spa & Scalp Sanctuary";
+  const metaDescription = `Explore ${businessName} — treatments, prices, opening hours and online booking for hair spa and scalp care.`;
   useEffect(() => {
     if (typeof document === "undefined" || !document.head) return;
-    document.title =
-      "Kesh Prakriti Hair Spa & Scalp Sanctuary | Hair & Scalp Wellness";
-    let description = document.querySelector<HTMLMetaElement>(
-      'meta[name="description"]',
-    );
-    if (!description) {
-      description = document.createElement("meta");
-      description.name = "description";
-      document.head.append(description);
-    }
-    description.content =
-      "Discover Kesh Prakriti Hair Spa & Scalp Sanctuary, with thoughtful hair spa experiences, personalised scalp care and relaxing wellness rituals.";
-    let ogDescription = document.querySelector<HTMLMetaElement>(
+    const previousTitle = document.title;
+    document.title = `${businessName} | Hair Spa & Scalp Wellness`;
+    const setMeta = (
+      selector: string,
+      attribute: "name" | "property",
+      key: string,
+      content: string,
+    ) => {
+      let node = document.querySelector<HTMLMetaElement>(selector);
+      if (!node) {
+        node = document.createElement("meta");
+        node.setAttribute(attribute, key);
+        document.head.append(node);
+      }
+      node.content = content;
+    };
+    setMeta('meta[name="description"]', "name", "description", metaDescription);
+    setMeta(
       'meta[property="og:description"]',
+      "property",
+      "og:description",
+      metaDescription,
     );
-    if (!ogDescription) {
-      ogDescription = document.createElement("meta");
-      ogDescription.setAttribute("property", "og:description");
-      document.head.append(ogDescription);
-    }
-    ogDescription.content = description.content;
-    let ogTitle = document.querySelector<HTMLMetaElement>(
+    setMeta(
       'meta[property="og:title"]',
+      "property",
+      "og:title",
+      `${businessName} | Hair Spa & Scalp Wellness`,
     );
-    if (!ogTitle) {
-      ogTitle = document.createElement("meta");
-      ogTitle.setAttribute("property", "og:title");
-      document.head.append(ogTitle);
-    }
-    ogTitle.content = document.title;
-  }, []);
+    return () => {
+      document.title = previousTitle;
+    };
+  }, [businessName, metaDescription]);
 
-  const phone = profile.phone?.trim();
-  const wa = profile.whatsapp?.replace(/\D/g, "");
-  const address = [profile.address, profile.city, profile.postalCode]
-    .filter(Boolean)
-    .join(", ");
-  const mapHref =
-    profile.latitude && profile.longitude
-      ? `https://www.google.com/maps/search/?api=1&query=${profile.latitude},${profile.longitude}`
-      : address
-        ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
-        : "";
+  const contact = keshContactSummary(profile);
   const reduced = Boolean(reduceMotion);
   const canObserve = typeof IntersectionObserver !== "undefined";
+  /**
+   * Anchors always resolve: a link scrolls to its section only when that
+   * section is actually rendered, otherwise the click is a no-op instead of a
+   * dead `#hash`.
+   */
   const scrollTo = (id: string) => {
     setMenuOpen(false);
-    document
-      .getElementById(id)
-      ?.scrollIntoView({ behavior: reduced ? "auto" : "smooth" });
+    if (typeof document === "undefined") return;
+    const target = document.getElementById(id);
+    if (!target) return;
+    target.scrollIntoView({ behavior: reduced ? "auto" : "smooth" });
   };
   const goToGalleryImage = (index: number) => {
     const track = galleryTrackRef.current;
@@ -258,8 +225,8 @@ export function HairSpaWebsite({
         left: item.offsetLeft - track.offsetLeft,
         behavior: reduced ? "auto" : "smooth",
       });
-      setGalleryIndex(index);
     }
+    setGalleryIndex(index);
   };
   const selectGalleryCategory = (category: string) => {
     setGalleryCategory(category);
@@ -269,87 +236,120 @@ export function HairSpaWebsite({
       behavior: reduced ? "auto" : "smooth",
     });
   };
+
+  const hero = keshHeroImage(profile);
   const firstService = services[0];
   const featuredService =
     services.find((service) => service.popular) || firstService;
-  const serviceCategories = Array.from(
-    new Set(
-      services
-        .map((service) => service.category?.trim())
-        .filter((category): category is string => Boolean(category)),
-    ),
-  );
-  const packages = services.filter((service) =>
-    /package|combo|bundle/i.test(
-      `${service.category || ""} ${service.name || ""}`,
-    ),
-  );
-  const pageLinks = stylists.length
-    ? [
-        ...navLinks.slice(0, 1),
-        ...navLinks.slice(1, 2),
-        ["Our Team", "team"] as const,
-        ...navLinks.slice(2),
-      ]
-    : navLinks;
-  const dockLinks = [
-    [
-      "Offers",
-      enabledSections.includes("promo") ? "salon-promo" : "offers",
-      true,
-    ],
-    ["Services", "treatments", true],
-    ...(showPackages ? [["Packages", "salon-packages", true] as const] : []),
-    ...(stylists.length ? [["Our Team", "team", true] as const] : []),
-    ["Lookbook", "gallery", true],
-    ["Reviews & experience", "experiences", true],
-    ["Location", "contact", true],
-  ].filter(([, , enabled]) => enabled) as [string, string, boolean][];
-  const realReviews = (profile.websiteTestimonials || []).filter(
-    (review) => !review.isDemo && Boolean(review.comment?.trim()),
-  );
-  const displayImages = galleryPhotos.length
-    ? galleryPhotos.map((photo) => ({
-        src: photo.url,
-        alt: photo.title,
-        isDemo: photo.isDemo,
-        caption: photo.title,
-        category: photo.category,
-      }))
-    : galleryImages.map((image) => ({
-        ...image,
-        isDemo: true,
-        caption: "Demo / sample imagery",
-        category: "Spa",
-      }));
-  const shownGallery = displayImages.slice(0, 5);
+  const serviceCategories = keshServiceCategories(services);
+  /* A stale filter must never hide the whole menu after the catalogue changes. */
+  const activeServiceCategory =
+    serviceCategory === "All" || serviceCategories.includes(serviceCategory)
+      ? serviceCategory
+      : "All";
+  const packages = keshPackages(services);
+
+  const displayImages = keshGallery(galleryPhotos).map((photo) => ({
+    src: photo.url,
+    alt: photo.title || `${photo.category} photo`,
+    isDemo: photo.isDemo,
+    caption: photo.title || "Sanctuary photo",
+    category: photo.category,
+  }));
+  const shownGallery = displayImages.slice(0, 8);
   const galleryCategories = Array.from(
-    new Set(displayImages.map((image) => image.category)),
+    new Set(shownGallery.map((image) => image.category)),
   );
+  const activeGalleryCategory =
+    galleryCategory === "All" || galleryCategories.includes(galleryCategory)
+      ? galleryCategory
+      : "All";
   const visibleGallery = shownGallery
     .map((image, index) => ({ image, index }))
     .filter(
       ({ image }) =>
-        galleryCategory === "All" || image.category === galleryCategory,
+        activeGalleryCategory === "All" ||
+        image.category === activeGalleryCategory,
     );
+  const galleryCategoryCount = (category: string) =>
+    shownGallery.filter((image) => image.category === category).length;
+
+  useEffect(() => {
+    setGalleryIndex((current) =>
+      Math.min(current, Math.max(0, visibleGallery.length - 1)),
+    );
+  }, [visibleGallery.length]);
 
   useEffect(() => {
     if (activePhoto < 0) return;
+    const total = visibleGallery.length;
+    if (!total) {
+      setActivePhoto(-1);
+      return;
+    }
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") setActivePhoto(-1);
       if (event.key === "ArrowRight") {
-        setActivePhoto((current) => (current + 1) % shownGallery.length);
+        setActivePhoto((current) => (current + 1) % total);
       }
       if (event.key === "ArrowLeft") {
-        setActivePhoto(
-          (current) =>
-            (current - 1 + shownGallery.length) % shownGallery.length,
-        );
+        setActivePhoto((current) => (current - 1 + total) % total);
       }
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [activePhoto, shownGallery.length]);
+  }, [activePhoto, visibleGallery.length]);
+
+  const hasPromo = enabledSections.includes("promo");
+  const hasTeam = stylists.length > 0;
+  const hasGallery = visibleGallery.length > 0;
+  const hasContact = contact.hasAnyContact || contact.hours.length > 0;
+  const bookable = bookingAvailable && services.length > 0;
+  /**
+   * Every "book" affordance goes through here. When the booking flow is not
+   * available (template preview, unpublished site, empty menu) the visitor is
+   * taken to a real contact/menu section instead of opening a hypothetical
+   * basket with invented availability.
+   */
+  const book = (service?: SalonService, specialist?: Stylist) => {
+    if (bookable) {
+      onBook(service, specialist);
+      return;
+    }
+    scrollTo(hasContact ? "contact" : services.length ? "treatments" : "home");
+  };
+  const pageLinks = (
+    [
+      ["Our Philosophy", "philosophy", true],
+      ["Treatments", "treatments", services.length > 0],
+      ["Scalp Care", "journey", true],
+      ["Our Team", "team", hasTeam],
+      ["The Sanctuary", "sanctuary", true],
+      ["Gallery", "gallery", hasGallery],
+      ["Contact", "contact", hasContact],
+    ] as Array<[string, string, boolean]>
+  )
+    .filter(([, , visible]) => visible)
+    .map(([label, id]) => [label, id] as const);
+  const dockLinks = (
+    [
+      // Offers always resolves: the promo block when a campaign is live, or the
+      // "no promotion is running" strip that renders in its place.
+      ["Offers", hasPromo ? "salon-promo" : "offers", true],
+      ["Services", "treatments", services.length > 0],
+      ["Packages", "salon-packages", showPackages && packages.length > 0],
+      ["Our Team", "team", hasTeam],
+      ["Lookbook", "gallery", hasGallery],
+      // The experiences section always renders (real reviews or an honest empty
+      // state), so this anchor is always valid.
+      ["Reviews & experience", "experiences", true],
+      ["Location", "contact", hasContact],
+    ] as Array<[string, string, boolean]>
+  )
+    .filter(([, , visible]) => visible)
+    .map(([label, id]) => [label, id, true] as [string, string, boolean]);
+
+  const realReviews = keshPublishedReviews(profile);
 
   const pageModel = {
     profile,
@@ -362,6 +362,8 @@ export function HairSpaWebsite({
     customerSignedIn,
     customerName,
     customerPhotoUrl,
+    bookingAvailable: bookable,
+    book,
     onBook,
     onAccount,
     onMyBookings,
@@ -374,9 +376,9 @@ export function HairSpaWebsite({
     scrolled,
     faqOpen,
     setFaqOpen,
-    serviceCategory,
+    serviceCategory: activeServiceCategory,
     setServiceCategory,
-    galleryCategory,
+    galleryCategory: activeGalleryCategory,
     setGalleryCategory,
     activePhoto,
     setActivePhoto,
@@ -387,14 +389,21 @@ export function HairSpaWebsite({
     reduced,
     canObserve,
     parallaxY,
-    heroImage,
-    phone,
-    wa,
-    address,
-    mapHref,
+    heroImage: hero.src,
+    heroIsOwnerPhoto: hero.isOwnerPhoto,
+    heroFallbackImage: KESH_PRAKRITI_IMAGES.hero,
+    phone: contact.phone,
+    email: contact.email,
+    wa: contact.whatsappUrl,
+    address: contact.address,
+    landmark: contact.landmark,
+    openingHours: contact.hours,
+    hasAnyContact: contact.hasAnyContact,
+    mapHref: contact.mapsUrl,
     scrollTo,
     goToGalleryImage,
     selectGalleryCategory,
+    galleryCategoryCount,
     firstService,
     featuredService,
     serviceCategories,
@@ -402,7 +411,6 @@ export function HairSpaWebsite({
     pageLinks,
     navLinks,
     questions,
-    galleryImages,
     dockLinks,
     realReviews,
     displayImages,
@@ -415,8 +423,11 @@ export function HairSpaWebsite({
   return (
     <HairSpaContext.Provider value={pageModel}>
       <div className="kp-site" data-template="hair_spa">
+        <a className="kp-skip-link" href="#kp-main-content">
+          Skip to main content
+        </a>
         <HairSpaHeader />
-        <main>
+        <main id="kp-main-content" tabIndex={-1}>
           <HeroSection />
           <QuickNavigation />
           <BrandPhilosophy />
