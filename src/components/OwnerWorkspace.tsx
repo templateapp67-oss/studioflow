@@ -20,6 +20,7 @@ import { applyTemplateDesign } from '../lib/templateSelection';
 import { upgradeLegacyBeautyParlourStylists } from '../lib/roopMahalReference';
 import { CATEGORY_TEMPLATES } from '../categoryTemplates';
 import { SocialConnectivityStep } from './SocialConnectivityStep';
+import { SeoSettingsManager } from './SeoSettingsManager';
 import { type Extras } from '../lib/workspaceDefaults';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Appointment, BusinessTypeId, SalonProfile, SalonService, Stylist } from '../types';
@@ -87,6 +88,7 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
     if (active === 28) return <PromoStudio profile={profile} setProfile={setProfile} services={services} onAdReady={setCampaignAd}/>;
     if (active === 29) return <LoyaltyManagement clients={clients} setClients={setClients} loyaltyConfig={loyaltyConfig} setLoyaltyConfig={setLoyaltyConfig} profile={profile} primaryAccentColor={accent} onNavigateToPreview={onOpenPreview}/>;
     if (active === 16) return <WebsiteContentManager showAbout={false} showGallery={false} profile={profile} setProfile={setProfile} gallery={extras.gallery} setGallery={gallery=>setExtras(prev=>({...prev,gallery}))}/>;
+    if (active === 31) return <SeoSettingsManager profile={profile} setProfile={setProfile}/>;
     if(active===26)return <OwnerCustomerContacts profile={profile} ad={campaignAd}/>;
     if (active === 22) return <div className="stack"><PromoStudio profile={profile} setProfile={setProfile} services={services} onAdReady={setCampaignAd}/><OwnerCustomerContacts profile={profile} ad={campaignAd}/></div>;
     if (active === 1) return <section className="workspace-card"><p className="eyebrow">Secure owner access</p><h2>Signed in</h2><p className="muted">{sessionEmail}</p><p>Your profile and dashboard are saved to your Supabase account.</p></section>;

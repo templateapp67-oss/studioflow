@@ -254,7 +254,35 @@ function PublishedWebsite({slug,session}:{key?:React.Key;slug:string;session:Ses
    loaded=true;setError('');setSite((prev:any)=>JSON.stringify(prev)===JSON.stringify(parsedContent)?prev:parsedContent);};
   void refresh();const channel=supabase.channel(`public-site-${slug}`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'studioflow_websites',filter:`slug=eq.${slug}`},()=>void refresh()).subscribe();const interval=setInterval(()=>void refresh(),15000);window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',refresh);return()=>{active=false;void supabase.removeChannel(channel);clearInterval(interval);window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',refresh);};
  },[slug,retry]);
- useEffect(()=>{if(!site)return;const previousTitle=document.title;document.title=site.profile?.businessName||'Salon website';const restoreIcon=applyWebsiteFavicon(document,websiteFavicon(site.branding,site.profile));return()=>{document.title=previousTitle;restoreIcon();};},[site?.profile?.businessName,site?.branding?.faviconUrl,site?.profile?.logoUrl]);
+  useEffect(()=>{
+    if(!site)return;
+    const previousTitle=document.title;
+    const seo=site.profile?.seo||{};
+    const businessName=site.profile?.businessName||'Salon website';
+    const tagl=seo.metaDescription||site.profile?.tagline||site.profile?.about||'Book salon appointments online.';
+    document.title=seo.metaTitle||businessName;
+
+    let metaDesc=document.querySelector('meta[name="description"]');
+    const oldDesc=metaDesc?metaDesc.getAttribute('content'):null;
+    if(!metaDesc){metaDesc=document.createElement('meta');metaDesc.setAttribute('name','description');document.head.appendChild(metaDesc);}
+    metaDesc.setAttribute('content',tagl);
+
+    const setOg=(property:string,val:string)=>{
+      let tag=document.querySelector(`meta[property="${property}"]`);
+      if(!tag){tag=document.createElement('meta');tag.setAttribute('property',property);document.head.appendChild(tag);}
+      tag.setAttribute('content',val);
+    };
+    setOg('og:title',seo.ogTitle||seo.metaTitle||businessName);
+    setOg('og:description',seo.ogDescription||tagl);
+    if(seo.ogImageUrl||site.profile?.coverImageUrl)setOg('og:image',seo.ogImageUrl||site.profile.coverImageUrl);
+
+    const restoreIcon=applyWebsiteFavicon(document,websiteFavicon(site.branding,site.profile));
+    return()=>{
+      document.title=previousTitle;
+      if(metaDesc&&oldDesc!==null)metaDesc.setAttribute('content',oldDesc);
+      restoreIcon();
+    };
+  },[site?.profile]);
  if(devFallbackTemplate)return <TemplateEntry templateId={devFallbackTemplate}/>;
  if(error)return <main className="p-10"><h1 className="text-2xl font-bold">Website unavailable</h1><p>{error.includes('not published') ? 'The salon owner has not published this website yet.' : error}</p><p className="text-sm text-slate-500 mt-2">Retrying automatically in {countdown} seconds...</p><div className="mt-4 flex flex-col gap-3"><div className="flex gap-3"><button className="primary-action" onClick={()=>{setError('');setSite(null);setRetry(r=>r+1);}}>Try again</button><a className="secondary-action" href="/">Open StudioFlow</a></div><details className="mt-4 p-4 border rounded-xl"><summary className="font-semibold cursor-pointer">Need help publishing?</summary><p className="mt-2 text-sm text-slate-600">If you are the salon owner, please sign in to your Salon Workspace, complete the setup, and click the 'Publish' button in the dashboard to make your website live.</p></details></div></main>;
  if(!site)return <Loading text="Loading salon website…" />;

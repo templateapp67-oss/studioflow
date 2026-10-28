@@ -10,6 +10,7 @@ export const WEBSITE_EDIT_STEPS = [
  {id:7,label:'Location & hours',icon:'location_on',hint:'Map pin, address aur salon opening hours set karein.'},
  {id:8,label:'Booking rules',icon:'event_available',hint:'WhatsApp booking contact aur advance booking lead time check karein.'},
  {id:16,label:'Sections, menu & reviews',icon:'view_quilt',hint:'Website sections on/off, header menu, headings, Google/Instagram review widget aur default website language edit karein.'},
+ {id:31,label:'SEO & Social Metadata',icon:'travel_explore',hint:'Meta title, description aur OpenGraph social share cards configure karein.'},
  {id:28,label:'Promotions & offers',icon:'campaign',hint:'Website promotion, offer content aur marketing banner edit karein.'},
  {id:29,label:'Loyalty & rewards',icon:'military_tech',hint:'Reward rules, points thresholds aur active benefits configure karein.'},
  {id:23,label:'Salon policies',icon:'policy',hint:'Cancellation, privacy aur salon policy text review karein.'},

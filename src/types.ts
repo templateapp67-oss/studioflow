@@ -145,6 +145,14 @@ export interface SalonProfile {
   websiteSections?: Record<string, boolean>;
   sectionHeadings?: Record<string, string>;
   websiteTestimonials?: import('./templateData').Testimonial[];
+  seo?: {
+    metaTitle?: string;
+    metaDescription?: string;
+    ogTitle?: string;
+    ogDescription?: string;
+    ogImageUrl?: string;
+    keywords?: string;
+  };
 
   businessType: BusinessTypeId;
   businessName: string;
