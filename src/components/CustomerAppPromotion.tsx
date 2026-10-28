@@ -1,3 +1,4 @@
+import {PromotionalBanner} from "./PromotionalBanner";
 import React,{useState} from 'react';
 import {Smartphone,Download,Share2,ArrowUpRight,Search,CalendarCheck,Check} from 'lucide-react';
 export const CUSTOMER_APP_ROUTE='/?app=1';
@@ -12,7 +13,8 @@ export async function shareCustomerApp(includePoster=false){
  }
  await navigator.clipboard.writeText(customerAppCaption(location.origin));return 'App message and link copied. Download the poster below to share it too.';
 }
-export function AppAnnouncementStrip(){return <aside className="nexora-app-strip" aria-label="Nexora app announcement"><Smartphone size={19}/><span><b>अब salon booking, सीधे Nexora app से!</b> Salon खोजें और slot बुक करें.</span><a href={CUSTOMER_APP_INSTALL_ROUTE}>Open / Install App <ArrowUpRight size={16}/></a></aside>}
+export function AppAnnouncementStrip(){return <PromotionalBanner label="Nexora app announcement" id="customer-app-v1" text="अब salon booking, सीधे Nexora app से! Salon खोजें और slot बुक करें." actionLabel="Open / Install App" actionHref={CUSTOMER_APP_INSTALL_ROUTE} className="nexora-app-strip"/>;}
+
 export function CustomerAppPromotion({installControl}:{installControl?:React.ReactNode}){
  const [notice,setNotice]=useState('');
  async function share(){try{setNotice(await shareCustomerApp(true))}catch(e){if((e as Error).name!=='AbortError')setNotice('Use Copy app link or download the poster to share.')}}

@@ -1,3 +1,4 @@
+import type { ConsultationDetails } from "./dermacure/consultation";
 import {SpecialistCard} from './SpecialistCard';
 import {WebsiteLanguageProvider,useWebsiteLanguage} from './WebsiteLanguage';
 import {SpecialistWeek,type DirectBookingSlot} from './SpecialistWeek';
@@ -64,11 +65,13 @@ import {websiteSections} from '../lib/websiteContent';
 import {WebsiteSections} from './WebsiteSections';
 import {BookingModal} from './BookingModal';
 import {HairSpaWebsite} from './HairSpaWebsite';
+import {DermacureWebsite} from './DermacureWebsite';
 import {FloatingPromoBanner} from './FloatingPromoBanner';
 
 const money=(value:number)=>`₹${Number(value||0).toLocaleString('en-IN')}`;
 function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGallery=[],policies,branding,loyaltyConfig,onCustomerAccount,customerSignedIn,customerName,customerPhotoUrl,onAddAppointment}:SalonWebsitePreviewProps){
  const {t}=useWebsiteLanguage();
+ const [consultation,setConsultation]=useState<ConsultationDetails|undefined>();
  const [directSlot,setDirectSlot]=useState<DirectBookingSlot|undefined>();
  const [myBookings,setMyBookings]=useState(false);
  const [viewStaff,setViewStaff]=useState(()=>new URLSearchParams(typeof location==='undefined'?'':location.search).get('stylist')||'');
@@ -303,6 +306,13 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
    </section>
   )
  );
+
+ if(profile.businessType==='skincare_clinic')return <>
+  <DermacureWebsite shared={shared} customerName={customerName} customerPhotoUrl={customerPhotoUrl} galleryPhotos={galleryEntries} stylists={team} onViewStaff={setViewStaff} onBookStaff={staff=>{setConsultation(undefined);book(undefined,staff)}} onAccount={()=>customer('signin')} customerSignedIn={customerSignedIn} onMyBookings={()=>setMyBookings(true)} profile={profile} services={services} policies={policies} bookingAvailable={Boolean(visible.bookings && profile.subdomain && services.length && (profile as typeof profile & {bookingEnabled?:boolean}).bookingEnabled!==false)} onBook={(selected,details)=>{setConsultation(details);book(selected,details?team.find(st=>st.id===details.stylistId):undefined);if(details)setDirectSlot({date:details.date,time:details.time,stylistId:details.stylistId});}}/>
+  {myBookings&&<SalonBookingsDialog profile={profile} onClose={()=>setMyBookings(false)}/>}
+  {team.some(st=>st.id===viewStaff)&&<StylistProfile services={services} staff={team.find(st=>st.id===viewStaff)!} profile={profile} slug={profile.subdomain} signedIn={customerSignedIn} demo={!profile.subdomain} onLogin={()=>customer('signin')} onClose={()=>setViewStaff('')} onBook={()=>{const specialist=team.find(st=>st.id===viewStaff);setViewStaff('');setConsultation(undefined);book(undefined,specialist)}}/>}
+  <BookingModal isOpen={booking} onClose={()=>setBooking(false)} profile={profile} services={services} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} consultation={consultation} onAddAppointment={onAddAppointment} themeAccentHex="#50372D"/>
+ </>;
 
  if(profile.businessType==='hair_spa')return <>
   {/* Template 06 renders all of its sections through HairSpaWebsite. Online

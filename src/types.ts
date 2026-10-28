@@ -127,6 +127,8 @@ export interface PromoCampaign {
   aspectRatio: string; aesthetic: string; imageUrl: string; customPrompt: string;
 }
 export interface SalonProfile {
+  clinicLegal?: {privacy:string;terms:string};
+  clinicTechnology?: {name:string;manufacturer:string;specifications:string;imageUrl:string;approved:boolean};
   bookingAddOnServiceIds?:string[];
   comparisonPhotos?:import('./lib/conversionFeatures').ComparisonPhoto[];
   reviewSource?:import('./lib/conversionFeatures').ReviewSource;
@@ -245,6 +247,7 @@ export interface Stylist {
 }
 
 export interface Appointment {
+  consultationMessage?: string;
   couponCode?:string;
   couponExpectedTotal?:number;
   originalPrice?:number;

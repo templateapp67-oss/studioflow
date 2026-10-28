@@ -6,7 +6,12 @@ import {normalizeWorkspace} from '../src/lib/normalizeWorkspace';import {applyTe
 for(const template of Object.values(CATEGORY_TEMPLATES)){
  const profile={...INITIAL_SALON_PROFILE,businessType:template.id};const samples=standardGallery(template.id);assert.equal(samples.length,5);assert.equal(new Set(samples.map(p=>p.url)).size,5);assert.equal(photoGallery(profile).length,5);assert.ok(samples.every(p=>p.id.includes(template.id)));
  const html=renderToStaticMarkup(<CustomerSalonWebsite profile={profile} services={[]} stylists={[]} readOnly onAddAppointment={async a=>a}/>);
- if(template.id==='hair_spa'){
+ if(template.id==='skincare_clinic'){
+  assert.ok(!html.includes('id="clinic-gallery"'),'Dermacure does not present demo photos as actual clinic photos');
+  const owned={...profile,photoGalleryInitialized:true,photoGalleryType:template.id,photoGallery:[{id:'clinic-owned',category:'Skin' as const,url:'https://example.com/clinic-owned.jpg',title:'Actual clinic',isDemo:false}]};
+  const saved=renderToStaticMarkup(<CustomerSalonWebsite profile={owned} services={[]} stylists={[]} readOnly onAddAppointment={async a=>a}/>);
+  assert.ok(saved.includes('https://example.com/clinic-owned.jpg'));assert.ok(saved.includes('Skin (1)'));assert.ok(!saved.includes('Delete photo'));
+ }else if(template.id==='hair_spa'){
   // Template 06 renders its own gallery: bundled sample photography must be labelled,
   // and the saved-photo path must be used without any owner controls.
   assert.ok(html.includes('Spa (4)'),'hair spa sample gallery counts its spa photographs');

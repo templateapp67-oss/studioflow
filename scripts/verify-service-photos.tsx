@@ -9,6 +9,13 @@ import {servicePhotoFromUrl} from '../src/lib/servicePhoto';
 for(const template of Object.values(CATEGORY_TEMPLATES)){
  const services=template.services;
  const html=renderToStaticMarkup(<CustomerSalonWebsite profile={{...INITIAL_SALON_PROFILE,businessType:template.id}} services={services} stylists={[]} onAddAppointment={async a=>a}/>);
+ if(template.id==='skincare_clinic'){
+  assert.equal((html.match(/class="dc-directory-image"/g)||[]).length,services.length,'Dermacure directory includes every service image');
+  const custom={...services[0],name:'QA package',category:'Packages',imageUrl:'https://example.com/owner-photo.jpg'};
+  const changed=renderToStaticMarkup(<CustomerSalonWebsite profile={{...INITIAL_SALON_PROFILE,businessType:template.id}} services={[custom]} stylists={[]} onAddAppointment={async a=>a}/>);
+  assert.equal((changed.match(/src="https:\/\/example.com\/owner-photo.jpg"/g)||[]).length,2,'Owner photo appears in the featured and directory cards');
+  continue;
+ }
  // Template 06 lifts packages out of the menu grid, so every saved service
  // still needs a photo — just rendered once instead of in two card grids.
  const count=template.id==='hair_spa'?services.length:services.length+services.filter(s=>/package|combo|bundle/i.test(s.name+' '+s.category)).length;
