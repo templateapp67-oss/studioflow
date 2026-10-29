@@ -62,12 +62,12 @@ export const PRISM_CHROMA_DEFAULT_COLORS: PrismChromaThemeColors = {
   muted: '#A9A6C2',
 };
 
-/** Default photography. Hero/about/booking shots are bundled locally in
- * /public/templates/10/ (see README.md there); the rest are free-license
- * Unsplash photos. Every slot is onboarding-replaceable: owner uploads win,
- * these are only the fallback. */
-const U = (id: string, w = 1000) =>
-  `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=80`;
+/** Default photography — every image is bundled locally in
+ * /public/templates/10/ (AI-generated for StudioFlow; see README.md there),
+ * so the template renders fully offline with zero stock-site hotlinks.
+ * Every slot is onboarding-replaceable: owner uploads win, these are only
+ * the fallback. */
+const L = (path: string) => `/templates/10/${path}`;
 
 export const PRISM_CHROMA_IMAGES = {
   logoSvg: '/templates/10/logo.svg',
@@ -77,61 +77,61 @@ export const PRISM_CHROMA_IMAGES = {
   booking: '/templates/10/hero.jpg',
   preview: '/templates/10/hero.jpg',
   ogImage: '/templates/10/hero.jpg',
-  interior: U('photo-1560066984-138dadb4c035', 1200),
+  interior: L('interior.jpg'),
   services: {
-    balayage: U('photo-1562322140-8baeececf3df', 1000),
-    global: U('photo-1522337360788-8b13dee7a37e', 1000),
-    pastel: U('photo-1521590832167-7bcbfaa6381f', 1000),
-    highlights: U('photo-1605497788044-5a32c7078486', 1000),
-    correction: U('photo-1580618672591-eb180b1a973f', 1000),
-    keratin: U('photo-1522338242992-e1a54906a8da', 1000),
-    gloss: U('photo-1519699047748-de8e457a634e', 1000),
-    root: U('photo-1492106087820-71f1a00d2b11', 1000),
+    balayage: L('services/balayage.jpg'),
+    global: L('services/global-colour.jpg'),
+    pastel: L('services/pastel.jpg'),
+    highlights: L('services/highlights.jpg'),
+    correction: L('services/correction.jpg'),
+    keratin: L('services/keratin.jpg'),
+    gloss: L('services/gloss.jpg'),
+    root: L('services/root-touchup.jpg'),
   },
   shades: {
-    violet: U('photo-1562322140-8baeececf3df', 900),
-    magenta: U('photo-1526045478516-99145907023c', 900),
-    coral: U('photo-1595959183082-7b570b7e08e2', 900),
-    cyan: U('photo-1620331311520-246422fd82f9', 900),
-    roseGold: U('photo-1523263685509-57c1d050d19b', 900),
-    honey: U('photo-1519699047748-de8e457a634e', 900),
+    violet: L('shades/violet.jpg'),
+    magenta: L('shades/magenta.jpg'),
+    coral: L('shades/coral.jpg'),
+    cyan: L('shades/cyan.jpg'),
+    roseGold: L('shades/rose-gold.jpg'),
+    honey: L('shades/honey.jpg'),
   },
   beforeAfter: {
-    oneBefore: U('photo-1595476108010-b4d1f102b1b1', 900),
-    oneAfter: U('photo-1562322140-8baeececf3df', 900),
-    twoBefore: U('photo-1523263685509-57c1d050d19b', 900),
-    twoAfter: U('photo-1605497788044-5a32c7078486', 900),
-    threeBefore: U('photo-1492106087820-71f1a00d2b11', 900),
-    threeAfter: U('photo-1521590832167-7bcbfaa6381f', 900),
+    oneBefore: L('results/before-1.jpg'),
+    oneAfter: L('results/after-1.jpg'),
+    twoBefore: L('results/before-2.jpg'),
+    twoAfter: L('results/after-2.jpg'),
+    threeBefore: L('results/before-3.jpg'),
+    threeAfter: L('results/after-3.jpg'),
   },
   process: {
-    consult: U('photo-1580618672591-eb180b1a973f', 800),
-    mapping: U('photo-1522338242992-e1a54906a8da', 800),
-    application: U('photo-1560066984-138dadb4c035', 800),
-    finish: U('photo-1522335789203-aabd1fc54bc9', 800),
+    consult: L('process/consultation.jpg'),
+    mapping: L('process/mapping.jpg'),
+    application: L('process/application.jpg'),
+    finish: L('process/finish.jpg'),
   },
   team: {
-    aarushi: U('photo-1573496359142-b8d87734a5a2', 600),
-    kabir: U('photo-1507003211169-0a1dd7228f2d', 600),
-    priya: U('photo-1534528741775-53994a69daeb', 600),
-    rohan: U('photo-1500648767791-00dcc994a43e', 600),
+    aarushi: L('team/aarushi.jpg'),
+    kiara: L('team/kiara.jpg'),
+    priya: L('team/priya.jpg'),
+    tara: L('team/tara.jpg'),
   },
   testimonials: {
-    ananya: U('photo-1494790108377-be9c29b29330', 200),
-    ishita: U('photo-1438761681033-6461ffad8d80', 200),
-    meera: U('photo-1544005313-94ddf0286df2', 200),
+    ananya: L('testimonials/ananya.jpg'),
+    ishita: L('testimonials/ishita.jpg'),
+    meera: L('testimonials/meera.jpg'),
   },
   gallery: [
-    { src: U('photo-1562322140-8baeececf3df', 900), title: 'Violet balayage with soft waves', tag: 'Balayage' },
-    { src: U('photo-1522337360788-8b13dee7a37e', 900), title: 'Fresh global colour and blow-dry', tag: 'Global Colour' },
-    { src: U('photo-1605497788044-5a32c7078486', 900), title: 'Face-light highlights', tag: 'Highlights' },
-    { src: U('photo-1521590832167-7bcbfaa6381f', 900), title: 'Pastel pink money piece', tag: 'Fashion Colour' },
-    { src: U('photo-1519699047748-de8e457a634e', 900), title: 'Honey gloss finish', tag: 'Gloss' },
-    { src: U('photo-1580618672591-eb180b1a973f', 900), title: 'Colour check at the wash station', tag: 'In Studio' },
-    { src: U('photo-1560066984-138dadb4c035', 900), title: 'Inside our colour studio', tag: 'Studio' },
-    { src: U('photo-1523263685509-57c1d050d19b', 900), title: 'Rose gold tones', tag: 'Fashion Colour' },
-    { src: U('photo-1492106087820-71f1a00d2b11', 900), title: 'Smooth keratin finish', tag: 'Keratin' },
-    { src: U('photo-1522335789203-aabd1fc54bc9', 900), title: 'Make-up and colour, done together', tag: 'In Studio' },
+    { src: L('gallery/gallery-1.jpg'), title: 'Violet balayage with soft waves', tag: 'Balayage' },
+    { src: L('gallery/gallery-2.jpg'), title: 'Fresh balayage in the studio', tag: 'Balayage' },
+    { src: L('gallery/gallery-3.jpg'), title: 'Magenta muse colour', tag: 'Fashion Colour' },
+    { src: L('gallery/gallery-4.jpg'), title: 'Face-light highlights', tag: 'Highlights' },
+    { src: L('gallery/gallery-5.jpg'), title: 'Pastel pink shades', tag: 'Fashion Colour' },
+    { src: L('gallery/gallery-6.jpg'), title: 'Honey gloss finish', tag: 'Gloss' },
+    { src: L('gallery/gallery-7.jpg'), title: 'Smooth keratin finish', tag: 'Keratin' },
+    { src: L('gallery/gallery-8.jpg'), title: 'Global colour and blow-dry', tag: 'Global Colour' },
+    { src: L('gallery/gallery-9.jpg'), title: 'Colour work at the wash station', tag: 'In Studio' },
+    { src: L('gallery/gallery-10.jpg'), title: 'Root touch-up in progress', tag: 'In Studio' },
   ],
 } as const;
 
@@ -197,17 +197,17 @@ export const PRISM_CHROMA_DEFAULT_BRANCHES: PrismChromaBranch[] = [
 
 export const PRISM_CHROMA_DEFAULT_STYLISTS: Stylist[] = [
   { id: 'pc-st-1', name: 'Aarushi Mehta', role: 'Master Colourist & Founder', experienceYears: 10, avatarUrl: PRISM_CHROMA_IMAGES.team.aarushi, specialties: ['Balayage', 'Colour Correction', 'Global Colour'], rating: 5.0, bio: 'Aarushi started Prism & Chroma. She is known for soft balayage and honest advice — she will tell you clearly what your hair can and cannot take.' },
-  { id: 'pc-st-2', name: 'Kabir Anand', role: 'Senior Colour Expert', experienceYears: 8, avatarUrl: PRISM_CHROMA_IMAGES.team.kabir, specialties: ['Fashion Colours', 'Pastel Shades', 'Highlights'], rating: 4.9, bio: 'Kabir loves bold colours — violet, magenta, cyan. If you want a full change, Kabir is your person.' },
+  { id: 'pc-st-2', name: 'Kiara Kapoor', role: 'Senior Colour Expert', experienceYears: 8, avatarUrl: PRISM_CHROMA_IMAGES.team.kiara, specialties: ['Fashion Colours', 'Pastel Shades', 'Highlights'], rating: 4.9, bio: 'Kiara loves bold colours — violet, magenta, cyan. If you want a full change, Kiara is your person.' },
   { id: 'pc-st-3', name: 'Priya Nair', role: 'Colour & Keratin Expert', experienceYears: 7, avatarUrl: PRISM_CHROMA_IMAGES.team.priya, specialties: ['Keratin', 'Gloss Treatment', 'Grey Cover'], rating: 4.9, bio: 'Priya cares for the health of your hair first. Her keratin and gloss work keeps hair smooth and shiny for months.' },
-  { id: 'pc-st-4', name: 'Rohan Verma', role: 'Balayage Artist', experienceYears: 6, avatarUrl: PRISM_CHROMA_IMAGES.team.rohan, specialties: ['Balayage', 'Money Piece', 'Root Touch-Up'], rating: 4.8, bio: 'Rohan is quick, neat and friendly. His money-piece highlights make the face look fresh in one sitting.' },
+  { id: 'pc-st-4', name: 'Tara Shah', role: 'Balayage Artist', experienceYears: 6, avatarUrl: PRISM_CHROMA_IMAGES.team.tara, specialties: ['Balayage', 'Money Piece', 'Root Touch-Up'], rating: 4.8, bio: 'Tara is quick, neat and friendly. Her money-piece highlights make the face look fresh in one sitting.' },
 ];
 
 export const PRISM_CHROMA_DEFAULT_REVIEWS: PrismChromaReviewItem[] = [
   { id: 'pc-rev-1', name: 'Ananya Kapoor', tag: 'Bandra West, Mumbai', rating: 5, serviceName: 'Signature Balayage', quote: 'Best balayage in Mumbai! Aarushi first checked my hair, told me the full price, and only then started. My hair looks soft and shiny, not dry at all.', avatarUrl: PRISM_CHROMA_IMAGES.testimonials.ananya },
-  { id: 'pc-rev-2', name: 'Ishita Rao', tag: 'Hauz Khas, Delhi', rating: 5, serviceName: 'Fashion Colours', quote: 'I got violet-magenta colour done by Kabir. The shade is exactly like the photo I showed. Three months later, it still looks fresh.', avatarUrl: PRISM_CHROMA_IMAGES.testimonials.ishita },
+  { id: 'pc-rev-2', name: 'Ishita Rao', tag: 'Hauz Khas, Delhi', rating: 5, serviceName: 'Fashion Colours', quote: 'I got violet-magenta colour done by Kiara. The shade is exactly like the photo I showed. Three months later, it still looks fresh.', avatarUrl: PRISM_CHROMA_IMAGES.testimonials.ishita },
   { id: 'pc-rev-3', name: 'Meera Joshi', tag: 'Vaishali Nagar, Jaipur', rating: 5, serviceName: 'Colour Correction', quote: 'My home colour went orange and patchy. The team fixed it in one visit and did not push extra services. Very honest people.', avatarUrl: PRISM_CHROMA_IMAGES.testimonials.meera },
   { id: 'pc-rev-4', name: 'Sana Khan', tag: 'Indiranagar, Bengaluru', rating: 5, serviceName: 'Keratin Smooth Treatment', quote: 'Keratin here is worth every rupee. My frizz is gone and the colour shine stayed. Booking on WhatsApp was super easy.', avatarUrl: '' },
-  { id: 'pc-rev-5', name: 'Ritika Jain', tag: 'Bandra West, Mumbai', rating: 5, serviceName: 'Highlights & Money Piece', quote: 'Small change, big difference. The face-light pieces by Rohan make me look fresh in every photo. My go-to studio now.', avatarUrl: '' },
+  { id: 'pc-rev-5', name: 'Ritika Jain', tag: 'Bandra West, Mumbai', rating: 5, serviceName: 'Highlights & Money Piece', quote: 'Small change, big difference. The face-light pieces by Tara make me look fresh in every photo. My go-to studio now.', avatarUrl: '' },
   { id: 'pc-rev-6', name: 'Divya Menon', tag: 'Hauz Khas, Delhi', rating: 5, serviceName: 'Gloss & Shine Treatment', quote: 'Took the gloss treatment before my sister wedding. Hair looked like glass in all the photos. Quick service, fair price in ₹.', avatarUrl: '' },
 ];
 

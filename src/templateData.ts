@@ -340,15 +340,15 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
     gallery: [
       { id: 'hc-g1', url: '/templates/10/hero.jpg', title: 'Vivid balayage, fresh from the chair', tag: 'Balayage' },
       { id: 'hc-g2', url: '/templates/10/about.jpg', title: 'Mixing fresh colour in the studio', tag: 'Colour Lab' },
-      { id: 'hc-g3', url: 'https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&w=800&q=80', title: 'Soft balayage waves', tag: 'Balayage' },
-      { id: 'hc-g4', url: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80', title: 'Global colour and blow-dry', tag: 'Global Colour' },
-      { id: 'hc-g5', url: 'https://images.unsplash.com/photo-1605497788044-5a32c7078486?auto=format&fit=crop&w=800&q=80', title: 'Face-light highlights', tag: 'Highlights' },
-      { id: 'hc-g6', url: 'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&w=800&q=80', title: 'Pastel pink shades', tag: 'Fashion Colour' }
+      { id: 'hc-g3', url: '/templates/10/gallery/gallery-3.jpg', title: 'Magenta muse colour', tag: 'Fashion Colour' },
+      { id: 'hc-g4', url: '/templates/10/gallery/gallery-8.jpg', title: 'Global colour and blow-dry', tag: 'Global Colour' },
+      { id: 'hc-g5', url: '/templates/10/gallery/gallery-4.jpg', title: 'Face-light highlights', tag: 'Highlights' },
+      { id: 'hc-g6', url: '/templates/10/gallery/gallery-5.jpg', title: 'Pastel pink shades', tag: 'Fashion Colour' }
     ],
     reviews: [
-      { id: 'hc-r1', name: 'Ananya Kapoor', location: 'Bandra West, Mumbai', rating: 5, serviceName: 'Signature Balayage', comment: 'Best balayage in Mumbai! The team first checked my hair, told me the full price, and only then started. Hair looks soft and shiny.', avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80', date: '2 days ago' },
-      { id: 'hc-r2', name: 'Ishita Rao', location: 'Hauz Khas, Delhi', rating: 5, serviceName: 'Fashion & Pastel Colours', comment: 'I got violet-magenta colour done here. The shade is exactly like the photo I showed. Three months later it still looks fresh.', avatarUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=200&q=80', date: '1 week ago' },
-      { id: 'hc-r3', name: 'Meera Joshi', location: 'Vaishali Nagar, Jaipur', rating: 5, serviceName: 'Colour Correction', comment: 'My home colour went orange and patchy. They fixed it in one visit and did not push extra services. Very honest people.', avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80', date: '2 weeks ago' }
+      { id: 'hc-r1', name: 'Ananya Kapoor', location: 'Bandra West, Mumbai', rating: 5, serviceName: 'Signature Balayage', comment: 'Best balayage in Mumbai! The team first checked my hair, told me the full price, and only then started. Hair looks soft and shiny.', avatarUrl: '/templates/10/testimonials/ananya.jpg', date: '2 days ago' },
+      { id: 'hc-r2', name: 'Ishita Rao', location: 'Hauz Khas, Delhi', rating: 5, serviceName: 'Fashion & Pastel Colours', comment: 'I got violet-magenta colour done here. The shade is exactly like the photo I showed. Three months later it still looks fresh.', avatarUrl: '/templates/10/testimonials/ishita.jpg', date: '1 week ago' },
+      { id: 'hc-r3', name: 'Meera Joshi', location: 'Vaishali Nagar, Jaipur', rating: 5, serviceName: 'Colour Correction', comment: 'My home colour went orange and patchy. They fixed it in one visit and did not push extra services. Very honest people.', avatarUrl: '/templates/10/testimonials/meera.jpg', date: '2 weeks ago' }
     ],
     totalReviewCount: 1250,
     averageRating: 4.9,

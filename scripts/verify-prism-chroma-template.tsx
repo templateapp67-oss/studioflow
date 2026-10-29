@@ -59,6 +59,20 @@ for (const slug of ['prism-chroma', '10', 'template-10', 'hair-coloring', 'prism
 }
 assert.ok(existsSync(join(process.cwd(), 'public/templates/10/hero.jpg')), 'bundled hero exists');
 assert.ok(existsSync(join(process.cwd(), 'public/templates/10/logo.svg')), 'bundled logo exists');
+/* Every image slot is a local file — zero stock hotlinks anywhere in Template 10. */
+const collectPaths = (value: unknown, out: string[] = []): string[] => {
+  if (typeof value === 'string') { if (value.startsWith('/templates/10/')) out.push(value); return out; }
+  if (Array.isArray(value)) { value.forEach((v) => collectPaths(v, out)); return out; }
+  if (value && typeof value === 'object') { Object.values(value).forEach((v) => collectPaths(v, out)); }
+  return out;
+};
+const imagePaths = collectPaths(PRISM_CHROMA_IMAGES);
+assert.ok(imagePaths.length >= 40, `Template 10 ships 40+ local images (found ${imagePaths.length})`);
+for (const path of imagePaths) {
+  assert.ok(existsSync(join(process.cwd(), 'public', path)), `local image exists: ${path}`);
+  assert.ok(!path.includes('unsplash'), `no stock hotlink: ${path}`);
+}
+console.log(`PASS: all ${imagePaths.length} Template 10 image slots are local files on disk.`);
 console.log('PASS: Template 10 registry, picker badge, ?template=prism-chroma aliases, bundled assets.');
 
 /* 2 — Catalogue: 8 services + 3 packages, INR prices */
