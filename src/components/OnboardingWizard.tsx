@@ -10,6 +10,7 @@ import { AIBioModal } from './AIBioModal';
 import { SocialConnectivityStep } from './SocialConnectivityStep';
 import { uploadSalonImage } from '../lib/supabase';
 import { TeamManagement } from './TeamManagement';
+import { VogueNoirEditor } from './vogue-noir/VogueNoirEditor';
 
 interface OnboardingWizardProps {
   profile: SalonProfile;
@@ -81,7 +82,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
         }}
       />
 
-      <div className={`${currentStep === 6 || currentStep === 7 ? 'max-w-7xl' : 'max-w-4xl'} w-full px-4 sm:px-6 transition-all duration-300`}>
+      <div className={`${currentStep === 6 || currentStep === 7 || (currentStep === 4 && profile.businessType === 'makeup_studio') ? 'max-w-7xl' : 'max-w-4xl'} w-full px-4 sm:px-6 transition-all duration-300`}>
         {/* Progress Header */}
         <div className="mb-8 bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
           <div className="flex justify-between items-center mb-3">
@@ -287,6 +288,32 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                     />
                   </div>
 
+                  <div>
+                    <label className="font-bold text-gray-700">City</label>
+                    <input
+                      type="text"
+                      value={profile.city || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setProfile((prev) => ({ ...prev, city: val }));
+                      }}
+                      className="w-full mt-1 p-2.5 rounded-lg border border-gray-300 bg-gray-50 text-gray-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-gray-700">Studio Address</label>
+                    <input
+                      type="text"
+                      value={profile.address || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setProfile((prev) => ({ ...prev, address: val }));
+                      }}
+                      className="w-full mt-1 p-2.5 rounded-lg border border-gray-300 bg-gray-50 text-gray-900"
+                    />
+                  </div>
+
                   <div className="sm:col-span-2">
                     <div className="flex justify-between items-center mb-1">
                       <label className="font-bold text-gray-700">Salon Story / Bio</label>
@@ -359,6 +386,10 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                   </div>
                 ))}
               </div>
+
+              {profile.businessType === 'makeup_studio' && (
+                <VogueNoirEditor profile={profile} setProfile={setProfile} />
+              )}
             </div>
           )}
 

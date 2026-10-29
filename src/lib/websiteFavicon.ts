@@ -2,11 +2,11 @@ const FALLBACK_ICON = '/customer-icon-192.png';
 function imageUrl(value: unknown): string | undefined {
   if (typeof value !== 'string') return;
   const url = value.trim();
-  if (/^https:\/\//i.test(url) || /^\/(?:template-assets|assets)\//.test(url)) return url;
+  if (/^https:\/\//i.test(url) || /^\/(?:template-assets|templates|assets)\//.test(url)) return url;
 }
 
-export function websiteFavicon(branding?: {faviconUrl?: string}, profile?: {logoUrl?: string}) {
-  return imageUrl(branding?.faviconUrl) || imageUrl(profile?.logoUrl) || FALLBACK_ICON;
+export function websiteFavicon(branding?: {faviconUrl?: string}, profile?: {logoUrl?: string; businessType?: string}) {
+  return imageUrl(branding?.faviconUrl) || imageUrl(profile?.logoUrl) || (profile?.businessType === 'makeup_studio' ? '/templates/vogue-noir/favicon.svg' : FALLBACK_ICON);
 }
 
 /** Restore the previous tab icon when leaving a salon, so brands cannot leak across routes. */

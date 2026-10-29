@@ -164,6 +164,7 @@ export interface SalonProfile {
     ogImageUrl?: string;
     keywords?: string;
   };
+  vogueNoir?: VogueNoirConfig;
 
   businessType: BusinessTypeId;
   businessName: string;
@@ -363,3 +364,126 @@ export interface ClientRecord {
   pointHistory?: PointTransaction[];
   redeemedRewards?: RedeemedReward[];
 }
+
+export type VogueNoirPortfolioCategory = 'Bridal' | 'Party' | 'Editorial' | 'Academy Work';
+
+export interface VogueNoirThemeColors {
+  bgPrimary: string;
+  bgSurface: string;
+  borderSubtle: string;
+  accentGold: string;
+  textPrimary: string;
+  textMuted: string;
+  highlightBlush: string;
+}
+
+export interface VogueNoirStatItem {
+  id: string;
+  value: string;
+  label: string;
+}
+
+export interface VogueNoirBridalPackage {
+  id: string;
+  tier: string;
+  price: number;
+  popular?: boolean;
+  badgeLabel?: string;
+  imageUrl: string;
+  imageAlt?: string;
+  inclusions: string[];
+  linkedServiceId?: string;
+}
+
+export interface VogueNoirAcademyCourse {
+  id: string;
+  title: string;
+  duration: string;
+  fee: number;
+  imageUrl: string;
+  imageAlt?: string;
+  summary: string;
+  batchOverride?: string;
+  certification: string;
+  emiNote: string;
+  syllabus: string[];
+}
+
+export interface VogueNoirPortfolioItem {
+  id: string;
+  category: VogueNoirPortfolioCategory;
+  imageUrl: string;
+  title: string;
+  alt: string;
+}
+
+export interface VogueNoirBeforeAfterItem {
+  id: string;
+  title: string;
+  category: string;
+  beforeUrl: string;
+  afterUrl: string;
+  beforeAlt: string;
+  afterAlt: string;
+}
+
+export interface VogueNoirFaqItem {
+  id: string;
+  question: string;
+  answer: string;
+}
+
+export interface VogueNoirReviewItem {
+  id: string;
+  name: string;
+  tag: string;
+  rating: number;
+  quote: string;
+  avatarUrl: string;
+}
+
+export interface VogueNoirConfig {
+  selectorLabel?: string;
+  heroHeading?: string;
+  heroSubtext?: string;
+  heroDesktopUrl?: string;
+  heroMobileUrl?: string;
+  aboutHeading?: string;
+  aboutStory?: string;
+  aboutImageUrl?: string;
+  publicEmail?: string;
+  workingHoursDisplay?: string;
+  mapEmbedUrl?: string;
+  colors?: Partial<VogueNoirThemeColors>;
+  stats?: VogueNoirStatItem[];
+  bridalPackages?: VogueNoirBridalPackage[];
+  academyEnabled?: boolean;
+  academyHeading?: string;
+  academySubtext?: string;
+  academyHeroUrl?: string;
+  academyHighlights?: string[];
+  courses?: VogueNoirAcademyCourse[];
+  portfolio?: VogueNoirPortfolioItem[];
+  beforeAfter?: VogueNoirBeforeAfterItem[];
+  reviews?: VogueNoirReviewItem[];
+  faqs?: VogueNoirFaqItem[];
+}
+
+export type AcademyEnquiryStatus = 'new' | 'contacted' | 'enrolled';
+
+export interface AcademyEnquiryRecord {
+  id: string;
+  website_slug: string;
+  owner_id: string;
+  customer_id: string;
+  name: string;
+  phone: string;
+  email: string;
+  course: string;
+  batch: string;
+  message: string;
+  status: AcademyEnquiryStatus;
+  created_at: string;
+  updated_at: string;
+}
+

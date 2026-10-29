@@ -31,6 +31,12 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
   const savedHtml=renderToStaticMarkup(<CustomerSalonWebsite profile={{...profile,photoGalleryInitialized:true,photoGalleryType:'hair_spa',photoGallery:[{id:'hp-1',category:'Spa' as const,url:'https://cdn.example.com/saved-spa-photo.jpg',title:'Saved spa photo',isDemo:false}]}} services={[]} stylists={[]} readOnly onAddAppointment={async a=>a}/>);
   assert.ok(savedHtml.includes('Saved spa photo'),'saved salon photo is used in the hair spa gallery');
   assert.ok(!savedHtml.includes('DEMO / SAMPLE'),'saved salon photo is not labelled as demo');
+ }else if(template.id==='makeup_studio'){
+  for(const [cat,n] of [['Bridal',6],['Party',4],['Editorial',3],['Academy Work',3]] as const) assert.ok(html.includes(`${cat} (${n})`),`Vogue Noir sample gallery counts its ${cat} photographs`);
+  assert.equal((html.match(/id="portfolio"/g)||[]).length,1,'Vogue Noir portfolio is a single section');
+  assert.ok(!html.includes('Delete photo')&&!html.includes('Replace / Edit'));
+  const savedHtml=renderToStaticMarkup(<CustomerSalonWebsite profile={{...profile,photoGalleryInitialized:true,photoGalleryType:'makeup_studio',photoGallery:[{id:'vn-own-1',category:'Bridal' as const,url:'https://cdn.example.com/saved-makeup-photo.jpg',title:'Saved bridal look',isDemo:false}]}} services={[]} stylists={[]} readOnly onAddAppointment={async a=>a}/>);
+  assert.ok(savedHtml.includes('https://cdn.example.com/saved-makeup-photo.jpg')&&savedHtml.includes('Saved bridal look'),'saved makeup photo is used in Vogue Noir portfolio');
  }else{
   assert.ok(html.includes(`${defaultGalleryCategory(template.id)} (5)`));assert.equal((html.match(/aria-label="View salon look /g)||[]).length,5);assert.ok(!html.includes('Delete photo')&&!html.includes('Replace / Edit'));
  }

@@ -1,6 +1,19 @@
 import {seedTemplatePackages} from './lib/packageCatalogue';
 import { CategoryTemplateConfig, BusinessTypeOption } from './types';
 import { SALON_IMAGES } from './assets/images';
+import {
+  VOGUE_NOIR_BRAND_NAME,
+  VOGUE_NOIR_DEFAULT_ABOUT,
+  VOGUE_NOIR_DEFAULT_ADDRESS,
+  VOGUE_NOIR_DEFAULT_CITY,
+  VOGUE_NOIR_DEFAULT_PHONE,
+  VOGUE_NOIR_DEFAULT_POSTAL_CODE,
+  VOGUE_NOIR_DEFAULT_STYLISTS,
+  VOGUE_NOIR_IMAGES,
+  VOGUE_NOIR_SELECTOR_LABEL,
+  VOGUE_NOIR_TAGLINE,
+  VOGUE_NOIR_TEMPLATE_SERVICES,
+} from './lib/vogueNoir';
 
 export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
   // 1. Hair Cut & Styling Studio
@@ -815,119 +828,46 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
     ]
   },
 
-  // 8. Makeup Studio
+  // 8. Makeup Studio — Template 08: Vogue Noir Makeup Studio & Academy
   makeup_studio: {
     id: 'makeup_studio',
-    title: 'Vogue Noir Makeup Studio & Academy',
-    shortName: 'Makeup Studio',
-    tagline: 'Glamorous Runway Looks, High-Definition Airbrush & Editorial Portfolios',
-    about: 'Situated in the chic lanes of Koregaon Park, Pune, Vogue Noir is an elite editorial makeup studio. We craft camera-ready looks for red carpets, commercial shoots, and luxury receptions with luminous liquid gold highlights.',
+    title: VOGUE_NOIR_BRAND_NAME,
+    shortName: VOGUE_NOIR_SELECTOR_LABEL,
+    tagline: VOGUE_NOIR_TAGLINE,
+    about: VOGUE_NOIR_DEFAULT_ABOUT,
     icon: 'face_retouching_natural',
     layoutStyle: 'dark_glam',
-    paletteLabel: 'Sleek Dark Mode with Gold Accents',
+    paletteLabel: 'Obsidian Noir & Antique Gold',
     themePreset: 'obsidian_gold',
-    subCategories: ['Red Carpet Glam', '4K Airbrush', 'Cocktail & Party', 'Masterclasses'],
-    defaultCity: 'Pune, Maharashtra',
-    defaultAddress: 'Lane 7, North Main Road, Koregaon Park',
-    defaultPostalCode: '411001',
-    phone: '+91 98230 88765',
-    whatsapp: '+91 98230 88765',
-    ownerName: 'Natasha Poonawalla',
-    ownerRole: 'Celebrity Makeup Artist & Creative Director',
-    ownerPhotoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=500&q=80',
-    coverImageUrl: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=1200&q=80',
-    instagramHandle: '@vogue_noir.pune',
+    subCategories: ['Bridal Studio', 'Complexion Artistry', 'Occasion Makeup', 'Editorial & Shoot', 'Hair & Finishing'],
+    defaultCity: VOGUE_NOIR_DEFAULT_CITY,
+    defaultAddress: VOGUE_NOIR_DEFAULT_ADDRESS,
+    defaultPostalCode: VOGUE_NOIR_DEFAULT_POSTAL_CODE,
+    phone: VOGUE_NOIR_DEFAULT_PHONE,
+    whatsapp: VOGUE_NOIR_DEFAULT_PHONE,
+    ownerName: 'Riya Kapoor',
+    ownerRole: 'Founder & Lead Bridal Artist',
+    ownerPhotoUrl: VOGUE_NOIR_IMAGES.artists.riya,
+    coverImageUrl: VOGUE_NOIR_IMAGES.heroDesktop,
+    instagramHandle: '@voguenoir.studio',
     themeStyle: {
-      heroBackground: 'bg-[#09090b]',
-      heroTextColor: 'text-neutral-100',
-      cardBorder: 'border-[#d4af37]/40',
-      cardBackground: 'bg-[#121216]',
-      cardRadius: 'rounded-xl',
-      accentColor: 'text-[#d4af37]',
-      accentBg: 'bg-[#d4af37]',
-      badgeBg: 'bg-[#262010]',
-      badgeText: 'text-[#fae596]',
-      buttonBg: 'bg-[#d4af37] hover:bg-[#c29e2f]',
-      buttonText: 'text-[#09090b]',
-      priceColor: 'text-[#e5c068]',
+      heroBackground: 'bg-[#0B0B0C]',
+      heroTextColor: 'text-[#F5EFE6]',
+      cardBorder: 'border-[#2A2A2D]',
+      cardBackground: 'bg-[#151517]',
+      cardRadius: 'rounded-none',
+      accentColor: 'text-[#C9A96E]',
+      accentBg: 'bg-[#C9A96E]',
+      badgeBg: 'bg-[#151517]',
+      badgeText: 'text-[#C9A96E]',
+      buttonBg: 'bg-[#C9A96E] hover:bg-[#b89658]',
+      buttonText: 'text-[#0B0B0C]',
+      priceColor: 'text-[#C9A96E]',
       isDark: true,
-      headerBanner: 'bg-[#0e0e12] border-b border-[#d4af37]/30'
+      headerBanner: 'bg-[#0B0B0C] border-b border-[#2A2A2D]'
     },
-    services: [
-      {
-        id: 'ms-1',
-        name: 'Red Carpet HD Glass Skin Glam & Mink Lashes',
-        category: 'Red Carpet Glam',
-        durationMinutes: 75,
-        price: 4500,
-        description: 'Flawless non-cakey HD base, smoky wing or cut crease, feather brow sculpting, and magnetic lashes.',
-        icon: 'face_retouching_natural',
-        popular: true
-      },
-      {
-        id: 'ms-2',
-        name: 'Temptu 4K Silicone Airbrush Event Makeup',
-        category: '4K Airbrush',
-        durationMinutes: 90,
-        price: 6500,
-        description: 'Micro-fine airbrush application, 24-hour waterproof and sweat-resistant formulation for high-octane events.',
-        icon: 'auto_awesome',
-        popular: true
-      },
-      {
-        id: 'ms-3',
-        name: 'Cocktail & Sangeet Golden Hour Glow',
-        category: 'Cocktail & Party',
-        durationMinutes: 80,
-        price: 5200,
-        description: 'Champagne gold strobing, flushed rose cheeks, and smudge-proof velvet matte lips.',
-        icon: 'celebration'
-      },
-      {
-        id: 'ms-4',
-        name: '1-on-1 Self-Makeup Pro Masterclass',
-        category: 'Masterclasses',
-        durationMinutes: 120,
-        price: 7500,
-        description: 'Personalized vanity audit, contouring tricks for your face shape, and mastering everyday glam.',
-        icon: 'school'
-      },
-      {
-        id: 'ms-5',
-        name: 'Editorial Monochromatic Dewy Glow',
-        category: 'Red Carpet Glam',
-        durationMinutes: 60,
-        price: 3800,
-        description: 'Runway glossy lids, fresh skin tint, soap brows, and plumping lip oil finish.',
-        icon: 'camera'
-      }
-    ],
-    stylists: [
-      {
-        id: 'ms-st-1',
-        name: 'Natasha Poonawalla',
-        role: 'Celebrity Makeup Artist',
-        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
-        specialties: ['Glass Skin Base', 'Airbrush 4K', 'Red Carpet Glam'],
-        rating: 4.98
-      },
-      {
-        id: 'ms-st-2',
-        name: 'Siddharth Roy',
-        role: 'Editorial Artist & Masterclass Lead',
-        avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
-        specialties: ['Graphic Liners', 'High-Fashion Contour'],
-        rating: 4.94
-      },
-      {
-        id: 'ms-st-3',
-        name: 'Tara Merchant',
-        role: 'Airbrush Specialist',
-        avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80',
-        specialties: ['Temptu Airbrush', 'Bridal Cocktail Looks'],
-        rating: 4.92
-      }
-    ]
+    services: VOGUE_NOIR_TEMPLATE_SERVICES,
+    stylists: VOGUE_NOIR_DEFAULT_STYLISTS
   },
 
   // 9. Massage & Wellness Center
@@ -1733,12 +1673,12 @@ export const ALL_CATEGORY_OPTIONS: BusinessTypeOption[] = [
   },
   {
     id: 'makeup_studio',
-    title: 'Makeup Studio',
-    categoryTag: 'Editorial Glam',
+    title: VOGUE_NOIR_SELECTOR_LABEL,
+    categoryTag: 'Bridal Studio & Academy',
     icon: 'face_retouching_natural',
-    aestheticDescription: 'Glamorous portfolio layout, sleek dark mode with gold accents.',
-    paletteName: 'Obsidian & Liquid Gold',
-    badge: 'Editorial',
+    aestheticDescription: 'Dark luxury editorial beauty storefront with Bridal Packages & Pro Makeup Academy.',
+    paletteName: 'Obsidian Noir & Antique Gold',
+    badge: 'Template 08',
     defaultServices: CATEGORY_TEMPLATES.makeup_studio.services.map((s) => ({
       name: s.name,
       price: s.price,

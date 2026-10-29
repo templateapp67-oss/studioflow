@@ -12,24 +12,25 @@ const LiveWebsite = lazy(() => loadScreen(() => import('./SalonWebsitePreview').
 export function TemplateThumbnail({ template: t }: { template: CategoryTemplateConfig }) {
   const isRoopMahal = t.id === 'beauty_parlour';
   const isKeshPrakriti = t.id === 'hair_spa';
+  const isVogueNoir = t.id === 'makeup_studio';
   const accent = ACCENT_PALETTES[DEFAULT_CATEGORY_ACCENTS[t.id]];
-  const accentHex = isKeshPrakriti ? '#183D32' : isRoopMahal ? '#6D2638' : accent.primaryHex;
-  const split = isRoopMahal || ['modern_minimalist', 'clinical_clean', 'contemporary_balanced', 'urban_monochrome'].includes(t.layoutStyle);
+  const accentHex = isVogueNoir ? '#C9A96E' : isKeshPrakriti ? '#183D32' : isRoopMahal ? '#6D2638' : accent.primaryHex;
+  const split = !isVogueNoir && (isRoopMahal || ['modern_minimalist', 'clinical_clean', 'contemporary_balanced', 'urban_monochrome'].includes(t.layoutStyle));
   const rounded = ['curved_elegant', 'chic_nude', 'zen_emerald', 'earth_bamboo'].includes(t.layoutStyle);
   return <div aria-hidden="true" className="p-4 pb-0 bg-slate-100">
-    <div className="rounded-t-xl border border-slate-300 shadow-sm overflow-hidden bg-white">
-      <div className="h-6 bg-white flex items-center gap-1 px-2 border-b border-slate-200"><i className="w-1.5 h-1.5 rounded-full bg-rose-300"/><i className="w-1.5 h-1.5 rounded-full bg-amber-300"/><i className="w-1.5 h-1.5 rounded-full bg-emerald-300"/><span className="ml-auto text-[7px] text-slate-400">{t.shortName}</span></div>
+    <div className={`rounded-t-xl border shadow-sm overflow-hidden ${isVogueNoir ? 'border-[#2A2A2D] bg-[#0B0B0C]' : 'border-slate-300 bg-white'}`}>
+      <div className={`h-6 flex items-center gap-1 px-2 border-b ${isVogueNoir ? 'bg-[#151517] border-[#2A2A2D]' : 'bg-white border-slate-200'}`}><i className="w-1.5 h-1.5 rounded-full bg-rose-300"/><i className="w-1.5 h-1.5 rounded-full bg-amber-300"/><i className="w-1.5 h-1.5 rounded-full bg-emerald-300"/><span className={`ml-auto text-[7px] ${isVogueNoir ? 'text-[#C9A96E] font-semibold tracking-wider' : 'text-slate-400'}`}>{t.shortName}</span></div>
       <div className={`relative h-40 overflow-hidden ${t.themeStyle.heroBackground} ${t.themeStyle.heroTextColor} ${split ? 'flex' : ''}`}>
         <img src={t.coverImageUrl} alt="" loading="lazy" decoding="async" className={`${split ? 'w-1/2 order-2' : 'absolute inset-0 w-full'} h-full object-cover object-top motion-safe:transition-transform motion-safe:duration-500 motion-safe:group-hover:scale-105`} />
         {!split && <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-black/10"/>}
-        <div className={`relative z-10 p-3 flex flex-col justify-end h-full ${split ? 'w-1/2' : 'text-white w-4/5'} ${rounded ? 'font-serif' : ''}`}>
-          <span className="text-[7px] uppercase tracking-widest mb-2 opacity-80">{t.defaultCity.split(',')[0]} · {t.shortName}</span>
-          <span className="text-sm font-bold leading-tight">{t.title}</span>
+        <div className={`relative z-10 p-3 flex flex-col justify-end h-full ${split ? 'w-1/2' : 'text-white w-4/5'} ${rounded || isVogueNoir ? 'font-serif' : ''}`}>
+          <span className={`text-[7px] uppercase tracking-widest mb-2 ${isVogueNoir ? 'text-[#C9A96E]' : 'opacity-80'}`}>{t.defaultCity.split(',')[0]} · {t.shortName}</span>
+          <span className={`text-sm font-bold leading-tight ${isVogueNoir ? 'text-[#F5EFE6]' : ''}`}>{t.title}</span>
           <span className="text-[8px] leading-relaxed mt-1 line-clamp-2 opacity-80">{t.tagline}</span>
           <span style={{backgroundColor:accentHex, color:getContrastTextColor(accentHex)}} className={`text-[7px] font-sans font-semibold w-fit px-2.5 py-1.5 mt-2 ${rounded ? 'rounded-full' : 'rounded-sm'}`}>Explore services →</span>
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-1.5 p-2 bg-white">{t.services.slice(0,3).map(s => <div key={s.id} className={`border border-slate-100 px-1.5 py-2 ${rounded ? 'rounded-lg' : ''}`}><span className="block text-[7px] text-slate-700 truncate">{s.name}</span><span style={{color:accentHex}} className="text-[8px] font-bold">₹{s.price.toLocaleString('en-IN')}</span></div>)}</div>
+      <div className={`grid grid-cols-3 gap-1.5 p-2 ${isVogueNoir ? 'bg-[#151517]' : 'bg-white'}`}>{t.services.slice(0,3).map(s => <div key={s.id} className={`border px-1.5 py-2 ${isVogueNoir ? 'border-[#2A2A2D] bg-[#0B0B0C]' : 'border-slate-100'} ${rounded ? 'rounded-lg' : ''}`}><span className={`block text-[7px] truncate ${isVogueNoir ? 'text-[#F5EFE6]' : 'text-slate-700'}`}>{s.name}</span><span style={{color:accentHex}} className="text-[8px] font-bold">₹{s.price.toLocaleString('en-IN')}</span></div>)}</div>
     </div>
   </div>;
 }
