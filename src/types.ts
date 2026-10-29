@@ -128,12 +128,54 @@ export interface PromoCampaign {
 }
 export interface ClinicArticle { id:string; title:string; category:string; excerpt:string; body:string; imageUrl:string; publishedAt:string; published:boolean; }
 export interface ClinicFaq { id:string; question:string; answer:string; published:boolean; }
+export interface PatientBenefitCard {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl?: string;
+  imageAlt?: string;
+  benefits?: string[];
+  validity?: string;
+  published: boolean;
+  ctaLabel?: string;
+  ctaAction?: 'consultation' | 'packages' | 'enquire' | 'booking';
+}
+
+export interface ClinicOfferCard {
+  id: string;
+  title: string;
+  image: string;
+  description: string;
+  relatedService?: string;
+  startDate?: string;
+  expiryDate?: string;
+  terms?: string;
+  isPublished: boolean;
+  ctaText: string;
+}
+
+export interface TreatmentStory {
+  id: string;
+  title: string;
+  category: string;
+  description: string;
+  imageUrl: string;
+  videoUrl?: string;
+  published: boolean;
+  order?: number;
+  fullContent?: string;
+  whatToExpect?: string[];
+  doctorQuestions?: string[];
+}
 
 export interface SalonProfile {
   /** Public projection of confirmed clinic services whose fee is not confirmed (no price). */
   clinicEnquiryServices?: SalonService[];
   clinicArticles?: ClinicArticle[];
   clinicFaq?: ClinicFaq[];
+  patientBenefits?: PatientBenefitCard[];
+  clinicOffers?: ClinicOfferCard[];
+  treatmentStories?: TreatmentStory[];
   /** Explicitly public clinic contact address, separate from the private account email. */
   clinicPublicEmail?: string;
   clinicLegal?: {privacy:string;terms:string};
@@ -264,6 +306,11 @@ export interface Stylist {
   hidePhone?: boolean;
   assignedServices?: string[];
   bio?: string;
+  qualifications?: string[];
+  registrationNumber?: string;
+  specializedTreatments?: string[];
+  languages?: string[];
+  education?: string;
   schedule?: DaySchedule[];
 }
 

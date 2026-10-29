@@ -3,11 +3,10 @@ export function BookingFAQ() {
   return (
     <div className="dc-faq" aria-label="Consultation booking questions">
       <details>
-        <summary>Does choosing a time confirm my appointment?</summary>
+        <summary>Does picking a time confirm my appointment?</summary>
         <p>
-          No. Available times are checked again during checkout. Follow the
-          booking steps and check the final confirmation status before your
-          visit.
+          No. We will check availability at checkout. Follow the booking steps
+          and wait for the final confirmation message before you come in.
         </p>
       </details>
       <details>

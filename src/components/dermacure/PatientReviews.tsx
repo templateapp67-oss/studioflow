@@ -10,7 +10,7 @@ export function PatientReviews() {
       <div className="dc-container">
         <p className="dc-eyebrow">YOUR EXPERIENCE MATTERS</p>
         <h2>
-          Reviews from <em>our community.</em>
+          What our <em>community says.</em>
         </h2>
         {profile.reviewSource?.mode !== "simulation" && (
           <ExternalReviewFeed profile={profile} />

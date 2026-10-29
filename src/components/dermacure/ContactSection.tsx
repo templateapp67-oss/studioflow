@@ -15,14 +15,14 @@ export function ContactSection() {
         <div className="dc-container dc-contact-grid">
           <div>
             <p className="dc-eyebrow">
-              <span /> OUR LOCATION
+              <span /> CONTACT US
             </p>
             <h2>
-              Visit <em>Our Clinic</em>
+              Talk to <em>Our Team</em>
             </h2>
           </div>
           <div>
-            <h3>Visit the clinic</h3>
+            <h3>Clinic Address</h3>
             {address && <p>{address}</p>}
             {directions && (
               <a
@@ -36,7 +36,7 @@ export function ContactSection() {
             )}
           </div>
           <div>
-            <h3>Get in touch</h3>
+            <h3>Get in Touch</h3>
             {phone && (
               <p>
                 <a href={`tel:${phone}`}>
@@ -45,7 +45,7 @@ export function ContactSection() {
               </p>
             )}
             {whatsapp && (
-              <p><a href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer">WhatsApp the clinic</a></p>
+              <p><a href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer">Chat on WhatsApp</a></p>
             )}
             {!phone && !email && !whatsapp && <p>Contact details have not been added yet.</p>}
             {email && (
@@ -97,7 +97,7 @@ export function ContactSection() {
               <div>
                 <strong>{profile.businessName}</strong>
                 <p>{address}</p>
-                <small>Open the clinic address in Google Maps</small>
+                <small>View on Google Maps</small>
               </div>
               <ArrowUpRight size={24} />
             </a>

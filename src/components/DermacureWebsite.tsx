@@ -23,7 +23,9 @@ import { TestimonialsSection } from "./dermacure/TestimonialsSection";
 import { BookingSection } from "./dermacure/BookingSection";
 import { ContactSection } from "./dermacure/ContactSection";
 import { PlatformSections } from "./dermacure/PlatformSections";
-import { PopularTreatments, TreatmentStories, CurrentOffers, ClinicFAQ, ClinicBlog } from "./dermacure/DiscoverySections";
+import { PopularTreatments, TreatmentStories, CurrentOffers, ClinicFAQ } from "./dermacure/DiscoverySections";
+import { PatientBenefits } from "./dermacure/PatientBenefits";
+import { ClinicJournal } from "./dermacure/ClinicJournal";
 import { ClinicEnquiryDialog } from "./dermacure/ClinicEnquiryDialog";
 import { Footer } from "./dermacure/Footer";
 
@@ -76,9 +78,10 @@ export function DermacureWebsite(
           <PatientJourney />
           <TreatmentStories />
           <CurrentOffers />
+          <PatientBenefits />
           <TestimonialsSection />
           <PatientReviews />
-          <ClinicBlog />
+          <ClinicJournal />
           <ClinicFAQ />
           <BookingSection />
           <ContactSection />

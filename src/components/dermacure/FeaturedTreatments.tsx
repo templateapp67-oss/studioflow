@@ -29,18 +29,18 @@ export function FeaturedTreatments() {
             <div className="dc-section-top">
               <div>
                 <p className="dc-eyebrow">
-                  <span /> {profile.sectionHeadings?.signatureEyebrow || "SIGNATURE TREATMENTS"}
+                  <span /> {profile.sectionHeadings?.signatureEyebrow || "Popular Treatments"}
                 </p>
                 <h2>
-                  {profile.sectionHeadings?.signatureTitle || "Not sure where to begin?"}
+                  {profile.sectionHeadings?.signatureTitle || "Our Most Popular Treatments"}
                 </h2>
               </div>
               <a className="dc-text-link" href="#directory">
-                View all treatments <ArrowRight size={16} />
+                See All Treatments <ArrowRight size={16} />
               </a>
             </div>
             <p className="dc-section-sub">
-              {profile.sectionHeadings?.signatureSubtitle || "Explore selected treatments from the clinic’s menu."}
+              {profile.sectionHeadings?.signatureSubtitle || "Explore popular treatments at our clinic."}
             </p>
             <motion.div
               className="dc-feature-grid"
@@ -92,7 +92,7 @@ export function FeaturedTreatments() {
                         }
                         aria-label={`Explore ${s.name}`}
                       >
-                        {bookingAvailable && clinicPriceIsVerified(s) ? "Book now" : "Enquire"} <ArrowUpRight size={16} />
+                        {bookingAvailable && clinicPriceIsVerified(s) ? "Book now" : "Get More Info"} <ArrowUpRight size={16} />
                       </button>
                     </div>
                   </div>

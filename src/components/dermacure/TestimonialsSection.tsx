@@ -12,8 +12,8 @@ export function TestimonialsSection() {
   const canReveal = typeof window !== "undefined" && "IntersectionObserver" in window && !reduced;
   return <section className="dc-section dc-reviews" aria-label="Client words">
     <div className="dc-container">
-      <p className="dc-eyebrow"><span />{profile.sectionHeadings?.clientWordsEyebrow || "CLIENT WORDS"}</p>
-      <h2>{profile.sectionHeadings?.clientWordsTitle || "In their"} <em>{profile.sectionHeadings?.clientWordsEmphasis || "own words."}</em></h2>
+      <p className="dc-eyebrow"><span />{profile.sectionHeadings?.clientWordsEyebrow || "WHAT OUR PATIENTS SAY"}</p>
+      <h2>{profile.sectionHeadings?.clientWordsTitle || "What Our"} <em>{profile.sectionHeadings?.clientWordsEmphasis || "Patients Say."}</em></h2>
       <motion.div ref={rail} className="dc-review-grid" variants={stagger} initial={canReveal ? "hidden" : false} whileInView={canReveal ? "show" : undefined} viewport={{once:true, amount:0.1}} tabIndex={0} aria-label="Client testimonials, scroll to explore">
         {reviews.map(review => <motion.blockquote variants={fade} key={review.id}>
           {review.avatarUrl && !review.avatarUrl.includes('images.unsplash.com') && <EditorialImage src={review.avatarUrl} fallback={NEUTRAL_CLINIC_IMAGE} alt={`Profile image for ${review.name}`} loading="lazy" width="80" height="80" />}

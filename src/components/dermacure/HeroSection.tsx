@@ -34,13 +34,13 @@ export function HeroSection() {
             <motion.h1 variants={fade}>
               {profile.sectionHeadings?.heroTitle || (
                 <>
-                  Skin, hair &amp; <br /><em>aesthetic concerns.</em>
+                  Skin, Hair &amp; <br /><em>Beauty Needs.</em>
                 </>
               )}
             </motion.h1>
             <motion.p variants={fade} className="dc-intro">
               {profile.sectionHeadings?.heroDescription ||
-                "Explore the clinic’s treatment menu and discuss your concerns and available care with the team."}
+                "Explore our treatment menu and discuss your skin needs with our team."}
             </motion.p>
             <motion.div variants={fade} className="dc-actions">
               <button className="dc-btn" onClick={booking}>

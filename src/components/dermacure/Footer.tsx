@@ -23,10 +23,10 @@ export function Footer() {
               >
                 ✳ &nbsp;{profile.businessName}
               </a>
-              <p>Thoughtful skin care for a more confident you.</p>
+              <p>Expert care for healthy skin.</p>
             </div>
             <div>
-              <h3>EXPLORE</h3>
+              <h3>Explore</h3>
               {nav.map(([label, id]) => (
                 <a
                   key={id}
@@ -42,7 +42,7 @@ export function Footer() {
             </div>
             {visible.services && services.length > 0 && (
               <div>
-                <h3>TREATMENTS</h3>
+                <h3>Treatments</h3>
                 {services.slice(0, 4).map((service) => (
                   <a
                     key={service.id}
@@ -58,7 +58,7 @@ export function Footer() {
               </div>
             )}
             <div>
-              <h3>CONTACT</h3>
+              <h3>Contact</h3>
               {visible.location && address && <p>{address}</p>}
               {visible.location && profile.workingHoursMonFri && (
                 <p>Mon–Fri: {profile.workingHoursMonFri}</p>
@@ -101,7 +101,7 @@ export function Footer() {
             policies &&
             Object.values(policies).some(
               (v) => typeof v === "string" && v.trim(),
-            ) && <a href="#salon-policies">Clinic policies</a>}
+            ) && <a href="#salon-policies">Clinic Policies</a>}
           {visible.policies && (
             <div className="dc-legal-notices">
               {(["privacy", "terms"] as const).map(
@@ -110,8 +110,8 @@ export function Footer() {
                     <details key={key} id={`dc-${key}`}>
                       <summary>
                         {key === "privacy"
-                          ? "Privacy policy"
-                          : "Terms & conditions"}
+                          ? "Privacy Policy"
+                          : "Terms & Conditions"}
                       </summary>
                       <p style={{ whiteSpace: "pre-wrap" }}>
                         {profile.clinicLegal[key]}
@@ -133,7 +133,7 @@ export function Footer() {
                 scrollTo("home");
               }}
             >
-              BACK TO TOP ↑
+              Back to Top ↑
             </a>
           </div>
         </div>

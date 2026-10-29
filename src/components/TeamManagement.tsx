@@ -128,6 +128,10 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     specialties: string[];
     customSpecialtyInput: string;
     assignedServices: string[];
+    bio: string;
+    registrationNumber: string;
+    qualificationsText: string;
+    specializedTreatmentsText: string;
   }>({
     businessType,
     workGallery:[],
@@ -138,7 +142,11 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     rating: 4.9,
     specialties: ['Hair Cutting', 'Hair Coloring'],
     assignedServices: [],
-    customSpecialtyInput: ''
+    customSpecialtyInput: '',
+    bio: '',
+    registrationNumber: '',
+    qualificationsText: '',
+    specializedTreatmentsText: ''
   });
 
   const bookingServices=staffBookingServices(services,formData.businessType);
@@ -153,15 +161,19 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
   const handleOpenAddModal = () => {
     setFormData({
       businessType,
-    workGallery:[],
-    name: '',
+      workGallery:[],
+      name: '',
       role: 'Senior Hair Stylist',
       experienceYears:'',
       avatarUrl: AVATAR_PRESETS[Math.floor(Math.random() * AVATAR_PRESETS.length)].url,
       rating: 4.9,
       specialties: ['Hair Cutting', 'Hair Coloring'],
       assignedServices: [],
-    customSpecialtyInput: ''
+      customSpecialtyInput: '',
+      bio: '',
+      registrationNumber: '',
+      qualificationsText: '',
+      specializedTreatmentsText: ''
     });
     setIsAddModalOpen(true);
   };
@@ -179,7 +191,11 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
       rating: st.rating,
       specialties: categorySkills(st.specialties||[],st.businessType||businessType),
       assignedServices: staffBookingServices(services,st.businessType||businessType).filter(s => (st.assignedServices || []).includes(s.id) || (st.assignedServices || []).includes(s.name)).map(s => s.id),
-      customSpecialtyInput: ''
+      customSpecialtyInput: '',
+      bio: st.bio || '',
+      registrationNumber: st.registrationNumber || '',
+      qualificationsText: (st.qualifications || []).join(', '),
+      specializedTreatmentsText: (st.specializedTreatments || []).join(', ')
     });
   };
 
@@ -234,6 +250,9 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     saveLock.current=true;setSaving(true);setEditError('');
     try{
     const photoUrl=photoFile?await uploadSalonImage(photoFile):formData.avatarUrl;
+    const qualificationsList = formData.qualificationsText.split(',').map(s=>s.trim()).filter(Boolean);
+    const specializedTreatmentsList = formData.specializedTreatmentsText.split(',').map(s=>s.trim()).filter(Boolean);
+
     const updated: Stylist = {
       ...editingStylist,
       businessType:formData.businessType,
@@ -244,7 +263,11 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
       avatarUrl: photoUrl,
       rating: Number.isFinite(Number(formData.rating))?Math.max(0,Math.min(5,Number(formData.rating))):0,
       assignedServices: templateStaffAssignments(formData.assignedServices,bookingServices),
-      specialties: categorySkills(formData.specialties,formData.businessType)
+      specialties: categorySkills(formData.specialties,formData.businessType),
+      bio: formData.bio.trim() || undefined,
+      registrationNumber: formData.registrationNumber.trim() || undefined,
+      qualifications: qualificationsList.length ? qualificationsList : undefined,
+      specializedTreatments: specializedTreatmentsList.length ? specializedTreatmentsList : undefined,
     };
 
     setStylists((prev) => prev.map((s) => (s.id === editingStylist.id ? updated : s)));
@@ -639,7 +662,59 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                 />
               </div>
 
-              <label className="text-xs font-bold">Experience (years)<input aria-label="Experience in years" type="number" min="0" max="80" step="0.5" value={formData.experienceYears} onChange={e=>setFormData(prev=>({...prev,experienceYears:e.target.value}))} className="w-full px-3 py-2 rounded-xl border border-gray-300 mt-1" placeholder="e.g. 5"/></label>
+              <label className="text-xs font-bold">Experience (years)<input aria-label="Experience in years" type="number" min="0" max="80" step="0.5" value={formData.experienceYears} onChange={e=>setFormData(prev=>({...prev,experienceYears:e.target.value}))} className="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 mt-1" placeholder="e.g. 12"/></label>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Medical Registration / License Number
+                </label>
+                <input
+                  type="text"
+                  value={formData.registrationNumber}
+                  onChange={(e) => setFormData({ ...formData, registrationNumber: e.target.value })}
+                  placeholder="e.g. Reg. No: MCI-2012-48921"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 focus:border-gray-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Full Professional Biography
+                </label>
+                <textarea
+                  rows={3}
+                  value={formData.bio}
+                  onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                  placeholder="Describe clinician's background, care philosophy and clinical expertise..."
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 focus:border-gray-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Qualifications & Academic Degrees (comma separated)
+                </label>
+                <input
+                  type="text"
+                  value={formData.qualificationsText}
+                  onChange={(e) => setFormData({ ...formData, qualificationsText: e.target.value })}
+                  placeholder="e.g. MBBS (Gold Medalist), MD Dermatology, FAM Germany"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 focus:border-gray-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Specialized Clinical Treatments (comma separated)
+                </label>
+                <input
+                  type="text"
+                  value={formData.specializedTreatmentsText}
+                  onChange={(e) => setFormData({ ...formData, specializedTreatmentsText: e.target.value })}
+                  placeholder="e.g. Advanced HydraFacial, Laser Toning, Chemical Peels"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 focus:border-gray-500 outline-none"
+                />
+              </div>
               {/* Role / Designation & Rating */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <StaffTitleField businessType={formData.businessType} onCategoryChange={category=>{setEditError('');setFormData(prev=>({...prev,businessType:category,role:['Salon Manager','Receptionist',...STAFF_TITLES[category]].includes(prev.role)?prev.role:STAFF_TITLES[category][0],assignedServices:[],specialties:categorySkills(prev.specialties,category),customSpecialtyInput:'',workGallery:prev.workGallery.map(photo=>({...photo,serviceId:staffBookingServices(services,category).some(s=>s.id===photo.serviceId)?photo.serviceId:''}))}))}} value={formData.role} onChange={role=>setFormData(prev=>({...prev,role}))}/>
