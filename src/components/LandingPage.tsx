@@ -207,3 +207,5 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setCurrentView, onSele
     </div>
   );
 };
+
+export default LandingPage;

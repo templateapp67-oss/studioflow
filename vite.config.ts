@@ -12,9 +12,13 @@ export default defineConfig(() => {
     define:{'import.meta.env.VITE_SCREEN_BUILD':JSON.stringify(screenBuild)},
     build:{rollupOptions:{output:{inlineDynamicImports:true}}},
     resolve: {
+      dedupe: ['react', 'react-dom'],
       alias: {
         '@': path.resolve(__dirname, '.'),
       },
+    },
+    optimizeDeps: {
+      include: ['react', 'react-dom', 'react/jsx-runtime'],
     },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.

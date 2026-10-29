@@ -36,7 +36,7 @@ import { CustomerApp } from './components/CustomerApp';
 import { supabase, captureReferral } from './lib/supabase';
 
 const WebsiteCustomerAccount = lazy(() => import('./components/WebsiteCustomerAccount').then(m => ({ default: m.WebsiteCustomerAccount })));
-const LandingPage = lazy(() => loadScreen(() => import('./components/LandingPage').then(m => ({ default: m.LandingPage }))));
+const LandingPage = lazy(() => loadScreen(() => import('./components/LandingPage').then(m => ({ default: m.LandingPage || (m as any).default }))));
 const OnboardingWizard = lazy(() => loadScreen(() => import('./components/OnboardingWizard').then(m => ({ default: m.OnboardingWizard }))));
 const SalonWebsitePreview = lazy(() => loadScreen(() => import('./components/SalonWebsitePreview').then(m => ({ default: m.SalonWebsitePreview }))));
 const SaaSDashboard = lazy(() => loadScreen(() => import('./components/SaaSDashboard').then(m => ({ default: m.SaaSDashboard }))));
