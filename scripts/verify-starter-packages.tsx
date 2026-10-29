@@ -10,6 +10,14 @@ for(const t of Object.values(CATEGORY_TEMPLATES)){
   for(const tier of ['Starter','Signature','Full Transformation'])assert.ok(section.includes(tier),'Prism & Chroma shows the '+tier+' package tier');
   for(const price of ['₹2,499','₹5,999','₹9,999'])assert.ok(section.includes(price),'Prism & Chroma shows package price '+price);
   continue;
+ }if(t.id==='bridal_lounge'){
+  // Template 11 shows its three heirloom tiers (Classic / Royal / Maharani) as
+  // glass package cards; the catalogue still seeds and books five packages.
+  const section=html.split('id="sr-packages"')[1].split('</section>')[0];
+  for(const tier of ['Classic Shringaar','Royal Rajputana','Maharani Heirloom'])assert.ok(section.includes(tier),'Shringaar Royal shows the '+tier+' package tier');
+  for(const price of ['₹45,000','₹78,000','₹1,25,000'])assert.ok(section.includes(price),'Shringaar Royal shows package price '+price);
+  assert.ok(section.includes('/templates/11/packages/'),'each bridal package card carries its own photograph');
+  continue;
  }
  const section=html.split('id="salon-packages"')[1].split('</section>')[0];assert.equal((section.match(/class="sf-service-card(?:\s|\")/g)||[]).length,5,t.id+' package cards');assert.equal((section.match(/class="sf-service-image"/g)||[]).length,5,t.id+' package images');
 }

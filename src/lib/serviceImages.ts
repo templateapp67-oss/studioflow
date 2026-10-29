@@ -5,6 +5,7 @@ import {roopMahalServiceImage} from './roopMahalReference';
 import {pinkyNailsServiceImage} from './pinkyNails';
 import {KESH_PRAKRITI_IMAGES,keshPrakritiServiceImage} from './keshPrakriti';
 import {VOGUE_NOIR_IMAGES,vogueNoirServiceImage} from './vogueNoir';
+import {SHRINGAAR_IMAGES,shringaarServiceImage} from './shringaarRoyal';
 
 /** Category-matched image templates shared by the editor and storefront. */
 export function serviceImageTemplates(service:Pick<SalonService,'id'|'name'|'category'>,type:BusinessTypeId='hair_salon'):Array<{id:string;url:string;label:string}> {
@@ -14,6 +15,10 @@ export function serviceImageTemplates(service:Pick<SalonService,'id'|'name'|'cat
  if(type==='hair_spa'){
   const local=Array.from(new Set([keshPrakritiServiceImage(service),KESH_PRAKRITI_IMAGES.sanctuary,KESH_PRAKRITI_IMAGES.botanical]));
   return local.slice(0,3).map((url,index)=>({id:`hair_spa-${index+1}`,url,label:`Image template ${index+1}`}));
+ }
+ if(type==='bridal_lounge'){
+  const local=Array.from(new Set([shringaarServiceImage({...service,imageUrl:''}),SHRINGAAR_IMAGES.services.makeup,SHRINGAAR_IMAGES.services.draping]));
+  return local.slice(0,3).map((url,index)=>({id:`bridal_lounge-${index+1}`,url,label:`Image template ${index+1}`}));
  }
  if(type==='makeup_studio'){
   const local=Array.from(new Set([vogueNoirServiceImage({...service,imageUrl:''}),VOGUE_NOIR_IMAGES.services.bridal,VOGUE_NOIR_IMAGES.services.party,VOGUE_NOIR_IMAGES.services.airbrush]));

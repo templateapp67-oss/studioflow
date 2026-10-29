@@ -201,6 +201,12 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                   );
                 })}
               </div>
+              {profile.businessType === 'bridal_lounge' && (
+                <a href="/?template=11" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-3 rounded-xl border border-[#C9A24B]/60 bg-[#FBF4E6] p-2 text-sm font-semibold text-[#5A0F1E] hover:border-[#5A0F1E]">
+                  <img src="/templates/11/hero-bride.jpg" alt="" width={96} height={54} style={{ borderTopLeftRadius: 999, borderTopRightRadius: 999 }} className="h-14 w-24 object-cover object-top" />
+                  Preview Shringaar Royal (11) in a new tab ↗
+                </a>
+              )}
               {profile.businessType === 'makeup_studio' && (
                 <a href="/?template=08" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-3 rounded-xl border border-gray-200 p-2 text-sm font-semibold text-amber-800 hover:border-amber-600">
                   <img src="/templates/vogue-noir/hero-1.webp" alt="" width="96" height="54" className="h-14 w-24 rounded-lg object-cover" />

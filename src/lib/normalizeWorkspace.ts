@@ -12,6 +12,7 @@ import { isLegacyNailStudioStockImage, isLegacyNailStudioStockTagline } from './
 import { isLegacyMakeupStudioStockUrl, upgradeLegacyMakeupStudioStylists } from './vogueNoir';
 import { isLegacyMassageWellnessStockUrl, upgradeLegacyMassageWellnessStylists } from './bodhiTree';
 import { isLegacyHairColoringStockUrl, upgradeLegacyHairColoringStylists } from './prismChroma';
+import { isLegacyBridalStockUrl, upgradeLegacyBridalStylists } from './shringaarRoyal';
 import type { SalonProfile, SalonService, Stylist, ClientRecord } from '../types';
 const record=(value:any):Record<string,any>=>value&&typeof value==='object'&&!Array.isArray(value)?value:{};
 const list=(value:any)=>Array.isArray(value)?value.filter(item=>item&&typeof item==='object'&&!Array.isArray(item)):[];
@@ -42,6 +43,11 @@ export function normalizeWorkspace(value:unknown, identity:Record<string,any>={}
  if(profile.businessType==='hair_coloring'){
   if(!profile.coverImageUrl||isLegacyHairColoringStockUrl(profile.coverImageUrl))profile.coverImageUrl=CATEGORY_TEMPLATES.hair_coloring.coverImageUrl;
   if(!profile.ownerPhotoUrl||isLegacyHairColoringStockUrl(profile.ownerPhotoUrl))profile.ownerPhotoUrl=CATEGORY_TEMPLATES.hair_coloring.ownerPhotoUrl;
+ }
+ if(profile.businessType==='bridal_lounge'){
+  if(!profile.coverImageUrl||isLegacyBridalStockUrl(profile.coverImageUrl))profile.coverImageUrl=CATEGORY_TEMPLATES.bridal_lounge.coverImageUrl;
+  if(!profile.ownerPhotoUrl||isLegacyBridalStockUrl(profile.ownerPhotoUrl))profile.ownerPhotoUrl=CATEGORY_TEMPLATES.bridal_lounge.ownerPhotoUrl;
+
  }
  profile.socialVideos=showcaseVideos(profile as SalonProfile);profile.demoVideosInitialized=true;
  const loyalty=record(draft.loyaltyConfig),extras=record(draft.extras);

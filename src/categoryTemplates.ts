@@ -25,6 +25,19 @@ import {
   PRISM_CHROMA_TEMPLATE_SERVICES,
 } from './lib/prismChroma';
 import {
+  SHRINGAAR_BRAND_NAME,
+  SHRINGAAR_DEFAULT_ABOUT,
+  SHRINGAAR_DEFAULT_ADDRESS,
+  SHRINGAAR_DEFAULT_CITY,
+  SHRINGAAR_DEFAULT_PHONE,
+  SHRINGAAR_DEFAULT_POSTAL_CODE,
+  SHRINGAAR_DEFAULT_STYLISTS,
+  SHRINGAAR_IMAGES,
+  SHRINGAAR_SELECTOR_LABEL,
+  SHRINGAAR_TAGLINE,
+  SHRINGAAR_TEMPLATE_SERVICES,
+} from './lib/shringaarRoyal';
+import {
   BODHI_TREE_BRAND_NAME,
   BODHI_TREE_DEFAULT_ABOUT,
   BODHI_TREE_DEFAULT_ADDRESS,
@@ -977,119 +990,49 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
     stylists: PRISM_CHROMA_DEFAULT_STYLISTS
   },
 
-  // 11. Bridal Makeup & Makeover Lounge
+  // 11. Bridal Makeup & Makeover Lounge — Shringaar Royal Indian Bridal Lounge
+  // "Royal Rajputana × Sabyasachi": ivory paper, oxblood maroon, royal gold.
+  // Photography and demo content come from src/lib/shringaarRoyal.ts so the
+  // template picker, onboarding draft and storefront share one source.
   bridal_lounge: {
     id: 'bridal_lounge',
-    title: 'Shringaar Royal Indian Bridal Lounge',
+    title: SHRINGAAR_BRAND_NAME,
     shortName: 'Bridal Makeup & Makeover Lounge',
-    tagline: 'Royal Rajputana Trousseaus, Sabyasachi Aesthetic & Heirloom Makeover Packages',
-    about: 'Perched on MI Road in Jaipur, Shringaar is Rajasthan’s most celebrated bridal makeover sanctuary. We specialize in grand wedding day makeup, royal zardozi dupatta settings, airbrush longevity, and customized 7-day pre-bridal ubtan rituals.',
+    tagline: SHRINGAAR_TAGLINE,
+    about: SHRINGAAR_DEFAULT_ABOUT,
     icon: 'diamond',
-    layoutStyle: 'royal_crimson',
-    paletteLabel: 'Deep Crimson & Gold Theme',
+    layoutStyle: 'palace_heritage',
+    paletteLabel: 'Royal Rajputana Maroon & Gold',
     themePreset: 'royal_crimson_gold',
-    subCategories: ['Royal Bridal Trousseau', 'Mehendi & Sangeet', 'Pre-Bridal Ubtan Glow', 'Draping & Turbans'],
-    defaultCity: 'Jaipur, Rajasthan',
-    defaultAddress: 'MI Road, Near Panch Batti & Raj Mandir',
-    defaultPostalCode: '302001',
-    phone: '+91 98290 33411',
-    whatsapp: '+91 98290 33411',
-    ownerName: 'Smt. Anuradha Rathore',
-    ownerRole: 'Celebrity Bridal Couturiere & Stylist',
-    ownerPhotoUrl: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=500&q=80',
-    coverImageUrl: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=1200&q=80',
-    instagramHandle: '@shringaar.jaipur',
+    subCategories: ['Bridal Makeup', 'Bridal Hair', 'Draping & Styling', 'Mehendi', 'Pre-Bridal Rituals'],
+    defaultCity: SHRINGAAR_DEFAULT_CITY,
+    defaultAddress: SHRINGAAR_DEFAULT_ADDRESS,
+    defaultPostalCode: SHRINGAAR_DEFAULT_POSTAL_CODE,
+    phone: SHRINGAAR_DEFAULT_PHONE,
+    whatsapp: SHRINGAAR_DEFAULT_PHONE,
+    ownerName: 'Anuradha Rathore',
+    ownerRole: 'Founder & Bridal Couture Director',
+    ownerPhotoUrl: SHRINGAAR_IMAGES.owner,
+    coverImageUrl: SHRINGAAR_IMAGES.hero,
+    instagramHandle: '@shringaarroyal.jaipur',
     themeStyle: {
-      heroBackground: 'bg-[#58111a]',
-      heroTextColor: 'text-amber-100',
-      cardBorder: 'border-amber-300',
-      cardBackground: 'bg-[#fffaf5]',
+      heroBackground: 'bg-[#5A0F1E]',
+      heroTextColor: 'text-[#FBF4E6]',
+      cardBorder: 'border-[#C9A24B]/45',
+      cardBackground: 'bg-[#FBF4E6]',
       cardRadius: 'rounded-2xl',
-      accentColor: 'text-[#881337]',
-      accentBg: 'bg-[#881337]',
-      badgeBg: 'bg-amber-100',
-      badgeText: 'text-amber-900',
-      buttonBg: 'bg-[#881337] hover:bg-[#700f2d]',
-      buttonText: 'text-white',
-      priceColor: 'text-[#881337]',
+      accentColor: 'text-[#5A0F1E]',
+      accentBg: 'bg-[#5A0F1E]',
+      badgeBg: 'bg-[#C9A24B]/20',
+      badgeText: 'text-[#5A0F1E]',
+      buttonBg: 'bg-[#5A0F1E] hover:bg-[#4a0c18]',
+      buttonText: 'text-[#FBF4E6]',
+      priceColor: 'text-[#5A0F1E]',
       isDark: false,
-      headerBanner: 'bg-[#fff5f5] border-b-2 border-amber-300'
+      headerBanner: 'bg-[#FBF4E6] border-b border-[#C9A24B]/40'
     },
-    services: [
-      {
-        id: 'bl-1',
-        name: 'Royal Rajputana / Mughal Full Bridal Trousseau',
-        category: 'Royal Bridal Trousseau',
-        durationMinutes: 240,
-        price: 35000,
-        description: 'HD/Airbrush bridal makeup, royal mathapatti setting, heirloom jewelry placement, silk saree/lehenga draping.',
-        icon: 'workspace_premium',
-        popular: true
-      },
-      {
-        id: 'bl-2',
-        name: 'Sabyasachi-Style Classic Crimson Red Bridal Glam',
-        category: 'Royal Bridal Trousseau',
-        durationMinutes: 180,
-        price: 24000,
-        description: 'Timeless flushed bronze cheeks, winged liner, traditional kohl, and perfectly draped velvet dupatta.',
-        icon: 'diamond',
-        popular: true
-      },
-      {
-        id: 'bl-3',
-        name: 'Cocktail & Sangeet Ultra-Glow HD Look',
-        category: 'Mehendi & Sangeet',
-        durationMinutes: 120,
-        price: 12000,
-        description: 'Modern radiant evening glam with shimmer eyes, contouring, and international textured waves styling.',
-        icon: 'celebration'
-      },
-      {
-        id: 'bl-4',
-        name: 'Pre-Bridal 7-Day Sandalwood & Rose Ubtan Ritual',
-        category: 'Pre-Bridal Ubtan Glow',
-        durationMinutes: 180,
-        price: 16500,
-        description: 'Complete pre-wedding body polishing, Ayurvedic kesh spa, full body waxing, and diamond radiance facial.',
-        icon: 'spa'
-      },
-      {
-        id: 'bl-5',
-        name: 'Traditional Kanjeevaram / Banarasi Saree Draping',
-        category: 'Draping & Turbans',
-        durationMinutes: 45,
-        price: 1800,
-        description: 'Crisp ironed box pleats, secure waist pinning, and royal can-can volume structuring.',
-        icon: 'styler'
-      }
-    ],
-    stylists: [
-      {
-        id: 'bl-st-1',
-        name: 'Smt. Anuradha Rathore',
-        role: 'Bridal Couture Director',
-        avatarUrl: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=400&q=80',
-        specialties: ['Royal Bridal Trousseau', 'Jewelry Pinning', 'Lehenga Draping'],
-        rating: 5.0
-      },
-      {
-        id: 'bl-st-2',
-        name: 'Janki Khandelwal',
-        role: 'Senior Heritage Makeup Artist',
-        avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80',
-        specialties: ['Sangeet Glam', 'Airbrush Longevity'],
-        rating: 4.97
-      },
-      {
-        id: 'bl-st-3',
-        name: 'Farzana Sheikh',
-        role: 'Draping & Turban Specialist',
-        avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80',
-        specialties: ['Silk Saree Pleats', 'Rajasthani Safa'],
-        rating: 4.93
-      }
-    ]
+    services: SHRINGAAR_TEMPLATE_SERVICES,
+    stylists: SHRINGAAR_DEFAULT_STYLISTS
   },
 
   // 12. Tattoo & Body Art Studio (Newly Added)
@@ -1595,12 +1538,12 @@ export const ALL_CATEGORY_OPTIONS: BusinessTypeOption[] = [
   },
   {
     id: 'bridal_lounge',
-    title: 'Bridal Makeup & Makeover Lounge',
+    title: SHRINGAAR_SELECTOR_LABEL,
     categoryTag: 'Royal Weddings',
     icon: 'diamond',
-    aestheticDescription: 'Royal Indian wedding aesthetic, deep crimson & gold theme.',
-    paletteName: 'Royal Crimson & Gold',
-    badge: 'Heritage Luxury',
+    aestheticDescription: 'Royal Rajputana × Sabyasachi — ivory paper, oxblood maroon, gold jharokha arches, editorial bridal lookbook and heirloom package cards.',
+    paletteName: 'Royal Rajputana Maroon & Gold',
+    badge: 'Template 11',
     defaultServices: CATEGORY_TEMPLATES.bridal_lounge.services.map((s) => ({
       name: s.name,
       price: s.price,

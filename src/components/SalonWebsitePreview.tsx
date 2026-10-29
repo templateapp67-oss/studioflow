@@ -7,6 +7,7 @@ import {ClinicTechnologyEditor} from './dermacure/ClinicTechnologyEditor';
 import {VogueNoirEditor} from './vogue-noir/VogueNoirEditor';
 import {BodhiTreeEditor} from './bodhi-tree/BodhiTreeEditor';
 import {PrismChromaEditor} from './prism-chroma/PrismChromaEditor';
+import {ShringaarRoyalEditor} from './shringaar-royal/ShringaarRoyalEditor';
 import {AcademyEnquiriesPanel} from './vogue-noir/AcademyEnquiriesPanel';
 import {CustomerAppPromotion} from './CustomerAppPromotion';
 import {CustomerSalonWebsite} from './CustomerSalonWebsite';
@@ -97,7 +98,7 @@ type DeviceMode = 'desktop' | 'tablet' | 'mobile';
 export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = props => {
  const [editing,setEditing]=useState(false);
  if(props.readOnly)return <CustomerSalonWebsite {...props}/>;
- return <><div className="pt-28 px-4 pb-4 flex flex-wrap gap-3 bg-white text-slate-900"><button className="secondary-action" onClick={()=>setEditing(value=>!value)}>{editing?'Show redesigned website':'Open owner editing tools'}</button><button className="secondary-action" onClick={props.onEnterClientPreview}>Customer device preview</button></div>{editing?(props.profile.businessType==='skincare_clinic'?<ClinicPreviewEditor {...props}/>:props.profile.businessType==='makeup_studio'?<VogueNoirPreviewEditor {...props}/>:props.profile.businessType==='massage_wellness'?<BodhiTreePreviewEditor {...props}/>:props.profile.businessType==='hair_coloring'?<PrismChromaPreviewEditor {...props}/>:<SalonWebsiteEditor {...props}/>):<CustomerSalonWebsite {...props} readOnly/>}</>;
+ return <><div className="pt-28 px-4 pb-4 flex flex-wrap gap-3 bg-white text-slate-900"><button className="secondary-action" onClick={()=>setEditing(value=>!value)}>{editing?'Show redesigned website':'Open owner editing tools'}</button><button className="secondary-action" onClick={props.onEnterClientPreview}>Customer device preview</button></div>{editing?(props.profile.businessType==='skincare_clinic'?<ClinicPreviewEditor {...props}/>:props.profile.businessType==='makeup_studio'?<VogueNoirPreviewEditor {...props}/>:props.profile.businessType==='massage_wellness'?<BodhiTreePreviewEditor {...props}/>:props.profile.businessType==='hair_coloring'?<PrismChromaPreviewEditor {...props}/>:props.profile.businessType==='bridal_lounge'?<ShringaarRoyalPreviewEditor {...props}/>:<SalonWebsiteEditor {...props}/>):<CustomerSalonWebsite {...props} readOnly/>}</>;
 };
 
 function VogueNoirPreviewEditor(props:SalonWebsitePreviewProps) {
@@ -108,6 +109,16 @@ function VogueNoirPreviewEditor(props:SalonWebsitePreviewProps) {
   {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
   {props.setStylists?<TeamManagement stylists={props.stylists} setStylists={props.setStylists} services={props.services} setServices={props.setServices} businessType="makeup_studio" primaryAccentColor={accent}/>:null}
   <AcademyEnquiriesPanel/>
+ </main>;
+}
+
+function ShringaarRoyalPreviewEditor(props:SalonWebsitePreviewProps) {
+ const accent=props.profile.customAccentColor||'#5A0F1E';
+ return <main className="max-w-6xl mx-auto p-4 space-y-6" aria-label="Shringaar Royal owner editing tools">
+  <p>Edit your Shringaar Royal Indian Bridal Lounge website — hero, signature collections, lookbook, heirloom packages, bridal journey, bride reviews, offer banner and booking card. Services, ₹ prices, team and gallery save with your connected workspace.</p>
+  {props.setProfile?<><ShringaarRoyalEditor profile={props.profile} setProfile={props.setProfile}/><WebsiteContentManager profile={props.profile} setProfile={props.setProfile} services={props.services} gallery={props.gallery} showGallery={false}/></>:<p role="status">Content editing requires a connected owner workspace.</p>}
+  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
+  {props.setStylists?<TeamManagement stylists={props.stylists} setStylists={props.setStylists} services={props.services} setServices={props.setServices} businessType="bridal_lounge" primaryAccentColor={accent}/>:null}
  </main>;
 }
 

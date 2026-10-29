@@ -60,13 +60,22 @@ export function ClinicJournalManager({ profile, setProfile }: ClinicJournalManag
   const draftCount = articles.length - publishedCount;
 
   const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
-  const [editingArticleId, setEditingArticleId] = useState<string | null>(null);
+  // The first article opens ready to edit so owners never hunt for the fields.
+  const [editingArticleId, setEditingArticleId] = useState<string | null>(() => {
+    const first = (profile.clinicArticles || [])[0];
+    return first ? first.id : null;
+  });
 
   const updateArticle = (id: string, patch: Partial<ClinicArticle>) => {
+    // Editing approved copy sends the article back to draft so a change can
+    // never go live without the owner publishing it again.
+    const editsCopy = !('published' in patch);
     setProfile(prev => ({
       ...prev,
-      clinicArticles: (prev.clinicArticles || []).map(a => 
-        a.id === id ? { ...a, ...patch } : a
+      clinicArticles: (prev.clinicArticles || []).map(a =>
+        a.id === id
+          ? { ...a, ...patch, ...(editsCopy && a.published !== false ? { published: false } : {}) }
+          : a
       ),
     }));
   };

@@ -3,7 +3,14 @@ import {StylistProfile} from '../src/components/StylistProfile';import {Customer
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;(globalThis as any).document={activeElement:null,body:{style:{}},addEventListener(){},removeEventListener(){}};(globalThis as any).window={addEventListener(){},removeEventListener(){}};
 const staff:any={id:'specialist-1',name:'Anita',role:'Senior Makeup Artist',experienceYears:7.5,bio:'Professional bridal and occasion makeup specialist.',specialties:['Bridal'],phone:'PRIVATE-PHONE',commissionRate:50,schedule:[{private:true}]};
 for(const template of Object.values(CATEGORY_TEMPLATES)){
- const profile={...INITIAL_SALON_PROFILE,businessType:template.id};const html=renderToStaticMarkup(<CustomerSalonWebsite profile={profile} services={[]} stylists={[staff]} readOnly onAddAppointment={async a=>a}/>);assert.ok(html.includes('View profile &amp; reviews'));assert.ok(html.includes('7.5'));const saved=normalizeWorkspace({profile,stylists:[staff]});assert.equal(saved.stylists[0].experienceYears,7.5);
+ const profile={...INITIAL_SALON_PROFILE,businessType:template.id};
+ // Template 09 (Bodhi Tree) is multi-page: therapist cards live on its Team page,
+ // which is exactly where a customer taps through from the menu.
+ const teamPage=template.id==='massage_wellness';
+ if(teamPage)(globalThis as any).window={addEventListener(){},removeEventListener(){},matchMedia:()=>({matches:false,addEventListener(){},removeEventListener(){}}),location:{hash:'#team'},scrollTo(){}};
+ const html=renderToStaticMarkup(<CustomerSalonWebsite profile={profile} services={[]} stylists={[staff]} readOnly onAddAppointment={async a=>a}/>);
+ if(teamPage)(globalThis as any).window={addEventListener(){},removeEventListener(){}};
+ assert.ok(html.includes('View profile &amp; reviews'),`${template.id}: specialist cards open the full profile`);assert.ok(html.includes('7.5'),`${template.id}: experience is published`);const saved=normalizeWorkspace({profile,stylists:[staff]});assert.equal(saved.stylists[0].experienceYears,7.5);
 }
 let args:any,logged=0;let canReview=false;
 (supabase as any).rpc=async(name:string,input:any)=>{if(name==='studioflow_staff_review_submit'){args=input;return{data:{reviews:[{id:'review',name:'Customer',rating:4,comment:input.p_comment}],average:4,count:1,ownReview:{rating:4,comment:input.p_comment},canReview:true},error:null}}return{data:{reviews:[],count:0,average:null,canReview},error:null}};
