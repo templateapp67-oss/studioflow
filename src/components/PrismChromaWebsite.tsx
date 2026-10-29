@@ -109,9 +109,12 @@ export function PrismChromaWebsite({
   const config = useMemo(() => resolvePrismChromaConfig(profile), [profile]);
   const cssVars = useMemo(() => prismChromaCssVariables(config.colors) as React.CSSProperties, [config.colors]);
   const reduceMotion = useReducedMotion();
-  const [loading, setLoading] = useState(!reduceMotion);
+  const [loading, setLoading] = useState(
+    () => !(typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches),
+  );
   const [menuOpen, setMenuOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState(0);
+  const [lightbox, setLightbox] = useState<number | null>(null);
   const glowRef = useRef<HTMLDivElement>(null);
 
   const brandName = (profile.businessName || '').trim() || PRISM_CHROMA_BRAND_NAME;
@@ -128,8 +131,8 @@ export function PrismChromaWebsite({
   const facebookUrl = socialUrl(profile.facebookPage, 'facebook');
   const youtubeUrl = socialUrl(profile.youtubeChannel, 'youtube');
 
-  const coreServices = services.filter((s) => !isPackage(s)).slice(0, 8);
-  const team = (stylists && stylists.length ? stylists : PRISM_CHROMA_DEFAULT_STYLISTS).slice(0, 4);
+  const coreServices = services.filter((s) => !isPackage(s));
+  const team = stylists && stylists.length ? stylists : PRISM_CHROMA_DEFAULT_STYLISTS;
   const gallery =
     galleryPhotos && galleryPhotos.length
       ? galleryPhotos.slice(0, 12).map((p) => ({ src: p.url, title: p.title || 'Hair colour work', tag: p.category || 'Gallery' }))
@@ -145,6 +148,18 @@ export function PrismChromaWebsite({
     const t = setTimeout(() => setLoading(false), 650);
     return () => clearTimeout(t);
   }, [reduceMotion]);
+
+  /* Gallery lightbox: Esc closes, arrow keys move between photos. */
+  useEffect(() => {
+    if (lightbox === null || typeof document === 'undefined') return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setLightbox(null);
+      if (event.key === 'ArrowRight') setLightbox((v) => (v === null ? v : (v + 1) % gallery.length));
+      if (event.key === 'ArrowLeft') setLightbox((v) => (v === null ? v : (v - 1 + gallery.length) % gallery.length));
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [lightbox, gallery.length]);
 
   /* SEO title + LocalBusiness JSON-LD (same data the resolver builds). */
   useEffect(() => {
@@ -353,8 +368,8 @@ export function PrismChromaWebsite({
                   <p className="pc-eyebrow">Our Story</p>
                   <h2 className="mt-3 text-[clamp(1.9rem,4.5vw,3rem)] font-extrabold">{config.aboutHeading}</h2>
                   <p className="pc-muted mt-4 leading-relaxed">{config.aboutStory}</p>
-                  <FadeInGroup className="mt-7 grid grid-cols-3 gap-3">
-                    {config.stats.slice(0, 3).map((stat) => (
+                  <FadeInGroup className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    {config.stats.map((stat) => (
                       <FadeIn key={stat.id}>
                         <div className="pc-glass pc-glass-hover px-4 py-4 text-center" style={{ borderRadius: 22 }}>
                           <p className="pc-display pc-grad-text text-2xl font-extrabold">{stat.value}</p>
@@ -532,11 +547,22 @@ export function PrismChromaWebsite({
               <div className="pc-masonry mt-8">
                 {gallery.map((photo, idx) => (
                   <figure key={`${photo.src}-${idx}`}>
-                    <SafeImage src={photo.src} fallback={PRISM_CHROMA_IMAGES.interior} alt={`${photo.title} — hair colour work at ${brandName}`} width={800} height={idx % 3 === 0 ? 1000 : 700} style={{ height: idx % 3 === 0 ? 300 : 210 }} />
+                    <button type="button" onClick={() => setLightbox(idx)} aria-label={`View photo: ${photo.title}`} style={{ display: 'block', width: '100%', padding: 0, border: 0, background: 'none', cursor: 'zoom-in' }}>
+                      <SafeImage src={photo.src} fallback={PRISM_CHROMA_IMAGES.interior} alt={`${photo.title} — hair colour work at ${brandName}`} width={800} height={idx % 3 === 0 ? 1000 : 700} style={{ height: idx % 3 === 0 ? 300 : 210 }} />
+                    </button>
                     <figcaption>{photo.title} · {photo.tag}</figcaption>
                   </figure>
                 ))}
               </div>
+              {lightbox !== null && gallery[lightbox] && (
+                <div role="dialog" aria-modal="true" aria-label={`Photo: ${gallery[lightbox].title}`} style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(5,5,12,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={() => setLightbox(null)}>
+                  <SafeImage src={gallery[lightbox].src} fallback={PRISM_CHROMA_IMAGES.interior} alt={`${gallery[lightbox].title} — hair colour work at ${brandName}`} width={1200} height={900} style={{ maxHeight: '86vh', width: 'auto', maxWidth: '94vw', borderRadius: 20 }} loading="eager" />
+                  <button type="button" aria-label="Close photo" onClick={() => setLightbox(null)} className="pc-btn pc-btn-gradient" style={{ position: 'absolute', top: 16, right: 16, padding: '0.6rem 1rem' }}>
+                    <X size={16} aria-hidden="true" /> Close
+                  </button>
+                  <p style={{ position: 'absolute', bottom: 18, left: 0, right: 0, textAlign: 'center', fontWeight: 700 }}>{gallery[lightbox].title} · {lightbox + 1} / {gallery.length}</p>
+                </div>
+              )}
             </MotionSection>
 
             {/* 12 — Testimonials */}

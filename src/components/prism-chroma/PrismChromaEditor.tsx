@@ -13,13 +13,14 @@ import {
   PRISM_CHROMA_DEFAULT_BRANCHES,
   PRISM_CHROMA_DEFAULT_COLORS,
   PRISM_CHROMA_DEFAULT_FAQS,
+  PRISM_CHROMA_DEFAULT_PACKAGES,
   PRISM_CHROMA_DEFAULT_REVIEWS,
   PRISM_CHROMA_DEFAULT_SHADES,
   resolvePrismChromaConfig,
 } from '../../lib/prismChroma';
 import { BrandImageField } from '../BrandImageField';
 
-type EditorTab = 'brand' | 'shades' | 'branches' | 'reviews' | 'colors';
+type EditorTab = 'brand' | 'shades' | 'packages' | 'branches' | 'reviews' | 'colors';
 
 const COLOR_FIELDS: Array<{ key: keyof PrismChromaThemeColors; label: string; hint: string }> = [
   { key: 'bg', label: 'Ink background', hint: 'Main page background (--bg)' },
@@ -73,6 +74,7 @@ export function PrismChromaEditor({
   const tabs: Array<{ id: EditorTab; label: string; icon: React.ReactNode }> = [
     { id: 'brand', label: 'Brand & Hero', icon: <Sparkles size={15} aria-hidden="true" /> },
     { id: 'shades', label: 'Shade Studio', icon: <Palette size={15} aria-hidden="true" /> },
+    { id: 'packages', label: 'Packages', icon: <Sparkles size={15} aria-hidden="true" /> },
     { id: 'branches', label: 'Branches & FAQs', icon: <MapPin size={15} aria-hidden="true" /> },
     { id: 'reviews', label: 'Reviews', icon: <MessageSquareQuote size={15} aria-hidden="true" /> },
     { id: 'colors', label: 'Brand Colours', icon: <Palette size={15} aria-hidden="true" /> },
@@ -120,6 +122,16 @@ export function PrismChromaEditor({
           </div>
           <TextField label="About heading" value={raw.aboutHeading || ''} placeholder={config.aboutHeading} onChange={(v) => patch({ aboutHeading: v })} />
           <TextField label="Timings text" value={raw.workingHoursDisplay || ''} placeholder={config.workingHoursDisplay} onChange={(v) => patch({ workingHoursDisplay: v })} />
+          <TextField label="Google Maps embed URL (optional)" value={raw.mapEmbedUrl || ''} placeholder="Leave empty — the map is made from your address" onChange={(v) => patch({ mapEmbedUrl: v })} />
+          <div className="sm:col-span-2">
+            <span className={labelCls}>About / hero stat cards (value | label, one per line)</span>
+            <textarea
+              className={inputCls}
+              rows={4}
+              value={config.stats.map((s) => `${s.value} | ${s.label}`).join('\n')}
+              onChange={(e) => patch({ stats: e.target.value.split('\n').map((line, i) => { const [value, ...rest] = line.split('|'); return { id: config.stats[i]?.id || `pc-stat-${i + 1}`, value: (value || '').trim(), label: rest.join('|').trim() }; }).filter((s) => s.value || s.label) })}
+            />
+          </div>
           <div className="sm:col-span-2">
             <AreaField label="About your studio (story)" value={raw.aboutStory || ''} placeholder={config.aboutStory} rows={4} onChange={(v) => patch({ aboutStory: v })} />
           </div>
@@ -150,6 +162,9 @@ export function PrismChromaEditor({
               <div className="sm:col-span-4">
                 <AreaField label="One line about the shade" value={shade.blurb} rows={2} onChange={(v) => { const next = [...config.shades]; next[idx] = { ...shade, blurb: v }; patch({ shades: next }); }} />
               </div>
+              <div className="sm:col-span-4">
+                <BrandImageField label={`Shade photo — ${shade.name}`} value={shade.imageUrl} onChange={(url) => { const next = [...config.shades]; next[idx] = { ...shade, imageUrl: url }; patch({ shades: next }); }} hint="Leave empty to keep the Template 10 shade photo." />
+              </div>
             </div>
           ))}
           <div className="flex flex-wrap gap-2">
@@ -158,6 +173,41 @@ export function PrismChromaEditor({
             </button>
             <button type="button" className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700" onClick={() => patch({ shades: PRISM_CHROMA_DEFAULT_SHADES })}>
               <RotateCcw size={14} aria-hidden="true" /> Reset shades
+            </button>
+          </div>
+        </div>
+      )}
+
+      {tab === 'packages' && (
+        <div className="space-y-3">
+          <p className="text-xs text-slate-500">The three glass package cards on your site. Prices here are display prices — the bookable package services are edited in Services.</p>
+          {config.packages.map((pkg, idx) => (
+            <div key={pkg.id} className="grid gap-2 rounded-xl border border-slate-200 p-3 sm:grid-cols-3">
+              <TextField label={`Package ${idx + 1} name`} value={pkg.tier} onChange={(v) => { const next = [...config.packages]; next[idx] = { ...pkg, tier: v }; patch({ packages: next }); }} />
+              <TextField label="Price (₹)" value={String(pkg.price)} onChange={(v) => { const next = [...config.packages]; next[idx] = { ...pkg, price: Number(v.replace(/[^0-9]/g, '')) || pkg.price }; patch({ packages: next }); }} />
+              <TextField label="Badge (optional)" value={pkg.badgeLabel || ''} onChange={(v) => { const next = [...config.packages]; next[idx] = { ...pkg, badgeLabel: v }; patch({ packages: next }); }} />
+              <div className="sm:col-span-2">
+                <AreaField label="What is included (one per line)" value={pkg.includes.join('\n')} rows={4} onChange={(v) => { const next = [...config.packages]; next[idx] = { ...pkg, includes: v.split('\n').map((s) => s.trim()).filter(Boolean) }; patch({ packages: next }); }} />
+              </div>
+              <div className="flex flex-col justify-end gap-2">
+                <label className="flex items-center gap-2 text-xs font-bold text-slate-700">
+                  <input type="checkbox" checked={Boolean(pkg.popular)} onChange={(e) => { const next = [...config.packages]; next[idx] = { ...pkg, popular: e.target.checked }; patch({ packages: next }); }} /> Highlight this package
+                </label>
+                <button type="button" className="rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-50" onClick={() => patch({ packages: config.packages.filter((x) => x.id !== pkg.id) })} aria-label={`Remove package ${pkg.tier}`}>
+                  <Trash2 size={14} aria-hidden="true" /> Remove
+                </button>
+              </div>
+              <div className="sm:col-span-3">
+                <BrandImageField label={`Package photo — ${pkg.tier}`} value={pkg.imageUrl} onChange={(url) => { const next = [...config.packages]; next[idx] = { ...pkg, imageUrl: url }; patch({ packages: next }); }} hint="Leave empty to keep the Template 10 package photo." />
+              </div>
+            </div>
+          ))}
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className="inline-flex items-center gap-1 rounded-lg bg-violet-600 px-3 py-2 text-xs font-bold text-white" onClick={() => patch({ packages: [...config.packages, { id: `pc-pack-${Date.now()}`, tier: 'New Package', price: 2999, imageUrl: config.packages[0]?.imageUrl || '', includes: ['Add what is included'], linkedServiceId: '' }] })}>
+              <Plus size={14} aria-hidden="true" /> Add package
+            </button>
+            <button type="button" className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700" onClick={() => patch({ packages: PRISM_CHROMA_DEFAULT_PACKAGES })}>
+              <RotateCcw size={14} aria-hidden="true" /> Reset packages
             </button>
           </div>
         </div>

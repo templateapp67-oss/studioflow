@@ -11,6 +11,7 @@ import { isLegacyRoopStockCover, isLegacyRoopStockOwnerPhoto, isLegacyRoopStockT
 import { isLegacyNailStudioStockImage, isLegacyNailStudioStockTagline } from './pinkyNails';
 import { isLegacyMakeupStudioStockUrl, upgradeLegacyMakeupStudioStylists } from './vogueNoir';
 import { isLegacyMassageWellnessStockUrl, upgradeLegacyMassageWellnessStylists } from './bodhiTree';
+import { isLegacyHairColoringStockUrl, upgradeLegacyHairColoringStylists } from './prismChroma';
 import type { SalonProfile, SalonService, Stylist, ClientRecord } from '../types';
 const record=(value:any):Record<string,any>=>value&&typeof value==='object'&&!Array.isArray(value)?value:{};
 const list=(value:any)=>Array.isArray(value)?value.filter(item=>item&&typeof item==='object'&&!Array.isArray(item)):[];
@@ -38,6 +39,10 @@ export function normalizeWorkspace(value:unknown, identity:Record<string,any>={}
   if(!profile.coverImageUrl||isLegacyMassageWellnessStockUrl(profile.coverImageUrl))profile.coverImageUrl=CATEGORY_TEMPLATES.massage_wellness.coverImageUrl;
   if(!profile.ownerPhotoUrl||isLegacyMassageWellnessStockUrl(profile.ownerPhotoUrl))profile.ownerPhotoUrl=CATEGORY_TEMPLATES.massage_wellness.ownerPhotoUrl;
  }
+ if(profile.businessType==='hair_coloring'){
+  if(!profile.coverImageUrl||isLegacyHairColoringStockUrl(profile.coverImageUrl))profile.coverImageUrl=CATEGORY_TEMPLATES.hair_coloring.coverImageUrl;
+  if(!profile.ownerPhotoUrl||isLegacyHairColoringStockUrl(profile.ownerPhotoUrl))profile.ownerPhotoUrl=CATEGORY_TEMPLATES.hair_coloring.ownerPhotoUrl;
+ }
  profile.socialVideos=showcaseVideos(profile as SalonProfile);profile.demoVideosInitialized=true;
  const loyalty=record(draft.loyaltyConfig),extras=record(draft.extras);
  profile.websiteTestimonials=clientExperiences(profile as SalonProfile);profile.demoTestimonialsInitialized=true;
@@ -49,7 +54,7 @@ export function normalizeWorkspace(value:unknown, identity:Record<string,any>={}
  const normalizedStylists=list(draft.stylists).map(s=>({...s,name:typeof s.name==='string'?s.name:'',role:typeof s.role==='string'?s.role:'',avatarUrl:typeof s.avatarUrl==='string'?s.avatarUrl:'',specialties:Array.isArray(s.specialties)?s.specialties.filter(x=>typeof x==='string'):[],rating:Number.isFinite(s.rating)?s.rating:0})) as Stylist[];
  return {...draft,profile:profile as SalonProfile,
   services:list(draft.services).map(s=>({...s,origin:serviceOrigin(s as SalonService),name:typeof s.name==='string'?s.name:'',description:typeof s.description==='string'?s.description:'',category:typeof s.category==='string'?s.category:'',price:Number.isFinite(s.price)?s.price:(s.price===null||profile.businessType==='skincare_clinic'?null:0),durationMinutes:Number.isFinite(s.durationMinutes)?s.durationMinutes:30})) as SalonService[],
-  stylists:upgradeLegacyMassageWellnessStylists(upgradeLegacyMakeupStudioStylists(upgradeLegacyBeautyParlourStylists(normalizedStylists,profile.businessType),profile.businessType),profile.businessType),
+  stylists:upgradeLegacyHairColoringStylists(upgradeLegacyMassageWellnessStylists(upgradeLegacyMakeupStudioStylists(upgradeLegacyBeautyParlourStylists(normalizedStylists,profile.businessType),profile.businessType),profile.businessType),profile.businessType),
   clients:list(draft.clients) as ClientRecord[],
   loyaltyConfig:{...DEFAULT_LOYALTY_CONFIG,...loyalty,tierThresholds:{...DEFAULT_LOYALTY_CONFIG.tierThresholds,...record(loyalty.tierThresholds)},tierMultipliers:{...DEFAULT_LOYALTY_CONFIG.tierMultipliers,...record(loyalty.tierMultipliers)},rewards:Array.isArray(loyalty.rewards)?list(loyalty.rewards):DEFAULT_LOYALTY_CONFIG.rewards},
   extras:{...DEFAULT_EXTRAS,...extras,gallery:savedGallery,policies:{...DEFAULT_EXTRAS.policies,...record(extras.policies)},whiteLabel:{...DEFAULT_EXTRAS.whiteLabel,...record(extras.whiteLabel)}},

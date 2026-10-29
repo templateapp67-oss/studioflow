@@ -280,6 +280,33 @@ export function upgradeHairColoringTemplate<T extends { id: string }>(
   return { ...raw, ...local, services: remoteServices, stylists: remoteStylists } as unknown as T;
 }
 
+/** The pre-Template-10 hair_coloring demo used remote stock photos. */
+export function isLegacyHairColoringStockUrl(url?: string | null): boolean {
+  const value = (url || '').trim();
+  if (!value) return false;
+  return value.includes('images.unsplash.com');
+}
+
+export function upgradeLegacyHairColoringStylists<T extends Pick<Stylist, 'id' | 'avatarUrl'>>(
+  stylists: T[],
+  businessType?: string,
+): T[] {
+  if (businessType !== 'hair_coloring' || !Array.isArray(stylists)) return stylists;
+  const fallbackPortraits = [
+    PRISM_CHROMA_IMAGES.team.aarushi,
+    PRISM_CHROMA_IMAGES.team.kiara,
+    PRISM_CHROMA_IMAGES.team.priya,
+    PRISM_CHROMA_IMAGES.team.tara,
+  ];
+  return stylists.map((stylist, index) => {
+    const current = (stylist.avatarUrl || '').trim();
+    if (!current || isLegacyHairColoringStockUrl(current)) {
+      return { ...stylist, avatarUrl: fallbackPortraits[index % fallbackPortraits.length] };
+    }
+    return stylist;
+  });
+}
+
 export function isLegacyHairColoringService(id?: string | null): boolean {
   return LEGACY_HAIR_COLORING_SERVICE_IDS.has(String(id || ''));
 }

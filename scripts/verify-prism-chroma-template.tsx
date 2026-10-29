@@ -167,4 +167,34 @@ for (const needle of ['Template 10', 'Shade Studio', 'Brand Colours', 'Hero head
   assert.ok(editorHtml.includes(needle), `editor includes "${needle}"`);
 }
 console.log('PASS: PrismChromaEditor renders (brand, shades, branches/FAQs, reviews, colours).');
+/* End-to-end gaps: dashboard editor, legacy upgrades, footer map, full lists */
+const gapsEditorHtml = renderToStaticMarkup(<PrismChromaEditor profile={demoProfile} setProfile={() => {}} />);
+assert.ok(gapsEditorHtml.includes('Packages'), 'the owner editor has a Packages tab');
+const {normalizeWorkspace} = await import('../src/lib/normalizeWorkspace');
+const migrated = normalizeWorkspace({
+  profile: {...demoProfile, prismChroma: {heroHeadline: 'Owner Saved Headline'} as any, coverImageUrl: 'https://images.unsplash.com/photo-old-cover', ownerPhotoUrl: 'https://images.unsplash.com/photo-old-owner'},
+  stylists: template.stylists.map((s: any, i: number) => ({...s, avatarUrl: 'https://images.unsplash.com/photo-old-' + i})),
+  reviews: [], customers: [], appointments: [], expenses: [], memberships: [],
+} as any);
+const migratedProfile: any = migrated.profile;
+assert.ok(migratedProfile.coverImageUrl.startsWith('/templates/10/'), 'legacy stock cover upgrades to the local Template 10 hero image');
+assert.ok(migratedProfile.prismChroma?.heroHeadline === 'Owner Saved Headline', 'owner-saved prismChroma config survives workspace normalisation');
+assert.ok(migrated.stylists.every((s: any) => String(s.avatarUrl || '').startsWith('/templates/10/')), 'legacy stock stylist photos upgrade to local team photos');
+const mapHtml = renderToStaticMarkup(
+  <CustomerSalonWebsite profile={{...demoProfile, prismChroma: {mapEmbedUrl: 'https://maps.google.com/maps?q=Bandra%20West%20Mumbai&output=embed'} as any}} services={template.services} stylists={template.stylists} onAddAppointment={async (a: any) => a} />,
+);
+assert.ok(mapHtml.includes('maps.google.com/maps'), 'sites with a maps embed URL show the live map in the footer');
+const manyServices = [...template.services,
+  {id: 'pc-many-1', name: 'Pearl Gloss Ritual', category: 'Hair', price: 1800, durationMin: 45, description: 'Extra slot.'},
+  {id: 'pc-many-2', name: 'Silver Smoke Care', category: 'Hair', price: 2200, durationMin: 60, description: 'Extra slot.'},
+  {id: 'pc-many-3', name: 'Champagne Lights Care', category: 'Hair', price: 2600, durationMin: 75, description: 'Extra slot.'},
+  {id: 'pc-many-4', name: 'Protective Colour Bath', category: 'Hair', price: 1500, durationMin: 40, description: 'Extra slot.'}] as any;
+const manyHtml = renderToStaticMarkup(<CustomerSalonWebsite profile={demoProfile} services={manyServices} stylists={template.stylists} onAddAppointment={async (a: any) => a} />);
+for (const extra of ['Pearl Gloss Ritual', 'Silver Smoke Care', 'Champagne Lights Care', 'Protective Colour Bath']) assert.ok(manyHtml.includes(extra), `all owner services render (not capped at 8): ${extra}`);
+const extraStylist = renderToStaticMarkup(<CustomerSalonWebsite profile={demoProfile} services={template.services} onAddAppointment={async (a: any) => a} stylists={[...template.stylists, {id: 'pc-stylist-5', name: 'Ishaan Rao', title: 'Gloss Specialist', rating: 4.8, specialties: ['Gloss'], bio: 'Fifth expert.', avatarUrl: '', gender: 'male' as const, identityConfirmed: false, bioEligible: false, faceproofPortfolio: []} as any]} />);
+assert.ok(extraStylist.includes('Ishaan Rao'), 'all owner team members render (not capped at 4)');
+const {websiteFavicon} = await import('../src/lib/websiteFavicon');
+assert.ok(websiteFavicon(undefined, demoProfile as any) === '/templates/10/favicon.svg', 'hair_coloring sites fall back to the Template 10 favicon');
+console.log('PASS: end-to-end gaps — editor wired, legacy media upgrades, footer map, uncapped services/team.');
+
 console.log('\nAll Prism & Chroma (Template 10) checks passed.');
