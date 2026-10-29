@@ -1,4 +1,4 @@
-import type { Variants } from 'motion/react';
+import type { Variants } from 'framer-motion';
 
 /**
  * Shared Framer Motion variants (Template 09+).

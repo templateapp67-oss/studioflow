@@ -1,4 +1,4 @@
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { ArrowRight, Check, Clock3, Crown } from 'lucide-react';
 import type { BodhiTreePalaceItem, SalonService } from '../../types';
 import { BODHI_TREE_IMAGES, bodhiFormatInr } from '../../lib/bodhiTree';

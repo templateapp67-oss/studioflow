@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence, MotionConfig, motion } from 'motion/react';
+import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import {
   ArrowRight,
   ArrowUpRight,
@@ -729,21 +729,25 @@ export function BodhiTreeWebsite({
                     </motion.div>
                   </div>
 
-                  {/* Main central glass card */}
+                  {/* Main central glass card — Framer Motion entrance on the
+                      wrapper; glassmorphism + smooth CSS hover lift on the
+                      card itself (a Motion inline transform would override
+                      a CSS :hover transform on the same element). */}
                   <div className="relative mx-auto max-w-7xl px-4 pb-10 sm:px-6">
                     <motion.div
                       variants={scaleIn}
                       initial={canObserveViewport ? 'hidden' : 'visible'}
                       whileInView={canObserveViewport ? 'visible' : undefined}
                       viewport={revealViewport}
-                      className="bt-glass grid grid-cols-2 gap-4 px-6 py-5 text-center text-[#FAF6EE] lg:grid-cols-4"
                     >
-                      {config.stats.map((stat) => (
-                        <div key={stat.id}>
-                          <span className="bt-serif block text-3xl font-semibold sm:text-4xl">{stat.value}</span>
-                          <span className="block pt-1 text-[11px] font-bold uppercase tracking-[0.16em] text-[#FAF6EE]/85">{stat.label}</span>
-                        </div>
-                      ))}
+                      <div className="bt-glass bt-lift grid grid-cols-2 gap-4 px-6 py-5 text-center text-[#FAF6EE] lg:grid-cols-4">
+                        {config.stats.map((stat) => (
+                          <div key={stat.id}>
+                            <span className="bt-serif block text-3xl font-semibold sm:text-4xl">{stat.value}</span>
+                            <span className="block pt-1 text-[11px] font-bold uppercase tracking-[0.16em] text-[#FAF6EE]/85">{stat.label}</span>
+                          </div>
+                        ))}
+                      </div>
                     </motion.div>
                   </div>
                 </section>
