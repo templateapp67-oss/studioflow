@@ -184,6 +184,32 @@ for (const marker of ['hero', 'services', 'experiences', 'gallery', 'location', 
 }
 console.log('PASS: Bodhi Tree home — royal Jaipur hero, DeviceMockup, glass stats, palace preview, layout order.');
 
+/* ---------------- 4b. Hero entrance animation is armed + E2E content guards ---------------- */
+// Regression: AnimatePresence initial={false} used to block every first-mount
+// entrance (blockInitialAnimation). The headline must start at y:40/opacity:0
+// and the DeviceMockup at scale(0.92)/opacity:0 so Framer Motion animates them.
+const h1Tag = home.match(/<h1[^>]*id="bt-hero-heading"[^>]*>/)?.[0] || '';
+assert.ok(h1Tag.includes('translateY(40px)') && h1Tag.includes('opacity:0'), 'hero headline starts hidden at y:40 and slides up (heroHeadline)');
+const mockupTag = home.match(/<div[^>]*class="hidden justify-self-end md:block"[^>]*>/)?.[0] || '';
+assert.ok(mockupTag.includes('scale(0.92)') && mockupTag.includes('opacity:0'), 'DeviceMockup starts at scale 0.92 and fades/scales in (deviceMockupIn)');
+// Real guest reviews submitted through the platform flow appear first.
+const withRealReview = renderPage('#reviews', {
+  ...demoProfile,
+  websiteTestimonials: [{
+    id: 'real-guest-1', name: 'Real Guest', location: 'Jaipur', rating: 5,
+    serviceName: 'Abhyanga (Ayurvedic Oil Massage)', comment: 'My actual visit was wonderful and calm.',
+    avatarUrl: '', date: '2026-01-01', isDemo: false,
+  }],
+});
+assert.ok(withRealReview.includes('Real Guest') && withRealReview.includes('My actual visit was wonderful and calm.'), 'real submitted review renders');
+assert.ok(withRealReview.indexOf('Real Guest') < withRealReview.indexOf('Neha S.'), 'real reviews lead, editor samples follow');
+// A published salon with no staff must never show demo therapists.
+const publishedEmptyTeam = renderPage('#team', demoProfile, template.services, []);
+assert.ok(!publishedEmptyTeam.includes('Kavita Sharma') && publishedEmptyTeam.includes('Our team page is coming soon.'), 'published site with no staff shows an honest empty state');
+const demoEmptyTeam = renderPage('#team', { ...demoProfile, subdomain: '' }, template.services, []);
+assert.ok(demoEmptyTeam.includes('Kavita Sharma'), 'template demo still previews the starter therapists');
+console.log('PASS: hero entrance animation armed (y:40 headline, scale .92 mockup); real reviews merge first; published empty team stays honest.');
+
 /* ---------------- 5. Every page renders its content (deep-link hashes) ---------------- */
 const palace = renderPage('#palace');
 for (const [title, price] of palaceExpect) {

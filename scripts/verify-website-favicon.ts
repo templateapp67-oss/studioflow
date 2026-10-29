@@ -5,6 +5,8 @@ assert.equal(websiteFavicon({faviconUrl:''},{logoUrl:logo}),logo);
 assert.equal(websiteFavicon({faviconUrl:custom},{logoUrl:logo}),custom);
 assert.equal(websiteFavicon({faviconUrl:'javascript:alert(1)'},{logoUrl:logo}),logo);
 assert.equal(websiteFavicon(),'/customer-icon-192.png');
+assert.equal(websiteFavicon({},{businessType:'massage_wellness'}),'/templates/bodhi-tree/favicon.svg','Bodhi Tree sites fall back to the bodhi leaf tab icon');
+assert.equal(websiteFavicon({},{businessType:'makeup_studio'}),'/templates/vogue-noir/favicon.svg');
 assert.equal(websiteFavicon({faviconUrl:'/assets/custom.png'}),'/assets/custom.png');
 let current:any=null;
 function node(){const attrs:any={};const events:any={};return {rel:'',get href(){return attrs.href},set href(v:string){attrs.href=v},setAttribute(k:string,v:string){attrs[k]=v},getAttribute(k:string){return attrs[k]??null},removeAttribute(k:string){delete attrs[k]},addEventListener(k:string,v:any){events[k]=v},removeEventListener(k:string){delete events[k]},remove(){current=null},fail(){events.error?.()}};}

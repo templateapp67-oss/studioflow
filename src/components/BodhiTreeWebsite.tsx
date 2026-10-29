@@ -21,7 +21,7 @@ import {
   X,
   Youtube,
 } from 'lucide-react';
-import type { SalonProfile, SalonService, Stylist } from '../types';
+import type { BodhiTreeReviewItem, SalonProfile, SalonService, Stylist } from '../types';
 import type { SalonGalleryPhoto } from '../lib/photoGallery';
 import { isPackage } from '../lib/packageCatalogue';
 import { promotionActive, usePromotionClock } from '../lib/promotionStatus';
@@ -239,7 +239,7 @@ export function BodhiTreeWebsite({
     }
   };
 
-  const team = stylists.length > 0 ? stylists : BODHI_TREE_DEFAULT_STYLISTS;
+  const team = stylists.length > 0 ? stylists : profile.subdomain ? [] : BODHI_TREE_DEFAULT_STYLISTS;
   const packageServices = useMemo(() => {
     const explicit = services.filter((s) => (s.category || '').trim() === 'Packages');
     return explicit.length > 0 ? explicit : services.filter(isPackage);
@@ -307,9 +307,33 @@ export function BodhiTreeWebsite({
     .map((item, index) => ({ item, index }))
     .filter(({ item }) => galleryCat === 'All' || item.tag === galleryCat);
 
+  // Real guest reviews submitted through the platform review flow come
+  // first; the owner-managed Bodhi Tree reviews fill in behind them
+  // (same merge as Vogue Noir's displayReviews).
+  const displayReviews = useMemo<BodhiTreeReviewItem[]>(() => {
+    const real = (profile.websiteTestimonials || []).filter(
+      (r) => !r.isDemo && (r.comment || '').trim(),
+    );
+    const mappedReal: BodhiTreeReviewItem[] = real.map((r) => ({
+      id: r.id,
+      name: r.name || 'Guest',
+      tag: r.location || 'Jaipur',
+      rating: r.rating || 5,
+      quote: r.comment,
+      serviceName: r.serviceName || '',
+      avatarUrl: r.avatarUrl || '',
+    }));
+    const seen = new Set(mappedReal.map((r) => r.quote.trim().toLowerCase()));
+    const combined = [...mappedReal];
+    for (const sample of config.reviews) {
+      if (!seen.has(sample.quote.trim().toLowerCase())) combined.push(sample);
+    }
+    return combined;
+  }, [profile.websiteTestimonials, config.reviews]);
+
   const averageRating =
-    config.reviews.length > 0
-      ? config.reviews.reduce((sum, r) => sum + r.rating, 0) / config.reviews.length
+    displayReviews.length > 0
+      ? displayReviews.reduce((sum, r) => sum + r.rating, 0) / displayReviews.length
       : 0;
 
   // Shared owner-managed website sections (promo / videos / loyalty / policies
@@ -655,7 +679,11 @@ export function BodhiTreeWebsite({
         </motion.header>
 
         {/* ---------- Pages ---------- */}
-        <AnimatePresence mode="wait" initial={false}>
+        {/* NOTE: do NOT add initial={false} here — Framer Motion propagates
+            it as blockInitialAnimation to EVERY descendant, which silently
+            kills the hero entrance (headline slide-up, DeviceMockup
+            scale-in) and all first-page reveals. */}
+        <AnimatePresence mode="wait">
           <motion.main
             id="bt-main-content"
             key={page}
@@ -913,7 +941,7 @@ export function BodhiTreeWebsite({
                   <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:py-20">
                     {sectionHeading('Guest Love', 'What Jaipur Says About Us', 'Real words from our guests, in simple words — just like us.', true)}
                     <motion.div variants={stagger} initial={canObserveViewport ? 'hidden' : 'visible'} whileInView={canObserveViewport ? 'visible' : undefined} viewport={revealViewport} className="grid gap-6 pt-10 md:grid-cols-3">
-                      {config.reviews.slice(0, 3).map((review) => reviewCard(review, true))}
+                      {displayReviews.slice(0, 3).map((review) => reviewCard(review, true))}
                     </motion.div>
                     <div className="pt-10 text-center">
                       <button type="button" onClick={() => go('reviews')} className="bt-btn bt-btn-gold px-6 py-3.5 text-sm">
@@ -1288,9 +1316,9 @@ export function BodhiTreeWebsite({
               <>
                 {pageBand('Testimonials', 'Guest Words, Simple & Sweet', averageRating ? `Average rating ${averageRating.toFixed(1)} out of 5, from guests across Jaipur.` : 'Words from our guests across Jaipur.')}
                 <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
-                  {config.reviews.length > 0 ? (
+                  {displayReviews.length > 0 ? (
                     <motion.div variants={stagger} initial={canObserveViewport ? 'hidden' : 'visible'} whileInView={canObserveViewport ? 'visible' : undefined} viewport={revealViewport} className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-                      {config.reviews.map((review) => reviewCard(review))}
+                      {displayReviews.map((review) => reviewCard(review))}
                     </motion.div>
                   ) : (
                     <p className="text-center text-sm text-[color:var(--bt-muted)]">Reviews are coming soon. Be our first guest to share your experience!</p>
