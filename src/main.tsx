@@ -31,6 +31,7 @@ import './components/dermacure.css';
 import './components/vogueNoir.css';
 import './components/bodhiTree.css';
 import './components/prismChroma.css';
+import './components/shringaarRoyal.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

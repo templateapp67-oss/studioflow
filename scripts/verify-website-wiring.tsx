@@ -193,14 +193,14 @@ for(const template of Object.values(CATEGORY_TEMPLATES)) {
   const dock=html.match(/<nav data-layout="dock"[\s\S]*?<\/nav>/)?.[0]||'';for(const label of ['Offers','Services','Our Team','Lookbook','Reviews','Location'])assert.ok(dock.includes(label),`${template.id}: ${label} dock link missing`);
   assert.ok(html.includes('WhatsApp Inquiry'));
  }
-if(['hair_spa','makeup_studio','massage_wellness','hair_coloring'].includes(template.id)){
- // Templates 06, 08, 09 and 10 use their own editorial hero instead of the shared "Rich warm mood" badge copy.
+if(['hair_spa','makeup_studio','massage_wellness','hair_coloring','bridal_lounge'].includes(template.id)){
+ // Templates 06, 08, 09, 10 and 11 use their own editorial hero instead of the shared "Rich warm mood" badge copy.
  assert.ok(!html.includes('Rich warm mood'),'Editorial hero must not leak shared design-reference copy');
  assert.ok(html.includes('Test Studio'),'Editorial hero shows the saved salon name');
 }else assert.ok(html.includes('Rich warm mood'));
 if(['hair_spa','makeup_studio','massage_wellness','hair_coloring'].includes(template.id))assert.ok(!html.includes('Verified checkout'),'Editorial demo must not imply an active verified checkout');else assert.ok(html.includes('Verified checkout'));assert.ok(html.includes('Service categories'));
  // Templates 06 and 08 name their booking action in the studio's own words.
- if(template.id==='hair_spa')assert.ok(html.includes('Book this service'),'hair spa service cards expose the booking action');else if(template.id==='makeup_studio')assert.ok(html.includes('>Book<')&&html.includes('Book Appointment'),'Vogue Noir service cards expose the booking action');else if(template.id==='massage_wellness')assert.ok(html.includes('Book Now'),'Bodhi Tree service cards expose the booking action in simple words');else if(template.id==='hair_coloring')assert.ok(html.includes('Book Now'),'Prism & Chroma service cards expose the booking action in simple words');else assert.ok(html.includes('Choose for online booking'));
+ if(template.id==='hair_spa')assert.ok(html.includes('Book this service'),'hair spa service cards expose the booking action');else if(template.id==='makeup_studio')assert.ok(html.includes('>Book<')&&html.includes('Book Appointment'),'Vogue Noir service cards expose the booking action');else if(template.id==='massage_wellness')assert.ok(html.includes('Book Now'),'Bodhi Tree service cards expose the booking action in simple words');else if(template.id==='hair_coloring')assert.ok(html.includes('Book Now'),'Prism & Chroma service cards expose the booking action in simple words');else if(template.id==='bridal_lounge'){assert.ok(html.includes('aria-label="Book '),'Shringaar Royal ritual tiles expose a book action');assert.ok(html.includes('Book Consultation'),'Shringaar Royal hero and header carry the consultation CTA');}else assert.ok(html.includes('Choose for online booking'));
  assert.ok(!html.includes('Verified client'),'Owner-entered reviews must not be labelled verified by default');
  if(template.id==='massage_wellness'){
   // Template 09 is multi-page: Home previews the most-loved massages, every
@@ -216,6 +216,11 @@ if(['hair_spa','makeup_studio','massage_wellness','hair_coloring'].includes(temp
   // Full Transformation) instead of menu rows.
   for(const service of template.services.filter(s=>!/package|combo|bundle/i.test(s.name+' '+s.category))){assert.ok(html.includes(service.name.replaceAll('&','&amp;').replaceAll("'",'&#x27;')),`Prism & Chroma menu shows ${service.name}`);assert.ok(html.includes(`${service.durationMinutes} min`),`Prism & Chroma menu shows ${service.name} duration`);}
   for(const tier of ['Starter','Signature','Full Transformation'])assert.ok(html.includes(tier),`Prism & Chroma shows the ${tier} package tier`);
+ }else if(template.id==='bridal_lounge'){
+  // Template 11 shows the rituals as image tiles (name + ₹ price + duration) and
+  // the makeover bundles as three heirloom tiers, so package rows never repeat.
+  for(const service of template.services.filter(s=>!/package|combo|bundle/i.test(s.name+' '+s.category))){assert.ok(html.includes(service.name.replaceAll('&','&amp;').replaceAll("'",'&#x27;')),`Shringaar Royal shows ${service.name}`);assert.ok(html.includes(`${service.durationMinutes} min`),`Shringaar Royal shows ${service.name} duration`);}
+  for(const tier of ['Classic Shringaar','Royal Rajputana','Maharani Heirloom'])assert.ok(html.includes(tier),`Shringaar Royal shows the ${tier} package tier`);
  }else for(const service of template.services){assert.ok(html.includes(service.name.replaceAll('&','&amp;').replaceAll("'",'&#x27;')));assert.ok(html.includes(`${service.durationMinutes} min`));}
 }
 console.log('PASS: all 14 templates follow hero → dock → services → specialists → experiences/lookbook → location → footer; category pricing, duration, WhatsApp and specialist booking controls are present.');
@@ -257,6 +262,16 @@ assert.ok(!html.includes('Client experiences will appear here'));
 assert.ok(!html.includes('Demo testimonial'),'Prism & Chroma never prints the generic demo testimonial label');
 assert.ok(html.includes('Ananya Kapoor'),'Prism & Chroma shows its seeded colour-studio reviews');
 assert.ok(html.includes('/templates/10/'),'Prism & Chroma shows its own gallery photographs');
+assert.ok(!html.includes('Verified client'));
+assert.ok(!html.includes('Client experiences will appear here'));
+}else if(template.id==='bridal_lounge'){
+// Template 11 (Shringaar Royal) renders its own bride reviews and bridal-diary
+// gallery with an explicit "shared with permission" note instead of the generic
+// demo labels, and never claims a verified client.
+assert.ok(!html.includes('Demo testimonial'),'Shringaar Royal never prints the generic demo testimonial label');
+assert.ok(html.includes('Gayatri Rathore'),'Shringaar Royal shows its seeded Rajputana bride reviews');
+assert.ok(html.includes('/templates/11/'),'Shringaar Royal shows its own bridal photography');
+assert.ok(html.includes('shared with each bride'),'Shringaar Royal states reviews are shared with permission');
 assert.ok(!html.includes('Verified client'));
 assert.ok(!html.includes('Client experiences will appear here'));
 }else{assert.ok(html.includes('Demo testimonial'));assert.ok(html.includes('Demo lookbook'));assert.ok(!html.includes('Client experiences will appear here'));}
@@ -316,7 +331,7 @@ const customService:SalonService={clinicServiceApproved:true,clinicPublicationSt
 for(const template of Object.values(CATEGORY_TEMPLATES)){
  const profile={...INITIAL_SALON_PROFILE,businessType:template.id,serviceCatalogueInitialized:true};
  const html=renderToStaticMarkup(<CustomerSalonWebsite profile={profile} services={[customService]} stylists={[]} onAddAppointment={async apt=>apt}/>);
- assert.ok(html.includes(template.id==='skincare_clinic'?'dc-directory-item':'sf-service-row'));assert.ok(html.includes(customService.name));assert.ok(html.includes(customService.description));assert.ok(html.includes(customService.category));assert.ok(html.includes('₹1,250.5'));assert.ok(!html.includes('55 min'));
+ assert.ok(html.includes(template.id==='skincare_clinic'?'dc-directory-item':template.id==='bridal_lounge'?'sr-service ':'sf-service-row'));assert.ok(html.includes(customService.name));assert.ok(html.includes(customService.description));assert.ok(html.includes(customService.category));assert.ok(html.includes('₹1,250.5'));assert.ok(!html.includes('55 min'));
  const normalized=normalizeWorkspace(JSON.parse(JSON.stringify({profile,services:[customService]})));
  assert.deepEqual(normalized.services,[customService]);
  const switched=servicesForTemplate(normalized.services,normalized.profile,template);assert.deepEqual(switched,[customService]);
@@ -397,11 +412,12 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
   for(const id of ['home','about','treatments','technology','results','contact']){assert.ok(nav.includes(`href="#${id}"`));assert.ok(html.includes(`id="${id}"`));}
   continue;
  }
- const nav=template.id==='hair_spa'?(html.match(/<nav class="kp-desktop-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='makeup_studio'?(html.match(/<nav class="vn-desktop-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='massage_wellness'?(html.match(/<nav class="bt-desktop-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='hair_coloring'?(html.match(/<nav[^>]*aria-label="Website navigation"[\s\S]*?<\/nav>/)?.[0]||''):html.match(/<nav class="sf-header-links"[\s\S]*?<\/nav>/)![0];
+ const nav=template.id==='hair_spa'?(html.match(/<nav class="kp-desktop-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='makeup_studio'?(html.match(/<nav class="vn-desktop-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='massage_wellness'?(html.match(/<nav class="bt-desktop-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='hair_coloring'?(html.match(/<nav[^>]*aria-label="Website navigation"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='bridal_lounge'?(html.match(/<nav class="sr-nav-links"[\s\S]*?<\/nav>/)?.[0]||''):html.match(/<nav class="sf-header-links"[\s\S]*?<\/nav>/)![0];
  if(template.id==='hair_spa'){for(const label of ['Our Philosophy','Treatments','Scalp Care','The Sanctuary','Gallery','Contact'])assert.ok(nav.includes(label),`${template.id}: missing editorial link ${label}`);for(const href of ['#philosophy','#treatments','#journey','#sanctuary','#gallery','#contact'])assert.ok(html.includes(`href="${href}"`),`${template.id}: broken anchor ${href}`);assert.ok(html.includes('id="sanctuary"')&&html.includes('id="gallery"'),'the sanctuary story and the gallery are two resolving sections');}
  else if(template.id==='makeup_studio'){for(const label of ['Home','Services','Academy','Portfolio','Reviews','Contact'])assert.ok(nav.includes(label),`${template.id}: missing Vogue Noir link ${label}`);for(const href of ['#home','#services','#academy','#portfolio','#reviews','#contact']){assert.ok(html.includes(`href="${href}"`),`${template.id}: broken anchor ${href}`);assert.ok(html.includes(`id="${href.slice(1)}"`),`${template.id}: missing section ${href}`);}}
  else if(template.id==='massage_wellness'){for(const label of ['Home','About','Massages','Palace Collection','Packages','Gallery','Team','Reviews','Contact'])assert.ok(nav.includes(label),`${template.id}: missing Bodhi Tree link ${label}`);assert.ok(!nav.includes('href="#"'),'Bodhi Tree page navigation uses working buttons, never dead anchors');}
  else if(template.id==='hair_coloring'){for(const label of ['Services','Shades','Results','Packages','Experts','Gallery','Reviews','FAQ'])assert.ok(nav.includes(label),`${template.id}: missing Prism & Chroma link ${label}`);for(const href of ['#pc-services','#pc-shades','#pc-results','#pc-packages','#pc-team','#pc-gallery','#pc-reviews','#pc-faq']){assert.ok(html.includes(`href="${href}"`),`${template.id}: broken anchor ${href}`);assert.ok(html.includes(`id="${href.slice(1)}"`),`${template.id}: missing section ${href}`);}assert.ok(!nav.includes('href="#"'),'Prism & Chroma navigation uses working anchors, never dead links');}
+ else if(template.id==='bridal_lounge'){for(const label of ['Collections','Lookbook','Packages','Services','Artists','Reviews','Contact'])assert.ok(nav.includes(label),`${template.id}: missing Shringaar Royal link ${label}`);for(const href of ['#sr-collections','#sr-looks','#sr-packages','#sr-services','#sr-artists','#sr-reviews','#sr-booking']){assert.ok(html.includes(`href="${href}"`),`${template.id}: broken anchor ${href}`);assert.ok(html.includes(`id="${href.slice(1)}"`),`${template.id}: missing section ${href}`);}assert.ok(!nav.includes('href="#"'),'Shringaar Royal navigation uses working anchors, never dead links');}
  else{for(const [,label] of HEADER_LINKS)assert.ok(nav.includes(label),`${template.id}: missing header link ${label}`);for(const link of headerLinks(profile))if(link.href.startsWith('#'))assert.ok(html.includes(`id="${link.href.slice(1)}"`),`${template.id}: broken anchor ${link.href}`);}
  const hidden={...profile,websiteSections:{gallery:false,packages:false,about:false}};
  assert.ok(headerLinks(hidden).every(link=>!['gallery','packages','about'].includes(link.id)));

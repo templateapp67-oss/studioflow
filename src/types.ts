@@ -214,6 +214,7 @@ export interface SalonProfile {
   vogueNoir?: VogueNoirConfig;
   bodhiTree?: BodhiTreeConfig;
   prismChroma?: PrismChromaConfig;
+  shringaarRoyal?: ShringaarRoyalConfig;
 
   businessType: BusinessTypeId;
   businessName: string;
@@ -839,5 +840,160 @@ export interface PrismChromaConfig {
   /** Daily opening time "HH:MM" (24h) for the Open-now chip. */
   openTime?: string;
   /** Daily closing time "HH:MM" (24h) for the Open-now chip. */
+  closeTime?: string;
+}
+
+/* ---------------------------------------------------------------------------
+ * Template 11 — Shringaar Royal Indian Bridal Lounge (bridal_lounge)
+ * "Royal Rajputana × Sabyasachi": antique ivory canvas, oxblood maroon,
+ * royal gold, marigold saffron, peacock teal and rose blush.
+ *
+ * Every interface below is optional content stored on the salon profile.
+ * `lib/shringaarRoyal.ts` resolves each missing value to the bundled demo
+ * defaults (or to the live onboarding service catalogue), so a published
+ * storefront never renders an empty section, image or price.
+ * ------------------------------------------------------------------------- */
+
+export interface ShringaarRoyalColors {
+  /** Deep oxblood primary (--sr-maroon). */
+  maroon: string;
+  /** Royal gold accent (--sr-gold). */
+  gold: string;
+  /** Antique ivory page background (--sr-ivory). */
+  ivory: string;
+  /** Marigold saffron highlight (--sr-saffron). */
+  saffron: string;
+  /** Peacock teal secondary accent, used sparingly (--sr-teal). */
+  teal: string;
+  /** Rose blush soft surface (--sr-blush). */
+  blush: string;
+  /** Charcoal brown body text (--sr-ink). */
+  ink: string;
+}
+
+export interface ShringaarStatItem {
+  id: string;
+  /** e.g. "1,200+" — kept as text so no counter script is required. */
+  value: string;
+  label: string;
+  image: string;
+  alt: string;
+}
+
+export interface ShringaarCollectionItem {
+  id: string;
+  name: string;
+  subtitle: string;
+  image: string;
+  alt: string;
+}
+
+export interface ShringaarLookItem {
+  id: string;
+  image: string;
+  alt: string;
+  caption: string;
+  tag: string;
+}
+
+export interface ShringaarPackageItem {
+  id: string;
+  /** Classic / Royal / Maharani. */
+  tier: string;
+  tagline: string;
+  /** Live onboarding service whose ₹ price this package displays. */
+  serviceId?: string;
+  /** Fallback ₹ price in INR when no live service matches. */
+  price?: number;
+  image: string;
+  alt: string;
+  /** Highlighted centre card in glassmorphism. */
+  popular?: boolean;
+  badge?: string;
+  /** e.g. "5 visits". */
+  sessions?: string;
+  includes: string[];
+}
+
+export interface ShringaarBeforeAfter {
+  id: string;
+  title: string;
+  before: string;
+  after: string;
+  alt: string;
+}
+
+export interface ShringaarProcessStep {
+  id: string;
+  title: string;
+  text: string;
+  image: string;
+  alt: string;
+  /** e.g. "Week 1". */
+  durationLabel?: string;
+}
+
+export interface ShringaarReviewItem {
+  id: string;
+  name: string;
+  /** e.g. "Palace wedding · C-Scheme, Jaipur". */
+  weddingPlace: string;
+  rating: number;
+  quote: string;
+  avatar: string;
+  alt: string;
+  date?: string;
+}
+
+export interface ShringaarFaqItem {
+  id: string;
+  question: string;
+  answer: string;
+}
+
+export interface ShringaarRoyalConfig {
+  selectorLabel?: string;
+  heroHeading?: string;
+  heroScript?: string;
+  heroSubtext?: string;
+  heroImageUrl?: string;
+  aboutHeading?: string;
+  aboutStory?: string;
+  aboutImageUrl?: string;
+  collectionsHeading?: string;
+  collectionsSubtext?: string;
+  looksHeading?: string;
+  looksSubtext?: string;
+  servicesHeading?: string;
+  packagesHeading?: string;
+  packageEyebrow?: string;
+  processHeading?: string;
+  reviewsHeading?: string;
+  galleryHeading?: string;
+  offerHeading?: string;
+  offerText?: string;
+  bookingHeading?: string;
+  announcementText?: string;
+  bookingImageUrl?: string;
+  offerImageUrl?: string;
+  publicEmail?: string;
+  workingHoursDisplay?: string;
+  mapEmbedUrl?: string;
+  /** e.g. "Est. 2014 · Jaipur". */
+  established?: string;
+  colors?: Partial<ShringaarRoyalColors>;
+  stats?: ShringaarStatItem[];
+  collections?: ShringaarCollectionItem[];
+  looks?: ShringaarLookItem[];
+  packages?: ShringaarPackageItem[];
+  beforeAfter?: ShringaarBeforeAfter[];
+  processSteps?: ShringaarProcessStep[];
+  reviews?: ShringaarReviewItem[];
+  faqs?: ShringaarFaqItem[];
+  /** Instagram-style gallery strip (6–8 photos). */
+  galleryUrls?: string[];
+  /** Daily opening time "HH:MM" (24h) for the open-now chip. */
+  openTime?: string;
+  /** Daily closing time "HH:MM" (24h) for the open-now chip. */
   closeTime?: string;
 }

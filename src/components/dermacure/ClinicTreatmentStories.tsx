@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useDermacure } from './context';
 import { EditorialImage } from './EditorialImage';
+import { reelSource } from '../../lib/socialVideoSource';
 import type { TreatmentStory } from '../../types';
 
 export const DEFAULT_TREATMENT_STORIES: TreatmentStory[] = [
@@ -161,9 +162,10 @@ Open communication about your medical history, daily routines, and expectations 
 ];
 
 export function ClinicTreatmentStories() {
-  const { profile, enquire } = useDermacure();
+  const { profile, enquire, visible } = useDermacure();
   const [selectedStory, setSelectedStory] = useState<TreatmentStory | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>('All');
+  const [openVideoId, setOpenVideoId] = useState<string>('');
   const scrollRailRef = useRef<HTMLDivElement>(null);
 
   const stories: TreatmentStory[] = (profile.treatmentStories && profile.treatmentStories.length > 0)
@@ -175,6 +177,12 @@ export function ClinicTreatmentStories() {
     .sort((a, b) => (a.order || 0) - (b.order || 0));
 
   const categories = ['All', ...Array.from(new Set(publishedStories.map(s => s.category).filter(Boolean)))];
+
+  // The clinic's own filmed stories. Bundled demo reels are never shown here,
+  // and a video only loads its player after the visitor presses play.
+  const clinicVideos = (visible?.videos === false ? [] : profile.socialVideos || [])
+    .filter((video) => video && video.isDemo !== true && video.isOwnerVideo !== false && Boolean(reelSource(video)))
+    .slice(0, 6);
 
   const filteredStories = publishedStories.filter(story => {
     return activeCategory === 'All' || story.category === activeCategory;
@@ -357,6 +365,46 @@ export function ClinicTreatmentStories() {
           </div>
         )}
       </div>
+
+      {clinicVideos.length > 0 && (
+        <div className="mt-12">
+          <h3 className="text-lg font-bold text-gray-900">Watch the clinic</h3>
+          <p className="text-xs text-gray-600 mt-1">Filmed by our own care team.</p>
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {clinicVideos.map((video) => {
+              const source = reelSource(video)!;
+              const open = openVideoId === video.id;
+              return (
+                <article key={video.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                  <div className="relative aspect-video bg-gray-900">
+                    {open ? (
+                      <iframe
+                        src={`https://www.youtube.com/embed/${source.id}?rel=0`}
+                        title={video.title || 'Clinic treatment video'}
+                        className="w-full h-full border-0"
+                        allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setOpenVideoId(video.id)}
+                        aria-label={`Watch ${video.title || 'clinic treatment video'}`}
+                        className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/40 transition-colors cursor-pointer"
+                      >
+                        <span className="w-12 h-12 rounded-full bg-emerald-600/90 text-white flex items-center justify-center shadow-lg">
+                          <Play className="w-5 h-5 fill-current ml-0.5" />
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                  <p className="p-4 text-xs font-bold text-gray-900">{video.title || 'Treatment video'}</p>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* STORY DETAIL MODAL */}
       <AnimatePresence>

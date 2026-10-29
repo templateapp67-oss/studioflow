@@ -1297,7 +1297,12 @@ export function BodhiTreeWebsite({
                               <button type="button" onClick={() => book(undefined, member)} className="bt-btn bt-btn-primary flex-1 px-3 py-2.5 text-[13px]">
                                 Book with {member.name.split(' ')[0]}
                               </button>
-                              <button type="button" onClick={() => onViewSpecialist(member.id)} className="bt-btn bt-btn-outline px-3 py-2.5 text-[13px]">
+                              <button
+                                type="button"
+                                onClick={() => onViewSpecialist(member.id)}
+                                aria-label={`View profile & reviews: ${member.name}`}
+                                className="bt-btn bt-btn-outline px-3 py-2.5 text-[13px]"
+                              >
                                 Profile
                               </button>
                             </div>

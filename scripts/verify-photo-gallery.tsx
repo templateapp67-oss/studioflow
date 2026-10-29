@@ -57,6 +57,16 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
   const savedHtml=renderToStaticMarkup(<CustomerSalonWebsite profile={{...profile,photoGalleryInitialized:true,photoGalleryType:'hair_coloring',photoGallery:[{id:'pc-own-1',category:'Hair' as const,url:'https://cdn.example.com/saved-colour-look.jpg',title:'Saved colour look',isDemo:false}]}} services={[]} stylists={[]} readOnly onAddAppointment={async a=>a}/>);
   assert.ok(savedHtml.includes('https://cdn.example.com/saved-colour-look.jpg')&&savedHtml.includes('Saved colour look'),'saved colour photo is used in the Prism & Chroma gallery');
   assert.ok(!savedHtml.includes('Vivid balayage, fresh from the chair'),'demo photographs are replaced by the owner\u2019s own photo');
+ }else if(template.id==='bridal_lounge'){
+  // Template 11 (Shringaar Royal) renders its own Instagram-style strip and
+  // masonry lookbook from the same saved-photo path, without owner controls;
+  // an owner photograph replaces the bundled demo set entirely.
+  assert.ok(html.includes('From Our Bridal Diaries'),'Shringaar Royal shows its bridal diary strip');
+  assert.ok(html.includes('/templates/11/'),'Shringaar Royal gallery uses bundled Template 11 photographs');
+  assert.ok(!html.includes('Delete photo')&&!html.includes('Replace / Edit'));
+  const savedHtml=renderToStaticMarkup(<CustomerSalonWebsite profile={{...profile,photoGalleryInitialized:true,photoGalleryType:'bridal_lounge',photoGallery:[{id:'sr-own-1',category:'Bridal' as const,url:'https://cdn.example.com/saved-bride-photo.jpg',title:'Our own bride',isDemo:false}]}} services={[]} stylists={[]} readOnly onAddAppointment={async a=>a}/>);
+  assert.ok(savedHtml.includes('https://cdn.example.com/saved-bride-photo.jpg'),'saved bride photograph appears in the Template 11 gallery');
+  assert.ok(savedHtml.includes('Our own bride'),'saved bride photograph keeps its caption');
  }else{
   assert.ok(html.includes(`${defaultGalleryCategory(template.id)} (5)`));assert.equal((html.match(/aria-label="View salon look /g)||[]).length,5);assert.ok(!html.includes('Delete photo')&&!html.includes('Replace / Edit'));
  }

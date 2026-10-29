@@ -10,6 +10,7 @@ import { upgradeNailStudioTemplate } from './lib/pinkyNails';
 import { upgradeMakeupStudioTemplate } from './lib/vogueNoir';
 import { upgradeMassageWellnessTemplate } from './lib/bodhiTree';
 import { upgradeHairColoringTemplate } from './lib/prismChroma';
+import { upgradeShringaarTemplate } from './lib/shringaarRoyal';
 import { developmentTemplateForSiteSlug, requestedTemplate, templateDraft } from './lib/templateEntry';
 import { BusinessNotificationLink } from './components/BusinessNotificationLink';
 import { SalonBookingsDialog } from './components/SalonBookingsDialog';
@@ -97,7 +98,7 @@ function Application() {
    loadTemplateCatalogue<CategoryTemplateConfig>({
     load:()=>supabase.from('studioflow_templates').select('config').eq('active',true),
     fallback:Object.values(CATEGORY_TEMPLATES),
-    upgrade:config=>upgradeHairColoringTemplate(upgradeMassageWellnessTemplate(upgradeMakeupStudioTemplate(upgradeNailStudioTemplate(upgradeBeautyParlourTemplate(config as CategoryTemplateConfig)),CATEGORY_TEMPLATES.makeup_studio),CATEGORY_TEMPLATES.massage_wellness),CATEGORY_TEMPLATES.hair_coloring),
+    upgrade:config=>upgradeShringaarTemplate(upgradeHairColoringTemplate(upgradeMassageWellnessTemplate(upgradeMakeupStudioTemplate(upgradeNailStudioTemplate(upgradeBeautyParlourTemplate(config as CategoryTemplateConfig)),CATEGORY_TEMPLATES.makeup_studio),CATEGORY_TEMPLATES.massage_wellness),CATEGORY_TEMPLATES.hair_coloring),CATEGORY_TEMPLATES.bridal_lounge),
    }),
    Promise.resolve(supabase.from('profiles').select('full_name,salon_name,phone_number,whatsapp,city,postal_code').eq('id',session.user.id).maybeSingle()).then(({data,error:identityError})=>({data,error:identityError})).catch(()=>({data:null,error:null})),
   ]);
@@ -121,7 +122,7 @@ function TemplateEntry({templateId}:{templateId:BusinessTypeId}){
  const template=CATEGORY_TEMPLATES[templateId];
  const [remote,setRemote]=useState<any>(null);
  useEffect(()=>{let active=true;void supabase.rpc('studioflow_customer_catalog').then(({data,error})=>{if(active&&!error)setRemote((data?.templates||[]).find((t:any)=>t.id===templateId)||null)});return()=>{active=false}},[templateId]);
- const mergedRemote=remote?upgradeHairColoringTemplate(upgradeMassageWellnessTemplate(upgradeMakeupStudioTemplate(upgradeNailStudioTemplate(upgradeBeautyParlourTemplate(remote)),CATEGORY_TEMPLATES.makeup_studio),CATEGORY_TEMPLATES.massage_wellness),CATEGORY_TEMPLATES.hair_coloring):null;
+ const mergedRemote=remote?upgradeShringaarTemplate(upgradeHairColoringTemplate(upgradeMassageWellnessTemplate(upgradeMakeupStudioTemplate(upgradeNailStudioTemplate(upgradeBeautyParlourTemplate(remote)),CATEGORY_TEMPLATES.makeup_studio),CATEGORY_TEMPLATES.massage_wellness),CATEGORY_TEMPLATES.hair_coloring),CATEGORY_TEMPLATES.bridal_lounge):null;
  const source=mergedRemote?{...template,title:mergedRemote.title||template.title,tagline:mergedRemote.tagline||template.tagline,coverImageUrl:mergedRemote.coverImageUrl||template.coverImageUrl,services:mergedRemote.services?.length?mergedRemote.services:template.services,stylists:mergedRemote.stylists?.length?mergedRemote.stylists:template.stylists}:template;
  const draft=templateDraft(source);
  if(mergedRemote?.demoOffer)draft.profile.promoCampaign={selectedServiceId:'',campaignTheme:'flash_discount',discountPercent:0,customOfferText:'',promoCode:'',subtext:'',aspectRatio:'16:9',aesthetic:'minimalist_chic',imageUrl:source.coverImageUrl,customPrompt:'',...mergedRemote.demoOffer,headline:'TEMPLATE DEMO · '+(mergedRemote.demoOffer.headline||'Sample offer')};

@@ -35,7 +35,15 @@ export function generateSeoDefaults(profile: Partial<SalonProfile>) {
 }
 
 export function applySeoMetadata(profile: SalonProfile, canonicalUrlOverride?: string) {
-  if (typeof document === 'undefined') return () => {};
+  // Non-DOM environments (SSR, unit harnesses) have nothing to update.
+  if (
+    typeof document === 'undefined' ||
+    typeof document.createElement !== 'function' ||
+    typeof document.getElementById !== 'function' ||
+    typeof document.querySelector !== 'function' ||
+    !document.head
+  )
+    return () => {};
 
   const seo = profile.seo || {};
   const defaults = generateSeoDefaults(profile);
@@ -48,8 +56,10 @@ export function applySeoMetadata(profile: SalonProfile, canonicalUrlOverride?: s
   const keywords = seo.keywords || defaults.keywords;
   const twitterCard = seo.twitterCard || 'summary_large_image';
 
-  const hostOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://studioflow.app';
-  const pagePath = typeof window !== 'undefined' ? window.location.pathname : '';
+  const browserLocation =
+    typeof window !== 'undefined' && window.location && typeof window.location === 'object' ? window.location : null;
+  const hostOrigin = browserLocation?.origin || 'https://studioflow.app';
+  const pagePath = browserLocation?.pathname || '';
   const canonicalUrl = canonicalUrlOverride || seo.canonicalUrl || `${hostOrigin}${pagePath}`;
 
   const prevTitle = document.title;

@@ -260,9 +260,15 @@ export function ClinicTeam({
                         : s.bio}
                     </p>
                   )}
+                  {Number.isFinite(Number(s.experienceYears)) && Number(s.experienceYears) >= 0 && (
+                    <p className="dc-staff-experience">
+                      {Number(s.experienceYears)} years of experience
+                    </p>
+                  )}
                   <button
                     className="dc-text-link"
                     type="button"
+                    aria-label={`View profile & reviews: ${s.name}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleOpenProfile(s);

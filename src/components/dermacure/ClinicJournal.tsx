@@ -208,12 +208,12 @@ export function ClinicJournal() {
   const closeArticle = () => {
     setSelectedArticle(null);
     if (typeof window !== 'undefined' && window.history?.pushState) {
-      window.history.pushState(null, '', '#skin-hair-journal');
+      window.history.pushState(null, '', '#clinic-blog');
     }
   };
 
   return (
-    <section className="dc-section dc-journal" id="skin-hair-journal">
+    <section className="dc-section dc-journal" id="clinic-blog">
       <div className="dc-container">
         {/* SECTION HEADER */}
         <div className="dc-section-head text-center max-w-3xl mx-auto mb-10">

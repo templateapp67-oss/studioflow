@@ -47,6 +47,19 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
   assert.ok((changed.match(/src="https:\/\/example.com\/owner-photo.jpg"/g)||[]).length>=1,'owner photo replaces the demo photo on the Prism & Chroma card');
   continue;
  }
+ if(template.id==='bridal_lounge'){
+  // Template 11 (Shringaar Royal) splits the content into ritual tiles and
+  // heirloom package cards, each with its own arch-masked photograph. Every
+  // saved service photo must appear on the page, and an owner upload wins.
+  const packages=services.filter(s=>/package|combo|bundle/i.test(s.name+' '+s.category));
+  for(const service of services.filter(s=>!/package|combo|bundle/i.test(s.name+' '+s.category))){const expectedPhoto=service.imageUrl||defaultServiceImage(service,template.id);assert.ok(html.includes(expectedPhoto.replaceAll('&','&amp;')),`Shringaar Royal renders a photo for ${service.name}`);}
+  assert.ok(html.includes('/templates/11/services/'),'bridal ritual tiles use the bundled Template 11 photography');
+  assert.ok(packages.length>=3,'the bridal menu keeps its heirloom packages');
+  const custom={...services[0],name:'QA package',category:'Packages',imageUrl:'https://example.com/owner-photo.jpg'};
+  const changed=renderToStaticMarkup(<CustomerSalonWebsite profile={{...INITIAL_SALON_PROFILE,businessType:template.id}} services={[custom]} stylists={[]} onAddAppointment={async a=>a}/>);
+  assert.ok((changed.match(/src="https:\/\/example.com\/owner-photo.jpg"/g)||[]).length>=1,'owner photo replaces the demo photo on the Shringaar Royal card');
+  continue;
+ }
  // Templates 06 and 08 lift packages out of the menu grid, so every saved service
  // still needs a photo — just rendered once instead of in two card grids.
  const count=['hair_spa','makeup_studio'].includes(template.id)?services.length:services.length+services.filter(s=>/package|combo|bundle/i.test(s.name+' '+s.category)).length;

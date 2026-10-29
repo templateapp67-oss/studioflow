@@ -359,34 +359,36 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
   },
 
   bridal_lounge: {
-    foundingYear: '2015',
-    foundingNarrative: 'Maharani Bridal Lounge is Rajasthan’s premier luxury bridal styling sanctum. We design heirloom bridal makeovers, dupatta draping, royal mehendi looks, and jewelry integration for destination and royal Indian palace weddings.',
-    specialties: ['Royal Palace HD Bridal Makeover', 'Heritage Dupatta & Saree Draping', 'Airbrush 24H Waterproof Base', 'Pre-Bridal Saffron Polish'],
+    foundingYear: '2014',
+    foundingNarrative: 'Shringaar Royal is Jaipur’s bridal atelier for Rajputana trousseaus, kundan heirloom styling and hand-draped poshaks. Eleven wedding seasons of private bridal chambers, written look books and pre-bridal ubtan rituals, styled for the bride who wants to be remembered.',
+    specialties: ['Royal Rajputana Bridal Trousseau', 'Sabyasachi Crimson Bridal Glam', 'Heritage Bridal Hair Architecture', 'Poshak & Dupatta Draping', 'Pre-Bridal Ubtan Glow'],
     certifications: [
-      { icon: 'verified', title: 'Private Presidential Bridal Suites', description: 'Luxurious private dressing chambers accommodating bride and her bridal party.' },
-      { icon: 'diamond', title: 'Jewelry & Fabric Integration Care', description: 'Specialist drape artists certified in heavy antique zardozi, silk, and kundan styling.' },
-      { icon: 'water_drop', title: '24-Hour Tears & Humidity Proof', description: 'Custom waterproofing sealants certified for 18+ hours of varmala & pheras.' },
-      { icon: 'stars', title: 'Featured in Vogue & WedMeGood', description: 'Ranked top luxury destination wedding salon in Rajasthan.' }
+      { icon: 'verified', title: 'Private Bridal Chambers', description: 'A suite for the bride and her bridal party, with chai, mirrors and daylight-balanced lights.' },
+      { icon: 'diamond', title: 'Heirloom Jewellery Setting', description: 'Kundan, polki and matha patti set by the founder — pinned so nothing slips through the pheras.' },
+      { icon: 'water_drop', title: '18-Hour Sealed Base', description: 'Airbrush and HD bases sealed for heat, tears and a fourteen-hour wedding day.' },
+      { icon: 'stars', title: 'Written Look Book', description: 'Every bride leaves her trial with photographs, a drape plan and a pre-bridal calendar.' }
     ],
     gallery: [
-      { id: 'bl-g1', url: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=800&q=80', title: 'Royal Rajasthani Heritage Bridal Glow', tag: 'Bridal Makeover' },
-      { id: 'bl-g2', url: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=800&q=80', title: 'Kundan Matha Patti & Dupatta Draping', tag: 'Draping Art' },
-      { id: 'bl-g3', url: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80', title: 'Private Palatial Bridal Suite', tag: 'Suite Interior' },
-      { id: 'bl-g4', url: 'https://images.unsplash.com/photo-1512290900672-1f55b9e07506?auto=format&fit=crop&w=800&q=80', title: 'Floral Bun & Hair Jewelry Architecture', tag: 'Hair Architecture' },
-      { id: 'bl-g5', url: 'https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=800&q=80', title: 'Pre-Wedding Saffron Body Polish Room', tag: 'Pre-Bridal' },
-      { id: 'bl-g6', url: 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?auto=format&fit=crop&w=800&q=80', title: 'Destination Bride Sunset Portrait', tag: 'Destination' }
+      { id: 'sr-g1', url: '/templates/11/gallery/gallery-1.jpg', title: 'Heirloom Bridal Mehendi', tag: 'Mehendi' },
+      { id: 'sr-g2', url: '/templates/11/gallery/gallery-2.jpg', title: 'Kundan Polki Heirlooms', tag: 'Jewellery' },
+      { id: 'sr-g3', url: '/templates/11/gallery/gallery-3.jpg', title: 'Zardozi Lehenga Detail', tag: 'Couture' },
+      { id: 'sr-g4', url: '/templates/11/gallery/gallery-4.jpg', title: 'The Zari Veil', tag: 'Draping' },
+      { id: 'sr-g5', url: '/templates/11/gallery/gallery-5.jpg', title: 'Royal Rajputana Bride', tag: 'Bridal Look' },
+      { id: 'sr-g6', url: '/templates/11/gallery/gallery-6.jpg', title: 'Palace Mandap at Dusk', tag: 'Venue' },
+      { id: 'sr-g7', url: '/templates/11/gallery/gallery-7.jpg', title: 'Royal Poshak on Display', tag: 'Trousseau' },
+      { id: 'sr-g8', url: '/templates/11/gallery/gallery-8.jpg', title: 'Pre-Bridal Ubtan Ritual', tag: 'Pre-Bridal' }
     ],
     reviews: [
-      { id: 'bl-r1', name: 'Princess Gayatri Rathore', location: 'C-Scheme, Jaipur', rating: 5, serviceName: 'Maharani Full Bridal HD Makeover & Draping', comment: 'Gayatri ji and her bridal team made me look like royalty for my palace wedding. The dupatta draping held 12kg of zardozi comfortably for 14 hours!', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80', date: '3 days ago' },
-      { id: 'bl-r2', name: 'Ananya Singhal', location: 'Rambagh, Jaipur', rating: 5, serviceName: 'Destination Bride Sangeet Look', comment: 'Traveled from London for my Jaipur wedding. The team was punctual, reassuring, and the airbrush base stayed immaculate throughout the pheras.', avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=200&q=80', date: '1 week ago' },
-      { id: 'bl-r3', name: 'Pooja Shekhawat', location: 'Civil Lines, Jaipur', rating: 5, serviceName: 'Pre-Bridal Royal Kesar Ubtan Polish', comment: 'The pre-bridal skin therapy cleared all fatigue and gave my face an ethereal golden sheen. The private suite feels like a royal palace.', avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80', date: '2 weeks ago' }
+      { id: 'sr-r1', name: 'Gayatri Rathore', location: 'C-Scheme, Jaipur', rating: 5, serviceName: 'Royal Rajputana Bridal Trousseau', comment: 'Fifteen kilos of zardozi and not one pin slipped from the varmala to the vidaai. Anuradha set my grandmother’s polki herself, and the base was still flawless at 2 am.', avatarUrl: '/templates/11/testimonials/bride-1.jpg', date: '3 weeks ago' },
+      { id: 'sr-r2', name: 'Ananya Singhal', location: 'London → Jaipur', rating: 5, serviceName: 'Sangeet & Wedding Look Book', comment: 'I flew in for a three-day wedding and had exactly one trial. The look book meant my sangeet and wedding looks matched without repeating a single thing.', avatarUrl: '/templates/11/testimonials/bride-2.jpg', date: '2 months ago' },
+      { id: 'sr-r3', name: 'Meher Bhandari', location: 'Rambagh, Jaipur', rating: 5, serviceName: 'Pre-Bridal 7-Day Ubtan & Glow Ritual', comment: 'The seven-day ubtan plan is the reason my skin needed almost no base. My photographer asked who did my makeup before he asked for my name.', avatarUrl: '/templates/11/testimonials/bride-3.jpg', date: '4 months ago' }
     ],
-    totalReviewCount: 890,
-    averageRating: 4.99,
-    landmark: 'Mirza Ismail Road (MI Road), Opposite Raj Mandir Cinema',
-    parkingInfo: 'Private gated bridal courtyard with security and valet',
-    openHourText: '09:00 AM',
-    closeHourText: '9:00 PM'
+    totalReviewCount: 1200,
+    averageRating: 4.9,
+    landmark: 'MI Road, near Panch Batti and Raj Mandir Cinema',
+    parkingInfo: 'Private bridal courtyard with valet',
+    openHourText: '10:00 AM',
+    closeHourText: '8:30 PM'
   },
 
   tattoo_studio: {

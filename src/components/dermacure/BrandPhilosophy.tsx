@@ -56,14 +56,14 @@ export function BrandPhilosophy() {
             </motion.h2>
             <motion.p className="dc-about-lead" variants={fade}>
               At {profile.businessName?.trim() || "Dermacure"}, we believe that
-              thoughtful skin care begins with understanding you.
-              Every person&rsquo;s skin has its own needs and concerns. 
+              thoughtful skin care begins with understanding the individual.
+              Every person&rsquo;s skin has its own needs and concerns.
               Our approach brings together professional care,
               the right technology, and skin care plans that work for you.
             </motion.p>
             <motion.p variants={fade}>
-              We aim to create a space where scientific care meets
-              attentive support&mdash;so every consultation feels clear, 
+              We aim to create a space where scientific understanding meets
+              attentive care&mdash;so every consultation feels clear,
               every recommendation has a purpose, and you feel heard.
             </motion.p>
             <motion.div className="dc-about-actions" variants={fade}>
@@ -72,7 +72,7 @@ export function BrandPhilosophy() {
                 className="dc-btn"
                 onClick={() => scrollTo("journey")}
               >
-                How We Care for Your Skin <ArrowRight size={16} aria-hidden="true" />
+                Discover Our Approach <ArrowRight size={16} aria-hidden="true" />
               </button>
               {visible.stylists && hasTeam && (
                 <button
@@ -80,7 +80,7 @@ export function BrandPhilosophy() {
                   className="dc-text-link dc-text-link-muted"
                   onClick={() => scrollTo("salon-team")}
                 >
-                  Meet Our Care Team <ArrowUpRight size={15} aria-hidden="true" />
+                  Meet the clinicians <ArrowUpRight size={15} aria-hidden="true" />
                 </button>
               )}
             </motion.div>

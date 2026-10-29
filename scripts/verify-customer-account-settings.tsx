@@ -5,7 +5,7 @@ const photo='https://example.com/private-signed-avatar.jpg';
 for(const template of Object.values(CATEGORY_TEMPLATES)){
  const props={profile:{...INITIAL_SALON_PROFILE,businessType:template.id},services:[],stylists:[],readOnly:true,onAddAppointment:async(a:any)=>a,onCustomerAccount:()=>{}};
  const html=renderToStaticMarkup(<CustomerSalonWebsite {...props} customerSignedIn customerName="Customer One" customerPhotoUrl={photo}/>);assert.ok(html.includes(photo));assert.ok(html.includes('Customer One'));assert.ok(!html.includes('Customer Login')&&!html.includes('Sign up'));
- if(['hair_spa','skincare_clinic','makeup_studio','massage_wellness','hair_coloring'].includes(template.id))assert.ok(html.includes('Manage your customer account'),'editorial header exposes the signed-in account action');
+ if(['hair_spa','skincare_clinic','makeup_studio','massage_wellness','hair_coloring','bridal_lounge'].includes(template.id))assert.ok(html.includes('Manage your customer account'),'editorial header exposes the signed-in account action');
  else assert.ok(html.includes('My profile &amp; settings'));
  const guest=renderToStaticMarkup(<CustomerSalonWebsite {...props}/>);assert.ok(guest.includes('Customer Login')&&guest.includes('Sign up'));assert.ok(!guest.includes(photo));
 }
