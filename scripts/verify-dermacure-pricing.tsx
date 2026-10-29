@@ -7,6 +7,7 @@ import {CustomerSalonWebsite} from '../src/components/CustomerSalonWebsite';
 import {INITIAL_SALON_PROFILE} from '../src/mockData';
 import {CATEGORY_TEMPLATES} from '../src/categoryTemplates';
 import {normalizeWorkspace} from '../src/lib/normalizeWorkspace';
+import {clinicPriceLabel} from '../src/lib/dermacureContent';
 import {DermacureContext} from '../src/components/dermacure/context';
 import {ServicesSection} from '../src/components/dermacure/ServicesSection';
 import {BookingSection} from '../src/components/dermacure/BookingSection';
@@ -15,6 +16,10 @@ import type {SalonService} from '../src/types';
 (globalThis as any).document={activeElement:null,addEventListener(){},removeEventListener(){},getElementById(){return null}};
 const template=CATEGORY_TEMPLATES.skincare_clinic;
 const profile={...INITIAL_SALON_PROFILE,businessType:template.id,subdomain:'clinic'};
+assert.ok(template.services.length>=10,'Template 07 ships a broad treatment and consultation catalogue');
+assert.ok(template.services.some(service=>/consultation/i.test(service.name)),'consultation options are prepopulated');
+assert.ok(template.services.every(service=>service.clinicDemoData&&typeof service.price==='number'&&service.price>0&&service.durationMinutes>0&&service.description&&service.imageUrl),'all starter offers have editable demo fee, duration, description and image');
+assert.match(clinicPriceLabel(template.services[0]),/Demo price/,'demo fees are distinguished from verified clinic prices');
 let saved:SalonService[]=[];
 function Fixture(){const [services,setServices]=useState<SalonService[]>([{...template.services[0],origin:'custom'}]);saved=services;return <ServiceManagement profile={profile} services={services} setServices={setServices} primaryAccentColor="#000000"/>;}
 let ui:any;await act(async()=>{ui=create(<Fixture/>)});
@@ -39,11 +44,16 @@ assert.equal(field('Service verification').props.value,'unverified');await act(a
 await act(async()=>edit());await act(async()=>field('Fee verification').props.onChange({target:{value:'on_request'}}));await act(async()=>submit());
 assert.equal(saved[0].price,null);assert.equal(saved[0].clinicFeeStatus,'on_request');assert.equal(normalizeWorkspace(JSON.parse(JSON.stringify({profile,services:saved}))).services[0].price,null);
 await act(async()=>ui.unmount());
-// Choosing a clinic template treatment must not prefill a speculative fee.
+// Choosing a clinic template treatment pre-fills editable demonstration data without verifying or publishing it.
 await act(async()=>{ui=create(<Fixture/>)});
 await act(async()=>ui.root.findAllByType('button').find((button:any)=>button.children.includes('Add service')).props.onClick());
 await act(async()=>field('Service name').props.onChange({target:{value:template.services[1].name}}));
-assert.equal(dialog().findAllByType('input').find((input:any)=>input.props.type==='number').props.value,'');
+assert.equal(dialog().findAllByType('input').find((input:any)=>input.props.type==='number').props.value,String(template.services[1].price));
+assert.equal(field('Service verification').props.value,'unverified');
+assert.equal(field('Publication status').props.value,'draft');
+assert.equal(dialog().findAllByType('input').filter((input:any)=>input.props.type==='radio').length,3,'new services offer three editable description starters');
+assert.ok(dialog().findAllByType('input').filter((input:any)=>input.props.type==='radio').every((input:any)=>!input.props.checked),'owner explicitly chooses a suggested description');
+assert.ok(dialog().findAllByType('small').some((node:any)=>node.children.join('').includes('not verified clinic fees')));
 await act(async()=>ui.unmount());
 // A legacy true flag is not silently upgraded to the new verified status.
 let legacySaved:any[]=[];
@@ -62,16 +72,21 @@ const changedDetails=updateInlineService(inlineVerified,'name','Changed name',tr
 assert.equal(changedDetails.clinicServiceApproved,false);assert.equal(changedDetails.clinicPublicationStatus,'draft');assert.equal(changedDetails.clinicFeeStatus,'unverified');assert.equal(changedDetails.clinicServiceVerifiedAt,undefined);
 assert.strictEqual(updateInlineService(inlineVerified,'price',-1,true),inlineVerified);
 assert.strictEqual(updateInlineService(inlineVerified,'price',inlineVerified.price,true),inlineVerified);
-const unrelated=updateInlineService(template.services[0],'price',999,false);assert.equal(unrelated.clinicFeeStatus,undefined);
+const unrelated=updateInlineService(template.services[0],'price',999,false);assert.equal(unrelated.clinicFeeStatus,'unverified');
 const inquiry={...template.services[0],clinicServiceApproved:true,clinicPublicationStatus:'published' as const,clinicFeeStatus:'unverified' as const};
 const verified={...template.services[1],clinicServiceApproved:true,clinicPublicationStatus:'published' as const,clinicFeeStatus:'verified' as const,clinicPriceVerified:true};
 const draft={...template.services[2],origin:'custom' as const};
 const markup=renderToStaticMarkup(<CustomerSalonWebsite profile={profile} services={[inquiry,verified,draft]} stylists={template.stylists} onAddAppointment={async a=>a}/>);
-assert.ok(markup.includes(inquiry.name.replaceAll('&','&amp;')));assert.ok(markup.includes('Contact clinic for pricing'));
-assert.ok(!markup.includes(`₹${inquiry.price.toLocaleString('en-IN')}`));assert.ok(!markup.includes(draft.name));
+assert.ok(markup.includes(inquiry.name.replaceAll('&','&amp;')));assert.ok(markup.includes(`Demo price · ₹${inquiry.price.toLocaleString('en-IN')}`));
+assert.ok(!markup.includes(draft.name));
 assert.ok(!markup.includes('Dr. Tanvi Deshmukh'));assert.ok(!markup.includes('MD Dermatologist'));
 let asked=false,booked=false;
 const ctx:any={profile,services:[inquiry,verified],visible:{services:true,bookings:true},bookingAvailable:true,reduced:true,onBook:()=>{booked=true},enquire:()=>{asked=true},booking:()=>{},setSearch(){},setServiceCategory(){},selectedService:'',setSelectedService(){}};
+const demoMarkup=renderToStaticMarkup(<DermacureContext.Provider value={{...ctx,profile:{...profile,subdomain:''},services:template.services}}><ServicesSection/></DermacureContext.Provider>);
+assert.ok(demoMarkup.includes('Demo price'),'template preview labels sample prices');
+assert.ok(demoMarkup.includes('not confirmed clinic offers'),'template preview explains demo data clearly');
+for(const group of ['skin','hair','cosmetology'])assert.ok(demoMarkup.includes(`id=\"${group}-treatments\"`),`${group} treatment group renders`);
+assert.ok(!demoMarkup.includes('No hair treatments are currently listed.'),'starter data fills the hair treatment section');
 let directory:any;await act(async()=>{directory=create(<DermacureContext.Provider value={ctx}><ServicesSection/></DermacureContext.Provider>)});
 await act(async()=>directory.root.findByProps({'aria-label':`Explore ${inquiry.name}`}).props.onClick());assert.equal(asked,true);assert.equal(booked,false);
 await act(async()=>directory.root.findByProps({'aria-label':`Explore ${verified.name}`}).props.onClick());assert.equal(booked,true);await act(async()=>directory.unmount());

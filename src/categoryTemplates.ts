@@ -715,51 +715,76 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
     },
     services: [
       {
-        id: 'sk-1',
-        name: 'Medi-Grade Hydra Dermabrasion & Antioxidant Infusion',
-        category: 'Hydra-Infusion',
-        durationMinutes: 60,
-        price: 3200,
-        description: '3-in-1 patented vortex suction for deep pore extraction, lactic acid hydration, and peptide sealing.',
-        icon: 'water_drop',
-        popular: true
+        id: 'sk-1', name: 'Initial Dermatology Consultation', category: 'Skin Consultation',
+        durationMinutes: 30, price: 900,
+        description: 'A first visit to discuss skin concerns, relevant history and possible next steps with a qualified clinician. Any assessment or plan depends on an in-person review.',
+        icon: 'medical_services', popular: true, imageUrl: '/templates/dermacure/reference-consultation.webp', clinicDemoData: true, clinicServiceApproved: false, clinicPriceVerified: false, clinicFeeStatus: 'unverified', clinicPublicationStatus: 'draft'
       },
       {
-        id: 'sk-2',
-        name: 'Glycolic Radiance Skin Renewal Peel',
-        category: 'Chemical Peels',
-        durationMinutes: 45,
-        price: 2100,
-        description: 'Dermatologist-applied AHA peel tackling melasma, sun spots, and uneven texture.',
-        icon: 'science',
-        popular: true
+        id: 'sk-2', name: 'Follow-up Dermatology Consultation', category: 'Skin Consultation',
+        durationMinutes: 20, price: 600,
+        description: 'A follow-up appointment to review progress, discuss questions and revisit the care plan with the clinician.',
+        icon: 'medical_services', imageUrl: '/templates/dermacure/reference-consultation.webp', clinicDemoData: true, clinicServiceApproved: false, clinicPriceVerified: false, clinicFeeStatus: 'unverified', clinicPublicationStatus: 'draft'
       },
       {
-        id: 'sk-3',
-        name: 'Carbon Hollywood Laser Doll Peel',
-        category: 'Laser & Pigmentation',
-        durationMinutes: 60,
-        price: 3800,
-        description: 'Q-switched Nd:YAG laser targeted on activated liquid carbon for porcelain pore tightening.',
-        icon: 'flash_on'
+        id: 'sk-3', name: 'Acne & Skin Concern Consultation', category: 'Skin Treatments',
+        durationMinutes: 30, price: 1000,
+        description: 'A clinician-led discussion of acne or other skin concerns, with suitable options considered after assessment. Results and treatment suitability vary by person.',
+        icon: 'dermatology', popular: true, imageUrl: '/templates/dermacure/reference-rejuvenation.webp', clinicDemoData: true, clinicServiceApproved: false, clinicPriceVerified: false, clinicFeeStatus: 'unverified', clinicPublicationStatus: 'draft'
       },
       {
-        id: 'sk-4',
-        name: 'LED Photo-Dynamic Acne Clear Therapy',
-        category: 'Medi-Facials',
-        durationMinutes: 40,
-        price: 1800,
-        description: 'Blue (415nm) and Red (633nm) medical LED light matrix that eliminates P. acnes bacteria.',
-        icon: 'lightbulb'
+        id: 'sk-4', name: 'Supervised Chemical Peel Session', category: 'Chemical Peels',
+        durationMinutes: 45, price: 2400,
+        description: 'A skin-renewal peel selected by the clinician after reviewing skin type and concerns. Pre-care, aftercare and expected downtime are discussed before treatment.',
+        icon: 'science', imageUrl: '/templates/dermacure/service-peel.webp', clinicDemoData: true, clinicServiceApproved: false, clinicPriceVerified: false, clinicFeeStatus: 'unverified', clinicPublicationStatus: 'draft'
       },
       {
-        id: 'sk-5',
-        name: 'Deep Hyaluronic Multi-Molecular Hydration Boost',
-        category: 'Hydra-Infusion',
-        durationMinutes: 50,
-        price: 2600,
-        description: 'Iontophoresis penetration of cross-linked hyaluronic acid for 72-hour dewy radiance.',
-        icon: 'opacity'
+        id: 'sk-5', name: 'LED Light Therapy Session', category: 'Skin Treatments',
+        durationMinutes: 30, price: 1800,
+        description: 'A comfortable LED session using the clinic’s configured light device. The clinician can advise whether it is appropriate as part of an individual care plan.',
+        icon: 'lightbulb', imageUrl: '/templates/dermacure/reference-led.webp', clinicDemoData: true, clinicServiceApproved: false, clinicPriceVerified: false, clinicFeeStatus: 'unverified', clinicPublicationStatus: 'draft'
+      },
+      {
+        id: 'sk-6', name: 'Pigmentation & Laser Consultation', category: 'Laser & Pigmentation',
+        durationMinutes: 30, price: 1200,
+        description: 'A consultation to discuss uneven tone and available options. Any laser treatment requires clinician assessment, suitability checks and a separate plan.',
+        icon: 'flash_on', imageUrl: '/templates/dermacure/service-laser.webp', clinicDemoData: true, clinicServiceApproved: false, clinicPriceVerified: false, clinicFeeStatus: 'unverified', clinicPublicationStatus: 'draft'
+      },
+      {
+        id: 'sk-7', name: 'Hair & Scalp Consultation', category: 'Hair & Scalp',
+        durationMinutes: 30, price: 1000,
+        description: 'Discuss hair or scalp concerns and relevant history with a clinician. Recommendations depend on an individual assessment; this sample fee is editable.',
+        icon: 'health_and_safety', imageUrl: '/templates/dermacure/reference-consultation.webp', clinicDemoData: true, clinicServiceApproved: false, clinicPriceVerified: false, clinicFeeStatus: 'unverified', clinicPublicationStatus: 'draft'
+      },
+      {
+        id: 'sk-8', name: 'Scalp Care Session', category: 'Hair & Scalp',
+        durationMinutes: 45, price: 2200,
+        description: 'A gentle scalp-care appointment planned around your needs and the clinic’s available services. Confirm suitability and aftercare with the clinic before booking.',
+        icon: 'spa', imageUrl: '/templates/dermacure/treatment.webp', clinicDemoData: true, clinicServiceApproved: false, clinicPriceVerified: false, clinicFeeStatus: 'unverified', clinicPublicationStatus: 'draft'
+      },
+      {
+        id: 'sk-9', name: 'Hydrating Medi-Facial', category: 'Medi-Facials',
+        durationMinutes: 60, price: 3200,
+        description: 'A professional cleansing and hydration-focused facial, tailored after a skin check. Products and steps can be adjusted to the clinic’s actual offering.',
+        icon: 'water_drop', popular: true, imageUrl: '/templates/dermacure/service-hydration.webp', clinicDemoData: true, clinicServiceApproved: false, clinicPriceVerified: false, clinicFeeStatus: 'unverified', clinicPublicationStatus: 'draft'
+      },
+      {
+        id: 'sk-10', name: 'Sensitive-Skin Comfort Facial', category: 'Medi-Facials',
+        durationMinutes: 45, price: 2600,
+        description: 'A gentle facial example for clients seeking a calming skincare visit. The clinician should review sensitivities and confirm suitable products first.',
+        icon: 'face', imageUrl: '/templates/dermacure/reference-rejuvenation.webp', clinicDemoData: true, clinicServiceApproved: false, clinicPriceVerified: false, clinicFeeStatus: 'unverified', clinicPublicationStatus: 'draft'
+      },
+      {
+        id: 'sk-11', name: 'Carbon Laser Facial', category: 'Laser & Pigmentation',
+        durationMinutes: 45, price: 3800,
+        description: 'An illustrative laser-service listing. Treatment parameters, eligibility, expected effects and aftercare must be confirmed by the clinic’s qualified clinician.',
+        icon: 'flash_on', imageUrl: '/templates/dermacure/service-laser.webp', clinicDemoData: true, clinicServiceApproved: false, clinicPriceVerified: false, clinicFeeStatus: 'unverified', clinicPublicationStatus: 'draft'
+      },
+      {
+        id: 'sk-12', name: 'Hyaluronic Hydration Infusion', category: 'Hydra-Infusion',
+        durationMinutes: 50, price: 2600,
+        description: 'A hydration-focused facial add-on example. The clinic should replace this description with its actual products, steps and suitability guidance.',
+        icon: 'opacity', imageUrl: '/templates/dermacure/service-hydration.webp', clinicDemoData: true, clinicServiceApproved: false, clinicPriceVerified: false, clinicFeeStatus: 'unverified', clinicPublicationStatus: 'draft'
       }
     ],
     stylists: [

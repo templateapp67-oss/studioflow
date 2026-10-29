@@ -6,7 +6,7 @@ export function packageStarters(template:CategoryTemplateConfig):SalonService[]{
  const pairs=[[0,1],[0,2],[1,2],[2,3],[0,3]],titles=['Refresh Duo','Signature Care','Complete Ritual','Premium Pair','Self-care Combo'];
  return pairs.map(([a,b],index)=>{
   const first=services[a%services.length],second=services[b%services.length];
-  return {id:`template-pkg-${template.id}-${index+1}`,name:`${template.shortName} ${titles[index]} Package`.slice(0,160),category:'Signature Packages',description:`Includes ${first.name} and ${second.name}. A coordinated ${template.shortName.toLowerCase()} visit. Starter package: ask the salon to confirm suitability and inclusions.`,price:Math.round(first.price+second.price),durationMinutes:Math.min(720,first.durationMinutes+second.durationMinutes),icon:first.icon||'spa',origin:'template',showDuration:true};
+  return {id:`template-pkg-${template.id}-${index+1}`,name:`${template.shortName} ${titles[index]} Package`.slice(0,160),category:'Signature Packages',description:`Includes ${first.name} and ${second.name}. A coordinated ${template.shortName.toLowerCase()} visit. Starter package: ask the salon to confirm suitability and inclusions.`,price:Math.round(first.price+second.price),durationMinutes:Math.min(720,first.durationMinutes+second.durationMinutes),icon:first.icon||'spa',imageUrl:first.imageUrl,origin:'template',showDuration:true,...(template.id==='skincare_clinic'?{clinicDemoData:true,clinicServiceApproved:false,clinicPriceVerified:false,clinicFeeStatus:'unverified' as const,clinicPublicationStatus:'draft' as const}:{})};
  });
 }
 export function seedTemplatePackages(template:CategoryTemplateConfig):SalonService[]{

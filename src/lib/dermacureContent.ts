@@ -27,7 +27,7 @@ export function clinicServiceGroup(profile: SalonProfile, service: SalonService)
   if (group === 'skin' || group === 'hair' || group === 'cosmetology') return group;
   const text = `${service.name} ${service.category}`.toLowerCase();
   if (/hair|scalp|alopecia|dandruff/.test(text)) return 'hair';
-  if (/acne|scar|pigment|melasma|eczema|dermatitis|psoriasis|warts|rosacea|skin concern/.test(text)) return 'skin';
+  if (/dermatolog|consultation|acne|scar|pigment|melasma|eczema|dermatitis|psoriasis|warts|rosacea|skin concern|skin treatment/.test(text)) return 'skin';
   return 'cosmetology';
 }
 
@@ -41,11 +41,16 @@ export function clinicPublicServices(profile: SalonProfile, services: SalonServi
   const ids = new Set(services.map(s => s.id));
   const enquiry = (Array.isArray(profile.clinicEnquiryServices) ? profile.clinicEnquiryServices : []).filter(s => s && !ids.has(s.id));
   const menu = dermacureMenu(profile, [...services, ...enquiry]);
-  // Unsaved template previews show examples, never as real offerings or fees.
+  // Template previews may show explicitly tagged demo offers and prices. A slugged site
+  // still requires an owner-verified, published service; demo data never enables booking.
   return profile.subdomain ? menu.filter(clinicServiceIsPublished) : menu;
 }
 export function clinicPriceLabel(service: SalonService, currency = '₹') {
-  return clinicPriceIsVerified(service) ? `${currency}${service.price.toLocaleString('en-IN')}` : 'Contact clinic for pricing';
+  if (clinicPriceIsVerified(service)) return `${currency}${service.price.toLocaleString('en-IN')}`;
+  if (service.clinicDemoData === true && typeof service.price === 'number' && Number.isFinite(service.price) && service.price >= 0) {
+    return `Demo price · ${currency}${service.price.toLocaleString('en-IN')}`;
+  }
+  return 'Contact clinic for pricing';
 }
 
 /** Never substitute the private account email for a public clinic address. */
