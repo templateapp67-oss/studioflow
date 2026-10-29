@@ -186,7 +186,7 @@ export function ClinicJournal() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const handleHash = () => {
-      const hash = window.location.hash || '';
+      const hash = window.location?.hash || '';
       if (hash.startsWith('#journal-article-')) {
         const articleId = hash.replace('#journal-article-', '');
         const found = publishedArticles.find(a => a.id === articleId);

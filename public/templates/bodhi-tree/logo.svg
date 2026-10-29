@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 120" role="img" aria-label="Bodhi Tree Massage and Wellness Sanctuary logo">
+  <defs>
+    <linearGradient id="btLeaf" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5F7A5E"/>
+      <stop offset="1" stop-color="#1E3A2F"/>
+    </linearGradient>
+  </defs>
+  <circle cx="60" cy="60" r="52" fill="none" stroke="#C5A46D" stroke-width="2"/>
+  <circle cx="60" cy="60" r="46" fill="#FAF6EE"/>
+  <g transform="translate(60 62)">
+    <path d="M0 -38 C-14 -48 -32 -40 -34 -22 C-36 -4 -18 12 0 38 C18 12 36 -4 34 -22 C32 -40 14 -48 0 -38 Z" fill="url(#btLeaf)"/>
+    <path d="M0 -34 C0 -14 0 14 0 34" fill="none" stroke="#C5A46D" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M0 -20 C-8 -16 -14 -10 -18 -4 M0 -20 C8 -16 14 -10 18 -4 M0 -2 C-7 2 -12 7 -15 12 M0 -2 C7 2 12 7 15 12 M0 14 C-5 18 -8 22 -10 26 M0 14 C5 18 8 22 10 26" fill="none" stroke="#C5A46D" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M0 -38 C1 -44 3 -48 6 -52" fill="none" stroke="#1E3A2F" stroke-width="2.4" stroke-linecap="round"/>
+  </g>
+  <text x="132" y="58" font-family="Georgia, 'Times New Roman', serif" font-size="40" fill="#1E3A2F">Bodhi Tree</text>
+  <text x="134" y="84" font-family="Georgia, 'Times New Roman', serif" font-size="13" letter-spacing="4" fill="#8A6D3B">MASSAGE &amp; WELLNESS</text>
+</svg>

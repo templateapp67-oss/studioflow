@@ -13,10 +13,11 @@ export function TemplateThumbnail({ template: t }: { template: CategoryTemplateC
   const isRoopMahal = t.id === 'beauty_parlour';
   const isKeshPrakriti = t.id === 'hair_spa';
   const isVogueNoir = t.id === 'makeup_studio';
+  const isBodhiTree = t.id === 'massage_wellness';
   const accent = ACCENT_PALETTES[DEFAULT_CATEGORY_ACCENTS[t.id]];
-  const accentHex = isVogueNoir ? '#C9A96E' : isKeshPrakriti ? '#183D32' : isRoopMahal ? '#6D2638' : accent.primaryHex;
+  const accentHex = isVogueNoir ? '#C9A96E' : isBodhiTree ? '#4E6E58' : isKeshPrakriti ? '#183D32' : isRoopMahal ? '#6D2638' : accent.primaryHex;
   const split = !isVogueNoir && (isRoopMahal || ['modern_minimalist', 'clinical_clean', 'contemporary_balanced', 'urban_monochrome'].includes(t.layoutStyle));
-  const rounded = ['curved_elegant', 'chic_nude', 'zen_emerald', 'earth_bamboo'].includes(t.layoutStyle);
+  const rounded = ['curved_elegant', 'chic_nude', 'zen_emerald', 'earth_bamboo', 'palace_heritage'].includes(t.layoutStyle);
   return <div aria-hidden="true" className="p-4 pb-0 bg-slate-100">
     <div className={`rounded-t-xl border shadow-sm overflow-hidden ${isVogueNoir ? 'border-[#2A2A2D] bg-[#0B0B0C]' : 'border-slate-300 bg-white'}`}>
       <div className={`h-6 flex items-center gap-1 px-2 border-b ${isVogueNoir ? 'bg-[#151517] border-[#2A2A2D]' : 'bg-white border-slate-200'}`}><i className="w-1.5 h-1.5 rounded-full bg-rose-300"/><i className="w-1.5 h-1.5 rounded-full bg-amber-300"/><i className="w-1.5 h-1.5 rounded-full bg-emerald-300"/><span className={`ml-auto text-[7px] ${isVogueNoir ? 'text-[#C9A96E] font-semibold tracking-wider' : 'text-slate-400'}`}>{t.shortName}</span></div>

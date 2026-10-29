@@ -16,6 +16,27 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
   assert.equal((changed.match(/src="https:\/\/example.com\/owner-photo.jpg"/g)||[]).length,2,'Owner photo appears in the featured and directory cards');
   continue;
  }
+ if(template.id==='massage_wellness'){
+  // Template 09 (Bodhi Tree) is multi-page: photos live on Home (most-loved +
+  // packages), the Massage Menu, the Palace Collection and Packages pages.
+  // Pages are deep-linkable, so render each one and check the union.
+  (globalThis as any).window={location:{hash:''},scrollTo(){},addEventListener(){},removeEventListener(){},matchMedia:()=>({matches:false,addEventListener(){},removeEventListener(){}})};
+  try{
+   const renderAt=(hash:string,svcs:any)=>{(globalThis as any).window.location.hash=hash;return renderToStaticMarkup(<CustomerSalonWebsite profile={{...INITIAL_SALON_PROFILE,businessType:template.id}} services={svcs} stylists={[]} onAddAppointment={async a=>a}/>);};
+   const homeHtml=renderAt('',services);
+   const servicesHtml=renderAt('#services',services);
+   const palaceHtml=renderAt('#palace',services);
+   const packagesHtml=renderAt('#packages',services);
+   const union=homeHtml+servicesHtml+palaceHtml+packagesHtml;
+   for(const service of services){const expectedPhoto=service.imageUrl||defaultServiceImage(service,template.id);assert.ok(union.includes(expectedPhoto.replaceAll('&','&amp;')),`Bodhi Tree renders a photo for ${service.name}`);}
+   assert.equal((servicesHtml.match(/class="sf-service-image"/g)||[]).length,9,'massage menu shows all nine core treatment photos');
+   assert.equal((homeHtml.match(/class="sf-service-image"/g)||[]).length,9,'home shows most-loved treatments + five package photos');
+   const custom={...services[0],name:'QA package',category:'Packages',imageUrl:'https://example.com/owner-photo.jpg'};
+   const changed=renderAt('',[custom]);
+   assert.equal((changed.match(/class="sf-service-image" src="https:\/\/example.com\/owner-photo.jpg"/g)||[]).length,1,'owner photo replaces the demo photo on the Bodhi package card');
+  }finally{delete (globalThis as any).window;}
+  continue;
+ }
  // Templates 06 and 08 lift packages out of the menu grid, so every saved service
  // still needs a photo — just rendered once instead of in two card grids.
  const count=['hair_spa','makeup_studio'].includes(template.id)?services.length:services.length+services.filter(s=>/package|combo|bundle/i.test(s.name+' '+s.category)).length;

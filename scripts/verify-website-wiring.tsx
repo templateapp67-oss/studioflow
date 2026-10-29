@@ -166,7 +166,7 @@ for(const template of Object.values(CATEGORY_TEMPLATES)) {
  }
  // Templates 06 and 08 are editorial single-page sites: the sticky header is the only
  // navigation, so they have no dock duplicating the same links.
- const order=template.id==='hair_spa'?['hero','services','team','gallery','location','footer']:template.id==='makeup_studio'?['hero','services','gallery','team','experiences','location','footer']:['hero','dock','services','team','experiences','location','footer'];let previous=-1;for(const section of order){const at=html.indexOf(`data-layout="${section}"`);assert.ok(at>previous,`${template.id}: ${section} must appear in requested order`);previous=at;}
+ const order=template.id==='hair_spa'?['hero','services','team','gallery','location','footer']:template.id==='makeup_studio'?['hero','services','gallery','team','experiences','location','footer']:template.id==='massage_wellness'?['hero','services','experiences','gallery','location','footer']:['hero','dock','services','team','experiences','location','footer'];let previous=-1;for(const section of order){const at=html.indexOf(`data-layout="${section}"`);assert.ok(at>previous,`${template.id}: ${section} must appear in requested order`);previous=at;}
  if(template.id==='hair_spa'){
   assert.ok(!html.includes('data-layout="dock"'),'hair spa keeps one navigation in the header');
   assert.ok(html.includes('kp-footer-social'),'hair spa social profiles live in the footer');
@@ -177,20 +177,34 @@ for(const template of Object.values(CATEGORY_TEMPLATES)) {
   assert.ok(!html.includes('data-layout="dock"'),'Vogue Noir keeps one navigation in the sticky header');
   assert.ok(html.includes('href="#services"')&&html.includes('href="#academy"')&&html.includes('href="#portfolio"'),'Vogue Noir header links resolve');
   assert.ok(html.includes('wa.me/'),'Vogue Noir keeps a real WhatsApp contact path');
+ }else if(template.id==='massage_wellness'){
+  // Template 09 (Bodhi Tree) is a multi-page site: the sticky glass header is the
+  // only navigation, so there is no dock duplicating the same links.
+  assert.ok(!html.includes('data-layout="dock"'),'Bodhi Tree keeps one navigation in the sticky header');
+  assert.ok(html.includes('wa.me/'),'Bodhi Tree keeps a real WhatsApp contact path');
+  assert.ok(html.includes('Jaipur Palace Collection'),'Bodhi Tree home previews the Palace Collection');
  }else{
   const dock=html.match(/<nav data-layout="dock"[\s\S]*?<\/nav>/)?.[0]||'';for(const label of ['Offers','Services','Our Team','Lookbook','Reviews','Location'])assert.ok(dock.includes(label),`${template.id}: ${label} dock link missing`);
   assert.ok(html.includes('WhatsApp Inquiry'));
  }
-if(['hair_spa','makeup_studio'].includes(template.id)){
- // Templates 06 and 08 use their own editorial hero instead of the shared "Rich warm mood" badge copy.
+if(['hair_spa','makeup_studio','massage_wellness'].includes(template.id)){
+ // Templates 06, 08 and 09 use their own editorial hero instead of the shared "Rich warm mood" badge copy.
  assert.ok(!html.includes('Rich warm mood'),'Editorial hero must not leak shared design-reference copy');
  assert.ok(html.includes('Test Studio'),'Editorial hero shows the saved salon name');
 }else assert.ok(html.includes('Rich warm mood'));
-if(['hair_spa','makeup_studio'].includes(template.id))assert.ok(!html.includes('Verified checkout'),'Editorial demo must not imply an active verified checkout');else assert.ok(html.includes('Verified checkout'));assert.ok(html.includes('Service categories'));
+if(['hair_spa','makeup_studio','massage_wellness'].includes(template.id))assert.ok(!html.includes('Verified checkout'),'Editorial demo must not imply an active verified checkout');else assert.ok(html.includes('Verified checkout'));assert.ok(html.includes('Service categories'));
  // Templates 06 and 08 name their booking action in the studio's own words.
- if(template.id==='hair_spa')assert.ok(html.includes('Book this service'),'hair spa service cards expose the booking action');else if(template.id==='makeup_studio')assert.ok(html.includes('>Book<')&&html.includes('Book Appointment'),'Vogue Noir service cards expose the booking action');else assert.ok(html.includes('Choose for online booking'));
+ if(template.id==='hair_spa')assert.ok(html.includes('Book this service'),'hair spa service cards expose the booking action');else if(template.id==='makeup_studio')assert.ok(html.includes('>Book<')&&html.includes('Book Appointment'),'Vogue Noir service cards expose the booking action');else if(template.id==='massage_wellness')assert.ok(html.includes('Book Now'),'Bodhi Tree service cards expose the booking action in simple words');else assert.ok(html.includes('Choose for online booking'));
  assert.ok(!html.includes('Verified client'),'Owner-entered reviews must not be labelled verified by default');
- for(const service of template.services){assert.ok(html.includes(service.name.replaceAll('&','&amp;').replaceAll("'",'&#x27;')));assert.ok(html.includes(`${service.durationMinutes} min`));}
+ if(template.id==='massage_wellness'){
+  // Template 09 is multi-page: Home previews the most-loved massages, every
+  // package and the first Palace Collection cards; the full menus live on the
+  // Services / Palace / Packages pages (covered by verify-bodhi-tree-template).
+  const homeServices=template.services.filter(s=>(s.popular&&s.category!=='Palace Collection')||s.category==='Packages');
+  for(const service of homeServices){assert.ok(html.includes(service.name.replaceAll('&','&amp;').replaceAll("'",'&#x27;')),`Bodhi Tree home shows ${service.name}`);}
+  for(const service of template.services.filter(s=>s.popular&&s.category!=='Palace Collection'&&s.category!=='Packages'))assert.ok(html.includes(`${service.durationMinutes} min`),`Bodhi Tree home shows ${service.name} duration`);
+  for(const title of ['Hawa Mahal Calm Ritual','City Palace Royal Abhyanga','Amer Fort Warrior Recovery','Jal Mahal Lakeside Shirodhara'])assert.ok(html.includes(title),`Bodhi Tree home previews ${title}`);
+ }else for(const service of template.services){assert.ok(html.includes(service.name.replaceAll('&','&amp;').replaceAll("'",'&#x27;')));assert.ok(html.includes(`${service.durationMinutes} min`));}
 }
 console.log('PASS: all 14 templates follow hero → dock → services → specialists → experiences/lookbook → location → footer; category pricing, duration, WhatsApp and specialist booking controls are present.');
 
@@ -217,7 +231,15 @@ for(const template of Object.values(CATEGORY_TEMPLATES)) {
   assert.equal(initial.profile.websiteTestimonials.length,3,template.id);assert.ok(initial.profile.websiteTestimonials.every(r=>r.isDemo&&!r.verified));
  }
  assert.ok(initial.extras.gallery.length>=4,template.id);
- const html=renderToStaticMarkup(<SalonWebsitePreview profile={initial.profile} services={[]} stylists={[]} gallery={initial.extras.gallery} readOnly onAddAppointment={async apt=>apt}/>);if(template.id==='hair_spa'){assert.ok(html.includes('Rooted in'),'hair spa renders its own philosophy copy');assert.ok(html.includes('THE SERVICE MENU'),'hair spa owns a single service catalogue');assert.ok(!html.includes('Demo testimonial'),'Hair spa never presents sample reviews as authentic');assert.ok(html.includes('Demo / sample'));assert.ok(!html.includes('4.97')&&!html.includes('390 experiences'),'hair_spa must not print an invented average rating or review count');assert.ok(!html.includes('id="testimonials"'),'no empty testimonials section without published reviews');}else if(template.id==='skincare_clinic'){assert.ok(!html.includes('Demo testimonial'));assert.ok(!html.includes('PATIENT EXPERIENCES'));}else if(template.id==='makeup_studio'){assert.ok(html.includes('Luxury Makeup. Timeless Beauty.'));assert.ok(html.includes('id="portfolio"'));assert.ok(!html.includes('Verified client'));}else{assert.ok(html.includes('Demo testimonial'));assert.ok(html.includes('Demo lookbook'));assert.ok(!html.includes('Client experiences will appear here'));}
+ const html=renderToStaticMarkup(<SalonWebsitePreview profile={initial.profile} services={[]} stylists={[]} gallery={initial.extras.gallery} readOnly onAddAppointment={async apt=>apt}/>);if(template.id==='hair_spa'){assert.ok(html.includes('Rooted in'),'hair spa renders its own philosophy copy');assert.ok(html.includes('THE SERVICE MENU'),'hair spa owns a single service catalogue');assert.ok(!html.includes('Demo testimonial'),'Hair spa never presents sample reviews as authentic');assert.ok(html.includes('Demo / sample'));assert.ok(!html.includes('4.97')&&!html.includes('390 experiences'),'hair_spa must not print an invented average rating or review count');assert.ok(!html.includes('id="testimonials"'),'no empty testimonials section without published reviews');}else if(template.id==='skincare_clinic'){assert.ok(!html.includes('Demo testimonial'));assert.ok(!html.includes('PATIENT EXPERIENCES'));}else if(template.id==='makeup_studio'){assert.ok(html.includes('Luxury Makeup, Made For Every Indian Bride'),'Vogue Noir renders its current default hero heading');assert.ok(html.includes('id="portfolio"'));assert.ok(!html.includes('Verified client'));}else if(template.id==='massage_wellness'){
+// Template 09 (Bodhi Tree) renders its own Jaipur guest reviews and gallery,
+// never the generic demo labels or verified-client claims.
+assert.ok(!html.includes('Demo testimonial'),'Bodhi Tree never prints the generic demo testimonial label');
+assert.ok(html.includes('Neha S.'),'Bodhi Tree home shows its seeded Jaipur guest reviews');
+assert.ok(html.includes('/templates/bodhi-tree/gallery/'),'Bodhi Tree home shows its own lookbook photographs');
+assert.ok(!html.includes('Verified client'));
+assert.ok(!html.includes('Client experiences will appear here'));
+}else{assert.ok(html.includes('Demo testimonial'));assert.ok(html.includes('Demo lookbook'));assert.ok(!html.includes('Client experiences will appear here'));}
  const deleted=normalizeWorkspace({profile:{...initial.profile,websiteTestimonials:[]},extras:{gallery:[]}});assert.equal(clientExperiences(deleted.profile).length,0);assert.equal(lookbookPhotos(deleted.profile,deleted.extras.gallery).length,0);
  const real={...initial.profile.websiteTestimonials[0],id:'real-review',isDemo:false,name:'Actual client',comment:'Actual client experience'};
  const own=normalizeWorkspace({profile:{...initial.profile,websiteTestimonials:[real]},extras:{gallery:['https://example.com/owner-photo.jpg']}});assert.deepEqual(own.profile.websiteTestimonials,[real]);assert.deepEqual(own.extras.gallery,['https://example.com/owner-photo.jpg']);
@@ -355,9 +377,10 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
   for(const id of ['home','about','treatments','technology','results','contact']){assert.ok(nav.includes(`href="#${id}"`));assert.ok(html.includes(`id="${id}"`));}
   continue;
  }
- const nav=template.id==='hair_spa'?(html.match(/<nav class="kp-desktop-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='makeup_studio'?(html.match(/<nav class="vn-desktop-nav"[\s\S]*?<\/nav>/)?.[0]||''):html.match(/<nav class="sf-header-links"[\s\S]*?<\/nav>/)![0];
+ const nav=template.id==='hair_spa'?(html.match(/<nav class="kp-desktop-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='makeup_studio'?(html.match(/<nav class="vn-desktop-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='massage_wellness'?(html.match(/<nav class="bt-desktop-nav"[\s\S]*?<\/nav>/)?.[0]||''):html.match(/<nav class="sf-header-links"[\s\S]*?<\/nav>/)![0];
  if(template.id==='hair_spa'){for(const label of ['Our Philosophy','Treatments','Scalp Care','The Sanctuary','Gallery','Contact'])assert.ok(nav.includes(label),`${template.id}: missing editorial link ${label}`);for(const href of ['#philosophy','#treatments','#journey','#sanctuary','#gallery','#contact'])assert.ok(html.includes(`href="${href}"`),`${template.id}: broken anchor ${href}`);assert.ok(html.includes('id="sanctuary"')&&html.includes('id="gallery"'),'the sanctuary story and the gallery are two resolving sections');}
  else if(template.id==='makeup_studio'){for(const label of ['Home','Services','Academy','Portfolio','Reviews','Contact'])assert.ok(nav.includes(label),`${template.id}: missing Vogue Noir link ${label}`);for(const href of ['#home','#services','#academy','#portfolio','#reviews','#contact']){assert.ok(html.includes(`href="${href}"`),`${template.id}: broken anchor ${href}`);assert.ok(html.includes(`id="${href.slice(1)}"`),`${template.id}: missing section ${href}`);}}
+ else if(template.id==='massage_wellness'){for(const label of ['Home','About','Massages','Palace Collection','Packages','Gallery','Team','Reviews','Contact'])assert.ok(nav.includes(label),`${template.id}: missing Bodhi Tree link ${label}`);assert.ok(!nav.includes('href="#"'),'Bodhi Tree page navigation uses working buttons, never dead anchors');}
  else{for(const [,label] of HEADER_LINKS)assert.ok(nav.includes(label),`${template.id}: missing header link ${label}`);for(const link of headerLinks(profile))if(link.href.startsWith('#'))assert.ok(html.includes(`id="${link.href.slice(1)}"`),`${template.id}: broken anchor ${link.href}`);}
  const hidden={...profile,websiteSections:{gallery:false,packages:false,about:false}};
  assert.ok(headerLinks(hidden).every(link=>!['gallery','packages','about'].includes(link.id)));

@@ -3,7 +3,7 @@ import { INITIAL_SALON_PROFILE } from '../mockData';
 import { applyTemplateDesign } from './templateSelection';
 import { normalizeWorkspace } from './normalizeWorkspace';
 import type { CategoryTemplateConfig } from '../types';
-const aliases:Record<string,string>={hair:'hair_salon',barber:'barber',spa:'hair_spa',nails:'nail_studio',tattoo:'tattoo_studio',beauty:'beauty_parlour',makeup:'makeup_studio','08':'makeup_studio','template-08':'makeup_studio','vogue-noir':'makeup_studio',voguenoir:'makeup_studio'};
+const aliases:Record<string,string>={hair:'hair_salon',barber:'barber',spa:'hair_spa',nails:'nail_studio',tattoo:'tattoo_studio',beauty:'beauty_parlour',makeup:'makeup_studio','08':'makeup_studio','template-08':'makeup_studio','vogue-noir':'makeup_studio',voguenoir:'makeup_studio','09':'massage_wellness','template-09':'massage_wellness','bodhi-tree':'massage_wellness',bodhitree:'massage_wellness',massage:'massage_wellness',wellness:'massage_wellness'};
 export function requestedTemplate(search:string):CategoryTemplateConfig|null {
  const query=new URLSearchParams(search);const rawExplicit=(query.get('template')||'').trim();
  const explicitAlias=Object.hasOwn(aliases,rawExplicit.toLowerCase())?aliases[rawExplicit.toLowerCase()]:rawExplicit;

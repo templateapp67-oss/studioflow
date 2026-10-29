@@ -30,7 +30,8 @@ export type LayoutStyle =
   | 'royal_crimson'
   | 'urban_monochrome'
   | 'chic_nude'
-  | 'ayurvedic_terracotta';
+  | 'ayurvedic_terracotta'
+  | 'palace_heritage';
 
 export interface BusinessTypeOption {
   id: BusinessTypeId;
@@ -58,7 +59,8 @@ export type SalonThemePreset =
   | 'royal_crimson_gold'
   | 'urban_monochrome'
   | 'chic_nude_beige'
-  | 'ayurvedic_terracotta';
+  | 'ayurvedic_terracotta'
+  | 'sage_cream_gold';
 
 export interface CategoryTemplateConfig {
   id: BusinessTypeId;
@@ -207,6 +209,7 @@ export interface SalonProfile {
     keywords?: string;
   };
   vogueNoir?: VogueNoirConfig;
+  bodhiTree?: BodhiTreeConfig;
 
   businessType: BusinessTypeId;
   businessName: string;
@@ -538,5 +541,107 @@ export interface AcademyEnquiryRecord {
   status: AcademyEnquiryStatus;
   created_at: string;
   updated_at: string;
+}
+
+/* ---------------------------------------------------------------------------
+ * Template 09 — Bodhi Tree Massage & Wellness Sanctuary (massage_wellness)
+ * Editable storefront content stored on the salon profile. Everything is
+ * optional: the resolver in `lib/bodhiTree.ts` fills any missing value with
+ * the bundled Jaipur demo defaults, so published sites never render blanks.
+ * ------------------------------------------------------------------------- */
+
+export interface BodhiTreeThemeColors {
+  /** Warm cream page background. */
+  bgCream: string;
+  /** Soft sage section background. */
+  bgSage: string;
+  /** Deep forest green — headings and primary text. */
+  forest: string;
+  /** Sage green — buttons and primary brand surfaces. */
+  sage: string;
+  /** Soft gold — fine borders, icons and small highlights. */
+  gold: string;
+  /** Jaipur pink-sandstone — highlights and borders. */
+  sandstone: string;
+  /** Muted body text. */
+  textMuted: string;
+}
+
+export interface BodhiTreePalaceItem {
+  id: string;
+  /** The Jaipur place the ritual is inspired by, e.g. "Hawa Mahal". */
+  place: string;
+  /** Ritual name, e.g. "Hawa Mahal Calm Ritual". */
+  title: string;
+  /** Price in INR (₹). */
+  price: number;
+  /** Display duration, e.g. "60 min". */
+  duration: string;
+  /** One or two simple lines about the place and the treatment. */
+  blurb: string;
+  includes: string[];
+  imageUrl: string;
+  imageAlt?: string;
+  /** Bookable service the card links to. */
+  linkedServiceId?: string;
+  popular?: boolean;
+  badgeLabel?: string;
+}
+
+export interface BodhiTreeBranch {
+  id: string;
+  name: string;
+  area: string;
+  address: string;
+  phone?: string;
+  hours?: string;
+}
+
+export interface BodhiTreeStatItem {
+  id: string;
+  value: string;
+  label: string;
+}
+
+export interface BodhiTreeFaqItem {
+  id: string;
+  question: string;
+  answer: string;
+}
+
+export interface BodhiTreeReviewItem {
+  id: string;
+  name: string;
+  /** Branch / area tag, e.g. "C-Scheme, Jaipur". */
+  tag: string;
+  rating: number;
+  quote: string;
+  /** Service the review is about (display only). */
+  serviceName?: string;
+  avatarUrl: string;
+}
+
+export interface BodhiTreeConfig {
+  selectorLabel?: string;
+  heroHeading?: string;
+  heroSubtext?: string;
+  heroDesktopUrl?: string;
+  heroMobileUrl?: string;
+  aboutHeading?: string;
+  aboutStory?: string;
+  aboutImageUrl?: string;
+  aboutImage2Url?: string;
+  palaceHeading?: string;
+  palaceSubtext?: string;
+  contactImageUrl?: string;
+  publicEmail?: string;
+  workingHoursDisplay?: string;
+  mapEmbedUrl?: string;
+  colors?: Partial<BodhiTreeThemeColors>;
+  stats?: BodhiTreeStatItem[];
+  palaceCollection?: BodhiTreePalaceItem[];
+  branches?: BodhiTreeBranch[];
+  faqs?: BodhiTreeFaqItem[];
+  reviews?: BodhiTreeReviewItem[];
 }
 
