@@ -126,7 +126,16 @@ export interface PromoCampaign {
   customOfferText: string; promoCode: string; headline: string; subtext: string;
   aspectRatio: string; aesthetic: string; imageUrl: string; customPrompt: string;
 }
+export interface ClinicArticle { id:string; title:string; category:string; excerpt:string; body:string; imageUrl:string; publishedAt:string; published:boolean; }
+export interface ClinicFaq { id:string; question:string; answer:string; published:boolean; }
+
 export interface SalonProfile {
+  /** Public projection of confirmed clinic services whose fee is not confirmed (no price). */
+  clinicEnquiryServices?: SalonService[];
+  clinicArticles?: ClinicArticle[];
+  clinicFaq?: ClinicFaq[];
+  /** Explicitly public clinic contact address, separate from the private account email. */
+  clinicPublicEmail?: string;
   clinicLegal?: {privacy:string;terms:string};
   clinicTechnology?: {name:string;manufacturer:string;specifications:string;imageUrl:string;approved:boolean};
   bookingAddOnServiceIds?:string[];
@@ -200,6 +209,15 @@ export interface SalonProfile {
 }
 
 export interface SalonService {
+  /** Template 07 only: explicit clinic confirmation, never inferred from template or edits. */
+  clinicServiceApproved?: boolean;
+  clinicPublicationStatus?: 'draft' | 'published' | 'unpublished';
+  clinicFeeStatus?: 'unverified' | 'verified' | 'on_request';
+  clinicPriceVerified?: boolean;
+  clinicServiceVerifiedBy?: string;
+  clinicServiceVerifiedAt?: string;
+  clinicFeeVerifiedBy?: string;
+  clinicFeeVerifiedAt?: string;
   imageUrl?:string;
   imagePath?:string;
   origin?:'custom'|'template';
@@ -207,7 +225,7 @@ export interface SalonService {
   name: string;
   category: string;
   durationMinutes: number;
-  price: number;
+  price: number | null;
   description: string;
   icon: string;
   popular?: boolean;

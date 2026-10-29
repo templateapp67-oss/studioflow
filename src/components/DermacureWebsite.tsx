@@ -23,6 +23,8 @@ import { TestimonialsSection } from "./dermacure/TestimonialsSection";
 import { BookingSection } from "./dermacure/BookingSection";
 import { ContactSection } from "./dermacure/ContactSection";
 import { PlatformSections } from "./dermacure/PlatformSections";
+import { PopularTreatments, TreatmentStories, CurrentOffers, ClinicFAQ, ClinicBlog } from "./dermacure/DiscoverySections";
+import { ClinicEnquiryDialog } from "./dermacure/ClinicEnquiryDialog";
 import { Footer } from "./dermacure/Footer";
 
 export function DermacureWebsite(
@@ -35,7 +37,7 @@ export function DermacureWebsite(
     customerName?: string;
   },
 ) {
-  const state = useDermacureState(props);
+  const state = useDermacureState({ ...props, hasTeam: Boolean(props.stylists?.length && props.onViewStaff) });
   useRevealRecovery();
   return (
     <DermacureContext.Provider value={state}>
@@ -46,6 +48,7 @@ export function DermacureWebsite(
         className="dc"
         style={{ "--dc-host-offset": `${state.hostOffset}px` } as CSSProperties}
       >
+        {!props.profile.subdomain && <p className="dc-booking-notice" role="note">Template preview: sample treatments, team profiles and images are not verified clinic information.</p>}
         <Header
           customerName={props.customerName}
           customerPhotoUrl={props.customerPhotoUrl}
@@ -58,6 +61,7 @@ export function DermacureWebsite(
           )}
           <HeroSection />
           <FeaturedTreatments />
+          <PopularTreatments />
           <BrandPhilosophy />
           <ServicesSection />
           <TechnologyShowcase />
@@ -70,14 +74,19 @@ export function DermacureWebsite(
           />
           <PersonalizedCare />
           <PatientJourney />
+          <TreatmentStories />
+          <CurrentOffers />
           <TestimonialsSection />
           <PatientReviews />
+          <ClinicBlog />
+          <ClinicFAQ />
           <BookingSection />
           <ContactSection />
           <PlatformSections />
           <CustomerAppPromotion />
         </main>
         <Footer />
+        <ClinicEnquiryDialog />
       </div>
     </DermacureContext.Provider>
   );

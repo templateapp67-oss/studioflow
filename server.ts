@@ -461,6 +461,15 @@ Return strictly valid JSON in this format:
     }
   });
 
+  // Optional direct template preview, used only when explicitly enabled in development.
+  // Query-string routes (including published sites and other templates) are unchanged.
+  if (process.env.NODE_ENV !== "production" && /^[a-z_]+$/.test(process.env.STUDIOFLOW_PREVIEW_TEMPLATE || "")) {
+    app.get("/", (req, res, next) => {
+      if (req.originalUrl !== "/") return next();
+      return res.redirect(302, `/?template=${encodeURIComponent(process.env.STUDIOFLOW_PREVIEW_TEMPLATE!)}`);
+    });
+  }
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

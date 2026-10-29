@@ -1,3 +1,5 @@
+import {ClinicEnquiries} from './dermacure/ClinicEnquiries';
+import {clinicPriceIsVerified,clinicPublicServices} from '../lib/dermacureContent';
 import {OwnerCustomerContacts} from './OwnerCustomerContacts';
 import {OwnerDemoBookings} from './OwnerDemoBookings';
 import { WebsiteContentManager } from './WebsiteContentManager';
@@ -295,7 +297,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
           })}
         </div>
 
-        {activeTab==='website_sections'&&<WebsiteContentManager profile={profile} setProfile={setProfile} gallery={gallery} setGallery={setGallery}/>}
+        {activeTab==='website_sections'&&<WebsiteContentManager services={services} profile={profile} setProfile={setProfile} gallery={gallery} setGallery={setGallery}/>}
         {/* TAB CONTENT: OVERVIEW */}
         {activeTab === 'overview' && (
           <div className="flex flex-col gap-6">
@@ -400,7 +402,8 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
         {/* TAB CONTENT: APPOINTMENTS */}
         {activeTab === 'calendar' && (
           <div className="flex flex-col gap-4">
-            <OwnerPosPanel slug={profile.subdomain} services={services} stylists={stylists} appointments={appointments} onChanged={async()=>{await onRefreshBookings?.();}}/>
+            {profile.businessType==='skincare_clinic'&&<ClinicEnquiries/>}
+            <OwnerPosPanel slug={profile.subdomain} services={profile.businessType==='skincare_clinic'?clinicPublicServices(profile,services).filter(clinicPriceIsVerified):services} stylists={stylists} appointments={appointments} onChanged={async()=>{await onRefreshBookings?.();}}/>
             <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-xs">
             <h2 className="font-display font-bold text-xl mb-4">Calendar & Appointment Schedule</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

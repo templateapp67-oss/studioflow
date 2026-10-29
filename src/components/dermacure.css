@@ -1005,7 +1005,7 @@
 .dc-booking-form [role="status"],
 .dc-booking-notice {
   padding: 16px;
-  background: #e8d6bf;
+  background: #e6e6e6;
   color: var(--ink);
 }
 .dc-booking-form .dc-btn {
@@ -1535,9 +1535,9 @@
   color: var(--bronze);
 }
 .dc-announcement .nexora-announcement {
-  background: #f0e8dd;
-  color: #50372d;
-  border-bottom: 1px solid #d9be9a;
+  background: #fafafa;
+  color: #000;
+  border-bottom: 1px solid #a0a09f;
   font-family: Manrope, sans-serif;
 }
 .dc-faq {
@@ -2208,3 +2208,178 @@
 .dc-mobile-nav a.is-active svg {
   color: var(--gold);
 }
+
+/* Editorial treatment, visit and client-word cards */
+.dc-feature-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.dc-card-foot button { width: auto; border-radius: 24px; padding: 8px 13px; display: inline-flex; gap: 5px; white-space: nowrap; }
+.dc-consultation-note { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin: 28px 0; padding: 24px; border: 1px solid var(--border); border-radius: 16px; background: var(--warm-white); }
+.dc-consultation-note > img, .dc-consultation-note > svg { width: 160px; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 12px; flex: none; }
+.dc-consultation-note p { margin: 6px 0; color: var(--muted); }
+.dc-steps:before { top: 105px; }
+.dc-steps > li { min-width: 0; }
+.dc-steps > li > img, .dc-steps > li > svg.dc-image-terminal { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 16px; margin-bottom: 20px; position: relative; }
+.dc-review-controls button { min-height: 44px; }
+.dc-review-grid { display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - 40px) / 3); gap: 20px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 8px 0 14px; margin-top: 32px; scrollbar-width: thin; }
+.dc-review-grid blockquote { scroll-snap-align: start; margin: 0; min-width: 0; border: 1px solid var(--border); border-radius: 16px; background: var(--warm-white); padding: 30px; box-shadow: 0 8px 28px #31231b0d; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.dc-review-grid blockquote > img, .dc-review-grid blockquote > svg { width: 64px; height: 64px; object-fit: cover; border-radius: 50%; }
+.dc-review-grid blockquote > p:not(.dc-review-rating) { font-family: "Cormorant Garamond", serif; font-size: 1.35rem; line-height: 1.4; overflow-wrap: anywhere; }
+.dc-review-grid cite { font-style: normal; }
+.dc-review-grid small { color: var(--muted); }
+.dc-review-draft { border-style: dashed !important; }
+@media (max-width: 900px) { .dc-feature-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dc-review-grid { grid-auto-columns: calc((100% - 20px) / 2); } }
+@media (max-width: 760px) { .dc-steps:before { display: none; } .dc-steps > li { padding: 0; } .dc-steps .dc-step-number { position: static; margin: 0 0 12px; } .dc-steps h3 { padding: 0; } .dc-consultation-note { align-items: flex-start; flex-direction: column; } }
+@media (max-width: 480px) { .dc-feature-grid { grid-template-columns: 1fr; } .dc-review-grid { grid-auto-columns: 88%; } }
+
+/* Template 07 reference palette and discovery components (scoped to Dermacure). */
+.dc {
+  --ivory: #fafafa; --ivory-deep: #e6e6e6; --warm-white: #fff;
+  --champagne: #a0a09f; --gold: #24dc9d; --bronze: #147a5a;
+  --brown: #000; --espresso: #000; --charcoal: #111;
+  --ink: #000; --muted: #5e5e5c; --border: #c9c9c8;
+  font-family: Roboto, "DIN Next Light", Arial, sans-serif;
+}
+.dc h1, .dc h2, .dc h3, .dc-pillar-card h3 { font-family: Montserrat, Roboto, Arial, sans-serif; }
+.dc em { font-style: normal; font-weight: 600; }
+.dc-eyebrow, .dc-philosophy .dc-eyebrow, .dc-pillar-eyebrow { color: #000; }
+.dc-header { position: sticky; top: 0; inset-inline: 0; background: #fafafaf5; border-color: #a0a09f; }
+.dc-header.is-scrolled { position: sticky; background: #fafafaf5; }
+.dc-contact-strip { background: #111; color: #fafafa; text-align: right; padding: 5px 4%; font-size: .78rem; }
+.dc-contact-strip a { text-decoration: underline; }
+.dc-desktop-nav { overflow-x: auto; scrollbar-width: none; }
+.dc-hero { padding-top: 0; }
+.dc-hero-photo:after { background: linear-gradient(90deg,#e6e6e6,transparent 22%); }
+.dc-hero-photo-label { background: #fafafae8; }
+.dc-btn, .dc-header-cta, .dc-light-link { background: #24dc9d; border-color: #24dc9d; color: #000 !important; }
+.dc-btn:hover, .dc-header-cta:hover { background: #a3f3d6; }
+.dc-feature-icon { background: #24dc9d; color: #000; }
+.dc-card-category, .dc-review-rating { color: #000; }
+.dc-philosophy-banner { background: #151515; color: #fafafa; }
+.dc-philosophy-banner-scrim { background: linear-gradient(100deg,#111f,#111d); }
+.dc-philosophy-banner h2 em { color: #24dc9d; }
+.dc-philosophy-banner p { color: #eee; }
+.dc-philosophy-banner .dc-btn { border-color: #24dc9d; color: #000 !important; }
+.dc-philosophy-banner-cta:hover { background: #24dc9d; color: #000 !important; }
+.dc-pillar-card { background: #fff; }
+.dc-search { display: flex; align-items: center; gap: 12px; }
+.dc-search-bar { background: #fafafa; padding: 12px 4%; border-bottom: 1px solid #ddd; }
+.dc-search input, .dc-directory-search input { min-height: 44px; border: 1px solid #a0a09f; border-radius: 6px; padding: 10px 12px; background: white; color: #000; }
+.dc-search-bar input { width: min(480px, 50%); }
+.dc-search button, .dc-directory-search button { padding: 10px 18px; border: 0; border-radius: 6px; background: #24dc9d; color: #000; font-weight: 600; }
+.dc-search-mobile { display: none; }
+.dc-directory-search { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 24px 0; }
+.dc-directory-search input { width: min(100%, 440px); }
+.dc-service-group { margin-top: 60px; }
+.dc-service-group > h3 { font-size: clamp(1.5rem,2vw,2rem); }
+.dc-service-group > p, .dc-empty { color: var(--muted); }
+.dc-popular, .dc-offers, .dc-clinic-faq { background: #e6e6e6; }
+.dc-popular-grid, .dc-blog-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 22px; margin-top: 28px; }
+.dc-popular-card, .dc-blog-grid article { overflow: hidden; background: #fff; border: 1px solid #c9c9c8; border-radius: 12px; }
+.dc-popular-card > img, .dc-blog-grid article > img, .dc-popular-card > svg, .dc-blog-grid article > svg { width: 100%; aspect-ratio: 4/3; object-fit: cover; }
+.dc-popular-card > div, .dc-blog-grid article > div { padding: 20px; }
+.dc-popular-card .dc-text-link { display: flex; margin-top: 12px; }
+.dc-story-rail { display: flex; gap: 26px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 12px 0; }
+.dc-story-rail article { flex: 0 0 150px; scroll-snap-align: start; text-align: center; }
+.dc-story-rail h3 { margin-top: 12px; font-size: .9rem; }
+.dc-story-button { display: block; width: 140px; height: 140px; padding: 0; border: 3px solid #24dc9d; border-radius: 50%; position: relative; overflow: hidden; }
+.dc-story-button img, .dc-story-button svg.dc-image-terminal { width: 100%; height: 100%; object-fit: cover; }
+.dc-story-button span { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; background: #0005; }
+.dc-story-dialog { width: min(700px,calc(100% - 32px)); border: 0; border-radius: 12px; padding: 24px; background: #fafafa; }
+.dc-story-dialog::backdrop { background: #000a; }
+.dc-story-dialog-head { display:flex; justify-content:space-between; align-items:center; gap:16px; }
+.dc-story-dialog-head button { border:1px solid #a0a09f; background:#fff; border-radius:6px; padding:8px 12px; }
+.dc-story-dialog iframe { display:block; border:0; width:100%; aspect-ratio:16/9; margin-bottom:16px; }
+.dc-story-dialog a { text-decoration: underline; }
+.dc-offer-card { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 32px; align-items: center; background: #fff; padding: 24px; border: 1px solid #c9c9c8; border-radius: 12px; }
+.dc-offer-card > img, .dc-offer-card > svg.dc-image-terminal { width:100%; aspect-ratio: 3/2; object-fit:cover; border-radius:8px; }
+.dc-clinic-faq details { border-top: 1px solid #a0a09f; padding: 12px 0; }
+.dc-clinic-faq summary { cursor: pointer; font-weight: 600; padding: 8px 0; }
+.dc-clinic-faq details p { max-width: 75ch; padding-top: 8px; }
+.dc-article-body { white-space: pre-wrap; overflow-wrap: anywhere; border-top:1px solid #ddd; margin-top:16px; padding-top:16px; }
+@media(max-width: 1200px) { .dc-popular-grid,.dc-blog-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media(max-width: 760px) {
+  .dc-header { height:72px; }
+  .dc-search-bar { display:none; }
+  .dc-search-mobile { display:flex; flex-wrap:wrap; margin-bottom:16px; }
+  .dc-search-mobile input { flex:1 1 180px; }
+  .dc-mobile-nav .dc-search-mobile button { width:auto; border:0; padding:8px 14px; background:#24dc9d; }
+  .dc-hero { padding-top:0; }
+  .dc-hero-photo:after { background:linear-gradient(180deg,#e6e6e6,transparent 25%); }
+  .dc-offer-card { grid-template-columns:1fr; }
+}
+@media(max-width: 480px) { .dc-popular-grid,.dc-blog-grid { grid-template-columns:1fr; } }
+.dc-logo { flex: 0 0 auto; min-width: 184px; }
+.dc-logo > span:last-child { overflow-wrap: normal; }
+.dc-desktop-nav { flex: 1 1 auto; gap: 14px; }
+.dc-desktop-nav a { flex: 0 0 auto; white-space: nowrap; }
+@media (max-width: 1200px) { .dc-logo { flex: 1; min-width: 0; } }
+.dc-desktop-nav { overflow: visible; }
+.dc-nav-more { position: relative; flex: 0 0 auto; font-size: .7rem; }
+.dc-nav-more summary { cursor: pointer; display: flex; align-items: center; }
+.dc-nav-more > div { position: absolute; top: 100%; right: 0; min-width: 180px; background: #fafafa; border: 1px solid #c9c9c8; border-radius: 8px; padding: 8px 14px; box-shadow: 0 8px 24px #0002; }
+.dc-nav-more > div a { display: block; padding: 10px 0; }
+.dc-load-more { margin-top: 24px; }
+
+/* Template 07: attached reference design tokens and card language. */
+.dc {
+  --dc-surface: #fafafa;
+  --dc-alternate: #e6e6e6;
+  --dc-text: #000000;
+  --dc-secondary: #8a8a88;
+  --dc-green: #24dc9d;
+  --dc-pink: #ffb5b5;
+  --dc-border: #a0a09f;
+  --dc-space-1: 4px;
+  --dc-space-2: 8px;
+  --dc-space-3: 12px;
+  --dc-space-4: 16px;
+  --dc-space-6: 24px;
+  --dc-space-8: 32px;
+  --dc-space-12: 48px;
+  --dc-space-16: 64px;
+  --ivory: var(--dc-surface);
+  --ivory-deep: var(--dc-alternate);
+  --border: var(--dc-border);
+  --champagne: var(--dc-border);
+}
+.dc h1 { font-size: clamp(2.4rem, 4vw, 3.5rem); line-height: 1.08; font-weight: 700; }
+.dc h2 { font-size: clamp(1.7rem, 2.4vw, 2rem); line-height: 1.2; letter-spacing: -.015em; font-weight: 700; }
+.dc h3 { font-weight: 700; }
+.dc em { color: inherit; font-style: normal; font-weight: inherit; }
+.dc-section { padding-block: clamp(56px, 6vw, 88px); }
+.dc-hero-copy { gap: var(--dc-space-2); }
+.dc-hero-topline { display: inline-block; background: var(--dc-pink); color: var(--dc-text); padding: var(--dc-space-2) var(--dc-space-3); font-size: .68rem; font-weight: 700; letter-spacing: .1em; margin-bottom: var(--dc-space-4) !important; }
+.dc-hero h1 em { color: #000; }
+.dc-hero .dc-actions { gap: var(--dc-space-3) var(--dc-space-6); }
+.dc-feature-card, .dc-directory-item, .dc-popular-card, .dc-blog-grid article, .dc-review-grid blockquote { border: 1px solid var(--dc-border); border-radius: 6px; box-shadow: none; }
+.dc-feature-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px #00000012; }
+.dc-card-image img, .dc-card-image .dc-image-terminal { border-radius: 5px 5px 0 0; }
+.dc-feature-icon { background: var(--dc-green); border-color: var(--dc-surface); }
+.dc-card-body { padding: var(--dc-space-8) var(--dc-space-4) var(--dc-space-4); }
+.dc-card-category { display: inline-block; align-self: flex-start; background: var(--dc-alternate); color: var(--dc-text); padding: var(--dc-space-1) var(--dc-space-2); font-size: .65rem !important; font-weight: 700; letter-spacing: .08em; }
+.dc-feature-card h3, .dc-directory-item h3, .dc-popular-card h3, .dc-blog-grid h3 { font-size: 1.05rem; line-height: 1.35; }
+.dc-card-foot { margin-top: auto; }
+.dc-card-foot button { border-radius: 6px; }
+.dc-directory-grid, .dc-popular-grid, .dc-blog-grid { gap: var(--dc-space-4); }
+.dc-directory-num { background: var(--dc-surface); border-radius: 4px; }
+.dc-service-group { padding-top: var(--dc-space-8); border-top: 1px solid var(--dc-border); }
+.dc-service-group > h3 { font-size: clamp(1.35rem, 2vw, 1.6rem); }
+.dc-consultation-note { border-radius: 6px; background: var(--dc-surface); }
+.dc-btn, .dc-header-cta, .dc-light-link { border-radius: 6px; }
+.dc-eyebrow { letter-spacing: .12em; }
+.dc-tech { background: #000; }
+.dc-tech-image:after { background: linear-gradient(90deg, #000, transparent 45%); }
+.dc-tech .dc-eyebrow, .dc-tech h2 em, .dc-tech-specs dt { color: var(--dc-green); }
+.dc-tech-copy > p, .dc-footer p, .dc-footer-bottom { color: #e6e6e6; }
+.dc-philosophy-banner h2 em { color: var(--dc-green); }
+.dc-philosophy-quote, .dc-philosophy-quote-panel, .dc-pillar-card { background: var(--dc-surface); }
+.dc-review-grid blockquote > p:not(.dc-review-rating) { font-family: Roboto, Arial, sans-serif; font-size: 1rem; }
+@media (max-width: 760px) {
+  .dc h1 { font-size: clamp(2.15rem, 9vw, 3rem); }
+  .dc h2 { font-size: clamp(1.6rem, 6vw, 1.9rem); }
+  .dc-tech-image:after { background: linear-gradient(180deg, #000, transparent 50%); }
+}
+.dc-enquiry-dialog {width:min(560px,calc(100% - 32px));border:1px solid #a0a09f;border-radius:12px;padding:24px;background:#fafafa;color:#000}
+.dc-enquiry-dialog::backdrop {background:#000a}
+.dc-enquiry-dialog form {display:grid;gap:14px;margin-top:20px}
+.dc-enquiry-dialog label {display:grid;gap:6px;font-weight:600}
+.dc-enquiry-dialog input,.dc-enquiry-dialog textarea {width:100%;border:1px solid #a0a09f;background:white;color:black;padding:10px;border-radius:6px}

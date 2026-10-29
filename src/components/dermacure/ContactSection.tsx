@@ -1,3 +1,4 @@
+import { clinicPublicEmail,clinicPhone } from "../../lib/dermacureContent";
 import { socialUrl } from "../../lib/websiteContent";
 import { useDermacure } from "./context";
 import { ArrowUpRight, MapPin } from "lucide-react";
@@ -5,6 +6,9 @@ import { ArrowUpRight, MapPin } from "lucide-react";
 export function ContactSection() {
   const { address, directions, profile, visible } = useDermacure();
   if (!visible.location) return null;
+  const email=clinicPublicEmail(profile.clinicPublicEmail);
+  const phone=clinicPhone(profile.phone);
+  const whatsapp=clinicPhone(profile.whatsapp);
   return (
     <>
       <section className="dc-contact dc-section" id="contact">
@@ -33,16 +37,20 @@ export function ContactSection() {
           </div>
           <div>
             <h3>Get in touch</h3>
-            {profile.phone && (
+            {phone && (
               <p>
-                <a href={`tel:${profile.phone.replace(/[^+\d]/g, "")}`}>
+                <a href={`tel:${phone}`}>
                   {profile.phone}
                 </a>
               </p>
             )}
-            {profile.email && (
+            {whatsapp && (
+              <p><a href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer">WhatsApp the clinic</a></p>
+            )}
+            {!phone && !email && !whatsapp && <p>Contact details have not been added yet.</p>}
+            {email && (
               <p>
-                <a href={`mailto:${profile.email}`}>{profile.email}</a>
+                <a href={`mailto:${email}`}>{email}</a>
               </p>
             )}
             {socialUrl(profile.instagramHandle, "instagram") && (

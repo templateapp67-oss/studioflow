@@ -1,3 +1,5 @@
+> **Superseded:** For the current Template 07 design specification, see [DERMACURE-REFERENCE-DESIGN.md](DERMACURE-REFERENCE-DESIGN.md). This document records the earlier warm editorial design.
+
 # DESIGN.md — Template 07: Dermacure Aesthetic Dermatology & Laser Clinic
 
 > **Purpose:** This document is the visual and interaction specification for cloning the supplied Dermacure landing-page reference inside the existing Template No. 07. Treat the supplied image as the primary visual reference for composition, tone, imagery, typography, card design and section rhythm. This is a design specification, not a claim that the clinic details or results shown in the mockup are real.

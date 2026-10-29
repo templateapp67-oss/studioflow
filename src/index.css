@@ -841,3 +841,8 @@
 .nexora-announcement>span{flex:1 1 200px;overflow-wrap:anywhere}.nexora-announcement>a{display:inline-flex;align-items:center;min-height:44px;text-decoration:underline;font-weight:700}
 .nexora-announcement>button{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;border:1px solid currentColor;border-radius:50%;flex-shrink:0}
 .nexora-campaign-announcement{background:#183d32;color:#f9f6ef}
+
+.service-editor-confirmation{border:1px solid #e2e8f0;border-radius:12px;padding:16px;display:grid;gap:12px;min-width:0}
+.service-editor-confirmation legend{font-weight:700;padding:0 4px}
+.service-editor-confirmation .service-editor-check{align-items:flex-start}
+.service-editor-confirmation input{flex:none}

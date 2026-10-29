@@ -1,3 +1,4 @@
+import { clinicPublicServices, clinicPriceIsVerified, clinicServiceIsPublished } from "../../lib/dermacureContent";
 import { headerSettings } from "../../lib/headerNavigation";
 import type { ConsultationDetails } from "./consultation";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
@@ -9,7 +10,7 @@ import { secureMediaUrl } from "../../lib/socialVideoSource";
 
 export function useDermacureState({
   profile,
-  services,
+  services: allServices,
   onBook,
   bookingAvailable,
   policies,
@@ -17,6 +18,7 @@ export function useDermacureState({
   onAccount,
   customerSignedIn,
   shared,
+  hasTeam = false,
 }: {
   profile: SalonProfile;
   services: SalonService[];
@@ -26,8 +28,12 @@ export function useDermacureState({
   onMyBookings: () => void;
   onAccount: () => void;
   customerSignedIn?: boolean;
+  hasTeam?: boolean;
   shared: Parameters<typeof WebsiteSections>[0];
 }) {
+  const services = clinicPublicServices(profile, allServices);
+  const [search, setSearch] = useState("");
+  const [serviceCategory, setServiceCategory] = useState("All");
   const [hostOffset, setHostOffset] = useState(0);
   const [menu, setMenu] = useState(false),
     [scrolled, setScrolled] = useState(false),
@@ -47,7 +53,7 @@ export function useDermacureState({
       secureMediaUrl(item.afterUrl),
   );
   const reviews = (profile.websiteTestimonials || []).filter(
-    (item) => !item.isDemo && item.verified && item.comment?.trim(),
+    (item) => !item.isDemo && item.comment?.trim(),
   );
   const reduced = useReducedMotion();
   const canUseHeroScroll =
@@ -78,9 +84,12 @@ export function useDermacureState({
     ...(visible.services && services.length
       ? [["Treatments", "treatments"]]
       : []),
+    ...(visible.services ? [["Skin Treatments", "skin-treatments"], ["Hair Treatments", "hair-treatments"], ["Cosmetology Treatments", "cosmetology-treatments"]] : []),
+    ["FAQ", "clinic-faq"],
+    ["Blog", "clinic-blog"],
     ["Technology", "technology"],
     ...(visible.gallery ? [["Results", "results"]] : []),
-    ...(visible.stylists ? [["Our Team", "salon-team"]] : []),
+    ...(visible.stylists && hasTeam ? [["Our Team", "salon-team"]] : []),
     ...(visible.gallery ? [["Gallery", "clinic-gallery"]] : []),
     ...(visible.location ? [["Contact", "contact"]] : []),
   ].filter(([, target]) => {
@@ -89,6 +98,9 @@ export function useDermacureState({
         home: "home",
         about: "about",
         treatments: "services",
+        "skin-treatments": "services",
+        "hair-treatments": "services",
+        "cosmetology-treatments": "services",
         results: "gallery",
         "clinic-gallery": "gallery",
         contact: "contact",
@@ -235,20 +247,20 @@ export function useDermacureState({
     restoreFocus.current = false;
     setMenu(false);
   }, [menu]);
+  const [enquiryService, setEnquiryService] = useState<SalonService | null>(null);
   const [bookingNotice, setBookingNotice] = useState("");
+  const enquire = (service?: SalonService) => {
+    if (profile.subdomain && service && clinicServiceIsPublished(service) && !clinicPriceIsVerified(service)) { setEnquiryService(service); return; }
+    const contact = document.getElementById("contact");
+    if (contact) { contact.scrollIntoView({ behavior: reduced ? "auto" : "smooth" }); return; }
+    setBookingNotice("Contact the clinic for treatment and pricing details; contact information is not currently available here.");
+  };
   const booking = () => {
     if (bookingAvailable) {
       onBook();
       return;
     }
-    const contact = document.getElementById("contact");
-    if (contact) {
-      contact.scrollIntoView({ behavior: reduced ? "auto" : "smooth" });
-      return;
-    }
-    setBookingNotice(
-      "Online consultation booking is currently unavailable. Please try again later.",
-    );
+    enquire();
   };
   const bookingLabel = bookingAvailable
     ? "Book Consultation"
@@ -293,6 +305,7 @@ export function useDermacureState({
   };
   const scrollTo = (target: string) => {
     if (typeof document === "undefined") return;
+    if (["skin-treatments", "hair-treatments", "cosmetology-treatments"].includes(target)) { setSearch(""); setServiceCategory("All"); }
     if (menu) {
       restoreFocus.current = false;
       pendingScroll.current = target;
@@ -429,6 +442,11 @@ export function useDermacureState({
   return {
     profile,
     services,
+    hasTeam,
+    search,
+    setSearch,
+    serviceCategory,
+    setServiceCategory,
     onBook,
     bookingAvailable,
     policies,
@@ -455,6 +473,9 @@ export function useDermacureState({
     nav,
     activeSection,
     booking,
+    enquire,
+    enquiryService,
+    setEnquiryService,
     bookingLabel,
     scrollTo,
     bookingNotice,

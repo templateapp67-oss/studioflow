@@ -7,7 +7,7 @@ import {CustomerSalonWebsite} from '../src/components/CustomerSalonWebsite';
 import {defaultServiceImage} from '../src/lib/serviceImages';
 import {servicePhotoFromUrl} from '../src/lib/servicePhoto';
 for(const template of Object.values(CATEGORY_TEMPLATES)){
- const services=template.services;
+ const services=template.id==='skincare_clinic'?template.services.map(s=>({...s,clinicServiceApproved:true,clinicPublicationStatus:'published' as const,clinicFeeStatus:'verified' as const,clinicPriceVerified:true})):template.services;
  const html=renderToStaticMarkup(<CustomerSalonWebsite profile={{...INITIAL_SALON_PROFILE,businessType:template.id}} services={services} stylists={[]} onAddAppointment={async a=>a}/>);
  if(template.id==='skincare_clinic'){
   assert.equal((html.match(/class="dc-directory-image"/g)||[]).length,services.length,'Dermacure directory includes every service image');

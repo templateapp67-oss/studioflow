@@ -1,8 +1,10 @@
+import { clinicPriceIsVerified, clinicPriceLabel } from "../../lib/dermacureContent";
+import { dermacureFeatured } from "../../lib/dermacureContent";
 import { EditorialImage } from "./EditorialImage";
 import { useDermacure } from "./context";
 import { motion } from "motion/react";
 import { ArrowRight, ArrowUpRight, Flower2 } from "lucide-react";
-import { fade, stagger, images } from "./animation";
+import { fade, stagger, treatmentImage } from "./animation";
 
 export function FeaturedTreatments() {
   const {
@@ -12,8 +14,9 @@ export function FeaturedTreatments() {
     profile,
     bookingAvailable,
     onBook,
-    booking,
+    enquire,
   } = useDermacure();
+  const featured = dermacureFeatured(profile, services);
   const canReveal =
     typeof window !== "undefined" &&
     "IntersectionObserver" in window &&
@@ -26,10 +29,10 @@ export function FeaturedTreatments() {
             <div className="dc-section-top">
               <div>
                 <p className="dc-eyebrow">
-                  <span /> FEATURED
+                  <span /> {profile.sectionHeadings?.signatureEyebrow || "SIGNATURE TREATMENTS"}
                 </p>
                 <h2>
-                  Our Signature <em>Treatments</em>
+                  {profile.sectionHeadings?.signatureTitle || "Not sure where to begin?"}
                 </h2>
               </div>
               <a className="dc-text-link" href="#directory">
@@ -37,8 +40,7 @@ export function FeaturedTreatments() {
               </a>
             </div>
             <p className="dc-section-sub">
-              Explore selected treatments and consultation options suited to
-              different skin concerns.
+              {profile.sectionHeadings?.signatureSubtitle || "Explore selected treatments from the clinic’s menu."}
             </p>
             <motion.div
               className="dc-feature-grid"
@@ -47,7 +49,7 @@ export function FeaturedTreatments() {
               whileInView={canReveal ? "show" : undefined}
               viewport={{ once: true, amount: 0.2 }}
             >
-              {services.slice(0, 4).map((s, i) => (
+              {featured.map((s) => (
                 <motion.article
                   variants={fade}
                   key={s.id}
@@ -55,9 +57,9 @@ export function FeaturedTreatments() {
                 >
                   <div className="dc-card-image">
                     <EditorialImage
-                      fallback={images[i]}
+                      fallback={treatmentImage(s)}
                       className="sf-service-image"
-                      src={s.imageUrl || images[i]}
+                      src={s.imageUrl || treatmentImage(s)}
                       alt={
                         s.imageUrl
                           ? s.name
@@ -77,20 +79,18 @@ export function FeaturedTreatments() {
                     <p>{s.description}</p>
                     <div className="dc-card-foot">
                       <span>
-                        {s.price > 0
-                          ? `${profile.currency || "₹"}${s.price.toLocaleString("en-IN")}`
-                          : ""}
+                        {clinicPriceLabel(s, profile.currency || "₹")}
                         {s.showDuration !== false && s.durationMinutes > 0
                           ? `  ·  ${s.durationMinutes} min`
                           : ""}
                       </span>
                       <button
                         onClick={() =>
-                          bookingAvailable ? onBook(s) : booking()
+                          bookingAvailable && clinicPriceIsVerified(s) ? onBook(s) : enquire(s)
                         }
                         aria-label={`Explore ${s.name}`}
                       >
-                        <ArrowUpRight size={19} />
+                        {bookingAvailable && clinicPriceIsVerified(s) ? "Book now" : "Enquire"} <ArrowUpRight size={16} />
                       </button>
                     </div>
                   </div>

@@ -1,3 +1,4 @@
+import {clinicPhone} from "../../lib/dermacureContent";
 import { EditorialImage } from "./EditorialImage";
 import { useDermacure } from "./context";
 import { AnimatePresence, motion } from "motion/react";
@@ -12,6 +13,9 @@ export function Header({
 }) {
   const {
     profile,
+    search,
+    setSearch,
+    setServiceCategory,
     visible,
     canShowBookings,
     scrolled,
@@ -30,8 +34,10 @@ export function Header({
     scrollTo,
   } = useDermacure();
   if (!visible.header) return null;
+  const phone=clinicPhone(profile.phone);
   return (
     <>
+      {phone && <div className="dc-contact-strip">Appointments: <a href={`tel:${phone}`}>{profile.phone}</a></div>}
       <header className={`dc-header ${scrolled || menu ? "is-scrolled" : ""}`}>
         <a
           className="dc-logo"
@@ -63,7 +69,7 @@ export function Header({
           </span>
         </a>
         <nav className="dc-desktop-nav" aria-label="Website navigation">
-          {nav.map(([label, id]) => (
+          {nav.filter(([, id]) => ["home", "skin-treatments", "hair-treatments", "cosmetology-treatments", "clinic-faq", "clinic-blog", "contact"].includes(id)).map(([label, id]) => (
             <a
               key={id}
               href={`#${id}`}
@@ -77,17 +83,7 @@ export function Header({
               {label}
             </a>
           ))}
-          {canShowBookings && (
-            <a
-              href={`/?customer=1&return=${encodeURIComponent(profile.subdomain || "")}`}
-              onClick={(e) => {
-                e.preventDefault();
-                onMyBookings();
-              }}
-            >
-              My Bookings
-            </a>
-          )}
+          {(canShowBookings || nav.some(([, id]) => !["home", "skin-treatments", "hair-treatments", "cosmetology-treatments", "clinic-faq", "clinic-blog", "contact"].includes(id))) && <details className="dc-nav-more"><summary>More</summary><div>{nav.filter(([, id]) => !["home", "skin-treatments", "hair-treatments", "cosmetology-treatments", "clinic-faq", "clinic-blog", "contact"].includes(id)).map(([label,id]) => <a key={id} href={`#${id}`} onClick={event => { event.preventDefault(); event.currentTarget?.closest?.('details')?.removeAttribute('open'); scrollTo(id); }}>{label}</a>)}{canShowBookings && <a href={`/?customer=1&return=${encodeURIComponent(profile.subdomain || "")}`} onClick={e=>{e.preventDefault();e.currentTarget?.closest?.('details')?.removeAttribute('open');onMyBookings();}}>My Bookings</a>}</div></details>}
         </nav>
         <button
           type="button"
@@ -123,6 +119,7 @@ export function Header({
           {menu ? <X /> : <Menu />}
         </button>
       </header>
+      {visible.services && <form className="dc-search dc-search-bar" role="search" onSubmit={e => { e.preventDefault(); scrollTo("directory"); }}><label htmlFor="dc-desktop-search">Find a treatment or concern</label><input id="dc-desktop-search" type="search" value={search} onChange={e => { setSearch(e.target.value); setServiceCategory("All"); }} placeholder="Search treatments, conditions or articles" /><button type="submit">Search</button></form>}
       <AnimatePresence>
         {menu && (
           <motion.div
@@ -151,6 +148,7 @@ export function Header({
             }
             transition={reduced ? { duration: 0 } : undefined}
           >
+            {visible.services && <form className="dc-search dc-search-mobile" role="search" onSubmit={e => { e.preventDefault(); scrollTo("directory"); }}><label htmlFor="dc-mobile-search">Search treatments</label><input id="dc-mobile-search" type="search" value={search} onChange={e => { setSearch(e.target.value); setServiceCategory("All"); }} placeholder="Treatment or concern" /><button type="submit">Search</button></form>}
             {nav.map(([label, id]) => (
               <a
                 key={id}

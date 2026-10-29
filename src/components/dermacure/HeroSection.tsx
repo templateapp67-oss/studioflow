@@ -1,3 +1,4 @@
+import { isBundledClinicPhoto } from "../../lib/dermacureSite";
 import { EditorialImage } from "./EditorialImage";
 import { useDermacure } from "./context";
 import { motion } from "motion/react";
@@ -7,6 +8,7 @@ import { fade, stagger } from "./animation";
 export function HeroSection() {
   const {
     hero,
+    hasTeam,
     reduced,
     booking,
     bookingAvailable,
@@ -28,17 +30,17 @@ export function HeroSection() {
             <motion.p variants={fade} className="dc-eyebrow">
               <span /> {profile.businessName}
             </motion.p>
+            <motion.p variants={fade} className="dc-hero-topline">SKIN &nbsp; / &nbsp; HAIR &nbsp; / &nbsp; COSMETOLOGY</motion.p>
             <motion.h1 variants={fade}>
               {profile.sectionHeadings?.heroTitle || (
                 <>
-                  Science for <br />
-                  <em>Healthier Skin.</em> <br />A More Confident You.
+                  Skin, hair &amp; <br /><em>aesthetic concerns.</em>
                 </>
               )}
             </motion.h1>
             <motion.p variants={fade} className="dc-intro">
               {profile.sectionHeadings?.heroDescription ||
-                "Advanced dermatology, aesthetic treatments and laser-care options selected around your skin concerns and goals."}
+                "Explore the clinic’s treatment menu and discuss your concerns and available care with the team."}
             </motion.p>
             <motion.div variants={fade} className="dc-actions">
               <button className="dc-btn" onClick={booking}>
@@ -50,6 +52,11 @@ export function HeroSection() {
               {visible.services && services.length > 0 && (
                 <a className="dc-text-link" href="#treatments">
                   Explore Treatments <ArrowRight size={16} />
+                </a>
+              )}
+              {visible.stylists && hasTeam && (
+                <a className="dc-text-link" href="#salon-team">
+                  Meet the care team <ArrowRight size={16} />
                 </a>
               )}
             </motion.div>
@@ -74,7 +81,7 @@ export function HeroSection() {
                 profile.coverImageUrl || "/templates/dermacure/hero-wide.webp"
               }
               alt={
-                profile.coverImageUrl
+                profile.coverImageUrl && !isBundledClinicPhoto(profile.coverImageUrl)
                   ? `${profile.businessName} clinic`
                   : "Illustrative editorial portrait celebrating natural skin"
               }

@@ -23,7 +23,7 @@ const VIEWPORT = { once: true, amount: 0.2 } as const;
  * to the bundled neutral illustration instead of an empty frame.
  */
 export function BrandPhilosophy() {
-  const { visible, reduced, profile, scrollTo } = useDermacure();
+  const { visible, reduced, profile, scrollTo, hasTeam } = useDermacure();
   const canReveal =
     typeof window !== "undefined" &&
     "IntersectionObserver" in window &&
@@ -75,7 +75,7 @@ export function BrandPhilosophy() {
               >
                 Discover Our Approach <ArrowRight size={16} aria-hidden="true" />
               </button>
-              {visible.stylists && (
+              {visible.stylists && hasTeam && (
                 <button
                   type="button"
                   className="dc-text-link dc-text-link-muted"
@@ -101,7 +101,7 @@ export function BrandPhilosophy() {
                 }
                 fallback={DERMACURE_IMAGES.neutral}
                 fallbackAlt="Illustration of a skin-care consultation"
-                alt="A clinician reviewing a patient's skin during a consultation in the clinic"
+                alt="Illustrative image of a skincare consultation"
                 loading="lazy"
                 decoding="async"
                 width={1500}

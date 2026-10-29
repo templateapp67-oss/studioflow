@@ -20,7 +20,7 @@ export function ClinicTeam({
   onView?: (id: string) => void;
   onBook?: (staff: Stylist) => void;
 }) {
-  const { visible } = useDermacure();
+  const { visible, profile } = useDermacure();
   const [failed, setFailed] = useState<string[]>([]);
   if (!visible.stylists || !staff.length || !onView) return null;
   return (
@@ -39,10 +39,11 @@ export function ClinicTeam({
           the products and the aftercare in plain language. You can request a
           particular clinician when you book.
         </p>
+        {!profile.subdomain && staff.some(s => ["sk-st-1", "sk-st-2", "sk-st-3"].includes(s.id)) && <p className="dc-empty">Template preview: sample team profiles are not verified clinic identities.</p>}
         <div className="dc-team-grid">
           {staff.map((s) => {
             const portrait = dermacureTeamPortrait(s);
-            const usable = Boolean(portrait.src) && !failed.includes(portrait.src);
+            const usable = Boolean(portrait.src) && !failed.includes(portrait.src) && (!profile.subdomain || !portrait.isDemo);
             return (
               <article key={s.id}>
                 <div

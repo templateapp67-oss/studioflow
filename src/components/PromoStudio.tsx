@@ -1,3 +1,4 @@
+import {clinicPriceIsVerified,clinicPublicServices} from '../lib/dermacureContent';
 import {BrandImageField} from './BrandImageField';
 import {renderCampaignBanner,downloadCampaignAd,type CampaignAd} from '../lib/campaignBanner';
 import { websiteLink } from '../lib/supabase';
@@ -18,7 +19,15 @@ type AspectRatioType = '1:1' | '9:16' | '16:9';
 type AestheticStyle = 'luxury_gold' | 'minimalist_chic' | 'festive_glow' | 'botanical_zen' | 'modern_studio';
 type TemplateTheme = 'flash_discount' | 'luxury_pamper' | 'festive_special' | 'vip_welcome';
 
-export const PromoStudio: React.FC<PromoStudioProps> = ({
+export const PromoStudio: React.FC<PromoStudioProps> = (props) => {
+  if (props.profile.businessType === 'skincare_clinic') {
+    const confirmed = clinicPublicServices(props.profile,props.services).filter(clinicPriceIsVerified);
+    if (!confirmed.length) return <section className="workspace-card"><h2>Clinic promotions</h2><p>Confirm and publish a service and its fee before creating a priced promotion.</p></section>;
+    return <PromoStudioBody {...props} services={confirmed}/>;
+  }
+  return <PromoStudioBody {...props}/>;
+};
+const PromoStudioBody: React.FC<PromoStudioProps> = ({
   profile,
   setProfile,
   services,

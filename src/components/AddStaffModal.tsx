@@ -93,12 +93,12 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
   const saveLock=useRef(false);
 
   // Form States
-  const [selectedPhoto, setSelectedPhoto] = useState<string>(PRESET_AVATARS[0]);
+  const [selectedPhoto, setSelectedPhoto] = useState<string>(businessType==='skincare_clinic'?'':PRESET_AVATARS[0]);
   
   // Basic Info
   const [experienceYears,setExperienceYears]=useState('');
   const [fullName, setFullName] = useState<string>('');
-  const [primaryRole, setPrimaryRole] = useState<string>(STAFF_TITLES[businessType][0]);
+  const [primaryRole, setPrimaryRole] = useState<string>(businessType==='skincare_clinic'?'':STAFF_TITLES[businessType][0]);
   const [appAccessRole, setAppAccessRole] = useState<StaffAccessRole>('Service Provider (Assigned)');
   
   // Contact, Commission & Status
@@ -227,7 +227,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
 
     if(saveLock.current||photoBusy)return;
     if(!primaryRole.trim()){setFormError('Designation is required.');return}
-    if(!photoFile&&!validStaffUrl(selectedPhoto)){setFormError('Enter a valid image URL or select a photo.');return}
+    if(!photoFile&&((selectedPhoto&&!validStaffUrl(selectedPhoto))||(!selectedPhoto&&businessType!=='skincare_clinic'&&staffCategory!=='skincare_clinic'))){setFormError('Enter a valid image URL or select a photo.');return}
     if(experienceYears!==''&&(!Number.isFinite(Number(experienceYears))||Number(experienceYears)<0||Number(experienceYears)>80)){setFormError('Experience must be between 0 and 80 years.');return}
     saveLock.current=true;setSaving(true);setFormError('');
     try{
@@ -304,7 +304,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
             </div>
           )}
 
-          <StaffPhotoField value={selectedPhoto} file={photoFile} onBusy={setPhotoBusy} onChange={(url,file)=>{setSelectedPhoto(url);setPhotoFile(file)}}/>
+          {(businessType==='skincare_clinic'||staffCategory==='skincare_clinic')&&<p className="text-xs text-slate-600">Optional: use a real staff photo with permission, or leave this blank.</p>}<StaffPhotoField value={selectedPhoto} file={photoFile} onBusy={setPhotoBusy} onChange={(url,file)=>{setSelectedPhoto(url);setPhotoFile(file)}}/>
           {/* ========================================================= */}
           {/* SECTION 2: BASIC INFORMATION (2-COLUMN GRID) */}
           {/* ========================================================= */}
@@ -326,7 +326,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
               />
             </div>
 
-            <StaffTitleField businessType={staffCategory} onCategoryChange={category=>{setStaffCategory(category);setPrimaryRole(STAFF_TITLES[category][0]);setSelectedServices([]);setSelectedSkills(old=>categorySkills(old,category));setAllAvailableSkills(STAFF_SKILLS[category]);setCustomSkillInput('');setWorkGallery(old=>old.map(photo=>({...photo,serviceId:staffBookingServices(services,category).some(s=>s.id===photo.serviceId)?photo.serviceId:''})));setFormError('')}} value={primaryRole} onChange={setPrimaryRole}/>
+            <StaffTitleField businessType={staffCategory} onCategoryChange={category=>{setStaffCategory(category);setPrimaryRole(category==='skincare_clinic'||businessType==='skincare_clinic'?'':STAFF_TITLES[category][0]);if(category==='skincare_clinic'&&PRESET_AVATARS.includes(selectedPhoto))setSelectedPhoto('');setSelectedServices([]);setSelectedSkills(old=>categorySkills(old,category));setAllAvailableSkills(STAFF_SKILLS[category]);setCustomSkillInput('');setWorkGallery(old=>old.map(photo=>({...photo,serviceId:staffBookingServices(services,category).some(s=>s.id===photo.serviceId)?photo.serviceId:''})));setFormError('')}} value={primaryRole} onChange={setPrimaryRole}/>
             <label className="text-xs font-bold">Experience (years)<input aria-label="Experience in years" type="number" min="0" max="80" step="0.5" value={experienceYears} onChange={e=>setExperienceYears(e.target.value)} placeholder="e.g. 5" className="w-full border border-gray-300 rounded-xl p-2 mt-1"/></label>
 
           </div>
@@ -501,7 +501,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
                 PROFESSIONAL BIOGRAPHY
               </label>
 
-              <button
+              {businessType!=='skincare_clinic'&&staffCategory!=='skincare_clinic'&&<button
                 type="button"
                 onClick={handleGenerateAiBio}
                 disabled={isGeneratingBio}
@@ -509,7 +509,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>{isGeneratingBio ? 'Writing Bio...' : 'Write Bio with AI'}</span>
-              </button>
+              </button>}
             </div>
 
             <textarea

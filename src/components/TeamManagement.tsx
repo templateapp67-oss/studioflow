@@ -229,7 +229,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     if(saveLock.current||photoBusy)return;
     if(!bookingServices.length){setEditError('Add a service for this template in Step 5 before saving booking assignments.');return;}
     if(!formData.role.trim()){setEditError('Designation is required.');return}
-    if(!photoFile&&formData.avatarUrl!==editingStylist.avatarUrl&&!validStaffUrl(formData.avatarUrl)){setEditError('Enter a valid image URL or select a photo.');return}
+    if(!photoFile&&formData.avatarUrl!==editingStylist.avatarUrl&&!(businessType==='skincare_clinic'&&!formData.avatarUrl)&&!validStaffUrl(formData.avatarUrl)){setEditError('Enter a valid image URL or select a photo.');return}
     if(formData.experienceYears!==''&&(!Number.isFinite(Number(formData.experienceYears))||Number(formData.experienceYears)<0||Number(formData.experienceYears)>80)){setEditError('Experience must be between 0 and 80 years.');return}
     saveLock.current=true;setSaving(true);setEditError('');
     try{
@@ -298,6 +298,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
         )}
       </AnimatePresence>
 
+      {businessType==='skincare_clinic' && stylists.some(s=>['sk-st-1','sk-st-2','sk-st-3'].includes(s.id)) && <p className="text-sm text-amber-800">Template 07 sample team profiles are drafts and are not published. Remove them and add the clinic’s real team members as new profiles, with their correct details.</p>}
       {/* Header section */}
       <div className="sf-team-heading flex flex-col sm:items-start justify-between gap-4 border-b border-gray-100 pb-5">
         <div>
@@ -433,14 +434,15 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
               {/* Card top */}
               <div className="flex items-start gap-3.5">
                 <div className="relative shrink-0">
-                  <img
+                  {businessType==='skincare_clinic'&&(!st.avatarUrl||st.avatarUrl.includes('images.unsplash.com'))?<span className="w-14 h-14 rounded-2xl border border-gray-100 bg-slate-100 flex items-center justify-center" aria-label="No staff photo">{st.name.trim().slice(0,1)}</span>:<img
                     src={st.avatarUrl}
                     alt={st.name}
                     className="w-14 h-14 rounded-2xl object-cover border border-gray-100 shadow-xs"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = AVATAR_PRESETS[0].url;
+                      if(businessType==='skincare_clinic') e.currentTarget.style.visibility='hidden';
+                      else e.currentTarget.src = AVATAR_PRESETS[0].url;
                     }}
-                  />
+                  />}
                   <span 
                     className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 border-2 border-white rounded-full ${
                       st.status === 'Inactive' 

@@ -1,9 +1,12 @@
+import { clinicPublicEmail,clinicPhone } from "../../lib/dermacureContent";
 import { useDermacure } from "./context";
 import { socialUrl } from "../../lib/websiteContent";
 
 export function Footer() {
   const { profile, nav, visible, policies, services, address, scrollTo } =
     useDermacure();
+  const publicEmail=clinicPublicEmail(profile.clinicPublicEmail);
+  const phone=clinicPhone(profile.phone);
   return (
     <>
       <footer className="dc-footer">
@@ -66,13 +69,13 @@ export function Footer() {
               {visible.location && profile.workingHoursSun && (
                 <p>Sunday: {profile.workingHoursSun}</p>
               )}
-              {profile.phone && (
-                <a href={`tel:${profile.phone.replace(/[^+\d]/g, "")}`}>
+              {phone && (
+                <a href={`tel:${phone}`}>
                   {profile.phone}
                 </a>
               )}
-              {profile.email && (
-                <a href={`mailto:${profile.email}`}>{profile.email}</a>
+              {publicEmail && (
+                <a href={`mailto:${publicEmail}`}>{publicEmail}</a>
               )}
               {socialUrl(profile.instagramHandle, "instagram") && (
                 <a

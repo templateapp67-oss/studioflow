@@ -46,7 +46,7 @@ for(const template of Object.values(CATEGORY_TEMPLATES)) {
  const loyaltyConfig={...DEFAULT_LOYALTY_CONFIG,programEnabled:true,rewards:[{id:'qa-reward',isActive:true,title:'Saved customer reward',description:'Reward description',requiredPoints:100}]};
  const publishedProps={...props,profile:publishedProfile,loyaltyConfig};
  const html=renderToStaticMarkup(<SalonWebsitePreview {...publishedProps}/>);
- for(const text of ['Saved video heading','Saved video introduction','Saved social heading','Saved policies heading','Saved customer reward','#123456'])assert.ok(html.includes(text),`${template.id}: ${text} missing`);
+ for(const text of [...(template.id==='skincare_clinic'?[]:['Saved video heading','Saved video introduction']),'Saved social heading','Saved policies heading','Saved customer reward','#123456'])assert.ok(html.includes(text),`${template.id}: ${text} missing`);
  for(const key of ['videos','promo','social','loyalty','policies']) {
    const off=renderToStaticMarkup(<SalonWebsitePreview {...publishedProps} profile={{...publishedProfile,websiteSections:{[key]:false}}}/>);
    assert.ok(!off.includes(`data-section="${key}"`),`${template.id}: ${key} toggle failed`);
@@ -55,7 +55,8 @@ for(const template of Object.values(CATEGORY_TEMPLATES)) {
  const restored=normalizeWorkspace(JSON.parse(JSON.stringify({profile:switched,services:[],stylists:[]}))).profile;
  assert.equal(restored.customAccentColor,'#123456');assert.equal(restored.darkCanvas,false);
  assert.deepEqual(restored.socialVideos,publishedProfile.socialVideos);assert.deepEqual(restored.sectionHeadings,publishedProfile.sectionHeadings);
- for(const text of ['Saved owner campaign','Saved owner reel','Saved video heading','Updated cancellation terms','https://instagram.com/actualsalon']) assert.ok(html.includes(text),`${template.id}: ${text} missing`);
+ for(const text of [...(template.id==='skincare_clinic'?[]:['Saved owner campaign','Saved owner reel','Saved video heading']),'Updated cancellation terms','https://instagram.com/actualsalon']) assert.ok(html.includes(text),`${template.id}: ${text} missing`);
+ if(template.id==='skincare_clinic') assert.ok(!html.includes('Saved owner campaign'),'unverified campaign service must not appear');
  assert.ok(!html.includes('Infinity'),`${template.id}: empty service price`);
  const hidden=renderToStaticMarkup(<SalonWebsitePreview {...props} profile={{...profile,websiteSections:{promo:false,videos:false,social:false}}}/>);
  assert.ok(!hidden.includes('Saved owner campaign')&&!hidden.includes('Saved owner reel'),`${template.id}: hidden sections still visible`);
@@ -65,7 +66,7 @@ assert.equal(socialUrl('@mysalon','instagram'),'https://instagram.com/mysalon');
 const header=renderToStaticMarkup(<Header currentView="dashboard" setCurrentView={()=>{}} salonName="Actual Salon"/>);
 assert.ok(!header.includes('SaaS Dashboard'));
 assert.equal((header.match(/\bDashboard\b/g)||[]).length,2,'One desktop and one mobile navigation dashboard');
-console.log('PASS: all 14 full templates render saved promo, video, social links and policies; toggles hide content; empty services are safe; duplicate dashboard action removed.');
+console.log('PASS: templates render saved promo, social links and policies; videos remain in other templates; toggles hide content; empty services are safe; duplicate dashboard action removed.');
 
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;
 (globalThis as any).document={hidden:false,addEventListener(){},removeEventListener(){},querySelector(){return null;}};
@@ -150,13 +151,13 @@ for(const template of Object.values(CATEGORY_TEMPLATES)) {
  const header=(html.match(/<header[\s\S]*?<\/header>/g)||[]).find(h=>h.includes('Customer account'));assert.ok(header,template.id);
  for(const label of ['Manage your customer account','My Bookings'])assert.ok(header.includes(label),`${template.id}: ${label} must be inside salon header`);assert.ok(!header.includes('Customer Login')&&!header.includes('Sign up'),`${template.id}: signed-in header must hide guest buttons`);
  for(const label of ['Replace / Manage video','Edit this section','owner-content','Edit featured client experiences','The salon owner can replace'])assert.ok(!html.includes(label),`${template.id}: public page must hide ${label}`);
- assert.equal((html.match(/class="sf-reel-media"/g)||[]).length,5);assert.equal((html.match(/<iframe/g)||[]).length,0);
+ assert.equal((html.match(/class="sf-reel-media"/g)||[]).length,template.id==='skincare_clinic'?0:5);assert.equal((html.match(/<iframe/g)||[]).length,0);
 }
-console.log('PASS: all 14 public templates retain customer header access and five reel cards without owner management controls.');
+console.log('PASS: public templates retain customer header access without owner management controls; Dermacure replaces reels with its editorial section.');
 
 for(const template of Object.values(CATEGORY_TEMPLATES)) {
  const profile={...INITIAL_SALON_PROFILE,businessType:template.id,businessName:'Test Studio',whatsapp:'919876543210',websiteTestimonials:[]};
- const html=renderToStaticMarkup(<SalonWebsitePreview profile={profile} services={template.services} stylists={template.stylists} gallery={['https://example.com/look.jpg']} readOnly onAddAppointment={async apt=>apt}/>);
+ const html=renderToStaticMarkup(<SalonWebsitePreview profile={profile} services={template.id==='skincare_clinic'?template.services.map(s=>({...s,clinicServiceApproved:true,clinicPublicationStatus:'published' as const,clinicFeeStatus:'verified' as const,clinicPriceVerified:true})):template.services} stylists={template.stylists} gallery={['https://example.com/look.jpg']} readOnly onAddAppointment={async apt=>apt}/>);
  if(template.id==='skincare_clinic'){
   let previous=-1; for(const id of ['home','treatments','about','directory','technology','results','journey','booking','contact']){const at=html.indexOf(`id="${id}"`);assert.ok(at>previous,`Dermacure: ${id} is missing or out of order`);previous=at;}
   for(const service of template.services){assert.ok(html.includes(service.name.replaceAll('&','&amp;').replaceAll("'",'&#x27;')));assert.ok(html.includes(`${service.durationMinutes} min`));}
@@ -265,7 +266,7 @@ for(const template of Object.values(CATEGORY_TEMPLATES))for(const service of tem
 assert.deepEqual(reviewTemplates(''),[]);console.log('PASS: every service in all 14 templates has five editable review drafts; template/service changes preserve the rating and manual text.');
 
 // Owner CRUD and public rendering share the same catalogue in every theme.
-const customService:SalonService={id:'custom-ritual',name:'Owner Signature Ritual',description:'A completely custom service description.',category:'My custom category',price:1250.5,durationMinutes:55,icon:'spa',origin:'custom',showDuration:false};
+const customService:SalonService={clinicServiceApproved:true,clinicPublicationStatus:'published' as const,clinicFeeStatus:'verified' as const,clinicPriceVerified:true,id:'custom-ritual',name:'Owner Signature Ritual',description:'A completely custom service description.',category:'My custom category',price:1250.5,durationMinutes:55,icon:'spa',origin:'custom',showDuration:false};
 for(const template of Object.values(CATEGORY_TEMPLATES)){
  const profile={...INITIAL_SALON_PROFILE,businessType:template.id,serviceCatalogueInitialized:true};
  const html=renderToStaticMarkup(<CustomerSalonWebsite profile={profile} services={[customService]} stylists={[]} onAddAppointment={async apt=>apt}/>);
@@ -315,7 +316,7 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
  const saved=normalizeWorkspace({profile:{...INITIAL_SALON_PROFILE,businessType:template.id,serviceCatalogueInitialized:true},services:editedMenu});
  const menu=servicesForTemplate(saved.services,saved.profile,template);
  assert.equal(menu[0].imageUrl,initialServicePhoto);assert.equal(menu[0].imagePath,serviceUploads[0].path);
- const html=renderToStaticMarkup(<CustomerSalonWebsite profile={saved.profile} services={menu} stylists={[]} onAddAppointment={async apt=>apt}/>);
+ const html=renderToStaticMarkup(<CustomerSalonWebsite profile={saved.profile} services={template.id==='skincare_clinic'?menu.map(s=>({...s,clinicServiceApproved:true,clinicPublicationStatus:'published' as const,clinicFeeStatus:'verified' as const,clinicPriceVerified:true})):menu} stylists={[]} onAddAppointment={async apt=>apt}/>);
  assert.ok(html.includes('sf-service-image'));assert.ok(html.includes(initialServicePhoto!));assert.ok(html.includes('width="600" height="400"'));
 }
 await act(async()=>serviceEditor.root.findByProps({'aria-label':`Edit ${chosenStarter.name}`}).props.onClick());
@@ -343,7 +344,7 @@ console.log('PASS: complete setup service editor add/edit/remove, input validati
 // Reference design isolation and owner-controlled menus in every template.
 for(const template of Object.values(CATEGORY_TEMPLATES)){
  const profile={...INITIAL_SALON_PROFILE,businessType:template.id,subdomain:'nav-studio'};
- const html=renderToStaticMarkup(<CustomerSalonWebsite profile={profile} services={template.services} stylists={[]} onAddAppointment={async apt=>apt}/>);
+ const html=renderToStaticMarkup(<CustomerSalonWebsite profile={profile} services={template.id==='skincare_clinic'?template.services.map(s=>({...s,clinicServiceApproved:true,clinicPublicationStatus:'published' as const,clinicFeeStatus:'verified' as const,clinicPriceVerified:true})):template.services} stylists={[]} onAddAppointment={async apt=>apt}/>);
  assert.equal(html.includes('sf-barber-hero'),template.id==='barber','Reference barber hero must stay isolated');
  if(template.id==='skincare_clinic'){
   const nav=html.match(/<nav class="dc-desktop-nav"[\s\S]*?<\/nav>/)?.[0]||'';
