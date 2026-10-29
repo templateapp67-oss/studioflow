@@ -31,7 +31,8 @@ export type LayoutStyle =
   | 'urban_monochrome'
   | 'chic_nude'
   | 'ayurvedic_terracotta'
-  | 'palace_heritage';
+  | 'palace_heritage'
+  | 'prism_holographic';
 
 export interface BusinessTypeOption {
   id: BusinessTypeId;
@@ -210,6 +211,7 @@ export interface SalonProfile {
   };
   vogueNoir?: VogueNoirConfig;
   bodhiTree?: BodhiTreeConfig;
+  prismChroma?: PrismChromaConfig;
 
   businessType: BusinessTypeId;
   businessName: string;
@@ -645,3 +647,195 @@ export interface BodhiTreeConfig {
   reviews?: BodhiTreeReviewItem[];
 }
 
+
+/* ---------------------------------------------------------------------------
+ * Template 10 — Prism & Chroma Hair Color Atelier (hair_coloring)
+ * "Light through a Prism": ink-black premium base, holographic colour glow.
+ * Editable storefront content stored on the salon profile. Everything is
+ * optional: the resolver in `lib/prismChroma.ts` fills any missing value with
+ * the bundled demo defaults, so published sites never render blanks.
+ * ------------------------------------------------------------------------- */
+
+export interface PrismChromaThemeColors {
+  /** Ink-black page background (--bg). */
+  bg: string;
+  /** Violet brand colour (--violet). */
+  violet: string;
+  /** Magenta brand colour (--magenta). */
+  magenta: string;
+  /** Coral brand colour (--coral). */
+  coral: string;
+  /** Cyan brand colour (--cyan). */
+  cyan: string;
+  /** Main text colour (--text). */
+  text: string;
+  /** Muted body text (--muted). */
+  muted: string;
+}
+
+export interface PrismChromaShade {
+  id: string;
+  /** Shade name shown in the Shade Studio, e.g. "Violet Storm". */
+  name: string;
+  /** CSS colour of the swatch dot. */
+  swatch: string;
+  /** CSS filter applied to the hair photo when the shade is picked. */
+  tintFilter: string;
+  /** Price in INR (₹) for this shade. */
+  price: number;
+  /** One simple line about the shade. */
+  blurb: string;
+  imageUrl: string;
+  imageAlt?: string;
+  /** Bookable service the shade links to. */
+  linkedServiceId?: string;
+  /** Warm / cool / neutral — matched to skin tone at consult. */
+  undertone?: string;
+  /** Gloss, Matte or Metallic finish suggestion. */
+  finish?: string;
+  /** 1 (very easy) to 5 (high care) upkeep level. */
+  maintenanceLevel?: number;
+  /** How many weeks the shade stays fresh. */
+  longevityWeeks?: string;
+  /** Who this shade suits best, in one simple line. */
+  bestFor?: string;
+  /** One home-care tip for this shade. */
+  careTip?: string;
+  /** Shade family used by the Find-My-Shade quiz: vivid | pastel | natural | warm | cool. */
+  family?: string;
+}
+
+export interface PrismChromaPackage {
+  id: string;
+  tier: string;
+  price: number;
+  popular?: boolean;
+  badgeLabel?: string;
+  imageUrl: string;
+  imageAlt?: string;
+  includes: string[];
+  linkedServiceId?: string;
+  /** Number of studio visits covered, when the package spans visits. */
+  sessionsCount?: number;
+  /** Days the package stays valid after purchase. */
+  validityDays?: number;
+  /** Short saving note, e.g. "Save ₹1,500 vs separate services". */
+  savingsNote?: string;
+  /** Extra ₹ per visit when the care-plan toggle is on (0 = included). */
+  carePlanAddon?: number;
+}
+
+export interface PrismChromaBeforeAfter {
+  id: string;
+  title: string;
+  beforeUrl: string;
+  afterUrl: string;
+  beforeAlt: string;
+  afterAlt: string;
+  /** Service that created the change, e.g. "Signature Balayage". */
+  serviceLabel?: string;
+  /** e.g. "Done in 1 sitting" or "2 sittings over 3 weeks". */
+  sessionsNote?: string;
+  /** Colour expert who did the work. */
+  stylistName?: string;
+}
+
+export interface PrismChromaProcessStep {
+  id: string;
+  title: string;
+  text: string;
+  image: string;
+  alt: string;
+  /** e.g. "15 mins" — time this step usually takes. */
+  durationLabel?: string;
+  /** Small check points shown under the step text. */
+  points?: string[];
+}
+
+export interface PrismChromaCareStep {
+  id: string;
+  /** e.g. "Week 1". */
+  when: string;
+  title: string;
+  text: string;
+}
+
+export interface PrismChromaBranch {
+  id: string;
+  name: string;
+  area: string;
+  address: string;
+  phone?: string;
+  hours?: string;
+  /** Nearby landmark clients know. */
+  landmark?: string;
+  /** Nearest metro / local station note. */
+  metroNote?: string;
+  /** Parking note for drivers. */
+  parkingNote?: string;
+}
+
+export interface PrismChromaStatItem {
+  id: string;
+  value: string;
+  label: string;
+}
+
+export interface PrismChromaFaqItem {
+  id: string;
+  question: string;
+  answer: string;
+  /** Group label used by the FAQ filter chips. */
+  category?: string;
+}
+
+export interface PrismChromaReviewItem {
+  id: string;
+  name: string;
+  /** City / area tag, e.g. "Bandra West, Mumbai". */
+  tag: string;
+  rating: number;
+  quote: string;
+  serviceName?: string;
+  avatarUrl: string;
+  /** Shade the client picked, when known. */
+  shadeName?: string;
+  /** e.g. "Visited recently". */
+  visitLabel?: string;
+  /** Show a small "Verified visit" tick. */
+  verified?: boolean;
+}
+
+export interface PrismChromaConfig {
+  selectorLabel?: string;
+  heroHeading?: string;
+  heroSubtext?: string;
+  heroImageUrl?: string;
+  aboutHeading?: string;
+  aboutStory?: string;
+  aboutImageUrl?: string;
+  shadesHeading?: string;
+  shadesSubtext?: string;
+  bookingImageUrl?: string;
+  publicEmail?: string;
+  workingHoursDisplay?: string;
+  mapEmbedUrl?: string;
+  colors?: Partial<PrismChromaThemeColors>;
+  stats?: PrismChromaStatItem[];
+  shades?: PrismChromaShade[];
+  packages?: PrismChromaPackage[];
+  beforeAfter?: PrismChromaBeforeAfter[];
+  branches?: PrismChromaBranch[];
+  faqs?: PrismChromaFaqItem[];
+  reviews?: PrismChromaReviewItem[];
+  /** Short offer line shown in the thin bar above the navbar. */
+  announcementText?: string;
+  /** Button label inside the announcement bar. */
+  announcementCtaLabel?: string;
+  processSteps?: PrismChromaProcessStep[];
+  careGuide?: PrismChromaCareStep[];
+  /** Daily opening time "HH:MM" (24h) for the Open-now chip. */
+  openTime?: string;
+  /** Daily closing time "HH:MM" (24h) for the Open-now chip. */
+  closeTime?: string;
+}

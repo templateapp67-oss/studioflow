@@ -328,32 +328,32 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
   },
 
   hair_coloring: {
-    foundingYear: '2020',
-    foundingNarrative: 'Chroma Hair Coloring Studio is North India’s dedicated color chemistry and balayage atelier. We specialize in seamless Asian dark-hair lightening, ash blonde transitions, and vibrant copper tones with bond-protecting Plex science.',
-    specialties: ['French Freehand Balayage', 'Ash & Biscuit Blonde Lightening', 'Rich Auburn & Copper Waves', 'Bond-Builder Olaplex Reversal'],
+    foundingYear: '2018',
+    foundingNarrative: 'Prism & Chroma is a premium hair colour studio. We do balayage, global colour, fashion and pastel shades, highlights, colour correction, keratin and gloss treatments — with a full hair-health check and a clear price in ₹ before we start.',
+    specialties: ['Signature Balayage', 'Fashion & Pastel Colours', 'Colour Correction', 'Keratin & Gloss Care'],
     certifications: [
-      { icon: 'verified', title: 'Bond Multiplier Technology', description: 'Every bleaching formulation fortified with Olaplex to protect 98% hair integrity.' },
-      { icon: 'palette', title: 'Ammonia-Free European Pigments', description: 'Enriched with argan oil and silk proteins for mirror-like color shine.' },
-      { icon: 'flare', title: 'CRI 98+ True-Spectrum Wash Stations', description: 'Color diagnostics under daylight lighting to guarantee zero brassiness.' },
-      { icon: 'workspace_premium', title: 'L’Oréal Master Color Certified', description: 'Colorists undergo 300+ hours of advanced color chemistry training.' }
+      { icon: 'verified', title: 'Patch Test First', description: 'A small patch test 24-48 hours before full colour keeps your skin safe.' },
+      { icon: 'palette', title: 'Fresh-Mixed Colour', description: 'Your shade is mixed fresh for your hair and skin tone, never from a ready tube mix.' },
+      { icon: 'flare', title: 'Bond-Care in Every Lightening', description: 'Bond-care products in every bleach and lightening service keep hair strong.' },
+      { icon: 'workspace_premium', title: 'Trained Colour Experts', description: 'Colourists trained in balayage, pastel shades and colour correction.' }
     ],
     gallery: [
-      { id: 'hc-g1', url: 'https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&w=800&q=80', title: 'Seamless Caramel Balayage on Dark Hair', tag: 'Balayage' },
-      { id: 'hc-g2', url: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80', title: 'Cool Ash Blonde Transition with Olaplex', tag: 'Lightening' },
-      { id: 'hc-g3', url: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80', title: 'Color Mixing Bar & Custom Swatches', tag: 'Color Lab' },
-      { id: 'hc-g4', url: 'https://images.unsplash.com/photo-1605497788044-5a32c7078486?auto=format&fit=crop&w=800&q=80', title: 'Rich Copper Cinnamon Dimensional Tone', tag: 'Copper Tones' },
-      { id: 'hc-g5', url: 'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&w=800&q=80', title: 'Pastel Rose Gold Money Piece', tag: 'Fashion Color' },
-      { id: 'hc-g6', url: 'https://images.unsplash.com/photo-1580618672591-eb180b1a973f?auto=format&fit=crop&w=800&q=80', title: 'Post-Color Glaze Wash & Conditioning', tag: 'Gloss Finish' }
+      { id: 'hc-g1', url: '/templates/10/hero.jpg', title: 'Vivid balayage, fresh from the chair', tag: 'Balayage' },
+      { id: 'hc-g2', url: '/templates/10/about.jpg', title: 'Mixing fresh colour in the studio', tag: 'Colour Lab' },
+      { id: 'hc-g3', url: '/templates/10/gallery/gallery-3.jpg', title: 'Magenta muse colour', tag: 'Fashion Colour' },
+      { id: 'hc-g4', url: '/templates/10/gallery/gallery-8.jpg', title: 'Global colour and blow-dry', tag: 'Global Colour' },
+      { id: 'hc-g5', url: '/templates/10/gallery/gallery-4.jpg', title: 'Face-light highlights', tag: 'Highlights' },
+      { id: 'hc-g6', url: '/templates/10/gallery/gallery-5.jpg', title: 'Pastel pink shades', tag: 'Fashion Colour' }
     ],
     reviews: [
-      { id: 'hc-r1', name: 'Kritika Khurana', location: 'Vasant Vihar, New Delhi', rating: 5, serviceName: 'Bespoke Balayage & Glaze Gloss', comment: 'Lightening dark Indian hair without brassiness is an art few understand. Chroma gave me the softest, most seamless hazelnut balayage ever!', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80', date: '2 days ago' },
-      { id: 'hc-r2', name: 'Ishita Mangal', location: 'Chanakyapuri, New Delhi', rating: 5, serviceName: 'Ash Blonde Transformation + Olaplex', comment: 'Zero breakage thanks to their Olaplex protocol. The colorists here are real chemists who understand tone neutralization.', avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=200&q=80', date: '1 week ago' },
-      { id: 'hc-r3', name: 'Mallika Dua', location: 'Hauz Khas, New Delhi', rating: 5, serviceName: 'Global Gloss Tone & Anti-Brass Wash', comment: 'Refreshed my dull faded color in 40 minutes. Gorgeous mirror gloss and very chic studio atmosphere.', avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80', date: '2 weeks ago' }
+      { id: 'hc-r1', name: 'Ananya Kapoor', location: 'Bandra West, Mumbai', rating: 5, serviceName: 'Signature Balayage', comment: 'Best balayage in Mumbai! The team first checked my hair, told me the full price, and only then started. Hair looks soft and shiny.', avatarUrl: '/templates/10/testimonials/ananya.jpg', date: '2 days ago' },
+      { id: 'hc-r2', name: 'Ishita Rao', location: 'Hauz Khas, Delhi', rating: 5, serviceName: 'Fashion & Pastel Colours', comment: 'I got violet-magenta colour done here. The shade is exactly like the photo I showed. Three months later it still looks fresh.', avatarUrl: '/templates/10/testimonials/ishita.jpg', date: '1 week ago' },
+      { id: 'hc-r3', name: 'Meera Joshi', location: 'Vaishali Nagar, Jaipur', rating: 5, serviceName: 'Colour Correction', comment: 'My home colour went orange and patchy. They fixed it in one visit and did not push extra services. Very honest people.', avatarUrl: '/templates/10/testimonials/meera.jpg', date: '2 weeks ago' }
     ],
-    totalReviewCount: 490,
-    averageRating: 4.96,
-    landmark: 'Basant Lok Community Centre, Vasant Vihar, Near Priya Cinema',
-    parkingInfo: 'Valet parking available at Basant Lok plaza',
+    totalReviewCount: 1250,
+    averageRating: 4.9,
+    landmark: 'Linking Road, Bandra West, Near National College',
+    parkingInfo: 'Paid parking available on Linking Road',
     openHourText: '10:00 AM',
     closeHourText: '8:30 PM'
   },

@@ -13,6 +13,16 @@ async function startServer() {
 
   app.use(express.json());
 
+  // Optional demo/preview entry: when PREVIEW_TEMPLATE is set (e.g. "prism-chroma"),
+  // the site root opens that template directly. Off by default — no effect in production.
+  const previewTemplate = (process.env.PREVIEW_TEMPLATE || '').trim();
+  if (previewTemplate) {
+    app.get("/", (req, res, next) => {
+      if (Object.keys(req.query || {}).length > 0) return next();
+      return res.redirect(302, `/?template=${encodeURIComponent(previewTemplate)}`);
+    });
+  }
+
   app.get("/sitemap.xml", sitemapHandler);
 
   // API Routes

@@ -30,6 +30,7 @@ import './index.css';
 import './components/dermacure.css';
 import './components/vogueNoir.css';
 import './components/bodhiTree.css';
+import './components/prismChroma.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

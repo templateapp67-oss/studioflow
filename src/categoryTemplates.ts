@@ -15,6 +15,16 @@ import {
   VOGUE_NOIR_TEMPLATE_SERVICES,
 } from './lib/vogueNoir';
 import {
+  PRISM_CHROMA_BRAND_NAME,
+  PRISM_CHROMA_DEFAULT_CITY,
+  PRISM_CHROMA_DEFAULT_POSTAL_CODE,
+  PRISM_CHROMA_DEFAULT_STYLISTS,
+  PRISM_CHROMA_IMAGES,
+  PRISM_CHROMA_SELECTOR_LABEL,
+  PRISM_CHROMA_TAGLINE,
+  PRISM_CHROMA_TEMPLATE_SERVICES,
+} from './lib/prismChroma';
+import {
   BODHI_TREE_BRAND_NAME,
   BODHI_TREE_DEFAULT_ABOUT,
   BODHI_TREE_DEFAULT_ADDRESS,
@@ -925,119 +935,46 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
     stylists: BODHI_TREE_DEFAULT_STYLISTS
   },
 
-  // 10. Hair Coloring Studio
+  // 10. Hair Coloring Studio — Template 10: Prism & Chroma Hair Color Atelier (prism-chroma)
   hair_coloring: {
     id: 'hair_coloring',
-    title: 'Prism & Chroma Hair Color Atelier',
-    shortName: 'Hair Coloring Studio',
-    tagline: 'Hand-Painted Balayage, Luminous Metallics & Custom Fantasy Swatches',
-    about: 'Located on Wood Street in Ashok Nagar, Bengaluru, Prism & Chroma is an avant-garde hair coloring studio. From honey caramel dimensional balayage to bold fantasy pastels, our certified color masters formulate custom shades tailored to Indian skin tones.',
+    title: PRISM_CHROMA_BRAND_NAME,
+    shortName: PRISM_CHROMA_SELECTOR_LABEL,
+    tagline: PRISM_CHROMA_TAGLINE,
+    about: 'Prism & Chroma is a premium hair colour studio in Bandra West, Mumbai. We do balayage, global colour, fashion and pastel shades, highlights, colour correction, keratin and gloss treatments. Before any colour, we check your hair health, do a patch test, and tell you the full price in ₹ — no surprises later.',
     icon: 'palette',
-    layoutStyle: 'creative_gallery',
-    paletteLabel: 'Bold Multi-Color Gradient Accents',
+    layoutStyle: 'prism_holographic',
+    paletteLabel: 'Ink Black & Holographic Prism Gradient (Violet · Magenta · Coral · Cyan)',
     themePreset: 'chroma_gradient',
-    subCategories: ['Balayage & Ombre', 'Fashion Pastels', 'Global Bleach & Tone', 'Money Piece Foils'],
-    defaultCity: 'Bengaluru, Karnataka',
-    defaultAddress: 'Wood Street, Ashok Nagar, Off Brigade Road',
-    defaultPostalCode: '560025',
-    phone: '+91 98451 90812',
-    whatsapp: '+91 98451 90812',
-    ownerName: "Siddharth 'Sid' Sen",
-    ownerRole: 'Master Color Alchemist & Wella Passionista',
-    ownerPhotoUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=500&q=80',
-    coverImageUrl: 'https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&w=1200&q=80',
+    subCategories: ['Balayage & Highlights', 'Global Colour', 'Fashion Colours', 'Colour Correction', 'Keratin & Care', 'Packages'],
+    defaultCity: PRISM_CHROMA_DEFAULT_CITY,
+    defaultAddress: 'Linking Road, Bandra West',
+    defaultPostalCode: PRISM_CHROMA_DEFAULT_POSTAL_CODE,
+    phone: '+91 98200 10010',
+    whatsapp: '+91 98200 10010',
+    ownerName: 'Aarushi Mehta',
+    ownerRole: 'Master Colourist & Founder',
+    ownerPhotoUrl: PRISM_CHROMA_IMAGES.team.aarushi,
+    coverImageUrl: PRISM_CHROMA_IMAGES.hero,
     instagramHandle: '@prismchroma.color',
     themeStyle: {
-      heroBackground: 'bg-gradient-to-r from-[#180924] via-[#240a34] to-[#12051f]',
-      heroTextColor: 'text-white',
-      cardBorder: 'border-fuchsia-300',
-      cardBackground: 'bg-white',
-      cardRadius: 'rounded-xl',
-      accentColor: 'text-[#c026d3]',
-      accentBg: 'bg-gradient-to-r from-[#db2777] via-[#7c3aed] to-[#0891b2]',
-      badgeBg: 'bg-fuchsia-100',
-      badgeText: 'text-fuchsia-950 font-bold',
-      buttonBg: 'bg-gradient-to-r from-[#db2777] to-[#7c3aed] hover:opacity-95',
+      heroBackground: 'bg-[#0B0B14]',
+      heroTextColor: 'text-[#F5F3FF]',
+      cardBorder: 'border-white/20',
+      cardBackground: 'bg-white/5',
+      cardRadius: 'rounded-[28px]',
+      accentColor: 'text-[#FF4FD8]',
+      accentBg: 'bg-gradient-to-r from-[#7C5CFF] via-[#FF4FD8] to-[#35E0F0]',
+      badgeBg: 'bg-white/10',
+      badgeText: 'text-[#F5F3FF]',
+      buttonBg: 'bg-gradient-to-r from-[#7C5CFF] via-[#FF4FD8] to-[#FF8A5B] hover:opacity-95',
       buttonText: 'text-white font-bold',
-      priceColor: 'text-fuchsia-950 font-extrabold',
-      isDark: false,
-      headerBanner: 'bg-gradient-to-r from-pink-50 via-purple-50 to-cyan-50 border-b border-fuchsia-200'
+      priceColor: 'text-[#F5F3FF] font-extrabold',
+      isDark: true,
+      headerBanner: 'bg-[#0B0B14]/80 border-b border-white/10'
     },
-    services: [
-      {
-        id: 'hc-1',
-        name: 'Signature Caramel Balayage & Olaplex Glaze',
-        category: 'Balayage & Ombre',
-        durationMinutes: 180,
-        price: 5200,
-        description: 'Custom hand-painted multidimensional caramel, copper or hazelnut highlights suited for Indian undertones.',
-        icon: 'brush',
-        popular: true
-      },
-      {
-        id: 'hc-2',
-        name: 'Vivid Pastel / Neon Fantasy Color (Semi-Permanent)',
-        category: 'Fashion Pastels',
-        durationMinutes: 150,
-        price: 4200,
-        description: 'Electric magenta, lilac, or emerald mermaid tones applied over pre-lightened hair with bonded conditioning.',
-        icon: 'palette',
-        popular: true
-      },
-      {
-        id: 'hc-3',
-        name: 'Global Ash Platinum Blonde & Tonal Neutralizer',
-        category: 'Global Bleach & Tone',
-        durationMinutes: 210,
-        price: 6200,
-        description: 'Full-head gentle lift to level 9/10, brass-canceling cool toner, and deep conditioning seal.',
-        icon: 'auto_awesome'
-      },
-      {
-        id: 'hc-4',
-        name: 'Face-Framing Money Piece & Crown Foiling',
-        category: 'Money Piece Foils',
-        durationMinutes: 75,
-        price: 2400,
-        description: 'Striking blonde or rose-gold ribbons along the hairline to brighten facial contours.',
-        icon: 'flare'
-      },
-      {
-        id: 'hc-5',
-        name: 'Dimensional Lowlights & Seamless Grey Blending',
-        category: 'Balayage & Ombre',
-        durationMinutes: 120,
-        price: 3600,
-        description: 'Natural brunette and espresso lowlights that soften harsh regrowth without full global coloring.',
-        icon: 'water_drop'
-      }
-    ],
-    stylists: [
-      {
-        id: 'hc-st-1',
-        name: "Siddharth 'Sid' Sen",
-        role: 'Master Color Alchemist',
-        avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80',
-        specialties: ['Balayage', 'Global Bleach', 'Pastel Formulations'],
-        rating: 4.98
-      },
-      {
-        id: 'hc-st-2',
-        name: 'Tanmayee Kulkarni',
-        role: 'Creative Balayage Specialist',
-        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
-        specialties: ['Money Piece Highlights', 'Caramel Melts'],
-        rating: 4.95
-      },
-      {
-        id: 'hc-st-3',
-        name: 'Zoe Fernandez',
-        role: 'Tonal & Scalp Colorist',
-        avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80',
-        specialties: ['Grey Blending', 'Cool Ash Blondes'],
-        rating: 4.91
-      }
-    ]
+    services: PRISM_CHROMA_TEMPLATE_SERVICES,
+    stylists: PRISM_CHROMA_DEFAULT_STYLISTS
   },
 
   // 11. Bridal Makeup & Makeover Lounge
@@ -1643,12 +1580,12 @@ export const ALL_CATEGORY_OPTIONS: BusinessTypeOption[] = [
   },
   {
     id: 'hair_coloring',
-    title: 'Hair Coloring Studio',
-    categoryTag: 'Color Alchemy',
+    title: PRISM_CHROMA_SELECTOR_LABEL,
+    categoryTag: 'Hair Colour Studio',
     icon: 'palette',
-    aestheticDescription: 'Creative gallery-style layout, bold multi-color gradient accents.',
-    paletteName: 'Chroma Gradient Gallery',
-    badge: 'Creative Art',
+    aestheticDescription: 'Light through a Prism — dark premium atelier with holographic gradient glow, bento cards, Shade Studio and before/after sliders.',
+    paletteName: 'Ink Black & Holographic Prism Gradient',
+    badge: 'Template 10',
     defaultServices: CATEGORY_TEMPLATES.hair_coloring.services.map((s) => ({
       name: s.name,
       price: s.price,

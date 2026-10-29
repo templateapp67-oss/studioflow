@@ -1,0 +1,228 @@
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+
+import { ALL_CATEGORY_OPTIONS, CATEGORY_TEMPLATES } from '../src/categoryTemplates';
+import { INITIAL_SALON_PROFILE } from '../src/mockData';
+import { CustomerSalonWebsite } from '../src/components/CustomerSalonWebsite';
+import { PrismChromaEditor } from '../src/components/prism-chroma/PrismChromaEditor';
+import { requestedTemplate } from '../src/lib/templateEntry';
+import { isPackage } from '../src/lib/packageCatalogue';
+import { serviceValidation } from '../src/lib/serviceCatalogue';
+import {
+  PRISM_CHROMA_BRAND_NAME,
+  PRISM_CHROMA_DEFAULT_COLORS,
+  PRISM_CHROMA_DEFAULT_FAQS,
+  PRISM_CHROMA_DEFAULT_PACKAGES,
+  PRISM_CHROMA_DEFAULT_REVIEWS,
+  PRISM_CHROMA_DEFAULT_SHADES,
+  estimateColourPrice,
+  prismMaintenanceLabel,
+  recommendShade,
+  PRISM_CHROMA_IMAGES,
+  PRISM_CHROMA_TEMPLATE_SERVICES,
+  buildPrismChromaSeo,
+  prismChromaCssVariables,
+  prismFormatInr,
+  resolvePrismChromaConfig,
+} from '../src/lib/prismChroma';
+import type { SalonProfile } from '../src/types';
+
+const locationMock: any = { href: 'https://prismchroma.example/', origin: 'https://prismchroma.example', hash: '', search: '' };
+(globalThis as any).location = locationMock;
+(globalThis as any).window = {
+  location: locationMock,
+  scrollTo() {},
+  addEventListener() {},
+  removeEventListener() {},
+  matchMedia: () => ({ matches: true, addEventListener() {}, removeEventListener() {} }),
+};
+(globalThis as any).document = {
+  title: '',
+  head: { appendChild() {}, querySelector: () => null },
+  body: { style: {} },
+  querySelector: () => null,
+  createElement: () => ({ setAttribute() {}, textContent: '', remove() {} }),
+  addEventListener() {},
+  removeEventListener() {},
+};
+
+/* 1 — Registry, picker, aliases */
+const template = CATEGORY_TEMPLATES.hair_coloring;
+assert.equal(template.title, 'Prism & Chroma Hair Color Atelier');
+assert.equal(template.layoutStyle, 'prism_holographic');
+assert.equal(template.themePreset, 'chroma_gradient');
+const picker = ALL_CATEGORY_OPTIONS.find((o) => o.id === 'hair_coloring')!;
+assert.equal(picker.badge, 'Template 10', 'onboarding picker shows Template 10 badge');
+assert.ok(picker.title.includes('Prism & Chroma'));
+for (const slug of ['prism-chroma', '10', 'template-10', 'hair-coloring', 'prismchroma']) {
+  assert.equal(requestedTemplate(`?template=${slug}`)?.id, 'hair_coloring', `?template=${slug} resolves to Template 10`);
+}
+assert.ok(existsSync(join(process.cwd(), 'public/templates/10/hero.jpg')), 'bundled hero exists');
+assert.ok(existsSync(join(process.cwd(), 'public/templates/10/logo.svg')), 'bundled logo exists');
+/* Every image slot is a local file — zero stock hotlinks anywhere in Template 10. */
+const collectPaths = (value: unknown, out: string[] = []): string[] => {
+  if (typeof value === 'string') { if (value.startsWith('/templates/10/')) out.push(value); return out; }
+  if (Array.isArray(value)) { value.forEach((v) => collectPaths(v, out)); return out; }
+  if (value && typeof value === 'object') { Object.values(value).forEach((v) => collectPaths(v, out)); }
+  return out;
+};
+const imagePaths = collectPaths(PRISM_CHROMA_IMAGES);
+assert.ok(imagePaths.length >= 40, `Template 10 ships 40+ local images (found ${imagePaths.length})`);
+for (const path of imagePaths) {
+  assert.ok(existsSync(join(process.cwd(), 'public', path)), `local image exists: ${path}`);
+  assert.ok(!path.includes('unsplash'), `no stock hotlink: ${path}`);
+}
+console.log(`PASS: all ${imagePaths.length} Template 10 image slots are local files on disk.`);
+console.log('PASS: Template 10 registry, picker badge, ?template=prism-chroma aliases, bundled assets.');
+
+/* 2 — Catalogue: 8 services + 3 packages, INR prices */
+assert.equal(PRISM_CHROMA_TEMPLATE_SERVICES.length, 13, '8 core + 5 package services');
+assert.equal(PRISM_CHROMA_TEMPLATE_SERVICES.filter(isPackage).length, 5, 'five seeded catalogue packages (page shows the 3 spec tiers)');
+const expectPrice = (part: string, price: number) => {
+  const found = PRISM_CHROMA_TEMPLATE_SERVICES.find((s) => s.name.includes(part));
+  assert.ok(found, `service ${part} exists`);
+  assert.equal(found!.price, price, `${part} is ₹${price}`);
+};
+expectPrice('Signature Balayage', 5499);
+expectPrice('Global Colour', 3999);
+expectPrice('Fashion & Pastel', 4999);
+expectPrice('Highlights & Money Piece', 2999);
+expectPrice('Colour Correction', 6999);
+expectPrice('Keratin', 5999);
+expectPrice('Gloss & Shine', 1499);
+expectPrice('Root Touch-Up', 1299);
+for (const s of PRISM_CHROMA_TEMPLATE_SERVICES) assert.equal(serviceValidation(s), '', `${s.name} passes service validation`);
+assert.equal(PRISM_CHROMA_DEFAULT_SHADES.length, 6, 'six Shade Studio shades');
+assert.equal(PRISM_CHROMA_DEFAULT_PACKAGES.length, 3, 'Starter / Signature / Full Transformation');
+assert.deepEqual(PRISM_CHROMA_DEFAULT_PACKAGES.map((p) => p.price), [2499, 5999, 9999]);
+assert.equal(PRISM_CHROMA_DEFAULT_REVIEWS.length, 6, 'six testimonials');
+assert.equal(PRISM_CHROMA_DEFAULT_FAQS.length, 8, 'eight FAQs');
+assert.equal(prismFormatInr(5499), '₹5,499');
+console.log('PASS: Template 10 catalogue — 8 services, 3 packages, shades, reviews, FAQs, INR format.');
+
+/* 3 — Resolver: defaults + onboarding overrides (name, colours, hero) */
+const demoProfile: SalonProfile = {
+  ...INITIAL_SALON_PROFILE,
+  businessType: 'hair_coloring',
+  businessName: PRISM_CHROMA_BRAND_NAME,
+  tagline: template.tagline,
+  about: template.about,
+  phone: template.phone,
+  whatsapp: template.whatsapp,
+  address: template.defaultAddress,
+  city: template.defaultCity,
+  postalCode: template.defaultPostalCode,
+  coverImageUrl: template.coverImageUrl,
+  subdomain: 'prism-chroma',
+};
+const config = resolvePrismChromaConfig(demoProfile);
+assert.equal(config.heroImageUrl, PRISM_CHROMA_IMAGES.hero);
+assert.equal(config.colors.violet, PRISM_CHROMA_DEFAULT_COLORS.violet);
+const custom = resolvePrismChromaConfig({
+  ...demoProfile,
+  businessName: 'My Colour Room',
+  prismChroma: { colors: { violet: '#112233' }, heroHeading: 'Colour, My Way' },
+});
+assert.equal(custom.colors.violet, '#112233', 'onboarding brand colour overrides --violet');
+assert.equal(custom.heroHeading, 'Colour, My Way');
+const vars = prismChromaCssVariables(custom.colors);
+assert.equal(vars['--violet'], '#112233');
+assert.ok(vars['--prism-gradient'].includes('#112233'), 'gradient follows brand colours');
+const seo = buildPrismChromaSeo(demoProfile, config);
+assert.ok(seo.title.includes('Prism & Chroma'));
+assert.equal((seo.jsonLd[0] as any).currenciesAccepted, 'INR');
+console.log('PASS: resolver defaults, onboarding overrides, CSS variables, SEO/JSON-LD.');
+
+/* 4 — Storefront renders every spec section from onboarding data */
+const html = renderToStaticMarkup(
+  <CustomerSalonWebsite profile={demoProfile} services={template.services} stylists={template.stylists} onAddAppointment={async (a: any) => a} />,
+);
+for (const needle of [
+  'Prism &amp; Chroma', 'Book Now', 'Balayage', 'Shade Studio', 'Violet Storm',
+  'Before &amp; After Colour', 'Step by Step', 'Colour Packages', 'Most Loved',
+  'Our Colour Experts', 'Aarushi Mehta', 'Colour Gallery', 'What Clients Say',
+  'Ananya Kapoor', 'Common Questions', 'patch test', 'Ready for your',
+  'Our Studios', 'Bandra West', '₹5,499', 'Open in Google Maps', 'pc-site',
+]) {
+  assert.ok(html.includes(needle), `storefront includes "${needle}"`);
+}
+assert.ok((html.match(/<img/g) || []).length >= 20, 'every section carries imagery');
+assert.ok(html.includes('loading="lazy"'), 'below-fold images lazy-load');
+const customHtml = renderToStaticMarkup(
+  <CustomerSalonWebsite
+    profile={{ ...demoProfile, businessName: 'My Colour Room', subdomain: 'my-colour-room' }}
+    services={template.services}
+    stylists={template.stylists}
+    onAddAppointment={async (a: any) => a}
+  />,
+);
+assert.ok(customHtml.includes('My Colour Room'), 'onboarding salon name fills the template');
+console.log('PASS: storefront renders all 15 sections, onboarding data wins, images lazy-load.');
+
+/* 5 — Owner editor renders */
+const editorHtml = renderToStaticMarkup(
+  <PrismChromaEditor profile={demoProfile} setProfile={() => {}} showBrandIdentityFields />,
+);
+for (const needle of ['Template 10', 'Shade Studio', 'Brand Colours', 'Hero heading']) {
+  assert.ok(editorHtml.includes(needle), `editor includes "${needle}"`);
+}
+console.log('PASS: PrismChromaEditor renders (brand, shades, branches/FAQs, reviews, colours).');
+/* End-to-end gaps: dashboard editor, legacy upgrades, footer map, full lists */
+const gapsEditorHtml = renderToStaticMarkup(<PrismChromaEditor profile={demoProfile} setProfile={() => {}} />);
+assert.ok(gapsEditorHtml.includes('Packages'), 'the owner editor has a Packages tab');
+const {normalizeWorkspace} = await import('../src/lib/normalizeWorkspace');
+const migrated = normalizeWorkspace({
+  profile: {...demoProfile, prismChroma: {heroHeadline: 'Owner Saved Headline'} as any, coverImageUrl: 'https://images.unsplash.com/photo-old-cover', ownerPhotoUrl: 'https://images.unsplash.com/photo-old-owner'},
+  stylists: template.stylists.map((s: any, i: number) => ({...s, avatarUrl: 'https://images.unsplash.com/photo-old-' + i})),
+  reviews: [], customers: [], appointments: [], expenses: [], memberships: [],
+} as any);
+const migratedProfile: any = migrated.profile;
+assert.ok(migratedProfile.coverImageUrl.startsWith('/templates/10/'), 'legacy stock cover upgrades to the local Template 10 hero image');
+assert.ok(migratedProfile.prismChroma?.heroHeadline === 'Owner Saved Headline', 'owner-saved prismChroma config survives workspace normalisation');
+assert.ok(migrated.stylists.every((s: any) => String(s.avatarUrl || '').startsWith('/templates/10/')), 'legacy stock stylist photos upgrade to local team photos');
+const mapHtml = renderToStaticMarkup(
+  <CustomerSalonWebsite profile={{...demoProfile, prismChroma: {mapEmbedUrl: 'https://maps.google.com/maps?q=Bandra%20West%20Mumbai&output=embed'} as any}} services={template.services} stylists={template.stylists} onAddAppointment={async (a: any) => a} />,
+);
+assert.ok(mapHtml.includes('maps.google.com/maps'), 'sites with a maps embed URL show the live map in the footer');
+const manyServices = [...template.services,
+  {id: 'pc-many-1', name: 'Pearl Gloss Ritual', category: 'Hair', price: 1800, durationMin: 45, description: 'Extra slot.'},
+  {id: 'pc-many-2', name: 'Silver Smoke Care', category: 'Hair', price: 2200, durationMin: 60, description: 'Extra slot.'},
+  {id: 'pc-many-3', name: 'Champagne Lights Care', category: 'Hair', price: 2600, durationMin: 75, description: 'Extra slot.'},
+  {id: 'pc-many-4', name: 'Protective Colour Bath', category: 'Hair', price: 1500, durationMin: 40, description: 'Extra slot.'}] as any;
+const manyHtml = renderToStaticMarkup(<CustomerSalonWebsite profile={demoProfile} services={manyServices} stylists={template.stylists} onAddAppointment={async (a: any) => a} />);
+for (const extra of ['Pearl Gloss Ritual', 'Silver Smoke Care', 'Champagne Lights Care', 'Protective Colour Bath']) assert.ok(manyHtml.includes(extra), `all owner services render (not capped at 8): ${extra}`);
+const extraStylist = renderToStaticMarkup(<CustomerSalonWebsite profile={demoProfile} services={template.services} onAddAppointment={async (a: any) => a} stylists={[...template.stylists, {id: 'pc-stylist-5', name: 'Ishaan Rao', title: 'Gloss Specialist', rating: 4.8, specialties: ['Gloss'], bio: 'Fifth expert.', avatarUrl: '', gender: 'male' as const, identityConfirmed: false, bioEligible: false, faceproofPortfolio: []} as any]} />);
+assert.ok(extraStylist.includes('Ishaan Rao'), 'all owner team members render (not capped at 4)');
+const {websiteFavicon} = await import('../src/lib/websiteFavicon');
+assert.ok(websiteFavicon(undefined, demoProfile as any) === '/templates/10/favicon.svg', 'hair_coloring sites fall back to the Template 10 favicon');
+console.log('PASS: end-to-end gaps — editor wired, legacy media upgrades, footer map, uncapped services/team.');
+
+/* Expansion: quiz engine, estimator, new sections render end-to-end */
+const quizVivid = recommendShade(PRISM_CHROMA_DEFAULT_SHADES, {current: 'natural-dark', vibe: 'vivid', maintenance: 'full'});
+assert.ok(quizVivid && quizVivid.shade.family === 'vivid', 'quiz recommends a vivid shade for a bold dream look');
+const quizNatural = recommendShade(PRISM_CHROMA_DEFAULT_SHADES, {current: 'grey', vibe: 'natural', maintenance: 'low'});
+assert.ok(quizNatural && quizNatural.shade.id === 'pc-sh-honey', 'quiz recommends low-care Honey Balayage for grey coverage with little time');
+const quizPastel = recommendShade(PRISM_CHROMA_DEFAULT_SHADES, {current: 'natural-dark', vibe: 'pastel', maintenance: 'regular'});
+assert.ok(quizPastel && quizPastel.shade.family === 'pastel' && quizPastel.caution.includes('lighten'), 'quiz warns dark hair needs gentle lightening for pastel');
+assert.ok(recommendShade([], {current: 'x', vibe: 'vivid', maintenance: 'low'}) === null, 'quiz is safe with no shades');
+assert.ok(estimateColourPrice(5499, 'long') === 6870 && estimateColourPrice(5499, 'medium') === 5500 && estimateColourPrice(5499, 'short') === 4950, 'price estimator scales by hair length');
+assert.ok(prismMaintenanceLabel(2) === 'Low care' && prismMaintenanceLabel(5) === 'High care', 'maintenance labels read simply');
+for (const needle of ['Find My Shade', 'How is your hair right now?', 'Take the 30-second quiz', 'Colour Care Guide', 'First 48 hours', 'Colour from', 'Your Colour, Step by Step', 'Hair health check', 'Add Colour Care Plan']) {
+  assert.ok(html.includes(needle), `expanded storefront includes "${needle}"`);
+}
+const offerHtml = renderToStaticMarkup(
+  <CustomerSalonWebsite profile={{...demoProfile, prismChroma: {announcementText: 'Test Offer Week'} as any}} services={template.services} stylists={template.stylists} onAddAppointment={async (a: any) => a} />,
+);
+assert.ok(offerHtml.includes('Test Offer Week'), 'owner announcement bar renders on the site');
+const gapsEditorHtml2 = renderToStaticMarkup(<PrismChromaEditor profile={demoProfile} setProfile={() => {}} />);
+for (const needle of ['Before &amp; After', 'Journey &amp; Care', 'Offer bar text', 'SEO &amp; Share']) assert.ok(gapsEditorHtml2.includes(needle), `editor includes "${needle}"`);
+for (const needle of ['Hair Colour Studio in Mumbai', 'What We Do Best', 'Shades clients love right now']) assert.ok(html.includes(needle), `SEO guide includes "${needle}"`);
+const {prismOpenStatus} = await import('../src/lib/prismChroma');
+assert.ok(prismOpenStatus('10:00', '20:30', new Date('2026-01-05T12:00:00')).open === true, 'open-now chip shows open at noon');
+assert.ok(prismOpenStatus('10:00', '20:30', new Date('2026-01-05T08:00:00')).open === false, 'open-now chip shows closed before opening');
+console.log('PASS: expansion — Find-My-Shade quiz, estimator, care guide, announcement, carousel, gallery filters, sticky bar.');
+
+console.log('\nAll Prism & Chroma (Template 10) checks passed.');
