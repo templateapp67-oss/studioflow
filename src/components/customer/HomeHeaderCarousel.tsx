@@ -8,7 +8,7 @@ export type HomeBanner={image:string;title:string;description:string;label:strin
 export function homeBanners(salons:Salon[]):HomeBanner[]{
  const result:HomeBanner[]=[],seen=new Set<string>();
  const add=(b:HomeBanner)=>{if(b.image&&!seen.has(b.image)&&result.length<5){seen.add(b.image);result.push(b)}};
- const resolveBannerImg=(s:Salon,raw?:string)=>secureMediaUrl(raw)||(s.content.profile.businessType==='beauty_parlour'&&raw?.startsWith('/templates/roop-mahal/')?raw:'');
+ const resolveBannerImg=(s:Salon,raw?:string)=>secureMediaUrl(raw)||((s.content.profile.businessType==='beauty_parlour'&&raw?.startsWith('/templates/roop-mahal/'))||(s.content.profile.businessType==='makeup_studio'&&raw?.startsWith('/templates/vogue-noir/'))?raw:'');
  const ordered=[...salons.filter(s=>promotionActive(s.content.profile.promoCampaign)),...salons.filter(s=>!promotionActive(s.content.profile.promoCampaign))];
  for(const salon of ordered){const p=salon.content.profile,promo=promotionActive(p.promoCampaign)?p.promoCampaign:null;add({image:resolveBannerImg(salon,promo?.imageUrl||p.coverImageUrl),title:promo?.headline||p.businessName,description:promo?.customOfferText||p.tagline||'Explore services, specialists and your next visit.',label:salon.demoTemplateId?'TEMPLATE DEMO':promo?'SALON SPECIAL':'DISCOVER YOUR SALON',salon})}
  for(const salon of ordered)for(const src of salon.content.gallery||[])add({image:resolveBannerImg(salon,src),title:salon.content.profile.businessName,description:'Explore this salon’s published services and available appointments.',label:'SALON GALLERY',salon});

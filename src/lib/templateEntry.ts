@@ -3,17 +3,20 @@ import { INITIAL_SALON_PROFILE } from '../mockData';
 import { applyTemplateDesign } from './templateSelection';
 import { normalizeWorkspace } from './normalizeWorkspace';
 import type { CategoryTemplateConfig } from '../types';
-const aliases:Record<string,string>={hair:'hair_salon',barber:'barber',spa:'hair_spa',nails:'nail_studio',tattoo:'tattoo_studio',beauty:'beauty_parlour'};
+const aliases:Record<string,string>={hair:'hair_salon',barber:'barber',spa:'hair_spa',nails:'nail_studio',tattoo:'tattoo_studio',beauty:'beauty_parlour',makeup:'makeup_studio','08':'makeup_studio','template-08':'makeup_studio','vogue-noir':'makeup_studio',voguenoir:'makeup_studio'};
 export function requestedTemplate(search:string):CategoryTemplateConfig|null {
- const query=new URLSearchParams(search);const explicit=query.get('template');
- const id=explicit||aliases[(query.get('category')||'').toLowerCase()];
+ const query=new URLSearchParams(search);const rawExplicit=(query.get('template')||'').trim();
+ const explicitAlias=Object.hasOwn(aliases,rawExplicit.toLowerCase())?aliases[rawExplicit.toLowerCase()]:rawExplicit;
+ const categoryKey=(query.get('category')||'').toLowerCase();
+ const id=explicitAlias||(Object.hasOwn(aliases,categoryKey)?aliases[categoryKey]:'');
  return id&&Object.hasOwn(CATEGORY_TEMPLATES,id)?CATEGORY_TEMPLATES[id]:null;
 }
 export function developmentTemplateForSiteSlug(slug:string,isDevelopment:boolean):CategoryTemplateConfig|null {
  if(!isDevelopment)return null;
  const key=slug.trim().toLowerCase().replace(/[^a-z0-9]/g,'');
  if(!key)return null;
- const alias=aliases[slug.trim().toLowerCase()] || (key === 'keshprakritihairspa' ? 'hair_spa' : undefined);
+ const lower=slug.trim().toLowerCase();
+ const alias=(Object.hasOwn(aliases,lower)?aliases[lower]:undefined) || (key === 'keshprakritihairspa' ? 'hair_spa' : key === 'voguenoirmakeupstudio' || key === 'voguenoir' ? 'makeup_studio' : undefined);
  if(alias&&Object.hasOwn(CATEGORY_TEMPLATES,alias))return CATEGORY_TEMPLATES[alias];
  return Object.values(CATEGORY_TEMPLATES).find(template=>{
   const id=template.id.toLowerCase().replace(/[^a-z0-9]/g,'');

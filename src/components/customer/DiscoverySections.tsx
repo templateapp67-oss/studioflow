@@ -9,7 +9,7 @@ import {rupees,type Salon} from './model';
 import {CATEGORY_TEMPLATES} from '../../categoryTemplates';
 
 export function DiscoveryPhoto({salon,src,alt}:{salon:Salon;src?:string;alt:string}){
- const resolveSrc=(raw?:string)=>secureMediaUrl(raw)||(salon.content.profile.businessType==='beauty_parlour'&&raw?.startsWith('/templates/roop-mahal/')?raw:'');
+ const resolveSrc=(raw?:string)=>secureMediaUrl(raw)||((salon.content.profile.businessType==='beauty_parlour'&&raw?.startsWith('/templates/roop-mahal/'))||(salon.content.profile.businessType==='makeup_studio'&&raw?.startsWith('/templates/vogue-noir/'))?raw:'');
  const primary=resolveSrc(src)||resolveSrc(salon.content.profile.coverImageUrl);
  const fallback=CATEGORY_TEMPLATES[salon.content.profile.businessType]?.coverImageUrl||CATEGORY_TEMPLATES.hair_salon.coverImageUrl;
  const [failed,setFailed]=useState(false);

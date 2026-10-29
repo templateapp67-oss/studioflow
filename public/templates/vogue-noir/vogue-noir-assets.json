@@ -1,0 +1,520 @@
+{
+  "templateId": "makeup_studio",
+  "templateCode": "08",
+  "templateSlug": "vogue-noir",
+  "templateName": "Vogue Noir (08)",
+  "basePath": "/templates/vogue-noir",
+  "assets": [
+    {
+      "slot": "logoSvg",
+      "path": "/templates/vogue-noir/logo.svg",
+      "width": 400,
+      "height": 120,
+      "format": "svg",
+      "source": "Original vector wordmark created for StudioFlow Vogue Noir",
+      "alt": "Vogue Noir Makeup Studio & Academy gold wordmark logo"
+    },
+    {
+      "slot": "logoPng",
+      "path": "/templates/vogue-noir/logo.png",
+      "width": 400,
+      "height": 120,
+      "format": "png",
+      "source": "Rendered from Vogue Noir wordmark specification",
+      "alt": "Vogue Noir Makeup Studio & Academy logo"
+    },
+    {
+      "slot": "heroDesktop",
+      "path": "/templates/vogue-noir/hero-1.webp",
+      "width": 1920,
+      "height": 1080,
+      "format": "webp",
+      "source": "AI-generated StudioFlow Indian bridal asset (editorial noir color-graded)",
+      "alt": "Editorial Indian bridal portrait on dark obsidian backdrop with soft gold rim lighting"
+    },
+    {
+      "slot": "heroMobile",
+      "path": "/templates/vogue-noir/hero-mobile.webp",
+      "width": 900,
+      "height": 1400,
+      "format": "webp",
+      "source": "AI-generated StudioFlow bridal asset (editorial noir color-graded)",
+      "alt": "Vertical luxury bridal beauty portrait with luminous skin and gold shimmer eyes"
+    },
+    {
+      "slot": "aboutStudio",
+      "path": "/templates/vogue-noir/about.webp",
+      "width": 1000,
+      "height": 1200,
+      "format": "webp",
+      "source": "AI-generated StudioFlow studio asset (editorial noir color-graded)",
+      "alt": "Lead makeup artist applying cheekbone highlight in the dark luxury Vogue Noir studio"
+    },
+    {
+      "slot": "academyHero",
+      "path": "/templates/vogue-noir/academy/hero.webp",
+      "width": 1600,
+      "height": 700,
+      "format": "webp",
+      "source": "AI-generated StudioFlow studio asset (editorial noir color-graded)",
+      "alt": "Vogue Noir Makeup Academy classroom with illuminated gold mirrors and vanity stations"
+    },
+    {
+      "slot": "ogImage",
+      "path": "/templates/vogue-noir/og-image.jpg",
+      "width": 1200,
+      "height": 630,
+      "format": "jpg",
+      "source": "Composite from hero-1.webp and Vogue Noir wordmark",
+      "alt": "Vogue Noir Makeup Studio & Academy \u2014 Luxury Bridal Makeup & Pro Makeup Courses"
+    },
+    {
+      "slot": "faviconSvg",
+      "path": "/templates/vogue-noir/favicon.svg",
+      "width": 192,
+      "height": 192,
+      "format": "svg",
+      "source": "Original vector emblem created for StudioFlow Vogue Noir",
+      "alt": "Vogue Noir VN gold monogram icon"
+    },
+    {
+      "slot": "favicon32",
+      "path": "/templates/vogue-noir/favicon-32x32.png",
+      "width": 32,
+      "height": 32,
+      "format": "png",
+      "source": "Rendered from Vogue Noir VN emblem",
+      "alt": "Vogue Noir 32x32 favicon"
+    },
+    {
+      "slot": "appleTouchIcon",
+      "path": "/templates/vogue-noir/apple-touch-icon.png",
+      "width": 180,
+      "height": 180,
+      "format": "png",
+      "source": "Rendered from Vogue Noir VN emblem",
+      "alt": "Vogue Noir Apple touch icon"
+    },
+    {
+      "slot": "favicon192",
+      "path": "/templates/vogue-noir/favicon-192x192.png",
+      "width": 192,
+      "height": 192,
+      "format": "png",
+      "source": "Rendered from Vogue Noir VN emblem",
+      "alt": "Vogue Noir 192x192 icon"
+    },
+    {
+      "slot": "services_bridal",
+      "path": "/templates/vogue-noir/services/bridal.webp",
+      "width": 800,
+      "height": 600,
+      "format": "webp",
+      "source": "AI-generated StudioFlow studio asset (editorial noir color-graded)",
+      "alt": "Indian bride in royal couture lehenga with flawless HD bridal makeup and antique gold jewelry"
+    },
+    {
+      "slot": "services_engagement",
+      "path": "/templates/vogue-noir/services/engagement.webp",
+      "width": 800,
+      "height": 600,
+      "format": "webp",
+      "source": "Pexels Royalty-Free Photo #3221176 (https://pexels.com/photo/woman-wearing-gold-accessories-3221176)",
+      "alt": "Engagement and reception glam beauty look with champagne shimmer eyeshadow and gold accessories"
+    },
+    {
+      "slot": "services_party",
+      "path": "/templates/vogue-noir/services/party.webp",
+      "width": 800,
+      "height": 600,
+      "format": "webp",
+      "source": "AI-generated StudioFlow studio asset (editorial noir color-graded)",
+      "alt": "Evening party glam makeup with soft smoky eyes, fluttery lashes and satin rose lips"
+    },
+    {
+      "slot": "services_hd",
+      "path": "/templates/vogue-noir/services/hd.webp",
+      "width": 800,
+      "height": 600,
+      "format": "webp",
+      "source": "AI-generated StudioFlow studio asset (editorial noir color-graded)",
+      "alt": "Camera-ready HD makeup closeup showcasing luminous glass skin finish and golden highlight"
+    },
+    {
+      "slot": "services_airbrush",
+      "path": "/templates/vogue-noir/services/airbrush.webp",
+      "width": 800,
+      "height": 600,
+      "format": "webp",
+      "source": "Pexels Royalty-Free Photo #32117490 (https://pexels.com/search/cosmetic%20studio)",
+      "alt": "Waterproof airbrush and precision studio complexion application under warm vanity lighting"
+    },
+    {
+      "slot": "services_photoshoot",
+      "path": "/templates/vogue-noir/services/photoshoot.webp",
+      "width": 800,
+      "height": 600,
+      "format": "webp",
+      "source": "Pexels Royalty-Free Photo #18393751 (https://pexels.com/photo/woman-portrait-on-black-background-18393751)",
+      "alt": "Editorial and pre-wedding photoshoot beauty look against a dramatic obsidian studio backdrop"
+    },
+    {
+      "slot": "services_hair",
+      "path": "/templates/vogue-noir/services/hair.webp",
+      "width": 800,
+      "height": 600,
+      "format": "webp",
+      "source": "AI-generated StudioFlow studio asset (editorial noir color-graded)",
+      "alt": "Intricate bridal bun hairstyle adorned with fresh ivory floral gajra and gold pins"
+    },
+    {
+      "slot": "services_draping",
+      "path": "/templates/vogue-noir/services/draping.webp",
+      "width": 800,
+      "height": 600,
+      "format": "webp",
+      "source": "Pexels Royalty-Free Photo #9344397 (https://www.pexels.com/photo/a-woman-in-gold-and-blue-lehenga-9344397/)",
+      "alt": "Precision pleated bridal lehenga dupatta and silk saree draping with gold zari border"
+    },
+    {
+      "slot": "services_mehendi-haldi",
+      "path": "/templates/vogue-noir/services/mehendi-haldi.webp",
+      "width": 800,
+      "height": 600,
+      "format": "webp",
+      "source": "Pexels Royalty-Free Photo #17154866 (https://pexels.com/search/indian%20bride)",
+      "alt": "Fresh dewy Haldi and Mehendi ceremony makeup look paired with intricate bridal henna"
+    },
+    {
+      "slot": "packages_classic",
+      "path": "/templates/vogue-noir/packages/classic.webp",
+      "width": 800,
+      "height": 600,
+      "format": "webp",
+      "source": "Pexels Royalty-Free Photo #30825617 (https://www.pexels.com/search/indian%20bridal%20makeup/)",
+      "alt": "Classic Bride package portrait featuring HD bridal makeup, silk dupatta draping and floral hair bun"
+    },
+    {
+      "slot": "packages_signature",
+      "path": "/templates/vogue-noir/packages/signature.webp",
+      "width": 800,
+      "height": 600,
+      "format": "webp",
+      "source": "AI-generated StudioFlow studio asset (editorial noir color-graded)",
+      "alt": "Signature Bride Most Popular package portrait with waterproof airbrush finish and mink lashes"
+    },
+    {
+      "slot": "packages_royal",
+      "path": "/templates/vogue-noir/packages/royal.webp",
+      "width": 800,
+      "height": 600,
+      "format": "webp",
+      "source": "AI-generated StudioFlow studio asset (editorial noir color-graded)",
+      "alt": "Royal Bride luxury couture package portrait created by Senior Lead Artist"
+    },
+    {
+      "slot": "academy_beginner-course",
+      "path": "/templates/vogue-noir/academy/beginner-course.webp",
+      "width": 800,
+      "height": 600,
+      "format": "webp",
+      "source": "AI-generated StudioFlow studio asset (editorial noir color-graded)",
+      "alt": "Beginner Makeup Artistry Course hands-on skin prep and foundation blending practice"
+    },
+    {
+      "slot": "academy_pro-course",
+      "path": "/templates/vogue-noir/academy/pro-course.webp",
+      "width": 800,
+      "height": 600,
+      "format": "webp",
+      "source": "Pexels Royalty-Free Photo #7446916 (https://pexels.com/search/beauty%20salon%20photo)",
+      "alt": "Professional Makeup Artist Course airbrush bridal training at illuminated studio mirrors"
+    },
+    {
+      "slot": "academy_bridal-masterclass",
+      "path": "/templates/vogue-noir/academy/bridal-masterclass.webp",
+      "width": 800,
+      "height": 600,
+      "format": "webp",
+      "source": "Pexels Royalty-Free Photo #10214422 (https://pexels.com/photo/photo-of-a-woman-wearing-red-and-gold-traditional-clothes-10214422)",
+      "alt": "Bridal Makeup Masterclass demonstrating regional Indian bridal artistry and speed techniques"
+    },
+    {
+      "slot": "academy_self-makeup",
+      "path": "/templates/vogue-noir/academy/self-makeup.webp",
+      "width": 800,
+      "height": 600,
+      "format": "webp",
+      "source": "Pexels Royalty-Free Photo #11924085 (https://pexels.com/photo/assorted-cosmetic-items-on-white-surface-11924085)",
+      "alt": "Self-Makeup Workshop luxury brushes, palettes and personal beauty kit essentials"
+    },
+    {
+      "slot": "gallery_bridal-1",
+      "category": "Bridal",
+      "path": "/templates/vogue-noir/gallery/bridal-1.webp",
+      "width": 900,
+      "height": 1100,
+      "format": "webp",
+      "source": "AI-generated StudioFlow bridal asset (editorial noir color-graded)",
+      "alt": "Royal crimson velvet bridal look with champagne gold shimmer eyes and choker jewelry"
+    },
+    {
+      "slot": "gallery_bridal-2",
+      "category": "Bridal",
+      "path": "/templates/vogue-noir/gallery/bridal-2.webp",
+      "width": 900,
+      "height": 1100,
+      "format": "webp",
+      "source": "Pexels Royalty-Free Photo #3221176 (https://pexels.com/photo/woman-wearing-gold-accessories-3221176)",
+      "alt": "Traditional gold temple jewelry bridal makeup with kohl-defined eyes and matte berry lips"
+    },
+    {
+      "slot": "gallery_bridal-3",
+      "category": "Bridal",
+      "path": "/templates/vogue-noir/gallery/bridal-3.webp",
+      "width": 900,
+      "height": 1100,
+      "format": "webp",
+      "source": "Pexels Royalty-Free Photo #30825617 (https://www.pexels.com/search/indian%20bridal%20makeup/)",
+      "alt": "Soft sculpted North Indian bridal glow with heirloom nath and maang tikka"
+    },
+    {
+      "slot": "gallery_bridal-4",
+      "category": "Bridal",
+      "path": "/templates/vogue-noir/gallery/bridal-4.webp",
+      "width": 900,
+      "height": 1100,
+      "format": "webp",
+      "source": "Pexels Royalty-Free Photo #10214422 (https://pexels.com/photo/photo-of-a-woman-wearing-red-and-gold-traditional-clothes-10214422)",
+      "alt": "Classic red and zardozi gold bridal portrait with waterproof airbrush finish"
+    },
+    {
+      "slot": "gallery_bridal-5",
+      "category": "Bridal",
+      "path": "/templates/vogue-noir/gallery/bridal-5.webp",
+      "width": 900,
+      "height": 1100,
+      "format": "webp",
+      "source": "Pexels Royalty-Free Photo #33051754 (https://pexels.com/search/haldi%20ceremony%20cartoon)",
+      "alt": "Golden silk saree wedding ceremony look with warm bronzed glow"
+    },
+    {
+      "slot": "gallery_bridal-6",
+      "category": "Bridal",
+      "path": "/templates/vogue-noir/gallery/bridal-6.webp",
+      "width": 900,
+      "height": 1100,
+      "format": "webp",
+      "source": "Pexels Royalty-Free Photo #32276767 (https://pexels.com/search/haldi%20ceremony%20cartoon)",
+      "alt": "Intimate daytime wedding and Mehendi bridal look with soft blush highlights"
+    },
+    {
+      "slot": "gallery_party-1",
+      "category": "Party",
+      "path": "/templates/vogue-noir/gallery/party-1.webp",
+      "width": 900,
+      "height": 1100,
+      "format": "webp",
+      "source": "Pexels Royalty-Free Photo #29354307 (https://pexels.com/search/party%20makeup)",
+      "alt": "Cocktail night party makeup with bronzed smoky lids and diamond drop earrings"
+    },
+    {
+      "slot": "gallery_party-2",
+      "category": "Party",
+      "path": "/templates/vogue-noir/gallery/party-2.webp",
+      "width": 900,
+      "height": 1100,
+      "format": "webp",
+      "source": "Pexels Royalty-Free Photo #29352054 (https://pexels.com/search/party%20makeup)",
+      "alt": "Sangeet guest evening glam look with plum-gold shimmer and sculpted cheekbones"
+    },
+    {
+      "slot": "gallery_party-3",
+      "category": "Party",
+      "path": "/templates/vogue-noir/gallery/party-3.webp",
+      "width": 900,
+      "height": 1100,
+      "format": "webp",
+      "source": "Pexels Royalty-Free Photo #14472209 (https://pexels.com/photo/portrait-of-a-woman-in-an-evening-dress-14472209)",
+      "alt": "Satin gown red-carpet party makeup with soft winged liner and rose-nude lip"
+    },
+    {
+      "slot": "gallery_party-4",
+      "category": "Party",
+      "path": "/templates/vogue-noir/gallery/party-4.webp",
+      "width": 900,
+      "height": 1100,
+      "format": "webp",
+      "source": "Pexels Royalty-Free Photo #17688558 (https://pexels.com/search/party%20dress)",
+      "alt": "Sequin evening party beauty look with dewy highlighter and voluminous waves"
+    },
+    {
+      "slot": "gallery_editorial-1",
+      "category": "Editorial",
+      "path": "/templates/vogue-noir/gallery/editorial-1.webp",
+      "width": 900,
+      "height": 1100,
+      "format": "webp",
+      "source": "Pexels Royalty-Free Photo #35976332 (https://pexels.com/search/glam%20makeup)",
+      "alt": "High-fashion editorial beauty portrait with blush crystal accents and satin skin"
+    },
+    {
+      "slot": "gallery_editorial-2",
+      "category": "Editorial",
+      "path": "/templates/vogue-noir/gallery/editorial-2.webp",
+      "width": 900,
+      "height": 1100,
+      "format": "webp",
+      "source": "Pexels Royalty-Free Photo #26790920 (https://pexels.com/search/girl%20in%20dark%20background)",
+      "alt": "Vogue-inspired crimson couture editorial beauty look on dark studio backdrop"
+    },
+    {
+      "slot": "gallery_editorial-3",
+      "category": "Editorial",
+      "path": "/templates/vogue-noir/gallery/editorial-3.webp",
+      "width": 900,
+      "height": 1100,
+      "format": "webp",
+      "source": "Pexels Royalty-Free Photo #25024379 (https://pexels.com/photo/close-up-portrait-of-a-woman-25024379)",
+      "alt": "Editorial metallic eye and sculpted contour beauty portrait under rim light"
+    },
+    {
+      "slot": "gallery_academy-work-1",
+      "category": "Academy Work",
+      "path": "/templates/vogue-noir/gallery/academy-work-1.webp",
+      "width": 900,
+      "height": 1100,
+      "format": "webp",
+      "source": "Pexels Royalty-Free Photo #33722921 (https://pexels.com/search/makeup%20artist)",
+      "alt": "Academy student demonstrating precision blush placement during live studio assessment"
+    },
+    {
+      "slot": "gallery_academy-work-2",
+      "category": "Academy Work",
+      "path": "/templates/vogue-noir/gallery/academy-work-2.webp",
+      "width": 900,
+      "height": 1100,
+      "format": "webp",
+      "source": "Pexels Royalty-Free Photo #33607402 (https://www.pexels.com/search/makeup)",
+      "alt": "Vogue Noir Academy pro batch eyeshadow blending technique on model"
+    },
+    {
+      "slot": "gallery_academy-work-3",
+      "category": "Academy Work",
+      "path": "/templates/vogue-noir/gallery/academy-work-3.webp",
+      "width": 900,
+      "height": 1100,
+      "format": "webp",
+      "source": "AI-generated StudioFlow studio asset (editorial noir color-graded)",
+      "alt": "Illuminated Vogue Noir Academy practice stations and professional brush kits"
+    },
+    {
+      "slot": "gallery_before_1",
+      "path": "/templates/vogue-noir/gallery/before-1.webp",
+      "width": 900,
+      "height": 1100,
+      "format": "webp",
+      "source": "AI-generated StudioFlow bridal asset (natural skin prep grade)",
+      "alt": "Before bridal makeup transformation: hydrated natural skin prep"
+    },
+    {
+      "slot": "gallery_after_1",
+      "path": "/templates/vogue-noir/gallery/after-1.webp",
+      "width": 900,
+      "height": 1100,
+      "format": "webp",
+      "source": "AI-generated StudioFlow bridal asset (sculpted HD bridal glam grade)",
+      "alt": "After bridal makeup transformation: luminous gold-shimmer HD bridal finish"
+    },
+    {
+      "slot": "gallery_before_2",
+      "path": "/templates/vogue-noir/gallery/before-2.webp",
+      "width": 900,
+      "height": 1100,
+      "format": "webp",
+      "source": "Pexels Royalty-Free Photo #14472217 (natural skin prep grade)",
+      "alt": "Before evening party glam: bare prepped complexion prior to contour and eye artistry"
+    },
+    {
+      "slot": "gallery_after_2",
+      "path": "/templates/vogue-noir/gallery/after-2.webp",
+      "width": 900,
+      "height": 1100,
+      "format": "webp",
+      "source": "Pexels Royalty-Free Photo #14472217 (editorial party glam grade)",
+      "alt": "After evening party glam: sculpted rose-gold highlight and satin lip finish"
+    },
+    {
+      "slot": "artists_riya-kapoor",
+      "path": "/templates/vogue-noir/artists/riya-kapoor.webp",
+      "width": 600,
+      "height": 750,
+      "format": "webp",
+      "source": "AI-generated StudioFlow team portrait (editorial noir color-graded)",
+      "alt": "Riya Kapoor, Founder and Lead Bridal Makeup Artist at Vogue Noir Makeup Studio and Academy"
+    },
+    {
+      "slot": "artists_simran-sethi",
+      "path": "/templates/vogue-noir/artists/simran-sethi.webp",
+      "width": 600,
+      "height": 750,
+      "format": "webp",
+      "source": "AI-generated StudioFlow team portrait (editorial noir color-graded)",
+      "alt": "Simran Sethi, Senior Makeup Artist specializing in Airbrush and Editorial Glam at Vogue Noir"
+    },
+    {
+      "slot": "artists_aarav-mehta",
+      "path": "/templates/vogue-noir/artists/aarav-mehta.webp",
+      "width": 600,
+      "height": 750,
+      "format": "webp",
+      "source": "AI-generated StudioFlow team portrait (editorial noir color-graded)",
+      "alt": "Aarav Mehta, Hair Styling Lead specializing in Bridal Buns, Curls and Extensions at Vogue Noir"
+    },
+    {
+      "slot": "artists_neha-joshi",
+      "path": "/templates/vogue-noir/artists/neha-joshi.webp",
+      "width": 600,
+      "height": 750,
+      "format": "webp",
+      "source": "AI-generated StudioFlow team portrait (editorial noir color-graded)",
+      "alt": "Neha Joshi, Academy Head Trainer specializing in Pro Makeup Education at Vogue Noir"
+    },
+    {
+      "slot": "testimonials_ananya",
+      "path": "/templates/vogue-noir/testimonials/ananya.webp",
+      "width": 200,
+      "height": 200,
+      "format": "webp",
+      "source": "Pexels Royalty-Free Photo #5151189 (https://pexels.com/photo/happy-indian-woman-in-traditional-garment-in-forest-5151189)",
+      "alt": "Ananya S., Bridal Makeup client portrait"
+    },
+    {
+      "slot": "testimonials_pooja",
+      "path": "/templates/vogue-noir/testimonials/pooja.webp",
+      "width": 200,
+      "height": 200,
+      "format": "webp",
+      "source": "Pexels Royalty-Free Photo #15602468 (https://pexels.com/photo/portrait-of-indian-woman-in-sunlight-15602468)",
+      "alt": "Pooja R., Pro Makeup Course graduate portrait"
+    },
+    {
+      "slot": "testimonials_kriti",
+      "path": "/templates/vogue-noir/testimonials/kriti.webp",
+      "width": 200,
+      "height": 200,
+      "format": "webp",
+      "source": "Pexels Royalty-Free Photo #14829695 (https://www.pexels.com/search/indian%20woman%20smiling/)",
+      "alt": "Kriti M., Reception Airbrush Makeup client portrait"
+    },
+    {
+      "slot": "testimonials_sana",
+      "path": "/templates/vogue-noir/testimonials/sana.webp",
+      "width": 200,
+      "height": 200,
+      "format": "webp",
+      "source": "Pexels Royalty-Free Photo #8129897 (https://pexels.com/photo/person-holding-a-blush-on-and-makeup-brush-8129897)",
+      "alt": "Sana K., Bridal Masterclass graduate portrait"
+    }
+  ]
+}

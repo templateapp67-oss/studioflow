@@ -259,34 +259,35 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
   },
 
   makeup_studio: {
-    foundingYear: '2017',
-    foundingNarrative: 'Glamour House is an editorial, bridal, and celebrity makeup atelier in South Mumbai. We engineer camera-ready, sweatproof makeup for high-profile weddings, red carpets, and digital film productions.',
-    specialties: ['HD Airbrush Bridal Glam', 'Cocktail & Sangeet Makeovers', 'Monochrome Editorial Looks', 'Masterclasses'],
+    foundingYear: '2018',
+    foundingNarrative: 'Vogue Noir Makeup Studio & Academy blends editorial skin minimalism with heirloom Indian bridal artistry and hands-on certified pro makeup education.',
+    specialties: ['HD & Silicone Airbrush Bridal', 'Engagement & Party Glam', 'Editorial Beauty', 'Certified Pro Makeup Academy'],
     certifications: [
-      { icon: 'verified', title: '100% Original Global Cosmetics', description: 'Authenticated palettes from Charlotte Tilbury, Dior, NARS, and MAC.' },
-      { icon: 'brush', title: 'Disinfected Brushes & Palettes', description: 'Cinema Secrets 99.9% antibacterial brush sanitation between every face.' },
-      { icon: 'wb_incandescent', title: 'High-CRI 98+ Vanity Lighting', description: 'Daylight balanced 5500K mirror illumination to ensure 100% true tone match.' },
-      { icon: 'workspace_premium', title: 'Bollywood Celebrity Credits', description: 'Artists trusted by leading models, actresses, and destination brides.' }
+      { icon: 'verified', title: '100% Authentic Global Vanity', description: 'Charlotte Tilbury, Dior Backstage, NARS, Huda Beauty, MAC & Temptu Pro.' },
+      { icon: 'brush', title: 'Hospital-Grade Brush Hygiene', description: '99.9% antibacterial brush & spatula sanitation between every client.' },
+      { icon: 'wb_incandescent', title: 'CRI 98+ 5500K Vanity Mirrors', description: 'Camera-calibrated studio illumination for true undertone precision.' },
+      { icon: 'workspace_premium', title: 'Certified Pro Makeup Academy', description: '600+ graduates trained on live models with portfolio shoots & EMI plans.' }
     ],
     gallery: [
-      { id: 'ms-g1', url: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=800&q=80', title: 'Royal Indian Bridal HD Glow', tag: 'Bridal' },
-      { id: 'ms-g2', url: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80', title: 'Hollywood Vanity Mirror Lighting', tag: 'Vanity Station' },
-      { id: 'ms-g3', url: 'https://images.unsplash.com/photo-1512290900672-1f55b9e07506?auto=format&fit=crop&w=800&q=80', title: 'Soft Glam Sangeet & Reception Look', tag: 'Evening Glam' },
-      { id: 'ms-g4', url: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=800&q=80', title: 'Precision Wing & Editorial Smokey Eye', tag: 'Eye Artistry' },
-      { id: 'ms-g5', url: 'https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=800&q=80', title: 'Bridal Suite & Dressing Mirrors', tag: 'Lounge' },
-      { id: 'ms-g6', url: 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?auto=format&fit=crop&w=800&q=80', title: 'Flawless Airbrush Base Application', tag: 'Airbrush' }
+      { id: 'ms-g1', url: '/templates/vogue-noir/gallery/bridal-1.webp', title: 'Crimson Velvet Royal Bride', tag: 'Bridal' },
+      { id: 'ms-g2', url: '/templates/vogue-noir/gallery/party-1.webp', title: 'Cocktail Night Smoked Bronze', tag: 'Party' },
+      { id: 'ms-g3', url: '/templates/vogue-noir/gallery/editorial-1.webp', title: 'Blush Crystal Haute Beauty', tag: 'Editorial' },
+      { id: 'ms-g4', url: '/templates/vogue-noir/gallery/academy-work-1.webp', title: 'Pro Batch Live Model Assessment', tag: 'Academy Work' },
+      { id: 'ms-g5', url: '/templates/vogue-noir/gallery/bridal-2.webp', title: 'Temple Gold South Bridal Glow', tag: 'Bridal' },
+      { id: 'ms-g6', url: '/templates/vogue-noir/gallery/party-2.webp', title: 'Sangeet Plum & Champagne', tag: 'Party' }
     ],
     reviews: [
-      { id: 'ms-r1', name: 'Natasha Poonawalla', location: 'Colaba, Mumbai', rating: 5, serviceName: 'Bridal HD Airbrush Makeover', comment: 'Rhea made me look like the best version of myself on my wedding day! My makeup stayed flawless through 14 hours of humid coastal weather.', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80', date: '3 days ago' },
-      { id: 'ms-r2', name: 'Tara Sutaria', location: 'Altamount Road, Mumbai', rating: 5, serviceName: 'Red Carpet Cocktail Glow', comment: 'The skin prep was sublime. No caked foundation—just radiant, luminous skin that photographed like dream editorial magazine covers.', avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=200&q=80', date: '1 week ago' },
-      { id: 'ms-r3', name: 'Mira Rajput', location: 'Worli Sea Face, Mumbai', rating: 5, serviceName: 'Editorial Sangeet Smokey Eye', comment: 'Utterly professional. The sanitized brush hygiene was reassuring, and the studio vanity lighting was mesmerizing.', avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80', date: '3 weeks ago' }
+      { id: 'ms-r1', name: 'Ananya S.', location: 'Studio City', rating: 5, serviceName: 'Bridal Makeup', comment: 'Flawless skin finish that lasted 14 hours through tears and dancing. Looked natural in person and stunning on camera!', avatarUrl: '/templates/vogue-noir/testimonials/ananya.webp', date: 'Demo' },
+      { id: 'ms-r2', name: 'Pooja R.', location: 'Studio City', rating: 5, serviceName: 'Pro Makeup Course', comment: 'Joined with zero experience, graduated with a full bridal portfolio and started taking paid clients within a month.', avatarUrl: '/templates/vogue-noir/testimonials/pooja.webp', date: 'Demo' },
+      { id: 'ms-r3', name: 'Kriti M.', location: 'Studio City', rating: 5, serviceName: 'Airbrush Makeup', comment: 'Riya understood my skin tone perfectly. No cakey layers, just pure luxury glow.', avatarUrl: '/templates/vogue-noir/testimonials/kriti.webp', date: 'Demo' },
+      { id: 'ms-r4', name: 'Sana K.', location: 'Studio City', rating: 5, serviceName: 'Bridal Masterclass', comment: 'Hands-on practice on real models, international products, and supportive mentors. Worth every rupee.', avatarUrl: '/templates/vogue-noir/testimonials/sana.webp', date: 'Demo' }
     ],
-    totalReviewCount: 620,
-    averageRating: 4.98,
-    landmark: 'Babulnath Road, Chowpatty, Near Wilson College',
-    parkingInfo: 'Secure valet parking inside the studio premises',
-    openHourText: '09:00 AM',
-    closeHourText: '8:30 PM'
+    totalReviewCount: 2500,
+    averageRating: 5.0,
+    landmark: '2nd Floor, Galleria Market, Sector 28',
+    parkingInfo: 'Dedicated Galleria Market visitor parking available',
+    openHourText: '10:00 AM',
+    closeHourText: '8:00 PM'
   },
 
   massage_wellness: {

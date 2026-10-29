@@ -41,7 +41,7 @@ export function BrandImageField({label, value, onChange, logo = false, uploadNam
   const applyUrl = () => {
     if (uploading.current) return;
     const next = url.trim();
-    if (next && !/^https:\/\//i.test(next) && !/^\/(template-assets|assets)\//.test(next)) {
+    if (next && !/^https:\/\//i.test(next) && !/^\/(template-assets|templates|assets)\//.test(next)) {
       setError('Use an HTTPS image URL or a template asset path.'); return;
     }
     setError(''); setMessage('Image URL applied. Changes save with your workspace.'); onChange(next);

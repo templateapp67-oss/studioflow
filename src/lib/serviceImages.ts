@@ -4,6 +4,7 @@ import {barberServiceImage} from './barberReference';
 import {roopMahalServiceImage} from './roopMahalReference';
 import {pinkyNailsServiceImage} from './pinkyNails';
 import {KESH_PRAKRITI_IMAGES,keshPrakritiServiceImage} from './keshPrakriti';
+import {VOGUE_NOIR_IMAGES,vogueNoirServiceImage} from './vogueNoir';
 
 /** Category-matched image templates shared by the editor and storefront. */
 export function serviceImageTemplates(service:Pick<SalonService,'id'|'name'|'category'>,type:BusinessTypeId='hair_salon'):Array<{id:string;url:string;label:string}> {
@@ -14,7 +15,11 @@ export function serviceImageTemplates(service:Pick<SalonService,'id'|'name'|'cat
   const local=Array.from(new Set([keshPrakritiServiceImage(service),KESH_PRAKRITI_IMAGES.sanctuary,KESH_PRAKRITI_IMAGES.botanical]));
   return local.slice(0,3).map((url,index)=>({id:`hair_spa-${index+1}`,url,label:`Image template ${index+1}`}));
  }
- let source=type;
+ if(type==='makeup_studio'){
+  const local=Array.from(new Set([vogueNoirServiceImage({...service,imageUrl:''}),VOGUE_NOIR_IMAGES.services.bridal,VOGUE_NOIR_IMAGES.services.party,VOGUE_NOIR_IMAGES.services.airbrush]));
+  return local.slice(0,3).map((url,index)=>({id:`makeup_studio-${index+1}`,url,label:`Image template ${index+1}`}));
+ }
+ let source: BusinessTypeId = type;
  if(/nail|manicure|pedicure/.test(text))source='nail_studio';
  else if(/lash|brow|thread/.test(text))source='lash_brow';
  else if(/facial|skin|bleach|d-tan|wax/.test(text))source='skincare_clinic';

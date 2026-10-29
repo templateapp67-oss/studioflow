@@ -1,4 +1,5 @@
 import {ClinicEnquiries} from './dermacure/ClinicEnquiries';
+import {AcademyEnquiriesPanel} from './vogue-noir/AcademyEnquiriesPanel';
 import {clinicPriceIsVerified,clinicPublicServices} from '../lib/dermacureContent';
 import {OwnerCustomerContacts} from './OwnerCustomerContacts';
 import {OwnerDemoBookings} from './OwnerDemoBookings';
@@ -403,6 +404,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
         {activeTab === 'calendar' && (
           <div className="flex flex-col gap-4">
             {profile.businessType==='skincare_clinic'&&<ClinicEnquiries/>}
+            {profile.businessType==='makeup_studio'&&<AcademyEnquiriesPanel/>}
             <OwnerPosPanel slug={profile.subdomain} services={profile.businessType==='skincare_clinic'?clinicPublicServices(profile,services).filter(clinicPriceIsVerified):services} stylists={stylists} appointments={appointments} onChanged={async()=>{await onRefreshBookings?.();}}/>
             <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-xs">
             <h2 className="font-display font-bold text-xl mb-4">Calendar & Appointment Schedule</h2>
