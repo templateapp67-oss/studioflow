@@ -42,7 +42,7 @@ import { AcademySection } from './vogue-noir/AcademySection';
 import { PortfolioSection } from './vogue-noir/PortfolioSection';
 
 function formatInr(price: number | null | undefined): string {
-  return `₹${Number(price || 0).toLocaleString('en-IN')}`;
+  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(Number(price || 0));
 }
 
 export function VogueNoirWebsite({
@@ -295,7 +295,7 @@ export function VogueNoirWebsite({
       const byName = services.find((s) => s.name.toLowerCase().includes(lower));
       if (byName) return byName;
     }
-    return packages[0] || services[0];
+    return undefined;
   };
 
   const navItems = useMemo(() => {
@@ -815,6 +815,20 @@ export function VogueNoirWebsite({
           </div>
         </section>
 
+        <section id="bridal-looks" className="vn-section" aria-labelledby="vn-regional-heading">
+          <div className="vn-container">
+            <div className="vn-section-header"><p className="vn-eyebrow">Aapki Shaadi, Aapka Glow</p>
+              <h2 id="vn-regional-heading" className="vn-heading">Bridal looks, <em>your way</em></h2>
+              <p className="vn-subtext">From the pheras to the reception, explore inspiration for your own traditions. Ask your artist about your look.</p>
+            </div>
+            <div className="vn-regional-grid">
+              {['Punjabi', 'Marwari / Rajasthani', 'Bengali', 'South Indian', 'Gujarati', 'Maharashtrian', 'Muslim Nikah', 'Kashmiri'].map((look) => (
+                <a key={look} href="#contact" className="vn-regional-card"><span>{look}</span><span aria-hidden="true">↗</span></a>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* 5. Bridal Packages */}
         <section
           id="bridal-packages"
@@ -857,7 +871,7 @@ export function VogueNoirWebsite({
                   <div className="vn-tier-body">
                     <div>
                       <h3 className="vn-tier-name">{tier.tier}</h3>
-                      <div className="vn-tier-price">{formatInr(tier.price)}</div>
+                      <div className="vn-tier-price">{formatInr(resolveTierPackageService(tier.linkedServiceId, tier.tier)?.price ?? tier.price)}</div>
                       <ul className="vn-tier-list">
                         {tier.inclusions.map((inc, idx) => (
                           <li key={idx}>
@@ -871,11 +885,13 @@ export function VogueNoirWebsite({
                     <button
                       type="button"
                       className={tier.popular ? 'vn-btn-gold' : 'vn-btn-outline'}
-                      onClick={() =>
-                        triggerBook(resolveTierPackageService(tier.linkedServiceId, tier.tier))
-                      }
+                      onClick={() => {
+                        const service = resolveTierPackageService(tier.linkedServiceId, tier.tier);
+                        if (service) triggerBook(service);
+                        else scrollToSection('contact');
+                      }}
                     >
-                      Book Package
+                      {resolveTierPackageService(tier.linkedServiceId, tier.tier) ? 'Book Package' : 'Enquire about this package'}
                     </button>
                   </div>
                 </article>
@@ -1113,6 +1129,7 @@ export function VogueNoirWebsite({
                         />
                       ))}
                     </div>
+                    {!review.isReal && !profile.vogueNoir?.reviews?.length && <small>Sample testimonial</small>}
                     <blockquote className="vn-review-quote" style={{ marginTop: '0.9rem' }}>
                       “{review.quote}”
                     </blockquote>
@@ -1446,6 +1463,10 @@ export function VogueNoirWebsite({
         <span>WhatsApp</span>
       </a>
 
+      <a href={`tel:${phoneDisplay.replace(/\s+/g, '')}`} className="vn-call-float" aria-label={`Call ${brandName}`}>
+        <Phone size={17} aria-hidden="true" /> Call Now
+      </a>
+
       {/* 13. Footer */}
       <footer data-layout="footer" className="vn-footer">
         <div className="vn-container">
@@ -1575,6 +1596,14 @@ export function VogueNoirWebsite({
               </div>
             )}
           </div>
+
+          {(config.gstPricing || /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][A-Z0-9]Z[A-Z0-9]$/.test(config.gstin) || /^[0-9]{6}$/.test(config.sacCode)) && (
+            <p style={{ paddingTop: '1rem', color: 'var(--text-muted)', fontSize: '.78rem' }}>
+              {config.gstPricing && <span>Prices {config.gstPricing} of GST. </span>}
+              {/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][A-Z0-9]Z[A-Z0-9]$/.test(config.gstin) && <span>GSTIN: {config.gstin}. </span>}
+              {/^[0-9]{6}$/.test(config.sacCode) && <span>SAC: {config.sacCode}.</span>}
+            </p>
+          )}
 
           <div
             style={{

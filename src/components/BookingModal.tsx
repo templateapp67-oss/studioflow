@@ -310,6 +310,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   };
 
   // Platform deposit: 25%, rounded up to the nearest paisa
+  const taxExcluded = profile.businessType === 'makeup_studio' && profile.vogueNoir?.gstPricing === 'exclusive';
   const advanceTokenAmount = Math.ceil(totalPrice * 100 * 0.25) / 100;
   const remainingAmount = totalPrice - (paymentMethod === 'pay_advance_token' ? advanceTokenAmount : 0);
 
@@ -1044,7 +1045,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     <div className="text-[11px] text-slate-500">With {selectedStylist.name} ({selectedService.durationMinutes} mins)</div>
                   </div>
                   <div className="text-right">
-                    <span className="text-slate-400 font-mono text-[10px] uppercase">Total Fee</span>
+                    <span className="text-slate-400 font-mono text-[10px] uppercase">{taxExcluded ? 'Fee before GST' : 'Total Fee'}</span>
                     <div className="font-bold text-base text-slate-900 font-mono">
                       ₹{totalPrice.toLocaleString('en-IN')}
                     </div>
@@ -1063,7 +1064,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </div>
               </div>
 
-              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-sm"><strong>Secure platform checkout · 25% advance</strong><p className="mt-2">Pay ₹{advanceTokenAmount.toLocaleString('en-IN')} now via Razorpay. Balance ₹{(totalPrice-advanceTokenAmount).toLocaleString('en-IN')} is due at the salon.</p><p className="mt-2 text-xs">Your appointment confirms after the platform verifies payment. Unpaid reservations expire after 15 minutes.</p></div>
+              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-sm"><strong>Secure platform checkout · 25% advance</strong><p className="mt-2">Pay ₹{advanceTokenAmount.toLocaleString('en-IN')} now via Razorpay. Balance ₹{(totalPrice-advanceTokenAmount).toLocaleString('en-IN')} {taxExcluded ? 'before GST ' : ''}is due at the salon.</p><p className="mt-2 text-xs">Your appointment confirms after the platform verifies payment. Unpaid reservations expire after 15 minutes.</p></div>
+              {taxExcluded && <p role="note" className="p-3 rounded-xl bg-amber-50 text-amber-900 text-sm">GST is not included in the amount shown or calculated by this checkout. Please confirm the final tax and balance with the studio.</p>}
               {gatewayError&&<p role="alert" className="p-3 rounded-xl bg-amber-50 text-amber-900 text-sm">{gatewayError}</p>}
 
               {submitError && <p role="alert" className="rounded-xl bg-red-50 p-3 text-red-700 text-sm">{submitError}</p>}
@@ -1081,7 +1083,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               transition={reducedMotion ? {duration:0} : { duration: 0.3 }}
               className="flex flex-col items-center text-center gap-4 py-3"
             >
-              <p className="p-3 bg-amber-50 text-amber-900 rounded-xl text-sm">{serverStatus === 'confirmed' ? `Booking confirmed. Verified advance: ₹${paidAmount.toLocaleString('en-IN')}. Balance due at salon: ₹${(totalPrice-paidAmount).toLocaleString('en-IN')}.` : 'Payment verification is pending. Check payment status before retrying.'}</p>
+              <p className="p-3 bg-amber-50 text-amber-900 rounded-xl text-sm">{serverStatus === 'confirmed' ? `Booking confirmed. Verified advance: ₹${paidAmount.toLocaleString('en-IN')}. Balance ${taxExcluded ? 'before GST ' : ''}due at salon: ₹${(totalPrice-paidAmount).toLocaleString('en-IN')}.` : 'Payment verification is pending. Check payment status before retrying.'}</p>
+              {taxExcluded && <p role="note" className="text-sm text-amber-900">GST is not included in the checkout amount. Please confirm the final tax and balance with the studio.</p>}
               {/* Animated Celebratory Checkmark */}
               <div className="relative flex items-center justify-center">
                 <motion.div

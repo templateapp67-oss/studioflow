@@ -14,11 +14,15 @@ import { AcademyEnquiriesPanel } from '../src/components/vogue-noir/AcademyEnqui
 import { BookingModal } from '../src/components/BookingModal';
 import { requestedTemplate } from '../src/lib/templateEntry';
 import { resolveSiteSlug } from '../src/lib/resolveSite';
+import { normalizeWorkspace } from '../src/lib/normalizeWorkspace';
+import { workspaceSnapshot } from '../src/lib/workspaceSync';
 import { supabase } from '../src/lib/supabase';
 import {
   VOGUE_NOIR_BRAND_NAME,
   VOGUE_NOIR_DEFAULT_COLORS,
   upcomingAcademyBatchDates,
+  parseAcademySchedules,
+  resolveVogueNoirConfig,
 } from '../src/lib/vogueNoir';
 import type { SalonProfile } from '../src/types';
 
@@ -105,6 +109,7 @@ const expectedSectionOrder = [
   'id="home"',
   'id="about"',
   'id="services"',
+  'id="bridal-looks"',
   'id="bridal-packages"',
   'id="academy"',
   'id="portfolio"',
@@ -125,13 +130,13 @@ for (const token of expectedSectionOrder) {
 for (const colorHex of Object.values(VOGUE_NOIR_DEFAULT_COLORS)) {
   assert.ok(html.includes(colorHex), `Default theme color ${colorHex} must be applied via CSS custom properties`);
 }
-assert.ok(html.includes('Luxury Makeup. Timeless Beauty.'));
+assert.ok(html.includes('Luxury Makeup, Made For Every Indian Bride'));
 assert.ok(html.includes('Book Appointment') && html.includes('Join Academy'));
-for (const stat of ['8+', '2,500+', '600+', '15+']) assert.ok(html.includes(stat), `Missing stat ${stat}`);
-for (const tier of ['Classic Bride', 'Signature Bride', 'Royal Bride', 'Most Popular', '₹18,000', '₹32,000', '₹55,000']) {
+for (const stat of ['8+', '5,000+', '1,200+', '11']) assert.ok(html.includes(stat), `Missing stat ${stat}`);
+for (const tier of ['Classic Dulhan', 'Signature Dulhan', 'Royal Dulhan', 'Most Popular', '₹35,000', '₹60,000', '₹1,25,000']) {
   assert.ok(html.includes(tier), `Missing Bridal Package tier content: ${tier}`);
 }
-for (const course of ['Beginner Makeup Artistry Course', 'Professional Makeup Artist Course', 'Bridal Makeup Masterclass', 'Self-Makeup Workshop', '₹25,000', '₹85,000', '₹45,000', '₹3,500']) {
+for (const course of ['Beginner Makeup Artistry Course', 'Professional Makeup Artist Course', 'Bridal Makeup Masterclass', 'Self-Makeup Workshop', '₹25,000', '₹95,000', '₹55,000', '₹3,999']) {
   assert.ok(html.includes(course), `Missing Academy course content: ${course}`);
 }
 for (const artist of ['Riya Kapoor', 'Simran Sethi', 'Aarav Mehta', 'Neha Joshi']) {
@@ -142,11 +147,27 @@ for (const reviewer of ['Ananya S.', 'Pooja R.', 'Kriti M.', 'Sana K.']) {
 }
 assert.ok(html.includes('application/ld+json') && html.includes('BeautySalon') && html.includes('Course'), 'LocalBusiness + Course JSON-LD must be embedded');
 assert.ok(html.includes('hello@voguenoir.example') && html.includes('wa.me/919000000000'));
-console.log('PASS: all 13 sections render in exact order with Noir & Gold CSS variables, 9 services, 3 bridal tiers, 4 courses, 16-photo portfolio, 2 sliders, 4 artists, 4 reviews, 7 FAQs, WhatsApp & JSON-LD.');
+console.log('PASS: storefront sections, regional inspiration, Indian prices, academy, portfolio, contact and JSON-LD render.');
+assert.ok(html.includes('Punjabi') && html.includes('Kashmiri') && html.includes('Call Now'));
+const changedPackages = template08.services.map(service => service.id === 'vn-pkg-royal' ? { ...service, price: 12345 } : service);
+const changedHtml = renderToStaticMarkup(<CustomerSalonWebsite profile={profile08} services={changedPackages} stylists={template08.stylists} readOnly onAddAppointment={async (a) => a} />);
+assert.ok(changedHtml.includes('₹12,345'), 'Package card reflects the actual linked booking service price');
+assert.ok(!changedHtml.includes('₹1,25,000'), 'Package card must not advertise a different amount from the booking service');
 
 // 4. Verify Academy auto batch dates, ON/OFF toggle, guest auth gate, authenticated RPC submit & BookingModal handoff
 const batches = upcomingAcademyBatchDates(new Date('2026-10-29T10:00:00Z'), 4);
-assert.deepEqual(batches, ['1 Nov 2026', '15 Nov 2026', '1 Dec 2026', '15 Dec 2026']);
+assert.deepEqual(batches, ['01/11/2026', '15/11/2026', '01/12/2026', '15/12/2026']);
+assert.equal(upcomingAcademyBatchDates(new Date('2026-10-31T19:00:00Z'), 1)[0], '01/11/2026', 'Batch dates use the Indian calendar even across UTC midnight');
+const schedules = parseAcademySchedules('Jaipur | 01/11/2026, 15/11/2026\nOnline | 01/12/2026');
+assert.deepEqual(schedules.Jaipur, ['01/11/2026', '15/11/2026']);
+assert.deepEqual(schedules.Online, ['01/12/2026']);
+const savedTaxProfile = { ...profile08, vogueNoir: { gstin: '08ABCDE1234F1Z5', sacCode: '999723', gstPricing: 'inclusive' as const, academyScheduleText: 'Jaipur | 01/12/2026' } };
+const resolvedSaved = resolveVogueNoirConfig(savedTaxProfile);
+assert.equal(resolvedSaved.gstin, '08ABCDE1234F1Z5');
+assert.equal(resolvedSaved.academyScheduleText, 'Jaipur | 01/12/2026');
+const taxHtml = renderToStaticMarkup(<CustomerSalonWebsite profile={savedTaxProfile} services={template08.services} stylists={template08.stylists} readOnly onAddAppointment={async (a) => a} />);
+assert.ok(taxHtml.includes('GSTIN:') && taxHtml.includes('08ABCDE1234F1Z5') && taxHtml.includes('Prices inclusive of GST'));
+assert.ok(taxHtml.includes('Sample testimonial'));
 
 const noAcademyHtml = renderToStaticMarkup(
   <CustomerSalonWebsite
@@ -165,7 +186,7 @@ const origRpc = supabase.rpc;
 let capturedEnquiryArgs: any = null;
 let authModes: string[] = [];
 (supabase as any).rpc = async (fn: string, args: any) => {
-  if (fn === 'studioflow_academy_enquire') {
+  if (fn === 'studioflow_academy_enquire_with_city') {
     capturedEnquiryArgs = args;
     return { data: { id: 'enq-1', status: 'new' }, error: null };
   }
@@ -199,7 +220,7 @@ try {
   await act(async () => {
     renderer.update(
       <CustomerSalonWebsite
-        profile={profile08}
+        profile={{ ...profile08, vogueNoir: { academyScheduleText: 'Jaipur | 01/12/2026, 15/12/2026' } }}
         services={template08.services}
         stylists={template08.stylists}
         customerSignedIn
@@ -210,6 +231,7 @@ try {
     );
   });
   await act(async () => {
+    renderer.root.findByProps({ id: 'vn-aca-city' }).props.onChange({ target: { value: 'Jaipur' } });
     renderer.root.findByProps({ id: 'vn-aca-phone' }).props.onChange({ target: { value: '9876543210' } });
     renderer.root.findByProps({ id: 'vn-aca-email' }).props.onChange({ target: { value: 'rhea@example.com' } });
     renderer.root.findByProps({ id: 'vn-aca-msg' }).props.onChange({ target: { value: 'Interested in weekend batch.' } });
@@ -219,6 +241,8 @@ try {
   assert.equal(capturedEnquiryArgs?.p_slug, 'vogue-noir-studio');
   assert.equal(capturedEnquiryArgs?.p_name, 'Rhea Kapoor');
   assert.equal(capturedEnquiryArgs?.p_phone, '9876543210');
+  assert.equal(capturedEnquiryArgs?.p_city, 'Jaipur');
+  assert.equal(capturedEnquiryArgs?.p_batch, '01/12/2026');
   assert.ok(nodeText(renderer.root).includes('Enquiry Received'), 'Confirmation message shown after RPC success');
 
   // Interactive lightbox & before/after slider + service booking handoff
@@ -253,6 +277,12 @@ const academyCheckbox = editorRenderer.root.findAll(
 )[0];
 await act(async () => academyCheckbox.props.onChange({ target: { checked: false } }));
 assert.equal(editedProfile.vogueNoir?.academyEnabled, false);
+const academyTab = editorRenderer.root.findAll((n: any) => n.type === 'button' && n.props.role === 'tab' && nodeText(n).includes('Academy ('))[0];
+await act(async () => academyTab.props.onClick());
+const scheduleInput = editorRenderer.root.findAll((n: any) => n.type === 'textarea' && n.props.placeholder?.includes('Delhi |'))[0];
+await act(async () => scheduleInput.props.onChange({ target: { value: 'Jaipur | 01/12/2026, 15/12/2026\nOnline | 01/01/2027' } }));
+const persisted = workspaceSnapshot({ profile: editedProfile });
+assert.equal(normalizeWorkspace(persisted).profile.vogueNoir?.academyScheduleText, 'Jaipur | 01/12/2026, 15/12/2026\nOnline | 01/01/2027');
 await act(async () => editorRenderer.unmount());
 
 const origGetUser = supabase.auth.getUser;
@@ -274,6 +304,7 @@ let updatedEnquiryStatus: any = null;
               phone: '9876500001',
               email: 'diya@example.com',
               course: 'Bridal Makeup Masterclass',
+              city: 'Jaipur',
               batch: '15 Nov 2026',
               message: 'Please share syllabus PDF',
               status: 'new',
@@ -301,6 +332,7 @@ try {
   });
   assert.ok(nodeText(panelRenderer.root).includes('Diya Sharma'));
   assert.ok(nodeText(panelRenderer.root).includes('Bridal Makeup Masterclass'));
+  assert.ok(nodeText(panelRenderer.root).includes('Jaipur'));
   const statusSelect = panelRenderer.root.findByProps({ 'aria-label': 'Status for Diya Sharma' });
   await act(async () => statusSelect.props.onChange({ target: { value: 'enrolled' } }));
   assert.deepEqual(updatedEnquiryStatus, { p_enquiry_id: 'enq-101', p_status: 'enrolled' });
@@ -353,6 +385,9 @@ await db.exec(`
 const sqlMigration = readFileSync('backend/vogue-noir-template-08.sql', 'utf8');
 await db.exec(sqlMigration);
 await db.exec(sqlMigration); // idempotent rerun
+const cityMigration = readFileSync('supabase/migrations/202610290001_vogue_noir_academy_city.sql', 'utf8');
+await db.exec(cityMigration);
+await db.exec(cityMigration);
 
 const ownerA = '11111111-1111-4111-8111-111111111111';
 const ownerB = '22222222-2222-4222-8222-222222222222';
@@ -377,7 +412,7 @@ await db.exec(`set local role anon; select set_config('request.jwt.claim.sub', '
 await assert.rejects(
   () =>
     db.query(
-      `select public.studioflow_academy_enquire('vogue-noir-a', 'Guest', '9876543210', '', 'Bridal Makeup Masterclass', '1 Nov 2026', 'Hi')`,
+      `select public.studioflow_academy_enquire_with_city('vogue-noir-a', 'Guest', '9876543210', '', 'Bridal Makeup Masterclass', '1 Nov 2026', 'Hi', 'Delhi')`,
     ),
   /permission denied|Sign in/i,
 );
@@ -386,10 +421,14 @@ await db.exec('reset role;');
 // Authenticated customer submits enquiry
 await db.exec(`set role authenticated; select set_config('request.jwt.claim.sub', '${customer1}', false);`);
 const inserted = await db.query<{ res: { id: string; status: string } }>(
-  `select public.studioflow_academy_enquire('vogue-noir-a', 'Ananya Rao', '9876543210', 'ananya@example.com', 'Professional Makeup Artist Course', '15 Nov 2026', 'Looking for EMI details') as res`,
+  `select public.studioflow_academy_enquire_with_city('vogue-noir-a', 'Ananya Rao', '9876543210', 'ananya@example.com', 'Professional Makeup Artist Course', '15 Nov 2026', 'Looking for EMI details', 'Jaipur') as res`,
 );
 const enquiryId = inserted.rows[0].res.id;
 assert.equal(inserted.rows[0].res.status, 'new');
+const customerCity = await db.query<{city: string}>('select city from public.studioflow_academy_enquiries where id = $1::uuid', [enquiryId]);
+assert.equal(customerCity.rows[0].city, 'Jaipur');
+await assert.rejects(() => db.query(`select public.studioflow_academy_enquire_with_city('vogue-noir-a', 'Ananya Rao', '9876543210', '', 'Course', '01/11/2026', '', '')`), /valid preferred city/i);
+await assert.rejects(() => db.query(`select public.studioflow_academy_enquire_with_city('salon-b', 'Ananya Rao', '9876543210', '', 'Course', '01/11/2026', '', 'Delhi')`), /not enabled/i);
 
 // Tenant B cannot see or update Tenant A's enquiry
 await db.exec(`select set_config('request.jwt.claim.sub', '${ownerB}', false);`);
@@ -402,11 +441,17 @@ await assert.rejects(
 
 // Tenant A reads and updates status to contacted -> enrolled
 await db.exec(`select set_config('request.jwt.claim.sub', '${ownerA}', false);`);
-const ownerRows = await db.query('select name, course, status from public.studioflow_academy_enquiries');
+const ownerRows = await db.query<{name: string; course: string; status: string; city: string}>('select name, course, status, city from public.studioflow_academy_enquiries');
 assert.equal(ownerRows.rows.length, 1);
+assert.equal(ownerRows.rows[0].city, 'Jaipur');
 await db.query(`select public.studioflow_academy_enquiry_set_status($1::uuid, 'enrolled')`, [enquiryId]);
 const updatedRow = await db.query<{ status: string }>('select status from public.studioflow_academy_enquiries where id = $1::uuid', [enquiryId]);
 assert.equal(updatedRow.rows[0].status, 'enrolled');
+// Existing clients continue to submit using the original RPC after this migration.
+await db.exec(`select set_config('request.jwt.claim.sub', '${customer1}', false);`);
+const legacy = await db.query<{res: {id: string}}>(`select public.studioflow_academy_enquire('vogue-noir-a', 'Ananya Rao', '9876543210', '', 'Course', '01/11/2026', '') as res`);
+const legacyRow = await db.query<{city: string}>('select city from public.studioflow_academy_enquiries where id = $1::uuid', [legacy.rows[0].res.id]);
+assert.equal(legacyRow.rows[0].city, '');
 await db.exec('reset role;');
 
 const tplSync = await db.query<{ title: string; short_name: string }>(

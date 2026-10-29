@@ -1556,3 +1556,13 @@
     transition: none !important;
   }
 }
+
+/* Bridal tradition links are intentionally inspiration, not unverified services. */
+.vn-regional-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+.vn-regional-card { display: flex; justify-content: space-between; gap: .5rem; padding: 1.3rem; color: var(--text-primary); border: 1px solid var(--border-subtle); background: var(--bg-surface); text-decoration: none; font-family: 'Playfair Display', Georgia, serif; }
+.vn-regional-card:hover, .vn-regional-card:focus-visible { border-color: var(--accent-gold); color: var(--accent-gold); }
+.vn-call-float { display: none; }
+@media (min-width: 860px) { .vn-regional-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 767px) {
+  .vn-call-float { position: fixed; left: 1rem; bottom: 1.25rem; z-index: 65; display: inline-flex; align-items: center; gap: .45rem; background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--accent-gold); padding: .78rem 1rem; font-size: .76rem; font-weight: 700; text-decoration: none; }
+}

@@ -16,13 +16,13 @@ import type {
 
 export const VOGUE_NOIR_SELECTOR_LABEL = 'Vogue Noir (08)';
 export const VOGUE_NOIR_BRAND_NAME = 'Vogue Noir Makeup Studio & Academy';
-export const VOGUE_NOIR_HERO_HEADING = 'Luxury Makeup. Timeless Beauty.';
+export const VOGUE_NOIR_HERO_HEADING = 'Luxury Makeup, Made For Every Indian Bride';
 export const VOGUE_NOIR_TAGLINE =
-  'Bridal, Party & Editorial Makeup Studio + Certified Pro Makeup Academy';
+  'Aapki Shaadi, Aapka Glow';
 export const VOGUE_NOIR_DEFAULT_ADDRESS =
-  '2nd Floor, Galleria Market, Sector 28, Studio City, India';
-export const VOGUE_NOIR_DEFAULT_CITY = 'Studio City';
-export const VOGUE_NOIR_DEFAULT_POSTAL_CODE = '122009';
+  'Greater Kailash, New Delhi, Delhi 110048 (demo address)';
+export const VOGUE_NOIR_DEFAULT_CITY = 'New Delhi';
+export const VOGUE_NOIR_DEFAULT_POSTAL_CODE = '110048';
 export const VOGUE_NOIR_DEFAULT_PHONE = '+91 90000 00000';
 export const VOGUE_NOIR_DEFAULT_EMAIL = 'hello@voguenoir.example';
 export const VOGUE_NOIR_DEFAULT_HOURS =
@@ -109,179 +109,34 @@ export const VOGUE_NOIR_IMAGES = {
 } as const;
 
 export const VOGUE_NOIR_DEFAULT_ABOUT =
-  'Founded by Riya Kapoor, Vogue Noir Makeup Studio & Academy blends editorial skin minimalism with heirloom Indian bridal artistry. Every appointment begins with bespoke skin preparation, luxury international formulations, and lighting-calibrated coverage designed to look refined in person and effortless on 4K lenses. Alongside our private bridal suites, our certified Pro Makeup Academy mentors the next generation of makeup artists through intensive hands-on studio practice.';
+  'Vogue Noir is a premium makeup studio and academy, trusted by brides across Delhi, Mumbai, Bengaluru and more. We believe makeup should make you look like the best version of yourself, not like someone else. Our artists are trained in every Indian skin tone and bridal tradition, so your look stays perfect from the pheras to the last dance at the reception.';
 
 export const VOGUE_NOIR_DEFAULT_STATS: VogueNoirStatItem[] = [
   { id: 'vn-stat-1', value: '8+', label: 'Years Experience' },
-  { id: 'vn-stat-2', value: '2,500+', label: 'Brides & Clients' },
-  { id: 'vn-stat-3', value: '600+', label: 'Students Trained' },
-  { id: 'vn-stat-4', value: '15+', label: 'Awards & Features' },
+  { id: 'vn-stat-2', value: '5,000+', label: 'Happy Brides' },
+  { id: 'vn-stat-3', value: '1,200+', label: 'Students Trained' },
+  { id: 'vn-stat-4', value: '11', label: 'Cities' },
 ];
 
 export const VOGUE_NOIR_CORE_SERVICES: SalonService[] = [
-  {
-    id: 'vn-s1',
-    name: 'Bridal Makeup',
-    category: 'Bridal Studio',
-    durationMinutes: 180,
-    price: 15000,
-    description:
-      'Bespoke luxury bridal complexion prep, waterproof eye artistry, luxury lashes, hair styling, and dupatta setting.',
-    icon: 'Crown',
-    popular: true,
-    imageUrl: VOGUE_NOIR_IMAGES.services.bridal,
-  },
-  {
-    id: 'vn-s2',
-    name: 'Engagement / Reception Makeup',
-    category: 'Bridal Studio',
-    durationMinutes: 120,
-    price: 8500,
-    description:
-      'Sculpted champagne-gold or velvet smoky reception look paired with custom hair styling and lash detailing.',
-    icon: 'Sparkles',
-    popular: true,
-    imageUrl: VOGUE_NOIR_IMAGES.services.engagement,
-  },
-  {
-    id: 'vn-s3',
-    name: 'Party Glam Makeup',
-    category: 'Occasion Makeup',
-    durationMinutes: 75,
-    price: 3500,
-    description:
-      'Luminous cocktail, sangeet, and family-guest glam makeup with soft-focus skin finish and fluttery lashes.',
-    icon: 'Star',
-    imageUrl: VOGUE_NOIR_IMAGES.services.party,
-  },
-  {
-    id: 'vn-s4',
-    name: 'HD Makeup',
-    category: 'Complexion Artistry',
-    durationMinutes: 90,
-    price: 6000,
-    description:
-      'High-definition micro-pigment makeup engineered for close-up wedding cinematography and natural skin texture.',
-    icon: 'Camera',
-    popular: true,
-    imageUrl: VOGUE_NOIR_IMAGES.services.hd,
-  },
-  {
-    id: 'vn-s5',
-    name: 'Airbrush Makeup',
-    category: 'Complexion Artistry',
-    durationMinutes: 120,
-    price: 10000,
-    description:
-      'Weightless silicone airbrush misting for 16-hour sweat-resistant, tear-proof, humidity-locked radiance.',
-    icon: 'Wind',
-    popular: true,
-    imageUrl: VOGUE_NOIR_IMAGES.services.airbrush,
-  },
-  {
-    id: 'vn-s6',
-    name: 'Editorial / Photoshoot Makeup',
-    category: 'Editorial & Shoot',
-    durationMinutes: 120,
-    price: 7500,
-    description:
-      'High-fashion beauty, lookbook, and pre-wedding campaign makeup tailored to studio strobes and outdoor light.',
-    icon: 'Aperture',
-    imageUrl: VOGUE_NOIR_IMAGES.services.photoshoot,
-  },
-  {
-    id: 'vn-s7',
-    name: 'Hair Styling (Bridal / Party)',
-    category: 'Hair & Finishing',
-    durationMinutes: 60,
-    price: 2000,
-    description:
-      'Architectural bridal buns, Hollywood waves, textured braids, extension placement, and fresh floral gajra styling.',
-    icon: 'Scissors',
-    imageUrl: VOGUE_NOIR_IMAGES.services.hair,
-  },
-  {
-    id: 'vn-s8',
-    name: 'Saree / Lehenga Draping',
-    category: 'Hair & Finishing',
-    durationMinutes: 30,
-    price: 1200,
-    description:
-      'Crisp couture pleating, double-dupatta bridal pinning, and silhouette-flattering regional saree drapes.',
-    icon: 'Layers',
-    imageUrl: VOGUE_NOIR_IMAGES.services.draping,
-  },
-  {
-    id: 'vn-s9',
-    name: 'Mehendi / Haldi Look',
-    category: 'Bridal Studio',
-    durationMinutes: 90,
-    price: 4500,
-    description:
-      'Fresh, dewy sunlit makeup with soft peach-blush tones, waterproof kohl, and effortless braided hair styling.',
-    icon: 'Sun',
-    imageUrl: VOGUE_NOIR_IMAGES.services.mehendiHaldi,
-  },
+  { id: "vn-s1", name: "Bridal Makeup", category: "Bridal Studio", durationMinutes: 180, price: 25000, description: "HD or airbrush makeup for wedding photos and videos.", icon: "Sparkles", imageUrl: VOGUE_NOIR_IMAGES.services.bridal },
+  { id: "vn-s2", name: "Engagement / Roka Makeup", category: "Bridal Studio", durationMinutes: 150, price: 12000, description: "Elegant glam as per your outfit.", icon: "Sparkles", imageUrl: VOGUE_NOIR_IMAGES.services.engagement },
+  { id: "vn-s10", name: "Reception Makeup", category: "Bridal Studio", durationMinutes: 150, price: 15000, description: "Bold, party-ready look.", icon: "Sparkles", imageUrl: VOGUE_NOIR_IMAGES.services.engagement },
+  { id: "vn-s3", name: "Party Makeup", category: "Occasion Makeup", durationMinutes: 90, price: 4500, description: "Perfect for birthdays, cocktail nights and functions.", icon: "Sparkles", imageUrl: VOGUE_NOIR_IMAGES.services.party },
+  { id: "vn-s4", name: "HD Makeup", category: "Complexion Artistry", durationMinutes: 120, price: 7500, description: "Flawless, camera-ready skin.", icon: "Sparkles", imageUrl: VOGUE_NOIR_IMAGES.services.hd },
+  { id: "vn-s5", name: "Airbrush Makeup", category: "Complexion Artistry", durationMinutes: 120, price: 11000, description: "Lightweight, sweat-resistant finish.", icon: "Sparkles", imageUrl: VOGUE_NOIR_IMAGES.services.airbrush },
+  { id: "vn-s9", name: "Mehendi / Haldi Makeup", category: "Bridal Studio", durationMinutes: 90, price: 4000, description: "Fresh, natural and photo-friendly.", icon: "Sparkles", imageUrl: VOGUE_NOIR_IMAGES.services.mehendiHaldi },
+  { id: "vn-s11", name: "Sangeet Makeup", category: "Occasion Makeup", durationMinutes: 120, price: 8000, description: "Glam that lasts through the celebration.", icon: "Sparkles", imageUrl: VOGUE_NOIR_IMAGES.services.party },
+  { id: "vn-s6", name: "Pre-Wedding Shoot Makeup", category: "Editorial & Shoot", durationMinutes: 120, price: 9000, description: "Camera-ready looks for your shoot.", icon: "Sparkles", imageUrl: VOGUE_NOIR_IMAGES.services.photoshoot },
+  { id: "vn-s7", name: "Hair Styling", category: "Hair & Finishing", durationMinutes: 60, price: 3000, description: "Buns, curls, braids and bridal hairdos.", icon: "Sparkles", imageUrl: VOGUE_NOIR_IMAGES.services.hair },
+  { id: "vn-s8", name: "Saree / Lehenga Draping", category: "Hair & Finishing", durationMinutes: 45, price: 2000, description: "Neat pleats, perfectly pinned.", icon: "Sparkles", imageUrl: VOGUE_NOIR_IMAGES.services.draping },
+  { id: "vn-s12", name: "Family Makeup (Mom / Sister / Bridesmaid)", category: "Occasion Makeup", durationMinutes: 90, price: 5000, description: "Makeup for family and bridesmaids; price per person.", icon: "Sparkles", imageUrl: VOGUE_NOIR_IMAGES.services.party },
 ];
 
 export const VOGUE_NOIR_PACKAGE_SERVICES: SalonService[] = [
-  {
-    id: 'vn-pkg-classic',
-    name: 'Classic Bride Package',
-    category: 'Packages',
-    durationMinutes: 210,
-    price: 18000,
-    description:
-      'HD Bridal Makeup, Bridal Hair Styling, Saree / Lehenga Draping, Luxury Lashes, and Touch-Up Kit.',
-    icon: 'Crown',
-    imageUrl: VOGUE_NOIR_IMAGES.packages.classic,
-  },
-  {
-    id: 'vn-pkg-signature',
-    name: 'Signature Bride Package',
-    category: 'Packages',
-    durationMinutes: 300,
-    price: 32000,
-    description:
-      'Airbrush Bridal Makeup, Pre-Bridal Skin Prep & Consultation, Hair Styling + Extensions, Premium Mink Lashes, Draping & Jewelry Setting, and 1 Family Party Makeup.',
-    icon: 'Sparkles',
-    popular: true,
-    imageUrl: VOGUE_NOIR_IMAGES.packages.signature,
-  },
-  {
-    id: 'vn-pkg-royal',
-    name: 'Royal Bride Package',
-    category: 'Packages',
-    durationMinutes: 420,
-    price: 55000,
-    description:
-      ' Bridal + Engagement/Reception Look (2 Events) by Senior Lead Artist, Pre-Bridal Trial Session, Luxury International Kit (Charlotte Tilbury, NARS, Dior, Huda), Hair Extensions + Floral Accessories, and 2 Family Party Makeups.',
-    icon: 'Gem',
-    popular: true,
-    imageUrl: VOGUE_NOIR_IMAGES.packages.royal,
-  },
-  {
-    id: 'vn-pkg-haldi-combo',
-    name: 'Mehendi & Haldi Glow Combo',
-    category: 'Packages',
-    durationMinutes: 150,
-    price: 8000,
-    description:
-      'Two daytime ceremony looks featuring dewy skin prep, floral hair styling, and dupatta draping for Mehendi and Haldi.',
-    icon: 'Sun',
-    imageUrl: VOGUE_NOIR_IMAGES.services.mehendiHaldi,
-  },
-  {
-    id: 'vn-pkg-editorial-bundle',
-    name: 'Editorial Shoot & Hair Styling Bundle',
-    category: 'Packages',
-    durationMinutes: 150,
-    price: 9000,
-    description:
-      'Camera-calibrated editorial or pre-wedding photoshoot makeup paired with two custom hair looks and drape changes.',
-    icon: 'Camera',
-    imageUrl: VOGUE_NOIR_IMAGES.services.photoshoot,
-  },
+  { id: "vn-pkg-classic", name: "Classic Dulhan", category: "Packages", durationMinutes: 180, price: 35000, description: "HD bridal makeup, hairstyle, draping and touch-up kit.", icon: "Crown", imageUrl: VOGUE_NOIR_IMAGES.packages.classic },
+  { id: "vn-pkg-signature", name: "Signature Dulhan", category: "Packages", durationMinutes: 180, price: 60000, description: "Airbrush bridal makeup, hairstyle, draping, trial, lashes and touch-up kit.", icon: "Crown", imageUrl: VOGUE_NOIR_IMAGES.packages.signature },
+  { id: "vn-pkg-royal", name: "Royal Dulhan", category: "Packages", durationMinutes: 180, price: 125000, description: "Two functions, senior artist, trial, family makeup for two, draping and premium touch-up kit.", icon: "Crown", imageUrl: VOGUE_NOIR_IMAGES.packages.royal },
 ];
 
 export const VOGUE_NOIR_TEMPLATE_SERVICES: SalonService[] = [
@@ -290,66 +145,15 @@ export const VOGUE_NOIR_TEMPLATE_SERVICES: SalonService[] = [
 ];
 
 export const VOGUE_NOIR_DEFAULT_BRIDAL_PACKAGES: VogueNoirBridalPackage[] = [
-  {
-    id: 'bridal-tier-classic',
-    tier: 'Classic Bride',
-    price: 18000,
-    popular: false,
-    badgeLabel: 'Essential Luxury',
-    imageUrl: VOGUE_NOIR_IMAGES.packages.classic,
-    imageAlt: 'Classic Bride HD bridal makeup, floral hair bun and silk dupatta draping',
-    linkedServiceId: 'vn-pkg-classic',
-    inclusions: [
-      'HD Bridal Makeup',
-      'Bridal Hair Styling',
-      'Saree / Lehenga Draping',
-      'Lashes + Touch-up Kit',
-    ],
-  },
-  {
-    id: 'bridal-tier-signature',
-    tier: 'Signature Bride',
-    price: 32000,
-    popular: true,
-    badgeLabel: 'Most Popular',
-    imageUrl: VOGUE_NOIR_IMAGES.packages.signature,
-    imageAlt: 'Signature Bride airbrush bridal makeup with mink lashes and jewelry setting',
-    linkedServiceId: 'vn-pkg-signature',
-    inclusions: [
-      'Airbrush Bridal Makeup',
-      'Pre-Bridal Skin Prep & Consultation',
-      'Hair Styling + Extensions',
-      'Premium Mink Lashes',
-      'Draping + Jewelry Setting',
-      '1 Family Member Party Makeup',
-    ],
-  },
-  {
-    id: 'bridal-tier-royal',
-    tier: 'Royal Bride',
-    price: 55000,
-    popular: false,
-    badgeLabel: 'Couture 2-Event Suite',
-    imageUrl: VOGUE_NOIR_IMAGES.packages.royal,
-    imageAlt: 'Royal Bride 2-event couture bridal makeover by Senior Lead Artist',
-    linkedServiceId: 'vn-pkg-royal',
-    inclusions: [
-      'Bridal + Engagement/Reception Look (2 Events)',
-      'Senior Lead Artist',
-      'Pre-Bridal Trial Session',
-      'Luxury International Products (Charlotte Tilbury, NARS, Dior, Huda)',
-      'Hair Extensions + Floral Accessories',
-      '2 Family Party Makeups',
-      'Venue Travel (within city)',
-    ],
-  },
+  { id: 'bridal-tier-classic', tier: 'Classic Dulhan', price: 35000, imageUrl: VOGUE_NOIR_IMAGES.packages.classic, linkedServiceId: 'vn-pkg-classic', inclusions: ['HD bridal makeup', 'Hairstyle', 'Saree / lehenga draping', 'Touch-up kit'] },
+  { id: 'bridal-tier-signature', tier: 'Signature Dulhan', price: 60000, popular: true, badgeLabel: 'Most Popular', imageUrl: VOGUE_NOIR_IMAGES.packages.signature, linkedServiceId: 'vn-pkg-signature', inclusions: ['Airbrush bridal makeup', 'Hairstyle and draping', 'Pre-bridal trial', 'False lashes and touch-up kit'] },
+  { id: 'bridal-tier-royal', tier: 'Royal Dulhan', price: 125000, imageUrl: VOGUE_NOIR_IMAGES.packages.royal, linkedServiceId: 'vn-pkg-royal', inclusions: ['Full-day service for two functions', 'Senior artist and trial', 'Family makeup for two', 'Draping and premium touch-up kit'] },
 ];
 
 export const VOGUE_NOIR_DEFAULT_ACADEMY_HIGHLIGHTS: string[] = [
-  'ISO-Certified Studio Diploma & Printed Portfolio Completion Certificate',
-  '100% Hands-On Practice on Live Models with International Vanity Kits',
-  '0% No-Cost EMI & 2-Installment Fee Plans Available on Pro Courses',
-  'Professional Portfolio Shoot + Freelance Bridal Business & Instagram Mentorship',
+  'Small batches of up to 8 students and live model practice',
+  'Product kit guidance, internship support and certificate on completion',
+  'Offline classes and online batches; ask about available EMI options',
 ];
 
 export const VOGUE_NOIR_DEFAULT_COURSES: VogueNoirAcademyCourse[] = [
@@ -376,13 +180,13 @@ export const VOGUE_NOIR_DEFAULT_COURSES: VogueNoirAcademyCourse[] = [
     id: 'vn-course-pro',
     title: 'Professional Makeup Artist Course',
     duration: '8 Weeks',
-    fee: 85000,
+    fee: 95000,
     imageUrl: VOGUE_NOIR_IMAGES.academy.pro,
     imageAlt: 'Professional Makeup Artist Course airbrush training and portfolio shoot',
     summary:
       'Our flagship career-launch diploma covering HD, silicone airbrush, bridal couture, editorial lighting, and client business.',
     certification: 'Certified Pro Makeup Artist Diploma + 4-Look Studio Portfolio Shoot',
-    emiNote: '3-month 0% EMI & flexible installment options',
+    emiNote: 'Ask about EMI and flexible instalment options',
     syllabus: [
       'Module 1: Advanced Skin Dermatology Prep, Color Correction & Mature Skin',
       'Module 2: High-Definition (HD) vs Silicone Airbrush Complexion Mastery',
@@ -396,13 +200,13 @@ export const VOGUE_NOIR_DEFAULT_COURSES: VogueNoirAcademyCourse[] = [
     id: 'vn-course-bridal',
     title: 'Bridal Makeup Masterclass',
     duration: '3 Weeks',
-    fee: 45000,
+    fee: 55000,
     imageUrl: VOGUE_NOIR_IMAGES.academy.bridalMasterclass,
     imageAlt: 'Bridal Makeup Masterclass couture bridal eye and jewelry styling demonstration',
     summary:
       'Intensive specialization for practicing artists upgrading to luxury high-ticket HD & airbrush bridal bookings.',
     certification: 'Master Bridal Specialist Certification + 2 Bridal Portfolio Looks',
-    emiNote: '2-installment split payment available',
+    emiNote: 'Ask about instalment options',
     syllabus: [
       'Module 1: Long-Wear 16-Hour Humidity & Tear-Proof Bridal Skin Engineering',
       'Module 2: Signature Reception, Sangeet & Royal Red-Lehenga Eye Palettes',
@@ -415,7 +219,7 @@ export const VOGUE_NOIR_DEFAULT_COURSES: VogueNoirAcademyCourse[] = [
     id: 'vn-course-self',
     title: 'Self-Makeup Workshop',
     duration: '1 Day',
-    fee: 3500,
+    fee: 3999,
     imageUrl: VOGUE_NOIR_IMAGES.academy.selfMakeup,
     imageAlt: 'Self-Makeup Workshop luxury personal makeup kit and brush flatlay',
     summary:
@@ -515,87 +319,22 @@ export const VOGUE_NOIR_DEFAULT_BEFORE_AFTER: VogueNoirBeforeAfterItem[] = [
 ];
 
 export const VOGUE_NOIR_DEFAULT_REVIEWS: VogueNoirReviewItem[] = [
-  {
-    id: 'vn-rev-1',
-    name: 'Ananya S.',
-    tag: 'Bridal Makeup',
-    rating: 5,
-    quote:
-      'Flawless skin finish that lasted 14 hours through tears and dancing. Looked natural in person and stunning on camera!',
-    avatarUrl: VOGUE_NOIR_IMAGES.testimonials.ananya,
-  },
-  {
-    id: 'vn-rev-2',
-    name: 'Pooja R.',
-    tag: 'Pro Makeup Course',
-    rating: 5,
-    quote:
-      'Joined with zero experience, graduated with a full bridal portfolio and started taking paid clients within a month.',
-    avatarUrl: VOGUE_NOIR_IMAGES.testimonials.pooja,
-  },
-  {
-    id: 'vn-rev-3',
-    name: 'Kriti M.',
-    tag: 'Reception Airbrush Makeup',
-    rating: 5,
-    quote:
-      'Riya understood my skin tone perfectly. No cakey layers, just pure luxury glow.',
-    avatarUrl: VOGUE_NOIR_IMAGES.testimonials.kriti,
-  },
-  {
-    id: 'vn-rev-4',
-    name: 'Sana K.',
-    tag: 'Bridal Masterclass',
-    rating: 5,
-    quote:
-      'Hands-on practice on real models, international products, and supportive mentors. Worth every rupee.',
-    avatarUrl: VOGUE_NOIR_IMAGES.testimonials.sana,
-  },
+  { id: 'vn-rev-1', name: 'Ananya S.', tag: 'Delhi', rating: 5, quote: 'Riya didi ne meri shaadi ke din mujhe bilkul perfect banaya. Makeup 12 ghante tak waisa hi raha, photos mind-blowing aaye!', avatarUrl: VOGUE_NOIR_IMAGES.testimonials.ananya },
+  { id: 'vn-rev-2', name: 'Pooja R.', tag: 'Pune', rating: 5, quote: 'Academy join karne ke baad meri career hi badal gayi. Practical training aur portfolio shoot se bahut confidence mila.', avatarUrl: VOGUE_NOIR_IMAGES.testimonials.pooja },
+  { id: 'vn-rev-3', name: 'Kriti M.', tag: 'Mumbai', rating: 5, quote: 'Engagement ke liye book kiya tha. Time par aaye, hygiene ka full dhyan aur result stunning.', avatarUrl: VOGUE_NOIR_IMAGES.testimonials.kriti },
+  { id: 'vn-rev-4', name: 'Divya N.', tag: 'Bengaluru', rating: 5, quote: 'Best airbrush work in Bengaluru. Humare poore family ko makeup bahut pasand aaya.', avatarUrl: VOGUE_NOIR_IMAGES.testimonials.ananya },
+  { id: 'vn-rev-5', name: 'Sana K.', tag: 'Hyderabad', rating: 5, quote: 'Nikah ke liye soft glam look chahiye tha, bilkul waisa hi mila. Highly recommended!', avatarUrl: VOGUE_NOIR_IMAGES.testimonials.sana },
 ];
 
 export const VOGUE_NOIR_DEFAULT_FAQS: VogueNoirFaqItem[] = [
-  {
-    id: 'vn-faq-1',
-    question: 'Do you offer pre-bridal makeup trials before locking the wedding look?',
-    answer:
-      'Yes. A dedicated 90-minute paid pre-bridal trial is available at our studio (and included complimentary in our Royal Bride package), where we test HD vs Airbrush undertones, eye palettes, and hairstyle silhouettes under camera lighting.',
-  },
-  {
-    id: 'vn-faq-2',
-    question: 'Which makeup brands and skin-prep products do you use in the studio?',
-    answer:
-      'Our vanity is 100% authentic luxury international — including Charlotte Tilbury, Dior Backstage, NARS, Huda Beauty, Pat McGrath Labs, MAC Studio, Anastasia Beverly Hills, and Temptu Pro Airbrush — matched to your skin type with dermatologist-trusted prep.',
-  },
-  {
-    id: 'vn-faq-3',
-    question: 'Do your artists travel to wedding venues and outstation destinations?',
-    answer:
-      'Absolutely. Within-city venue travel is complimentary in the Royal Bride package and available on request for all bridal tiers. For destination weddings across India and abroad, travel and accommodation logistics are shared transparently during consultation.',
-  },
-  {
-    id: 'vn-faq-4',
-    question: 'How far in advance should I book, and what is the booking deposit policy?',
-    answer:
-      'Peak wedding dates typically book 2 to 6 months ahead. A 25% advance retains your date and artist slot, with the balance due on the event day. Dates can be rescheduled once subject to artist availability.',
-  },
-  {
-    id: 'vn-faq-5',
-    question: 'Are Vogue Noir Academy courses certified for freelance and salon careers?',
-    answer:
-      'Yes. Every graduating student receives an industry-recognized Vogue Noir Academy Diploma/Certificate along with high-resolution studio portfolio photographs to launch their bridal freelance or luxury salon career immediately.',
-  },
-  {
-    id: 'vn-faq-6',
-    question: 'Do Academy students need to bring their own makeup kit for training?',
-    answer:
-      'No upfront kit purchase is required to begin. Full access to our studio’s international practice vanity, lighting rigs, and disposables is provided during class, and our trainers guide you on building a smart, non-wasteful pro kit before graduation.',
-  },
-  {
-    id: 'vn-faq-7',
-    question: 'Are EMI or installment payment plans available for Academy fees?',
-    answer:
-      'Yes. Both our Professional Makeup Artist Course and Bridal Makeup Masterclass offer split installment milestones and 0% EMI plans. Submit an Academy enquiry to receive the current fee schedule and seat availability.',
-  },
+  { id: "vn-faq-1", question: "When should I book bridal makeup?", answer: "For shaadi season (October to February), book 2–3 months ahead; otherwise 3–4 weeks ahead." },
+  { id: "vn-faq-2", question: "Do you offer a trial?", answer: "A trial is included with Signature and Royal. The Classic trial is ₹3,000, adjusted against your booking." },
+  { id: "vn-faq-3", question: "Do you travel to the venue?", answer: "Yes, we travel within the city. For outstation or destination weddings in India, please request a quote." },
+  { id: "vn-faq-4", question: "Which products do you use?", answer: "We use premium professional products with shades for Indian skin tones." },
+  { id: "vn-faq-5", question: "How can I pay?", answer: "Ask the studio about available payment methods and your booking advance. The balance is due on the event day." },
+  { id: "vn-faq-6", question: "Is EMI available for academy fees?", answer: "Ask the academy about current EMI eligibility and part-payment options." },
+  { id: "vn-faq-7", question: "What is the cancellation policy?", answer: "If you notify us at least 7 days ahead, your advance may be adjusted once, subject to availability." },
+  { id: "vn-faq-8", question: "Will I get a certificate?", answer: "Yes, after completing your course and assessment." },
 ];
 
 const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
@@ -613,9 +352,11 @@ const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Se
  */
 export function upcomingAcademyBatchDates(fromDate: Date = new Date(), count = 4): string[] {
   const results: string[] = [];
-  const startYear = fromDate.getFullYear();
-  const startMonth = fromDate.getMonth();
-  const todayDay = fromDate.getDate();
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kolkata', year: 'numeric', month: 'numeric', day: 'numeric' }).formatToParts(fromDate);
+  const part = (type: string) => Number(parts.find((p) => p.type === type)?.value);
+  const startYear = part('year');
+  const startMonth = part('month') - 1;
+  const todayDay = part('day');
 
   let year = startYear;
   let month = startMonth;
@@ -627,7 +368,7 @@ export function upcomingAcademyBatchDates(fromDate: Date = new Date(), count = 4
         (year === startYear && month > startMonth) ||
         (year === startYear && month === startMonth && day >= todayDay);
       if (isFutureOrToday) {
-        results.push(`${day} ${MONTH_NAMES[month]} ${year}`);
+        results.push(`${String(day).padStart(2, '0')}/${String(month + 1).padStart(2, '0')}/${year}`);
         if (results.length >= count) break;
       }
     }
@@ -698,6 +439,7 @@ export function upgradeMakeupStudioTemplate<T extends { id: string }>(
     Array.isArray(raw.stylists) && raw.stylists.length >= 4 && !raw.stylists.some((s: any) => isLegacyMakeupStudioStockUrl(s?.avatarUrl))
       ? raw.stylists
       : local.stylists;
+  // The remote catalogue may be customised; never replace it based on partial fingerprints.
   const remoteServices =
     Array.isArray(raw.services) && raw.services.length >= 9 && raw.services.some((s: any) => String(s?.imageUrl || '').startsWith('/templates/vogue-noir/'))
       ? raw.services
@@ -708,6 +450,23 @@ export function upgradeMakeupStudioTemplate<T extends { id: string }>(
     services: remoteServices,
     stylists: remoteStylists,
   } as unknown as T;
+}
+
+/** Demo preferences, not a claim that a branch or batch is operational. */
+export const VOGUE_NOIR_ACADEMY_CITIES = [
+  'Delhi', 'Gurugram', 'Noida', 'Mumbai', 'Bengaluru', 'Hyderabad', 'Chennai',
+  'Kolkata', 'Pune', 'Ahmedabad', 'Jaipur', 'Lucknow', 'Chandigarh', 'Online',
+];
+
+export function parseAcademySchedules(text: string): Record<string, string[]> {
+  const result: Record<string, string[]> = Object.create(null);
+  for (const line of (text || '').split('\n').slice(0, 100)) {
+    const [city, ...rest] = line.split('|');
+    const key = city.trim();
+    const values = rest.join('|').split(',').map(value => value.trim()).filter(Boolean).slice(0, 30);
+    if (key && key.length <= 100 && values.length) result[key] = values.filter(value => value.length <= 120);
+  }
+  return result;
 }
 
 export interface ResolvedVogueNoirConfig {
@@ -722,6 +481,9 @@ export interface ResolvedVogueNoirConfig {
   publicEmail: string;
   workingHoursDisplay: string;
   mapEmbedUrl: string;
+  gstin: string;
+  sacCode: string;
+  gstPricing: 'inclusive' | 'exclusive' | '';
   colors: VogueNoirThemeColors;
   stats: VogueNoirStatItem[];
   bridalPackages: VogueNoirBridalPackage[];
@@ -730,6 +492,7 @@ export interface ResolvedVogueNoirConfig {
   academySubtext: string;
   academyHeroUrl: string;
   academyHighlights: string[];
+  academyScheduleText: string;
   courses: VogueNoirAcademyCourse[];
   portfolio: VogueNoirPortfolioItem[];
   beforeAfter: VogueNoirBeforeAfterItem[];
@@ -901,7 +664,7 @@ export function resolveVogueNoirConfig(profile: SalonProfile): ResolvedVogueNoir
   return {
     selectorLabel: (raw.selectorLabel || '').trim() || VOGUE_NOIR_SELECTOR_LABEL,
     heroHeading: (raw.heroHeading || '').trim() || VOGUE_NOIR_HERO_HEADING,
-    heroSubtext: (raw.heroSubtext || profile.tagline || '').trim() || VOGUE_NOIR_TAGLINE,
+    heroSubtext: (raw.heroSubtext || (profile.tagline !== VOGUE_NOIR_TAGLINE ? profile.tagline : '') || '').trim() || 'Bridal, party and HD makeup by certified artists across India’s top cities, plus professional makeup courses to start your career.',
     heroDesktopUrl,
     heroMobileUrl,
     aboutHeading: (raw.aboutHeading || '').trim() || 'Editorial Precision Meets Timeless Bridal Luxury',
@@ -910,6 +673,9 @@ export function resolveVogueNoirConfig(profile: SalonProfile): ResolvedVogueNoir
     publicEmail: (raw.publicEmail || '').trim() || VOGUE_NOIR_DEFAULT_EMAIL,
     workingHoursDisplay: (raw.workingHoursDisplay || '').trim() || VOGUE_NOIR_DEFAULT_HOURS,
     mapEmbedUrl: (raw.mapEmbedUrl || '').trim(),
+    gstin: typeof raw.gstin === 'string' ? raw.gstin.trim().toUpperCase().slice(0, 15) : '',
+    sacCode: typeof raw.sacCode === 'string' ? raw.sacCode.trim().slice(0, 6) : '',
+    gstPricing: raw.gstPricing === 'inclusive' || raw.gstPricing === 'exclusive' ? raw.gstPricing : '',
     colors,
     stats,
     bridalPackages,
@@ -924,6 +690,7 @@ export function resolveVogueNoirConfig(profile: SalonProfile): ResolvedVogueNoir
       Array.isArray(raw.academyHighlights) && raw.academyHighlights.filter(Boolean).length > 0
         ? raw.academyHighlights.map((item) => String(item).trim()).filter(Boolean)
         : VOGUE_NOIR_DEFAULT_ACADEMY_HIGHLIGHTS,
+    academyScheduleText: typeof raw.academyScheduleText === 'string' ? raw.academyScheduleText.slice(0, 10000) : '',
     courses,
     portfolio,
     beforeAfter,
@@ -956,10 +723,12 @@ export function buildVogueNoirSeo(
 
   const title =
     (profile.seo?.metaTitle || '').trim() ||
-    `${brand} | Luxury Bridal Makeup & Pro Makeup Courses`;
+    `${brand} | Bridal Makeup & Makeup Courses in India`;
   const description =
     (profile.seo?.metaDescription || '').trim() ||
-    `Book luxury HD & Airbrush Bridal, Reception, Party & Editorial Makeup or enroll in certified Pro Makeup Courses at ${brand} in ${city}.`;
+    (brand === VOGUE_NOIR_BRAND_NAME
+      ? 'Book bridal, party and HD makeup in Delhi, Mumbai, Bengaluru, Hyderabad, Pune and more. Join our professional makeup academy. Prices in INR.'
+      : `Explore makeup services and courses at ${brand} in ${city}.`);
   const ogImage = (profile.seo?.ogImageUrl || '').trim() || VOGUE_NOIR_IMAGES.ogImage;
 
   const localBusinessSchema: Record<string, any> = {

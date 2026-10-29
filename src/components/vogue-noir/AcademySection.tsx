@@ -3,13 +3,15 @@ import { Award, Calendar, CheckCircle2, ChevronDown, ChevronUp, GraduationCap, L
 import { supabase } from '../../lib/supabase';
 import {
   VOGUE_NOIR_IMAGES,
+  VOGUE_NOIR_ACADEMY_CITIES,
+  parseAcademySchedules,
   upcomingAcademyBatchDates,
   type ResolvedVogueNoirConfig,
 } from '../../lib/vogueNoir';
 import { SafeImage } from './SafeImage';
 
 function formatInr(amount: number): string {
-  return `₹${Number(amount || 0).toLocaleString('en-IN')}`;
+  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(Number(amount || 0));
 }
 
 export function AcademySection({
@@ -39,6 +41,9 @@ export function AcademySection({
   const [selectedBatch, setSelectedBatch] = useState<string>(
     courses[1]?.batchOverride || autoBatches[0] || '1st of Next Month',
   );
+  const [selectedCity, setSelectedCity] = useState('');
+  const schedules = useMemo(() => parseAcademySchedules(config.academyScheduleText), [config.academyScheduleText]);
+  const cityOptions = useMemo(() => Array.from(new Set([...VOGUE_NOIR_ACADEMY_CITIES, ...Object.keys(schedules)])), [schedules]);
   const [name, setName] = useState<string>(customerName || '');
   const [phone, setPhone] = useState<string>('');
   const [email, setEmail] = useState<string>('');
@@ -60,8 +65,13 @@ export function AcademySection({
     const custom = courses
       .map((c) => (c.batchOverride || '').trim())
       .filter(Boolean);
-    return Array.from(new Set([...custom, ...autoBatches]));
-  }, [courses, autoBatches]);
+    const cityDates = schedules[selectedCity];
+    return cityDates?.length ? cityDates : Array.from(new Set([...custom, ...autoBatches]));
+  }, [courses, autoBatches, schedules, selectedCity]);
+
+  useEffect(() => {
+    if (!batchOptions.includes(selectedBatch)) setSelectedBatch(batchOptions[0] || '');
+  }, [batchOptions, selectedBatch]);
 
   const chooseCourseForEnquiry = (courseTitle: string, batchLabel: string) => {
     setSelectedCourse(courseTitle);
@@ -100,6 +110,10 @@ export function AcademySection({
           ? digits.slice(1)
           : digits;
 
+    if (!selectedCity || selectedCity.length > 100 || !batchOptions.includes(selectedBatch)) {
+      setErrorText('Please select your preferred city and batch.');
+      return;
+    }
     if (name.trim().length < 2 || !/^[6-9][0-9]{9}$/.test(normalizedPhone)) {
       setErrorText('Please enter your full name and a valid 10-digit Indian mobile number.');
       return;
@@ -107,8 +121,9 @@ export function AcademySection({
 
     setSubmitting(true);
     try {
-      const { error } = await supabase.rpc('studioflow_academy_enquire', {
+      const { error } = await supabase.rpc('studioflow_academy_enquire_with_city', {
         p_slug: cleanSlug,
+        p_city: selectedCity,
         p_name: name.trim(),
         p_phone: normalizedPhone,
         p_email: email.trim(),
@@ -189,7 +204,7 @@ export function AcademySection({
                           style={{ display: 'inline', marginRight: 4, verticalAlign: '-1px' }}
                           aria-hidden="true"
                         />
-                        Next Batch: {batchLabel}
+                        Suggested date: {batchLabel}
                       </span>
                     </div>
                     <h3 className="vn-service-title">{course.title}</h3>
@@ -269,7 +284,7 @@ export function AcademySection({
               Enquire or Reserve Your Academy Seat
             </h3>
             <p className="vn-subtext">
-              Batches commence on the 1st and 15th of every month with limited studio vanity seats per mentor.
+              Choose your preferred city and batch date. The academy will confirm availability with you.
             </p>
           </div>
 
@@ -397,6 +412,13 @@ export function AcademySection({
                 </div>
               </div>
 
+              <div className="vn-field">
+                <label htmlFor="vn-aca-city">Preferred City / Online *</label>
+                <select id="vn-aca-city" required value={selectedCity} onChange={(e) => setSelectedCity(e.target.value)}>
+                  <option value="">Select city or Online</option>
+                  {cityOptions.map(city => <option key={city} value={city}>{city}</option>)}
+                </select>
+              </div>
               <div className="vn-form-grid vn-form-grid-2">
                 <div className="vn-field">
                   <label htmlFor="vn-aca-batch">Preferred Batch Start Date *</label>
