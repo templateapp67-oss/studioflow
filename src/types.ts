@@ -208,6 +208,8 @@ export interface SalonProfile {
     ogDescription?: string;
     ogImageUrl?: string;
     keywords?: string;
+    twitterCard?: 'summary' | 'summary_large_image';
+    canonicalUrl?: string;
   };
   vogueNoir?: VogueNoirConfig;
   bodhiTree?: BodhiTreeConfig;

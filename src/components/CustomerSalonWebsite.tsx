@@ -71,9 +71,11 @@ import {DermacureWebsite} from './DermacureWebsite';
 import {BodhiTreeWebsite} from './BodhiTreeWebsite';
 import {PrismChromaWebsite} from './PrismChromaWebsite';
 import {FloatingPromoBanner} from './FloatingPromoBanner';
+import { useSeoMetadata } from '../lib/useSeoMetadata';
 
 const money=(value:number)=>`₹${Number(value||0).toLocaleString('en-IN')}`;
 function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGallery=[],policies,branding,loyaltyConfig,onCustomerAccount,customerSignedIn,customerName,customerPhotoUrl,onAddAppointment}:SalonWebsitePreviewProps){
+ useSeoMetadata(profile);
  const {t}=useWebsiteLanguage();
  const [consultation,setConsultation]=useState<ConsultationDetails|undefined>();
  const [directSlot,setDirectSlot]=useState<DirectBookingSlot|undefined>();

@@ -36,6 +36,7 @@ import { isCustomerInviteEntry } from './lib/customerReferral';
 import { CustomerReferralBridge } from './components/CustomerReferralBridge';
 import { CustomerApp } from './components/CustomerApp';
 import { supabase, captureReferral } from './lib/supabase';
+import { applySeoMetadata } from './lib/useSeoMetadata';
 
 const WebsiteCustomerAccount = lazy(() => import('./components/WebsiteCustomerAccount').then(m => ({ default: m.WebsiteCustomerAccount })));
 const LandingPage = lazy(() => loadScreen(() => import('./components/LandingPage').then(m => ({ default: m.LandingPage || (m as any).default }))));
@@ -315,31 +316,11 @@ function PublishedWebsite({slug,session}:{key?:React.Key;slug:string;session:Ses
   void refresh();const channel=supabase.channel(`public-site-${slug}`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'studioflow_websites',filter:`slug=eq.${slug}`},()=>void refresh()).subscribe();const interval=setInterval(()=>void refresh(),15000);window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',refresh);return()=>{active=false;void supabase.removeChannel(channel);clearInterval(interval);window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',refresh);};
  },[slug,retry]);
   useEffect(()=>{
-    if(!site)return;
-    const previousTitle=document.title;
-    const seo=site.profile?.seo||{};
-    const businessName=site.profile?.businessName||'Salon website';
-    const tagl=seo.metaDescription||site.profile?.tagline||site.profile?.about||'Book salon appointments online.';
-    document.title=seo.metaTitle||businessName;
-
-    let metaDesc=document.querySelector('meta[name="description"]');
-    const oldDesc=metaDesc?metaDesc.getAttribute('content'):null;
-    if(!metaDesc){metaDesc=document.createElement('meta');metaDesc.setAttribute('name','description');document.head.appendChild(metaDesc);}
-    metaDesc.setAttribute('content',tagl);
-
-    const setOg=(property:string,val:string)=>{
-      let tag=document.querySelector(`meta[property="${property}"]`);
-      if(!tag){tag=document.createElement('meta');tag.setAttribute('property',property);document.head.appendChild(tag);}
-      tag.setAttribute('content',val);
-    };
-    setOg('og:title',seo.ogTitle||seo.metaTitle||businessName);
-    setOg('og:description',seo.ogDescription||tagl);
-    if(seo.ogImageUrl||site.profile?.coverImageUrl)setOg('og:image',seo.ogImageUrl||site.profile.coverImageUrl);
-
-    const restoreIcon=applyWebsiteFavicon(document,websiteFavicon(site.branding,site.profile));
-    return()=>{
-      document.title=previousTitle;
-      if(metaDesc&&oldDesc!==null)metaDesc.setAttribute('content',oldDesc);
+    if(!site?.profile)return;
+    const cleanupSeo = applySeoMetadata(site.profile);
+    const restoreIcon = applyWebsiteFavicon(document, websiteFavicon(site.branding, site.profile));
+    return () => {
+      cleanupSeo();
       restoreIcon();
     };
   },[site?.profile]);

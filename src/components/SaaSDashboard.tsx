@@ -19,6 +19,7 @@ import { LoyaltyManagement } from './LoyaltyManagement';
 import { SocialConnectivityStep } from './SocialConnectivityStep';
 import { DEFAULT_LOYALTY_CONFIG, TIER_METADATA, calculateLoyaltyTier, calculateRewardProgress } from '../loyaltyData';
 import { OwnerPosPanel } from './OwnerPosPanel';
+import { SeoSettingsManager } from './SeoSettingsManager';
 
 interface SaaSDashboardProps {
   ownerId?:string;
@@ -40,7 +41,7 @@ interface SaaSDashboardProps {
   onRefreshBookings?:()=>Promise<void>|void;
 }
 
-type TabType = 'contacts' |  'demo' | 'website_sections' | 'overview' | 'calendar' | 'services' | 'team' | 'clients' | 'loyalty' | 'marketing' | 'social_connectivity' | 'appearance' | 'website';
+type TabType = 'contacts' | 'demo' | 'website_sections' | 'overview' | 'calendar' | 'services' | 'team' | 'clients' | 'loyalty' | 'marketing' | 'social_connectivity' | 'seo' | 'appearance' | 'website';
 
 export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
   profile,
@@ -254,6 +255,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
             { id: 'loyalty', label: 'Loyalty & Rewards', icon: 'military_tech' },
             { id: 'marketing', label: 'Promo Image & Social', icon: 'photo_camera_back' },
             { id: 'social_connectivity', label: 'Step 06 • Social Connectivity', icon: 'share' },
+            { id: 'seo', label: 'SEO & Social Cards', icon: 'travel_explore' },
             { id: 'appearance', label: 'Appearance', icon: 'palette' },
             { id:'website_sections',label:'Website Sections',icon:'view_quilt' },
             { id: 'website', label: 'Salon Info', icon: 'storefront' }
@@ -298,6 +300,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
           })}
         </div>
 
+        {activeTab === 'seo' && <SeoSettingsManager profile={profile} setProfile={setProfile} />}
         {activeTab==='website_sections'&&<WebsiteContentManager services={services} profile={profile} setProfile={setProfile} gallery={gallery} setGallery={setGallery}/>}
         {/* TAB CONTENT: OVERVIEW */}
         {activeTab === 'overview' && (
