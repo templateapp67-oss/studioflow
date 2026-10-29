@@ -61,9 +61,11 @@ export function FeaturedTreatments() {
                       className="sf-service-image"
                       src={s.imageUrl || treatmentImage(s)}
                       alt={
-                        s.imageUrl
-                          ? s.name
-                          : `${s.name} — illustrative treatment image`
+                        s.clinicDemoData
+                          ? `${s.name} — illustrative demo image`
+                          : s.imageUrl
+                            ? s.name
+                            : `${s.name} — illustrative treatment image`
                       }
                       width="600"
                       height="400"

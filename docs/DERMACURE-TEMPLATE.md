@@ -236,3 +236,25 @@ updates — plus the backdrop/lock/no-overlay checks.
 | Real Chromium, keyboard | Tab order opens the drawer on the first link, cycles inside it, Shift+Tab wraps, 3px bronze focus ring, Escape returns focus to the toggle |
 | Real Chromium, `prefers-reduced-motion: reduce` | every menu action still resolves instantly with no reveal left hidden |
 | Console | no uncaught errors; the only failed requests are sandboxed Google Fonts / Supabase calls unrelated to the header |
+
+# Round 3 — Complete editable demonstration treatment catalogue
+
+Template 07 now starts with 12 illustrative clinic services (including initial
+and follow-up consultations) and the five existing sample bundles. The catalogue
+covers skin, hair/scalp and cosmetology sections, with local bundled sample
+images, editable descriptions, durations and INR demonstration prices. The
+consultation examples start at ₹600–₹900; sample treatment prices range from
+₹1,000 to ₹3,800, with bundle totals calculated from their included examples.
+These amounts are demonstration data only, not a Dermacure quote or market-rate
+claim.
+
+Starter entries are explicitly marked as demo, fee-unverified and draft. Public
+preview labels the amounts **Demo price**, explains that services, imagery,
+duration and availability must be reviewed, and keeps examples outside booking
+and checkout until the clinic owner separately verifies the service, fee and
+publication status. The Business Services editor pre-fills selectable template
+examples with editable demo values and allows owners to replace names,
+descriptions, photos, prices, durations and website availability immediately;
+fee verification is not a prerequisite for completing or saving the template.
+The seed is kept in sync between `src/categoryTemplates.ts` and
+`backend/studioflow-template-catalog.sql`.

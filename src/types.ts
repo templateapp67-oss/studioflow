@@ -209,6 +209,8 @@ export interface SalonProfile {
 }
 
 export interface SalonService {
+  /** Template 07 starter data only: never represent these illustrative values as a clinic-confirmed offer. */
+  clinicDemoData?: boolean;
   /** Template 07 only: explicit clinic confirmation, never inferred from template or edits. */
   clinicServiceApproved?: boolean;
   clinicPublicationStatus?: 'draft' | 'published' | 'unpublished';
