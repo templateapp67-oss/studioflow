@@ -18,6 +18,9 @@ import {
   PRISM_CHROMA_DEFAULT_PACKAGES,
   PRISM_CHROMA_DEFAULT_REVIEWS,
   PRISM_CHROMA_DEFAULT_SHADES,
+  estimateColourPrice,
+  prismMaintenanceLabel,
+  recommendShade,
   PRISM_CHROMA_IMAGES,
   PRISM_CHROMA_TEMPLATE_SERVICES,
   buildPrismChromaSeo,
@@ -196,5 +199,30 @@ assert.ok(extraStylist.includes('Ishaan Rao'), 'all owner team members render (n
 const {websiteFavicon} = await import('../src/lib/websiteFavicon');
 assert.ok(websiteFavicon(undefined, demoProfile as any) === '/templates/10/favicon.svg', 'hair_coloring sites fall back to the Template 10 favicon');
 console.log('PASS: end-to-end gaps — editor wired, legacy media upgrades, footer map, uncapped services/team.');
+
+/* Expansion: quiz engine, estimator, new sections render end-to-end */
+const quizVivid = recommendShade(PRISM_CHROMA_DEFAULT_SHADES, {current: 'natural-dark', vibe: 'vivid', maintenance: 'full'});
+assert.ok(quizVivid && quizVivid.shade.family === 'vivid', 'quiz recommends a vivid shade for a bold dream look');
+const quizNatural = recommendShade(PRISM_CHROMA_DEFAULT_SHADES, {current: 'grey', vibe: 'natural', maintenance: 'low'});
+assert.ok(quizNatural && quizNatural.shade.id === 'pc-sh-honey', 'quiz recommends low-care Honey Balayage for grey coverage with little time');
+const quizPastel = recommendShade(PRISM_CHROMA_DEFAULT_SHADES, {current: 'natural-dark', vibe: 'pastel', maintenance: 'regular'});
+assert.ok(quizPastel && quizPastel.shade.family === 'pastel' && quizPastel.caution.includes('lighten'), 'quiz warns dark hair needs gentle lightening for pastel');
+assert.ok(recommendShade([], {current: 'x', vibe: 'vivid', maintenance: 'low'}) === null, 'quiz is safe with no shades');
+assert.ok(estimateColourPrice(5499, 'long') === 6870 && estimateColourPrice(5499, 'medium') === 5500 && estimateColourPrice(5499, 'short') === 4950, 'price estimator scales by hair length');
+assert.ok(prismMaintenanceLabel(2) === 'Low care' && prismMaintenanceLabel(5) === 'High care', 'maintenance labels read simply');
+for (const needle of ['Find My Shade', 'How is your hair right now?', 'Take the 30-second quiz', 'Colour Care Guide', 'First 48 hours', 'Colour from', 'Your Colour, Step by Step', 'Hair health check', 'Add Colour Care Plan']) {
+  assert.ok(html.includes(needle), `expanded storefront includes "${needle}"`);
+}
+const offerHtml = renderToStaticMarkup(
+  <CustomerSalonWebsite profile={{...demoProfile, prismChroma: {announcementText: 'Test Offer Week'} as any}} services={template.services} stylists={template.stylists} onAddAppointment={async (a: any) => a} />,
+);
+assert.ok(offerHtml.includes('Test Offer Week'), 'owner announcement bar renders on the site');
+const gapsEditorHtml2 = renderToStaticMarkup(<PrismChromaEditor profile={demoProfile} setProfile={() => {}} />);
+for (const needle of ['Before &amp; After', 'Journey &amp; Care', 'Offer bar text', 'SEO &amp; Share']) assert.ok(gapsEditorHtml2.includes(needle), `editor includes "${needle}"`);
+for (const needle of ['Hair Colour Studio in Mumbai', 'What We Do Best', 'Shades clients love right now']) assert.ok(html.includes(needle), `SEO guide includes "${needle}"`);
+const {prismOpenStatus} = await import('../src/lib/prismChroma');
+assert.ok(prismOpenStatus('10:00', '20:30', new Date('2026-01-05T12:00:00')).open === true, 'open-now chip shows open at noon');
+assert.ok(prismOpenStatus('10:00', '20:30', new Date('2026-01-05T08:00:00')).open === false, 'open-now chip shows closed before opening');
+console.log('PASS: expansion — Find-My-Shade quiz, estimator, care guide, announcement, carousel, gallery filters, sticky bar.');
 
 console.log('\nAll Prism & Chroma (Template 10) checks passed.');

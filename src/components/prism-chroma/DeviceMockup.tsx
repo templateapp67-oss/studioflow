@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Calendar, Check, Clock3, MapPin, Sparkles } from 'lucide-react';
 import type { SalonService } from '../../types';
 import { prismFormatInr } from '../../lib/prismChroma';
@@ -20,7 +21,11 @@ export function DeviceMockup({
   onBook: (service?: SalonService) => void;
 }) {
   const featured = services.slice(0, 3);
-  const selected = featured[0];
+  const [selectedId, setSelectedId] = useState('');
+  const [dayIdx, setDayIdx] = useState(0);
+  const [time, setTime] = useState('4:00 PM');
+  const selected = featured.find((s) => s.id === selectedId) || featured[0];
+  const timeSlots = ['10:00 AM', '12:30 PM', '4:00 PM', '6:30 PM'];
   const dayPills = (() => {
     const labels: Array<{ day: string; date: string }> = [];
     const now = new Date();
@@ -62,10 +67,14 @@ export function DeviceMockup({
         <div className="space-y-2 px-5 pt-3">
           {(featured.length ? featured : [undefined]).map((service, idx) =>
             service ? (
-              <div
+              <button
+                type="button"
                 key={service.id}
-                className={`flex items-center justify-between gap-2 rounded-2xl border px-3 py-2.5 ${
-                  idx === 0 ? 'pc-phone-card-active' : 'border-white/10 bg-white/5'
+                onClick={() => setSelectedId(service.id)}
+                aria-pressed={selected?.id === service.id}
+                aria-label={`Choose ${service.name}, ${prismFormatInr(service.price)}`}
+                className={`flex w-full items-center justify-between gap-2 rounded-2xl border px-3 py-2.5 text-left ${
+                  selected?.id === service.id ? 'pc-phone-card-active' : 'border-white/10 bg-white/5'
                 }`}
               >
                 <div className="min-w-0">
@@ -78,13 +87,13 @@ export function DeviceMockup({
                 </div>
                 <span className="flex items-center gap-1.5">
                   <span className="text-[12px] font-bold text-[#F5F3FF]">{prismFormatInr(service.price)}</span>
-                  {idx === 0 && (
+                  {selected?.id === service.id && (
                     <span className="pc-check flex h-4 w-4 items-center justify-center rounded-full text-white">
                       <Check size={10} aria-hidden="true" />
                     </span>
                   )}
                 </span>
-              </div>
+              </button>
             ) : (
               <div key="empty" className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2.5 text-[12px] text-[#A9A6C2]">
                 Colour menu coming soon
@@ -93,32 +102,45 @@ export function DeviceMockup({
           )}
         </div>
 
-        <div className="px-5 pt-3" aria-hidden="true">
-          <div className="flex gap-1.5">
+        <div className="px-5 pt-3">
+          <div className="flex gap-1.5" role="group" aria-label="Pick a day">
             {dayPills.map((pill, idx) => (
-              <span
+              <button
+                type="button"
                 key={`${pill.day}-${pill.date}`}
+                onClick={() => setDayIdx(idx)}
+                aria-pressed={dayIdx === idx}
+                aria-label={`${pill.day} ${pill.date}`}
                 className={`flex-1 rounded-xl border py-1.5 text-center ${
-                  idx === 0 ? 'pc-phone-day-active' : 'border-white/10 bg-white/5 text-[#F5F3FF]'
+                  dayIdx === idx ? 'pc-phone-day-active' : 'border-white/10 bg-white/5 text-[#F5F3FF]'
                 }`}
               >
                 <span className="block text-[9px] font-semibold uppercase tracking-wide opacity-80">{pill.day}</span>
                 <span className="block text-[12px] font-bold leading-tight">{pill.date}</span>
-              </span>
+              </button>
             ))}
           </div>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {['10:00 AM', '12:30 PM', '4:00 PM', '6:30 PM'].map((time, idx) => (
-              <span
-                key={time}
+          <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="Pick a time">
+            {timeSlots.map((slot) => (
+              <button
+                type="button"
+                key={slot}
+                onClick={() => setTime(slot)}
+                aria-pressed={time === slot}
                 className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold ${
-                  idx === 2 ? 'pc-phone-time-active' : 'border-white/10 bg-white/5 text-[#A9A6C2]'
+                  time === slot ? 'pc-phone-time-active' : 'border-white/10 bg-white/5 text-[#A9A6C2]'
                 }`}
               >
-                {time}
-              </span>
+                {slot}
+              </button>
             ))}
           </div>
+          {selected && (
+            <p className="mt-2.5 rounded-xl bg-white/5 px-3 py-2 text-[10px] text-[#A9A6C2]" aria-live="polite">
+              {selected.name} · {dayPills[dayIdx]?.day} at {time} ·{' '}
+              <strong className="text-[#F5F3FF]">{prismFormatInr(selected.price)}</strong>
+            </p>
+          )}
         </div>
 
         <div className="mt-auto px-5 pb-5 pt-4">

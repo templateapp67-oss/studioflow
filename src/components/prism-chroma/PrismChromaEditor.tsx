@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HelpCircle, MapPin, MessageSquareQuote, Palette, Plus, RotateCcw, Sparkles, Trash2 } from 'lucide-react';
+import { HelpCircle, Images, ListChecks, MapPin, MessageSquareQuote, Palette, Plus, RotateCcw, Sparkles, Trash2 } from 'lucide-react';
 import type {
   PrismChromaBranch,
   PrismChromaConfig,
@@ -13,6 +13,9 @@ import {
   PRISM_CHROMA_DEFAULT_BRANCHES,
   PRISM_CHROMA_DEFAULT_COLORS,
   PRISM_CHROMA_DEFAULT_FAQS,
+  PRISM_CHROMA_DEFAULT_BEFORE_AFTER,
+  PRISM_CHROMA_DEFAULT_CARE_GUIDE,
+  PRISM_CHROMA_DEFAULT_PROCESS_STEPS,
   PRISM_CHROMA_DEFAULT_PACKAGES,
   PRISM_CHROMA_DEFAULT_REVIEWS,
   PRISM_CHROMA_DEFAULT_SHADES,
@@ -20,7 +23,7 @@ import {
 } from '../../lib/prismChroma';
 import { BrandImageField } from '../BrandImageField';
 
-type EditorTab = 'brand' | 'shades' | 'packages' | 'branches' | 'reviews' | 'colors';
+type EditorTab = 'brand' | 'shades' | 'packages' | 'results' | 'journey' | 'branches' | 'reviews' | 'seo' | 'colors';
 
 const COLOR_FIELDS: Array<{ key: keyof PrismChromaThemeColors; label: string; hint: string }> = [
   { key: 'bg', label: 'Ink background', hint: 'Main page background (--bg)' },
@@ -75,8 +78,11 @@ export function PrismChromaEditor({
     { id: 'brand', label: 'Brand & Hero', icon: <Sparkles size={15} aria-hidden="true" /> },
     { id: 'shades', label: 'Shade Studio', icon: <Palette size={15} aria-hidden="true" /> },
     { id: 'packages', label: 'Packages', icon: <Sparkles size={15} aria-hidden="true" /> },
+    { id: 'results', label: 'Before & After', icon: <Images size={15} aria-hidden="true" /> },
+    { id: 'journey', label: 'Journey & Care', icon: <ListChecks size={15} aria-hidden="true" /> },
     { id: 'branches', label: 'Branches & FAQs', icon: <MapPin size={15} aria-hidden="true" /> },
     { id: 'reviews', label: 'Reviews', icon: <MessageSquareQuote size={15} aria-hidden="true" /> },
+    { id: 'seo', label: 'SEO & Share', icon: <Sparkles size={15} aria-hidden="true" /> },
     { id: 'colors', label: 'Brand Colours', icon: <Palette size={15} aria-hidden="true" /> },
   ];
 
@@ -123,6 +129,10 @@ export function PrismChromaEditor({
           <TextField label="About heading" value={raw.aboutHeading || ''} placeholder={config.aboutHeading} onChange={(v) => patch({ aboutHeading: v })} />
           <TextField label="Timings text" value={raw.workingHoursDisplay || ''} placeholder={config.workingHoursDisplay} onChange={(v) => patch({ workingHoursDisplay: v })} />
           <TextField label="Google Maps embed URL (optional)" value={raw.mapEmbedUrl || ''} placeholder="Leave empty — the map is made from your address" onChange={(v) => patch({ mapEmbedUrl: v })} />
+          <TextField label="Offer bar text (top of site, optional)" value={raw.announcementText || ''} placeholder="e.g. Flat 20% off on Balayage this week" onChange={(v) => patch({ announcementText: v })} />
+          <TextField label="Offer bar button label" value={raw.announcementCtaLabel || ''} placeholder="See Offer" onChange={(v) => patch({ announcementCtaLabel: v })} />
+          <TextField label="Opens at (24h, e.g. 10:00)" value={raw.openTime || ''} placeholder="10:00" onChange={(v) => patch({ openTime: v })} />
+          <TextField label="Closes at (24h, e.g. 20:30)" value={raw.closeTime || ''} placeholder="20:30" onChange={(v) => patch({ closeTime: v })} />
           <div className="sm:col-span-2">
             <span className={labelCls}>About / hero stat cards (value | label, one per line)</span>
             <textarea
@@ -165,6 +175,30 @@ export function PrismChromaEditor({
               <div className="sm:col-span-4">
                 <BrandImageField label={`Shade photo — ${shade.name}`} value={shade.imageUrl} onChange={(url) => { const next = [...config.shades]; next[idx] = { ...shade, imageUrl: url }; patch({ shades: next }); }} hint="Leave empty to keep the Template 10 shade photo." />
               </div>
+              <label className="block">
+                <span className={labelCls}>Shade family (for Find-My-Shade quiz)</span>
+                <select className={inputCls} value={shade.family || 'vivid'} onChange={(e) => { const next = [...config.shades]; next[idx] = { ...shade, family: e.target.value }; patch({ shades: next }); }}>
+                  <option value="vivid">Bold &amp; bright (vivid)</option>
+                  <option value="pastel">Soft pastel</option>
+                  <option value="natural">Natural &amp; sunny</option>
+                  <option value="warm">Warm glow</option>
+                  <option value="cool">Cool &amp; icy</option>
+                </select>
+              </label>
+              <label className="block">
+                <span className={labelCls}>Home-care level</span>
+                <select className={inputCls} value={String(shade.maintenanceLevel || 3)} onChange={(e) => { const next = [...config.shades]; next[idx] = { ...shade, maintenanceLevel: Number(e.target.value) }; patch({ shades: next }); }}>
+                  <option value="1">1 — Very easy</option>
+                  <option value="2">2 — Easy</option>
+                  <option value="3">3 — Some care</option>
+                  <option value="4">4 — High care</option>
+                  <option value="5">5 — Very high care</option>
+                </select>
+              </label>
+              <TextField label="Stays fresh for" value={shade.longevityWeeks || ''} placeholder="6-8 weeks" onChange={(v) => { const next = [...config.shades]; next[idx] = { ...shade, longevityWeeks: v }; patch({ shades: next }); }} />
+              <TextField label="Undertone" value={shade.undertone || ''} placeholder="Cool / Warm / Neutral" onChange={(v) => { const next = [...config.shades]; next[idx] = { ...shade, undertone: v }; patch({ shades: next }); }} />
+              <TextField label="Best for" value={shade.bestFor || ''} placeholder="Who this shade suits" onChange={(v) => { const next = [...config.shades]; next[idx] = { ...shade, bestFor: v }; patch({ shades: next }); }} />
+              <TextField label="Home-care tip" value={shade.careTip || ''} placeholder="One simple care tip" onChange={(v) => { const next = [...config.shades]; next[idx] = { ...shade, careTip: v }; patch({ shades: next }); }} />
             </div>
           ))}
           <div className="flex flex-wrap gap-2">
@@ -213,6 +247,87 @@ export function PrismChromaEditor({
         </div>
       )}
 
+      {tab === 'results' && (
+        <div className="space-y-3">
+          <p className="text-xs text-slate-500">The three Before / After sliders on your site. Upload matching before and after photos for the truest result.</p>
+          {config.beforeAfter.map((item, idx) => (
+            <div key={item.id} className="grid gap-2 rounded-xl border border-slate-200 p-3 sm:grid-cols-2">
+              <TextField label={`Result ${idx + 1} title`} value={item.title} onChange={(v) => { const next = [...config.beforeAfter]; next[idx] = { ...item, title: v }; patch({ beforeAfter: next }); }} />
+              <TextField label="Service used" value={item.serviceLabel || ''} placeholder="Signature Balayage" onChange={(v) => { const next = [...config.beforeAfter]; next[idx] = { ...item, serviceLabel: v }; patch({ beforeAfter: next }); }} />
+              <TextField label="Sittings note" value={item.sessionsNote || ''} placeholder="Done in 1 sitting (about 3 hours)" onChange={(v) => { const next = [...config.beforeAfter]; next[idx] = { ...item, sessionsNote: v }; patch({ beforeAfter: next }); }} />
+              <TextField label="Done by (expert first name)" value={item.stylistName || ''} placeholder="Kiara" onChange={(v) => { const next = [...config.beforeAfter]; next[idx] = { ...item, stylistName: v }; patch({ beforeAfter: next }); }} />
+              <BrandImageField label="Before photo" value={item.beforeUrl} onChange={(url) => { const next = [...config.beforeAfter]; next[idx] = { ...item, beforeUrl: url }; patch({ beforeAfter: next }); }} />
+              <BrandImageField label="After photo" value={item.afterUrl} onChange={(url) => { const next = [...config.beforeAfter]; next[idx] = { ...item, afterUrl: url }; patch({ beforeAfter: next }); }} />
+              <div className="sm:col-span-2">
+                <button type="button" className="rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-50" onClick={() => patch({ beforeAfter: config.beforeAfter.filter((x) => x.id !== item.id) })} aria-label={`Remove result ${item.title}`}>
+                  <Trash2 size={14} aria-hidden="true" /> Remove result
+                </button>
+              </div>
+            </div>
+          ))}
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className="inline-flex items-center gap-1 rounded-lg bg-violet-600 px-3 py-2 text-xs font-bold text-white" onClick={() => patch({ beforeAfter: [...config.beforeAfter, { id: `pc-ba-${Date.now()}`, title: 'New transformation', beforeUrl: config.beforeAfter[0]?.beforeUrl || '', afterUrl: config.beforeAfter[0]?.afterUrl || '', beforeAlt: 'Hair before colour', afterAlt: 'Hair after colour', serviceLabel: '', sessionsNote: '', stylistName: '' }] })}>
+              <Plus size={14} aria-hidden="true" /> Add result
+            </button>
+            <button type="button" className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700" onClick={() => patch({ beforeAfter: PRISM_CHROMA_DEFAULT_BEFORE_AFTER })}>
+              <RotateCcw size={14} aria-hidden="true" /> Reset results
+            </button>
+          </div>
+        </div>
+      )}
+
+      {tab === 'journey' && (
+        <div className="space-y-5">
+          <div className="space-y-3">
+            <h4 className="font-bold text-slate-900">Visit steps (Step by Step section)</h4>
+            {config.processSteps.map((step, idx) => (
+              <div key={step.id} className="grid gap-2 rounded-xl border border-slate-200 p-3 sm:grid-cols-2">
+                <TextField label={`Step ${idx + 1} title`} value={step.title} onChange={(v) => { const next = [...config.processSteps]; next[idx] = { ...step, title: v }; patch({ processSteps: next }); }} />
+                <TextField label="Time it takes" value={step.durationLabel || ''} placeholder="15 mins" onChange={(v) => { const next = [...config.processSteps]; next[idx] = { ...step, durationLabel: v }; patch({ processSteps: next }); }} />
+                <div className="sm:col-span-2">
+                  <AreaField label="What happens" value={step.text} rows={2} onChange={(v) => { const next = [...config.processSteps]; next[idx] = { ...step, text: v }; patch({ processSteps: next }); }} />
+                </div>
+                <div className="sm:col-span-2">
+                  <AreaField label="Check points (one per line)" value={(step.points || []).join('\n')} rows={3} onChange={(v) => { const next = [...config.processSteps]; next[idx] = { ...step, points: v.split('\n').map((s) => s.trim()).filter(Boolean) }; patch({ processSteps: next }); }} />
+                </div>
+                <div className="sm:col-span-2">
+                  <BrandImageField label={`Step photo — ${step.title}`} value={step.image} onChange={(url) => { const next = [...config.processSteps]; next[idx] = { ...step, image: url }; patch({ processSteps: next }); }} />
+                </div>
+              </div>
+            ))}
+            <button type="button" className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700" onClick={() => patch({ processSteps: PRISM_CHROMA_DEFAULT_PROCESS_STEPS })}>
+              <RotateCcw size={14} aria-hidden="true" /> Reset steps
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="font-bold text-slate-900">Colour Care Guide (after-visit timeline)</h4>
+            {config.careGuide.map((step, idx) => (
+              <div key={step.id} className="grid gap-2 rounded-xl border border-slate-200 p-3 sm:grid-cols-2">
+                <TextField label="When" value={step.when} placeholder="Week 1" onChange={(v) => { const next = [...config.careGuide]; next[idx] = { ...step, when: v }; patch({ careGuide: next }); }} />
+                <TextField label="Title" value={step.title} onChange={(v) => { const next = [...config.careGuide]; next[idx] = { ...step, title: v }; patch({ careGuide: next }); }} />
+                <div className="sm:col-span-2">
+                  <AreaField label="Care advice" value={step.text} rows={2} onChange={(v) => { const next = [...config.careGuide]; next[idx] = { ...step, text: v }; patch({ careGuide: next }); }} />
+                </div>
+                <div className="sm:col-span-2">
+                  <button type="button" className="rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-50" onClick={() => patch({ careGuide: config.careGuide.filter((x) => x.id !== step.id) })} aria-label={`Remove care step ${step.title}`}>
+                    <Trash2 size={14} aria-hidden="true" /> Remove
+                  </button>
+                </div>
+              </div>
+            ))}
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className="inline-flex items-center gap-1 rounded-lg bg-violet-600 px-3 py-2 text-xs font-bold text-white" onClick={() => patch({ careGuide: [...config.careGuide, { id: `pc-care-${Date.now()}`, when: 'Week 2', title: 'New care step', text: 'Write the care advice here.' }] })}>
+                <Plus size={14} aria-hidden="true" /> Add care step
+              </button>
+              <button type="button" className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700" onClick={() => patch({ careGuide: PRISM_CHROMA_DEFAULT_CARE_GUIDE })}>
+                <RotateCcw size={14} aria-hidden="true" /> Reset care guide
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {tab === 'branches' && (
         <div className="space-y-3">
           {config.branches.map((branch, idx) => (
@@ -239,6 +354,7 @@ export function PrismChromaEditor({
             <div key={faq.id} className="grid gap-2 rounded-xl border border-slate-200 p-3">
               <TextField label={`Question ${idx + 1}`} value={faq.question} onChange={(v) => { const next = [...config.faqs]; next[idx] = { ...faq, question: v }; patch({ faqs: next }); }} />
               <AreaField label="Answer" value={faq.answer} rows={2} onChange={(v) => { const next = [...config.faqs]; next[idx] = { ...faq, answer: v }; patch({ faqs: next }); }} />
+              <TextField label="Topic (filter chip on site)" value={faq.category || ''} placeholder="Colour Care / Hair Health / Booking / Pricing" onChange={(v) => { const next = [...config.faqs]; next[idx] = { ...faq, category: v }; patch({ faqs: next }); }} />
             </div>
           ))}
           <div className="flex flex-wrap gap-2">
@@ -272,6 +388,24 @@ export function PrismChromaEditor({
               <RotateCcw size={14} aria-hidden="true" /> Reset reviews
             </button>
           </div>
+        </div>
+      )}
+
+      {tab === 'seo' && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <p className="text-xs text-slate-500 sm:col-span-2">
+            These lines appear on Google search and when your site link is shared on WhatsApp. Leave empty to use the automatic Template 10 text with your salon name and city.
+          </p>
+          <TextField label="Google title (meta title)" value={profile.seo?.metaTitle || ''} placeholder="Salon name | Hair Colour Studio in City" onChange={(v) => setProfile({ ...profile, seo: { ...profile.seo, metaTitle: v } })} />
+          <TextField label="Share title (WhatsApp / social)" value={profile.seo?.ogTitle || ''} placeholder="Same as Google title if empty" onChange={(v) => setProfile({ ...profile, seo: { ...profile.seo, ogTitle: v } })} />
+          <div className="sm:col-span-2">
+            <AreaField label="Google description (meta description)" value={profile.seo?.metaDescription || ''} rows={3} onChange={(v) => setProfile({ ...profile, seo: { ...profile.seo, metaDescription: v } })} />
+          </div>
+          <div className="sm:col-span-2">
+            <AreaField label="Share description" value={profile.seo?.ogDescription || ''} rows={2} onChange={(v) => setProfile({ ...profile, seo: { ...profile.seo, ogDescription: v } })} />
+          </div>
+          <TextField label="Keywords (comma separated)" value={profile.seo?.keywords || ''} placeholder="balayage in Mumbai, hair colour, keratin" onChange={(v) => setProfile({ ...profile, seo: { ...profile.seo, keywords: v } })} />
+          <BrandImageField label="Share photo (Open Graph image)" value={profile.seo?.ogImageUrl || ''} onChange={(url) => setProfile({ ...profile, seo: { ...profile.seo, ogImageUrl: url } })} hint="Shown when your link is shared. Leave empty to use the Template 10 hero photo." />
         </div>
       )}
 

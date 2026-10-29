@@ -31,3 +31,47 @@ the storefront falls back to these local files via `SafeImage`.
 
 Images below the fold lazy-load with fixed width/height (no layout shift) and
 descriptive alt text; images carry a dark gradient overlay wherever text sits on top.
+
+## Template 10 — Feature Coverage (spec → implementation)
+
+Design: "Light through a Prism" — ink base #0B0B14, holographic gradient
+violet → magenta → coral → cyan, Syne-style display type + Manrope body,
+glass bento cards (28px radius), aurora blobs, gradient borders, marquee.
+
+| # | Section / Feature | Where |
+|---|---|---|
+| 1 | Announcement offer bar (owner-editable, dismissible) | Chrome.tsx + editor Brand tab |
+| 2 | Navbar — logo, links, call, gradient Book Now, account cluster | PrismChromaWebsite |
+| 3 | Hero — staggered headline, Open-Now chip, rating + trust chips, stats, floating shade chips | PrismChromaWebsite |
+| 4 | Interactive phone DeviceMockup (pick service/day/time → real booking) | DeviceMockup.tsx |
+| 5 | Marquee strip | PrismChromaWebsite |
+| 6 | About + 4 stat cards | PrismChromaWebsite |
+| 7 | Services bento — category filter chips, What's-included accordion, INR prices | PrismChromaWebsite + prismServiceIncludes |
+| 8 | Shade Studio — swatches, length price estimator, maintenance meter, care tips | ShadeStudio.tsx |
+| 9 | Shade Compare (two shades side by side) | ShadeStudio.tsx |
+| 10 | Find My Shade quiz (3 questions → shade + price estimate + caution) | ShadeFinder.tsx + recommendShade |
+| 11 | Before/After ×3 — drag slider, auto-sweep, service/sittings/expert meta | BeforeAfterSlider.tsx |
+| 12 | Process 4 steps — photos, duration chips, check points | config.processSteps |
+| 13 | Colour Care Guide (48 hrs → Week 6-8 timeline) | config.careGuide |
+| 14 | Pricing — 3 glass packages, Care-Plan toggle, savings/validity chips | PrismChromaWebsite |
+| 15 | Full Price List table (grouped, print / Save-PDF) | PriceList.tsx |
+| 16 | Colour Experts — photos, ratings, specialties, Book-with-expert | PrismChromaWebsite |
+| 17 | Gallery — tag filters + lightbox (Esc / arrows / focus) | GalleryGrid.tsx |
+| 18 | Testimonials — rating summary + distribution, autoplay carousel | TestimonialCarousel.tsx |
+| 19 | Local SEO guide block (city/services/shades/areas) | SeoContentSection.tsx |
+| 20 | FAQ — search + topic filter chips + accordion | PrismChromaWebsite |
+| 21 | Booking CTA — quick service chips, WhatsApp, call, timings | PrismChromaWebsite |
+| 22 | Branches — landmark, metro, parking, per-branch call + directions | PrismChromaWebsite |
+| 23 | Footer — visit/call/timings/map embed, socials, newsletter signup | PrismChromaWebsite |
+| 24 | Mobile sticky Book bar + back-to-top + scroll progress + cursor glow | Chrome.tsx |
+| 25 | Colour-ring loader (reduced-motion safe) | PrismChromaWebsite |
+
+Owner editor (9 tabs): Brand & Hero · Shade Studio (incl. quiz family,
+care level) · Packages · Before & After · Journey & Care · Branches & FAQs ·
+Reviews · SEO & Share · Brand Colours. Everything above is editable after
+onboarding; onboarding data (name, logo, phone, city, services, prices,
+team, gallery, colours) fills the template automatically.
+
+SEO: LocalBusiness + FAQPage + ItemList JSON-LD, aggregate rating,
+per-branch locations, owner meta/OG fields. Motion: framer-motion with
+MotionConfig reducedMotion="user" throughout.
