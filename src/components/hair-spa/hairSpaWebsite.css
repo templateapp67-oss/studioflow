@@ -110,3 +110,12 @@
 .kp-lightbox-prev { left: 20px; }
 .kp-lightbox-next { right: 20px; }
 
+.kp-gallery-image-wrapper img {
+  transition: filter 0.5s ease-in-out, opacity 0.5s ease-in-out;
+}
+.kp-gallery-image-wrapper.is-loading img {
+  filter: blur(10px);
+  opacity: 0.5;
+}
+
+

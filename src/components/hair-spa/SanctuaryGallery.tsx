@@ -3,6 +3,7 @@ import { useHairSpa } from "./context";
 import { ArrowRight, Leaf } from "lucide-react";
 import { Reveal } from "./Reveal";
 import { AnimatePresence, motion } from "motion/react";
+import { GalleryImage } from "./GalleryImage";
 
 type GalleryImage = ReturnType<typeof useHairSpa>["shownGallery"][number];
 
@@ -47,11 +48,10 @@ function GalleryThumb({
           <small>Photograph unavailable</small>
         </div>
       ) : (
-        <img
+        <GalleryImage
           src={image.src}
           alt={image.alt}
-          loading={position < 2 ? "eager" : "lazy"}
-          decoding="async"
+          className="kp-gallery-image-wrapper"
           onError={() => setFailed(true)}
         />
       )}
@@ -238,11 +238,10 @@ export function SanctuaryGallery() {
                     onClick={() => model.setActivePhoto(position)}
                     aria-label={`Enlarge salon image ${position + 1}: ${image.alt}`}
                   >
-                    <img
+                    <GalleryImage
                       src={image.src}
                       alt={image.alt}
-                      loading="lazy"
-                      decoding="async"
+                      className="kp-gallery-image-wrapper"
                     />
                     <span>
                       {image.isDemo ? "Demo / sample · " : ""}
