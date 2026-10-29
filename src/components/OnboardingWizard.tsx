@@ -12,6 +12,7 @@ import { uploadSalonImage } from '../lib/supabase';
 import { TeamManagement } from './TeamManagement';
 import { VogueNoirEditor } from './vogue-noir/VogueNoirEditor';
 import { BodhiTreeEditor } from './bodhi-tree/BodhiTreeEditor';
+import { PrismChromaEditor } from './prism-chroma/PrismChromaEditor';
 
 interface OnboardingWizardProps {
   profile: SalonProfile;
@@ -401,6 +402,9 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
               )}
               {profile.businessType === 'massage_wellness' && (
                 <BodhiTreeEditor profile={profile} setProfile={setProfile} />
+              )}
+              {profile.businessType === 'hair_coloring' && (
+                <PrismChromaEditor profile={profile} setProfile={setProfile} />
               )}
             </div>
           )}

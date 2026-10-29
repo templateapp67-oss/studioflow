@@ -1,0 +1,264 @@
+/* ==========================================================================
+   Template 10 — Prism & Chroma Hair Color Atelier (hair_coloring)
+   "Light through a Prism": ink-black base, holographic violet → magenta →
+   coral → cyan glow, glass bento cards, aurora blobs, marquee strips.
+   Headings: Syne · Body: Manrope.
+   Every selector is scoped to .pc-site so templates 01–09 are unaffected.
+   Colours are CSS variables so onboarding brand colours override everything:
+   --bg --surface --violet --magenta --coral --cyan --text --muted
+   ========================================================================== */
+
+.pc-site {
+  --bg: #0b0b14;
+  --surface: rgba(255, 255, 255, 0.06);
+  --violet: #7c5cff;
+  --magenta: #ff4fd8;
+  --coral: #ff8a5b;
+  --cyan: #35e0f0;
+  --text: #f5f3ff;
+  --muted: #a9a6c2;
+  --prism-gradient: linear-gradient(120deg, var(--violet), var(--magenta), var(--coral), var(--cyan));
+  --pc-display: "Syne", "Clash Display", "Manrope", system-ui, sans-serif;
+  --pc-body: "Manrope", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--pc-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: clip;
+  position: relative;
+}
+
+.pc-site h1, .pc-site h2, .pc-site h3, .pc-site .pc-display {
+  font-family: var(--pc-display);
+  letter-spacing: -0.02em;
+  line-height: 1.02;
+}
+.pc-site ::selection { background: var(--magenta); color: #fff; }
+.pc-site :focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; border-radius: 8px; }
+
+/* ---------- Glassmorphism (spec recipe) ---------- */
+.pc-site .pc-glass {
+  background: rgba(11, 11, 20, 0.55); /* solid fallback keeps text readable */
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 28px;
+}
+@supports ((backdrop-filter: blur(16px)) or (-webkit-backdrop-filter: blur(16px))) {
+  .pc-site .pc-glass {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+}
+.pc-site .pc-glass-strong {
+  background: rgba(11, 11, 20, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 28px;
+  overflow: hidden;
+}
+@supports ((backdrop-filter: blur(16px)) or (-webkit-backdrop-filter: blur(16px))) {
+  .pc-site .pc-glass-strong {
+    background: rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+}
+
+/* Gradient border wrapper: 1px prism line around glass cards */
+.pc-site .pc-grad-border {
+  border-radius: 29px;
+  padding: 1px;
+  background: linear-gradient(140deg, color-mix(in srgb, var(--violet) 65%, transparent), rgba(255,255,255,0.14) 40%, color-mix(in srgb, var(--cyan) 55%, transparent));
+}
+
+/* Spec hover: smooth scale + violet glow on glass cards AND the logo */
+.pc-site .pc-glass-hover, .pc-site .pc-logo {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.pc-site .pc-glass-hover:hover, .pc-site .pc-logo:hover {
+  transform: scale(1.05);
+  box-shadow: 0 12px 40px rgba(124, 92, 255, 0.35);
+}
+
+/* ---------- Buttons / type helpers ---------- */
+.pc-site .pc-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  border-radius: 999px; font-weight: 800; cursor: pointer; border: 0;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
+}
+.pc-site .pc-btn-gradient {
+  background: var(--prism-gradient); color: #0b0b14;
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--violet) 45%, transparent);
+}
+.pc-site .pc-btn-gradient:hover { transform: translateY(-2px); box-shadow: 0 16px 40px color-mix(in srgb, var(--magenta) 45%, transparent); }
+.pc-site .pc-btn-ghost {
+  background: var(--surface); color: var(--text); border: 1px solid rgba(255,255,255,0.22);
+}
+.pc-site .pc-btn-ghost:hover { transform: translateY(-2px); }
+.pc-site .pc-grad-text {
+  background: var(--prism-gradient);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.pc-site .pc-eyebrow {
+  font-size: 0.72rem; font-weight: 800; letter-spacing: 0.22em; text-transform: uppercase; color: var(--cyan);
+}
+.pc-site .pc-muted { color: var(--muted); }
+
+/* ---------- Navbar ---------- */
+.pc-site .pc-nav {
+  position: sticky; top: 0; z-index: 60;
+  background: rgba(11, 11, 20, 0.72);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+@supports ((backdrop-filter: blur(16px)) or (-webkit-backdrop-filter: blur(16px))) {
+  .pc-site .pc-nav { backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+}
+.pc-site .pc-logo { border-radius: 16px; display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.3rem 0.6rem 0.3rem 0.3rem; }
+.pc-site .pc-logo-mark, .pc-site .pc-check { background: var(--prism-gradient); }
+.pc-site .pc-logo-mark { box-shadow: 0 6px 20px color-mix(in srgb, var(--violet) 50%, transparent); }
+.pc-site .pc-nav-link { color: var(--muted); font-weight: 700; font-size: 0.9rem; transition: color 0.2s ease; }
+.pc-site .pc-nav-link:hover { color: var(--text); }
+
+/* ---------- Aurora blobs / hero ---------- */
+.pc-site .pc-blob { position: absolute; border-radius: 999px; filter: blur(70px); opacity: 0.55; pointer-events: none; }
+.pc-site .pc-blob-violet { background: var(--violet); }
+.pc-site .pc-blob-magenta { background: var(--magenta); }
+.pc-site .pc-blob-cyan { background: var(--cyan); }
+.pc-site .pc-blob-coral { background: var(--coral); }
+.pc-site .pc-hero-img-wrap { position: relative; border-radius: 32px; overflow: hidden; }
+.pc-site .pc-hero-img-wrap::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(180deg, transparent 40%, rgba(11,11,20,0.82));
+}
+.pc-site .pc-float-chip {
+  position: absolute; z-index: 3; display: inline-flex; align-items: center; gap: 0.45rem;
+  padding: 0.45rem 0.8rem; border-radius: 999px; font-size: 0.75rem; font-weight: 800;
+  background: rgba(11,11,20,0.66); border: 1px solid rgba(255,255,255,0.25); color: var(--text);
+}
+@supports ((backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px))) {
+  .pc-site .pc-float-chip { backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+}
+
+/* ---------- Marquee ---------- */
+.pc-site .pc-marquee { overflow: hidden; border-block: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.04); }
+.pc-site .pc-marquee-track { display: flex; gap: 2.5rem; width: max-content; padding: 0.8rem 0; animation: pc-marquee 26s linear infinite; }
+.pc-site .pc-marquee:hover .pc-marquee-track { animation-play-state: paused; }
+@keyframes pc-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+/* ---------- Phone mockup ---------- */
+.pc-site .pc-phone {
+  border-radius: 44px; padding: 10px; margin-inline: auto;
+  background: linear-gradient(160deg, #26263a, #10101e);
+  border: 1px solid rgba(255,255,255,0.22);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.55), 0 0 60px color-mix(in srgb, var(--violet) 28%, transparent);
+}
+.pc-site .pc-phone-screen { border-radius: 36px; background: #12121f; min-height: 520px; overflow: hidden; }
+.pc-site .pc-phone-card-active { border-color: var(--violet); background: color-mix(in srgb, var(--violet) 18%, transparent); }
+.pc-site .pc-phone-day-active { border-color: var(--violet); background: var(--violet); color: #fff; }
+.pc-site .pc-phone-time-active { border-color: var(--magenta); background: var(--magenta); color: #fff; }
+
+/* ---------- Shade Studio ---------- */
+.pc-site .pc-shade-grid { display: grid; gap: 1.5rem; }
+@media (min-width: 900px) { .pc-site .pc-shade-grid { grid-template-columns: 1fr 1fr; align-items: center; } }
+.pc-site .pc-shade-photo { position: relative; border-radius: 28px; }
+.pc-site .pc-shade-img { width: 100%; height: 520px; object-fit: cover; display: block; transition: filter 0.45s ease; }
+.pc-site .pc-shade-photo-overlay { position: absolute; inset: 0; background: linear-gradient(180deg, transparent 45%, rgba(11,11,20,0.85)); }
+.pc-site .pc-shade-caption { position: absolute; left: 1.2rem; right: 1.2rem; bottom: 1rem; z-index: 2; }
+.pc-site .pc-shade-name { font-family: var(--pc-display); font-size: 1.6rem; font-weight: 800; }
+.pc-site .pc-shade-price { font-weight: 800; }
+.pc-site .pc-shade-price span { color: var(--muted); font-weight: 600; font-size: 0.85rem; }
+.pc-site .pc-swatch-row { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-bottom: 1.2rem; }
+.pc-site .pc-swatch {
+  width: 46px; height: 46px; border-radius: 999px; cursor: pointer;
+  border: 2px solid rgba(255,255,255,0.35);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.pc-site .pc-swatch:hover { transform: scale(1.12); }
+.pc-site .pc-swatch-active { border-color: #fff; transform: scale(1.15); box-shadow: 0 0 0 4px color-mix(in srgb, var(--violet) 45%, transparent), 0 10px 26px rgba(0,0,0,0.45); }
+.pc-site .pc-shade-title { font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 800; margin-bottom: 0.4rem; }
+.pc-site .pc-shade-blurb { color: var(--muted); max-width: 46ch; margin-bottom: 0.8rem; }
+.pc-site .pc-shade-bigprice { font-family: var(--pc-display); font-size: 1.8rem; font-weight: 800; margin-bottom: 1.1rem; }
+.pc-site .pc-shade-mini-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.6rem; margin-top: 1.4rem; }
+.pc-site .pc-shade-mini {
+  display: flex; align-items: center; gap: 0.55rem; width: 100%; text-align: left; cursor: pointer;
+  padding: 0.6rem 0.8rem; border-radius: 16px; color: var(--text); font-size: 0.82rem; font-weight: 700;
+  background: var(--surface); border: 1px solid rgba(255,255,255,0.14);
+  transition: transform 0.25s ease, border-color 0.25s ease;
+}
+.pc-site .pc-shade-mini strong { margin-left: auto; }
+.pc-site .pc-shade-mini:hover { transform: translateY(-2px); }
+.pc-site .pc-shade-mini-active { border-color: var(--cyan); }
+.pc-site .pc-shade-mini-dot { width: 18px; height: 18px; border-radius: 999px; flex: none; border: 1px solid rgba(255,255,255,0.4); }
+
+/* ---------- Before / After ---------- */
+.pc-site .pc-ba { border-radius: 28px; }
+.pc-site .pc-ba-stage { position: relative; overflow: hidden; }
+.pc-site .pc-ba-img { width: 100%; height: 380px; object-fit: cover; display: block; }
+.pc-site .pc-ba-before { position: absolute; inset: 0 auto 0 0; overflow: hidden; border-right: 2px solid #fff; }
+.pc-site .pc-ba-img-before { filter: grayscale(0.75) brightness(0.72) contrast(0.95); width: 100%; }
+.pc-site .pc-ba-tag {
+  position: absolute; top: 0.8rem; z-index: 3; padding: 0.3rem 0.7rem; border-radius: 999px;
+  font-size: 0.7rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  background: rgba(11,11,20,0.7); color: #fff; border: 1px solid rgba(255,255,255,0.3);
+}
+.pc-site .pc-ba-tag-before { left: 0.8rem; } .pc-site .pc-ba-tag-after { right: 0.8rem; }
+.pc-site .pc-ba-handle { position: absolute; top: 0; bottom: 0; z-index: 2; width: 0; }
+.pc-site .pc-ba-handle-dot {
+  position: absolute; top: 50%; left: 0; transform: translate(-50%, -50%);
+  display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 999px;
+  background: var(--prism-gradient); color: #0b0b14; font-weight: 900; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+.pc-site .pc-ba-range { width: calc(100% - 2rem); margin: 0.9rem 1rem 0; accent-color: var(--magenta); cursor: ew-resize; }
+.pc-site .pc-ba-caption { padding: 0.7rem 1.1rem 1.1rem; font-weight: 700; }
+
+/* ---------- Gallery masonry ---------- */
+.pc-site .pc-masonry { columns: 2; column-gap: 0.9rem; }
+@media (min-width: 760px) { .pc-site .pc-masonry { columns: 3; } }
+@media (min-width: 1100px) { .pc-site .pc-masonry { columns: 4; } }
+.pc-site .pc-masonry figure { break-inside: avoid; margin: 0 0 0.9rem; border-radius: 24px; overflow: hidden; position: relative; }
+.pc-site .pc-masonry img { width: 100%; display: block; object-fit: cover; }
+.pc-site .pc-masonry figcaption {
+  position: absolute; inset: auto 0 0 0; padding: 2rem 0.9rem 0.7rem; font-size: 0.8rem; font-weight: 700;
+  background: linear-gradient(180deg, transparent, rgba(11,11,20,0.85));
+}
+
+/* ---------- FAQ / misc ---------- */
+.pc-site .pc-faq-item { border-radius: 22px; }
+.pc-site .pc-faq-q { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 1rem; text-align: left; padding: 1rem 1.2rem; font-weight: 800; cursor: pointer; background: none; border: 0; color: var(--text); }
+.pc-site .pc-faq-a { padding: 0 1.2rem 1.1rem; color: var(--muted); }
+.pc-site .pc-service-img, .pc-site .pc-team-img { width: 100%; object-fit: cover; display: block; }
+.pc-site .pc-img-zoom { transition: transform 0.5s ease; }
+.pc-site .pc-grad-border:hover .pc-img-zoom, .pc-site .pc-glass-hover:hover .pc-img-zoom { transform: scale(1.05); }
+
+/* ---------- Colour-ring loader + cursor glow ---------- */
+.pc-site .pc-loader {
+  position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center;
+  background: var(--bg);
+}
+.pc-site .pc-loader-ring {
+  width: 74px; height: 74px; border-radius: 999px;
+  background: conic-gradient(var(--violet), var(--magenta), var(--coral), var(--cyan), var(--violet));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 9px), #000 calc(100% - 8px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 9px), #000 calc(100% - 8px));
+  animation: pc-spin 0.9s linear infinite;
+}
+@keyframes pc-spin { to { transform: rotate(360deg); } }
+.pc-site .pc-cursor-glow {
+  position: fixed; z-index: 1; width: 340px; height: 340px; border-radius: 999px; pointer-events: none;
+  background: radial-gradient(circle, color-mix(in srgb, var(--violet) 26%, transparent), transparent 65%);
+  transform: translate(-50%, -50%); display: none;
+}
+@media (pointer: fine) { .pc-site .pc-cursor-glow { display: block; } }
+
+/* ---------- Reduced motion: no scale, no marquee, no spin ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .pc-site *, .pc-site *::before, .pc-site *::after {
+    animation-duration: 0.01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important; scroll-behavior: auto !important;
+  }
+  .pc-site .pc-glass-hover:hover, .pc-site .pc-logo:hover,
+  .pc-site .pc-swatch:hover, .pc-site .pc-btn-gradient:hover { transform: none; }
+  .pc-site .pc-marquee-track { animation: none; flex-wrap: wrap; width: auto; }
+  .pc-site .pc-cursor-glow { display: none !important; }
+}

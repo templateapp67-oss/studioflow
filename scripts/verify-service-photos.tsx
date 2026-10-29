@@ -37,6 +37,16 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
   }finally{delete (globalThis as any).window;}
   continue;
  }
+ if(template.id==='hair_coloring'){
+  // Template 10 (Prism & Chroma) is a single-page site: every colour service
+  // carries its own photo in the bento menu, and an owner photo replaces the
+  // demo photo on the same card.
+  for(const service of services.filter(s=>!/package|combo|bundle/i.test(s.name+' '+s.category))){const expectedPhoto=service.imageUrl||defaultServiceImage(service,template.id);assert.ok(html.includes(expectedPhoto.replaceAll('&','&amp;')),`Prism & Chroma renders a photo for ${service.name}`);}
+  const custom={...services[0],name:'QA package',category:'Packages',imageUrl:'https://example.com/owner-photo.jpg'};
+  const changed=renderToStaticMarkup(<CustomerSalonWebsite profile={{...INITIAL_SALON_PROFILE,businessType:template.id}} services={[custom]} stylists={[]} onAddAppointment={async a=>a}/>);
+  assert.ok((changed.match(/src="https:\/\/example.com\/owner-photo.jpg"/g)||[]).length>=1,'owner photo replaces the demo photo on the Prism & Chroma card');
+  continue;
+ }
  // Templates 06 and 08 lift packages out of the menu grid, so every saved service
  // still needs a photo — just rendered once instead of in two card grids.
  const count=['hair_spa','makeup_studio'].includes(template.id)?services.length:services.length+services.filter(s=>/package|combo|bundle/i.test(s.name+' '+s.category)).length;

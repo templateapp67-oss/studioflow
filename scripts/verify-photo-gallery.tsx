@@ -47,6 +47,16 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
   const savedHtml=renderToStaticMarkup(<CustomerSalonWebsite profile={{...profile,photoGalleryInitialized:true,photoGalleryType:'massage_wellness',photoGallery:[{id:'bt-own-1',category:'Spa' as const,url:'https://cdn.example.com/saved-spa-room.jpg',title:'Saved spa room',isDemo:false}]}} services={[]} stylists={[]} readOnly onAddAppointment={async a=>a}/>);
   assert.ok(savedHtml.includes('https://cdn.example.com/saved-spa-room.jpg')&&savedHtml.includes('Saved spa room'),'saved wellness photo is used in the Bodhi Tree gallery');
   assert.ok(!savedHtml.includes('Our calm treatment room'),'demo photographs are replaced by the owner\u2019s own photo');
+ }else if(template.id==='hair_coloring'){
+  // Template 10 (Prism & Chroma) renders its own masonry gallery from the same
+  // saved-photo path, without owner controls; a saved owner photo replaces
+  // the bundled demo set entirely.
+  assert.ok(html.includes('Colour Gallery'),'Prism & Chroma shows its colour gallery');
+  assert.ok(html.includes('/templates/10/'),'Prism & Chroma gallery uses bundled Template 10 photographs');
+  assert.ok(!html.includes('Delete photo')&&!html.includes('Replace / Edit'));
+  const savedHtml=renderToStaticMarkup(<CustomerSalonWebsite profile={{...profile,photoGalleryInitialized:true,photoGalleryType:'hair_coloring',photoGallery:[{id:'pc-own-1',category:'Hair' as const,url:'https://cdn.example.com/saved-colour-look.jpg',title:'Saved colour look',isDemo:false}]}} services={[]} stylists={[]} readOnly onAddAppointment={async a=>a}/>);
+  assert.ok(savedHtml.includes('https://cdn.example.com/saved-colour-look.jpg')&&savedHtml.includes('Saved colour look'),'saved colour photo is used in the Prism & Chroma gallery');
+  assert.ok(!savedHtml.includes('Vivid balayage, fresh from the chair'),'demo photographs are replaced by the owner\u2019s own photo');
  }else{
   assert.ok(html.includes(`${defaultGalleryCategory(template.id)} (5)`));assert.equal((html.match(/aria-label="View salon look /g)||[]).length,5);assert.ok(!html.includes('Delete photo')&&!html.includes('Replace / Edit'));
  }

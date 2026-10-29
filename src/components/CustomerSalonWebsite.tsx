@@ -69,6 +69,7 @@ import {BookingModal} from './BookingModal';
 import {HairSpaWebsite} from './HairSpaWebsite';
 import {DermacureWebsite} from './DermacureWebsite';
 import {BodhiTreeWebsite} from './BodhiTreeWebsite';
+import {PrismChromaWebsite} from './PrismChromaWebsite';
 import {FloatingPromoBanner} from './FloatingPromoBanner';
 
 const money=(value:number)=>`₹${Number(value||0).toLocaleString('en-IN')}`;
@@ -86,6 +87,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
  const keshPrakriti=profile.businessType==='hair_spa';
  const vogueNoir=profile.businessType==='makeup_studio';
  const bodhiTree=profile.businessType==='massage_wellness';
+ const prismChroma=profile.businessType==='hair_coloring';
  const skincare=profile.businessType==='skincare_clinic';
  const clinicBookable=skincare?clinicPublicServices(profile,services).filter(clinicPriceIsVerified):services;
  // A published sanctuary only ever shows its own saved menu. The bundled demo
@@ -93,7 +95,8 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
  const keshServices=(services&&services.length>0)?services:(!profile.subdomain?CATEGORY_TEMPLATES.hair_spa?.services||[]:[]);
  const vogueServices=(services&&services.length>0)?services:(!profile.subdomain&&!profile.serviceCatalogueInitialized?CATEGORY_TEMPLATES.makeup_studio?.services||[]:[]);
  const bodhiServices=(services&&services.length>0)?services:(!profile.subdomain&&!profile.serviceCatalogueInitialized?CATEGORY_TEMPLATES.massage_wellness?.services||[]:[]);
- const accent=profile.customAccentColor||(barber?'#c49a6c':roopMahal?'#6D2638':pinkyNails?'#702D4B':keshPrakriti?'#183D32':vogueNoir?'#C9A96E':bodhiTree?'#4E6E58':palette.primaryHex);
+ const prismServices=(services&&services.length>0)?services:(!profile.subdomain&&!profile.serviceCatalogueInitialized?CATEGORY_TEMPLATES.hair_coloring?.services||[]:[]);
+ const accent=profile.customAccentColor||(barber?'#c49a6c':roopMahal?'#6D2638':pinkyNails?'#702D4B':keshPrakriti?'#183D32':vogueNoir?'#C9A96E':bodhiTree?'#4E6E58':prismChroma?'#7C5CFF':palette.primaryHex);
  const [category,setCategory]=useState('All'),[chosen,setChosen]=useState<Stylist|undefined>(),[service,setService]=useState<SalonService|undefined>(),[booking,setBooking]=useState(false),[photo,setPhoto]=useState<number|null>(null);
  const [brokenGalleryIds,setBrokenGalleryIds]=useState<string[]>([]);
  useEffect(()=>{setCategory('All');setChosen(undefined);setService(undefined);setBooking(false);setBrokenGalleryIds([]);},[profile.businessType]);
@@ -158,7 +161,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
  const book=(selected?:SalonService,specialist?:Stylist)=>{
   if(roopMahal&&!roopBookingFlowAvailable)return;
   if(pinkyNails&&!pinkyBookingFlowAvailable)return;
-  const pool=skincare?clinicBookable:keshPrakriti?keshServices:vogueNoir?vogueServices:bodhiTree?bodhiServices:roopMahal?roopServices:pinkyNails?pinkyServices:services;
+  const pool=skincare?clinicBookable:keshPrakriti?keshServices:vogueNoir?vogueServices:bodhiTree?bodhiServices:prismChroma?prismServices:roopMahal?roopServices:pinkyNails?pinkyServices:services;
   if(skincare && (!clinicBookingAvailable || !pool.length || (selected && !pool.some(item=>item.id===selected.id)))){ document.getElementById('contact')?.scrollIntoView({behavior:'smooth'}); return; }
   setDirectSlot(undefined);setService(selected||pool[0]);setChosen(current=>specialist||current);setBooking(true);
  };
@@ -385,6 +388,32 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
   {myBookings&&<SalonBookingsDialog profile={profile} onClose={()=>setMyBookings(false)}/>}
   {team.some(st=>st.id===viewStaff)&&<StylistProfile services={bodhiServices} onSlot={(selected,slot)=>{setChosen(team.find(st=>st.id===slot.stylistId));setService(selected);setDirectSlot(slot);setViewStaff('');setBooking(true)}} staff={team.find(st=>st.id===viewStaff)!} profile={profile} slug={profile.subdomain} signedIn={customerSignedIn} demo={!profile.subdomain} onLogin={()=>{setViewStaff('');customer('signin')}} onClose={()=>setViewStaff('')} onBook={()=>{const specialist=team.find(st=>st.id===viewStaff);setViewStaff('');book(undefined,specialist)}}/>}
   <BookingModal isOpen={booking} onClose={()=>setBooking(false)} profile={profile} services={bodhiServices} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>
+ </>;
+
+ if(profile.businessType==='hair_coloring')return <>
+  {/* Template 10 (Prism & Chroma) renders all of its sections through
+      PrismChromaWebsite, using the same booking system and multi-tenant
+      data as every other template. */}
+  <PrismChromaWebsite
+   profile={profile}
+   services={prismServices}
+   stylists={team}
+   galleryPhotos={galleryEntries}
+   shared={shared}
+   enabledSections={['promo','videos','loyalty','policies','share'].filter(section=>visible[section])}
+   showPackages={visible.packages}
+   customerSignedIn={customerSignedIn}
+   customerName={customerName}
+   customerPhotoUrl={customerPhotoUrl}
+   bookingAvailable={Boolean(typeof onAddAppointment==='function' && (profile as typeof profile & {bookingEnabled?:boolean}).bookingEnabled!==false)}
+   onBook={(selected,specialist)=>book(selected,specialist)}
+   onAccount={mode=>customer(mode||'signin')}
+   onMyBookings={()=>setMyBookings(true)}
+   onViewSpecialist={id=>setViewStaff(id)}
+  />
+  {myBookings&&<SalonBookingsDialog profile={profile} onClose={()=>setMyBookings(false)}/>}
+  {team.some(st=>st.id===viewStaff)&&<StylistProfile services={prismServices} onSlot={(selected,slot)=>{setChosen(team.find(st=>st.id===slot.stylistId));setService(selected);setDirectSlot(slot);setViewStaff('');setBooking(true)}} staff={team.find(st=>st.id===viewStaff)!} profile={profile} slug={profile.subdomain} signedIn={customerSignedIn} demo={!profile.subdomain} onLogin={()=>{setViewStaff('');customer('signin')}} onClose={()=>setViewStaff('')} onBook={()=>{const specialist=team.find(st=>st.id===viewStaff);setViewStaff('');book(undefined,specialist)}}/>}
+  <BookingModal isOpen={booking} onClose={()=>setBooking(false)} profile={profile} services={prismServices} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>
  </>;
 
  const testimonialsSection=visible.testimonials&&(!pinkyNails||pinkyHasReviews||customerSignedIn)&&(

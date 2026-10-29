@@ -6,6 +6,7 @@ import {WebsiteContentManager} from './WebsiteContentManager';
 import {ClinicTechnologyEditor} from './dermacure/ClinicTechnologyEditor';
 import {VogueNoirEditor} from './vogue-noir/VogueNoirEditor';
 import {BodhiTreeEditor} from './bodhi-tree/BodhiTreeEditor';
+import {PrismChromaEditor} from './prism-chroma/PrismChromaEditor';
 import {AcademyEnquiriesPanel} from './vogue-noir/AcademyEnquiriesPanel';
 import {CustomerAppPromotion} from './CustomerAppPromotion';
 import {CustomerSalonWebsite} from './CustomerSalonWebsite';
@@ -96,7 +97,7 @@ type DeviceMode = 'desktop' | 'tablet' | 'mobile';
 export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = props => {
  const [editing,setEditing]=useState(false);
  if(props.readOnly)return <CustomerSalonWebsite {...props}/>;
- return <><div className="pt-28 px-4 pb-4 flex flex-wrap gap-3 bg-white text-slate-900"><button className="secondary-action" onClick={()=>setEditing(value=>!value)}>{editing?'Show redesigned website':'Open owner editing tools'}</button><button className="secondary-action" onClick={props.onEnterClientPreview}>Customer device preview</button></div>{editing?(props.profile.businessType==='skincare_clinic'?<ClinicPreviewEditor {...props}/>:props.profile.businessType==='makeup_studio'?<VogueNoirPreviewEditor {...props}/>:props.profile.businessType==='massage_wellness'?<BodhiTreePreviewEditor {...props}/>:<SalonWebsiteEditor {...props}/>):<CustomerSalonWebsite {...props} readOnly/>}</>;
+ return <><div className="pt-28 px-4 pb-4 flex flex-wrap gap-3 bg-white text-slate-900"><button className="secondary-action" onClick={()=>setEditing(value=>!value)}>{editing?'Show redesigned website':'Open owner editing tools'}</button><button className="secondary-action" onClick={props.onEnterClientPreview}>Customer device preview</button></div>{editing?(props.profile.businessType==='skincare_clinic'?<ClinicPreviewEditor {...props}/>:props.profile.businessType==='makeup_studio'?<VogueNoirPreviewEditor {...props}/>:props.profile.businessType==='massage_wellness'?<BodhiTreePreviewEditor {...props}/>:props.profile.businessType==='hair_coloring'?<PrismChromaPreviewEditor {...props}/>:<SalonWebsiteEditor {...props}/>):<CustomerSalonWebsite {...props} readOnly/>}</>;
 };
 
 function VogueNoirPreviewEditor(props:SalonWebsitePreviewProps) {
@@ -107,6 +108,16 @@ function VogueNoirPreviewEditor(props:SalonWebsitePreviewProps) {
   {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
   {props.setStylists?<TeamManagement stylists={props.stylists} setStylists={props.setStylists} services={props.services} setServices={props.setServices} businessType="makeup_studio" primaryAccentColor={accent}/>:null}
   <AcademyEnquiriesPanel/>
+ </main>;
+}
+
+function PrismChromaPreviewEditor(props:SalonWebsitePreviewProps) {
+ const accent=props.profile.customAccentColor||'#7C5CFF';
+ return <main className="max-w-6xl mx-auto p-4 space-y-6" aria-label="Prism and Chroma owner editing tools">
+  <p>Edit your Prism &amp; Chroma Hair Color Atelier website — hero, Shade Studio, branches, services, colour experts and reviews. Changes save with your connected workspace.</p>
+  {props.setProfile?<><PrismChromaEditor profile={props.profile} setProfile={props.setProfile} showBrandIdentityFields/><WebsiteContentManager profile={props.profile} setProfile={props.setProfile} services={props.services} gallery={props.gallery} showGallery={false}/></>:<p role="status">Content editing requires a connected owner workspace.</p>}
+  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
+  {props.setStylists?<TeamManagement stylists={props.stylists} setStylists={props.setStylists} services={props.services} setServices={props.setServices} businessType="hair_coloring" primaryAccentColor={accent}/>:null}
  </main>;
 }
 
