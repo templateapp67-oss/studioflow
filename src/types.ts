@@ -501,6 +501,9 @@ export interface VogueNoirConfig {
   publicEmail?: string;
   workingHoursDisplay?: string;
   mapEmbedUrl?: string;
+  gstin?: string;
+  sacCode?: string;
+  gstPricing?: 'inclusive' | 'exclusive' | '';
   colors?: Partial<VogueNoirThemeColors>;
   stats?: VogueNoirStatItem[];
   bridalPackages?: VogueNoirBridalPackage[];
@@ -509,6 +512,8 @@ export interface VogueNoirConfig {
   academySubtext?: string;
   academyHeroUrl?: string;
   academyHighlights?: string[];
+  /** City-specific preferred batch labels, one line per city: City | date, date. */
+  academyScheduleText?: string;
   courses?: VogueNoirAcademyCourse[];
   portfolio?: VogueNoirPortfolioItem[];
   beforeAfter?: VogueNoirBeforeAfterItem[];
@@ -528,6 +533,7 @@ export interface AcademyEnquiryRecord {
   email: string;
   course: string;
   batch: string;
+  city: string;
   message: string;
   status: AcademyEnquiryStatus;
   created_at: string;

@@ -163,10 +163,12 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                 {templates.map(t => ({ id: t.id, title: t.shortName, icon: t.icon, paletteName: t.paletteLabel, aestheticDescription: t.tagline, description: t.about })).map((bt) => {
                   const isSelected = profile.businessType === bt.id;
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={bt.id}
+                      aria-pressed={isSelected}
                       onClick={() => handleBusinessTypeSelect(bt.id)}
-                      className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 relative ${
+                      className={`text-left p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 relative ${
                         isSelected
                           ? 'border-[#b0004a] bg-[#b0004a]/5 text-[#b0004a] font-bold shadow-md'
                           : 'border-gray-200 hover:border-gray-300 text-gray-800'
@@ -193,10 +195,16 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                           check_circle
                         </span>
                       )}
-                    </div>
+                    </button>
                   );
                 })}
               </div>
+              {profile.businessType === 'makeup_studio' && (
+                <a href="/?template=08" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-3 rounded-xl border border-gray-200 p-2 text-sm font-semibold text-amber-800 hover:border-amber-600">
+                  <img src="/templates/vogue-noir/hero-1.webp" alt="" width="96" height="54" className="h-14 w-24 rounded-lg object-cover" />
+                  Preview Vogue Noir (08) in a new tab ↗
+                </a>
+              )}
             </div>
           )}
 

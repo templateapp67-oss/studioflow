@@ -226,6 +226,28 @@ export function VogueNoirEditor({
 
           <div className="form-grid">
             <label>
+              <span className="field-label">GSTIN (optional)</span>
+              <input className="workspace-input" maxLength={15} value={resolved.gstin}
+                onChange={(e) => patchVogueNoir(() => ({ gstin: e.target.value.toUpperCase() }))} />
+              {resolved.gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][A-Z0-9]Z[A-Z0-9]$/.test(resolved.gstin) && <span className="text-xs text-red-700">Enter a 15-character GSTIN in the standard format.</span>}
+            </label>
+            <label>
+              <span className="field-label">SAC code (optional, 6 digits)</span>
+              <input className="workspace-input" inputMode="numeric" maxLength={6} value={resolved.sacCode}
+                onChange={(e) => patchVogueNoir(() => ({ sacCode: e.target.value.replace(/[^0-9]/g, '') }))} />
+            </label>
+            <label>
+              <span className="field-label">GST price disclosure</span>
+              <select className="workspace-input" value={resolved.gstPricing}
+                onChange={(e) => patchVogueNoir(() => ({ gstPricing: e.target.value as VogueNoirConfig['gstPricing'] }))}>
+                <option value="">Not specified</option><option value="inclusive">Prices inclusive of GST</option><option value="exclusive">Prices exclusive of GST</option>
+              </select>
+            </label>
+            <p className="text-xs text-slate-600 sm:col-span-2">These fields are disclosures only. They do not calculate GST, change checkout totals or create a tax invoice.</p>
+          </div>
+
+          <div className="form-grid">
+            <label>
               <span className="field-label">Hero Headline</span>
               <input
                 className="workspace-input"
@@ -656,6 +678,15 @@ export function VogueNoirEditor({
               />
             </div>
           </div>
+
+          <label className="block">
+            <span className="field-label">City-wise preferred batch dates (optional)</span>
+            <textarea className="workspace-input" rows={4} maxLength={10000}
+              placeholder={'Delhi | 01/11/2026, 15/11/2026\nOnline | 01/12/2026'}
+              value={resolved.academyScheduleText}
+              onChange={(e) => patchVogueNoir(() => ({ academyScheduleText: e.target.value }))} />
+            <span className="text-xs text-slate-600">One city per line, followed by | and comma-separated dates. Leave blank for suggested 1st/15th dates; confirm availability with each student.</span>
+          </label>
 
           <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200">
             <h4 className="font-bold text-sm text-slate-900">

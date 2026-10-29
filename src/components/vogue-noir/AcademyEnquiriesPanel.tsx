@@ -31,7 +31,7 @@ export function AcademyEnquiriesPanel() {
         const result = await supabase
           .from('studioflow_academy_enquiries')
           .select(
-            'id,website_slug,owner_id,customer_id,name,phone,email,course,batch,message,status,created_at,updated_at',
+            'id,website_slug,owner_id,customer_id,name,phone,email,city,course,batch,message,status,created_at,updated_at',
           )
           .eq('owner_id', user.data.user.id)
           .order('created_at', { ascending: false })
@@ -182,7 +182,7 @@ export function AcademyEnquiriesPanel() {
                     </div>
                     <p className="text-sm font-medium text-slate-800 mt-1">
                       Course: <span className="font-semibold">{item.course}</span>
-                      {item.batch ? ` · Batch: ${item.batch}` : ''}
+                      {item.city ? ` · City: ${item.city}` : ''}{item.batch ? ` · Batch: ${item.batch}` : ''}
                     </p>
                     <p className="text-xs text-slate-500 mt-0.5">
                       Received{' '}
