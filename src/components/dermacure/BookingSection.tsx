@@ -1,3 +1,4 @@
+import { clinicPriceIsVerified } from "../../lib/dermacureContent";
 import { EditorialImage, NEUTRAL_CLINIC_IMAGE } from "./EditorialImage";
 import { BookingFAQ } from "./BookingFAQ";
 import type { FormEvent } from "react";
@@ -19,6 +20,8 @@ export function BookingSection() {
     booking,
     profile,
   } = useDermacure();
+  const bookableServices = services.filter(clinicPriceIsVerified);
+  const validSelection = bookableServices.some(s => s.id === selectedService);
   const today = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Kolkata",
     year: "numeric",
@@ -47,6 +50,7 @@ export function BookingSection() {
     if (
       !bookingAvailable ||
       !selectedService ||
+      !validSelection ||
       !date ||
       date < today ||
       date > maxDate
@@ -82,6 +86,7 @@ export function BookingSection() {
     };
   }, [
     bookingAvailable,
+    validSelection,
     profile.subdomain,
     selectedService,
     date,
@@ -95,7 +100,7 @@ export function BookingSection() {
     setNotice("");
     const cleanPhone = consultationPhone(phone),
       slot = slots.find((s) => s.time === time),
-      service = services.find((s) => s.id === selectedService);
+      service = bookableServices.find((s) => s.id === selectedService);
     if (name.trim().length < 2) {
       setError("Please enter your full name.");
       return;
@@ -179,12 +184,13 @@ export function BookingSection() {
               onChange={(e) => setSelectedService(e.target.value)}
             >
               <option value="">Choose a treatment</option>
-              {services.map((s) => (
+              {bookableServices.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
                 </option>
               ))}
             </select>
+            {selectedService && bookableServices.find(s => s.id === selectedService) && <p role="status">{(() => { const s = bookableServices.find(item => item.id === selectedService)!; return `${s.name} · ${profile.currency || "₹"}${s.price.toLocaleString("en-IN")}${s.showDuration !== false && s.durationMinutes > 0 ? ` · ${s.durationMinutes} min` : ""}`; })()}</p>}
             <div className="dc-form-grid">
               <label>
                 Preferred date

@@ -3,11 +3,23 @@ import type {SalonProfile,SalonService,CategoryTemplateConfig} from '../types';
 
 export const MAX_SERVICES=500;
 const STARTER_SERVICES=new Map(Object.values(CATEGORY_TEMPLATES).flatMap(template=>template.services).map(service=>[service.id,service]));
-export function serviceValidation(service:Pick<SalonService,'name'|'category'|'description'|'price'|'durationMinutes'>):string {
+/** Keep inline edits consistent with the clinic verification state machine. */
+export function updateInlineService<K extends 'name'|'description'|'price'|'durationMinutes'>(service:SalonService,key:K,value:SalonService[K],clinicContext:boolean):SalonService {
+ if (service[key]===value) return service;
+ if (key==='price' && (typeof value!=='number' || !Number.isFinite(value) || value<0)) return service;
+ if (key==='durationMinutes' && (typeof value!=='number' || !Number.isInteger(value) || value<1 || value>720)) return service;
+ const clinic=clinicContext || service.clinicServiceApproved!==undefined || service.clinicPriceVerified!==undefined;
+ const details=key==='name'||key==='description';
+ return {...service,[key]:value,origin:'custom',...(clinic ? {
+  ...(details?{clinicServiceApproved:false,clinicPublicationStatus:'draft' as const,clinicServiceVerifiedBy:undefined,clinicServiceVerifiedAt:undefined}:{}),
+  clinicPriceVerified:false,clinicFeeStatus:'unverified' as const,clinicFeeVerifiedBy:undefined,clinicFeeVerifiedAt:undefined,
+ }: {})};
+}
+export function serviceValidation(service:Pick<SalonService,'name'|'category'|'description'|'price'|'durationMinutes'>,allowMissingPrice=false):string {
  if(!service.name.trim()||service.name.trim().length>160)return 'Enter a service name of 1–160 characters.';
  if(!service.category.trim()||service.category.trim().length>100)return 'Enter a category of 1–100 characters.';
  if(service.description.length>2000)return 'Keep the description within 2,000 characters.';
- if(!Number.isFinite(service.price)||service.price<0||service.price>10000000||Math.abs(service.price*100-Math.round(service.price*100))>0.00001)return 'Enter a price from ₹0 to ₹1,00,00,000 with at most two decimal places.';
+ if(!(allowMissingPrice && service.price===null) && (!Number.isFinite(service.price)||service.price<0||service.price>10000000||Math.abs(service.price*100-Math.round(service.price*100))>0.00001))return 'Enter a price from ₹0 to ₹1,00,00,000 with at most two decimal places.';
  if(!Number.isInteger(service.durationMinutes)||service.durationMinutes<1||service.durationMinutes>720)return 'Duration must be 1–720 whole minutes.';
  return '';
 }

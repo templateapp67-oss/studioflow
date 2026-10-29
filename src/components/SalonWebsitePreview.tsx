@@ -1,4 +1,9 @@
 import {photoGallery,type PhotoCategory} from '../lib/photoGallery';
+import {updateInlineService} from '../lib/serviceCatalogue';
+import {ServiceManagement} from './ServiceManagement';
+import {TeamManagement} from './TeamManagement';
+import {WebsiteContentManager} from './WebsiteContentManager';
+import {ClinicTechnologyEditor} from './dermacure/ClinicTechnologyEditor';
 import {CustomerAppPromotion} from './CustomerAppPromotion';
 import {CustomerSalonWebsite} from './CustomerSalonWebsite';
 import { WebsiteSections } from './WebsiteSections';
@@ -88,8 +93,19 @@ type DeviceMode = 'desktop' | 'tablet' | 'mobile';
 export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = props => {
  const [editing,setEditing]=useState(false);
  if(props.readOnly)return <CustomerSalonWebsite {...props}/>;
- return <><div className="pt-28 px-4 pb-4 flex flex-wrap gap-3 bg-white text-slate-900"><button className="secondary-action" onClick={()=>setEditing(value=>!value)}>{editing?'Show redesigned website':'Open owner editing tools'}</button><button className="secondary-action" onClick={props.onEnterClientPreview}>Customer device preview</button></div>{editing?<SalonWebsiteEditor {...props}/>:<CustomerSalonWebsite {...props} readOnly/>}</>;
+ return <><div className="pt-28 px-4 pb-4 flex flex-wrap gap-3 bg-white text-slate-900"><button className="secondary-action" onClick={()=>setEditing(value=>!value)}>{editing?'Show redesigned website':'Open owner editing tools'}</button><button className="secondary-action" onClick={props.onEnterClientPreview}>Customer device preview</button></div>{editing?(props.profile.businessType==='skincare_clinic'?<ClinicPreviewEditor {...props}/>:<SalonWebsiteEditor {...props}/>):<CustomerSalonWebsite {...props} readOnly/>}</>;
 };
+
+/** Template 07 uses the existing workspace editors, not the legacy mock-data canvas. */
+function ClinicPreviewEditor(props:SalonWebsitePreviewProps) {
+ const accent=props.profile.customAccentColor||'#000000';
+ return <main className="max-w-6xl mx-auto p-4 space-y-6" aria-label="Clinic owner editing tools">
+  <p>These are the existing workspace editors. Changes use your connected workspace save; verify service details and fees before publication.</p>
+  {props.setProfile?<><WebsiteContentManager profile={props.profile} setProfile={props.setProfile} services={props.services} gallery={props.gallery} showGallery={false}/><section className="workspace-card"><ClinicTechnologyEditor profile={props.profile} setProfile={props.setProfile}/></section></>:<p role="status">Content editing requires a connected owner workspace.</p>}
+  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
+  {props.setStylists?<TeamManagement stylists={props.stylists} setStylists={props.setStylists} services={props.services} setServices={props.setServices} businessType="skincare_clinic" primaryAccentColor={accent}/>:null}
+ </main>;
+}
 
 const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
   profile,
@@ -320,28 +336,21 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
 
   // Inline Service Actions
   const handleUpdateServicePrice = (serviceId: string, newPrice: number) => {
-    setServices((prev) =>
-      prev.map((s) => (s.id === serviceId ? { ...s, origin:'custom', price: Number.isFinite(Number(newPrice)) && Number(newPrice)>=0 ? Number(newPrice) : s.price } : s))
-    );
-    showNotification(`Updated service price to ₹${newPrice}`);
+    if (!Number.isFinite(newPrice) || newPrice < 0) return;
+    setServices(prev=>prev.map(s=>s.id===serviceId?updateInlineService(s,'price',newPrice,activeProfile.businessType==='skincare_clinic'):s));
+    showNotification(activeProfile.businessType==='skincare_clinic'?'Price changed. Review its verification and wait for the workspace save.':`Updated service price to ₹${newPrice}`);
   };
 
   const handleUpdateServiceName = (serviceId: string, newName: string) => {
-    setServices((prev) =>
-      prev.map((s) => (s.id === serviceId ? { ...s, origin:'custom', name: String(newName) } : s))
-    );
+    setServices(prev=>prev.map(s=>s.id===serviceId?updateInlineService(s,'name',String(newName),activeProfile.businessType==='skincare_clinic'):s));
   };
 
   const handleUpdateServiceDesc = (serviceId: string, newDesc: string) => {
-    setServices((prev) =>
-      prev.map((s) => (s.id === serviceId ? { ...s, origin:'custom', description: String(newDesc) } : s))
-    );
+    setServices(prev=>prev.map(s=>s.id===serviceId?updateInlineService(s,'description',String(newDesc),activeProfile.businessType==='skincare_clinic'):s));
   };
 
   const handleUpdateServiceDuration = (serviceId: string, newDuration: number) => {
-    setServices((prev) =>
-      prev.map((s) => (s.id === serviceId ? { ...s, origin:'custom', durationMinutes: Number(newDuration) } : s))
-    );
+    setServices(prev=>prev.map(s=>s.id===serviceId?updateInlineService(s,'durationMinutes',Number(newDuration),activeProfile.businessType==='skincare_clinic'):s));
   };
 
   const handleToggleServiceShowDuration = (serviceId: string) => {

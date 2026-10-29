@@ -14,8 +14,8 @@ export function ResultsSection() {
               <p className="dc-eyebrow">
                 <span />{" "}
                 {comparisons.length
-                  ? "BEFORE & AFTER"
-                  : "YOUR SKIN, YOUR STORY"}
+                  ? "BEFORE & AFTER GALLERY"
+                  : "TREATMENT GALLERY"}
               </p>
               <h2>
                 {comparisons.length ? (
@@ -48,11 +48,11 @@ export function ResultsSection() {
                 <>
                   <EditorialImage
                     fallback={NEUTRAL_CLINIC_IMAGE}
-                    src="/templates/dermacure/hero.webp"
-                    alt="Illustrative skin portrait — not a patient result"
+                    src="/templates/dermacure/treatment.webp"
+                    alt="Illustrative clinic treatment — not a patient result"
                     loading="lazy"
                   />
-                  <span>YOUR SKIN, YOUR STORY.</span>
+                  <span>ILLUSTRATIVE TREATMENT PHOTO · NOT A PATIENT RESULT</span>
                 </>
               )}
             </div>

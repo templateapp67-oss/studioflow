@@ -1,3 +1,4 @@
+import { clinicPriceIsVerified, clinicPublicServices } from '../lib/dermacureContent';
 import type { ConsultationDetails } from "./dermacure/consultation";
 import {SpecialistCard} from './SpecialistCard';
 import {WebsiteLanguageProvider,useWebsiteLanguage} from './WebsiteLanguage';
@@ -81,6 +82,8 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
  const roopMahal=profile.businessType==='beauty_parlour';
  const pinkyNails=profile.businessType==='nail_studio';
  const keshPrakriti=profile.businessType==='hair_spa';
+ const skincare=profile.businessType==='skincare_clinic';
+ const clinicBookable=skincare?clinicPublicServices(profile,services).filter(clinicPriceIsVerified):services;
  // A published sanctuary only ever shows its own saved menu. The bundled demo
  // menu is used for the template preview, which has no live slug.
  const keshServices=(services&&services.length>0)?services:(!profile.subdomain?CATEGORY_TEMPLATES.hair_spa?.services||[]:[]);
@@ -111,6 +114,9 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
   :Array.from(new Set(services.map(s=>s.category||'Signature services')));
  const activeCategory=categories.includes(category)?category:'All';
  const team=roopMahal?stylists.filter(isValidRoopStaff):pinkyNails?stylists.filter(isValidNailStaff):stylists.filter(s=>s.status!=='Inactive');
+ // Bundled demo identities and credentials are never published as clinic staff.
+ const clinicTeam=profile.subdomain?team.filter(s=>!['sk-st-1','sk-st-2','sk-st-3'].includes(s.id)).map(s=>s.avatarUrl?.toLowerCase().includes('images.unsplash.com')?{...s,avatarUrl:''}:s):team;
+ const clinicBookingAvailable=Boolean(visible.bookings && profile.subdomain && clinicBookable.length && clinicTeam.length && onAddAppointment && (profile as typeof profile & {bookingEnabled?:boolean}).bookingEnabled!==false);
  const pinkyCoreServices=pinkyNails?pinkyServices:pinkyServices;
  const nailCategories=pinkyNails?Array.from(new Set(pinkyCoreServices.map(s=>(s.category||'').trim()).filter(Boolean))):[];
  const reviews=clientExperiences(profile);
@@ -146,7 +152,8 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
  const book=(selected?:SalonService,specialist?:Stylist)=>{
   if(roopMahal&&!roopBookingFlowAvailable)return;
   if(pinkyNails&&!pinkyBookingFlowAvailable)return;
-  const pool=keshPrakriti?keshServices:roopMahal?roopServices:pinkyNails?pinkyServices:services;
+  const pool=skincare?clinicBookable:keshPrakriti?keshServices:roopMahal?roopServices:pinkyNails?pinkyServices:services;
+  if(skincare && (!clinicBookingAvailable || !pool.length || (selected && !pool.some(item=>item.id===selected.id)))){ document.getElementById('contact')?.scrollIntoView({behavior:'smooth'}); return; }
   setDirectSlot(undefined);setService(selected||pool[0]);setChosen(current=>specialist||current);setBooking(true);
  };
  const customer=(mode:'signin'|'signup')=>onCustomerAccount?onCustomerAccount(mode):location.assign(`/?customer=1&auth=${mode}&return=${encodeURIComponent(profile.subdomain||'')}`);
@@ -308,10 +315,10 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
  );
 
  if(profile.businessType==='skincare_clinic')return <>
-  <DermacureWebsite shared={shared} customerName={customerName} customerPhotoUrl={customerPhotoUrl} galleryPhotos={galleryEntries} stylists={team} onViewStaff={setViewStaff} onBookStaff={staff=>{setConsultation(undefined);book(undefined,staff)}} onAccount={()=>customer('signin')} customerSignedIn={customerSignedIn} onMyBookings={()=>setMyBookings(true)} profile={profile} services={services} policies={policies} bookingAvailable={Boolean(visible.bookings && profile.subdomain && services.length && (profile as typeof profile & {bookingEnabled?:boolean}).bookingEnabled!==false)} onBook={(selected,details)=>{setConsultation(details);book(selected,details?team.find(st=>st.id===details.stylistId):undefined);if(details)setDirectSlot({date:details.date,time:details.time,stylistId:details.stylistId});}}/>
+  <DermacureWebsite shared={shared} customerName={customerName} customerPhotoUrl={customerPhotoUrl} galleryPhotos={galleryEntries} stylists={clinicTeam} onViewStaff={setViewStaff} onBookStaff={clinicBookingAvailable?staff=>{setConsultation(undefined);book(undefined,staff)}:undefined} onAccount={()=>customer('signin')} customerSignedIn={customerSignedIn} onMyBookings={()=>setMyBookings(true)} profile={profile} services={services} policies={policies} bookingAvailable={clinicBookingAvailable} onBook={(selected,details)=>{if(selected&&!clinicBookable.some(item=>item.id===selected.id))return;setConsultation(details);book(selected,details?clinicTeam.find(st=>st.id===details.stylistId):undefined);if(details)setDirectSlot({date:details.date,time:details.time,stylistId:details.stylistId});}}/>
   {myBookings&&<SalonBookingsDialog profile={profile} onClose={()=>setMyBookings(false)}/>}
-  {team.some(st=>st.id===viewStaff)&&<StylistProfile services={services} staff={team.find(st=>st.id===viewStaff)!} profile={profile} slug={profile.subdomain} signedIn={customerSignedIn} demo={!profile.subdomain} onLogin={()=>customer('signin')} onClose={()=>setViewStaff('')} onBook={()=>{const specialist=team.find(st=>st.id===viewStaff);setViewStaff('');setConsultation(undefined);book(undefined,specialist)}}/>}
-  <BookingModal isOpen={booking} onClose={()=>setBooking(false)} profile={profile} services={services} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} consultation={consultation} onAddAppointment={onAddAppointment} themeAccentHex="#50372D"/>
+  {clinicTeam.some(st=>st.id===viewStaff)&&<StylistProfile services={clinicBookable} staff={clinicTeam.find(st=>st.id===viewStaff)!} profile={profile} slug={profile.subdomain} signedIn={customerSignedIn} demo={!profile.subdomain} onLogin={()=>customer('signin')} onClose={()=>setViewStaff('')} onBook={()=>{const specialist=clinicTeam.find(st=>st.id===viewStaff);setViewStaff('');setConsultation(undefined);book(undefined,specialist)}}/>}
+  {booking && service && clinicBookable.some(s=>s.id===service.id && s.price===service.price) && <BookingModal isOpen onClose={()=>setBooking(false)} profile={profile} services={clinicBookable} stylists={clinicTeam} initialService={service} initialStylist={chosen} initialSlot={directSlot} consultation={consultation} onAddAppointment={onAddAppointment} themeAccentHex="#50372D"/>}
  </>;
 
  if(profile.businessType==='hair_spa')return <>

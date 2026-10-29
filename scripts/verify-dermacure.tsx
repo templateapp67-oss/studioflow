@@ -8,6 +8,8 @@ import { CATEGORY_TEMPLATES } from "../src/categoryTemplates";
 import { existsSync } from "node:fs";
 
 const template = CATEGORY_TEMPLATES.skincare_clinic;
+// Synthetic confirmations for testing only, not assertions about a real clinic.
+const confirmedServices = template.services.map(s=>({...s,clinicServiceApproved:true,clinicPublicationStatus:'published' as const,clinicFeeStatus:'verified' as const,clinicPriceVerified:true}));
 const profile = {
   ...INITIAL_SALON_PROFILE,
   businessType: template.id,
@@ -18,7 +20,7 @@ const profile = {
 };
 const shared = {
   profile,
-  services: template.services,
+  services: confirmedServices,
   onBook: () => {},
   readOnly: true,
 };
@@ -29,7 +31,7 @@ const render = (
     <WebsiteLanguageProvider>
       <DermacureWebsite
         profile={profile}
-        services={template.services}
+        services={confirmedServices}
         shared={shared}
         onBook={() => {}}
         onMyBookings={() => {}}
@@ -76,6 +78,14 @@ assert.ok(!empty.includes('href="#treatments"'));
 assert.ok(!empty.includes('href="#about"'));
 assert.ok(!empty.includes('href="#results"'));
 assert.ok(empty.includes("Online booking is not currently available"));
+// Public clinic email is opt-in and separate from the private account address.
+const noPublicEmail=render({profile:{...profile,email:'private@example.test',phone:'',whatsapp:''}});
+assert.ok(!noPublicEmail.includes('private@example.test'));
+const publicContact=render({profile:{...profile,email:'private@example.test',clinicPublicEmail:'contact@example.test'}});
+assert.ok(publicContact.includes('mailto:contact@example.test'));assert.ok(!publicContact.includes('private@example.test'));
+const invalidPhone=render({profile:{...profile,phone:'not set',whatsapp:'unknown',email:'private@example.test'}});assert.ok(!invalidPhone.includes('href="tel:'));assert.ok(invalidPhone.includes('Contact details have not been added yet.'));
+const invalidContact=render({profile:{...profile,email:'private@example.test',clinicPublicEmail:'contact@example.test?subject=unsafe'}});
+assert.ok(!invalidContact.includes('mailto:contact@example.test'));
 // ---------------------------------------------------------------------------
 // About, clinicians and gallery: every destination resolves, every portrait and
 // every reference photograph is a bundled local file, and the copy is real.
@@ -120,9 +130,9 @@ assert.ok(html.includes("Good skin care begins with understanding"), "the editor
 assert.ok(!/Dr\.?\s+[A-Z][a-z]+\s+(MD|MBBS)/.test(html), "no invented medical degrees");
 // Our approach: the four requested steps, in order, in one section.
 const journey = html.split('id="journey"')[1].split("</section>")[0];
-for (const step of ["Listen", "Assess", "Personalise", "Guide"])
+for (const step of ["Consultation", "Skin Analysis", "Personalised Plan", "Your Treatment"])
   assert.ok(journey.includes(`>${step}<`), `journey step ${step} is listed`);
-assert.ok(journey.includes("A More Considered"), "journey keeps the requested heading");
+assert.ok(journey.includes("Four gentle steps"), "journey keeps the requested heading");
 assert.equal((journey.match(/<li/g) || []).length, 4, "the journey is four steps, not a duplicated list");
 assert.ok(!html.includes("Lorem ipsum") && !html.includes("Coming soon"), "no placeholder copy in the About section");
 // No fabricated credential strip: nothing claims a certification, award or
@@ -132,11 +142,13 @@ for (const claim of ["US-FDA", "Board-Certified", "award", "years of experience"
 
 // Clinician portraits resolve to bundled files and are labelled as samples.
 const { dermacureTeamPortrait, DERMACURE_TEAM_PORTRAITS, DERMACURE_SAMPLE_GALLERY, safeClinicUrl } = await import("../src/lib/dermacureSite");
+const templatePreviewHtml=render({profile:{...profile,subdomain:''}});
 for (const person of template.stylists) {
   const portrait = dermacureTeamPortrait(person);
   assert.ok(portrait.src && existsSync("public" + portrait.src), `${person.name} has a bundled portrait`);
-  assert.ok(html.includes(`src="${portrait.src}"`), `${person.name}'s portrait is rendered`);
-  assert.ok(html.includes("Demo / sample portrait"), "demo portraits are labelled");
+  assert.ok(templatePreviewHtml.includes(`src="${portrait.src}"`), `${person.name}'s sample portrait is rendered only in preview`);
+  assert.ok(templatePreviewHtml.includes("Demo / sample portrait"), "demo portraits are labelled");
+  assert.ok(!html.includes(`src="${portrait.src}"`), "published pages do not substitute a sample portrait for a real person");
 }
 assert.equal(dermacureTeamPortrait({ name: "Dr. Tanvi Deshmukh" }).src, DERMACURE_TEAM_PORTRAITS["tanvi deshmukh"], "honorifics are ignored when matching a portrait");
 assert.equal(dermacureTeamPortrait({ name: "Dr. Tanvi Deshmukh", avatarUrl: "https://cdn.example.com/clinic.jpg" }).isDemo, false, "a saved photo always wins");
@@ -173,7 +185,7 @@ import { BeforeAfter } from "../src/components/BeforeAfter";
 let selected: string | undefined;
 const value: any = {
   profile,
-  services: template.services,
+  services: confirmedServices,
   visible: { services: true, bookings: true, testimonials: true },
   reduced: true,
   bookingAvailable: true,
@@ -184,7 +196,7 @@ const value: any = {
   selectedService: template.services[1].id,
   setSelectedService: () => {},
   reviews: [
-    { rating: 5, id: "review-1", name: "First", comment: "Thoughtful care" },
+    { rating: 5, verified: true, id: "review-1", name: "First", comment: "Thoughtful care" },
     { id: "review-2", name: "Second", comment: "A helpful visit" },
   ],
 };
@@ -195,13 +207,8 @@ const text = (node: any): string =>
       ? node.map(text).join(" ")
       : (node?.children || []).map(text).join(" ");
 let menu: any;
-await act(async () => {
-  menu = create(
-    <DermacureContext.Provider value={value}>
-      <ServicesSection />
-    </DermacureContext.Provider>,
-  );
-});
+function MenuFixture() { const [serviceCategory,setServiceCategory] = React.useState("All"); const [search,setSearch] = React.useState(""); return <DermacureContext.Provider value={{...value,serviceCategory,setServiceCategory,search,setSearch}}><ServicesSection /></DermacureContext.Provider>; }
+await act(async () => { menu = create(<MenuFixture />); });
 const filter = menu.root
   .findAllByType("button")
   .find(
@@ -302,7 +309,7 @@ assert.equal(
 );
 await act(async () =>
   testimonials.root
-    .findByProps({ "aria-label": "Next review" })
+    .findByProps({ "aria-label": "Next testimonials" })
     .props.onClick(),
 );
 assert.ok(text(testimonials.root).includes("A helpful visit"));
@@ -390,3 +397,85 @@ assert.ok(!navMarkup.includes('href="#about"'));
 assert.ok(!navMarkup.includes('My Bookings'));
 console.log('PASS: hidden header/hero and disabled owner navigation links are respected.');
 
+
+// Clinic-specific editorial content uses the saved profile and real service IDs.
+const { dermacureMenu, dermacureFeatured } = await import('../src/lib/dermacureContent');
+const { normalizeWorkspace } = await import('../src/lib/normalizeWorkspace');
+const editedProfile = {...profile, sectionHeadings: {signatureTitle:'A saved heading', visitStep1Title:'Saved consultation step', clinicServiceOrder: JSON.stringify([template.services[3].id,template.services[1].id]), clinicHiddenServices:JSON.stringify([template.services[0].id]), clinicFeaturedServices:JSON.stringify([template.services[1].id,template.services[3].id])}};
+const restoredProfile = normalizeWorkspace(JSON.parse(JSON.stringify({profile:editedProfile,services:template.services}))).profile;
+const menuServices = dermacureMenu(restoredProfile,template.services);
+assert.equal(menuServices[0].id,template.services[3].id);
+assert.ok(!menuServices.some(s=>s.id===template.services[0].id));
+assert.deepEqual(dermacureFeatured(restoredProfile,menuServices).slice(0,2).map(s=>s.id),[template.services[1].id,template.services[3].id]);
+const editedHtml = render({profile:restoredProfile});
+assert.ok(editedHtml.includes('A saved heading') && editedHtml.includes('Saved consultation step'));
+assert.equal((editedHtml.match(/class="dc-feature-card"/g)||[]).length,3);
+assert.ok(!editedHtml.includes("Draft · awaiting client review"));
+assert.ok(editedHtml.includes('Contact clinic for consultation fees'));
+assert.ok(!editedHtml.includes('Featured Videos &amp; Reels'));
+const consultation = {...confirmedServices[0],id:'consult-verified',name:'Doctor Consultation',price:750,durationMinutes:30};
+const consultationHtml=render({services:[consultation]});
+assert.ok(consultationHtml.includes('₹750') && consultationHtml.includes('30 min'));
+assert.ok(!consultationHtml.includes('Contact clinic for consultation fees'));
+console.log('PASS: saved clinic content, menu order/visibility, signature choices, consultation fee and unpublished review state.');
+
+// Approved editorial entries survive the normal workspace snapshot; drafts never publish.
+const { clinicServiceGroup } = await import('../src/lib/dermacureContent');
+const { ClinicEditorialEditor } = await import('../src/components/dermacure/ClinicEditorialEditor');
+const editorialProfile = {...profile, clinicArticles:[{id:'article-1',title:'Clinic-approved guidance',category:'Skin',excerpt:'Owner excerpt',body:'Owner approved article text.',imageUrl:'',publishedAt:'2026-01-01',published:true},{id:'draft-1',title:'Unpublished article',category:'Skin',excerpt:'',body:'Private draft.',imageUrl:'',publishedAt:'',published:false}], clinicFaq:[{id:'faq-1',question:'Approved question?',answer:'Approved answer.',published:true},{id:'faq-2',question:'Private question?',answer:'Private answer.',published:false}], sectionHeadings:{clinicServiceGroups:JSON.stringify({[template.services[0].id]:'hair'})}};
+const editorialRestored = normalizeWorkspace(JSON.parse(JSON.stringify({profile:editorialProfile,services:template.services}))).profile;
+assert.equal(clinicServiceGroup(editorialRestored,template.services[0]),'hair');
+const editorialHtml=render({profile:editorialRestored});
+assert.ok(editorialHtml.includes('Clinic-approved guidance') && editorialHtml.includes('Approved question?'));
+assert.ok(!editorialHtml.includes('Unpublished article') && !editorialHtml.includes('Private question?'));
+assert.ok(editorialHtml.includes('id="hair-treatments"') && editorialHtml.includes('id="clinic-blog"') && editorialHtml.includes('id="treatment-stories"'));
+let editorProfile:any, editor:any;
+function EditorialFixture(){ const [current,setCurrent]=React.useState(editorialProfile);editorProfile=current;return <ClinicEditorialEditor profile={current} setProfile={setCurrent}/>; }
+await act(async()=>{ editor=create(<EditorialFixture/>); });
+const titleInput=editor.root.findAllByType('input').find((input:any)=>input.props.value==='Clinic-approved guidance');
+await act(async()=>titleInput.props.onChange({target:{value:'Edited clinic article'}}));
+assert.equal(normalizeWorkspace(JSON.parse(JSON.stringify({profile:editorProfile}))).profile.clinicArticles?.[0].title,'Edited clinic article');
+assert.equal(editorProfile.clinicArticles[0].published,false,'Changing a published article returns it to draft');
+const faqInput=editor.root.findAllByType('input').find((input:any)=>input.props.value==='Approved question?');
+await act(async()=>faqInput.props.onChange({target:{value:'Edited question?'}}));assert.equal(editorProfile.clinicFaq[0].published,false,'Changing a published FAQ returns it to draft');
+await act(async()=>editor.unmount());
+console.log('PASS: category override, approved article and FAQ publication, draft privacy, editable content and snapshot round-trip.');
+const { TreatmentStories, ClinicBlog, CurrentOffers } = await import('../src/components/dermacure/DiscoverySections');
+const videoProfile = {...profile,socialVideos:[{id:'real-video',title:'Clinic treatment',youtubeUrl:'https://www.youtube.com/shorts/abcdefghijk',videoId:'abcdefghijk',categoryTag:'SHORT' as const,thumbnailUrl:'',isOwnerVideo:true},{id:'demo-video',title:'Demo video',youtubeUrl:'https://www.youtube.com/shorts/abcdefghijk',videoId:'abcdefghijk',categoryTag:'SHORT' as const,thumbnailUrl:'',isOwnerVideo:false,isDemo:true}]};
+let story:any;
+await act(async()=>{story=create(<DermacureContext.Provider value={{...value,visible:{...value.visible,videos:true},profile:videoProfile}}><TreatmentStories/></DermacureContext.Provider>)});
+assert.ok(!text(story.root).includes('Demo video'));
+assert.equal(story.root.findAllByType('iframe').length,0,'video loads only after interaction');
+await act(async()=>story.root.findByProps({'aria-label':'Watch Clinic treatment'}).props.onClick());
+assert.equal(story.root.findAllByType('iframe').length,1);
+assert.ok(!story.root.findByType('iframe').props.src.includes('autoplay=1'));
+await act(async()=>story.unmount());
+let blog:any;
+await act(async()=>{blog=create(<DermacureContext.Provider value={{...value,profile:editorialRestored,search:''}}><ClinicBlog/></DermacureContext.Provider>)});
+assert.ok(!text(blog.root).includes('Owner approved article text.'));
+await act(async()=>blog.root.findByProps({href:'#clinic-article-article-1'}).props.onClick());
+assert.ok(text(blog.root).includes('Owner approved article text.'));
+await act(async()=>blog.unmount());
+const expiredProfile={...profile,promoCampaign:{enabled:true,selectedServiceId:template.services[0].id,campaignTheme:'',discountPercent:0,customOfferText:'',promoCode:'',headline:'Expired offer',subtext:'',aspectRatio:'',aesthetic:'',imageUrl:'',customPrompt:'',endsAt:'2020-01-01T00:00:00Z'}};
+const expiredHtml=renderToStaticMarkup(<DermacureContext.Provider value={{...value,visible:{promo:true},profile:expiredProfile}}><CurrentOffers/></DermacureContext.Provider>);
+assert.ok(!expiredHtml.includes('Expired offer'));
+console.log('PASS: owner-only stories, lazy video playback, published article interaction and expired-offer suppression.');
+
+// A missing staff directory must not leave a dead doctor/team link.
+const noTeamHtml = render({stylists: []});
+assert.ok(!noTeamHtml.includes('href="#salon-team"'));
+assert.ok(!noTeamHtml.includes('Meet the clinicians'));
+console.log('PASS: absent care-team data does not leave dead navigation links.');
+
+// Published clinic listings never infer approval or price confirmation from edits.
+const draftService={...template.services[0], origin:'custom' as const, imageUrl:'https://example.com/image.jpg'};
+const inquiryService={...template.services[1],clinicServiceApproved:true,clinicPublicationStatus:'published' as const,clinicFeeStatus:'unverified' as const};
+const safetyHtml=render({services:[draftService,inquiryService,confirmedServices[2]]});
+assert.ok(!safetyHtml.includes(draftService.name.replaceAll('&','&amp;')));
+assert.ok(safetyHtml.includes(inquiryService.name));
+assert.ok(safetyHtml.includes('Contact clinic for pricing'));
+assert.ok(!safetyHtml.includes('₹'+inquiryService.price.toLocaleString('en-IN')));
+assert.ok(safetyHtml.includes('₹'+confirmedServices[2].price.toLocaleString('en-IN')));
+const inquiryProjection=render({profile:{...profile,clinicEnquiryServices:[{...inquiryService,price:undefined as unknown as number}]},services:[confirmedServices[2]]});
+assert.ok(inquiryProjection.includes(inquiryService.name) && inquiryProjection.includes('Contact clinic for pricing'));
+console.log('PASS: unconfirmed service withheld; inquiry fee omitted; separately confirmed fee rendered.');

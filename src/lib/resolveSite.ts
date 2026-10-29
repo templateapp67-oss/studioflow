@@ -17,7 +17,7 @@ export interface SiteLocation {
 const PLATFORM_SUFFIXES = [
   '.vercel.app', '.netlify.app', '.pages.dev', '.web.app',
   '.herokuapp.com', '.azurewebsites.net', '.onrender.com',
-  '.railway.app', '.amplifyapp.com', '.cloudfront.net',
+  '.railway.app', '.amplifyapp.com', '.cloudfront.net', '.e2b.app',
 ];
 const RESERVED_LABELS = new Set([
   'www', 'app', 'api', 'admin', 'docs', 'status', 'support',

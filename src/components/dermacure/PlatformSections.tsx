@@ -14,8 +14,6 @@ export function PlatformSections() {
             bookingAvailable ? onBook(selected) : booking()
           }
           sections={[
-            "promo",
-            "videos",
             "loyalty",
             "share",
             "social",

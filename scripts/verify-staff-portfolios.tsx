@@ -1,5 +1,5 @@
 import React,{useState} from 'react';import {act,create} from 'react-test-renderer';import assert from 'node:assert/strict';
-import {TeamManagement} from '../src/components/TeamManagement';import {StaffPortfolio} from '../src/components/StaffPortfolio';import {INITIAL_SALON_PROFILE} from '../src/mockData';import type {Stylist,SalonService} from '../src/types';
+import {TeamManagement} from '../src/components/TeamManagement';import {AddStaffModal} from '../src/components/AddStaffModal';import {StaffPhotoField,StaffTitleField} from '../src/components/StaffProfileFields';import {StaffPortfolio} from '../src/components/StaffPortfolio';import {INITIAL_SALON_PROFILE} from '../src/mockData';import type {Stylist,SalonService} from '../src/types';
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;
 (globalThis as any).document={activeElement:null,body:{style:{overflow:''}},addEventListener(){},removeEventListener(){}};
 const text=(n:any):string=>Array.isArray(n)?n.map(text).join(''):typeof n==='string'?n:n?.children?.map(text).join('')||'';
@@ -16,3 +16,12 @@ await act(async()=>button('Save Staff Member').props.onClick({preventDefault(){}
 await act(async()=>ui.unmount());
 const staff={...saved[0],expertiseServiceIds:['nails'],workGallery:[...saved[0].workGallery!,{id:'hidden',imageUrl:'https://example.com/private.jpg',caption:'Not permitted',consented:false},{id:'bad',imageUrl:'javascript:alert(1)',caption:'unsafe',consented:true}]};await act(async()=>{ui=create(<StaffPortfolio staff={staff} services={services}/>)});assert.equal(ui.root.findAllByType('img').length,1);assert.match(text(ui.toJSON()),/Nail art/);assert.ok(!text(ui.toJSON()).includes('Hair cut'));assert.ok(!text(ui.toJSON()).includes('Not permitted'));await act(async()=>ui.update(<StaffPortfolio staff={{name:'Other specialist',expertiseServiceIds:[],workGallery:[]}} services={services}/>));assert.equal(ui.root.findAllByType('img').length,0);assert.ok(!text(ui.toJSON()).includes('Nail art'));assert.match(text(ui.toJSON()),/hasn’t shared work photos/);await act(async()=>ui.unmount());
 console.log('PASS: visible Add staff, independent new profile, consented portfolio URL/caption/service saved, no fake contact/rating, only matched expertise and safe consented photos shown; no network writes.');
+
+// A clinic staff member must not inherit an unrelated stock portrait or invented bio.
+let clinicAdded:any;await act(async()=>{ui=create(<AddStaffModal isOpen onClose={()=>{}} onAddStaff={staff=>{clinicAdded=staff}} businessType="skincare_clinic" services={services}/>)});
+assert.equal(ui.root.findByType(StaffPhotoField).props.value,'');assert.equal(ui.root.findByType(StaffTitleField).props.value,'');assert.ok(!text(ui.toJSON()).includes('Write Bio with AI'));
+await act(async()=>ui.root.findByProps({placeholder:'e.g. Sarah Jenkins'}).props.onChange({target:{value:'Clinic Staff'}}));
+await act(async()=>ui.root.findByType(StaffTitleField).props.onChange('Aesthetician'));
+await act(async()=>ui.root.findAllByType('button').find((n:any)=>text(n).includes('Save Staff Member')).props.onClick({preventDefault(){}}));
+assert.equal(clinicAdded.name,'Clinic Staff');assert.equal(clinicAdded.avatarUrl,'');assert.equal(clinicAdded.bio,'');assert.equal(clinicAdded.rating,0);
+await act(async()=>ui.unmount());console.log('PASS: clinic staff creation has no preset stock portrait, invented title or generated bio.');

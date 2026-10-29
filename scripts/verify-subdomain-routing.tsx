@@ -9,6 +9,8 @@ const cases: Array<[string, any, string | null]> = [
   ['apex serves owner app', {search: '', hostname: 'nexora.app'}, null],
   ['www serves owner app', {search: '', hostname: 'www.nexora.app'}, null],
   ['reserved labels skipped', {search: '', hostname: 'app.nexora.app'}, null],
+  ['sandbox preview host skipped', {search: '?template=skincare_clinic', hostname: '3000-example.e2b.app'}, null],
+  ['sandbox explicit site query wins', {search: '?site=glow-studio', hostname: '3000-example.e2b.app'}, 'glow-studio'],
   ['vercel preview skipped', {search: '', hostname: 'studioflow-abc123-team.vercel.app'}, null],
   ['localhost skipped', {search: '', hostname: 'localhost'}, null],
   ['local ip skipped', {search: '', hostname: '127.0.0.1'}, null],

@@ -138,6 +138,7 @@ let frames = 0;
 (globalThis as any).cancelAnimationFrame = () => {};
 
 const template = CATEGORY_TEMPLATES.skincare_clinic;
+const confirmedServices = template.services.map(s=>({...s,clinicServiceApproved:true,clinicPublicationStatus:'published' as const,clinicFeeStatus:'verified' as const,clinicPriceVerified:true}));
 const profile = {
   ...INITIAL_SALON_PROFILE,
   businessType: template.id,
@@ -160,7 +161,7 @@ const mount = async (overrides: Record<string, any> = {}) => {
       <WebsiteLanguageProvider>
         <DermacureWebsite
           profile={profile}
-          services={template.services}
+          services={confirmedServices}
           shared={{ profile, services: template.services, readOnly: true } as any}
           stylists={template.stylists}
           onViewStaff={() => {}}
