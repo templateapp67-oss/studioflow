@@ -29,6 +29,7 @@ registerCustomerPwa();
 import './index.css';
 import './components/dermacure.css';
 import './components/vogueNoir.css';
+import './components/bodhiTree.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

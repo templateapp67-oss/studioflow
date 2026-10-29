@@ -16,6 +16,7 @@ export function PlatformSections() {
           sections={[
             "share",
             "social",
+            "loyalty",
             "policies",
           ].filter((section) => visible[section])}
         />

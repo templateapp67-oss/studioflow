@@ -14,6 +14,19 @@ import {
   VOGUE_NOIR_TAGLINE,
   VOGUE_NOIR_TEMPLATE_SERVICES,
 } from './lib/vogueNoir';
+import {
+  BODHI_TREE_BRAND_NAME,
+  BODHI_TREE_DEFAULT_ABOUT,
+  BODHI_TREE_DEFAULT_ADDRESS,
+  BODHI_TREE_DEFAULT_CITY,
+  BODHI_TREE_DEFAULT_PHONE,
+  BODHI_TREE_DEFAULT_POSTAL_CODE,
+  BODHI_TREE_DEFAULT_STYLISTS,
+  BODHI_TREE_IMAGES,
+  BODHI_TREE_SELECTOR_LABEL,
+  BODHI_TREE_TAGLINE,
+  BODHI_TREE_TEMPLATE_SERVICES,
+} from './lib/bodhiTree';
 
 export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
   // 1. Hair Cut & Styling Studio
@@ -870,119 +883,46 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
     stylists: VOGUE_NOIR_DEFAULT_STYLISTS
   },
 
-  // 9. Massage & Wellness Center
+  // 9. Massage, Spa & Wellness — Template 09: Bodhi Tree Massage & Wellness Sanctuary (bodhi-tree)
   massage_wellness: {
     id: 'massage_wellness',
-    title: 'Bodhi Tree Massage & Wellness Sanctuary',
-    shortName: 'Massage & Wellness Center',
-    tagline: 'Peaceful Sanctuary, Himalayan Hot Stone Therapy & Deep Stress Dissolution',
-    about: 'Set amidst peaceful surroundings in Candolim, Goa, Bodhi Tree integrates warm Himalayan salt stones, bamboo wood rolls, and therapeutic essential oils to relieve chronic muscle knots and urban fatigue.',
+    title: BODHI_TREE_BRAND_NAME,
+    shortName: BODHI_TREE_SELECTOR_LABEL,
+    tagline: BODHI_TREE_TAGLINE,
+    about: BODHI_TREE_DEFAULT_ABOUT,
     icon: 'self_improvement',
-    layoutStyle: 'earth_bamboo',
-    paletteLabel: 'Warm Earth Tones & Bamboo Texture',
-    themePreset: 'earth_bamboo',
-    subCategories: ['Deep Tissue', 'Himalayan Hot Stone', 'Aromatherapy', 'Reflexology'],
-    defaultCity: 'Candolim, Goa',
-    defaultAddress: 'Near Fort Aguada Road, Candolim Beach Area',
-    defaultPostalCode: '403515',
-    phone: '+91 98332 44102',
-    whatsapp: '+91 98332 44102',
+    layoutStyle: 'palace_heritage',
+    paletteLabel: 'Sage Green, Cream & Soft Gold — Royal Jaipur Retreat',
+    themePreset: 'sage_cream_gold',
+    subCategories: ['Ayurvedic Massage', 'Classic Massage', 'Head & Foot Care', 'Couple & Specials', 'Palace Collection', 'Packages'],
+    defaultCity: BODHI_TREE_DEFAULT_CITY,
+    defaultAddress: BODHI_TREE_DEFAULT_ADDRESS,
+    defaultPostalCode: BODHI_TREE_DEFAULT_POSTAL_CODE,
+    phone: BODHI_TREE_DEFAULT_PHONE,
+    whatsapp: BODHI_TREE_DEFAULT_PHONE,
     ownerName: 'Anand Bodhi',
-    ownerRole: 'Holistic Bodywork Master & Healer',
-    ownerPhotoUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=500&q=80',
-    coverImageUrl: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&w=1200&q=80',
-    instagramHandle: '@bodhitree.goa',
+    ownerRole: 'Founder & Ayurvedic Wellness Lead',
+    ownerPhotoUrl: BODHI_TREE_IMAGES.team.deepak,
+    coverImageUrl: BODHI_TREE_IMAGES.heroDesktop,
+    instagramHandle: '@bodhitree.jaipur',
     themeStyle: {
-      heroBackground: 'bg-[#3b2b1d]',
-      heroTextColor: 'text-[#f7f1e6]',
-      cardBorder: 'border-[#d4c5b3]',
-      cardBackground: 'bg-[#faf6f0]',
-      cardRadius: 'rounded-xl',
-      accentColor: 'text-[#784d2b]',
-      accentBg: 'bg-[#784d2b]',
-      badgeBg: 'bg-[#ece2d3]',
-      badgeText: 'text-[#57351c]',
-      buttonBg: 'bg-[#784d2b] hover:bg-[#633e21]',
+      heroBackground: 'bg-[#1E3A2F]',
+      heroTextColor: 'text-[#FAF6EE]',
+      cardBorder: 'border-[#C5A46D]/50',
+      cardBackground: 'bg-[#FFFDF8]',
+      cardRadius: 'rounded-[20px]',
+      accentColor: 'text-[#1E3A2F]',
+      accentBg: 'bg-[#4E6E58]',
+      badgeBg: 'bg-[#EAF0E2]',
+      badgeText: 'text-[#1E3A2F]',
+      buttonBg: 'bg-[#4E6E58] hover:bg-[#1E3A2F]',
       buttonText: 'text-white',
-      priceColor: 'text-[#784d2b]',
+      priceColor: 'text-[#1E3A2F]',
       isDark: false,
-      headerBanner: 'bg-[#f4ece1] border-b border-[#ded2c3]'
+      headerBanner: 'bg-[#FAF6EE] border-b border-[#C5A46D]/40'
     },
-    services: [
-      {
-        id: 'mw-1',
-        name: '90-Min Deep Tissue Muscle Knot Release',
-        category: 'Deep Tissue',
-        durationMinutes: 90,
-        price: 2600,
-        description: 'Firm pressure strokes, trigger point therapy, and warming eucalyptus balm for back & shoulder stiffness.',
-        icon: 'self_improvement',
-        popular: true
-      },
-      {
-        id: 'mw-2',
-        name: 'Himalayan Warm Salt Stone Therapy',
-        category: 'Himalayan Hot Stone',
-        durationMinutes: 75,
-        price: 2900,
-        description: 'Heated pink crystal stones infused with 84 essential minerals that melt away stress and muscle tension.',
-        icon: 'filter_vintage',
-        popular: true
-      },
-      {
-        id: 'mw-3',
-        name: 'Kerala Spiced Herbal Potli Massage',
-        category: 'Deep Tissue',
-        durationMinutes: 60,
-        price: 2400,
-        description: 'Warm muslin herbal poultices dipped in medicated oil, rhythmically tapped over tired joints.',
-        icon: 'local_florist'
-      },
-      {
-        id: 'mw-4',
-        name: 'Lavender & Frankincense Aromatherapy Sleep Ritual',
-        category: 'Aromatherapy',
-        durationMinutes: 60,
-        price: 2300,
-        description: 'Calming rhythmic effleurage with pure botanical essences designed to restore natural circadian sleep.',
-        icon: 'bedtime'
-      },
-      {
-        id: 'mw-5',
-        name: 'Tibetan Foot Acupressure & Reflexology',
-        category: 'Reflexology',
-        durationMinutes: 45,
-        price: 1500,
-        description: 'Targeted nerve pressure points on the feet connected to vital internal organs and energetic meridians.',
-        icon: 'pan_tool'
-      }
-    ],
-    stylists: [
-      {
-        id: 'mw-st-1',
-        name: 'Anand Bodhi',
-        role: 'Master Bodywork Therapist',
-        avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=400&q=80',
-        specialties: ['Deep Tissue', 'Trigger Point', 'Tibetan Singing Bowls'],
-        rating: 4.96
-      },
-      {
-        id: 'mw-st-2',
-        name: 'Maya Thapa',
-        role: 'Aromatherapist',
-        avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80',
-        specialties: ['Himalayan Stone Therapy', 'Herbal Potli'],
-        rating: 4.94
-      },
-      {
-        id: 'mw-st-3',
-        name: 'Sonam Norbu',
-        role: 'Reflexology Specialist',
-        avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80',
-        specialties: ['Acupressure', 'Joint Decompression'],
-        rating: 4.91
-      }
-    ]
+    services: BODHI_TREE_TEMPLATE_SERVICES,
+    stylists: BODHI_TREE_DEFAULT_STYLISTS
   },
 
   // 10. Hair Coloring Studio
@@ -1688,12 +1628,12 @@ export const ALL_CATEGORY_OPTIONS: BusinessTypeOption[] = [
   },
   {
     id: 'massage_wellness',
-    title: 'Massage & Wellness Center',
-    categoryTag: 'Holistic Bodywork',
+    title: BODHI_TREE_SELECTOR_LABEL,
+    categoryTag: 'Massage, Spa & Wellness',
     icon: 'self_improvement',
-    aestheticDescription: 'Peaceful spa layout, warm earth tones & bamboo texture.',
-    paletteName: 'Warm Earth & Bamboo',
-    badge: 'Holistic',
+    aestheticDescription: 'A royal Jaipur retreat — calm, premium and peaceful with jharokha arch cards, jaali patterns and a Jaipur Palace Collection.',
+    paletteName: 'Sage Green, Cream & Soft Gold',
+    badge: 'Template 09',
     defaultServices: CATEGORY_TEMPLATES.massage_wellness.services.map((s) => ({
       name: s.name,
       price: s.price,

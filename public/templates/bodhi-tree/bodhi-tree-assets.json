@@ -1,0 +1,401 @@
+{
+  "template": "09",
+  "slug": "bodhi-tree",
+  "name": "Bodhi Tree Massage & Wellness Sanctuary",
+  "businessType": "massage_wellness",
+  "notes": "All assets are local (zero external hotlinks). Owners can replace any slot from the onboarding wizard / website editor; uploads go to Supabase Storage (studioflow-media) and these files remain the fallbacks. Free-license photographs are from Pexels/Unsplash (free for commercial use, no attribution required); hero, Shirodhara, Rambagh garden and two therapist portraits are AI-generated for StudioFlow because no suitably licensed free photographs were available. All treatment imagery is professional and towel-covered.",
+  "assets": [
+    {
+      "slot": "aboutMassage",
+      "file": "about-massage.webp",
+      "path": "/templates/bodhi-tree/about-massage.webp",
+      "dimensions": "800x1000",
+      "sizeKB": 30.3,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "aboutStones",
+      "file": "about-stones.webp",
+      "path": "/templates/bodhi-tree/about-stones.webp",
+      "dimensions": "800x600",
+      "sizeKB": 21.8,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "appleTouchIcon",
+      "file": "apple-touch-icon.png",
+      "path": "/templates/bodhi-tree/apple-touch-icon.png",
+      "dimensions": "180x180",
+      "sizeKB": 13.0,
+      "source": "Original artwork created for StudioFlow (peepal-leaf mark); PNGs rendered from the same artwork"
+    },
+    {
+      "slot": "contact",
+      "file": "contact.webp",
+      "path": "/templates/bodhi-tree/contact.webp",
+      "dimensions": "1000x750",
+      "sizeKB": 25.5,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "favicon192",
+      "file": "favicon-192x192.png",
+      "path": "/templates/bodhi-tree/favicon-192x192.png",
+      "dimensions": "192x192",
+      "sizeKB": 14.9,
+      "source": "Original artwork created for StudioFlow (peepal-leaf mark); PNGs rendered from the same artwork"
+    },
+    {
+      "slot": "favicon32",
+      "file": "favicon-32x32.png",
+      "path": "/templates/bodhi-tree/favicon-32x32.png",
+      "dimensions": "32x32",
+      "sizeKB": 1.8,
+      "source": "Original artwork created for StudioFlow (peepal-leaf mark); PNGs rendered from the same artwork"
+    },
+    {
+      "slot": "faviconSvg",
+      "file": "favicon.svg",
+      "path": "/templates/bodhi-tree/favicon.svg",
+      "dimensions": "vector",
+      "sizeKB": 0.9,
+      "source": "Original artwork created for StudioFlow (peepal-leaf mark); PNGs rendered from the same artwork"
+    },
+    {
+      "slot": "gallery.candles",
+      "file": "gallery/candles.webp",
+      "path": "/templates/bodhi-tree/gallery/candles.webp",
+      "dimensions": "800x600",
+      "sizeKB": 16.3,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "gallery.entrance",
+      "file": "gallery/entrance.webp",
+      "path": "/templates/bodhi-tree/gallery/entrance.webp",
+      "dimensions": "800x600",
+      "sizeKB": 21.6,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "gallery.herbalTea",
+      "file": "gallery/herbal-tea.webp",
+      "path": "/templates/bodhi-tree/gallery/herbal-tea.webp",
+      "dimensions": "800x600",
+      "sizeKB": 30.2,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "gallery.lounge",
+      "file": "gallery/lounge.webp",
+      "path": "/templates/bodhi-tree/gallery/lounge.webp",
+      "dimensions": "800x600",
+      "sizeKB": 22.5,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "gallery.marigoldDiyas",
+      "file": "gallery/marigold-diyas.webp",
+      "path": "/templates/bodhi-tree/gallery/marigold-diyas.webp",
+      "dimensions": "800x600",
+      "sizeKB": 58.4,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "gallery.oils",
+      "file": "gallery/oils.webp",
+      "path": "/templates/bodhi-tree/gallery/oils.webp",
+      "dimensions": "800x600",
+      "sizeKB": 14.6,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "gallery.spaRoom",
+      "file": "gallery/spa-room.webp",
+      "path": "/templates/bodhi-tree/gallery/spa-room.webp",
+      "dimensions": "800x600",
+      "sizeKB": 49.8,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "gallery.stonesFlowers",
+      "file": "gallery/stones-flowers.webp",
+      "path": "/templates/bodhi-tree/gallery/stones-flowers.webp",
+      "dimensions": "800x600",
+      "sizeKB": 22.4,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "gallery.towelsHerbs",
+      "file": "gallery/towels-herbs.webp",
+      "path": "/templates/bodhi-tree/gallery/towels-herbs.webp",
+      "dimensions": "800x600",
+      "sizeKB": 38.7,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "gallery.treatment",
+      "file": "gallery/treatment.webp",
+      "path": "/templates/bodhi-tree/gallery/treatment.webp",
+      "dimensions": "800x600",
+      "sizeKB": 46.9,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "heroMobile",
+      "file": "hero-mobile.webp",
+      "path": "/templates/bodhi-tree/hero-mobile.webp",
+      "dimensions": "900x1200",
+      "sizeKB": 83.3,
+      "source": "AI-generated for StudioFlow (royalty-free; no real individuals)"
+    },
+    {
+      "slot": "heroDesktop",
+      "file": "hero.webp",
+      "path": "/templates/bodhi-tree/hero.webp",
+      "dimensions": "1600x900",
+      "sizeKB": 166.3,
+      "source": "AI-generated for StudioFlow (royalty-free; no real individuals)"
+    },
+    {
+      "slot": "logoPng",
+      "file": "logo.png",
+      "path": "/templates/bodhi-tree/logo.png",
+      "dimensions": "460x120",
+      "sizeKB": 28.7,
+      "source": "Original artwork created for StudioFlow (peepal-leaf mark); PNGs rendered from the same artwork"
+    },
+    {
+      "slot": "logoSvg",
+      "file": "logo.svg",
+      "path": "/templates/bodhi-tree/logo.svg",
+      "dimensions": "vector",
+      "sizeKB": 1.3,
+      "source": "Original artwork created for StudioFlow (peepal-leaf mark); PNGs rendered from the same artwork"
+    },
+    {
+      "slot": "ogImage",
+      "file": "og-image.jpg",
+      "path": "/templates/bodhi-tree/og-image.jpg",
+      "dimensions": "1200x630",
+      "sizeKB": 137.8,
+      "source": "AI-generated for StudioFlow (royalty-free; no real individuals)"
+    },
+    {
+      "slot": "packages.bridalGlow",
+      "file": "packages/bridal-glow.webp",
+      "path": "/templates/bodhi-tree/packages/bridal-glow.webp",
+      "dimensions": "1200x800",
+      "sizeKB": 55.0,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "packages.fullDayRelax",
+      "file": "packages/full-day-relax.webp",
+      "path": "/templates/bodhi-tree/packages/full-day-relax.webp",
+      "dimensions": "1200x800",
+      "sizeKB": 33.4,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "packages.weekendRelax",
+      "file": "packages/weekend-relax.webp",
+      "path": "/templates/bodhi-tree/packages/weekend-relax.webp",
+      "dimensions": "1200x800",
+      "sizeKB": 72.4,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "palace.albertHall",
+      "file": "palace/albert-hall.webp",
+      "path": "/templates/bodhi-tree/palace/albert-hall.webp",
+      "dimensions": "750x1000",
+      "sizeKB": 48.9,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "palace.amberFort",
+      "file": "palace/amber-fort.webp",
+      "path": "/templates/bodhi-tree/palace/amber-fort.webp",
+      "dimensions": "750x1000",
+      "sizeKB": 92.1,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "palace.cityPalace",
+      "file": "palace/city-palace.webp",
+      "path": "/templates/bodhi-tree/palace/city-palace.webp",
+      "dimensions": "750x1000",
+      "sizeKB": 156.8,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "palace.hawaMahal",
+      "file": "palace/hawa-mahal.webp",
+      "path": "/templates/bodhi-tree/palace/hawa-mahal.webp",
+      "dimensions": "750x1000",
+      "sizeKB": 165.3,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "palace.jalMahal",
+      "file": "palace/jal-mahal.webp",
+      "path": "/templates/bodhi-tree/palace/jal-mahal.webp",
+      "dimensions": "750x1000",
+      "sizeKB": 33.5,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "palace.nahargarh",
+      "file": "palace/nahargarh.webp",
+      "path": "/templates/bodhi-tree/palace/nahargarh.webp",
+      "dimensions": "750x1000",
+      "sizeKB": 89.8,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "palace.rambagh",
+      "file": "palace/rambagh.webp",
+      "path": "/templates/bodhi-tree/palace/rambagh.webp",
+      "dimensions": "750x1000",
+      "sizeKB": 168.4,
+      "source": "AI-generated for StudioFlow (royalty-free; no real individuals)"
+    },
+    {
+      "slot": "preview",
+      "file": "preview.webp",
+      "path": "/templates/bodhi-tree/preview.webp",
+      "dimensions": "1200x800",
+      "sizeKB": 123.4,
+      "source": "AI-generated for StudioFlow (royalty-free; no real individuals)"
+    },
+    {
+      "slot": "services.abhyanga",
+      "file": "services/abhyanga.webp",
+      "path": "/templates/bodhi-tree/services/abhyanga.webp",
+      "dimensions": "800x600",
+      "sizeKB": 23.0,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "services.aroma",
+      "file": "services/aroma.webp",
+      "path": "/templates/bodhi-tree/services/aroma.webp",
+      "dimensions": "800x600",
+      "sizeKB": 19.3,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "services.champi",
+      "file": "services/champi.webp",
+      "path": "/templates/bodhi-tree/services/champi.webp",
+      "dimensions": "800x600",
+      "sizeKB": 26.0,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "services.couples",
+      "file": "services/couples.webp",
+      "path": "/templates/bodhi-tree/services/couples.webp",
+      "dimensions": "800x600",
+      "sizeKB": 20.1,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "services.deepTissue",
+      "file": "services/deep-tissue.webp",
+      "path": "/templates/bodhi-tree/services/deep-tissue.webp",
+      "dimensions": "800x600",
+      "sizeKB": 24.1,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "services.foot",
+      "file": "services/foot-reflexology.webp",
+      "path": "/templates/bodhi-tree/services/foot-reflexology.webp",
+      "dimensions": "800x600",
+      "sizeKB": 23.8,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "services.shirodhara",
+      "file": "services/shirodhara.webp",
+      "path": "/templates/bodhi-tree/services/shirodhara.webp",
+      "dimensions": "800x600",
+      "sizeKB": 56.9,
+      "source": "AI-generated for StudioFlow (royalty-free; no real individuals)"
+    },
+    {
+      "slot": "services.swedish",
+      "file": "services/swedish.webp",
+      "path": "/templates/bodhi-tree/services/swedish.webp",
+      "dimensions": "800x600",
+      "sizeKB": 29.4,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "services.thai",
+      "file": "services/thai.webp",
+      "path": "/templates/bodhi-tree/services/thai.webp",
+      "dimensions": "800x600",
+      "sizeKB": 43.8,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "team.deepak",
+      "file": "team/deepak.webp",
+      "path": "/templates/bodhi-tree/team/deepak.webp",
+      "dimensions": "600x600",
+      "sizeKB": 22.6,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "team.kavita",
+      "file": "team/kavita.webp",
+      "path": "/templates/bodhi-tree/team/kavita.webp",
+      "dimensions": "600x600",
+      "sizeKB": 25.8,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "team.rekha",
+      "file": "team/rekha.webp",
+      "path": "/templates/bodhi-tree/team/rekha.webp",
+      "dimensions": "600x600",
+      "sizeKB": 27.5,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "team.sunita",
+      "file": "team/sunita.webp",
+      "path": "/templates/bodhi-tree/team/sunita.webp",
+      "dimensions": "600x600",
+      "sizeKB": 29.8,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "testimonials.neha",
+      "file": "testimonials/neha.webp",
+      "path": "/templates/bodhi-tree/testimonials/neha.webp",
+      "dimensions": "200x200",
+      "sizeKB": 5.6,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "testimonials.priya",
+      "file": "testimonials/priya.webp",
+      "path": "/templates/bodhi-tree/testimonials/priya.webp",
+      "dimensions": "200x200",
+      "sizeKB": 8.8,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    },
+    {
+      "slot": "testimonials.sunita",
+      "file": "testimonials/sunita.webp",
+      "path": "/templates/bodhi-tree/testimonials/sunita.webp",
+      "dimensions": "200x200",
+      "sizeKB": 9.3,
+      "source": "Pexels / Unsplash free-license photograph (resized & cropped to WebP for StudioFlow)"
+    }
+  ]
+}

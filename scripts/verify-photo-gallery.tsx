@@ -37,6 +37,16 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
   assert.ok(!html.includes('Delete photo')&&!html.includes('Replace / Edit'));
   const savedHtml=renderToStaticMarkup(<CustomerSalonWebsite profile={{...profile,photoGalleryInitialized:true,photoGalleryType:'makeup_studio',photoGallery:[{id:'vn-own-1',category:'Bridal' as const,url:'https://cdn.example.com/saved-makeup-photo.jpg',title:'Saved bridal look',isDemo:false}]}} services={[]} stylists={[]} readOnly onAddAppointment={async a=>a}/>);
   assert.ok(savedHtml.includes('https://cdn.example.com/saved-makeup-photo.jpg')&&savedHtml.includes('Saved bridal look'),'saved makeup photo is used in Vogue Noir portfolio');
+ }else if(template.id==='massage_wellness'){
+  // Template 09 (Bodhi Tree) renders its own photography: the Home page shows a
+  // gallery strip built from the same saved-photo path, without owner controls,
+  // and a saved owner photograph replaces the bundled demo set entirely.
+  assert.ok(html.includes('Inside Bodhi Tree'),'Bodhi Tree home shows its gallery strip');
+  assert.ok(html.includes('/templates/bodhi-tree/gallery/'),'Bodhi Tree home uses bundled demo photographs');
+  assert.ok(!html.includes('Delete photo')&&!html.includes('Replace / Edit'));
+  const savedHtml=renderToStaticMarkup(<CustomerSalonWebsite profile={{...profile,photoGalleryInitialized:true,photoGalleryType:'massage_wellness',photoGallery:[{id:'bt-own-1',category:'Spa' as const,url:'https://cdn.example.com/saved-spa-room.jpg',title:'Saved spa room',isDemo:false}]}} services={[]} stylists={[]} readOnly onAddAppointment={async a=>a}/>);
+  assert.ok(savedHtml.includes('https://cdn.example.com/saved-spa-room.jpg')&&savedHtml.includes('Saved spa room'),'saved wellness photo is used in the Bodhi Tree gallery');
+  assert.ok(!savedHtml.includes('Our calm treatment room'),'demo photographs are replaced by the owner\u2019s own photo');
  }else{
   assert.ok(html.includes(`${defaultGalleryCategory(template.id)} (5)`));assert.equal((html.match(/aria-label="View salon look /g)||[]).length,5);assert.ok(!html.includes('Delete photo')&&!html.includes('Replace / Edit'));
  }

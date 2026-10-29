@@ -1,0 +1,408 @@
+/* ==========================================================================
+   Template 09 — Bodhi Tree Massage & Wellness Sanctuary (massage_wellness)
+   "A royal Jaipur retreat": sage green + cream, soft gold accents,
+   deep forest-green text, touches of Jaipur pink-sandstone.
+   Headings: Cormorant Garamond · Body: Inter.
+   Every selector is scoped to .bt-site so templates 01–08 are unaffected.
+   ========================================================================== */
+
+@font-face {
+  font-family: "Cormorant Garamond";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/templates/dermacure/fonts/cormorant-garamond-latin-400-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Cormorant Garamond";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/templates/dermacure/fonts/cormorant-garamond-latin-400-italic.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Cormorant Garamond";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/templates/dermacure/fonts/cormorant-garamond-latin-500-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Cormorant Garamond";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/templates/dermacure/fonts/cormorant-garamond-latin-600-normal.woff2") format("woff2");
+}
+
+.bt-site {
+  --bt-cream: #FAF6EE;
+  --bt-sage-soft: #EAF0E2;
+  --bt-forest: #1E3A2F;
+  --bt-sage: #4E6E58;
+  --bt-gold: #C5A46D;
+  --bt-sandstone: #E8B4A0;
+  --bt-muted: #54655A;
+  --bt-serif: "Cormorant Garamond", "Playfair Display", Georgia, "Times New Roman", serif;
+  --bt-sans: "Inter", "DM Sans", "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --bt-shadow-soft: 0 10px 30px rgba(30, 58, 47, 0.10);
+  --bt-shadow-card: 0 12px 32px rgba(0, 0, 0, 0.18);
+
+  background: var(--bt-cream);
+  color: var(--bt-forest);
+  font-family: var(--bt-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.bt-site h1,
+.bt-site h2,
+.bt-site h3,
+.bt-site .bt-serif {
+  font-family: var(--bt-serif);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.bt-site ::selection {
+  background: var(--bt-sage);
+  color: #fff;
+}
+
+.bt-site :focus-visible {
+  outline: 2px solid var(--bt-gold);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* --------------------------------------------------------------------------
+   Glassmorphism (spec recipe) — main central card + feature cards.
+   Solid fallback where backdrop-filter is not supported.
+   -------------------------------------------------------------------------- */
+.bt-site .bt-glass {
+  background: rgba(30, 58, 47, 0.72); /* solid fallback keeps text readable */
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 20px;
+  box-shadow: var(--bt-shadow-soft);
+}
+
+@supports ((backdrop-filter: blur(16px)) or (-webkit-backdrop-filter: blur(16px))) {
+  .bt-site .bt-glass {
+    background: rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+}
+
+/* Cream glass for content cards on light sections — deep-green text stays AA. */
+.bt-site .bt-glass-cream {
+  background: rgba(255, 253, 248, 0.94); /* solid fallback */
+  border: 1px solid rgba(197, 164, 109, 0.45);
+  border-radius: 20px;
+  box-shadow: var(--bt-shadow-soft);
+}
+
+@supports ((backdrop-filter: blur(16px)) or (-webkit-backdrop-filter: blur(16px))) {
+  .bt-site .bt-glass-cream {
+    background: rgba(255, 253, 248, 0.78);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Hover lift (cards + logo). Disabled for reduced-motion visitors below.
+   -------------------------------------------------------------------------- */
+.bt-site .bt-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.bt-site .bt-lift:hover {
+  transform: scale(1.05);
+  box-shadow: var(--bt-shadow-card);
+}
+
+.bt-site .bt-logo-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border-radius: 14px;
+}
+
+.bt-site .bt-logo-lift:hover {
+  transform: scale(1.05);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+
+/* --------------------------------------------------------------------------
+   Jharokha arch frames (Palace Collection cards + hero media)
+   -------------------------------------------------------------------------- */
+.bt-site .bt-arch {
+  border-radius: 999px 999px 20px 20px;
+}
+
+.bt-site .bt-arch-frame {
+  border-radius: 999px 999px 24px 24px;
+  border: 1px solid var(--bt-gold);
+  padding: 8px;
+  background: linear-gradient(170deg, rgba(255, 255, 255, 0.55), rgba(232, 180, 160, 0.22));
+  box-shadow: var(--bt-shadow-soft), inset 0 0 0 4px rgba(250, 246, 238, 0.85);
+}
+
+/* --------------------------------------------------------------------------
+   jaali lattice pattern (subtle background texture)
+   -------------------------------------------------------------------------- */
+.bt-site .bt-jali {
+  position: relative;
+}
+
+.bt-site .bt-jali::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.10;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56'%3E%3Cg fill='none' stroke='%234E6E58' stroke-width='1.4'%3E%3Cpath d='M28 4 L52 28 L28 52 L4 28 Z'/%3E%3Cpath d='M28 14 L42 28 L28 42 L14 28 Z'/%3E%3Ccircle cx='28' cy='28' r='3.2'/%3E%3Ccircle cx='0' cy='0' r='3.2'/%3E%3Ccircle cx='56' cy='0' r='3.2'/%3E%3Ccircle cx='0' cy='56' r='3.2'/%3E%3Ccircle cx='56' cy='56' r='3.2'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 56px 56px;
+}
+
+.bt-site .bt-jali-light::before {
+  opacity: 0.14;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56'%3E%3Cg fill='none' stroke='%23FAF6EE' stroke-width='1.4'%3E%3Cpath d='M28 4 L52 28 L28 52 L4 28 Z'/%3E%3Cpath d='M28 14 L42 28 L28 42 L14 28 Z'/%3E%3Ccircle cx='28' cy='28' r='3.2'/%3E%3Ccircle cx='0' cy='0' r='3.2'/%3E%3Ccircle cx='56' cy='0' r='3.2'/%3E%3Ccircle cx='0' cy='56' r='3.2'/%3E%3Ccircle cx='56' cy='56' r='3.2'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* Pink-sandstone gradient band (Palace Collection + highlights). */
+.bt-site .bt-sandstone-grad {
+  background: linear-gradient(160deg, #f9e7db 0%, var(--bt-sandstone) 52%, #dfa68e 100%);
+}
+
+/* Deep forest band. */
+.bt-site .bt-forest-grad {
+  background: linear-gradient(165deg, #274b3c 0%, var(--bt-forest) 55%, #142a20 100%);
+}
+
+/* Hero image overlay: deep green so the white headline stays readable. */
+.bt-site .bt-hero-overlay {
+  background: linear-gradient(100deg, rgba(20, 42, 32, 0.88) 0%, rgba(30, 58, 47, 0.72) 46%, rgba(30, 58, 47, 0.28) 78%, rgba(30, 58, 47, 0.16) 100%);
+}
+
+/* --------------------------------------------------------------------------
+   Buttons, chips, badges
+   -------------------------------------------------------------------------- */
+.bt-site .bt-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  font-weight: 600;
+  line-height: 1;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+.bt-site .bt-btn-primary {
+  background: var(--bt-sage);
+  color: #fff;
+  box-shadow: 0 8px 22px rgba(30, 58, 47, 0.28);
+}
+
+.bt-site .bt-btn-primary:hover {
+  background: var(--bt-forest);
+  transform: translateY(-2px);
+  box-shadow: var(--bt-shadow-card);
+}
+
+.bt-site .bt-btn-gold {
+  background: var(--bt-gold);
+  color: #231a08;
+  box-shadow: 0 8px 22px rgba(120, 92, 40, 0.30);
+}
+
+.bt-site .bt-btn-gold:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--bt-shadow-card);
+}
+
+.bt-site .bt-btn-outline {
+  border: 1px solid var(--bt-gold);
+  color: var(--bt-forest);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.bt-site .bt-btn-outline:hover {
+  background: var(--bt-cream);
+  transform: translateY(-2px);
+  box-shadow: var(--bt-shadow-soft);
+}
+
+.bt-site .bt-chip {
+  border: 1px solid rgba(78, 110, 88, 0.45);
+  border-radius: 999px;
+  padding: 0.45rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--bt-forest);
+  background: rgba(255, 255, 255, 0.7);
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.3s ease;
+}
+
+.bt-site .bt-chip:hover {
+  background: var(--bt-sage-soft);
+}
+
+.bt-site .bt-chip[aria-pressed="true"] {
+  background: var(--bt-forest);
+  color: var(--bt-cream);
+  border-color: var(--bt-forest);
+}
+
+.bt-site .bt-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  padding: 0.28rem 0.8rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: var(--bt-gold);
+  color: #231a08;
+}
+
+.bt-site .bt-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--bt-sage);
+}
+
+.bt-site .bt-eyebrow::before,
+.bt-site .bt-eyebrow::after {
+  content: "";
+  height: 1px;
+  width: 2rem;
+  background: var(--bt-gold);
+}
+
+.bt-site .bt-price {
+  font-family: var(--bt-serif);
+  font-weight: 600;
+  color: var(--bt-forest);
+}
+
+.bt-site .bt-hairline {
+  border-color: rgba(197, 164, 109, 0.45);
+}
+
+/* Sticky glass header. */
+.bt-site .bt-header {
+  background: rgba(250, 246, 238, 0.96);
+  border-bottom: 1px solid rgba(197, 164, 109, 0.4);
+}
+
+@supports ((backdrop-filter: blur(16px)) or (-webkit-backdrop-filter: blur(16px))) {
+  .bt-site .bt-header {
+    background: rgba(250, 246, 238, 0.82);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+}
+
+.bt-site .bt-navlink {
+  position: relative;
+  padding: 0.35rem 0.1rem;
+  font-weight: 600;
+  color: var(--bt-forest);
+}
+
+.bt-site .bt-navlink::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 100%;
+  bottom: 0;
+  height: 2px;
+  background: var(--bt-gold);
+  transition: right 0.3s ease;
+}
+
+.bt-site .bt-navlink:hover::after,
+.bt-site .bt-navlink[aria-current="page"]::after {
+  right: 0;
+}
+
+/* Phone device mockup (hero). */
+.bt-site .bt-phone {
+  border-radius: 44px;
+  border: 1px solid rgba(197, 164, 109, 0.65);
+  background: #10221a;
+  box-shadow: 0 30px 60px rgba(10, 24, 17, 0.45), inset 0 0 0 6px rgba(250, 246, 238, 0.06);
+  padding: 12px;
+}
+
+.bt-site .bt-phone-screen {
+  border-radius: 34px;
+  overflow: hidden;
+  background: var(--bt-cream);
+  height: 100%;
+}
+
+/* Hide scrollbars on horizontal scrollers while keeping scroll. */
+.bt-site .bt-no-scrollbar {
+  scrollbar-width: none;
+}
+.bt-site .bt-no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* --------------------------------------------------------------------------
+   Reduced motion: no hover scale, no sliding — simple fades only.
+   (Framer Motion transforms are also disabled via MotionConfig.)
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .bt-site .bt-lift,
+  .bt-site .bt-logo-lift,
+  .bt-site .bt-btn,
+  .bt-site .bt-chip,
+  .bt-site .bt-navlink::after {
+    transition: none;
+  }
+
+  .bt-site .bt-lift:hover,
+  .bt-site .bt-logo-lift:hover,
+  .bt-site .bt-btn-primary:hover,
+  .bt-site .bt-btn-gold:hover,
+  .bt-site .bt-btn-outline:hover {
+    transform: none;
+  }
+
+  .bt-site {
+    scroll-behavior: auto;
+  }
+}
+
+/* Shared design-system hooks so Bodhi Tree package cards behave like every
+   other template's service cards on cross-template surfaces. */
+.bt-site .sf-service-image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+}
+
+/* Desktop page navigation (mobile uses the slide-down menu). */
+.bt-site .bt-desktop-nav {
+  display: none;
+  margin-left: auto;
+  align-items: center;
+  gap: 1.25rem;
+  font-size: 13px;
+}
+@media (min-width: 1024px) {
+  .bt-site .bt-desktop-nav {
+    display: flex;
+  }
+}

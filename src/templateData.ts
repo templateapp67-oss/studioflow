@@ -291,34 +291,40 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
   },
 
   massage_wellness: {
-    foundingYear: '2019',
-    foundingNarrative: 'Serene Palm is a tranquil wellness oasis designed to detoxify the urban nervous system through Swedish deep tissue therapy, warm volcanic basalt stones, and custom cold-pressed botanical aromatherapy.',
-    specialties: ['Deep Tissue Muscle Release', 'Volcanic Hot Stone Therapy', 'Balinese Aromatherapy', 'Foot Reflexology'],
+    foundingYear: '2017',
+    foundingNarrative: 'Bodhi Tree is a calm massage and wellness place in the heart of Jaipur. Our trained therapists use pure oils and Ayurvedic methods to help you relax, sleep better and feel fresh. Four branches across the Pink City — C-Scheme, Malviya Nagar, Vaishali Nagar and Bani Park.',
+    specialties: ['Ayurvedic Abhyanga & Shirodhara', 'Deep Tissue & Thai Massage', 'Jaipur Palace Collection', 'Couple & Bridal Packages'],
     certifications: [
-      { icon: 'verified', title: '100% Certified Therapists', description: 'Certified massage therapists trained in Thai, Swedish, and trigger-point anatomy.' },
-      { icon: 'spa', title: 'Cold-Pressed Virgin Oils', description: 'Pure carrier oils infused with organic French lavender and Himalayan cedarwood.' },
-      { icon: 'dry_cleaning', title: 'Linen Thermal Sterilization', description: '100% Egyptian cotton linens sanitized in high-temperature laundries.' },
-      { icon: 'volume_off', title: 'Acoustic Soundproofing', description: 'Therapy chambers built with sound-dampening walls for total silence.' }
+      { icon: 'verified', title: 'Trained Therapists', description: 'Every therapist is trained in Ayurvedic and classic massage.' },
+      { icon: 'spa', title: 'Pure Natural Oils', description: 'Cold-pressed oils and real Ayurvedic herbs. No chemicals.' },
+      { icon: 'dry_cleaning', title: 'Fresh Towels, Every Guest', description: 'Clean, washed towels and bedsheets for every single visit.' },
+      { icon: 'payments', title: 'Honest ₹ Prices', description: 'Clear prices in rupees, shared before we start. No hidden charges.' }
     ],
     gallery: [
-      { id: 'mw-g1', url: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&w=800&q=80', title: 'Volcanic Basalt Hot Stone Therapy', tag: 'Hot Stone' },
-      { id: 'mw-g2', url: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=800&q=80', title: 'Tranquil Couple Massage Suite', tag: 'Couple Suite' },
-      { id: 'mw-g3', url: 'https://images.unsplash.com/photo-1519823551278-64ac92734fb1?auto=format&fit=crop&w=800&q=80', title: 'Aromatherapy Herbal Oil Selection', tag: 'Botanical Oils' },
-      { id: 'mw-g4', url: 'https://images.unsplash.com/photo-1512290900672-1f55b9e07506?auto=format&fit=crop&w=800&q=80', title: 'Private Steam & Shower Chamber', tag: 'Facilities' },
-      { id: 'mw-g5', url: 'https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=800&q=80', title: 'Bamboo Lounge & Herbal Tea Bar', tag: 'Lounge' },
-      { id: 'mw-g6', url: 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?auto=format&fit=crop&w=800&q=80', title: 'Thai Herbal Compress Healing', tag: 'Herbal Compress' }
+      { id: 'mw-g1', url: '/templates/bodhi-tree/gallery/spa-room.webp', title: 'Our calm treatment room', tag: 'Spa Room' },
+      { id: 'mw-g2', url: '/templates/bodhi-tree/gallery/treatment.webp', title: 'Oil massage in progress', tag: 'Treatment' },
+      { id: 'mw-g3', url: '/templates/bodhi-tree/gallery/marigold-diyas.webp', title: 'Marigold and diyas, Jaipur style', tag: 'Jaipur' },
+      { id: 'mw-g4', url: '/templates/bodhi-tree/gallery/candles.webp', title: 'Candle-lit evenings', tag: 'Calm' },
+      { id: 'mw-g5', url: '/templates/bodhi-tree/gallery/oils.webp', title: 'Pure oils we use', tag: 'Oils' },
+      { id: 'mw-g6', url: '/templates/bodhi-tree/gallery/towels-herbs.webp', title: 'Fresh towels & herbal care', tag: 'Care' },
+      { id: 'mw-g7', url: '/templates/bodhi-tree/gallery/lounge.webp', title: 'Relax corner', tag: 'Lounge' },
+      { id: 'mw-g8', url: '/templates/bodhi-tree/gallery/herbal-tea.webp', title: 'Herbal tea after your massage', tag: 'Herbal Tea' },
+      { id: 'mw-g9', url: '/templates/bodhi-tree/gallery/entrance.webp', title: 'Welcome to Bodhi Tree', tag: 'Entrance' },
+      { id: 'mw-g10', url: '/templates/bodhi-tree/gallery/stones-flowers.webp', title: 'Stones & fresh flowers', tag: 'Care' }
     ],
     reviews: [
-      { id: 'mw-r1', name: 'Vikram Joshi', location: 'Koregaon Park, Pune', rating: 5, serviceName: 'Deep Tissue Sports Therapy 90 mins', comment: 'Had severe lumbar knotting from marathon training. The therapist worked out every muscle knot with surgical precision. Best spa in Pune.', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80', date: 'Yesterday' },
-      { id: 'mw-r2', name: 'Radhika Kirloskar', location: 'Kalyani Nagar, Pune', rating: 5, serviceName: 'Warm Volcanic Stone & Lavender Ritual', comment: 'Total serenity. From the lemongrass cold towel upon arrival to the warm stone glide, every detail was transcendent.', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80', date: '4 days ago' },
-      { id: 'mw-r3', name: 'Ashok Deshmukh', location: 'Viman Nagar, Pune', rating: 5, serviceName: 'Balinese Aromatherapy Massage', comment: 'Incredible acoustic insulation—you cannot hear a whisper of city traffic. Came out feeling 10 years younger.', avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80', date: '1 week ago' }
+      { id: 'mw-r1', name: 'Neha S.', location: 'C-Scheme, Jaipur', rating: 5, serviceName: 'Abhyanga (Ayurvedic Oil Massage)', comment: 'Very calm place. The Abhyanga massage was so relaxing, I slept like a baby that night. Staff is polite and the rooms are clean.', avatarUrl: '/templates/bodhi-tree/testimonials/neha.webp', date: 'Demo' },
+      { id: 'mw-r2', name: 'Rohit M.', location: 'Malviya Nagar, Jaipur', rating: 5, serviceName: 'Deep Tissue Massage', comment: 'My back pain from long desk work feels much better after the deep tissue massage. Good pressure, no hurry. Price is also fair.', avatarUrl: '', date: 'Demo' },
+      { id: 'mw-r3', name: 'Priya K.', location: 'Vaishali Nagar, Jaipur', rating: 5, serviceName: 'Shirodhara', comment: 'Tried Shirodhara for the first time. The warm oil on the forehead is a different level of peace. Will come again with my mother.', avatarUrl: '/templates/bodhi-tree/testimonials/priya.webp', date: 'Demo' },
+      { id: 'mw-r4', name: 'Aman J.', location: 'Bani Park, Jaipur', rating: 5, serviceName: "Couple's Massage", comment: "Booked the couple's massage for our anniversary. Private room, nice smell, very good service. The herbal tea at the end was a sweet touch.", avatarUrl: '', date: 'Demo' },
+      { id: 'mw-r5', name: 'Sunita D.', location: 'C-Scheme, Jaipur', rating: 5, serviceName: 'Foot Reflexology', comment: 'I go every month for foot reflexology. My feet feel light and fresh. Booking on WhatsApp is very easy.', avatarUrl: '/templates/bodhi-tree/testimonials/sunita.webp', date: 'Demo' }
     ],
-    totalReviewCount: 750,
-    averageRating: 4.98,
-    landmark: 'Lane 7, Koregaon Park, Near Osho Ashram Gate',
-    parkingInfo: 'Private gated courtyard with free valet parking',
-    openHourText: '09:00 AM',
-    closeHourText: '9:30 PM'
+    totalReviewCount: 1250,
+    averageRating: 4.9,
+    landmark: 'Sardar Patel Marg, C-Scheme — near Ahinsa Circle',
+    parkingInfo: 'Easy parking near all four Jaipur branches',
+    openHourText: '9:00 AM',
+    closeHourText: '9:00 PM'
   },
 
   hair_coloring: {
