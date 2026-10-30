@@ -32,6 +32,7 @@ import './components/vogueNoir.css';
 import './components/bodhiTree.css';
 import './components/prismChroma.css';
 import './components/shringaarRoyal.css';
+import './components/archFlutter.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

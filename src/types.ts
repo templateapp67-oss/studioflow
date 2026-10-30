@@ -32,7 +32,8 @@ export type LayoutStyle =
   | 'chic_nude'
   | 'ayurvedic_terracotta'
   | 'palace_heritage'
-  | 'prism_holographic';
+  | 'prism_holographic'
+  | 'editorial_bento';
 
 export interface BusinessTypeOption {
   id: BusinessTypeId;
@@ -61,7 +62,8 @@ export type SalonThemePreset =
   | 'urban_monochrome'
   | 'chic_nude_beige'
   | 'ayurvedic_terracotta'
-  | 'sage_cream_gold';
+  | 'sage_cream_gold'
+  | 'blush_champagne';
 
 export interface CategoryTemplateConfig {
   id: BusinessTypeId;
@@ -237,6 +239,10 @@ export interface SalonProfile {
   bodhiTree?: BodhiTreeConfig;
   prismChroma?: PrismChromaConfig;
   shringaarRoyal?: ShringaarRoyalConfig;
+  /** Template 13 — Arch & Flutter Lash & Brow Bar owner content. */
+  archFlutter?: ArchFlutterConfig;
+  /** Editable "Promotions & offers" records. `undefined` = never seeded yet. */
+  promoOffers?: SalonOffer[];
   ironInk?: { categories?: import('./lib/ironInk').IronInkCategory[]; heroImage?:string; interiorImage?:string; artistImage?:string; bookingDeposit?:number; faq?:Array<{question:string;answer:string}>; media?:import('./lib/ironInkMedia').IronInkMediaTopic[] };
 
   businessType: BusinessTypeId;
@@ -1022,5 +1028,186 @@ export interface ShringaarRoyalConfig {
   /** Daily opening time "HH:MM" (24h) for the open-now chip. */
   openTime?: string;
   /** Daily closing time "HH:MM" (24h) for the open-now chip. */
+  closeTime?: string;
+}
+
+/**
+ * Template 13 — Arch & Flutter Lash & Brow Bar (`lash_brow`).
+ *
+ * Editorial-luxury lash & brow micro-studio: blush rose, warm ivory, deep
+ * espresso, champagne gold and dusty mauve; oversized serif headings over a
+ * clean sans; bento grids; arch-shaped image masks and feather motifs.
+ *
+ * `lib/archFlutter.ts` resolves every missing value to the bundled demo
+ * defaults so a published site never renders an empty section.
+ */
+export interface ArchFlutterColors {
+  blush: string;
+  ivory: string;
+  espresso: string;
+  gold: string;
+  mauve: string;
+}
+
+export interface ArchFlutterStat {
+  id: string;
+  value: string;
+  label: string;
+}
+
+/** One of the 15 lash & brow categories on the bento grid. */
+export interface ArchFlutterCategory {
+  id: string;
+  name: string;
+  blurb: string;
+  imageUrl: string;
+  /** Larger tile on the home bento grid. */
+  featured?: boolean;
+}
+
+export interface ArchFlutterPackage {
+  id: string;
+  tier: string;
+  name: string;
+  price: number;
+  durationMinutes: number;
+  includes: string[];
+  imageUrl?: string;
+  highlight?: boolean;
+  note?: string;
+}
+
+export interface ArchFlutterBeforeAfter {
+  id: string;
+  title: string;
+  alt: string;
+  before: string;
+  after: string;
+}
+
+export interface ArchFlutterReel {
+  id: string;
+  title: string;
+  caption: string;
+  posterUrl: string;
+  /** Optional playable source (mp4/webm) for the in-card muted preview. */
+  previewVideoUrl?: string;
+  /** Optional Instagram / YouTube link for "watch on". */
+  sourceUrl?: string;
+}
+
+export interface ArchFlutterReview {
+  id: string;
+  name: string;
+  area: string;
+  rating: number;
+  service: string;
+  quote: string;
+  avatarUrl?: string;
+}
+
+export interface ArchFlutterFaq {
+  id: string;
+  question: string;
+  answer: string;
+}
+
+export interface ArchFlutterPost {
+  id: string;
+  title: string;
+  excerpt: string;
+  body: string;
+  imageUrl: string;
+  tag: string;
+  minutes: number;
+}
+
+export interface ArchFlutterOffer {
+  id: string;
+  headline: string;
+  detail: string;
+  code: string;
+  imageUrl: string;
+}
+
+/** How a promotion reduces the price. */
+export type SalonOfferType = 'percent' | 'flat' | 'combo' | 'free_addon';
+
+/**
+ * One editable "Promotions & offers" record, stored on the salon profile so it
+ * saves with the rest of the workspace (same JSON shape for demo and real
+ * offers). Template 13 seeds six demo offers with `isDemo: true`; the flag is
+ * dropped from an offer as soon as its owner edits it. Expired or hidden offers
+ * stay in the owner workspace but never render on the public site.
+ */
+export interface SalonOffer {
+  id: string;
+  title: string;
+  description: string;
+  image: string;
+  badge: string;
+  offerType: SalonOfferType;
+  /** Percent (20 = 20% off), rupees (flat / free add-on worth) or 0 for a combo price. */
+  discountValue: number;
+  originalPriceINR: number;
+  offerPriceINR: number;
+  /** Service ids the offer applies to; an empty list means "any service". */
+  applicableServices: string[];
+  couponCode: string;
+  /** Inclusive validity window, `YYYY-MM-DD`. An empty `validTo` means no end date. */
+  validFrom: string;
+  validTo: string;
+  terms: string;
+  isActive: boolean;
+  isDemo: boolean;
+}
+
+export interface ArchFlutterConfig {
+  selectorLabel?: string;
+  heroHeading?: string;
+  heroKicker?: string;
+  heroSubtext?: string;
+  heroImageUrl?: string;
+  aboutHeading?: string;
+  aboutStory?: string;
+  aboutImageUrl?: string;
+  categoriesHeading?: string;
+  categoriesSubtext?: string;
+  servicesHeading?: string;
+  servicesSubtext?: string;
+  packagesHeading?: string;
+  packagesSubtext?: string;
+  resultsHeading?: string;
+  reelsHeading?: string;
+  reelsSubtext?: string;
+  teamHeading?: string;
+  reviewsHeading?: string;
+  galleryHeading?: string;
+  offersHeading?: string;
+  journalHeading?: string;
+  contactHeading?: string;
+  bookingHeading?: string;
+  bookingSubtext?: string;
+  ctaBannerImageUrl?: string;
+  footerImageUrl?: string;
+  publicEmail?: string;
+  workingHoursDisplay?: string;
+  mapEmbedUrl?: string;
+  established?: string;
+  /** Show GST-inclusive note beside prices. */
+  showGstNote?: boolean;
+  colors?: Partial<ArchFlutterColors>;
+  stats?: ArchFlutterStat[];
+  categories?: ArchFlutterCategory[];
+  packages?: ArchFlutterPackage[];
+  beforeAfter?: ArchFlutterBeforeAfter[];
+  reels?: ArchFlutterReel[];
+  featuredVideo?: ArchFlutterReel;
+  reviews?: ArchFlutterReview[];
+  faqs?: ArchFlutterFaq[];
+  posts?: ArchFlutterPost[];
+  offers?: ArchFlutterOffer[];
+  galleryUrls?: string[];
+  openTime?: string;
   closeTime?: string;
 }

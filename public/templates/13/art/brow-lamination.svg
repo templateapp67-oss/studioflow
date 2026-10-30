@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1200" width="900" height="1200" role="img" aria-label="Brow Lamination — Arch &amp; Flutter art plate">
+  <defs>
+    <linearGradient id="af-bg" x1="0" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#FBF6F1"/>
+      <stop offset="0.52" stop-color="#F8EAE6"/>
+      <stop offset="1" stop-color="#F4D7D3"/>
+    </linearGradient>
+    <radialGradient id="af-mesh-ivory" cx="0.18" cy="0.12" r="0.75">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="af-mesh-gold" cx="0.88" cy="0.86" r="0.62">
+      <stop offset="0" stop-color="#C9A66B" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#C9A66B" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="af-mesh-mauve" cx="0.82" cy="0.08" r="0.55">
+      <stop offset="0" stop-color="#9A6B73" stop-opacity="0.26"/>
+      <stop offset="1" stop-color="#9A6B73" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="af-mesh-blush" cx="0.05" cy="0.9" r="0.6">
+      <stop offset="0" stop-color="#E9BDB7" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#E9BDB7" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="af-arch-clip">
+      <path d="M216 1032 V504 a234 234 0 0 1 468 0 V1032 Z"/>
+    </clipPath>
+  </defs>
+  <rect width="900" height="1200" fill="url(#af-bg)"/>
+  <rect width="900" height="1200" fill="url(#af-mesh-ivory)"/>
+  <rect width="900" height="1200" fill="url(#af-mesh-mauve)"/>
+  <rect width="900" height="1200" fill="url(#af-mesh-gold)"/>
+  <rect width="900" height="1200" fill="url(#af-mesh-blush)"/>
+  <path d="M216 1032 V504 a234 234 0 0 1 468 0 V1032" fill="#FFFFFF" fill-opacity="0.42" stroke="#C9A66B" stroke-width="2.5"/>
+  <path d="M228 1020 V516 a222 222 0 0 1 444 0 V1020" fill="none" stroke="#C9A66B" stroke-width="1" stroke-opacity="0.7"/>
+  <g stroke="#C9A66B" stroke-width="1.6" fill="none" stroke-linecap="round" opacity="0.85">
+    <path d="M72 192 q54 -60 117 -24"/>
+    <path d="M72 228 q63 -42 135 0"/>
+    <path d="M76 264 q54 -24 108 18"/>
+  </g>
+  <g stroke="#9A6B73" stroke-width="1.4" fill="none" stroke-linecap="round" opacity="0.5">
+    <path d="M828 936 q-50 54 -108 24"/>
+    <path d="M828 972 q-58 36 -126 0"/>
+  </g>
+  <g>
+    <path d="M247.5 721.8 Q423.0 613.8 655.2 689.4" fill="none" stroke="#2B1B17" stroke-width="12.1" stroke-linecap="round" stroke-opacity="0.82"/>
+    <path d="M261.0 693.3 q8.1 -27.0 2.7 -45.9" fill="none" stroke="#C9A66B" stroke-width="2.4" stroke-linecap="round" stroke-opacity="0.85"/>
+    <path d="M276.4 683.3 q8.1 -27.0 2.7 -45.9" fill="none" stroke="#C9A66B" stroke-width="2.4" stroke-linecap="round" stroke-opacity="0.85"/>
+    <path d="M291.8 674.3 q8.1 -27.0 2.7 -45.9" fill="none" stroke="#C9A66B" stroke-width="2.4" stroke-linecap="round" stroke-opacity="0.85"/>
+    <path d="M307.2 666.3 q8.1 -27.0 2.7 -45.9" fill="none" stroke="#C9A66B" stroke-width="2.4" stroke-linecap="round" stroke-opacity="0.85"/>
+    <path d="M322.6 659.3 q8.1 -27.0 2.7 -45.9" fill="none" stroke="#C9A66B" stroke-width="2.4" stroke-linecap="round" stroke-opacity="0.85"/>
+    <path d="M337.9 653.3 q8.1 -27.0 2.7 -45.9" fill="none" stroke="#C9A66B" stroke-width="2.4" stroke-linecap="round" stroke-opacity="0.85"/>
+    <path d="M353.3 648.2 q8.1 -27.0 2.7 -45.9" fill="none" stroke="#C9A66B" stroke-width="2.4" stroke-linecap="round" stroke-opacity="0.85"/>
+    <path d="M368.7 644.2 q8.1 -27.0 2.7 -45.9" fill="none" stroke="#C9A66B" stroke-width="2.4" stroke-linecap="round" stroke-opacity="0.85"/>
+    <path d="M384.1 641.2 q8.1 -27.0 2.7 -45.9" fill="none" stroke="#C9A66B" stroke-width="2.4" stroke-linecap="round" stroke-opacity="0.85"/>
+    <path d="M399.5 639.2 q8.1 -27.0 2.7 -45.9" fill="none" stroke="#C9A66B" stroke-width="2.4" stroke-linecap="round" stroke-opacity="0.85"/>
+    <path d="M414.9 638.2 q8.1 -27.0 2.7 -45.9" fill="none" stroke="#C9A66B" stroke-width="2.4" stroke-linecap="round" stroke-opacity="0.85"/>
+    <path d="M430.3 638.2 q8.1 -27.0 2.7 -45.9" fill="none" stroke="#C9A66B" stroke-width="2.4" stroke-linecap="round" stroke-opacity="0.85"/>
+    <path d="M445.7 639.2 q8.1 -27.0 2.7 -45.9" fill="none" stroke="#C9A66B" stroke-width="2.4" stroke-linecap="round" stroke-opacity="0.85"/>
+    <path d="M461.1 641.2 q8.1 -27.0 2.7 -45.9" fill="none" stroke="#C9A66B" stroke-width="2.4" stroke-linecap="round" stroke-opacity="0.85"/>
+    <path d="M476.5 644.2 q8.1 -27.0 2.7 -45.9" fill="none" stroke="#C9A66B" stroke-width="2.4" stroke-linecap="round" stroke-opacity="0.85"/>
+    <path d="M491.8 648.2 q8.1 -27.0 2.7 -45.9" fill="none" stroke="#C9A66B" stroke-width="2.4" stroke-linecap="round" stroke-opacity="0.85"/>
+    <path d="M507.2 653.3 q8.1 -27.0 2.7 -45.9" fill="none" stroke="#C9A66B" stroke-width="2.4" stroke-linecap="round" stroke-opacity="0.85"/>
+    <path d="M522.6 659.3 q8.1 -27.0 2.7 -45.9" fill="none" stroke="#C9A66B" stroke-width="2.4" stroke-linecap="round" stroke-opacity="0.85"/>
+    <path d="M538.0 666.3 q8.1 -27.0 2.7 -45.9" fill="none" stroke="#C9A66B" stroke-width="2.4" stroke-linecap="round" stroke-opacity="0.85"/>
+    <path d="M553.4 674.3 q8.1 -27.0 2.7 -45.9" fill="none" stroke="#C9A66B" stroke-width="2.4" stroke-linecap="round" stroke-opacity="0.85"/>
+    <path d="M568.8 683.3 q8.1 -27.0 2.7 -45.9" fill="none" stroke="#C9A66B" stroke-width="2.4" stroke-linecap="round" stroke-opacity="0.85"/>
+    <path d="M584.2 693.3 q8.1 -27.0 2.7 -45.9" fill="none" stroke="#C9A66B" stroke-width="2.4" stroke-linecap="round" stroke-opacity="0.85"/>
+    <path d="M599.6 704.4 q8.1 -27.0 2.7 -45.9" fill="none" stroke="#C9A66B" stroke-width="2.4" stroke-linecap="round" stroke-opacity="0.85"/>
+    <path d="M615.0 716.4 q8.1 -27.0 2.7 -45.9" fill="none" stroke="#C9A66B" stroke-width="2.4" stroke-linecap="round" stroke-opacity="0.85"/>
+    <path d="M630.4 729.4 q8.1 -27.0 2.7 -45.9" fill="none" stroke="#C9A66B" stroke-width="2.4" stroke-linecap="round" stroke-opacity="0.85"/>
+    <path d="M645.8 743.5 q8.1 -27.0 2.7 -45.9" fill="none" stroke="#C9A66B" stroke-width="2.4" stroke-linecap="round" stroke-opacity="0.85"/>
+  </g>
+  <text x="450" y="1110" text-anchor="middle" font-family="'Cormorant Garamond','Playfair Display',Georgia,serif" font-size="38" letter-spacing="5" fill="#2B1B17">Brow Lamination</text>
+  <text x="450" y="1154" text-anchor="middle" font-family="'Inter','Hanken Grotesk',Helvetica,sans-serif" font-size="19" letter-spacing="8" fill="#9A6B73">FEATHERED · BRUSHED-UP ARCH</text>
+</svg>

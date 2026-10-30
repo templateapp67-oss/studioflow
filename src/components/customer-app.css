@@ -264,3 +264,23 @@
 .cr-review-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto}
 .cr-map-legend i.demo{background:#64748b}
 .cr-branch-select{display:flex;flex-direction:column;gap:8px;margin:12px 0;padding:13px;border:1px solid var(--cr-border);border-radius:14px;background:var(--cr-surface);font-size:12px;font-weight:700}.cr-branch-select>svg{color:var(--cr-primary)}.cr-branch-select select{width:100%;padding:10px;border:1px solid var(--cr-border);border-radius:9px;background:var(--cr-surface);color:var(--cr-ink)}.cr-branch-select small{font-size:10px;color:var(--cr-muted);font-weight:400}
+
+
+/* ── GlowSlot salon offers (Promotions & Offers) ────────────────────────── */
+.cr-offers-panel{display:block;margin-top:16px}
+.cr-offers-scroll{display:flex;gap:14px;overflow-x:auto;padding:2px 2px 12px;margin-top:12px;scroll-snap-type:x proximity}
+.cr-offer-card{flex:0 0 min(84vw,320px);scroll-snap-align:start;border:1px solid var(--cr-border);border-radius:18px;background:var(--cr-surface);overflow:hidden;display:flex;flex-direction:column;box-shadow:0 3px 10px #2f145108}
+.cr-offer-photo{position:relative;height:150px;background:var(--cr-selected)}
+.cr-offer-photo img,.cr-offer-photo .cr-photo-placeholder{width:100%;height:100%;object-fit:cover;display:block}
+.cr-offer-badge{position:absolute;top:10px;left:10px;background:#fffc;color:#654098;border:1px solid #d8d0e7;border-radius:999px;padding:4px 10px;font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+.cr-offer-demo{position:absolute;bottom:10px;left:10px;background:#0009;color:#fff;border-radius:999px;padding:4px 9px;font-size:9px;font-weight:700;letter-spacing:.06em}
+.cr-offer-body{padding:14px;display:grid;gap:7px;flex:1}
+.cr-offer-body h4{font-size:14px;margin:0;line-height:1.4}
+.cr-offer-price{font-size:13px;display:flex;gap:7px;flex-wrap:wrap;align-items:baseline}
+.cr-offer-price s{color:var(--cr-muted);font-weight:600}
+.cr-offer-save{color:var(--cr-primary);font-weight:800}
+.cr-offer-meta{font-size:10px;color:var(--cr-muted);display:grid;gap:3px}
+.cr-offer-code{display:inline-flex;align-items:center;gap:6px;width:max-content;font:800 10px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em;border:1px dashed var(--cr-border);border-radius:8px;padding:6px 9px}
+.cr-offer-card .cr-primary{margin-top:auto}
+@media(min-width:760px){.cr-offers-scroll{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));overflow:visible}.cr-offer-card{flex:none}}
+@media(prefers-reduced-motion:reduce){.cr-offers-scroll{scroll-snap-type:none}}

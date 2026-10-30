@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900" role="img" aria-label="Current Offers — Arch &amp; Flutter art plate">
+  <defs>
+    <linearGradient id="af-bg" x1="0" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#FBF6F1"/>
+      <stop offset="0.52" stop-color="#F8EAE6"/>
+      <stop offset="1" stop-color="#F4D7D3"/>
+    </linearGradient>
+    <radialGradient id="af-mesh-ivory" cx="0.18" cy="0.12" r="0.75">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="af-mesh-gold" cx="0.88" cy="0.86" r="0.62">
+      <stop offset="0" stop-color="#C9A66B" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#C9A66B" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="af-mesh-mauve" cx="0.82" cy="0.08" r="0.55">
+      <stop offset="0" stop-color="#9A6B73" stop-opacity="0.26"/>
+      <stop offset="1" stop-color="#9A6B73" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="af-mesh-blush" cx="0.05" cy="0.9" r="0.6">
+      <stop offset="0" stop-color="#E9BDB7" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#E9BDB7" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="af-arch-clip">
+      <path d="M288 774 V378 a312 312 0 0 1 624 0 V774 Z"/>
+    </clipPath>
+  </defs>
+  <rect width="1200" height="900" fill="url(#af-bg)"/>
+  <rect width="1200" height="900" fill="url(#af-mesh-ivory)"/>
+  <rect width="1200" height="900" fill="url(#af-mesh-mauve)"/>
+  <rect width="1200" height="900" fill="url(#af-mesh-gold)"/>
+  <rect width="1200" height="900" fill="url(#af-mesh-blush)"/>
+  <path d="M288 774 V378 a312 312 0 0 1 624 0 V774" fill="#FFFFFF" fill-opacity="0.42" stroke="#C9A66B" stroke-width="2.5"/>
+  <path d="M300 762 V390 a300 300 0 0 1 600 0 V762" fill="none" stroke="#C9A66B" stroke-width="1" stroke-opacity="0.7"/>
+  <g stroke="#C9A66B" stroke-width="1.6" fill="none" stroke-linecap="round" opacity="0.85">
+    <path d="M96 144 q72 -45 156 -18"/>
+    <path d="M96 171 q84 -32 180 0"/>
+    <path d="M102 198 q72 -18 144 14"/>
+  </g>
+  <g stroke="#9A6B73" stroke-width="1.4" fill="none" stroke-linecap="round" opacity="0.5">
+    <path d="M1104 702 q-66 40 -144 18"/>
+    <path d="M1104 729 q-78 27 -168 0"/>
+  </g>
+  <g fill="#FFFFFF" fill-opacity="0.6" stroke="#C9A66B" stroke-width="2.5">
+    <path d="M454 472 h191 l101 68 l-101 68 h-191 Z"/>
+    <circle cx="501" cy="540" r="18" fill="#F4D7D3"/>
+  </g>
+  <g stroke="#9A6B73" stroke-width="2.7" fill="none" stroke-linecap="round">
+    <path d="M611 513 l50 54 M616 565 l45 -50"/>
+  </g>
+  <text x="600" y="832" text-anchor="middle" font-family="'Cormorant Garamond','Playfair Display',Georgia,serif" font-size="50" letter-spacing="7" fill="#2B1B17">Current Offers</text>
+  <text x="600" y="866" text-anchor="middle" font-family="'Inter','Hanken Grotesk',Helvetica,sans-serif" font-size="25" letter-spacing="11" fill="#9A6B73">FESTIVE & BRIDAL SEASON</text>
+</svg>

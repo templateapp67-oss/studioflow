@@ -68,6 +68,29 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
   assert.ok((changed.match(/src="https:\/\/example.com\/owner-photo.jpg"/g)||[]).length>=1,'owner photo replaces the demo photo on the Shringaar Royal card');
   continue;
  }
+ if(template.id==='lash_brow'){
+  // Template 13 (Arch & Flutter) is multi-page: signature services on Home, the
+  // full fifteen-category menu on Services and the bundles on Pricing. Pages are
+  // deep-linkable, so render each one and check the union.
+  (globalThis as any).window={location:{hash:''},scrollTo(){},addEventListener(){},removeEventListener(){},matchMedia:()=>({matches:false,addEventListener(){},removeEventListener(){}})};
+  try{
+   const renderAt=(hash:string,svcs:any)=>{(globalThis as any).window.location.hash=hash;return renderToStaticMarkup(<CustomerSalonWebsite profile={{...INITIAL_SALON_PROFILE,businessType:template.id}} services={svcs} stylists={[]} onAddAppointment={async a=>a}/>);};
+   const homeHtml=renderAt('',services);
+   const servicesHtml=renderAt('#services',services);
+   const packagesHtml=renderAt('#packages',services);
+   const union=homeHtml+servicesHtml+packagesHtml;
+   const menuServices=services.filter(s=>!/package|combo|bundle/i.test(s.name+' '+s.category));
+   for(const service of services){const expectedPhoto=service.imageUrl||defaultServiceImage(service,template.id);assert.ok(union.includes(expectedPhoto.replaceAll('&','&amp;')),`Arch & Flutter renders a photo for ${service.name}`);}
+   assert.equal((servicesHtml.match(/sf-service-image af-menu-image/g)||[]).length,menuServices.length,'the lash & brow menu shows a photograph for every treatment');
+   const packageSection=packagesHtml.split('id="salon-packages"')[1].split('</section>')[0];
+   assert.equal((packageSection.match(/class="sf-service-image"/g)||[]).length,5,'the pricing page shows all five bundle photographs');
+   assert.ok(homeHtml.includes('/templates/13/'),'Template 13 keeps its bundled art plates as image fallbacks');
+   const custom={...services[0],name:'QA package',category:'Packages',imageUrl:'https://example.com/owner-photo.jpg'};
+   const changed=renderAt('',[custom]);
+   assert.ok((changed.match(/src="https:\/\/example.com\/owner-photo.jpg"/g)||[]).length>=1,'owner photo replaces the demo photo on the Arch & Flutter card');
+  }finally{delete (globalThis as any).window;}
+  continue;
+ }
  // Templates 06 and 08 lift packages out of the menu grid, so every saved service
  // still needs a photo — just rendered once instead of in two card grids.
  const count=['hair_spa','makeup_studio'].includes(template.id)?services.length:services.length+services.filter(s=>/package|combo|bundle/i.test(s.name+' '+s.category)).length;

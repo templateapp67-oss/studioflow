@@ -14,6 +14,7 @@ import { VogueNoirEditor } from './vogue-noir/VogueNoirEditor';
 import { BodhiTreeEditor } from './bodhi-tree/BodhiTreeEditor';
 import { PrismChromaEditor } from './prism-chroma/PrismChromaEditor';
 import { IronInkEditor } from './iron-ink/IronInkEditor';
+import { ArchFlutterEditor } from './arch-flutter/ArchFlutterEditor';
 import { BranchLocationsEditor } from './BranchLocationsEditor';
 import { BranchStaffScheduleEditor } from './BranchStaffScheduleEditor';
 
@@ -214,6 +215,12 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                 <a href="/?template=12" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-3 rounded-xl border border-[#E11D48]/40 bg-[#141417] p-2 text-sm font-semibold text-white hover:border-[#E11D48]">
                   <img src={CATEGORY_TEMPLATES.tattoo_studio.coverImageUrl} alt="" width="96" height="54" className="h-14 w-24 rounded-lg object-cover" />
                   Preview Template 12 – Iron & Ink ↗
+                </a>
+              )}
+              {profile.businessType === 'lash_brow' && (
+                <a href="/?template=13" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-3 rounded-xl border border-[#C9A66B]/50 bg-[#FBF6F1] p-2 text-sm font-semibold text-[#7A4F57] hover:border-[#9A6B73]">
+                  <img src="/templates/13/preview.jpg" alt="" width={96} height={54} style={{ borderTopLeftRadius: 999, borderTopRightRadius: 999 }} className="h-14 w-24 object-cover object-top" />
+                  Preview Template 13 – Arch &amp; Flutter ↗
                 </a>
               )}
               {profile.businessType === 'makeup_studio' && (
@@ -424,6 +431,9 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
               )}
               {profile.businessType === 'tattoo_studio' && (
                 <IronInkEditor profile={profile} setProfile={setProfile} services={services} setServices={setServices} />
+              )}
+              {profile.businessType === 'lash_brow' && (
+                <ArchFlutterEditor profile={profile} setProfile={setProfile} />
               )}
             </div>
           )}

@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1200" width="900" height="1200" role="img" aria-label="Under-eye Care — Arch &amp; Flutter art plate">
+  <defs>
+    <linearGradient id="af-bg" x1="0" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#FBF6F1"/>
+      <stop offset="0.52" stop-color="#F8EAE6"/>
+      <stop offset="1" stop-color="#F4D7D3"/>
+    </linearGradient>
+    <radialGradient id="af-mesh-ivory" cx="0.18" cy="0.12" r="0.75">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="af-mesh-gold" cx="0.88" cy="0.86" r="0.62">
+      <stop offset="0" stop-color="#C9A66B" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#C9A66B" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="af-mesh-mauve" cx="0.82" cy="0.08" r="0.55">
+      <stop offset="0" stop-color="#9A6B73" stop-opacity="0.26"/>
+      <stop offset="1" stop-color="#9A6B73" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="af-mesh-blush" cx="0.05" cy="0.9" r="0.6">
+      <stop offset="0" stop-color="#E9BDB7" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#E9BDB7" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="af-arch-clip">
+      <path d="M216 1032 V504 a234 234 0 0 1 468 0 V1032 Z"/>
+    </clipPath>
+  </defs>
+  <rect width="900" height="1200" fill="url(#af-bg)"/>
+  <rect width="900" height="1200" fill="url(#af-mesh-ivory)"/>
+  <rect width="900" height="1200" fill="url(#af-mesh-mauve)"/>
+  <rect width="900" height="1200" fill="url(#af-mesh-gold)"/>
+  <rect width="900" height="1200" fill="url(#af-mesh-blush)"/>
+  <path d="M216 1032 V504 a234 234 0 0 1 468 0 V1032" fill="#FFFFFF" fill-opacity="0.42" stroke="#C9A66B" stroke-width="2.5"/>
+  <path d="M228 1020 V516 a222 222 0 0 1 444 0 V1020" fill="none" stroke="#C9A66B" stroke-width="1" stroke-opacity="0.7"/>
+  <g stroke="#C9A66B" stroke-width="1.6" fill="none" stroke-linecap="round" opacity="0.85">
+    <path d="M72 192 q54 -60 117 -24"/>
+    <path d="M72 228 q63 -42 135 0"/>
+    <path d="M76 264 q54 -24 108 18"/>
+  </g>
+  <g stroke="#9A6B73" stroke-width="1.4" fill="none" stroke-linecap="round" opacity="0.5">
+    <path d="M828 936 q-50 54 -108 24"/>
+    <path d="M828 972 q-58 36 -126 0"/>
+  </g>
+  <g>
+    <path d="M225.6 686.2 Q450.0 576.4 674.4 686.2 Q450.0 777.8 225.6 686.2 Z" fill="#FFFFFF" fill-opacity="0.72" stroke="#2B1B17" stroke-width="2.8" stroke-opacity="0.72"/>
+    <circle cx="450.0" cy="683.9" r="35.4" fill="#9A6B73" fill-opacity="0.75"/>
+    <circle cx="450.0" cy="683.9" r="15.4" fill="#2B1B17" fill-opacity="0.85"/>
+    <circle cx="439.4" cy="673.3" r="5.9" fill="#FFFFFF" fill-opacity="0.9"/>
+    <path d="M225.6 686.2 q13.2 -11.9 26.4 -19.9" fill="none" stroke="#2B1B17" stroke-width="3.1" stroke-linecap="round" stroke-opacity="0.9"/>
+    <path d="M275.4 646.3 q16.8 -11.1 33.6 -18.5" fill="none" stroke="#2B1B17" stroke-width="3.1" stroke-linecap="round" stroke-opacity="0.9"/>
+    <path d="M325.3 616.4 q20.4 -9.2 40.8 -15.3" fill="none" stroke="#2B1B17" stroke-width="3.1" stroke-linecap="round" stroke-opacity="0.9"/>
+    <path d="M375.2 596.4 q23.8 -6.3 47.7 -10.4" fill="none" stroke="#2B1B17" stroke-width="3.1" stroke-linecap="round" stroke-opacity="0.9"/>
+    <path d="M425.1 586.4 q27.0 -2.3 53.9 -3.9" fill="none" stroke="#2B1B17" stroke-width="3.1" stroke-linecap="round" stroke-opacity="0.9"/>
+    <path d="M474.9 586.4 q27.0 2.3 53.9 3.9" fill="none" stroke="#2B1B17" stroke-width="3.1" stroke-linecap="round" stroke-opacity="0.9"/>
+    <path d="M524.8 596.4 q23.8 6.3 47.7 10.4" fill="none" stroke="#2B1B17" stroke-width="3.1" stroke-linecap="round" stroke-opacity="0.9"/>
+    <path d="M574.7 616.4 q20.4 9.2 40.8 15.3" fill="none" stroke="#2B1B17" stroke-width="3.1" stroke-linecap="round" stroke-opacity="0.9"/>
+    <path d="M624.6 646.3 q16.8 11.1 33.6 18.5" fill="none" stroke="#2B1B17" stroke-width="3.1" stroke-linecap="round" stroke-opacity="0.9"/>
+    <path d="M674.4 686.2 q13.2 11.9 26.4 19.9" fill="none" stroke="#2B1B17" stroke-width="3.1" stroke-linecap="round" stroke-opacity="0.9"/>
+    <g fill="#F4D7D3" stroke="#C9A66B" stroke-width="2.2">
+      <path d="M315 808 q58 50 117 0 q-58 29 -117 0 Z"/>
+      <path d="M477 808 q58 50 117 0 q-58 29 -117 0 Z"/>
+    </g>
+  </g>
+  <text x="450" y="1110" text-anchor="middle" font-family="'Cormorant Garamond','Playfair Display',Georgia,serif" font-size="38" letter-spacing="5" fill="#2B1B17">Under-eye Care</text>
+  <text x="450" y="1154" text-anchor="middle" font-family="'Inter','Hanken Grotesk',Helvetica,sans-serif" font-size="19" letter-spacing="8" fill="#9A6B73">EYE FACIALS & BRIGHTENING</text>
+</svg>

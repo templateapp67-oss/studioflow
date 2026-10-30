@@ -12,6 +12,7 @@ import type {SalonProfile, SocialVideo} from '../src/types';
 
 const GENERIC_SHORTS = ['KqLCuvMVB-k', 'nehZDeIHwJ8', 'pQ5h3rrJuDM', 'hzMSId-sxtY', 'QAC81ZkryrY'];
 const COLOUR_SHORTS = ['64CRWOKFxag', '2EAPuAQ2EHo', 'rTkTQfiSRwI', 'yYBSrj1eyII', 'U9moKdpniks'];
+const LASH_SHORTS = ['4d9MZe_vpUY', 'xhrLIpz9q5I', 'eyOuZBqP-hI', 'x5FixAITeDY', '-CEYQkj3EB8'];
 const colourStudio = (overrides: Partial<SalonProfile> = {}): SalonProfile => ({
   ...INITIAL_SALON_PROFILE,
   businessType: 'hair_coloring',
@@ -43,14 +44,16 @@ for (const topic of ['balayage', 'pastel', 'money piece', 'correction', 'keratin
 assert.ok(!/beard|manicure|facial|massage/.test(colourCopy), 'no generic beard / nail / facial clips in Template 10');
 console.log('PASS: Template 10 defaults to five colour Shorts (balayage, fashion/pastel, money piece, correction, keratin + gloss) with real channels and hqdefault posters.');
 
-/* 2 — The other 13 templates keep the generic list untouched. */
+/* 2 — The other 12 templates keep the generic list untouched (Template 13 gets
+   its own eye-area references, asserted in section 7). */
 for (const template of Object.values(CATEGORY_TEMPLATES)) {
   const videos = createDemoVideos(template.id);
   assert.equal(videos.length, 5, `${template.id} keeps five demo reels`);
   if (template.id === 'hair_coloring') assert.deepEqual(videos.map((video) => video.videoId), COLOUR_SHORTS);
+  else if (template.id === 'lash_brow') assert.deepEqual(videos.map((video) => video.videoId), LASH_SHORTS);
   else assert.deepEqual(videos.map((video) => video.videoId), GENERIC_SHORTS, `${template.id} keeps the generic references`);
 }
-console.log('PASS: only hair_coloring branches; the other 13 templates still seed the identical generic Shorts list.');
+console.log('PASS: only hair_coloring and lash_brow branch; the other 12 templates still seed the identical generic Shorts list.');
 
 /* 3 — A fresh colour studio is seeded with the colour list, never the generic one. */
 const seeded = normalizeWorkspace({profile: colourStudio()});
@@ -145,5 +148,42 @@ for (const selector of ['.pc-site .video-card', '.pc-site .sf-reel-source', '.pc
   assert.ok(prismCss.includes(selector), `Template 10 themes the reel block: ${selector}`);
 assert.ok(!/^\s*\.video-card\s*\{/m.test(prismCss), 'Template 10 reel styles stay scoped to .pc-site');
 console.log("PASS: colour reels render as posters inside .pc-site with colour-themed copy; other templates keep their generic block.");
+
+/* 7 — Template 13 (Arch & Flutter) opens with eye-area references only, and a
+   published lash bar seeded with the generic list upgrades in place. */
+const lash = createDemoVideos('lash_brow');
+assert.equal(lash.length, 5, 'lash_brow ships five demo reels');
+assert.deepEqual(lash.map((video) => video.videoId), LASH_SHORTS);
+assert.equal(new Set(lash.map((video) => video.videoId)).size, 5, 'five distinct lash posters');
+for (const video of lash) {
+  assert.ok(video.isDemo && !video.isOwnerVideo, `${video.title} is a demo reference`);
+  assert.equal(video.categoryTag, 'SHORT');
+  assert.equal(video.youtubeUrl, `https://www.youtube.com/shorts/${video.videoId}`);
+  assert.equal(video.thumbnailUrl, `https://img.youtube.com/vi/${video.videoId}/hqdefault.jpg`);
+  assert.equal(reelSource(video)?.platform, 'YouTube');
+  assert.ok(video.title.trim().length > 5 && !!video.channelTitle, `${video.videoId} keeps a title and attribution`);
+  assert.equal(video.id, `demo-lash_brow-${lash.indexOf(video) + 1}`);
+}
+const lashCopy = lash.map((video) => `${video.title} ${video.channelTitle}`.toLowerCase()).join(' ');
+for (const topic of ['brow lamination', 'lash lift', 'tint', 'lash extension', 'aftercare'])
+  assert.ok(lashCopy.includes(topic), `lash demo list covers ${topic}`);
+assert.ok(!/beard|manicure|facial/.test(lashCopy), 'no generic beard / nail / facial clips in Template 13');
+const lashDemo = (index: number): SocialVideo => ({...legacyDemo(index), id: `demo-lash_brow-${index + 1}`});
+const lashUpgraded = showcaseVideos({
+  ...INITIAL_SALON_PROFILE,
+  businessType: 'lash_brow',
+  businessName: 'Arch & Flutter Lash & Brow Bar',
+  subdomain: 'arch-flutter',
+  socialVideos: [lashDemo(0), ownerVideo, lashDemo(2)],
+  demoVideosInitialized: true,
+});
+assert.equal(lashUpgraded.length, 3, 'owner reels are not duplicated or dropped');
+assert.equal(lashUpgraded[0].videoId, LASH_SHORTS[0], 'position 1 now shows a lash reference');
+assert.equal(lashUpgraded[0].title, lash[0].title, 'unedited demo titles follow the lash list');
+assert.equal(lashUpgraded[1], ownerVideo, 'owner video is returned untouched');
+assert.equal(lashUpgraded[2].videoId, LASH_SHORTS[2], 'the demo at position 3 keeps its slot');
+const lashSeeded = normalizeWorkspace({profile: {...INITIAL_SALON_PROFILE, businessType: 'lash_brow', subdomain: 'arch-flutter', socialVideos: [], demoVideosInitialized: undefined}});
+assert.deepEqual(lashSeeded.profile.socialVideos.map((video) => video.videoId), LASH_SHORTS);
+console.log('PASS: Template 13 defaults to five lash & brow Shorts and upgrades published generic demos in place.');
 
 console.log('\nAll colour demo reel checks passed.');

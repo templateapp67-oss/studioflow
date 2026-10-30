@@ -9,6 +9,7 @@ import {BodhiTreeEditor} from './bodhi-tree/BodhiTreeEditor';
 import {PrismChromaEditor} from './prism-chroma/PrismChromaEditor';
 import {ShringaarRoyalEditor} from './shringaar-royal/ShringaarRoyalEditor';
 import {IronInkEditor} from './iron-ink/IronInkEditor';
+import {ArchFlutterEditor} from './arch-flutter/ArchFlutterEditor';
 import {AcademyEnquiriesPanel} from './vogue-noir/AcademyEnquiriesPanel';
 import {CustomerAppPromotion} from './CustomerAppPromotion';
 import {CustomerSalonWebsite} from './CustomerSalonWebsite';
@@ -101,8 +102,18 @@ type DeviceMode = 'desktop' | 'tablet' | 'mobile';
 export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = props => {
  const [editing,setEditing]=useState(false);
  if(props.readOnly)return <CustomerSalonWebsite {...props}/>;
- return <><div className="pt-28 px-4 pb-4 flex flex-wrap gap-3 bg-white text-slate-900"><button className="secondary-action" onClick={()=>setEditing(value=>!value)}>{editing?'Show redesigned website':'Open owner editing tools'}</button><button className="secondary-action" onClick={props.onEnterClientPreview}>Customer device preview</button></div>{editing?(props.profile.businessType==='skincare_clinic'?<ClinicPreviewEditor {...props}/>:props.profile.businessType==='makeup_studio'?<VogueNoirPreviewEditor {...props}/>:props.profile.businessType==='massage_wellness'?<BodhiTreePreviewEditor {...props}/>:props.profile.businessType==='hair_coloring'?<PrismChromaPreviewEditor {...props}/>:props.profile.businessType==='bridal_lounge'?<ShringaarRoyalPreviewEditor {...props}/>:props.profile.businessType==='tattoo_studio'?<IronInkPreviewEditor {...props}/>:<SalonWebsiteEditor {...props}/>):<CustomerSalonWebsite {...props} readOnly/>}</>;
+ return <><div className="pt-28 px-4 pb-4 flex flex-wrap gap-3 bg-white text-slate-900"><button className="secondary-action" onClick={()=>setEditing(value=>!value)}>{editing?'Show redesigned website':'Open owner editing tools'}</button><button className="secondary-action" onClick={props.onEnterClientPreview}>Customer device preview</button></div>{editing?(props.profile.businessType==='skincare_clinic'?<ClinicPreviewEditor {...props}/>:props.profile.businessType==='makeup_studio'?<VogueNoirPreviewEditor {...props}/>:props.profile.businessType==='massage_wellness'?<BodhiTreePreviewEditor {...props}/>:props.profile.businessType==='hair_coloring'?<PrismChromaPreviewEditor {...props}/>:props.profile.businessType==='bridal_lounge'?<ShringaarRoyalPreviewEditor {...props}/>:props.profile.businessType==='tattoo_studio'?<IronInkPreviewEditor {...props}/>:props.profile.businessType==='lash_brow'?<ArchFlutterPreviewEditor {...props}/>:<SalonWebsiteEditor {...props}/>):<CustomerSalonWebsite {...props} readOnly/>}</>;
 };
+
+function ArchFlutterPreviewEditor(props:SalonWebsitePreviewProps) {
+ const accent=props.profile.customAccentColor||'#9A6B73';
+ return <main className="max-w-6xl mx-auto p-4 space-y-6" aria-label="Arch and Flutter owner editing tools">
+  <p>Edit your Arch &amp; Flutter Lash &amp; Brow Bar website — hero, the fifteen eye-area categories, ₹ menu and packages, featured video and reels, artists, before &amp; after, offers, aftercare journal, reviews and contact details. Services, prices, team and gallery save with your connected workspace.</p>
+  {props.setProfile?<><ArchFlutterEditor profile={props.profile} setProfile={props.setProfile}/><WebsiteContentManager profile={props.profile} setProfile={props.setProfile} services={props.services} gallery={props.gallery} showGallery={false}/></>:<p role="status">Content editing requires a connected owner workspace.</p>}
+  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
+  {props.setStylists?<TeamManagement stylists={props.stylists} setStylists={props.setStylists} services={props.services} setServices={props.setServices} businessType="lash_brow" primaryAccentColor={accent}/>:null}
+ </main>;
+}
 
 function IronInkPreviewEditor(props:SalonWebsitePreviewProps) {
  const accent=props.profile.customAccentColor||'#E11D48';
