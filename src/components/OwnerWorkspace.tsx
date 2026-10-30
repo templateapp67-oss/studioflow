@@ -73,7 +73,30 @@ type Props = {
 const Field = ({ label, value, onChange, type = 'text' }: { label: string; value: string | number; onChange: (value: string) => void; type?: string }) => <label className="block"><span className="field-label">{label}</span><input type={type} value={value} onChange={(e) => onChange(e.target.value)} className="workspace-input" /></label>;
 const Toggle = ({ label, checked, onChange, hint }: { label: string; checked: boolean; onChange: (checked: boolean) => void; hint?: string }) => <label className="workspace-toggle"><span><strong>{label}</strong>{hint && <small>{hint}</small>}</span><input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} /></label>;
 const Metric = ({ icon, label, value }: { icon: string; label: string; value: string }) => <article className="metric-card"><span className="material-symbols-outlined">{icon}</span><small>{label}</small><strong>{value}</strong></article>;
-const Nav = ({id,label,icon,active,onClick,number}:{key?:React.Key;id:number;label:string;icon:string;active:number;onClick:(id:number)=>void;number?:number}) => <button type="button" onClick={()=>onClick(id)} aria-current={active===id?'page':undefined} title={`${number?`${number}. `:''}${label}`} className={`owner-nav ${number?'website-step-nav':'business-tool-nav'}${active===id?' active':''}`}>{number&&<span className="nav-no">{number}</span>}<span className="material-symbols-outlined" aria-hidden="true">{icon}</span><strong>{label}</strong></button>;
+const Nav = ({id,label,icon,active,onClick,number}:{key?:React.Key;id:number;label:string;icon:string;active:number;onClick:(id:number)=>void;number?:number}) => (
+  <button 
+    type="button" 
+    onClick={()=>onClick(id)} 
+    aria-current={active===id?'page':undefined} 
+    title={`${number?`${number}. `:''}${label}`} 
+    className={`w-full flex items-center gap-2.5 px-3 py-2 my-0.5 rounded-xl text-xs font-semibold text-left transition-all cursor-pointer ${
+      active===id 
+        ? 'bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-md font-bold' 
+        : 'text-slate-300 hover:text-white hover:bg-slate-800'
+    }`}
+  >
+    {number && (
+      <span className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0 ${
+        active===id ? 'bg-white text-rose-700' : 'bg-slate-800 text-slate-400 border border-slate-700'
+      }`}>
+        {number}
+      </span>
+    )}
+    <span className="material-symbols-outlined text-base shrink-0" aria-hidden="true">{icon}</span>
+    <span className="truncate font-semibold text-xs tracking-tight">{label}</span>
+  </button>
+);
+
 const ActionPage = ({ eyebrow, title, text, icon, action, onAction, secondary, onSecondary }: { eyebrow: string; title: string; text: string; icon: string; action: string; onAction: () => void; secondary?: string; onSecondary?: () => void }) => <section className="workspace-card action-page"><div className="action-icon"><span className="material-symbols-outlined">{icon}</span></div><p className="eyebrow">{eyebrow}</p><h2>{title}</h2><p className="muted">{text}</p><div className="action-buttons"><button className="primary-action" onClick={onAction}>{action}</button>{secondary && <button className="secondary-action" onClick={onSecondary}>{secondary}</button>}</div></section>;
 
 export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services, setServices, stylists, setStylists, appointments, clients, setClients, loyaltyConfig, setLoyaltyConfig, extras, setExtras, published, onPublish, sessionEmail, templates, onOpenPreview, onOpenDashboard, onOpenWizard, onRefreshBookings, sync, syncError }) => {
@@ -130,24 +153,140 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
   const currentStep=WEBSITE_EDIT_STEPS[stepIndex];
   const currentLabel=currentStep?.label||OWNER_BUSINESS_TOOLS.find(tool=>tool.id===active)?.label||'Owner workspace';
   const previous=adjacentOwnerStep(active,-1),next=adjacentOwnerStep(active,1);
-  const stepControls=<div className="owner-step-actions"><button type="button" className="secondary-action" disabled={previous===null} onClick={()=>previous!==null&&navigate(previous)}>← Previous step</button>{next!==null?<button type="button" className="primary-action" onClick={()=>navigate(next)}>Next: {WEBSITE_EDIT_STEPS[stepIndex+1].label} →</button>:<button type="button" className="secondary-action" onClick={()=>navigate(2)}>Back to step 1</button>}</div>;
+  const stepControls=<div className="flex items-center gap-3"><button type="button" className="px-4 py-2 text-xs font-bold bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 rounded-xl transition-all cursor-pointer disabled:opacity-40" disabled={previous===null} onClick={()=>previous!==null&&navigate(previous)}>← Previous step</button>{next!==null?<button type="button" className="px-4 py-2 text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white rounded-xl shadow-xs transition-all cursor-pointer" onClick={()=>navigate(next)}>Next: {WEBSITE_EDIT_STEPS[stepIndex+1].label} →</button>:<button type="button" className="px-4 py-2 text-xs font-bold bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 rounded-xl transition-all cursor-pointer" onClick={()=>navigate(2)}>Back to step 1</button>}</div>;
+
   return <>
-  <main className="owner-shell owner-guided-shell">
-    <aside className="owner-sidebar">
-      <div className="owner-brand"><div style={{background:accent}}>{profile.logoUrl?<img src={profile.logoUrl} alt=""/>:<span>{profile.businessName.slice(0,1)}</span>}</div><p><strong>{extras.whiteLabel.platformName||profile.businessName}</strong><small>Website editor</small></p></div>
-      <div className="owner-sidebar-guide"><strong>Edit your website</strong><p>1 se {WEBSITE_EDIT_STEPS.length} tak ek-ek step edit karein. Kisi bhi step par seedha ja sakte hain.</p></div>
-      <label className="owner-mobile-step"><span>Choose a section</span><select value={active} onChange={e=>navigate(Number(e.target.value))}><optgroup label="Edit website — in order">{WEBSITE_EDIT_STEPS.map((step,index)=><option key={step.id} value={step.id}>{index+1}. {step.label}</option>)}</optgroup><optgroup label="Business tools">{OWNER_BUSINESS_TOOLS.map(tool=><option key={tool.id} value={tool.id}>{tool.label}</option>)}</optgroup></select></label>
-      <nav aria-label="Website editing steps"><ol>{WEBSITE_EDIT_STEPS.map((step,index)=><li key={step.id}><Nav {...step} number={index+1} active={active} onClick={navigate}/></li>)}</ol></nav>
-      <details className="owner-tools" open={stepIndex<0||undefined}><summary>Business tools · bookings, customers & more</summary><nav aria-label="Business tools">{OWNER_BUSINESS_TOOLS.map(tool=><Nav key={tool.id} {...tool} active={active} onClick={navigate}/>)}</nav></details>
-    </aside>
-    <div className="owner-main">
-      <header className="workspace-topbar"><div><small>{currentStep?`Website editing · Step ${stepIndex+1} of ${WEBSITE_EDIT_STEPS.length}`:'Business tools'}</small><strong>{currentLabel}</strong></div><div className="topbar-actions"><button type="button" onClick={onOpenPreview}><span className="material-symbols-outlined">visibility</span>Preview</button><span className={published?'live-dot is-live':'live-dot'}>{published?'Published':'Draft'}</span><div className="avatar">{profile.ownerName.slice(0,1)}</div></div></header>
-      <div className="workspace-content">{notice&&<div className="workspace-toast" role="status"><span className="material-symbols-outlined">check_circle</span>{notice}</div>}
-        <section className="owner-step-intro" aria-label="Current editing step"><p className="eyebrow">{currentStep?`Step ${stepIndex+1} / ${WEBSITE_EDIT_STEPS.length}`:'Business tools'}</p><h1 ref={headingRef} tabIndex={-1}>{currentLabel}</h1><p>{currentStep?.hint||'Roz ke salon operations yahan manage karein. Website edit karne ke liye numbered steps use karein.'}</p>{currentStep?<><p className="owner-step-save-hint">Next se sirf section badlega. Upar workspace ka save status check karein; Publish alag step hai.</p></>:<button type="button" className="secondary-action" onClick={()=>navigate(2)}>Start website editing · Step 1</button>}</section>
-        <div key={active}>{renderContent()}</div>{currentStep&&<footer className="owner-step-footer"><p>Step {stepIndex+1} / {WEBSITE_EDIT_STEPS.length} · {currentLabel}</p>{stepControls}</footer>}
+  <main className="min-h-screen bg-slate-50 text-slate-900 flex flex-col antialiased">
+    {/* Main Container */}
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
+      {/* Flex-Based Action Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3.5 p-4 bg-white border border-slate-200/80 rounded-2xl shadow-2xs">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <strong className="text-slate-900 font-extrabold text-sm sm:text-base flex items-center gap-1.5 mr-2">
+            <span className="material-symbols-outlined text-base text-pink-600">tune</span>
+            <span>{currentLabel}</span>
+          </strong>
+          <span className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider ${
+            published ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-amber-100 text-amber-800 border border-amber-200'
+          }`}>
+            {published ? 'Published' : 'Draft'}
+          </span>
+          <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 font-semibold border border-slate-200/60 font-mono text-[11px]">
+            {sync}
+          </span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer active:scale-95"
+            onClick={onPublish}
+          >
+            Publish Website
+          </button>
+          <button
+            type="button"
+            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-semibold transition-all cursor-pointer active:scale-95"
+            onClick={() => void onRefreshBookings?.()}
+          >
+            Refresh Bookings
+          </button>
+          <button
+            type="button"
+            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-semibold transition-all cursor-pointer active:scale-95"
+            onClick={onOpenPreview}
+          >
+            Preview Site
+          </button>
+        </div>
+      </div>
+
+      {/* Grid Layout Container */}
+      <div className="grid grid-cols-1 lg:grid-cols-[18.5rem_minmax(0,1fr)] gap-6 items-start">
+        {/* Sidebar */}
+        <aside className="sticky top-36 overflow-y-auto p-4 bg-slate-900 text-slate-100 border border-slate-800 rounded-2xl hidden lg:block no-scrollbar shadow-sm">
+          <div className="p-3 mb-4 rounded-xl bg-slate-800/40 border border-slate-800 text-xs text-slate-300 leading-relaxed">
+            <strong className="block text-slate-100 font-bold mb-1">Edit your website</strong>
+            <p>1 se {WEBSITE_EDIT_STEPS.length} tak ek-ek step edit karein. Kisi bhi step par seedha ja sakte hain.</p>
+          </div>
+
+          <nav aria-label="Website editing steps" className="space-y-0.5">
+            <ol>{WEBSITE_EDIT_STEPS.map((step,index)=><li key={step.id}><Nav {...step} number={index+1} active={active} onClick={navigate}/></li>)}</ol>
+          </nav>
+
+          <details className="mt-6 pt-4 border-t border-slate-800 group" open={stepIndex<0||undefined}>
+            <summary className="cursor-pointer text-xs font-bold text-slate-400 hover:text-slate-200 py-2 flex items-center justify-between">
+              <span>Business tools · bookings & more</span>
+              <span className="material-symbols-outlined text-sm group-open:rotate-180 transition-transform">expand_more</span>
+            </summary>
+            <nav aria-label="Business tools" className="mt-2 space-y-0.5">
+              {OWNER_BUSINESS_TOOLS.map(tool=><Nav key={tool.id} {...tool} active={active} onClick={navigate}/>)}
+            </nav>
+          </details>
+        </aside>
+
+        {/* Mobile Section Dropdown Selector */}
+        <div className="lg:hidden p-4 bg-slate-900 text-white rounded-2xl border border-slate-800">
+          <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Choose a section</label>
+          <select 
+            value={active} 
+            onChange={e=>navigate(Number(e.target.value))}
+            className="w-full bg-slate-800 text-white border border-slate-700 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-pink-500"
+          >
+            <optgroup label="Edit website — in order">{WEBSITE_EDIT_STEPS.map((step,index)=><option key={step.id} value={step.id}>{index+1}. {step.label}</option>)}</optgroup>
+            <optgroup label="Business tools">{OWNER_BUSINESS_TOOLS.map(tool=><option key={tool.id} value={tool.id}>{tool.label}</option>)}</optgroup>
+          </select>
+        </div>
+
+        {/* Main Content Area */}
+        <div className="min-w-0 space-y-6">
+          {notice && (
+            <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-xs font-semibold flex items-center gap-2 shadow-xs" role="status">
+              <span className="material-symbols-outlined text-base text-emerald-600">check_circle</span>
+              <span>{notice}</span>
+            </div>
+          )}
+
+          <section className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs" aria-label="Current editing step">
+            <span className="text-[11px] font-mono font-bold text-pink-600 uppercase tracking-wider block mb-1">
+              {currentStep ? `Step ${stepIndex+1} / ${WEBSITE_EDIT_STEPS.length}` : 'Business tools'}
+            </span>
+            <h1 ref={headingRef} tabIndex={-1} className="text-2xl font-extrabold text-slate-900 tracking-tight outline-none">
+              {currentLabel}
+            </h1>
+            <p className="text-sm text-slate-600 mt-1.5 leading-relaxed">
+              {currentStep?.hint || 'Roz ke salon operations yahan manage karein. Website edit karne ke liye numbered steps use karein.'}
+            </p>
+            {currentStep ? (
+              <p className="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-100 font-medium">
+                Next se sirf section badlega. Upar workspace ka save status check karein; Publish alag step hai.
+              </p>
+            ) : (
+              <button 
+                type="button" 
+                className="mt-4 px-4 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl border border-slate-200 transition-all cursor-pointer" 
+                onClick={()=>navigate(2)}
+              >
+                Start website editing · Step 1
+              </button>
+            )}
+          </section>
+
+          <div key={active} className="min-w-0">{renderContent()}</div>
+
+          {currentStep && (
+            <footer className="pt-6 border-t border-slate-200 mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <p className="text-xs font-semibold text-slate-500">
+                Step {stepIndex+1} / {WEBSITE_EDIT_STEPS.length} · {currentLabel}
+              </p>
+              {stepControls}
+            </footer>
+          )}
+        </div>
       </div>
     </div>
   </main>
   <SyncIndicator sync={sync} syncError={syncError} />
   </>;
 };
+

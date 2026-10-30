@@ -1,5 +1,5 @@
 import React,{useRef,useState,useEffect} from 'react';
-import {Clock,Coins,Users,Share2,Copy,Check,History,Gift,RefreshCw,X,Ticket,ShieldCheck} from 'lucide-react';
+import {Clock,Coins,Users,Share2,Copy,Check,History,Gift,RefreshCw,X,Ticket,ShieldCheck,Sparkles,Award} from 'lucide-react';
 import {ReferralMembers} from './ReferralMembers';
 import {Empty,Notice} from './Parts';
 import {useRewardsDashboard,type RewardVoucher} from './useRewardsDashboard';
@@ -7,10 +7,27 @@ import {customerReferralLink} from '../../lib/customerReferral';
 import {supabase} from '../../lib/supabase';
 import {message} from './model';
 import {useCustomerDialog} from './BookingFlow';
-export function CustomerRewards({referral,signedIn,error,signIn,share,uid='',onChanged=()=>{}}:{points:number;rewards:any[];referral:string;signedIn:boolean;error:string;signIn:()=>void;share:()=>void;uid?:string;onChanged?:()=>void}){
+export function CustomerRewards({points=0,rewards=[],referral,signedIn,error,signIn,share,uid='',onChanged=()=>{}}:{points:number;rewards:any[];referral:string;signedIn:boolean;error:string;signIn:()=>void;share:()=>void;uid?:string;onChanged?:()=>void}){
  const {data,loading,error:loadError,refresh}=useRewardsDashboard(uid);const [selected,setSelected]=useState(''),[copied,setCopied]=useState(''),[notice,setNotice]=useState(''),[target,setTarget]=useState<RewardVoucher|null>(null),[busy,setBusy]=useState(false);const request=useRef('');const actor=useRef(uid);actor.current=uid;useEffect(()=>{setTarget(null);setNotice('');setCopied('');setSelected('');setBusy(false)},[uid]);
  const wallet=data.wallets.find(w=>w.slug===selected)||data.wallets[0];const current=wallet?.slug||'';const vouchers=data.vouchers.filter(v=>!current||v.slug===current),ledger=signedIn?data.ledger.filter(e=>!current||e.slug===current):[],claims=data.claims.filter(c=>!current||c.slug===current);
- const progress=wallet?.nextAt?Math.max(0,Math.min(100,(wallet.earned-wallet.tierAt)/(wallet.nextAt-wallet.tierAt)*100)):100;
+ 
+ const fallbackTier=(!wallet||!wallet.nextAt)&&signedIn&&points>0?(
+   points<300?{tier:'Bronze',nextTier:'Silver',tierAt:0,nextAt:300,earned:points}:
+   points<800?{tier:'Silver',nextTier:'Gold',tierAt:300,nextAt:800,earned:points}:
+   points<1800?{tier:'Gold',nextTier:'Platinum',tierAt:800,nextAt:1800,earned:points}:
+   null
+ ):null;
+
+ const activeWallet=wallet||fallbackTier;
+ const currentTier=signedIn?(activeWallet?.tier||'Member'):'Member';
+ const nextTier=activeWallet?.nextTier||null;
+ const nextAt=activeWallet?.nextAt??null;
+ const earned=activeWallet?.earned??points;
+ const tierAt=activeWallet?.tierAt??0;
+
+ const progress=nextAt?Math.max(0,Math.min(100,((earned-tierAt)/((nextAt-tierAt)||1))*100)):100;
+ const pointsNeeded=nextAt?Math.max(0,nextAt-earned):0;
+
  useEffect(()=>{if(!notice||target)return;const timer=setTimeout(()=>setNotice(''),4500);return()=>clearTimeout(timer)},[notice,target]);
  const [summary,setSummary]=useState<{uid:string;joined:number;qualified:number;points:number;attribution?:string}|null>(null);useEffect(()=>{let active=true;setSummary(null);if(uid)void supabase.rpc('studioflow_customer_referral_summary').then(({data,error})=>{if(active&&!error&&data)setSummary({uid,...data})});return()=>{active=false}},[uid,data]);
  const invite=customerReferralLink(referral);const inviteText=`Discover salons and book with Nexora. ${invite}${referral?' · My referral code: '+referral:''}`;
@@ -30,12 +47,12 @@ export function CustomerRewards({referral,signedIn,error,signIn,share,uid='',onC
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <span className="text-[10px] uppercase font-bold tracking-widest px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
-                {signedIn?wallet?.tier||'Member':'Loyalty'} {signedIn?'Tier Member':'Rewards'}
+                {signedIn?currentTier:'Loyalty'} {signedIn?'Tier Member':'Rewards'}
               </span>
               <span className="text-xs text-slate-500 font-medium">{wallet?.salon||'Your salon program'}</span>
             </div>
             <h1 className="text-2xl sm:text-4xl font-black text-slate-900 flex items-center gap-2 mt-1">
-              <span>{signedIn&&!loading?wallet?.points||0:'—'}</span>
+              <span>{signedIn&&!loading?wallet?.points||points||0:'—'}</span>
               <Coins className="w-8 h-8 text-amber-500 inline" />
             </h1>
             <p className="text-xs text-slate-600 font-medium">
@@ -43,18 +60,48 @@ export function CustomerRewards({referral,signedIn,error,signIn,share,uid='',onC
             </p>
           </div>
 
-          <div className="sm:max-w-xs w-full space-y-2 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-            <div className="flex justify-between text-xs font-bold">
-              <span className="text-slate-700">Tier: {signedIn?wallet?.tier||'Member':'Sign in'}</span>
-              <span className="text-amber-700">{signedIn&&wallet?(wallet.nextAt?`${wallet.earned}/${wallet.nextAt} to ${wallet.nextTier}`:'Highest published tier'):'Your salon membership'}</span>
+          <div className="sm:max-w-sm w-full space-y-2.5 bg-slate-50 p-4 rounded-2xl border border-slate-200 shadow-2xs">
+            <div className="flex justify-between items-center text-xs font-bold">
+              <span className="text-slate-800 flex items-center gap-1.5">
+                <Award className="w-3.5 h-3.5 text-amber-600" />
+                <span>Tier: {signedIn?currentTier:'Sign in'}</span>
+              </span>
+              <span className="text-amber-700 font-mono text-[11px] font-bold">
+                {signedIn&&activeWallet?(nextAt?`${earned}/${nextAt} to ${nextTier}`:'Highest published tier'):'Your salon membership'}
+              </span>
             </div>
-            <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+            <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden p-0.5 shadow-inner">
               <div
-                className="bg-amber-500 h-full rounded-full transition-all duration-500"
+                className="bg-gradient-to-r from-amber-500 to-amber-600 h-full rounded-full transition-all duration-500"
                 role="progressbar" aria-label="Loyalty tier progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={signedIn?Math.round(progress):0} style={{ width: `${signedIn?progress:0}%` }}
               />
             </div>
-            <p className="text-[10px] text-slate-500">
+            {/* Visual indicator of points needed to reach next tier */}
+            <div className="flex items-center justify-between text-xs font-semibold pt-0.5">
+              {signedIn&&activeWallet?(
+                nextTier&&nextAt?(
+                  <>
+                    <span className="text-amber-900 flex items-center gap-1.5 font-bold text-[11px]">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      <span><strong>{pointsNeeded.toLocaleString('en-IN')}</strong> more point{pointsNeeded===1?'':'s'} needed to reach {nextTier}</span>
+                    </span>
+                    <span className="font-mono text-[10px] font-bold text-amber-800 bg-amber-100/90 px-1.5 py-0.5 rounded">
+                      {Math.round(progress)}%
+                    </span>
+                  </>
+                ):(
+                  <span className="text-emerald-800 flex items-center gap-1 font-bold text-[11px]">
+                    <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>Highest tier unlocked · VIP benefits active</span>
+                  </span>
+                )
+              ):(
+                <span className="text-slate-500 text-[11px]">
+                  Sign in to see points needed for the next tier
+                </span>
+              )}
+            </div>
+            <p className="text-[10px] text-slate-500 leading-tight">
               Tier benefits follow your salon’s current loyalty program. Earn points through eligible completed visits.
             </p>
           </div>

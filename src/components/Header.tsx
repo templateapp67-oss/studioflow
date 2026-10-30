@@ -1,93 +1,95 @@
 import React from 'react';
 import { AppView } from '../types';
+import { 
+  Sparkles, 
+  LayoutDashboard, 
+  Home, 
+  Globe, 
+  BarChart3,
+  Leaf
+} from 'lucide-react';
 
 interface HeaderProps {
   currentView: AppView;
   setCurrentView: (view: AppView) => void;
   salonName: string;
-  brandName?:string;
+  brandName?: string;
   onBuildWebsiteClick?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   currentView,
   setCurrentView,
-  salonName,brandName,
+  salonName,
+  brandName,
   onBuildWebsiteClick,
 }) => {
+  const tabs: { id: AppView; label: string; icon: React.FC<{ className?: string }> }[] = [
+    { id: 'owner', label: 'Owner Workspace', icon: LayoutDashboard },
+    { id: 'landing', label: 'Home', icon: Home },
+    { id: 'preview', label: 'Build My Salon Website', icon: Globe },
+    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+  ];
+
   return (
-    <header className="bg-surface/80 backdrop-blur-md fixed top-0 w-full z-50 border-b border-outline-variant/30 transition-all duration-300" id="global-nav">
-      <div className="flex justify-between items-center px-margin-mobile md:px-gutter max-w-container-max mx-auto h-20">
-        {/* Brand */}
-        <div 
+    <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-2xs" id="global-nav">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+        {/* Brand / Logo */}
+        <button
+          type="button"
           onClick={() => setCurrentView('landing')}
-          className="flex items-center gap-base cursor-pointer group"
+          className="flex items-center gap-2.5 cursor-pointer group text-left shrink-0"
         >
-          <span className="material-symbols-outlined workspace-brand-text" style={{ fontVariationSettings: "'FILL' 1" }}>spa</span>
-          <span className="font-display-lg text-display-lg-mobile tracking-tighter workspace-brand-text">{brandName||'StudioFlow'}</span>
-        </div>
+          <span className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-xs group-hover:scale-105 transition-transform">
+            <Leaf className="w-4 h-4" />
+          </span>
+          <span className="font-extrabold text-base sm:text-lg text-slate-900 tracking-tight group-hover:text-emerald-700 transition-colors">
+            {brandName || 'Nexora Salon'}
+          </span>
+        </button>
 
-        {/* View Switcher Navigation */}
-        <nav className="hidden lg:flex items-center gap-1 bg-surface-variant/30 p-1 rounded-full border border-outline-variant/30">
-          <button
-            onClick={() => setCurrentView('owner')}
-            className={`px-4 py-2 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${
-              currentView === 'owner' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:text-primary'
-            }`}
-          >
-            <span className="material-symbols-outlined text-base">space_dashboard</span>
-            Owner Workspace
-          </button>
-          <button
-            onClick={() => setCurrentView('landing')}
-            className={`px-4 py-2 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${
-              currentView === 'landing'
-                ? 'bg-primary text-on-primary shadow-sm'
-                : 'text-on-surface-variant hover:text-primary'
-            }`}
-          >
-            <span className="material-symbols-outlined text-base">home</span>
-            Home
-          </button>
-          
-          <button
-            onClick={() => {
-              if (onBuildWebsiteClick) {
-                onBuildWebsiteClick();
-              } else {
-                setCurrentView('wizard');
-              }
-            }}
-            className={`px-4 py-2 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${
-              currentView === 'preview' || currentView === 'wizard'
-                ? 'bg-primary text-on-primary shadow-sm'
-                : 'text-on-surface-variant hover:text-primary'
-            }`}
-          >
-            <span className="material-symbols-outlined text-base">web</span>
-            <span>Build My Salon Website</span>
-            <span className="text-[10px] bg-amber-400 text-slate-950 font-bold px-1.5 py-0.2 rounded-full">
-              Live
-            </span>
-          </button>
+        {/* Rounded pill-shaped nav container */}
+        <nav 
+          className="flex items-center gap-1 p-1 bg-slate-100/90 rounded-full border border-slate-200/80 shadow-2xs text-xs font-semibold shrink-0 max-w-full overflow-x-auto no-scrollbar" 
+          aria-label="Workspace navigation"
+        >
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = currentView === tab.id || (tab.id === 'preview' && currentView === 'wizard');
 
-          <button
-            onClick={() => setCurrentView('dashboard')}
-            className={`px-4 py-2 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${
-              currentView === 'dashboard'
-                ? 'bg-primary text-on-primary shadow-sm'
-                : 'text-on-surface-variant hover:text-primary'
-            }`}
-          >
-            <span className="material-symbols-outlined text-base">dashboard</span>
-            Dashboard
-          </button>
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => {
+                  if (tab.id === 'preview') {
+                    if (onBuildWebsiteClick) onBuildWebsiteClick();
+                    else setCurrentView('preview');
+                  } else {
+                    setCurrentView(tab.id);
+                  }
+                }}
+                className={`px-4 py-2 rounded-full transition-all inline-flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+                  isActive
+                    ? 'bg-white text-slate-900 shadow-sm font-bold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                }`}
+              >
+                <Icon className="w-4 h-4 shrink-0" />
+                <span>{tab.label}</span>
+                {tab.id === 'preview' && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 uppercase tracking-wider ml-0.5">
+                    Live
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </nav>
-
-
       </div>
-      <nav className="lg:hidden flex gap-2 overflow-x-auto px-4 pb-2 text-xs" aria-label="Workspace navigation">{(['owner','landing','wizard','preview','dashboard'] as AppView[]).map(view=><button key={view} className={`whitespace-nowrap rounded-full px-3 py-2 ${currentView===view?'bg-primary text-on-primary':'bg-surface-variant'}`} onClick={()=>setCurrentView(view)}>{({owner:'Workspace',landing:'Templates',wizard:'Setup',preview:'Preview',dashboard:'Dashboard'})[view]}</button>)}</nav>
     </header>
   );
 };
+
+
 

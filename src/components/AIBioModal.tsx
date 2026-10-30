@@ -19,8 +19,6 @@ export const AIBioModal: React.FC<AIBioModalProps> = ({
 }) => {
   const [vibe, setVibe] = useState<string>('Luxury & Botanical');
   const [specialties, setSpecialties] = useState<string>('Balayage, Scalp Detox, Tailored Haircuts');
-  const [isRecording, setIsRecording] = useState<boolean>(false);
-  const [recordingSeconds, setRecordingSeconds] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
 
   if (!isOpen) return null;

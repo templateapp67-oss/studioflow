@@ -1,4 +1,4 @@
-import {useEffect,useState} from 'react';
+import React, {useEffect,useState} from 'react';
 import {supabase} from '../../lib/supabase';
 import {message} from './model';
 type Member={name:string;joinedAt:string;status:'awaiting_email'|'joined'|'qualified';points:number};

@@ -215,9 +215,22 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
   });queue.current=pending;return pending;
  },[session.user.id,applySnapshot]);
  useEffect(()=>{if(!sameWorkspace(latest.current,JSON.parse(lastSaved.current))){setSync('Unsaved changes');try{localStorage.setItem(cacheKey,JSON.stringify({revision:revision.current,draft:latest.current}));}catch{}}const timer=setTimeout(()=>{void flush().catch(()=>{});},800);return()=>clearTimeout(timer);},[profile,services,stylists,clients,loyaltyConfig,extras,onboardingComplete,flush]);
- useEffect(()=>{const warn=(e:BeforeUnloadEvent)=>{if(!sameWorkspace(latest.current,JSON.parse(lastSaved.current))){e.preventDefault();e.returnValue='';}};const save=()=>{void flush().catch(()=>{});};window.addEventListener('beforeunload',warn);window.addEventListener('online',save);return()=>{window.removeEventListener('beforeunload',warn);window.removeEventListener('online',save);};},[flush]);
- const refreshBookings=useCallback(async()=>{const {data,error}=await supabase.from('studioflow_bookings').select('payload,status,branch_id').eq('owner_id',session.user.id).order('created_at',{ascending:false});if(error){setSyncError(error.message);return;}setAppointments((data||[]).map(r=>({...r.payload,branchId:r.branch_id||r.payload?.branchId, status:r.status})));},[session.user.id]);
- useEffect(()=>{void refreshBookings();supabase.from('studioflow_websites').select('slug,published_at').eq('owner_id',session.user.id).maybeSingle().then(({data,error})=>{if(error)setSyncError(error.message);else setPublished(data);});},[session.user.id,refreshBookings]);
+  const refreshBookings=useCallback(async()=>{
+    try {
+      const {data,error}=await supabase.from('studioflow_bookings').select('payload,status').eq('owner_id',session.user.id).order('created_at',{ascending:false});
+      if(error){
+        setSyncError(error.message);
+        return;
+      }
+      setAppointments((data||[]).map((r:any)=>({
+        ...r.payload,
+        branchId:r.payload?.branchId||r.payload?.branch_id,
+        status:r.status
+      })));
+    } catch(err) {
+      setSyncError(err instanceof Error ? err.message : 'Could not refresh bookings.');
+    }
+  },[session.user.id]);
  useEffect(()=>{
   const channel=supabase.channel(`studioflow-owner-${session.user.id}`)
    .on('postgres_changes',{event:'*',schema:'public',table:'studioflow_bookings',filter:`owner_id=eq.${session.user.id}`},()=>void refreshBookings())
@@ -252,10 +265,129 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
    }await refreshBookings();})().catch(error=>setSyncError(error.message));
  };
 
- return <div data-workspace-sync={!syncError&&!recoveryNotice&&sameWorkspace(latest.current,JSON.parse(lastSaved.current))?'saved':'pending'} className="min-h-screen bg-surface text-on-surface">
-  {recoveryNotice&&<div className="bg-amber-50 p-4 text-sm" role="status">{cached.revision===account.revision?'Recovered unsaved changes from this browser.':'A previous local draft differs from the latest cloud version.'} {cached.revision!==account.revision&&<button className="underline mx-3" onClick={()=>{const d=normalizeWorkspace(cached.draft);setProfile(d.profile);setServiceState(d.services||[]);setStylists(d.stylists||[]);setClients(d.clients||[]);setLoyaltyConfig(d.loyaltyConfig||DEFAULT_LOYALTY_CONFIG);setExtras({...DEFAULT_EXTRAS,...d.extras});setOnboardingComplete(!!d.onboardingComplete);localStorage.removeItem(`${cacheKey}_conflict`);setRecoveryNotice(false);}}>Restore local draft over cloud version</button>}<button className="underline ml-3" onClick={()=>{localStorage.removeItem(`${cacheKey}_conflict`);setRecoveryNotice(false);}}>Dismiss</button></div>}
+ return <div data-workspace-sync={!syncError&&!recoveryNotice&&sameWorkspace(latest.current,JSON.parse(lastSaved.current))?'saved':'pending'} className="min-h-screen bg-slate-50 text-slate-900">
+  {recoveryNotice && (
+    <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 text-xs sm:text-sm text-amber-900 font-medium flex items-center justify-between gap-3 flex-wrap shadow-2xs" role="status">
+      <div className="flex items-center gap-2">
+        <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
+        <span>
+          {cached.revision === account.revision
+            ? 'Recovered unsaved changes from this browser session.'
+            : 'A previous local draft differs from the latest cloud version.'}
+        </span>
+      </div>
+      <div className="flex items-center gap-2">
+        {cached.revision !== account.revision && (
+          <button
+            type="button"
+            className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-xs transition-colors cursor-pointer"
+            onClick={() => {
+              const d = normalizeWorkspace(cached.draft);
+              setProfile(d.profile);
+              setServiceState(d.services || []);
+              setStylists(d.stylists || []);
+              setClients(d.clients || []);
+              setLoyaltyConfig(d.loyaltyConfig || DEFAULT_LOYALTY_CONFIG);
+              setExtras({ ...DEFAULT_EXTRAS, ...d.extras });
+              setOnboardingComplete(!!d.onboardingComplete);
+              localStorage.removeItem(`${cacheKey}_conflict`);
+              setRecoveryNotice(false);
+            }}
+          >
+            Restore local draft over cloud
+          </button>
+        )}
+        <button
+          type="button"
+          className="px-3 py-1 bg-white hover:bg-amber-100 border border-amber-300 rounded-lg font-semibold text-amber-900 text-xs transition-colors cursor-pointer"
+          onClick={() => {
+            localStorage.removeItem(`${cacheKey}_conflict`);
+            setRecoveryNotice(false);
+          }}
+        >
+          Dismiss
+        </button>
+      </div>
+    </div>
+  )}
   {!clientPreview&&<><div className="h-10 lg:hidden" /><Header brandName={extras.whiteLabel.platformName} currentView={currentView} setCurrentView={setCurrentView} salonName={profile.businessName} onBuildWebsiteClick={()=>setCurrentView(onboardingComplete?'preview':'wizard')} />
-  <div className="fixed bottom-3 left-3 right-3 sm:left-auto sm:right-4 sm:w-auto z-[80] rounded-xl bg-white shadow-lg border p-3 text-xs flex flex-wrap items-center gap-3"><span>{sync}</span><button className="font-bold underline" onClick={()=>void flush().catch(()=>{})}>Save now</button><button onClick={()=>void refreshBookings()}>Refresh bookings</button><BusinessNotificationLink/><a href="/?recovery=1">Change password</a><button onClick={async()=>{try{await flush();await supabase.auth.signOut();}catch{setSyncError('Save failed. Save your changes before signing out.');}}}>Sign out</button>{syncError&&<button className="underline" onClick={()=>void supabase.auth.signOut()}>Sign out keeping local draft</button>}{syncError&&<p role="alert" className="w-full max-w-lg text-red-700">{syncError}</p>}{saveConflicts.length>0&&<div className="w-full max-w-lg flex flex-wrap gap-3"><p className="w-full">Changed fields: {saveConflicts.slice(0,5).join(', ')}</p><button className="secondary-action" onClick={()=>void flush('local').catch(()=>{})}>Keep my edits & merge</button><button className="secondary-action" onClick={()=>void flush('remote').catch(()=>{})}>Use cloud edits & merge</button></div>}</div>
+  <div className="fixed bottom-3 left-3 right-3 sm:left-auto sm:right-4 sm:w-auto z-[80] rounded-2xl bg-white/95 backdrop-blur-md shadow-xl border border-slate-200/80 p-3.5 text-xs flex flex-wrap items-center gap-2.5">
+    <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 font-semibold border border-slate-200/60 shrink-0">
+      <span className={`w-2 h-2 rounded-full shrink-0 ${sync.includes('Saved') ? 'bg-emerald-500 animate-pulse' : sync.includes('Saving') ? 'bg-amber-500 animate-ping' : 'bg-slate-400'}`} />
+      <span>{sync}</span>
+    </div>
+    <button
+      type="button"
+      className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-semibold shadow-xs transition-all cursor-pointer active:scale-95"
+      onClick={() => void flush().catch(() => {})}
+    >
+      Save now
+    </button>
+    <button
+      type="button"
+      className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg font-semibold transition-all cursor-pointer active:scale-95"
+      onClick={() => void refreshBookings()}
+    >
+      Refresh bookings
+    </button>
+    <BusinessNotificationLink />
+    <a
+      href="/?recovery=1"
+      className="px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg font-medium transition-colors"
+    >
+      Change password
+    </a>
+    <button
+      type="button"
+      className="px-2.5 py-1.5 text-slate-600 hover:text-red-700 hover:bg-red-50 rounded-lg font-medium transition-colors cursor-pointer"
+      onClick={async () => {
+        try {
+          await flush();
+          await supabase.auth.signOut();
+        } catch {
+          setSyncError('Save failed. Save your changes before signing out.');
+        }
+      }}
+    >
+      Sign out
+    </button>
+
+    {syncError && (
+      <div role="alert" className="w-full max-w-lg mt-1 p-3 bg-red-50 border border-red-200/80 rounded-xl text-red-900 text-xs flex flex-wrap items-center justify-between gap-2 shadow-2xs">
+        <div className="flex items-center gap-2 font-medium">
+          <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+          <span>{syncError}</span>
+        </div>
+        <button
+          type="button"
+          className="text-red-700 hover:text-red-950 font-bold underline text-xs cursor-pointer ml-auto"
+          onClick={() => void supabase.auth.signOut()}
+        >
+          Sign out keeping local draft
+        </button>
+      </div>
+    )}
+
+    {saveConflicts.length > 0 && (
+      <div className="w-full max-w-lg mt-1 p-3 bg-amber-50 border border-amber-200/80 rounded-xl text-amber-900 text-xs flex flex-wrap gap-2 shadow-2xs">
+        <p className="w-full font-medium">Changed fields: {saveConflicts.slice(0, 5).join(', ')}</p>
+        <button
+          type="button"
+          className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold cursor-pointer"
+          onClick={() => void flush('local').catch(() => {})}
+        >
+          Keep my edits & merge
+        </button>
+        <button
+          type="button"
+          className="px-3 py-1.5 bg-white border border-amber-300 hover:bg-amber-100 text-amber-900 rounded-lg font-semibold cursor-pointer"
+          onClick={() => void flush('remote').catch(() => {})}
+        >
+          Use cloud edits & merge
+        </button>
+      </div>
+    )}
+  </div>
   </>}
   <AppErrorBoundary resetKey={currentView} onRecover={()=>setCurrentView('owner')}>
   {currentView==='owner'&&<OwnerWorkspace clients={clients} setClients={setClients} loyaltyConfig={loyaltyConfig} setLoyaltyConfig={setLoyaltyConfig} profile={profile} setProfile={setProfile} services={services} setServices={setServices} stylists={stylists} setStylists={setStylists} appointments={appointments} extras={extras} setExtras={setExtras} published={published} onPublish={publish} sessionEmail={session.user.email||''} templates={templates} onOpenPreview={()=>setCurrentView('preview')} onOpenDashboard={openDashboard} onOpenWizard={()=>setCurrentView('wizard')} onRefreshBookings={refreshBookings} sync={sync} syncError={syncError} />}

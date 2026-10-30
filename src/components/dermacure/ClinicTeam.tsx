@@ -416,7 +416,7 @@ export function ClinicTeam({
 
               {/* Biography */}
               <div className="space-y-2">
-                <h3 className="text-sm font-bold tracking-wider uppercase text-zinc-500 dark:text-zinc-400 border-l-2 border-[#147a5a] pl-2.5">
+                <h3 className="text-xs font-bold tracking-wider uppercase text-zinc-500 dark:text-zinc-400">
                   Professional Biography &amp; Care Approach
                 </h3>
                 <p className="text-xs sm:text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed bg-white dark:bg-zinc-800/50 p-4 rounded-xl border border-[#e6e6e6] dark:border-zinc-800">
@@ -426,7 +426,7 @@ export function ClinicTeam({
 
               {/* Qualifications & Certifications */}
               <div className="space-y-2">
-                <h3 className="text-sm font-bold tracking-wider uppercase text-zinc-500 dark:text-zinc-400 border-l-2 border-[#147a5a] pl-2.5">
+                <h3 className="text-xs font-bold tracking-wider uppercase text-zinc-500 dark:text-zinc-400">
                   Qualifications &amp; Certifications
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -444,7 +444,7 @@ export function ClinicTeam({
 
               {/* Specialized Treatments */}
               <div className="space-y-2">
-                <h3 className="text-sm font-bold tracking-wider uppercase text-zinc-500 dark:text-zinc-400 border-l-2 border-[#147a5a] pl-2.5">
+                <h3 className="text-xs font-bold tracking-wider uppercase text-zinc-500 dark:text-zinc-400">
                   Specialized Clinical Treatments
                 </h3>
                 <div className="flex flex-wrap gap-2 pt-1">

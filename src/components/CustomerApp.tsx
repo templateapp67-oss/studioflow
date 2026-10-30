@@ -1,6 +1,7 @@
 import {CustomerLocationDialog} from './customer/LocationDialog';
 import {DirectoryHeader} from './customer/DirectoryHeader';
 import {CustomerRewards} from './customer/Rewards';
+export {CustomerRewards} from './customer/Rewards';
 import {CustomerFavorites} from './customer/Favorites';
 import {CustomerHomeSearch,type HomeSearchAction} from './customer/HomeSearch';
 import {istDate} from './customer/model';

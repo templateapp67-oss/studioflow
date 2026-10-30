@@ -18,9 +18,9 @@ try {
   // Ignore descriptor errors
 }
 
-import {StrictMode} from 'react';
+import React, {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
-import App from './App.tsx';
+import App from './App';
 import {AppUpdateManager} from './components/AppUpdateManager';
 import {installScreenRecovery} from './lib/loadScreen';
 installScreenRecovery();
