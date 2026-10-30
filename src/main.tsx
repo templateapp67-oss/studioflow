@@ -2,6 +2,7 @@ import React, { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import { AppUpdateManager } from './components/AppUpdateManager';
+import { DebugBoundary } from './components/DebugBoundary';
 import { installScreenRecovery } from './lib/loadScreen';
 import { registerCustomerPwa } from './lib/customerPwa';
 import './index.css';
@@ -18,7 +19,9 @@ const rootElement = document.getElementById('root');
 if (rootElement) {
   createRoot(rootElement).render(
     <StrictMode>
-      <App />
+      <DebugBoundary>
+        <App />
+      </DebugBoundary>
       <AppUpdateManager />
     </StrictMode>
   );

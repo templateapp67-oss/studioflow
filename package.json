@@ -14,6 +14,7 @@
     "test": "npm run lint && npm run lint:edge && npm run build && node scripts/run-all-verifications.mjs",
     "test:address": "node scripts/verify-address-stability.mjs",
     "test:wiring": "node scripts/verify-website-wiring.mjs",
+    "test:debug": "node scripts/verify-debug-boundary.mjs",
     "test:live": "node scripts/verify-supabase.mjs",
     "test:template12": "node scripts/verify-template12-ui.mjs && node scripts/verify-template12-social-media-loyalty.mjs && node scripts/verify-template12-promotions-share-reels.mjs && node scripts/verify-template12-migration.mjs",
     "test:multibranch": "node scripts/verify-multibranch-migration.mjs"
