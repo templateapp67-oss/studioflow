@@ -2,13 +2,16 @@ import React, { useCallback, useState } from 'react';
 import { TemplateThumbnail, TemplatePreviewModal } from './TemplatePreviewCards';
 import { AppView, BusinessTypeId } from '../types';
 import { CATEGORY_TEMPLATES } from '../categoryTemplates';
+import type { ArchFlutterCustomizerConfig } from '../lib/archFlutterCustomizer';
 
 interface LandingPageProps {
   setCurrentView: (view: AppView) => void;
   onSelectCategory?: (categoryId: BusinessTypeId) => void;
+  /** Template 13 only: the owner customized the demo before creating the website. */
+  onCustomizeTemplate?: (categoryId: BusinessTypeId, config: ArchFlutterCustomizerConfig) => void;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ setCurrentView, onSelectCategory }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ setCurrentView, onSelectCategory, onCustomizeTemplate }) => {
   const templatesList = Object.values(CATEGORY_TEMPLATES);
 
   const [previewId, setPreviewId] = useState<BusinessTypeId | null>(null);
@@ -183,7 +186,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setCurrentView, onSele
 
       </main>
 
-      {previewId && <TemplatePreviewModal templateId={previewId} onSelectPreview={setPreviewId} onClose={closePreview} onChoose={() => { const id = previewId; setPreviewId(null); if (onSelectCategory) onSelectCategory(id); else setCurrentView('wizard'); }}/>}
+      {previewId && <TemplatePreviewModal templateId={previewId} onSelectPreview={setPreviewId} onClose={closePreview} onChoose={(config) => { const id = previewId; setPreviewId(null); if (config && onCustomizeTemplate) onCustomizeTemplate(id, config); else if (onSelectCategory) onSelectCategory(id); else setCurrentView('wizard'); }}/>}
       {/* Footer */}
       <footer className="bg-surface-container-lowest w-full py-8 border-t border-outline-variant/20 mt-auto">
         <div className="flex flex-col md:flex-row justify-between items-center px-4 md:px-8 max-w-7xl mx-auto gap-4 text-xs text-secondary">

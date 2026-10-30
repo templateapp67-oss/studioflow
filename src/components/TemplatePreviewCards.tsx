@@ -2,12 +2,16 @@ import React, { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { AppErrorBoundary } from './AppErrorBoundary';
 import { loadScreen } from '../lib/loadScreen';
 import { createPortal } from 'react-dom';
-import { BusinessTypeId, CategoryTemplateConfig, SalonProfile } from '../types';
+import { BusinessTypeId, CategoryTemplateConfig, SalonProfile, SalonService, Stylist } from '../types';
 import { CATEGORY_TEMPLATES } from '../categoryTemplates';
 import { INITIAL_SALON_PROFILE } from '../mockData';
 import { ACCENT_PALETTES, DEFAULT_CATEGORY_ACCENTS, getContrastTextColor } from '../themeAccents';
+import { isArchFlutterTemplate, type ArchFlutterCustomizerConfig, type CustomizerWorkspace } from '../lib/archFlutterCustomizer';
+import { DEFAULT_EXTRAS } from '../lib/workspaceDefaults';
 
 const LiveWebsite = lazy(() => loadScreen(() => import('./SalonWebsitePreview').then(m => ({ default: m.SalonWebsitePreview }))));
+/** Template 13 only: the dedicated customizer drawer, loaded on demand. */
+const ArchFlutterCustomizerGate = lazy(() => loadScreen(() => import('./arch-flutter-customizer/ArchFlutterCustomizerGate').then(m => ({ default: m.ArchFlutterCustomizerGate }))));
 
 export function TemplateThumbnail({ template: t }: { template: CategoryTemplateConfig }) {
   const isRoopMahal = t.id === 'beauty_parlour';
@@ -17,33 +21,39 @@ export function TemplateThumbnail({ template: t }: { template: CategoryTemplateC
   const isPrismChroma = t.id === 'hair_coloring';
   const isShringaar = t.id === 'bridal_lounge';
   const isIronInk = t.id === 'tattoo_studio';
+  const isArchFlutter = t.id === 'lash_brow';
   const accent = ACCENT_PALETTES[DEFAULT_CATEGORY_ACCENTS[t.id]];
-  const accentHex = isIronInk ? '#E11D48' : isShringaar ? '#5A0F1E' : isVogueNoir ? '#C9A96E' : isBodhiTree ? '#4E6E58' : isPrismChroma ? '#FF4FD8' : isKeshPrakriti ? '#183D32' : isRoopMahal ? '#6D2638' : accent.primaryHex;
-  const split = !isVogueNoir && (isRoopMahal || isShringaar || ['modern_minimalist', 'clinical_clean', 'contemporary_balanced', 'urban_monochrome'].includes(t.layoutStyle));
-  const rounded = ['curved_elegant', 'chic_nude', 'zen_emerald', 'earth_bamboo', 'palace_heritage'].includes(t.layoutStyle);
+  const accentHex = isArchFlutter ? '#9A6B73' : isIronInk ? '#E11D48' : isShringaar ? '#5A0F1E' : isVogueNoir ? '#C9A96E' : isBodhiTree ? '#4E6E58' : isPrismChroma ? '#FF4FD8' : isKeshPrakriti ? '#183D32' : isRoopMahal ? '#6D2638' : accent.primaryHex;
+  const split = !isVogueNoir && (isRoopMahal || isShringaar || isArchFlutter || ['modern_minimalist', 'clinical_clean', 'contemporary_balanced', 'urban_monochrome'].includes(t.layoutStyle));
+  const rounded = isArchFlutter || ['curved_elegant', 'chic_nude', 'zen_emerald', 'earth_bamboo', 'palace_heritage'].includes(t.layoutStyle);
   return <div aria-hidden="true" className="p-4 pb-0 bg-slate-100">
-    <div className={`rounded-t-xl border shadow-sm overflow-hidden ${isIronInk ? 'border-[#E11D48]/50 bg-[#0A0A0B]' : isVogueNoir ? 'border-[#2A2A2D] bg-[#0B0B0C]' : isPrismChroma ? 'border-white/20 bg-[#0B0B14]' : isShringaar ? 'border-[#C9A24B]/60 bg-[#FBF4E6]' : 'border-slate-300 bg-white'}`}>
-      <div className={`h-6 flex items-center gap-1 px-2 border-b ${isIronInk ? 'bg-[#141417] border-white/10' : isVogueNoir ? 'bg-[#151517] border-[#2A2A2D]' : isPrismChroma ? 'bg-[#12121F] border-white/10' : 'bg-white border-slate-200'}`}><i className="w-1.5 h-1.5 rounded-full bg-rose-300"/><i className="w-1.5 h-1.5 rounded-full bg-amber-300"/><i className="w-1.5 h-1.5 rounded-full bg-emerald-300"/><span className={`ml-auto text-[7px] ${isVogueNoir ? 'text-[#C9A96E] font-semibold tracking-wider' : isPrismChroma ? 'text-[#35E0F0] font-semibold tracking-wider' : isShringaar ? 'text-[#5A0F1E] font-semibold tracking-[0.18em] uppercase' : 'text-slate-400'}`}>{isIronInk ? 'IRON & INK · 12' : isShringaar ? 'Shringaar Royal · 11' : t.shortName}</span></div>
+    <div className={`rounded-t-xl border shadow-sm overflow-hidden ${isIronInk ? 'border-[#E11D48]/50 bg-[#0A0A0B]' : isVogueNoir ? 'border-[#2A2A2D] bg-[#0B0B0C]' : isPrismChroma ? 'border-white/20 bg-[#0B0B14]' : isShringaar ? 'border-[#C9A24B]/60 bg-[#FBF4E6]' : isArchFlutter ? 'border-[#C9A66B]/60 bg-[#FBF6F1]' : 'border-slate-300 bg-white'}`}>
+      <div className={`h-6 flex items-center gap-1 px-2 border-b ${isIronInk ? 'bg-[#141417] border-white/10' : isVogueNoir ? 'bg-[#151517] border-[#2A2A2D]' : isPrismChroma ? 'bg-[#12121F] border-white/10' : isArchFlutter ? 'bg-[#FFFDFB] border-[#E0CBA6]' : 'bg-white border-slate-200'}`}><i className="w-1.5 h-1.5 rounded-full bg-rose-300"/><i className="w-1.5 h-1.5 rounded-full bg-amber-300"/><i className="w-1.5 h-1.5 rounded-full bg-emerald-300"/><span className={`ml-auto text-[7px] ${isVogueNoir ? 'text-[#C9A96E] font-semibold tracking-wider' : isPrismChroma ? 'text-[#35E0F0] font-semibold tracking-wider' : isShringaar ? 'text-[#5A0F1E] font-semibold tracking-[0.18em] uppercase' : isArchFlutter ? 'text-[#7A4F57] font-semibold tracking-[0.18em] uppercase' : 'text-slate-400'}`}>{isIronInk ? 'IRON & INK · 12' : isShringaar ? 'Shringaar Royal · 11' : isArchFlutter ? 'Arch & Flutter · 13' : t.shortName}</span></div>
       <div className={`relative h-40 overflow-hidden ${t.themeStyle.heroBackground} ${t.themeStyle.heroTextColor} ${split ? 'flex' : ''}`}>
-        <img src={t.coverImageUrl} alt="" loading="lazy" decoding="async" style={isShringaar ? { borderTopLeftRadius: '999px', borderTopRightRadius: '999px' } : undefined} className={`${split ? 'w-1/2 order-2' : 'absolute inset-0 w-full'} h-full object-cover object-top motion-safe:transition-transform motion-safe:duration-500 motion-safe:group-hover:scale-105`} />
+        <img src={t.coverImageUrl} alt="" loading="lazy" decoding="async" style={isShringaar ? { borderTopLeftRadius: '999px', borderTopRightRadius: '999px' } : isArchFlutter ? { borderRadius: '999px 999px 18px 18px' } : undefined} className={`${split ? 'w-1/2 order-2' : 'absolute inset-0 w-full'} h-full object-cover object-top motion-safe:transition-transform motion-safe:duration-500 motion-safe:group-hover:scale-105`} />
         {!split && <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-black/10"/>}
         <div className={`relative z-10 p-3 flex flex-col justify-end h-full ${split ? 'w-1/2' : 'text-white w-4/5'} ${rounded || isVogueNoir ? 'font-serif' : ''}`}>
-          <span className={`text-[7px] uppercase tracking-widest mb-2 ${isVogueNoir ? 'text-[#C9A96E]' : 'opacity-80'}`}>{t.defaultCity.split(',')[0]} · {t.shortName}</span>
-          <span className={`text-sm font-bold leading-tight ${isVogueNoir ? 'text-[#F5EFE6]' : ''}`}>{t.title}</span>
+          <span className={`text-[7px] uppercase tracking-widest mb-2 ${isVogueNoir ? 'text-[#C9A96E]' : isArchFlutter ? 'text-[#8A6A2F]' : 'opacity-80'}`}>{t.defaultCity.split(',')[0]} · {t.shortName}</span>
+          <span className={`text-sm font-bold leading-tight ${isVogueNoir ? 'text-[#F5EFE6]' : isArchFlutter ? 'text-[#2B1B17]' : ''}`}>{t.title}</span>
           <span className="text-[8px] leading-relaxed mt-1 line-clamp-2 opacity-80">{t.tagline}</span>
           <span style={{backgroundColor:accentHex, color:getContrastTextColor(accentHex)}} className={`text-[7px] font-sans font-semibold w-fit px-2.5 py-1.5 mt-2 ${rounded ? 'rounded-full' : 'rounded-sm'}`}>Explore services →</span>
         </div>
       </div>
-      <div className={`grid grid-cols-3 gap-1.5 p-2 ${isIronInk ? 'bg-[#141417]' : isVogueNoir ? 'bg-[#151517]' : isPrismChroma ? 'bg-[#12121F]' : 'bg-white'}`}>{t.services.slice(0,3).map(s => <div key={s.id} className={`border px-1.5 py-2 ${isIronInk ? 'border-[#E11D48]/50 bg-[#0A0A0B]' : isVogueNoir ? 'border-[#2A2A2D] bg-[#0B0B0C]' : isPrismChroma ? 'border-white/10 bg-white/5' : 'border-slate-100'} ${rounded ? 'rounded-lg' : ''}`}><span className={`block text-[7px] truncate ${isIronInk || isVogueNoir || isPrismChroma ? 'text-[#F5F3FF]' : 'text-slate-700'}`}>{s.name}</span><span style={{color:accentHex}} className="text-[8px] font-bold">₹{s.price.toLocaleString('en-IN')}</span></div>)}</div>
+      <div className={`grid grid-cols-3 gap-1.5 p-2 ${isIronInk ? 'bg-[#141417]' : isVogueNoir ? 'bg-[#151517]' : isPrismChroma ? 'bg-[#12121F]' : isArchFlutter ? 'bg-[#FFFDFB]' : 'bg-white'}`}>{t.services.slice(0,3).map(s => <div key={s.id} className={`border px-1.5 py-2 ${isIronInk ? 'border-[#E11D48]/50 bg-[#0A0A0B]' : isVogueNoir ? 'border-[#2A2A2D] bg-[#0B0B0C]' : isPrismChroma ? 'border-white/10 bg-white/5' : isArchFlutter ? 'border-[#C9A66B]/40 bg-[#F4D7D3]/25' : 'border-slate-100'} ${rounded ? 'rounded-lg' : ''}`}><span className={`block text-[7px] truncate ${isIronInk || isVogueNoir || isPrismChroma ? 'text-[#F5F3FF]' : isArchFlutter ? 'text-[#2B1B17]' : 'text-slate-700'}`}>{s.name}</span><span style={{color:accentHex}} className="text-[8px] font-bold">₹{s.price.toLocaleString('en-IN')}</span></div>)}</div>
     </div>
   </div>;
 }
 
-export function TemplatePreviewModal({templateId, onSelectPreview, onClose, onChoose}: {templateId:BusinessTypeId; onSelectPreview:(id:BusinessTypeId)=>void; onClose:()=>void; onChoose:()=>void}) {
+export function TemplatePreviewModal({templateId, onSelectPreview, onClose, onChoose}: {templateId:BusinessTypeId; onSelectPreview:(id:BusinessTypeId)=>void; onClose:()=>void; onChoose:(config?:ArchFlutterCustomizerConfig)=>void}) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [device, setDevice] = useState<'desktop'|'tablet'|'mobile'>('desktop');
   const [frameDocument, setFrameDocument] = useState<Document | null>(null);
   const t = CATEGORY_TEMPLATES[templateId];
+  /** Template 13 (Arch & Flutter) is the only template with its own customizer drawer. */
+  const hasCustomizer = isArchFlutterTemplate(templateId);
+  const [customizerOpen, setCustomizerOpen] = useState(false);
+  const [customized, setCustomized] = useState<{ workspace: CustomizerWorkspace; config: ArchFlutterCustomizerConfig } | null>(null);
+  useEffect(() => { setCustomized(null); setCustomizerOpen(false); }, [templateId]);
   useEffect(() => {
     const el = dialog.current;
     if (el && !el.open) { if(typeof el.showModal==='function') el.showModal(); else el.setAttribute('open',''); }
@@ -59,7 +69,11 @@ export function TemplatePreviewModal({templateId, onSelectPreview, onClose, onCh
     frameDocument.addEventListener('keydown', escape);
     return () => frameDocument.removeEventListener('keydown', escape);
   }, [frameDocument, onClose]);
+  const baseExtras = {...DEFAULT_EXTRAS, gallery: [] as string[]};
   const profile:SalonProfile = {...INITIAL_SALON_PROFILE, businessType:t.id, businessName:t.title, tagline:t.tagline, about:t.about, ownerName:t.ownerName, ownerRole:t.ownerRole, ownerPhotoUrl:t.ownerPhotoUrl, phone:t.phone, whatsapp:t.whatsapp, coverImageUrl:t.coverImageUrl, themePreset:t.themePreset, themeAccentKey:DEFAULT_CATEGORY_ACCENTS[t.id], city:t.defaultCity, address:t.defaultAddress, postalCode:t.defaultPostalCode, instagramHandle:t.instagramHandle, subdomain:'', requireDeposit:false};
+  const previewProfile: SalonProfile = customized ? customized.workspace.profile : profile;
+  const previewServices: SalonService[] = customized ? customized.workspace.services : (t.services as SalonService[]);
+  const previewStylists: Stylist[] = customized ? customized.workspace.stylists : (t.stylists as Stylist[]);
   return <dialog ref={dialog} aria-labelledby="template-preview-title" onCancel={event => {event.preventDefault(); onClose();}} className="m-auto w-[calc(100%-16px)] max-w-[1440px] h-[92dvh] max-h-[92dvh] p-0 rounded-2xl border border-slate-200 shadow-2xl backdrop:bg-slate-950/70">
     <div className="h-full flex flex-col bg-slate-100 text-slate-900">
       <header className="bg-white border-b border-slate-200 p-3 sm:p-4 flex flex-wrap items-center gap-3">
@@ -68,9 +82,12 @@ export function TemplatePreviewModal({templateId, onSelectPreview, onClose, onCh
         <div className="w-full flex flex-wrap items-center gap-2">
           <select aria-label="Preview template" value={templateId} onChange={event => onSelectPreview(event.target.value as BusinessTypeId)} className="border rounded-lg p-2 text-xs max-w-full sm:max-w-64">{Object.values(CATEGORY_TEMPLATES).map(template => <option key={template.id} value={template.id}>{template.shortName}</option>)}</select>
           <div className="flex border rounded-lg overflow-hidden">{(['desktop','tablet','mobile'] as const).map(mode => <button key={mode} type="button" aria-pressed={device===mode} onClick={() => setDevice(mode)} className={`capitalize text-xs px-2 sm:px-3 py-2 ${device===mode ? 'bg-slate-900 text-white' : 'hover:bg-slate-100'}`}>{mode}</button>)}</div>
-          <button type="button" onClick={onChoose} className="sm:ml-auto rounded-lg bg-slate-900 text-white font-bold text-xs px-4 py-2.5">Customize this template</button>
+          {hasCustomizer
+            ? <button type="button" onClick={() => setCustomizerOpen(true)} className="sm:ml-auto rounded-lg border border-[#C9A66B] bg-[#2B1B17] text-[#FBF6F1] font-bold text-xs px-4 py-2.5">Customize this template</button>
+            : <button type="button" onClick={() => onChoose()} className="sm:ml-auto rounded-lg bg-slate-900 text-white font-bold text-xs px-4 py-2.5">Customize this template</button>}
+          {hasCustomizer && <button type="button" onClick={() => onChoose(customized?.config)} className="rounded-lg bg-slate-900 text-white font-bold text-xs px-4 py-2.5">Create my website with this template</button>}
         </div>
-        <p className="text-[11px] text-slate-500">Sample content. Explore the pages and booking form; demo bookings are not submitted.</p>
+        <p className="text-[11px] text-slate-500">{hasCustomizer && customized ? 'Your customized demo — nothing is published until you create your website. ' : ''}Sample content. Explore the pages and booking form; demo bookings are not submitted.</p>
       </header>
       <div className="flex-1 min-h-0 overflow-auto p-2 sm:p-4">
         <iframe title={`${t.title} live ${device} preview`} srcDoc={'<!doctype html><html><head></head><body style="margin:0"><div id="template-root"></div></body></html>'} onLoad={event => {
@@ -80,8 +97,26 @@ export function TemplatePreviewModal({templateId, onSelectPreview, onClose, onCh
           doc.documentElement.style.fontFamily = 'Inter, sans-serif';
           setFrameDocument(doc);
         }} style={{width:device==='mobile'?390:device==='tablet'?768:1280,maxWidth:device==='mobile'?'100%':undefined,height:'100%'}} className="block mx-auto bg-white border border-slate-300 rounded-xl shadow-lg"/>
-        {frameDocument?.getElementById('template-root') && createPortal(<AppErrorBoundary resetKey={templateId} onRecover={onClose}><Suspense fallback={<p className="p-8 text-center">Loading live template…</p>}><LiveWebsite key={templateId} readOnly previewDocument={frameDocument} profile={profile} services={t.services} stylists={t.stylists} onAddAppointment={async () => {throw new Error('This is a template demo. Customize and publish your salon to accept bookings.');}}/></Suspense></AppErrorBoundary>,frameDocument.getElementById('template-root')!)}
+        {frameDocument?.getElementById('template-root') && createPortal(<AppErrorBoundary resetKey={templateId} onRecover={onClose}><Suspense fallback={<p className="p-8 text-center">Loading live template…</p>}><LiveWebsite key={`${templateId}-${customized ? 'custom' : 'demo'}`} readOnly previewDocument={frameDocument} profile={previewProfile} services={previewServices} stylists={previewStylists} onAddAppointment={async () => {throw new Error('This is a template demo. Customize and publish your salon to accept bookings.');}}/></Suspense></AppErrorBoundary>,frameDocument.getElementById('template-root')!)}
       </div>
+      {customizerOpen && hasCustomizer && createPortal(
+        <AppErrorBoundary resetKey="arch-flutter-customizer" onRecover={() => setCustomizerOpen(false)}>
+          <Suspense fallback={<p className="p-8 text-center" role="status">Loading the Template 13 customizer…</p>}>
+            <ArchFlutterCustomizerGate
+              demoMode
+              siteId=""
+              profile={profile}
+              services={previewServices}
+              stylists={previewStylists}
+              extras={customized ? customized.workspace.extras : baseExtras}
+              initialTab="brand"
+              onApply={(workspace, config) => { setCustomized({ workspace, config }); }}
+              onClose={() => setCustomizerOpen(false)}
+            />
+          </Suspense>
+        </AppErrorBoundary>,
+        document.body,
+      )}
     </div>
   </dialog>;
 }

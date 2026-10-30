@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 200" width="640" height="200" role="img" aria-label="Arch and Flutter Lash and Brow Bar">
+  <defs>
+    <linearGradient id="af-logo-gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#E3C795"/>
+      <stop offset="0.55" stop-color="#C9A66B"/>
+      <stop offset="1" stop-color="#A9853F"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" stroke="url(#af-logo-gold)" stroke-width="4" stroke-linecap="round">
+    <path d="M40 168 V88 a44 44 0 0 1 88 0 V168"/>
+    <path d="M52 168 V90 a32 32 0 0 1 64 0 V168" stroke-width="1.6" stroke-opacity="0.8"/>
+  </g>
+  <g fill="none" stroke="#2B1B17" stroke-width="5" stroke-linecap="round">
+    <path d="M62 128 Q84 104 106 128"/>
+  </g>
+  <g stroke="#2B1B17" stroke-width="3.4" stroke-linecap="round">
+    <path d="M66 122 l-9 -13"/><path d="M76 116 l-4 -16"/><path d="M88 114 l3 -16"/><path d="M99 119 l10 -13"/>
+  </g>
+  <text x="152" y="104" font-family="'Cormorant Garamond','Playfair Display',Georgia,serif" font-size="52" letter-spacing="2" fill="#2B1B17">Arch &amp; Flutter</text>
+  <text x="154" y="140" font-family="'Inter','Hanken Grotesk',Helvetica,sans-serif" font-size="19" letter-spacing="8.5" fill="#9A6B73">LASH &amp; BROW BAR</text>
+  <path d="M154 158 H470" stroke="#C9A66B" stroke-width="1.4" stroke-opacity="0.75"/>
+</svg>

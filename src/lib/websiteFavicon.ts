@@ -6,7 +6,7 @@ function imageUrl(value: unknown): string | undefined {
 }
 
 export function websiteFavicon(branding?: {faviconUrl?: string}, profile?: {logoUrl?: string; businessType?: string}) {
-  return imageUrl(branding?.faviconUrl) || imageUrl(profile?.logoUrl) || (profile?.businessType === 'makeup_studio' ? '/templates/vogue-noir/favicon.svg' : profile?.businessType === 'massage_wellness' ? '/templates/bodhi-tree/favicon.svg' : profile?.businessType === 'hair_coloring' ? '/templates/10/favicon.svg' : FALLBACK_ICON);
+  return imageUrl(branding?.faviconUrl) || imageUrl(profile?.logoUrl) || (profile?.businessType === 'makeup_studio' ? '/templates/vogue-noir/favicon.svg' : profile?.businessType === 'massage_wellness' ? '/templates/bodhi-tree/favicon.svg' : profile?.businessType === 'hair_coloring' ? '/templates/10/favicon.svg' : profile?.businessType === 'lash_brow' ? '/templates/13/favicon.svg' : FALLBACK_ICON);
 }
 
 /** Restore the previous tab icon when leaving a salon, so brands cannot leak across routes. */

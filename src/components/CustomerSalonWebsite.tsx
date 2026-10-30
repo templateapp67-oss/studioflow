@@ -74,6 +74,7 @@ import {ShringaarRoyalWebsite} from './ShringaarRoyalWebsite';
 import {FloatingPromoBanner} from './FloatingPromoBanner';
 import { useSeoMetadata } from '../lib/useSeoMetadata';
 import {IronInkWebsite} from './IronInkWebsite';
+import {ArchFlutterWebsite} from './ArchFlutterWebsite';
 
 const money=(value:number)=>`₹${Number(value||0).toLocaleString('en-IN')}`;
 function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGallery=[],policies,branding,loyaltyConfig,onManageDashboard,onCustomerAccount,customerSignedIn,customerName,customerPhotoUrl,onAddAppointment,readOnly,live}:SalonWebsitePreviewProps){
@@ -82,6 +83,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
  const [consultation,setConsultation]=useState<ConsultationDetails|undefined>();
  const [directSlot,setDirectSlot]=useState<DirectBookingSlot|undefined>();
  const [ironInkBookingNote,setIronInkBookingNote]=useState('');
+ const [archFlutterOfferNote,setArchFlutterOfferNote]=useState('');
  const [myBookings,setMyBookings]=useState(false);
  const [viewStaff,setViewStaff]=useState(()=>new URLSearchParams(typeof location==='undefined'?'':location.search).get('stylist')||'');
  const visible=websiteSections(profile),template=CATEGORY_TEMPLATES[profile.businessType]||CATEGORY_TEMPLATES.hair_salon;
@@ -94,6 +96,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
  const bodhiTree=profile.businessType==='massage_wellness';
  const prismChroma=profile.businessType==='hair_coloring';
  const shringaar=profile.businessType==='bridal_lounge';
+ const archFlutter=profile.businessType==='lash_brow';
  const skincare=profile.businessType==='skincare_clinic';
  const clinicBookable=skincare?clinicPublicServices(profile,services).filter(clinicPriceIsVerified):services;
  // A published sanctuary only ever shows its own saved menu. The bundled demo
@@ -103,7 +106,8 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
  const bodhiServices=(services&&services.length>0)?services:(!profile.subdomain&&!profile.serviceCatalogueInitialized?CATEGORY_TEMPLATES.massage_wellness?.services||[]:[]);
  const prismServices=(services&&services.length>0)?services:(!profile.subdomain&&!profile.serviceCatalogueInitialized?CATEGORY_TEMPLATES.hair_coloring?.services||[]:[]);
  const shringaarServices=(services&&services.length>0)?services:(!profile.subdomain&&!profile.serviceCatalogueInitialized?CATEGORY_TEMPLATES.bridal_lounge?.services||[]:[]);
- const accent=profile.customAccentColor||(barber?'#c49a6c':roopMahal?'#6D2638':pinkyNails?'#702D4B':keshPrakriti?'#183D32':vogueNoir?'#C9A96E':bodhiTree?'#4E6E58':prismChroma?'#7C5CFF':shringaar?'#5A0F1E':palette.primaryHex);
+ const archFlutterServices=(services&&services.length>0)?services:(!profile.subdomain&&!profile.serviceCatalogueInitialized?CATEGORY_TEMPLATES.lash_brow?.services||[]:[]);
+ const accent=profile.customAccentColor||(barber?'#c49a6c':roopMahal?'#6D2638':pinkyNails?'#702D4B':keshPrakriti?'#183D32':vogueNoir?'#C9A96E':bodhiTree?'#4E6E58':prismChroma?'#7C5CFF':shringaar?'#5A0F1E':archFlutter?'#9A6B73':palette.primaryHex);
  const [category,setCategory]=useState('All'),[chosen,setChosen]=useState<Stylist|undefined>(),[service,setService]=useState<SalonService|undefined>(),[booking,setBooking]=useState(false),[photo,setPhoto]=useState<number|null>(null);
  const [brokenGalleryIds,setBrokenGalleryIds]=useState<string[]>([]);
  useEffect(()=>{setCategory('All');setChosen(undefined);setService(undefined);setBooking(false);setBrokenGalleryIds([]);},[profile.businessType]);
@@ -455,6 +459,31 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
   <IronInkWebsite profile={profile} services={services.length?services:CATEGORY_TEMPLATES.tattoo_studio.services} stylists={team} galleryPhotos={gallery} siteSlug={profile.subdomain} policies={policies} loyaltyConfig={loyaltyConfig} onManageDashboard={onManageDashboard} onCustomerAccount={onCustomerAccount} customerSignedIn={customerSignedIn} customerName={customerName} customerPhotoUrl={customerPhotoUrl} onMyBookings={()=>setMyBookings(true)} bookingAvailable={Boolean(typeof onAddAppointment==='function'&&(profile as typeof profile & {bookingEnabled?:boolean}).bookingEnabled!==false)} onBook={(selected,specialist,details)=>{setDirectSlot(details?.date&&details.time?{date:details.date,time:details.time,stylistId:specialist?.id||''}:undefined);setIronInkBookingNote([`Style: ${selected?.name||'To be discussed'}`,`Artist: ${specialist?.name||'No preference'}`,`Preferred time: ${details?.date||'Flexible'} ${details?.time||''}`,`Size: ${details?.size||'To be discussed'}`,`Placement: ${details?.placement||'To be discussed'}`,details?.reference?`Reference file selected: ${details.reference}`:''].filter(Boolean).join('\n').slice(0,1000));setService(selected);setChosen(specialist);setBooking(true)}}/>
   {myBookings&&<SalonBookingsDialog profile={profile} onClose={()=>setMyBookings(false)}/>}
   <BookingModal isOpen={booking} onClose={()=>{setBooking(false);setIronInkBookingNote('')}} profile={profile} services={services.length?services:CATEGORY_TEMPLATES.tattoo_studio.services} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} initialBookingNote={ironInkBookingNote} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>
+ </>;
+
+ if(profile.businessType==='lash_brow')return <>
+  {/* Template 13 (Arch & Flutter) renders every page through ArchFlutterWebsite,
+      on the same booking system, service catalogue and customer-app wiring. */}
+  <ArchFlutterWebsite
+   profile={profile}
+   services={archFlutterServices}
+   stylists={team}
+   galleryPhotos={galleryEntries}
+   shared={shared}
+   enabledSections={['promo','videos','loyalty','policies','share'].filter(section=>visible[section])}
+   showPackages={visible.packages}
+   customerSignedIn={customerSignedIn}
+   customerName={customerName}
+   customerPhotoUrl={customerPhotoUrl}
+   bookingAvailable={Boolean(typeof onAddAppointment==='function' && (profile as typeof profile & {bookingEnabled?:boolean}).bookingEnabled!==false)}
+   onBook={(selected,specialist,details)=>{setArchFlutterOfferNote(details?.note||'');book(selected,specialist);}}
+   onAccount={mode=>customer(mode||'signin')}
+   onMyBookings={()=>setMyBookings(true)}
+   onViewSpecialist={id=>setViewStaff(id)}
+  />
+  {myBookings&&<SalonBookingsDialog profile={profile} onClose={()=>setMyBookings(false)}/>}
+  {team.some(st=>st.id===viewStaff)&&<StylistProfile services={archFlutterServices} onSlot={(selected,slot)=>{setChosen(team.find(st=>st.id===slot.stylistId));setService(selected);setDirectSlot(slot);setViewStaff('');setBooking(true)}} staff={team.find(st=>st.id===viewStaff)!} profile={profile} slug={profile.subdomain} signedIn={customerSignedIn} demo={!profile.subdomain} onLogin={()=>{setViewStaff('');customer('signin')}} onClose={()=>setViewStaff('')} onBook={()=>{const specialist=team.find(st=>st.id===viewStaff);setViewStaff('');book(undefined,specialist)}}/>}
+  <BookingModal isOpen={booking} onClose={()=>{setBooking(false);setArchFlutterOfferNote('')}} profile={profile} services={archFlutterServices} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} initialBookingNote={archFlutterOfferNote} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>
  </>;
 
  const testimonialsSection=visible.testimonials&&(!pinkyNails||pinkyHasReviews||customerSignedIn)&&(

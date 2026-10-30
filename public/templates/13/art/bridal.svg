@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1200" width="900" height="1200" role="img" aria-label="Bridal Eye Rituals — Arch &amp; Flutter art plate">
+  <defs>
+    <linearGradient id="af-bg" x1="0" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#FBF6F1"/>
+      <stop offset="0.52" stop-color="#F8EAE6"/>
+      <stop offset="1" stop-color="#F4D7D3"/>
+    </linearGradient>
+    <radialGradient id="af-mesh-ivory" cx="0.18" cy="0.12" r="0.75">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="af-mesh-gold" cx="0.88" cy="0.86" r="0.62">
+      <stop offset="0" stop-color="#C9A66B" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#C9A66B" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="af-mesh-mauve" cx="0.82" cy="0.08" r="0.55">
+      <stop offset="0" stop-color="#9A6B73" stop-opacity="0.26"/>
+      <stop offset="1" stop-color="#9A6B73" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="af-mesh-blush" cx="0.05" cy="0.9" r="0.6">
+      <stop offset="0" stop-color="#E9BDB7" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#E9BDB7" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="af-arch-clip">
+      <path d="M216 1032 V504 a234 234 0 0 1 468 0 V1032 Z"/>
+    </clipPath>
+  </defs>
+  <rect width="900" height="1200" fill="url(#af-bg)"/>
+  <rect width="900" height="1200" fill="url(#af-mesh-ivory)"/>
+  <rect width="900" height="1200" fill="url(#af-mesh-mauve)"/>
+  <rect width="900" height="1200" fill="url(#af-mesh-gold)"/>
+  <rect width="900" height="1200" fill="url(#af-mesh-blush)"/>
+  <path d="M216 1032 V504 a234 234 0 0 1 468 0 V1032" fill="#FFFFFF" fill-opacity="0.42" stroke="#C9A66B" stroke-width="2.5"/>
+  <path d="M228 1020 V516 a222 222 0 0 1 444 0 V1020" fill="none" stroke="#C9A66B" stroke-width="1" stroke-opacity="0.7"/>
+  <g stroke="#C9A66B" stroke-width="1.6" fill="none" stroke-linecap="round" opacity="0.85">
+    <path d="M72 192 q54 -60 117 -24"/>
+    <path d="M72 228 q63 -42 135 0"/>
+    <path d="M76 264 q54 -24 108 18"/>
+  </g>
+  <g stroke="#9A6B73" stroke-width="1.4" fill="none" stroke-linecap="round" opacity="0.5">
+    <path d="M828 936 q-50 54 -108 24"/>
+    <path d="M828 972 q-58 36 -126 0"/>
+  </g>
+  <g>
+    <path d="M204.2 742.5 Q450.0 622.2 695.8 742.5 Q450.0 842.8 204.2 742.5 Z" fill="#FFFFFF" fill-opacity="0.72" stroke="#2B1B17" stroke-width="3.1" stroke-opacity="0.72"/>
+    <circle cx="450.0" cy="739.9" r="38.8" fill="#9A6B73" fill-opacity="0.75"/>
+    <circle cx="450.0" cy="739.9" r="16.8" fill="#2B1B17" fill-opacity="0.85"/>
+    <circle cx="438.4" cy="728.3" r="6.5" fill="#FFFFFF" fill-opacity="0.9"/>
+    <path d="M204.2 742.5 q28.9 -26.2 57.9 -43.6" fill="none" stroke="#2B1B17" stroke-width="3.4" stroke-linecap="round" stroke-opacity="0.9"/>
+    <path d="M230.1 720.4 q32.6 -25.5 65.3 -42.5" fill="none" stroke="#2B1B17" stroke-width="3.4" stroke-linecap="round" stroke-opacity="0.9"/>
+    <path d="M255.9 700.8 q36.4 -24.4 72.7 -40.7" fill="none" stroke="#2B1B17" stroke-width="3.4" stroke-linecap="round" stroke-opacity="0.9"/>
+    <path d="M281.8 683.6 q40.1 -22.8 80.3 -38.0" fill="none" stroke="#2B1B17" stroke-width="3.4" stroke-linecap="round" stroke-opacity="0.9"/>
+    <path d="M307.7 668.9 q43.9 -20.7 87.7 -34.4" fill="none" stroke="#2B1B17" stroke-width="3.4" stroke-linecap="round" stroke-opacity="0.9"/>
+    <path d="M333.6 656.6 q47.5 -18.0 95.1 -30.0" fill="none" stroke="#2B1B17" stroke-width="3.4" stroke-linecap="round" stroke-opacity="0.9"/>
+    <path d="M359.4 646.8 q51.1 -14.9 102.2 -24.8" fill="none" stroke="#2B1B17" stroke-width="3.4" stroke-linecap="round" stroke-opacity="0.9"/>
+    <path d="M385.3 639.5 q54.5 -11.2 109.0 -18.7" fill="none" stroke="#2B1B17" stroke-width="3.4" stroke-linecap="round" stroke-opacity="0.9"/>
+    <path d="M411.2 634.6 q57.7 -7.1 115.4 -11.8" fill="none" stroke="#2B1B17" stroke-width="3.4" stroke-linecap="round" stroke-opacity="0.9"/>
+    <path d="M437.1 632.1 q60.7 -2.5 121.4 -4.1" fill="none" stroke="#2B1B17" stroke-width="3.4" stroke-linecap="round" stroke-opacity="0.9"/>
+    <path d="M462.9 632.1 q60.7 2.5 121.4 4.1" fill="none" stroke="#2B1B17" stroke-width="3.4" stroke-linecap="round" stroke-opacity="0.9"/>
+    <path d="M488.8 634.6 q57.7 7.1 115.4 11.8" fill="none" stroke="#2B1B17" stroke-width="3.4" stroke-linecap="round" stroke-opacity="0.9"/>
+    <path d="M514.7 639.5 q54.5 11.2 109.0 18.7" fill="none" stroke="#2B1B17" stroke-width="3.4" stroke-linecap="round" stroke-opacity="0.9"/>
+    <path d="M540.6 646.8 q51.1 14.9 102.2 24.8" fill="none" stroke="#2B1B17" stroke-width="3.4" stroke-linecap="round" stroke-opacity="0.9"/>
+    <path d="M566.4 656.6 q47.5 18.0 95.1 30.0" fill="none" stroke="#2B1B17" stroke-width="3.4" stroke-linecap="round" stroke-opacity="0.9"/>
+    <path d="M592.3 668.9 q43.9 20.7 87.7 34.4" fill="none" stroke="#2B1B17" stroke-width="3.4" stroke-linecap="round" stroke-opacity="0.9"/>
+    <path d="M618.2 683.6 q40.1 22.8 80.3 38.0" fill="none" stroke="#2B1B17" stroke-width="3.4" stroke-linecap="round" stroke-opacity="0.9"/>
+    <path d="M644.1 700.8 q36.4 24.4 72.7 40.7" fill="none" stroke="#2B1B17" stroke-width="3.4" stroke-linecap="round" stroke-opacity="0.9"/>
+    <path d="M669.9 720.4 q32.6 25.5 65.3 42.5" fill="none" stroke="#2B1B17" stroke-width="3.4" stroke-linecap="round" stroke-opacity="0.9"/>
+    <path d="M695.8 742.5 q28.9 26.2 57.9 43.6" fill="none" stroke="#2B1B17" stroke-width="3.4" stroke-linecap="round" stroke-opacity="0.9"/>
+    <g fill="none" stroke="#C9A66B" stroke-width="2.2" stroke-linecap="round">
+      <path d="M259 619 q191 -124 382 0"/>
+      <path d="M292 637 q158 -97 315 0"/>
+    </g>
+    <g fill="#C9A66B" fill-opacity="0.75">
+      <circle cx="346" cy="590" r="6"/>
+      <circle cx="450" cy="565" r="7"/>
+      <circle cx="554" cy="590" r="6"/>
+    </g>
+  </g>
+  <text x="450" y="1110" text-anchor="middle" font-family="'Cormorant Garamond','Playfair Display',Georgia,serif" font-size="38" letter-spacing="5" fill="#2B1B17">Bridal Eye Rituals</text>
+  <text x="450" y="1154" text-anchor="middle" font-family="'Inter','Hanken Grotesk',Helvetica,sans-serif" font-size="19" letter-spacing="8" fill="#9A6B73">WEDDING-READY LASHES & BROWS</text>
+</svg>

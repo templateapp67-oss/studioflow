@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Arch and Flutter">
+  <defs>
+    <linearGradient id="af-fav-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FBF6F1"/>
+      <stop offset="1" stop-color="#F4D7D3"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="30" fill="url(#af-fav-bg)"/>
+  <path d="M30 104 V60 a34 34 0 0 1 68 0 V104" fill="none" stroke="#C9A66B" stroke-width="6" stroke-linecap="round"/>
+  <path d="M40 78 Q64 52 88 78" fill="none" stroke="#2B1B17" stroke-width="7" stroke-linecap="round"/>
+  <g stroke="#2B1B17" stroke-width="5" stroke-linecap="round">
+    <path d="M44 70 l-8 -12"/><path d="M56 62 l-3 -15"/><path d="M72 62 l3 -15"/><path d="M84 70 l8 -12"/>
+  </g>
+</svg>

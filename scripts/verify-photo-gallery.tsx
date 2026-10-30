@@ -67,6 +67,26 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
   const savedHtml=renderToStaticMarkup(<CustomerSalonWebsite profile={{...profile,photoGalleryInitialized:true,photoGalleryType:'bridal_lounge',photoGallery:[{id:'sr-own-1',category:'Bridal' as const,url:'https://cdn.example.com/saved-bride-photo.jpg',title:'Our own bride',isDemo:false}]}} services={[]} stylists={[]} readOnly onAddAppointment={async a=>a}/>);
   assert.ok(savedHtml.includes('https://cdn.example.com/saved-bride-photo.jpg'),'saved bride photograph appears in the Template 11 gallery');
   assert.ok(savedHtml.includes('Our own bride'),'saved bride photograph keeps its caption');
+ }else if(template.id==='lash_brow'){
+  // Template 13 (Arch & Flutter) renders its own arch-masked lookbook and
+  // lightbox from the same saved-photo path, without owner controls. The bundled
+  // set is labelled as a demo lookbook and every plate carries a bundled
+  // Template 13 art fallback; an owner photograph replaces the demo set.
+  assert.ok(html.includes('From the studio, this month · Demo lookbook'),'Arch & Flutter labels its bundled lookbook as demo');
+  assert.ok(html.includes('/templates/13/'),'Arch & Flutter lookbook keeps bundled Template 13 art plates as fallbacks');
+  assert.equal((html.match(/aria-label="Open photograph: /g)||[]).length,8,'the home lookbook shows eight tappable plates');
+  assert.ok(!html.includes('Delete photo')&&!html.includes('Replace / Edit'));
+  (globalThis as any).window={location:{hash:'#gallery'},scrollTo(){},addEventListener(){},removeEventListener(){},matchMedia:()=>({matches:false,addEventListener(){},removeEventListener(){}})};
+  let galleryPage='';
+  try{
+   galleryPage=renderToStaticMarkup(<CustomerSalonWebsite profile={profile} services={[]} stylists={[]} readOnly onAddAppointment={async a=>a}/>);
+  }finally{(globalThis as any).window={addEventListener(){},removeEventListener(){},matchMedia:()=>({matches:false,addEventListener(){},removeEventListener(){}})};}
+  for(const sample of samples)assert.ok(galleryPage.includes(sample.url),`the full lookbook keeps the bundled plate ${sample.id}`);
+  for(const sample of samples)assert.ok(galleryPage.includes(sample.title.replaceAll('&','&amp;')),`the full lookbook captions ${sample.id}`);
+  const savedHtml=renderToStaticMarkup(<CustomerSalonWebsite profile={{...profile,photoGalleryInitialized:true,photoGalleryType:'lash_brow',photoGallery:[{id:'af-own-1',category:'Skin' as const,url:'https://cdn.example.com/saved-lash-set.jpg',title:'Our own lash set',isDemo:false}]}} services={[]} stylists={[]} readOnly onAddAppointment={async a=>a}/>);
+  assert.ok(savedHtml.includes('https://cdn.example.com/saved-lash-set.jpg'),'saved lash photograph appears in the Template 13 lookbook');
+  assert.ok(savedHtml.includes('Our own lash set'),'saved lash photograph keeps its caption');
+  assert.ok(!savedHtml.includes('Demo lookbook'),'an owner lookbook is never labelled as demo');
  }else{
   assert.ok(html.includes(`${defaultGalleryCategory(template.id)} (5)`));assert.equal((html.match(/aria-label="View salon look /g)||[]).length,5);assert.ok(!html.includes('Delete photo')&&!html.includes('Replace / Edit'));
  }

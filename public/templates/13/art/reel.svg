@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1280" width="720" height="1280" role="img" aria-label="Featured Reels — Arch &amp; Flutter art plate">
+  <defs>
+    <linearGradient id="af-bg" x1="0" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#FBF6F1"/>
+      <stop offset="0.52" stop-color="#F8EAE6"/>
+      <stop offset="1" stop-color="#F4D7D3"/>
+    </linearGradient>
+    <radialGradient id="af-mesh-ivory" cx="0.18" cy="0.12" r="0.75">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="af-mesh-gold" cx="0.88" cy="0.86" r="0.62">
+      <stop offset="0" stop-color="#C9A66B" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#C9A66B" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="af-mesh-mauve" cx="0.82" cy="0.08" r="0.55">
+      <stop offset="0" stop-color="#9A6B73" stop-opacity="0.26"/>
+      <stop offset="1" stop-color="#9A6B73" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="af-mesh-blush" cx="0.05" cy="0.9" r="0.6">
+      <stop offset="0" stop-color="#E9BDB7" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#E9BDB7" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="af-arch-clip">
+      <path d="M173 1101 V538 a187 187 0 0 1 374 0 V1101 Z"/>
+    </clipPath>
+  </defs>
+  <rect width="720" height="1280" fill="url(#af-bg)"/>
+  <rect width="720" height="1280" fill="url(#af-mesh-ivory)"/>
+  <rect width="720" height="1280" fill="url(#af-mesh-mauve)"/>
+  <rect width="720" height="1280" fill="url(#af-mesh-gold)"/>
+  <rect width="720" height="1280" fill="url(#af-mesh-blush)"/>
+  <path d="M173 1101 V538 a187 187 0 0 1 374 0 V1101" fill="#FFFFFF" fill-opacity="0.42" stroke="#C9A66B" stroke-width="2.5"/>
+  <path d="M185 1089 V550 a175 175 0 0 1 350 0 V1089" fill="none" stroke="#C9A66B" stroke-width="1" stroke-opacity="0.7"/>
+  <g stroke="#C9A66B" stroke-width="1.6" fill="none" stroke-linecap="round" opacity="0.85">
+    <path d="M58 205 q43 -64 94 -26"/>
+    <path d="M58 243 q50 -45 108 0"/>
+    <path d="M61 282 q43 -26 86 19"/>
+  </g>
+  <g stroke="#9A6B73" stroke-width="1.4" fill="none" stroke-linecap="round" opacity="0.5">
+    <path d="M662 998 q-40 58 -86 26"/>
+    <path d="M662 1037 q-47 38 -101 0"/>
+  </g>
+  <g fill="#2B1B17" fill-opacity="0.72" stroke="none">
+    <path d="M311 701 L436 768 L311 835 Z"/>
+  </g>
+  <circle cx="360" cy="768" r="115" fill="none" stroke="#C9A66B" stroke-width="2.2"/>
+  <text x="360" y="1184" text-anchor="middle" font-family="'Cormorant Garamond','Playfair Display',Georgia,serif" font-size="30" letter-spacing="4" fill="#2B1B17">Featured Reels</text>
+  <text x="360" y="1231" text-anchor="middle" font-family="'Inter','Hanken Grotesk',Helvetica,sans-serif" font-size="15" letter-spacing="6" fill="#9A6B73">WATCH OUR WORK IN MOTION</text>
+</svg>

@@ -964,7 +964,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 )}
               </div>
 
-              {(consultation || initialBookingNote) && <label className="text-sm text-slate-700">{consultation ? 'Optional consultation message' : 'Tattoo session notes'}<textarea className="w-full min-h-24 border rounded-xl p-3 mt-2" rows={4} maxLength={1000} value={consultationMessage} onChange={e=>setConsultationMessage(e.target.value)}/><small>Shared privately with the studio. Do not include sensitive personal information.</small></label>}
+              {(consultation || initialBookingNote) && <label className="text-sm text-slate-700">{consultation ? 'Optional consultation message' : profile?.businessType === 'lash_brow' ? 'Offer & appointment notes' : 'Tattoo session notes'}<textarea className="w-full min-h-24 border rounded-xl p-3 mt-2" rows={4} maxLength={1000} value={consultationMessage} onChange={e=>setConsultationMessage(e.target.value)}/><small>Shared privately with the studio. Do not include sensitive personal information.</small></label>}
               {/* Full Name */}
               <div>
                 <label className="text-xs font-bold font-mono-caps text-slate-700 block mb-1">

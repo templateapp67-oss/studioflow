@@ -39,6 +39,19 @@ import {
   SHRINGAAR_TEMPLATE_SERVICES,
 } from './lib/shringaarRoyal';
 import {
+  ARCH_FLUTTER_BRAND_NAME,
+  ARCH_FLUTTER_CATEGORIES,
+  ARCH_FLUTTER_DEFAULT_ABOUT,
+  ARCH_FLUTTER_DEFAULT_ADDRESS,
+  ARCH_FLUTTER_DEFAULT_CITY,
+  ARCH_FLUTTER_DEFAULT_PHONE,
+  ARCH_FLUTTER_DEFAULT_POSTAL_CODE,
+  ARCH_FLUTTER_DEFAULT_STYLISTS,
+  ARCH_FLUTTER_IMAGES,
+  ARCH_FLUTTER_TAGLINE,
+  ARCH_FLUTTER_TEMPLATE_SERVICES,
+} from './lib/archFlutter';
+import {
   BODHI_TREE_BRAND_NAME,
   BODHI_TREE_DEFAULT_ABOUT,
   BODHI_TREE_DEFAULT_ADDRESS,
@@ -1103,120 +1116,46 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
     ]
   },
 
-  // 13. Lash & Brow Bar (Newly Added)
+  // 13. Arch & Flutter Lash & Brow Bar (editorial-luxury eye-area atelier)
   lash_brow: {
     id: 'lash_brow',
-    title: 'Arch & Flutter Lash & Brow Bar',
+    title: ARCH_FLUTTER_BRAND_NAME,
     shortName: 'Lash & Brow Bar',
-    tagline: 'Feather Microblading, Russian Fluffy Volume & Brow Lamination',
-    about: 'A chic, intimate micro-studio on Santa Cruz’s Linking Road in Mumbai. Arch & Flutter is devoted purely to eye aesthetics: ultra-light Russian volume lash extensions, semi-permanent feather microblading, and keratin lifts.',
+    tagline: ARCH_FLUTTER_TAGLINE,
+    about: ARCH_FLUTTER_DEFAULT_ABOUT,
     icon: 'visibility',
-    layoutStyle: 'chic_nude',
-    paletteLabel: 'Soft Beige & Nude Micro-Studio Theme',
-    themePreset: 'chic_nude_beige',
-    subCategories: ['Lash Extensions', 'Microblading', 'Brow Lamination', 'Lash Lifts & Tint'],
-    defaultCity: 'Mumbai, Maharashtra',
-    defaultAddress: 'Linking Road, Near Gazebo Shopping, Santa Cruz West',
-    defaultPostalCode: '400054',
-    phone: '+91 98205 11234',
-    whatsapp: '+91 98205 11234',
-    ownerName: 'Nikita Shroff',
-    ownerRole: 'PhiBrows Certified Master & Lash Educator',
-    ownerPhotoUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=500&q=80',
-    coverImageUrl: 'https://images.unsplash.com/photo-1583001931096-959e9a1a6223?auto=format&fit=crop&w=1200&q=80',
-    instagramHandle: '@archandflutter.mumbai',
+    layoutStyle: 'editorial_bento',
+    paletteLabel: 'Blush Rose, Warm Ivory & Champagne Gold',
+    themePreset: 'blush_champagne',
+    subCategories: ARCH_FLUTTER_CATEGORIES.map((category) => category.name),
+    defaultCity: ARCH_FLUTTER_DEFAULT_CITY,
+    defaultAddress: ARCH_FLUTTER_DEFAULT_ADDRESS,
+    defaultPostalCode: ARCH_FLUTTER_DEFAULT_POSTAL_CODE,
+    phone: ARCH_FLUTTER_DEFAULT_PHONE,
+    whatsapp: ARCH_FLUTTER_DEFAULT_PHONE,
+    ownerName: 'Meher Kothari',
+    ownerRole: 'Founder & Master Lash Artist',
+    ownerPhotoUrl: ARCH_FLUTTER_IMAGES.owner.src,
+    coverImageUrl: ARCH_FLUTTER_IMAGES.hero.src,
+    instagramHandle: '@archandflutter.jaipur',
     themeStyle: {
-      heroBackground: 'bg-[#faf6f0]',
-      heroTextColor: 'text-[#443934]',
-      cardBorder: 'border-[#e8ded2]',
-      cardBackground: 'bg-white',
-      cardRadius: 'rounded-xl',
-      accentColor: 'text-[#a17865]',
-      accentBg: 'bg-[#a17865]',
-      badgeBg: 'bg-[#f0e7dd]',
-      badgeText: 'text-[#6b4e40]',
-      buttonBg: 'bg-[#a17865] hover:bg-[#8f6856]',
-      buttonText: 'text-white',
-      priceColor: 'text-[#8f6856]',
+      heroBackground: 'bg-[#FBF6F1]',
+      heroTextColor: 'text-[#2B1B17]',
+      cardBorder: 'border-[#C9A66B]/45',
+      cardBackground: 'bg-white/80',
+      cardRadius: 'rounded-2xl',
+      accentColor: 'text-[#9A6B73]',
+      accentBg: 'bg-[#9A6B73]',
+      badgeBg: 'bg-[#F4D7D3]',
+      badgeText: 'text-[#7A4F57]',
+      buttonBg: 'bg-[#2B1B17] hover:bg-[#3A2620]',
+      buttonText: 'text-[#FBF6F1]',
+      priceColor: 'text-[#8A6A2F]',
       isDark: false,
-      headerBanner: 'bg-[#f5ede3] border-b border-[#e2d6c7]'
+      headerBanner: 'bg-[#F4D7D3]/60 border-b border-[#C9A66B]/40'
     },
-    services: [
-      {
-        id: 'lb-1',
-        name: 'Russian Volume 4D-6D Fluffy Lash Extensions',
-        category: 'Lash Extensions',
-        durationMinutes: 120,
-        price: 3200,
-        description: 'Handmade cashmere fans creating intense darkness and fluttery volume without weighing natural lashes down.',
-        icon: 'visibility',
-        popular: true
-      },
-      {
-        id: 'lb-2',
-        name: 'Semi-Permanent Feather Microblading Eyebrows',
-        category: 'Microblading',
-        durationMinutes: 150,
-        price: 9500,
-        description: 'Golden ratio facial mapping, organic iron oxide pigments, and ultra-fine hair strokes lasting up to 18 months.',
-        icon: 'edit',
-        popular: true
-      },
-      {
-        id: 'lb-3',
-        name: 'Keratin Lash Lift & Deep Black Tint',
-        category: 'Lash Lifts & Tint',
-        durationMinutes: 60,
-        price: 1800,
-        description: 'Perms natural lashes straight from the root with protein-rich keratin for a mascara-free look for 8 weeks.',
-        icon: 'auto_awesome'
-      },
-      {
-        id: 'lb-4',
-        name: 'Brow Lamination, Precise Thread & Henna Stain',
-        category: 'Brow Lamination',
-        durationMinutes: 50,
-        price: 1600,
-        description: 'Restructures brow hairs into uniform upward direction for full, fluffy model-off-duty arches.',
-        icon: 'brush',
-        popular: true
-      },
-      {
-        id: 'lb-5',
-        name: 'Classic 1:1 Natural Lash Extension Set',
-        category: 'Lash Extensions',
-        durationMinutes: 90,
-        price: 2400,
-        description: 'One extension attached per natural lash for elegant, everyday polished definition.',
-        icon: 'remove_red_eye'
-      }
-    ],
-    stylists: [
-      {
-        id: 'lb-st-1',
-        name: 'Nikita Shroff',
-        role: 'Certified PhiBrows Master',
-        avatarUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=400&q=80',
-        specialties: ['Microblading', 'Volume Lashes', 'Golden Ratio Brows'],
-        rating: 4.97
-      },
-      {
-        id: 'lb-st-2',
-        name: 'Sneha Varma',
-        role: 'Lash Extension Specialist',
-        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
-        specialties: ['Russian 6D Fans', 'Lash Infill & Care'],
-        rating: 4.94
-      },
-      {
-        id: 'lb-st-3',
-        name: 'Isha Chawla',
-        role: 'Brow Lamination Artist',
-        avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80',
-        specialties: ['Laminations', 'Keratin Lash Infusions'],
-        rating: 4.91
-      }
-    ]
+    services: ARCH_FLUTTER_TEMPLATE_SERVICES,
+    stylists: ARCH_FLUTTER_DEFAULT_STYLISTS
   },
 
   // 14. Ayurvedic Rejuvenation Spa (Newly Added)
@@ -1521,12 +1460,12 @@ export const ALL_CATEGORY_OPTIONS: BusinessTypeOption[] = [
   },
   {
     id: 'lash_brow',
-    title: 'Lash & Brow Bar',
-    categoryTag: 'Micro-Studio',
+    title: 'Arch & Flutter Lash & Brow Bar',
+    categoryTag: 'Eye-Area Atelier',
     icon: 'visibility',
-    aestheticDescription: 'Chic, minimal micro-studio layout with soft beige & nude theme.',
-    paletteName: 'Soft Beige & Warm Nude',
-    badge: 'Newly Added',
+    aestheticDescription: 'Template 13 · editorial-luxury lash & brow bar: bento grid of fifteen eye-area categories, arch-masked photography, glass cards, featured video with vertical reels and an honest ₹ menu.',
+    paletteName: 'Blush Rose & Champagne Gold',
+    badge: 'Template 13',
     defaultServices: CATEGORY_TEMPLATES.lash_brow.services.map((s) => ({
       name: s.name,
       price: s.price,

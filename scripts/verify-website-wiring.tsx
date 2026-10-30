@@ -151,8 +151,9 @@ for(const template of Object.values(CATEGORY_TEMPLATES)) {
  const header=(html.match(/<header[\s\S]*?<\/header>/g)||[]).find(h=>h.includes('Customer account'));assert.ok(header,template.id);
  for(const label of ['Manage your customer account','My Bookings'])assert.ok(header.includes(label),`${template.id}: ${label} must be inside salon header`);assert.ok(!header.includes('Customer Login')&&!header.includes('Sign up'),`${template.id}: signed-in header must hide guest buttons`);
  for(const label of ['Replace / Manage video','Edit this section','owner-content','Edit featured client experiences','The salon owner can replace'])assert.ok(!html.includes(label),`${template.id}: public page must hide ${label}`);
- const genericReelCount=template.id==='skincare_clinic'||template.id==='tattoo_studio'?0:5;assert.equal((html.match(/class="sf-reel-media"/g)||[]).length,genericReelCount);
+ const genericReelCount=template.id==='skincare_clinic'||template.id==='tattoo_studio'||template.id==='lash_brow'?0:5;assert.equal((html.match(/class="sf-reel-media"/g)||[]).length,genericReelCount);
  if(template.id==='tattoo_studio'){assert.ok((html.match(/class="ii-reel-card/g)||[]).length>=5,'Iron & Ink shows its own editorial media cards');assert.ok(html.includes('DEMO POSTER'));}
+ if(template.id==='lash_brow'){assert.ok((html.match(/class="af-reel"/g)||[]).length>=5,'Arch & Flutter shows its own featured video and reel rail');assert.ok(html.includes('af-featured'),'Arch & Flutter keeps a main featured film beside the rail');}
  assert.equal((html.match(/<iframe/g)||[]).length,0);
 }
 console.log('PASS: public templates retain customer header access without owner management controls; Dermacure replaces reels with its editorial section.');
@@ -173,6 +174,34 @@ for(const template of Object.values(CATEGORY_TEMPLATES)) {
   assert.ok(html.includes('View artist profile'),'Iron & Ink artist cards open artist details');
   assert.ok(html.includes('Selected works.')&&html.includes('The hands behind the work.'),'Iron & Ink renders its portfolio and artists');
   assert.ok(html.includes('Test Studio'),'Iron & Ink uses saved owner branding');
+  continue;
+ }
+ if(template.id==='lash_brow'){
+  // Template 13 (Arch & Flutter) is a multi-page editorial site: the sticky glass
+  // header is the only navigation, Home previews the signature menu, bundles,
+  // artists, lookbook and reels, and the full menus live on the Services /
+  // Pricing / Gallery / Team pages (covered by verify-arch-flutter-template).
+  assert.ok(html.includes('class="af-site"'),'Arch & Flutter owns its editorial shell');
+  assert.ok(html.includes('data-template="lash_brow"'),'Arch & Flutter announces the Template 13 theme');
+  assert.ok(!html.includes('data-layout="dock"'),'Arch & Flutter keeps one navigation in the sticky header');
+  for(const leak of ['Rich warm mood','Verified checkout','Verified client','Choose for online booking'])assert.ok(!html.includes(leak),`Arch & Flutter must not leak shared design-reference copy: ${leak}`);
+  assert.ok(html.includes('Test Studio'),'Arch & Flutter hero shows the saved salon name');
+  assert.ok(html.includes('af-hero-title')&&html.includes('Confidence.'),'Arch & Flutter hero keeps its brand headline');
+  assert.ok(html.includes('Lash &amp; Brow Atelier'),'Arch & Flutter hero keeps its atelier kicker');
+  assert.ok(html.includes('GST included · UPI accepted'),'Arch & Flutter publishes GST-inclusive ₹ pricing and UPI');
+  const nav=html.match(/<nav class="af-nav-links"[\s\S]*?<\/nav>/)?.[0]||'';
+  for(const label of ['Services','Packages','Gallery','Team','Offers','Journal','About','Contact'])assert.ok(nav.includes(label),`Arch & Flutter nav shows ${label}`);
+  assert.ok(!nav.includes('href="#"'),'every Arch & Flutter nav link reaches a real page');
+  assert.ok(html.includes('wa.me/'),'Arch & Flutter keeps a real WhatsApp contact path');
+  assert.equal((html.match(/<iframe/g)||[]).length,0,'no map or video embed loads on the Arch & Flutter home page');
+  const signature=template.services.filter(s=>s.popular&&!/package|combo|bundle/i.test(s.name+' '+s.category)).slice(0,6);
+  for(const service of signature){
+   assert.ok(html.includes(service.name.replaceAll('&','&amp;').replaceAll("'",'&#x27;')),`Arch & Flutter home shows ${service.name}`);
+   assert.ok(html.includes(`₹${service.price.toLocaleString('en-IN')}`),`Arch & Flutter home shows the ₹ price for ${service.name}`);
+  }
+  for(const tier of ['Flutter Club Monthly Membership','Signature Combo','Everyday Combo'])assert.ok(html.includes(tier),`Arch & Flutter home previews the ${tier} bundle`);
+  for(const artist of template.stylists)assert.ok(html.includes(artist.name.replaceAll('&','&amp;')),`Arch & Flutter home shows artist ${artist.name}`);
+  assert.ok(html.includes('View profile &amp; reviews'),'Arch & Flutter artist cards open the full profile');
   continue;
  }
  // Templates 06 and 08 are editorial single-page sites: the sticky header is the only
@@ -292,6 +321,17 @@ assert.ok(!html.includes('Demo testimonial'),'Iron & Ink must not show fabricate
 assert.ok(!html.includes('Aarav S.')&&!html.includes('Naina K.')&&!html.includes('Kabir M.'));
 assert.ok(html.includes('Demo lookbook'),'Iron & Ink marks stock imagery as a sample lookbook');
 assert.ok(!html.includes('Client experiences will appear here'));
+}else if(template.id==='lash_brow'){
+// Template 13 (Arch & Flutter) renders its own Jaipur client reviews with an
+// explicit "shared with permission" note and its own bundled lookbook plates,
+// never the generic demo labels or a verified-client claim.
+assert.ok(!html.includes('Demo testimonial'),'Arch & Flutter never prints the generic demo testimonial label');
+assert.ok(html.includes('Sneha Agarwal'),'Arch & Flutter shows its seeded Jaipur client reviews');
+assert.ok(html.includes('/templates/13/'),'Arch & Flutter shows its own bundled lookbook and reel art');
+assert.ok(html.includes('Demo lookbook'),'Arch & Flutter marks bundled imagery as a demo lookbook');
+assert.ok(html.includes('permission'),'Arch & Flutter states reviews are shared with permission');
+assert.ok(!html.includes('Verified client'));
+assert.ok(!html.includes('Client experiences will appear here'));
 }else{assert.ok(html.includes('Demo testimonial'));assert.ok(html.includes('Demo lookbook'));assert.ok(!html.includes('Client experiences will appear here'));}
  const deleted=normalizeWorkspace({profile:{...initial.profile,websiteTestimonials:[]},extras:{gallery:[]}});assert.equal(clientExperiences(deleted.profile).length,0);assert.equal(lookbookPhotos(deleted.profile,deleted.extras.gallery).length,0);
  const real={...initial.profile.websiteTestimonials[0],id:'real-review',isDemo:false,name:'Actual client',comment:'Actual client experience'};
@@ -349,7 +389,7 @@ const customService:SalonService={clinicServiceApproved:true,clinicPublicationSt
 for(const template of Object.values(CATEGORY_TEMPLATES)){
  const profile={...INITIAL_SALON_PROFILE,businessType:template.id,serviceCatalogueInitialized:true};
  const html=renderToStaticMarkup(<CustomerSalonWebsite profile={profile} services={[customService]} stylists={[]} onAddAppointment={async apt=>apt}/>);
- assert.ok(html.includes(template.id==='skincare_clinic'?'dc-directory-item':template.id==='bridal_lounge'?'sr-service ':template.id==='tattoo_studio'?'ii-category-card':'sf-service-row'));assert.ok(html.includes(customService.name));assert.ok(html.includes(customService.description));assert.ok(html.includes(customService.category));assert.ok(html.includes('₹1,250.5'));assert.ok(!html.includes('55 min'));
+ assert.ok(html.includes(template.id==='skincare_clinic'?'dc-directory-item':template.id==='bridal_lounge'?'sr-service ':template.id==='tattoo_studio'?'ii-category-card':template.id==='lash_brow'?'af-menu-card':'sf-service-row'));assert.ok(html.includes(customService.name));assert.ok(html.includes(customService.description));assert.ok(html.includes(customService.category));assert.ok(html.includes('₹1,250.5'));assert.ok(!html.includes('55 min'));
  const normalized=normalizeWorkspace(JSON.parse(JSON.stringify({profile,services:[customService]})));
  assert.deepEqual(normalized.services,[customService]);
  const switched=servicesForTemplate(normalized.services,normalized.profile,template);assert.deepEqual(switched,[customService]);
@@ -430,13 +470,14 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
   for(const id of ['home','about','treatments','technology','results','contact']){assert.ok(nav.includes(`href="#${id}"`));assert.ok(html.includes(`id="${id}"`));}
   continue;
  }
- const nav=template.id==='hair_spa'?(html.match(/<nav class="kp-desktop-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='makeup_studio'?(html.match(/<nav class="vn-desktop-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='massage_wellness'?(html.match(/<nav class="bt-desktop-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='hair_coloring'?(html.match(/<nav[^>]*aria-label="Website navigation"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='bridal_lounge'?(html.match(/<nav class="sr-nav-links"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='tattoo_studio'?(html.match(/<nav class="ii-nav"[\s\S]*?<\/nav>/)?.[0]||''):html.match(/<nav class="sf-header-links"[\s\S]*?<\/nav>/)![0];
+ const nav=template.id==='hair_spa'?(html.match(/<nav class="kp-desktop-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='makeup_studio'?(html.match(/<nav class="vn-desktop-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='massage_wellness'?(html.match(/<nav class="bt-desktop-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='hair_coloring'?(html.match(/<nav[^>]*aria-label="Website navigation"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='bridal_lounge'?(html.match(/<nav class="sr-nav-links"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='tattoo_studio'?(html.match(/<nav class="ii-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='lash_brow'?(html.match(/<nav class="af-nav-links"[\s\S]*?<\/nav>/)?.[0]||''):html.match(/<nav class="sf-header-links"[\s\S]*?<\/nav>/)![0];
  if(template.id==='hair_spa'){for(const label of ['Our Philosophy','Treatments','Scalp Care','The Sanctuary','Gallery','Contact'])assert.ok(nav.includes(label),`${template.id}: missing editorial link ${label}`);for(const href of ['#philosophy','#treatments','#journey','#sanctuary','#gallery','#contact'])assert.ok(html.includes(`href="${href}"`),`${template.id}: broken anchor ${href}`);assert.ok(html.includes('id="sanctuary"')&&html.includes('id="gallery"'),'the sanctuary story and the gallery are two resolving sections');}
  else if(template.id==='makeup_studio'){for(const label of ['Home','Services','Academy','Portfolio','Reviews','Contact'])assert.ok(nav.includes(label),`${template.id}: missing Vogue Noir link ${label}`);for(const href of ['#home','#services','#academy','#portfolio','#reviews','#contact']){assert.ok(html.includes(`href="${href}"`),`${template.id}: broken anchor ${href}`);assert.ok(html.includes(`id="${href.slice(1)}"`),`${template.id}: missing section ${href}`);}}
  else if(template.id==='massage_wellness'){for(const label of ['Home','About','Massages','Palace Collection','Packages','Gallery','Team','Reviews','Contact'])assert.ok(nav.includes(label),`${template.id}: missing Bodhi Tree link ${label}`);assert.ok(!nav.includes('href="#"'),'Bodhi Tree page navigation uses working buttons, never dead anchors');}
  else if(template.id==='hair_coloring'){for(const label of ['Services','Shades','Results','Packages','Experts','Gallery','Reviews','FAQ'])assert.ok(nav.includes(label),`${template.id}: missing Prism & Chroma link ${label}`);for(const href of ['#pc-services','#pc-shades','#pc-results','#pc-packages','#pc-team','#pc-gallery','#pc-reviews','#pc-faq']){assert.ok(html.includes(`href="${href}"`),`${template.id}: broken anchor ${href}`);assert.ok(html.includes(`id="${href.slice(1)}"`),`${template.id}: missing section ${href}`);}assert.ok(!nav.includes('href="#"'),'Prism & Chroma navigation uses working anchors, never dead links');}
  else if(template.id==='bridal_lounge'){for(const label of ['Collections','Lookbook','Packages','Services','Artists','Reviews','Contact'])assert.ok(nav.includes(label),`${template.id}: missing Shringaar Royal link ${label}`);for(const href of ['#sr-collections','#sr-looks','#sr-packages','#sr-services','#sr-artists','#sr-reviews','#sr-booking']){assert.ok(html.includes(`href="${href}"`),`${template.id}: broken anchor ${href}`);assert.ok(html.includes(`id="${href.slice(1)}"`),`${template.id}: missing section ${href}`);}assert.ok(!nav.includes('href="#"'),'Shringaar Royal navigation uses working anchors, never dead links');}
  else if(template.id==='tattoo_studio'){for(const label of ['HOME','ABOUT','SERVICES','PORTFOLIO','ARTISTS','PRICING','AFTERCARE','BOOKING','GALLERY','JOURNAL','CONTACT'])assert.ok(nav.includes(label),`${template.id}: missing native navigation item ${label}`);}
+ else if(template.id==='lash_brow'){for(const label of ['Home','Services','Packages','Gallery','Team','Offers','Journal','About','Contact'])assert.ok(nav.includes(label),`${template.id}: missing Arch & Flutter link ${label}`);assert.ok(!nav.includes('href="#"'),'Arch & Flutter page navigation uses working buttons, never dead anchors');}
  else{for(const [,label] of HEADER_LINKS)assert.ok(nav.includes(label),`${template.id}: missing header link ${label}`);for(const link of headerLinks(profile))if(link.href.startsWith('#'))assert.ok(html.includes(`id="${link.href.slice(1)}"`),`${template.id}: broken anchor ${link.href}`);}
  const hidden={...profile,websiteSections:{gallery:false,packages:false,about:false}};
  assert.ok(headerLinks(hidden).every(link=>!['gallery','packages','about'].includes(link.id)));

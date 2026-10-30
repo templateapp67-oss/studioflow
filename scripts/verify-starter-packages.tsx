@@ -26,6 +26,23 @@ for(const t of Object.values(CATEGORY_TEMPLATES)){
   for(const item of packages)assert.ok(section.includes(item.name.replaceAll('&','&amp;')),'Iron & Ink shows '+item.name);
   continue;
  }
+ if(t.id==='lash_brow'){
+  // Template 13 (Arch & Flutter) publishes its bundles on the Pricing page as
+  // glass package cards, each with its own photograph and ₹ price; the catalogue
+  // still seeds and books exactly five packages.
+  (globalThis as any).window={location:{hash:'#packages'},scrollTo(){},addEventListener(){},removeEventListener(){},matchMedia:()=>({matches:false,addEventListener(){},removeEventListener(){}})};
+  let page='';
+  try{
+   page=renderToStaticMarkup(<CustomerSalonWebsite profile={{...INITIAL_SALON_PROFILE,businessType:t.id}} services={t.services} stylists={[]} onAddAppointment={async a=>a}/>);
+  }finally{delete (globalThis as any).window;}
+  const section=page.split('id="salon-packages"')[1].split('</section>')[0];
+  assert.equal((section.match(/af-pkg(?:\s|\")/g)||[]).length,5,'Arch & Flutter package cards');
+  assert.equal((section.match(/class="sf-service-image"/g)||[]).length,5,'Arch & Flutter package images');
+  for(const item of packages)assert.ok(section.includes(item.name.replaceAll('&','&amp;')),'Arch & Flutter shows '+item.name);
+  for(const price of ['₹1,999','₹4,999','₹2,799'])assert.ok(section.includes(price),'Arch & Flutter shows package price '+price);
+  assert.ok(page.includes('UPI')&&page.includes('Book this package'),'Arch & Flutter packages book through the same flow and publish UPI');
+  continue;
+ }
  const section=html.split('id="salon-packages"')[1].split('</section>')[0];assert.equal((section.match(/class="sf-service-card(?:\s|\")/g)||[]).length,5,t.id+' package cards');assert.equal((section.match(/class="sf-service-image"/g)||[]).length,5,t.id+' package images');
 }
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;(globalThis as any).document={activeElement:null,addEventListener(){},removeEventListener(){}};

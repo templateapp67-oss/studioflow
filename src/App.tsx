@@ -11,6 +11,8 @@ import { upgradeMakeupStudioTemplate } from './lib/vogueNoir';
 import { upgradeMassageWellnessTemplate } from './lib/bodhiTree';
 import { upgradeHairColoringTemplate } from './lib/prismChroma';
 import { upgradeShringaarTemplate } from './lib/shringaarRoyal';
+import { upgradeArchFlutterTemplate } from './lib/archFlutter';
+import { applyCustomizerConfig, isArchFlutterTemplate, type ArchFlutterCustomizerConfig, type CustomizerWorkspace } from './lib/archFlutterCustomizer';
 import { developmentTemplateForSiteSlug, requestedTemplate, templateDraft } from './lib/templateEntry';
 import { BusinessNotificationLink } from './components/BusinessNotificationLink';
 import { SalonBookingsDialog } from './components/SalonBookingsDialog';
@@ -46,6 +48,8 @@ const OnboardingWizard = lazy(() => loadScreen(() => import('./components/Onboar
 const SalonWebsitePreview = lazy(() => loadScreen(() => import('./components/SalonWebsitePreview').then(m => ({ default: m.SalonWebsitePreview }))));
 const SaaSDashboard = lazy(() => loadScreen(() => import('./components/SaaSDashboard').then(m => ({ default: m.SaaSDashboard }))));
 const OwnerWorkspace = lazy(() => loadScreen(() => import('./components/OwnerWorkspace').then(m => ({ default: m.OwnerWorkspace }))));
+/** Template 13 (Arch & Flutter) only: the dedicated customizer drawer. */
+const ArchFlutterCustomizerGate = lazy(() => loadScreen(() => import('./components/arch-flutter-customizer/ArchFlutterCustomizerGate').then(m => ({ default: m.ArchFlutterCustomizerGate }))));
 
 export default function App(){
   useEffect(() => {
@@ -99,7 +103,7 @@ function Application() {
    loadTemplateCatalogue<CategoryTemplateConfig>({
     load:()=>supabase.from('studioflow_templates').select('config').eq('active',true),
     fallback:Object.values(CATEGORY_TEMPLATES),
-    upgrade:config=>upgradeShringaarTemplate(upgradeHairColoringTemplate(upgradeMassageWellnessTemplate(upgradeMakeupStudioTemplate(upgradeNailStudioTemplate(upgradeBeautyParlourTemplate(config as CategoryTemplateConfig)),CATEGORY_TEMPLATES.makeup_studio),CATEGORY_TEMPLATES.massage_wellness),CATEGORY_TEMPLATES.hair_coloring),CATEGORY_TEMPLATES.bridal_lounge),
+    upgrade:config=>upgradeArchFlutterTemplate(upgradeShringaarTemplate(upgradeHairColoringTemplate(upgradeMassageWellnessTemplate(upgradeMakeupStudioTemplate(upgradeNailStudioTemplate(upgradeBeautyParlourTemplate(config as CategoryTemplateConfig)),CATEGORY_TEMPLATES.makeup_studio),CATEGORY_TEMPLATES.massage_wellness),CATEGORY_TEMPLATES.hair_coloring),CATEGORY_TEMPLATES.bridal_lounge),CATEGORY_TEMPLATES.lash_brow),
    }),
    Promise.resolve(supabase.from('profiles').select('full_name,salon_name,phone_number,whatsapp,city,postal_code').eq('id',session.user.id).maybeSingle()).then(({data,error:identityError})=>({data,error:identityError})).catch(()=>({data:null,error:null})),
   ]);
@@ -123,7 +127,7 @@ function TemplateEntry({templateId}:{templateId:BusinessTypeId}){
  const template=CATEGORY_TEMPLATES[templateId];
  const [remote,setRemote]=useState<any>(null);
  useEffect(()=>{let active=true;void supabase.rpc('studioflow_customer_catalog').then(({data,error})=>{if(active&&!error)setRemote((data?.templates||[]).find((t:any)=>t.id===templateId)||null)});return()=>{active=false}},[templateId]);
- const mergedRemote=remote?upgradeShringaarTemplate(upgradeHairColoringTemplate(upgradeMassageWellnessTemplate(upgradeMakeupStudioTemplate(upgradeNailStudioTemplate(upgradeBeautyParlourTemplate(remote)),CATEGORY_TEMPLATES.makeup_studio),CATEGORY_TEMPLATES.massage_wellness),CATEGORY_TEMPLATES.hair_coloring),CATEGORY_TEMPLATES.bridal_lounge):null;
+ const mergedRemote=remote?upgradeArchFlutterTemplate(upgradeShringaarTemplate(upgradeHairColoringTemplate(upgradeMassageWellnessTemplate(upgradeMakeupStudioTemplate(upgradeNailStudioTemplate(upgradeBeautyParlourTemplate(remote)),CATEGORY_TEMPLATES.makeup_studio),CATEGORY_TEMPLATES.massage_wellness),CATEGORY_TEMPLATES.hair_coloring),CATEGORY_TEMPLATES.bridal_lounge),CATEGORY_TEMPLATES.lash_brow):null;
  const source=mergedRemote?{...template,title:mergedRemote.title||template.title,tagline:mergedRemote.tagline||template.tagline,coverImageUrl:mergedRemote.coverImageUrl||template.coverImageUrl,services:mergedRemote.services?.length?mergedRemote.services:template.services,stylists:mergedRemote.stylists?.length?mergedRemote.stylists:template.stylists}:template;
  const draft=templateDraft(source);
  if(mergedRemote?.demoOffer)draft.profile.promoCampaign={selectedServiceId:'',campaignTheme:'flash_discount',discountPercent:0,customOfferText:'',promoCode:'',subtext:'',aspectRatio:'16:9',aesthetic:'minimalist_chic',imageUrl:source.coverImageUrl,customPrompt:'',...mergedRemote.demoOffer,headline:'TEMPLATE DEMO · '+(mergedRemote.demoOffer.headline||'Sample offer')};
@@ -253,6 +257,12 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
  const ironInkSeeded=useRef('');
  useEffect(()=>{if(!onboardingComplete||profile.businessType!=='tattoo_studio')return;let active=true;const timer=setTimeout(()=>{void(async()=>{try{if(ironInkSeeded.current!==session.user.id){await ensureTemplate12Seeded();if(!active)return;ironInkSeeded.current=session.user.id;}await syncIronInkWorkspace(session.user.id,profile,services,stylists,extras.gallery||[]);}catch(error){if(active)setSyncError(error instanceof Error?`Template 12 sync: ${error.message}`:'Template 12 data could not sync.');}})();},900);return()=>{active=false;clearTimeout(timer);};},[onboardingComplete,profile,services,stylists,extras.gallery,session.user.id]);
  const chooseTemplate=(id:BusinessTypeId)=>{applyTemplate(id);setCurrentView('wizard');};
+ // Template 13 customizer: opened from the template gallery demo or from this salon's website editor.
+ const [archCustomizer,setArchCustomizer]=useState(false);
+ const pendingCustomizerConfig=useRef<ArchFlutterCustomizerConfig|null>(null);
+ const applyCustomizerWorkspace=useCallback((next:CustomizerWorkspace)=>{setProfile(next.profile);setServiceState(next.services);setStylists(next.stylists);setExtras(next.extras);void flush().catch(()=>{});},[flush]);
+ const customizeTemplate=(id:BusinessTypeId,config:ArchFlutterCustomizerConfig)=>{pendingCustomizerConfig.current=config;chooseTemplate(id);};
+ useEffect(()=>{const config=pendingCustomizerConfig.current;if(!config||!isArchFlutterTemplate(profile.businessType))return;pendingCustomizerConfig.current=null;applyCustomizerWorkspace(applyCustomizerConfig(config,{profile,services,stylists,extras}));},[profile,services,stylists,extras,applyCustomizerWorkspace]);
  const publish=async()=>{await flush();const {data,error}=await supabase.rpc('studioflow_publish');if(error)throw error;setPublished(data);};
  const book=async(apt:Appointment)=>{await flush();if(!published)throw new Error('Publish your salon website before accepting bookings.');const rpc=apt.branchId?(apt.couponCode?'studioflow_branch_coupon_book':'studioflow_branch_book'):(apt.couponCode?'studioflow_coupon_book':'studioflow_book');const {data,error}=await supabase.rpc(rpc,{p_slug:published.slug,p_request:apt});if(error)throw error;await refreshBookings();return (data?.payload||data) as Appointment;};
  const updateAppointments:React.Dispatch<React.SetStateAction<Appointment[]>>=next=>{
@@ -392,10 +402,11 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
   <AppErrorBoundary resetKey={currentView} onRecover={()=>setCurrentView('owner')}>
   {currentView==='owner'&&<OwnerWorkspace clients={clients} setClients={setClients} loyaltyConfig={loyaltyConfig} setLoyaltyConfig={setLoyaltyConfig} profile={profile} setProfile={setProfile} services={services} setServices={setServices} stylists={stylists} setStylists={setStylists} appointments={appointments} extras={extras} setExtras={setExtras} published={published} onPublish={publish} sessionEmail={session.user.email||''} templates={templates} onOpenPreview={()=>setCurrentView('preview')} onOpenDashboard={openDashboard} onOpenWizard={()=>setCurrentView('wizard')} onRefreshBookings={refreshBookings} sync={sync} syncError={syncError} />}
 
-  {currentView==='landing'&&<LandingPage setCurrentView={setCurrentView} onSelectCategory={chooseTemplate} />}
+  {currentView==='landing'&&<LandingPage setCurrentView={setCurrentView} onSelectCategory={chooseTemplate} onCustomizeTemplate={customizeTemplate} />}
   {currentView==='wizard'&&<OnboardingWizard profile={profile} setProfile={setProfile} services={services} setServices={setServices} stylists={stylists} setStylists={setStylists} templates={templates} onComplete={()=>{setOnboardingComplete(true);setCurrentView('preview');}} />}
-  {currentView==='preview'&&!clientPreview&&<><div className="max-w-6xl mx-auto px-4 pt-4"><WebsitePublishPanel published={published} onPublish={publish} profile={profile} services={services}/></div><SalonWebsitePreview onEnterClientPreview={()=>{setClientPreview(true);}} profile={profile} setProfile={setProfile} services={services} setServices={setServices} stylists={stylists} setStylists={setStylists} gallery={extras.gallery} policies={extras.policies} branding={extras.whiteLabel} loyaltyConfig={loyaltyConfig} onManageDashboard={openDashboard} onAddAppointment={book} onSelectCategory={applyTemplate} /></>}
+  {currentView==='preview'&&!clientPreview&&<><div className="max-w-6xl mx-auto px-4 pt-4"><WebsitePublishPanel published={published} onPublish={publish} profile={profile} services={services}/></div><SalonWebsitePreview onEnterClientPreview={()=>{setClientPreview(true);}} profile={profile} setProfile={setProfile} services={services} setServices={setServices} stylists={stylists} setStylists={setStylists} gallery={extras.gallery} policies={extras.policies} branding={extras.whiteLabel} loyaltyConfig={loyaltyConfig} onManageDashboard={openDashboard} onAddAppointment={book} onSelectCategory={applyTemplate} onOpenCustomizer={isArchFlutterTemplate(profile.businessType)?()=>setArchCustomizer(true):undefined} /></>}
   {currentView==='preview'&&clientPreview&&<div className="h-dvh flex flex-col"><div className="bg-white border-b p-3 flex flex-wrap items-center gap-3"><button className="secondary-action" onClick={()=>setClientPreview(false)}>Back to Workspace Edit View</button><span className="text-xs">Client Preview Mode</span><div className="flex gap-2">{(['desktop','tablet','mobile'] as const).map(mode=><button key={mode} className="secondary-action capitalize" aria-pressed={mode===clientDevice} onClick={()=>setClientDevice(mode)}>{mode}</button>)}</div></div><div className="flex-1 min-h-0"><WebsiteDeviceFrame mode={clientDevice} title="Client-facing salon preview">{doc=><SalonWebsitePreview previewDocument={doc} readOnly profile={{...profile,subdomain:published?.slug||''}} services={services} stylists={stylists} gallery={extras.gallery} policies={extras.policies} branding={extras.whiteLabel} loyaltyConfig={loyaltyConfig} onAddAppointment={book}/>}</WebsiteDeviceFrame></div></div>}
+  {archCustomizer&&isArchFlutterTemplate(profile.businessType)&&<Suspense fallback={<p role="status" className="p-8 text-center">Loading the Template 13 customizer…</p>}><ArchFlutterCustomizerGate siteId={published?.slug||''} profile={profile} services={services} stylists={stylists} extras={extras} loyaltyConfig={loyaltyConfig} publishedSlug={published?.slug||null} initialTab="brand" onApply={applyCustomizerWorkspace} onPublish={async()=>{await publish();}} onOpenPayments={()=>{setArchCustomizer(false);setCurrentView('owner');}} onClose={()=>setArchCustomizer(false)} /></Suspense>}
   {currentView==='dashboard'&&<SaaSDashboard ownerId={session.user.id} gallery={extras.gallery} setGallery={images=>setExtras(prev=>({...prev,gallery:images}))} initialTab={dashboardTab} profile={profile} setProfile={setProfile} services={services} setServices={setServices} stylists={stylists} setStylists={setStylists} appointments={appointments} setAppointments={updateAppointments} clients={clients} setClients={setClients} loyaltyConfig={loyaltyConfig} setLoyaltyConfig={setLoyaltyConfig} onNavigateToPreview={()=>setCurrentView('preview')} onRefreshBookings={refreshBookings} />}
   </AppErrorBoundary>
  </div>;
