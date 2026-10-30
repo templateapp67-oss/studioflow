@@ -21,8 +21,8 @@ if (rootElement) {
     <StrictMode>
       <DebugBoundary>
         <App />
-        <AppUpdateManager />
       </DebugBoundary>
+      <AppUpdateManager />
     </StrictMode>
   );
 }
