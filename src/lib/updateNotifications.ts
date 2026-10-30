@@ -1,122 +1,38 @@
-const STORAGE_KEY = 'nexora_update_notifications';
-const NOTIFIED_PREFIX = 'nexora_notified_update_';
-
-export type UpdateNotificationState = 'disabled' | 'denied' | 'enabled' | 'unsupported';
-
-function getStorage(): Storage | null {
-  try {
-    if (typeof localStorage !== 'undefined') return localStorage;
-    if (typeof window !== 'undefined' && window.localStorage) return window.localStorage;
-  } catch {}
-  return null;
+const ENABLED='nexora_update_notifications';
+const SEEN='nexora_update_notification_version';
+const delivered=new Set<string>();
+const sending=new Set<string>();
+export function updateNotificationState(){
+ if(typeof Notification==='undefined'||!window.isSecureContext)return 'unsupported';
+ if(Notification.permission==='denied')return 'denied';
+ try{return Notification.permission==='granted'&&localStorage.getItem(ENABLED)==='on'?'enabled':'disabled'}catch{return 'disabled'}
 }
-
-function getNotificationClass(): typeof Notification | null {
-  if (typeof Notification !== 'undefined') return Notification;
-  if (typeof window !== 'undefined' && (window as any).Notification) return (window as any).Notification;
-  return null;
+export async function enableUpdateNotifications(){
+ if(updateNotificationState()==='unsupported')return 'unsupported';
+ try{
+  const permission=await Notification.requestPermission();
+  if(permission==='granted')localStorage.setItem(ENABLED,'on');
+  window.dispatchEvent(new Event('nexora-update-notifications'));
+  return updateNotificationState();
+ }catch{return 'disabled'}
 }
-
-export function updateNotificationState(): UpdateNotificationState {
-  const Notif = getNotificationClass();
-  if (!Notif) {
-    return 'unsupported';
-  }
-  if (Notif.permission === 'denied') {
-    return 'denied';
-  }
-  try {
-    const storage = getStorage();
-    const pref = storage?.getItem(STORAGE_KEY);
-    if (pref === 'enabled' && Notif.permission === 'granted') {
-      return 'enabled';
-    }
-  } catch {}
-  return 'disabled';
+export function disableUpdateNotifications(){
+ try{localStorage.removeItem(ENABLED)}catch{/* Browser storage may be restricted. */}
+ window.dispatchEvent(new Event('nexora-update-notifications'));
 }
-
-export async function enableUpdateNotifications(): Promise<'disabled' | 'denied' | 'enabled'> {
-  const Notif = getNotificationClass();
-  if (!Notif) {
-    return 'disabled';
-  }
-  try {
-    const res = await Notif.requestPermission();
-    if (res === 'granted') {
-      try {
-        getStorage()?.setItem(STORAGE_KEY, 'enabled');
-      } catch {}
-      return 'enabled';
-    }
-    if (res === 'denied') {
-      return 'denied';
-    }
-  } catch {}
-  return 'disabled';
-}
-
-export function disableUpdateNotifications(): void {
-  try {
-    getStorage()?.setItem(STORAGE_KEY, 'disabled');
-  } catch {}
-}
-
-export async function notifyAppUpdate(version: string): Promise<boolean> {
-  if (!version || version.length < 8) return false;
-  if (updateNotificationState() !== 'enabled') return false;
-
-  const storage = getStorage();
-  const dedupeKey = `${NOTIFIED_PREFIX}${version}`;
-  try {
-    if (storage?.getItem(dedupeKey)) return false;
-  } catch {}
-
-  let targetUrl = '';
-  try {
-    const loc = typeof window !== 'undefined' ? window.location : (typeof location !== 'undefined' ? location : null);
-    if (loc) {
-      const url = new URL(loc.href);
-      url.searchParams.delete('access_token');
-      targetUrl = url.toString();
-    }
-  } catch {
-    targetUrl = '/';
-  }
-
-  const title = 'Nexora Update Available';
-  const options = {
-    body: 'A new version of the app is ready. Click to refresh.',
-    tag: `nexora-update-${version}`,
-    data: {
-      type: 'nexora-update',
-      url: targetUrl,
-    },
-  };
-
-  try {
-    const nav = typeof navigator !== 'undefined' ? navigator : (typeof window !== 'undefined' ? window.navigator : null);
-    if (nav?.serviceWorker) {
-      const reg = await nav.serviceWorker.getRegistration();
-      if (reg && reg.showNotification) {
-        await reg.showNotification(title, options);
-        try {
-          storage?.setItem(dedupeKey, '1');
-        } catch {}
-        return true;
-      }
-    }
-
-    const Notif = getNotificationClass();
-    if (Notif) {
-      new Notif(title, options);
-      try {
-        storage?.setItem(dedupeKey, '1');
-      } catch {}
-      return true;
-    }
-  } catch {
-    return false;
-  }
-
-  return false;
+export async function notifyAppUpdate(version:string){
+ if(!/^[a-z0-9-]{16,80}$/i.test(version)||updateNotificationState()!=='enabled'||delivered.has(version)||sending.has(version))return false;
+ try{if(localStorage.getItem(SEEN)===version)return false}catch{/* In-memory deduplication still applies. */}
+ sending.add(version);
+ try{
+  // Only public routing parameters belong in a device notification, never auth/referral tokens.
+  const url=new URL('/',window.location.origin),current=new URL(window.location.href);
+  for(const key of ['app','site','module']){const value=current.searchParams.get(key);if(value&&/^[a-z0-9_-]{1,100}$/i.test(value))url.searchParams.set(key,value)}
+  const options:NotificationOptions={body:'Naye features ready hain. Nexora kholkar update dekhein. Booking ya payment interrupt nahi hoga.',tag:`nexora-update-${version}`,icon:'/customer-icon-192.png',data:{type:'nexora-update',url:url.href}};
+  const registration='serviceWorker' in navigator?await navigator.serviceWorker.getRegistration('/'):undefined;
+  if(registration?.active)await registration.showNotification('Nexora update available',options);
+  else {const notification=new Notification('Nexora update available',options);notification.onclick=()=>{window.focus();notification.close()}}
+  delivered.add(version);try{localStorage.setItem(SEEN,version)}catch{/* No account data is stored here. */}
+  return true;
+ }catch{return false}finally{sending.delete(version)}
 }

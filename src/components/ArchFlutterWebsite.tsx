@@ -335,7 +335,7 @@ export function ArchFlutterWebsite({
     const seen = new Set(mapped.map((review) => review.quote.trim().toLowerCase()));
     const combined = [...mapped];
     for (const sample of config.reviews) {
-      if (!seen.has(sample.quote.trim().toLowerCase())) combined.push(sample);
+      if (!seen.has(sample.quote.trim().toLowerCase())) combined.push({ ...sample, avatarUrl: sample.avatarUrl || '' });
     }
     return combined;
   }, [realReviews, config.reviews, cityLabel]);

@@ -42,7 +42,7 @@ import { AILogoSuiteModal } from './AILogoSuiteModal';
 import { PINKY_NAILS_AI_PRESETS } from '../lib/pinkyNails';
 import { ImageCompressorWidget } from './ImageCompressorWidget';
 
-export interface SectionVisibilityState {
+export interface SectionVisibilityState extends Record<string, boolean> {
   videos:boolean; promo:boolean; social:boolean; loyalty:boolean; policies:boolean;
   header: boolean;
   hero: boolean;
