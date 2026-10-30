@@ -14,7 +14,9 @@
     "test": "npm run lint && npm run lint:edge && npm run build && node scripts/run-all-verifications.mjs",
     "test:address": "node scripts/verify-address-stability.mjs",
     "test:wiring": "node scripts/verify-website-wiring.mjs",
-    "test:live": "node scripts/verify-supabase.mjs"
+    "test:live": "node scripts/verify-supabase.mjs",
+    "test:template12": "node scripts/verify-template12-ui.mjs && node scripts/verify-template12-migration.mjs",
+    "test:multibranch": "node scripts/verify-multibranch-migration.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -30,7 +32,8 @@
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "vite": "^6.2.3",
-    "vite-plugin-pwa": "^2.0.0"
+    "vite-plugin-pwa": "^2.0.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.10",

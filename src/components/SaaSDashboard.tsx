@@ -21,6 +21,7 @@ import { DEFAULT_LOYALTY_CONFIG, TIER_METADATA, calculateLoyaltyTier, calculateR
 import { OwnerPosPanel } from './OwnerPosPanel';
 import { SeoSettingsManager } from './SeoSettingsManager';
 import { PrismChromaOwnerPanel } from './prism-chroma/PrismChromaOwnerPanel';
+import { IronInkAdminPanel } from '../templates/iron-ink/AdminPanel';
 
 interface SaaSDashboardProps {
   ownerId?:string;
@@ -42,7 +43,7 @@ interface SaaSDashboardProps {
   onRefreshBookings?:()=>Promise<void>|void;
 }
 
-type TabType = 'contacts' | 'demo' | 'website_sections' | 'overview' | 'calendar' | 'services' | 'team' | 'clients' | 'loyalty' | 'marketing' | 'social_connectivity' | 'seo' | 'appearance' | 'website' | 'colour_studio';
+type TabType = 'iron_ink' | 'contacts' | 'demo' | 'website_sections' | 'overview' | 'calendar' | 'services' | 'team' | 'clients' | 'loyalty' | 'marketing' | 'social_connectivity' | 'seo' | 'appearance' | 'website' | 'colour_studio';
 
 export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
   profile,
@@ -259,6 +260,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
             { id: 'seo', label: 'SEO & Social Cards', icon: 'travel_explore' },
             { id: 'appearance', label: 'Appearance', icon: 'palette' },
             { id:'website_sections',label:'Website Sections',icon:'view_quilt' },
+            ...(profile.businessType==='tattoo_studio'?[{id:'iron_ink',label:'Iron & Ink Studio',icon:'ink_pen'}]:[]),
             ...(profile.businessType==='hair_coloring'?[{ id:'colour_studio',label:'Colour Studio Inbox',icon:'palette' }]:[]),
             { id: 'website', label: 'Salon Info', icon: 'storefront' }
           ].map((tab) => {
@@ -304,6 +306,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
 
         {activeTab === 'seo' && <SeoSettingsManager profile={profile} setProfile={setProfile} />}
         {activeTab==='website_sections'&&<WebsiteContentManager services={services} profile={profile} setProfile={setProfile} gallery={gallery} setGallery={setGallery}/>}
+        {activeTab==='iron_ink'&&profile.businessType==='tattoo_studio'&&<IronInkAdminPanel siteId={ownerId}/>}
         {activeTab==='colour_studio'&&profile.businessType==='hair_coloring'&&<PrismChromaOwnerPanel slug={profile.subdomain||''}/>}
         {/* TAB CONTENT: OVERVIEW */}
         {activeTab === 'overview' && (

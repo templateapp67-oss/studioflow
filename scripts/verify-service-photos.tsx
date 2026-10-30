@@ -47,6 +47,14 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
   assert.ok((changed.match(/src="https:\/\/example.com\/owner-photo.jpg"/g)||[]).length>=1,'owner photo replaces the demo photo on the Prism & Chroma card');
   continue;
  }
+ if(template.id==='tattoo_studio'){
+  // Template 12 uses its own editorial category and package layouts. All seeded
+  // category photos appear in the gallery, and the five starter packages keep
+  // their service-specific images in the pricing cards.
+  assert.equal((html.match(/class="sf-service-image"/g)||[]).length,5,'Iron & Ink renders all five package photos');
+  for(const service of services){const expectedPhoto=service.imageUrl||defaultServiceImage(service,template.id);assert.ok(html.includes(expectedPhoto.replaceAll('&','&amp;')),`Iron & Ink renders a photo for ${service.name}`);}
+  continue;
+ }
  if(template.id==='bridal_lounge'){
   // Template 11 (Shringaar Royal) splits the content into ritual tiles and
   // heirloom package cards, each with its own arch-masked photograph. Every

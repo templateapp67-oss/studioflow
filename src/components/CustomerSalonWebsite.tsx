@@ -73,6 +73,7 @@ import {PrismChromaWebsite} from './PrismChromaWebsite';
 import {ShringaarRoyalWebsite} from './ShringaarRoyalWebsite';
 import {FloatingPromoBanner} from './FloatingPromoBanner';
 import { useSeoMetadata } from '../lib/useSeoMetadata';
+import {IronInkWebsite} from './IronInkWebsite';
 
 const money=(value:number)=>`₹${Number(value||0).toLocaleString('en-IN')}`;
 function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGallery=[],policies,branding,loyaltyConfig,onCustomerAccount,customerSignedIn,customerName,customerPhotoUrl,onAddAppointment,readOnly,live}:SalonWebsitePreviewProps){
@@ -80,6 +81,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
  const {t}=useWebsiteLanguage();
  const [consultation,setConsultation]=useState<ConsultationDetails|undefined>();
  const [directSlot,setDirectSlot]=useState<DirectBookingSlot|undefined>();
+ const [ironInkBookingNote,setIronInkBookingNote]=useState('');
  const [myBookings,setMyBookings]=useState(false);
  const [viewStaff,setViewStaff]=useState(()=>new URLSearchParams(typeof location==='undefined'?'':location.search).get('stylist')||'');
  const visible=websiteSections(profile),template=CATEGORY_TEMPLATES[profile.businessType]||CATEGORY_TEMPLATES.hair_salon;
@@ -447,6 +449,12 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
   {myBookings&&<SalonBookingsDialog profile={profile} onClose={()=>setMyBookings(false)}/>}
   {team.some(st=>st.id===viewStaff)&&<StylistProfile services={shringaarServices} onSlot={(selected,slot)=>{setChosen(team.find(st=>st.id===slot.stylistId));setService(selected);setDirectSlot(slot);setViewStaff('');setBooking(true)}} staff={team.find(st=>st.id===viewStaff)!} profile={profile} slug={profile.subdomain} signedIn={customerSignedIn} demo={!profile.subdomain} onLogin={()=>{setViewStaff('');customer('signin')}} onClose={()=>setViewStaff('')} onBook={()=>{const specialist=team.find(st=>st.id===viewStaff);setViewStaff('');book(undefined,specialist)}}/>}
   <BookingModal isOpen={booking} onClose={()=>setBooking(false)} profile={profile} services={shringaarServices} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>
+ </>;
+
+ if(profile.businessType==='tattoo_studio')return <>
+  <IronInkWebsite profile={profile} services={services.length?services:CATEGORY_TEMPLATES.tattoo_studio.services} stylists={team} galleryPhotos={gallery} siteSlug={profile.subdomain} policies={policies} loyaltyConfig={loyaltyConfig} onCustomerAccount={onCustomerAccount} customerSignedIn={customerSignedIn} customerName={customerName} customerPhotoUrl={customerPhotoUrl} onMyBookings={()=>setMyBookings(true)} bookingAvailable={Boolean(typeof onAddAppointment==='function'&&(profile as typeof profile & {bookingEnabled?:boolean}).bookingEnabled!==false)} onBook={(selected,specialist,details)=>{setDirectSlot(details?.date&&details.time?{date:details.date,time:details.time,stylistId:specialist?.id||''}:undefined);setIronInkBookingNote([`Style: ${selected?.name||'To be discussed'}`,`Artist: ${specialist?.name||'No preference'}`,`Preferred time: ${details?.date||'Flexible'} ${details?.time||''}`,`Size: ${details?.size||'To be discussed'}`,`Placement: ${details?.placement||'To be discussed'}`,details?.reference?`Reference file selected: ${details.reference}`:''].filter(Boolean).join('\n').slice(0,1000));setService(selected);setChosen(specialist);setBooking(true)}}/>
+  {myBookings&&<SalonBookingsDialog profile={profile} onClose={()=>setMyBookings(false)}/>}
+  <BookingModal isOpen={booking} onClose={()=>{setBooking(false);setIronInkBookingNote('')}} profile={profile} services={services.length?services:CATEGORY_TEMPLATES.tattoo_studio.services} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} initialBookingNote={ironInkBookingNote} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>
  </>;
 
  const testimonialsSection=visible.testimonials&&(!pinkyNails||pinkyHasReviews||customerSignedIn)&&(

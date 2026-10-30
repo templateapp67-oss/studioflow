@@ -1,4 +1,5 @@
 import {seedTemplatePackages} from './lib/packageCatalogue';
+import {createIronInkServices} from './lib/ironInk';
 import { CategoryTemplateConfig, BusinessTypeOption } from './types';
 import { SALON_IMAGES } from './assets/images';
 import {
@@ -1039,7 +1040,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
   tattoo_studio: {
     id: 'tattoo_studio',
     title: 'Iron & Ink Urban Tattoo & Body Art Studio',
-    shortName: 'Tattoo & Body Art Studio',
+    shortName: 'Template 12 – Iron & Ink',
     tagline: 'High-Contrast Monochrome, Custom Dark Realism & Surgical Piercings',
     about: 'Located in bohemian Hauz Khas Village, New Delhi, Iron & Ink is a studio dedicated to custom blackwork, fine-line realism, and sterile body piercings using 100% single-use disposable needles.',
     icon: 'draw',
@@ -1073,55 +1074,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
       isDark: true,
       headerBanner: 'bg-[#050505] border-b border-white/20'
     },
-    services: [
-      {
-        id: 'ts-1',
-        name: 'Custom Blackwork Full Sleeve Session (3 Hours)',
-        category: 'Custom Blackwork',
-        durationMinutes: 180,
-        price: 6000,
-        description: 'Bespoke geometric dotwork, dark mythological themes, and solid black saturation using Dynamic Triple Black ink.',
-        icon: 'brush',
-        popular: true
-      },
-      {
-        id: 'ts-2',
-        name: 'Minimalist Micro Fine-Line Script / Botanical',
-        category: 'Fine-Line Realism',
-        durationMinutes: 60,
-        price: 2500,
-        description: 'Single-needle precise lettering, Devanagari calligraphy, or delicate wildflower outlines.',
-        icon: 'edit',
-        popular: true
-      },
-      {
-        id: 'ts-3',
-        name: 'Hyper-Realistic Portrait & Shading Art',
-        category: 'Fine-Line Realism',
-        durationMinutes: 240,
-        price: 8500,
-        description: 'Smooth greywash transitions and photo-realistic animal/portrait execution by master artists.',
-        icon: 'image'
-      },
-      {
-        id: 'ts-4',
-        name: 'Implant-Grade Titanium Ear/Nose Piercing',
-        category: 'Body Piercing',
-        durationMinutes: 30,
-        price: 1200,
-        description: 'Surgical aseptic technique, sterile needle puncture, and ASTM F-136 titanium stud included.',
-        icon: 'adjust'
-      },
-      {
-        id: 'ts-5',
-        name: 'Old Tattoo Redesign & Blast-Over Cover-up',
-        category: 'Tattoo Cover-ups',
-        durationMinutes: 150,
-        price: 5000,
-        description: 'Clever restructuring of faded, unwanted ink into a contemporary high-density dark art piece.',
-        icon: 'recycling'
-      }
-    ],
+    services: createIronInkServices(),
     stylists: [
       {
         id: 'ts-st-1',
@@ -1553,12 +1506,12 @@ export const ALL_CATEGORY_OPTIONS: BusinessTypeOption[] = [
   },
   {
     id: 'tattoo_studio',
-    title: 'Tattoo & Body Art Studio',
+    title: 'Iron & Ink Urban Tattoo & Body Art Studio',
     categoryTag: 'Urban Body Art',
     icon: 'draw',
-    aestheticDescription: 'Edgy, dark urban layout with high-contrast monochrome design.',
-    paletteName: 'Urban Monochrome Ink',
-    badge: 'Newly Added',
+    aestheticDescription: 'Template 12 · dark luxury tattoo atelier, editorial image-led sections, artist portfolios and custom booking.',
+    paletteName: 'Iron & Ink · Blood Red',
+    badge: 'Template 12',
     defaultServices: CATEGORY_TEMPLATES.tattoo_studio.services.map((s) => ({
       name: s.name,
       price: s.price,

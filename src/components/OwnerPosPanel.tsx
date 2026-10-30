@@ -1,7 +1,7 @@
 import React,{useEffect,useMemo,useState} from 'react';
 import {supabase} from '../lib/supabase';
 import {paymentRequest} from '../lib/platformPayments';
-import type {Appointment,SalonService,Stylist} from '../types';
+import type {Appointment,SalonBranch,SalonService,Stylist} from '../types';
 
 function istDate(offset=0){
   const now=new Date(Date.now()+offset*86400000);
@@ -15,13 +15,16 @@ type Props={
   services:SalonService[];
   stylists:Stylist[];
   appointments:Appointment[];
+  branches?:SalonBranch[];
   onChanged:()=>Promise<void>|void;
 };
 
-export function OwnerPosPanel({slug,services,stylists,appointments,onChanged}:Props){
+export function OwnerPosPanel({slug,services,stylists,appointments,branches=[],onChanged}:Props){
   const published=stylists.filter(s=>s.status!=='Inactive');
   const [serviceId,setServiceId]=useState(services[0]?.id||'');
   const [stylistId,setStylistId]=useState('any');
+  const activeBranches=branches.filter(branch=>branch.isActive);
+  const [branchId,setBranchId]=useState(activeBranches.length===1?activeBranches[0].id:'');
   const [date,setDate]=useState(istDate());
   const [time,setTime]=useState('');
   const [slots,setSlots]=useState<{time:string;label?:string;available?:boolean}[]>([]);
@@ -38,19 +41,22 @@ export function OwnerPosPanel({slug,services,stylists,appointments,onChanged}:Pr
   const deposit=service?Math.ceil(Math.round(service.price*100)/4)/100:0;
 
   useEffect(()=>{if(!services.some(s=>s.id===serviceId))setServiceId(services[0]?.id||'');},[services,serviceId]);
+  useEffect(()=>{if(activeBranches.length===1)setBranchId(activeBranches[0].id);else if(!activeBranches.some(branch=>branch.id===branchId))setBranchId('');},[branches,branchId]);
   useEffect(()=>{
-    if(!slug||!serviceId||!date){setSlots([]);return;}
+    if(!slug||!serviceId||!date||(activeBranches.length>1&&!branchId)){setSlots([]);return;}
     let active=true;
-    void supabase.rpc('studioflow_available_slots',{p_slug:slug,p_service_id:serviceId,p_date:date,p_stylist_id:stylistId||'any'})
-      .then(({data,error})=>{if(!active)return;if(error)setError(error.message);else {setSlots((data||[]).filter((s:any)=>s.available));setError('');}});
+    const request=branchId
+      ? supabase.rpc('studioflow_branch_available_slots',{p_slug:slug,p_service_id:serviceId,p_date:date,p_stylist:stylistId||'any',p_branch:branchId})
+      : supabase.rpc('studioflow_available_slots',{p_slug:slug,p_service_id:serviceId,p_date:date,p_stylist_id:stylistId||'any'});
+    void request.then(({data,error})=>{if(!active)return;if(error)setError(error.message);else {setSlots((data||[]).filter((s:any)=>s.available));setError('');}});
     return()=>{active=false};
-  },[slug,serviceId,date,stylistId]);
+  },[slug,serviceId,date,stylistId,branchId,branches.length]);
 
   async function bookWalkIn(e:React.FormEvent){
     e.preventDefault();setBusy('walkin');setError('');setNotice('');
     try{
       if(!slug)throw new Error('Publish your salon website before accepting bookings.');
-      const {data,error}=await supabase.rpc('studioflow_owner_walk_in',{p_request:{serviceId,stylistId,date,time,clientName:name.trim(),clientPhone:phone.trim(),collectMode,posMethod:collectMode==='none'?'none':posMethod}});
+      const {data,error}=await supabase.rpc('studioflow_owner_walk_in',{p_request:{serviceId,stylistId,date,time,branchId:branchId||undefined,clientName:name.trim(),clientPhone:phone.trim(),collectMode,posMethod:collectMode==='none'?'none':posMethod}});
       if(error)throw error;
       setName('');setPhone('');setTime('');setNotice(`Walk-in booked${data?.clientName?` for ${data.clientName}`:''}.`);
       await onChanged();
@@ -89,6 +95,7 @@ export function OwnerPosPanel({slug,services,stylists,appointments,onChanged}:Pr
       <p className="muted text-sm">Book a guest who is at the salon, assign a specialist, and record cash / UPI / card now. Online 25% checkout stays for app and website reservations.</p>
       {!slug&&<p role="alert" className="text-sm text-amber-800">Publish the website before walk-in bookings can reserve a live slot.</p>}
       <form onSubmit={bookWalkIn} className="form-grid space-y-3">
+        {activeBranches.length>0&&<label>Location<select className="workspace-input" required value={branchId} onChange={e=>{setBranchId(e.target.value);setTime('');}}>{activeBranches.length>1&&<option value="">Choose a location</option>}{activeBranches.map(branch=><option key={branch.id} value={branch.id}>{branch.name}{branch.city?` · ${branch.city}`:''}</option>)}</select></label>}
         <label>Service<select className="workspace-input" value={serviceId} onChange={e=>setServiceId(e.target.value)} required>{services.map(s=><option key={s.id} value={s.id}>{s.name} · ₹{s.price.toLocaleString('en-IN')}</option>)}</select></label>
         <label>Specialist<select className="workspace-input" value={stylistId} onChange={e=>setStylistId(e.target.value)}><option value="any">Any available</option>{published.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
         <label>Date<input className="workspace-input" type="date" min={istDate()} max={istDate(90)} value={date} onChange={e=>setDate(e.target.value)} required/></label>
@@ -101,7 +108,7 @@ export function OwnerPosPanel({slug,services,stylists,appointments,onChanged}:Pr
           <label className="workspace-toggle"><input type="radio" name="collect" checked={collectMode==='full'} onChange={()=>setCollectMode('full')}/> Full ticket (₹{(service?.price||0).toLocaleString('en-IN')})</label>
         </fieldset>
         {collectMode!=='none'&&<label>Method<select className="workspace-input" value={posMethod} onChange={e=>setPosMethod(e.target.value as 'cash'|'upi'|'card')}><option value="cash">Cash</option><option value="upi">UPI</option><option value="card">Card</option></select></label>}
-        <button className="primary-action" disabled={!!busy||!slug||!time}>{busy==='walkin'?'Saving walk-in…':'Save walk-in booking'}</button>
+        <button className="primary-action" disabled={!!busy||!slug||!time||(activeBranches.length>1&&!branchId)}>{busy==='walkin'?'Saving walk-in…':'Save walk-in booking'}</button>
       </form>
     </section>
     {error&&<p role="alert" className="text-sm text-red-700">{error}</p>}
