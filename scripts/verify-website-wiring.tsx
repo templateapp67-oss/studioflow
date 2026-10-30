@@ -151,7 +151,9 @@ for(const template of Object.values(CATEGORY_TEMPLATES)) {
  const header=(html.match(/<header[\s\S]*?<\/header>/g)||[]).find(h=>h.includes('Customer account'));assert.ok(header,template.id);
  for(const label of ['Manage your customer account','My Bookings'])assert.ok(header.includes(label),`${template.id}: ${label} must be inside salon header`);assert.ok(!header.includes('Customer Login')&&!header.includes('Sign up'),`${template.id}: signed-in header must hide guest buttons`);
  for(const label of ['Replace / Manage video','Edit this section','owner-content','Edit featured client experiences','The salon owner can replace'])assert.ok(!html.includes(label),`${template.id}: public page must hide ${label}`);
- assert.equal((html.match(/class="sf-reel-media"/g)||[]).length,template.id==='skincare_clinic'?0:5);assert.equal((html.match(/<iframe/g)||[]).length,0);
+ const genericReelCount=template.id==='skincare_clinic'||template.id==='tattoo_studio'?0:5;assert.equal((html.match(/class="sf-reel-media"/g)||[]).length,genericReelCount);
+ if(template.id==='tattoo_studio'){assert.ok((html.match(/class="ii-reel-card/g)||[]).length>=5,'Iron & Ink shows its own editorial media cards');assert.ok(html.includes('DEMO POSTER'));}
+ assert.equal((html.match(/<iframe/g)||[]).length,0);
 }
 console.log('PASS: public templates retain customer header access without owner management controls; Dermacure replaces reels with its editorial section.');
 
@@ -168,7 +170,7 @@ for(const template of Object.values(CATEGORY_TEMPLATES)) {
   assert.ok(html.includes('class="ii-header"'),'Iron & Ink owns its editorial header');
   assert.ok(html.includes('class="ii-hero"'),'Iron & Ink renders its tattoo hero');
   assert.ok(html.includes('BOOK A SESSION'),'Iron & Ink exposes the booking CTA');
-  assert.ok(html.includes('View profile &amp; reviews'),'Iron & Ink artist cards open artist details');
+  assert.ok(html.includes('View artist profile'),'Iron & Ink artist cards open artist details');
   assert.ok(html.includes('Selected works.')&&html.includes('The hands behind the work.'),'Iron & Ink renders its portfolio and artists');
   assert.ok(html.includes('Test Studio'),'Iron & Ink uses saved owner branding');
   continue;

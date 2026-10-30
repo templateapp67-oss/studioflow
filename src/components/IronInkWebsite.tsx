@@ -14,7 +14,9 @@ import {
   Check,
   ChevronDown,
   Clock,
+  Facebook,
   Instagram,
+  Youtube,
   MapPin,
   Menu,
   Phone,
@@ -26,6 +28,11 @@ import { WebsiteSections } from "./WebsiteSections";
 import { AppAnnouncementStrip, CustomerAppPromotion } from "./CustomerAppPromotion";
 import { defaultGalleryCategory, standardGallery } from "../lib/photoGallery";
 import { createIronInkServices, IRON_INK_CATEGORIES, ironInkDefaults } from "../lib/ironInk";
+import { ironInkOwnerVideos } from "../lib/ironInkMedia";
+import { ironInkSocialLinks } from "../lib/ironInkSocial";
+import { IronInkSocial } from "./iron-ink/IronInkSocial";
+import { IronInkReels } from "./iron-ink/IronInkReels";
+import { IronInkLoyalty } from "./iron-ink/IronInkLoyalty";
 import { useCreateInkBooking, useInkAvailability, useInkEnquiry, useInkSite } from "../templates/iron-ink/hooks";
 import { uploadInkReference } from "../templates/iron-ink/api";
 import type { InkBookingRow } from "../templates/iron-ink/database.types";
@@ -79,6 +86,7 @@ export function IronInkWebsite({
   onMyBookings,
   bookingAvailable,
   onBook,
+  onManageDashboard,
 }: {
   profile: SalonProfile;
   services: SalonService[];
@@ -93,6 +101,8 @@ export function IronInkWebsite({
   customerPhotoUrl?:string;
   onMyBookings?:()=>void;
   bookingAvailable: boolean;
+  /** Present only in the owner's preview; opens the existing workspace editor. */
+  onManageDashboard?: (section: string) => void;
   onBook: (
     service?: SalonService,
     artist?: Stylist,
@@ -320,7 +330,14 @@ export function IronInkWebsite({
     ? remote.data.testimonials.map(item=>({name:item.client_name,comment:item.review,rating:item.rating,avatarUrl:item.photo_url,reviewImageUrl:item.photo_url}))
     : (Array.isArray(siteProfile.websiteTestimonials)?siteProfile.websiteTestimonials:[])
         .filter(item=>!item.isDemo&&Boolean(item.name?.trim()&&item.comment?.trim()));
+  const currentReview = reviewData.length ? reviewData[review % reviewData.length] : undefined;
   const siteName = siteProfile.businessName || "Iron & Ink";
+  const socialLinks = ironInkSocialLinks(siteProfile);
+  const instagramLink = socialLinks.find((link) => link.platform === "instagram");
+  const template12Videos = ironInkOwnerVideos(siteProfile);
+  const showSection = (key: string) => siteProfile.websiteSections?.[key] !== false;
+  const manageSection = (section: string) =>
+    onManageDashboard ? () => onManageDashboard(section) : undefined;
   const localPackageServices=services.filter(item=>item.category==='Signature Packages');
   const packageServices=(localPackageServices.length?localPackageServices:createIronInkServices().filter(item=>item.category==='Signature Packages'));
   const pricingPlans=remote.data?.pricing?.length?remote.data.pricing.map((item,index)=>({name:item.name,detail:`${item.duration_min} min · ${item.type}`,price:Number(item.price),copy:item.description||'Final quote confirmed with your artist.',imageUrl:enabledCategories[index]?.image})):packageServices.map(item=>({name:item.name,detail:`${item.durationMinutes} min · signature package`,price:item.price,copy:item.description,imageUrl:item.imageUrl}));
@@ -576,28 +593,23 @@ export function IronInkWebsite({
                         >
                           MEET THE STUDIO <ArrowRight size={14} />
                         </button>
+                        {/* Live counts only — no invented years, piece counts or ratings. */}
                         <div className="ii-stats">
                           <div>
-                            <strong>
-                              08<span>+</span>
-                            </strong>
-                            <small>YEARS INKED</small>
+                            <strong>{enabledCategories.length}</strong>
+                            <small>STYLES OFFERED</small>
                           </div>
                           <div>
-                            <strong>
-                              4.8<span>k</span>
-                            </strong>
-                            <small>PIECES MADE</small>
+                            <strong>{displayServices.length}</strong>
+                            <small>STUDIO SERVICES</small>
                           </div>
                           <div>
-                            <strong>{artistList.length || 4}</strong>
+                            <strong>{artistList.length}</strong>
                             <small>RESIDENT ARTISTS</small>
                           </div>
                           <div>
-                            <strong>
-                              98<span>%</span>
-                            </strong>
-                            <small>HAPPY CLIENTS</small>
+                            <strong>{inkBranches.length || 1}</strong>
+                            <small>STUDIO LOCATIONS</small>
                           </div>
                         </div>
                       </div>
@@ -677,7 +689,7 @@ export function IronInkWebsite({
                             `${artist.name}, tattoo artist`,
                           )}
                           <span className="ii-artist-no">
-                            View profile & reviews ↗ · ARTIST 0{index + 1}
+                            View artist profile ↗ · ARTIST 0{index + 1}
                           </span>
                           <h3>{artist.name}</h3>
                           <p>
@@ -857,7 +869,15 @@ export function IronInkWebsite({
                         <span className="ii-kicker">
                           CLIENT STORY · 0{review + 1}
                         </span>
-                        <div className="ii-stars">★★★★★</div>
+                        {Number.isFinite(currentReview?.rating) && Number(currentReview?.rating) > 0 && (
+                          <div
+                            className="ii-stars"
+                            aria-label={`Rated ${Number(currentReview?.rating).toFixed(1)} out of 5`}
+                          >
+                            {"★".repeat(Math.max(0, Math.min(5, Math.round(Number(currentReview?.rating)))))}
+                            {"☆".repeat(Math.max(0, 5 - Math.round(Number(currentReview?.rating))))}
+                          </div>
+                        )}
                         <blockquote>
                           “
                           {reviewData[review % reviewData.length]?.comment ||
@@ -898,7 +918,7 @@ export function IronInkWebsite({
                   )}
                   {section(
                     "From the studio floor.",
-                    "@IRONANDINK",
+                    instagramLink?.handle || "STUDIO JOURNAL",
                     "Fresh work, healed pieces and snapshots from our artists’ world.",
                     <div className="ii-instagram">
                       {photos.slice(0, 5).map((url, index) => (
@@ -1183,7 +1203,7 @@ export function IronInkWebsite({
                               `${artist.name}, tattoo artist`,
                             )}
                             <span className="ii-artist-no">
-                              View profile & reviews ↗
+                              View artist profile ↗
                             </span>
                             <h3>{artist.name}</h3>
                             <p>{artist.role || "Tattoo Artist"}</p>
@@ -1269,7 +1289,7 @@ export function IronInkWebsite({
                       </div>
                     </div>
                   )}
-                  {page === "BOOKING"&&bookingResult?<div className="ii-booking-success"><span className="ii-kicker">REQUEST RECEIVED · NOT YET CONFIRMED</span><h2>Your idea is in safe hands.</h2><p>Reference {bookingResult.id.slice(0,8).toUpperCase()} · {inkBranches.find(item=>item.id===bookingResult.branch_id)?.name||'Studio'} · {selectedCategory?.name} · {pickedDate} at {pickedTime}</p><p>We have received your request. The studio will confirm availability and the final quote{bookingDeposit>0?` and how to arrange the ${money(bookingDeposit)} deposit`:' and whether a deposit is required'}. No payment has been taken and your appointment is not yet confirmed.</p>{whatsappLink(`Hi, I just submitted booking request ${bookingResult.id.slice(0,8).toUpperCase()} for ${selectedCategory?.name||'a tattoo'} with ${selectedArtistName} on ${pickedDate} at ${pickedTime}. Please let me know how to confirm the appointment and arrange ${depositDescription}.`)?<a className="ii-primary" target="_blank" rel="noreferrer" href={whatsappLink(`Hi, I just submitted booking request ${bookingResult.id.slice(0,8).toUpperCase()} for ${selectedCategory?.name||'a tattoo'} with ${selectedArtistName} on ${pickedDate} at ${pickedTime}. Please let me know how to confirm the appointment and arrange ${depositDescription}.`)}>CONFIRM DETAILS ON WHATSAPP <ArrowUpRight/></a>:<button className="ii-outline" onClick={()=>go("CONTACT")}>CONTACT THE STUDIO</button>}{referenceFile&&<button className="ii-outline" onClick={shareReferenceImage}>SHARE REFERENCE IMAGE <ArrowUpRight/></button>}<button className="ii-outline" onClick={()=>{setBookingResult(null);beginBooking()}}>REQUEST ANOTHER SESSION</button></div>:page === "BOOKING" && (
+                  {page === "BOOKING"&&bookingResult?<div className="ii-booking-success"><span className="ii-kicker">REQUEST RECEIVED · NOT YET CONFIRMED</span><h2>Your idea is in safe hands.</h2><p>Reference {bookingResult.id.slice(0,8).toUpperCase()} · {inkBranches.find(item=>item.id===bookingResult.branch_id)?.name||'Studio'} · {selectedCategory?.name} · {pickedDate} at {pickedTime}</p><p>We have received your request. The studio will confirm availability and the final quote{bookingDeposit>0?` and how to arrange the ${money(bookingDeposit)} deposit`:' and whether a deposit is required'}. No payment has been taken and your appointment is not yet confirmed.</p>{whatsappLink(`Hi, I just submitted booking request ${bookingResult.id.slice(0,8).toUpperCase()} for ${selectedCategory?.name||'a tattoo'} with ${selectedArtistName} on ${pickedDate} at ${pickedTime}. Please let me know how to confirm the appointment and arrange ${depositDescription}.`)?<a className="ii-primary" target="_blank" rel="noopener noreferrer" href={whatsappLink(`Hi, I just submitted booking request ${bookingResult.id.slice(0,8).toUpperCase()} for ${selectedCategory?.name||'a tattoo'} with ${selectedArtistName} on ${pickedDate} at ${pickedTime}. Please let me know how to confirm the appointment and arrange ${depositDescription}.`)}>CONFIRM DETAILS ON WHATSAPP <ArrowUpRight/></a>:<button className="ii-outline" onClick={()=>go("CONTACT")}>CONTACT THE STUDIO</button>}{referenceFile&&<button className="ii-outline" onClick={shareReferenceImage}>SHARE REFERENCE IMAGE <ArrowUpRight/></button>}<button className="ii-outline" onClick={()=>{setBookingResult(null);beginBooking()}}>REQUEST ANOTHER SESSION</button></div>:page === "BOOKING" && (
                     <div className="ii-booking-layout">
                       <div className="ii-booking-photo">
                         {img(
@@ -1369,7 +1389,7 @@ export function IronInkWebsite({
                                       <p className="ii-form-note">
                                         {remote.data?"No active artist is configured for online booking. Contact the studio to arrange your request.":"Your studio will match you with the right artist."}
                                       </p>
-                                      {remote.data&&whatsappLink(`Hi, I would like help booking a ${selectedCategory?.name||'tattoo'} session. Please help me choose an artist.`)&&<a className="ii-text-link" target="_blank" rel="noreferrer" href={whatsappLink(`Hi, I would like help booking a ${selectedCategory?.name||'tattoo'} session. Please help me choose an artist.`)}>CONTACT THE STUDIO ON WHATSAPP <ArrowUpRight size={14}/></a>}
+                                      {remote.data&&whatsappLink(`Hi, I would like help booking a ${selectedCategory?.name||'tattoo'} session. Please help me choose an artist.`)&&<a className="ii-text-link" target="_blank" rel="noopener noreferrer" href={whatsappLink(`Hi, I would like help booking a ${selectedCategory?.name||'tattoo'} session. Please help me choose an artist.`)}>CONTACT THE STUDIO ON WHATSAPP <ArrowUpRight size={14}/></a>}
                                     </>
                                   )}
                                 </div>
@@ -1401,7 +1421,7 @@ export function IronInkWebsite({
                                 </label>
                                 {availability.error&&<p className="ii-form-note" role="alert">Live availability is temporarily unavailable. Please contact the studio to confirm a time.</p>}
                                 {pickedDate&&!availability.loading&&!availability.error&&remote.data&&availability.data.length===0&&<p className="ii-form-note">No live times are open for this date. Choose another date or ask the studio about an alternative.</p>}
-                                {(availability.error||(pickedDate&&!availability.loading&&remote.data&&availability.data.length===0))&&whatsappLink(`Hi, I would like to ask about ${selectedCategory?.name||'a tattoo'} with ${selectedArtistName} on ${pickedDate||'a future date'}${pickedBranch?` at ${inkBranches.find(item=>item.id===pickedBranch)?.name||'the selected studio'}`:''}.` )&&<a className="ii-text-link" target="_blank" rel="noreferrer" href={whatsappLink(`Hi, I would like to ask about ${selectedCategory?.name||'a tattoo'} with ${selectedArtistName} on ${pickedDate||'a future date'}${pickedBranch?` at ${inkBranches.find(item=>item.id===pickedBranch)?.name||'the selected studio'}`:''}.` )}>ASK ABOUT AVAILABILITY ON WHATSAPP <ArrowUpRight size={14}/></a>}
+                                {(availability.error||(pickedDate&&!availability.loading&&remote.data&&availability.data.length===0))&&whatsappLink(`Hi, I would like to ask about ${selectedCategory?.name||'a tattoo'} with ${selectedArtistName} on ${pickedDate||'a future date'}${pickedBranch?` at ${inkBranches.find(item=>item.id===pickedBranch)?.name||'the selected studio'}`:''}.` )&&<a className="ii-text-link" target="_blank" rel="noopener noreferrer" href={whatsappLink(`Hi, I would like to ask about ${selectedCategory?.name||'a tattoo'} with ${selectedArtistName} on ${pickedDate||'a future date'}${pickedBranch?` at ${inkBranches.find(item=>item.id===pickedBranch)?.name||'the selected studio'}`:''}.` )}>ASK ABOUT AVAILABILITY ON WHATSAPP <ArrowUpRight size={14}/></a>}
                                 <p className="ii-form-note">Slots are checked live against this artist’s studio schedule and current bookings.</p>
                               </>
                             )}
@@ -1536,7 +1556,7 @@ export function IronInkWebsite({
                         </div>
                         {(bookingError||createInk.error)&&<p className="ii-form-note" role="alert">{bookingError||createInk.error}</p>}
                         <p className="ii-form-note">No payment is taken here. Your booking remains a request until the studio confirms your session and deposit arrangements.</p>
-                        {whatsappLink(`Hi, I need help with a ${selectedCategory?.name||'tattoo'} booking request${pickedDate?` for ${pickedDate} at ${pickedTime||'a time to be confirmed'}`:''}.`)&&<a className="ii-text-link" target="_blank" rel="noreferrer" href={whatsappLink(`Hi, I need help with a ${selectedCategory?.name||'tattoo'} booking request${pickedDate?` for ${pickedDate} at ${pickedTime||'a time to be confirmed'}`:''}.`)}>NEED HELP? WHATSAPP THE STUDIO <ArrowUpRight size={14}/></a>}
+                        {whatsappLink(`Hi, I need help with a ${selectedCategory?.name||'tattoo'} booking request${pickedDate?` for ${pickedDate} at ${pickedTime||'a time to be confirmed'}`:''}.`)&&<a className="ii-text-link" target="_blank" rel="noopener noreferrer" href={whatsappLink(`Hi, I need help with a ${selectedCategory?.name||'tattoo'} booking request${pickedDate?` for ${pickedDate} at ${pickedTime||'a time to be confirmed'}`:''}.`)}>NEED HELP? WHATSAPP THE STUDIO <ArrowUpRight size={14}/></a>}
                       </div>
                     </div>
                   )}
@@ -1581,7 +1601,7 @@ export function IronInkWebsite({
                         <a
                           href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([siteProfile.address, siteProfile.city].filter(Boolean).join(", "))}`}
                           target="_blank"
-                          rel="noreferrer"
+                          rel="noopener noreferrer"
                           className="ii-map"
                         >
                           <MapPin /> OPEN DIRECTIONS <ArrowUpRight />
@@ -1604,7 +1624,7 @@ export function IronInkWebsite({
                             className="ii-primary"
                             href={`https://wa.me/${siteProfile.whatsapp.replace(/\D/g, "")}`}
                             target="_blank"
-                            rel="noreferrer"
+                            rel="noopener noreferrer"
                           >
                             MESSAGE ON WHATSAPP <ArrowUpRight />
                           </a>
@@ -1664,7 +1684,7 @@ export function IronInkWebsite({
                         <a
                           href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([siteProfile.address, siteProfile.city].filter(Boolean).join(", "))}`}
                           target="_blank"
-                          rel="noreferrer"
+                          rel="noopener noreferrer"
                         >
                           <MapPin size={18} />
                           {siteProfile.address || "Visit the studio"} ·{" "}
@@ -1678,7 +1698,10 @@ export function IronInkWebsite({
             </motion.div>
           </AnimatePresence>
         </main>
-        {page==='HOME'&&<div className="ii-standard-sections"><WebsiteSections profile={siteProfile} services={displayServices} onBook={item=>{const match=enabledCategories.find(category=>category.name===item?.category);beginBooking(match?.slug);}} policies={policies} loyaltyConfig={loyaltyConfig} readOnly sections={['promo','videos','social','loyalty','policies','share']} onCustomerAccount={onCustomerAccount} customerSignedIn={customerSignedIn} onMyBookings={onMyBookings}/></div>}
+        {page==='HOME'&&<div className="ii-standard-sections"><WebsiteSections profile={siteProfile} services={displayServices} onBook={item=>{const match=enabledCategories.find(category=>category.name===item?.category);beginBooking(match?.slug);}} policies={policies} loyaltyConfig={loyaltyConfig} readOnly sections={['promo','policies','share']} onCustomerAccount={onCustomerAccount} customerSignedIn={customerSignedIn} onMyBookings={onMyBookings}/></div>}
+        {page==='HOME'&&showSection('social')&&<IronInkSocial profile={siteProfile} onManage={manageSection('social_connectivity')}/>}
+        {page==='HOME'&&showSection('videos')&&<IronInkReels profile={siteProfile} videos={template12Videos} onManage={manageSection('social_connectivity')}/>}
+        {page==='HOME'&&showSection('loyalty')&&<IronInkLoyalty profile={siteProfile} loyaltyConfig={loyaltyConfig} siteSlug={siteSlug} customerSignedIn={customerSignedIn} customerName={customerName} onCustomerAccount={onCustomerAccount} onMyBookings={onMyBookings} onManage={manageSection('loyalty')}/>}
         <footer className="ii-footer">
           <div className="ii-footer-top">
             <div>
@@ -1717,7 +1740,7 @@ export function IronInkWebsite({
               <a
                 href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([siteProfile.address, siteProfile.city].filter(Boolean).join(", "))}`}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
               >
                 GET DIRECTIONS ↗
               </a>
@@ -1734,64 +1757,65 @@ export function IronInkWebsite({
             </div>
             <div>
               <span className="ii-kicker">STAY IN THE LOOP</span>
-              <a
-                href={
-                  siteProfile.instagramHandle?.startsWith("http")
-                    ? siteProfile.instagramHandle
-                    : `https://instagram.com/${(siteProfile.instagramHandle || "").replace("@", "")}`
-                }
-                target="_blank"
-                rel="noreferrer"
-              >
-                <Instagram size={16} /> {siteProfile.instagramHandle || "Instagram"}{" "}
-                ↗
-              </a>
-              <a href={`tel:${siteProfile.phone || ""}`}>
-                <Phone size={16} /> {siteProfile.phone || "Call the studio"}
-              </a>
-              {siteProfile.facebookPage && (
-                <a href={siteProfile.facebookPage} target="_blank" rel="noreferrer">
-                  FACEBOOK ↗
+              {socialLinks.map((link) => {
+                const Icon =
+                  link.platform === "instagram"
+                    ? Instagram
+                    : link.platform === "facebook"
+                      ? Facebook
+                      : Youtube;
+                return (
+                  <a
+                    key={link.platform}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Follow ${siteName} on ${link.label} at ${link.handle} (opens in a new tab)`}
+                  >
+                    <Icon size={16} aria-hidden="true" /> {link.label}
+                    {link.handle.startsWith("@") ? ` · ${link.handle}` : ""} ↗
+                  </a>
+                );
+              })}
+              {!socialLinks.length && (
+                <p className="ii-footer-note">
+                  Social profiles are not linked yet.
+                </p>
+              )}
+              {siteProfile.phone && (
+                <a href={`tel:${siteProfile.phone.replace(/[^+\d]/g, "")}`}>
+                  <Phone size={16} aria-hidden="true" /> {siteProfile.phone}
                 </a>
               )}
-              {siteProfile.youtubeChannel && (
-                <a
-                  href={siteProfile.youtubeChannel}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  YOUTUBE ↗
-                </a>
-              )}
-              <form
-                className="ii-newsletter"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  if (siteProfile.email) {
+              {siteProfile.email && (
+                <form
+                  className="ii-newsletter"
+                  onSubmit={(event) => {
+                    event.preventDefault();
                     const data = new FormData(event.currentTarget);
                     window.location.href = `mailto:${siteProfile.email}?subject=${encodeURIComponent("Newsletter signup")}&body=${encodeURIComponent(String(data.get("newsletter") || ""))}`;
-                  }
-                }}
-              >
-                <label htmlFor="ii-newsletter-email">
-                  STUDIO NOTES BY EMAIL
-                </label>
-                <div>
-                  <input
-                    id="ii-newsletter-email"
-                    name="newsletter"
-                    type="email"
-                    required
-                    placeholder="Your email"
-                  />
-                  <button
-                    type="submit"
-                    aria-label="Subscribe to studio newsletter"
-                  >
-                    <ArrowUpRight size={15} />
-                  </button>
-                </div>
-              </form>
+                  }}
+                >
+                  <label htmlFor="ii-newsletter-email">
+                    STUDIO NOTES BY EMAIL
+                  </label>
+                  <div>
+                    <input
+                      id="ii-newsletter-email"
+                      name="newsletter"
+                      type="email"
+                      required
+                      placeholder="Your email"
+                    />
+                    <button
+                      type="submit"
+                      aria-label="Subscribe to studio newsletter"
+                    >
+                      <ArrowUpRight size={15} aria-hidden="true" />
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
           </div>
           <div className="ii-footer-bottom">

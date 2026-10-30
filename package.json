@@ -15,7 +15,7 @@
     "test:address": "node scripts/verify-address-stability.mjs",
     "test:wiring": "node scripts/verify-website-wiring.mjs",
     "test:live": "node scripts/verify-supabase.mjs",
-    "test:template12": "node scripts/verify-template12-ui.mjs && node scripts/verify-template12-migration.mjs",
+    "test:template12": "node scripts/verify-template12-ui.mjs && node scripts/verify-template12-social-media-loyalty.mjs && node scripts/verify-template12-migration.mjs",
     "test:multibranch": "node scripts/verify-multibranch-migration.mjs"
   },
   "dependencies": {
