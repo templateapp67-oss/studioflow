@@ -95,6 +95,8 @@ export interface SalonWebsitePreviewProps {
   customerName?:string;
   customerPhotoUrl?:string;
   onSelectCategory?: (categoryId: BusinessTypeId) => void;
+  /** Template 13 only: opens the dedicated Arch & Flutter customizer drawer. */
+  onOpenCustomizer?: () => void;
 }
 
 type DeviceMode = 'desktop' | 'tablet' | 'mobile';
@@ -109,6 +111,7 @@ function ArchFlutterPreviewEditor(props:SalonWebsitePreviewProps) {
  const accent=props.profile.customAccentColor||'#9A6B73';
  return <main className="max-w-6xl mx-auto p-4 space-y-6" aria-label="Arch and Flutter owner editing tools">
   <p>Edit your Arch &amp; Flutter Lash &amp; Brow Bar website — hero, the fifteen eye-area categories, ₹ menu and packages, featured video and reels, artists, before &amp; after, offers, aftercare journal, reviews and contact details. Services, prices, team and gallery save with your connected workspace.</p>
+  {props.onOpenCustomizer?<div className="p-4 rounded-2xl border border-[#C9A66B]/60 bg-[#FBF6F1] text-[#2B1B17] flex flex-wrap items-center gap-3"><span className="text-xs font-bold tracking-[0.18em] uppercase text-[#8A6A2F]">Template 13 customizer</span><span className="text-sm flex-1 min-w-[220px]">Brand, colours &amp; fonts, hero, section order, menu, offers, reels, gallery, team, testimonials &amp; FAQ, contact, booking and SEO — with a live preview and undo.</span><button type="button" className="primary-action" onClick={props.onOpenCustomizer}>Open the template customizer</button></div>:null}
   {props.setProfile?<><ArchFlutterEditor profile={props.profile} setProfile={props.setProfile}/><WebsiteContentManager profile={props.profile} setProfile={props.setProfile} services={props.services} gallery={props.gallery} showGallery={false}/></>:<p role="status">Content editing requires a connected owner workspace.</p>}
   {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
   {props.setStylists?<TeamManagement stylists={props.stylists} setStylists={props.setStylists} services={props.services} setServices={props.setServices} businessType="lash_brow" primaryAccentColor={accent}/>:null}

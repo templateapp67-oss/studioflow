@@ -29,6 +29,7 @@
   --af-serif: 'Cormorant Garamond', 'Playfair Display', 'Times New Roman', Georgia, serif;
   --af-sans: 'Inter', 'Hanken Grotesk', 'Segoe UI', system-ui, -apple-system, sans-serif;
   --af-radius: 22px;
+  --af-blur: 18px;
   --af-arch: 999px 999px 26px 26px;
 
   position: relative;
@@ -176,8 +177,8 @@
   background: rgba(255, 255, 255, 0.2);
   border: 1px solid var(--af-white-40);
   border-radius: var(--af-radius);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
-  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--af-blur, 18px)) saturate(140%);
+  backdrop-filter: blur(var(--af-blur, 18px)) saturate(140%);
   box-shadow: 0 8px 26px rgba(43, 27, 23, 0.08);
   transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease, background 0.35s ease;
 }
@@ -501,6 +502,8 @@
   padding: 12px;
 }
 .af-site .af-phone-screen {
+  position: relative;
+  overflow: hidden;
   border-radius: 26px;
   background: var(--af-ivory);
   border: 1px solid rgba(255, 255, 255, 0.7);

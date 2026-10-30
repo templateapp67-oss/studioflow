@@ -56,6 +56,8 @@ import {
   resolveArchFlutterConfig,
 } from '../lib/archFlutter';
 import { canObserveViewport, deviceMockupIn, fadeUp, heroHeadline, revealViewport, scaleIn } from '../lib/motion';
+import { visibleArchFlutterSections } from '../lib/archFlutterTheme';
+import type { ArchFlutterSectionId } from '../types';
 import {
   formatOfferWindow,
   offerApplicableServices,
@@ -142,7 +144,17 @@ export function ArchFlutterWebsite({
   onViewSpecialist: (id: string) => void;
 }) {
   const config = useMemo(() => resolveArchFlutterConfig(profile), [profile]);
-  const cssVars = useMemo(() => archFlutterCssVariables(config.colors) as React.CSSProperties, [config.colors]);
+  const cssVars = useMemo(
+    () =>
+      archFlutterCssVariables(config.colors, {
+        fonts: config.fonts,
+        cornerRadius: config.cornerRadius,
+        glassBlur: config.glassBlur,
+      }) as React.CSSProperties,
+    [config.colors, config.fonts, config.cornerRadius, config.glassBlur],
+  );
+  /* What the home page renders, in the owner's order (Template Customizer). */
+  const homeSections = useMemo(() => visibleArchFlutterSections(config.sections), [config.sections]);
 
   // Deep links: yoursite/#services opens that page first. In-app navigation is
   // state based and never rewrites the owner's URL.
@@ -661,6 +673,475 @@ export function ArchFlutterWebsite({
   const bookingService = services.find((service) => service.id === bookingServiceId) || services[0];
   const bookingStylist = team.find((artist) => artist.id === bookingStylistId);
 
+  /**
+   * Hero call-to-action buttons. The owner picks the label and where it goes
+   * from the Template Customizer; the WhatsApp button always stays.
+   */
+  const heroButton = (kind: 'primary' | 'secondary') => {
+    const label = (kind === 'primary' ? config.heroPrimaryLabel : config.heroSecondaryLabel).trim();
+    const action = kind === 'primary' ? config.heroPrimaryAction : config.heroSecondaryAction;
+    const url = (kind === 'primary' ? config.heroPrimaryUrl : config.heroSecondaryUrl).trim();
+    if (!label || action === 'none') return null;
+    const className = kind === 'primary' ? 'af-btn af-btn-primary' : 'af-btn af-btn-ghost';
+    if (action === 'url') {
+      if (!url) return null;
+      const external = /^https?:/i.test(url);
+      return (
+        <a key={kind} className={className} href={url} {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>
+          {label} <ArrowRight size={16} aria-hidden="true" />
+        </a>
+      );
+    }
+    if (action === 'booking') {
+      return (
+        <button key={kind} type="button" className={className} onClick={() => (bookingAvailable ? go('booking') : book())}>
+          <Calendar size={16} aria-hidden="true" /> {label}
+        </button>
+      );
+    }
+    return (
+      <button key={kind} type="button" className={className} onClick={() => go(action as ArchFlutterPage)}>
+        {label} <ArrowRight size={16} aria-hidden="true" />
+      </button>
+    );
+  };
+
+  /* ---------- Home-page blocks ----------
+   * The Template Customizer (Arch & Flutter only) can hide, rename and
+   * drag-reorder these blocks. `config.sections` decides what renders and
+   * in which order; locked blocks always stay on the page.
+   */
+  const homeSectionNodes: Record<ArchFlutterSectionId, React.ReactNode> = {
+    hero: (
+      <>
+        {/* Hero */}
+        <section className="af-hero af-mesh" data-layout="hero" aria-labelledby="af-hero-title">
+          <FlutterStrokes className="af-feather" style={{ top: 40, right: '6%' }} />
+          <div className="af-wrap af-hero-grid">
+            <div className="af-hero-copy">
+              <motion.p variants={fadeUp} initial="hidden" animate="visible" className="af-kicker">{config.heroKicker}</motion.p>
+              <motion.h1 id="af-hero-title" variants={heroHeadline} initial="hidden" animate="visible" className="af-h1 af-hero-title">
+                {heroLine1 && <>{heroLine1} </>}
+                {heroLine2Head && <em>{heroLine2Head} </em>}
+                <span className="af-gold-underline">{heroLine2Tail}</span>
+              </motion.h1>
+              <motion.p variants={fadeUp} initial="hidden" animate="visible" transition={{ delay: 0.1 }} className="af-lede" style={{ marginTop: 20 }}>
+                {config.heroSubtext}
+              </motion.p>
+              <motion.div variants={fadeUp} initial="hidden" animate="visible" transition={{ delay: 0.16 }} className="af-hero-meta">
+                <span className="af-chip"><Star size={14} fill="currentColor" aria-hidden="true" /> {averageRating > 0 ? averageRating.toFixed(1) : '4.9'} ★ · {displayReviews.length}+ reviews</span>
+                <span className="af-chip"><MapPin size={14} aria-hidden="true" /> {cityLabel}</span>
+                <span className="af-chip"><Wallet size={14} aria-hidden="true" /> {gstNote} · UPI accepted</span>
+                <span className="af-chip"><Clock3 size={14} aria-hidden="true" /> {config.workingHoursDisplay}</span>
+              </motion.div>
+              <motion.div variants={fadeUp} initial="hidden" animate="visible" transition={{ delay: 0.22 }} className="af-hero-actions">
+                {heroButton('primary')}
+                <a className="af-btn af-btn-ghost" href={whatsappHref} target="_blank" rel="noopener noreferrer">
+                  <MessageCircle size={16} aria-hidden="true" /> WhatsApp us
+                </a>
+                {heroButton('secondary')}
+              </motion.div>
+            </div>
+
+            <div className="af-hero-visual">
+              <motion.div variants={scaleIn} initial="hidden" animate="visible" style={{ position: 'relative' }}>
+                <div className="af-hero-arch">
+                  <SafeImage src={config.heroImageUrl} fallback={ARCH_FLUTTER_IMAGES.hero.fallback} alt={`Close-up of lash extensions at ${brandName}`} width={900} height={1125} loading="eager" />
+                  <span className="af-hero-frame" aria-hidden="true" />
+                  <span className="af-hero-tag">
+                    <b>{config.established}</b>
+                    <span>Lash · Brow · Eye care</span>
+                  </span>
+                </div>
+                <motion.div variants={fadeUp} initial="hidden" animate="visible" transition={{ delay: 0.3 }} className="af-hero-badge">
+                  <b>{archFlutterFormatInr(99)}</b>
+                  <span>Brow thread · onwards</span>
+                </motion.div>
+              </motion.div>
+              <motion.div variants={deviceMockupIn} initial="hidden" animate="visible">
+                <ArchFlutterDeviceMockup brandName={brandName} cityLabel={cityLabel} logoUrl={logoUrl} screenshotUrl={config.heroMockupImageUrl} services={menuServices} onBook={(service) => book(service)} />
+              </motion.div>
+            </div>
+          </div>
+        </section>
+      </>
+    ),
+    trust: (
+      <>
+        {/* Trust ribbon */}
+        <Reveal as="section" className="af-trust" aria-label="Why clients trust the bar">
+          <div className="af-trust-grid">
+            {ARCH_FLUTTER_TRUST.map((item, index) => {
+              const Icon = TRUST_ICONS[index % TRUST_ICONS.length];
+              return (
+                <div key={item.id} className="af-trust-cell">
+                  <Icon size={20} aria-hidden="true" />
+                  <span>
+                    <b>{item.title}</b>
+                    <span>{item.detail}</span>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </Reveal>
+      </>
+    ),
+    promo: (
+      <>
+        {promoSections.length > 0 && (
+          <div data-layout="promo">
+            <WebsiteSections {...shared} sections={promoSections} />
+          </div>
+        )}
+      </>
+    ),
+    categories: (
+      <>
+        {/* Categories bento */}
+        <section className="af-section" id="af-categories" data-layout="services" aria-labelledby="af-categories-title">
+          <div className="af-wrap">
+            {sectionHead(
+              'The menu',
+              config.categoriesHeading,
+              config.categoriesSubtext,
+              <button type="button" className="af-btn af-btn-ghost af-btn-sm" onClick={() => go('services')}>
+                Open full menu <ArrowRight size={14} aria-hidden="true" />
+              </button>,
+            )}
+            <h2 id="af-categories-title" className="af-sr-only">{config.categoriesHeading}</h2>
+            <RevealGroup className="af-bento" as="div">
+              {config.categories.map((category, index) => {
+                const count = archFlutterServicesForCategory(services, category).length;
+                const wide = Boolean(category.featured) || index % 7 === 3;
+                const tall = Boolean(category.featured) && index % 5 === 0;
+                return (
+                  <RevealItem key={category.id} className={`af-bento-cell${wide ? ' is-wide' : ''}${tall ? ' is-tall' : ''}`}>
+                    <button
+                      type="button"
+                      className="af-bento-tile"
+                      onClick={() => {
+                        setServiceCat(category.name);
+                        go('services');
+                      }}
+                      aria-label={`${category.name} — ${count > 0 ? `${count} services, see the menu` : 'menu coming soon'}`}
+                    >
+                      <SafeImage src={category.imageUrl} fallback={archFlutterCategoryFallback(category, index)} alt="" width={700} height={520} loading="lazy" />
+                      <span className="af-bento-count">{count > 0 ? `${count} services` : 'Menu soon'}</span>
+                      <span className="af-bento-copy">
+                        <b>{category.name}</b>
+                        <span>{category.blurb}</span>
+                      </span>
+                    </button>
+                  </RevealItem>
+                );
+              })}
+            </RevealGroup>
+          </div>
+        </section>
+      </>
+    ),
+    services: (
+      <>
+        {/* Signature services */}
+        <section className="af-section af-mesh-deep" id="af-signature" aria-labelledby="af-signature-title">
+          <div className="af-wrap">
+            {sectionHead(
+              'Most booked',
+              'Signature lash & brow services',
+              'Every price below is GST-inclusive and payable by UPI, card, net banking or at the salon.',
+              <button type="button" className="af-btn af-btn-ghost af-btn-sm" onClick={() => go('services')}>
+                All services <ArrowRight size={14} aria-hidden="true" />
+              </button>,
+            )}
+            <h2 id="af-signature-title" className="af-sr-only">Signature lash & brow services</h2>
+            {signatureServices.length > 0 ? (
+              <RevealGroup className="af-menu" as="div">
+                {signatureServices.map(serviceCard)}
+              </RevealGroup>
+            ) : (
+              <p className="af-lede">The owner is finishing this menu. WhatsApp us and we will share today’s prices in ₹ right away.</p>
+            )}
+          </div>
+        </section>
+      </>
+    ),
+    about: (
+      <>
+        {/* About teaser + stats */}
+        <section className="af-section" id="af-about-teaser" aria-labelledby="af-about-teaser-title">
+          <div className="af-wrap af-about-grid">
+            <Reveal className="af-about-media" variant="scaleIn">
+              <div className="af-arch-img">
+                <SafeImage src={config.aboutImageUrl} fallback={ARCH_FLUTTER_IMAGES.about.fallback} alt={`Inside ${brandName}, the lash and brow studio`} width={760} height={893} loading="lazy" />
+              </div>
+              <FlutterStrokes className="af-feather" style={{ bottom: -18, left: -10 }} />
+            </Reveal>
+            <div>
+              <p className="af-kicker">About the bar</p>
+              <h2 id="af-about-teaser-title" className="af-h2">{config.aboutHeading}</h2>
+              <p className="af-lede" style={{ marginTop: 14 }}>{config.aboutStory}</p>
+              <RevealGroup className="af-stats" as="div">
+                {config.stats.map((stat) => (
+                  <RevealItem key={stat.id} className="af-glass af-hover af-stat">
+                    <b>{stat.value}</b>
+                    <span>{stat.label}</span>
+                  </RevealItem>
+                ))}
+              </RevealGroup>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 26 }}>
+                <button type="button" className="af-btn af-btn-primary af-btn-sm" onClick={() => go('about')}>Our story</button>
+                <button type="button" className="af-btn af-btn-ghost af-btn-sm" onClick={() => go('team')}>Meet the artists</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </>
+    ),
+    beforeAfter: (
+      <>
+        {/* Before & after */}
+        <section className="af-section af-mesh" id="af-results" aria-labelledby="af-results-title">
+          <div className="af-wrap">
+            {sectionHead('Real results', config.resultsHeading, 'Unedited studio photographs, shared with each client’s permission. Drag the gold line to compare.')}
+            <h2 id="af-results-title" className="af-sr-only">{config.resultsHeading}</h2>
+            <RevealGroup className="af-ba-grid" as="div">
+              {config.beforeAfter.map((item) => (
+                <RevealItem key={item.id} as="figure">
+                  <ArchFlutterBeforeAfter item={item} />
+                </RevealItem>
+              ))}
+            </RevealGroup>
+          </div>
+        </section>
+      </>
+    ),
+    reels: (
+      <>
+        {/* Featured videos & reels */}
+        <section className="af-section" id="af-reels" data-layout="experiences" aria-labelledby="af-reels-title">
+          <div className="af-wrap">
+            {sectionHead('Watch first', reelsHeading, reelsSubtext)}
+            <h2 id="af-reels-title" className="af-sr-only">{reelsHeading}</h2>
+            <Reveal variant="fadeIn">
+              <ArchFlutterReelsSection
+                reels={config.reels}
+                featured={config.featuredVideo}
+                ownerVideos={ownerVideos}
+                salonName={brandName}
+                reducedMotion={false}
+              />
+            </Reveal>
+          </div>
+        </section>
+      </>
+    ),
+    packages: (
+      <>
+        {/* Packages */}
+        <section className="af-section af-mesh-deep" id="af-packages" data-layout="packages" aria-labelledby="af-packages-title">
+          <div className="af-wrap">
+            {sectionHead(
+              'Save more',
+              config.packagesHeading,
+              config.packagesSubtext,
+              <button type="button" className="af-btn af-btn-ghost af-btn-sm" onClick={() => go('packages')}>
+                Pricing &amp; payments <ArrowRight size={14} aria-hidden="true" />
+              </button>,
+            )}
+            <h2 id="af-packages-title" className="af-sr-only">{config.packagesHeading}</h2>
+            <RevealGroup className="af-pkg-grid" as="div">
+              {shownPackages.slice(0, 4).map(packageCard)}
+            </RevealGroup>
+            <Reveal className="af-glass" style={{ marginTop: 20, padding: '18px 22px' }}>
+              <div className="af-pay-row" style={{ alignItems: 'center' }}>
+                <Wallet size={18} aria-hidden="true" style={{ color: 'var(--af-gold-ink)' }} />
+                {PAYMENT_METHODS.map((method) => (
+                  <span key={method} className="af-pay-chip">{method}</span>
+                ))}
+              </div>
+            </Reveal>
+          </div>
+        </section>
+      </>
+    ),
+    team: (
+      <>
+        {/* Team */}
+        {team.length > 0 && (
+          <section className="af-section" id="af-team" data-layout="team" aria-labelledby="af-team-title">
+            <div className="af-wrap">
+              {sectionHead('The artists', config.teamHeading, 'Certified lash, brow and PMU artists — pick one when you book.')}
+              <h2 id="af-team-title" className="af-sr-only">{config.teamHeading}</h2>
+              <RevealGroup className="af-team-grid" as="div">
+                {team.slice(0, 4).map(artistCard)}
+              </RevealGroup>
+            </div>
+          </section>
+        )}
+      </>
+    ),
+    testimonials: (
+      <>
+        {/* Reviews */}
+        <section className="af-section af-mesh" id="af-reviews" aria-labelledby="af-reviews-title">
+          <div className="af-wrap">
+            {sectionHead('Client words', config.reviewsHeading, realReviews.length === 0 ? 'Demo / sample reviews below — real client reviews appear here once published.' : undefined)}
+            <h2 id="af-reviews-title" className="af-sr-only">{config.reviewsHeading}</h2>
+            <ArchFlutterTestimonials reviews={displayReviews} reducedMotion={false} />
+            <p className="af-eyebrow-serif" style={{ marginTop: 18, textAlign: 'center' }}>
+              Shared with each client’s permission · never labelled “verified” unless a real booking published it.
+            </p>
+          </div>
+        </section>
+      </>
+    ),
+    gallery: (
+      <>
+        {/* Gallery */}
+        <section className="af-section" id="af-gallery" data-layout="gallery" aria-labelledby="af-gallery-title">
+          <div className="af-wrap">
+            {sectionHead('Lookbook', galleryIsDemo ? `${config.galleryHeading} · Demo lookbook` : config.galleryHeading, 'Tap any photograph to open it full size.')}
+            <h2 id="af-gallery-title" className="af-sr-only">{config.galleryHeading}</h2>
+            <RevealGroup className="af-gallery" as="div">
+              {galleryItems.slice(0, 8).map((item, index) => (
+                <RevealItem key={`${item.src}-${index}`} className="af-gallery-item">
+                  <button type="button" onClick={() => setLightbox(index)} aria-label={`Open photograph: ${item.title}`}>
+                    <SafeImage src={item.src} fallback={item.fallback} alt={item.title} width={640} height={640} loading="lazy" />
+                  </button>
+                </RevealItem>
+              ))}
+            </RevealGroup>
+            <div style={{ marginTop: 22, textAlign: 'center' }}>
+              <button type="button" className="af-btn af-btn-ghost af-btn-sm" onClick={() => go('gallery')}>Open the full gallery</button>
+            </div>
+          </div>
+        </section>
+      </>
+    ),
+    offers: (
+      <>
+        {/* Offers + journal teasers */}
+        {liveOffers.length > 0 && (
+          <section className="af-section af-mesh-deep" id="af-offers-teaser" aria-labelledby="af-offers-title">
+            <div className="af-wrap">
+              {sectionHead(
+                'This month',
+                config.offersHeading,
+                'Quote the code when you book or WhatsApp it to us. Every price is in ₹, GST included.',
+                <button type="button" className="af-btn af-btn-ghost af-btn-sm" onClick={() => go('offers')}>
+                  All offers <ArrowRight size={14} aria-hidden="true" />
+                </button>,
+              )}
+              <h2 id="af-offers-title" className="af-sr-only">{config.offersHeading}</h2>
+              <RevealGroup className="af-offers af-offers-home" as="div">
+                {liveOffers.slice(0, 3).map(offerCard)}
+              </RevealGroup>
+            </div>
+          </section>
+        )}
+      </>
+    ),
+    journal: (
+      <>
+        <section className="af-section" id="af-journal-teaser" aria-labelledby="af-journal-title">
+          <div className="af-wrap">
+            {sectionHead(
+              'Aftercare',
+              config.journalHeading,
+              'Short, honest guides so your set lasts and your brows stay feathered.',
+              <button type="button" className="af-btn af-btn-ghost af-btn-sm" onClick={() => go('journal')}>Read the journal <ArrowRight size={14} aria-hidden="true" /></button>,
+            )}
+            <h2 id="af-journal-title" className="af-sr-only">{config.journalHeading}</h2>
+            <RevealGroup className="af-journal" as="div">
+              {config.posts.slice(0, 2).map((post, index) => (
+                <RevealItem key={post.id} as="article" className="af-glass-solid af-post">
+                  <div className="af-post-media">
+                    <SafeImage src={post.imageUrl} fallback={ARCH_FLUTTER_IMAGES.posts[index % 2 === 0 ? 'aftercare' : 'lift'].fallback} alt={post.title} width={420} height={420} loading="lazy" />
+                  </div>
+                  <div>
+                    <div className="af-post-meta">
+                      <span>{post.tag}</span>
+                      <span>{post.minutes} min read</span>
+                    </div>
+                    <b>{post.title}</b>
+                    <p>{post.excerpt}</p>
+                    <button type="button" className="af-btn af-btn-ghost af-btn-sm" onClick={() => { setOpenPost(post.id); go('journal'); }}>Read</button>
+                  </div>
+                </RevealItem>
+              ))}
+            </RevealGroup>
+          </div>
+        </section>
+      </>
+    ),
+    faq: (
+      <>
+        {/* FAQ */}
+        <section className="af-section af-mesh" id="af-faq" aria-labelledby="af-faq-title">
+          <div className="af-wrap">
+            {sectionHead('Good to know', config.faqsHeading)}
+            <h2 id="af-faq-title" className="af-sr-only">Frequently asked questions</h2>
+            <div className="af-faq">
+              {config.faqs.map((faq) => (
+                <Reveal key={faq.id} className={openFaq === faq.id ? 'af-glass-solid af-faq-item is-open' : 'af-glass-solid af-faq-item'}>
+                  <button type="button" className="af-faq-q" aria-expanded={openFaq === faq.id} onClick={() => {
+                      setOpenPost(null);
+                      setOpenFaq(openFaq === faq.id ? null : faq.id);
+                    }}>
+                    {faq.question}
+                    <Plus size={18} aria-hidden="true" />
+                  </button>
+                  <AnimatePresence initial={false}>
+                    {openFaq === faq.id && (
+                      <motion.div className="af-faq-a" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.26 }}>
+                        {faq.answer}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </section>
+      </>
+    ),
+    contact: (
+      <>
+        {/* CTA banner */}
+        <section className="af-section" data-layout="location" aria-labelledby="af-cta-title">
+          <div className="af-wrap">
+            <Reveal className="af-cta" variant="scaleIn">
+              <SafeImage src={config.ctaBannerImageUrl} fallback={ARCH_FLUTTER_IMAGES.ctaBanner.fallback} alt={`Booking banner for ${brandName}`} width={1200} height={620} loading="lazy" />
+              <p className="af-kicker" style={{ color: 'rgba(255,255,255,0.86)' }}>{config.established}</p>
+              <h2 id="af-cta-title" className="af-h2">{config.bookingHeading}</h2>
+              <p>{config.bookingSubtext}</p>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <button type="button" className="af-btn af-btn-gold" onClick={() => (bookingAvailable ? go('booking') : book())}>
+                  <Calendar size={16} aria-hidden="true" /> Choose a slot
+                </button>
+                <a className="af-btn af-btn-ghost" style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.6)' }} href={whatsappHref} target="_blank" rel="noopener noreferrer">
+                  <MessageCircle size={16} aria-hidden="true" /> WhatsApp us
+                </a>
+                <a className="af-btn af-btn-ghost" style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.6)' }} href={directionsUrl} target="_blank" rel="noopener noreferrer">
+                  <MapPin size={16} aria-hidden="true" /> Get directions
+                </a>
+              </div>
+            </Reveal>
+          </div>
+        </section>
+      </>
+    ),
+    closing: (
+      <>
+        <CustomerAppPromotion />
+
+        {closingOwnerSections.length > 0 && <WebsiteSections {...shared} sections={closingOwnerSections} />}
+      </>
+    ),
+  };
+
+
   return (
     <MotionConfig reducedMotion="user">
       <div className="af-site" data-template="lash_brow" style={cssVars} ref={rootRef}>
@@ -799,385 +1280,9 @@ export function ArchFlutterWebsite({
           <PageShell pageKey={page}>
             {page === 'home' && (
               <>
-                {/* Hero */}
-                <section className="af-hero af-mesh" data-layout="hero" aria-labelledby="af-hero-title">
-                  <FlutterStrokes className="af-feather" style={{ top: 40, right: '6%' }} />
-                  <div className="af-wrap af-hero-grid">
-                    <div className="af-hero-copy">
-                      <motion.p variants={fadeUp} initial="hidden" animate="visible" className="af-kicker">{config.heroKicker}</motion.p>
-                      <motion.h1 id="af-hero-title" variants={heroHeadline} initial="hidden" animate="visible" className="af-h1 af-hero-title">
-                        {heroLine1 && <>{heroLine1} </>}
-                        {heroLine2Head && <em>{heroLine2Head} </em>}
-                        <span className="af-gold-underline">{heroLine2Tail}</span>
-                      </motion.h1>
-                      <motion.p variants={fadeUp} initial="hidden" animate="visible" transition={{ delay: 0.1 }} className="af-lede" style={{ marginTop: 20 }}>
-                        {config.heroSubtext}
-                      </motion.p>
-                      <motion.div variants={fadeUp} initial="hidden" animate="visible" transition={{ delay: 0.16 }} className="af-hero-meta">
-                        <span className="af-chip"><Star size={14} fill="currentColor" aria-hidden="true" /> {averageRating > 0 ? averageRating.toFixed(1) : '4.9'} ★ · {displayReviews.length}+ reviews</span>
-                        <span className="af-chip"><MapPin size={14} aria-hidden="true" /> {cityLabel}</span>
-                        <span className="af-chip"><Wallet size={14} aria-hidden="true" /> {gstNote} · UPI accepted</span>
-                        <span className="af-chip"><Clock3 size={14} aria-hidden="true" /> {config.workingHoursDisplay}</span>
-                      </motion.div>
-                      <motion.div variants={fadeUp} initial="hidden" animate="visible" transition={{ delay: 0.22 }} className="af-hero-actions">
-                        <button type="button" className="af-btn af-btn-primary" onClick={() => book()}>
-                          <Calendar size={16} aria-hidden="true" /> Book an appointment
-                        </button>
-                        <a className="af-btn af-btn-ghost" href={whatsappHref} target="_blank" rel="noopener noreferrer">
-                          <MessageCircle size={16} aria-hidden="true" /> WhatsApp us
-                        </a>
-                        <button type="button" className="af-btn af-btn-ghost" onClick={() => go('services')}>
-                          See the ₹ menu <ArrowRight size={16} aria-hidden="true" />
-                        </button>
-                      </motion.div>
-                    </div>
-
-                    <div className="af-hero-visual">
-                      <motion.div variants={scaleIn} initial="hidden" animate="visible" style={{ position: 'relative' }}>
-                        <div className="af-hero-arch">
-                          <SafeImage src={config.heroImageUrl} fallback={ARCH_FLUTTER_IMAGES.hero.fallback} alt={`Close-up of lash extensions at ${brandName}`} width={900} height={1125} loading="eager" />
-                          <span className="af-hero-frame" aria-hidden="true" />
-                          <span className="af-hero-tag">
-                            <b>{config.established}</b>
-                            <span>Lash · Brow · Eye care</span>
-                          </span>
-                        </div>
-                        <motion.div variants={fadeUp} initial="hidden" animate="visible" transition={{ delay: 0.3 }} className="af-hero-badge">
-                          <b>{archFlutterFormatInr(99)}</b>
-                          <span>Brow thread · onwards</span>
-                        </motion.div>
-                      </motion.div>
-                      <motion.div variants={deviceMockupIn} initial="hidden" animate="visible">
-                        <ArchFlutterDeviceMockup brandName={brandName} cityLabel={cityLabel} logoUrl={logoUrl} services={menuServices} onBook={(service) => book(service)} />
-                      </motion.div>
-                    </div>
-                  </div>
-                </section>
-
-                {/* Trust ribbon */}
-                <Reveal as="section" className="af-trust" aria-label="Why clients trust the bar">
-                  <div className="af-trust-grid">
-                    {ARCH_FLUTTER_TRUST.map((item, index) => {
-                      const Icon = TRUST_ICONS[index % TRUST_ICONS.length];
-                      return (
-                        <div key={item.id} className="af-trust-cell">
-                          <Icon size={20} aria-hidden="true" />
-                          <span>
-                            <b>{item.title}</b>
-                            <span>{item.detail}</span>
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </Reveal>
-
-                {promoSections.length > 0 && (
-                  <div data-layout="promo">
-                    <WebsiteSections {...shared} sections={promoSections} />
-                  </div>
-                )}
-
-                {/* Categories bento */}
-                <section className="af-section" id="af-categories" data-layout="services" aria-labelledby="af-categories-title">
-                  <div className="af-wrap">
-                    {sectionHead(
-                      'The menu',
-                      config.categoriesHeading,
-                      config.categoriesSubtext,
-                      <button type="button" className="af-btn af-btn-ghost af-btn-sm" onClick={() => go('services')}>
-                        Open full menu <ArrowRight size={14} aria-hidden="true" />
-                      </button>,
-                    )}
-                    <h2 id="af-categories-title" className="af-sr-only">{config.categoriesHeading}</h2>
-                    <RevealGroup className="af-bento" as="div">
-                      {config.categories.map((category, index) => {
-                        const count = archFlutterServicesForCategory(services, category).length;
-                        const wide = Boolean(category.featured) || index % 7 === 3;
-                        const tall = Boolean(category.featured) && index % 5 === 0;
-                        return (
-                          <RevealItem key={category.id} className={`af-bento-cell${wide ? ' is-wide' : ''}${tall ? ' is-tall' : ''}`}>
-                            <button
-                              type="button"
-                              className="af-bento-tile"
-                              onClick={() => {
-                                setServiceCat(category.name);
-                                go('services');
-                              }}
-                              aria-label={`${category.name} — ${count > 0 ? `${count} services, see the menu` : 'menu coming soon'}`}
-                            >
-                              <SafeImage src={category.imageUrl} fallback={archFlutterCategoryFallback(category, index)} alt="" width={700} height={520} loading="lazy" />
-                              <span className="af-bento-count">{count > 0 ? `${count} services` : 'Menu soon'}</span>
-                              <span className="af-bento-copy">
-                                <b>{category.name}</b>
-                                <span>{category.blurb}</span>
-                              </span>
-                            </button>
-                          </RevealItem>
-                        );
-                      })}
-                    </RevealGroup>
-                  </div>
-                </section>
-
-                {/* Signature services */}
-                <section className="af-section af-mesh-deep" id="af-signature" aria-labelledby="af-signature-title">
-                  <div className="af-wrap">
-                    {sectionHead(
-                      'Most booked',
-                      'Signature lash & brow services',
-                      'Every price below is GST-inclusive and payable by UPI, card, net banking or at the salon.',
-                      <button type="button" className="af-btn af-btn-ghost af-btn-sm" onClick={() => go('services')}>
-                        All services <ArrowRight size={14} aria-hidden="true" />
-                      </button>,
-                    )}
-                    <h2 id="af-signature-title" className="af-sr-only">Signature lash & brow services</h2>
-                    {signatureServices.length > 0 ? (
-                      <RevealGroup className="af-menu" as="div">
-                        {signatureServices.map(serviceCard)}
-                      </RevealGroup>
-                    ) : (
-                      <p className="af-lede">The owner is finishing this menu. WhatsApp us and we will share today’s prices in ₹ right away.</p>
-                    )}
-                  </div>
-                </section>
-
-                {/* About teaser + stats */}
-                <section className="af-section" id="af-about-teaser" aria-labelledby="af-about-teaser-title">
-                  <div className="af-wrap af-about-grid">
-                    <Reveal className="af-about-media" variant="scaleIn">
-                      <div className="af-arch-img">
-                        <SafeImage src={config.aboutImageUrl} fallback={ARCH_FLUTTER_IMAGES.about.fallback} alt={`Inside ${brandName}, the lash and brow studio`} width={760} height={893} loading="lazy" />
-                      </div>
-                      <FlutterStrokes className="af-feather" style={{ bottom: -18, left: -10 }} />
-                    </Reveal>
-                    <div>
-                      <p className="af-kicker">About the bar</p>
-                      <h2 id="af-about-teaser-title" className="af-h2">{config.aboutHeading}</h2>
-                      <p className="af-lede" style={{ marginTop: 14 }}>{config.aboutStory}</p>
-                      <RevealGroup className="af-stats" as="div">
-                        {config.stats.map((stat) => (
-                          <RevealItem key={stat.id} className="af-glass af-hover af-stat">
-                            <b>{stat.value}</b>
-                            <span>{stat.label}</span>
-                          </RevealItem>
-                        ))}
-                      </RevealGroup>
-                      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 26 }}>
-                        <button type="button" className="af-btn af-btn-primary af-btn-sm" onClick={() => go('about')}>Our story</button>
-                        <button type="button" className="af-btn af-btn-ghost af-btn-sm" onClick={() => go('team')}>Meet the artists</button>
-                      </div>
-                    </div>
-                  </div>
-                </section>
-
-                {/* Before & after */}
-                <section className="af-section af-mesh" id="af-results" aria-labelledby="af-results-title">
-                  <div className="af-wrap">
-                    {sectionHead('Real results', config.resultsHeading, 'Unedited studio photographs, shared with each client’s permission. Drag the gold line to compare.')}
-                    <h2 id="af-results-title" className="af-sr-only">{config.resultsHeading}</h2>
-                    <RevealGroup className="af-ba-grid" as="div">
-                      {config.beforeAfter.map((item) => (
-                        <RevealItem key={item.id} as="figure">
-                          <ArchFlutterBeforeAfter item={item} />
-                        </RevealItem>
-                      ))}
-                    </RevealGroup>
-                  </div>
-                </section>
-
-                {/* Featured videos & reels */}
-                <section className="af-section" id="af-reels" data-layout="experiences" aria-labelledby="af-reels-title">
-                  <div className="af-wrap">
-                    {sectionHead('Watch first', reelsHeading, reelsSubtext)}
-                    <h2 id="af-reels-title" className="af-sr-only">{reelsHeading}</h2>
-                    <Reveal variant="fadeIn">
-                      <ArchFlutterReelsSection
-                        reels={config.reels}
-                        featured={config.featuredVideo}
-                        ownerVideos={ownerVideos}
-                        salonName={brandName}
-                        reducedMotion={false}
-                      />
-                    </Reveal>
-                  </div>
-                </section>
-
-                {/* Packages */}
-                <section className="af-section af-mesh-deep" id="af-packages" data-layout="packages" aria-labelledby="af-packages-title">
-                  <div className="af-wrap">
-                    {sectionHead(
-                      'Save more',
-                      config.packagesHeading,
-                      config.packagesSubtext,
-                      <button type="button" className="af-btn af-btn-ghost af-btn-sm" onClick={() => go('packages')}>
-                        Pricing &amp; payments <ArrowRight size={14} aria-hidden="true" />
-                      </button>,
-                    )}
-                    <h2 id="af-packages-title" className="af-sr-only">{config.packagesHeading}</h2>
-                    <RevealGroup className="af-pkg-grid" as="div">
-                      {shownPackages.slice(0, 4).map(packageCard)}
-                    </RevealGroup>
-                    <Reveal className="af-glass" style={{ marginTop: 20, padding: '18px 22px' }}>
-                      <div className="af-pay-row" style={{ alignItems: 'center' }}>
-                        <Wallet size={18} aria-hidden="true" style={{ color: 'var(--af-gold-ink)' }} />
-                        {PAYMENT_METHODS.map((method) => (
-                          <span key={method} className="af-pay-chip">{method}</span>
-                        ))}
-                      </div>
-                    </Reveal>
-                  </div>
-                </section>
-
-                {/* Team */}
-                {team.length > 0 && (
-                  <section className="af-section" id="af-team" data-layout="team" aria-labelledby="af-team-title">
-                    <div className="af-wrap">
-                      {sectionHead('The artists', config.teamHeading, 'Certified lash, brow and PMU artists — pick one when you book.')}
-                      <h2 id="af-team-title" className="af-sr-only">{config.teamHeading}</h2>
-                      <RevealGroup className="af-team-grid" as="div">
-                        {team.slice(0, 4).map(artistCard)}
-                      </RevealGroup>
-                    </div>
-                  </section>
-                )}
-
-                {/* Reviews */}
-                <section className="af-section af-mesh" id="af-reviews" aria-labelledby="af-reviews-title">
-                  <div className="af-wrap">
-                    {sectionHead('Client words', config.reviewsHeading, realReviews.length === 0 ? 'Demo / sample reviews below — real client reviews appear here once published.' : undefined)}
-                    <h2 id="af-reviews-title" className="af-sr-only">{config.reviewsHeading}</h2>
-                    <ArchFlutterTestimonials reviews={displayReviews} reducedMotion={false} />
-                    <p className="af-eyebrow-serif" style={{ marginTop: 18, textAlign: 'center' }}>
-                      Shared with each client’s permission · never labelled “verified” unless a real booking published it.
-                    </p>
-                  </div>
-                </section>
-
-                {/* Gallery */}
-                <section className="af-section" id="af-gallery" data-layout="gallery" aria-labelledby="af-gallery-title">
-                  <div className="af-wrap">
-                    {sectionHead('Lookbook', galleryIsDemo ? `${config.galleryHeading} · Demo lookbook` : config.galleryHeading, 'Tap any photograph to open it full size.')}
-                    <h2 id="af-gallery-title" className="af-sr-only">{config.galleryHeading}</h2>
-                    <RevealGroup className="af-gallery" as="div">
-                      {galleryItems.slice(0, 8).map((item, index) => (
-                        <RevealItem key={`${item.src}-${index}`} className="af-gallery-item">
-                          <button type="button" onClick={() => setLightbox(index)} aria-label={`Open photograph: ${item.title}`}>
-                            <SafeImage src={item.src} fallback={item.fallback} alt={item.title} width={640} height={640} loading="lazy" />
-                          </button>
-                        </RevealItem>
-                      ))}
-                    </RevealGroup>
-                    <div style={{ marginTop: 22, textAlign: 'center' }}>
-                      <button type="button" className="af-btn af-btn-ghost af-btn-sm" onClick={() => go('gallery')}>Open the full gallery</button>
-                    </div>
-                  </div>
-                </section>
-
-                {/* Offers + journal teasers */}
-                {liveOffers.length > 0 && (
-                  <section className="af-section af-mesh-deep" id="af-offers-teaser" aria-labelledby="af-offers-title">
-                    <div className="af-wrap">
-                      {sectionHead(
-                        'This month',
-                        config.offersHeading,
-                        'Quote the code when you book or WhatsApp it to us. Every price is in ₹, GST included.',
-                        <button type="button" className="af-btn af-btn-ghost af-btn-sm" onClick={() => go('offers')}>
-                          All offers <ArrowRight size={14} aria-hidden="true" />
-                        </button>,
-                      )}
-                      <h2 id="af-offers-title" className="af-sr-only">{config.offersHeading}</h2>
-                      <RevealGroup className="af-offers af-offers-home" as="div">
-                        {liveOffers.slice(0, 3).map(offerCard)}
-                      </RevealGroup>
-                    </div>
-                  </section>
-                )}
-
-                <section className="af-section" id="af-journal-teaser" aria-labelledby="af-journal-title">
-                  <div className="af-wrap">
-                    {sectionHead(
-                      'Aftercare',
-                      config.journalHeading,
-                      'Short, honest guides so your set lasts and your brows stay feathered.',
-                      <button type="button" className="af-btn af-btn-ghost af-btn-sm" onClick={() => go('journal')}>Read the journal <ArrowRight size={14} aria-hidden="true" /></button>,
-                    )}
-                    <h2 id="af-journal-title" className="af-sr-only">{config.journalHeading}</h2>
-                    <RevealGroup className="af-journal" as="div">
-                      {config.posts.slice(0, 2).map((post, index) => (
-                        <RevealItem key={post.id} as="article" className="af-glass-solid af-post">
-                          <div className="af-post-media">
-                            <SafeImage src={post.imageUrl} fallback={ARCH_FLUTTER_IMAGES.posts[index % 2 === 0 ? 'aftercare' : 'lift'].fallback} alt={post.title} width={420} height={420} loading="lazy" />
-                          </div>
-                          <div>
-                            <div className="af-post-meta">
-                              <span>{post.tag}</span>
-                              <span>{post.minutes} min read</span>
-                            </div>
-                            <b>{post.title}</b>
-                            <p>{post.excerpt}</p>
-                            <button type="button" className="af-btn af-btn-ghost af-btn-sm" onClick={() => { setOpenPost(post.id); go('journal'); }}>Read</button>
-                          </div>
-                        </RevealItem>
-                      ))}
-                    </RevealGroup>
-                  </div>
-                </section>
-
-                {/* FAQ */}
-                <section className="af-section af-mesh" id="af-faq" aria-labelledby="af-faq-title">
-                  <div className="af-wrap">
-                    {sectionHead('Good to know', 'Questions clients ask before the first appointment')}
-                    <h2 id="af-faq-title" className="af-sr-only">Frequently asked questions</h2>
-                    <div className="af-faq">
-                      {config.faqs.map((faq) => (
-                        <Reveal key={faq.id} className={openFaq === faq.id ? 'af-glass-solid af-faq-item is-open' : 'af-glass-solid af-faq-item'}>
-                          <button type="button" className="af-faq-q" aria-expanded={openFaq === faq.id} onClick={() => {
-                              setOpenPost(null);
-                              setOpenFaq(openFaq === faq.id ? null : faq.id);
-                            }}>
-                            {faq.question}
-                            <Plus size={18} aria-hidden="true" />
-                          </button>
-                          <AnimatePresence initial={false}>
-                            {openFaq === faq.id && (
-                              <motion.div className="af-faq-a" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.26 }}>
-                                {faq.answer}
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </Reveal>
-                      ))}
-                    </div>
-                  </div>
-                </section>
-
-                {/* CTA banner */}
-                <section className="af-section" data-layout="location" aria-labelledby="af-cta-title">
-                  <div className="af-wrap">
-                    <Reveal className="af-cta" variant="scaleIn">
-                      <SafeImage src={config.ctaBannerImageUrl} fallback={ARCH_FLUTTER_IMAGES.ctaBanner.fallback} alt={`Booking banner for ${brandName}`} width={1200} height={620} loading="lazy" />
-                      <p className="af-kicker" style={{ color: 'rgba(255,255,255,0.86)' }}>{config.established}</p>
-                      <h2 id="af-cta-title" className="af-h2">{config.bookingHeading}</h2>
-                      <p>{config.bookingSubtext}</p>
-                      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                        <button type="button" className="af-btn af-btn-gold" onClick={() => (bookingAvailable ? go('booking') : book())}>
-                          <Calendar size={16} aria-hidden="true" /> Choose a slot
-                        </button>
-                        <a className="af-btn af-btn-ghost" style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.6)' }} href={whatsappHref} target="_blank" rel="noopener noreferrer">
-                          <MessageCircle size={16} aria-hidden="true" /> WhatsApp us
-                        </a>
-                        <a className="af-btn af-btn-ghost" style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.6)' }} href={directionsUrl} target="_blank" rel="noopener noreferrer">
-                          <MapPin size={16} aria-hidden="true" /> Get directions
-                        </a>
-                      </div>
-                    </Reveal>
-                  </div>
-                </section>
-
-                <CustomerAppPromotion />
-
-                {closingOwnerSections.length > 0 && <WebsiteSections {...shared} sections={closingOwnerSections} />}
+                {homeSections.map((entry) => (
+                  <React.Fragment key={entry.id}>{homeSectionNodes[entry.id]}</React.Fragment>
+                ))}
               </>
             )}
 
@@ -1604,7 +1709,10 @@ export function ArchFlutterWebsite({
                         <div className="af-summary-row"><span>Payment</span><b>{bookingPayment}</b></div>
                         <div className="af-summary-row af-summary-total"><span>Total</span><b>{archFlutterFormatInr(bookingService?.price)}</b></div>
                       </div>
-                      <p className="af-pkg-note" style={{ marginTop: 12 }}>{gstNote} · pay via UPI (GPay, PhonePe, Paytm), card, net banking or at the salon.</p>
+                      <p className="af-pkg-note" style={{ marginTop: 12 }}>
+                        {config.paymentNote} · pay via UPI (GPay, PhonePe, Paytm){config.upiHandle ? ` such as ${config.upiHandle}` : ''}, card or net banking
+                        {config.payAtSalon ? ', or pay at the salon' : ''}.
+                      </p>
                       {bookingNote && <p className="af-menu-desc" style={{ marginTop: 10 }}>Note: {bookingNote}</p>}
                       <div className="af-arch-img" style={{ marginTop: 18, aspectRatio: '16 / 10' }}>
                         <SafeImage src={config.ctaBannerImageUrl} fallback={ARCH_FLUTTER_IMAGES.ctaBanner.fallback} alt={`Treatment bed at ${brandName}`} width={600} height={375} loading="lazy" />
@@ -1738,7 +1846,11 @@ export function ArchFlutterWebsite({
 
           <div className="af-wrap af-footer-bottom">
             <span>© {new Date().getFullYear()} {brandName}. All rights reserved.</span>
-            <span>All prices in INR (₹) · {gstNote} · Pay via UPI, card or at the salon</span>
+            <span>
+              All prices in INR (₹) · {config.paymentNote}
+              {config.upiHandle ? ` · UPI ${config.upiHandle}` : ''}
+              {config.gstin ? ` · GSTIN ${config.gstin}` : ''}
+            </span>
             <span>{config.established} · {ARCH_FLUTTER_DEFAULT_POSTAL_CODE ? `PIN ${ARCH_FLUTTER_DEFAULT_POSTAL_CODE}` : ''}</span>
           </div>
         </motion.footer>

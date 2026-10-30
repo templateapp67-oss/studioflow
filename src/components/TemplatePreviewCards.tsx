@@ -2,12 +2,16 @@ import React, { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { AppErrorBoundary } from './AppErrorBoundary';
 import { loadScreen } from '../lib/loadScreen';
 import { createPortal } from 'react-dom';
-import { BusinessTypeId, CategoryTemplateConfig, SalonProfile } from '../types';
+import { BusinessTypeId, CategoryTemplateConfig, SalonProfile, SalonService, Stylist } from '../types';
 import { CATEGORY_TEMPLATES } from '../categoryTemplates';
 import { INITIAL_SALON_PROFILE } from '../mockData';
 import { ACCENT_PALETTES, DEFAULT_CATEGORY_ACCENTS, getContrastTextColor } from '../themeAccents';
+import { isArchFlutterTemplate, type ArchFlutterCustomizerConfig, type CustomizerWorkspace } from '../lib/archFlutterCustomizer';
+import { DEFAULT_EXTRAS } from '../lib/workspaceDefaults';
 
 const LiveWebsite = lazy(() => loadScreen(() => import('./SalonWebsitePreview').then(m => ({ default: m.SalonWebsitePreview }))));
+/** Template 13 only: the dedicated customizer drawer, loaded on demand. */
+const ArchFlutterCustomizerGate = lazy(() => loadScreen(() => import('./arch-flutter-customizer/ArchFlutterCustomizerGate').then(m => ({ default: m.ArchFlutterCustomizerGate }))));
 
 export function TemplateThumbnail({ template: t }: { template: CategoryTemplateConfig }) {
   const isRoopMahal = t.id === 'beauty_parlour';
@@ -40,11 +44,16 @@ export function TemplateThumbnail({ template: t }: { template: CategoryTemplateC
   </div>;
 }
 
-export function TemplatePreviewModal({templateId, onSelectPreview, onClose, onChoose}: {templateId:BusinessTypeId; onSelectPreview:(id:BusinessTypeId)=>void; onClose:()=>void; onChoose:()=>void}) {
+export function TemplatePreviewModal({templateId, onSelectPreview, onClose, onChoose}: {templateId:BusinessTypeId; onSelectPreview:(id:BusinessTypeId)=>void; onClose:()=>void; onChoose:(config?:ArchFlutterCustomizerConfig)=>void}) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [device, setDevice] = useState<'desktop'|'tablet'|'mobile'>('desktop');
   const [frameDocument, setFrameDocument] = useState<Document | null>(null);
   const t = CATEGORY_TEMPLATES[templateId];
+  /** Template 13 (Arch & Flutter) is the only template with its own customizer drawer. */
+  const hasCustomizer = isArchFlutterTemplate(templateId);
+  const [customizerOpen, setCustomizerOpen] = useState(false);
+  const [customized, setCustomized] = useState<{ workspace: CustomizerWorkspace; config: ArchFlutterCustomizerConfig } | null>(null);
+  useEffect(() => { setCustomized(null); setCustomizerOpen(false); }, [templateId]);
   useEffect(() => {
     const el = dialog.current;
     if (el && !el.open) { if(typeof el.showModal==='function') el.showModal(); else el.setAttribute('open',''); }
@@ -60,7 +69,11 @@ export function TemplatePreviewModal({templateId, onSelectPreview, onClose, onCh
     frameDocument.addEventListener('keydown', escape);
     return () => frameDocument.removeEventListener('keydown', escape);
   }, [frameDocument, onClose]);
+  const baseExtras = {...DEFAULT_EXTRAS, gallery: [] as string[]};
   const profile:SalonProfile = {...INITIAL_SALON_PROFILE, businessType:t.id, businessName:t.title, tagline:t.tagline, about:t.about, ownerName:t.ownerName, ownerRole:t.ownerRole, ownerPhotoUrl:t.ownerPhotoUrl, phone:t.phone, whatsapp:t.whatsapp, coverImageUrl:t.coverImageUrl, themePreset:t.themePreset, themeAccentKey:DEFAULT_CATEGORY_ACCENTS[t.id], city:t.defaultCity, address:t.defaultAddress, postalCode:t.defaultPostalCode, instagramHandle:t.instagramHandle, subdomain:'', requireDeposit:false};
+  const previewProfile: SalonProfile = customized ? customized.workspace.profile : profile;
+  const previewServices: SalonService[] = customized ? customized.workspace.services : (t.services as SalonService[]);
+  const previewStylists: Stylist[] = customized ? customized.workspace.stylists : (t.stylists as Stylist[]);
   return <dialog ref={dialog} aria-labelledby="template-preview-title" onCancel={event => {event.preventDefault(); onClose();}} className="m-auto w-[calc(100%-16px)] max-w-[1440px] h-[92dvh] max-h-[92dvh] p-0 rounded-2xl border border-slate-200 shadow-2xl backdrop:bg-slate-950/70">
     <div className="h-full flex flex-col bg-slate-100 text-slate-900">
       <header className="bg-white border-b border-slate-200 p-3 sm:p-4 flex flex-wrap items-center gap-3">
@@ -69,9 +82,12 @@ export function TemplatePreviewModal({templateId, onSelectPreview, onClose, onCh
         <div className="w-full flex flex-wrap items-center gap-2">
           <select aria-label="Preview template" value={templateId} onChange={event => onSelectPreview(event.target.value as BusinessTypeId)} className="border rounded-lg p-2 text-xs max-w-full sm:max-w-64">{Object.values(CATEGORY_TEMPLATES).map(template => <option key={template.id} value={template.id}>{template.shortName}</option>)}</select>
           <div className="flex border rounded-lg overflow-hidden">{(['desktop','tablet','mobile'] as const).map(mode => <button key={mode} type="button" aria-pressed={device===mode} onClick={() => setDevice(mode)} className={`capitalize text-xs px-2 sm:px-3 py-2 ${device===mode ? 'bg-slate-900 text-white' : 'hover:bg-slate-100'}`}>{mode}</button>)}</div>
-          <button type="button" onClick={onChoose} className="sm:ml-auto rounded-lg bg-slate-900 text-white font-bold text-xs px-4 py-2.5">Customize this template</button>
+          {hasCustomizer
+            ? <button type="button" onClick={() => setCustomizerOpen(true)} className="sm:ml-auto rounded-lg border border-[#C9A66B] bg-[#2B1B17] text-[#FBF6F1] font-bold text-xs px-4 py-2.5">Customize this template</button>
+            : <button type="button" onClick={() => onChoose()} className="sm:ml-auto rounded-lg bg-slate-900 text-white font-bold text-xs px-4 py-2.5">Customize this template</button>}
+          {hasCustomizer && <button type="button" onClick={() => onChoose(customized?.config)} className="rounded-lg bg-slate-900 text-white font-bold text-xs px-4 py-2.5">Create my website with this template</button>}
         </div>
-        <p className="text-[11px] text-slate-500">Sample content. Explore the pages and booking form; demo bookings are not submitted.</p>
+        <p className="text-[11px] text-slate-500">{hasCustomizer && customized ? 'Your customized demo — nothing is published until you create your website. ' : ''}Sample content. Explore the pages and booking form; demo bookings are not submitted.</p>
       </header>
       <div className="flex-1 min-h-0 overflow-auto p-2 sm:p-4">
         <iframe title={`${t.title} live ${device} preview`} srcDoc={'<!doctype html><html><head></head><body style="margin:0"><div id="template-root"></div></body></html>'} onLoad={event => {
@@ -81,8 +97,26 @@ export function TemplatePreviewModal({templateId, onSelectPreview, onClose, onCh
           doc.documentElement.style.fontFamily = 'Inter, sans-serif';
           setFrameDocument(doc);
         }} style={{width:device==='mobile'?390:device==='tablet'?768:1280,maxWidth:device==='mobile'?'100%':undefined,height:'100%'}} className="block mx-auto bg-white border border-slate-300 rounded-xl shadow-lg"/>
-        {frameDocument?.getElementById('template-root') && createPortal(<AppErrorBoundary resetKey={templateId} onRecover={onClose}><Suspense fallback={<p className="p-8 text-center">Loading live template…</p>}><LiveWebsite key={templateId} readOnly previewDocument={frameDocument} profile={profile} services={t.services} stylists={t.stylists} onAddAppointment={async () => {throw new Error('This is a template demo. Customize and publish your salon to accept bookings.');}}/></Suspense></AppErrorBoundary>,frameDocument.getElementById('template-root')!)}
+        {frameDocument?.getElementById('template-root') && createPortal(<AppErrorBoundary resetKey={templateId} onRecover={onClose}><Suspense fallback={<p className="p-8 text-center">Loading live template…</p>}><LiveWebsite key={`${templateId}-${customized ? 'custom' : 'demo'}`} readOnly previewDocument={frameDocument} profile={previewProfile} services={previewServices} stylists={previewStylists} onAddAppointment={async () => {throw new Error('This is a template demo. Customize and publish your salon to accept bookings.');}}/></Suspense></AppErrorBoundary>,frameDocument.getElementById('template-root')!)}
       </div>
+      {customizerOpen && hasCustomizer && createPortal(
+        <AppErrorBoundary resetKey="arch-flutter-customizer" onRecover={() => setCustomizerOpen(false)}>
+          <Suspense fallback={<p className="p-8 text-center" role="status">Loading the Template 13 customizer…</p>}>
+            <ArchFlutterCustomizerGate
+              demoMode
+              siteId=""
+              profile={profile}
+              services={previewServices}
+              stylists={previewStylists}
+              extras={customized ? customized.workspace.extras : baseExtras}
+              initialTab="brand"
+              onApply={(workspace, config) => { setCustomized({ workspace, config }); }}
+              onClose={() => setCustomizerOpen(false)}
+            />
+          </Suspense>
+        </AppErrorBoundary>,
+        document.body,
+      )}
     </div>
   </dialog>;
 }

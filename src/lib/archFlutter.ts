@@ -1,3 +1,12 @@
+import {
+  DEFAULT_ARCH_FLUTTER_FONTS,
+  DEFAULT_CORNER_RADIUS,
+  DEFAULT_GLASS_BLUR,
+  clampBlur,
+  archFlutterStyleVariables,
+  clampRadius,
+  normalizeArchFlutterSections,
+} from './archFlutterTheme';
 import type {
   ArchFlutterCategory,
   ArchFlutterColors,
@@ -525,6 +534,24 @@ export interface ResolvedArchFlutterConfig {
   galleryUrls: Array<{ src: string; fallback: string }>;
   openTime: string;
   closeTime: string;
+  faqsHeading: string;
+  /* ---- Template customizer (owner overrides, template defaults beneath) ---- */
+  sections: import('../types').ArchFlutterSectionState[];
+  fonts: import('../types').ArchFlutterFonts;
+  cornerRadius: number;
+  glassBlur: number;
+  heroPrimaryLabel: string;
+  heroPrimaryAction: import('../types').ArchFlutterHeroAction;
+  heroPrimaryUrl: string;
+  heroSecondaryLabel: string;
+  heroSecondaryAction: import('../types').ArchFlutterHeroAction;
+  heroSecondaryUrl: string;
+  heroMockupImageUrl: string;
+  payAtSalon: boolean;
+  upiHandle: string;
+  gstin: string;
+  /** One honest line about how this salon takes payment. */
+  paymentNote: string;
 }
 
 const list = <T,>(value: T[] | undefined, fallback: T[]): T[] =>
@@ -611,17 +638,44 @@ export function resolveArchFlutterConfig(profile: SalonProfile): ResolvedArchFlu
     galleryUrls: gallery,
     openTime: /^\d{1,2}:\d{2}$/.test((raw.openTime || '').trim()) ? (raw.openTime || '').trim() : '10:00',
     closeTime: /^\d{1,2}:\d{2}$/.test((raw.closeTime || '').trim()) ? (raw.closeTime || '').trim() : '20:00',
+    faqsHeading: (raw.faqsHeading || '').trim() || 'Questions clients ask before the first appointment',
+    sections: normalizeArchFlutterSections(raw.sections),
+    fonts: {
+      heading: (raw.fonts?.heading || '').trim() || DEFAULT_ARCH_FLUTTER_FONTS.heading,
+      body: (raw.fonts?.body || '').trim() || DEFAULT_ARCH_FLUTTER_FONTS.body,
+    },
+    cornerRadius: clampRadius(raw.cornerRadius ?? DEFAULT_CORNER_RADIUS),
+    glassBlur: clampBlur(raw.glassBlur ?? DEFAULT_GLASS_BLUR),
+    heroPrimaryLabel: (raw.heroPrimaryLabel || '').trim() || 'Book an appointment',
+    heroPrimaryAction: raw.heroPrimaryAction || 'booking',
+    heroPrimaryUrl: (raw.heroPrimaryUrl || '').trim(),
+    heroSecondaryLabel: (raw.heroSecondaryLabel || '').trim() || 'See the ₹ menu',
+    heroSecondaryAction: raw.heroSecondaryAction || 'services',
+    heroSecondaryUrl: (raw.heroSecondaryUrl || '').trim(),
+    heroMockupImageUrl: (raw.heroMockupImageUrl || '').trim(),
+    payAtSalon: raw.payAtSalon !== false,
+    upiHandle: (raw.upiHandle || '').trim(),
+    gstin: (raw.gstin || '').trim().toUpperCase(),
+    paymentNote: [
+      raw.showGstNote !== false ? 'GST included' : 'All prices in ₹',
+      'UPI accepted',
+      raw.payAtSalon !== false ? 'pay at the salon' : 'online payment only',
+    ].join(' · '),
   };
 }
 
 /** CSS custom properties for the .af-site scope — onboarding colours win. */
-export function archFlutterCssVariables(colors: ArchFlutterColors): Record<string, string> {
+export function archFlutterCssVariables(
+  colors: ArchFlutterColors,
+  style?: { fonts?: import('../types').ArchFlutterFonts; cornerRadius?: number; glassBlur?: number },
+): Record<string, string> {
   return {
     '--af-blush': colors.blush,
     '--af-ivory': colors.ivory,
     '--af-espresso': colors.espresso,
     '--af-gold': colors.gold,
     '--af-mauve': colors.mauve,
+    ...(style ? archFlutterStyleVariables(style) : {}),
   };
 }
 

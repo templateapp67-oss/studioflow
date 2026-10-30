@@ -15,12 +15,15 @@ export function ArchFlutterDeviceMockup({
   brandName,
   cityLabel,
   logoUrl,
+  screenshotUrl,
   services,
   onBook,
 }: {
   brandName: string;
   cityLabel: string;
   logoUrl?: string;
+  /** Owner's own app screenshot. When set it covers the generated preview. */
+  screenshotUrl?: string;
   services: SalonService[];
   onBook: (service?: SalonService) => void;
 }) {
@@ -48,6 +51,17 @@ export function ArchFlutterDeviceMockup({
   return (
     <div className="af-phone" aria-label={`${brandName} lash & brow booking app preview`} role="img">
       <div className="af-phone-screen">
+        {(screenshotUrl || '').trim() ? (
+          <SafeImage
+            src={(screenshotUrl || '').trim()}
+            fallback={ARCH_FLUTTER_ART.reel}
+            alt={`${brandName} booking app screenshot`}
+            width={296}
+            height={600}
+            loading="lazy"
+            style={{ position: 'absolute', inset: 0, zIndex: 4, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 26 }}
+          />
+        ) : null}
         <div className="af-phone-status" aria-hidden="true">
           <span>10:00</span>
           <span>5G ▰</span>

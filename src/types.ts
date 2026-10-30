@@ -1162,6 +1162,57 @@ export interface SalonOffer {
   isDemo: boolean;
 }
 
+/**
+ * Template 13 ("Arch & Flutter") home-page blocks the owner can show, hide,
+ * rename and reorder from the dedicated template customizer. Structural
+ * blocks are `locked` — they always render, in the order the owner leaves them.
+ */
+export type ArchFlutterSectionId =
+  | 'hero'
+  | 'trust'
+  | 'promo'
+  | 'categories'
+  | 'services'
+  | 'about'
+  | 'beforeAfter'
+  | 'reels'
+  | 'packages'
+  | 'team'
+  | 'testimonials'
+  | 'gallery'
+  | 'offers'
+  | 'journal'
+  | 'faq'
+  | 'contact'
+  | 'closing';
+
+export interface ArchFlutterSectionState {
+  id: ArchFlutterSectionId;
+  /** Owner heading for this block. Empty keeps the template default copy. */
+  label: string;
+  visible: boolean;
+  order: number;
+  /** Structural blocks cannot be hidden, only moved. */
+  locked?: boolean;
+}
+
+/** Curated heading/body font pairing (families the app already loads). */
+export interface ArchFlutterFonts {
+  heading: string;
+  body: string;
+}
+
+/** Where a hero button takes the visitor. `url` uses the matching link field. */
+export type ArchFlutterHeroAction =
+  | 'booking'
+  | 'services'
+  | 'packages'
+  | 'offers'
+  | 'gallery'
+  | 'contact'
+  | 'url'
+  | 'none';
+
 export interface ArchFlutterConfig {
   selectorLabel?: string;
   heroHeading?: string;
@@ -1185,6 +1236,7 @@ export interface ArchFlutterConfig {
   galleryHeading?: string;
   offersHeading?: string;
   journalHeading?: string;
+  faqsHeading?: string;
   contactHeading?: string;
   bookingHeading?: string;
   bookingSubtext?: string;
@@ -1210,4 +1262,29 @@ export interface ArchFlutterConfig {
   galleryUrls?: string[];
   openTime?: string;
   closeTime?: string;
+  /* ---- Template customizer (Arch & Flutter only) ---- */
+  /** Config schema version, so an older saved draft can be migrated. */
+  customizerVersion?: number;
+  /** Home-page blocks: show/hide, rename and drag-to-reorder. */
+  sections?: ArchFlutterSectionState[];
+  /** Heading/body font pairing chosen by the owner. */
+  fonts?: ArchFlutterFonts;
+  /** Card corner radius in px (template default 22). */
+  cornerRadius?: number;
+  /** Glass blur strength in px (template default 18). */
+  glassBlur?: number;
+  heroPrimaryLabel?: string;
+  heroPrimaryAction?: ArchFlutterHeroAction;
+  heroPrimaryUrl?: string;
+  heroSecondaryLabel?: string;
+  heroSecondaryAction?: ArchFlutterHeroAction;
+  heroSecondaryUrl?: string;
+  /** Screenshot shown inside the hero DeviceMockup phone. */
+  heroMockupImageUrl?: string;
+  /** Offer "pay at the salon" alongside online payment. */
+  payAtSalon?: boolean;
+  /** UPI handle shown on the booking and contact pages (e.g. archflutter@upi). */
+  upiHandle?: string;
+  /** GSTIN printed beside the GST note, when the salon is registered. */
+  gstin?: string;
 }
