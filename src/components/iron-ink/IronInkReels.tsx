@@ -45,16 +45,18 @@ function Poster({
 }: {
   src: string;
   alt: string;
-  fallback?: string;
+  /** Pass null for real owner media so a demo file is never substituted. */
+  fallback?: string | null;
 }) {
-  const safe = ironInkPosterSrc(src) || fallback;
+  const fallbackSrc = ironInkPosterSrc(fallback || "") || "";
+  const safe = ironInkPosterSrc(src) || fallbackSrc;
   const [current, setCurrent] = useState(safe);
   const [failed, setFailed] = useState(!safe);
   useEffect(() => {
     setCurrent(safe);
     setFailed(!safe);
   }, [safe]);
-  if (failed) {
+  if (failed || !current) {
     return (
       <span className="ii-reel-poster-fallback" role="img" aria-label={alt}>
         <ImageOff size={24} aria-hidden="true" />
@@ -71,7 +73,7 @@ function Poster({
       loading="lazy"
       decoding="async"
       onError={() => {
-        if (current && current !== fallback) setCurrent(fallback);
+        if (fallbackSrc && current !== fallbackSrc) setCurrent(fallbackSrc);
         else setFailed(true);
       }}
     />
@@ -98,8 +100,7 @@ function OwnerReelCard({
     ironInkPosterSrc(video.thumbnailUrl) ||
     (source?.platform === "YouTube"
       ? `https://img.youtube.com/vi/${source.id}/hqdefault.jpg`
-      : "") ||
-    IRON_INK_MEDIA_FALLBACK_POSTER;
+      : "");
 
   return (
     <motion.article className="ii-reel-card" variants={fadeUp} data-kind="reel">
@@ -118,7 +119,11 @@ function OwnerReelCard({
             onEnded={() => setPlaying(false)}
           />
         ) : (
-          <Poster src={poster} alt={`${video.title} — ${studioName} reel poster`} />
+          <Poster
+            src={poster}
+            alt={`${video.title} — ${studioName} reel poster`}
+            fallback={null}
+          />
         )}
         <span className="ii-reel-badge">{video.categoryTag === "SHORT" ? "REEL" : "VIDEO"}</span>
         {preview && !playing && (
@@ -182,6 +187,7 @@ function MediaTopicCard({
         <Poster
           src={topic.posterUrl}
           alt={`${topic.title} — illustrative studio poster`}
+          fallback={demo ? IRON_INK_MEDIA_FALLBACK_POSTER : null}
         />
         <span className="ii-reel-badge">STUDIO GUIDE</span>
         {demo && <span className="ii-reel-demo">DEMO POSTER · NOT CLIENT WORK</span>}

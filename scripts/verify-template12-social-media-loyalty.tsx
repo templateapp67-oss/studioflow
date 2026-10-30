@@ -156,6 +156,27 @@ const draftTopics = ironInkMediaTopics([
 ]);
 assert.equal(draftTopics.length, 1, "owner drafts stay editable while an invalid poster is corrected");
 assert.equal(renderToStaticMarkup(<IronInkReels profile={{ ...tattooProfile, ironInk: { media: draftTopics } }} />).match(/class="ii-reel-card/g), null);
+const realTopicNoPoster = renderToStaticMarkup(
+  <IronInkReels
+    profile={{
+      ...tattooProfile,
+      ironInk: {
+        media: [
+          {
+            id: "real-no-poster",
+            title: "Owner healed work",
+            caption: "A real owner upload without a valid poster yet.",
+            posterUrl: "javascript:alert(1)",
+            href: "",
+            isDemo: false,
+          },
+        ],
+      },
+    }}
+  />,
+);
+assert.ok(realTopicNoPoster.includes("Poster unavailable"));
+assert.ok(!realTopicNoPoster.includes("/templates/12/media/studio-practice.jpg"), "real owner media never silently falls back to demo art");
 
 assert.equal(ironInkPosterSrc("/templates/12/media/aftercare.jpg"), "/templates/12/media/aftercare.jpg");
 assert.equal(ironInkPosterSrc("https://cdn.example.test/poster.jpg"), "https://cdn.example.test/poster.jpg");
