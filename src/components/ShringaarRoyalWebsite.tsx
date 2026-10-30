@@ -26,6 +26,7 @@ import {
 import type { SalonProfile, SalonService, Stylist } from '../types';
 import type { SalonGalleryPhoto } from '../lib/photoGallery';
 import { isPackage } from '../lib/packageCatalogue';
+import { SectionErrorBoundary } from './SectionErrorBoundary';
 import { socialUrl } from '../lib/websiteContent';
 import {
   SHRINGAAR_BRAND_NAME,
@@ -37,6 +38,7 @@ import {
   buildShringaarSeo,
   resolveShringaarPackages,
   resolveShringaarRoyalConfig,
+  sanitizeShringaarServices,
   shringaarCssVariables,
   shringaarFormatInr,
   shringaarOpenStatus,
@@ -88,7 +90,7 @@ import {
  */
 export function ShringaarRoyalWebsite({
   profile,
-  services,
+  services: servicesInput,
   stylists,
   galleryPhotos,
   shared,
@@ -124,6 +126,8 @@ export function ShringaarRoyalWebsite({
   onViewSpecialist: (id: string) => void;
 }) {
   const config = useMemo(() => resolveShringaarRoyalConfig(profile), [profile]);
+  // Owner/CMS rows may be null or nameless; sanitize once so every section below is safe.
+  const services = useMemo(() => sanitizeShringaarServices(servicesInput), [servicesInput]);
   const liveSlug = live && readOnly ? (profile.subdomain || '').trim() : '';
   const prismSite = usePrismSite(liveSlug || null);
   const cssVars = useMemo(() => shringaarCssVariables(config.colors) as React.CSSProperties, [config.colors]);
@@ -821,8 +825,8 @@ export function ShringaarRoyalWebsite({
                           <span>{pkg.sessions || 'Bridal journey'}</span>
                         </p>
                         <ul className="sr-package-list">
-                          {pkg.includes.map((line) => (
-                            <li key={line}>
+                          {(Array.isArray(pkg.includes) ? pkg.includes : []).filter(Boolean).map((line, lineIndex) => (
+                            <li key={`${lineIndex}-${line}`}>
                               <Check size={14} aria-hidden="true" /> {line}
                             </li>
                           ))}
@@ -849,64 +853,79 @@ export function ShringaarRoyalWebsite({
             </section>
           )}
 
-          {/* 8 — Services bento */}
-          <section className="sr-section" id="sr-services" data-layout="services" aria-labelledby="sr-services-heading">
-            <div className="sr-shell">
-              <Reveal className="sr-section-head">
-                <div>
+          {/* 8 — Services bento (isolated so one bad service row cannot blank the page) */}
+          <SectionErrorBoundary
+            name="Bridal menu"
+            fallback={() => (
+              <section className="sr-section" id="sr-services" data-layout="services" aria-labelledby="sr-services-heading">
+                <div className="sr-shell">
                   <p className="sr-eyebrow">Bridal Menu</p>
-                  <h2 id="sr-services-heading" className="sr-h2" style={{ marginTop: 12 }}>
-                    {config.servicesHeading}
-                  </h2>
+                  <h2 id="sr-services-heading" className="sr-h2" style={{ marginTop: 12 }}>{config.servicesHeading}</h2>
+                  <p className="sr-lead" style={{ marginTop: 18 }}>
+                    Our bridal menu is being prepared. Please call {phone} and our bridal desk will guide you personally.
+                  </p>
                 </div>
-                <p className="sr-lead">
-                  Makeup, hair architecture, draping, mehendi, pre-bridal rituals and skin glow. Tap any tile to book that ritual — prices are in ₹ and include the consultation.
-                </p>
-              </Reveal>
-              <RevealGroup className="sr-services" aria-label="Service categories">
-                {bridalMenu.map((service, index) => {
-                  const span = index === 0 ? 'sr-service--wide' : index === 1 ? 'sr-service--half' : 'sr-service--third';
-                  return (
-                    <RevealItem key={service.id} as="article" className={`sr-service ${span}`}>
-                      <button
-                        type="button"
-                        onClick={() => onBook(service)}
-                        aria-label={`Book ${service.name}, ${shringaarFormatInr(service.price)}`}
-                        style={{ all: 'unset', cursor: 'pointer', position: 'absolute', inset: 0, zIndex: 3 }}
-                      />
-                      <SafeImage
-                        className="sf-service-image"
-                        src={shringaarServiceImage(service)}
-                        fallback={SHRINGAAR_IMAGES.services.makeup}
-                        alt={`${service.name} at ${brandName}`}
-                        width={600}
-                        height={400}
-                        loading="lazy"
-                      />
-                      <span className="sr-service-body">
-                        <span className="sr-service-cat">{service.category}</span>
-                        <span className="sr-service-name">{service.name}</span>
-                        <span className="sr-service-desc">{service.description}</span>
-                        <span className="sr-service-meta">
-                          <b>{shringaarFormatInr(service.price)}</b>
-                          {service.showDuration !== false && service.durationMinutes > 0 ? (
-                            <span>
-                              <Clock3 size={12} aria-hidden="true" style={{ display: 'inline', verticalAlign: '-2px' }} /> {service.durationMinutes} min
-                            </span>
-                          ) : null}
+              </section>
+            )}
+          >
+            <section className="sr-section" id="sr-services" data-layout="services" aria-labelledby="sr-services-heading">
+              <div className="sr-shell">
+                <Reveal className="sr-section-head">
+                  <div>
+                    <p className="sr-eyebrow">Bridal Menu</p>
+                    <h2 id="sr-services-heading" className="sr-h2" style={{ marginTop: 12 }}>
+                      {config.servicesHeading}
+                    </h2>
+                  </div>
+                  <p className="sr-lead">
+                    Makeup, hair architecture, draping, mehendi, pre-bridal rituals and skin glow. Tap any tile to book that ritual — prices are in ₹ and include the consultation.
+                  </p>
+                </Reveal>
+                <RevealGroup className="sr-services" aria-label="Service categories">
+                  {bridalMenu.map((service, index) => {
+                    const span = index === 0 ? 'sr-service--wide' : index === 1 ? 'sr-service--half' : 'sr-service--third';
+                    return (
+                      <RevealItem key={service.id} as="article" className={`sr-service ${span}`}>
+                        <button
+                          type="button"
+                          onClick={() => onBook(service)}
+                          aria-label={`Book ${service.name}, ${shringaarFormatInr(service.price)}`}
+                          style={{ all: 'unset', cursor: 'pointer', position: 'absolute', inset: 0, zIndex: 3 }}
+                        />
+                        <SafeImage
+                          className="sf-service-image"
+                          src={shringaarServiceImage(service)}
+                          fallback={SHRINGAAR_IMAGES.services.makeup}
+                          alt={`${service.name} at ${brandName}`}
+                          width={600}
+                          height={400}
+                          loading="lazy"
+                        />
+                        <span className="sr-service-body">
+                          <span className="sr-service-cat">{service.category}</span>
+                          <span className="sr-service-name">{service.name}</span>
+                          <span className="sr-service-desc">{service.description}</span>
+                          <span className="sr-service-meta">
+                            <b>{shringaarFormatInr(service.price)}</b>
+                            {service.showDuration !== false && service.durationMinutes > 0 ? (
+                              <span>
+                                <Clock3 size={12} aria-hidden="true" style={{ display: 'inline', verticalAlign: '-2px' }} /> {service.durationMinutes} min
+                              </span>
+                            ) : null}
+                          </span>
                         </span>
-                      </span>
-                    </RevealItem>
-                  );
-                })}
-              </RevealGroup>
-              {!bridalMenu.length && (
-                <p className="sr-lead" style={{ marginTop: 18 }}>
-                  Our bridal menu is being prepared. Please call {phone} and our bridal desk will guide you personally.
-                </p>
-              )}
-            </div>
-          </section>
+                      </RevealItem>
+                    );
+                  })}
+                </RevealGroup>
+                {!bridalMenu.length && (
+                  <p className="sr-lead" style={{ marginTop: 18 }}>
+                    Our bridal menu is being prepared. Please call {phone} and our bridal desk will guide you personally.
+                  </p>
+                )}
+              </div>
+            </section>
+          </SectionErrorBoundary>
 
           {/* 9 — Before / after */}
           <section className="sr-section sr-maroon-band sr-on-dark" id="sr-results" data-layout="results" aria-labelledby="sr-results-heading">

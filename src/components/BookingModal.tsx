@@ -1254,7 +1254,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   <button
                     type="button"
                     disabled={isSendingEmail || !(recipientEmailInput || guestEmail)}
-                    onClick={handleSendManualConfirmationEmail}
+                    onClick={() => { void handleSendManualConfirmationEmail(); }}
                     className="py-2 px-3 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 disabled:opacity-50 text-slate-700 font-medium text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <Mail className="w-3.5 h-3.5 text-indigo-600" />

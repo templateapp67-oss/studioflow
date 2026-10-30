@@ -1,4 +1,4 @@
-import { motion } from 'motion/react';
+import { motion, type Variants } from 'motion/react';
 import { ArrowUpRight, CheckCircle2 } from 'lucide-react';
 import { useDermacure } from './context';
 import { EditorialImage, NEUTRAL_CLINIC_IMAGE } from './EditorialImage';
@@ -41,7 +41,7 @@ export const DEFAULT_PATIENT_BENEFITS: PatientBenefitCard[] = [
   },
 ];
 
-const cardContainerVariants = {
+const cardContainerVariants: Variants = {
   hidden: {},
   show: {
     transition: {
@@ -51,7 +51,7 @@ const cardContainerVariants = {
   },
 };
 
-const cardItemVariants = {
+const cardItemVariants: Variants = {
   hidden: {
     opacity: 0,
     y: 26,

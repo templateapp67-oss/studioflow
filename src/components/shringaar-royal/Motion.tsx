@@ -28,7 +28,7 @@ const VARIANTS = { fadeUp, fadeIn, scaleIn };
 /** Fade/slide a block in once, when ~20% of it is visible. */
 export function Reveal({ children, className, id, delay = 0, as = 'div', variant = 'fadeUp', ...rest }: RevealProps) {
   const reduce = useReducedMotion();
-  const MotionTag = motion[as] as typeof motion.div;
+  const MotionTag = motion[as] as React.ElementType;
   if (reduce || !canObserveViewport) {
     const Tag = as as React.ElementType;
     return (
@@ -68,7 +68,7 @@ export function RevealGroup({
   'data-layout'?: string;
 }) {
   const reduce = useReducedMotion();
-  const MotionTag = motion[as] as typeof motion.div;
+  const MotionTag = motion[as] as React.ElementType;
   if (reduce || !canObserveViewport) {
     const Tag = as as React.ElementType;
     return (
@@ -96,7 +96,7 @@ export function RevealItem({
   as?: 'div' | 'li' | 'article' | 'figure';
 }) {
   const reduce = useReducedMotion();
-  const MotionTag = motion[as] as typeof motion.div;
+  const MotionTag = motion[as] as React.ElementType;
   if (reduce || !canObserveViewport) {
     const Tag = as as React.ElementType;
     return (
