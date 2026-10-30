@@ -572,6 +572,7 @@ export type PrismEnquiryInput = {
   serviceName?: string;
   message?: string;
   preferredDate?: string | null;
+  source?: 'template_10' | 'website' | 'glowslot';
 };
 
 export type PrismEnquiryErrors = Partial<Record<'name' | 'phone' | 'email' | 'message' | 'preferredDate', string>>;
@@ -624,6 +625,7 @@ export async function submitPrismEnquiry(input: PrismEnquiryInput): Promise<{ id
     p_service_name: (input.serviceName || '').trim(),
     p_message: (input.message || '').trim(),
     p_preferred_date: input.preferredDate || null,
+    p_source: input.source || 'template_10',
   });
   if (error) throw new Error(prismErrorMessage(error, 'Your enquiry could not be sent. Please call the salon.'));
   if (!data?.id) throw new Error('The salon did not confirm your enquiry. Please try again.');

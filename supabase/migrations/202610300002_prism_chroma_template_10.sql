@@ -353,7 +353,8 @@ create or replace function studioflow_prism_private.enquire(
   p_service_id text default '',
   p_service_name text default '',
   p_message text default '',
-  p_preferred_date date default null
+  p_preferred_date date default null,
+  p_source text default 'template_10'
 ) returns jsonb
 language plpgsql security definer set search_path = '' as $$
 declare
@@ -394,25 +395,29 @@ begin
         and created_at > now() - interval '15 minutes') >= 3 then
     raise exception 'You have already sent a few enquiries. Please call the salon or try again later.';
   end if;
+  if coalesce(p_source, '') not in ('template_10', 'website', 'glowslot') then
+    p_source := 'template_10';
+  end if;
   insert into public.studioflow_enquiries(
     salon_id, customer_id, service_id, service_name, name, phone, email, message, preferred_date, source
   ) values (
     salon, actor, btrim(coalesce(p_service_id, '')), btrim(coalesce(p_service_name, '')),
-    btrim(p_name), btrim(p_phone), mail, btrim(coalesce(p_message, '')), p_preferred_date, 'template_10'
+    btrim(p_name), btrim(p_phone), mail, btrim(coalesce(p_message, '')), p_preferred_date, p_source
   ) returning id into sid;
   return jsonb_build_object('id', sid, 'status', 'new');
 end $$;
-revoke all on function studioflow_prism_private.enquire(text, text, text, text, text, text, text, date) from public, anon, authenticated;
-grant execute on function studioflow_prism_private.enquire(text, text, text, text, text, text, text, date) to anon, authenticated;
+revoke all on function studioflow_prism_private.enquire(text, text, text, text, text, text, text, date, text) from public, anon, authenticated;
+grant execute on function studioflow_prism_private.enquire(text, text, text, text, text, text, text, date, text) to anon, authenticated;
 create or replace function public.studioflow_prism_enquire(
   p_slug text, p_name text, p_phone text, p_email text default '', p_service_id text default '',
-  p_service_name text default '', p_message text default '', p_preferred_date date default null
+  p_service_name text default '', p_message text default '', p_preferred_date date default null,
+  p_source text default 'template_10'
 ) returns jsonb
 language sql security invoker set search_path = '' as $$
-  select studioflow_prism_private.enquire(p_slug, p_name, p_phone, p_email, p_service_id, p_service_name, p_message, p_preferred_date)
+  select studioflow_prism_private.enquire(p_slug, p_name, p_phone, p_email, p_service_id, p_service_name, p_message, p_preferred_date, p_source)
 $$;
-revoke all on function public.studioflow_prism_enquire(text, text, text, text, text, text, text, date) from public, anon, authenticated;
-grant execute on function public.studioflow_prism_enquire(text, text, text, text, text, text, text, date) to anon, authenticated;
+revoke all on function public.studioflow_prism_enquire(text, text, text, text, text, text, text, date, text) from public, anon, authenticated;
+grant execute on function public.studioflow_prism_enquire(text, text, text, text, text, text, text, date, text) to anon, authenticated;
 
 -- ---------------------------------------------------------------------
 -- Public newsletter subscribe (double-submit safe, re-subscribe supported)

@@ -428,6 +428,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
       and multi-tenant onboarding data as every other template. */}
   <ShringaarRoyalWebsite
    profile={profile}
+   live={Boolean(live && readOnly && (profile.subdomain || '').trim())}
    services={shringaarServices}
    stylists={team}
    galleryPhotos={galleryEntries}
