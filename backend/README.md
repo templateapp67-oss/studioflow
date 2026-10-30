@@ -81,3 +81,22 @@ Old services are never silently published: clinic owners must explicitly verify 
 Open `backend/dermacure-editorial-privacy.sql` in the verified project’s SQL editor (or run it using an authorised database connection) as one transaction; check its result, owner access and a test booking before announcing availability. It has **not** been applied by this local session.
 
 `node scripts/verify-dermacure-editorial-privacy.mjs` tests the migration in an isolated PGlite database, not the hosted project. Until the migration is applied, old public snapshots and direct RPC calls remain unsafe and blank clinic prices may fail to save. Applying the SQL refreshes all published skincare clinic snapshots from their owner drafts; coordinate this change with clinic owners. Use `npm run test:live` only with appropriate authorisation and test accounts: that script creates real accounts and data.
+
+## Template 10 — Prism & Chroma (hair_coloring) live data
+
+Apply `prism-chroma-template-10.sql` **after** `studioflow-schema.sql`, `studioflow-storage-and-booking-status.sql`, `studioflow-customer-reviews.sql` and `studioflow-owner-review-update.sql`. It is additive and rerunnable: it creates `studioflow_offers`, `studioflow_enquiries` and `studioflow_newsletter_subscribers`, adds moderation columns (`status`, `salon_reply`, `approved_at`, `approved_by`, `staff_id`) to the shared `studioflow_reviews` table, and adds four public RPCs.
+
+Services, packages, staff, gallery, before/after pairs and business information stay in the existing published `studioflow_websites.content` projection. The owner workspace remains the single write path, so dashboard edits still publish through `studioflow_save_workspace` and every other template keeps reading the same tables. The migration deliberately does not duplicate those entities into new tables.
+
+Public surface (safe for `anon`):
+
+* `studioflow_prism_site(p_slug)` — one payload with salon/business information, packages, transformations, FAQs, shades, branches, approved reviews, the caller's own pending review, rating summary, active in-window offers, and honest counts. A missing or unpublished slug returns `{"found": false}` and never another tenant's rows.
+* `studioflow_prism_enquire(...)` — validated enquiry insert (INR fields, 10–15 digit phone, optional email/date), limited to 3 per phone per salon per 15 minutes.
+* `studioflow_prism_newsletter(p_slug, p_email, p_name)` — validated, case-normalised, re-subscribe safe.
+* `studioflow_prism_moderate_review(p_review_id, p_status, p_reply)` — owner-only (RLS + ownership check) approve/reject/reply.
+
+Bookings are unchanged: Template 10 books through `studioflow_available_slots` / `studioflow_book` (and `studioflow_android_slots` for add-ons) exactly like Templates 01–09, so bookings created on the website appear in the owner dashboard and in GlowSlot/Nexora without a second booking path. Customers view and cancel their own bookings through `SalonBookingsDialog` → `studioflow_update_booking`.
+
+Seed: `prism-chroma-template-10-seed.sql` refreshes the public `studioflow_templates` row (`hair_coloring`) with 13 services (8 colour services + 5 packages), 4 colourists, the `PRISM20` demo offer, and — when a published salon exists at `studioflow.demo_slug` (default `prism-chroma-demo`) — three dated offers and one approved studio-introduction review. Existing owner rows are matched by title/code and never overwritten.
+
+Verification: `node scripts/verify-prism-chroma-live.mjs` (offline, renders the live review/offer/enquiry/newsletter surfaces and asserts the migration/seed contract). The migration is also applied by `node scripts/verify-sql-migrations.mjs`.

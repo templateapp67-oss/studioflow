@@ -75,7 +75,7 @@ import {FloatingPromoBanner} from './FloatingPromoBanner';
 import { useSeoMetadata } from '../lib/useSeoMetadata';
 
 const money=(value:number)=>`₹${Number(value||0).toLocaleString('en-IN')}`;
-function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGallery=[],policies,branding,loyaltyConfig,onCustomerAccount,customerSignedIn,customerName,customerPhotoUrl,onAddAppointment}:SalonWebsitePreviewProps){
+function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGallery=[],policies,branding,loyaltyConfig,onCustomerAccount,customerSignedIn,customerName,customerPhotoUrl,onAddAppointment,readOnly,live}:SalonWebsitePreviewProps){
  useSeoMetadata(profile);
  const {t}=useWebsiteLanguage();
  const [consultation,setConsultation]=useState<ConsultationDetails|undefined>();
@@ -401,6 +401,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
       data as every other template. */}
   <PrismChromaWebsite
    profile={profile}
+   live={Boolean(live && readOnly && (profile.subdomain || '').trim())}
    services={prismServices}
    stylists={team}
    galleryPhotos={galleryEntries}
@@ -427,6 +428,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
       and multi-tenant onboarding data as every other template. */}
   <ShringaarRoyalWebsite
    profile={profile}
+   live={Boolean(live && readOnly && (profile.subdomain || '').trim())}
    services={shringaarServices}
    stylists={team}
    galleryPhotos={galleryEntries}

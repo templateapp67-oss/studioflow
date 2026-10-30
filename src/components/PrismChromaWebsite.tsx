@@ -60,6 +60,19 @@ import { GalleryGrid } from './prism-chroma/GalleryGrid';
 import { SeoContentSection } from './prism-chroma/SeoContentSection';
 import { PriceList } from './prism-chroma/PriceList';
 import { AnnouncementBar, BackToTop, ScrollProgress, StickyBookBar } from './prism-chroma/Chrome';
+import { PrismReviewsLive } from './prism-chroma/ReviewsLive';
+import { PrismOffersLive } from './prism-chroma/OffersLive';
+import { PrismContactEnquiry } from './prism-chroma/ContactEnquiry';
+import { PrismNewsletterSignup } from './prism-chroma/NewsletterSignup';
+import {
+  prismLiveBranches,
+  prismLiveGallery,
+  prismLivePackages,
+  prismLiveStats,
+  prismLiveTransformations,
+  usePrismSite,
+} from '../lib/prismSite';
+import { PrismEmptyState, PrismSectionError } from './prism-chroma/LiveStates';
 
 const MARQUEE_WORDS = ['Balayage', 'Highlights', 'Fashion Colours', 'Gloss', 'Keratin', 'Colour Correction', 'Global Colour', 'Pastel Shades'];
 
@@ -72,6 +85,27 @@ function Stars({ rating }: { rating: number }) {
     </span>
   );
 }
+
+export type PrismChromaWebsiteProps = {
+  profile: SalonProfile;
+  services: SalonService[];
+  stylists: Stylist[];
+  galleryPhotos: SalonGalleryPhoto[];
+  shared: Parameters<typeof WebsiteSections>[0];
+  enabledSections: string[];
+  showPackages: boolean;
+  customerSignedIn?: boolean;
+  customerName?: string;
+  customerPhotoUrl?: string;
+  bookingAvailable?: boolean;
+  readOnly?: boolean;
+  onBook: (service?: SalonService, specialist?: Stylist) => void;
+  onAccount: (mode?: 'signin' | 'signup') => void;
+  onMyBookings: () => void;
+  onViewSpecialist: (id: string) => void;
+  /** Live published site: render only database rows (no bundled demo content). */
+  live?: boolean;
+};
 
 export function PrismChromaWebsite({
   profile,
@@ -89,26 +123,20 @@ export function PrismChromaWebsite({
   onAccount,
   onMyBookings,
   onViewSpecialist,
-}: {
-  profile: SalonProfile;
-  services: SalonService[];
-  stylists: Stylist[];
-  galleryPhotos: SalonGalleryPhoto[];
-  shared: Parameters<typeof WebsiteSections>[0];
-  enabledSections: string[];
-  showPackages: boolean;
-  customerSignedIn?: boolean;
-  customerName?: string;
-  customerPhotoUrl?: string;
-  bookingAvailable?: boolean;
-  readOnly?: boolean;
-  onBook: (service?: SalonService, specialist?: Stylist) => void;
-  onAccount: (mode?: 'signin' | 'signup') => void;
-  onMyBookings: () => void;
-  onViewSpecialist: (id: string) => void;
-}) {
-  const config = useMemo(() => resolvePrismChromaConfig(profile), [profile]);
-  const cssVars = useMemo(() => prismChromaCssVariables(config.colors) as React.CSSProperties, [config.colors]);
+  live = false,
+}: PrismChromaWebsiteProps) {
+  /* The slug always comes from the published salon record this page was opened
+     for — never from storage or a default — so Template 10 can only ever read
+     its own salon's rows. */
+  const slug = (profile.subdomain || '').trim();
+  const prism = usePrismSite(live ? slug || null : null);
+  const site = prism.data;
+  const siteStatus = prism.status;
+  const siteError = prism.error;
+  const siteRefreshing = prism.refreshing;
+  const onReloadSite = prism.reload;
+  const baseConfig = useMemo(() => resolvePrismChromaConfig(profile), [profile]);
+  const cssVars = useMemo(() => prismChromaCssVariables(baseConfig.colors) as React.CSSProperties, [baseConfig.colors]);
   const reduceMotion = useReducedMotion();
   const [loading, setLoading] = useState(
     () => !(typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches),
@@ -119,8 +147,6 @@ export function PrismChromaWebsite({
   const [faqFilter, setFaqFilter] = useState('All');
   const [faqQuery, setFaqQuery] = useState('');
   const [carePlan, setCarePlan] = useState(false);
-  const [newsletterEmail, setNewsletterEmail] = useState('');
-  const [newsletterDone, setNewsletterDone] = useState(false);
   const glowRef = useRef<HTMLDivElement>(null);
 
   const brandName = (profile.businessName || '').trim() || PRISM_CHROMA_BRAND_NAME;
@@ -138,11 +164,29 @@ export function PrismChromaWebsite({
   const youtubeUrl = socialUrl(profile.youtubeChannel, 'youtube');
 
   const coreServices = services.filter((s) => !isPackage(s));
-  const team = stylists && stylists.length ? stylists : PRISM_CHROMA_DEFAULT_STYLISTS;
-  const gallery =
-    galleryPhotos && galleryPhotos.length
+  /* Live mode shows only rows saved by this salon. Demo/template previews keep
+     the bundled art direction so on boarding still looks complete. */
+  const demoContent = !live;
+  const team = stylists && stylists.length ? stylists : demoContent ? PRISM_CHROMA_DEFAULT_STYLISTS : [];
+  const gallery = live
+    ? prismLiveGallery(galleryPhotos || [])
+    : galleryPhotos && galleryPhotos.length
       ? galleryPhotos.slice(0, 12).map((p) => ({ src: p.url, title: p.title || 'Hair colour work', tag: p.category || 'Gallery' }))
       : PRISM_CHROMA_IMAGES.gallery.map((g) => ({ src: g.src, title: g.title, tag: g.tag }));
+  const config = {
+    ...baseConfig,
+    packages: live ? prismLivePackages(site, services) : baseConfig.packages,
+    beforeAfter: live ? prismLiveTransformations(site, profile) : baseConfig.beforeAfter,
+    branches: live ? prismLiveBranches(site, profile) : baseConfig.branches,
+    faqs: live ? site?.faqs || [] : baseConfig.faqs,
+    shades: live ? site?.shades || [] : baseConfig.shades,
+    stats: live ? prismLiveStats(site, services, team) : baseConfig.stats,
+    openTime: site?.salon.openTime || baseConfig.openTime,
+    closeTime: site?.salon.closeTime || baseConfig.closeTime,
+    workingHoursDisplay: site?.salon.workingHoursDisplay || baseConfig.workingHoursDisplay,
+    publicEmail: site?.salon.email || baseConfig.publicEmail,
+    mapEmbedUrl: site?.salon.mapEmbedUrl || baseConfig.mapEmbedUrl,
+  };
   const firstService = coreServices[0] || services[0];
   const serviceCategories = ['All', ...Array.from(new Set((coreServices.length ? coreServices : services).map((s) => s.category).filter(Boolean)))];
   const displayedServices = (coreServices.length ? coreServices : services).filter(
@@ -154,9 +198,11 @@ export function PrismChromaWebsite({
     const q = faqQuery.trim().toLowerCase();
     return !q || `${f.question} ${f.answer}`.toLowerCase().includes(q);
   });
-  const averageRating = config.reviews.length
-    ? config.reviews.reduce((sum, r) => sum + (r.rating || 5), 0) / config.reviews.length
-    : 5;
+  const averageRating = live
+    ? site?.reviewSummary.average || 0
+    : config.reviews.length
+      ? config.reviews.reduce((sum, r) => sum + (r.rating || 5), 0) / config.reviews.length
+      : 5;
   const startingPrice = (coreServices.length ? coreServices : services).reduce<number | undefined>(
     (min, s) => (s.price != null && (min === undefined || s.price < min) ? s.price : min),
     undefined,
@@ -220,15 +266,18 @@ export function PrismChromaWebsite({
   };
   const bookShade = (shade: PrismChromaShade) => bookServiceById(shade.linkedServiceId);
 
+  /* Only link to sections that exist for this salon (no dead anchors). */
   const navLinks: Array<[string, string]> = [
     ['Services', '#pc-services'],
-    ['Shades', '#pc-shades'],
-    ['Results', '#pc-results'],
-    ['Packages', '#pc-packages'],
-    ['Experts', '#pc-team'],
-    ['Gallery', '#pc-gallery'],
+    ...(config.shades.length > 0 ? ([['Shades', '#pc-shades']] as Array<[string, string]>) : []),
+    ...(config.beforeAfter.length > 0 ? ([['Results', '#pc-results']] as Array<[string, string]>) : []),
+    ...(showPackages && config.packages.length > 0 ? ([['Packages', '#pc-packages']] as Array<[string, string]>) : []),
+    ...(live ? ([['Offers', '#pc-offers']] as Array<[string, string]>) : []),
+    ...(team.length > 0 ? ([['Experts', '#pc-team']] as Array<[string, string]>) : []),
+    ...(gallery.length > 0 ? ([['Gallery', '#pc-gallery']] as Array<[string, string]>) : []),
     ['Reviews', '#pc-reviews'],
-    ['FAQ', '#pc-faq'],
+    ...(config.faqs.length > 0 ? ([['FAQ', '#pc-faq']] as Array<[string, string]>) : []),
+    ['Contact', '#pc-contact'],
   ];
 
   const headingWords = config.heroHeading.split(' ');
@@ -246,6 +295,23 @@ export function PrismChromaWebsite({
           ctaLabel={config.announcementCtaLabel}
           onCta={() => scrollToId('#pc-packages')}
         />
+        {live && siteStatus === 'error' && (
+          <div className="mx-auto max-w-7xl px-4 pt-3 sm:px-6">
+            <PrismSectionError
+              message={siteError || 'Live colour studio data could not load.'}
+              onRetry={onReloadSite}
+              retrying={siteRefreshing}
+            />
+          </div>
+        )}
+        {live && siteStatus === 'not_found' && (
+          <div className="mx-auto max-w-7xl px-4 pt-3 sm:px-6">
+            <PrismEmptyState title="This colour atelier is still being set up">
+              The studio has published its pages, but its offers, reviews and enquiry desk are not live yet. Call the
+              studio to book in the meantime.
+            </PrismEmptyState>
+          </div>
+        )}
 
         {/* 1 — Navbar */}
         <header className="pc-nav">
@@ -343,25 +409,31 @@ export function PrismChromaWebsite({
                         <Calendar size={17} aria-hidden="true" /> Book Appointment
                       </button>
                     )}
-                    <a href="#pc-shades" className="pc-btn pc-btn-ghost px-7 py-3.5">Try Shade Studio <ArrowRight size={16} aria-hidden="true" /></a>
+                    {config.shades.length > 0 && (
+                      <a href="#pc-shades" className="pc-btn pc-btn-ghost px-7 py-3.5">Try Shade Studio <ArrowRight size={16} aria-hidden="true" /></a>
+                    )}
                   </motion.div>
                   <motion.div variants={fadeUp} className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2">
-                    <span className="inline-flex items-center gap-1.5 text-sm font-bold">
-                      <Stars rating={Math.round(averageRating)} /> {averageRating.toFixed(1)} rated
-                    </span>
+                    {averageRating > 0 && (
+                      <span className="inline-flex items-center gap-1.5 text-sm font-bold">
+                        <Stars rating={Math.round(averageRating)} /> {averageRating.toFixed(1)} rated
+                      </span>
+                    )}
                     <span className="pc-chip">Free patch test</span>
                     <span className="pc-chip">Full ₹ price upfront</span>
                     <span className="pc-chip">Bond-care with every colour</span>
                   </motion.div>
-                  <motion.dl variants={fadeUp} className="mt-9 grid max-w-lg grid-cols-3 gap-3">
-                    {config.stats.slice(0, 3).map((stat) => (
-                      <div key={stat.id} className="pc-glass pc-glass-hover px-4 py-3" style={{ borderRadius: 20 }}>
-                        <dt className="sr-only">{stat.label}</dt>
-                        <dd className="pc-display text-xl font-extrabold">{stat.value}</dd>
-                        <dd className="pc-muted text-[11px] font-semibold">{stat.label}</dd>
-                      </div>
-                    ))}
-                  </motion.dl>
+                  {config.stats.length > 0 && (
+                    <motion.dl variants={fadeUp} className="mt-9 grid max-w-lg grid-cols-3 gap-3">
+                      {config.stats.slice(0, 3).map((stat) => (
+                        <div key={stat.id} className="pc-glass pc-glass-hover px-4 py-3" style={{ borderRadius: 20 }}>
+                          <dt className="sr-only">{stat.label}</dt>
+                          <dd className="pc-display text-xl font-extrabold">{stat.value}</dd>
+                          <dd className="pc-muted text-[11px] font-semibold">{stat.label}</dd>
+                        </div>
+                      ))}
+                    </motion.dl>
+                  )}
                 </motion.div>
 
                 <div className="relative">
@@ -371,9 +443,11 @@ export function PrismChromaWebsite({
                   <span className="pc-float-chip" style={{ top: 18, left: 14 }}><span style={{ width: 12, height: 12, borderRadius: 99, background: 'var(--violet)' }} aria-hidden="true" /> Violet Storm</span>
                   <span className="pc-float-chip" style={{ top: 74, right: 14 }}><span style={{ width: 12, height: 12, borderRadius: 99, background: 'var(--magenta)' }} aria-hidden="true" /> Magenta Muse</span>
                   <span className="pc-float-chip" style={{ bottom: 148, left: 16 }}><span style={{ width: 12, height: 12, borderRadius: 99, background: 'var(--cyan)' }} aria-hidden="true" /> Cyan Ice</span>
-                  <motion.div variants={deviceMockupIn} initial={canObserveViewport ? 'hidden' : 'visible'} animate="visible" className="relative z-[4] mx-auto -mt-24 w-fit lg:absolute lg:-bottom-16 lg:-left-14 lg:mt-0">
-                    <DeviceMockup brandName={brandName} cityLabel={cityLabel} services={coreServices} onBook={(s) => onBook(s)} />
-                  </motion.div>
+                  {coreServices.length > 0 && (
+                    <motion.div variants={deviceMockupIn} initial={canObserveViewport ? 'hidden' : 'visible'} animate="visible" className="relative z-[4] mx-auto -mt-24 w-fit lg:absolute lg:-bottom-16 lg:-left-14 lg:mt-0">
+                      <DeviceMockup brandName={brandName} cityLabel={cityLabel} services={coreServices} onBook={(s) => onBook(s)} />
+                    </motion.div>
+                  )}
                 </div>
               </div>
             </section>
@@ -479,6 +553,7 @@ export function PrismChromaWebsite({
             </MotionSection>
 
             {/* 6 — Shade Studio */}
+            {config.shades.length > 0 && (
             <MotionSection id="pc-shades" className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6">
               <span className="pc-blob pc-blob-magenta" style={{ width: 280, height: 280, bottom: -80, right: -100 }} aria-hidden="true" />
               <div className="relative">
@@ -501,8 +576,10 @@ export function PrismChromaWebsite({
                 </div>
               </div>
             </MotionSection>
+            )}
 
             {/* 7 — Before / After */}
+            {config.beforeAfter.length > 0 && (
             <MotionSection id="pc-results" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:py-12">
               <p className="pc-eyebrow">Real Changes</p>
               <h2 className="mt-3 text-[clamp(1.9rem,4.5vw,3rem)] font-extrabold">Before &amp; After Colour</h2>
@@ -515,6 +592,7 @@ export function PrismChromaWebsite({
                 ))}
               </FadeInGroup>
             </MotionSection>
+            )}
 
             {/* 8 — Process */}
             <MotionSection id="pc-process" className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
@@ -569,7 +647,7 @@ export function PrismChromaWebsite({
             </MotionSection>
 
             {/* 9 — Pricing packages */}
-            {showPackages && (
+            {showPackages && config.packages.length > 0 && (
               <MotionSection id="pc-packages" className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:py-12">
                 <span className="pc-blob pc-blob-cyan" style={{ width: 260, height: 260, top: 0, right: -90 }} aria-hidden="true" />
                 <div className="relative">
@@ -635,10 +713,42 @@ export function PrismChromaWebsite({
               </MotionSection>
             )}
 
+            {/* 9b — Active colour offers (studioflow_offers) */}
+            {live && (
+              <MotionSection id="pc-offers" className="relative mx-auto max-w-7xl px-4 py-10 sm:px-6">
+                <span className="pc-blob pc-blob-magenta" style={{ width: 240, height: 240, top: 20, left: -100 }} aria-hidden="true" />
+                <div className="relative">
+                  <p className="pc-eyebrow">Live Offers</p>
+                  <h2 className="mt-3 text-[clamp(1.9rem,4.5vw,3rem)] font-extrabold">This Month&apos;s Colour Offers</h2>
+                  <p className="pc-muted mt-3 max-w-2xl">
+                    Only offers the studio has activated are shown here — with the code and the exact validity window.
+                  </p>
+                  <PrismOffersLive
+                    offers={site?.offers || []}
+                    loading={!site && siteStatus === 'loading'}
+                    error={siteStatus === 'error' ? siteError || 'Live offers could not load.' : ''}
+                    retrying={siteRefreshing}
+                    onRetry={onReloadSite}
+                    services={services}
+                    onBookService={(id) => {
+                      const found = id ? services.find((service) => service.id === id) : undefined;
+                      onBook(found || firstService);
+                    }}
+                  />
+                </div>
+              </MotionSection>
+            )}
+
             {/* 10 — Colour Experts */}
+            {(team.length > 0 || live) && (
             <MotionSection data-layout="team" id="pc-team" className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
               <p className="pc-eyebrow">Meet the Team</p>
               <h2 className="mt-3 text-[clamp(1.9rem,4.5vw,3rem)] font-extrabold">Our Colour Experts</h2>
+              {team.length === 0 && (
+                <div className="mt-8"><PrismEmptyState title="Colour expert profiles are being prepared">
+                  The studio has not published its team profiles yet. Call the studio and we will match you with the right colourist.
+                </PrismEmptyState></div>
+              )}
               <FadeInGroup className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
                 {team.map((member, idx) => (
                   <FadeIn key={member.id}>
@@ -664,14 +774,23 @@ export function PrismChromaWebsite({
                 ))}
               </FadeInGroup>
             </MotionSection>
+            )}
 
             {/* 11 — Gallery */}
+            {(gallery.length > 0 || live) && (
             <MotionSection data-layout="gallery" id="pc-gallery" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:py-12">
               <p className="pc-eyebrow">Our Work</p>
               <h2 className="mt-3 text-[clamp(1.9rem,4.5vw,3rem)] font-extrabold">Colour Gallery</h2>
               <p className="pc-muted mt-3 max-w-2xl">Fresh colours from our studio chairs. Your photo could be next.</p>
-              <GalleryGrid photos={gallery} brandName={brandName} fallback={PRISM_CHROMA_IMAGES.interior} />
+              {gallery.length > 0 ? (
+                <GalleryGrid photos={gallery} brandName={brandName} fallback={PRISM_CHROMA_IMAGES.interior} />
+              ) : (
+                <div className="mt-8"><PrismEmptyState title="The colour lookbook is being photographed">
+                  The studio has not published its gallery yet. New client work is added here after every shoot.
+                </PrismEmptyState></div>
+              )}
             </MotionSection>
+            )}
 
             {/* 12 — Testimonials */}
             <MotionSection data-layout="experiences" id="pc-reviews" className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6">
@@ -679,10 +798,29 @@ export function PrismChromaWebsite({
               <div className="relative">
                 <p className="pc-eyebrow">Client Love</p>
                 <h2 className="mt-3 text-[clamp(1.9rem,4.5vw,3rem)] font-extrabold">What Clients Say</h2>
-                <div className="mt-8 grid items-start gap-5 lg:grid-cols-[320px_1fr]">
-                  <RatingSummary reviews={config.reviews} />
-                  <TestimonialCarousel reviews={config.reviews} brandName={brandName} />
-                </div>
+                {live ? (
+                  <PrismReviewsLive
+                    reviews={site?.reviews || []}
+                    ownReview={site?.ownReview || null}
+                    summary={site?.reviewSummary || { count: 0, average: 0 }}
+                    loading={!site && siteStatus === 'loading'}
+                    error={siteStatus === 'error' ? siteError || 'Live reviews could not load.' : ''}
+                    retrying={siteRefreshing}
+                    onRetry={onReloadSite}
+                    onReload={onReloadSite}
+                    signedIn={customerSignedIn}
+                    slug={slug}
+                    services={services}
+                    brandName={brandName}
+                    customerName={customerName}
+                    onSignIn={() => onAccount('signin')}
+                  />
+                ) : (
+                  <div className="mt-8 grid items-start gap-5 lg:grid-cols-[320px_1fr]">
+                    <RatingSummary reviews={config.reviews} />
+                    <TestimonialCarousel reviews={config.reviews} brandName={brandName} />
+                  </div>
+                )}
               </div>
             </MotionSection>
 
@@ -708,6 +846,7 @@ export function PrismChromaWebsite({
             </MotionSection>
 
             {/* 13 — FAQ */}
+            {config.faqs.length > 0 && (
             <MotionSection id="pc-faq" className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
               <p className="pc-eyebrow text-center">Good to Know</p>
               <h2 className="mt-3 text-center text-[clamp(1.9rem,4.5vw,3rem)] font-extrabold">Common Questions</h2>
@@ -756,6 +895,7 @@ export function PrismChromaWebsite({
                 {displayedFaqs.length === 0 && <p className="pc-muted text-center">No questions in this topic yet. Please call us — we are happy to help.</p>}
               </div>
             </MotionSection>
+            )}
 
             {/* 14 — Booking CTA */}
             <MotionSection id="pc-book" className="mx-auto max-w-7xl px-4 pb-20 sm:px-6">
@@ -798,7 +938,35 @@ export function PrismChromaWebsite({
               </div>
             </MotionSection>
 
+            {/* 14b — Contact, business information and enquiry form */}
+            <PrismContactEnquiry
+              slug={slug}
+              live={live}
+              brandName={brandName}
+              business={{
+                address: (site?.business.address || profile.address || '').trim(),
+                city: (site?.business.city || profile.city || '').trim(),
+                postalCode: (site?.business.postalCode || profile.postalCode || '').trim(),
+                phone: (site?.business.phone || profile.phone || '').trim(),
+                whatsapp: (site?.business.whatsapp || profile.whatsapp || '').trim(),
+                email: (site?.business.email || config.publicEmail || '').trim(),
+                workingHoursDisplay: config.workingHoursDisplay,
+                openTime: config.openTime,
+                closeTime: config.closeTime,
+                mapEmbedUrl: config.mapEmbedUrl,
+                instagram: site?.business.instagram || profile.instagramHandle || '',
+                facebook: site?.business.facebook || profile.facebookPage || '',
+                youtube: site?.business.youtube || profile.youtubeChannel || '',
+              }}
+              services={services}
+              instagramUrl={instagramUrl}
+              facebookUrl={facebookUrl}
+              youtubeUrl={youtubeUrl}
+              mapUrl={mapUrl}
+            />
+
             {/* 15 — Branches + Footer */}
+            {config.branches.length > 0 && (
             <MotionSection data-layout="location" id="pc-branches" className="mx-auto max-w-7xl px-4 pb-14 sm:px-6">
               <p className="pc-eyebrow">Find Us</p>
               <h2 className="mt-3 text-[clamp(1.7rem,4vw,2.4rem)] font-extrabold">Our Studios</h2>
@@ -831,6 +999,7 @@ export function PrismChromaWebsite({
                 ))}
               </FadeInGroup>
             </MotionSection>
+            )}
           </motion.main>
         </AnimatePresence>
 
@@ -876,31 +1045,9 @@ export function PrismChromaWebsite({
                 <button type="button" onClick={() => onBook(firstService)} className="pc-btn pc-btn-gradient mt-5 px-6 py-3 text-sm"><Calendar size={15} aria-hidden="true" /> Book Appointment</button>
               )}
               <h3 className="pc-display mt-7 font-extrabold">Colour offers on email</h3>
-              {newsletterDone ? (
-                <p className="mt-3 text-sm font-bold" style={{ color: 'var(--cyan)' }}>
-                  You are on the list! Watch your inbox for colour offers.
-                </p>
-              ) : (
-                <form
-                  className="pc-newsletter"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    if (newsletterEmail.includes('@')) setNewsletterDone(true);
-                  }}
-                >
-                  <label className="pc-sr-only" htmlFor="pc-newsletter-email">Email for colour offers</label>
-                  <input
-                    id="pc-newsletter-email"
-                    type="email"
-                    required
-                    value={newsletterEmail}
-                    onChange={(e) => setNewsletterEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    className="pc-newsletter-input"
-                  />
-                  <button type="submit" className="pc-btn pc-btn-gradient px-4 py-2.5 text-sm">Join</button>
-                </form>
-              )}
+              <div className="mt-3">
+                <PrismNewsletterSignup slug={slug} live={live} />
+              </div>
               <p className="pc-muted mt-2 text-xs">One email a month. No spam, only offers and care tips.</p>
             </div>
           </div>

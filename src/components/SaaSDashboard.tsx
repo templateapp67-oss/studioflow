@@ -20,6 +20,7 @@ import { SocialConnectivityStep } from './SocialConnectivityStep';
 import { DEFAULT_LOYALTY_CONFIG, TIER_METADATA, calculateLoyaltyTier, calculateRewardProgress } from '../loyaltyData';
 import { OwnerPosPanel } from './OwnerPosPanel';
 import { SeoSettingsManager } from './SeoSettingsManager';
+import { PrismChromaOwnerPanel } from './prism-chroma/PrismChromaOwnerPanel';
 
 interface SaaSDashboardProps {
   ownerId?:string;
@@ -41,7 +42,7 @@ interface SaaSDashboardProps {
   onRefreshBookings?:()=>Promise<void>|void;
 }
 
-type TabType = 'contacts' | 'demo' | 'website_sections' | 'overview' | 'calendar' | 'services' | 'team' | 'clients' | 'loyalty' | 'marketing' | 'social_connectivity' | 'seo' | 'appearance' | 'website';
+type TabType = 'contacts' | 'demo' | 'website_sections' | 'overview' | 'calendar' | 'services' | 'team' | 'clients' | 'loyalty' | 'marketing' | 'social_connectivity' | 'seo' | 'appearance' | 'website' | 'colour_studio';
 
 export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
   profile,
@@ -258,6 +259,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
             { id: 'seo', label: 'SEO & Social Cards', icon: 'travel_explore' },
             { id: 'appearance', label: 'Appearance', icon: 'palette' },
             { id:'website_sections',label:'Website Sections',icon:'view_quilt' },
+            ...(profile.businessType==='hair_coloring'?[{ id:'colour_studio',label:'Colour Studio Inbox',icon:'palette' }]:[]),
             { id: 'website', label: 'Salon Info', icon: 'storefront' }
           ].map((tab) => {
             const isTabActive = activeTab === tab.id;
@@ -302,6 +304,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
 
         {activeTab === 'seo' && <SeoSettingsManager profile={profile} setProfile={setProfile} />}
         {activeTab==='website_sections'&&<WebsiteContentManager services={services} profile={profile} setProfile={setProfile} gallery={gallery} setGallery={setGallery}/>}
+        {activeTab==='colour_studio'&&profile.businessType==='hair_coloring'&&<PrismChromaOwnerPanel slug={profile.subdomain||''}/>}
         {/* TAB CONTENT: OVERVIEW */}
         {activeTab === 'overview' && (
           <div className="flex flex-col gap-6">

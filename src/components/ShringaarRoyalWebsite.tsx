@@ -51,6 +51,7 @@ import {
   stagger,
 } from '../lib/motion';
 import { WebsiteSections } from './WebsiteSections';
+import { usePrismSite, subscribePrismNewsletter, submitPrismEnquiry } from '../lib/prismSite';
 import { CustomerAppPromotion } from './CustomerAppPromotion';
 import { SafeImage } from './shringaar-royal/SafeImage';
 import { DeviceMockup } from './shringaar-royal/DeviceMockup';
@@ -101,6 +102,8 @@ export function ShringaarRoyalWebsite({
   onAccount,
   onMyBookings,
   onViewSpecialist,
+  live,
+  readOnly,
 }: {
   profile: SalonProfile;
   services: SalonService[];
@@ -114,12 +117,15 @@ export function ShringaarRoyalWebsite({
   customerPhotoUrl?: string;
   bookingAvailable?: boolean;
   readOnly?: boolean;
+  live?: boolean;
   onBook: (service?: SalonService, specialist?: Stylist) => void;
   onAccount: (mode?: 'signin' | 'signup') => void;
   onMyBookings: () => void;
   onViewSpecialist: (id: string) => void;
 }) {
   const config = useMemo(() => resolveShringaarRoyalConfig(profile), [profile]);
+  const liveSlug = live && readOnly ? (profile.subdomain || '').trim() : '';
+  const prismSite = usePrismSite(liveSlug || null);
   const cssVars = useMemo(() => shringaarCssVariables(config.colors) as React.CSSProperties, [config.colors]);
   const reduceMotion = useReducedMotion();
   const [loading, setLoading] = useState(
@@ -135,8 +141,15 @@ export function ShringaarRoyalWebsite({
   const [lightbox, setLightbox] = useState<{ src: string; alt: string; caption: string } | null>(null);
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterDone, setNewsletterDone] = useState(false);
+  const [newsletterBusy, setNewsletterBusy] = useState(false);
+  const [newsletterError, setNewsletterError] = useState('');
+  const newsletterErrorElement = newsletterError ? (
+    <p role="alert" style={{ color: '#f6e2ae', fontSize: 12, marginTop: 8 }}>{newsletterError}</p>
+  ) : null;
   const [form, setForm] = useState({ name: '', phone: '', date: '', service: '', message: '' });
   const [formStatus, setFormStatus] = useState('');
+  const [enquiryBusy, setEnquiryBusy] = useState(false);
+  const [enquiryError, setEnquiryError] = useState('');
 
   const brandName = (profile.businessName || '').trim() || SHRINGAAR_BRAND_NAME;
   const cityLabel = (profile.city || '').trim() || SHRINGAAR_DEFAULT_CITY;
@@ -154,6 +167,26 @@ export function ShringaarRoyalWebsite({
   const instagramUrl = socialUrl(profile.instagramHandle, 'instagram');
   const facebookUrl = socialUrl(profile.facebookPage, 'facebook');
   const youtubeUrl = socialUrl(profile.youtubeChannel, 'youtube');
+
+  // Merge live approved reviews (from studioflow_reviews) ahead of the
+  // owner-managed demo reviews, same pattern as Templates 08 and 09.
+  const liveReviews = useMemo(() => {
+    if (!prismSite.data?.reviews?.length) return [];
+    return prismSite.data.reviews.map((r) => ({
+      id: r.id,
+      name: r.name,
+      weddingPlace: r.serviceName || 'Bridal client',
+      rating: r.rating,
+      quote: r.comment,
+      avatar: r.imageUrl || SHRINGAAR_IMAGES.testimonials.brideOne,
+      alt: r.name,
+      date: r.date,
+    }));
+  }, [prismSite.data?.reviews]);
+  const carouselReviews = useMemo(() => {
+    const seen = new Set(liveReviews.map((r) => r.quote.trim().toLowerCase()));
+    return [...liveReviews, ...config.reviews.filter((r) => !seen.has(r.quote.trim().toLowerCase()))];
+  }, [liveReviews, config.reviews]);
 
   const coreServices = useMemo(() => services.filter((service) => !isPackage(service)), [services]);
   const bridalMenu = coreServices.length ? coreServices : services;
@@ -264,29 +297,44 @@ export function ShringaarRoyalWebsite({
   const heroHead = heroWords.slice(0, heroTailIndex).join(' ');
   const heroTail = heroWords.slice(heroTailIndex).join(' ');
 
-  const submitEnquiry = (event: React.FormEvent) => {
+  const submitEnquiry = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (enquiryBusy) return;
     const chosen = services.find((service) => service.id === form.service) || firstService;
-    const lines = [
-      `Namaste ${brandName}, I would like a bridal consultation.`,
-      form.name ? `Name: ${form.name}` : '',
-      form.phone ? `Phone: ${form.phone}` : '',
-      form.date ? `Wedding date: ${form.date}` : '',
-      form.service ? `Interested in: ${chosen?.name || form.service}` : '',
-      form.message ? `Note: ${form.message}` : '',
-    ].filter(Boolean);
-    if (whatsappDigits) {
-      const href = `https://wa.me/${whatsappDigits}?text=${encodeURIComponent(lines.join('\n'))}`;
-      if (typeof window !== 'undefined') window.open(href, '_blank', 'noopener,noreferrer');
-      setFormStatus('Opening WhatsApp with your bridal enquiry…');
-      return;
+    setEnquiryBusy(true);
+    setEnquiryError('');
+    setFormStatus('');
+    try {
+      await submitPrismEnquiry({
+        slug: liveSlug,
+        name: form.name,
+        phone: form.phone,
+        serviceId: chosen?.id || '',
+        serviceName: chosen?.name || '',
+        message: form.message,
+        preferredDate: form.date || null,
+        source: 'website',
+      });
+      const lines = [
+        `Namaste ${brandName}, I would like a bridal consultation.`,
+        `Name: ${form.name}`,
+        `Phone: ${form.phone}`,
+        form.date ? `Wedding date: ${form.date}` : '',
+        form.service ? `Interested in: ${chosen?.name || form.service}` : '',
+        form.message ? `Note: ${form.message}` : '',
+      ].filter(Boolean);
+      if (whatsappDigits) {
+        const href = `https://wa.me/${whatsappDigits}?text=${encodeURIComponent(lines.join('\n'))}`;
+        if (typeof window !== 'undefined') window.open(href, '_blank', 'noopener,noreferrer');
+        setFormStatus('Your enquiry is saved. Opening WhatsApp with the bridal desk…');
+      } else {
+        setFormStatus('Your enquiry is saved. Our bridal desk will call you back.');
+      }
+    } catch (e) {
+      setEnquiryError(e instanceof Error ? e.message : 'Your enquiry could not be sent. Please try again.');
+    } finally {
+      setEnquiryBusy(false);
     }
-    if (bookingAvailable) {
-      setFormStatus('Opening the booking form so you can pick a date and time.');
-      onBook(chosen);
-      return;
-    }
-    setFormStatus(`Please call ${phone} — our bridal desk will confirm your date.`);
   };
 
   return (
@@ -993,7 +1041,7 @@ export function ShringaarRoyalWebsite({
                   Real words from brides who married in Jaipur, Udaipur and destination palaces. Reviews shown here are shared with each bride’s permission.
                 </p>
               </Reveal>
-              <TestimonialCarousel reviews={config.reviews} brandName={brandName} />
+              <TestimonialCarousel reviews={carouselReviews} brandName={brandName} />
             </div>
           </section>
 
@@ -1041,6 +1089,35 @@ export function ShringaarRoyalWebsite({
               </RevealGroup>
             </div>
           </section>
+
+          {/* 14 — Live colour offers from studioflow_offers (when present) */}
+          {prismSite.data?.offers?.length ? (
+            <section className="sr-section sr-section--tight" id="sr-offers-live" data-layout="offer" aria-labelledby="sr-offers-live-heading">
+              <div className="sr-shell">
+                <Reveal className="sr-section-head">
+                  <div>
+                    <p className="sr-eyebrow">Current Offers</p>
+                    <h2 id="sr-offers-live-heading" className="sr-h2">Live offers</h2>
+                  </div>
+                </Reveal>
+                <div style={{ display: 'grid', gap: 12 }}>
+                  {prismSite.data.offers.map((offer) => (
+                    <div key={offer.id} className="sr-glass sr-glass--card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px' }}>
+                      <div>
+                        <p style={{ margin: 0, fontWeight: 700 }}>{offer.title}</p>
+                        {offer.description && <p style={{ margin: '4px 0 0', fontSize: 13, opacity: 0.8 }}>{offer.description}</p>}
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        {offer.code && <p style={{ margin: 0, fontFamily: 'monospace', fontSize: 12 }}>Code: {offer.code}</p>}
+                        {offer.discountPercent != null && <p style={{ margin: 0, fontWeight: 700, color: '#f6e2ae' }}>{offer.discountPercent}% off</p>}
+                        {offer.flatDiscountInr != null && <p style={{ margin: 0, fontWeight: 700, color: '#f6e2ae' }}>₹{offer.flatDiscountInr} off</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+          ) : null}
 
           {/* 14 — Wedding season offer banner */}
           <section className="sr-section sr-section--tight" id="sr-offer" data-layout="offer" aria-labelledby="sr-offer-heading">
@@ -1139,6 +1216,9 @@ export function ShringaarRoyalWebsite({
                     <p className="sr-form-status" role="status" aria-live="polite">
                       {formStatus}
                     </p>
+                    {enquiryError && (
+                      <p role="alert" style={{ color: '#f6e2ae', fontSize: 12 }}>{enquiryError}</p>
+                    )}
                     {bookingAvailable && (
                       <p className="sr-form-note" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                         <Check size={13} aria-hidden="true" /> Verified checkout · secure booking on Nexora
@@ -1368,9 +1448,19 @@ export function ShringaarRoyalWebsite({
               ) : (
                 <form
                   className="sr-newsletter"
-                  onSubmit={(event) => {
+                  onSubmit={async (event) => {
                     event.preventDefault();
-                    if (newsletterEmail.includes('@')) setNewsletterDone(true);
+                    if (newsletterBusy) return;
+                    setNewsletterBusy(true);
+                    setNewsletterError('');
+                    try {
+                      await subscribePrismNewsletter({ slug: liveSlug, email: newsletterEmail });
+                      setNewsletterDone(true);
+                    } catch (e) {
+                      setNewsletterError(e instanceof Error ? e.message : 'Could not add you to the list. Please try again.');
+                    } finally {
+                      setNewsletterBusy(false);
+                    }
                   }}
                 >
                   <label htmlFor="sr-newsletter">Email address</label>
@@ -1385,6 +1475,7 @@ export function ShringaarRoyalWebsite({
                     />
                     <button type="submit">Join</button>
                   </div>
+                  {newsletterErrorElement}
                 </form>
               )}
               <LotusDivider />
