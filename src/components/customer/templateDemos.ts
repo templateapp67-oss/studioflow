@@ -4,7 +4,7 @@ import {upgradeNailStudioTemplate} from '../../lib/pinkyNails';
 import {upgradeLashBrowCustomerTemplate} from '../../lib/archFlutter';
 import type {CustomerTemplate} from './useCustomerCatalog';
 import {demoSalonOffers} from '../../lib/salonOffers';
-import type {Salon} from './model';
+import {isSalon, type Salon} from './model';
 
 export const DEMO_TEMPLATE_PREFIX='demo-template-';
 export const isTemplateDemo=(salon:Salon)=>!!salon.demoTemplateId;
@@ -12,7 +12,7 @@ export const templateDemoWebsite=(salon:Salon)=>'/?template='+encodeURIComponent
 
 /** Published salons always win, independently for each exact template category. */
 export function withTemplateDemos(published:Salon[],templates:CustomerTemplate[]):Salon[]{
- const real=published.filter(s=>!isTemplateDemo(s));
+ const real=(Array.isArray(published)?published:[]).filter(isSalon).filter(s=>!isTemplateDemo(s));
  const occupied=new Set(real.map(s=>s.content.profile.businessType));
  const seen=new Set<string>();
  const demos=templates.flatMap(rawMeta=>{
