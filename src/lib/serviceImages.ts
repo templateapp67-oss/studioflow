@@ -6,7 +6,6 @@ import {pinkyNailsServiceImage} from './pinkyNails';
 import {KESH_PRAKRITI_IMAGES,keshPrakritiServiceImage} from './keshPrakriti';
 import {VOGUE_NOIR_IMAGES,vogueNoirServiceImage} from './vogueNoir';
 import {SHRINGAAR_IMAGES,shringaarServiceImage} from './shringaarRoyal';
-import {ARCH_FLUTTER_IMAGES,archFlutterServicePhoto} from './archFlutter';
 
 /** Category-matched image templates shared by the editor and storefront. */
 export function serviceImageTemplates(service:Pick<SalonService,'id'|'name'|'category'>,type:BusinessTypeId='hair_salon'):Array<{id:string;url:string;label:string}> {
@@ -20,13 +19,6 @@ export function serviceImageTemplates(service:Pick<SalonService,'id'|'name'|'cat
  if(type==='bridal_lounge'){
   const local=Array.from(new Set([shringaarServiceImage({...service,imageUrl:''}),SHRINGAAR_IMAGES.services.makeup,SHRINGAAR_IMAGES.services.draping]));
   return local.slice(0,3).map((url,index)=>({id:`bridal_lounge-${index+1}`,url,label:`Image template ${index+1}`}));
- }
- // Template 13 keeps every lash & brow menu card on the atelier's own imagery:
- // the category-matched photo first, then two bundled art plates as safety nets.
- if(type==='lash_brow'){
-  const photo=archFlutterServicePhoto({...service,imageUrl:''});
-  const local=Array.from(new Set([photo.src||photo.fallback,ARCH_FLUTTER_IMAGES.services.brow.fallback,ARCH_FLUTTER_IMAGES.services.tools.fallback]));
-  return local.slice(0,3).map((url,index)=>({id:`lash_brow-${index+1}`,url,label:`Image template ${index+1}`}));
  }
  if(type==='makeup_studio'){
   const local=Array.from(new Set([vogueNoirServiceImage({...service,imageUrl:''}),VOGUE_NOIR_IMAGES.services.bridal,VOGUE_NOIR_IMAGES.services.party,VOGUE_NOIR_IMAGES.services.airbrush]));

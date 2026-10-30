@@ -171,7 +171,7 @@ export const DEFAULT_CATEGORY_ACCENTS: Record<BusinessTypeId, AccentPaletteKey> 
   hair_coloring: 'purple',
   bridal_lounge: 'crimson',
   tattoo_studio: 'obsidian',
-  lash_brow: 'rose',
+  lash_brow: 'purple',
   ayurvedic_spa: 'emerald'
 };
 

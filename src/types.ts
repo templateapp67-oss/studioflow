@@ -1,80 +1,200 @@
-export type AppView = 'owner' | 'landing' | 'wizard' | 'preview' | 'dashboard';
+export type AppView = 
+  | 'landing'
+  | 'onboarding'
+  | 'dashboard'
+  | 'workspace'
+  | 'website'
+  | 'customizer'
+  | 'customer';
 
 export type BusinessTypeId = 
-  | 'hair_salon'         // Hair Cut & Styling Studio
-  | 'barber'             // Barber Shop / Men's Grooming
-  | 'unisex_salon'       // Unisex Salon
-  | 'beauty_parlour'     // Beauty Parlour
-  | 'nail_studio'        // Nail Studio
-  | 'hair_spa'           // Hair Spa & Treatment
-  | 'skincare_clinic'    // Facial & Skincare Clinic
-  | 'makeup_studio'      // Makeup Studio
-  | 'massage_wellness'   // Massage & Wellness Center
-  | 'hair_coloring'      // Hair Coloring Studio
-  | 'bridal_lounge'      // Bridal Makeup & Makeover Lounge
-  | 'tattoo_studio'      // Tattoo & Body Art Studio
-  | 'lash_brow'          // Lash & Brow Bar
-  | 'ayurvedic_spa';     // Ayurvedic Rejuvenation Spa
-
-export type LayoutStyle = 
-  | 'modern_minimalist'
-  | 'vintage_industrial'
-  | 'contemporary_balanced'
-  | 'curved_elegant'
-  | 'bento_grid'
-  | 'zen_emerald'
-  | 'clinical_clean'
-  | 'dark_glam'
-  | 'earth_bamboo'
-  | 'creative_gallery'
-  | 'royal_crimson'
-  | 'urban_monochrome'
-  | 'chic_nude'
-  | 'ayurvedic_terracotta'
-  | 'palace_heritage'
-  | 'prism_holographic'
-  | 'editorial_bento';
+  | 'hair_salon'
+  | 'barber'
+  | 'unisex_salon'
+  | 'beauty_parlour'
+  | 'nail_studio'
+  | 'hair_spa'
+  | 'skincare_clinic'
+  | 'makeup_studio'
+  | 'massage_wellness'
+  | 'hair_coloring'
+  | 'bridal_lounge'
+  | 'tattoo_studio'
+  | 'lash_brow'
+  | 'ayurvedic_spa'
+  | string;
 
 export interface BusinessTypeOption {
   id: BusinessTypeId;
   title: string;
-  categoryTag: string;
-  icon: string;
-  aestheticDescription: string;
-  description?: string;
-  paletteName: string;
-  badge: string;
-  defaultServices: Array<{ name: string; price: number; duration: number; category: string }>;
+  categoryTag?: string;
+  icon?: string;
+  aestheticDescription?: string;
+  paletteName?: string;
+  badge?: string;
+  defaultServices?: any[];
 }
 
-export type SalonThemePreset = 
-  | 'slate_silver'
-  | 'vintage_brass'
-  | 'pastel_blush'
-  | 'rose_gold_ivory'
-  | 'neon_gloss_bento'
-  | 'emerald_sage'
-  | 'clinical_sky_blue'
-  | 'obsidian_gold'
-  | 'earth_bamboo'
-  | 'chroma_gradient'
-  | 'royal_crimson_gold'
-  | 'urban_monochrome'
-  | 'chic_nude_beige'
-  | 'ayurvedic_terracotta'
-  | 'sage_cream_gold'
-  | 'blush_champagne';
+export interface SocialVideo {
+  id: string;
+  title: string;
+  url: string;
+  platform?: 'instagram' | 'youtube' | 'tiktok' | 'reels' | 'other' | string;
+  thumbnailUrl?: string;
+  aspectRatio?: '9:16' | '16:9' | '1:1';
+  topic?: string;
+  videoId?: string;
+  categoryTag?: string;
+  isOwnerVideo?: boolean;
+  isDemo?: boolean;
+  description?: string;
+  youtubeUrl?: string;
+}
+
+export interface SalonService {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  durationMinutes: number;
+  description?: string;
+  icon?: string;
+  popular?: boolean;
+  imageUrl?: string;
+  origin?: string;
+  showDuration?: boolean;
+  clinicDemoData?: boolean;
+  clinicServiceApproved?: boolean;
+  clinicPriceVerified?: boolean;
+  clinicFeeStatus?: string;
+  clinicPublicationStatus?: string;
+}
+
+export interface Stylist {
+  id: string;
+  name: string;
+  role: string;
+  avatarUrl?: string;
+  specialties?: string[];
+  rating?: number;
+  bio?: string;
+  experienceYears?: number;
+}
+
+export interface BranchLocation {
+  id: string;
+  name: string;
+  address: string;
+  city: string;
+  phone: string;
+  isMain?: boolean;
+}
+
+export interface RewardThreshold {
+  points: number;
+  perkName: string;
+  description?: string;
+}
+
+export interface SalonProfile {
+  id?: string;
+  businessName: string;
+  businessType?: BusinessTypeId;
+  tagline?: string;
+  about?: string;
+  coverImageUrl?: string;
+  logoUrl?: string;
+  ownerName?: string;
+  ownerRole?: string;
+  ownerPhotoUrl?: string;
+  city?: string;
+  address?: string;
+  postalCode?: string;
+  phone?: string;
+  whatsapp?: string;
+  email?: string;
+  instagramHandle?: string;
+  facebookPage?: string;
+  youtubeChannel?: string;
+  subdomain?: string;
+  selectedTemplateId?: string;
+  layoutStyle?: string;
+  themePreset?: string;
+  paletteLabel?: string;
+  themeStyle?: any;
+  demoTemplateId?: string;
+  heroVideoUrl?: string;
+  socialVideos?: SocialVideo[];
+  gallery?: any[];
+  branches?: BranchLocation[];
+  loyaltyConfig?: LoyaltyConfig;
+  customDomain?: string;
+  isPublished?: boolean;
+  customAccentColor?: string;
+  websiteSections?: any;
+  seo?: any;
+  vogueNoir?: any;
+  shringaarRoyal?: any;
+  serviceCatalogueInitialized?: boolean;
+  demoVideosInitialized?: boolean;
+}
+
+export interface Appointment {
+  id: string;
+  clientName: string;
+  clientPhone?: string;
+  clientEmail?: string;
+  serviceId?: string;
+  serviceName?: string;
+  stylistId?: string;
+  stylistName?: string;
+  date: string;
+  time: string;
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  totalAmount?: number;
+  notes?: string;
+  createdAt?: string;
+  paymentStatus?: 'pending' | 'paid' | 'refunded' | string;
+}
+
+export interface ClientRecord {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string;
+  totalVisits?: number;
+  totalSpent?: number;
+  lastVisit?: string;
+  loyaltyPoints?: number;
+  notes?: string;
+  favoriteStylist?: string;
+}
+
+export interface LoyaltyTier {
+  name: string;
+  minPoints: number;
+  discountPercent: number;
+  color?: string;
+  perks?: string[];
+}
+
+export interface LoyaltyConfig {
+  enabled: boolean;
+  pointsPerRupee: number;
+  tiers: LoyaltyTier[];
+  thresholds?: RewardThreshold[];
+}
 
 export interface CategoryTemplateConfig {
-  id: BusinessTypeId;
+  id: string;
   title: string;
   shortName: string;
   tagline: string;
   about: string;
   icon: string;
-  layoutStyle: LayoutStyle;
+  layoutStyle: string;
   paletteLabel: string;
-  themePreset: SalonThemePreset;
+  themePreset: string;
   subCategories: string[];
   defaultCity: string;
   defaultAddress: string;
@@ -85,1206 +205,32 @@ export interface CategoryTemplateConfig {
   ownerRole: string;
   ownerPhotoUrl: string;
   coverImageUrl: string;
-  instagramHandle: string;
-  themeStyle: {
-    heroBackground: string;
-    heroTextColor: string;
-    cardBorder: string;
-    cardBackground: string;
-    cardRadius: string;
-    accentColor: string;
-    accentBg: string;
-    badgeBg: string;
-    badgeText: string;
-    buttonBg: string;
-    buttonText: string;
-    priceColor: string;
-    isDark?: boolean;
-    headerBanner?: string;
-  };
+  instagramHandle?: string;
+  themeStyle: any;
   services: SalonService[];
   stylists: Stylist[];
 }
 
-export type VideoCategoryTag = 'SHOWCASE' | 'SHORT' | 'LONG';
-
-export interface SocialVideo {
-  id: string;
-  isDemo?:boolean;
-  youtubeUrl: string; // Source link: YouTube or Instagram (legacy field name).
-  previewVideoUrl?: string; // Optional owner-provided playable MP4/WebM preview.
-  videoId: string;
-  title: string;
-  description?: string;
-  channelTitle?: string;
-  thumbnailUrl: string;
-  categoryTag: VideoCategoryTag;
-  isOwnerVideo: boolean; // true if added by owner ("yours"), false for default ("showcase")
-  views?: string;
-  transformationTag?: string;
-}
-
-export interface PromoCampaign {
-  logoUrl?:string;
-  endsAt?:string; lastMinute?:boolean;
-  enabled: boolean; selectedServiceId: string; campaignTheme: string; discountPercent: number;
-  customOfferText: string; promoCode: string; headline: string; subtext: string;
-  aspectRatio: string; aesthetic: string; imageUrl: string; customPrompt: string;
-}
-export interface ClinicArticle { id:string; title:string; category:string; excerpt:string; body:string; imageUrl:string; publishedAt:string; published:boolean; }
-export interface ClinicFaq { id:string; question:string; answer:string; published:boolean; }
-export interface PatientBenefitCard {
-  id: string;
-  title: string;
-  description: string;
-  imageUrl?: string;
-  imageAlt?: string;
-  benefits?: string[];
-  validity?: string;
-  published: boolean;
-  ctaLabel?: string;
-  ctaAction?: 'consultation' | 'packages' | 'enquire' | 'booking';
-}
-
-export interface ClinicOfferCard {
-  id: string;
-  title: string;
-  image: string;
-  description: string;
-  relatedService?: string;
-  startDate?: string;
-  expiryDate?: string;
-  terms?: string;
-  isPublished: boolean;
-  ctaText: string;
-}
-
-export interface TreatmentStory {
-  id: string;
-  title: string;
-  category: string;
-  description: string;
-  imageUrl: string;
-  videoUrl?: string;
-  published: boolean;
-  order?: number;
-  fullContent?: string;
-  whatToExpect?: string[];
-  doctorQuestions?: string[];
-}
-
-export interface BranchOperatingHours {
-  day: DaySchedule['day'];
-  enabled: boolean;
-  fromTime: string;
-  toTime: string;
-}
-
-export interface SalonBranch {
-  id: string;
-  name: string;
-  city: string;
-  address: string;
-  phone: string;
-  isActive: boolean;
-  operatingHours: BranchOperatingHours[];
-}
-
-export interface StaffBranchSchedule {
-  branchId: string;
-  schedule: DaySchedule[];
-}
-
-export interface SalonProfile {
-  /** Public projection of confirmed clinic services whose fee is not confirmed (no price). */
-  clinicEnquiryServices?: SalonService[];
-  clinicArticles?: ClinicArticle[];
-  clinicFaq?: ClinicFaq[];
-  patientBenefits?: PatientBenefitCard[];
-  clinicOffers?: ClinicOfferCard[];
-  treatmentStories?: TreatmentStory[];
-  /** Explicitly public clinic contact address, separate from the private account email. */
-  clinicPublicEmail?: string;
-  clinicLegal?: {privacy:string;terms:string};
-  clinicTechnology?: {name:string;manufacturer:string;specifications:string;imageUrl:string;approved:boolean};
-  bookingAddOnServiceIds?:string[];
-  comparisonPhotos?:import('./lib/conversionFeatures').ComparisonPhoto[];
-  reviewSource?:import('./lib/conversionFeatures').ReviewSource;
-  defaultWebsiteLanguage?:import('./lib/conversionFeatures').WebsiteLanguage;
-  photoGalleryInitialized?:boolean;
-  photoGalleryType?:BusinessTypeId;
-  photoGallery?:import('./lib/photoGallery').SalonGalleryPhoto[];
-  headerNavigation?:import('./lib/headerNavigation').HeaderLinkSetting[];
-  serviceCatalogueInitialized?:boolean;
-  demoTestimonialsInitialized?:boolean;
-  demoGalleryInitialized?:boolean;
-  demoGalleryType?:BusinessTypeId;
-  demoVideosInitialized?:boolean;
-  bookingRules?: {leadHours:number;cancellationWindow:number};
-  promoCampaign?: PromoCampaign;
-  websiteSections?: Record<string, boolean>;
-  sectionHeadings?: Record<string, string>;
-  websiteTestimonials?: import('./templateData').Testimonial[];
-  seo?: {
-    metaTitle?: string;
-    metaDescription?: string;
-    ogTitle?: string;
-    ogDescription?: string;
-    ogImageUrl?: string;
-    keywords?: string;
-    twitterCard?: 'summary' | 'summary_large_image';
-    canonicalUrl?: string;
-  };
-  vogueNoir?: VogueNoirConfig;
-  bodhiTree?: BodhiTreeConfig;
-  prismChroma?: PrismChromaConfig;
-  shringaarRoyal?: ShringaarRoyalConfig;
-  /** Template 13 — Arch & Flutter Lash & Brow Bar owner content. */
-  archFlutter?: ArchFlutterConfig;
-  /** Editable "Promotions & offers" records. `undefined` = never seeded yet. */
-  promoOffers?: SalonOffer[];
-  ironInk?: { categories?: import('./lib/ironInk').IronInkCategory[]; heroImage?:string; interiorImage?:string; artistImage?:string; bookingDeposit?:number; faq?:Array<{question:string;answer:string}>; media?:import('./lib/ironInkMedia').IronInkMediaTopic[] };
-
-  businessType: BusinessTypeId;
-  branches?: SalonBranch[];
-  businessName: string;
-  ownerName: string;
-  ownerRole: string;
-  phone: string;
-  whatsapp: string;
-  email: string;
-  tagline: string;
-  about: string;
-  ownerPhotoUrl: string;
-  coverImageUrl: string;
-  logoUrl?: string;
-  themePreset: SalonThemePreset;
-  currency: string;
-  subdomain: string;
-  customDomain?: string;
-  address: string;
-  city: string;
-  postalCode: string;
-  shopFlatNo?: string;
-  areaLocality?: string;
-  state?: string;
-  latitude?: number;
-  longitude?: number;
-  instagramHandle: string;
-  facebookPage?: string;
-  youtubeChannel?: string;
-  tiktokProfile?: string;
-  googleBusinessUrl?: string;
-  socialVideos?: SocialVideo[];
-  requireDeposit: boolean;
-  depositPercentage: number;
-  themeAccentKey?: string;
-  customAccentColor?: string;
-  darkCanvas?: boolean;
-  landmark?: string;
-  foundingYear?: string;
-  workingHoursMonFri?: string;
-  workingHoursSat?: string;
-  workingHoursTue?: string;
-  workingHoursSun?: string;
-}
-
-export interface SalonService {
-  /** Template 07 starter data only: never represent these illustrative values as a clinic-confirmed offer. */
-  clinicDemoData?: boolean;
-  /** Template 07 only: explicit clinic confirmation, never inferred from template or edits. */
-  clinicServiceApproved?: boolean;
-  clinicPublicationStatus?: 'draft' | 'published' | 'unpublished';
-  clinicFeeStatus?: 'unverified' | 'verified' | 'on_request';
-  clinicPriceVerified?: boolean;
-  clinicServiceVerifiedBy?: string;
-  clinicServiceVerifiedAt?: string;
-  clinicFeeVerifiedBy?: string;
-  clinicFeeVerifiedAt?: string;
-  imageUrl?:string;
-  imagePath?:string;
-  origin?:'custom'|'template';
-  id: string;
-  name: string;
-  category: string;
-  durationMinutes: number;
-  price: number | null;
-  description: string;
-  icon: string;
-  popular?: boolean;
-  showDuration?: boolean; // Defaults to true if undefined. When false, duration is hidden on public website menu.
-}
-
-export type StaffAccessRole = 'Service Provider (Assigned)' | 'Manager (Full Access)' | 'Receptionist (Frontdesk)';
-export type StaffStatus = 'Available' | 'Busy' | 'On Leave' | 'Inactive';
-
-export interface DaySchedule {
-  day: 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
-  enabled: boolean;
-  fromTime: string;
-  toTime: string;
-}
-
-export interface StaffWorkPhoto {id:string;imageUrl:string;caption:string;serviceId?:string;consented:boolean;}
-export interface Stylist {
-  businessType?:BusinessTypeId;
-  workGallery?:StaffWorkPhoto[];
-  expertiseServiceIds?:string[];
-  experienceYears?:number;
-  id: string;
-  name: string;
-  role: string;
-  avatarUrl: string;
-  specialties: string[];
-  rating: number;
-  phone?: string;
-  commissionRate?: number;
-  status?: StaffStatus;
-  accessRole?: StaffAccessRole;
-  hidePhone?: boolean;
-  branchSchedules?: StaffBranchSchedule[];
-  assignedServices?: string[];
-  bio?: string;
-  qualifications?: string[];
-  registrationNumber?: string;
-  specializedTreatments?: string[];
-  languages?: string[];
-  education?: string;
-  schedule?: DaySchedule[];
-}
-
-export interface Appointment {
-  branchId?: string;
-  branchName?: string;
-  consultationMessage?: string;
-  couponCode?:string;
-  couponExpectedTotal?:number;
-  originalPrice?:number;
-  discountAmount?:number;
-  coupon?:import('./components/BookingCoupon').CouponQuote;
-  addOnIds?:string[];
-  requestId?:string;
-  id: string;
-  clientName: string;
-  clientPhone: string;
-  clientEmail: string;
-  serviceId: string;
-  serviceName: string;
-  servicePrice: number;
-  stylistId: string;
-  stylistName: string;
-  date: string; // YYYY-MM-DD
-  time: string; // HH:MM
-  status: 'confirmed' | 'completed' | 'cancelled' | 'pending';
-  paymentStatus: 'paid_deposit' | 'paid_full' | 'pay_at_salon';
-  amountPaid: number;
-  createdAt: string;
-  walkIn?: boolean;
-  posMethod?: string;
-  origin?: string;
-}
-
-export type LoyaltyTier = 'bronze' | 'silver' | 'gold' | 'platinum';
-
-export interface RewardThreshold {
-  id: string;
-  title: string;
-  requiredPoints: number;
-  rewardType: 'percentage_discount' | 'flat_discount' | 'free_service';
-  discountValue: number; // e.g. 15 for 15% or 300 for ₹300 OFF
-  applicableCategory?: string;
-  description: string;
-  isActive: boolean;
-  couponCodePrefix: string;
-}
-
-export interface LoyaltyConfig {
-  programEnabled: boolean;
-  pointsPerVisit: number;
-  pointsPerHundredSpent: number;
-  tierThresholds: {
-    bronze: number;
-    silver: number;
-    gold: number;
-    platinum: number;
-  };
-  tierMultipliers: {
-    bronze: number;
-    silver: number;
-    gold: number;
-    platinum: number;
-  };
-  rewards: RewardThreshold[];
-}
-
-export interface PointTransaction {
-  id: string;
-  date: string;
-  description: string;
-  pointsChange: number;
-  type: 'visit_earned' | 'spend_earned' | 'bonus' | 'redeemed';
-}
-
-export interface RedeemedReward {
-  id: string;
-  rewardId: string;
-  rewardTitle: string;
-  discountSummary: string;
-  pointsSpent: number;
-  redeemedAt: string;
-  couponCode: string;
-  status: 'active' | 'used';
-}
-
-export interface ClientRecord {
-  id: string;
-  name: string;
-  phone: string;
-  email: string;
-  totalVisits: number;
-  totalSpent: number;
-  lastVisit: string;
-  notes: string;
-  favoriteStylist: string;
-  points: number;
-  lifetimePoints: number;
-  loyaltyTier: LoyaltyTier;
-  pointHistory?: PointTransaction[];
-  redeemedRewards?: RedeemedReward[];
-}
-
-export type VogueNoirPortfolioCategory = 'Bridal' | 'Party' | 'Editorial' | 'Academy Work';
-
-export interface VogueNoirThemeColors {
-  bgPrimary: string;
-  bgSurface: string;
-  borderSubtle: string;
-  accentGold: string;
-  textPrimary: string;
-  textMuted: string;
-  highlightBlush: string;
-}
-
-export interface VogueNoirStatItem {
-  id: string;
-  value: string;
-  label: string;
-}
-
-export interface VogueNoirBridalPackage {
-  id: string;
-  tier: string;
-  price: number;
-  popular?: boolean;
-  badgeLabel?: string;
-  imageUrl: string;
-  imageAlt?: string;
-  inclusions: string[];
-  linkedServiceId?: string;
-}
-
-export interface VogueNoirAcademyCourse {
-  id: string;
-  title: string;
-  duration: string;
-  fee: number;
-  imageUrl: string;
-  imageAlt?: string;
-  summary: string;
-  batchOverride?: string;
-  certification: string;
-  emiNote: string;
-  syllabus: string[];
-}
-
-export interface VogueNoirPortfolioItem {
-  id: string;
-  category: VogueNoirPortfolioCategory;
-  imageUrl: string;
-  title: string;
-  alt: string;
-}
-
-export interface VogueNoirBeforeAfterItem {
-  id: string;
-  title: string;
-  category: string;
-  beforeUrl: string;
-  afterUrl: string;
-  beforeAlt: string;
-  afterAlt: string;
-}
-
-export interface VogueNoirFaqItem {
-  id: string;
-  question: string;
-  answer: string;
-}
-
-export interface VogueNoirReviewItem {
-  id: string;
-  name: string;
-  tag: string;
-  rating: number;
-  quote: string;
-  avatarUrl: string;
-}
-
-export interface VogueNoirConfig {
-  selectorLabel?: string;
-  heroHeading?: string;
-  heroSubtext?: string;
-  heroDesktopUrl?: string;
-  heroMobileUrl?: string;
-  aboutHeading?: string;
-  aboutStory?: string;
-  aboutImageUrl?: string;
-  publicEmail?: string;
-  workingHoursDisplay?: string;
-  mapEmbedUrl?: string;
-  gstin?: string;
-  sacCode?: string;
-  gstPricing?: 'inclusive' | 'exclusive' | '';
-  colors?: Partial<VogueNoirThemeColors>;
-  stats?: VogueNoirStatItem[];
-  bridalPackages?: VogueNoirBridalPackage[];
-  academyEnabled?: boolean;
-  academyHeading?: string;
-  academySubtext?: string;
-  academyHeroUrl?: string;
-  academyHighlights?: string[];
-  /** City-specific preferred batch labels, one line per city: City | date, date. */
-  academyScheduleText?: string;
-  courses?: VogueNoirAcademyCourse[];
-  portfolio?: VogueNoirPortfolioItem[];
-  beforeAfter?: VogueNoirBeforeAfterItem[];
-  reviews?: VogueNoirReviewItem[];
-  faqs?: VogueNoirFaqItem[];
-}
-
-export type AcademyEnquiryStatus = 'new' | 'contacted' | 'enrolled';
-
-export interface AcademyEnquiryRecord {
-  id: string;
-  website_slug: string;
-  owner_id: string;
-  customer_id: string;
-  name: string;
-  phone: string;
-  email: string;
-  course: string;
-  batch: string;
-  city: string;
-  message: string;
-  status: AcademyEnquiryStatus;
-  created_at: string;
-  updated_at: string;
-}
-
-/* ---------------------------------------------------------------------------
- * Template 09 — Bodhi Tree Massage & Wellness Sanctuary (massage_wellness)
- * Editable storefront content stored on the salon profile. Everything is
- * optional: the resolver in `lib/bodhiTree.ts` fills any missing value with
- * the bundled Jaipur demo defaults, so published sites never render blanks.
- * ------------------------------------------------------------------------- */
-
-export interface BodhiTreeThemeColors {
-  /** Warm cream page background. */
-  bgCream: string;
-  /** Soft sage section background. */
-  bgSage: string;
-  /** Deep forest green — headings and primary text. */
-  forest: string;
-  /** Sage green — buttons and primary brand surfaces. */
-  sage: string;
-  /** Soft gold — fine borders, icons and small highlights. */
-  gold: string;
-  /** Jaipur pink-sandstone — highlights and borders. */
-  sandstone: string;
-  /** Muted body text. */
-  textMuted: string;
-}
-
-export interface BodhiTreePalaceItem {
-  id: string;
-  /** The Jaipur place the ritual is inspired by, e.g. "Hawa Mahal". */
-  place: string;
-  /** Ritual name, e.g. "Hawa Mahal Calm Ritual". */
-  title: string;
-  /** Price in INR (₹). */
-  price: number;
-  /** Display duration, e.g. "60 min". */
-  duration: string;
-  /** One or two simple lines about the place and the treatment. */
-  blurb: string;
-  includes: string[];
-  imageUrl: string;
-  imageAlt?: string;
-  /** Bookable service the card links to. */
-  linkedServiceId?: string;
-  popular?: boolean;
-  badgeLabel?: string;
-}
-
-export interface BodhiTreeBranch {
-  id: string;
-  name: string;
-  area: string;
-  address: string;
-  phone?: string;
-  hours?: string;
-}
-
-export interface BodhiTreeStatItem {
-  id: string;
-  value: string;
-  label: string;
-}
-
-export interface BodhiTreeFaqItem {
-  id: string;
-  question: string;
-  answer: string;
-}
-
-export interface BodhiTreeReviewItem {
-  id: string;
-  name: string;
-  /** Branch / area tag, e.g. "C-Scheme, Jaipur". */
-  tag: string;
-  rating: number;
-  quote: string;
-  /** Service the review is about (display only). */
-  serviceName?: string;
-  avatarUrl: string;
-}
-
-export interface BodhiTreeConfig {
-  selectorLabel?: string;
-  heroHeading?: string;
-  heroSubtext?: string;
-  heroDesktopUrl?: string;
-  heroMobileUrl?: string;
-  aboutHeading?: string;
-  aboutStory?: string;
-  aboutImageUrl?: string;
-  aboutImage2Url?: string;
-  palaceHeading?: string;
-  palaceSubtext?: string;
-  contactImageUrl?: string;
-  publicEmail?: string;
-  workingHoursDisplay?: string;
-  mapEmbedUrl?: string;
-  colors?: Partial<BodhiTreeThemeColors>;
-  stats?: BodhiTreeStatItem[];
-  palaceCollection?: BodhiTreePalaceItem[];
-  branches?: BodhiTreeBranch[];
-  faqs?: BodhiTreeFaqItem[];
-  reviews?: BodhiTreeReviewItem[];
-}
-
-
-/* ---------------------------------------------------------------------------
- * Template 10 — Prism & Chroma Hair Color Atelier (hair_coloring)
- * "Light through a Prism": ink-black premium base, holographic colour glow.
- * Editable storefront content stored on the salon profile. Everything is
- * optional: the resolver in `lib/prismChroma.ts` fills any missing value with
- * the bundled demo defaults, so published sites never render blanks.
- * ------------------------------------------------------------------------- */
-
-export interface PrismChromaThemeColors {
-  /** Ink-black page background (--bg). */
-  bg: string;
-  /** Violet brand colour (--violet). */
-  violet: string;
-  /** Magenta brand colour (--magenta). */
-  magenta: string;
-  /** Coral brand colour (--coral). */
-  coral: string;
-  /** Cyan brand colour (--cyan). */
-  cyan: string;
-  /** Main text colour (--text). */
-  text: string;
-  /** Muted body text (--muted). */
-  muted: string;
-}
-
-export interface PrismChromaShade {
-  id: string;
-  /** Shade name shown in the Shade Studio, e.g. "Violet Storm". */
-  name: string;
-  /** CSS colour of the swatch dot. */
-  swatch: string;
-  /** CSS filter applied to the hair photo when the shade is picked. */
-  tintFilter: string;
-  /** Price in INR (₹) for this shade. */
-  price: number;
-  /** One simple line about the shade. */
-  blurb: string;
-  imageUrl: string;
-  imageAlt?: string;
-  /** Bookable service the shade links to. */
-  linkedServiceId?: string;
-  /** Warm / cool / neutral — matched to skin tone at consult. */
-  undertone?: string;
-  /** Gloss, Matte or Metallic finish suggestion. */
-  finish?: string;
-  /** 1 (very easy) to 5 (high care) upkeep level. */
-  maintenanceLevel?: number;
-  /** How many weeks the shade stays fresh. */
-  longevityWeeks?: string;
-  /** Who this shade suits best, in one simple line. */
-  bestFor?: string;
-  /** One home-care tip for this shade. */
-  careTip?: string;
-  /** Shade family used by the Find-My-Shade quiz: vivid | pastel | natural | warm | cool. */
-  family?: string;
-}
-
-export interface PrismChromaPackage {
-  id: string;
-  tier: string;
-  price: number;
-  popular?: boolean;
-  badgeLabel?: string;
-  imageUrl: string;
-  imageAlt?: string;
-  includes: string[];
-  linkedServiceId?: string;
-  /** Number of studio visits covered, when the package spans visits. */
-  sessionsCount?: number;
-  /** Days the package stays valid after purchase. */
-  validityDays?: number;
-  /** Short saving note, e.g. "Save ₹1,500 vs separate services". */
-  savingsNote?: string;
-  /** Extra ₹ per visit when the care-plan toggle is on (0 = included). */
-  carePlanAddon?: number;
-}
-
-export interface PrismChromaBeforeAfter {
-  id: string;
-  title: string;
-  beforeUrl: string;
-  afterUrl: string;
-  beforeAlt: string;
-  afterAlt: string;
-  /** Service that created the change, e.g. "Signature Balayage". */
-  serviceLabel?: string;
-  /** e.g. "Done in 1 sitting" or "2 sittings over 3 weeks". */
-  sessionsNote?: string;
-  /** Colour expert who did the work. */
-  stylistName?: string;
-}
-
-export interface PrismChromaProcessStep {
-  id: string;
-  title: string;
-  text: string;
-  image: string;
-  alt: string;
-  /** e.g. "15 mins" — time this step usually takes. */
-  durationLabel?: string;
-  /** Small check points shown under the step text. */
-  points?: string[];
-}
-
-export interface PrismChromaCareStep {
-  id: string;
-  /** e.g. "Week 1". */
-  when: string;
-  title: string;
-  text: string;
-}
-
-export interface PrismChromaBranch {
-  id: string;
-  name: string;
-  area: string;
-  address: string;
-  phone?: string;
-  hours?: string;
-  /** Nearby landmark clients know. */
-  landmark?: string;
-  /** Nearest metro / local station note. */
-  metroNote?: string;
-  /** Parking note for drivers. */
-  parkingNote?: string;
-}
-
-export interface PrismChromaStatItem {
-  id: string;
-  value: string;
-  label: string;
-}
-
-export interface PrismChromaFaqItem {
-  id: string;
-  question: string;
-  answer: string;
-  /** Group label used by the FAQ filter chips. */
-  category?: string;
-}
-
-export interface PrismChromaReviewItem {
-  id: string;
-  name: string;
-  /** City / area tag, e.g. "Bandra West, Mumbai". */
-  tag: string;
-  rating: number;
-  quote: string;
-  serviceName?: string;
-  avatarUrl: string;
-  /** Shade the client picked, when known. */
-  shadeName?: string;
-  /** e.g. "Visited recently". */
-  visitLabel?: string;
-  /** Show a small "Verified visit" tick. */
-  verified?: boolean;
-}
-
-export interface PrismChromaConfig {
-  selectorLabel?: string;
-  heroHeading?: string;
-  heroSubtext?: string;
-  heroImageUrl?: string;
-  aboutHeading?: string;
-  aboutStory?: string;
-  aboutImageUrl?: string;
-  shadesHeading?: string;
-  shadesSubtext?: string;
-  bookingImageUrl?: string;
-  publicEmail?: string;
-  workingHoursDisplay?: string;
-  mapEmbedUrl?: string;
-  colors?: Partial<PrismChromaThemeColors>;
-  stats?: PrismChromaStatItem[];
-  shades?: PrismChromaShade[];
-  packages?: PrismChromaPackage[];
-  beforeAfter?: PrismChromaBeforeAfter[];
-  branches?: PrismChromaBranch[];
-  faqs?: PrismChromaFaqItem[];
-  reviews?: PrismChromaReviewItem[];
-  /** Short offer line shown in the thin bar above the navbar. */
-  announcementText?: string;
-  /** Button label inside the announcement bar. */
-  announcementCtaLabel?: string;
-  processSteps?: PrismChromaProcessStep[];
-  careGuide?: PrismChromaCareStep[];
-  /** Daily opening time "HH:MM" (24h) for the Open-now chip. */
-  openTime?: string;
-  /** Daily closing time "HH:MM" (24h) for the Open-now chip. */
-  closeTime?: string;
-}
-
-/* ---------------------------------------------------------------------------
- * Template 11 — Shringaar Royal Indian Bridal Lounge (bridal_lounge)
- * "Royal Rajputana × Sabyasachi": antique ivory canvas, oxblood maroon,
- * royal gold, marigold saffron, peacock teal and rose blush.
- *
- * Every interface below is optional content stored on the salon profile.
- * `lib/shringaarRoyal.ts` resolves each missing value to the bundled demo
- * defaults (or to the live onboarding service catalogue), so a published
- * storefront never renders an empty section, image or price.
- * ------------------------------------------------------------------------- */
-
-export interface ShringaarRoyalColors {
-  /** Deep oxblood primary (--sr-maroon). */
-  maroon: string;
-  /** Royal gold accent (--sr-gold). */
-  gold: string;
-  /** Antique ivory page background (--sr-ivory). */
-  ivory: string;
-  /** Marigold saffron highlight (--sr-saffron). */
-  saffron: string;
-  /** Peacock teal secondary accent, used sparingly (--sr-teal). */
-  teal: string;
-  /** Rose blush soft surface (--sr-blush). */
-  blush: string;
-  /** Charcoal brown body text (--sr-ink). */
-  ink: string;
-}
-
-export interface ShringaarStatItem {
-  id: string;
-  /** e.g. "1,200+" — kept as text so no counter script is required. */
-  value: string;
-  label: string;
-  image: string;
-  alt: string;
-}
-
-export interface ShringaarCollectionItem {
-  id: string;
-  name: string;
-  subtitle: string;
-  image: string;
-  alt: string;
-}
-
-export interface ShringaarLookItem {
-  id: string;
-  image: string;
-  alt: string;
-  caption: string;
-  tag: string;
-}
-
-export interface ShringaarPackageItem {
-  id: string;
-  /** Classic / Royal / Maharani. */
-  tier: string;
-  tagline: string;
-  /** Live onboarding service whose ₹ price this package displays. */
-  serviceId?: string;
-  /** Fallback ₹ price in INR when no live service matches. */
-  price?: number;
-  image: string;
-  alt: string;
-  /** Highlighted centre card in glassmorphism. */
-  popular?: boolean;
-  badge?: string;
-  /** e.g. "5 visits". */
-  sessions?: string;
-  includes: string[];
-}
-
-export interface ShringaarBeforeAfter {
-  id: string;
-  title: string;
-  before: string;
-  after: string;
-  alt: string;
-}
-
-export interface ShringaarProcessStep {
-  id: string;
-  title: string;
-  text: string;
-  image: string;
-  alt: string;
-  /** e.g. "Week 1". */
-  durationLabel?: string;
-}
-
-export interface ShringaarReviewItem {
-  id: string;
-  name: string;
-  /** e.g. "Palace wedding · C-Scheme, Jaipur". */
-  weddingPlace: string;
-  rating: number;
-  quote: string;
-  avatar: string;
-  alt: string;
-  date?: string;
-}
-
-export interface ShringaarFaqItem {
-  id: string;
-  question: string;
-  answer: string;
-}
-
-export interface ShringaarRoyalConfig {
-  selectorLabel?: string;
-  heroHeading?: string;
-  heroScript?: string;
-  heroSubtext?: string;
-  heroImageUrl?: string;
-  aboutHeading?: string;
-  aboutStory?: string;
-  aboutImageUrl?: string;
-  collectionsHeading?: string;
-  collectionsSubtext?: string;
-  looksHeading?: string;
-  looksSubtext?: string;
-  servicesHeading?: string;
-  packagesHeading?: string;
-  packageEyebrow?: string;
-  processHeading?: string;
-  reviewsHeading?: string;
-  galleryHeading?: string;
-  offerHeading?: string;
-  offerText?: string;
-  bookingHeading?: string;
-  announcementText?: string;
-  bookingImageUrl?: string;
-  offerImageUrl?: string;
-  publicEmail?: string;
-  workingHoursDisplay?: string;
-  mapEmbedUrl?: string;
-  /** e.g. "Est. 2014 · Jaipur". */
-  established?: string;
-  colors?: Partial<ShringaarRoyalColors>;
-  stats?: ShringaarStatItem[];
-  collections?: ShringaarCollectionItem[];
-  looks?: ShringaarLookItem[];
-  packages?: ShringaarPackageItem[];
-  beforeAfter?: ShringaarBeforeAfter[];
-  processSteps?: ShringaarProcessStep[];
-  reviews?: ShringaarReviewItem[];
-  faqs?: ShringaarFaqItem[];
-  /** Instagram-style gallery strip (6–8 photos). */
-  galleryUrls?: string[];
-  /** Daily opening time "HH:MM" (24h) for the open-now chip. */
-  openTime?: string;
-  /** Daily closing time "HH:MM" (24h) for the open-now chip. */
-  closeTime?: string;
-}
-
-/**
- * Template 13 — Arch & Flutter Lash & Brow Bar (`lash_brow`).
- *
- * Editorial-luxury lash & brow micro-studio: blush rose, warm ivory, deep
- * espresso, champagne gold and dusty mauve; oversized serif headings over a
- * clean sans; bento grids; arch-shaped image masks and feather motifs.
- *
- * `lib/archFlutter.ts` resolves every missing value to the bundled demo
- * defaults so a published site never renders an empty section.
- */
-export interface ArchFlutterColors {
-  blush: string;
-  ivory: string;
-  espresso: string;
-  gold: string;
-  mauve: string;
-}
-
-export interface ArchFlutterStat {
-  id: string;
-  value: string;
-  label: string;
-}
-
-/** One of the 15 lash & brow categories on the bento grid. */
-export interface ArchFlutterCategory {
-  id: string;
-  name: string;
-  blurb: string;
-  imageUrl: string;
-  /** Larger tile on the home bento grid. */
-  featured?: boolean;
-}
-
-export interface ArchFlutterPackage {
-  id: string;
-  tier: string;
-  name: string;
-  price: number;
-  durationMinutes: number;
-  includes: string[];
-  imageUrl?: string;
-  highlight?: boolean;
-  note?: string;
-}
-
-export interface ArchFlutterBeforeAfter {
-  id: string;
-  title: string;
-  alt: string;
-  before: string;
-  after: string;
-}
-
-export interface ArchFlutterReel {
-  id: string;
-  title: string;
-  caption: string;
-  posterUrl: string;
-  /** Optional playable source (mp4/webm) for the in-card muted preview. */
-  previewVideoUrl?: string;
-  /** Optional Instagram / YouTube link for "watch on". */
-  sourceUrl?: string;
-}
-
-export interface ArchFlutterReview {
-  id: string;
-  name: string;
-  area: string;
-  rating: number;
-  service: string;
-  quote: string;
-  avatarUrl?: string;
-}
-
-export interface ArchFlutterFaq {
-  id: string;
-  question: string;
-  answer: string;
-}
-
-export interface ArchFlutterPost {
-  id: string;
-  title: string;
-  excerpt: string;
-  body: string;
-  imageUrl: string;
-  tag: string;
-  minutes: number;
-}
-
-export interface ArchFlutterOffer {
-  id: string;
-  headline: string;
-  detail: string;
-  code: string;
-  imageUrl: string;
-}
-
-/** How a promotion reduces the price. */
-export type SalonOfferType = 'percent' | 'flat' | 'combo' | 'free_addon';
-
-/**
- * One editable "Promotions & offers" record, stored on the salon profile so it
- * saves with the rest of the workspace (same JSON shape for demo and real
- * offers). Template 13 seeds six demo offers with `isDemo: true`; the flag is
- * dropped from an offer as soon as its owner edits it. Expired or hidden offers
- * stay in the owner workspace but never render on the public site.
- */
-export interface SalonOffer {
-  id: string;
-  title: string;
-  description: string;
-  image: string;
-  badge: string;
-  offerType: SalonOfferType;
-  /** Percent (20 = 20% off), rupees (flat / free add-on worth) or 0 for a combo price. */
-  discountValue: number;
-  originalPriceINR: number;
-  offerPriceINR: number;
-  /** Service ids the offer applies to; an empty list means "any service". */
-  applicableServices: string[];
-  couponCode: string;
-  /** Inclusive validity window, `YYYY-MM-DD`. An empty `validTo` means no end date. */
-  validFrom: string;
-  validTo: string;
-  terms: string;
-  isActive: boolean;
-  isDemo: boolean;
-}
-
-/**
- * Template 13 ("Arch & Flutter") home-page blocks the owner can show, hide,
- * rename and reorder from the dedicated template customizer. Structural
- * blocks are `locked` — they always render, in the order the owner leaves them.
- */
-export type ArchFlutterSectionId =
-  | 'hero'
-  | 'trust'
-  | 'promo'
-  | 'categories'
-  | 'services'
-  | 'about'
-  | 'beforeAfter'
-  | 'reels'
-  | 'packages'
-  | 'team'
-  | 'testimonials'
-  | 'gallery'
-  | 'offers'
-  | 'journal'
-  | 'faq'
-  | 'contact'
-  | 'closing';
-
-export interface ArchFlutterSectionState {
-  id: ArchFlutterSectionId;
-  /** Owner heading for this block. Empty keeps the template default copy. */
-  label: string;
-  visible: boolean;
-  order: number;
-  /** Structural blocks cannot be hidden, only moved. */
-  locked?: boolean;
-}
-
-/** Curated heading/body font pairing (families the app already loads). */
-export interface ArchFlutterFonts {
-  heading: string;
-  body: string;
-}
-
-/** Where a hero button takes the visitor. `url` uses the matching link field. */
-export type ArchFlutterHeroAction =
-  | 'booking'
-  | 'services'
-  | 'packages'
-  | 'offers'
-  | 'gallery'
-  | 'contact'
-  | 'url'
-  | 'none';
-
-export interface ArchFlutterConfig {
-  selectorLabel?: string;
-  heroHeading?: string;
-  heroKicker?: string;
-  heroSubtext?: string;
-  heroImageUrl?: string;
-  aboutHeading?: string;
-  aboutStory?: string;
-  aboutImageUrl?: string;
-  categoriesHeading?: string;
-  categoriesSubtext?: string;
-  servicesHeading?: string;
-  servicesSubtext?: string;
-  packagesHeading?: string;
-  packagesSubtext?: string;
-  resultsHeading?: string;
-  reelsHeading?: string;
-  reelsSubtext?: string;
-  teamHeading?: string;
-  reviewsHeading?: string;
-  galleryHeading?: string;
-  offersHeading?: string;
-  journalHeading?: string;
-  faqsHeading?: string;
-  contactHeading?: string;
-  bookingHeading?: string;
-  bookingSubtext?: string;
-  ctaBannerImageUrl?: string;
-  footerImageUrl?: string;
-  publicEmail?: string;
-  workingHoursDisplay?: string;
-  mapEmbedUrl?: string;
-  established?: string;
-  /** Show GST-inclusive note beside prices. */
-  showGstNote?: boolean;
-  colors?: Partial<ArchFlutterColors>;
-  stats?: ArchFlutterStat[];
-  categories?: ArchFlutterCategory[];
-  packages?: ArchFlutterPackage[];
-  beforeAfter?: ArchFlutterBeforeAfter[];
-  reels?: ArchFlutterReel[];
-  featuredVideo?: ArchFlutterReel;
-  reviews?: ArchFlutterReview[];
-  faqs?: ArchFlutterFaq[];
-  posts?: ArchFlutterPost[];
-  offers?: ArchFlutterOffer[];
-  galleryUrls?: string[];
-  openTime?: string;
-  closeTime?: string;
-  /* ---- Template customizer (Arch & Flutter only) ---- */
-  /** Config schema version, so an older saved draft can be migrated. */
-  customizerVersion?: number;
-  /** Home-page blocks: show/hide, rename and drag-to-reorder. */
-  sections?: ArchFlutterSectionState[];
-  /** Heading/body font pairing chosen by the owner. */
-  fonts?: ArchFlutterFonts;
-  /** Card corner radius in px (template default 22). */
-  cornerRadius?: number;
-  /** Glass blur strength in px (template default 18). */
-  glassBlur?: number;
-  heroPrimaryLabel?: string;
-  heroPrimaryAction?: ArchFlutterHeroAction;
-  heroPrimaryUrl?: string;
-  heroSecondaryLabel?: string;
-  heroSecondaryAction?: ArchFlutterHeroAction;
-  heroSecondaryUrl?: string;
-  /** Screenshot shown inside the hero DeviceMockup phone. */
-  heroMockupImageUrl?: string;
-  /** Offer "pay at the salon" alongside online payment. */
-  payAtSalon?: boolean;
-  /** UPI handle shown on the booking and contact pages (e.g. archflutter@upi). */
-  upiHandle?: string;
-  /** GSTIN printed beside the GST note, when the salon is registered. */
-  gstin?: string;
-}
+// Shringaar types
+export interface ShringaarBeforeAfter { id: string; title: string; beforeUrl: string; afterUrl: string; }
+export interface ShringaarCollectionItem { id: string; title: string; imageUrl: string; }
+export interface ShringaarFaqItem { id: string; question: string; answer: string; }
+export interface ShringaarLookItem { id: string; title: string; imageUrl: string; category?: string; }
+export interface ShringaarPackageItem { id: string; title: string; price: number; services: string[]; }
+export interface ShringaarProcessStep { id: string; stepNumber: number; title: string; description: string; }
+export interface ShringaarReviewItem { id: string; name: string; rating: number; text: string; date?: string; }
+export interface ShringaarRoyalColors { maroon: string; gold: string; cream: string; }
+export interface ShringaarRoyalConfig { enabled: boolean; headline?: string; }
+export interface ShringaarStatItem { label: string; value: string; }
+
+// Vogue Noir types
+export interface VogueNoirAcademyCourse { id: string; title: string; duration: string; fee: number; description: string; }
+export interface VogueNoirBeforeAfterItem { id: string; title: string; beforeUrl: string; afterUrl: string; }
+export interface VogueNoirBridalPackage { id: string; title: string; price: number; inclusions: string[]; }
+export interface VogueNoirConfig { enabled: boolean; }
+export interface VogueNoirFaqItem { id: string; question: string; answer: string; }
+export interface VogueNoirPortfolioCategory { id: string; label: string; }
+export interface VogueNoirPortfolioItem { id: string; title: string; imageUrl: string; category: string; }
+export interface VogueNoirReviewItem { id: string; name: string; rating: number; comment: string; }
+export interface VogueNoirStatItem { label: string; value: string; }
+export interface VogueNoirThemeColors { obsidian: string; gold: string; }
