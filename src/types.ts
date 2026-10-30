@@ -237,7 +237,7 @@ export interface SalonProfile {
   bodhiTree?: BodhiTreeConfig;
   prismChroma?: PrismChromaConfig;
   shringaarRoyal?: ShringaarRoyalConfig;
-  ironInk?: { categories?: import('./lib/ironInk').IronInkCategory[]; heroImage?:string; interiorImage?:string; artistImage?:string; bookingDeposit?:number; faq?:Array<{question:string;answer:string}> };
+  ironInk?: { categories?: import('./lib/ironInk').IronInkCategory[]; heroImage?:string; interiorImage?:string; artistImage?:string; bookingDeposit?:number; faq?:Array<{question:string;answer:string}>; media?:import('./lib/ironInkMedia').IronInkMediaTopic[] };
 
   businessType: BusinessTypeId;
   branches?: SalonBranch[];

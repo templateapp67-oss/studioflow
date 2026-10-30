@@ -10,7 +10,7 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
  if(teamPage)(globalThis as any).window={addEventListener(){},removeEventListener(){},matchMedia:()=>({matches:false,addEventListener(){},removeEventListener(){}}),location:{hash:'#team'},scrollTo(){}};
  const html=renderToStaticMarkup(<CustomerSalonWebsite profile={profile} services={[]} stylists={[staff]} readOnly onAddAppointment={async a=>a}/>);
  if(teamPage)(globalThis as any).window={addEventListener(){},removeEventListener(){}};
- assert.ok(html.includes('View profile &amp; reviews'),`${template.id}: specialist cards open the full profile`);assert.ok(html.includes('7.5'),`${template.id}: experience is published`);const saved=normalizeWorkspace({profile,stylists:[staff]});assert.equal(saved.stylists[0].experienceYears,7.5);
+ assert.ok(html.includes(template.id==='tattoo_studio'?'View artist profile':'View profile &amp; reviews'),`${template.id}: specialist cards open the full profile`);assert.ok(html.includes('7.5'),`${template.id}: experience is published`);const saved=normalizeWorkspace({profile,stylists:[staff]});assert.equal(saved.stylists[0].experienceYears,7.5);
 }
 let args:any,logged=0;let canReview=false;
 (supabase as any).rpc=async(name:string,input:any)=>{if(name==='studioflow_staff_review_submit'){args=input;return{data:{reviews:[{id:'review',name:'Customer',rating:4,comment:input.p_comment}],average:4,count:1,ownReview:{rating:4,comment:input.p_comment},canReview:true},error:null}}return{data:{reviews:[],count:0,average:null,canReview},error:null}};
