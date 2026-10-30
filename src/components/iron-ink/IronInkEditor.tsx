@@ -26,6 +26,7 @@ import {
   blankIronInkPerk,
 } from "../../lib/ironInkLoyalty";
 import { socialVideoSource } from "../../lib/socialVideoSource";
+import { IronInkSocialVideosManager } from "./IronInkSocialVideosManager";
 
 type SocialKey = "instagramHandle" | "facebookPage" | "youtubeChannel";
 const SOCIAL_FIELDS: Array<{
@@ -481,6 +482,8 @@ export function IronInkEditor({
           above until you add reels in <strong>Social &amp; videos</strong>.
         </p>
       )}
+
+      <IronInkSocialVideosManager />
 
       <h3>
         Loyalty &amp; rewards <small>Perks are promises — enable only what you honour</small>

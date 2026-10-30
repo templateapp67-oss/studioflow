@@ -33,6 +33,10 @@ import { ironInkSocialLinks } from "../lib/ironInkSocial";
 import { IronInkSocial } from "./iron-ink/IronInkSocial";
 import { IronInkReels } from "./iron-ink/IronInkReels";
 import { IronInkLoyalty } from "./iron-ink/IronInkLoyalty";
+import { IronInkPromotions } from "./iron-ink/IronInkPromotions";
+import { IronInkShorts } from "./iron-ink/IronInkShorts";
+import { IronInkShare } from "./iron-ink/IronInkShare";
+import type { PromotionOffer } from "../lib/promotionsMock";
 import { useCreateInkBooking, useInkAvailability, useInkEnquiry, useInkSite } from "../templates/iron-ink/hooks";
 import { uploadInkReference } from "../templates/iron-ink/api";
 import type { InkBookingRow } from "../templates/iron-ink/database.types";
@@ -144,6 +148,8 @@ export function IronInkWebsite({
   const [enquirySent,setEnquirySent]=useState(false);
   const [depositAcknowledged,setDepositAcknowledged]=useState(false);
   const [bookingError,setBookingError]=useState("");
+  /** Offer chosen from the Promotions section; carried into the booking request. */
+  const [activeOffer,setActiveOffer]=useState<PromotionOffer|null>(null);
   const reduced = useReducedMotion();
   const remote=useInkSite(siteSlug);
   const remoteSettings=remote.data?.settings;
@@ -231,7 +237,8 @@ export function IronInkWebsite({
     setArtistView(null);
     window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
   };
-  const beginBooking = (category?: string) => {
+  const beginBooking = (category?: string, offer?: PromotionOffer | null) => {
+    setActiveOffer(offer || null);
     setPickedCategory(category || enabledCategories[0]?.slug || "");
     setPickedBranch(inkBranches.length===1?inkBranches[0].id:'');
     setPickedArtist(artistView?.id||artistList[0]?.id||"");
@@ -283,7 +290,7 @@ export function IronInkWebsite({
     if(remote.data?.site_id){
       if(!categoryRecord?.id){setBookingError("This category is not available for online requests. Please contact the studio on WhatsApp.");return;}
       if(!chosenArtistId){setBookingError("No artist is available for online booking. Please contact the studio on WhatsApp.");return;}
-      try{const numericSize=Number.parseFloat(size.match(/[0-9]+(?:\.[0-9]+)?/)?.[0]||'');const result=await createInk.mutate({siteId:remote.data.site_id,customerName:bookingCustomerName,phone:customerPhone,email:customerEmail,categoryId:categoryRecord.id,artistId:chosenArtistId,branchId:pickedBranch||undefined,bookingDate:pickedDate,startTime:pickedTime,birthDate,sizeCm:Number.isFinite(numericSize)?numericSize:null,placement,description:`${selectedCategory?.name||'Tattoo'} request${size?` · ${size}`:''}`,referenceImages:reference?[reference]:[]});setBookingResult(result as InkBookingRow);return;}catch{return;}
+      try{const numericSize=Number.parseFloat(size.match(/[0-9]+(?:\.[0-9]+)?/)?.[0]||'');const result=await createInk.mutate({siteId:remote.data.site_id,customerName:bookingCustomerName,phone:customerPhone,email:customerEmail,categoryId:categoryRecord.id,artistId:chosenArtistId,branchId:pickedBranch||undefined,bookingDate:pickedDate,startTime:pickedTime,birthDate,sizeCm:Number.isFinite(numericSize)?numericSize:null,placement,description:`${selectedCategory?.name||'Tattoo'} request${size?` · ${size}`:''}${activeOffer?` · Offer: ${activeOffer.title}${activeOffer.couponCode?` (${activeOffer.couponCode})`:''}`:''}`,referenceImages:reference?[reference]:[]});setBookingResult(result as InkBookingRow);return;}catch{return;}
     }
     onBook(activeService,stylists.find((item)=>item.id===chosenArtistId)||undefined,{date:pickedDate,time:pickedTime,placement,size,reference});
   };
@@ -1289,7 +1296,7 @@ export function IronInkWebsite({
                       </div>
                     </div>
                   )}
-                  {page === "BOOKING"&&bookingResult?<div className="ii-booking-success"><span className="ii-kicker">REQUEST RECEIVED · NOT YET CONFIRMED</span><h2>Your idea is in safe hands.</h2><p>Reference {bookingResult.id.slice(0,8).toUpperCase()} · {inkBranches.find(item=>item.id===bookingResult.branch_id)?.name||'Studio'} · {selectedCategory?.name} · {pickedDate} at {pickedTime}</p><p>We have received your request. The studio will confirm availability and the final quote{bookingDeposit>0?` and how to arrange the ${money(bookingDeposit)} deposit`:' and whether a deposit is required'}. No payment has been taken and your appointment is not yet confirmed.</p>{whatsappLink(`Hi, I just submitted booking request ${bookingResult.id.slice(0,8).toUpperCase()} for ${selectedCategory?.name||'a tattoo'} with ${selectedArtistName} on ${pickedDate} at ${pickedTime}. Please let me know how to confirm the appointment and arrange ${depositDescription}.`)?<a className="ii-primary" target="_blank" rel="noopener noreferrer" href={whatsappLink(`Hi, I just submitted booking request ${bookingResult.id.slice(0,8).toUpperCase()} for ${selectedCategory?.name||'a tattoo'} with ${selectedArtistName} on ${pickedDate} at ${pickedTime}. Please let me know how to confirm the appointment and arrange ${depositDescription}.`)}>CONFIRM DETAILS ON WHATSAPP <ArrowUpRight/></a>:<button className="ii-outline" onClick={()=>go("CONTACT")}>CONTACT THE STUDIO</button>}{referenceFile&&<button className="ii-outline" onClick={shareReferenceImage}>SHARE REFERENCE IMAGE <ArrowUpRight/></button>}<button className="ii-outline" onClick={()=>{setBookingResult(null);beginBooking()}}>REQUEST ANOTHER SESSION</button></div>:page === "BOOKING" && (
+                  {page === "BOOKING"&&bookingResult?<div className="ii-booking-success"><span className="ii-kicker">REQUEST RECEIVED · NOT YET CONFIRMED</span><h2>Your idea is in safe hands.</h2><p>Reference {bookingResult.id.slice(0,8).toUpperCase()} · {inkBranches.find(item=>item.id===bookingResult.branch_id)?.name||'Studio'} · {selectedCategory?.name} · {pickedDate} at {pickedTime}{activeOffer?` · Offer: ${activeOffer.title}`:''}</p><p>We have received your request. The studio will confirm availability and the final quote{bookingDeposit>0?` and how to arrange the ${money(bookingDeposit)} deposit`:' and whether a deposit is required'}. No payment has been taken and your appointment is not yet confirmed.</p>{whatsappLink(`Hi, I just submitted booking request ${bookingResult.id.slice(0,8).toUpperCase()} for ${selectedCategory?.name||'a tattoo'} with ${selectedArtistName} on ${pickedDate} at ${pickedTime}. Please let me know how to confirm the appointment and arrange ${depositDescription}.`)?<a className="ii-primary" target="_blank" rel="noopener noreferrer" href={whatsappLink(`Hi, I just submitted booking request ${bookingResult.id.slice(0,8).toUpperCase()} for ${selectedCategory?.name||'a tattoo'} with ${selectedArtistName} on ${pickedDate} at ${pickedTime}. Please let me know how to confirm the appointment and arrange ${depositDescription}.`)}>CONFIRM DETAILS ON WHATSAPP <ArrowUpRight/></a>:<button className="ii-outline" onClick={()=>go("CONTACT")}>CONTACT THE STUDIO</button>}{referenceFile&&<button className="ii-outline" onClick={shareReferenceImage}>SHARE REFERENCE IMAGE <ArrowUpRight/></button>}<button className="ii-outline" onClick={()=>{setBookingResult(null);beginBooking()}}>REQUEST ANOTHER SESSION</button></div>:page === "BOOKING" && (
                     <div className="ii-booking-layout">
                       <div className="ii-booking-photo">
                         {img(
@@ -1299,6 +1306,21 @@ export function IronInkWebsite({
                         <span>YOUR IDEA, YOUR WAY.</span>
                       </div>
                       <div className="ii-booking-card">
+                        {activeOffer && (
+                          <div className="ii-offer-chip" role="status">
+                            <span>
+                              <strong>{activeOffer.title}</strong>
+                              {activeOffer.couponCode ? ` · ${activeOffer.couponCode}` : ""}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveOffer(null)}
+                              aria-label={`Remove the offer ${activeOffer.title} from this booking`}
+                            >
+                              REMOVE
+                            </button>
+                          </div>
+                        )}
                         <div className="ii-step-progress">
                           {["STYLE", "ARTIST", "TIME", "DETAILS"].map(
                             (step, index) => (
@@ -1507,6 +1529,7 @@ export function IronInkWebsite({
                                 </label>
                                 <div className="ii-confirm-summary">
                                   <span>{selectedCategory?.name}</span>
+                                  {activeOffer&&<span>Offer · {activeOffer.title}{activeOffer.couponCode?` (${activeOffer.couponCode})`:''}</span>}
                                   <span>
                                     {pickedDate || "Date to be discussed"} ·{" "}
                                     {pickedTime || "Time to be discussed"}
@@ -1698,10 +1721,13 @@ export function IronInkWebsite({
             </motion.div>
           </AnimatePresence>
         </main>
-        {page==='HOME'&&<div className="ii-standard-sections"><WebsiteSections profile={siteProfile} services={displayServices} onBook={item=>{const match=enabledCategories.find(category=>category.name===item?.category);beginBooking(match?.slug);}} policies={policies} loyaltyConfig={loyaltyConfig} readOnly sections={['promo','policies','share']} onCustomerAccount={onCustomerAccount} customerSignedIn={customerSignedIn} onMyBookings={onMyBookings}/></div>}
+        {page==='HOME'&&<div className="ii-standard-sections"><WebsiteSections profile={siteProfile} services={displayServices} onBook={item=>{const match=enabledCategories.find(category=>category.name===item?.category);beginBooking(match?.slug);}} policies={policies} loyaltyConfig={loyaltyConfig} readOnly sections={['policies']} onCustomerAccount={onCustomerAccount} customerSignedIn={customerSignedIn} onMyBookings={onMyBookings}/></div>}
+        {page==='HOME'&&showSection('promo')&&<IronInkPromotions profile={siteProfile} onBookOffer={offer=>beginBooking(offer.category,offer)} onManage={manageSection('marketing')}/>}
+        {page==='HOME'&&showSection('videos')&&<IronInkShorts profile={siteProfile} siteSlug={siteSlug} onManage={manageSection('social_connectivity')}/>}
         {page==='HOME'&&showSection('social')&&<IronInkSocial profile={siteProfile} onManage={manageSection('social_connectivity')}/>}
         {page==='HOME'&&showSection('videos')&&<IronInkReels profile={siteProfile} videos={template12Videos} onManage={manageSection('social_connectivity')}/>}
         {page==='HOME'&&showSection('loyalty')&&<IronInkLoyalty profile={siteProfile} loyaltyConfig={loyaltyConfig} siteSlug={siteSlug} customerSignedIn={customerSignedIn} customerName={customerName} onCustomerAccount={onCustomerAccount} onMyBookings={onMyBookings} onManage={manageSection('loyalty')}/>}
+        {page==='HOME'&&showSection('share')&&<IronInkShare profile={siteProfile} siteSlug={siteSlug} onManage={manageSection('referral')}/>}
         <footer className="ii-footer">
           <div className="ii-footer-top">
             <div>

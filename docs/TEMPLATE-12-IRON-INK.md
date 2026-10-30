@@ -23,7 +23,7 @@ Booking submissions are requests, not confirmed appointments: they are pending a
 
 ## Social profiles, featured media and loyalty (storefront)
 
-Template 12 renders its own dark-luxury **Follow our studio**, **Featured Videos & Reels** and **Loyalty & Rewards** sections inside `IronInkWebsite`; the shared `WebsiteSections` component still supplies the promo, policy and share sections. This keeps the Template 12 treatment isolated from the other salon templates.
+Template 12 renders its own dark-luxury **Promotions & Offers**, **Watch our work – Reels & Shorts**, **Follow our studio**, **Featured Videos & Reels**, **Loyalty & Rewards** and **Share & referral** sections inside `IronInkWebsite`; the shared `WebsiteSections` component now only supplies the policy cards for this template. This keeps the Template 12 treatment isolated from the other salon templates.
 
 - **Social profiles** read `profile.instagramHandle`, `profile.facebookPage` and `profile.youtubeChannel` (the same fields the existing Social & Videos flow and `ink_studio_settings.socials` already use). `src/lib/ironInkSocial.ts` accepts either a bare handle or a full http(s) profile URL, upgrades it to https, rejects schemes/credentials/ports and unrelated hosts, and extracts the configured display handle. Empty or invalid platforms are omitted entirely — no placeholder card implies a studio has a profile it has not configured. Every rendered link has `target="_blank"`, `rel="noopener noreferrer"` and a descriptive `aria-label`. The owner editor shows an inline validity/setup message for each platform.
 - **Featured media** uses `profile.socialVideos` for owner reels (title, caption, poster, link) and `profile.ironInk.media` for the six Template 12 studio guides. The starter guides are illustrative AI-generated posters bundled at `/public/templates/12/media/`, explicitly labelled **DEMO POSTER · NOT CLIENT WORK**; they are not reviews, portfolio work or client results. Owners can edit every title, caption, poster and optional YouTube/Instagram link in the Template 12 editor, remove or add cards, or reset to the starter examples. Existing reels can also be managed through **Social & videos**. Posters lazy-load with reserved 4:3 dimensions; video previews use `preload="none"`, `muted` and `playsInline`, only mount after the visitor presses the play control, and never autoplay with sound. A missing poster falls back to a labelled placeholder, and `prefers-reduced-motion` disables hover movement and the autoplay-on-open preview.
@@ -32,6 +32,89 @@ Template 12 renders its own dark-luxury **Follow our studio**, **Featured Videos
 The storefront's hero counters are derived from the saved category, service, artist and branch counts instead of invented years, piece totals or satisfaction percentages; artist cards open the artist profile, and review stars appear only when an owner-supplied testimonial has a real saved rating.
 
 The storefront respects the existing `websiteSections.social`, `websiteSections.videos` and `websiteSections.loyalty` toggles and the saved `sectionHeadings` copy. The owner-only "Edit" actions appear only when `onManageDashboard` is supplied by the preview, never on a public published site.
+
+## Promotions, share & referral, Reels & Shorts
+
+These three storefront sections are Template 12 only. They reuse the existing dark glass/card tokens (`--ii-gold`, `--ii-accent`, `--ii-line`, the glass gradients in `src/components/ironInk.css`) and the shared Framer Motion variants in `src/components/iron-ink/motion.ts`.
+
+### Promotions & offers
+
+`src/components/iron-ink/IronInkPromotions.tsx` renders the offer grid (1 / 2 / 3 columns). Each card shows a title, a short description, an accent discount badge, a “Valid till” date, a coupon chip with a copy button (“Copied!” feedback) and **Book this offer**, which opens the existing booking flow with the offer's category pre-selected and an offer chip carried into the booking request.
+
+Offer resolution lives in `src/lib/promotionsMock.ts`:
+
+1. `offers` prop (database rows) — preferred, used when non-empty.
+2. Otherwise the salon's existing `profile.promoCampaign` (Marketing → promo banner), while it is enabled and not expired.
+3. Otherwise `promotionsMock` — five tattoo-studio demo offers in ₹ with codes (IRON15, FLASHFRIDAY, COUPLE2, AFTERCARE, COVERUP), labelled **SAMPLE OFFER**.
+
+The old empty state (“No active offers right now”) is kept and renders only when no live offer exists from the real source *and* the mock list is empty/expired.
+
+**Replacing the mock with database data:**
+
+```tsx
+// src/components/IronInkWebsite.tsx
+<IronInkPromotions profile={siteProfile} offers={salonOffers} onBookOffer={offer => beginBooking(offer.category, offer)} />
+```
+
+where `salonOffers: PromotionOffer[]` comes from a Supabase query (or RPC) in the shape
+`{ id, title, description, badge, validTill, couponCode?, category? }`. Expired rows are filtered by
+`livePromotionOffers()`, and the salon's own rows always win over `promotionsMock`. Nothing else in
+the section changes; you can leave `promotionsMock` as the preview fallback or delete its entries to
+make an owner-only empty state appear.
+
+### Share & referral
+
+`src/components/iron-ink/IronInkShare.tsx` replaces the shared share block for Template 12 and fixes the white-on-white buttons (the old block inherited `background:#fff` from `.secondary-action` while `.ii-standard-sections` forced `color:#fff`). The new buttons are ≥44px tall, `border-radius:12px`, have icons and labels:
+
+- **Share on WhatsApp** — green (`#15803d`, white text, AA contrast) with an inline WhatsApp glyph, opens `https://wa.me/?text=…`.
+- **Copy salon link** — glass/outlined style, clipboard with a selection-copy fallback and a manual input if the browser blocks the clipboard.
+- **Share…** — only rendered where `navigator.share` exists.
+
+The shared URL is always built with `websiteLink(slug)` → `<origin>/?site=<slug>`; nothing is hardcoded and no other salon's link can be produced. The confirmation toast is dark-theme (green tint border, light-green text) and appears **only** after a real copy/share, then auto-hides after 3 seconds (a `status`/`alert` live region, with reduced-motion respected).
+
+### Watch our work – Reels & Shorts
+
+`src/components/iron-ink/IronInkShorts.tsx` is the customer gallery. Filters are **All | YouTube | Instagram | Facebook** (proper `tablist` with arrow-key navigation). Cards are 9:16, a horizontal scroll-snap carousel on phones and a 2/3-column grid above 760px, and every card carries a platform badge. No iframe is mounted until the visitor taps a card; a blocked or slow embed swaps to a fallback card with a **Watch on Instagram/Facebook/YouTube** link.
+
+URL handling is centralised in `src/lib/socialVideoEmbeds.ts`: only `youtube.com`, `youtu.be`, `youtube-nocookie.com`, `instagram.com`, `facebook.com` and `fb.watch` over https are accepted (look-alike hosts, credentials, ports and other protocols are rejected), the platform and id are re-parsed, and the canonical link and embed URL are rebuilt and percent-encoded — user input is never injected as HTML.
+
+- YouTube → `https://www.youtube-nocookie.com/embed/<id>` (Shorts URLs are converted).
+- Instagram → `https://www.instagram.com/reel/<code>/embed`.
+- Facebook → `https://www.facebook.com/plugins/video.php?href=<encoded>`.
+
+Every iframe uses `loading="lazy"`, `referrerPolicy="strict-origin-when-cross-origin"`, a `sandbox` allow-list and an accessible `title`.
+
+Until a salon publishes videos, three clearly-labelled sample cards (`SAMPLE · NOT CLIENT WORK`, local poster images from `public/templates/12/media/`) are shown so the section is never empty.
+
+### Owner “Social videos” manager
+
+`src/components/iron-ink/IronInkSocialVideosManager.tsx` is mounted in the Template 12 editor (`IronInkEditor`). The owner pastes a URL, the platform is auto-detected and validated live, a thumbnail preview is shown, and they can add (max 12), reorder, enable/disable and delete videos. Rows are saved to `public.salon_social_videos`; when no owner session exists (design preview) the same controls edit a browser-local list and say so — the public site never reads that list.
+
+Data access lives in `src/lib/salonSocialVideos.ts`: `createSalonSocialVideo`, `updateSalonSocialVideo`, `deleteSalonSocialVideo`, `reorderSalonSocialVideos`, `fetchOwnerSalonSocialVideos` (RLS-scoped) and `fetchPublicSalonSocialVideos(slug)` (via the `get_salon_social_videos` RPC). Every call fails soft to the sample cards.
+
+### Migration `202610300005_iron_ink_social_videos.sql`
+
+```sql
+create table public.salon_social_videos (
+  id uuid primary key default gen_random_uuid(),
+  salon_id uuid not null references public.studioflow_accounts(user_id) on delete cascade,
+  platform text not null check (platform in ('youtube','instagram','facebook')),
+  url text not null check (/* https + allow-listed host, no credentials */),
+  title text not null default '' check (char_length(title) <= 120),
+  sort_order integer not null default 0,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+```
+
+Highlights: a `platform`/host consistency check, a unique `(salon_id, url)` index, a `before insert` trigger capping a salon at 12 videos, an `updated_at` trigger, RLS with an owner `ALL` policy (`salon_id = auth.uid()`) and a public `SELECT` policy limited to `is_active` rows, plus `get_salon_social_videos(p_slug)` (`security definer`, slug-scoped, active rows only) granted to `anon`/`authenticated`. Rollback: `supabase/rollback/202610300005_iron_ink_social_videos_rollback.sql`.
+
+Apply it after the Template 12 migration:
+
+```sh
+supabase db push   # or run the SQL file in the SQL editor
+```
 
 ## Storage buckets
 
@@ -59,7 +142,7 @@ npm run lint:edge
 npm run build
 ```
 
-`test:template12` runs two static storefront/editor guardrail checks (category content plus social/media/loyalty) and PGlite against stub Supabase schemas. It verifies all 30 active seeded categories have a starting price, numeric duration, human-readable duration label and detailed description; double-application; repeat seeding; published site payload; slot availability; double-book prevention; pending/unpaid booking and notification creation; RLS on every Template 12 table; private reference bucket MIME/size and owner-read policy; customer-ID-only booking read; realtime membership; and rollback. The social/media/loyalty guardrail additionally verifies dynamic handles and safe external URLs, hidden unconfigured platforms, bundled local demo posters and labels, lazy/non-autoplay media, guest versus signed-in loyalty states, inactive perk suggestions, owner media/perk editing, the accessible drawer contract, and the responsive/reduced-motion CSS. It is not a live Supabase deployment test.
+`test:template12` runs three offline guardrail suites (category content; social/media/loyalty; promotions, share & referral and Reels & Shorts) plus PGlite against stub Supabase schemas. It verifies all 30 active seeded categories have a starting price, numeric duration, human-readable duration label and detailed description; double-application; repeat seeding; published site payload; slot availability; double-book prevention; pending/unpaid booking and notification creation; RLS on every Template 12 table; private reference bucket MIME/size and owner-read policy; customer-ID-only booking read; realtime membership; and rollback. The social/media/loyalty guardrail additionally verifies dynamic handles and safe external URLs, hidden unconfigured platforms, bundled local demo posters and labels, lazy/non-autoplay media, guest versus signed-in loyalty states, inactive perk suggestions, owner media/perk editing, the accessible drawer contract, and the responsive/reduced-motion CSS. The promotions/share/Reels suite checks the five mock offers and their replacement by live data, the empty-state fallback, coupon copy, WhatsApp/copy/native share links plus the 3-second toast, URL allow-listing and rebuilt embed URLs, tap-to-load iframes with sandbox/referrer-policy, the sample fallback cards, the owner manager controls and the `salon_social_videos` migration/rollback. None of these are live Supabase deployment tests.
 
 ### Deployment checklist
 
@@ -77,6 +160,9 @@ npm run build
 - [ ] Verify anonymous pending/unpaid booking and enquiry creation; test age, input, throttling, blocked-date, overlapping-slot and cancelled-booking cases.
 - [ ] Verify owner-only CRUD, another owner's denial, customer self-read/cancel behavior, private reference upload/read isolation, and booking realtime delivery.
 - [ ] Deploy the optional Edge Function only if an external client is actually configured; verify its CORS/auth/rate-limit behavior in the target project.
+- [ ] Confirm the five sample offers appear with copyable coupon codes and that **Book this offer** pre-selects the category and records the offer in the request; publish a real offer and confirm it replaces the samples.
+- [ ] Share on WhatsApp, copy the link and use the native share sheet; confirm each toast appears only after the action, auto-hides after 3 seconds and that the link carries `?site=<slug>`.
+- [ ] Add a YouTube Short, an Instagram Reel and a Facebook Reel in **Social videos**, reorder/disable/delete them, and confirm the customer gallery respects the order and filters; confirm the fallback card appears when an embed is blocked.
 - [ ] Test the rollback on a non-production copy and inspect storage retention before any production rollback.
 
 No live Supabase migration, Edge Function deployment, or GlowSlot cross-project test has been performed in this work session.
