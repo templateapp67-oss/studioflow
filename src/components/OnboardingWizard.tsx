@@ -13,6 +13,9 @@ import { TeamManagement } from './TeamManagement';
 import { VogueNoirEditor } from './vogue-noir/VogueNoirEditor';
 import { BodhiTreeEditor } from './bodhi-tree/BodhiTreeEditor';
 import { PrismChromaEditor } from './prism-chroma/PrismChromaEditor';
+import { IronInkEditor } from './iron-ink/IronInkEditor';
+import { BranchLocationsEditor } from './BranchLocationsEditor';
+import { BranchStaffScheduleEditor } from './BranchStaffScheduleEditor';
 
 interface OnboardingWizardProps {
   profile: SalonProfile;
@@ -207,6 +210,12 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                   Preview Shringaar Royal (11) in a new tab ↗
                 </a>
               )}
+              {profile.businessType === 'tattoo_studio' && (
+                <a href="/?template=12" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-3 rounded-xl border border-[#E11D48]/40 bg-[#141417] p-2 text-sm font-semibold text-white hover:border-[#E11D48]">
+                  <img src={CATEGORY_TEMPLATES.tattoo_studio.coverImageUrl} alt="" width="96" height="54" className="h-14 w-24 rounded-lg object-cover" />
+                  Preview Template 12 – Iron & Ink ↗
+                </a>
+              )}
               {profile.businessType === 'makeup_studio' && (
                 <a href="/?template=08" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-3 rounded-xl border border-gray-200 p-2 text-sm font-semibold text-amber-800 hover:border-amber-600">
                   <img src="/templates/vogue-noir/hero-1.webp" alt="" width="96" height="54" className="h-14 w-24 rounded-lg object-cover" />
@@ -354,6 +363,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                   </div>
                 </div>
               </div>
+              <BranchLocationsEditor profile={profile} setProfile={setProfile} />
             </div>
           )}
 
@@ -411,6 +421,9 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
               )}
               {profile.businessType === 'hair_coloring' && (
                 <PrismChromaEditor profile={profile} setProfile={setProfile} />
+              )}
+              {profile.businessType === 'tattoo_studio' && (
+                <IronInkEditor profile={profile} setProfile={setProfile} services={services} setServices={setServices} />
               )}
             </div>
           )}
@@ -481,7 +494,8 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
               {currentStep === 7 && (
                 <div className="space-y-4">
                   <TeamManagement setServices={setServices} businessType={profile.businessType} stylists={stylists} setStylists={setStylists} services={services} primaryAccentColor="#b0004a" />
-                  <p className="text-xs text-gray-500">Team changes are saved on this device and shared with your dashboard and website preview. Remove sample specialists and add your actual team.</p>
+                  <BranchStaffScheduleEditor branches={profile.branches || []} stylists={stylists} setStylists={setStylists}/>
+                  <p className="text-xs text-gray-500">Team changes and branch schedules sync to your published website. Remove sample specialists, add your team, then assign each person to the locations where they work.</p>
                 </div>
               )}
 

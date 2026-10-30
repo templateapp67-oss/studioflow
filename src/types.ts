@@ -171,6 +171,28 @@ export interface TreatmentStory {
   doctorQuestions?: string[];
 }
 
+export interface BranchOperatingHours {
+  day: DaySchedule['day'];
+  enabled: boolean;
+  fromTime: string;
+  toTime: string;
+}
+
+export interface SalonBranch {
+  id: string;
+  name: string;
+  city: string;
+  address: string;
+  phone: string;
+  isActive: boolean;
+  operatingHours: BranchOperatingHours[];
+}
+
+export interface StaffBranchSchedule {
+  branchId: string;
+  schedule: DaySchedule[];
+}
+
 export interface SalonProfile {
   /** Public projection of confirmed clinic services whose fee is not confirmed (no price). */
   clinicEnquiryServices?: SalonService[];
@@ -215,8 +237,10 @@ export interface SalonProfile {
   bodhiTree?: BodhiTreeConfig;
   prismChroma?: PrismChromaConfig;
   shringaarRoyal?: ShringaarRoyalConfig;
+  ironInk?: { categories?: import('./lib/ironInk').IronInkCategory[]; heroImage?:string; interiorImage?:string; artistImage?:string; bookingDeposit?:number; faq?:Array<{question:string;answer:string}> };
 
   businessType: BusinessTypeId;
+  branches?: SalonBranch[];
   businessName: string;
   ownerName: string;
   ownerRole: string;
@@ -312,6 +336,7 @@ export interface Stylist {
   status?: StaffStatus;
   accessRole?: StaffAccessRole;
   hidePhone?: boolean;
+  branchSchedules?: StaffBranchSchedule[];
   assignedServices?: string[];
   bio?: string;
   qualifications?: string[];
@@ -323,6 +348,8 @@ export interface Stylist {
 }
 
 export interface Appointment {
+  branchId?: string;
+  branchName?: string;
   consultationMessage?: string;
   couponCode?:string;
   couponExpectedTotal?:number;

@@ -75,6 +75,10 @@ for(let round=0;round<12&&pending.size;round++){
 }
 assert.equal(pending.size,0,'Migrations failed to converge:\n'+[...pending].map(([n,e])=>` - ${n}: ${e}`).join('\n'));
 console.log(`PASS: all ${applied.length} backend migrations apply in dependency order.`);
+// Apply the additive Template 12 migration against the same stubbed Supabase
+// surface so client-table/RLS checks include the new data layer as well.
+await db.exec(readFileSync('supabase/migrations/202610300003_template12_iron_ink.sql','utf8'));
+await db.exec(readFileSync('supabase/migrations/202610300004_multibranch_support.sql','utf8'));
 
 // Live-catalog assertions: every client-called RPC/table/bucket exists,
 // RLS is on, realtime publication is complete.
@@ -103,12 +107,12 @@ for(const t of new Set(tables)){
   else if(!hit.rows[0].relrowsecurity)missingTables.push(t+' (RLS off)');
 }
 assert.deepEqual(missingTables,[],'Client tables missing or without RLS');
-const buckets=await db.query(`select id from storage.buckets where id in ('studioflow-media','nexora-customer-private')`);
-assert.equal(buckets.rows.length,2,'Storage buckets exist');
-for(const b of bucketsUsed){assert.ok(['studioflow-media','nexora-customer-private'].includes(b),'Unknown bucket reference: '+b);}
+const buckets=await db.query(`select id from storage.buckets where id in ('studioflow-media','nexora-customer-private','ink-logos','ink-gallery','ink-artists','ink-references','ink-blog')`);
+assert.equal(buckets.rows.length,7,'StudioFlow and Template 12 storage buckets exist');
+for(const b of bucketsUsed){assert.ok(['studioflow-media','nexora-customer-private','ink-logos','ink-gallery','ink-artists','ink-references','ink-blog'].includes(b),'Unknown bucket reference: '+b);}
 const pub=await db.query(`select count(*)::int c from pg_publication_tables where pubname='supabase_realtime' and tablename in ('studioflow_websites','studioflow_templates','studioflow_bookings','studioflow_accounts','studioflow_demo_bookings','studioflow_customer_reward_claims')`);
 assert.equal(pub.rows[0].c,6,'Realtime publication complete');
-console.log(`PASS: live catalog serves all ${rpcs.length} client RPCs, ${new Set(tables).size} RLS tables, 2 buckets, 6 realtime tables.`);
+console.log(`PASS: live catalog serves all ${rpcs.length} client RPCs, ${new Set(tables).size} RLS tables, 7 buckets, 6 baseline realtime tables.`);
 
 // Exercise the targeted, repeatable live catalog repair against a deliberately
 // stale Template 04 row. The service catalogue and every other template must

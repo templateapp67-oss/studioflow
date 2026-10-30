@@ -14,7 +14,7 @@ export function CustomerBookings({ session,embedded=false,onClose }: { key?:Reac
   const requests=useRef(0);
   const refresh = useCallback(async () => {
     const ticket=++requests.current;setError(''); setLoading(true);setBookings([]);
-    try {const { data, error } = await supabase.from('studioflow_bookings').select('id,status,payload,owner_id,hold_expires_at').eq('customer_id', session.user.id).order('starts_at', { ascending: false });
+    try {const { data, error } = await supabase.from('studioflow_bookings').select('id,status,payload,owner_id,branch_id,hold_expires_at').eq('customer_id', session.user.id).order('starts_at', { ascending: false });
     if(ticket!==requests.current)return;
     if (error) setError('Could not load your bookings. Please try again.'); else setBookings(data || []); setLoading(false);
     } catch {if(ticket===requests.current){setError('Could not load your bookings. Please try again.');setLoading(false);}}

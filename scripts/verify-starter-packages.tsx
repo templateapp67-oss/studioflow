@@ -19,6 +19,13 @@ for(const t of Object.values(CATEGORY_TEMPLATES)){
   assert.ok(section.includes('/templates/11/packages/'),'each bridal package card carries its own photograph');
   continue;
  }
+ if(t.id==='tattoo_studio'){
+  const section=html.split('id="salon-packages"')[1].split('</section>')[0];
+  assert.equal((section.match(/class="sf-service-card"/g)||[]).length,5,'Iron & Ink package cards');
+  assert.equal((section.match(/class="sf-service-image"/g)||[]).length,5,'Iron & Ink package images');
+  for(const item of packages)assert.ok(section.includes(item.name.replaceAll('&','&amp;')),'Iron & Ink shows '+item.name);
+  continue;
+ }
  const section=html.split('id="salon-packages"')[1].split('</section>')[0];assert.equal((section.match(/class="sf-service-card(?:\s|\")/g)||[]).length,5,t.id+' package cards');assert.equal((section.match(/class="sf-service-image"/g)||[]).length,5,t.id+' package images');
 }
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;(globalThis as any).document={activeElement:null,addEventListener(){},removeEventListener(){}};
