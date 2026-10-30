@@ -79,6 +79,8 @@ export interface SalonWebsitePreviewProps {
   setStylists?: React.Dispatch<React.SetStateAction<Stylist[]>>;
   onAddAppointment: (appointment: Appointment) => Promise<Appointment>;
   readOnly?: boolean;
+  /** True only on a live, published salon site: sections read database rows. */
+  live?: boolean;
   previewDocument?: Document;
   onEnterClientPreview?:()=>void;
   gallery?: string[];
