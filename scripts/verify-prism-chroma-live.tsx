@@ -308,4 +308,28 @@ assert.ok(!website.includes('localStorage'), 'Template 10 never caches a salon s
 const publishedApp = readFileSync('src/App.tsx', 'utf8');
 assert.ok(publishedApp.includes('readOnly live'), 'only the published site turns live data on');
 
+/* 13. Template 11 (Shringaar Royal) live wiring assertions. */
+const shringaar = readFileSync('src/components/ShringaarRoyalWebsite.tsx', 'utf8');
+assert.ok(shringaar.includes('usePrismSite(liveSlug || null)'), 'T11 reads prism site payload');
+assert.ok(shringaar.includes('subscribePrismNewsletter'), 'T11 newsletter is server-saved');
+assert.ok(shringaar.includes('submitPrismEnquiry'), 'T11 enquiry is server-saved');
+assert.ok(shringaar.includes('source: \'website\''), 'T11 enquiry source is website');
+assert.ok(shringaar.includes('prismSite.data?.reviews'), 'T11 merges live reviews');
+assert.ok(shringaar.includes('prismSite.data?.offers'), 'T11 shows live offers');
+assert.ok(shringaar.includes('newsletterBusy'), 'T11 newsletter has busy state');
+assert.ok(shringaar.includes('enquiryBusy'), 'T11 enquiry has busy state');
+assert.ok(shringaar.includes('enquiryError'), 'T11 enquiry has error state');
+
+const customerApp = readFileSync('src/components/CustomerSalonWebsite.tsx', 'utf8');
+assert.ok(customerApp.includes('live={Boolean(live && readOnly && (profile.subdomain || \'\').trim())}'), 'T11 receives live prop from CustomerSalonWebsite');
+
+const prismLib = readFileSync('src/lib/prismSite.ts', 'utf8');
+assert.ok(prismLib.includes('source?: \'template_10\' | \'website\' | \'glowslot\''), 'PrismEnquiryInput accepts source');
+assert.ok(prismLib.includes('p_source: input.source || \'template_10\''), 'submitPrismEnquiry passes p_source to RPC');
+
+const t11Migration = readFileSync('supabase/migrations/202610300002_prism_chroma_template_10.sql', 'utf8');
+assert.ok(t11Migration.includes('p_source text default \'template_10\''), 'enquire RPC accepts p_source');
+assert.ok(t11Migration.includes("not in ('template_10', 'website', 'glowslot')"), 'p_source is validated');
+
 console.log('PASS: Template 10 live payload parsing, review/offer/enquiry/newsletter surfaces, loading-empty-error states, slug safety and SQL/seed contract verified.');
+console.log('PASS: Template 11 (Shringaar Royal) live wiring: newsletter, enquiry, reviews, offers, live prop chain and p_source RPC parameter verified.');
