@@ -1,19 +1,15 @@
 import {useEffect,useState} from 'react';
+import {useAuthSession} from '../lib/useAuthSession';
 import {supabase} from '../lib/supabase';
 import {captureCustomerReferral,clearCustomerReferral,customerReferralLink,isCustomerInviteEntry} from '../lib/customerReferral';
 /** Same invitation handling for the app and published salon websites. */
 export function CustomerReferralBridge(){
  if (!supabase) return null;
  const [inviteEntry]=useState(isCustomerInviteEntry);
- const [code,setCode]=useState(captureCustomerReferral),[status,setStatus]=useState('Checking your invitation…'),[retry,setRetry] = useState(0),[uid,setUid]=useState<string|null>(null),[ready,setReady]=useState(false),[failed,setFailed]=useState(false),[busy,setBusy]=useState(false);
+ const [code,setCode]=useState(captureCustomerReferral),[status,setStatus]=useState('Checking your invitation…'),[retry,setRetry] = useState(0),[failed,setFailed]=useState(false),[busy,setBusy]=useState(false);
  useEffect(()=>{const changed=()=>setCode(captureCustomerReferral());window.addEventListener('nexora-referral-changed',changed);return()=>window.removeEventListener('nexora-referral-changed',changed)},[]);
- useEffect(()=>{
-  if (!supabase) return;
-  let active=true;
-  void supabase.auth.getSession().then(({data})=>{if(active){setUid(data.session?.user.id||null);setReady(true)}});
-  const {data}=supabase.auth.onAuthStateChange((_event,session)=>{setUid(session?.user.id||null);setReady(true)});
-  return()=>{active=false;data.subscription.unsubscribe()}
- },[]);
+ const {session,ready}=useAuthSession();
+ const uid=session?.user?.id||null;
  useEffect(()=>{
   if(inviteEntry||!code||!ready || !supabase) return;
   let active=true;setFailed(false);setStatus('Checking your invitation…');

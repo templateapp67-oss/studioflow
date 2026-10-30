@@ -75,6 +75,8 @@ export function salonAccountFromRpc(
   if (!envelope) return null;
   const candidate = asRecord(envelope.account) || envelope;
   if (!candidate) return null;
+  if (candidate.user_id && candidate.user_id !== userId) return null;
+  if (!asRecord(candidate.draft) || !Number.isFinite(Number(candidate.revision))) return null;
   const draft = asRecord(candidate.draft) || {};
   const revision = Number(candidate.revision ?? 0);
   // A response with no revision and no saved draft tells us nothing; fall back.
@@ -94,6 +96,8 @@ export function salonAccountFromRow(
 ): AccountRow | null {
   const record = asRecord(row);
   if (!record) return null;
+  if (record.user_id && record.user_id !== userId) return null;
+  if (!asRecord(record.draft) || !Number.isFinite(Number(record.revision))) return null;
   const draft = asRecord(record.draft) || {};
   const revision = Number(record.revision ?? 0);
   if (!Object.keys(draft).length && !Number.isFinite(revision)) return null;

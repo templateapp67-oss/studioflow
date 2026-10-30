@@ -838,3 +838,10 @@ export function buildShringaarSeo(
   };
   return { title, description, ogTitle: title, ogDescription: description, ogImage: SHRINGAAR_IMAGES.ogImage, jsonLd };
 }
+
+/** Reject malformed CMS rows before the existing template reads service fields. */
+export function sanitizeShringaarServices(services: unknown): SalonService[] {
+  return Array.isArray(services) ? services.filter((service): service is SalonService =>
+    service !== null && typeof service === 'object' && typeof service.name === 'string' && !!service.name.trim()
+  ) : [];
+}
