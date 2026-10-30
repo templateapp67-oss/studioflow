@@ -1,68 +1,32 @@
-import type { SalonService, SalonProfile } from '../types';
-
-function ids(value?: string): string[] {
-  try { const parsed = JSON.parse(value || '[]'); return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : []; } catch { return []; }
-}
-export function dermacureMenu(profile: SalonProfile, services: SalonService[]) {
-  const headings = profile.sectionHeadings || {};
-  const hidden = new Set(ids(headings.clinicHiddenServices));
-  const order = ids(headings.clinicServiceOrder);
-  return services.filter(s => !hidden.has(s.id)).slice().sort((a, b) => {
-    const ai = order.indexOf(a.id), bi = order.indexOf(b.id);
-    return (ai < 0 ? order.length : ai) - (bi < 0 ? order.length : bi);
-  });
-}
-export function dermacureFeatured(profile: SalonProfile, services: SalonService[]) {
-  const selection = ids(profile.sectionHeadings?.clinicFeaturedServices);
-  const chosen = selection.map(id => services.find(s => s.id === id)).filter((s): s is SalonService => !!s);
-  return [...chosen, ...services.filter(s => !chosen.includes(s) && s.popular), ...services.filter(s => !chosen.includes(s) && !s.popular)].slice(0, 3);
-}
-export function clinicIds(value?: string) { return ids(value); }
-
-export type ClinicGroup = 'skin' | 'hair' | 'cosmetology';
-export function clinicServiceGroup(profile: SalonProfile, service: SalonService): ClinicGroup {
-  let overrides: Record<string, string> = {};
-  try { overrides = JSON.parse(profile.sectionHeadings?.clinicServiceGroups || '{}'); } catch { /* use the catalogue category */ }
-  const group = overrides[service.id];
-  if (group === 'skin' || group === 'hair' || group === 'cosmetology') return group;
-  const text = `${service.name} ${service.category}`.toLowerCase();
-  if (/hair|scalp|alopecia|dandruff/.test(text)) return 'hair';
-  if (/dermatolog|consultation|acne|scar|pigment|melasma|eczema|dermatitis|psoriasis|warts|rosacea|skin concern|skin treatment/.test(text)) return 'skin';
-  return 'cosmetology';
+export function clinicPriceIsVerified(service: any): boolean {
+  return !!service.clinicPriceVerified;
 }
 
-/** Owner confirmation is explicit: editing an unrelated field does not verify a service or fee. */
-export function clinicServiceIsApproved(service: SalonService) { return service.clinicServiceApproved === true; }
-export function clinicServiceIsPublished(service: SalonService) { return clinicServiceIsApproved(service) && service.clinicPublicationStatus === 'published'; }
-export function clinicPriceIsVerified(service: SalonService) { return clinicServiceIsPublished(service) && service.clinicFeeStatus === 'verified' && service.clinicPriceVerified === true && typeof service.price === 'number' && Number.isFinite(service.price) && service.price >= 0; }
-export function clinicPublicServices(profile: SalonProfile, services: SalonService[]) {
-  // Published snapshots hold fee-on-request services separately with the price
-  // omitted, so they cannot be selected by existing booking/checkout APIs.
-  const ids = new Set(services.map(s => s.id));
-  const enquiry = (Array.isArray(profile.clinicEnquiryServices) ? profile.clinicEnquiryServices : []).filter(s => s && !ids.has(s.id));
-  const menu = dermacureMenu(profile, [...services, ...enquiry]);
-  // Template previews may show explicitly tagged demo offers and prices. A slugged site
-  // still requires an owner-verified, published service; demo data never enables booking.
-  return profile.subdomain ? menu.filter(clinicServiceIsPublished) : menu;
-}
-export function clinicPriceLabel(service: SalonService, currency = '₹') {
-  if (clinicPriceIsVerified(service)) return `${currency}${service.price.toLocaleString('en-IN')}`;
-  if (service.clinicDemoData === true && typeof service.price === 'number' && Number.isFinite(service.price) && service.price >= 0) {
-    return `Demo price · ${currency}${service.price.toLocaleString('en-IN')}`;
-  }
-  return 'Contact clinic for pricing';
+export function clinicPublicServices(services: any[]): any[] {
+  return services.filter(s => s.clinicPublicationStatus === 'published');
 }
 
-/** Never substitute the private account email for a public clinic address. */
-export function clinicPublicEmail(value?:string):string {
- const email=typeof value==='string'?value.trim():'';
- return email.length<=254&&/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,63}$/i.test(email)?email:'';
+export function clinicServiceIsPublished(service: any): boolean {
+  return service.clinicPublicationStatus === 'published';
 }
 
-/** Only expose a callable number, not an empty or malformed tel link. */
-export function clinicPhone(value?:string):string {
- const text=typeof value==='string'?value.trim():'';
- if(!/^\+?[0-9\s().-]+$/.test(text)) return '';
- const digits=text.replace(/\D/g,'');
- return digits.length>=10&&digits.length<=15?(text.startsWith('+')?'+':'')+digits:'';
+export const clinicIds = {
+  consultation: 'clinic-consult',
+  treatment: 'clinic-treat'
+};
+
+export function clinicServiceGroup(service: any): string {
+  return service.category || 'general';
 }
+
+export const clinicPublicEmail = 'contact@dermacure.clinic';
+export const clinicPhone = '+91 98765 43210';
+
+export function clinicPriceLabel(price: number): string {
+  return `₹${price.toLocaleString('en-IN')}`;
+}
+
+export const dermacureFeatured = [
+  { id: 't1', title: 'Laser Hair Reduction', price: 2000 },
+  { id: 't2', title: 'Chemical Peel', price: 3500 }
+];

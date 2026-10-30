@@ -423,35 +423,33 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
   },
 
   lash_brow: {
-    foundingYear: '2019',
-    foundingNarrative: 'Arch & Flutter is Jaipur’s eye-area-only atelier on Ashok Marg, C-Scheme. Seven seasons of feather-light Russian volume, golden-ratio brow mapping, brushed-up laminations and semi-permanent powder brows — every set face-mapped, patch tested and priced honestly in ₹, GST included.',
-    specialties: ['Russian Volume & Mega Volume Lashes', 'Keratin Lash Lift & Tint', 'Brow Lamination & Henna', 'Microblading & Powder Brows', 'Bridal Eye Packages'],
+    foundingYear: '2020',
+    foundingNarrative: 'The Brow & Lash Loft is South Delhi’s premier boutique specializing in Russian volume lash extensions, semi-permanent nano-blading, and keratin lash lifts tailored to elevate natural facial architecture.',
+    specialties: ['Russian Volume Mega Lashes', 'Keratin Lash Infusion Lift', 'HD Brow Lamination', 'Nano-Blading Hair Strokes'],
     certifications: [
-      { icon: 'verified', title: 'Vegan, Fume-Free Adhesives', description: 'Latex-free and formaldehyde-free adhesives, safe for sensitive eyes and contact-lens wearers.' },
-      { icon: 'remove_red_eye', title: 'Natural Lash Weight Safety', description: 'One extension or one hand-made fan per natural lash — 0.05mm ultra-light fibres, never stuck together.' },
-      { icon: 'sanitizer', title: 'Single-Use & Sterilised Tools', description: 'PMU cartridges opened in front of you; tweezers autoclaved and UV-stored before every client.' },
-      { icon: 'workspace_premium', title: 'Internationally Certified Artists', description: 'Lash, brow and PMU certifications with annual re-training on adhesive chemistry and mapping.' }
+      { icon: 'verified', title: 'Medical-Grade Fume-Free Adhesives', description: 'Latex-free and formaldehyde-free surgical adhesives safe for sensitive eyes.' },
+      { icon: 'remove_red_eye', title: 'Natural Lash Weight Safety', description: 'Zero damage to natural follicles through custom 0.05mm ultra-lightweight silk fibers.' },
+      { icon: 'sanitizer', title: 'Surgical Tweezers Sterilization', description: 'Precision tweezers autoclaved and UV-sterilized before every client.' },
+      { icon: 'workspace_premium', title: 'PhiBrows Royal Artist Certified', description: 'Permanent makeup performed by internationally certified microblading masters.' }
     ],
     gallery: [
-      { id: 'af-g1', url: '/templates/13/art/lash.svg', title: 'Classic 1:1 lash set, lash by lash', tag: 'Lashes' },
-      { id: 'af-g2', url: '/templates/13/art/lash-volume.svg', title: 'Russian volume fans, hand-made', tag: 'Volume' },
-      { id: 'af-g3', url: '/templates/13/art/brow-lamination.svg', title: 'Brushed-up brow lamination', tag: 'Brows' },
-      { id: 'af-g4', url: '/templates/13/art/microblading.svg', title: 'Microblading hair strokes', tag: 'PMU' },
-      { id: 'af-g5', url: '/templates/13/art/studio.svg', title: 'The blush and gold studio', tag: 'Studio' },
-      { id: 'af-g6', url: '/templates/13/art/eye-care.svg', title: 'Under-eye brightening care', tag: 'Eye Care' },
-      { id: 'af-g7', url: '/templates/13/art/bridal.svg', title: 'Bridal eye package', tag: 'Bridal' },
-      { id: 'af-g8', url: '/templates/13/art/tools.svg', title: 'Sterilised tools, single-use cartridges', tag: 'Hygiene' }
+      { id: 'lb-g1', url: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=800&q=80', title: 'Feathered Brow Lamination & Tint', tag: 'Brows' },
+      { id: 'lb-g2', url: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80', title: 'Fluffy Russian Volume Lash Set', tag: 'Lashes' },
+      { id: 'lb-g3', url: 'https://images.unsplash.com/photo-1512290900672-1f55b9e07506?auto=format&fit=crop&w=800&q=80', title: 'Ergonomic Memory Foam Lash Beds', tag: 'Studio Interior' },
+      { id: 'lb-g4', url: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=800&q=80', title: 'Keratin Lash Lift Before & After', tag: 'Natural Lift' },
+      { id: 'lb-g5', url: 'https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=800&q=80', title: 'Precision Nano-Blading Hair Strokes', tag: 'Microblading' },
+      { id: 'lb-g6', url: 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?auto=format&fit=crop&w=800&q=80', title: 'Clean Consultation & Brow Mapping', tag: 'Consultation' }
     ],
     reviews: [
-      { id: 'af-r1', name: 'Sneha Agarwal', location: 'Vaishali Nagar, Jaipur', rating: 5, serviceName: 'Russian Volume 2D–3D Full Set', comment: 'Third set with Meher and my natural lashes are healthier than before she started. Lightest lashes in Jaipur, I have compared.', avatarUrl: '/templates/13/art/team.svg', date: '3 days ago' },
-      { id: 'af-r2', name: 'Priyanka Choudhary', location: 'Malviya Nagar, Jaipur', rating: 5, serviceName: 'Brow Lamination (Feathered Brushed-up)', comment: 'Ritika mapped my brows with actual calipers before touching them. Six weeks later they still brush up perfectly. Worth every rupee.', avatarUrl: '/templates/13/art/brow.svg', date: '1 week ago' },
-      { id: 'af-r3', name: 'Farah Siddiqui', location: 'Raja Park, Jaipur', rating: 5, serviceName: 'Microblading Hair-stroke Brows (first sitting)', comment: 'Aisha explained the pigment, showed the sealed cartridge and numbed me properly. The strokes look like my own brow, just more of it.', avatarUrl: '/templates/13/art/microblading.svg', date: '2 weeks ago' }
+      { id: 'lb-r1', name: 'Sonam Kapoor Ahuja', location: 'Khan Market, New Delhi', rating: 5, serviceName: 'Russian Volume Lashes & Brow Lamination', comment: 'The memory foam beds are so comfy I fell asleep immediately! Woke up with the fluffiest, lightest lashes imaginable. Total game changer.', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80', date: '3 days ago' },
+      { id: 'lb-r2', name: 'Mallika Sherawat', location: 'Golf Links, New Delhi', rating: 5, serviceName: 'Keratin Lash Lift & Botox Tint', comment: 'Zero burning or red eyes. My natural lashes look curly and dark without needing mascara for 8 weeks.', avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=200&q=80', date: '1 week ago' },
+      { id: 'lb-r3', name: 'Ananya Birla', location: 'Sundar Nagar, New Delhi', rating: 5, serviceName: 'PhiBrows Microblading Hair Strokes', comment: 'Restored my overplucked 90s brows to lush, natural perfection. The artist mapped my bone structure with precision calipers.', avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80', date: '2 weeks ago' }
     ],
-    totalReviewCount: 1200,
-    averageRating: 4.9,
-    landmark: 'Ashok Marg, near Statue Circle and C-Scheme market',
-    parkingInfo: 'Street parking plus a paid basement lot 50 m from the studio',
-    openHourText: '10:00 AM',
+    totalReviewCount: 440,
+    averageRating: 4.96,
+    landmark: 'Middle Lane, Khan Market, Near Cafe Turtle',
+    parkingInfo: 'Market parking lot with attendant assistance',
+    openHourText: '10:30 AM',
     closeHourText: '8:00 PM'
   },
 
