@@ -842,7 +842,7 @@ export function ShringaarRoyalWebsite({
                             className={pkg.popular ? 'sr-btn sr-btn--gold' : 'sr-btn sr-btn--primary'}
                             onClick={() => onBook(services.find((service) => service.id === pkg.liveServiceId) || firstService)}
                           >
-                            Book {pkg.tier.split(' ')[0]} <ArrowUpRight size={15} aria-hidden="true" />
+                            Book {String(pkg.tier || 'this package').split(' ')[0]} <ArrowUpRight size={15} aria-hidden="true" />
                           </button>
                         )}
                       </div>
@@ -1006,7 +1006,7 @@ export function ShringaarRoyalWebsite({
                     </button>
                     {bookingAvailable && (
                       <button type="button" className="sr-btn sr-btn--ghost sr-btn--sm" onClick={() => onBook(undefined, artist)}>
-                        Book with {artist.name.split(' ')[0]}
+                        Book with {String(artist.name || 'our artist').split(' ')[0]}
                       </button>
                     )}
                   </RevealItem>
