@@ -1,4 +1,5 @@
 import type { SalonProfile, SalonService, Stylist } from '../types';
+import { normalizeServices } from './dermacureContent';
 
 export interface WorkspaceState {
   profile: SalonProfile;
@@ -27,7 +28,8 @@ export function normalizeWorkspace(workspace: any, identityDefaults?: any): Work
       themeStyle: profile.themeStyle || {},
       ...profile
     },
-    services: Array.isArray(workspace?.services) ? workspace.services : [],
+    // A wrapped ({data|services: [...]}) or JSON-string menu is unwrapped, never dropped.
+    services: normalizeServices<SalonService>(workspace?.services, 'saved workspace services'),
     stylists: Array.isArray(workspace?.stylists) ? workspace.stylists : [],
     gallery: Array.isArray(workspace?.gallery) ? workspace.gallery : [],
     policies: Array.isArray(workspace?.policies) ? workspace.policies : [],

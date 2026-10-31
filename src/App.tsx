@@ -26,6 +26,8 @@ import { applyTemplateDesign } from './lib/templateSelection';
 import { normalizeWorkspace, isRecord } from './lib/normalizeWorkspace';
 import { bootstrapSalonAccount, loadTemplateCatalogue } from './lib/accountBootstrap';
 import { messageOf, withTimeout } from './lib/asyncDeadline';
+import { normalizeServices } from './lib/dermacureContent';
+import { AccountLoading } from './components/AccountLoading';
 import { AppView, SalonProfile, SalonService, Stylist, Appointment, ClientRecord, BusinessTypeId, LoyaltyConfig, CategoryTemplateConfig } from './types';
 import { INITIAL_SALON_PROFILE } from './mockData';
 import { calculateLoyaltyTier, DEFAULT_LOYALTY_CONFIG } from './loyaltyData';
@@ -122,7 +124,7 @@ function Application() {
  if(!session)return <>{authError&&<p role="alert" className="p-4">{authError}</p>}<div className="bg-white border-b px-4 py-3 text-center text-sm">Looking for a salon appointment? <a className="text-violet-600 font-semibold" href="/?app=1">Open Nexora Customer App →</a></div><AuthPage /></>;
  if(customer)return <CustomerBookings session={session} />;
  if(error)return <main className="p-8"><h1 className="text-2xl font-bold">Account could not load</h1><p role="alert" className="my-4">{error.includes('database') || error.includes('connection') ? 'There was a database connection issue. Please check your internet or try again later.' : error}</p><button className="primary-action" onClick={()=>setRetry(r=>r+1)}>Retry</button><button className="secondary-action ml-3" onClick={()=>void supabase.auth.signOut()}>Sign out</button><button className="secondary-action ml-3" onClick={()=>{localStorage.removeItem('studioflow_pending_ref');const url=new URL(location.href);url.searchParams.delete('ref');history.replaceState(null,'',url);setSkipReferral(true);setRetry(r=>r+1);}}>Continue without pending referral</button></main>;
- if(!account||account.user_id!==session.user.id)return <AccountLoading onRetry={()=>setRetry(r=>r+1)} onSignOut={()=>void supabase.auth.signOut()} />;
+ if(!account||account.user_id!==session.user.id)return <AccountLoading profileState={account?'user-mismatch':'loading'} userId={session.user.id} onRetry={()=>setRetry(r=>r+1)} onSignOut={()=>void supabase.auth.signOut()} />;
  return <AppErrorBoundary resetKey={session.user.id}><Workspace key={session.user.id} session={session} account={account} templates={templates} /></AppErrorBoundary>;
 }
 function TemplateEntry({templateId}:{templateId:BusinessTypeId}){
@@ -142,19 +144,6 @@ function Loading({text}:{text:string}){return <main role="status" className="min
  * for the first few seconds, then explains the delay and offers a retry — the
  * bootstrap behind it is time-boxed, so this state always resolves.
  */
-function AccountLoading({onRetry,onSignOut}:{onRetry:()=>void;onSignOut:()=>void}){
- const [seconds,setSeconds]=useState(0);
- useEffect(()=>{const timer=setInterval(()=>setSeconds(value=>value+1),1000);return()=>clearInterval(timer);},[]);
- const slow=seconds>=6;
- return <main role="status" aria-live="polite" className="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#f9f9ff] px-6 text-center">
-  <p className="font-semibold">Loading your salon from Supabase…</p>
-  {slow?<>
-   <p className="max-w-md text-sm text-slate-600">This is taking longer than usual ({seconds}s). Your workspace opens from its last saved copy when the live copy cannot be reached.</p>
-   <div className="flex flex-wrap justify-center gap-3"><button className="primary-action" onClick={onRetry}>Retry now</button><button className="secondary-action" onClick={onSignOut}>Sign out</button></div>
-  </>:<p className="text-sm text-slate-500">Fetching your saved workspace. This usually takes a second.</p>}
- </main>;
-}
-
 export function Workspace({session,account,templates}:{key?:React.Key;session:Session;account:any;templates:CategoryTemplateConfig[]}) {
  const cacheKey=`studioflow_draft_${session.user.id}`;
  const [cached]=useState(()=>{try{const draft=JSON.parse(localStorage.getItem(cacheKey)||'null');if(draft?.revision!==account.revision&&draft?.draft?.profile)localStorage.setItem(`${cacheKey}_conflict`,JSON.stringify(draft));return draft||JSON.parse(localStorage.getItem(`${cacheKey}_conflict`)||'null');}catch{return null;}});
@@ -300,7 +289,7 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
             onClick={() => {
               const d = normalizeWorkspace(cached.draft);
               setProfile(d.profile);
-              setServiceState(d.services || []);
+              setServiceState(normalizeServices<SalonService>(d.services,'realtime services'));
               setStylists(d.stylists || []);
               setClients(d.clients || []);
               setLoyaltyConfig(d.loyaltyConfig || DEFAULT_LOYALTY_CONFIG);
@@ -483,5 +472,5 @@ function PublishedWebsite({slug,session}:{key?:React.Key;slug:string;session:Ses
  if(!site)return <Loading text="Loading salon website…" />;
  const book=async(apt:Appointment)=>{if(!session){setAuthMode('signin');throw new Error('Please log in or create a customer account to continue your booking.');}const rpc=apt.branchId?(apt.couponCode?'studioflow_branch_coupon_book':'studioflow_branch_book'):(apt.couponCode?'studioflow_coupon_book':'studioflow_book');const {data,error}=await supabase.rpc(rpc,{p_slug:slug,p_request:apt});if(error)throw error;return data?.payload||data;};
  const content=normalizeWorkspace({...site,extras:{gallery:site.gallery,policies:site.policies,whiteLabel:site.branding}});
- return <><div className="bg-white border-b px-4 py-2 flex justify-between gap-3 text-xs"><a className="text-violet-600 font-semibold" href={'/?app=1&site='+encodeURIComponent(slug)}>Open this salon in Nexora App ↗</a><a className="text-violet-600" href="/?app=1&tab=bookings">My Bookings</a></div>{showBookings&&<SalonBookingsDialog profile={{...content.profile,subdomain:slug}} onClose={()=>setShowBookings(false)}/>} {authMode&&<div className="fixed inset-0 z-[100] bg-black/50 p-4 flex items-center justify-center" onClick={()=>setAuthMode(null)}><section role="dialog" aria-modal="true" aria-label="Customer account" className="bg-white text-slate-900 rounded-2xl w-full max-w-lg max-h-[90dvh] overflow-y-auto p-4" onClick={e=>e.stopPropagation()}><button className="secondary-action mb-3" onClick={()=>setAuthMode(null)}>Close</button>{session?<Suspense fallback={<p role="status">Loading account settings…</p>}><WebsiteCustomerAccount session={session} account={customerAccount}/></Suspense>:<AuthPage key={authMode} compact customerMode initialMode={authMode} returnSlug={slug}/>}</section></div>}<SalonWebsitePreview key={slug} customerSignedIn={!!session} customerName={customerAccount.profile.full_name||session?.user.user_metadata?.full_name||'My account'} customerPhotoUrl={customerAccount.photoUrl} onCustomerAccount={mode=>setAuthMode(mode||'signin')} profile={{...content.profile,subdomain:slug}} services={content.services} stylists={content.stylists} gallery={content.extras.gallery} policies={site.policies} branding={site.branding} loyaltyConfig={site.loyaltyConfig} onAddAppointment={book} readOnly live /></>;
+ return <><div className="bg-white border-b px-4 py-2 flex justify-between gap-3 text-xs"><a className="text-violet-600 font-semibold" href={'/?app=1&site='+encodeURIComponent(slug)}>Open this salon in Nexora App ↗</a><a className="text-violet-600" href="/?app=1&tab=bookings">My Bookings</a></div>{showBookings&&<SalonBookingsDialog profile={{...content.profile,subdomain:slug}} onClose={()=>setShowBookings(false)}/>} {authMode&&<div className="fixed inset-0 z-[100] bg-black/50 p-4 flex items-center justify-center" onClick={()=>setAuthMode(null)}><section role="dialog" aria-modal="true" aria-label="Customer account" className="bg-white text-slate-900 rounded-2xl w-full max-w-lg max-h-[90dvh] overflow-y-auto p-4" onClick={e=>e.stopPropagation()}><button className="secondary-action mb-3" onClick={()=>setAuthMode(null)}>Close</button>{session?<Suspense fallback={<p role="status">Loading account settings…</p>}><WebsiteCustomerAccount session={session} account={customerAccount}/></Suspense>:<AuthPage key={authMode} compact customerMode initialMode={authMode} returnSlug={slug}/>}</section></div>}<SalonWebsitePreview key={slug} customerSignedIn={!!session} customerName={customerAccount.profile.full_name||session?.user.user_metadata?.full_name||'My account'} customerPhotoUrl={customerAccount.photoUrl} onCustomerAccount={mode=>setAuthMode(mode||'signin')} profile={{...content.profile,subdomain:slug}} services={normalizeServices<SalonService>(content.services,'published site services')} stylists={content.stylists} gallery={content.extras.gallery} policies={site.policies} branding={site.branding} loyaltyConfig={site.loyaltyConfig} onAddAppointment={book} readOnly live /></>;
 }

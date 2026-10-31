@@ -30,6 +30,7 @@ import { defaultGalleryCategory, standardGallery } from "../lib/photoGallery";
 import { createIronInkServices, IRON_INK_CATEGORIES, ironInkDefaults } from "../lib/ironInk";
 import { ironInkOwnerVideos } from "../lib/ironInkMedia";
 import { ironInkSocialLinks } from "../lib/ironInkSocial";
+import { normalizeServices } from "../lib/dermacureContent";
 import { IronInkSocial } from "./iron-ink/IronInkSocial";
 import { IronInkReels } from "./iron-ink/IronInkReels";
 import { IronInkLoyalty } from "./iron-ink/IronInkLoyalty";
@@ -71,15 +72,18 @@ const NAV: Page[] = [
 const fallback =
   "https://images.unsplash.com/photo-1598371839696-5c5bb00bdc28?auto=format&fit=crop&w=1000&q=80";
 const image = (url?: string) => url?.trim() || fallback;
+/** Lower-cases only real strings; undefined, null, numbers and objects become "". */
+const safeLower = (value: unknown): string =>
+  typeof value === "string" ? value.toLowerCase() : "";
 const money = (n: number) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
 const localDateInput = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
 export function IronInkWebsite({
-  profile,
-  services,
-  stylists,
-  galleryPhotos = [],
+  profile: profileProp,
+  services: servicesProp,
+  stylists: stylistsProp,
+  galleryPhotos: galleryPhotosProp,
   siteSlug,
   policies,
   loyaltyConfig,
@@ -119,6 +123,12 @@ export function IronInkWebsite({
     },
   ) => void;
 }) {
+  // The profile, services and artists can be missing or malformed while the site
+  // is still loading; normalise them once so nothing below dereferences undefined.
+  const profile = (profileProp && typeof profileProp === "object" ? profileProp : {}) as SalonProfile;
+  const services = normalizeServices<SalonService>(servicesProp, "IronInkWebsite services");
+  const stylists = Array.isArray(stylistsProp) ? stylistsProp : [];
+  const galleryPhotos = Array.isArray(galleryPhotosProp) ? galleryPhotosProp : [];
   const [page, setPage] = useState<Page>("HOME");
   const [mobileNav, setMobileNav] = useState(false);
   const [filter, setFilter] = useState("All");
@@ -158,7 +168,7 @@ export function IronInkWebsite({
   const createInk=useCreateInkBooking();
   const enquiry=useInkEnquiry();
   const accent = remote.data?.settings?.brand_color||siteProfile.customAccentColor || "#E11D48";
-  const configured = remote.data?.categories?.length ? remote.data.categories.map((item,index)=>({slug:item.slug,name:item.name,image:item.image_url,description:item.description||IRON_INK_CATEGORIES.find(category=>category.slug===item.slug)?.description||'',price:Number(item.starting_price),duration:item.duration_label||`${item.duration_min} min`,enabled:item.is_active,dbId:item.id})) : (()=>{const saved=siteProfile.ironInk?.categories||[];const base=[...IRON_INK_CATEGORIES.map(category=>saved.find(item=>item.slug===category.slug)||category),...saved.filter(item=>!IRON_INK_CATEGORIES.some(category=>category.slug===item.slug))];const custom=services.filter(service=>service.category&&service.category!=='Signature Packages'&&!base.some(category=>category.name.toLowerCase()===service.category.toLowerCase())).map(service=>({slug:service.category.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''),name:service.category,image:service.imageUrl||fallback,description:service.description||'',price:service.price,duration:`${service.durationMinutes} min`,enabled:true}));return [...custom,...base];})();
+  const configured = remote.data?.categories?.length ? remote.data.categories.map((item,index)=>({slug:item.slug,name:item.name,image:item.image_url,description:item.description||IRON_INK_CATEGORIES.find(category=>category.slug===item.slug)?.description||'',price:Number(item.starting_price),duration:item.duration_label||`${item.duration_min} min`,enabled:item.is_active,dbId:item.id})) : (()=>{const saved=siteProfile.ironInk?.categories||[];const base=[...IRON_INK_CATEGORIES.map(category=>saved.find(item=>item.slug===category.slug)||category),...saved.filter(item=>!IRON_INK_CATEGORIES.some(category=>category.slug===item.slug))];const custom=services.filter(service=>service.category&&service.category!=='Signature Packages'&&!base.some(category=>safeLower(category.name)===safeLower(service.category))).map(service=>({slug:safeLower(service.category).replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''),name:service.category,image:service.imageUrl||fallback,description:service.description||'',price:service.price,duration:`${service.durationMinutes} min`,enabled:true}));return [...custom,...base];})();
   const enabledCategories = configured
     .filter((item) => item.enabled)
     .map((item) => {
@@ -180,7 +190,7 @@ export function IronInkWebsite({
     enabledCategories.some(
       (category) =>
         category.slug === item.id.replace(/^ii-/, "") ||
-        category.name.toLowerCase() === (item.category || "").toLowerCase(),
+        safeLower(category.name) === safeLower(item.category),
     ),
   );
   const displayServices = actualServices.length
@@ -644,7 +654,7 @@ export function IronInkWebsite({
                             </span>
                           </div>
                           <h3>{item.name}</h3>
-                          {actualServices.find(service=>service.category?.toLowerCase()===item.name.toLowerCase())?.name!==item.name&&<small>{actualServices.find(service=>service.category?.toLowerCase()===item.name.toLowerCase())?.name}</small>}
+                          {actualServices.find(service=>safeLower(service.category)===safeLower(item.name))?.name!==item.name&&<small>{actualServices.find(service=>safeLower(service.category)===safeLower(item.name))?.name}</small>}
                           <p>{item.description}</p>
                           <span className="ii-price">
                             FROM {money(item.price)}
@@ -752,7 +762,7 @@ export function IronInkWebsite({
                           <div className="ii-process-image">
                             {img(
                               `https://images.unsplash.com/${photoId}?auto=format&fit=crop&w=700&q=80`,
-                              `${title.toLowerCase()} stage`,
+                              `${safeLower(title)} stage`,
                             )}
                             <b>{no}</b>
                           </div>

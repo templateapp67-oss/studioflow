@@ -1,4 +1,4 @@
-import { clinicPriceIsVerified, clinicPublicServices } from '../lib/dermacureContent';
+import { clinicPriceIsVerified, clinicPublicServices, normalizeServices } from '../lib/dermacureContent';
 import type { ConsultationDetails } from "./dermacure/consultation";
 import { VogueNoirWebsite } from './VogueNoirWebsite';
 import {SpecialistCard} from './SpecialistCard';
@@ -57,7 +57,7 @@ import {ServicePhoto} from './ServicePhoto';
 import {BARBER_REFERENCE_IMAGES} from '../lib/barberReference';
 import {CustomerReviewPanel} from './CustomerReviewPanel';
 import {clientExperiences} from '../lib/demoWebsiteContent';
-import React,{useEffect,useState} from 'react';
+import React,{useEffect,useMemo,useState} from 'react';
 import {CalendarCheck,MapPin,MessageCircle,ShieldCheck,Clock,ArrowUpRight,Check,ChevronLeft,ChevronRight,X} from 'lucide-react';
 import type {SalonWebsitePreviewProps} from './SalonWebsitePreview';
 import type {SalonService,Stylist} from '../types';
@@ -730,4 +730,13 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
  </div>;
 }
 
-export function CustomerSalonWebsite(props:SalonWebsitePreviewProps){return <WebsiteLanguageProvider key={props.profile.subdomain||props.profile.businessType} defaultLanguage={props.profile.defaultWebsiteLanguage}><CustomerSalonWebsiteContent {...props}/></WebsiteLanguageProvider>;}
+export function CustomerSalonWebsite(props:SalonWebsitePreviewProps){
+ // Services and stylists can arrive as null, a wrapped API response or a JSON string
+ // (cached drafts, Supabase RPCs, template config). Normalise them once here so every
+ // template below can rely on real arrays. Existing items are passed through untouched.
+ const services=useMemo(()=>normalizeServices<SalonService>(props.services,'CustomerSalonWebsite services'),[props.services]);
+ const stylists=useMemo(()=>Array.isArray(props.stylists)?props.stylists:[],[props.stylists]);
+ // The profile can be briefly unavailable while the account or site is still loading.
+ if(!props.profile||typeof props.profile!=='object')return <main role="status" aria-live="polite" className="min-h-screen flex items-center justify-center"><p>Loading website…</p></main>;
+ return <WebsiteLanguageProvider key={props.profile.subdomain||props.profile.businessType} defaultLanguage={props.profile.defaultWebsiteLanguage}><CustomerSalonWebsiteContent {...props} services={services} stylists={stylists}/></WebsiteLanguageProvider>;
+}
