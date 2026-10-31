@@ -1,6 +1,7 @@
 import type { SalonProfile, SalonService, Stylist, ClientRecord, LoyaltyConfig } from '../types';
 import { DEFAULT_EXTRAS } from './workspaceDefaults';
 import { DEFAULT_LOYALTY_CONFIG } from '../loyaltyData';
+import { normalizeServices } from './dermacureContent';
 
 export interface WorkspaceState {
   profile: SalonProfile;
@@ -35,7 +36,8 @@ export function normalizeWorkspace(workspace: any, identityDefaults?: any): Work
       address: profile.address ?? '',
       postalCode: profile.postalCode ?? identityDefaults?.postal_code ?? '',
     } as SalonProfile,
-    services: Array.isArray(saved.services) ? saved.services.filter(isRecord) as SalonService[] : [],
+    // A wrapped ({data|services: [...]}) or JSON-string menu is unwrapped, never dropped.
+    services: normalizeServices<SalonService>(saved.services, 'saved workspace services').filter(isRecord) as SalonService[],
     stylists: Array.isArray(saved.stylists) ? saved.stylists.filter(isRecord).map((stylist: any) => ({...stylist, specialties: Array.isArray(stylist.specialties) ? stylist.specialties : [], assignedServices: Array.isArray(stylist.assignedServices) ? stylist.assignedServices : []})) as Stylist[] : [],
     clients: Array.isArray(saved.clients) ? saved.clients.filter(isRecord) as ClientRecord[] : [],
     loyaltyConfig: {...DEFAULT_LOYALTY_CONFIG, ...loyalty, tiers: Array.isArray(loyalty.tiers) ? loyalty.tiers : DEFAULT_LOYALTY_CONFIG.tiers, rewards: Array.isArray(loyalty.rewards) ? loyalty.rewards : []} as LoyaltyConfig,
