@@ -14,7 +14,7 @@ export function serviceImageTemplates(service:Pick<SalonService,'id'|'name'|'cat
  // borrow unrelated stock portraits from another category.
  if(type==='hair_salon'){
   const primary=/keratin|botox|smooth|repair/.test(text)?'/templates/miraki/service-smoothing.webp':/cut|layer|fringe|style|blow/.test(text)?'/templates/miraki/service-cut.webp':'/templates/miraki/hero.webp';
-  const urls=Array.from(new Set([primary,'/templates/miraki/service-shampoo.webp','/templates/miraki/interior.webp','/templates/miraki/tools.webp']));
+  const urls=Array.from(new Set([primary,'/templates/miraki/service-cut.webp','/templates/miraki/service-smoothing.webp']));
   return urls.slice(0,3).map((url,index)=>({id:`hair_salon-${index+1}`,url,label:`Miraki image ${index+1}`}));
  }
  if(type==='unisex_salon'){
