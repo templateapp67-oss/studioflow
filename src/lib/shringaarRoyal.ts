@@ -595,10 +595,15 @@ export interface ResolvedShringaarConfig {
 const list = <T,>(value: T[] | undefined, fallback: T[]): T[] =>
   Array.isArray(value) && value.length > 0 ? value : fallback;
 
+/** Sanitize owner services for the Shringaar storefront bento. */
+export function sanitizeShringaarServices(services: SalonService[]): SalonService[] {
+  return (services || []).filter((s) => s && s.name && s.category);
+}
+
 /** Resolve stored owner content over the bundled demo content. */
 export function resolveShringaarRoyalConfig(profile: SalonProfile): ResolvedShringaarConfig {
-  const raw: ShringaarRoyalConfig = profile.shringaarRoyal || {};
-  const colors = raw.colors || {};
+  const raw: ShringaarRoyalConfig = profile.shringaarRoyal || { enabled: false };
+  const colors = (raw.colors || {}) as ShringaarRoyalColors;
   const tagline = (profile.tagline || '').trim();
   return {
     selectorLabel: (raw.selectorLabel || '').trim() || SHRINGAAR_SELECTOR_LABEL,
@@ -837,11 +842,4 @@ export function buildShringaarSeo(
     })),
   };
   return { title, description, ogTitle: title, ogDescription: description, ogImage: SHRINGAAR_IMAGES.ogImage, jsonLd };
-}
-
-/** Reject malformed CMS rows before the existing template reads service fields. */
-export function sanitizeShringaarServices(services: unknown): SalonService[] {
-  return Array.isArray(services) ? services.filter((service): service is SalonService =>
-    service !== null && typeof service === 'object' && typeof service.name === 'string' && !!service.name.trim()
-  ) : [];
 }
