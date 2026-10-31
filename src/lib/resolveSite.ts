@@ -1,5 +1,5 @@
 export function trimSlashes(s: string): string {
-  return s.replace(/^\\/+|\\/+$/g, '');
+  return s.replace(/^\/+|\/+$/g, '');
 }
 
 export type SiteLocation = {
@@ -16,7 +16,7 @@ export function resolveSiteSlug(location?: SiteLocation | string | null): string
   if (typeof location === 'string') {
     const value = location.trim();
     if (!value) return null;
-    if (/^https?:\\/\\//i.test(value)) {
+    if (/^https?:\/\//i.test(value)) {
       try {
         return resolveSiteSlug(new URL(value));
       } catch {
@@ -41,9 +41,9 @@ export function resolveSiteSlug(location?: SiteLocation | string | null): string
     }
   }
 
-  host = host.toLowerCase().replace(/\\.$/, '');
+  host = host.toLowerCase().replace(/\.$/, '');
   if (
-    /localhost$|\\.run\\.app$|\\.e2b\\.app$|\\.vercel\\.app$|\\.netlify\\.app$|\\.pages\\.dev$|\\.web\\.app$|\\.onrender\\.com$|\\.railway\\.app$|\\.herokuapp\\.com$|\\.azurewebsites\\.net$|\\.amplifyapp\\.com$|\\.cloudfront\\.net$|\\.chatgpt\\.site$|^\\d+(?:\\.\\d+){3}$/.test(host)
+    /localhost$|\.run\.app$|\.e2b\.app$|\.vercel\.app$|\.netlify\.app$|\.pages\.dev$|\.web\.app$|\.onrender\.com$|\.railway\.app$|\.herokuapp\.com$|\.azurewebsites\.net$|\.amplifyapp\.com$|\.cloudfront\.net$|\.chatgpt\.site$|^\d+(?:\.\d+){3}$/.test(host)
   ) {
     return null;
   }
