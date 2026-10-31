@@ -654,7 +654,7 @@ export function IronInkWebsite({
                           whileTap={reduced ? undefined : { scale: 0.985 }}
                         >
                           <div>
-                            {img(item.image, item.name + " tattoo artwork")}
+                            {img(item.image, item.name + " tattoo artwork", "sf-service-image")}
                             <span className="ii-card-num">0{index + 1}</span>
                             <span className="ii-card-arrow">
                               <ArrowUpRight />

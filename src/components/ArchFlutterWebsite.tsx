@@ -553,7 +553,7 @@ export function ArchFlutterWebsite({
           <dl className="af-offer-meta">
             <div>
               <dt>Valid</dt>
-              <dd>{formatOfferWindow(offer)}</dd>
+              <dd>Valid till {formatOfferWindow(offer)}</dd>
             </div>
             <div>
               <dt>{offerIsLive(offer, offerNow) ? 'Countdown' : 'Status'}</dt>
