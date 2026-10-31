@@ -100,17 +100,8 @@ function isDebugEnabled(): boolean {
 
 // Catches errors outside React (async, promises, event handlers) so they show up
 // in the console next to boundary failures. Installed once, module-level.
-// Catches errors outside React (async, promises, event handlers) so they show up
-// in the console next to boundary failures. Installed once, module-level.
 if (typeof window !== 'undefined' && !(window as any).__studioflowDebugHooks) {
   (window as any).__studioflowDebugHooks = true;
-  window.addEventListener('error', (e) => {
-    if (e.message?.includes('WebSocket') || e.message?.includes('HMR')) return;
-    console.error('[window.error]', e.message, e.error);
-  });
-  window.addEventListener('unhandledrejection', (e) => {
-    const reason = e.reason?.message || String(e.reason || '');
-    if (reason.includes('WebSocket') || reason.includes('HMR') || reason.includes('opened')) return;
-    console.error('[unhandledrejection]', e.reason);
-  });
+  window.addEventListener('error', (e) => console.error('[window.error]', e.message, e.error));
+  window.addEventListener('unhandledrejection', (e) => console.error('[unhandledrejection]', e.reason));
 }

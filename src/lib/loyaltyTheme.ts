@@ -15,7 +15,7 @@ export const LOYALTY_THEMES:Record<BusinessTypeId,RewardTheme>={
  hair_coloring:{surface:'#fdf4ff',card:'#ffffff',text:'#4a174e',muted:'#78557b',border:'#f0abfc',radius:'14px',dark:false,font:sans},
  bridal_lounge:{surface:'#fff3e6',card:'#fffaf5',text:'#4f1427',muted:'#835761',border:'#e9c785',radius:'18px',dark:false,font:serif},
  tattoo_studio:{surface:'#0b0b0b',card:'#181818',text:'#f5f5f5',muted:'#bcbcbc',border:'#555555',radius:'0px',dark:true,font:sans},
- lash_brow:{surface:'#f7f0e7',card:'#ffffff',text:'#3f302a',muted:'#77665c',border:'#e8ded2',radius:'14px',dark:false,font:serif},
+ lash_brow:{surface:'#FBF6F1',card:'#FFFDFB',text:'#2B1B17',muted:'#7A4F57',border:'#E0CBA6',radius:'22px',dark:false,font:serif},
  ayurvedic_spa:{surface:'#f9ecda',card:'#fffaf2',text:'#512e1e',muted:'#7c5b45',border:'#e7ba91',radius:'18px',dark:false,font:serif},
 };
 export function loyaltyTheme(profile:SalonProfile){

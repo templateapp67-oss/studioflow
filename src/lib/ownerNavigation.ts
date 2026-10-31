@@ -1,25 +1,37 @@
 export const WEBSITE_EDIT_STEPS = [
-  { id: 'profile', label: 'Salon Profile', icon: 'store' },
-  { id: 'services', label: 'Services & Menu', icon: 'scissors' },
-  { id: 'team', label: 'Stylists & Team', icon: 'users' },
-  { id: 'gallery', label: 'Portfolio Gallery', icon: 'image' },
-  { id: 'loyalty', label: 'Loyalty & Rewards', icon: 'award' }
-];
-
+ {id:2,label:'Business details',icon:'storefront',hint:'Salon name, owner, contact details aur tagline set karein.'},
+ {id:9,label:'Choose template',icon:'dashboard_customize',hint:'Apni business category ke hisab se 14 templates mein se design choose karein.'},
+ {id:10,label:'Logo, colours & hero',icon:'palette',hint:'Logo, favicon, brand colour aur home banner ki image edit karein.'},
+ {id:27,label:'About our studio',icon:'person',hint:'Salon ki kahani, owner photo aur questions se About draft banayein.'},
+ {id:3,label:'Services & packages',icon:'spa',hint:'Services, categories, descriptions, prices, duration, package images, bundles aur checkout add-ons edit karein.'},
+ {id:4,label:'Team & specialists',icon:'groups',hint:'Staff profiles, photos, experience aur assigned services manage karein. Live Team section se weekly slots choose kar sakte hain.'},
+ {id:5,label:'Photo gallery',icon:'photo_library',hint:'Selected template ki gallery photos aur Before/After comparison pairs upload, replace ya remove karein.'},
+ {id:6,label:'Socials, videos & reels',icon:'video_library',hint:'Social profile links aur promotional videos/reels manage karein.'},
+ {id:7,label:'Location & hours',icon:'location_on',hint:'Map pin, address aur salon opening hours set karein.'},
+ {id:8,label:'Booking rules',icon:'event_available',hint:'WhatsApp booking contact aur advance booking lead time check karein.'},
+ {id:16,label:'Sections, menu & reviews',icon:'view_quilt',hint:'Website sections on/off, header menu, headings, Google/Instagram review widget aur default website language edit karein.'},
+ {id:31,label:'SEO & Social Metadata',icon:'travel_explore',hint:'Meta title, description aur OpenGraph social share cards configure karein.'},
+ {id:28,label:'Promotions & offers',icon:'campaign',hint:'Website promotion, offer content aur marketing banner edit karein.'},
+ {id:29,label:'Loyalty & rewards',icon:'military_tech',hint:'Reward rules, points thresholds aur active benefits configure karein.'},
+ {id:23,label:'Salon policies',icon:'policy',hint:'Cancellation, privacy aur salon policy text review karein.'},
+ {id:11,label:'Content review',icon:'fact_check',hint:'Basic completeness checklist dekhein aur missing details edit karein.'},
+ {id:12,label:'Preview website',icon:'preview',hint:'Publish se pehle mobile/desktop preview, images aur booking flow check karein.'},
+ {id:13,label:'Publish & live website',icon:'publish',hint:'Website publish/update karein, phir isi page se live website kholein ya uska link copy karein.'},
+] as const;
 export const OWNER_BUSINESS_TOOLS = [
-  { id: 'pos', label: 'POS & Counter Sales', icon: 'calculator' },
-  { id: 'contacts', label: 'Client Directory', icon: 'contact' },
-  { id: 'promos', label: 'Marketing Promos', icon: 'megaphone' }
-];
-
-export function ownerModule(stepId: string): string {
-  return stepId || 'profile';
+ {id:18,label:'Business overview',icon:'monitoring'},
+ {id:20,label:'Bookings & calendar',icon:'calendar_month'},
+ {id:21,label:'Payments & revenue',icon:'payments'},
+ {id:26,label:'Customers & WhatsApp',icon:'contacts'},
+ {id:22,label:'Marketing campaigns',icon:'campaign'},
+ {id:24,label:'Share & referral',icon:'redeem'},
+ {id:25,label:'Platform branding',icon:'verified'},
+ {id:1,label:'Account & login',icon:'account_circle'},
+ {id:30,label:'Environment Diagnostics',icon:'bug_report'},
+ {id:32,label:'Branches & inventory',icon:'storefront'},
+] as const;
+export function ownerModule(raw:string|null){
+ const n=Number(raw);const canonical=({14:13,15:6,17:4,19:16} as Record<number,number>)[n]||n;
+ return [...WEBSITE_EDIT_STEPS,...OWNER_BUSINESS_TOOLS].some(s=>s.id===canonical)?canonical:2;
 }
-
-export function adjacentOwnerStep(currentStep: string, direction: 'next' | 'prev'): string {
-  const steps = WEBSITE_EDIT_STEPS.map(s => s.id);
-  const idx = steps.indexOf(currentStep);
-  if (idx === -1) return steps[0];
-  if (direction === 'next') return steps[Math.min(steps.length - 1, idx + 1)];
-  return steps[Math.max(0, idx - 1)];
-}
+export function adjacentOwnerStep(id:number,direction:-1|1){const index=WEBSITE_EDIT_STEPS.findIndex(s=>s.id===id);return index<0?null:WEBSITE_EDIT_STEPS[index+direction]?.id??null;}
