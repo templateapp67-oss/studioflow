@@ -271,7 +271,7 @@ export function PinkyNailsServiceCard({
   const validPrice = hasValidNailPrice(service.price);
   const validDuration = hasValidNailDuration(service);
   const description = service.description?.trim() || '';
-  const category = service.category?.trim() || '';
+  const category = (typeof service.category === 'string' ? service.category.trim() : '');
   const canBook = Boolean(bookingAvailable && typeof onBook === 'function');
 
   return (

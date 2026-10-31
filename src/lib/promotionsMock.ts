@@ -1,124 +1,200 @@
-import type { SalonProfile } from '../types';
+import type { SalonProfile } from "../types";
+import { promotionActive } from "./promotionStatus";
 
-export interface PromotionOffer {
+/**
+ * Template 12 · Iron & Ink — promotions mock data.
+ *
+ * `promotionsMock` is the ONLY place demo offers live. A salon that has not
+ * published its own offers yet still sees a useful section; as soon as real
+ * offers exist (the existing `profile.promoCampaign`, or rows returned by the
+ * offers table/RPC passed in through the `offers` prop) the mock data is never
+ * rendered.
+ *
+ * To swap the mock for database data later:
+ *   1. Load the salon's active offers (Supabase) into `PromotionOffer[]`.
+ *   2. Pass them to `<IronInkPromotions offers={rows} />` (see IronInkWebsite),
+ *      or pass them as the third argument of `resolvePromotionOffers()`.
+ *   3. Nothing else changes — the section keeps its empty state for salons
+ *      with zero live offers, and this file can stay as a preview fallback.
+ */
+export type PromotionOffer = {
   id: string;
   title: string;
   description: string;
+  /** Short accent badge such as "15% OFF" or "₹1,999 FLAT". */
   badge: string;
+  /** ISO date (YYYY-MM-DD) or full ISO timestamp. */
+  validTill: string;
   couponCode?: string;
+  /** Iron & Ink category slug used to pre-select the booking flow. */
   category?: string;
-  validTill?: string;
+  /** Demo content is labelled in the UI. */
   isMock?: boolean;
-}
+};
 
-const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-export function promotionValidTillLabel(offer: PromotionOffer): string {
-  if (!offer.validTill) return 'Valid till 31 Dec 2027';
-  const d = new Date(offer.validTill);
-  if (isNaN(d.getTime())) return 'Valid till 31 Dec 2027';
-  const day = d.getDate();
-  const month = MONTH_NAMES[d.getMonth()];
-  const year = d.getFullYear();
-  return `Valid till ${day} ${month} ${year}`;
-}
-
-export function promotionOfferIsLive(offer: PromotionOffer): boolean {
-  if (!offer) return false;
-  if (!offer.validTill) return true;
-  const d = new Date(offer.validTill);
-  return isNaN(d.getTime()) || d.getTime() >= Date.now();
-}
-
-export function livePromotionOffers(offers?: PromotionOffer[]): PromotionOffer[] {
-  if (!Array.isArray(offers)) return [];
-  return offers.filter(promotionOfferIsLive);
-}
+/** Demo dates stay in the future so the preview never opens empty. */
+const inDays = (days: number): string => {
+  const date = new Date();
+  date.setHours(12, 0, 0, 0);
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+};
+const endOfMonth = (): string => {
+  const date = new Date();
+  date.setMonth(date.getMonth() + 1, 0);
+  date.setHours(12, 0, 0, 0);
+  return date.toISOString().slice(0, 10);
+};
 
 export const promotionsMock: PromotionOffer[] = [
   {
-    id: 'promo-1',
-    title: 'First Tattoo Special — 15% Off Your Session',
-    description: 'Enjoy 15% off your very first custom blackwork, realism portrait, or piercing session above ₹3,000.',
-    badge: '15% OFF',
-    couponCode: 'IRON15',
-    category: 'Custom Blackwork',
-    validTill: '2028-12-31T23:59:59.000Z',
-    isMock: true
+    id: "ii-offer-first-tattoo",
+    title: "First Tattoo Special – 15% OFF",
+    description:
+      "Your first piece, with the time it deserves. Includes a 20-minute design consultation, stencil placement and a printed aftercare card.",
+    badge: "15% OFF",
+    validTill: inDays(30),
+    couponCode: "IRON15",
+    category: "minimal-fine-line",
+    isMock: true,
   },
   {
-    id: 'promo-2',
-    title: 'Flash Friday — Curated Pieces at ₹1,999',
-    description: 'Every Friday choose from our hand-painted dark flash wall at an exclusive flat studio rate.',
-    badge: '₹1,999 FLAT',
-    couponCode: 'FLASHFRIDAY',
-    category: 'Flash Art',
-    validTill: '2028-12-31T23:59:59.000Z',
-    isMock: true
+    id: "ii-offer-flash-friday",
+    title: "Flash Tattoo Friday – flat ₹1,999",
+    description:
+      "Small designs from the flash wall every Friday, 12–6 pm. Artist's choice of line weight and shading; first come, first inked.",
+    badge: "₹1,999 FLAT",
+    validTill: inDays(75),
+    couponCode: "FLASHFRIDAY",
+    category: "small-flash",
+    isMock: true,
   },
   {
-    id: 'promo-3',
-    title: 'Matching Tattoos Duo Offer for Couples & Friends',
-    description: 'Get matched fine-line or minimalist linework pieces together and receive a special studio reduction.',
-    badge: 'DUO SAVE',
-    couponCode: 'COUPLE2',
-    category: 'Fine-Line Realism',
-    validTill: '2028-12-31T23:59:59.000Z',
-    isMock: true
+    id: "ii-offer-couple-ink",
+    title: "Couple Ink Combo – 2 matching tattoos at ₹6,500",
+    description:
+      "Two complementary pieces, designed together and booked back-to-back in one private studio slot. Matching stencils, separate artists on request.",
+    badge: "₹6,500 COMBO",
+    validTill: inDays(45),
+    couponCode: "COUPLE2",
+    category: "couple-matching",
+    isMock: true,
   },
   {
-    id: 'promo-4',
-    title: 'Free Studio Aftercare Kit with Every Large Tattoo',
-    description: 'Full sterile medical balm, cleansing wash, and protective second-skin bandage supplied at checkout.',
-    badge: 'FREE AFTERCARE',
-    couponCode: 'AFTERCARE',
-    category: 'Custom Blackwork',
-    validTill: '2028-12-31T23:59:59.000Z',
-    isMock: true
+    id: "ii-offer-piercing-aftercare",
+    title: "Piercing + Aftercare Kit Free",
+    description:
+      "A single piercing with sterile, implant-grade jewellery, plus a sealed aftercare kit and a follow-up check on WhatsApp — this month only.",
+    badge: "FREE KIT",
+    validTill: endOfMonth(),
+    couponCode: "AFTERCARE",
+    category: "body-piercing",
+    isMock: true,
   },
   {
-    id: 'promo-5',
-    title: 'Tattoo Cover-Up & Blast-Over Assessment',
-    description: 'Comprehensive 45-minute skin tone mapping, laser compatibility review, and free custom cover-up design stencil.',
-    badge: 'FREE CONSULT',
-    couponCode: 'COVERUP',
-    category: 'Tattoo Cover-ups',
-    validTill: '2028-12-31T23:59:59.000Z',
-    isMock: true
-  }
+    id: "ii-offer-coverup",
+    title: "Cover-up Consultation – FREE",
+    description:
+      "Bring reference photos of the old piece. We map what is coverable, what needs a session of lightening and what the redesign will cost.",
+    badge: "FREE CONSULT",
+    validTill: inDays(120),
+    couponCode: "COVERUP",
+    category: "cover-up",
+    isMock: true,
+  },
 ];
 
-export function resolvePromotionOffers(
-  profile?: SalonProfile | null,
-  explicitOffers?: PromotionOffer[]
-): { offers: PromotionOffer[]; usingMock: boolean } {
-  if (Array.isArray(explicitOffers) && explicitOffers.length > 0) {
-    const live = livePromotionOffers(explicitOffers);
-    return { offers: live, usingMock: false };
-  }
+const DAY_MS = 86_400_000;
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 
+/** True while an offer has not passed its "valid till" end-of-day. */
+export function promotionOfferIsLive(
+  offer: Pick<PromotionOffer, "validTill"> | undefined | null,
+  now = Date.now(),
+): boolean {
+  if (!offer?.validTill) return true;
+  const parsed = Date.parse(
+    DATE_ONLY.test(offer.validTill)
+      ? `${offer.validTill}T23:59:59`
+      : offer.validTill,
+  );
+  // An unparseable date is treated as open-ended rather than silently dropped.
+  return !Number.isFinite(parsed) || parsed + DAY_MS >= now;
+}
+
+export function livePromotionOffers(
+  offers: PromotionOffer[] | null | undefined,
+  now = Date.now(),
+): PromotionOffer[] {
+  return (offers || []).filter(
+    (offer) => offer && offer.title && promotionOfferIsLive(offer, now),
+  );
+}
+
+/** "Valid till 29 Nov 2026" — used by the offer card. */
+export function promotionValidTillLabel(offer: PromotionOffer): string {
+  const parsed = Date.parse(
+    DATE_ONLY.test(offer.validTill) ? `${offer.validTill}T12:00:00` : offer.validTill,
+  );
+  if (!Number.isFinite(parsed)) return "Ongoing offer";
+  return `Valid till ${new Date(parsed).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  })}`;
+}
+
+/**
+ * The salon's existing campaign (Marketing → promo banner) mapped onto the
+ * offer card shape. Returns [] when the campaign is absent, disabled or
+ * expired, which is exactly when the mock data takes over.
+ */
+export function promotionOffersFromProfile(
+  profile: Pick<SalonProfile, "promoCampaign">,
+  now = Date.now(),
+): PromotionOffer[] {
   const campaign = profile?.promoCampaign;
-  if (campaign && campaign.enabled) {
-    const ends = campaign.endsAt ? new Date(campaign.endsAt).getTime() : Infinity;
-    if (ends >= Date.now()) {
-      const liveOffer: PromotionOffer = {
-        id: 'campaign-offer',
-        title: campaign.headline || 'Studio Flash & Session Special',
-        description:
-          campaign.customOfferText ||
-          campaign.subtext ||
-          'Special limited period discount available on booking requests submitted today.',
-        badge: campaign.discountPercent ? `${campaign.discountPercent}% OFF` : 'SPECIAL OFFER',
-        couponCode: campaign.promoCode || 'PROMO',
-        validTill: campaign.endsAt,
-        isMock: false
-      };
-      return { offers: [liveOffer], usingMock: false };
-    }
-  }
+  if (!campaign || !promotionActive(campaign, now)) return [];
+  const title =
+    campaign.headline?.trim() ||
+    campaign.customOfferText?.trim() ||
+    "Studio offer";
+  const description =
+    campaign.customOfferText?.trim() ||
+    campaign.subtext?.trim() ||
+    "A limited studio offer — mention the code when you book your session.";
+  return [
+    {
+      id: "ii-offer-campaign",
+      title,
+      description,
+      badge: campaign.discountPercent
+        ? `${campaign.discountPercent}% OFF`
+        : campaign.lastMinute
+          ? "LAST-MINUTE"
+          : "STUDIO OFFER",
+      validTill: campaign.endsAt || "",
+      couponCode: campaign.promoCode?.trim() || undefined,
+    },
+  ];
+}
 
-  return {
-    offers: livePromotionOffers(promotionsMock),
-    usingMock: true
-  };
+/**
+ * The single source of truth used by the storefront section.
+ * `remoteOffers` lets a future database integration replace the mock data
+ * without touching the component.
+ */
+export function resolvePromotionOffers(
+  profile: Pick<SalonProfile, "promoCampaign">,
+  remoteOffers?: PromotionOffer[] | null,
+  now = Date.now(),
+): { offers: PromotionOffer[]; usingMock: boolean } {
+  const real = livePromotionOffers(
+    remoteOffers && remoteOffers.length
+      ? remoteOffers
+      : promotionOffersFromProfile(profile, now),
+    now,
+  );
+  if (real.length) return { offers: real, usingMock: false };
+  return { offers: livePromotionOffers(promotionsMock, now), usingMock: true };
 }

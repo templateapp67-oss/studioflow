@@ -1,94 +1,32 @@
-export function isValidFaviconUrl(url?: string | null): boolean {
-  if (!url || typeof url !== 'string') return false;
-  const trimmed = url.trim();
-  if (!trimmed || trimmed.startsWith('javascript:')) return false;
-  return true;
+const FALLBACK_ICON = '/customer-icon-192.png';
+function imageUrl(value: unknown): string | undefined {
+  if (typeof value !== 'string') return;
+  const url = value.trim();
+  if (/^https:\/\//i.test(url) || /^\/(?:template-assets|templates|assets)\//.test(url)) return url;
 }
 
-export function websiteFavicon(
-  settings?: { faviconUrl?: string } | null,
-  profile?: { logoUrl?: string; businessType?: string } | null
-): string {
-  const faviconUrl = settings?.faviconUrl;
-  if (isValidFaviconUrl(faviconUrl)) {
-    return faviconUrl!.trim();
-  }
-
-  const logoUrl = profile?.logoUrl;
-  if (isValidFaviconUrl(logoUrl)) {
-    return logoUrl!.trim();
-  }
-
-  const bType = profile?.businessType;
-  if (bType === 'massage_wellness') {
-    return '/templates/bodhi-tree/favicon.svg';
-  }
-  if (bType === 'makeup_studio') {
-    return '/templates/vogue-noir/favicon.svg';
-  }
-
-  return '/customer-icon-192.png';
+export function websiteFavicon(branding?: {faviconUrl?: string}, profile?: {logoUrl?: string; businessType?: string}) {
+  return imageUrl(branding?.faviconUrl) || imageUrl(profile?.logoUrl) || (profile?.businessType === 'makeup_studio' ? '/templates/vogue-noir/favicon.svg' : profile?.businessType === 'massage_wellness' ? '/templates/bodhi-tree/favicon.svg' : profile?.businessType === 'hair_coloring' ? '/templates/10/favicon.svg' : profile?.businessType === 'lash_brow' ? '/templates/13/favicon.svg' : FALLBACK_ICON);
 }
 
-export function applyWebsiteFavicon(
-  docOrUrl?: any,
-  urlArg?: string
-): () => void {
-  let doc = typeof document !== 'undefined' ? document : null;
-  let iconUrl = '';
-
-  if (docOrUrl && typeof docOrUrl === 'object' && docOrUrl.querySelector) {
-    doc = docOrUrl;
-    iconUrl = urlArg || '';
-  } else if (typeof docOrUrl === 'string') {
-    iconUrl = docOrUrl;
-  }
-
-  if (!doc) return () => {};
-
-  const existingLink = doc.querySelector<HTMLLinkElement>("link[rel*='icon']");
-  const previousHref = existingLink ? existingLink.href : null;
-  const previousType = existingLink ? existingLink.getAttribute('type') : null;
-
-  let linkNode: HTMLLinkElement | null = existingLink;
-  let createdNew = false;
-
-  if (!linkNode) {
-    linkNode = doc.createElement('link') as HTMLLinkElement;
-    linkNode.rel = 'shortcut icon';
-    if (doc.head && typeof doc.head.appendChild === 'function') {
-      doc.head.appendChild(linkNode);
-    }
-    createdNew = true;
-  }
-
-  if (linkNode) {
-    linkNode.removeAttribute('type');
-    linkNode.href = iconUrl;
-
-    if (typeof linkNode.addEventListener === 'function') {
-      const handleError = () => {
-        if (linkNode) {
-          linkNode.href = '/customer-icon-192.png';
-        }
-      };
-      linkNode.addEventListener('error', handleError);
-    }
-  }
-
+/** Restore the previous tab icon when leaving a salon, so brands cannot leak across routes. */
+export function applyWebsiteFavicon(doc: Document, url: string) {
+  let icon = doc.querySelector<HTMLLinkElement>('link[rel="icon"]');
+  const previous = icon?.getAttribute('href');
+  const previousType = icon?.getAttribute('type');
+  const created = !icon;
+  if (!icon) { icon = doc.createElement('link'); icon.rel = 'icon'; doc.head.appendChild(icon); }
+  icon.removeAttribute('type'); // Let the response identify PNG, WebP, JPEG or ICO.
+  icon.href = url;
+  const activeIcon = icon;
+  const failed = () => { if (activeIcon.getAttribute('href') !== FALLBACK_ICON) activeIcon.href = FALLBACK_ICON; };
+  activeIcon.addEventListener('error', failed);
   return () => {
-    if (!doc) return;
-    if (createdNew) {
-      if (linkNode && typeof linkNode.remove === 'function') {
-        linkNode.remove();
-      }
-    } else if (linkNode) {
-      if (previousHref !== null) {
-        linkNode.href = previousHref;
-      }
-      if (previousType !== null) {
-        linkNode.setAttribute('type', previousType);
-      }
+    activeIcon.removeEventListener('error', failed);
+    if (created) activeIcon.remove();
+    else {
+      if (previous == null) activeIcon.removeAttribute('href'); else activeIcon.setAttribute('href', previous);
+      if (previousType == null) activeIcon.removeAttribute('type'); else activeIcon.setAttribute('type', previousType);
     }
   };
 }

@@ -528,7 +528,7 @@ export interface ResolvedPrismChromaConfig {
 }
 
 export function resolvePrismChromaConfig(profile: SalonProfile): ResolvedPrismChromaConfig {
-  const raw = (profile.prismChroma as PrismChromaConfig) || {};
+  const raw = profile.prismChroma || {};
   const rawColors = raw.colors || {};
   const colors: PrismChromaThemeColors = {
     bg: prismSanitizeHexColor(rawColors.bg, PRISM_CHROMA_DEFAULT_COLORS.bg),

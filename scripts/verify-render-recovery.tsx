@@ -39,7 +39,7 @@ await act(()=>{renderer=create(<AccountLoading onRetry={()=>retries++}/>)});
 assert.equal(renderer.root.findAllByType('button').length,0);
 await act(async()=>{for(let i=0;i<10;i++)callback();});
 assert.ok(JSON.stringify(renderer.toJSON()).includes('Connection diagnostic'));
-await act(async()=>{const click=renderer.root.findByType('button').props.onClick;click();click();});assert.equal(retries,1);
+await act(async()=>{const retryButton=renderer.root.findAllByType('button').find((b:any)=>JSON.stringify(b.children).includes('Retry'));assert.ok(retryButton,'a Retry button is offered');const click=retryButton!.props.onClick;click();click();});assert.equal(retries,1);
 await act(()=>renderer.unmount());assert.ok(cleared);
 supabase.auth.getSession=originalSession;
 globalThis.setInterval=oldSet;globalThis.clearInterval=oldClear;
