@@ -6,11 +6,11 @@
 const STORAGE_KEY = 'nexora_customer_referral';
 const INVITE_PATH = '/invite/';
 
-export const isCustomerInviteEntry = typeof window !== 'undefined' && window.location.pathname.startsWith(INVITE_PATH);
+export const isCustomerInviteEntry = typeof window !== 'undefined' && !!window.location?.pathname && window.location.pathname.startsWith(INVITE_PATH);
 
 export function captureCustomerReferral(): string {
-  if (typeof window === 'undefined') return '';
-  
+  if (typeof window === 'undefined' || !window.location) return '';
+
   // 1. Check URL path for /invite/CODE
   if (isCustomerInviteEntry) {
     const code = window.location.pathname.slice(INVITE_PATH.length).split('/')[0];
@@ -21,7 +21,7 @@ export function captureCustomerReferral(): string {
   }
 
   // 2. Check URL search params for ?ref=CODE
-  const urlParams = new URLSearchParams(window.location.search);
+  const urlParams = new URLSearchParams(window.location.search || '');
   const refCode = urlParams.get('ref') || urlParams.get('referral');
   if (refCode) {
     localStorage.setItem(STORAGE_KEY, refCode);
