@@ -12,6 +12,16 @@ export function serviceImageTemplates(service:Pick<SalonService,'id'|'name'|'cat
  const text=`${service.category} ${service.name}`.toLowerCase();
  // Template 06 ships its own local spa photography, so hair-spa menu cards never
  // borrow unrelated stock portraits from another category.
+ if(type==='hair_salon'){
+  const primary=/keratin|botox|smooth|repair/.test(text)?'/templates/miraki/service-smoothing.webp':/cut|layer|fringe|style|blow/.test(text)?'/templates/miraki/service-cut.webp':'/templates/miraki/hero.webp';
+  const urls=Array.from(new Set([primary,'/templates/miraki/service-shampoo.webp','/templates/miraki/interior.webp','/templates/miraki/tools.webp']));
+  return urls.slice(0,3).map((url,index)=>({id:`hair_salon-${index+1}`,url,label:`Miraki image ${index+1}`}));
+ }
+ if(type==='unisex_salon'){
+  const primary=/pedicure|manicure|foot|hand/.test(text)?'/templates/aura-unisex/service-pedicure.webp':/facial|skin|cleanup|de-tan/.test(text)?'/templates/aura-unisex/service-facial.webp':/colour|color|dye/.test(text)?'/templates/aura-unisex/service-colour.webp':/repair|spa|shampoo|condition/.test(text)?'/templates/aura-unisex/service-repair.webp':'/templates/aura-unisex/service-cut.webp';
+  const urls=Array.from(new Set([primary,'/templates/aura-unisex/service-cut.webp','/templates/aura-unisex/service-facial.webp','/templates/aura-unisex/service-colour.webp','/templates/aura-unisex/service-pedicure.webp']));
+  return urls.slice(0,3).map((url,index)=>({id:`unisex_salon-${index+1}`,url,label:`Aura image ${index+1}`}));
+ }
  if(type==='hair_spa'){
   const local=Array.from(new Set([keshPrakritiServiceImage(service),KESH_PRAKRITI_IMAGES.sanctuary,KESH_PRAKRITI_IMAGES.botanical]));
   return local.slice(0,3).map((url,index)=>({id:`hair_spa-${index+1}`,url,label:`Image template ${index+1}`}));
