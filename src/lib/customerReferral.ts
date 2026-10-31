@@ -1,9 +1,52 @@
-const KEY='nexora_customer_referral';
-const valid=(code:string)=>/^[A-Z0-9-]{6,32}$/.test(code);
-export function customerReferralLink(code:string,origin=typeof location==='undefined'?'http://localhost':location.origin){const url=new URL('/?app=1',origin);if(valid(code.trim().toUpperCase())){url.searchParams.set('auth','signup');url.searchParams.set('customer_ref',code.trim().toUpperCase())}return url.href}
-export function captureCustomerReferral(){const params=new URLSearchParams(location.search);const code=(params.get('customer_ref')||(params.has('app')?params.get('ref'):'')||'').trim().toUpperCase();try{if(valid(code)){localStorage.setItem(KEY,JSON.stringify({code,expires:Date.now()+30*86400000}));return code}const saved=JSON.parse(localStorage.getItem(KEY)||'null');if(saved&&saved.expires>Date.now()&&valid(saved.code))return saved.code;localStorage.removeItem(KEY)}catch{}return valid(code)?code:''}
-export function clearCustomerReferral(){try{localStorage.removeItem(KEY)}catch{}const url=new URL(location.href);url.searchParams.delete('customer_ref');if(url.searchParams.get('auth')==='signup')url.searchParams.delete('auth');if(url.searchParams.has('app'))url.searchParams.delete('ref');history.replaceState(null,'',url)}
+/**
+ * Referral management for the Nexora customer network.
+ * Stores referral codes in local storage and manages URL parameter capture.
+ */
 
-export function rememberCustomerReferral(code:string){clearCustomerReferral();const normalized=code.trim().toUpperCase();try{if(valid(normalized))localStorage.setItem(KEY,JSON.stringify({code:normalized,expires:Date.now()+30*86400000}))}catch{}window.dispatchEvent(new Event('nexora-referral-changed'))}
+const STORAGE_KEY = 'nexora_customer_referral';
+const INVITE_PATH = '/invite/';
 
-export function isCustomerInviteEntry(){const p=new URLSearchParams(location.search);return p.has('app')&&!!(p.get('customer_ref')||p.get('ref'))&&!p.has('recovery')}
+export const isCustomerInviteEntry = typeof window !== 'undefined' && window.location.pathname.startsWith(INVITE_PATH);
+
+export function captureCustomerReferral(): string {
+  if (typeof window === 'undefined') return '';
+  
+  // 1. Check URL path for /invite/CODE
+  if (isCustomerInviteEntry) {
+    const code = window.location.pathname.slice(INVITE_PATH.length).split('/')[0];
+    if (code) {
+      localStorage.setItem(STORAGE_KEY, code);
+      return code;
+    }
+  }
+
+  // 2. Check URL search params for ?ref=CODE
+  const urlParams = new URLSearchParams(window.location.search);
+  const refCode = urlParams.get('ref') || urlParams.get('referral');
+  if (refCode) {
+    localStorage.setItem(STORAGE_KEY, refCode);
+    window.dispatchEvent(new CustomEvent('nexora-referral-changed'));
+    return refCode;
+  }
+
+  // 3. Fallback to local storage
+  return localStorage.getItem(STORAGE_KEY) || '';
+}
+
+export function rememberCustomerReferral(code?: string): void {
+  if (!code || typeof window === 'undefined') return;
+  localStorage.setItem(STORAGE_KEY, code.trim().toUpperCase());
+  window.dispatchEvent(new CustomEvent('nexora-referral-changed'));
+}
+
+export function clearCustomerReferral(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(STORAGE_KEY);
+  window.dispatchEvent(new CustomEvent('nexora-referral-changed'));
+}
+
+export function customerReferralLink(code: string): string {
+  if (!code) return '/?app=1';
+  const base = typeof window !== 'undefined' ? window.location.origin : '';
+  return `${base}${INVITE_PATH}${encodeURIComponent(code)}`;
+}

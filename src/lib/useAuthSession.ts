@@ -1,30 +1,56 @@
-import { useEffect, useState } from 'react';
-import type { Session } from '@supabase/supabase-js';
+import { useState, useEffect } from 'react';
 import { supabase } from './supabase';
-import { messageOf, withTimeout } from './asyncDeadline';
+import type { Session } from '@supabase/supabase-js';
 
-/** Auth callbacks stay synchronous; profile/database work runs in separate effects. */
 export function useAuthSession(onRecovery?: () => void) {
-  const [state, setState] = useState<{session: Session | null; ready: boolean; error: string}>({session: null, ready: false, error: ''});
+  const [session, setSession] = useState<Session | null>(null);
+  const [ready, setReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
-    let active = true, authChanged = false;
-    const accept = (session: Session | null | undefined, error = '') => {
-      if (active) setState({session: session?.user?.id ? session : null, ready: true, error});
-    };
-    const {data} = supabase.auth.onAuthStateChange((event, session) => {
+    let active = true;
+
+    // Check for recovery type in hash or search
+    const isRecovery = 
+      new URLSearchParams(window.location.search).has('recovery') || 
+      new URLSearchParams(window.location.hash.slice(1)).get('type') === 'recovery';
+
+    if (isRecovery && onRecovery) {
+      onRecovery();
+    }
+
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session: initialSession }, error: initialError }) => {
       if (!active) return;
-      authChanged = true;
-      if (event === 'PASSWORD_RECOVERY') onRecovery?.();
-      accept(session);
+      if (initialError) {
+        setError(initialError.message);
+      } else {
+        setSession(initialSession);
+      }
+      setReady(true);
+    }).catch(err => {
+      if (!active) return;
+      setError(err instanceof Error ? err.message : 'Failed to check session');
+      setReady(true);
     });
-    // Never let a delayed cached session resurrect an account after SIGNED_OUT.
-    void withTimeout(Promise.resolve().then(() => supabase.auth.getSession()), 15000, 'Checking your session')
-      .then(({data, error}) => {
-        if (!authChanged) accept(error ? null : data?.session, error?.message || '');
-      }).catch(error => {
-        if (!authChanged) accept(null, messageOf(error, 'Your session could not be checked. Please sign in again.'));
-      });
-    return () => { active = false; data.subscription.unsubscribe(); };
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
+      if (!active) return;
+      
+      if (event === 'PASSWORD_RECOVERY' && onRecovery) {
+        onRecovery();
+      }
+
+      setSession(currentSession);
+      setReady(true);
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
   }, [onRecovery]);
-  return state;
+
+  return { session, ready, error };
 }

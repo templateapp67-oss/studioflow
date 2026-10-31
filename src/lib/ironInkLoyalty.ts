@@ -1,61 +1,56 @@
-import type { RewardThreshold } from "../types";
+export interface IronInkPerkSuggestion {
+  id: string;
+  title: string;
+  description: string;
+  requiredPoints: number;
+  rewardType: 'percentage_discount' | 'flat_discount' | 'free_service';
+  discountValue: number;
+  isActive: boolean;
+  couponCodePrefix: string;
+}
 
-/**
- * Template 12 perk suggestions.
- *
- * These are deliberately inactive configuration examples, not live promises.
- * The owner adds one, adjusts its point threshold and description, and only
- * then enables it; the storefront reads the existing saved `loyaltyConfig`.
- */
-export const IRON_INK_PERK_SUGGESTIONS: RewardThreshold[] = [
+export const IRON_INK_PERK_SUGGESTIONS: IronInkPerkSuggestion[] = [
   {
-    id: "ii-perk-suggestion-1",
-    title: "10% off after 3 visits",
-    requiredPoints: 150,
-    rewardType: "percentage_discount",
+    id: 'perk-sugg-1',
+    title: '10% off after 3 visits',
+    description: 'A thank you for returning clients — 10% discount on your fourth tattoo session.',
+    requiredPoints: 300,
+    rewardType: 'percentage_discount',
     discountValue: 10,
-    applicableCategory: "Tattoo & piercing services",
-    description:
-      "Editable example. StudioFlow counts points, so set the threshold to whatever a three-visit client would earn in your programme. Nothing is published until you enable and save it.",
     isActive: false,
-    couponCodePrefix: "INK10",
+    couponCodePrefix: 'INK3V'
   },
   {
-    id: "ii-perk-suggestion-2",
-    title: "Free aftercare kit at a milestone",
+    id: 'perk-sugg-2',
+    title: 'Free premium aftercare kit',
+    description: 'Complete studio aftercare pack including medical foaming wash and soothing balm.',
+    requiredPoints: 200,
+    rewardType: 'free_service',
+    discountValue: 100,
+    isActive: false,
+    couponCodePrefix: 'CARE'
+  },
+  {
+    id: 'perk-sugg-3',
+    title: '₹1,500 off custom realism',
+    description: 'Flat voucher for your next large dark-realism or portrait tattoo session.',
     requiredPoints: 500,
-    rewardType: "free_service",
-    discountValue: 100,
-    applicableCategory: "Aftercare",
-    description:
-      "Editable example. Describe exactly what the kit contains and set the point milestone that suits your studio. Nothing is published until you enable and save it.",
+    rewardType: 'flat_discount',
+    discountValue: 1500,
     isActive: false,
-    couponCodePrefix: "AFTERCARE",
-  },
-  {
-    id: "ii-perk-suggestion-3",
-    title: "Priority booking window",
-    requiredPoints: 350,
-    rewardType: "free_service",
-    discountValue: 100,
-    applicableCategory: "Booking",
-    description:
-      "Editable example. Use this only if your team can genuinely hold an early booking window. Nothing is published until you enable and save it.",
-    isActive: false,
-    couponCodePrefix: "PRIORITY",
-  },
+    couponCodePrefix: 'DARK15'
+  }
 ];
 
-export function blankIronInkPerk(id: string): RewardThreshold {
+export function blankIronInkPerk(id: string = `ii-perk-${Date.now()}`): IronInkPerkSuggestion {
   return {
     id,
-    title: "",
+    title: 'New loyalty perk',
+    description: 'Exclusive perk for returning studio clients.',
     requiredPoints: 250,
-    rewardType: "percentage_discount",
+    rewardType: 'percentage_discount',
     discountValue: 10,
-    applicableCategory: "",
-    description: "",
     isActive: false,
-    couponCodePrefix: "INK",
+    couponCodePrefix: 'INK'
   };
 }

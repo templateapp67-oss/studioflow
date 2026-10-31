@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { messageOf, withTimeout } from '../lib/asyncDeadline';
 
-export type ProfileLoadState='idle'|'loading'|'user-mismatch'|'error';
+export type ProfileLoadState='idle'|'loading'|'ready'|'user-mismatch'|'error';
 type DiagStatus='checking'|'ok'|'problem'|'unknown';
 type AccountDiagnostic={auth:DiagStatus;connection:DiagStatus;profile:DiagStatus;summary:string;detail:string};
 const DIAGNOSTIC_AFTER_SECONDS=10,RETRY_COOLDOWN_MS=5000,DIAGNOSTIC_TIMEOUT_MS=8000;

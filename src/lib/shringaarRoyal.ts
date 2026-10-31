@@ -532,32 +532,9 @@ export function shringaarServiceIncludes(category?: string): string[] {
 }
 
 /** Map a saved service to the bundled photo for its category. */
-/**
- * Keeps only usable service rows before the Bridal Menu renders. Owner and CMS
- * data can contain null rows, missing names or missing ids; those must never
- * crash the published page. Rows without a name are dropped, rows without an
- * id get a stable fallback id so React keys and booking lookups stay unique.
- */
-export function sanitizeShringaarServices(list: unknown): SalonService[] {
-  if (!Array.isArray(list)) return [];
-  const seen = new Set<string>();
-  const out: SalonService[] = [];
-  list.forEach((raw, index) => {
-    if (!raw || typeof raw !== 'object') return;
-    const service = raw as SalonService;
-    const name = typeof service.name === 'string' ? service.name.trim() : '';
-    if (!name) return;
-    let id = typeof service.id === 'string' || typeof service.id === 'number' ? String(service.id) : '';
-    if (!id || seen.has(id)) id = `sr-service-${index}`;
-    seen.add(id);
-    out.push({ ...service, id, name });
-  });
-  return out;
-}
-
 export function shringaarServiceImage(service: Pick<SalonService, 'id' | 'name' | 'category' | 'imageUrl'>): string {
-  if (typeof service.imageUrl === 'string' && service.imageUrl.trim()) return service.imageUrl.trim();
-  const text = `${service.category || ''} ${service.name || ''}`.toLowerCase();
+  if (service.imageUrl && service.imageUrl.trim()) return service.imageUrl.trim();
+  const text = `${service.category} ${service.name}`.toLowerCase();
   if (/mehendi|henna/.test(text)) return SHRINGAAR_IMAGES.services.mehendi;
   if (/drap|saree|safa|turban|poshak|styling/.test(text)) return SHRINGAAR_IMAGES.services.draping;
   if (/hair|juda|braid/.test(text)) return SHRINGAAR_IMAGES.services.hair;
@@ -615,28 +592,18 @@ export interface ResolvedShringaarConfig {
   closeTime: string;
 }
 
-/**
- * Owner-entered list: drops null/undefined rows (a half-saved editor row must
- * not crash the page) and gives object rows without an id a stable positional
- * id, so every mapped item has a unique React key. Primitive lists (for example
- * gallery URLs) are returned as they are.
- */
-const list = <T,>(value: T[] | undefined, fallback: T[]): T[] => {
-  if (!Array.isArray(value)) return fallback;
-  const cleaned = value
-    .filter((item) => item !== null && item !== undefined)
-    .map((item, index) =>
-      item && typeof item === 'object' && !Array.isArray(item) && (item as any).id == null
-        ? ({ ...(item as object), id: `item-${index}` } as unknown as T)
-        : item,
-    );
-  return cleaned.length > 0 ? cleaned : fallback;
-};
+const list = <T,>(value: T[] | undefined, fallback: T[]): T[] =>
+  Array.isArray(value) && value.length > 0 ? value : fallback;
+
+/** Sanitize owner services for the Shringaar storefront bento. */
+export function sanitizeShringaarServices(services: SalonService[]): SalonService[] {
+  return (services || []).filter((s) => s && s.name && s.category);
+}
 
 /** Resolve stored owner content over the bundled demo content. */
 export function resolveShringaarRoyalConfig(profile: SalonProfile): ResolvedShringaarConfig {
-  const raw: ShringaarRoyalConfig = profile.shringaarRoyal || {};
-  const colors = raw.colors || {};
+  const raw: ShringaarRoyalConfig = profile.shringaarRoyal || { enabled: false };
+  const colors = (raw.colors || {}) as ShringaarRoyalColors;
   const tagline = (profile.tagline || '').trim();
   return {
     selectorLabel: (raw.selectorLabel || '').trim() || SHRINGAAR_SELECTOR_LABEL,
@@ -764,19 +731,11 @@ export function resolveShringaarPackages(
   packages: ShringaarPackageItem[],
   services: SalonService[],
 ): Array<ShringaarPackageItem & { livePrice: number | null; liveServiceId?: string; durationMinutes?: number; bookable: boolean }> {
-  const usable = sanitizeShringaarServices(services);
-  return (Array.isArray(packages) ? packages.filter(Boolean) : []).map((pkg) => {
-    const tier = typeof pkg.tier === 'string' ? pkg.tier.trim() : '';
-    // The tier text is owner-entered. Escape it before building a RegExp so a
-    // value such as "(Gold" can never throw and blank the whole page.
-    const firstWord = tier.split(/\s+/)[0] || '';
-    const firstWordPattern = firstWord ? new RegExp(firstWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') : null;
+  return packages.map((pkg) => {
     const linked =
-      usable.find((service) => pkg.serviceId && service.id === pkg.serviceId) ||
-      usable.find((service) => service.name.trim().toLowerCase() === tier.toLowerCase()) ||
-      (firstWordPattern
-        ? usable.find((service) => /package|combo|bundle/i.test(`${service.category || ''} ${service.name}`) && firstWordPattern.test(service.name))
-        : undefined);
+      services.find((service) => pkg.serviceId && service.id === pkg.serviceId) ||
+      services.find((service) => (service.name || '').trim().toLowerCase() === (pkg.tier || '').trim().toLowerCase()) ||
+      services.find((service) => /package|combo|bundle/i.test(`${service.category} ${service.name}`) && new RegExp(pkg.tier.split(' ')[0], 'i').test(service.name));
     return {
       ...pkg,
       livePrice: linked && linked.price != null ? linked.price : pkg.price ?? null,

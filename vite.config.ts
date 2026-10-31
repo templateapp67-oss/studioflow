@@ -4,7 +4,6 @@ import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  server: { host: '0.0.0.0', allowedHosts: ['.e2b.app', '.run.app'] },
   build: {
     rollupOptions: {
       onwarn(warning, warn) {

@@ -1,6 +1,6 @@
-import type { SalonService } from "../types";
+import type { SalonService } from '../types';
 
-export type IronInkCategory = {
+export interface IronInkCategory {
   slug: string;
   name: string;
   image: string;
@@ -8,263 +8,255 @@ export type IronInkCategory = {
   price: number;
   duration: string;
   enabled: boolean;
-};
-const photo = (id: string) =>
-  `https://images.unsplash.com/${id}?auto=format&fit=crop&w=900&q=80`;
-export function ironInkDurationMinutes(value: string): number {
-  if (/multi/i.test(value)) return 240;
-  const values = [...value.matchAll(/\d+(?:\.\d+)?/g)].map((match) => Number(match[0]));
-  if (!values.length) return 60;
-  const average = values.length > 1 ? (values[0] + values[1]) / 2 : values[0];
-  const minutes = /hour|hr/i.test(value) ? average * 60 : average;
-  return Math.max(1, Math.min(1440, Math.round(minutes)));
 }
+
+const photo = (id: string) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=800&q=80`;
 
 export const IRON_INK_CATEGORIES: IronInkCategory[] = [
   [
+    "custom-blackwork",
+    "Custom Blackwork",
+    photo("1598371839696-5c5bb00bdc28"),
+    "Bespoke dark artistry, rich black saturation and intricate linework crafted for longevity and contrast.",
+    3500,
+    "120-min",
+  ],
+  [
     "realism-portrait",
-    "Realism / Portrait Tattoo",
-    "photo-1598371839696-5c5bb00bdc28",
-    "Bring a portrait, beloved pet or reference image; your artist builds depth through carefully layered tone, precise contrast and expressive fine detail.",
-    4500,
-    "2–4 hr",
+    "Realism Portrait",
+    photo("1568515045052-f9a854d70bfd"),
+    "Photorealistic human or animal portraits rendered with lifelike depth, soft shading, and meticulous contrast detailing.",
+    5500,
+    "180-min",
   ],
   [
-    "black-grey",
-    "Black & Grey",
-    "photo-1611501275019-9b5cda994e8d",
-    "Soft greywash and deliberate black values create a timeless monochrome piece. We plan contrast, skin breaks and placement together for a result that ages beautifully.",
-    3500,
-    "2–3 hr",
-  ],
-  [
-    "blackwork-dotwork",
-    "Blackwork / Dotwork",
-    "photo-1565058379802-bbe93b2f703a",
-    "Choose graphic black shapes, stippled gradients or dense ornamental pattern. Each design is composed to follow your anatomy and keep its visual clarity over time.",
-    3000,
-    "2–3 hr",
-  ],
-  [
-    "traditional-old-school",
-    "Traditional / Old School",
-    "photo-1590246814883-57c511e8f309",
-    "Classic motifs meet confident outlines and saturated colour. We can adapt a traditional flash idea or draw a personal variation with balanced, lasting composition.",
+    "fine-line-realism",
+    "Fine-Line Realism",
+    photo("1611501275019-9b5cda994e8d"),
+    "Single-needle micro-precision capturing delicate botanical motifs, micro portraits, and architectural details.",
     2500,
-    "1–3 hr",
-  ],
-  [
-    "neo-traditional",
-    "Neo-Traditional",
-    "photo-1611843467160-25afb8df1074",
-    "Expressive linework, ornamental framing and dimensional colour bring this illustrative style to life. Your artist will shape a custom composition around your reference and placement.",
-    3500,
-    "2–4 hr",
-  ],
-  [
-    "japanese-irezumi",
-    "Japanese (Irezumi)",
-    "photo-1562962230-16e4623d36e6",
-    "Flowing koi, botanicals and mythic motifs are composed with attention to movement, scale and traditional visual balance. Larger projects are planned in clear sessions.",
-    5000,
-    "3–5 hr",
-  ],
-  [
-    "tribal-polynesian",
-    "Tribal / Polynesian",
-    "photo-1598371839696-5c5bb00bdc28",
-    "Bold, repeating patternwork is tailored to the contours of your body. Share the symbols and cultural references that matter so your design is considered and personal.",
-    3500,
-    "2–4 hr",
-  ],
-  [
-    "geometric-mandala",
-    "Geometric / Mandala",
-    "photo-1565058379802-bbe93b2f703a",
-    "Crisp geometry, mandala structure and ornamental symmetry require careful sizing and placement. We review line density and scale so fine details stay legible as they heal.",
-    3000,
-    "2–3 hr",
-  ],
-  [
-    "minimal-fine-line",
-    "Minimalist / Fine Line",
-    "photo-1611501275019-9b5cda994e8d",
-    "Fine, understated marks are drawn with deliberate spacing and a light touch. Bring a simple reference or idea; your artist will advise on size and long-term legibility.",
-    1500,
-    "45–90 min",
-  ],
-  [
-    "watercolor",
-    "Watercolor",
-    "photo-1611843467160-25afb8df1074",
-    "Expressive colour transitions and painterly movement create a softer, illustrative finish. We discuss palette, skin tone and placement before confirming a design and session plan.",
-    3000,
-    "2–3 hr",
-  ],
-  [
-    "lettering-script",
-    "Lettering / Script / Calligraphy",
-    "photo-1598371839696-5c5bb00bdc28",
-    "From handwritten scripts to carefully kerned lettering, every line is composed for your chosen words and placement. We check spelling, scale and readability before the appointment.",
-    1800,
-    "1–2 hr",
-  ],
-  [
-    "biomechanical",
-    "Biomechanical",
-    "photo-1562962230-16e4623d36e6",
-    "Layered mechanical forms, organic textures and dimensional shading are designed to move naturally with the body. Larger concepts begin with references and a placement consultation.",
-    4500,
-    "3–5 hr",
-  ],
-  [
-    "anime-cartoon",
-    "Anime / Cartoon",
-    "photo-1611843467160-25afb8df1074",
-    "Commission an original character, favourite-inspired motif or playful colour illustration. We translate your references into a custom design while keeping the final artwork studio-original.",
-    2500,
-    "1–3 hr",
-  ],
-  [
-    "religious-spiritual",
-    "Religious / Spiritual",
-    "photo-1590246814883-57c511e8f309",
-    "Personal symbols and spiritual motifs are approached with care and respect. Discuss the meaning, script and placement with your artist before the final design is prepared.",
-    2200,
-    "1–3 hr",
-  ],
-  [
-    "name-date-quote",
-    "Name / Date / Quote Tattoo",
-    "photo-1611501275019-9b5cda994e8d",
-    "Names, meaningful dates and short quotations are composed in a type style that suits your idea. We confirm spelling, alignment and a readable size together.",
-    1200,
-    "45–90 min",
-  ],
-  [
-    "couple-matching",
-    "Couple / Matching Tattoo",
-    "photo-1598371839696-5c5bb00bdc28",
-    "Create two complementary pieces that work individually and together. Your artist can adapt one shared motif to different sizes, placements or personal details.",
-    2500,
-    "1–2 hr",
-  ],
-  [
-    "cover-up",
-    "Cover-up Tattoo",
-    "photo-1565058379802-bbe93b2f703a",
-    "Cover-ups start with an honest assessment of the existing tattoo, its age and placement. Your artist explores suitable scale, contrast and options before recommending a design.",
-    4000,
-    "2–4 hr",
-  ],
-  [
-    "custom-sleeve",
-    "Custom Sleeve / Half Sleeve / Full Sleeve",
-    "photo-1562962230-16e4623d36e6",
-    "Build a connected visual story across a half or full sleeve. Planning, stencil reviews and multiple sessions help the composition flow around your anatomy.",
-    12000,
-    "Multi-session",
-  ],
-  [
-    "back-chest-piece",
-    "Back Piece / Chest Piece",
-    "photo-1590246814883-57c511e8f309",
-    "A back or chest piece is mapped to your natural proportions and movement. Begin with a consultation to develop the concept, scale and multi-session schedule.",
-    15000,
-    "Multi-session",
-  ],
-  [
-    "uv-glow",
-    "UV / Glow Tattoo",
-    "photo-1611843467160-25afb8df1074",
-    "Explore UV-reactive details with a specialist consultation about design, placement and product suitability. The artist will explain care and visibility in regular light before proceeding.",
-    3500,
-    "2–3 hr",
-  ],
-  [
-    "small-flash",
-    "Small Flash Tattoo",
-    "photo-1611501275019-9b5cda994e8d",
-    "Choose a small, artist-designed flash piece or ask about available designs. Final placement and sizing are confirmed in studio before work begins.",
-    1000,
-    "30–60 min",
-  ],
-  [
-    "laser-removal",
-    "Tattoo Removal / Fading (Laser)",
-    "photo-1598371839696-5c5bb00bdc28",
-    "Start with a qualified consultation to discuss the tattoo, skin and realistic fading goals. Treatment suitability and session spacing are assessed before any laser service.",
-    2500,
-    "30–60 min",
-  ],
-  [
-    "touch-up-rework",
-    "Tattoo Touch-up & Rework",
-    "photo-1565058379802-bbe93b2f703a",
-    "Refresh healed work or discuss a careful rework with an experienced artist. We assess the existing ink first and confirm what can be improved in a new session.",
-    1200,
-    "45–90 min",
-  ],
-  [
-    "permanent-makeup",
-    "Permanent Makeup",
-    "photo-1611843467160-25afb8df1074",
-    "Explore brows, lip blush or eyeliner with a detailed suitability and colour consultation. Your artist explains preparation, healing and any required follow-up before you decide.",
-    6000,
-    "2–3 hr",
-  ],
-  [
-    "scar-cover",
-    "Scar Cover Tattoo",
-    "photo-1562962230-16e4623d36e6",
-    "Scar-cover work begins with a private, unhurried consultation. We discuss healing, skin suitability and design options with care; each case is assessed individually.",
-    3500,
-    "2–4 hr",
+    "90-min",
   ],
   [
     "body-piercing",
     "Body Piercing",
-    "photo-1590246814883-57c511e8f309",
-    "Choose from ear, nose, lip, navel and other available piercings. A trained piercer will review anatomy, jewellery and aftercare, using sterile single-use equipment.",
-    900,
-    "30–45 min",
+    photo("1535295972055-1c762f4483e5"),
+    "Aseptic needle piercings using ASTM F136 implant-grade titanium jewelry with comprehensive sterile care.",
+    1200,
+    "30-min",
   ],
   [
-    "temporary-henna",
-    "Temporary Tattoo / Henna Art",
-    "photo-1611501275019-9b5cda994e8d",
-    "Temporary henna and body art can be tailored for celebrations, events or personal style. Discuss the design, placement and timing with the artist before your visit.",
-    800,
-    "30–60 min",
+    "tattoo-cover-ups",
+    "Tattoo Cover-ups",
+    photo("1562962230-16e4623d36e6"),
+    "Specialised camouflage and blast-over transformations transforming legacy tattoos into bold fresh art.",
+    4000,
+    "120-min",
   ],
   [
-    "airbrush-body-art",
-    "Airbrush Body Art",
-    "photo-1611843467160-25afb8df1074",
-    "Add temporary colour and bold designs for festivals, shoots or special events. We can discuss the artwork, application time and event schedule in advance.",
+    "color-realism",
+    "Color Realism",
+    photo("1590246814883-57c6155d3140"),
+    "Vibrant multi-pigment blending and colour theory yielding rich saturation and photographic realism on skin.",
+    4500,
+    "150-min",
+  ],
+  [
+    "flash-art",
+    "Flash Art",
+    photo("1542385151-efd9000785a0"),
+    "Ready-to-ink curated studio flash designs crafted by our resident artists for instant aesthetic impact.",
+    2000,
+    "60-min",
+  ],
+  [
+    "japanese-irezumi",
+    "Japanese Irezumi",
+    photo("1578301978693-85fa9c0320b9"),
+    "Traditional oriental motifs including dragons, koi, waves, and botanicals executed with historical respect.",
+    6000,
+    "240-min",
+  ],
+  [
+    "neo-traditional",
+    "Neo Traditional",
+    photo("1562962230-16e4623d36e6"),
+    "Contemporary reimagining of classic motifs with illustrated linework, bold palettes, and dynamic motion.",
+    3800,
+    "120-min",
+  ],
+  [
+    "traditional-americana",
+    "Traditional Americana",
+    photo("1607604276583-eef5d076aa5f"),
+    "Timeless bold outlines, solid black shading, and primary colour fills embodying classic nautical and western flash.",
+    2800,
+    "90-min",
+  ],
+  [
+    "geometric-mandala",
+    "Geometric Mandala",
+    photo("1507679799987-c73779587ccf"),
+    "Sacred geometry, radial mandala symmetry, and calculated mathematical dotwork designed for anatomical flow.",
+    3600,
+    "120-min",
+  ],
+  [
+    "dotwork-sacred",
+    "Dotwork Sacred",
+    photo("1542385151-efd9000785a0"),
+    "Stippled pointillism creating gradual gradient textures, esoteric symbols, and ethereal dimensional illusion.",
+    3200,
+    "90-min",
+  ],
+  [
+    "micro-realism",
+    "Micro Realism",
+    photo("1611501275019-9b5cda994e8d"),
+    "Hyper-condensed miniature portraiture and artifacts executed with single-gauge micro needles under magnification.",
+    3000,
+    "75-min",
+  ],
+  [
+    "calligraphy-lettering",
+    "Calligraphy Lettering",
+    photo("1568515045052-f9a854d70bfd"),
+    "Custom gothic, chicano, and modern cursive typography hand-drawn to fit the body curves naturally.",
+    2200,
+    "60-min",
+  ],
+  [
+    "tribal-polynesian",
+    "Tribal Polynesian",
+    photo("1598371839696-5c5bb00bdc28"),
+    "Culturally inspired Pacific patterns, Marquesan motifs, and dynamic black bands honoring bodily structure.",
+    4200,
+    "150-min",
+  ],
+  [
+    "trash-polka",
+    "Trash Polka",
+    photo("1562962230-16e4623d36e6"),
+    "Collage-style juxtaposition of photorealism, kinetic brushstrokes, abstract splatters, and bold red accents.",
+    4800,
+    "180-min",
+  ],
+  [
+    "watercolor-art",
+    "Watercolor Art",
+    photo("1590246814883-57c6155d3140"),
+    "Lyrical color bleeds, translucent washes, and freeform pigment splatters capturing painterly authenticity.",
+    3400,
+    "90-min",
+  ],
+  [
+    "anime-manga",
+    "Anime Manga",
+    photo("1578301978693-85fa9c0320b9"),
+    "Crisp cell-shaded or soft screentone anime panels and character portraits honoring Japanese animation artistry.",
+    3500,
+    "120-min",
+  ],
+  [
+    "biomechanical",
+    "Biomechanical",
+    photo("1598371839696-5c5bb00bdc28"),
+    "Industrial organic fusions of gears, hydraulic cables, and alien sinew creating anatomical sci-fi illusions.",
+    5000,
+    "180-min",
+  ],
+  [
+    "chicano-art",
+    "Chicano Art",
+    photo("1568515045052-f9a854d70bfd"),
+    "West Coast black-and-grey heritage featuring fine-line script, payasa clowns, religious iconography, and roses.",
+    4000,
+    "120-min",
+  ],
+  [
+    "illustrative-etching",
+    "Illustrative Etching",
+    photo("1607604276583-eef5d076aa5f"),
+    "Woodcut and medieval engraving aesthetics with meticulous crosshatching, stippling, and antique linework.",
+    3200,
+    "90-min",
+  ],
+  [
+    "dark-surrealism",
+    "Dark Surrealism",
+    photo("1598371839696-5c5bb00bdc28"),
+    "Haunting esoteric compositions merging organic human elements with dreamlike architecture and occult symbolism.",
+    5200,
+    "180-min",
+  ],
+  [
+    "minimalist-linework",
+    "Minimalist Linework",
+    photo("1611501275019-9b5cda994e8d"),
+    "Subtle continuous-line art, delicate contours, and understated abstract silhouettes with zero extraneous ink.",
+    1800,
+    "45-min",
+  ],
+  [
+    "blast-over",
+    "Blast Over",
+    photo("1562962230-16e4623d36e6"),
+    "Heavy saturated blackwork laid fearlessly over faded vintage tattoos to create layered, textured visual depth.",
+    3800,
+    "120-min",
+  ],
+  [
+    "touch-up-refresh",
+    "Touch-Up Refresh",
+    photo("1542385151-efd9000785a0"),
+    "Re-saturation, linework crisping, and contrast revival for healed or aged pieces needing revitalisation.",
     1500,
-    "1–2 hr",
+    "45-min",
   ],
   [
-    "custom-design",
-    "Custom Design / Sketch Consultation",
-    "photo-1598371839696-5c5bb00bdc28",
-    "Bring references, a rough sketch or just the beginning of an idea. In a focused consultation, your artist helps develop a distinct concept and next steps.",
-    500,
-    "45 min",
+    "ear-curation-piercing",
+    "Ear Curation Piercing",
+    photo("1535295972055-1c762f4483e5"),
+    "Stylised anatomical ear mapping including daith, conch, helix, and tragus piercings with luxury gold and titanium.",
+    1800,
+    "45-min",
   ],
   [
-    "aftercare-shop",
-    "Aftercare Products Shop",
-    "photo-1565058379802-bbe93b2f703a",
-    "Find artist-recommended essentials for fresh and healed tattoos. Ask the studio which products suit your aftercare plan; availability and collection timing are confirmed directly.",
-    350,
-    "Pickup / 10 min",
+    "facial-piercing",
+    "Facial Piercing",
+    photo("1535295972055-1c762f4483e5"),
+    "Symmetric septum, nostril, bridge, and eyebrow piercings executed with sterile single-use disposable needles.",
+    1400,
+    "30-min",
+  ],
+  [
+    "oral-piercing",
+    "Oral Piercing",
+    photo("1535295972055-1c762f4483e5"),
+    "Sterile labret, medusa, vertical philtrum, and tongue piercings with biocompatible oral-grade jewelry.",
+    1600,
+    "30-min",
+  ],
+  [
+    "dermal-anchor",
+    "Dermal Anchor",
+    photo("1535295972055-1c762f4483e5"),
+    "Single-point surface dermal anchors set into subcutaneous skin with precision dermal biopsy punches.",
+    2200,
+    "45-min",
+  ],
+  [
+    "tattoo-consultation",
+    "Tattoo Consultation",
+    photo("1542385151-efd9000785a0"),
+    "In-depth design mapping, skin assessment, anatomical placement review, and collaborative concept sketching.",
+    1000,
+    "30-min",
   ],
 ].map(([slug, name, image, description, price, duration]) => ({
   slug: String(slug),
   name: String(name),
-  image: photo(String(image)),
+  image: String(image),
   description: String(description),
   price: Number(price),
   duration: String(duration),
@@ -272,50 +264,82 @@ export const IRON_INK_CATEGORIES: IronInkCategory[] = [
 }));
 
 export const ironInkDefaults = {
-  heroImage: photo("photo-1598371839696-5c5bb00bdc28"),
-  interiorImage: photo("photo-1562962230-16e4623d36e6"),
-  artistImage: photo("photo-1507003211169-0a1dd7228f2d"),
-  bookingDeposit: 1000,
+  brandName: 'Iron & Ink Tattoo Studio',
+  tagline: 'High-Contrast Monochrome, Custom Dark Realism & Surgical Piercings',
+  city: 'New Delhi',
+  address: 'Building 14, Hauz Khas Village, Near Deer Park',
+  postalCode: '110016',
+  phone: '+91 98118 77621',
+  whatsapp: '+91 98118 77621',
   faq: [
-    {
-      question: "Does getting a tattoo hurt?",
-      answer:
-        "Sensation varies by placement and person. Your artist will explain what to expect and keep you comfortable.",
-    },
-    {
-      question: "How do I care for a new tattoo?",
-      answer:
-        "Keep the bandage on as advised, wash gently, moisturize lightly and follow your artist’s aftercare instructions.",
-    },
-    {
-      question: "What is the minimum age?",
-      answer:
-        "We only tattoo clients aged 18 and above with valid identification.",
-    },
-    {
-      question: "Is a deposit required?",
-      answer:
-        "A booking deposit secures your artist and consultation. The amount is confirmed before your appointment.",
-    },
-  ],
+    { question: 'How do I prepare for my tattoo session?', answer: 'Get a good night’s rest, eat a solid meal 1–2 hours prior, stay hydrated, and wear loose comfortable clothing.' },
+    { question: 'Do you use vegan, sterile ink and disposable needles?', answer: 'Yes. 100% of our needles are single-use disposable, and all inks are sterile, non-toxic, and vegan-friendly.' },
+    { question: 'What is your booking deposit policy?', answer: 'Submitting a request here is unpaid. The studio contacts you directly to review references and arrange the booking deposit.' },
+    { question: 'How should I care for my new tattoo or piercing?', answer: 'Keep the dermal shield on for 24–48 hours, wash gently with fragrance-free antibacterial soap, and apply aftercare balm sparingly.' }
+  ]
 };
+
+export function ironInkDurationMinutes(duration?: string | number): number {
+  if (typeof duration === "number") return duration;
+  if (!duration) return 60;
+  const str = String(duration).toLowerCase().trim();
+  const hrMatch = str.match(/(\d+(?:\.\d+)?)\s*(?:hr|hour)/);
+  if (hrMatch) return Math.round(parseFloat(hrMatch[1]) * 60);
+  const minMatch = str.match(/(\d+)\s*(?:min|-min)?/);
+  if (minMatch) return parseInt(minMatch[1], 10);
+  const num = parseInt(str, 10);
+  return isNaN(num) ? 60 : num;
+}
+
 export function createIronInkServices(): SalonService[] {
-  const services=IRON_INK_CATEGORIES.map((item, index) => {
-    const durationMinutes = ironInkDurationMinutes(item.duration);
-    return {
-      id: `ii-${item.slug}`,
-      name: item.name,
-      category: item.name,
-      durationMinutes,
-      price: item.price,
-      description: item.description,
-      icon: "brush",
-      popular: index < 4,
-      imageUrl: item.image,
-    };
-  });
-  const packagePairs:[[number,number],[number,number],[number,number],[number,number],[number,number]]=[[0,1],[0,2],[1,2],[2,3],[0,3]];
-  const packageNames=['Flash & Aftercare Starter Package','Custom Story Session Package','Fine-Line Pairing Bundle','Premium Session Bundle','Signature Ink Package'];
-  const packages=packagePairs.map(([a,b],index)=>{const first=services[a],second=services[b];return{id:`ii-package-${index+1}`,name:packageNames[index],category:'Signature Packages',durationMinutes:first.durationMinutes+second.durationMinutes,price:first.price+second.price,description:`A considered pairing of ${first.name} and ${second.name}, tailored with your artist.`,icon:'brush',imageUrl:first.imageUrl,popular:index===0};});
-  return [...services,...packages];
+  return [
+    {
+      id: 'ink-1',
+      name: 'Custom Dark Realism Tattoo (Hourly)',
+      category: 'Custom Blackwork',
+      durationMinutes: 120,
+      price: 3500,
+      description: 'Custom bespoke portrait or dark realism piece rendered in high contrast grey wash.',
+      icon: 'brush',
+      popular: true
+    },
+    {
+      id: 'ink-2',
+      name: 'Micro Fine-Line Script & Symbols',
+      category: 'Fine-Line Realism',
+      durationMinutes: 45,
+      price: 1800,
+      description: 'Single-needle precise linework for minimal tattoos, lettering, and geometric symbols.',
+      icon: 'edit'
+    },
+    {
+      id: 'ink-3',
+      name: 'Surgical Titanium Body Piercing',
+      category: 'Body Piercing',
+      durationMinutes: 30,
+      price: 1200,
+      description: 'Sterile 100% single-use disposable needle piercing with ASTM F136 implant grade titanium jewelry.',
+      icon: 'shield',
+      popular: true
+    },
+    {
+      id: 'ink-4',
+      name: 'Cover-Up & Blast-Over Consult',
+      category: 'Tattoo Cover-ups',
+      durationMinutes: 60,
+      price: 2500,
+      description: 'Design consultation and skin evaluation for old tattoo cover-ups or blast-overs.',
+      icon: 'refresh'
+    },
+    {
+      id: 'ink-5',
+      name: 'Full Sleeve Design & Consultation',
+      category: 'Flash Art',
+      durationMinutes: 90,
+      price: 5000,
+      description: 'Full custom composition mapping and trial stencil fitting for arm/leg sleeves.',
+      icon: 'palette',
+      popular: true
+    }
+  ];
 }

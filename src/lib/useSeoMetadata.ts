@@ -2,11 +2,10 @@ import { useEffect } from 'react';
 import type { SalonProfile } from '../types';
 
 export function generateSeoDefaults(profile: Partial<SalonProfile>) {
-  const text = (value: unknown) => typeof value === 'string' ? value : '';
-  const businessName = text(profile?.businessName) || 'Salon & Wellness Studio';
-  const city = text(profile?.city);
-  const typeLabel = (text(profile?.businessType) || 'salon').replace(/_/g, ' ');
-  const tagline = text(profile?.tagline) || text(profile?.about) || 'Book your appointment online for premium beauty, hair, and grooming services.';
+  const businessName = profile.businessName || 'Salon & Wellness Studio';
+  const city = profile.city || '';
+  const typeLabel = (profile.businessType || 'salon').replace(/_/g, ' ');
+  const tagline = profile.tagline || profile.about || 'Book your appointment online for premium beauty, hair, and grooming services.';
   const citySuffix = city ? ` in ${city}` : '';
 
   const metaTitle = `${businessName} – Premium ${typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1)}${citySuffix}`;
