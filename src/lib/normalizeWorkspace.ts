@@ -1,4 +1,5 @@
 import {photoGallery} from './photoGallery';
+import { normalizeServices } from './dermacureContent';
 import {headerSettings} from './headerNavigation';
 import {serviceOrigin} from './serviceCatalogue';
 import {clientExperiences,lookbookPhotos} from './demoWebsiteContent';
@@ -75,10 +76,10 @@ export function normalizeWorkspace(value:unknown, identity:Record<string,any>={}
  const savedGallery=profile.photoGalleryInitialized?photoGallery(profile as SalonProfile).map(p=>p.url):lookbookPhotos(profile as SalonProfile,Array.isArray(extras.gallery)?extras.gallery.filter(x=>typeof x==='string'&&x.trim()):[]);
  profile.demoGalleryInitialized=true;profile.demoGalleryType=profile.businessType;
  profile.headerNavigation=headerSettings(profile as SalonProfile);
- profile.serviceCatalogueInitialized=raw.serviceCatalogueInitialized===true||list(draft.services).length>0;
+ profile.serviceCatalogueInitialized=raw.serviceCatalogueInitialized===true||list(normalizeServices(draft.services,'saved workspace services')).length>0;
  const normalizedStylists=list(draft.stylists).map(s=>({...s,name:typeof s.name==='string'?s.name:'',role:typeof s.role==='string'?s.role:'',avatarUrl:typeof s.avatarUrl==='string'?s.avatarUrl:'',specialties:Array.isArray(s.specialties)?s.specialties.filter(x=>typeof x==='string'):[],rating:Number.isFinite(s.rating)?s.rating:0})) as Stylist[];
  return {...draft,profile:profile as SalonProfile,
-  services:list(draft.services).map(s=>({...s,origin:serviceOrigin(s as SalonService),name:typeof s.name==='string'?s.name:'',description:typeof s.description==='string'?s.description:'',category:typeof s.category==='string'?s.category:'',price:Number.isFinite(s.price)?s.price:(s.price===null||profile.businessType==='skincare_clinic'?null:0),durationMinutes:Number.isFinite(s.durationMinutes)?s.durationMinutes:30})) as SalonService[],
+  services:list(normalizeServices(draft.services,'saved workspace services')).map(s=>({...s,origin:serviceOrigin(s as SalonService),name:typeof s.name==='string'?s.name:'',description:typeof s.description==='string'?s.description:'',category:typeof s.category==='string'?s.category:'',price:Number.isFinite(s.price)?s.price:(s.price===null||profile.businessType==='skincare_clinic'?null:0),durationMinutes:Number.isFinite(s.durationMinutes)?s.durationMinutes:30})) as SalonService[],
   stylists:upgradeLegacyLashBrowStylists(upgradeLegacyHairColoringStylists(upgradeLegacyMassageWellnessStylists(upgradeLegacyMakeupStudioStylists(upgradeLegacyBeautyParlourStylists(normalizedStylists,profile.businessType),profile.businessType),profile.businessType),profile.businessType),profile.businessType),
   clients:list(draft.clients) as ClientRecord[],
   loyaltyConfig:{...DEFAULT_LOYALTY_CONFIG,...loyalty,tierThresholds:{...DEFAULT_LOYALTY_CONFIG.tierThresholds,...record(loyalty.tierThresholds)},tierMultipliers:{...DEFAULT_LOYALTY_CONFIG.tierMultipliers,...record(loyalty.tierMultipliers)},rewards:Array.isArray(loyalty.rewards)?list(loyalty.rewards):DEFAULT_LOYALTY_CONFIG.rewards},
