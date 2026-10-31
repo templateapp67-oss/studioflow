@@ -1,89 +1,125 @@
-export function trimSlashes(s: string): string {
+export function trimSlashes(s: unknown): string {
+  if (typeof s !== 'string') return '';
   return s.replace(/^\/+|\/+$/g, "");
 }
 
-/**
- * Minimal structural shape of `window.location` used for tenant routing.
- * Every field is optional so tests can pass partial stubs.
- */
-export type SiteLocationLike = {
-  search?: string;
-  hostname?: string;
-  href?: string;
-  origin?: string;
-};
+export function resolveSiteSlug(
+  input?: string | { hostname?: string; search?: string; pathname?: string; href?: string; origin?: string } | null
+): string | null {
+  if (!input) return null;
 
-/** Same rule the database enforces for a published slug. */
-const SLUG_LABEL = /^[a-z0-9][a-z0-9-]{2,62}$/;
-/** Hostname labels that belong to the platform, never to a salon site. */
-const RESERVED_LABELS = new Set([
-  "www", "app", "api", "admin", "dashboard", "studioflow", "nexora",
-  "static", "cdn", "mail", "invite", "help", "status", "support", "blog",
-]);
-/** Sandbox / preview hosts always serve the owner app unless `?site=` is explicit. */
-const PREVIEW_HOST_SUFFIXES = [".e2b.app", ".e2b.dev", ".vercel.app", ".chatgpt.site"];
-const IPV4 = /^\d{1,3}(?:\.\d{1,3}){3}$/;
+  let hostname = '';
+  let search = '';
+  let pathname = '';
+  let href = '';
+  let origin = '';
 
-function querySlug(search: unknown): string | null {
-  if (typeof search !== "string" || search === "") return null;
-  // `?site=<slug>` share links (QR codes, WhatsApp) win over the hostname and
-  // are case-insensitive: `?site=Roop-Mahal` resolves to `roop-mahal`.
-  const raw = new URLSearchParams(search).get("site");
-  if (!raw) return null;
-  const slug = raw.trim().toLowerCase();
-  return slug === "" ? null : slug;
-}
+  if (typeof input === 'string') {
+    href = input;
+    if (input.includes('?')) {
+      const parts = input.split('?');
+      pathname = parts[0];
+      search = '?' + parts.slice(1).join('?');
+    } else {
+      pathname = input;
+    }
+  } else if (typeof input === 'object' && input !== null) {
+    hostname = input.hostname || '';
+    search = input.search || '';
+    pathname = input.pathname || '';
+    href = input.href || '';
+    origin = input.origin || '';
+  }
 
-function hostnameOf(loc: SiteLocationLike): string {
-  if (typeof loc.hostname === "string" && loc.hostname !== "") return loc.hostname;
-  for (const source of [loc.href, loc.origin]) {
-    if (typeof source === "string" && source !== "") {
-      try {
-        return new URL(source).hostname;
-      } catch {
-        // try the next source
+  if (!hostname && href) {
+    try {
+      const u = new URL(href);
+      hostname = u.hostname;
+      if (!search && u.search) search = u.search;
+      if (!pathname && u.pathname) pathname = u.pathname;
+    } catch {
+      // ignore
+    }
+  }
+  if (!hostname && origin) {
+    try {
+      const u = new URL(origin);
+      hostname = u.hostname;
+    } catch {
+      // ignore
+    }
+  }
+
+  // 1. Check URL query params: ?site=slug or ?s=slug or ?subdomain=slug
+  if (search) {
+    try {
+      const params = new URLSearchParams(search);
+      const site = params.get('site') || params.get('s') || params.get('subdomain');
+      if (site) {
+        const trimmed = site.trim();
+        return trimmed ? trimmed.toLowerCase() : null;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  // 2. Check hostname subdomains
+  if (hostname) {
+    const lowerHost = hostname.toLowerCase();
+
+    if (
+      lowerHost === 'nexora.app' ||
+      lowerHost === 'www.nexora.app' ||
+      lowerHost === 'nexorasalon.online' ||
+      lowerHost === 'www.nexorasalon.online' ||
+      lowerHost === 'localhost' ||
+      lowerHost === '127.0.0.1' ||
+      lowerHost.endsWith('.e2b.app') ||
+      lowerHost.endsWith('.vercel.app') ||
+      lowerHost.endsWith('.chatgpt.site')
+    ) {
+      return null;
+    }
+
+    const parts = lowerHost.split('.');
+    // e.g. glow-studio.nexora.app -> length 4 ['glow-studio', 'nexora', 'app']
+    // vijaysalojaipur.nexorasalon.online -> length 3 ['vijaysalojaipur', 'nexorasalon', 'online']
+    if (parts.length >= 3) {
+      const sub = parts[0];
+      if (
+        sub &&
+        sub !== 'www' &&
+        sub !== 'app' &&
+        sub !== 'ais-dev' &&
+        sub !== 'ais-pre' &&
+        sub !== 'studioflow' &&
+        sub.length > 1 &&
+        /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(sub)
+      ) {
+        return sub;
       }
     }
   }
-  return "";
-}
 
-function subdomainSlug(host: string): string | null {
-  const clean = host.trim().toLowerCase().replace(/\.+$/, "");
-  if (clean === "") return null;
-  if (clean === "localhost" || clean.endsWith(".localhost")) return null;
-  if (clean.startsWith("[")) return null; // IPv6 literal, e.g. [::1]
-  if (IPV4.test(clean)) return null;
-  if (PREVIEW_HOST_SUFFIXES.some((suffix) => clean === suffix.slice(1) || clean.endsWith(suffix))) return null;
-  const labels = clean.split(".");
-  // Apex and two-label hosts (nexora.app, mysalon.in) serve the owner app;
-  // only a real subdomain alias (<slug>.your-domain.com) names a tenant.
-  if (labels.length < 3) return null;
-  const label = labels[0];
-  if (RESERVED_LABELS.has(label)) return null;
-  if (!SLUG_LABEL.test(label)) return null;
-  return label;
-}
+  // 3. Check pathname
+  if (pathname) {
+    const clean = trimSlashes(pathname);
+    if (clean) {
+      const parts = clean.split('/');
+      const first = parts[0]?.toLowerCase();
+      if (
+        first &&
+        first !== 'app' &&
+        first !== 'invite' &&
+        first !== 'api' &&
+        first.length > 1 &&
+        /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(first)
+      ) {
+        return first;
+      }
+    }
+  }
 
-function pathSlug(pathname: string): string | null {
-  const first = (trimSlashes(pathname).split("/")[0] || "").toLowerCase();
-  if (RESERVED_LABELS.has(first) || !SLUG_LABEL.test(first)) return null;
-  return first;
-}
-
-/**
- * Resolves which published salon website this URL addresses, in priority order:
- *   1. `?site=<slug>` query parameter (share links, QR codes) — case-insensitive;
- *   2. the first hostname label as a subdomain alias (`<slug>.your-domain.com`);
- *   3. a plain path string, when called with a pathname instead of `location`.
- * Returns `null` when the URL addresses the owner app (apex, `www`, reserved
- * labels, localhost/IPs, sandbox and `*.vercel.app` preview hosts), so callers
- * fall back to the StudioFlow owner experience instead of a fake tenant.
- */
-export function resolveSiteSlug(loc?: SiteLocationLike | string | null): string | null {
-  if (loc == null) return null;
-  if (typeof loc === "string") return pathSlug(loc);
-  const fromQuery = querySlug(loc.search);
-  if (fromQuery) return fromQuery;
-  return subdomainSlug(hostnameOf(loc));
+  return null;
 }

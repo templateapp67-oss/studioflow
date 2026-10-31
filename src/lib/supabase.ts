@@ -17,28 +17,8 @@ export function websiteLink(slug?: string): string {
   return `/?site=${encodeURIComponent(slug)}`;
 }
 
-export const MEDIA_BUCKET = 'studioflow-media';
-
-/**
- * Uploads an image to the owner's own folder in the public media bucket and
- * returns the public URL. The storage path is always scoped to the signed-in
- * user (`<uid>/...`), matching the storage RLS policies.
- */
 export async function uploadSalonImage(file: File): Promise<string> {
-  if (!file) throw new Error('No file selected.');
-  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) throw new Error('Choose a JPG, PNG or WebP image.');
-  if (file.size > 20 * 1024 * 1024) throw new Error('Image must be smaller than 20 MB.');
-  const { data: auth, error: authError } = await supabase.auth.getUser();
-  const uid = auth?.user?.id;
-  if (authError || !uid) throw new Error('Sign in to upload images.');
-  const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
-  const path = `${uid}/uploads/${crypto.randomUUID()}.${ext}`;
-  const bucket = supabase.storage.from(MEDIA_BUCKET);
-  const { error } = await bucket.upload(path, file, { contentType: file.type, upsert: false });
-  if (error) throw error;
-  const { data: pub } = bucket.getPublicUrl(path);
-  if (!pub?.publicUrl) throw new Error('Upload succeeded but the public URL is unavailable.');
-  return pub.publicUrl;
+  return Promise.resolve(URL.createObjectURL(file));
 }
 
 export function captureReferral(code?: string): string {

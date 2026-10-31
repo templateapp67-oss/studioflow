@@ -61,16 +61,6 @@ export interface SalonOffer {
   validTo?: string;
   couponCode?: string;
   image?: string;
-  badge?: string;
-  terms?: string;
-  isDemo?: boolean;
-  applicableServices?: string[];
-  discount?: string;
-  code?: string;
-  validTill?: string;
-  savingINR?: number;
-  active?: boolean;
-  type?: string;
 }
 
 export interface SocialVideo {
@@ -109,153 +99,6 @@ export interface SalonService {
   clinicPublicationStatus?: string;
 }
 
-export type StaffAccessRole = 'Service Provider (Assigned)' | 'Manager (Full Access)' | 'Receptionist (Frontdesk)' | (string & {});
-export type StaffStatus = 'Available' | 'Busy' | 'On Leave' | 'Inactive' | (string & {});
-export type ScheduleDay = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
-
-export interface DaySchedule {
-  day: ScheduleDay;
-  enabled: boolean;
-  fromTime: string;
-  toTime: string;
-}
-
-export interface BranchOperatingHours {
-  day: ScheduleDay;
-  enabled: boolean;
-  fromTime: string;
-  toTime: string;
-}
-
-export interface SalonBranch {
-  id: string;
-  name: string;
-  city?: string;
-  address?: string;
-  phone?: string;
-  isActive?: boolean;
-  operatingHours?: BranchOperatingHours[];
-}
-
-export interface StaffWorkPhoto {
-  id: string;
-  imageUrl: string;
-  caption?: string;
-  serviceId?: string;
-  consented?: boolean;
-}
-
-export interface PointTransaction {
-  id: string;
-  date: string;
-  description: string;
-  pointsChange: number;
-  type: string;
-}
-
-export interface RedeemedReward {
-  id: string;
-  rewardId: string;
-  rewardTitle: string;
-  discountSummary?: string;
-  pointsSpent: number;
-  redeemedAt: string;
-  couponCode?: string;
-  status?: string;
-}
-
-export type VideoCategoryTag = 'SHORT' | 'SHOWCASE' | 'LONG' | (string & {});
-
-export interface ClinicArticle {
-  id: string;
-  title: string;
-  category?: string;
-  excerpt?: string;
-  body?: string;
-  imageUrl?: string;
-  imageAlt?: string;
-  publishedAt?: string;
-  published?: boolean;
-  minutesRead?: number;
-  [key: string]: any;
-}
-
-export interface ClinicFaq {
-  id: string;
-  question: string;
-  answer: string;
-  published?: boolean;
-  [key: string]: any;
-}
-
-export interface ClinicOfferCard {
-  id: string;
-  title: string;
-  image?: string;
-  imageAlt?: string;
-  description?: string;
-  relatedService?: string;
-  startDate?: string;
-  expiryDate?: string;
-  terms?: string;
-  isPublished?: boolean;
-  ctaText?: string;
-  [key: string]: any;
-}
-
-export interface TreatmentStory {
-  id: string;
-  title: string;
-  category?: string;
-  description?: string;
-  imageUrl?: string;
-  videoUrl?: string;
-  published?: boolean;
-  order?: number;
-  fullContent?: string;
-  [key: string]: any;
-}
-
-export interface PatientBenefitCard {
-  id: string;
-  title: string;
-  description?: string;
-  imageUrl?: string;
-  imageAlt?: string;
-  validity?: string;
-  published?: boolean;
-  ctaLabel?: string;
-  ctaAction?: string;
-  benefits?: string[];
-  order?: number;
-  [key: string]: any;
-}
-
-export interface BodhiTreeConfig {
-  selectorLabel?: string;
-  heroHeading?: string;
-  heroSubtext?: string;
-  heroDesktopUrl?: string;
-  heroMobileUrl?: string;
-  aboutHeading?: string;
-  aboutStory?: string;
-  aboutImageUrl?: string;
-  aboutImage2Url?: string;
-  palaceHeading?: string;
-  palaceSubtext?: string;
-  contactImageUrl?: string;
-  publicEmail?: string;
-  workingHoursDisplay?: string;
-  mapEmbedUrl?: string;
-  colors?: BodhiTreeThemeColors;
-  stats?: BodhiTreeStatItem[];
-  palaceCollection?: BodhiTreePalaceItem[];
-  branches?: BodhiTreeBranch[];
-  faqs?: BodhiTreeFaqItem[];
-  reviews?: BodhiTreeReviewItem[];
-  [key: string]: any;
-}
-
 export interface Stylist {
   id: string;
   name: string;
@@ -265,17 +108,7 @@ export interface Stylist {
   rating?: number;
   bio?: string;
   experienceYears?: number;
-  status?: StaffStatus | string;
-  phone?: string;
-  businessType?: string;
-  accessRole?: StaffAccessRole | string;
-  commissionRate?: number;
-  hidePhone?: boolean;
-  assignedServices?: string[];
-  expertiseServiceIds?: string[];
-  schedule?: DaySchedule[];
-  branchSchedules?: { branchId: string; schedule: DaySchedule[] }[];
-  workGallery?: StaffWorkPhoto[];
+  status?: string;
 }
 
 export interface BranchLocation {
@@ -323,19 +156,8 @@ export interface SalonProfile {
   heroVideoUrl?: string;
   socialVideos?: SocialVideo[];
   gallery?: any[];
-  branches?: SalonBranch[];
+  branches?: BranchLocation[];
   loyaltyConfig?: LoyaltyConfig;
-  sectionHeadings?: any;
-  bookingAddOnServiceIds?: string[];
-  clinicArticles?: ClinicArticle[];
-  clinicFaq?: ClinicFaq[];
-  clinicOffers?: ClinicOfferCard[];
-  treatmentStories?: TreatmentStory[];
-  patientBenefits?: PatientBenefitCard[];
-  clinicLegal?: any;
-  clinicTechnology?: any;
-  clinicPublicEmail?: string;
-  clinicEnquiryServices?: any[];
   customDomain?: string;
   isPublished?: boolean;
   customAccentColor?: string;
