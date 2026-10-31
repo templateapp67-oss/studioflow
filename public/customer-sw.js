@@ -1,4 +1,4 @@
-/* Nexora Customer App Service Worker: caching critical assets, dynamic images/fonts, and offline fallback */
+/* Nexora Customer App Service Worker: caching critical assets, dynamic images/fonts, background sync, and offline fallback */
 const CACHE_NAME = 'nexora-customer-cache-v3';
 const DYNAMIC_CACHE = 'nexora-dynamic-assets-v2';
 
@@ -35,7 +35,6 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Only handle GET requests within origin or image CDNs
   if (event.request.method !== 'GET') {
     return;
   }
@@ -70,7 +69,6 @@ self.addEventListener('fetch', (event) => {
 
   if (url.origin !== self.location.origin) return;
 
-  // Navigation requests: try network first, fall back to cached index.html or offline fallback
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request)
@@ -90,6 +88,19 @@ self.addEventListener('fetch', (event) => {
         })
     );
     return;
+  }
+});
+
+// Background Sync API implementation for appointment requests and offline queue
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-appointments' || event.tag === 'sync-offline-actions') {
+    event.waitUntil(
+      self.clients.matchAll().then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({ type: 'TRIGGER_OFFLINE_SYNC', tag: event.tag });
+        });
+      })
+    );
   }
 });
 

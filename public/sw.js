@@ -26,7 +26,6 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Check if request is for static images, fonts, styles, scripts, or external image cdns (like Unsplash)
   const pathname = url.pathname.toLowerCase();
   const isStaticAsset = STATIC_EXTENSIONS.some(ext => pathname.endsWith(ext)) ||
                         url.hostname.includes('unsplash.com') ||
@@ -50,6 +49,19 @@ self.addEventListener("fetch", (event) => {
         });
 
         return cachedResponse || fetchPromise;
+      })
+    );
+  }
+});
+
+// Background Sync API implementation for appointment requests and offline queue
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-appointments' || event.tag === 'sync-offline-actions') {
+    event.waitUntil(
+      self.clients.matchAll().then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({ type: 'TRIGGER_OFFLINE_SYNC', tag: event.tag });
+        });
       })
     );
   }

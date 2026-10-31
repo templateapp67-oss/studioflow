@@ -1,7 +1,8 @@
 /**
- * Offline Data Synchronization for the Customer App.
- * Uses IndexedDB to queue offline actions (bookings, enquiries, reviews, loyalty claims)
- * and automatically synchronizes them with the backend when network connectivity is restored.
+ * Offline Data Synchronization & Background Sync API for the Customer App.
+ * Uses IndexedDB to queue offline actions (bookings, appointments, enquiries, reviews)
+ * and automatically synchronizes them with the backend when network connectivity is restored
+ * or when Background Sync triggers.
  */
 
 const DB_NAME = 'nexora_offline_db';
@@ -38,7 +39,7 @@ export async function queueOfflineAction(type: string, payload: any): Promise<st
   if (typeof window === 'undefined') return '';
   try {
     const db = await openDatabase();
-    return await new Promise((resolve, reject) => {
+    const actionId = await new Promise<string>((resolve, reject) => {
       const transaction = db.transaction(STORE_NAME, 'readwrite');
       const store = transaction.objectStore(STORE_NAME);
       const action: OfflineAction = {
@@ -54,6 +55,21 @@ export async function queueOfflineAction(type: string, payload: any): Promise<st
       };
       request.onerror = () => reject(request.error);
     });
+
+    // Register Background Sync API if supported
+    if ('serviceWorker' in navigator) {
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        if ('sync' in registration) {
+          await (registration as any).sync.register('sync-appointments');
+          await (registration as any).sync.register('sync-offline-actions');
+        }
+      } catch (syncErr) {
+        // Background sync registration failed or unsupported, fallback to online event listener
+      }
+    }
+
+    return actionId;
   } catch (err) {
     console.error('Failed to queue offline action:', err);
     return '';
@@ -119,9 +135,17 @@ export async function processOfflineQueue(
   return processedCount;
 }
 
-// Auto-sync when online event triggers
+// Auto-sync when online event triggers or service worker background sync message received
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => {
     window.dispatchEvent(new CustomEvent('nexora-network-online'));
   });
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'TRIGGER_OFFLINE_SYNC') {
+        window.dispatchEvent(new CustomEvent('nexora-background-sync', { detail: event.data }));
+      }
+    });
+  }
 }
