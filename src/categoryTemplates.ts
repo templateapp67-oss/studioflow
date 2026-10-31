@@ -144,7 +144,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         durationMinutes: 90,
         price: 3600,
         description: 'Intense peptide filler mask for chemically damaged or heat-stressed hair fibers.',
-        imageUrl: '/templates/miraki/service-shampoo.webp',
+        imageUrl: '/templates/miraki/service-smoothing.webp',
         icon: 'healing'
       },
       {
@@ -154,7 +154,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         durationMinutes: 40,
         price: 850,
         description: 'GHD ceramic iron styling with anti-humidity thermal protectant for party & cocktail evenings.',
-        imageUrl: '/templates/miraki/service-style.webp',
+        imageUrl: '/templates/miraki/service-cut.webp',
         icon: 'waves'
       }
     ],
