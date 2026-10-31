@@ -7,25 +7,25 @@
 
 export const BARBER_REFERENCE_IMAGES = {
   hero:
-    "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=1600&q=80",
+    "/templates/royal-blade/hero.webp",
   heroSecondary:
-    "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=1200&q=80",
+    "/templates/royal-blade/feature.webp",
   aboutPrimary:
-    "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=1400&q=80",
+    "/templates/royal-blade/feature.webp",
   aboutSecondary:
-    "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&w=1000&q=80",
+    "/templates/royal-blade/hero.webp",
   bookingAccent:
-    "https://images.unsplash.com/photo-1622287162716-f311baa1a2b8?auto=format&fit=crop&w=1200&q=80",
+    "/templates/royal-blade/shave.webp",
   signature:
-    "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=1200&q=80",
+    "/templates/royal-blade/feature.webp",
   fade:
-    "https://images.unsplash.com/photo-1605497788044-5a32c7078486?auto=format&fit=crop&w=1200&q=80",
+    "/templates/royal-blade/feature.webp",
   beard:
-    "https://images.unsplash.com/photo-1622287162716-f311baa1a2b8?auto=format&fit=crop&w=1200&q=80",
+    "/templates/royal-blade/shave.webp",
   cutBeard:
     "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=1200&q=80",
   shave:
-    "https://images.unsplash.com/photo-1517832606299-7ae9b720a186?auto=format&fit=crop&w=1200&q=80",
+    "/templates/royal-blade/shave.webp",
   heritage:
     "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&w=1200&q=80",
   fallback:
