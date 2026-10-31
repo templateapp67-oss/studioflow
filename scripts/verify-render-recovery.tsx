@@ -27,16 +27,20 @@ for(const id of ['skincare_clinic','tattoo_studio']) {
  const empty=renderToStaticMarkup(<CustomerSalonWebsite profile={profile} services={null as any} stylists={[]} onAddAppointment={async a=>a}/>);assert.ok(empty.length>1000);
 }
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;
-let callback:()=>void=()=>{};let cleared=false;const oldSet=globalThis.setTimeout,oldClear=globalThis.clearTimeout;
+let callback:()=>void=()=>{};let cleared=false;const oldSet=globalThis.setInterval,oldClear=globalThis.clearInterval;
 const marker = {};
-(globalThis as any).setTimeout=(fn:()=>void,ms:number,...args:any[])=>{if(ms===10000){callback=fn;return marker;} return oldSet(fn,ms,...args)};
-(globalThis as any).clearTimeout=(id:any)=>{if(id===marker)cleared=true;else oldClear(id)};
+(globalThis as any).setInterval=(fn:()=>void,ms:number,...args:any[])=>{if(ms===1000){callback=fn;return marker;} return oldSet(fn,ms,...args)};
+(globalThis as any).clearInterval=(id:any)=>{if(id===marker)cleared=true;else oldClear(id)};
+const {supabase} = await import('../src/lib/supabase');
+const originalSession = supabase.auth.getSession;
+(supabase.auth as any).getSession=async()=>({data:{session:null},error:null});
 let retries=0;let renderer:any;
 await act(()=>{renderer=create(<AccountLoading onRetry={()=>retries++}/>)});
 assert.equal(renderer.root.findAllByType('button').length,0);
-await act(()=>callback());
-assert.ok(JSON.stringify(renderer.toJSON()).includes('Account loading state: loading'));
-await act(()=>{const click=renderer.root.findByType('button').props.onClick;click();click();});assert.equal(retries,1);
+await act(async()=>{for(let i=0;i<10;i++)callback();});
+assert.ok(JSON.stringify(renderer.toJSON()).includes('Connection diagnostic'));
+await act(async()=>{const click=renderer.root.findByType('button').props.onClick;click();click();});assert.equal(retries,1);
 await act(()=>renderer.unmount());assert.ok(cleared);
-globalThis.setTimeout=oldSet;globalThis.clearTimeout=oldClear;
+supabase.auth.getSession=originalSession;
+globalThis.setInterval=oldSet;globalThis.clearInterval=oldClear;
 console.log('PASS: service shapes, profile fallback, clinic/tattoo server rendering, 10-second loading diagnostic, retry and timer cleanup');

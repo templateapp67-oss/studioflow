@@ -1,5 +1,6 @@
 import type { SalonProfile, SalonService } from '../types';
 import { normalizeServices } from './normalizeServices';
+export { normalizeServices } from './normalizeServices';
 
 export type ClinicGroup = 'skin' | 'hair' | 'cosmetology';
 export function clinicIds(value: unknown): string[] {

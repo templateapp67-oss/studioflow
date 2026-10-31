@@ -80,7 +80,7 @@ export function IronInkWebsite({
   profile: inputProfile,
   services: inputServices,
   stylists: inputStylists,
-  galleryPhotos = [],
+  galleryPhotos: inputGalleryPhotos,
   siteSlug,
   policies,
   loyaltyConfig,
@@ -120,7 +120,8 @@ export function IronInkWebsite({
     },
   ) => void;
 }) {
-  const profile = inputProfile || ({} as SalonProfile);
+  const profile = inputProfile && typeof inputProfile === "object" ? inputProfile : ({} as SalonProfile);
+  const galleryPhotos = Array.isArray(inputGalleryPhotos) ? inputGalleryPhotos : [];
   const services = Array.isArray(inputServices) ? inputServices.filter(Boolean) : [];
   const stylists = Array.isArray(inputStylists) ? inputStylists.filter(Boolean) : [];
   const [page, setPage] = useState<Page>("HOME");
