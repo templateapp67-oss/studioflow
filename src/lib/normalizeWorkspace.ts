@@ -1,4 +1,5 @@
 import type { SalonProfile, SalonService, Stylist, ClientRecord, LoyaltyConfig } from '../types';
+import { normalizeServices } from './normalizeServices';
 
 export interface WorkspaceState {
   profile: SalonProfile;
@@ -12,7 +13,16 @@ export interface WorkspaceState {
   extras?: any;
 }
 
-export function normalizeWorkspace(workspace: any, identityDefaults?: any): WorkspaceState {
+export function normalizeWorkspace(workspaceInput: any, identityDefaults?: any): WorkspaceState {
+  let workspace = workspaceInput;
+  if (typeof workspace === 'string') {
+    try {
+      workspace = JSON.parse(workspace);
+    } catch {
+      workspace = {};
+    }
+  }
+
   const profile = workspace?.profile || {};
   return {
     profile: {
@@ -30,7 +40,7 @@ export function normalizeWorkspace(workspace: any, identityDefaults?: any): Work
       themeStyle: profile.themeStyle || {},
       ...profile
     },
-    services: Array.isArray(workspace?.services) ? workspace.services : [],
+    services: normalizeServices<SalonService>(workspace?.services),
     stylists: Array.isArray(workspace?.stylists) ? workspace.stylists : [],
     clients: Array.isArray(workspace?.clients) ? workspace.clients : [],
     loyaltyConfig: workspace?.loyaltyConfig || { enabled: false, pointsPerRupee: 1, tiers: [], pointsPerVisit: 0, pointsPerHundredSpent: 0, tierMultipliers: {}, tierThresholds: {} },

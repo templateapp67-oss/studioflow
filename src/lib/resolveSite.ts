@@ -1,57 +1,63 @@
-export function trimSlashes(s: string): string {
-  return s.replace(/^\/+|\/+$/g, '');
+export function trimSlashes(s: unknown): string {
+  if (typeof s !== 'string') return '';
+  return s.replace(/^\/+|\/+$/g, "");
 }
 
-export type SiteLocation = {
-  search?: string;
-  hostname?: string;
-  href?: string;
-  origin?: string;
-};
+export function resolveSiteSlug(
+  input?: string | { hostname?: string; search?: string; pathname?: string; href?: string } | null
+): string {
+  if (!input) return '';
 
-/** Query links and salon subdomains resolve to a published salon. Platform
- * hosts, preview URLs, apex domains, and reserved app labels stay on StudioFlow.
- */
-export function resolveSiteSlug(location?: SiteLocation | string | null): string | null {
-  if (typeof location === 'string') {
-    const value = location.trim();
-    if (!value) return null;
-    if (/^https?:\/\//i.test(value)) {
-      try {
-        return resolveSiteSlug(new URL(value));
-      } catch {
-        return null;
+  let hostname = '';
+  let search = '';
+  let pathname = '';
+
+  if (typeof input === 'string') {
+    pathname = input;
+    if (input.includes('?')) {
+      const parts = input.split('?');
+      pathname = parts[0];
+      search = '?' + parts.slice(1).join('?');
+    }
+  } else if (typeof input === 'object' && input !== null) {
+    hostname = input.hostname || '';
+    search = input.search || '';
+    pathname = input.pathname || '';
+  }
+
+  // 1. Check URL query params: ?site=slug or ?s=slug or ?subdomain=slug
+  if (search) {
+    try {
+      const params = new URLSearchParams(search);
+      const site = params.get('site') || params.get('s') || params.get('subdomain');
+      if (site) return site.trim();
+    } catch {
+      // ignore
+    }
+  }
+
+  // 2. Check hostname subdomains: e.g. vogue-noir-studio.salon-platform.com or vogue-noir-studio.localhost
+  if (hostname) {
+    const parts = hostname.toLowerCase().split('.');
+    if (parts.length >= 2) {
+      const sub = parts[0];
+      if (sub && sub !== 'localhost' && sub !== 'www' && sub !== 'ais-dev' && sub !== 'ais-pre' && sub !== 'studioflow') {
+        return sub.trim();
       }
     }
-    const path = value.split('?')[0];
-    return trimSlashes(path).split('/')[0]?.toLowerCase() || null;
   }
 
-  if (!location) return null;
-
-  const query = new URLSearchParams(location.search || '').get('site')?.trim().toLowerCase();
-  if (query && /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(query)) return query;
-
-  let host = location.hostname || '';
-  if (!host) {
-    try {
-      host = new URL(location.href || location.origin || '').hostname;
-    } catch {
-      return null;
+  // 3. Check pathname: e.g. /vogue-noir-studio/about -> vogue-noir-studio
+  if (pathname) {
+    const clean = trimSlashes(pathname);
+    if (clean) {
+      const parts = clean.split('/');
+      const first = parts[0];
+      if (first && first !== 'app' && first !== 'invite' && first !== 'api') {
+        return first.trim();
+      }
     }
   }
 
-  host = host.toLowerCase().replace(/\.$/, '');
-  if (
-    /localhost$|\.run\.app$|\.e2b\.app$|\.vercel\.app$|\.netlify\.app$|\.pages\.dev$|\.web\.app$|\.onrender\.com$|\.railway\.app$|\.herokuapp\.com$|\.azurewebsites\.net$|\.amplifyapp\.com$|\.cloudfront\.net$|\.chatgpt\.site$|^\d+(?:\.\d+){3}$/.test(host)
-  ) {
-    return null;
-  }
-
-  const parts = host.split('.');
-  const slug = parts[0];
-  const reserved = ['www', 'app', 'api', 'admin', 'auth', 'docs', 'status', 'support', 'mail', 'cdn', 'assets', 'static', 'blog', 'help'];
-  if (parts.length < 3 || reserved.includes(slug)) return null;
-
-  return /^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(slug) ? slug : null;
+  return '';
 }
