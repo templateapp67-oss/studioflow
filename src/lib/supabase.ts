@@ -1,9 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL =
-  import.meta.env?.VITE_SUPABASE_URL || "https://zilwgiuiygqqardzutxi.supabase.co";
+  (import.meta as any).env.VITE_SUPABASE_URL || "https://zilwgiuiygqqardzutxi.supabase.co";
 const SUPABASE_ANON_KEY =
-  import.meta.env?.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InppbHdnaXVpeWdxcWFyZHp1dHhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcyODYyNjcsImV4cCI6MjEwMjg2MjI2N30.-0Ict1PxLvVhD0gl0lYMBifJAe6IRksKme-E_Sf97ok";
+  (import.meta as any).env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InppbHdnaXVpeWdxcWFyZHp1dHhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcyODYyNjcsImV4cCI6MjEwMjg2MjI2N30.-0Ict1PxLvVhD0gl0lYMBifJAe6IRksKme-E_Sf97ok";
 
 export const isSupabaseConfigured =
   !SUPABASE_URL.includes("placeholder") && SUPABASE_ANON_KEY.length > 40;
@@ -21,12 +21,10 @@ export async function uploadSalonImage(file: File): Promise<string> {
   return Promise.resolve(URL.createObjectURL(file));
 }
 
-export function captureReferral(code?: string): string {
-  try {
-    const referral = code || new URLSearchParams(typeof location === 'undefined' ? '' : location.search).get('ref') || '';
-    if (referral) localStorage.setItem('studioflow_pending_ref', referral);
-    return referral || localStorage.getItem('studioflow_pending_ref') || '';
-  } catch { return ''; }
+export async function captureReferral(code?: string): Promise<void> {
+  if (code && typeof window !== 'undefined') {
+    localStorage.setItem('studioflow_referral', code);
+  }
 }
 
 // Load the full site by ?site= slug

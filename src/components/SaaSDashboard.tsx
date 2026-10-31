@@ -372,7 +372,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
                     {appointments.map((apt) => (
                       <tr key={apt.id} className="border-b border-gray-100 hover:bg-gray-50">
                         <td className="py-3 px-2 font-bold">{apt.clientName}</td>
-                        <td className="py-3 px-2">{apt.serviceName} (₹{apt.servicePrice.toLocaleString('en-IN')})</td>
+                        <td className="py-3 px-2">{apt.serviceName} (₹{(Number(apt.servicePrice) || 0).toLocaleString('en-IN')})</td>
                         <td className="py-3 px-2">{apt.stylistName}</td>
                         <td className="py-3 px-2 font-mono">{apt.date} at {apt.time}</td>
                         <td className="py-3 px-2">
@@ -430,7 +430,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
                       {apt.clientEmail && <div className="text-[11px] text-gray-500 font-mono mt-0.5">✉ {apt.clientEmail}</div>}
                     </div>
                     <div className="text-right">
-                      <div className="font-bold text-base text-gray-900 font-mono">₹{apt.servicePrice.toLocaleString('en-IN')}</div>
+                      <div className="font-bold text-base text-gray-900 font-mono">₹{(Number(apt.servicePrice) || 0).toLocaleString('en-IN')}</div>
                       <div className="text-[10px] text-gray-500 font-mono mt-0.5">
                         {apt.paymentStatus === 'paid_full' ? 'Paid in full' : 'Collected'}: ₹{apt.amountPaid}
                       </div>
