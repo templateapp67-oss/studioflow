@@ -5,7 +5,7 @@ export const PHOTO_CATEGORIES=['Hair','Bridal','Skin','Nails','Men','Spa','Tatto
 export type PhotoCategory=typeof PHOTO_CATEGORIES[number];
 export type SalonGalleryPhoto={id:string;category:PhotoCategory;url:string;title:string;isDemo:boolean};
 export const defaultGalleryCategory=(type:BusinessTypeId):PhotoCategory=>type==='tattoo_studio'?'Tattoo':type==='barber'?'Men':type==='nail_studio'?'Nails':['bridal_lounge','makeup_studio'].includes(type)?'Bridal':['skincare_clinic','beauty_parlour','lash_brow'].includes(type)?'Skin':['massage_wellness','ayurvedic_spa','hair_spa'].includes(type)?'Spa':'Hair';
-export function standardGallery(type:BusinessTypeId='hair_salon'):SalonGalleryPhoto[]{return CATEGORY_STANDARDIZED_DATA[type].gallery.filter(p=>!p.url.includes('1517832606589')).slice(0,5).map((photo,i)=>({id:`template-gallery-${type}-${i+1}`,category:defaultGalleryCategory(type),url:photo.url,title:photo.title,isDemo:true}));}
+export function standardGallery(type:BusinessTypeId='hair_salon'):SalonGalleryPhoto[]{return (CATEGORY_STANDARDIZED_DATA[type]?.gallery || []).filter(p=>!p.url.includes('1517832606589')).slice(0,5).map((photo,i)=>({id:`template-gallery-${type}-${i+1}`,category:defaultGalleryCategory(type),url:photo.url,title:photo.title,isDemo:true}));}
 const allDemoUrls=new Set(Object.values(CATEGORY_STANDARDIZED_DATA).flatMap(t=>t.gallery.map(p=>p.url)));
 /** Bundled template imagery shipped with the app (e.g. /templates/vogue-noir/gallery/bridal-1.webp). */
 const bundledAssetUrl=(url?:string)=>Boolean(url&&/^\/templates\/[a-z0-9-]+(?:\/[a-z0-9-]+)*\/[\w-]+\.(jpg|jpeg|png|webp|svg)$/i.test(url));

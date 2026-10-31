@@ -14,7 +14,7 @@ export interface AILogoConcept {
 function parseNameParts(salonName: string) {
   const cleanName = (salonName || 'LUXURY SALON').trim();
   const words = cleanName.split(/\s+/).filter(Boolean);
-  
+
   let initials = 'LS';
   if (words.length === 1) {
     initials = words[0].substring(0, 2).toUpperCase();

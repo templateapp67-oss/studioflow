@@ -12,7 +12,7 @@ import {captureReferral} from '../src/lib/supabase';
 (globalThis as any).location={search:'',origin:'https://studioflow.test'};
 const noop=()=>{};
 const raw={profile:{businessName:'Saved Salon',ownerName:null,phone:null},services:[],stylists:[{id:'s',name:'Saved Stylist'}],loyaltyConfig:{rewards:null},extras:{whiteLabel:null,policies:null,gallery:null}};
-assert.throws(()=>renderToStaticMarkup(<OwnerWorkspace profile={raw.profile as any} extras={raw.extras as any} services={[]} stylists={[]} appointments={[]} templates={[]} setProfile={noop} setServices={noop} setStylists={noop} setExtras={noop} onPublish={async()=>{}} sessionEmail="" published={null} onOpenPreview={noop} onOpenDashboard={noop} onOpenWizard={noop}/>),'Incomplete draft reproduced the old owner crash');
+assert.doesNotThrow(()=>renderToStaticMarkup(<OwnerWorkspace profile={raw.profile as any} extras={raw.extras as any} services={[]} stylists={[]} appointments={[]} templates={[]} setProfile={noop} setServices={noop} setStylists={noop} setExtras={noop} onPublish={async()=>{}} sessionEmail="" published={null} onOpenPreview={noop} onOpenDashboard={noop} onOpenWizard={noop}/>),'Incomplete drafts must not crash the owner workspace');
 const d=normalizeWorkspace(raw,{full_name:'Saved Owner'});
 assert.equal(d.profile.businessName,'Saved Salon');assert.equal(d.profile.ownerName,'Saved Owner');assert.equal(d.stylists[0].name,'Saved Stylist');assert.deepEqual(d.stylists[0].specialties,[]);
 for(const sample of [d,normalizeWorkspace({}),normalizeWorkspace({profile:{businessName:'Existing'},extras:{whiteLabel:{platformName:'My Brand'}},loyaltyConfig:{rewards:[]}})]) {
@@ -38,4 +38,4 @@ try {
  assert.equal(renderer.root.findByType('p').children[0],'Working workspace');
  await act(async()=>renderer.unmount());
 }finally{console.error=originalError;}
-console.log('PASS: reproduced incomplete-draft crash; normalized owner/dashboard/public preview; preserved content; single chunk recovery; blocked storage; boundary navigation recovery.');
+console.log('PASS: incomplete drafts render safely; normalized owner/dashboard/public preview; preserved content; single chunk recovery; blocked storage; boundary navigation recovery.');

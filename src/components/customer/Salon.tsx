@@ -22,7 +22,8 @@ export function CustomerSalon({salon,salons,saved,savedSlugs,back,save,open,book
  const reviewPhotos=[...new Set(reviews.flatMap(r=>[r.imageUrl,...(Array.isArray(r.photos)?r.photos:[])]).filter(secureMediaUrl))] as string[];
  const visibleReviews=filterSalonReviews(reviews,{rating:ratingFilter,recency:recencyFilter,sort:recencySort,photosOnly});
  const average=reviews.length?reviews.reduce((n,r)=>n+Number(r.rating||0),0)/reviews.length:null;
- const similar=salons.filter(s=>s.slug!==salon.slug&&(!p.city||s.content.profile.city?.toLowerCase()===p.city.toLowerCase()));
+ const city = typeof p.city === 'string' ? p.city.toLowerCase() : '';
+ const similar=salons.filter(s=>s.slug!==salon.slug&&(!city||(typeof s.content?.profile?.city === 'string' && s.content.profile.city.toLowerCase()===city)));
  const packages=menu(salon).filter(s=>/pack|combo|bundle/i.test([s.name,s.category].join(' ')));
  const services=menu(salon).filter(s=>tab!=='Packages'||packages.includes(s));
  const videos=(p.socialVideos||[]).filter((v:any)=>secureMediaUrl(v.previewVideoUrl)||socialVideoSource(v.youtubeUrl));

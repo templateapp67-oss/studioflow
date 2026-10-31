@@ -10,6 +10,10 @@ cp .env.example .env   # add GEMINI_API_KEY for live AI endpoints (optional)
 npm run dev            # app + /api/* on http://localhost:3000
 ```
 
+If a hosted development proxy cannot forward WebSockets, set `DISABLE_HMR=true`
+before starting the dev server. The app still loads normally, but changes require a
+manual browser refresh. By default, HMR uses the same port as the HTTP server.
+
 Production: `npm run build && npm start` (serves `dist/` plus `/api/*` from `dist/server.cjs`).
 Static hosting (`.openai/hosting.json` → `dist/`): the UI stays fully usable; AI endpoints
 (`generate-bio`, `generate-promo-image`, `generate-promo-copy`, `ai-recommendations`) degrade to

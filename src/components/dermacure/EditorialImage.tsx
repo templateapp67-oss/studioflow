@@ -1,7 +1,7 @@
 import { useState, type ImgHTMLAttributes } from "react";
 export const NEUTRAL_CLINIC_IMAGE = "/templates/dermacure/care-neutral.svg";
 type Props = ImgHTMLAttributes<HTMLImageElement> & {
-  fallback: string;
+  fallback?: string;
   fallbackAlt?: string;
   onPrimaryError?: () => void;
 };

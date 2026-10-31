@@ -172,7 +172,7 @@ export function calculateRewardProgress(
     unlockedRewards.length > 0
       ? unlockedRewards[unlockedRewards.length - 1].requiredPoints
       : 0;
-  
+
   const span = nextReward.requiredPoints - prevThreshold;
   const currentInSpan = Math.max(0, currentPoints - prevThreshold);
   const progressPercentage = Math.min(100, Math.max(0, Math.round((currentInSpan / (span || 1)) * 100)));

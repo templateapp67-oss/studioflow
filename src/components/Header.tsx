@@ -43,7 +43,7 @@ export const Header: React.FC<HeaderProps> = ({
           <span className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-xs group-hover:scale-105 transition-transform">
             <Leaf className="w-4 h-4" />
           </span>
-          <span className="font-extrabold text-base sm:text-lg text-slate-900 tracking-tight group-hover:text-emerald-700 transition-colors">
+          <span className="workspace-brand-text font-extrabold text-base sm:text-lg text-slate-900 tracking-tight group-hover:text-emerald-700 transition-colors">
             {brandName || 'Nexora Salon'}
           </span>
         </button>

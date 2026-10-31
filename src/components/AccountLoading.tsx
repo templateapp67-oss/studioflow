@@ -48,7 +48,7 @@ const DIAG_LABEL:Record<DiagStatus,string>={checking:'Checking…',ok:'OK',probl
  * state and a diagnostic, and offers a safe (single-flight, cooled-down) retry.
  * It never signs the user out by itself.
  */
-export function AccountLoading({onRetry,onSignOut,profileState='loading',userId=''}:{onRetry:()=>void;onSignOut:()=>void;profileState?:ProfileLoadState;userId?:string}){
+export function AccountLoading({onRetry,onSignOut,profileState='loading',userId=''}:{onRetry:()=>void;onSignOut?:()=>void;profileState?:ProfileLoadState;userId?:string}){
  const [seconds,setSeconds]=useState(0);
  const [diag,setDiag]=useState<AccountDiagnostic|null>(null);
  const [checking,setChecking]=useState(false);
@@ -102,7 +102,7 @@ export function AccountLoading({onRetry,onSignOut,profileState='loading',userId=
     {retryError&&<p role="alert" className="mt-2 text-sm text-red-700">Retry did not succeed: {retryError}</p>}
     {retries>0&&<p className="mt-1 text-xs text-slate-500">Retries this session: {retries}</p>}
    </section>}
-   <div className="flex flex-wrap justify-center gap-3"><button className="primary-action" disabled={checking||coolingDown} onClick={()=>void retry()}>{checking?'Checking…':'Retry now'}</button><button className="secondary-action" onClick={onSignOut}>Sign out</button></div>
+   <div className="flex flex-wrap justify-center gap-3"><button className="primary-action" disabled={checking||coolingDown} onClick={()=>void retry()}>{checking?'Checking…':'Retry now'}</button>{onSignOut&&<button className="secondary-action" onClick={onSignOut}>Sign out</button>}</div>
   </>:<p className="text-sm text-slate-500">Fetching your saved workspace. This usually takes a second.</p>}
  </main>;
 }

@@ -1,3 +1,4 @@
+import { AccountLoading } from './components/AccountLoading';
 import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { useAuthSession } from './lib/useAuthSession';
@@ -24,10 +25,9 @@ import { WebsiteDeviceFrame } from './components/WebsiteDeviceFrame';
 import { servicesForTemplate } from './lib/serviceCatalogue';
 import { applyTemplateDesign } from './lib/templateSelection';
 import { normalizeWorkspace, isRecord } from './lib/normalizeWorkspace';
+import { hasServicesArray } from './lib/normalizeServices';
 import { bootstrapSalonAccount, loadTemplateCatalogue } from './lib/accountBootstrap';
 import { messageOf, withTimeout } from './lib/asyncDeadline';
-import { normalizeServices } from './lib/dermacureContent';
-import { AccountLoading } from './components/AccountLoading';
 import { AppView, SalonProfile, SalonService, Stylist, Appointment, ClientRecord, BusinessTypeId, LoyaltyConfig, CategoryTemplateConfig } from './types';
 import { INITIAL_SALON_PROFILE } from './mockData';
 import { calculateLoyaltyTier, DEFAULT_LOYALTY_CONFIG } from './loyaltyData';
@@ -65,7 +65,7 @@ export default function App(){
 function readRecoveryFlag(){try{return sessionStorage.getItem('studioflow_recovery')==='1';}catch{return false;}}
 function Application() {
  const [account,setAccount]=useState<any>(null); const [templates,setTemplates]=useState<CategoryTemplateConfig[]>([]);
- const [error,setError]=useState(''); const [retry,setRetry]=useState(0);
+ const [error,setError]=useState(''); const [errorUser,setErrorUser]=useState(''); const [retry,setRetry]=useState(0);
  const [skipReferral,setSkipReferral]=useState(false);
  const [recovery,setRecovery]=useState(()=>readRecoveryFlag()||new URLSearchParams(location.search).has('recovery')||new URLSearchParams(location.hash.slice(1)).get('type')==='recovery');
  const [inviteEntry]=useState(isCustomerInviteEntry);
@@ -112,7 +112,7 @@ function Application() {
    withTimeout(supabase.from('profiles').select('full_name,salon_name,phone_number,whatsapp,city,postal_code').eq('id',session.user.id).maybeSingle(),12000,'Loading your profile').then(({data,error:identityError})=>({data,error:identityError})).catch(()=>({data:null,error:null})),
   ]);
   if(active){setTemplates(catalogue.templates);setAccount({...bootstrap.account,identity:identity.error?null:identity.data});try{localStorage.removeItem('studioflow_pending_ref');}catch{}}
- })().catch(e=>{if(active)setError(e.message||'Could not load your account');});return()=>{active=false;};
+ })().catch(e=>{if(active){setErrorUser(session.user.id);setError(messageOf(e,'Could not load your account'));}});return()=>{active=false;};
  },[session?.user?.id,retry,slug,customer,customerApp,recovery,skipReferral,ownerSlug]);
  if(recovery&&session)return <AuthPage recovery onRecovered={()=>{setRecovery(false);setRetry(r=>r+1);}} />;
  if(customerApp&&!authReady)return <Loading text="Opening Nexora…" />;
@@ -123,8 +123,8 @@ function Application() {
  if(!authReady)return <Loading text="Checking your session…" />;
  if(!session)return <>{authError&&<p role="alert" className="p-4">{authError}</p>}<div className="bg-white border-b px-4 py-3 text-center text-sm">Looking for a salon appointment? <a className="text-violet-600 font-semibold" href="/?app=1">Open Nexora Customer App →</a></div><AuthPage /></>;
  if(customer)return <CustomerBookings session={session} />;
- if(error)return <main className="p-8"><h1 className="text-2xl font-bold">Account could not load</h1><p role="alert" className="my-4">{error.includes('database') || error.includes('connection') ? 'There was a database connection issue. Please check your internet or try again later.' : error}</p><button className="primary-action" onClick={()=>setRetry(r=>r+1)}>Retry</button><button className="secondary-action ml-3" onClick={()=>void supabase.auth.signOut()}>Sign out</button><button className="secondary-action ml-3" onClick={()=>{localStorage.removeItem('studioflow_pending_ref');const url=new URL(location.href);url.searchParams.delete('ref');history.replaceState(null,'',url);setSkipReferral(true);setRetry(r=>r+1);}}>Continue without pending referral</button></main>;
- if(!account||account.user_id!==session.user.id)return <AccountLoading profileState={account?'user-mismatch':'loading'} userId={session.user.id} onRetry={()=>setRetry(r=>r+1)} onSignOut={()=>void supabase.auth.signOut()} />;
+ if(error && errorUser===session.user.id)return <main className="p-8"><h1 className="text-2xl font-bold">Account could not load</h1><p role="alert" className="my-4">{error.includes('database') || error.includes('connection') ? 'There was a database connection issue. Please check your internet or try again later.' : error}</p><button className="primary-action" onClick={()=>{setError('');setRetry(r=>r+1);}}>Retry</button><button className="secondary-action ml-3" onClick={()=>void supabase.auth.signOut()}>Sign out</button><button className="secondary-action ml-3" onClick={()=>{localStorage.removeItem('studioflow_pending_ref');const url=new URL(location.href);url.searchParams.delete('ref');history.replaceState(null,'',url);setSkipReferral(true);setRetry(r=>r+1);}}>Continue without pending referral</button></main>;
+ if(!account||account.user_id!==session.user.id)return <AccountLoading key={`${session.user.id}-${retry}`} profileState={account?'user-mismatch':'loading'} userId={session.user.id} onRetry={()=>setRetry(r=>r+1)} onSignOut={()=>void supabase.auth.signOut()} />;
  return <AppErrorBoundary resetKey={session.user.id}><Workspace key={session.user.id} session={session} account={account} templates={templates} /></AppErrorBoundary>;
 }
 function TemplateEntry({templateId}:{templateId:BusinessTypeId}){
@@ -144,12 +144,15 @@ function Loading({text}:{text:string}){return <main role="status" className="min
  * for the first few seconds, then explains the delay and offers a retry — the
  * bootstrap behind it is time-boxed, so this state always resolves.
  */
+
 export function Workspace({session,account,templates}:{key?:React.Key;session:Session;account:any;templates:CategoryTemplateConfig[]}) {
  const cacheKey=`studioflow_draft_${session.user.id}`;
  const [cached]=useState(()=>{try{const draft=JSON.parse(localStorage.getItem(cacheKey)||'null');if(draft?.revision!==account.revision&&draft?.draft?.profile)localStorage.setItem(`${cacheKey}_conflict`,JSON.stringify(draft));return draft||JSON.parse(localStorage.getItem(`${cacheKey}_conflict`)||'null');}catch{return null;}});
  const [recoveryNotice,setRecoveryNotice]=useState(!!cached);
  const cloudDraft=account.draft||{};
- const baseInitial=normalizeWorkspace(cached?.revision===account.revision&&cached?.draft?.profile ? cached.draft : cloudDraft,{...account.identity,email:session.user.email,full_name:account.identity?.full_name||session.user.user_metadata?.full_name,salon_name:account.identity?.salon_name||session.user.user_metadata?.salon_name});
+ const initialDraft = cached?.revision===account.revision&&cached?.draft?.profile ? cached.draft : cloudDraft;
+ const [invalidSavedServices] = useState(() => [initialDraft, cloudDraft].some(draft => draft.services != null && !hasServicesArray(draft.services)));
+ const baseInitial=normalizeWorkspace(initialDraft,{...account.identity,email:session.user.email,full_name:account.identity?.full_name||session.user.user_metadata?.full_name,salon_name:account.identity?.salon_name||session.user.user_metadata?.salon_name});
  const [entry]=useState(()=>{const query=new URLSearchParams(location.search);return query.get('create')==='1'?requestedTemplate(location.search):null;});
  const initial=entry?{...baseInitial,profile:{...applyTemplateDesign(baseInitial.profile,entry),serviceCatalogueInitialized:true},services:servicesForTemplate(baseInitial.services,baseInitial.profile,entry),stylists:baseInitial.stylists.length?baseInitial.stylists:entry.stylists}:baseInitial;
  const [currentView,setCurrentView]=useState<AppView>(entry?'wizard':new URLSearchParams(location.search).get('panel')==='demo'?'dashboard':'owner');
@@ -167,7 +170,7 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
  const [extras,setExtras]=useState({...DEFAULT_EXTRAS,...initial.extras});
  const [onboardingComplete,setOnboardingComplete]=useState(!!initial.onboardingComplete);
  const [appointments,setAppointments]=useState<Appointment[]>([]);const [published,setPublished]=useState<any>(null);
- const [sync,setSync]=useState('Saved to Supabase');const [syncError,setSyncError]=useState('');const [saveConflicts,setSaveConflicts]=useState<string[]>([]);
+ const [sync,setSync]=useState('Saved to Supabase');const [syncError,setSyncError]=useState(invalidSavedServices ? 'Saved services have an unexpected format. Saving is paused to protect your original data; please contact support.' : '');const [saveConflicts,setSaveConflicts]=useState<string[]>([]);
  const workspaceActive=useRef(true);useEffect(()=>{workspaceActive.current=true;return()=>{workspaceActive.current=false}},[]);
  const revision=useRef(account.revision);const queue=useRef(Promise.resolve());const lastSaved=useRef(JSON.stringify(workspaceSnapshot(cloudDraft)));
  const snapshot={profile:{...profile,bookingRules:{leadHours:extras.bookingLeadHours,cancellationWindow:extras.cancellationWindow}},services,stylists,clients,loyaltyConfig,extras,onboardingComplete};const latest=useRef<ReturnType<typeof workspaceSnapshot>>(snapshot);latest.current=snapshot;
@@ -177,6 +180,7 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
    try{
     for(let attempt=0;attempt<3;attempt++){
      if(!workspaceActive.current)return;
+     if(invalidSavedServices)throw new Error('Saved services have an unexpected format. Saving is paused to protect your original data; please contact support.');
      const currentAuth=await supabase.auth.getSession();
      if(!workspaceActive.current)return;
      if(currentAuth.error||currentAuth.data?.session?.user?.id!==session.user.id)throw new Error('Your sign-in changed. Local edits are kept for the original account.');
@@ -190,6 +194,7 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
       if(fresh.error)throw fresh.error;
       if(!workspaceActive.current)return;
       if(!isRecord(fresh.data?.draft)||!isRecord(fresh.data.draft.profile))throw new Error('Could not read the latest saved workspace profile. Your edits are kept; retry saving.');
+      if(fresh.data.draft.services != null && !hasServicesArray(fresh.data.draft.services))throw new Error('The latest saved services have an unexpected format. Saving is paused to protect the original data.');
       const remote=workspaceSnapshot(fresh.data.draft);
       const merged=mergeWorkspace(workspaceSnapshot(JSON.parse(lastSaved.current)),latest.current,remote,choice);
       if(merged.conflicts.length&&choice==='error'){setSaveConflicts(merged.conflicts);throw new Error(conflictMessage);}
@@ -212,7 +217,7 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
    }catch(error){setSync('Not saved');setSyncError(error instanceof Error?error.message:(error as any)?.message||'Save failed. Your edits are kept; retry saving.');throw error;}
   });queue.current=pending;return pending;
  },[session.user.id,applySnapshot]);
- useEffect(()=>{if(!sameWorkspace(latest.current,JSON.parse(lastSaved.current))){setSync('Unsaved changes');try{localStorage.setItem(cacheKey,JSON.stringify({revision:revision.current,draft:latest.current}));}catch{}}const timer=setTimeout(()=>{void flush().catch(()=>{});},800);return()=>clearTimeout(timer);},[profile,services,stylists,clients,loyaltyConfig,extras,onboardingComplete,flush]);
+ useEffect(()=>{if(invalidSavedServices){try{localStorage.setItem(`${cacheKey}_protected_edits`,JSON.stringify({revision:revision.current,draft:latest.current}));}catch{} return;} if(!sameWorkspace(latest.current,JSON.parse(lastSaved.current))){setSync('Unsaved changes');try{localStorage.setItem(cacheKey,JSON.stringify({revision:revision.current,draft:latest.current}));}catch{}}const timer=setTimeout(()=>{void flush().catch(()=>{});},800);return()=>clearTimeout(timer);},[profile,services,stylists,clients,loyaltyConfig,extras,onboardingComplete,flush]);
   const refreshBookings=useCallback(async()=>{
     try {
       const {data,error}=await supabase.from('studioflow_bookings').select('payload,status').eq('owner_id',session.user.id).order('created_at',{ascending:false});
@@ -237,6 +242,7 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
     const pending=queue.current.catch(()=>{}).then(()=>{
      if(!workspaceActive.current||!row||!Number.isFinite(row.revision)||row.revision<=revision.current)return;
      if(!isRecord(row.draft)||!isRecord(row.draft.profile)){setSyncError('The updated workspace profile is incomplete. Your local edits are kept; retry loading.');return;}
+     if(row.draft.services != null && !hasServicesArray(row.draft.services)){setSyncError('The updated services have an unexpected format. Your local edits are kept; retry loading.');return;}
      const remote=workspaceSnapshot(row.draft);
      const merged=mergeWorkspace(workspaceSnapshot(JSON.parse(lastSaved.current)),latest.current,remote);
      if(merged.conflicts.length){setSaveConflicts(merged.conflicts);setSync('Not saved');setSyncError(conflictMessage);return;}
@@ -289,7 +295,7 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
             onClick={() => {
               const d = normalizeWorkspace(cached.draft);
               setProfile(d.profile);
-              setServiceState(normalizeServices<SalonService>(d.services,'realtime services'));
+              setServiceState(d.services || []);
               setStylists(d.stylists || []);
               setClients(d.clients || []);
               setLoyaltyConfig(d.loyaltyConfig || DEFAULT_LOYALTY_CONFIG);
@@ -472,5 +478,5 @@ function PublishedWebsite({slug,session}:{key?:React.Key;slug:string;session:Ses
  if(!site)return <Loading text="Loading salon website…" />;
  const book=async(apt:Appointment)=>{if(!session){setAuthMode('signin');throw new Error('Please log in or create a customer account to continue your booking.');}const rpc=apt.branchId?(apt.couponCode?'studioflow_branch_coupon_book':'studioflow_branch_book'):(apt.couponCode?'studioflow_coupon_book':'studioflow_book');const {data,error}=await supabase.rpc(rpc,{p_slug:slug,p_request:apt});if(error)throw error;return data?.payload||data;};
  const content=normalizeWorkspace({...site,extras:{gallery:site.gallery,policies:site.policies,whiteLabel:site.branding}});
- return <><div className="bg-white border-b px-4 py-2 flex justify-between gap-3 text-xs"><a className="text-violet-600 font-semibold" href={'/?app=1&site='+encodeURIComponent(slug)}>Open this salon in Nexora App ↗</a><a className="text-violet-600" href="/?app=1&tab=bookings">My Bookings</a></div>{showBookings&&<SalonBookingsDialog profile={{...content.profile,subdomain:slug}} onClose={()=>setShowBookings(false)}/>} {authMode&&<div className="fixed inset-0 z-[100] bg-black/50 p-4 flex items-center justify-center" onClick={()=>setAuthMode(null)}><section role="dialog" aria-modal="true" aria-label="Customer account" className="bg-white text-slate-900 rounded-2xl w-full max-w-lg max-h-[90dvh] overflow-y-auto p-4" onClick={e=>e.stopPropagation()}><button className="secondary-action mb-3" onClick={()=>setAuthMode(null)}>Close</button>{session?<Suspense fallback={<p role="status">Loading account settings…</p>}><WebsiteCustomerAccount session={session} account={customerAccount}/></Suspense>:<AuthPage key={authMode} compact customerMode initialMode={authMode} returnSlug={slug}/>}</section></div>}<SalonWebsitePreview key={slug} customerSignedIn={!!session} customerName={customerAccount.profile.full_name||session?.user.user_metadata?.full_name||'My account'} customerPhotoUrl={customerAccount.photoUrl} onCustomerAccount={mode=>setAuthMode(mode||'signin')} profile={{...content.profile,subdomain:slug}} services={normalizeServices<SalonService>(content.services,'published site services')} stylists={content.stylists} gallery={content.extras.gallery} policies={site.policies} branding={site.branding} loyaltyConfig={site.loyaltyConfig} onAddAppointment={book} readOnly live /></>;
+ return <><div className="bg-white border-b px-4 py-2 flex justify-between gap-3 text-xs"><a className="text-violet-600 font-semibold" href={'/?app=1&site='+encodeURIComponent(slug)}>Open this salon in Nexora App ↗</a><a className="text-violet-600" href="/?app=1&tab=bookings">My Bookings</a></div>{showBookings&&<SalonBookingsDialog profile={{...content.profile,subdomain:slug}} onClose={()=>setShowBookings(false)}/>} {authMode&&<div className="fixed inset-0 z-[100] bg-black/50 p-4 flex items-center justify-center" onClick={()=>setAuthMode(null)}><section role="dialog" aria-modal="true" aria-label="Customer account" className="bg-white text-slate-900 rounded-2xl w-full max-w-lg max-h-[90dvh] overflow-y-auto p-4" onClick={e=>e.stopPropagation()}><button className="secondary-action mb-3" onClick={()=>setAuthMode(null)}>Close</button>{session?<Suspense fallback={<p role="status">Loading account settings…</p>}><WebsiteCustomerAccount session={session} account={customerAccount}/></Suspense>:<AuthPage key={authMode} compact customerMode initialMode={authMode} returnSlug={slug}/>}</section></div>}<SalonWebsitePreview key={slug} customerSignedIn={!!session} customerName={customerAccount.profile?.full_name||session?.user.user_metadata?.full_name||'My account'} customerPhotoUrl={customerAccount.photoUrl} onCustomerAccount={mode=>setAuthMode(mode||'signin')} profile={{...content.profile,subdomain:slug}} services={content.services} stylists={content.stylists} gallery={content.extras.gallery} policies={site.policies} branding={site.branding} loyaltyConfig={site.loyaltyConfig} onAddAppointment={book} readOnly live /></>;
 }

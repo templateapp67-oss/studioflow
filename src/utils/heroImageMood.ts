@@ -1,18 +1,18 @@
 export interface HeroAIStyling {
   moodName: string;
   isLightImage: boolean;
-  
+
   // Background Image filters
   imageFilterClass: string;
-  
+
   // Overlay Mask
   overlayGradientClass: string;
   overlayBlendMode: string;
   overlayAccentColor: string;
-  
+
   // Text Card Container Backing
   cardBackingClass: string;
-  
+
   // Typography Colors & Effects
   headingColor: string;
   headingGradient?: string;
@@ -26,7 +26,7 @@ export interface HeroAIStyling {
   metricsBorderColor: string;
   metricsLabelColor: string;
   metricsValueColor: string;
-  
+
   // Legibility Shadow
   textShadow: string;
   dropShadowClass: string;
@@ -101,7 +101,7 @@ export function computeHeroAIStyling(imageUrl: string, fallbackAccentColor?: str
       textShadow: 'none',
       dropShadowClass: 'drop-shadow-xs',
     };
-  } 
+  }
   // 2. Cool Emerald / Botanical Spa (Green dominant)
   else if (g > r + 15 && g > b - 10) {
     styling = {

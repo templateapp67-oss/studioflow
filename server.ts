@@ -1,12 +1,14 @@
 import "dotenv/config";
 import {sitemapHandler} from "./server/sitemap";
 import express from "express";
+import { createServer } from "node:http";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 
 async function startServer() {
   const app = express();
+  const httpServer = createServer(app);
   const portArg = process.argv.indexOf('--port');
   const PORT = Number(portArg>=0?process.argv[portArg+1]:process.env.PORT||3000);
   if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) throw new Error('Invalid server port');
@@ -482,11 +484,32 @@ Return strictly valid JSON in this format:
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
+    const disableHmr = process.env.DISABLE_HMR === "true";
+    // Vite still injects its client (and opens a socket) with hmr: false.
+    // Supply the small CSS runtime its development transforms need instead.
+    if (disableHmr) {
+      app.get('/@vite/client', (_req, res) => {
+        res.type('application/javascript').send(`
+          const sheets = new Map();
+          export function updateStyle(id, content) {
+            let style = sheets.get(id);
+            if (!style) { style = document.createElement('style'); style.setAttribute('data-vite-dev-id', id); document.head.appendChild(style); sheets.set(id, style); }
+            style.textContent = content;
+          }
+          export function removeStyle(id) { const style = sheets.get(id); if (style) { style.remove(); sheets.delete(id); } }
+          export function injectQuery(url, query) {
+            if (!url.startsWith('.') && !url.startsWith('/')) return url;
+            const pathname = url.replace(/[?#].*$/, '');
+            const { search, hash } = new URL(url, 'http://vite.dev');
+            return pathname + '?' + query + (search ? '&' + search.slice(1) : '') + hash;
+          }
+          export function createHotContext() { return { data: {}, accept() {}, acceptExports() {}, dispose() {}, prune() {}, invalidate() {}, on() {}, off() {}, send() {} }; }
+          export class ErrorOverlay extends HTMLElement {}
+        `);
+      });
+    }
     const vite = await createViteServer({
-      // HMR opens its own WebSocket, which hosted previews (AI Studio / Cloud Run)
-      // do not forward. Set DISABLE_HMR=true there to avoid the "failed to connect
-      // to websocket" error; locally HMR stays on.
-      server: { middlewareMode: true, hmr: process.env.DISABLE_HMR !== "true" },
+      server: { middlewareMode: true, hmr: disableHmr ? false : { server: httpServer } },
       appType: "spa",
     });
     app.all("/api/*", (_req, res) => {
@@ -504,7 +527,7 @@ Return strictly valid JSON in this format:
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
+  httpServer.listen(PORT, "0.0.0.0", () => {
     console.log(`StudioFlow Salon OS running on http://0.0.0.0:${PORT}`);
   });
 }

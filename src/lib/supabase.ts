@@ -12,6 +12,9 @@ const env = (import.meta as any).env || {};
 const supabaseUrl: string = (env.VITE_SUPABASE_URL || '').trim() || PROJECT_URL;
 const supabaseAnonKey: string = (env.VITE_SUPABASE_ANON_KEY || '').trim() || PUBLISHABLE_KEY;
 
+export const isSupabaseConfigured = !supabaseUrl.includes('placeholder') && !!supabaseAnonKey;
+export const supabaseHost = new URL(supabaseUrl).hostname;
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: 'studioflow_supabase_session' },
 });

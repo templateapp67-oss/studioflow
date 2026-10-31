@@ -113,7 +113,8 @@ console.log('PASS: a failed template read cannot block the salon from opening.')
 const app = readFileSync('src/App.tsx', 'utf8');
 assert.ok(app.includes('bootstrapSalonAccount'), 'the account bootstrap is wired into App');
 assert.ok(app.includes('studioflow_accounts'), 'the saved workspace row is the fallback route');
-assert.ok(/AccountLoading/.test(app) && readFileSync('src/components/AccountLoading.tsx', 'utf8').includes('Retry now'), 'the loading screen offers a retry');
+const loading = readFileSync('src/components/AccountLoading.tsx', 'utf8');
+assert.ok(/AccountLoading/.test(app) && /Retry now/.test(loading) && /DIAGNOSTIC_AFTER_SECONDS=10/.test(loading), 'the loading screen offers a retry after the diagnostic delay');
 assert.ok(!/Loading text="Loading your salon from Supabase…"/.test(app), 'the bare endless spinner is gone');
 assert.ok(
   /withTimeout\(supabase\.from\('studioflow_websites'\)/.test(app),

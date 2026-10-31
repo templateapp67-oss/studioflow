@@ -32,7 +32,7 @@ assert.equal(slotMatchesPeriod({time:'12:00',label:'12 PM',stylistId:'a'},'morni
 const props:any={salons:all,loading:false,error:'',refresh(){},favorites:[],save(){},open(){},book(){},point:null,nearby(){}};
 const markup=renderToStaticMarkup(<CustomerExplore {...props}/>);assert.ok(markup.includes('2 published salons match your exact requirements'));assert.ok(markup.includes('1 labelled template demo'));assert.ok(!markup.includes('6 published'));
 let booked:any,tree:any;const calls:any[]=[];
-(supabase as any).rpc=async(name:string,args:any)=>{calls.push({name,args});assert.equal(name,'studioflow_android_slots');return{data:args.p_slug==='a'&&args.p_services[0]==='cheap'?[{time:'11:00',label:'11:00 AM',stylistId:'a-staff'}]:[],error:null}};
+(supabase as any).rpc=async(name:string,args:any)=>{calls.push({name,args});if(name==='studioflow_public_branches')return {data:[],error:null};assert.equal(name,'studioflow_android_slots');return{data:args.p_slug==='a'&&args.p_services[0]==='cheap'?[{time:'11:00',label:'11:00 AM',stylistId:'a-staff'}]:[],error:null}};
 await act(async()=>{tree=create(<CustomerExplore {...props} book={(...args:any[])=>booked=args}/>)});
 const text=(n:any):string=>typeof n==='string'?n:Array.isArray(n)?n.map(text).join(''):n?.props?text(n.props.children):'';
 let card=tree.root.findAllByProps({className:'cr-explore-card'})[0];

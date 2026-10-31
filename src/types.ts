@@ -1,6 +1,6 @@
 export type AppView = 'owner' | 'landing' | 'wizard' | 'preview' | 'dashboard';
 
-export type BusinessTypeId = 
+export type BusinessTypeId =
   | 'hair_salon'         // Hair Cut & Styling Studio
   | 'barber'             // Barber Shop / Men's Grooming
   | 'unisex_salon'       // Unisex Salon
@@ -16,7 +16,7 @@ export type BusinessTypeId =
   | 'lash_brow'          // Lash & Brow Bar
   | 'ayurvedic_spa';     // Ayurvedic Rejuvenation Spa
 
-export type LayoutStyle = 
+export type LayoutStyle =
   | 'modern_minimalist'
   | 'vintage_industrial'
   | 'contemporary_balanced'
@@ -47,7 +47,7 @@ export interface BusinessTypeOption {
   defaultServices: Array<{ name: string; price: number; duration: number; category: string }>;
 }
 
-export type SalonThemePreset = 
+export type SalonThemePreset =
   | 'slate_silver'
   | 'vintage_brass'
   | 'pastel_blush'

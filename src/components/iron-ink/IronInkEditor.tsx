@@ -124,7 +124,7 @@ export function IronInkEditor({
     value: string,
   ) =>
     patch({
-      faq: (config.faq || ironInkDefaults.faq).map((faq, i) =>
+      faq: (config.faq || (ironInkDefaults as any).faq || []).map((faq, i) =>
         i === index ? { ...faq, [key]: value } : faq,
       ),
     });
@@ -671,7 +671,7 @@ export function IronInkEditor({
         ))}
       </div>
       <h3>Frequently asked questions</h3>
-      {(config.faq || ironInkDefaults.faq).map((faq, index) => (
+      {(config.faq || (ironInkDefaults as any).faq || []).map((faq, index) => (
         <div className="ii-faq-edit" key={index}>
           <input
             aria-label={`FAQ ${index + 1} question`}

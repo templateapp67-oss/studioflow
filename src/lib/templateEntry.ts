@@ -19,9 +19,9 @@ export function developmentTemplateForSiteSlug(slug:string,isDevelopment:boolean
  const alias=(Object.hasOwn(aliases,lower)?aliases[lower]:undefined) || (key === 'keshprakritihairspa' ? 'hair_spa' : key === 'voguenoirmakeupstudio' || key === 'voguenoir' ? 'makeup_studio' : key === 'prismchroma' || key === 'prismchromahaircoloratelier' ? 'hair_coloring' : key === 'shringaarroyal' || key === 'shringaarroyalindianbridallounge' || key === 'shringaar' || key === 'shringaarroyalbridallounge' ? 'bridal_lounge' : key === 'archflutter' || key === 'archflutterlashbrowbar' || key === 'archandflutter' || key === 'lashbrow' || key === 'lashbrowbar' ? 'lash_brow' : undefined);
  if(alias&&Object.hasOwn(CATEGORY_TEMPLATES,alias))return CATEGORY_TEMPLATES[alias];
  return Object.values(CATEGORY_TEMPLATES).find(template=>{
-  const id=template.id.toLowerCase().replace(/[^a-z0-9]/g,'');
-  const title=template.title.toLowerCase().replace(/[^a-z0-9]/g,'');
-  const shortName=template.shortName.toLowerCase().replace(/[^a-z0-9]/g,'');
+  const id=(typeof template?.id === 'string' ? template.id.toLowerCase() : '').replace(/[^a-z0-9]/g,'');
+  const title=(typeof template?.title === 'string' ? template.title.toLowerCase() : '').replace(/[^a-z0-9]/g,'');
+  const shortName=(typeof template?.shortName === 'string' ? template.shortName.toLowerCase() : '').replace(/[^a-z0-9]/g,'');
   return key===id||key===title||key===shortName||(key.length>=7&&(title.startsWith(key)||key.startsWith(title)));
  })||null;
 }
