@@ -86,7 +86,7 @@ const Nav = ({id,label,icon,active,onClick,number}:{key?:React.Key;id:number;lab
     }`}
   >
     {number && (
-      <span data-step-number={number} className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0 ${
+      <span className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0 ${
         active===id ? 'bg-white text-rose-700' : 'bg-slate-800 text-slate-400 border border-slate-700'
       }`}>
         {number}

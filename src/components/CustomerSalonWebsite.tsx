@@ -1,5 +1,4 @@
-import { normalizeServices } from '../lib/normalizeServices';
-import { clinicPriceIsVerified, clinicPublicServices } from '../lib/dermacureContent';
+import { clinicPriceIsVerified, clinicPublicServices, normalizeServices } from '../lib/dermacureContent';
 import type { ConsultationDetails } from "./dermacure/consultation";
 import { VogueNoirWebsite } from './VogueNoirWebsite';
 import {SpecialistCard} from './SpecialistCard';
@@ -59,7 +58,7 @@ import {BARBER_REFERENCE_IMAGES} from '../lib/barberReference';
 import {SALON_IMAGES} from '../assets/images';
 import {CustomerReviewPanel} from './CustomerReviewPanel';
 import {clientExperiences} from '../lib/demoWebsiteContent';
-import React,{useEffect,useState} from 'react';
+import React,{useEffect,useMemo,useState} from 'react';
 import {CalendarCheck,MapPin,MessageCircle,ShieldCheck,Clock,ArrowUpRight,Check,ChevronLeft,ChevronRight,X} from 'lucide-react';
 import type {SalonWebsitePreviewProps} from './SalonWebsitePreview';
 import type {SalonService,Stylist} from '../types';
@@ -79,9 +78,7 @@ import {IronInkWebsite} from './IronInkWebsite';
 import {ArchFlutterWebsite} from './ArchFlutterWebsite';
 
 const money=(value:number)=>`₹${Number(value||0).toLocaleString('en-IN')}`;
-function CustomerSalonWebsiteContent({profile,services:inputServices,stylists:inputStylists,gallery:inputGallery=[],policies,branding,loyaltyConfig,onManageDashboard,onCustomerAccount,customerSignedIn,customerName,customerPhotoUrl,onAddAppointment,readOnly,live}:SalonWebsitePreviewProps){
- const services = normalizeServices(inputServices).map(service=>({...service, name:typeof service.name === 'string' ? service.name : '', category:typeof service.category === 'string' ? service.category : '', description:typeof service.description === 'string' ? service.description : ''}));
- const stylists = Array.isArray(inputStylists) ? inputStylists.filter(Boolean) : [];
+function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGallery=[],policies,branding,loyaltyConfig,onManageDashboard,onCustomerAccount,customerSignedIn,customerName,customerPhotoUrl,onAddAppointment,readOnly,live}:SalonWebsitePreviewProps){
  useSeoMetadata(profile);
  const {t}=useWebsiteLanguage();
  const [consultation,setConsultation]=useState<ConsultationDetails|undefined>();
@@ -566,7 +563,7 @@ function CustomerSalonWebsiteContent({profile,services:inputServices,stylists:in
          const validPrice=hasValidRoopPrice(s.price);
          const validDuration=hasValidRoopDuration(s);
          const showBottom=validPrice||validDuration||roopBookingFlowAvailable;
-         const catLabel=s.category?.trim()||'';
+         const catLabel=(typeof s.category==='string'?s.category.trim():'');
          return (
           <article className="sf-service-card flex flex-col h-full justify-between" key={s.id}>
            <ServicePhoto service={s} type={profile.businessType}/>
@@ -624,7 +621,7 @@ function CustomerSalonWebsiteContent({profile,services:inputServices,stylists:in
          return (
           <article className="sf-service-card flex flex-col h-full justify-between" key={item.id}>
            <ServicePhoto service={item} type={profile.businessType}/>
-           {Boolean(item.category?.trim())&&<span className="sf-category-label">{item.category.trim()}</span>}
+           {(typeof item.category==='string'&&item.category.trim()!=='')&&<span className="sf-category-label">{item.category.trim()}</span>}
            <h3 tabIndex={0}>{item.name.trim()}</h3>
            <div className="flex-1">
             {Boolean(item.description?.trim())&&<p tabIndex={0} aria-label={`Description of ${item.name}`}>{item.description.trim()}</p>}
@@ -734,4 +731,13 @@ function CustomerSalonWebsiteContent({profile,services:inputServices,stylists:in
  </div>;
 }
 
-export function CustomerSalonWebsite(props:SalonWebsitePreviewProps){if (!props.profile || typeof props.profile !== "object") return <main role="status">Salon profile is unavailable. Please retry or contact the salon owner.</main>; return <WebsiteLanguageProvider key={props.profile.subdomain||props.profile.businessType} defaultLanguage={props.profile.defaultWebsiteLanguage}><CustomerSalonWebsiteContent {...props}/></WebsiteLanguageProvider>;}
+export function CustomerSalonWebsite(props:SalonWebsitePreviewProps){
+ // Services and stylists can arrive as null, a wrapped API response or a JSON string
+ // (cached drafts, Supabase RPCs, template config). Normalise them once here so every
+ // template below can rely on real arrays. Existing items are passed through untouched.
+ const services=useMemo(()=>normalizeServices<SalonService>(props.services,'CustomerSalonWebsite services'),[props.services]);
+ const stylists=useMemo(()=>Array.isArray(props.stylists)?props.stylists:[],[props.stylists]);
+ // The profile can be briefly unavailable while the account or site is still loading.
+ if(!props.profile||typeof props.profile!=='object')return <main role="status" aria-live="polite" className="min-h-screen flex items-center justify-center"><p>Loading website… The salon profile is unavailable right now; this page retries automatically.</p></main>;
+ return <WebsiteLanguageProvider key={props.profile.subdomain||props.profile.businessType} defaultLanguage={props.profile.defaultWebsiteLanguage}><CustomerSalonWebsiteContent {...props} services={services} stylists={stylists}/></WebsiteLanguageProvider>;
+}

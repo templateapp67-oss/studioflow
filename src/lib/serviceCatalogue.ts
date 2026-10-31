@@ -24,7 +24,7 @@ export function serviceValidation(service:Pick<SalonService,'name'|'category'|'d
  return '';
 }
 export function serviceOrigin(service:SalonService):'custom'|'template'{
- if(service.origin)return service.origin as 'custom'|'template';
+ if(service.origin)return service.origin;
  const original=STARTER_SERVICES.get(service.id);
  if(!original)return 'custom';
  return ['name','description','category','price','durationMinutes','popular','showDuration','imageUrl','imagePath'].every(key=>{

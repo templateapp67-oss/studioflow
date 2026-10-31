@@ -30,6 +30,7 @@ import { defaultGalleryCategory, standardGallery } from "../lib/photoGallery";
 import { createIronInkServices, IRON_INK_CATEGORIES, ironInkDefaults } from "../lib/ironInk";
 import { ironInkOwnerVideos } from "../lib/ironInkMedia";
 import { ironInkSocialLinks } from "../lib/ironInkSocial";
+import { normalizeServices } from "../lib/dermacureContent";
 import { IronInkSocial } from "./iron-ink/IronInkSocial";
 import { IronInkReels } from "./iron-ink/IronInkReels";
 import { IronInkLoyalty } from "./iron-ink/IronInkLoyalty";
@@ -71,16 +72,18 @@ const NAV: Page[] = [
 const fallback =
   "https://images.unsplash.com/photo-1598371839696-5c5bb00bdc28?auto=format&fit=crop&w=1000&q=80";
 const image = (url?: string) => url?.trim() || fallback;
-const safeString = (value: unknown): string => typeof value === "string" ? value.toLowerCase() : "";
+/** Lower-cases only real strings; undefined, null, numbers and objects become "". */
+const safeLower = (value: unknown): string =>
+  typeof value === "string" ? value.toLowerCase() : "";
 const money = (n: number) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
 const localDateInput = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
 export function IronInkWebsite({
-  profile: inputProfile,
-  services: inputServices,
-  stylists: inputStylists,
-  galleryPhotos: inputGalleryPhotos,
+  profile: profileProp,
+  services: servicesProp,
+  stylists: stylistsProp,
+  galleryPhotos: galleryPhotosProp,
   siteSlug,
   policies,
   loyaltyConfig,
@@ -120,10 +123,12 @@ export function IronInkWebsite({
     },
   ) => void;
 }) {
-  const profile = inputProfile && typeof inputProfile === "object" ? inputProfile : ({} as SalonProfile);
-  const galleryPhotos = Array.isArray(inputGalleryPhotos) ? inputGalleryPhotos : [];
-  const services = Array.isArray(inputServices) ? inputServices.filter(Boolean) : [];
-  const stylists = Array.isArray(inputStylists) ? inputStylists.filter(Boolean) : [];
+  // The profile, services and artists can be missing or malformed while the site
+  // is still loading; normalise them once so nothing below dereferences undefined.
+  const profile = (profileProp && typeof profileProp === "object" ? profileProp : {}) as SalonProfile;
+  const services = normalizeServices<SalonService>(servicesProp, "IronInkWebsite services");
+  const stylists = Array.isArray(stylistsProp) ? stylistsProp : [];
+  const galleryPhotos = Array.isArray(galleryPhotosProp) ? galleryPhotosProp : [];
   const [page, setPage] = useState<Page>("HOME");
   const [mobileNav, setMobileNav] = useState(false);
   const [filter, setFilter] = useState("All");
@@ -163,19 +168,7 @@ export function IronInkWebsite({
   const createInk=useCreateInkBooking();
   const enquiry=useInkEnquiry();
   const accent = remote.data?.settings?.brand_color||siteProfile.customAccentColor || "#E11D48";
-  // Older template catalogues contain category names rather than category records.
-  const defaults = IRON_INK_CATEGORIES.map((category: any) => {
-    if (typeof category !== 'string') return category;
-    const service = services.find(item => safeString(item.category) === safeString(category));
-    return {slug: safeString(category).replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''), name:category, image:service?.imageUrl || fallback, description:service?.description || '', price:service?.price || 0, duration:`${service?.durationMinutes || 60} min`, enabled:true};
-  });
-  const remoteCategories = Array.isArray(remote.data?.categories) ? remote.data.categories : [];
-  const saved = Array.isArray(siteProfile.ironInk?.categories) ? siteProfile.ironInk.categories.filter(Boolean) : [];
-  const base = [...defaults.map(category => saved.find(item => item.slug === category.slug) || category), ...saved.filter(item => !defaults.some(category => category.slug === item.slug))];
-  const configured = remoteCategories.length ? remoteCategories.map(item => ({slug:item.slug,name:item.name,image:item.image_url,description:item.description || defaults.find(category => category.slug === item.slug)?.description || '',price:Number(item.starting_price),duration:item.duration_label || `${item.duration_min} min`,enabled:item.is_active,dbId:item.id})) : (() => {
-    const custom = services.filter(service => typeof service.category === 'string' && service.category && service.category !== 'Signature Packages' && !base.some(category => safeString(category?.name) === safeString(service.category))).map(service => ({slug:safeString(service.category).replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''),name:service.category,image:service.imageUrl||fallback,description:service.description||'',price:service.price,duration:`${service.durationMinutes} min`,enabled:true}));
-    return [...custom, ...base];
-  })();
+  const configured = remote.data?.categories?.length ? remote.data.categories.map((item,index)=>({slug:item.slug,name:item.name,image:item.image_url,description:item.description||IRON_INK_CATEGORIES.find(category=>category.slug===item.slug)?.description||'',price:Number(item.starting_price),duration:item.duration_label||`${item.duration_min} min`,enabled:item.is_active,dbId:item.id})) : (()=>{const saved=siteProfile.ironInk?.categories||[];const base=[...IRON_INK_CATEGORIES.map(category=>saved.find(item=>item.slug===category.slug)||category),...saved.filter(item=>!IRON_INK_CATEGORIES.some(category=>category.slug===item.slug))];const custom=services.filter(service=>service.category&&service.category!=='Signature Packages'&&!base.some(category=>safeLower(category.name)===safeLower(service.category))).map(service=>({slug:safeLower(service.category).replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''),name:service.category,image:service.imageUrl||fallback,description:service.description||'',price:service.price,duration:`${service.durationMinutes} min`,enabled:true}));return [...custom,...base];})();
   const enabledCategories = configured
     .filter((item) => item.enabled)
     .map((item) => {
@@ -196,8 +189,8 @@ export function IronInkWebsite({
   const actualServices = remote.data?.categories?.length?[]:services.filter((item) =>
     enabledCategories.some(
       (category) =>
-        category.slug === (typeof item.id === "string" ? item.id.replace(/^ii-/, "") : "") ||
-        safeString(category.name) === safeString(item.category),
+        category.slug === item.id.replace(/^ii-/, "") ||
+        safeLower(category.name) === safeLower(item.category),
     ),
   );
   const displayServices = actualServices.length
@@ -342,7 +335,7 @@ export function IronInkWebsite({
       className={className}
     />
   );
-  const faq = remote.data?.faqs?.length?remote.data.faqs.map(item=>({question:item.question,answer:item.answer})):siteProfile.ironInk?.faq || (ironInkDefaults as any).faq || [];
+  const faq = remote.data?.faqs?.length?remote.data.faqs.map(item=>({question:item.question,answer:item.answer})):siteProfile.ironInk?.faq || ironInkDefaults.faq;
   const reviewData: Array<{
     name: string;
     comment: string;
@@ -654,14 +647,14 @@ export function IronInkWebsite({
                           whileTap={reduced ? undefined : { scale: 0.985 }}
                         >
                           <div>
-                            {img(item.image, item.name + " tattoo artwork", "sf-service-image")}
+                            {img(item.image, item.name + " tattoo artwork")}
                             <span className="ii-card-num">0{index + 1}</span>
                             <span className="ii-card-arrow">
                               <ArrowUpRight />
                             </span>
                           </div>
                           <h3>{item.name}</h3>
-                          {actualServices.find(service=>safeString(service.category)===safeString(item.name))?.name!==item.name&&<small>{actualServices.find(service=>safeString(service.category)===safeString(item.name))?.name}</small>}
+                          {actualServices.find(service=>safeLower(service.category)===safeLower(item.name))?.name!==item.name&&<small>{actualServices.find(service=>safeLower(service.category)===safeLower(item.name))?.name}</small>}
                           <p>{item.description}</p>
                           <span className="ii-price">
                             FROM {money(item.price)}
@@ -769,7 +762,7 @@ export function IronInkWebsite({
                           <div className="ii-process-image">
                             {img(
                               `https://images.unsplash.com/${photoId}?auto=format&fit=crop&w=700&q=80`,
-                              `${safeString(title)} stage`,
+                              `${safeLower(title)} stage`,
                             )}
                             <b>{no}</b>
                           </div>
