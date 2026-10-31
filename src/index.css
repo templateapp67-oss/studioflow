@@ -485,7 +485,7 @@
 .sf-badges li,.sf-badges span{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--sf-line);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;color:var(--sf-muted)}
 /* Header */
 .sf-header{position:sticky;top:0;z-index:60;background:#ffffffee;backdrop-filter:blur(10px);border-bottom:1px solid var(--sf-line)}
-.sf-header-row{display:flex;align-items:center;gap:20px;min-height:var(--sf-header-height);padding-block:10px}
+.sf-header-row{display:flex;align-items:center;gap:20px;min-height:72px;padding-block:10px}
 .sf-brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit;margin-right:auto}
 .sf-brand img{width:42px;height:42px;border-radius:12px;object-fit:cover}
 .sf-brand-mark{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:var(--sf-accent);color:var(--sf-accent-text);font-weight:800;font-size:22px}
