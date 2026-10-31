@@ -86,7 +86,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
     ownerName: 'Ananya Sharma',
     ownerRole: 'Creative Hair Director & Vidal Sassoon Alum',
     ownerPhotoUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=500&q=80',
-    coverImageUrl: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1200&q=80',
+    coverImageUrl: '/templates/miraki/hero.webp',
     instagramHandle: '@mirakihair.blr',
     themeStyle: {
       heroBackground: 'bg-[#0f172a]',
@@ -112,6 +112,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         durationMinutes: 45,
         price: 750,
         description: 'Sculpted haircut tailored to face geometry, invigorating scalp wash, and professional salon blowout.',
+        imageUrl: '/templates/miraki/service-cut.webp',
         icon: 'content_cut',
         popular: true
       },
@@ -122,6 +123,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         durationMinutes: 35,
         price: 450,
         description: 'Texturizing layers, split-end removal, deep cleanse with Moroccan argan oil shampoo.',
+        imageUrl: '/templates/miraki/service-cut.webp',
         icon: 'styler'
       },
       {
@@ -131,6 +133,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         durationMinutes: 120,
         price: 4200,
         description: 'Infuses active keratin proteins, eliminating 95% frizz with mirror-like shine for up to 14 weeks.',
+        imageUrl: '/templates/miraki/service-smoothing.webp',
         icon: 'auto_fix_high',
         popular: true
       },
@@ -141,6 +144,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         durationMinutes: 90,
         price: 3600,
         description: 'Intense peptide filler mask for chemically damaged or heat-stressed hair fibers.',
+        imageUrl: '/templates/miraki/service-shampoo.webp',
         icon: 'healing'
       },
       {
@@ -150,6 +154,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         durationMinutes: 40,
         price: 850,
         description: 'GHD ceramic iron styling with anti-humidity thermal protectant for party & cocktail evenings.',
+        imageUrl: '/templates/miraki/service-style.webp',
         icon: 'waves'
       }
     ],
@@ -201,7 +206,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
     ownerName: 'Vikram Malhotra',
     ownerRole: 'Master Barber & Razor Craftsman',
     ownerPhotoUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=500&q=80',
-    coverImageUrl: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=1200&q=80',
+    coverImageUrl: '/templates/royal-blade/hero.webp',
     instagramHandle: '@royalblade.bandra',
     themeStyle: {
       heroBackground: 'bg-[#18110b]',
@@ -227,6 +232,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         durationMinutes: 40,
         price: 450,
         description: 'Tailored fade or gentleman taper, tea-tree scalp rinse, and matte pomade finish.',
+        imageUrl: '/templates/royal-blade/feature.webp',
         icon: 'content_cut',
         popular: true
       },
@@ -237,6 +243,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         durationMinutes: 30,
         price: 350,
         description: 'Eucalyptus pre-shave oil, badger brush warm lather, feather-edge razor shave, and cold stone alum splash.',
+        imageUrl: '/templates/royal-blade/shave.webp',
         icon: 'face'
       },
       {
@@ -246,6 +253,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         durationMinutes: 35,
         price: 400,
         description: 'Sharp cheek line outlining, bulk graduation, steam softening, and organic cedarwood beard butter massage.',
+        imageUrl: '/templates/royal-blade/feature.webp',
         icon: 'cleaning_services',
         popular: true
       },
@@ -256,6 +264,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         durationMinutes: 75,
         price: 1350,
         description: 'Full haircut, hot lather straight shave, charcoal blackhead face scrub, neck & shoulder acupressure.',
+        imageUrl: '/templates/royal-blade/hero.webp',
         icon: 'workspace_premium',
         popular: true
       },
@@ -266,6 +275,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         durationMinutes: 30,
         price: 550,
         description: 'Natural subtle grey blending for beards with premium Hungarian mustache wax shape.',
+        imageUrl: '/templates/royal-blade/shave.webp',
         icon: 'brush'
       }
     ],
@@ -317,7 +327,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
     ownerName: 'Priya Nair',
     ownerRole: 'Executive Salon Director',
     ownerPhotoUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=500&q=80',
-    coverImageUrl: 'https://nexorasalon.online/templates/aura-unisex/hero.webp',
+    coverImageUrl: '/templates/aura-unisex/hero.webp',
     instagramHandle: '@aurasalon.blr',
     themeStyle: {
       heroBackground: 'bg-[#fff5f5]',
@@ -344,7 +354,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         price: 650,
         description: 'A hair wash, haircut and styling to suit your everyday look.',
         icon: 'content_cut',
-        imageUrl: 'https://nexorasalon.online/templates/aura-unisex/service-cut.webp',
+        imageUrl: '/templates/aura-unisex/service-cut.webp',
         popular: true
       },
       {
@@ -355,7 +365,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         price: 850,
         description: 'A gentle face cleanup with steam, scrub and a face mask.',
         icon: 'face',
-        imageUrl: 'https://nexorasalon.online/templates/aura-unisex/service-facial.webp',
+        imageUrl: '/templates/aura-unisex/service-facial.webp',
         popular: true
       },
       {
@@ -366,7 +376,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         price: 2800,
         description: 'Full hair colour with an ammonia-free formula. Ask our team for the right shade.',
         icon: 'brush',
-        imageUrl: 'https://nexorasalon.online/templates/aura-unisex/service-colour.webp'
+        imageUrl: '/templates/aura-unisex/service-colour.webp'
       },
       {
         id: 'us-4',
@@ -376,7 +386,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         price: 850,
         description: 'A foot soak, nail care and a warm paraffin treatment for soft, fresh feet.',
         icon: 'pan_tool',
-        imageUrl: 'https://nexorasalon.online/templates/aura-unisex/service-pedicure.webp'
+        imageUrl: '/templates/aura-unisex/service-pedicure.webp'
       },
       {
         id: 'us-5',
@@ -386,7 +396,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         price: 1650,
         description: 'A hair care treatment to help care for dry or damaged hair.',
         icon: 'auto_awesome',
-        imageUrl: 'https://nexorasalon.online/templates/aura-unisex/service-repair.webp'
+        imageUrl: '/templates/aura-unisex/service-repair.webp'
       }
     ],
     stylists: [
