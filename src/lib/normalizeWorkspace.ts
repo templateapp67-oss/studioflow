@@ -16,7 +16,15 @@ export interface WorkspaceState {
   extras?: any;
 }
 
-export function normalizeWorkspace(workspace: any, identityDefaults?: any): WorkspaceState {
+export function normalizeWorkspace(workspaceInput: any, identityDefaults?: any): WorkspaceState {
+  let workspace = workspaceInput;
+  if (typeof workspace === 'string') {
+    try {
+      workspace = JSON.parse(workspace);
+    } catch {
+      workspace = {};
+    }
+  }
   const rawProfile = workspace?.profile || {};
   const profile: SalonProfile = {
     businessName: rawProfile.businessName || identityDefaults?.salon_name || 'My Salon & Spa Studio',

@@ -16,6 +16,11 @@ const cases: Array<[string, any, string | null]> = [
   ['local ip skipped', {search: '', hostname: '127.0.0.1'}, null],
   ['single-char label skipped', {search: '', hostname: 'a.nexora.app'}, null],
   ['invalid label skipped', {search: '', hostname: '-bad-.nexora.app'}, null],
+
+  ['ChatGPT Site owner host skipped', {search: '', hostname: 'nexora-one-white-label.templateapp67.chatgpt.site'}, null],
+  ['ChatGPT Site explicit site query wins', {search: '?site=vijaysalojaipur', hostname: 'nexora-one-white-label.templateapp67.chatgpt.site'}, 'vijaysalojaipur'],
+  ['Nexora salon wildcard domain', {search: '', hostname: 'vijaysalojaipur.nexorasalon.online'}, 'vijaysalojaipur'],
+  ['Nexora apex serves owner app', {search: '', hostname: 'nexorasalon.online'}, null],
   ['missing location', undefined, null],
   ['empty stub', {}, null],
 ];

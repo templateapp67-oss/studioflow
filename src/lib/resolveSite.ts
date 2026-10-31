@@ -21,7 +21,7 @@ const RESERVED_LABELS = new Set([
   "static", "cdn", "mail", "invite", "help", "status", "support", "blog",
 ]);
 /** Sandbox / preview hosts always serve the owner app unless `?site=` is explicit. */
-const PREVIEW_HOST_SUFFIXES = [".e2b.app", ".e2b.dev", ".vercel.app"];
+const PREVIEW_HOST_SUFFIXES = [".e2b.app", ".e2b.dev", ".vercel.app", ".chatgpt.site"];
 const IPV4 = /^\d{1,3}(?:\.\d{1,3}){3}$/;
 
 function querySlug(search: unknown): string | null {

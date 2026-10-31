@@ -1,22 +1,93 @@
-/* Public offline fallback only. Account, API and payment responses are never cached. */
-const CACHE='nexora-customer-offline-v1';
-self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(['/customer-offline.html'])));self.skipWaiting();});
-self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('nexora-customer-offline-')&&key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});
-self.addEventListener('fetch',event=>{
- if(event.request.method!=='GET'||event.request.mode!=='navigate'||new URL(event.request.url).origin!==self.location.origin)return;
- event.respondWith(fetch(event.request,{cache:'no-store'}).catch(()=>caches.match('/customer-offline.html')));
+/* Nexora Customer App Service Worker: caching critical assets and offline fallback */
+const CACHE_NAME = 'nexora-customer-cache-v2';
+const CRITICAL_ASSETS = [
+  '/',
+  '/index.html',
+  '/customer-offline.html',
+  '/customer.webmanifest',
+  '/customer-icon-192.png',
+  '/customer-icon-512.png'
+];
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(CRITICAL_ASSETS);
+    }).then(() => self.skipWaiting())
+  );
 });
 
-self.addEventListener('notificationclick',event=>{
- if(event.notification.data?.type!=='nexora-update')return;
- event.notification.close();
- event.waitUntil((async()=>{
-  const target=new URL(event.notification.data.url||'/?app=1',self.location.origin);
-  if(target.origin!==self.location.origin)return;
-  const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
-  const existing=windows.find(client=>new URL(client.url).origin===self.location.origin);
-  // Focus existing work without navigating away from an open form or payment.
-  if(existing)return existing.focus();
-  return self.clients.openWindow(target.href);
- })());
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.filter((key) => key.startsWith('nexora-customer-cache-') && key !== CACHE_NAME)
+          .map((key) => caches.delete(key))
+      );
+    }).then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+
+  // Only handle GET requests within origin
+  if (event.request.method !== 'GET' || url.origin !== self.location.origin) {
+    return;
+  }
+
+  // Navigation requests: try network first, fall back to cached index.html or offline fallback
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
+          }
+          return response;
+        })
+        .catch(async () => {
+          const cached = await caches.match(event.request);
+          if (cached) return cached;
+          const indexCache = await caches.match('/index.html');
+          if (indexCache) return indexCache;
+          return caches.match('/customer-offline.html');
+        })
+    );
+    return;
+  }
+
+  // Static assets (JS, CSS, images): Stale-while-revalidate / Cache-first
+  event.respondWith(
+    caches.match(event.request).then((cachedResponse) => {
+      const fetchPromise = fetch(event.request).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+        }
+        return networkResponse;
+      }).catch(() => {
+        // Return cached response if offline
+        return cachedResponse;
+      });
+
+      return cachedResponse || fetchPromise;
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  if (event.notification.data?.type !== 'nexora-update') return;
+  event.notification.close();
+  event.waitUntil((async () => {
+    const target = new URL(event.notification.data.url || '/?app=1', self.location.origin);
+    if (target.origin !== self.location.origin) return;
+    const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const existing = windows.find((client) => new URL(client.url).origin === self.location.origin);
+    if (existing) return existing.focus();
+    return self.clients.openWindow(target.href);
+  })());
 });
