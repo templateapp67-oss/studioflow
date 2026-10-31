@@ -65,7 +65,7 @@ assert.equal(socialUrl('javascript:alert(1)','instagram'),'');
 assert.equal(socialUrl('@mysalon','instagram'),'https://instagram.com/mysalon');
 const header=renderToStaticMarkup(<Header currentView="dashboard" setCurrentView={()=>{}} salonName="Actual Salon"/>);
 assert.ok(!header.includes('SaaS Dashboard'));
-assert.equal((header.match(/\bDashboard\b/g)||[]).length,2,'One desktop and one mobile navigation dashboard');
+assert.equal((header.match(/\bDashboard\b/g)||[]).length,1,'The responsive navigation contains one dashboard action');assert.ok(header.includes('aria-label="Workspace navigation"'));
 console.log('PASS: templates render saved promo, social links and policies; videos remain in other templates; toggles hide content; empty services are safe; duplicate dashboard action removed.');
 
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;

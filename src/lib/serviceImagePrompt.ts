@@ -1,10 +1,23 @@
-export function createServiceImageVariation(): string {
-  return `var-${Math.floor(Math.random() * 10000)}`;
+// A local creative-brief identifier; no customer identity or server request is needed.
+export function createServiceImageVariation(){
+ if(globalThis.crypto?.randomUUID)return globalThis.crypto.randomUUID();
+ if(globalThis.crypto?.getRandomValues)return Array.from(globalThis.crypto.getRandomValues(new Uint32Array(4)),n=>n.toString(16)).join('-');
+ return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
 }
-
-export function serviceImagePrompt(name: string, category: string, description: string, variationSeed?: string): string {
-  const serviceName = name || 'Salon Service';
-  const categoryName = category || 'Beauty';
-  const desc = description ? ` (${description})` : '';
-  return `Create a high-resolution professional studio photography asset for a luxury ${categoryName} salon service: "${serviceName}"${desc}. Bright, ultra-clean aesthetic, editorial studio lighting, highly detailed focus. Seed: ${variationSeed || 'v1'}`;
+const DIRECTIONS={
+ camera:['three-quarter view at workstation height','gentle overhead diagonal focused on the treatment','close side profile of the treatment area','medium view from across the workstation','tight detail with a softly blurred studio behind','slightly elevated view with asymmetric framing','low diagonal detail at tool level','over-the-shoulder view with the service clearly visible'],
+ light:['soft north-window daylight','warm bounced afternoon light','diffused cool morning light','gentle studio softbox light','warm side lighting with soft shadows','bright airy daylight softened by sheer curtains','balanced neutral editorial lighting','soft rim lighting with a gentle frontal fill'],
+ decor:['warm oak and ivory linen','muted sage and brushed brass','soft rose and matte cream','charcoal stone and pale wood','terracotta and warm neutral textiles','powder blue and natural bamboo','plum accents and soft beige','sandstone and warm copper'],
+ composition:['subject on the center-right with soft foreground depth','centered treatment detail with layered background depth','diagonal tool arrangement beside the treatment','asymmetric composition with an uncluttered left side','treatment framed by a curved workstation edge','clean minimal composition with tactile background detail','editorial framing with soft bokeh highlights','balanced close composition emphasizing authentic technique']
+};
+function creativeDirections(variation:string){
+ let seed=2166136261;
+ for(const char of variation)seed=Math.imul(seed^char.charCodeAt(0),16777619)>>>0;
+ const random=()=>{seed=(seed+0x6d2b79f5)>>>0;let value=seed;value=Math.imul(value^(value>>>15),value|1);value^=value+Math.imul(value^(value>>>7),value|61);return ((value^(value>>>14))>>>0)/4294967296;};
+ const pick=(values:readonly string[])=>{const pool=[...values];for(let i=pool.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}return pool.slice(0,3);};
+ const camera=pick(DIRECTIONS.camera),light=pick(DIRECTIONS.light),decor=pick(DIRECTIONS.decor),composition=pick(DIRECTIONS.composition);
+ return Array.from({length:3},(_,i)=>`Image ${i+1}: Camera: ${camera[i]}. Lighting: ${light[i]}. Studio palette/materials: ${decor[i]}. Composition: ${composition[i]}.`).join('\n');
+}
+export function serviceImagePrompt(name:string,category:string,description:string,variation=createServiceImageVariation()){
+ return `FRESH CREATIVE BRIEF\nBrief reference: ${variation} (for tracking only; do not render this identifier in the image; it is not an image-model seed).\n${creativeDirections(variation)}\n\nCreate 3 original, separate professional images for a salon service website. Generate each as its own image, not a collage, grid or contact sheet.\n\nSERVICE DETAILS\nService name: ${name.trim()}\nCategory: ${category.trim()}\nService description: ${description.trim()}\n\nShow the specific service described above, with realistic tools, technique and natural detail. Use a clean, premium Indian salon or wellness studio setting. Use adult subjects only, fully clothed where people appear, with respectful, non-sexual treatment framing. Do not depict unrelated services.\nUse these distinct visual directions for three genuinely different scenes, not the same photograph recolored or slightly cropped. Invent fresh decor, adult subjects where suitable, tool placement and framing for this brief; do not reuse a previous image composition. Keep the exact selected service, category and description unchanged. Camera and decor choices must adapt to the actual treatment, using only appropriate tools and safe, authentic technique. If a direction conflicts with service accuracy, preserve service accuracy.\nGenerate directly from this text; no reference upload is needed.\n\nFor every image: landscape 3:2 aspect ratio (ideally 1536 × 1024 px), sharp professional photographic style, main subject safely inside the central area for card cropping. No unrelated text, third-party brand names, third-party logos, stock watermarks, price tags, before-and-after comparison or guaranteed medical claims. Do not reuse existing website photographs.\n\nMANDATORY NEXORA BRANDING: Every image must include a clearly visible, legible wordmark spelled exactly "Nexora". Integrate it tastefully on a salon wall sign, towel, stylist apron or a small clean footer wordmark. Keep Nexora branding inside the central safe-crop area, with at least 12% margin from the image edges; do not cover faces, hands or the service being performed. Use consistent premium styling across all three images. Do not omit Nexora branding from any variation.\n\nProvide downloadable JPG or PNG images. If you can only create one at a time, create Image 1 first and let me ask for Images 2 and 3 separately.`;
 }

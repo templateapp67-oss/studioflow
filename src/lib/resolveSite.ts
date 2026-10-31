@@ -12,7 +12,7 @@ export function resolveSiteSlug(location?: SiteLocation | string): string | null
   let host = location.hostname || '';
   if (!host) { try { host = new URL(location.href || location.origin || '').hostname; } catch { return null; } }
   host = host.toLowerCase();
-  if (/localhost$|\.e2b\.app$|\.vercel\.app$|\.netlify\.app$|^\d+(?:\.\d+){3}$/.test(host)) return null;
+  if (/localhost$|\.run\.app$|\.e2b\.app$|\.vercel\.app$|\.netlify\.app$|\.pages\.dev$|\.web\.app$|\.onrender\.com$|\.railway\.app$|^\d+(?:\.\d+){3}$/.test(host)) return null;
   const parts = host.split('.');
   const slug = parts[0];
   if (parts.length < 3 || ['www', 'app', 'api', 'admin', 'auth'].includes(slug)) return null;

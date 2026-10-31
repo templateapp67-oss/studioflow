@@ -12,7 +12,7 @@ export function filterExplore(salons:Salon[],f:ExploreFilters,now:number,point:[
   const stylistId=f.stylist.startsWith(salon.slug+'|')?f.stylist.slice(salon.slug.length+1):'any';
   if(f.stylist&&(stylistId==='any'||!staff(salon).some(s=>s.id===stylistId)))return [];
   if(f.deals!=='all'&&(!promotionActive(c,now)||(f.deals==='codes'&&!String(c?.promoCode||'').trim())||(f.deals==='packages'&&!(Number(c?.discountPercent)>=20&&Number(c?.discountPercent)<=100))))return [];
-  const salonSearch=[p.businessName,p.businessType?.replaceAll('_',' '),p.city,p.address,...staff(salon).map(s=>s.name)].join(' ').toLowerCase();
+  const salonSearch=[p.businessName,(typeof p.businessType === 'string' ? p.businessType.replaceAll('_',' ') : ''),p.city,p.address,...staff(salon).map(s=>s.name)].join(' ').toLowerCase();
   const services=menu(salon).filter(s=>Number.isFinite(Number(s.price))&&Number(s.price)>=0&&(f.treatment==='all'||s.category===f.treatment)&&(f.minPrice===''||Number(s.price)>=Number(f.minPrice))&&(f.maxPrice===''||Number(s.price)<=Number(f.maxPrice))&&(!q||salonSearch.includes(q)||[s.name,s.category,s.description].join(' ').toLowerCase().includes(q))&&(f.deals==='all'||s.id===c?.selectedServiceId)&&(f.deals!=='packages'||/package|combo|ritual/i.test([s.name,s.category].join(' '))));
   return services.length?[{salon,services,stylistId,price:Math.min(...services.map(s=>Number(s.price)))}]:[];
  });

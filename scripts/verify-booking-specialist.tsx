@@ -1,7 +1,7 @@
 import React from 'react';import {act,create} from 'react-test-renderer';import assert from 'node:assert/strict';
 import {BookingModal} from '../src/components/BookingModal';import {CATEGORY_TEMPLATES} from '../src/categoryTemplates';import {INITIAL_SALON_PROFILE} from '../src/mockData';import {supabase} from '../src/lib/supabase';
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;
-let eligibleIds:string[]=[];const calls:any[]=[];supabase.rpc=(async(name:string,args:any)=>{calls.push({name,args});if(name==='studioflow_booking_specialists')return {data:{published:true,specialistIds:eligibleIds},error:null};return {data:[{time:'12:00',label:'12:00 PM',available:true,stylistId:'qa-staff'}],error:null};}) as any;
+let eligibleIds:string[]=[];const calls:any[]=[];supabase.rpc=(async(name:string,args:any)=>{calls.push({name,args});if(name==='studioflow_public_branches')return {data:[],error:null};if(name==='studioflow_booking_specialists')return {data:{published:true,specialistIds:eligibleIds},error:null};return {data:[{time:'12:00',label:'12:00 PM',available:true,stylistId:'qa-staff'}],error:null};}) as any;
 globalThis.fetch=async()=>new Response(JSON.stringify({configured:true}),{headers:{'Content-Type':'application/json'}});
 const text=(node:any):string=>typeof node==='string'?node:node?.children?.map(text).join('')||'';
 for(const template of Object.values(CATEGORY_TEMPLATES)){
@@ -27,4 +27,4 @@ assert.equal(restricted.root.findAllByProps({'aria-label':`Select specialist ${t
 assert.equal(restricted.root.findAllByProps({'aria-label':`Select specialist ${template.stylists[1].name}`}).length,1);
 eligibleIds=[];await act(async()=>restricted.root.findAllByType('button').find((node:any)=>text(node).includes(template.services[2].name)).props.onClick());assert.equal(restricted.root.findAllByType('button').find((node:any)=>text(node).includes('Continue to Date & Slot')).props.disabled,true,'Do not show fake availability when no specialist is eligible');
 await act(async()=>restricted.unmount());
-assert.ok(calls.every(call=>['studioflow_available_slots','studioflow_booking_specialists'].includes(call.name)),'No booking or payment created by this test');console.log('PASS: all 14 templates, white-accent contrast, specialist/any selection and RPC wiring, date/slot gating, guest form and payment review. No bookings or payments created.');
+assert.ok(calls.every(call=>['studioflow_available_slots','studioflow_booking_specialists','studioflow_public_branches'].includes(call.name)),'No booking or payment created by this test');console.log('PASS: all 14 templates, white-accent contrast, specialist/any selection and RPC wiring, date/slot gating, guest form and payment review. No bookings or payments created.');

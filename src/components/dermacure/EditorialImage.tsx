@@ -1,7 +1,7 @@
 import { useState, type ImgHTMLAttributes } from "react";
 export const NEUTRAL_CLINIC_IMAGE = "/templates/dermacure/care-neutral.svg";
 type Props = ImgHTMLAttributes<HTMLImageElement> & {
-  fallback: string;
+  fallback?: string;
   fallbackAlt?: string;
   onPrimaryError?: () => void;
 };
@@ -20,7 +20,7 @@ export function EditorialImage({
   const [failed, setFailed] = useState<string[]>([]);
   const primary = typeof src === "string" && src.trim() ? src : undefined;
   const safeFallback =
-    fallback.startsWith("/") && !fallback.startsWith("//")
+    typeof fallback === "string" && fallback.startsWith("/") && !fallback.startsWith("//")
       ? fallback
       : NEUTRAL_CLINIC_IMAGE;
   const chosen = [primary, safeFallback].find(

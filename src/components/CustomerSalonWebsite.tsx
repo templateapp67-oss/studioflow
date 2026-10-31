@@ -1,3 +1,4 @@
+import { normalizeServices } from '../lib/normalizeServices';
 import { clinicPriceIsVerified, clinicPublicServices } from '../lib/dermacureContent';
 import type { ConsultationDetails } from "./dermacure/consultation";
 import { VogueNoirWebsite } from './VogueNoirWebsite';
@@ -77,7 +78,9 @@ import {IronInkWebsite} from './IronInkWebsite';
 import {ArchFlutterWebsite} from './ArchFlutterWebsite';
 
 const money=(value:number)=>`₹${Number(value||0).toLocaleString('en-IN')}`;
-function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGallery=[],policies,branding,loyaltyConfig,onManageDashboard,onCustomerAccount,customerSignedIn,customerName,customerPhotoUrl,onAddAppointment,readOnly,live}:SalonWebsitePreviewProps){
+function CustomerSalonWebsiteContent({profile,services:inputServices,stylists:inputStylists,gallery:inputGallery=[],policies,branding,loyaltyConfig,onManageDashboard,onCustomerAccount,customerSignedIn,customerName,customerPhotoUrl,onAddAppointment,readOnly,live}:SalonWebsitePreviewProps){
+ const services = normalizeServices(inputServices).map(service=>({...service, name:typeof service.name === 'string' ? service.name : '', category:typeof service.category === 'string' ? service.category : '', description:typeof service.description === 'string' ? service.description : ''}));
+ const stylists = Array.isArray(inputStylists) ? inputStylists.filter(Boolean) : [];
  useSeoMetadata(profile);
  const {t}=useWebsiteLanguage();
  const [consultation,setConsultation]=useState<ConsultationDetails|undefined>();
@@ -730,4 +733,4 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
  </div>;
 }
 
-export function CustomerSalonWebsite(props:SalonWebsitePreviewProps){return <WebsiteLanguageProvider key={props.profile.subdomain||props.profile.businessType} defaultLanguage={props.profile.defaultWebsiteLanguage}><CustomerSalonWebsiteContent {...props}/></WebsiteLanguageProvider>;}
+export function CustomerSalonWebsite(props:SalonWebsitePreviewProps){if (!props.profile || typeof props.profile !== "object") return <main role="status">Salon profile is unavailable. Please retry or contact the salon owner.</main>; return <WebsiteLanguageProvider key={props.profile.subdomain||props.profile.businessType} defaultLanguage={props.profile.defaultWebsiteLanguage}><CustomerSalonWebsiteContent {...props}/></WebsiteLanguageProvider>;}
