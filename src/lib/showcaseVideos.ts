@@ -27,8 +27,24 @@ const HAIR_COLOR_REFERENCES:DemoReference[] = [
  ['U9moKdpniks','Keratin smooth & gloss shine — before / after','KERASILK'],
 ];
 
-// Only hair_coloring gets its own list; the other 13 templates keep REFERENCES.
-const DEMO_REFERENCES:Record<string,DemoReference[]>={hair_coloring:HAIR_COLOR_REFERENCES};
+/** Template 13 — Arch & Flutter Lash & Brow Bar (businessType `lash_brow`).
+ * Eye-area-only references so a new lash bar never opens with beard or nail
+ * clips: brow lamination, lash lift & tint, a lift before/after, lower lash
+ * extensions and retention aftercare. All five are public YouTube Shorts from
+ * real lash & brow brands and studios, kept with their original titles; where a
+ * channel name could not be confirmed the clip is attributed as a studio
+ * reference. They stay labelled "DEMO / REFERENCE" until the owner adds reels. */
+const LASH_BROW_REFERENCES:DemoReference[] = [
+ ['4d9MZe_vpUY','Brow lamination — master the brushed-up arch','Buff Browz'],
+ ['xhrLIpz9q5I','Lash lift & tint — ultra lift with deep black tint','RefectoCil'],
+ ['eyOuZBqP-hI','Lash lift before & after — the instant curl','YUMI Lashes'],
+ ['x5FixAITeDY','Lower lash extensions — step by step','Lash studio reference'],
+ ['-CEYQkj3EB8','Lash extension aftercare that keeps retention','Lash studio reference'],
+];
+
+// hair_coloring (Template 10) and lash_brow (Template 13) get their own lists;
+// the other 12 templates keep REFERENCES.
+const DEMO_REFERENCES:Record<string,DemoReference[]>={hair_coloring:HAIR_COLOR_REFERENCES,lash_brow:LASH_BROW_REFERENCES};
 function demoReferences(businessType:string):DemoReference[]{return DEMO_REFERENCES[businessType]||REFERENCES;}
 
 const OLD_FULL_VIDEO_IDS=new Set(['ulbjW3JyK8E','SYSj3KPiVfg','gHVUoN5n4xw','0f6AOLy4C9Y','tKkJnauWFgA']);
@@ -47,9 +63,10 @@ export function showcaseVideos(profile:SalonProfile):SocialVideo[]{
    const index=Number(video.id.match(/^demo-.+-(\d+)$/)?.[1])-1,replacement=demos[index];
    if(!replacement)return video;
    const legacyFull=OLD_FULL_VIDEO_IDS.has(video.videoId);
-   // Colour studios seeded before the colour list keep their position but now
-   // show colour references instead of the generic beard / nail / facial clips.
-   const legacyGeneric=profile.businessType==='hair_coloring'&&GENERIC_DEMO_IDS.has(video.videoId);
+   // Colour studios and lash bars seeded before their own lists keep their
+   // position but now show on-theme references instead of the generic beard /
+   // nail / facial clips.
+   const legacyGeneric=(profile.businessType==='hair_coloring'||profile.businessType==='lash_brow')&&GENERIC_DEMO_IDS.has(video.videoId);
    if(!legacyFull&&!legacyGeneric)return video;
    // A demo title the owner already edited by hand is kept.
    const ownerTitle=legacyGeneric&&!legacyFull&&video.title&&video.title!==(generic[index]?.[1]||'');

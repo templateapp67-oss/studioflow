@@ -483,7 +483,10 @@ Return strictly valid JSON in this format:
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      // HMR opens its own WebSocket, which hosted previews (AI Studio / Cloud Run)
+      // do not forward. Set DISABLE_HMR=true there to avoid the "failed to connect
+      // to websocket" error; locally HMR stays on.
+      server: { middlewareMode: true, hmr: process.env.DISABLE_HMR !== "true" },
       appType: "spa",
     });
     app.all("/api/*", (_req, res) => {
