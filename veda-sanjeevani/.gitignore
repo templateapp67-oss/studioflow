@@ -1,0 +1,13 @@
+supabase/.temp/
+supabase/.branches/
+.env
+.env.*
+!.env.example
+!.env.frontend.example
+node_modules/
+dist/
+*.tsbuildinfo
+playwright-report/
+test-results/
+.env.local
+.env.*.local

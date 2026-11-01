@@ -1,0 +1,11 @@
+import { readFile, writeFile } from 'node:fs/promises';
+import { loadEnv } from 'vite';
+const env = { ...loadEnv(process.env.NODE_ENV ?? 'production', process.cwd(), 'VITE_'), ...process.env };
+const site = JSON.parse(await readFile('src/data/site.config.json', 'utf8'));
+const origin = (env.VITE_SITE_URL || 'http://localhost:5173').replace(/\/$/, '');
+const escape = (value) => value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
+const paths = ['/', '/privacy', '/terms', ...site.services.map((item) => `/service/${item.slug}`), ...site.blog_posts.map((item) => `/blog/${item.slug}`)];
+const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${paths.map((path) => `  <url><loc>${escape(origin + path)}</loc></url>`).join('\n')}\n</urlset>\n`;
+await writeFile('dist/sitemap.xml', xml);
+await writeFile('dist/robots.txt', `User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /review/\n\nSitemap: ${origin}/sitemap.xml\n`);
+console.log(`Sitemap: ${paths.length} public URLs. Admin and review routes excluded.`);

@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /review/
+# The build replaces this with the configured production sitemap URL.
