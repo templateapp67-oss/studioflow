@@ -1,0 +1,730 @@
+{
+  "published": true,
+  "settings": {
+    "business_name": "Veda Sanjeevani",
+    "tagline": "Ayurvedic Wellness & Spa",
+    "logo_url": null,
+    "phone": "",
+    "whatsapp": "",
+    "email": "",
+    "address": "Jaipur, Rajasthan\nStudio address to be confirmed",
+    "city": "Jaipur",
+    "map_url": "https://www.openstreetmap.org/export/embed.html?bbox=75.72%2C26.86%2C75.88%2C26.96&layer=mapnik",
+    "timings": {
+      "monday_saturday": {
+        "open": "10:00",
+        "close": "19:00"
+      },
+      "sunday": {
+        "closed": true
+      }
+    },
+    "theme_preset": "neem",
+    "colors": {
+      "sandalwood": "#F6EEDD",
+      "neem": "#2F4A3A",
+      "turmeric": "#D9A233",
+      "terracotta": "#B4572F",
+      "ink": "#1E1B16"
+    },
+    "fonts": {
+      "heading": "Cormorant Garamond",
+      "body": "Manrope"
+    },
+    "seo": {
+      "title": "Veda Sanjeevani | Ayurvedic Wellness & Spa in Jaipur",
+      "description": "A quieter rhythm, rooted in Ayurveda. Explore thoughtful wellness rituals, warm-oil therapies and unhurried care in Jaipur. Illustrative website preview."
+    },
+    "social": {},
+    "section_order": [
+      "hero",
+      "quiz",
+      "services",
+      "about",
+      "team",
+      "packages",
+      "gallery",
+      "testimonials",
+      "blog",
+      "booking",
+      "faq",
+      "contact"
+    ]
+  },
+  "sections": [
+    {
+      "key": "hero",
+      "title": "Return to your\nnatural rhythm.",
+      "subtitle": "A quieter rhythm, rooted in Ayurveda.",
+      "body": "{\"text\": \"Step away from the everyday. Discover warm oils, unhurried rituals and care that begins with listening.\", \"chips\": [\"Thoughtful practitioners\", \"Herbal oil rituals\", \"Kerala-inspired care\"]}",
+      "image_url": "/images/ayurvedic-spa-hero-1600.webp",
+      "visible": true,
+      "sort_order": 1
+    },
+    {
+      "key": "quiz",
+      "title": "What does your\nnature need?",
+      "subtitle": "A gentle starting point",
+      "body": "Five simple questions. A moment of reflection. Discover your dosha pattern through the lens of Ayurvedic tradition.",
+      "image_url": "/images/herbal-ritual-800.webp",
+      "visible": true,
+      "sort_order": 2
+    },
+    {
+      "key": "services",
+      "title": "Rituals for your\nkind of balance.",
+      "subtitle": "Ancient wisdom. Personal care.",
+      "body": "From grounding warm-oil massage to a quiet moment of stillness, find a ritual that meets you where you are.",
+      "image_url": "/images/sanctuary-800.webp",
+      "visible": true,
+      "sort_order": 3
+    },
+    {
+      "key": "about",
+      "title": "Rooted in tradition.\nMade for you.",
+      "subtitle": "The Veda Sanjeevani philosophy",
+      "body": "{\"text\": \"We believe wellbeing begins with making space. Space to slow down, to be heard, and to reconnect with your own natural rhythm. Our approach brings the warmth of Indian hospitality to thoughtfully guided Ayurvedic wellness.\", \"philosophy\": \"Not more. More meaningful. Every ritual is an invitation to return to yourself.\", \"stats\": [{\"value\": \"12\", \"label\": \"thoughtful rituals\"}, {\"value\": \"4\", \"label\": \"practitioner profiles\"}, {\"value\": \"1\", \"label\": \"moment just for you\"}]}",
+      "image_url": "/images/ayurvedic-herbs-still-life-800.webp",
+      "visible": true,
+      "sort_order": 4
+    },
+    {
+      "key": "team",
+      "title": "Good care begins\nwith good people.",
+      "subtitle": "Meet your Vaidyas",
+      "body": "A thoughtfully chosen team, a listening ear, and an approach shaped around your comfort. Meet the people behind the rituals.",
+      "image_url": "/images/vaidya-ananya-800.webp",
+      "visible": true,
+      "sort_order": 5
+    },
+    {
+      "key": "packages",
+      "title": "A little more time.\nA little more you.",
+      "subtitle": "Thoughtfully paired experiences",
+      "body": "Our favourite rituals, brought together. Set aside an afternoon and let the rest of the world wait.",
+      "image_url": "/images/herbal-ritual-800.webp",
+      "visible": true,
+      "sort_order": 6
+    },
+    {
+      "key": "gallery",
+      "title": "A space to\nsimply be.",
+      "subtitle": "Inside the sanctuary",
+      "body": "Warm light. Natural textures. Quiet corners. A glimpse into the world we are creating.",
+      "image_url": "/images/ayurvedic-herbs-still-life-800.webp",
+      "visible": true,
+      "sort_order": 7
+    },
+    {
+      "key": "testimonials",
+      "title": "Small moments.\nLasting feelings.",
+      "subtitle": "Guest reflections",
+      "body": "The reflections below are fictional examples, not verified guest reviews. Replace them with consented feedback before publishing.",
+      "image_url": "/images/herbal-ritual-800.webp",
+      "visible": true,
+      "sort_order": 8
+    },
+    {
+      "key": "blog",
+      "title": "Notes on\nliving well.",
+      "subtitle": "The wellness journal",
+      "body": "Seasonal thoughts, simple practices and a little Ayurvedic wisdom for the everyday. These are illustrative editorial drafts.",
+      "image_url": "/images/herbal-ritual-800.webp",
+      "visible": true,
+      "sort_order": 9
+    },
+    {
+      "key": "booking",
+      "title": "Make time\nfor yourself.",
+      "subtitle": "Reserve your ritual",
+      "body": "Choose your ritual and a moment that works for you. We will take care of the little details.",
+      "image_url": "/images/ayurvedic-spa-hero-800.webp",
+      "visible": true,
+      "sort_order": 10
+    },
+    {
+      "key": "faq",
+      "title": "A little clarity,\nbefore you arrive.",
+      "subtitle": "Before your visit",
+      "body": "A few things you might be wondering. For anything else, our team is here to help.",
+      "image_url": "/images/sanctuary-800.webp",
+      "visible": true,
+      "sort_order": 11
+    },
+    {
+      "key": "contact",
+      "title": "Your quieter corner\nof the city.",
+      "subtitle": "Find us",
+      "body": "This preview uses an illustrative Jaipur location. Add your verified studio address and contact details before accepting visitors.",
+      "image_url": "/images/sanctuary-800.webp",
+      "visible": true,
+      "sort_order": 12
+    }
+  ],
+  "services": [
+    {
+      "id": "a0000000-0000-4000-8000-000000000001",
+      "slug": "abhyanga",
+      "name": "Abhyanga",
+      "category": "relax",
+      "duration_min": 60,
+      "price": 2400,
+      "benefits": [
+        "Supports relaxation",
+        "Encourages a sense of grounding"
+      ],
+      "dosha_tags": [
+        "vata",
+        "kapha"
+      ],
+      "short_desc": "A warm-oil, full-body massage with flowing, rhythmic strokes.",
+      "long_desc": "This placeholder ritual uses warm herbal oils selected for your preferences. Gentle, coordinated strokes support relaxation and a feeling of grounding. Your practitioner discusses pressure and sensitivities before the session. It is a wellness experience, not a medical treatment.",
+      "image_url": "/images/warm-herbal-oil-ritual-800.webp",
+      "image_alt": "Illustrative imagery for Abhyanga",
+      "sort_order": 1
+    },
+    {
+      "id": "a0000000-0000-4000-8000-000000000002",
+      "slug": "shirodhara",
+      "name": "Shirodhara",
+      "category": "mind",
+      "duration_min": 45,
+      "price": 2800,
+      "benefits": [
+        "Supports mental unwinding",
+        "Encourages restful moments"
+      ],
+      "dosha_tags": [
+        "vata",
+        "pitta"
+      ],
+      "short_desc": "A steady stream of warm oil over the forehead invites quiet stillness.",
+      "long_desc": "Shirodhara is traditionally used as a calming wellness practice. A practitioner gently pours warm oil across the forehead while you rest comfortably. The experience supports time away from everyday stimulation. Suitability and comfort are discussed before beginning.",
+      "image_url": "/images/herbal-ritual-800.webp",
+      "image_alt": "Illustrative imagery for Shirodhara",
+      "sort_order": 2
+    },
+    {
+      "id": "a0000000-0000-4000-8000-000000000003",
+      "slug": "panchakarma-detox",
+      "name": "Panchakarma Detox",
+      "category": "detox",
+      "duration_min": 90,
+      "price": 4800,
+      "benefits": [
+        "Supports a mindful reset",
+        "Encourages consistent self-care"
+      ],
+      "dosha_tags": [
+        "kapha",
+        "vata"
+      ],
+      "short_desc": "A spa-level wellness ritual inspired by traditional Ayurvedic practices.",
+      "long_desc": "This introductory experience combines gentle warmth, massage and rest. It traditionally supports a considered self-care routine. The spa offering does not include medical cleansing procedures or guaranteed detoxification. A qualified clinician should advise on clinical Panchakarma.",
+      "image_url": "/images/ayurvedic-herbs-still-life-800.webp",
+      "image_alt": "Illustrative imagery for Panchakarma Detox",
+      "sort_order": 3
+    },
+    {
+      "id": "a0000000-0000-4000-8000-000000000004",
+      "slug": "udvartana",
+      "name": "Udvartana",
+      "category": "beauty",
+      "duration_min": 60,
+      "price": 2600,
+      "benefits": [
+        "Supports skin conditioning",
+        "Leaves skin feeling refreshed"
+      ],
+      "dosha_tags": [
+        "kapha"
+      ],
+      "short_desc": "An invigorating herbal-powder massage with upward, energising strokes.",
+      "long_desc": "A blend of finely prepared herbs is used in a rhythmic dry massage. The ritual supports gentle exfoliation and skin conditioning. Your practitioner adapts pressure to your comfort and checks for sensitivities. Results vary and no body-shape changes are promised.",
+      "image_url": "/images/herbal-ritual-800.webp",
+      "image_alt": "Illustrative imagery for Udvartana",
+      "sort_order": 4
+    },
+    {
+      "id": "a0000000-0000-4000-8000-000000000005",
+      "slug": "kati-basti",
+      "name": "Kati Basti",
+      "category": "pain_relief",
+      "duration_min": 45,
+      "price": 2200,
+      "benefits": [
+        "Supports lower-back comfort",
+        "Encourages muscular relaxation"
+      ],
+      "dosha_tags": [
+        "vata"
+      ],
+      "short_desc": "Localised warmth and warm oil are traditionally used for lower-back comfort.",
+      "long_desc": "A comfortable oil reservoir is created over the lower back using a dough boundary. Warm oil is maintained for a short, supervised period. This wellness ritual supports relaxation around the lower back. Persistent or severe pain needs assessment by a qualified healthcare professional.",
+      "image_url": "/images/ritual-hero-800.webp",
+      "image_alt": "Illustrative imagery for Kati Basti",
+      "sort_order": 5
+    },
+    {
+      "id": "a0000000-0000-4000-8000-000000000006",
+      "slug": "pizhichil",
+      "name": "Pizhichil",
+      "category": "pain_relief",
+      "duration_min": 75,
+      "price": 3800,
+      "benefits": [
+        "Supports whole-body relaxation",
+        "Encourages a feeling of warmth"
+      ],
+      "dosha_tags": [
+        "vata"
+      ],
+      "short_desc": "Continuous warm oil and gentle massage create a deeply restful ritual.",
+      "long_desc": "Pizhichil combines warm oil application with coordinated massage. Traditionally used as a nourishing wellness practice, it encourages comfort and rest. Your practitioner explains each step and adjusts temperature carefully. It is not a substitute for care for joint or muscle conditions.",
+      "image_url": "/images/ritual-hero-800.webp",
+      "image_alt": "Illustrative imagery for Pizhichil",
+      "sort_order": 6
+    },
+    {
+      "id": "a0000000-0000-4000-8000-000000000007",
+      "slug": "netra-tarpana",
+      "name": "Netra Tarpana",
+      "category": "relax",
+      "duration_min": 30,
+      "price": 1600,
+      "benefits": [
+        "Encourages screen-break rest",
+        "Supports a calming pause"
+      ],
+      "dosha_tags": [
+        "pitta",
+        "vata"
+      ],
+      "short_desc": "A traditional eye-area wellness ritual centred on rest and stillness.",
+      "long_desc": "This placeholder offering is a supervised, non-invasive eye-area comfort ritual. It encourages a quiet break from screens and everyday visual demands. No eye conditions are treated or diagnosed. Clinical eye procedures require an appropriately qualified practitioner and separate assessment.",
+      "image_url": "/images/herbal-ritual-800.webp",
+      "image_alt": "Illustrative imagery for Netra Tarpana",
+      "sort_order": 7
+    },
+    {
+      "id": "a0000000-0000-4000-8000-000000000008",
+      "slug": "nasya",
+      "name": "Nasya",
+      "category": "detox",
+      "duration_min": 30,
+      "price": 1500,
+      "benefits": [
+        "Supports a feeling of freshness",
+        "Encourages mindful breathing"
+      ],
+      "dosha_tags": [
+        "kapha"
+      ],
+      "short_desc": "A gentle facial and steam experience inspired by the tradition of Nasya.",
+      "long_desc": "This spa adaptation combines a gentle facial massage with comfortable external steam. It is traditionally associated with a feeling of freshness in the head and neck area. No nasal medication is administered in this wellness offering. Ask a clinician about clinical Nasya or persistent symptoms.",
+      "image_url": "/images/sanctuary-800.webp",
+      "image_alt": "Illustrative imagery for Nasya",
+      "sort_order": 8
+    },
+    {
+      "id": "a0000000-0000-4000-8000-000000000009",
+      "slug": "mukha-lepa-herbal-facial",
+      "name": "Mukha Lepa Herbal Facial",
+      "category": "beauty",
+      "duration_min": 60,
+      "price": 2300,
+      "benefits": [
+        "Supports skin hydration",
+        "Encourages a refreshed appearance"
+      ],
+      "dosha_tags": [
+        "pitta"
+      ],
+      "short_desc": "A cooling herbal facial tailored to your skin preferences.",
+      "long_desc": "Gentle cleansing is followed by a herbal mask and a relaxed facial massage. Ingredients are discussed in advance and a patch test may be recommended. The ritual supports skin conditioning and a refreshed appearance. It does not diagnose or treat skin disease.",
+      "image_url": "/images/herbal-ritual-800.webp",
+      "image_alt": "Illustrative imagery for Mukha Lepa Herbal Facial",
+      "sort_order": 9
+    },
+    {
+      "id": "a0000000-0000-4000-8000-000000000010",
+      "slug": "garbhini-care",
+      "name": "Garbhini Care",
+      "category": "relax",
+      "duration_min": 60,
+      "price": 2700,
+      "benefits": [
+        "Supports relaxation during pregnancy",
+        "Encourages comfortable rest"
+      ],
+      "dosha_tags": [
+        "vata"
+      ],
+      "short_desc": "A gentle, position-adapted massage for expectant guests with clinical clearance.",
+      "long_desc": "This placeholder ritual is adapted for comfort during pregnancy. Written clearance from the guest’s maternity clinician and a trained prenatal practitioner are required. Positioning and pressure are adjusted throughout the session. It does not replace antenatal care or treat pregnancy complications.",
+      "image_url": "/images/sanctuary-800.webp",
+      "image_alt": "Illustrative imagery for Garbhini Care",
+      "sort_order": 10
+    },
+    {
+      "id": "a0000000-0000-4000-8000-000000000011",
+      "slug": "ayurvedic-consultation",
+      "name": "Ayurvedic Consultation",
+      "category": "detox",
+      "duration_min": 45,
+      "price": 1800,
+      "benefits": [
+        "Supports informed wellness choices",
+        "Encourages a personalised routine"
+      ],
+      "dosha_tags": [
+        "vata",
+        "pitta",
+        "kapha"
+      ],
+      "short_desc": "A wellness conversation about your routines, preferences and goals.",
+      "long_desc": "A practitioner listens to your daily routine and self-care goals. The discussion explores traditional Ayurvedic concepts and suitable spa experiences. Educational guidance is individualised without promising medical outcomes. Medical diagnosis and medication decisions remain with your healthcare professional.",
+      "image_url": "/images/vaidya-ananya-800.webp",
+      "image_alt": "Illustrative imagery for Ayurvedic Consultation",
+      "sort_order": 11
+    },
+    {
+      "id": "a0000000-0000-4000-8000-000000000012",
+      "slug": "yoga-meditation",
+      "name": "Yoga & Meditation",
+      "category": "mind",
+      "duration_min": 60,
+      "price": 1200,
+      "benefits": [
+        "Supports gentle movement",
+        "Encourages mindful breathing"
+      ],
+      "dosha_tags": [
+        "vata",
+        "pitta",
+        "kapha"
+      ],
+      "short_desc": "A gentle movement and guided-breathing session adaptable to experience.",
+      "long_desc": "A practitioner guides comfortable movement, breathing awareness and rest. Options are offered for different mobility levels and experience. The session supports a mindful pause rather than athletic performance. Tell your practitioner about injuries or pregnancy before participating.",
+      "image_url": "/images/vaidya-meera-800.webp",
+      "image_alt": "Illustrative imagery for Yoga & Meditation",
+      "sort_order": 12
+    }
+  ],
+  "packages": [
+    {
+      "id": "a2000000-0000-4000-8000-000000000001",
+      "name": "The Grounding Ritual",
+      "description": "A warm-oil massage followed by a calming Shirodhara session. A little space to feel like yourself again.",
+      "price": 4900,
+      "includes": [
+        "Abhyanga · 60 minutes",
+        "Shirodhara · 45 minutes",
+        "Herbal tea and quiet rest"
+      ],
+      "is_featured": true,
+      "image_url": "/images/ritual-hero-800.webp",
+      "image_alt": "Illustrative The Grounding Ritual experience",
+      "sort_order": 1
+    },
+    {
+      "id": "a2000000-0000-4000-8000-000000000002",
+      "name": "The Refresh Edit",
+      "description": "An invigorating herbal-powder massage and a conditioning facial, thoughtfully paired.",
+      "price": 4500,
+      "includes": [
+        "Udvartana · 60 minutes",
+        "Mukha Lepa Herbal Facial · 60 minutes",
+        "Herbal tea"
+      ],
+      "is_featured": false,
+      "image_url": "/images/herbal-ritual-800.webp",
+      "image_alt": "Illustrative The Refresh Edit experience",
+      "sort_order": 2
+    },
+    {
+      "id": "a2000000-0000-4000-8000-000000000003",
+      "name": "A Mindful Morning",
+      "description": "A personalised wellness conversation, gentle movement and a quieter mind.",
+      "price": 2700,
+      "includes": [
+        "Ayurvedic Consultation · 45 minutes",
+        "Yoga & Meditation · 60 minutes",
+        "Seasonal herbal tea"
+      ],
+      "is_featured": false,
+      "image_url": "/images/sanctuary-800.webp",
+      "image_alt": "Illustrative A Mindful Morning experience",
+      "sort_order": 3
+    }
+  ],
+  "staff": [
+    {
+      "id": "a1000000-0000-4000-8000-000000000001",
+      "name": "Dr. Ananya Sharma",
+      "role": "Lead Ayurvedic Practitioner",
+      "qualification": "BAMS · illustrative profile",
+      "specialty": [
+        "Ayurvedic consultation",
+        "Abhyanga"
+      ],
+      "bio": "An illustrative practitioner profile. Replace this biography, photograph and qualifications with verified information before publishing.",
+      "photo_url": "/images/vaidya-ananya-800.webp",
+      "photo_alt": "Illustrative portrait for Dr. Ananya Sharma",
+      "sort_order": 1,
+      "service_ids": [
+        "a0000000-0000-4000-8000-000000000001",
+        "a0000000-0000-4000-8000-000000000002",
+        "a0000000-0000-4000-8000-000000000003",
+        "a0000000-0000-4000-8000-000000000004",
+        "a0000000-0000-4000-8000-000000000005",
+        "a0000000-0000-4000-8000-000000000006",
+        "a0000000-0000-4000-8000-000000000007",
+        "a0000000-0000-4000-8000-000000000008",
+        "a0000000-0000-4000-8000-000000000009",
+        "a0000000-0000-4000-8000-000000000010",
+        "a0000000-0000-4000-8000-000000000011"
+      ],
+      "gallery": [
+        {
+          "id": "a5000000-0000-4000-8000-000000000001",
+          "image_url": "/images/herbal-ritual-400.webp",
+          "caption": "The tools of a thoughtful ritual",
+          "sort_order": 1
+        }
+      ]
+    },
+    {
+      "id": "a1000000-0000-4000-8000-000000000002",
+      "name": "Meera Iyer",
+      "role": "Senior Wellness Therapist",
+      "qualification": "Ayurvedic massage training · illustrative profile",
+      "specialty": [
+        "Shirodhara",
+        "Pizhichil"
+      ],
+      "bio": "An illustrative practitioner profile. Replace this biography, photograph and qualifications with verified information before publishing.",
+      "photo_url": "/images/vaidya-meera-800.webp",
+      "photo_alt": "Illustrative portrait for Meera Iyer",
+      "sort_order": 2,
+      "service_ids": [
+        "a0000000-0000-4000-8000-000000000001",
+        "a0000000-0000-4000-8000-000000000002",
+        "a0000000-0000-4000-8000-000000000003",
+        "a0000000-0000-4000-8000-000000000005",
+        "a0000000-0000-4000-8000-000000000006",
+        "a0000000-0000-4000-8000-000000000007",
+        "a0000000-0000-4000-8000-000000000008",
+        "a0000000-0000-4000-8000-000000000010"
+      ],
+      "gallery": [
+        {
+          "id": "a5000000-0000-4000-8000-000000000002",
+          "image_url": "/images/herbal-ritual-400.webp",
+          "caption": "The tools of a thoughtful ritual",
+          "sort_order": 1
+        }
+      ]
+    },
+    {
+      "id": "a1000000-0000-4000-8000-000000000003",
+      "name": "Rahul Menon",
+      "role": "Wellness Therapist",
+      "qualification": "Spa therapy training · illustrative profile",
+      "specialty": [
+        "Udvartana",
+        "Herbal facial"
+      ],
+      "bio": "An illustrative practitioner profile. Replace this biography, photograph and qualifications with verified information before publishing.",
+      "photo_url": "/images/vaidya-rahul-800.webp",
+      "photo_alt": "Illustrative portrait for Rahul Menon",
+      "sort_order": 3,
+      "service_ids": [
+        "a0000000-0000-4000-8000-000000000001",
+        "a0000000-0000-4000-8000-000000000004",
+        "a0000000-0000-4000-8000-000000000005",
+        "a0000000-0000-4000-8000-000000000009",
+        "a0000000-0000-4000-8000-000000000010"
+      ],
+      "gallery": [
+        {
+          "id": "a5000000-0000-4000-8000-000000000003",
+          "image_url": "/images/herbal-ritual-400.webp",
+          "caption": "The tools of a thoughtful ritual",
+          "sort_order": 1
+        }
+      ]
+    },
+    {
+      "id": "a1000000-0000-4000-8000-000000000004",
+      "name": "Kavya Rao",
+      "role": "Yoga & Mindfulness Guide",
+      "qualification": "Yoga teaching · illustrative profile",
+      "specialty": [
+        "Yoga",
+        "Meditation"
+      ],
+      "bio": "An illustrative practitioner profile. Replace this biography, photograph and qualifications with verified information before publishing.",
+      "photo_url": "/images/vaidya-meera-800.webp",
+      "photo_alt": "Illustrative portrait for Kavya Rao",
+      "sort_order": 4,
+      "service_ids": [
+        "a0000000-0000-4000-8000-000000000012"
+      ],
+      "gallery": [
+        {
+          "id": "a5000000-0000-4000-8000-000000000004",
+          "image_url": "/images/herbal-ritual-400.webp",
+          "caption": "The tools of a thoughtful ritual",
+          "sort_order": 1
+        }
+      ]
+    }
+  ],
+  "gallery": [
+    {
+      "id": "a6000000-0000-4000-8000-000000000001",
+      "image_url": "/images/ayurvedic-spa-hero-800.webp",
+      "image_alt": "AI-generated illustrative Ayurvedic spa treatment room with carved window and brass vessels",
+      "caption": "The art of slowing down",
+      "category": "spaces",
+      "sort_order": 1
+    },
+    {
+      "id": "a6000000-0000-4000-8000-000000000002",
+      "image_url": "/images/warm-herbal-oil-ritual-800.webp",
+      "image_alt": "AI-generated illustrative warm herbal oil ritual, guest respectfully covered",
+      "caption": "Warmth, passed from hand to hand",
+      "category": "rituals",
+      "sort_order": 2
+    },
+    {
+      "id": "a6000000-0000-4000-8000-000000000003",
+      "image_url": "/images/ayurvedic-herbs-still-life-800.webp",
+      "image_alt": "AI-generated illustrative still life of tulsi, neem, turmeric and brass bowls",
+      "caption": "Nature, in the little details",
+      "category": "details",
+      "sort_order": 3
+    },
+    {
+      "id": "a6000000-0000-4000-8000-000000000004",
+      "image_url": "/images/sanctuary-800.webp",
+      "image_alt": "An ivory treatment bed in a warm sandstone room",
+      "caption": "A room of your own",
+      "category": "spaces",
+      "sort_order": 4
+    },
+    {
+      "id": "a6000000-0000-4000-8000-000000000005",
+      "image_url": "/images/herbal-ritual-800.webp",
+      "image_alt": "Fresh botanical ingredients and a traditional brass bowl",
+      "caption": "Rooted in the everyday",
+      "category": "details",
+      "sort_order": 5
+    },
+    {
+      "id": "a6000000-0000-4000-8000-000000000006",
+      "image_url": "/images/ritual-hero-800.webp",
+      "image_alt": "A calm, Kerala-inspired treatment space",
+      "caption": "A gentler kind of luxury",
+      "category": "rituals",
+      "sort_order": 6
+    }
+  ],
+  "testimonials": [
+    {
+      "id": "a4000000-0000-4000-8000-000000000001",
+      "name": "A sample guest reflection",
+      "rating": 5,
+      "text": "Fictional example: the team explained every step and the space felt peaceful. A welcome pause in a busy week.",
+      "photo_url": null,
+      "sort_order": 1
+    },
+    {
+      "id": "a4000000-0000-4000-8000-000000000002",
+      "name": "A sample guest reflection",
+      "rating": 5,
+      "text": "Fictional example: thoughtful guidance and a comfortable, unhurried experience. Time to simply be.",
+      "photo_url": null,
+      "sort_order": 2
+    },
+    {
+      "id": "a4000000-0000-4000-8000-000000000003",
+      "name": "A sample guest reflection",
+      "rating": 4,
+      "text": "Fictional example: the gentle yoga session was easy to adapt to my experience. I appreciated the quiet.",
+      "photo_url": null,
+      "sort_order": 3
+    }
+  ],
+  "faqs": [
+    {
+      "id": "a3000000-0000-4000-8000-000000000001",
+      "question": "What should I expect on my first visit?",
+      "answer": "Please arrive 15 minutes early. We will talk through your preferences, sensitivities and comfort before your ritual. Share any medical concerns with your clinician before booking.",
+      "sort_order": 1
+    },
+    {
+      "id": "a3000000-0000-4000-8000-000000000002",
+      "question": "Are these rituals medical treatments?",
+      "answer": "No. Our spa experiences support general wellness and do not replace medical diagnosis or treatment. Speak with a qualified clinician about health concerns.",
+      "sort_order": 2
+    },
+    {
+      "id": "a3000000-0000-4000-8000-000000000003",
+      "question": "Can I book during pregnancy?",
+      "answer": "Please tell us when booking. Garbhini Care requires clearance from your maternity clinician and an appropriately trained practitioner. Your safety comes first.",
+      "sort_order": 3
+    },
+    {
+      "id": "a3000000-0000-4000-8000-000000000004",
+      "question": "How do I choose a service?",
+      "answer": "Explore the ritual descriptions, try our educational dosha quiz, or choose a wellness consultation. Your practitioner can help you understand the spa options.",
+      "sort_order": 4
+    },
+    {
+      "id": "a3000000-0000-4000-8000-000000000005",
+      "question": "What should I bring?",
+      "answer": "Comfortable clothing and anything that helps you feel at ease. Please let us know about allergies, sensitivities or accessibility needs in your booking notes.",
+      "sort_order": 5
+    },
+    {
+      "id": "a3000000-0000-4000-8000-000000000006",
+      "question": "What if I need to reschedule?",
+      "answer": "Please contact the studio as soon as your plans change. The final cancellation and rescheduling policy will be provided by the studio before launch.",
+      "sort_order": 6
+    }
+  ],
+  "blog_posts": [
+    {
+      "id": "a7000000-0000-4000-8000-000000000001",
+      "title": "Making room for a slower morning",
+      "slug": "making-room-for-a-slower-morning",
+      "excerpt": "Small, sustainable ideas for a more mindful start. No perfect routine required.",
+      "body": "<p>Before the day asks anything of you, take a moment to notice how you feel. Open a curtain. Drink a glass of water. Let your shoulders settle.</p><h2>Begin with something small</h2><p>A few comfortable stretches or a quiet cup of herbal tea can become a gentle cue to slow down. There is no single routine that suits everyone.</p><p>Choose something enjoyable and realistic. Consistent rest and gentle routines support everyday wellbeing; they do not replace medical care.</p>",
+      "cover_url": "/images/herbal-ritual-800.webp",
+      "cover_alt": "Illustrative cover for Making room for a slower morning",
+      "published_at": "2026-10-20T09:00:00+05:30"
+    },
+    {
+      "id": "a7000000-0000-4000-8000-000000000002",
+      "title": "Understanding the three doshas",
+      "slug": "understanding-the-three-doshas",
+      "excerpt": "An introductory, educational guide to Vata, Pitta and Kapha.",
+      "body": "<p>Ayurvedic tradition describes three doshas as a framework for understanding individual patterns: Vata, Pitta and Kapha. This is a traditional lens, not a medical diagnosis.</p><h2>A language for observation</h2><p>Vata is often associated with movement, Pitta with transformation, and Kapha with stability. Everyone is described as a unique combination.</p><p>Our quiz is a simple educational introduction. It cannot determine your health needs or the suitability of a therapy. Discuss persistent symptoms with a qualified clinician.</p>",
+      "cover_url": "/images/sanctuary-800.webp",
+      "cover_alt": "Illustrative cover for Understanding the three doshas",
+      "published_at": "2026-10-17T09:00:00+05:30"
+    },
+    {
+      "id": "a7000000-0000-4000-8000-000000000003",
+      "title": "Preparing for your first spa visit",
+      "slug": "preparing-for-your-first-spa-visit",
+      "excerpt": "A few thoughtful questions to ask before choosing your first ritual.",
+      "body": "<p>Your first visit should feel comfortable from the moment you arrive. Allow a little extra time, wear comfortable clothing and bring any questions you have.</p><h2>Let your practitioner know</h2><p>Share relevant allergies, sensitivities, pregnancy, medications and access needs. Ask about ingredients, pressure, session length and aftercare before beginning.</p><p>Ayurvedic spa therapies support general wellness and do not replace medical treatment. Consult your doctor, especially if pregnant or under treatment.</p>",
+      "cover_url": "/images/ritual-hero-800.webp",
+      "cover_alt": "Illustrative cover for Preparing for your first spa visit",
+      "published_at": "2026-10-14T09:00:00+05:30"
+    }
+  ]
+}

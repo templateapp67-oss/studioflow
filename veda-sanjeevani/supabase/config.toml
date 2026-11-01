@@ -1,0 +1,33 @@
+project_id = "veda-sanjeevani"
+
+[db]
+major_version = 17
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+# Application-level authorization remains mandatory even when gateway JWT checks are off.
+[functions.ai-generate-content]
+verify_jwt = true
+
+[functions.ai-generate-all]
+verify_jwt = true
+
+[functions.create-booking-public]
+verify_jwt = false
+
+[functions.send-booking-notification]
+verify_jwt = false
+
+[functions.request-review]
+verify_jwt = false
+
+[functions.summarize-reviews]
+verify_jwt = true
+
+[functions.register-media]
+verify_jwt = true
+
+[functions.health]
+verify_jwt = false

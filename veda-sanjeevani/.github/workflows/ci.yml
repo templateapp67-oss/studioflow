@@ -1,0 +1,89 @@
+name: Quality gates
+
+on:
+  pull_request:
+  push:
+    branches: [main, 'arena/**']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Typecheck, tests, security, browser, Lighthouse
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: veda-sanjeevani/package-lock.json
+      - name: Install frontend dependencies
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Unit tests
+        run: npm run test
+      - name: Production dependency audit
+        run: npm audit --omit=dev
+      - name: Build
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://e2e-example.supabase.co
+          VITE_SUPABASE_ANON_KEY: public-anon-test-key-not-a-secret-12345
+          VITE_SITE_URL: https://veda-e2e.example
+      - name: Scan frontend source and bundle for secret names
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RniE 'SUPABASE_SERVICE_ROLE_KEY|GEMINI_API_KEY|RESEND_API_KEY|CRON_SECRET' src dist; then
+            echo 'Secret variable name found in client-facing code or bundle.'
+            exit 1
+          fi
+          # service_role is also a public-key validation marker; fail on credential-shaped values instead.
+          if grep -RniE 'eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}|service_role-[A-Za-z0-9_-]{20,}' dist; then
+            echo 'Credential-like string found in production assets.'
+            exit 1
+          fi
+      - name: Install Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Edge Function unit tests
+        run: deno test --allow-all supabase/functions/tests
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start local Supabase and apply schema/seed
+        run: supabase start && supabase db reset
+      - name: Database security and behavior tests
+        run: supabase test db
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Browser end-to-end tests
+        run: npm run test:e2e
+      - name: Lighthouse CI mobile budgets
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          configPath: ./lighthouserc.json
+          uploadArtifacts: true
+          temporaryPublicStorage: false
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-and-lighthouse-report
+          path: |
+            test-results/
+            playwright-report/
+            /tmp/lighthouseci/
+          if-no-files-found: ignore
