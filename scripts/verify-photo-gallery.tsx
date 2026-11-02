@@ -67,6 +67,16 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
   const savedHtml=renderToStaticMarkup(<CustomerSalonWebsite profile={{...profile,photoGalleryInitialized:true,photoGalleryType:'bridal_lounge',photoGallery:[{id:'sr-own-1',category:'Bridal' as const,url:'https://cdn.example.com/saved-bride-photo.jpg',title:'Our own bride',isDemo:false}]}} services={[]} stylists={[]} readOnly onAddAppointment={async a=>a}/>);
   assert.ok(savedHtml.includes('https://cdn.example.com/saved-bride-photo.jpg'),'saved bride photograph appears in the Template 11 gallery');
   assert.ok(savedHtml.includes('Our own bride'),'saved bride photograph keeps its caption');
+ }else if(template.id==='ayurvedic_spa'){
+  // Template 14 (Veda Sanjeevani) renders its own gallery from the same
+  // saved-photo path, without owner controls; an owner photograph is added to
+  // the sanctuary collection and the bundled plates stay as the demo set.
+  assert.ok(html.includes('/templates/14/'),'Veda Sanjeevani gallery uses bundled Template 14 photographs');
+  assert.ok(html.includes('aria-label="Open photo:'),'Veda Sanjeevani gallery plates are tappable');
+  assert.ok((html.match(/aria-label="Open photo: /g)||[]).length>=5,'the sanctuary gallery shows the bundled plates');
+  assert.ok(!html.includes('Delete photo')&&!html.includes('Replace / Edit'));
+  const savedHtml=renderToStaticMarkup(<CustomerSalonWebsite profile={{...profile,photoGalleryInitialized:true,photoGalleryType:'ayurvedic_spa',photoGallery:[{id:'vs-own-1',category:'Spa' as const,url:'https://cdn.example.com/saved-treatment-room.jpg',title:'Our own treatment room',isDemo:false}]}} services={[]} stylists={[]} readOnly onAddAppointment={async a=>a}/>);
+  assert.ok(savedHtml.includes('https://cdn.example.com/saved-treatment-room.jpg'),'a saved owner photograph appears in the Veda Sanjeevani gallery');
  }else if(template.id==='lash_brow'){
   // Template 13 (Arch & Flutter) renders its own arch-masked lookbook and
   // lightbox from the same saved-photo path, without owner controls. The bundled

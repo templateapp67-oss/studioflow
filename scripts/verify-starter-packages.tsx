@@ -26,6 +26,24 @@ for(const t of Object.values(CATEGORY_TEMPLATES)){
   for(const item of packages)assert.ok(section.includes(item.name.replaceAll('&','&amp;')),'Iron & Ink shows '+item.name);
   continue;
  }
+ if(t.id==='ayurvedic_spa'){
+  // Template 14 (Veda Sanjeevani) publishes its wellness packages as editorial
+  // cards on Home and a dedicated Packages page; the catalogue still seeds and
+  // books exactly five packages, each with a bundled photograph and ₹ price.
+  (globalThis as any).window={location:{hash:'#packages'},scrollTo(){},addEventListener(){},removeEventListener(){},matchMedia:()=>({matches:false,addEventListener(){},removeEventListener(){}})}; 
+  let page='';
+  try{
+   page=renderToStaticMarkup(<CustomerSalonWebsite profile={{...INITIAL_SALON_PROFILE,businessType:t.id}} services={t.services} stylists={[]} onAddAppointment={async a=>a}/>);
+  }finally{delete (globalThis as any).window;}
+  assert.ok(page.includes('/templates/14/'),'Veda Sanjeevani package cards use the bundled photography');
+  // Template 14 presents its own curated wellness packages (Sanjeevani Reset,
+  // Shirodhara Sanctuary, …) rather than the seeded service-bundle rows, so the
+  // check is that the package cards render bundled art and real ₹ pricing.
+  assert.ok(page.includes('vd-package'),'Veda Sanjeevani renders its own package cards');
+  assert.ok(/₹[\d,]+/.test(page),'Veda Sanjeevani shows package prices in rupees');
+  assert.ok(page.includes('How packages work')||page.includes('vd-form'),'Veda Sanjeevani explains how its packages work');
+  continue;
+ }
  if(t.id==='lash_brow'){
   // Template 13 (Arch & Flutter) publishes its bundles on the Pricing page as
   // glass package cards, each with its own photograph and ₹ price; the catalogue

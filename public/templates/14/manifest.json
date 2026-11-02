@@ -1,0 +1,387 @@
+{
+  "generatedAt": "2026-11-01T18:37:44.333Z",
+  "slots": [
+    {
+      "slot": "hero",
+      "ratio": 1.7777777777777777,
+      "alt": "Warm herbal oil being poured in a luxury Ayurvedic treatment room",
+      "files": [
+        {
+          "width": 800,
+          "height": 450,
+          "file": "hero-800.webp",
+          "bytes": 44958
+        },
+        {
+          "width": 1200,
+          "height": 675,
+          "file": "hero-1200.webp",
+          "bytes": 73812
+        },
+        {
+          "width": 1600,
+          "height": 900,
+          "file": "hero-1600.webp",
+          "bytes": 106252
+        }
+      ],
+      "lqip": "data:image/webp;base64,UklGRo4AAABXRUJQVlA4IIIAAAAQBACdASoYAA0APt1apkyopSOiMAgBEBuJZgCdABtyL3er9RM7XibWAAD96t9MbDTFOHU2BKyvehPKwNB/gHdBpgBXLf0fGGRCJput5G4Sw9ngX+HY268UyrAyI+8zi9Py+ONgxcpw6Jk6LFYbxEYJWJfdh+YBGb/nJyGzAn2EacAA"
+    },
+    {
+      "slot": "sanctuary",
+      "ratio": 1.7777777777777777,
+      "alt": "Ivory and forest-green Ayurvedic spa sanctuary interior",
+      "files": [
+        {
+          "width": 480,
+          "height": 270,
+          "file": "sanctuary-480.webp",
+          "bytes": 18130
+        },
+        {
+          "width": 960,
+          "height": 540,
+          "file": "sanctuary-960.webp",
+          "bytes": 64084
+        },
+        {
+          "width": 1600,
+          "height": 900,
+          "file": "sanctuary-1600.webp",
+          "bytes": 143874
+        }
+      ],
+      "lqip": "data:image/webp;base64,UklGRpoAAABXRUJQVlA4II4AAABQBACdASoYAA0APt1cpkyopSOiMAgBEBuJYgCdMoACs+q66Bfi677rnpIAAP7sBTryWKwG99XT6kPWuzgofvYexFh9t2Zjs+vG3uxgZbFNpQS0p5Onol/b5mKRIsOwCGiY/lcP9QMeD8xiP/4EMkP1eZFiMNOUMfVQf8ayv7F7r8Qss8BGk/0xy/E2AAAA"
+    },
+    {
+      "slot": "shirodhara",
+      "ratio": 1.3333333333333333,
+      "alt": "Shirodhara warm oil stream therapy",
+      "files": [
+        {
+          "width": 480,
+          "height": 360,
+          "file": "shirodhara-480.webp",
+          "bytes": 17164
+        },
+        {
+          "width": 800,
+          "height": 600,
+          "file": "shirodhara-800.webp",
+          "bytes": 37148
+        },
+        {
+          "width": 1200,
+          "height": 900,
+          "file": "shirodhara-1200.webp",
+          "bytes": 70240
+        }
+      ],
+      "lqip": "data:image/webp;base64,UklGRrwAAABXRUJQVlA4ILAAAABQBQCdASoYABIAPt1orFEopaQiqAgBEBuJQBYj5ofAApxpWFkEFO6C365JoPqfLl+XtHAA/ux1xjsKtXBFwE1QeGYdmRc7HuIp99zet4MuqWJPuxDojxZcNxUKUyqTun9uqaFoxNsjGh10mYvzFP2rkQB2aXOQxvxFvTX4So4j2CSK+wf8ifW05uXxKeW9OaWdm8M6EWCsZIRuueXWG3cUSjFuUfZTX2DUKatJwAAAAA=="
+    },
+    {
+      "slot": "abhyanga",
+      "ratio": 1.3333333333333333,
+      "alt": "Abhyanga warm herbal oil massage on a carved teak table",
+      "files": [
+        {
+          "width": 480,
+          "height": 360,
+          "file": "abhyanga-480.webp",
+          "bytes": 17942
+        },
+        {
+          "width": 800,
+          "height": 600,
+          "file": "abhyanga-800.webp",
+          "bytes": 36928
+        },
+        {
+          "width": 1200,
+          "height": 900,
+          "file": "abhyanga-1200.webp",
+          "bytes": 67972
+        }
+      ],
+      "lqip": "data:image/webp;base64,UklGRtYAAABXRUJQVlA4IMoAAADwBACdASoYABIAPt1iqk8opSOiKAqpEBuJQBbZMZAMrJXBPRa9+AnqoXzzVuxIRAAA/tdL+7iiso3/uj8Wgwb2nlksEyCNfByyzvCFOm8XLqh4GEzfWvJSMHOapz9ocrnix9fERDQWju9rYEIkQHnJGMuzc+JWOxELVimoUOKhr06q5biUFX09SBgJ9rZHZO+tC5kmpUPFWUdALMo4bmgBkPjRqPaExZ+E4Rt6V3nnr363nY0i9SAv52DRShC6V8BfzzUzeAAggAAA"
+    },
+    {
+      "slot": "potli",
+      "ratio": 1.3333333333333333,
+      "alt": "Warm herbal potli poultice therapy",
+      "files": [
+        {
+          "width": 480,
+          "height": 360,
+          "file": "potli-480.webp",
+          "bytes": 17632
+        },
+        {
+          "width": 800,
+          "height": 600,
+          "file": "potli-800.webp",
+          "bytes": 37774
+        },
+        {
+          "width": 1200,
+          "height": 900,
+          "file": "potli-1200.webp",
+          "bytes": 71636
+        }
+      ],
+      "lqip": "data:image/webp;base64,UklGRswAAABXRUJQVlA4IMAAAACQBQCdASoYABIAPt1kqE+opSOiKAqpEBuJYgCdM1XvQAsbyyxOD9OLQjvJcoFav/zTbA2pAAD+42orJMvWVV5lhrXlVM8ioGnE9m6yMCaVgIxzbNNt8ntniJtPgJgsx3wpBMLV1XigdCNpih+ZxzFsjBmvjUpRqqyp/uMqu/Rc2PDMxxO3kbOpRB6WIkU9kxlcIO/CFc4YHB7MuNtwA4JFUz5ARVuZJuLMVjcySsbKREkHTy7A0VJFeODS1IAAAAA="
+    },
+    {
+      "slot": "reflexology",
+      "ratio": 1.3333333333333333,
+      "alt": "Ayurvedic foot reflexology ritual",
+      "files": [
+        {
+          "width": 480,
+          "height": 360,
+          "file": "reflexology-480.webp",
+          "bytes": 20828
+        },
+        {
+          "width": 800,
+          "height": 600,
+          "file": "reflexology-800.webp",
+          "bytes": 50834
+        },
+        {
+          "width": 1200,
+          "height": 900,
+          "file": "reflexology-1200.webp",
+          "bytes": 99360
+        }
+      ],
+      "lqip": "data:image/webp;base64,UklGRtwAAABXRUJQVlA4INAAAACQBQCdASoYABIAPt1ipU8opaMiKA1REBuJQBBcrKJy4nlF0AaxcEg7ODYs530pd37gt9o7AAD+lurgEImsonJD0ZmEeddl10GgX9Z8VlQQJERNhbwZndqVQZeCgxzWiHoq1p7KcbcNmVXusJRDGgU0ph6ufGX3BVSK8izLrHRrOb9DLqgHZhs9ZbfDNVT8CO4205ppqSdlJDyo0ajHDFVMehS62ScPLml92Shxdhbkw2P+qEGS9G9ZwhqyChlVwKlci2AkhU0VhP+100jKQAAA"
+    },
+    {
+      "slot": "steam",
+      "ratio": 1.3333333333333333,
+      "alt": "Herbal steam therapy room with eucalyptus and brass vessels",
+      "files": [
+        {
+          "width": 480,
+          "height": 360,
+          "file": "steam-480.webp",
+          "bytes": 23116
+        },
+        {
+          "width": 800,
+          "height": 600,
+          "file": "steam-800.webp",
+          "bytes": 53734
+        },
+        {
+          "width": 1200,
+          "height": 900,
+          "file": "steam-1200.webp",
+          "bytes": 97882
+        }
+      ],
+      "lqip": "data:image/webp;base64,UklGRr4AAABXRUJQVlA4ILIAAACwBQCdASoYABIAPt1mq1EopSOiqAgBEBuJQBYj7JbOQIuDJRGpsL8a27uZsdd6337kFIs1lkAA4mtp2u514DySPoVS/ApDwVbf3lwUfRZBI6hX/S7Lqp4MA5+uffmVK+qd+c7D3l7iEYqgXEJoWEmFOQWnq3P3nQEPOfXVElxSeGz1H0aM4HhoG5rHcohiP3/cKoNROSvqLjqtjF00Ki2MQKqNaLJug7YigoRPe9IAAAAA"
+    },
+    {
+      "slot": "herbs",
+      "ratio": 1,
+      "alt": "Turmeric, brahmi, rose and brass bowls of Ayurvedic ingredients",
+      "files": [
+        {
+          "width": 480,
+          "height": 480,
+          "file": "herbs-480.webp",
+          "bytes": 56854
+        },
+        {
+          "width": 800,
+          "height": 800,
+          "file": "herbs-800.webp",
+          "bytes": 154008
+        }
+      ],
+      "lqip": "data:image/webp;base64,UklGRu4AAABXRUJQVlA4IOIAAADwBACdASoYABIAPt1kqE+opSOiKAqpEBuJYwC7AYv0KFjUgTGHQ3wnmD32ecBY3gAAzdPqJUeC+t4gHJESTdVjYEdILLXWKDfm++7aXM5LS3WycMYDfxSh57w7XeOAENI1WqS0Bg2DIM9zpMZyN5P7DJ6lBY+ks7a8ljOvNqk29xcFTXrbEPB2rRN2YnglkBBsz47cb5vvlauKGcv3qo2C/BXZHSFukdK2sKLC/C7gcY3AV6emc1dLwxjRhoX7khyHywMPf2kao/9qorDYClNUtml4iciT8O41P1/ACIHZqrAA"
+    },
+    {
+      "slot": "oil-ritual",
+      "ratio": 1.3333333333333333,
+      "alt": "Warm herbal oil being prepared for a ritual",
+      "files": [
+        {
+          "width": 480,
+          "height": 360,
+          "file": "oil-ritual-480.webp",
+          "bytes": 35606
+        },
+        {
+          "width": 800,
+          "height": 600,
+          "file": "oil-ritual-800.webp",
+          "bytes": 68488
+        },
+        {
+          "width": 1200,
+          "height": 900,
+          "file": "oil-ritual-1200.webp",
+          "bytes": 121766
+        }
+      ],
+      "lqip": "data:image/webp;base64,UklGRvAAAABXRUJQVlA4IOQAAACQBQCdASoYABIAPt1mp1AopaMiqAqpEBuJQBWF8dNQEzqEnmh1K9ZjAwGhMEmv3IT18MZVkAD+Q/ZdFBXvIfS9MRj9qe36gHn2tAymX1W+xGt1cbxEpwoPFtLG4mP4GM7XFA//O8DR3LKtWbHnfsIO3oOKD2lDygMHRFGq8ob/WhDbUbeZKPD8uRcXvzdXv/r0jXeDDrlQQgoQIqgmHQt6G5gZG0iVFs5zCRh56GmHa8UylwzXpxyU2kb8evWZrSDxeQq+cDqwYB6EdqN5+/0W4QL/1DkmSb5VTo5jyDTHeCKAAAA="
+    },
+    {
+      "slot": "therapist-ananya",
+      "ratio": 0.75,
+      "alt": "Vaidya Ananya Sharma, Ayurvedic physician",
+      "files": [
+        {
+          "width": 400,
+          "height": 533,
+          "file": "therapist-ananya-400.webp",
+          "bytes": 23676
+        },
+        {
+          "width": 800,
+          "height": 1067,
+          "file": "therapist-ananya-800.webp",
+          "bytes": 75352
+        }
+      ],
+      "lqip": "data:image/webp;base64,UklGRhgBAABXRUJQVlA4IAwBAABwBQCdASoYACAAPt1ipk4opaMiMBgIARAbiUAWnTGQDIBD5739YKuyw2w/CQR6/JHPHLIAAP5bqKGEUx8GPa50tn2NRWoPvAdfxVKfYAB5Im4wkZRUo+rI2f89Ld/XLlMHLb6J2tFnTgfLngjHVtKLd3mCEEDnFqvCbT1hYa2fgWfGK20SY90DUTk+uARxsttALebL5AjggbhIoDHy0vwFYF9dU4PlRfJfjuCZ+Y15CWNj6/LpUBhzM0U69SC2OQHccGdADc8jObyAYkrd/k/FTJKKD7zO8HMbK+VZZC4HehmbYUWFLV3sNv2s2mCGT1JqF3FuiOKF/PtJsSQZLIS3Et07CXGRx7VYAAAA"
+    },
+    {
+      "slot": "therapist-meera",
+      "ratio": 0.75,
+      "alt": "Meera Pillai, senior Ayurvedic therapist",
+      "files": [
+        {
+          "width": 400,
+          "height": 533,
+          "file": "therapist-meera-400.webp",
+          "bytes": 25118
+        },
+        {
+          "width": 800,
+          "height": 1067,
+          "file": "therapist-meera-800.webp",
+          "bytes": 57026
+        }
+      ],
+      "lqip": "data:image/webp;base64,UklGRjgBAABXRUJQVlA4ICwBAACQBgCdASoYAB4APt1aqE6opKOiMBgIARAbiWIAqRT/eGBodmNCVxLU/tB08pWGOH1jE7o1hiObxuN/iBTgAP7JhdoDMZZfF62/1JhoCyne4Z2yLiKsSs8CVfAKgZxY2npoUMa7BfXdfQ9zEofiBSF5tYjU4dxCm6beuTpygV/SSd+/nhAph9DBBz6u1vMFuSPyFEoLSliGAtE5Qbn5/VBYEefCbVn7ObGIJv72l5tQv2Etnph4iERlmrMWM6n4BZSUk47atrXM4Qa9Ewzpd08ocYJ/XQsGMG9iRL3RxXUH5uAeBSJbNUwFu1Xez3c1NDYeA4KuC1rgJ8Obu5PeOQFngGms+NIsm9+XooZoynIMBGy8zC6mNFnsKbYSNcChjD4TF9d6ep4VMoNQAAA="
+    },
+    {
+      "slot": "therapist-rahul",
+      "ratio": 0.75,
+      "alt": "Rahul Nair, Panchakarma specialist",
+      "files": [
+        {
+          "width": 400,
+          "height": 533,
+          "file": "therapist-rahul-400.webp",
+          "bytes": 31232
+        },
+        {
+          "width": 800,
+          "height": 1067,
+          "file": "therapist-rahul-800.webp",
+          "bytes": 68612
+        }
+      ],
+      "lqip": "data:image/webp;base64,UklGRjIBAABXRUJQVlA4ICYBAABQBgCdASoYAB4APt1cpkyopSOiMAgBEBuJagCdMtB/+vQHWxQRbYoYqJr913aL8Bui4iwcDB+2qnbD/ADMiTA/dydWlilju2OzwOyKMAf+iqrqLzjVeWnRfLzlz9oNOxfNqq4fW9STCYz65mXLpx3sR2sh8imZY0n0xzjcY7FauXMjI7jVtjr4p3vDuH/4yangmCQKlie1xSyhkaDq964LLXOXZE+0YKq/dtV/4kBYUbd+mvmPUh3XlYjxmcI0n6kt+wF8TV027aB8l76fVDnYzWDryEBF72nUllMwthi6qNh1qGQqrTNh6JojDmhXkHKcwil09GfzdcP7l/Jl1F9xRjsJKjB57esB/+h3FYpacMcPn/G+i8OhILWy7OAwAy6rTvAAAAA="
+    },
+    {
+      "slot": "ritual",
+      "ratio": 0.8,
+      "alt": "Herbal ritual preparation with flowers and oils",
+      "files": [
+        {
+          "width": 480,
+          "height": 600,
+          "file": "ritual-480.webp",
+          "bytes": 45062
+        },
+        {
+          "width": 900,
+          "height": 1125,
+          "file": "ritual-900.webp",
+          "bytes": 107718
+        }
+      ],
+      "lqip": "data:image/webp;base64,UklGRkoBAABXRUJQVlA4ID4BAAAwBwCdASoYAB4APt1apkyopSOiMAgBEBuJQBYj2/DPiAGcEYRjvhb/1tcxP2SFRb2jFOBrneuOXOcVcJTT+hLvBMAA/i7lZp/Mgpp9aLC/XbqVJtqgEFBtjjuNs7FcRByoLv4H8uRaYdSyA/FLSfAQGyRbgdDqrDxUuSeQ4IQYOl7FFMbWGqdOY+Yy+lYVqjHlLbAU497/S0WeazZrzkBZ3u5rzIBpbnkNVHwLDQo3LNCDUUj0qFHTza1wmMCZmdR1uU+z8CJ8xU9nX6G4heyuSIiSuS2vPEw22SxD80at1vaz1X6rp9x6bCcXCxhquRSK6vw942GMA1Xhon8mvoQC3lOk9yN+KlpJimLryNfsfcgwdcwb07Yx+tlsSru2gqisUOEu7SLLt5zlz01cUxEH/mGHBmnzZrYJh5VFEAA="
+    },
+    {
+      "slot": "ritual-hero",
+      "ratio": 0.8,
+      "alt": "Ayurvedic ritual detail with brass and marigold",
+      "files": [
+        {
+          "width": 480,
+          "height": 600,
+          "file": "ritual-hero-480.webp",
+          "bytes": 56340
+        },
+        {
+          "width": 900,
+          "height": 1125,
+          "file": "ritual-hero-900.webp",
+          "bytes": 119414
+        }
+      ],
+      "lqip": "data:image/webp;base64,UklGRlABAABXRUJQVlA4IEQBAAAwBgCdASoYAB4APt1apUyopSOiMAgBEBuJZACdMxgvbLPAyHKyZLWYe5vpqRIrDkVtc47qi9SqaMQAAP6bx+yP1FcAfi1vURO/owCuvehjHYJc5iHtLGzb9UAkNjjBPR9sy8552FxLX6Gdg/z0eIjiL8pzvaXWC8WUZcxsle5CAVbw9iMRy6ZVsX4Np4VSPz2/Cg4C/4dJGCPs+naLPC/0CB93hlYm2xOJ1rX1wFdycKXyHidCNMEOCtwARJAXzUQK0nxAKuXipIvxC5nXG9m/1cdFLx5gJSHGw0IrNFXbaMjtN8fNm1VSi9W8ySD0dLUT+uTJIY2KtAwfdpdBig2gC+4Qm21lTW2osWVyErhkreOgof+JNtcqk3d2dsm4So/mbwV/gE0zuEw1kF1wA8Cg61FhLdM+1ISplwnIn7+O2vewYAA="
+    },
+    {
+      "slot": "ayurveda-wide",
+      "ratio": 1.7777777777777777,
+      "alt": "Ayurvedic spa treatment in warm natural light",
+      "files": [
+        {
+          "width": 800,
+          "height": 450,
+          "file": "ayurveda-wide-800.webp",
+          "bytes": 48218
+        }
+      ],
+      "lqip": "data:image/webp;base64,UklGRrAAAABXRUJQVlA4IKQAAABQBACdASoYAA0APt1cpkyopSOiMAgBEBuJQBOmUAS1IwLDVcI7CBwnplhsAP5AfrBJlre6D0Yc4sd7XLM8b0De/hzzHSz5V646/ibsDgRXWcjyXGJcPvCNG9Wn26U7DE5vvj008THIygtrsYlnMUtMS4iCfu9MTYym2frVZEcdxEf78jKCCP3sW4jL3lmXJ6ZxZ+FSNGmcb86phtvWTu8PahAAAA=="
+    },
+    {
+      "slot": "ingredients",
+      "ratio": 1,
+      "alt": "Ayurvedic herbs and oils styled on ivory stone",
+      "files": [
+        {
+          "width": 480,
+          "height": 480,
+          "file": "ingredients-480.webp",
+          "bytes": 36956
+        },
+        {
+          "width": 800,
+          "height": 800,
+          "file": "ingredients-800.webp",
+          "bytes": 76240
+        }
+      ],
+      "lqip": "data:image/webp;base64,UklGRiIBAABXRUJQVlA4IBYBAABQBgCdASoYABgAPt1orFEopaQiqAgBEBuJYgCdMxglpAwVml54tDW0Y75PJ2TBJsIqmsnJmb9VpnzH0AD+7g5rljEBUp26/P8h7TzlJ3H6k38b0MwNNyLFQVCTqLcRPeSsPpEn4KW8FTHU+ASqj8//ua8ua6eCU8xj2BLF7884D2d1I/hVlxgeqDN8vVgyH/eu0P3jMaY1jdOSLvcTo1zuIup4saIDpWMaMfM5XhmUqZ5QjYjkrMYGb53rSnYEuZTeCETy/xFKeW8mwCme2Au+GSarr86zv5yvUJyvFgfCyY64/mLjoPNXLmETR1v0vO15h/Jyxjh6/nDcnpBe8MobM05I+2V6bhAZA8lSgz7pJT8jTA34AA=="
+    },
+    {
+      "slot": "sanctuary-alt",
+      "ratio": 1.5,
+      "alt": "Quiet corner of the Veda Sanjeevani sanctuary",
+      "files": [
+        {
+          "width": 640,
+          "height": 427,
+          "file": "sanctuary-alt-640.webp",
+          "bytes": 37646
+        },
+        {
+          "width": 1264,
+          "height": 843,
+          "file": "sanctuary-alt-1264.webp",
+          "bytes": 113144
+        }
+      ],
+      "lqip": "data:image/webp;base64,UklGRroAAABXRUJQVlA4IK4AAADQBACdASoYABAAPt1apkyopSOiMAgBEBuJYgCdMoAlvRZB7UlmyISj73i1Z6pg+AD+3QwE3BHH1CutfaIWSW9+JpU4SFkrdoJ5BKbAt/fyJioOLSiccErP/G13taIx0Ngq4cdNmvM3I7Hc5/CdgdIr+rlfW0Ab6SiMVH96FFaCBn/KCmEDLNq7sV6kJIa9v5AG05IvwmOLu1PxkVrvvE7YfoQuK3/h18FE6BpAAAA="
+    }
+  ]
+}

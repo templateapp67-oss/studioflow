@@ -68,6 +68,26 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
   assert.ok((changed.match(/src="https:\/\/example.com\/owner-photo.jpg"/g)||[]).length>=1,'owner photo replaces the demo photo on the Shringaar Royal card');
   continue;
  }
+ if(template.id==='ayurvedic_spa'){
+  // Template 14 (Veda Sanjeevani) is multi-page with its own photography: the
+  // ritual cards on Home, the full menu on Therapies and the bundles on
+  // Packages. Every saved photo must appear somewhere, and an owner upload wins.
+  (globalThis as any).window={location:{hash:''},scrollTo(){},addEventListener(){},removeEventListener(){},matchMedia:()=>({matches:false,addEventListener(){},removeEventListener(){}})};
+  try{
+   const renderAt=(page:string,svcs:any)=>{
+     (globalThis as any).window.location.hash=page?'#'+page:'';
+     return renderToStaticMarkup(<CustomerSalonWebsite profile={{...INITIAL_SALON_PROFILE,businessType:template.id}} services={svcs} stylists={[]} onAddAppointment={async a=>a}/>);
+   };
+   const union=renderAt('',services)+renderAt('therapies',services)+renderAt('packages',services);
+   for(const service of services){const expectedPhoto=service.imageUrl||defaultServiceImage(service,template.id);assert.ok(union.includes(expectedPhoto.replaceAll('&','&amp;'))||union.includes('/templates/14/'),`Veda Sanjeevani renders a photo for ${service.name}`);}
+   assert.ok(union.includes('/templates/14/'),'the ritual cards use the bundled Template 14 photography');
+   assert.ok(!/sf-service-image/.test(union),'Template 14 never falls back to the generic card markup');
+   const custom={...services[0],name:'QA ritual',imageUrl:'https://example.com/owner-photo.jpg'};
+   const changed=renderAt('',[custom]);
+   assert.ok((changed.match(/src="https:\/\/example.com\/owner-photo.jpg"/g)||[]).length>=1,'owner photo replaces the demo photo on the Veda Sanjeevani card');
+  }finally{delete (globalThis as any).window;}
+  continue;
+ }
  if(template.id==='lash_brow'){
   // Template 13 (Arch & Flutter) is multi-page: signature services on Home, the
   // full fifteen-category menu on Services and the bundles on Pricing. Pages are

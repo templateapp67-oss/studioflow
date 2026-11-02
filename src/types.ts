@@ -242,6 +242,8 @@ export interface SalonProfile {
   shringaarRoyal?: ShringaarRoyalConfig;
   /** Template 13 — Arch & Flutter Lash & Brow Bar owner content. */
   archFlutter?: ArchFlutterConfig;
+  /** Template 14 — Veda Sanjeevani Ayurvedic Wellness & Spa owner content. */
+  veda?: import('./lib/vedaSanjeevani').VedaConfig;
   /** Editable "Promotions & offers" records. `undefined` = never seeded yet. */
   promoOffers?: SalonOffer[];
   ironInk?: { categories?: import('./lib/ironInk').IronInkCategory[]; heroImage?:string; interiorImage?:string; artistImage?:string; bookingDeposit?:number; faq?:Array<{question:string;answer:string}>; media?:import('./lib/ironInkMedia').IronInkMediaTopic[] };

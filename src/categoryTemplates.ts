@@ -1,4 +1,15 @@
 import {seedTemplatePackages} from './lib/packageCatalogue';
+import {
+  VEDA_DEFAULT_ADDRESS,
+  VEDA_DEFAULT_CITY,
+  VEDA_DEFAULT_INSTAGRAM,
+  VEDA_DEFAULT_PHONE,
+  VEDA_SERVICE_CATEGORIES,
+  VEDA_SERVICES,
+  VEDA_TAGLINE,
+  VEDA_THERAPISTS,
+  vedaImage,
+} from './lib/vedaSanjeevani';
 import {createIronInkServices} from './lib/ironInk';
 import { CategoryTemplateConfig, BusinessTypeOption } from './types';
 import { SALON_IMAGES } from './assets/images';
@@ -1158,120 +1169,46 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
     stylists: ARCH_FLUTTER_DEFAULT_STYLISTS
   },
 
-  // 14. Ayurvedic Rejuvenation Spa (Newly Added)
+  // 14. Veda Sanjeevani Ayurvedic Wellness & Spa
   ayurvedic_spa: {
     id: 'ayurvedic_spa',
     title: 'Veda Sanjeevani Ayurvedic Wellness & Spa',
-    shortName: 'Ayurvedic Rejuvenation Spa',
-    tagline: 'Authentic Kerala Panchakarma, Medicated Shirodhara & Vedic Herbal Lepams',
-    about: 'Housed in an authentic heritage courtyard in Fort Kochi, Kerala, Veda Sanjeevani practices pure Ashtanga Ayurveda under the stewardship of traditional Vaidyas. Experience centuries-old 4-hand Abhyangam, warm oil Shirodhara, and custom herbal Kizhies.',
+    shortName: 'Ayurvedic Wellness & Spa',
+    tagline: 'Ayurveda, unhurried. Warm-oil rituals, Shirodhara and physician-led care in Kota.',
+    about: 'A small Ayurvedic sanctuary in Civil Lines, Kota: four treatment rooms, a physician who reads the pulse before recommending anything, oil warmed to body temperature and therapists who ask how much pressure you actually want.',
     icon: 'eco',
     layoutStyle: 'ayurvedic_terracotta',
-    paletteLabel: 'Traditional Indian Heritage & Terracotta/Copper Accents',
+    paletteLabel: 'Deep Forest Green, Warm Ivory, Muted Sage & Antique Gold',
     themePreset: 'ayurvedic_terracotta',
-    subCategories: ['Abhyangam Therapies', 'Shirodhara Streams', 'Herbal Kizhies', 'Panchakarma Detox'],
-    defaultCity: 'Fort Kochi, Kerala',
-    defaultAddress: 'Princess Street Heritage Zone, Fort Kochi',
-    defaultPostalCode: '682001',
-    phone: '+91 98470 22319',
-    whatsapp: '+91 98470 22319',
-    ownerName: 'Vaidya Harish Nambiar',
-    ownerRole: 'BAMS Chief Ayurvedic Physician & Acharya',
-    ownerPhotoUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=500&q=80',
-    coverImageUrl: 'https://images.unsplash.com/photo-1600334129128-685c5582fd35?auto=format&fit=crop&w=1200&q=80',
-    instagramHandle: '@vedasanjeevani.kerala',
+    subCategories: [...VEDA_SERVICE_CATEGORIES],
+    defaultCity: VEDA_DEFAULT_CITY,
+    defaultAddress: VEDA_DEFAULT_ADDRESS,
+    defaultPostalCode: '324005',
+    phone: VEDA_DEFAULT_PHONE,
+    whatsapp: VEDA_DEFAULT_PHONE,
+    ownerName: 'Vaidya Ananya Sharma',
+    ownerRole: 'BAMS Ayurvedic Physician',
+    ownerPhotoUrl: VEDA_THERAPISTS[0].avatarUrl,
+    coverImageUrl: vedaImage('hero'),
+    instagramHandle: VEDA_DEFAULT_INSTAGRAM,
     themeStyle: {
-      heroBackground: 'bg-[#5c2409]',
-      heroTextColor: 'text-amber-100',
-      cardBorder: 'border-[#ea580c]/30',
-      cardBackground: 'bg-[#fffaf2]',
-      cardRadius: 'rounded-2xl',
-      accentColor: 'text-[#c2410c]',
-      accentBg: 'bg-[#c2410c]',
-      badgeBg: 'bg-[#ffedd5]',
-      badgeText: 'text-[#9a3412]',
-      buttonBg: 'bg-[#c2410c] hover:bg-[#9a3412]',
-      buttonText: 'text-white',
-      priceColor: 'text-[#9a3412]',
+      heroBackground: 'bg-[#14251D]',
+      heroTextColor: 'text-[#F7F2E7]',
+      cardBorder: 'border-[#B08D4F]/35',
+      cardBackground: 'bg-[#F7F2E7]/92',
+      cardRadius: 'rounded-3xl',
+      accentColor: 'text-[#B08D4F]',
+      accentBg: 'bg-[#1F3B2E]',
+      badgeBg: 'bg-[#DCE4D6]',
+      badgeText: 'text-[#1F3B2E]',
+      buttonBg: 'bg-[#1F3B2E] hover:bg-[#14251D]',
+      buttonText: 'text-[#F7F2E7]',
+      priceColor: 'text-[#1F3B2E]',
       isDark: false,
-      headerBanner: 'bg-[#fff7ed] border-b border-[#fed7aa]'
+      headerBanner: 'bg-[#EADFCB]/60 border-b border-[#B08D4F]/30',
     },
-    services: [
-      {
-        id: 'as-1',
-        name: 'Traditional 4-Hand Abhyangam Full Body Therapy',
-        category: 'Abhyangam Therapies',
-        durationMinutes: 75,
-        price: 2800,
-        description: 'Synchronized massage by two certified masseurs using medicated Dhanwantharam warm herbal oil over wood Droni.',
-        icon: 'self_improvement',
-        popular: true
-      },
-      {
-        id: 'as-2',
-        name: 'Medicated Herbal Oil Shirodhara Stream Therapy',
-        category: 'Shirodhara Streams',
-        durationMinutes: 60,
-        price: 3200,
-        description: 'Continuous soothing stream of warm herbal oil poured onto the Ajna third-eye chakra for profound mental peace.',
-        icon: 'water_drop',
-        popular: true
-      },
-      {
-        id: 'as-3',
-        name: 'Elakizhi Warm Herbal Leaf Poultice Relief',
-        category: 'Herbal Kizhies',
-        durationMinutes: 60,
-        price: 2600,
-        description: 'Herbal leaves fried in castor oil packed in cloth boluses to eliminate joint inflammation and chronic pain.',
-        icon: 'eco'
-      },
-      {
-        id: 'as-4',
-        name: 'Full Panchakarma Detox & Vaidya Pulse Diagnosis',
-        category: 'Panchakarma Detox',
-        durationMinutes: 90,
-        price: 4500,
-        description: 'Detailed Nadi Pariksha, dosha constitutional mapping, herbal steam bath (Swedana), and personalized dietary chart.',
-        icon: 'spa',
-        popular: true
-      },
-      {
-        id: 'as-5',
-        name: 'Mukha Lepam Ayurvedic Sandalwood Radiance Pack',
-        category: 'Abhyangam Therapies',
-        durationMinutes: 50,
-        price: 1500,
-        description: 'Exfoliation with green gram flour followed by fresh red sandalwood and saffron paste for natural glow.',
-        icon: 'face'
-      }
-    ],
-    stylists: [
-      {
-        id: 'as-st-1',
-        name: 'Vaidya Harish Nambiar',
-        role: 'BAMS Chief Physician',
-        avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=400&q=80',
-        specialties: ['Nadi Pariksha', 'Panchakarma Protocol', 'Dosha Balancing'],
-        rating: 4.99
-      },
-      {
-        id: 'as-st-2',
-        name: 'Sreedhar Kurup',
-        role: 'Senior Kalari & Marma Masseur',
-        avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
-        specialties: ['4-Hand Abhyangam', 'Elakizhi Poultice'],
-        rating: 4.96
-      },
-      {
-        id: 'as-st-3',
-        name: 'Sarala Devi',
-        role: 'Herbal Shirodhara Therapist',
-        avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80',
-        specialties: ['Shirodhara Streams', 'Mukha Lepam'],
-        rating: 4.92
-      }
-    ]
+    services: VEDA_SERVICES,
+    stylists: VEDA_THERAPISTS,
   }
 };
 

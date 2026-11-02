@@ -5,6 +5,65 @@ import { createServer } from "node:http";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
+import {
+  VEDA_AI_MODE_IDS,
+  VEDA_AI_SYSTEM_PROMPT,
+  buildVedaAiPrompt,
+  buildVedaFallbackContent,
+  sanitizeVedaAiContent,
+  type VedaAiDetails,
+} from "./src/lib/vedaSanjeevaniAi";
+
+
+/** Rejects huge or malformed bodies before they reach the AI provider. */
+function normalizeVedaDetails(input: any): VedaAiDetails | null {
+  if (!input || typeof input !== 'object') return null;
+  const clip = (value: unknown, max: number) => (typeof value === 'string' ? value.trim().slice(0, max) : '');
+  const businessName = clip(input.businessName, 120) || 'Veda Sanjeevani Ayurvedic Wellness & Spa';
+  const services = Array.isArray(input.services)
+    ? input.services.slice(0, 30).map((service: any) => ({
+        id: clip(service?.id, 60),
+        name: clip(service?.name, 90),
+        category: clip(service?.category, 60),
+        price: Number.isFinite(Number(service?.price)) ? Number(service.price) : null,
+        durationMinutes: Number.isFinite(Number(service?.durationMinutes)) ? Number(service.durationMinutes) : 60,
+      })).filter((service: any) => service.name)
+    : [];
+  return {
+    businessName,
+    city: clip(input.city, 80),
+    address: clip(input.address, 200),
+    category: clip(input.category, 80) || 'Ayurvedic wellness spa',
+    tagline: clip(input.tagline, 160),
+    phone: clip(input.phone, 30),
+    about: clip(input.about, 800),
+    services,
+    tone: clip(input.tone, 160),
+  };
+}
+
+/** Models occasionally wrap JSON in ``` fences — accept both. */
+function stripJsonFence(text: string): string {
+  const trimmed = text.trim();
+  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  return (fenced ? fenced[1] : trimmed).replace(/^[^{[]*/, '').replace(/[^}\]]*$/, '');
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
 
 async function startServer() {
   const app = express();
@@ -226,6 +285,66 @@ Return strictly JSON with the following keys:
         instagramCaption: `✨ Elevate your everyday glow! ✨\n\nBook your *${req.body.serviceName || 'treatment'}* today at ${req.body.businessName || 'our studio'}.\n\n👇 Tap link in bio to book your appointment!\n\n#Salon #Beauty #SelfCare #SalonDeals`,
         headline: `Special Offer: ${req.body.serviceName || 'Signature Service'}`,
         badgeText: req.body.offer ? req.body.offer.toUpperCase() : 'LIMITED SPECIAL'
+      });
+    }
+  });
+
+  /**
+   * Template 14 — Veda Sanjeevani AI website content.
+   *
+   * The browser only ever sends business details; the Gemini key stays here.
+   * Without a key (or if the provider fails) the endpoint still answers with an
+   * honest, brand-specific draft produced by the shared template library, so the
+   * "Generate my website content" button always does something useful.
+   */
+  app.post("/api/veda-website-content", async (req, res) => {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const mode = (VEDA_AI_MODE_IDS as readonly string[]).includes(body.mode) ? body.mode : 'all';
+    const details = normalizeVedaDetails(body.details);
+    if (!details) {
+      return res.status(400).json({ error: 'Add your business name before generating content.' });
+    }
+    const fallback = () =>
+      res.json({
+        source: 'template',
+        mode,
+        content: buildVedaFallbackContent(mode as any, details),
+        notice: 'No GEMINI_API_KEY is configured on this server, so the template drafted this content. Every line is editable.',
+      });
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) return fallback();
+
+    try {
+      const ai = new GoogleGenAI({ apiKey, httpOptions: { headers: { 'User-Agent': 'aistudio-build' } } });
+      const response = await withTimeout(
+        ai.models.generateContent({
+          model: process.env.GEMINI_TEXT_MODEL || 'gemini-3.8-flash',
+          contents: `${buildVedaAiPrompt(mode as any, details)}\n\nRequested task: ${mode}`,
+          config: { responseMimeType: 'application/json', systemInstruction: VEDA_AI_SYSTEM_PROMPT, temperature: 0.8 },
+        }),
+        45000,
+        'The AI service took too long to respond',
+      );
+      const text = typeof response.text === 'string' ? response.text : '';
+      if (!text.trim()) throw new Error('Empty AI response');
+      const parsed = JSON.parse(stripJsonFence(text));
+      const content = sanitizeVedaAiContent(parsed.content ?? parsed);
+      if (!content || Object.keys(content).length === 0) throw new Error('AI response had no usable sections');
+      return res.json({
+        source: 'ai',
+        mode,
+        content,
+        notice: 'Written by AI from the details you supplied. Read it through and edit anything that does not sound like your studio before publishing.',
+      });
+    } catch (error) {
+      console.error('Veda AI content error:', error);
+      const draft = buildVedaFallbackContent(mode as any, details);
+      return res.json({
+        source: 'template',
+        mode,
+        content: draft,
+        notice: 'The AI service could not be reached just now, so the template drafted this instead. Try again in a moment, or edit this copy directly.',
       });
     }
   });
@@ -509,7 +628,7 @@ Return strictly valid JSON in this format:
       });
     }
     const vite = await createViteServer({
-      server: { middlewareMode: true, hmr: disableHmr ? false : { server: httpServer } },
+      server: { middlewareMode: true, allowedHosts: ['.e2b.app', 'localhost', '127.0.0.1'], hmr: disableHmr ? false : { server: httpServer } },
       appType: "spa",
     });
     app.all("/api/*", (_req, res) => {

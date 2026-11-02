@@ -17,7 +17,9 @@
     "test:debug": "node scripts/verify-debug-boundary.mjs",
     "test:live": "node scripts/verify-supabase.mjs",
     "test:template12": "node scripts/verify-template12-ui.mjs && node scripts/verify-template12-social-media-loyalty.mjs && node scripts/verify-template12-promotions-share-reels.mjs && node scripts/verify-template12-migration.mjs",
-    "test:multibranch": "node scripts/verify-multibranch-migration.mjs"
+    "test:multibranch": "node scripts/verify-multibranch-migration.mjs",
+    "test:template14": "node scripts/verify-veda-sanjeevani.mjs",
+    "assets:template14": "node scripts/build-template14-assets.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
