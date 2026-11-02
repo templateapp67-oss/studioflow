@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Clock,
   ExternalLink,
+  Heart,
   Instagram,
   MapPin,
   Menu,
@@ -16,6 +17,7 @@ import {
   Scissors,
   Sparkles,
   Star,
+  Tag,
   UserCheck,
   Volume2,
   VolumeX,
@@ -57,6 +59,12 @@ import { ExternalReviewFeed } from './ExternalReviewFeed';
 import { InlineEditable } from './InlineEditable';
 import { TestimonialModal } from './ClientTestimonials';
 import { WebsiteSections } from './WebsiteSections';
+import {
+  ZiyaContactForm,
+  ZiyaLoyaltySection,
+  ZiyaPromotionsSection,
+  useZiyaPublicStorefrontData,
+} from './ziya/ZiyaStorefrontSections';
 import './luxuryEditorial.css';
 
 type SharedWebsiteProps = React.ComponentProps<typeof WebsiteSections>;
@@ -81,7 +89,12 @@ export interface LuxuryEditorialWebsiteProps {
   customerPhotoUrl?: string;
   bookingAvailable?: boolean;
   branding?: { platformName: string; poweredBy: boolean; supportEmail: string } | null;
-  onBook: (service?: SalonService, stylist?: Stylist, slot?: DirectSalonSlot) => void;
+  onBook: (
+    service?: SalonService,
+    stylist?: Stylist,
+    slot?: DirectSalonSlot,
+    couponCode?: string,
+  ) => void;
   onAccount: (mode?: 'signin' | 'signup') => void;
   onMyBookings: () => void;
   onViewSpecialist: (stylistId: string) => void;
@@ -257,6 +270,69 @@ export const LuxuryEditorialWebsite: React.FC<LuxuryEditorialWebsiteProps> = ({
 
   // Dedicated Women's Haircut Video Gallery
   const videosEnabled = enabledSections.includes('videos');
+  const promoEnabled = enabledSections.includes('promo');
+  const loyaltyEnabled = enabledSections.includes('loyalty');
+
+  // Live Supabase Promotions, Loyalty & Favorite Salon state
+  const { payload: ziyaPublicData, reload: reloadZiyaPublicData } = useZiyaPublicStorefrontData(
+    profile.subdomain || '',
+    Boolean(customerSignedIn),
+  );
+  const [localFavoriteSalon, setLocalFavoriteSalon] = useState(false);
+  const [favoriteBusy, setFavoriteBusy] = useState(false);
+
+  const isFavoriteSalon = useMemo(() => {
+    if (ziyaPublicData?.customer) return Boolean(ziyaPublicData.customer.isFavorite);
+    return localFavoriteSalon;
+  }, [ziyaPublicData, localFavoriteSalon]);
+
+  const handleToggleFavoriteSalon = async () => {
+    const slug = (profile.subdomain || '').trim();
+    if (!slug) {
+      setLocalFavoriteSalon((prev) => !prev);
+      return;
+    }
+    if (!customerSignedIn) {
+      onAccount('signin');
+      return;
+    }
+    setFavoriteBusy(true);
+    try {
+      await supabase.rpc('studioflow_android_favorite', { p_slug: slug });
+      await reloadZiyaPublicData();
+    } catch {
+      setLocalFavoriteSalon((prev) => !prev);
+    } finally {
+      setFavoriteBusy(false);
+    }
+  };
+
+  // Saved Women's Haircut Styles (Lookbook shortlist)
+  const savedStylesStorageKey = `ziya_saved_styles_${profile.subdomain || 'preview'}`;
+  const [savedStyleIds, setSavedStyleIds] = useState<string[]>([]);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(savedStylesStorageKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) setSavedStyleIds(parsed.map(String));
+      }
+    } catch {
+      // ignore storage errors
+    }
+  }, [savedStylesStorageKey]);
+
+  const toggleSavedStyle = (photoId: string) => {
+    setSavedStyleIds((prev) => {
+      const next = prev.includes(photoId) ? prev.filter((id) => id !== photoId) : [...prev, photoId];
+      try {
+        localStorage.setItem(savedStylesStorageKey, JSON.stringify(next));
+      } catch {
+        // ignore storage errors
+      }
+      return next;
+    });
+  };
   const ownerUploadedVideos = useMemo<ZiyaHaircutVideo[]>(() => {
     return showcaseVideos(profile)
       .filter((v) => !v.isDemo && Boolean(reelSource(v)))
@@ -317,13 +393,16 @@ export const LuxuryEditorialWebsite: React.FC<LuxuryEditorialWebsiteProps> = ({
   const [baSliderPos, setBaSliderPos] = useState<number>(52);
 
   const displayedGallery = useMemo(() => {
+    if (styleFilter === 'Saved Styles') {
+      return validGallery.filter((item) => savedStyleIds.includes(item.id));
+    }
     if (isSampleGallery) {
       if (styleFilter === 'All Styles') return validGallery;
       return validGallery.filter((item, idx) => matchGalleryStyleMeta(item.title, idx).styleFilter === styleFilter);
     }
     if (ownerCatFilter === 'All') return validGallery;
     return validGallery.filter((item) => item.category === ownerCatFilter);
-  }, [validGallery, isSampleGallery, styleFilter, ownerCatFilter]);
+  }, [validGallery, isSampleGallery, styleFilter, ownerCatFilter, savedStyleIds]);
 
   useEffect(() => {
     if (lightboxIndex === null) return undefined;
@@ -378,6 +457,10 @@ export const LuxuryEditorialWebsite: React.FC<LuxuryEditorialWebsiteProps> = ({
   const [selectedTime, setSelectedTime] = useState<string>('11:00');
   const [liveSlots, setLiveSlots] = useState<Array<{ value: string; label: string }>>(DEFAULT_STUDIO_SLOTS);
   const [loadingSlots, setLoadingSlots] = useState<boolean>(false);
+  const [deskCouponCode, setDeskCouponCode] = useState<string>('');
+  const [deskCouponNotice, setDeskCouponNotice] = useState<string>('');
+  const [deskCouponDiscount, setDeskCouponDiscount] = useState<number | null>(null);
+  const [checkingDeskCoupon, setCheckingDeskCoupon] = useState<boolean>(false);
 
   useEffect(() => {
     if (coreServices.length > 0 && !coreServices.some((s) => s.id === selectedServiceId)) {
@@ -447,6 +530,48 @@ export const LuxuryEditorialWebsite: React.FC<LuxuryEditorialWebsiteProps> = ({
     };
   }, [profile.subdomain, selectedDate, activeBookingService, activeBookingStylist?.id]);
 
+  const handleVerifyDeskCoupon = async () => {
+    const cleanCode = deskCouponCode.trim().toUpperCase();
+    setDeskCouponDiscount(null);
+    if (!cleanCode) {
+      setDeskCouponNotice('');
+      return;
+    }
+    const slug = (profile.subdomain || '').trim();
+    if (!slug) {
+      setDeskCouponNotice(
+        `Code ${cleanCode} selected — publish studio website to verify live Supabase coupon calculations.`,
+      );
+      return;
+    }
+    if (!customerSignedIn) {
+      setDeskCouponNotice(
+        `Code ${cleanCode} saved — sign in during booking confirmation to verify & apply your discount.`,
+      );
+      return;
+    }
+    setCheckingDeskCoupon(true);
+    setDeskCouponNotice('');
+    try {
+      const { data, error } = await supabase.rpc('studioflow_coupon_quote', {
+        p_slug: slug,
+        p_services: activeBookingService ? [activeBookingService.id] : [],
+        p_code: cleanCode,
+      });
+      if (error) throw error;
+      if (data && Number.isFinite(data.discountAmount)) {
+        setDeskCouponDiscount(Number(data.discountAmount));
+        setDeskCouponNotice(
+          `Verified! ${data.title} saves ₹${Number(data.discountAmount).toLocaleString('en-IN')} (Final: ₹${Number(data.finalPrice).toLocaleString('en-IN')}).`,
+        );
+      }
+    } catch (err) {
+      setDeskCouponNotice(err instanceof Error ? err.message : 'Coupon could not be verified.');
+    } finally {
+      setCheckingDeskCoupon(false);
+    }
+  };
+
   const handleBookingDeskSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const slot: DirectSalonSlot | undefined =
@@ -457,7 +582,26 @@ export const LuxuryEditorialWebsite: React.FC<LuxuryEditorialWebsiteProps> = ({
             stylistId: activeBookingStylist?.id || femaleTeam[0]?.id || '',
           }
         : undefined;
-    onBook(activeBookingService, activeBookingStylist, slot);
+    onBook(
+      activeBookingService,
+      activeBookingStylist,
+      slot,
+      deskCouponCode.trim().toUpperCase() || undefined,
+    );
+  };
+
+  const handleBookOfferOrReward = (service?: SalonService, couponCode?: string) => {
+    if (service?.id) setSelectedServiceId(service.id);
+    if (couponCode) {
+      setDeskCouponCode(couponCode.toUpperCase());
+      setDeskCouponDiscount(null);
+      setDeskCouponNotice(`Coupon ${couponCode.toUpperCase()} ready for checkout.`);
+    }
+    if (bookingAvailable) {
+      onBook(service || featuredService, undefined, undefined, couponCode);
+    } else if (typeof document !== 'undefined') {
+      document.getElementById('salon-bookings')?.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   // Owner-customizable headings with Women's Haircut Studio defaults
@@ -491,8 +635,8 @@ export const LuxuryEditorialWebsite: React.FC<LuxuryEditorialWebsiteProps> = ({
 
   const ownerExtras = useMemo(
     () =>
-      enabledSections.filter((s): s is 'promo' | 'social' | 'loyalty' | 'policies' | 'share' =>
-        ['promo', 'social', 'loyalty', 'policies', 'share'].includes(s),
+      enabledSections.filter((s): s is 'social' | 'policies' | 'share' =>
+        ['social', 'policies', 'share'].includes(s),
       ),
     [enabledSections],
   );
@@ -531,10 +675,28 @@ export const LuxuryEditorialWebsite: React.FC<LuxuryEditorialWebsiteProps> = ({
             {videosEnabled && <a href="#salon-videos">Videos</a>}
             <a href="#salon-team">Stylists</a>
             <a href="#salon-lookbook">Gallery</a>
+            {promoEnabled && <a href="#salon-promo">Offers</a>}
+            {loyaltyEnabled && <a href="#salon-loyalty">Rewards</a>}
             <a href="#salon-location">Contact</a>
           </nav>
 
           <div className="le-header-actions">
+            <button
+              type="button"
+              className={`le-wishlist-btn ${isFavoriteSalon ? 'is-saved' : ''}`}
+              disabled={favoriteBusy}
+              aria-pressed={isFavoriteSalon}
+              aria-label={
+                isFavoriteSalon
+                  ? `Remove ${brandName} from saved salons`
+                  : `Save ${brandName} to wishlist`
+              }
+              title={isFavoriteSalon ? 'Saved Salon' : 'Save Salon'}
+              onClick={() => void handleToggleFavoriteSalon()}
+            >
+              <Heart size={16} fill={isFavoriteSalon ? 'currentColor' : 'none'} aria-hidden="true" />
+            </button>
+
             {customerSignedIn ? (
               <>
                 <button
@@ -625,11 +787,21 @@ export const LuxuryEditorialWebsite: React.FC<LuxuryEditorialWebsiteProps> = ({
               <a href="#salon-lookbook" onClick={() => setMobileMenuOpen(false)}>
                 Haircut Style Gallery
               </a>
+              {promoEnabled && (
+                <a href="#salon-promo" onClick={() => setMobileMenuOpen(false)}>
+                  Promotions &amp; Offers
+                </a>
+              )}
+              {loyaltyEnabled && (
+                <a href="#salon-loyalty" onClick={() => setMobileMenuOpen(false)}>
+                  Ziya Style Rewards
+                </a>
+              )}
               <a href="#salon-bookings" onClick={() => setMobileMenuOpen(false)}>
                 Book Your Haircut
               </a>
               <a href="#salon-location" onClick={() => setMobileMenuOpen(false)}>
-                Contact & Location
+                Contact &amp; Location
               </a>
             </nav>
 
@@ -1422,6 +1594,17 @@ export const LuxuryEditorialWebsite: React.FC<LuxuryEditorialWebsiteProps> = ({
                     {filter}
                   </button>
                 ))}
+                {savedStyleIds.length > 0 && (
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={styleFilter === 'Saved Styles'}
+                    className={`le-filter-chip ${styleFilter === 'Saved Styles' ? 'is-active' : ''}`}
+                    onClick={() => setStyleFilter('Saved Styles')}
+                  >
+                    ♥ Saved Styles ({savedStyleIds.length})
+                  </button>
+                )}
               </div>
             ) : (
               ownerGalleryCategories.length > 1 && (
@@ -1450,23 +1633,39 @@ export const LuxuryEditorialWebsite: React.FC<LuxuryEditorialWebsiteProps> = ({
             <div className="le-lookbook-grid">
               {displayedGallery.map((photo, index) => {
                 const meta = matchGalleryStyleMeta(photo.title, index);
+                const isStyleSaved = savedStyleIds.includes(photo.id);
                 return (
                   <figure key={photo.id} className={`le-tile le-tile-${(index % 3) + 1}`}>
-                    <button
-                      type="button"
-                      className="le-tile-trigger"
-                      onClick={() => setLightboxIndex(index)}
-                      aria-label={`Inspect haircut style: ${photo.title}`}
-                    >
-                      <img
-                        src={photo.url}
-                        srcSet={luxuryEditorialSrcSet(photo.url)}
-                        sizes="(max-width: 640px) 92vw, (max-width: 1024px) 46vw, 31vw"
-                        alt={photo.title}
-                        loading="lazy"
-                      />
-                      <span className="le-tile-tag">{isSampleGallery ? meta.cutTag : photo.category}</span>
-                    </button>
+                    <div className="le-tile-media-wrap">
+                      <button
+                        type="button"
+                        className="le-tile-trigger"
+                        onClick={() => setLightboxIndex(index)}
+                        aria-label={`Inspect haircut style: ${photo.title}`}
+                      >
+                        <img
+                          src={photo.url}
+                          srcSet={luxuryEditorialSrcSet(photo.url)}
+                          sizes="(max-width: 640px) 92vw, (max-width: 1024px) 46vw, 31vw"
+                          alt={photo.title}
+                          loading="lazy"
+                        />
+                        <span className="le-tile-tag">{isSampleGallery ? meta.cutTag : photo.category}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={`le-tile-save-btn ${isStyleSaved ? 'is-saved' : ''}`}
+                        aria-pressed={isStyleSaved}
+                        aria-label={
+                          isStyleSaved
+                            ? `Remove ${photo.title} from saved styles`
+                            : `Save ${photo.title} haircut style`
+                        }
+                        onClick={() => toggleSavedStyle(photo.id)}
+                      >
+                        <Heart size={14} fill={isStyleSaved ? 'currentColor' : 'none'} aria-hidden="true" />
+                      </button>
+                    </div>
                     <figcaption className="le-tile-caption">
                       <div>
                         <strong>{photo.title}</strong>
@@ -1825,6 +2024,43 @@ export const LuxuryEditorialWebsite: React.FC<LuxuryEditorialWebsiteProps> = ({
                   </div>
                 </div>
 
+                {/* Optional Step 5: Offer / Loyalty Coupon Code */}
+                <div className="le-field-group">
+                  <label htmlFor="ziya-booking-coupon" className="le-field-label">
+                    <span>5. Offer or Ziya Style Reward Code (Optional)</span>
+                    <span className="le-field-hint">
+                      <Tag size={13} aria-hidden="true" /> e.g. ZIYA15, NEWLOOK200, LAYER10
+                    </span>
+                  </label>
+                  <div className="le-desk-coupon-row">
+                    <input
+                      id="ziya-booking-coupon"
+                      type="text"
+                      value={deskCouponCode}
+                      onChange={(e) => {
+                        setDeskCouponCode(e.target.value.toUpperCase());
+                        setDeskCouponDiscount(null);
+                        setDeskCouponNotice('');
+                      }}
+                      placeholder="Enter coupon or reward voucher code"
+                      className="le-date-input le-desk-coupon-input"
+                    />
+                    <button
+                      type="button"
+                      disabled={checkingDeskCoupon || !deskCouponCode.trim()}
+                      onClick={() => void handleVerifyDeskCoupon()}
+                      className="le-btn le-btn-outline le-btn-sm"
+                    >
+                      {checkingDeskCoupon ? 'Verifying…' : 'Verify Code'}
+                    </button>
+                  </div>
+                  {deskCouponNotice && (
+                    <p className="le-desk-coupon-notice" role="status" aria-live="polite">
+                      {deskCouponNotice}
+                    </p>
+                  )}
+                </div>
+
                 <div className="le-booking-summary">
                   <div>
                     <span className="le-kicker-mini">Selected Appointment</span>
@@ -1832,11 +2068,17 @@ export const LuxuryEditorialWebsite: React.FC<LuxuryEditorialWebsiteProps> = ({
                     <span>
                       with {activeBookingStylist?.name || 'Senior Female Stylist'} · {selectedDate} ·{' '}
                       {formatSlotLabel(selectedTime)}
+                      {deskCouponCode.trim() ? ` · Code: ${deskCouponCode.trim()}` : ''}
                     </span>
                   </div>
                   <strong className="le-summary-price">
                     {activeBookingService
-                      ? formatInr(activeBookingService.price, profile.currency || '₹')
+                      ? formatInr(
+                          deskCouponDiscount
+                            ? Math.max(4, activeBookingService.price - deskCouponDiscount)
+                            : activeBookingService.price,
+                          profile.currency || '₹',
+                        )
                       : ''}
                   </strong>
                 </div>
@@ -1926,14 +2168,54 @@ export const LuxuryEditorialWebsite: React.FC<LuxuryEditorialWebsiteProps> = ({
                 </dl>
                 <p className="le-hours-note">
                   Walk-ins welcome subject to chair availability; advance online booking recommended for
-                  weekend butterfly & curly cut sessions.
+                  weekend butterfly &amp; curly cut sessions.
                 </p>
               </div>
+            </div>
+
+            <div className="le-ziya-contact-wrap">
+              <ZiyaContactForm profile={profile} services={coreServices} />
             </div>
           </div>
         </section>
 
-        {/* Shared owner-managed platform sections (promo, social, loyalty, policies, share) */}
+        {/* =================================================================
+            9B. PROMOTIONS & OFFERS — Ziya Women’s Hair Studio
+           ================================================================= */}
+        {promoEnabled && (
+          <ZiyaPromotionsSection
+            profile={profile}
+            services={womensServices}
+            publicData={ziyaPublicData}
+            readOnly={shared.readOnly}
+            isEditingActive={shared.isEditingActive}
+            setProfile={shared.setProfile}
+            onManage={shared.onManage}
+            onBookOffer={handleBookOfferOrReward}
+          />
+        )}
+
+        {/* =================================================================
+            9C. LOYALTY & REWARDS — Ziya Style Rewards
+           ================================================================= */}
+        {loyaltyEnabled && (
+          <ZiyaLoyaltySection
+            profile={profile}
+            services={womensServices}
+            loyaltyConfig={shared.loyaltyConfig}
+            publicData={ziyaPublicData}
+            onRefreshPublicData={reloadZiyaPublicData}
+            customerSignedIn={customerSignedIn}
+            onCustomerAccount={onAccount}
+            readOnly={shared.readOnly}
+            isEditingActive={shared.isEditingActive}
+            setProfile={shared.setProfile}
+            onManage={shared.onManage}
+            onBookWithVoucher={handleBookOfferOrReward}
+          />
+        )}
+
+        {/* Shared owner-managed platform sections (social, policies, share) */}
         {ownerExtras.length > 0 && (
           <div className="le-owner-extras">
             <div className="le-container">
@@ -2023,6 +2305,16 @@ export const LuxuryEditorialWebsite: React.FC<LuxuryEditorialWebsiteProps> = ({
               <li>
                 <a href="#salon-team">Female Hairstylists</a>
               </li>
+              {promoEnabled && (
+                <li>
+                  <a href="#salon-promo">Promotions &amp; Offers</a>
+                </li>
+              )}
+              {loyaltyEnabled && (
+                <li>
+                  <a href="#salon-loyalty">Ziya Style Rewards</a>
+                </li>
+              )}
             </ul>
           </div>
 

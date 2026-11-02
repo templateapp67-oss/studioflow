@@ -2554,3 +2554,747 @@
     scroll-behavior: auto;
   }
 }
+
+/* ==========================================================================
+   11. ZIYA WISHLIST, PROMOTIONS, STYLE REWARDS & HAIRCUT CONTACT FORM
+   ========================================================================== */
+.le-wishlist-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid var(--le-beige);
+  background: var(--le-white);
+  color: var(--le-ink-soft);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.le-wishlist-btn:hover,
+.le-wishlist-btn.is-saved {
+  border-color: #c2807a;
+  background: #fdf2f0;
+  color: #a14d48;
+}
+
+.le-tile-media-wrap {
+  position: relative;
+}
+
+.le-tile-save-btn {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  background: rgba(38, 28, 24, 0.56);
+  color: #ffffff;
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+  transition: transform 0.18s ease, background 0.18s ease;
+}
+
+.le-tile-save-btn:hover,
+.le-tile-save-btn.is-saved {
+  background: #a14d48;
+  border-color: #f6d5d1;
+  transform: scale(1.05);
+}
+
+.le-desk-coupon-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.le-desk-coupon-input {
+  flex: 1 1 200px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.le-desk-coupon-notice {
+  margin-top: 0.45rem;
+  font-size: 0.82rem;
+  color: var(--le-ink-soft);
+  background: var(--le-ivory);
+  border: 1px solid var(--le-beige);
+  border-radius: var(--le-radius-sm);
+  padding: 0.45rem 0.75rem;
+}
+
+/* Promotions Section */
+.le-ziya-promo-section {
+  background: linear-gradient(180deg, var(--le-ivory) 0%, #f9f1eb 100%);
+  border-top: 1px solid var(--le-line);
+  border-bottom: 1px solid var(--le-line);
+}
+
+.le-ziya-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.le-ziya-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.le-ziya-demo-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.38rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  background: #fdf6ec;
+  color: #7c5626;
+  border: 1px solid #ead3b3;
+}
+
+.le-ziya-toast {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 1.35rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--le-radius-sm);
+  background: #effaf3;
+  border: 1px solid #bde5cb;
+  color: #1c5935;
+  font-size: 0.86rem;
+  font-weight: 500;
+}
+
+.le-ziya-toast.is-error {
+  background: #fef2f2;
+  border-color: #f7c7c7;
+  color: #8b2626;
+}
+
+.le-ziya-campaign-highlight {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 1.5rem;
+  align-items: center;
+  background: var(--le-white);
+  border: 1px solid var(--le-beige);
+  border-radius: var(--le-radius-lg);
+  overflow: hidden;
+  margin-bottom: 1.75rem;
+  box-shadow: var(--le-shadow-sm);
+}
+
+.le-ziya-campaign-media img {
+  width: 100%;
+  height: 100%;
+  max-height: 300px;
+  object-fit: cover;
+  display: block;
+}
+
+.le-ziya-campaign-body {
+  padding: 1.5rem;
+}
+
+.le-ziya-promo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.4rem;
+}
+
+.le-ziya-promo-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--le-white);
+  border: 1px solid var(--le-beige);
+  border-radius: var(--le-radius-md);
+  overflow: hidden;
+  box-shadow: var(--le-shadow-sm);
+  transition: transform 0.22s ease, border-color 0.22s ease;
+}
+
+.le-ziya-promo-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--le-gold);
+}
+
+.le-ziya-promo-media {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  background: #ede1d8;
+  overflow: hidden;
+}
+
+.le-ziya-promo-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.le-ziya-discount-badge {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  padding: 0.32rem 0.75rem;
+  border-radius: 999px;
+  background: var(--le-espresso);
+  color: #fffaf4;
+  font-size: 0.73rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.le-ziya-card-demo-tag {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  padding: 0.24rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(253, 250, 246, 0.92);
+  color: #6b4e35;
+  border: 1px solid #e5d2bd;
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+.le-ziya-promo-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 1.25rem;
+  gap: 0.7rem;
+}
+
+.le-ziya-promo-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.74rem;
+  color: var(--le-ink-mute);
+}
+
+.le-ziya-promo-title {
+  font-family: var(--le-font-serif);
+  font-size: 1.28rem;
+  line-height: 1.25;
+  color: var(--le-espresso);
+  margin: 0;
+}
+
+.le-ziya-promo-desc {
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--le-ink-soft);
+  margin: 0;
+}
+
+.le-ziya-coupon-bar,
+.le-ziya-code-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--le-radius-sm);
+  background: #faf3ed;
+  border: 1px dashed #d8beab;
+}
+
+.le-ziya-coupon-code,
+.le-ziya-code-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.84rem;
+  color: var(--le-espresso);
+}
+
+.le-ziya-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.32rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--le-beige);
+  background: var(--le-white);
+  color: var(--le-espresso);
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.le-ziya-copy-btn:hover {
+  border-color: var(--le-gold);
+  background: #fdf8f2;
+}
+
+.le-ziya-terms {
+  font-size: 0.76rem;
+  color: var(--le-ink-mute);
+}
+
+.le-ziya-terms summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.le-ziya-terms p {
+  margin: 0.4rem 0 0;
+  line-height: 1.45;
+}
+
+.le-ziya-promo-footer {
+  margin-top: auto;
+  padding-top: 0.4rem;
+}
+
+.le-btn-full {
+  width: 100%;
+  justify-content: center;
+}
+
+/* Ziya Style Rewards Section */
+.le-ziya-loyalty-section {
+  background: var(--le-cream);
+  border-bottom: 1px solid var(--le-line);
+}
+
+.le-ziya-loyalty-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.le-ziya-loyalty-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 1.35rem;
+  margin-bottom: 1.6rem;
+}
+
+.le-ziya-balance-card,
+.le-ziya-rules-card {
+  background: var(--le-white);
+  border: 1px solid var(--le-beige);
+  border-radius: var(--le-radius-md);
+  padding: 1.4rem;
+  box-shadow: var(--le-shadow-sm);
+}
+
+.le-ziya-balance-top {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.le-ziya-balance-label {
+  display: block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--le-ink-mute);
+}
+
+.le-ziya-balance-figure {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  margin-top: 0.2rem;
+}
+
+.le-ziya-balance-figure strong {
+  font-family: var(--le-font-serif);
+  font-size: 2.35rem;
+  line-height: 1;
+  color: var(--le-espresso);
+}
+
+.le-ziya-balance-figure span {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--le-ink-soft);
+}
+
+.le-ziya-earn-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: #faf2ea;
+  border: 1px solid #e6d1be;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--le-espresso);
+}
+
+.le-ziya-stats-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  border-radius: var(--le-radius-sm);
+  background: var(--le-ivory);
+}
+
+.le-ziya-stats-strip span {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--le-ink-mute);
+}
+
+.le-ziya-stats-strip strong {
+  font-size: 0.95rem;
+  color: var(--le-espresso);
+}
+
+.le-ziya-guest-note {
+  margin: 0.85rem 0 0;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--le-ink-soft);
+}
+
+.le-ziya-progress-wrap {
+  margin-top: 1rem;
+}
+
+.le-ziya-progress-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--le-ink-soft);
+  margin-bottom: 0.35rem;
+}
+
+.le-ziya-progress-track {
+  height: 8px;
+  border-radius: 999px;
+  background: #efe4da;
+  overflow: hidden;
+}
+
+.le-ziya-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #c29b70 0%, #8f6856 100%);
+  transition: width 0.3s ease;
+}
+
+.le-ziya-balance-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1.1rem;
+}
+
+.le-ziya-rules-card h3 {
+  font-family: var(--le-font-serif);
+  font-size: 1.25rem;
+  margin: 0 0 0.85rem;
+  color: var(--le-espresso);
+}
+
+.le-ziya-steps-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.le-ziya-steps-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.84rem;
+}
+
+.le-ziya-steps-list strong {
+  color: var(--le-espresso);
+}
+
+.le-ziya-steps-list span {
+  color: var(--le-ink-soft);
+}
+
+.le-ziya-rules-terms {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin: 0.95rem 0 0;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--le-line);
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--le-ink-mute);
+}
+
+.le-ziya-vouchers-box,
+.le-ziya-history-panel {
+  background: var(--le-white);
+  border: 1px solid var(--le-beige);
+  border-radius: var(--le-radius-md);
+  padding: 1.2rem;
+  margin-bottom: 1.4rem;
+}
+
+.le-ziya-vouchers-box h3,
+.le-ziya-history-panel h3 {
+  font-family: var(--le-font-serif);
+  font-size: 1.15rem;
+  margin: 0 0 0.8rem;
+  color: var(--le-espresso);
+}
+
+.le-ziya-vouchers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.8rem;
+}
+
+.le-ziya-voucher-item {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--le-radius-sm);
+  background: #faf3ed;
+  border: 1px solid #dfc8b6;
+}
+
+.le-ziya-voucher-code {
+  display: block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  color: #7c5626;
+}
+
+.le-ziya-voucher-btns {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.le-ziya-ledger-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.le-ziya-ledger-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--le-radius-sm);
+  background: var(--le-ivory);
+  font-size: 0.82rem;
+}
+
+.le-ziya-ledger-row span {
+  display: block;
+  font-size: 0.73rem;
+  color: var(--le-ink-mute);
+}
+
+.le-ziya-ledger-delta {
+  text-align: right;
+}
+
+.le-ziya-ledger-delta .is-plus {
+  color: #1c6b3d;
+  font-weight: 700;
+}
+
+.le-ziya-ledger-delta .is-minus {
+  color: #9b3030;
+  font-weight: 700;
+}
+
+.le-ziya-reward-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.le-ziya-reward-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.le-ziya-mini-demo {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: #faf2ea;
+  color: #7c5626;
+  border: 1px solid #e6d1be;
+}
+
+.le-ziya-reward-min {
+  font-size: 0.76rem;
+  color: var(--le-ink-mute);
+  margin: 0;
+}
+
+.le-ziya-reward-actions {
+  margin-top: auto;
+  padding-top: 0.5rem;
+}
+
+.le-ziya-empty-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  border-radius: var(--le-radius-md);
+  background: var(--le-white);
+  border: 1px solid var(--le-beige);
+  color: var(--le-ink-soft);
+}
+
+/* Haircut Contact & Enquiry Form */
+.le-ziya-contact-wrap {
+  margin-top: 1.75rem;
+}
+
+.le-ziya-contact-card {
+  background: var(--le-white);
+  border: 1px solid var(--le-beige);
+  border-radius: var(--le-radius-lg);
+  padding: 1.75rem;
+  box-shadow: var(--le-shadow-sm);
+}
+
+.le-ziya-contact-head h3 {
+  font-family: var(--le-font-serif);
+  font-size: 1.55rem;
+  color: var(--le-espresso);
+  margin: 0.25rem 0 0.4rem;
+}
+
+.le-ziya-contact-head p {
+  font-size: 0.9rem;
+  color: var(--le-ink-soft);
+  margin: 0 0 1.25rem;
+}
+
+.le-ziya-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.1rem;
+}
+
+.le-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.le-field span {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--le-espresso);
+}
+
+.le-field input,
+.le-field select,
+.le-field textarea {
+  width: 100%;
+  padding: 0.68rem 0.85rem;
+  border-radius: var(--le-radius-sm);
+  border: 1px solid var(--le-beige);
+  background: var(--le-ivory);
+  color: var(--le-espresso);
+  font-size: 0.9rem;
+  font-family: inherit;
+}
+
+.le-field input:focus,
+.le-field select:focus,
+.le-field textarea:focus {
+  outline: none;
+  border-color: var(--le-gold);
+  background: var(--le-white);
+}
+
+.le-field-full {
+  grid-column: 1 / -1;
+}
+
+.le-ziya-form-feedback {
+  margin: 0 0 1rem;
+  padding: 0.7rem 0.95rem;
+  border-radius: var(--le-radius-sm);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.le-ziya-form-feedback.is-success {
+  background: #effaf3;
+  border: 1px solid #bde5cb;
+  color: #1c5935;
+}
+
+.le-ziya-form-feedback.is-error {
+  background: #fef2f2;
+  border: 1px solid #f7c7c7;
+  color: #8b2626;
+}
+
+@media (max-width: 960px) {
+  .le-ziya-promo-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .le-ziya-loyalty-overview,
+  .le-ziya-campaign-highlight {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .le-ziya-promo-grid,
+  .le-ziya-form-grid,
+  .le-ziya-stats-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .le-ziya-contact-card {
+    padding: 1.2rem;
+  }
+}

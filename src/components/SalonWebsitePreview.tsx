@@ -10,6 +10,7 @@ import {PrismChromaEditor} from './prism-chroma/PrismChromaEditor';
 import {ShringaarRoyalEditor} from './shringaar-royal/ShringaarRoyalEditor';
 import {IronInkEditor} from './iron-ink/IronInkEditor';
 import {ArchFlutterEditor} from './arch-flutter/ArchFlutterEditor';
+import {ZiyaAdminPanel} from './ziya/ZiyaAdminPanel';
 import {vedaConfigFor} from '../lib/vedaSanjeevaniCustomizer';
 import {AcademyEnquiriesPanel} from './vogue-noir/AcademyEnquiriesPanel';
 import { AppInstallSection } from './AppInstallSection';
@@ -105,8 +106,19 @@ type DeviceMode = 'desktop' | 'tablet' | 'mobile';
 export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = props => {
  const [editing,setEditing]=useState(false);
  if(props.readOnly)return <CustomerSalonWebsite {...props}/>;
- return <><div className="pt-28 px-4 pb-4 flex flex-wrap gap-3 bg-white text-slate-900"><button className="secondary-action" onClick={()=>setEditing(value=>!value)}>{editing?'Show redesigned website':'Open owner editing tools'}</button><button className="secondary-action" onClick={props.onEnterClientPreview}>Customer device preview</button></div>{editing?(props.profile.businessType==='ayurvedic_spa'?<VedaSanjeevaniPreviewEditor {...props}/>:props.profile.businessType==='skincare_clinic'?<ClinicPreviewEditor {...props}/>:props.profile.businessType==='makeup_studio'?<VogueNoirPreviewEditor {...props}/>:props.profile.businessType==='massage_wellness'?<BodhiTreePreviewEditor {...props}/>:props.profile.businessType==='hair_coloring'?<PrismChromaPreviewEditor {...props}/>:props.profile.businessType==='bridal_lounge'?<ShringaarRoyalPreviewEditor {...props}/>:props.profile.businessType==='tattoo_studio'?<IronInkPreviewEditor {...props}/>:props.profile.businessType==='lash_brow'?<ArchFlutterPreviewEditor {...props}/>:<SalonWebsiteEditor {...props}/>):<CustomerSalonWebsite {...props} readOnly/>}</>;
+ return <><div className="pt-28 px-4 pb-4 flex flex-wrap gap-3 bg-white text-slate-900"><button className="secondary-action" onClick={()=>setEditing(value=>!value)}>{editing?'Show redesigned website':'Open owner editing tools'}</button><button className="secondary-action" onClick={props.onEnterClientPreview}>Customer device preview</button></div>{editing?(props.profile.businessType==='hair_salon'?<ZiyaPreviewEditor {...props}/>:props.profile.businessType==='ayurvedic_spa'?<VedaSanjeevaniPreviewEditor {...props}/>:props.profile.businessType==='skincare_clinic'?<ClinicPreviewEditor {...props}/>:props.profile.businessType==='makeup_studio'?<VogueNoirPreviewEditor {...props}/>:props.profile.businessType==='massage_wellness'?<BodhiTreePreviewEditor {...props}/>:props.profile.businessType==='hair_coloring'?<PrismChromaPreviewEditor {...props}/>:props.profile.businessType==='bridal_lounge'?<ShringaarRoyalPreviewEditor {...props}/>:props.profile.businessType==='tattoo_studio'?<IronInkPreviewEditor {...props}/>:props.profile.businessType==='lash_brow'?<ArchFlutterPreviewEditor {...props}/>:<SalonWebsiteEditor {...props}/>):<CustomerSalonWebsite {...props} readOnly/>}</>;
 };
+
+function ZiyaPreviewEditor(props:SalonWebsitePreviewProps) {
+ const accent=props.profile.customAccentColor||'#b8956a';
+ return <main className="max-w-6xl mx-auto p-4 space-y-6" aria-label="Ziya Women’s Hair Studio owner editing tools">
+  <p>Edit your Ziya Women’s Hair Studio website — hero, women’s haircut menu &amp; ₹ prices, female hairstylist team, haircut style gallery, video showcase, verified coupon promotions, Ziya Style Rewards, client reviews, and haircut consultation enquiries.</p>
+  <ZiyaAdminPanel profile={props.profile} services={props.services}/>
+  {props.setProfile?<WebsiteContentManager profile={props.profile} setProfile={props.setProfile} services={props.services} gallery={props.gallery}/>:<p role="status">Content editing requires a connected owner workspace.</p>}
+  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
+  {props.setStylists?<TeamManagement stylists={props.stylists} setStylists={props.setStylists} services={props.services} setServices={props.setServices} businessType="hair_salon" primaryAccentColor={accent}/>:null}
+ </main>;
+}
 
 function VedaSanjeevaniPreviewEditor(props:SalonWebsitePreviewProps) {
  const config=vedaConfigFor(props.profile);
