@@ -21,8 +21,23 @@ export function isDemoLookbook(profile:SalonProfile,gallery:string[]){return gal
 // Each category has ten distinct sample stories. Real submissions take priority.
 export function tenDemoTestimonials(type:BusinessTypeId):Testimonial[]{
  const template=CATEGORY_TEMPLATES[type]||CATEGORY_TEMPLATES.hair_salon;
- const names=['Aditi Sharma','Rohan Mehta','Neha Kapoor','Arjun Singh','Kavya Rao','Sameer Joshi','Isha Verma','Dev Patel','Meera Nair','Nikhil Shah'];
- const stories=[
+ const names=type==='hair_salon'
+  ?['Ananya Deshmukh','Priya Kulkarni','Riya Malhotra','Sneha Iyer','Pooja Joshi','Tanvi Rao','Neha Kapoor','Aditi Sharma','Isha Verma','Nandini Menon']
+  :['Aditi Sharma','Rohan Mehta','Neha Kapoor','Arjun Singh','Kavya Rao','Sameer Joshi','Isha Verma','Dev Patel','Meera Nair','Nikhil Shah'];
+ const stories=type==='hair_salon'
+  ?[
+   'Ziya analysed my oval face shape before starting my Layer Haircut and placed the shortest layer right at my cheekbones. My hair falls beautifully even when air-dried.',
+   'Meera gave me the cleanest collarbone Bob Haircut I have ever had. Every section is balanced, light and effortless to style in the morning.',
+   'My Butterfly Haircut kept all my length while adding gorgeous bounce through the crown and face-framing pieces. Best women’s haircut studio in Bandra.',
+   'I booked Curtain Bangs & Fringe for my round face and the stylist blended them seamlessly into my front layers without losing volume.',
+   'Diya cut my natural curls dry curl-by-curl during my Curly Haircut. Zero triangle bulk and soft, defined shape all around.',
+   'The Haircut Consultation helped me choose between a U Cut and a Step Haircut for my thick hair. No rushing, clear pricing and genuine expertise.',
+   'Kavya transformed my grown-out hair into a textured Short Haircut that frames my jawline and takes five minutes to style before work.',
+   'I loved that the entire studio focuses exclusively on women’s haircuts. My Face-Framing Haircut gave my long hair fresh movement right away.',
+   'Booked Hair Wash & Hair Styling with Haircut before a family gathering — warm consultation, feather-light layers and a bouncy salon blowout.',
+   'Clean sectioning, honest face-shape advice and an all-female stylist team who truly understand women’s hair textures. My Blunt Cut looks sharp week after week.'
+  ]
+  :[
   'The consultation helped me explain exactly what I wanted. I appreciated the careful attention throughout the appointment.',
   'Booking was straightforward and my appointment started on time. The team explained each step clearly.',
   'A calm studio and a thoughtful specialist made this a relaxing visit. The finishing touches were especially lovely.',

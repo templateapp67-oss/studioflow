@@ -1,86 +1,123 @@
 /**
- * Template 01 — Luxury Editorial Salon asset pipeline.
+ * Template 01 — Ziya Women’s Hair Studio asset pipeline.
  *
- * Source photographs live in `design/templates/01-sources/` (AI-generated for
- * this template only). This script crops — never stretches — each slot to its
- * section aspect ratio and emits the responsive WebP set served from
- * `public/templates/luxury-editorial/`.
+ * Source photographs live in `design/templates/01-sources/` (women's haircuts
+ * and female hairstylists only). This script center-crops — never stretches —
+ * each slot to its section aspect ratio and emits responsive WebP variants
+ * served from `public/templates/luxury-editorial/`.
  *
- * Run: `node scripts/build-template01-assets.mjs` (needs `sharp`; install with
- * `npm i --no-save sharp`). Generated files are committed, so a normal install
- * never needs sharp.
+ * Run: `node scripts/build-template01-assets.mjs`
+ * Uses `sharp` when installed, falling back to ImageMagick `convert` + `identify`.
  */
 import { mkdir, stat } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
-import sharp from 'sharp';
 
 const ROOT = process.cwd();
 const SOURCE = path.join(ROOT, 'design/templates/01-sources');
 const OUT = path.join(ROOT, 'public/templates/luxury-editorial');
 
-/** slot → source, target ratio, widths, crop focus */
+/** slot -> source, target ratio, widths, gravity */
 const SLOTS = [
-  { name: 'hero', source: 'hero.jpg', ratio: 4 / 5, widths: [480, 680, 900], position: 'centre' },
-  { name: 'hero-detail', source: 'hero-detail.jpg', ratio: 1, widths: [360, 560], position: 'centre' },
-  { name: 'about', source: 'about.jpg', ratio: 3 / 4, widths: [480, 660, 800], position: 'centre' },
-  { name: 'about-detail', source: 'about-detail.jpg', ratio: 1, widths: [360, 620], position: 'centre' },
-  { name: 'booking', source: 'booking.jpg', ratio: 16 / 9, widths: [800, 1200, 1400], position: 'centre' },
-  { name: 'service-cut', source: 'service-cut.jpg', ratio: 4 / 3, widths: [480, 760], position: 'centre' },
-  { name: 'service-colour', source: 'service-colour.jpg', ratio: 4 / 3, widths: [480, 760], position: 'centre' },
-  { name: 'service-keratin', source: 'service-keratin.jpg', ratio: 4 / 3, widths: [480, 760], position: 'centre' },
-  { name: 'service-keratin-alt', source: 'service-keratin.jpg', ratio: 1, widths: [480, 760], position: 'centre' },
-  { name: 'service-styling', source: 'service-styling.jpg', ratio: 4 / 3, widths: [480, 760], position: 'centre' },
-  { name: 'service-scalp', source: 'service-scalp.jpg', ratio: 4 / 3, widths: [480, 760], position: 'centre' },
-  { name: 'service-bridal', source: 'service-bridal.jpg', ratio: 4 / 3, widths: [480, 760], position: 'centre' },
-  { name: 'team-1', source: 'team-1.jpg', ratio: 3 / 4, widths: [420, 680], position: 'attention' },
-  { name: 'team-2', source: 'team-2.jpg', ratio: 3 / 4, widths: [420, 680], position: 'attention' },
-  { name: 'team-3', source: 'team-3.jpg', ratio: 3 / 4, widths: [420, 680], position: 'attention' },
-  { name: 'gallery-1', source: 'gallery-1.jpg', ratio: 3 / 4, widths: [480, 700], position: 'centre' },
-  { name: 'gallery-2', source: 'gallery-2.jpg', ratio: 4 / 3, widths: [520, 900], position: 'centre' },
-  { name: 'gallery-3', source: 'gallery-3.jpg', ratio: 1, widths: [480, 700], position: 'centre' },
-  { name: 'gallery-4', source: 'gallery-4.jpg', ratio: 4 / 5, widths: [480, 700], position: 'centre' },
-  { name: 'gallery-5', source: 'gallery-5.jpg', ratio: 3 / 2, widths: [520, 900], position: 'centre' },
-  { name: 'gallery-6', source: 'gallery-6.jpg', ratio: 1, widths: [480, 700], position: 'centre' },
+  { name: 'hero', source: 'hero.jpg', ratio: 4 / 5, widths: [480, 680, 960], gravity: 'North' },
+  { name: 'hero-detail', source: 'hero-detail.jpg', ratio: 1, widths: [360, 560], gravity: 'Center' },
+  { name: 'about', source: 'about.jpg', ratio: 4 / 3, widths: [480, 760, 1040], gravity: 'Center' },
+  { name: 'about-detail', source: 'about-detail.jpg', ratio: 1, widths: [360, 620], gravity: 'Center' },
+  { name: 'booking', source: 'booking.jpg', ratio: 16 / 9, widths: [800, 1200], gravity: 'Center' },
+
+  // 14 specialist women's haircut service slots (4:5 vertical portrait preserves crown to ends)
+  { name: 'service-layer', source: 'service-layer.jpg', ratio: 4 / 5, widths: [480, 760], gravity: 'North' },
+  { name: 'service-butterfly', source: 'service-butterfly.jpg', ratio: 4 / 5, widths: [480, 760], gravity: 'North' },
+  { name: 'service-bob', source: 'service-bob.jpg', ratio: 4 / 5, widths: [480, 760], gravity: 'North' },
+  { name: 'service-uv-cut', source: 'service-uv-cut.jpg', ratio: 4 / 5, widths: [480, 760], gravity: 'Center' },
+  { name: 'service-step', source: 'service-step.jpg', ratio: 4 / 5, widths: [480, 760], gravity: 'Center' },
+  { name: 'service-pixie', source: 'service-pixie.jpg', ratio: 4 / 5, widths: [480, 760], gravity: 'North' },
+  { name: 'service-blunt', source: 'service-blunt.jpg', ratio: 4 / 5, widths: [480, 760], gravity: 'Center' },
+  { name: 'service-long', source: 'service-long.jpg', ratio: 4 / 5, widths: [480, 760], gravity: 'North' },
+  { name: 'service-short', source: 'service-short.jpg', ratio: 4 / 5, widths: [480, 760], gravity: 'North' },
+  { name: 'service-bangs', source: 'service-bangs.jpg', ratio: 4 / 5, widths: [480, 760], gravity: 'North' },
+  { name: 'service-framing', source: 'service-framing.jpg', ratio: 4 / 5, widths: [480, 760], gravity: 'North' },
+  { name: 'service-curly', source: 'service-curly.jpg', ratio: 4 / 5, widths: [480, 760], gravity: 'North' },
+  { name: 'service-consult', source: 'service-consult.jpg', ratio: 4 / 5, widths: [480, 760], gravity: 'Center' },
+  { name: 'service-styling', source: 'service-styling.jpg', ratio: 4 / 5, widths: [480, 760], gravity: 'Center' },
+  { name: 'service-cut', source: 'service-cut.jpg', ratio: 4 / 5, widths: [480, 760], gravity: 'North' },
+
+  // 4 female hairstylists
+  { name: 'team-1', source: 'team-1.jpg', ratio: 3 / 4, widths: [420, 680, 960], gravity: 'North' },
+  { name: 'team-2', source: 'team-2.jpg', ratio: 3 / 4, widths: [420, 680], gravity: 'North' },
+  { name: 'team-3', source: 'team-3.jpg', ratio: 3 / 4, widths: [420, 680], gravity: 'North' },
+  { name: 'team-4', source: 'team-4.jpg', ratio: 3 / 4, widths: [420, 680], gravity: 'North' },
+
+  // 9 distinct women's haircut style gallery plates (standalone single photos, zero collages)
+  { name: 'gallery-1', source: 'gallery-1.jpg', ratio: 4 / 5, widths: [480, 760], gravity: 'North' },
+  { name: 'gallery-2', source: 'gallery-2.jpg', ratio: 4 / 5, widths: [480, 760], gravity: 'North' },
+  { name: 'gallery-3', source: 'gallery-3.jpg', ratio: 4 / 5, widths: [480, 760], gravity: 'North' },
+  { name: 'gallery-4', source: 'gallery-4.jpg', ratio: 4 / 5, widths: [480, 760], gravity: 'North' },
+  { name: 'gallery-5', source: 'gallery-5.jpg', ratio: 4 / 5, widths: [480, 760], gravity: 'North' },
+  { name: 'gallery-6', source: 'gallery-6.jpg', ratio: 4 / 5, widths: [480, 760], gravity: 'Center' },
+  { name: 'gallery-7', source: 'gallery-7.jpg', ratio: 4 / 5, widths: [480, 760], gravity: 'North' },
+  { name: 'gallery-8', source: 'gallery-8.jpg', ratio: 4 / 5, widths: [480, 760], gravity: 'North' },
+  { name: 'gallery-9', source: 'gallery-9.jpg', ratio: 4 / 5, widths: [480, 760], gravity: 'Center' },
 ];
+
+function renderWithConvert(input, target, width, height, gravity) {
+  execFileSync('convert', [
+    input,
+    '-auto-orient',
+    '-strip',
+    '-filter', 'Lanczos',
+    '-resize', `${width}x${height}^`,
+    '-gravity', gravity || 'Center',
+    '-extent', `${width}x${height}`,
+    '-quality', '82',
+    '-define', 'webp:method=6',
+    target,
+  ]);
+}
 
 async function build() {
   await mkdir(OUT, { recursive: true });
-  const missing = [];
-  let total = 0;
+  let sharpLib = null;
+  try {
+    const mod = await import('sharp');
+    sharpLib = mod.default || mod;
+  } catch {
+    sharpLib = null;
+  }
+
+  let count = 0;
+  let totalBytes = 0;
   for (const slot of SLOTS) {
     const input = path.join(SOURCE, slot.source);
     if (!existsSync(input)) {
-      missing.push(slot.source);
-      continue;
+      throw new Error(`Missing Template 01 source photograph: ${slot.source}`);
     }
-    const meta = await sharp(input).metadata();
-    const sourceWidth = meta.width || 800;
-    const sourceHeight = meta.height || 800;
     for (const width of slot.widths) {
       const height = Math.round(width / slot.ratio);
-      // Never upscale beyond the source photograph; the slot simply reuses its
-      // widest available rendering when a larger request is made.
-      if (width > Math.round(sourceWidth * 1.35)) continue;
       const target = path.join(OUT, `${slot.name}-${width}.webp`);
-      await sharp(input)
-        .resize({ width, height, fit: 'cover', position: slot.position || 'centre', withoutEnlargement: false })
-        .webp({ quality: 82, effort: 6 })
-        .toFile(target);
+      if (sharpLib) {
+        await sharpLib(input)
+          .resize({
+            width,
+            height,
+            fit: 'cover',
+            position: slot.gravity === 'North' ? 'top' : 'centre',
+          })
+          .webp({ quality: 82, effort: 6 })
+          .toFile(target);
+      } else {
+        renderWithConvert(input, target, width, height, slot.gravity);
+      }
       const size = (await stat(target)).size;
-      total += size;
-      console.log(`${path.basename(target)}  ${width}×${height}  ${(size / 1024).toFixed(0)} KB`);
-    }
-    if (slot.widths[slot.widths.length - 1] > Math.round(sourceWidth * 1.35)) {
-      // The layout asks for a wider slot than the source holds; note it.
-      console.warn(`! ${slot.name}: source ${sourceWidth}×${sourceHeight} is narrower than ${slot.widths[slot.widths.length - 1]}px.`);
+      totalBytes += size;
+      count += 1;
     }
   }
-  console.log(`\n${(total / 1024 / 1024).toFixed(2)} MB written to ${path.relative(ROOT, OUT)}`);
-  if (missing.length) {
-    console.warn(`Missing sources (${missing.length}): ${missing.join(', ')}`);
-    process.exitCode = 2;
-  }
+  console.log(`Built ${count} WebP variants into public/templates/luxury-editorial (${Math.round(totalBytes / 1024)} KB total).`);
 }
 
-await build();
+build().catch((err) => {
+  console.error(err);
+  process.exitCode = 1;
+});

@@ -83,117 +83,238 @@ import {
 } from './lib/bodhiTree';
 
 export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
-  // 1. Luxury Editorial Salon — a dedicated atelier design for hair_salon.
+  // 1. Ziya Women’s Hair Studio — dedicated women’s haircut specialist salon for hair_salon.
   hair_salon: {
     id: 'hair_salon',
-    title: 'Miraki Atelier',
+    title: 'Ziya Women’s Hair Studio',
     shortName: LUXURY_EDITORIAL_SELECTOR_LABEL,
     tagline: LUXURY_EDITORIAL_TAGLINE,
     about: LUXURY_EDITORIAL_ABOUT,
     icon: 'content_cut',
     layoutStyle: 'editorial_bento',
-    paletteLabel: 'Warm Ivory, Champagne & Espresso',
+    paletteLabel: 'Soft Ivory, Rose Beige, Muted Blush & Gold',
     themePreset: 'chic_nude_beige',
-    subCategories: ['Precision Cuts', 'Thermal Styling', 'Keratin & Botox', 'Scalp Rituals'],
+    subCategories: [
+      'Signature Cuts',
+      'Short & Bob Cuts',
+      'Long & Step Cuts',
+      'Bangs & Face-Framing',
+      'Curly & Consultation',
+    ],
     defaultCity: 'Bengaluru, Karnataka',
     defaultAddress: '100 Feet Road, HAL 2nd Stage, Indiranagar',
     defaultPostalCode: '560038',
     phone: '+91 98450 12890',
     whatsapp: '+91 98450 12890',
-    ownerName: 'Ananya Sharma',
-    ownerRole: 'Creative Hair Director & Vidal Sassoon Alum',
-    ownerPhotoUrl: LUXURY_EDITORIAL_IMAGES.aboutDetail.src,
+    ownerName: 'Ziya Khan',
+    ownerRole: 'Founder & Master Women’s Haircut Specialist',
+    ownerPhotoUrl: LUXURY_EDITORIAL_IMAGES.team[0].src,
     coverImageUrl: LUXURY_EDITORIAL_IMAGES.hero.src,
-    instagramHandle: '@miraki.atelier',
+    instagramHandle: '@ziya.hairstudio',
     themeStyle: {
-      heroBackground: 'bg-[#F7F3EC]',
-      heroTextColor: 'text-[#31251F]',
-      cardBorder: 'border-[#E9E0D4]',
-      cardBackground: 'bg-[#F7F3EC]',
+      heroBackground: 'bg-[#FAF6F1]',
+      heroTextColor: 'text-[#2A1E1B]',
+      cardBorder: 'border-[#ECDCD3]',
+      cardBackground: 'bg-[#FAF6F1]',
       cardRadius: 'rounded-none',
-      accentColor: 'text-[#31251F]',
-      accentBg: 'bg-[#31251F]',
-      badgeBg: 'bg-[#E9E0D4]',
-      badgeText: 'text-[#31251F]',
-      buttonBg: 'bg-[#31251F] hover:bg-[#24211F]',
-      buttonText: 'text-[#F7F3EC]',
-      priceColor: 'text-[#31251F]',
+      accentColor: 'text-[#2A1E1B]',
+      accentBg: 'bg-[#2A1E1B]',
+      badgeBg: 'bg-[#F5ECE4]',
+      badgeText: 'text-[#2A1E1B]',
+      buttonBg: 'bg-[#2A1E1B] hover:bg-[#3E2E2A]',
+      buttonText: 'text-[#FAF6F1]',
+      priceColor: 'text-[#2A1E1B]',
       isDark: false,
-      headerBanner: 'border-b border-[#D8C5A3] bg-[#F7F3EC]'
+      headerBanner: 'border-b border-[#E4C5BE] bg-[#FAF6F1]'
     },
     services: [
       {
         id: 'hs-1',
-        name: 'Master Stylist Precision Cut & Blowdry',
-        category: 'Precision Cuts',
+        name: 'Layer Haircut',
+        category: 'Signature Cuts',
         durationMinutes: 45,
-        price: 750,
-        description: 'Sculpted haircut tailored to face geometry, invigorating scalp wash, and professional salon blowout.',
+        price: 950,
+        description: 'Multi-tiered cascading layers customized to your hair density and face shape for airy movement and natural bounce.',
+        imageUrl: LUXURY_EDITORIAL_IMAGES.services.layer.src,
         icon: 'content_cut',
         popular: true
       },
       {
         id: 'hs-2',
-        name: 'Classic Layered Cut & Argan Wash',
-        category: 'Precision Cuts',
-        durationMinutes: 35,
-        price: 450,
-        description: 'Texturizing layers, split-end removal, deep cleanse with Moroccan argan oil shampoo.',
-        icon: 'styler'
+        name: 'Butterfly Haircut',
+        category: 'Signature Cuts',
+        durationMinutes: 50,
+        price: 1250,
+        description: 'Voluminous crown layers paired with feathered chin-to-collarbone wings that add lift while preserving full length.',
+        imageUrl: LUXURY_EDITORIAL_IMAGES.services.butterfly.src,
+        icon: 'styler',
+        popular: true
       },
       {
         id: 'hs-3',
-        name: 'Formaldehyde-Free Keratin Smoothing',
-        category: 'Keratin & Botox',
-        durationMinutes: 120,
-        price: 4200,
-        description: 'Infuses active keratin proteins, eliminating 95% frizz with mirror-like shine for up to 14 weeks.',
-        icon: 'auto_fix_high',
+        name: 'Bob Haircut',
+        category: 'Short & Bob Cuts',
+        durationMinutes: 45,
+        price: 1100,
+        description: 'Precision chin-to-collarbone classic or French bob sculpted to flatter your jawline and neckline.',
+        imageUrl: LUXURY_EDITORIAL_IMAGES.services.bob.src,
+        icon: 'content_cut',
         popular: true
       },
       {
         id: 'hs-4',
-        name: 'Hair Botox Deep Fiber Reconstruction',
-        category: 'Keratin & Botox',
-        durationMinutes: 90,
-        price: 3600,
-        description: 'Intense peptide filler mask for chemically damaged or heat-stressed hair fibers.',
-        icon: 'healing'
+        name: 'U Cut & V Cut',
+        category: 'Long & Step Cuts',
+        durationMinutes: 40,
+        price: 850,
+        description: 'Softly curved U-perimeter or tapered V-silhouette designed for healthy flow and movement through medium-to-long hair.',
+        imageUrl: LUXURY_EDITORIAL_IMAGES.services.uvCut.src,
+        icon: 'content_cut'
       },
       {
         id: 'hs-5',
-        name: 'Red-Carpet Tong Curls & High-Volume Waves',
-        category: 'Thermal Styling',
+        name: 'Step Haircut',
+        category: 'Long & Step Cuts',
+        durationMinutes: 45,
+        price: 900,
+        description: 'Defined graduated tiers creating structured cascading steps, visible volume and lively bounce.',
+        imageUrl: LUXURY_EDITORIAL_IMAGES.services.step.src,
+        icon: 'styler'
+      },
+      {
+        id: 'hs-6',
+        name: 'Pixie Haircut',
+        category: 'Short & Bob Cuts',
+        durationMinutes: 50,
+        price: 1200,
+        description: 'Modern feminine pixie crop with soft tapered sides, clean nape detailing and feathery crown texture.',
+        imageUrl: LUXURY_EDITORIAL_IMAGES.services.pixie.src,
+        icon: 'content_cut'
+      },
+      {
+        id: 'hs-7',
+        name: 'Blunt Cut',
+        category: 'Short & Bob Cuts',
         durationMinutes: 40,
-        price: 850,
-        description: 'GHD ceramic iron styling with anti-humidity thermal protectant for party & cocktail evenings.',
-        icon: 'waves'
+        price: 950,
+        description: 'Zero-elevation one-length precision cut for crisp glass-like edges and fuller, thicker-looking ends.',
+        imageUrl: LUXURY_EDITORIAL_IMAGES.services.blunt.src,
+        icon: 'content_cut'
+      },
+      {
+        id: 'hs-8',
+        name: 'Long Haircut',
+        category: 'Long & Step Cuts',
+        durationMinutes: 45,
+        price: 900,
+        description: 'Length-preserving precision trim with internal weight balancing and split-end dusting for long hair.',
+        imageUrl: LUXURY_EDITORIAL_IMAGES.services.long.src,
+        icon: 'content_cut'
+      },
+      {
+        id: 'hs-9',
+        name: 'Short Haircut',
+        category: 'Short & Bob Cuts',
+        durationMinutes: 45,
+        price: 1050,
+        description: 'Tailored above-the-shoulder cropped silhouette shaped for effortless wash-and-wear everyday confidence.',
+        imageUrl: LUXURY_EDITORIAL_IMAGES.services.short.src,
+        icon: 'content_cut'
+      },
+      {
+        id: 'hs-10',
+        name: 'Curtain Bangs & Fringe',
+        category: 'Bangs & Face-Framing',
+        durationMinutes: 25,
+        price: 550,
+        description: 'Cheekbone-grazing curtain bangs or soft wispy fringe custom-cut to frame your eyes and forehead.',
+        imageUrl: LUXURY_EDITORIAL_IMAGES.services.bangs.src,
+        icon: 'styler',
+        popular: true
+      },
+      {
+        id: 'hs-11',
+        name: 'Face-Framing Haircut',
+        category: 'Bangs & Face-Framing',
+        durationMinutes: 40,
+        price: 950,
+        description: 'Contoured front angles around cheekbones and jawline for an instant flattering lift when worn open or tied up.',
+        imageUrl: LUXURY_EDITORIAL_IMAGES.services.framing.src,
+        icon: 'content_cut'
+      },
+      {
+        id: 'hs-12',
+        name: 'Curly Haircut',
+        category: 'Curly & Consultation',
+        durationMinutes: 60,
+        price: 1350,
+        description: 'Curl-by-curl dry shape cut tailored to your natural wave or curl pattern for balanced volume without bulk.',
+        imageUrl: LUXURY_EDITORIAL_IMAGES.services.curly.src,
+        icon: 'waves',
+        popular: true
+      },
+      {
+        id: 'hs-13',
+        name: 'Haircut Consultation',
+        category: 'Curly & Consultation',
+        durationMinutes: 20,
+        price: 350,
+        description: 'One-on-one face-shape mapping, hair texture assessment and personalized haircut recommendation with a senior stylist.',
+        imageUrl: LUXURY_EDITORIAL_IMAGES.services.consult.src,
+        icon: 'psychology'
+      },
+      {
+        id: 'hs-14',
+        name: 'Hair Wash & Hair Styling with Haircut',
+        category: 'Signature Cuts',
+        durationMinutes: 60,
+        price: 1450,
+        description: 'Complete relaxing shampoo wash, custom women’s precision haircut and signature round-brush blowout finish.',
+        imageUrl: LUXURY_EDITORIAL_IMAGES.services.styling.src,
+        icon: 'waves',
+        popular: true
       }
     ],
     stylists: [
       {
         id: 'hs-st-1',
-        name: 'Ananya Sharma',
-        role: 'Creative Director',
+        name: 'Ziya Khan',
+        role: 'Founder & Master Cut Specialist',
+        experienceYears: 9,
+        bio: '9+ years crafting face-shape-matched women’s haircuts, voluminous butterfly cuts and cascading layers.',
         avatarUrl: LUXURY_EDITORIAL_IMAGES.team[0].src,
-        specialties: ['Structural Bobs', 'Precision Fringes', 'Keratin Smoothing'],
-        rating: 4.97
+        specialties: ['Layer & Butterfly Cuts', 'Face-Shape Mapping', 'Hair Cutting'],
+        rating: 4.98
       },
       {
         id: 'hs-st-2',
-        name: 'Rohan Kapoor',
-        role: 'Senior Precision Stylist',
+        name: 'Meera Nair',
+        role: 'Senior Bob & Short Cut Specialist',
+        experienceYears: 7,
+        bio: '7 years specializing in architectural chin-to-collarbone bobs, crisp blunt cuts and feminine pixie crops.',
         avatarUrl: LUXURY_EDITORIAL_IMAGES.team[1].src,
-        specialties: ['Dry Cutting', 'Men & Women Styling', 'Volume Blowouts'],
-        rating: 4.92
+        specialties: ['Bob & Blunt Cuts', 'Pixie & Short Cuts', 'Hair Cutting'],
+        rating: 4.95
       },
       {
         id: 'hs-st-3',
-        name: 'Kavita Deshmukh',
-        role: 'Hair Texture & Scalp Specialist',
+        name: 'Kavya Sharma',
+        role: 'Curtain Bangs & Layering Stylist',
+        experienceYears: 6,
+        bio: '6 years designing cheekbone-skimming curtain bangs, contoured face-framing layers and step haircuts.',
         avatarUrl: LUXURY_EDITORIAL_IMAGES.team[2].src,
-        specialties: ['Hair Botox', 'Scalp Analysis', 'Thermal Tongs'],
-        rating: 4.89
+        specialties: ['Curtain Bangs & Fringe', 'Face-Framing Layers', 'Blowdry Styling'],
+        rating: 4.93
+      },
+      {
+        id: 'hs-st-4',
+        name: 'Diya Kulkarni',
+        role: 'Curly & Long Haircut Specialist',
+        experienceYears: 6,
+        bio: '6 years dedicated to curl-by-curl dry shaping, natural texture balance and length-preserving U & V cuts.',
+        avatarUrl: LUXURY_EDITORIAL_IMAGES.team[3].src,
+        specialties: ['Curly Haircuts', 'Layer & Butterfly Cuts', 'Hair Cutting'],
+        rating: 4.94
       }
     ]
   },
@@ -1223,11 +1344,11 @@ for(const template of Object.values(CATEGORY_TEMPLATES))template.services=seedTe
 export const ALL_CATEGORY_OPTIONS: BusinessTypeOption[] = [
   {
     id: 'hair_salon',
-    title: 'Luxury Editorial Salon',
-    categoryTag: 'Hair Artistry',
+    title: 'Ziya Women’s Hair Studio',
+    categoryTag: 'Women’s Haircut Studio',
     icon: 'content_cut',
-    aestheticDescription: 'Editorial atelier layout, asymmetric imagery, warm ivory, champagne & espresso palette.',
-    paletteName: 'Warm Ivory & Champagne',
+    aestheticDescription: 'Specialist women’s haircut studio in soft ivory, rose beige, muted blush & champagne gold.',
+    paletteName: 'Soft Ivory, Rose Beige & Gold',
     badge: 'Popular',
     defaultServices: CATEGORY_TEMPLATES.hair_salon.services.map((s) => ({
       name: s.name,

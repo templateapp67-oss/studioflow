@@ -3,7 +3,7 @@ import { CATEGORY_TEMPLATES, ALL_CATEGORY_OPTIONS } from './categoryTemplates';
 
 export const BUSINESS_TYPES: BusinessTypeOption[] = ALL_CATEGORY_OPTIONS;
 
-// Default to Category 1: Hair Cut & Styling Studio (Miraki, Bengaluru)
+// Default to Category 1: Ziya Women’s Hair Studio (Bengaluru)
 const defaultTemplate = CATEGORY_TEMPLATES.hair_salon;
 
 export const INITIAL_SALON_PROFILE: SalonProfile = {
@@ -20,7 +20,7 @@ export const INITIAL_SALON_PROFILE: SalonProfile = {
   coverImageUrl: defaultTemplate.coverImageUrl,
   themePreset: defaultTemplate.themePreset,
   currency: '₹',
-  subdomain: 'mirakistudio',
+  subdomain: 'ziya-hair-studio',
   address: defaultTemplate.defaultAddress,
   city: defaultTemplate.defaultCity,
   postalCode: defaultTemplate.defaultPostalCode,
@@ -36,71 +36,71 @@ export const INITIAL_STYLISTS: Stylist[] = defaultTemplate.stylists;
 export const INITIAL_APPOINTMENTS: Appointment[] = [
   {
     id: 'apt-ind-101',
-    clientName: 'Pooja Mehra',
+    clientName: 'Ananya Deshmukh',
     clientPhone: '+91 98451 22910',
-    clientEmail: 'pooja.mehra@gmail.com',
-    serviceId: 'hs-3',
-    serviceName: 'Formaldehyde-Free Keratin Smoothing',
-    servicePrice: 4200,
+    clientEmail: 'ananya.deshmukh@gmail.com',
+    serviceId: 'hs-1',
+    serviceName: 'Layer Haircut',
+    servicePrice: 950,
     stylistId: 'hs-st-1',
-    stylistName: 'Ananya Sharma',
-    date: '2026-09-04',
+    stylistName: 'Ziya Khan',
+    date: '2026-11-04',
     time: '11:00',
     status: 'confirmed',
     paymentStatus: 'paid_deposit',
-    amountPaid: 840,
-    createdAt: '2026-09-02T10:15:00Z'
+    amountPaid: 190,
+    createdAt: '2026-11-02T10:15:00Z'
   },
   {
     id: 'apt-ind-102',
-    clientName: 'Siddharth Verma',
+    clientName: 'Rhea Malhotra',
     clientPhone: '+91 98201 44589',
-    clientEmail: 'siddharth.verma@techcorp.in',
-    serviceId: 'hs-1',
-    serviceName: 'Master Stylist Precision Cut & Blowdry',
-    servicePrice: 750,
+    clientEmail: 'rhea.malhotra@outlook.com',
+    serviceId: 'hs-3',
+    serviceName: 'Bob Haircut',
+    servicePrice: 1100,
     stylistId: 'hs-st-2',
-    stylistName: 'Rohan Kapoor',
-    date: '2026-09-04',
+    stylistName: 'Meera Nair',
+    date: '2026-11-04',
     time: '14:30',
     status: 'confirmed',
     paymentStatus: 'paid_full',
-    amountPaid: 750,
-    createdAt: '2026-09-02T14:45:00Z'
+    amountPaid: 1100,
+    createdAt: '2026-11-02T14:45:00Z'
   },
   {
     id: 'apt-ind-103',
-    clientName: 'Radhika Singhania',
+    clientName: 'Nandini Verma',
     clientPhone: '+91 98110 55762',
-    clientEmail: 'radhika.singh@outlook.com',
-    serviceId: 'hs-4',
-    serviceName: 'Hair Botox Deep Fiber Reconstruction',
-    servicePrice: 3600,
+    clientEmail: 'nandini.verma@outlook.com',
+    serviceId: 'hs-2',
+    serviceName: 'Butterfly Haircut',
+    servicePrice: 1250,
     stylistId: 'hs-st-3',
-    stylistName: 'Kavita Deshmukh',
-    date: '2026-09-05',
+    stylistName: 'Kavya Sharma',
+    date: '2026-11-05',
     time: '10:00',
     status: 'confirmed',
     paymentStatus: 'paid_deposit',
-    amountPaid: 720,
-    createdAt: '2026-09-03T09:20:00Z'
+    amountPaid: 250,
+    createdAt: '2026-11-02T09:20:00Z'
   },
   {
     id: 'apt-ind-104',
-    clientName: 'Aditya Sen',
+    clientName: 'Kritika Menon',
     clientPhone: '+91 98450 78129',
-    clientEmail: 'aditya.sen@gmail.com',
-    serviceId: 'hs-2',
-    serviceName: 'Classic Layered Cut & Argan Wash',
-    servicePrice: 450,
-    stylistId: 'hs-st-2',
-    stylistName: 'Rohan Kapoor',
-    date: '2026-09-05',
+    clientEmail: 'kritika.menon@gmail.com',
+    serviceId: 'hs-12',
+    serviceName: 'Curly Haircut',
+    servicePrice: 1350,
+    stylistId: 'hs-st-4',
+    stylistName: 'Diya Kulkarni',
+    date: '2026-11-05',
     time: '16:00',
     status: 'confirmed',
     paymentStatus: 'pay_at_salon',
     amountPaid: 0,
-    createdAt: '2026-09-03T11:00:00Z'
+    createdAt: '2026-11-02T11:00:00Z'
   }
 ];
 

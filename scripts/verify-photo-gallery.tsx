@@ -4,7 +4,7 @@ import {PhotoGalleryManager} from '../src/components/PhotoGalleryManager';import
 import {normalizeWorkspace} from '../src/lib/normalizeWorkspace';import {applyTemplateDesign} from '../src/lib/templateSelection';import {CATEGORY_TEMPLATES} from '../src/categoryTemplates';import {INITIAL_SALON_PROFILE} from '../src/mockData';import {supabase} from '../src/lib/supabase';
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;(globalThis as any).window={addEventListener(){},removeEventListener(){},matchMedia:()=>({matches:false,addEventListener(){},removeEventListener(){}})};(globalThis as any).document={hidden:false,body:{style:{}},addEventListener(){},removeEventListener(){}};
 for(const template of Object.values(CATEGORY_TEMPLATES)){
- const profile={...INITIAL_SALON_PROFILE,businessType:template.id};const samples=standardGallery(template.id);const gallerySize=template.id==='hair_salon'?6:5;assert.equal(samples.length,gallerySize);assert.equal(new Set(samples.map(p=>p.url)).size,gallerySize);assert.equal(photoGallery(profile).length,gallerySize);assert.ok(samples.every(p=>p.id.includes(template.id)));
+ const profile={...INITIAL_SALON_PROFILE,businessType:template.id};const samples=standardGallery(template.id);const gallerySize=template.id==='hair_salon'?9:5;assert.equal(samples.length,gallerySize);assert.equal(new Set(samples.map(p=>p.url)).size,gallerySize);assert.equal(photoGallery(profile).length,gallerySize);assert.ok(samples.every(p=>p.id.includes(template.id)));
  const html=renderToStaticMarkup(<CustomerSalonWebsite profile={profile} services={[]} stylists={[]} readOnly onAddAppointment={async a=>a}/>);
  if(template.id==='skincare_clinic'){
   // Template 07 shows only photographs the clinic published itself. When the
@@ -98,10 +98,10 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
   assert.ok(savedHtml.includes('Our own lash set'),'saved lash photograph keeps its caption');
   assert.ok(!savedHtml.includes('Demo lookbook'),'an owner lookbook is never labelled as demo');
  }else if(template.id==='hair_salon'){
-  // Template 01 (Luxury Editorial Salon) shows six asymmetric lookbook plates,
+  // Template 01 (Ziya Women’s Hair Studio) shows nine women’s haircut style plates,
   // labels the bundled preview set as sample imagery, and renders saved owner
   // photographs without any owner controls on the public page.
-  assert.equal((html.match(/class="le-tile /g)||[]).length,6,'the editorial lookbook shows six plates');
+  assert.equal((html.match(/class="le-tile /g)||[]).length,9,'the women’s haircut gallery shows nine plates');
   assert.ok(html.includes('Sample lookbook imagery'),'the bundled lookbook is labelled as a sample');
   for(const sample of samples)assert.ok(html.includes(sample.url),`the lookbook keeps ${sample.id}`);
   const savedHtml=renderToStaticMarkup(<CustomerSalonWebsite profile={{...profile,photoGalleryInitialized:true,photoGalleryType:'hair_salon',photoGallery:[{id:'le-own-1',category:'Hair' as const,url:'https://cdn.example.com/saved-editorial-hair.jpg',title:'Our own gloss finish',isDemo:false}]}} services={[]} stylists={[]} readOnly onAddAppointment={async a=>a}/>);

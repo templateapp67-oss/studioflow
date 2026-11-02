@@ -151,7 +151,8 @@ for(const template of Object.values(CATEGORY_TEMPLATES)) {
  const header=(html.match(/<header[\s\S]*?<\/header>/g)||[]).find(h=>h.includes('Customer account'));assert.ok(header,template.id);
  for(const label of ['Manage your customer account','My Bookings'])assert.ok(header.includes(label),`${template.id}: ${label} must be inside salon header`);assert.ok(!header.includes('Customer Login')&&!header.includes('Sign up'),`${template.id}: signed-in header must hide guest buttons`);
  for(const label of ['Replace / Manage video','Edit this section','owner-content','Edit featured client experiences','The salon owner can replace'])assert.ok(!html.includes(label),`${template.id}: public page must hide ${label}`);
- const genericReelCount=template.id==='skincare_clinic'||template.id==='tattoo_studio'||template.id==='lash_brow'?0:5;assert.equal((html.match(/class="sf-reel-media"/g)||[]).length,genericReelCount);
+ const genericReelCount=template.id==='hair_salon'||template.id==='skincare_clinic'||template.id==='tattoo_studio'||template.id==='lash_brow'?0:5;assert.equal((html.match(/class="sf-reel-media"/g)||[]).length,genericReelCount);
+ if(template.id==='hair_salon'){assert.ok((html.match(/class="le-video-card/g)||[]).length>=10,'Ziya Women’s Hair Studio shows its dedicated women’s haircut video gallery');assert.ok(!header.includes('app-install-strip'),'App Install strip stays out of the header');}
  if(template.id==='tattoo_studio'){assert.ok((html.match(/class="ii-reel-card/g)||[]).length>=5,'Iron & Ink shows its own editorial media cards');assert.ok(html.includes('DEMO POSTER'));}
  if(template.id==='lash_brow'){assert.ok((html.match(/class="af-reel"/g)||[]).length>=5,'Arch & Flutter shows its own featured video and reel rail');assert.ok(html.includes('af-featured'),'Arch & Flutter keeps a main featured film beside the rail');}
  assert.equal((html.match(/<iframe/g)||[]).length,0);
@@ -274,7 +275,7 @@ if(['hair_salon','hair_spa','makeup_studio','massage_wellness','hair_coloring','
 }else assert.ok(html.includes('Rich warm mood'));
 if(['hair_salon','hair_spa','makeup_studio','massage_wellness','hair_coloring'].includes(template.id))assert.ok(!html.includes('Verified checkout'),'Editorial demo must not imply an active verified checkout');else assert.ok(html.includes('Verified checkout'));assert.ok(html.includes('Service categories'));
  // Templates 06 and 08 name their booking action in the studio's own words.
- if(template.id==='hair_salon'){assert.ok(html.includes('Book this ritual'),'Luxury Editorial Salon service cards expose the booking action');assert.ok(html.includes('Book Appointment'),'Luxury Editorial Salon header carries the booking CTA');}
+ if(template.id==='hair_salon'){assert.ok(html.includes('Book Haircut'),'Ziya Women’s Hair Studio service cards expose the booking action');assert.ok(html.includes('Book Appointment'),'Ziya Women’s Hair Studio header carries the booking CTA');assert.ok(html.includes('Your Hair, Your Style, Your Confidence')&&html.includes('Specialists in Women’s Haircuts'));}
  else if(template.id==='hair_spa')assert.ok(html.includes('Book this service'),'hair spa service cards expose the booking action');else if(template.id==='makeup_studio')assert.ok(html.includes('>Book<')&&html.includes('Book Appointment'),'Vogue Noir service cards expose the booking action');else if(template.id==='massage_wellness')assert.ok(html.includes('Book Now'),'Bodhi Tree service cards expose the booking action in simple words');else if(template.id==='hair_coloring')assert.ok(html.includes('Book Now'),'Prism & Chroma service cards expose the booking action in simple words');else if(template.id==='bridal_lounge'){assert.ok(html.includes('aria-label="Book '),'Shringaar Royal ritual tiles expose a book action');assert.ok(html.includes('Book Consultation'),'Shringaar Royal hero and header carry the consultation CTA');}else assert.ok(html.includes('Choose for online booking'));
  assert.ok(!html.includes('Verified client'),'Owner-entered reviews must not be labelled verified by default');
  if(template.id==='massage_wellness'){
@@ -303,8 +304,8 @@ if(['hair_salon','hair_spa','makeup_studio','massage_wellness','hair_coloring'].
    assert.ok(html.includes(service.name.replaceAll('&','&amp;').replaceAll("'",'&#x27;')),`Luxury Editorial Salon shows ${service.name}`);
    assert.ok(html.includes(`${service.durationMinutes} min`),`Luxury Editorial Salon shows ${service.name} duration`);
   }
-  for(const label of ['Refresh Duo','Signature Care','Complete Ritual','Premium Pair','Self-care Combo'])assert.ok(html.includes(label),`Luxury Editorial Salon lists the ${label} package`);
-  assert.ok(!html.includes('Luxury Editorial Salon Refresh Duo'),'package labels drop the template-selector prefix');
+  for(const label of ['Refresh Duo','Signature Care','Complete Ritual','Premium Pair','Self-care Combo'])assert.ok(html.includes(label),`Ziya Women’s Hair Studio lists the ${label} package`);
+  assert.ok(!html.includes('Ziya Women’s Hair Studio Refresh Duo')&&!html.includes('Luxury Editorial Salon Refresh Duo'),'package labels drop the template-selector prefix');
  }else for(const service of template.services){assert.ok(html.includes(service.name.replaceAll('&','&amp;').replaceAll("'",'&#x27;')));assert.ok(html.includes(`${service.durationMinutes} min`));}
 }
 console.log('PASS: all 14 templates follow hero → dock → services → specialists → experiences/lookbook → location → footer; category pricing, duration, WhatsApp and specialist booking controls are present.');

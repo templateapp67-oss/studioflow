@@ -43,34 +43,40 @@ export interface CategoryStandardData {
 
 export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandardData> = {
   hair_salon: {
-    foundingYear: '2019',
-    foundingNarrative: 'Founded in Indiranagar by master hair artisans, Miraki was built to introduce geometric precision cutting, custom hair textures, and restorative botanical treatments without toxic formaldehyde or harsh chemical fumes.',
-    specialties: ['Structural Bob & Layering', 'Formaldehyde-Free Smoothing', 'Scalp Barrier Detox', 'Bridal Blowouts'],
+    foundingYear: '2020',
+    foundingNarrative: 'Founded by master hairstylist Ziya Khan, Ziya Women’s Hair Studio was created exclusively for women seeking thoughtful face-shape consultations, modern layered silhouettes, sculpted bobs, curtain bangs, and texture-true curly haircuts in a calm rose-ivory studio.',
+    specialties: ['Layer & Butterfly Haircuts', 'Precision Bob & Blunt Cuts', 'Curtain Bangs & Face-Framing', 'Curl-by-Curl Dry Shaping'],
     certifications: [
-      { icon: 'verified', title: '100% Autoclaved Shears', description: 'All Japanese steel shears & combs sanitized at 134°C between clients.' },
-      { icon: 'eco', title: 'Cruelty-Free Formulas', description: 'Certified organic shampoos and European bond-building treatments.' },
-      { icon: 'dry_cleaning', title: 'Single-Use Sealed Linen', description: 'Fresh biodegradable disposable salon capes for every appointment.' },
-      { icon: 'workspace_premium', title: 'Vidal Sassoon Certified', description: 'Senior artists trained in international structural cutting techniques.' }
+      { icon: 'verified', title: '100% Sanitized Japanese Shears', description: 'Every precision cutting shear and carbon sectioning comb is sterilized between appointments.' },
+      { icon: 'face_3', title: 'Face-Shape Mapping First', description: 'Personalised cheekbone, jawline and hairline consultation included before every cut.' },
+      { icon: 'dry_cleaning', title: 'All-Female Specialist Team', description: 'Dedicated female hairstylists trained exclusively in modern women’s cutting techniques.' },
+      { icon: 'workspace_premium', title: 'Dry & Wet Cut Mastery', description: 'Custom elevation, point-cutting and curl-by-curl shaping for natural grow-out.' }
     ],
     gallery: [
-      { id: 'hs-g1', url: '/templates/luxury-editorial/gallery-1-700.webp', title: 'Sculpted Bob & Gloss Finish', tag: 'Precision Cut' },
-      { id: 'hs-g2', url: '/templates/luxury-editorial/gallery-2-900.webp', title: 'The Atelier Tools', tag: 'Studio Detail' },
-      { id: 'hs-g3', url: '/templates/luxury-editorial/gallery-3-700.webp', title: 'Consultation at the Mirror', tag: 'Consultation' },
-      { id: 'hs-g4', url: '/templates/luxury-editorial/gallery-4-700.webp', title: 'Bridal Braided Updo', tag: 'Bridal Hair' },
-      { id: 'hs-g5', url: '/templates/luxury-editorial/gallery-5-900.webp', title: 'Caramel Balayage & Soft Waves', tag: 'Color & Cut' },
-      { id: 'hs-g6', url: '/templates/luxury-editorial/gallery-6-700.webp', title: 'Polished Blowdry', tag: 'Occasion Hair' }
+      { id: 'hs-g1', url: '/templates/luxury-editorial/gallery-1-760.webp', title: 'Textured French Micro-Bob Cut', tag: 'Short Haircut' },
+      { id: 'hs-g2', url: '/templates/luxury-editorial/gallery-2-760.webp', title: 'Cascading Long Layered Haircut', tag: 'Layered Cut' },
+      { id: 'hs-g3', url: '/templates/luxury-editorial/gallery-3-760.webp', title: 'Voluminous Butterfly Haircut', tag: 'Butterfly Cut' },
+      { id: 'hs-g4', url: '/templates/luxury-editorial/gallery-4-760.webp', title: 'Feathered Modern Pixie Cut', tag: 'Pixie Cut' },
+      { id: 'hs-g5', url: '/templates/luxury-editorial/gallery-5-760.webp', title: 'Cheekbone Curtain Bangs & Long Cut', tag: 'Curtain Bangs' },
+      { id: 'hs-g6', url: '/templates/luxury-editorial/gallery-6-760.webp', title: 'Curved U-Cut Back Silhouette', tag: 'Face-Framing Layers' },
+      { id: 'hs-g7', url: '/templates/luxury-editorial/gallery-7-760.webp', title: 'Curl-by-Curl Dry Shape Haircut', tag: 'Curly Haircut' },
+      { id: 'hs-g8', url: '/templates/luxury-editorial/gallery-8-760.webp', title: 'Jawline Sculpted Blunt Bob Cut', tag: 'Bob Cut' },
+      { id: 'hs-g9', url: '/templates/luxury-editorial/gallery-9-760.webp', title: 'Before & After Step Haircut Result', tag: 'Haircut Result' }
     ],
     reviews: [
-      { id: 'hs-r1', name: 'Pooja Mehra', location: 'Indiranagar, Bengaluru', rating: 5, serviceName: 'Formaldehyde-Free Keratin Smoothing', comment: 'Hands down the best hair studio in Bengaluru! My frizzy monsoon hair is silky straight yet retains natural bounce. The hygiene standard is unmatched.', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80', date: '2 days ago' },
-      { id: 'hs-r2', name: 'Aditya Sen', location: 'Koramangala, Bengaluru', rating: 5, serviceName: 'Master Stylist Precision Cut & Blowdry', comment: 'Ananya took 10 minutes just analyzing my face shape and crown geometry before picking up scissors. The precision is world-class.', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80', date: '1 week ago' },
-      { id: 'hs-r3', name: 'Kavita Rao', location: 'HSR Layout, Bengaluru', rating: 5, serviceName: 'Classic Layered Cut & Argan Wash', comment: 'Spotless salon, calming interior, and zero product pushing. You get exactly what you ask for with transparent ₹ pricing upfront.', avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=200&q=80', date: '2 weeks ago' }
+      { id: 'hs-r1', name: 'Ananya Deshmukh', location: 'Indiranagar, Bengaluru', rating: 5, serviceName: 'Layer Haircut', comment: 'Ziya studied my face shape and hair density for ten minutes before picking up her scissors. My new layer haircut has effortless bounce and frames my cheekbones even when I air-dry at home.', avatarUrl: '/templates/luxury-editorial/service-layer-480.webp', date: '2 days ago' },
+      { id: 'hs-r2', name: 'Rhea Malhotra', location: 'Koramangala, Bengaluru', rating: 5, serviceName: 'Bob Haircut', comment: 'Meera gave me the cleanest chin-to-collarbone bob haircut I have ever had! She balanced the back graduation so my fine hair looks noticeably fuller and tucks in naturally without daily ironing.', avatarUrl: '/templates/luxury-editorial/service-bob-480.webp', date: '5 days ago' },
+      { id: 'hs-r3', name: 'Sneha Iyer', location: 'HSR Layout, Bengaluru', rating: 5, serviceName: 'Face-Framing Haircut', comment: 'Walked in unsure what style would suit my round face. Their face-shape consultation suggested soft cheekbone-skimming curtain bangs with contoured layers — easily my favourite haircut in years.', avatarUrl: '/templates/luxury-editorial/service-bangs-480.webp', date: '1 week ago' },
+      { id: 'hs-r4', name: 'Nandini Verma', location: 'Sadashivanagar, Bengaluru', rating: 5, serviceName: 'Butterfly Haircut', comment: 'I wanted movement without losing my waist-grazing length, and Kavya nailed my butterfly haircut. So much crown volume and feathery wings while keeping every inch of length!', avatarUrl: '/templates/luxury-editorial/service-butterfly-480.webp', date: '2 weeks ago' },
+      { id: 'hs-r5', name: 'Kritika Menon', location: 'Jayanagar, Bengaluru', rating: 5, serviceName: 'Curly Haircut', comment: 'Finally a women-only hair studio that truly understands Indian curls! Diya cut my curls dry, curl by curl, removing heaviness at the sides so my ringlets spring up evenly.', avatarUrl: '/templates/luxury-editorial/service-curly-480.webp', date: '2 weeks ago' },
+      { id: 'hs-r6', name: 'Pooja Kulkarni', location: 'Whitefield, Bengaluru', rating: 5, serviceName: 'Pixie Haircut', comment: 'Took the leap to a short textured pixie cut and felt completely safe in Ziya’s hands. Calm studio, all-female team, transparent ₹ pricing and truly world-class cutting skill.', avatarUrl: '/templates/luxury-editorial/service-pixie-480.webp', date: '3 weeks ago' }
     ],
-    totalReviewCount: 524,
-    averageRating: 4.96,
+    totalReviewCount: 548,
+    averageRating: 4.98,
     landmark: 'Opposite Metro Pillar 128, Near 100 Feet Road Junction',
-    parkingInfo: 'Valet parking available for all clients at studio entrance',
+    parkingInfo: 'Dedicated client parking available right outside the studio entrance',
     openHourText: '10:00 AM',
-    closeHourText: '8:30 PM'
+    closeHourText: '8:00 PM'
   },
 
   barber: {
