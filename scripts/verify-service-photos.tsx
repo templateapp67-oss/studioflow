@@ -48,16 +48,14 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
   continue;
  }
  if(template.id==='hair_salon'){
-  // Template 01 (Luxury Editorial Salon) has one featured ritual plus the
-  // asymmetric grid, all served from its own bundled photography. Packages are
-  // a text-led editorial pairing list, so the service photography check covers
-  // the five bookable services and the owner override.
-  assert.equal((html.match(/class="le-feature-media"/g)||[]).length,1,'editorial featured ritual');
-  assert.equal((html.match(/class="le-service-card"/g)||[]).length,4,'editorial service grid');
+  // Template 01 (Ziya Women’s Hair Studio) has one featured haircut plus the
+  // thirteen specialist women’s haircut cards, all served from bundled photography.
+  assert.equal((html.match(/class="le-feature-media"/g)||[]).length,1,'editorial featured haircut');
+  assert.equal((html.match(/class="le-service-card"/g)||[]).length,13,'women’s haircut service grid');
   assert.ok(html.includes('/templates/luxury-editorial/service-'),'editorial services use the bundled photographs');
-  for(const service of services.filter(s=>!/package|combo|bundle/i.test(s.name+' '+s.category)))assert.ok(html.includes(service.name.replaceAll('&','&amp;')),`Luxury Editorial Salon renders ${service.name}`);
+  for(const service of services.filter(s=>!/package|combo|bundle/i.test(s.name+' '+s.category)))assert.ok(html.includes(service.name.replaceAll('&','&amp;')),`Ziya Women’s Hair Studio renders ${service.name}`);
   assert.equal((html.match(/class="le-package-card"/g)||[]).length,5,'editorial package menu');
-  // The owner override is checked on a core ritual (packages are a text-led list).
+  // The owner override is checked on a core haircut service.
   const custom={...services[0],imageUrl:'https://example.com/owner-photo.jpg'};
   const changed=renderToStaticMarkup(<CustomerSalonWebsite profile={{...INITIAL_SALON_PROFILE,businessType:template.id}} services={[custom]} stylists={[]} onAddAppointment={async a=>a}/>);
   assert.ok((changed.match(/src="https:\/\/example.com\/owner-photo.jpg"/g)||[]).length>=1,'owner photo replaces the editorial service photo');

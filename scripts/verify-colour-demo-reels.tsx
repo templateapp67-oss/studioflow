@@ -11,6 +11,7 @@ import {WebsiteSections} from '../src/components/WebsiteSections';
 import type {SalonProfile, SocialVideo} from '../src/types';
 
 const GENERIC_SHORTS = ['KqLCuvMVB-k', 'nehZDeIHwJ8', 'pQ5h3rrJuDM', 'hzMSId-sxtY', 'QAC81ZkryrY'];
+const WOMENS_HAIRCUT_SHORTS = ['Zto1aKO3YLQ', 'SZvWrR21Tqs', 'sixEsYNvTmo', 'X4vi0G8HJ9s', 'qNTfVB4Ptcw'];
 const COLOUR_SHORTS = ['64CRWOKFxag', '2EAPuAQ2EHo', 'rTkTQfiSRwI', 'yYBSrj1eyII', 'U9moKdpniks'];
 const LASH_SHORTS = ['4d9MZe_vpUY', 'xhrLIpz9q5I', 'eyOuZBqP-hI', 'x5FixAITeDY', '-CEYQkj3EB8'];
 const colourStudio = (overrides: Partial<SalonProfile> = {}): SalonProfile => ({
@@ -44,16 +45,17 @@ for (const topic of ['balayage', 'pastel', 'money piece', 'correction', 'keratin
 assert.ok(!/beard|manicure|facial|massage/.test(colourCopy), 'no generic beard / nail / facial clips in Template 10');
 console.log('PASS: Template 10 defaults to five colour Shorts (balayage, fashion/pastel, money piece, correction, keratin + gloss) with real channels and hqdefault posters.');
 
-/* 2 — The other 12 templates keep the generic list untouched (Template 13 gets
-   its own eye-area references, asserted in section 7). */
+/* 2 — The other 11 templates keep the generic list untouched (Templates 01, 10
+   and 13 get their own category-true references). */
 for (const template of Object.values(CATEGORY_TEMPLATES)) {
   const videos = createDemoVideos(template.id);
   assert.equal(videos.length, 5, `${template.id} keeps five demo reels`);
-  if (template.id === 'hair_coloring') assert.deepEqual(videos.map((video) => video.videoId), COLOUR_SHORTS);
+  if (template.id === 'hair_salon') assert.deepEqual(videos.map((video) => video.videoId), WOMENS_HAIRCUT_SHORTS);
+  else if (template.id === 'hair_coloring') assert.deepEqual(videos.map((video) => video.videoId), COLOUR_SHORTS);
   else if (template.id === 'lash_brow') assert.deepEqual(videos.map((video) => video.videoId), LASH_SHORTS);
   else assert.deepEqual(videos.map((video) => video.videoId), GENERIC_SHORTS, `${template.id} keeps the generic references`);
 }
-console.log('PASS: only hair_coloring and lash_brow branch; the other 12 templates still seed the identical generic Shorts list.');
+console.log('PASS: hair_salon, hair_coloring and lash_brow branch; the other 11 templates still seed the identical generic Shorts list.');
 
 /* 3 — A fresh colour studio is seeded with the colour list, never the generic one. */
 const seeded = normalizeWorkspace({profile: colourStudio()});

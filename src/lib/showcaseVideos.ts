@@ -42,9 +42,22 @@ const LASH_BROW_REFERENCES:DemoReference[] = [
  ['-CEYQkj3EB8','Lash extension aftercare that keeps retention','Lash studio reference'],
 ];
 
-// hair_coloring (Template 10) and lash_brow (Template 13) get their own lists;
-// the other 12 templates keep REFERENCES.
-const DEMO_REFERENCES:Record<string,DemoReference[]>={hair_coloring:HAIR_COLOR_REFERENCES,lash_brow:LASH_BROW_REFERENCES};
+/** Template 01 — Ziya Women’s Hair Studio (businessType `hair_salon`).
+ * Strictly women's haircut references: multi-layer transformation, butterfly
+ * haircut tutorial, before & after bob haircut, cheekbone curtain bangs, and
+ * face-framing scissor layering. All five are verified public YouTube Shorts
+ * featuring women only. */
+const WOMENS_HAIRCUT_REFERENCES:DemoReference[] = [
+ ['Zto1aKO3YLQ','Multi-layer haircut transformation — bouncy layers','bhatia bijal'],
+ ['SZvWrR21Tqs','Butterfly haircut — long layered step-by-step cut','myguiltycrown'],
+ ['sixEsYNvTmo','Bob haircut transformation — before & after cut','Hair.com By L’Oréal'],
+ ['X4vi0G8HJ9s','Curtain bangs haircut — cheekbone-framing fringe','Ankita Barapatre'],
+ ['qNTfVB4Ptcw','Face-framing fluffy layers — women’s scissor technique','ProStylistTV'],
+];
+
+// hair_salon (Template 01), hair_coloring (Template 10) and lash_brow
+// (Template 13) get their own lists; the other 11 templates keep REFERENCES.
+const DEMO_REFERENCES:Record<string,DemoReference[]>={hair_salon:WOMENS_HAIRCUT_REFERENCES,hair_coloring:HAIR_COLOR_REFERENCES,lash_brow:LASH_BROW_REFERENCES};
 function demoReferences(businessType:string):DemoReference[]{return DEMO_REFERENCES[businessType]||REFERENCES;}
 
 const OLD_FULL_VIDEO_IDS=new Set(['ulbjW3JyK8E','SYSj3KPiVfg','gHVUoN5n4xw','0f6AOLy4C9Y','tKkJnauWFgA']);
@@ -63,10 +76,10 @@ export function showcaseVideos(profile:SalonProfile):SocialVideo[]{
    const index=Number(video.id.match(/^demo-.+-(\d+)$/)?.[1])-1,replacement=demos[index];
    if(!replacement)return video;
    const legacyFull=OLD_FULL_VIDEO_IDS.has(video.videoId);
-   // Colour studios and lash bars seeded before their own lists keep their
-   // position but now show on-theme references instead of the generic beard /
-   // nail / facial clips.
-   const legacyGeneric=(profile.businessType==='hair_coloring'||profile.businessType==='lash_brow')&&GENERIC_DEMO_IDS.has(video.videoId);
+   // Women's hair studios, colour studios and lash bars seeded before their own
+   // lists keep their position but now show on-theme references instead of the
+   // generic beard / nail / facial clips.
+   const legacyGeneric=(profile.businessType==='hair_salon'||profile.businessType==='hair_coloring'||profile.businessType==='lash_brow')&&GENERIC_DEMO_IDS.has(video.videoId);
    if(!legacyFull&&!legacyGeneric)return video;
    // A demo title the owner already edited by hand is kept.
    const ownerTitle=legacyGeneric&&!legacyFull&&video.title&&video.title!==(generic[index]?.[1]||'');

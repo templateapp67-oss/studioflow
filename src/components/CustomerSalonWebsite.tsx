@@ -514,7 +514,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
    customerPhotoUrl={customerPhotoUrl}
    bookingAvailable={Boolean(typeof onAddAppointment==='function' && (profile as typeof profile & {bookingEnabled?:boolean}).bookingEnabled!==false)}
    branding={branding}
-   onBook={(selected,specialist)=>book(selected,specialist)}
+   onBook={(selected,specialist,slot)=>{book(selected,specialist);if(slot)setDirectSlot(slot);}}
    onAccount={mode=>customer(mode||'signin')}
    onMyBookings={()=>setMyBookings(true)}
    onViewSpecialist={id=>setViewStaff(id)}
