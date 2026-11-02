@@ -7,10 +7,18 @@ import {KESH_PRAKRITI_IMAGES,keshPrakritiServiceImage} from './keshPrakriti';
 import {VOGUE_NOIR_IMAGES,vogueNoirServiceImage} from './vogueNoir';
 import {SHRINGAAR_IMAGES,shringaarServiceImage} from './shringaarRoyal';
 import {ARCH_FLUTTER_IMAGES,archFlutterServicePhoto} from './archFlutter';
+import {LUXURY_EDITORIAL_IMAGES,luxuryEditorialServiceImage} from './luxuryEditorial';
 
 /** Category-matched image templates shared by the editor and storefront. */
 export function serviceImageTemplates(service:Pick<SalonService,'id'|'name'|'category'>,type:BusinessTypeId='hair_salon'):Array<{id:string;url:string;label:string}> {
  const text=`${service.category} ${service.name}`.toLowerCase();
+ // Template 01 (Luxury Editorial Salon) keeps every menu and editor preset on
+ // its own coordinated editorial photography.
+ if(type==='hair_salon'){
+  const primary=luxuryEditorialServiceImage(service);
+  const local=Array.from(new Set([primary,...Object.values(LUXURY_EDITORIAL_IMAGES.services).map(image=>image.src)]));
+  return local.slice(0,3).map((url,index)=>({id:`hair_salon-${index+1}`,url,label:`Image template ${index+1}`}));
+ }
  // Template 06 ships its own local spa photography, so hair-spa menu cards never
  // borrow unrelated stock portraits from another category.
  if(type==='hair_spa'){

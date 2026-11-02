@@ -53,12 +53,12 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
       { icon: 'workspace_premium', title: 'Vidal Sassoon Certified', description: 'Senior artists trained in international structural cutting techniques.' }
     ],
     gallery: [
-      { id: 'hs-g1', url: 'https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&w=800&q=80', title: 'Balayage Dimension & Blowdry', tag: 'Color & Cut' },
-      { id: 'hs-g2', url: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80', title: 'Precision Texturized Layers', tag: 'Precision Cut' },
-      { id: 'hs-g3', url: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80', title: 'Studio Styling Station & Chairs', tag: 'Studio Interior' },
-      { id: 'hs-g4', url: 'https://images.unsplash.com/photo-1605497788044-5a32c7078486?auto=format&fit=crop&w=800&q=80', title: 'Mirror Shine Keratin Transformation', tag: 'Restoration' },
-      { id: 'hs-g5', url: 'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&w=800&q=80', title: 'Thermal Soft Waves Styling', tag: 'Occasion Hair' },
-      { id: 'hs-g6', url: 'https://images.unsplash.com/photo-1580618672591-eb180b1a973f?auto=format&fit=crop&w=800&q=80', title: 'Consultation & Hair Diagnostics', tag: 'Consultation' }
+      { id: 'hs-g1', url: '/templates/luxury-editorial/gallery-1-700.webp', title: 'Sculpted Bob & Gloss Finish', tag: 'Precision Cut' },
+      { id: 'hs-g2', url: '/templates/luxury-editorial/gallery-2-900.webp', title: 'The Atelier Tools', tag: 'Studio Detail' },
+      { id: 'hs-g3', url: '/templates/luxury-editorial/gallery-3-700.webp', title: 'Consultation at the Mirror', tag: 'Consultation' },
+      { id: 'hs-g4', url: '/templates/luxury-editorial/gallery-4-700.webp', title: 'Bridal Braided Updo', tag: 'Bridal Hair' },
+      { id: 'hs-g5', url: '/templates/luxury-editorial/gallery-5-900.webp', title: 'Caramel Balayage & Soft Waves', tag: 'Color & Cut' },
+      { id: 'hs-g6', url: '/templates/luxury-editorial/gallery-6-700.webp', title: 'Polished Blowdry', tag: 'Occasion Hair' }
     ],
     reviews: [
       { id: 'hs-r1', name: 'Pooja Mehra', location: 'Indiranagar, Bengaluru', rating: 5, serviceName: 'Formaldehyde-Free Keratin Smoothing', comment: 'Hands down the best hair studio in Bengaluru! My frizzy monsoon hair is silky straight yet retains natural bounce. The hygiene standard is unmatched.', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80', date: '2 days ago' },

@@ -650,7 +650,9 @@ export function resolveShringaarRoyalConfig(profile: SalonProfile): ResolvedShri
     // imagery — fall back to the bundled bride portrait instead of showing it.
     heroImageUrl:
       (raw.heroImageUrl || '').trim() ||
-      ((profile.coverImageUrl || '').trim() && !isLegacyBridalStockUrl(profile.coverImageUrl)
+      ((profile.coverImageUrl || '').trim() &&
+      !isLegacyBridalStockUrl(profile.coverImageUrl) &&
+      !isForeignBundledCover(profile.coverImageUrl)
         ? (profile.coverImageUrl || '').trim()
         : '') ||
       SHRINGAAR_IMAGES.hero,
@@ -815,6 +817,13 @@ export function isLegacyBridalStockUrl(url?: string | null): boolean {
   const value = (url || '').trim();
   if (!value) return false;
   return value.includes('images.unsplash.com') || /\/templates\/roop-mahal\//.test(value);
+}
+
+/** A cover that belongs to a different bundled template: replace it, do not
+ *  present another salon category's photography as this bride's own. */
+function isForeignBundledCover(url?: string | null): boolean {
+  const value = (url || '').trim();
+  return /^\/templates\//.test(value) && !value.startsWith('/templates/11/');
 }
 
 export function upgradeLegacyBridalStylists<T extends Pick<Stylist, 'id' | 'avatarUrl'>>(

@@ -19,6 +19,16 @@ for(const t of Object.values(CATEGORY_TEMPLATES)){
   assert.ok(section.includes('/templates/11/packages/'),'each bridal package card carries its own photograph');
   continue;
  }
+ if(t.id==='hair_salon'){
+  // Template 01 (Luxury Editorial Salon) presents the starter pairings as an
+  // editorial menu without stock card chrome; the five catalogue packages,
+  // their real ₹ totals and their book action remain the same.
+  const section=html.split('id="salon-packages"')[1].split('</section>')[0];
+  assert.equal((section.match(/class="le-package-card"/g)||[]).length,5,'editorial package cards');
+  for(const item of packages){const label=item.name.replace(/^Luxury Editorial Salon\s*/,'').replace(/\s*Package$/,'');assert.ok(section.includes(label),'editorial packages show '+label);}
+  assert.ok(section.includes('Book package'),'editorial packages book through the same flow');
+  continue;
+ }
  if(t.id==='tattoo_studio'){
   const section=html.split('id="salon-packages"')[1].split('</section>')[0];
   assert.equal((section.match(/class="sf-service-card"/g)||[]).length,5,'Iron & Ink package cards');
