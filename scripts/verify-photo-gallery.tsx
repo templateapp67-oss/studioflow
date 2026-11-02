@@ -97,6 +97,19 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
   assert.ok(savedHtml.includes('https://cdn.example.com/saved-lash-set.jpg'),'saved lash photograph appears in the Template 13 lookbook');
   assert.ok(savedHtml.includes('Our own lash set'),'saved lash photograph keeps its caption');
   assert.ok(!savedHtml.includes('Demo lookbook'),'an owner lookbook is never labelled as demo');
+ }else if(template.id==='unisex_salon'){
+  // Template 03 (Aura Unisex Salon & Wellness Lounge) renders its own mixed
+  // gallery — one large plate plus four smaller ones — from the same saved-photo
+  // path, without owner controls. A saved owner photograph replaces the whole
+  // bundled demo set.
+  assert.equal((html.match(/class="au-gallery-tile/g)||[]).length,5,'the Aura gallery shows five plates');
+  assert.equal((html.match(/class="au-gallery-tile is-featured"/g)||[]).length,1,'the Aura gallery has exactly one featured plate');
+  for(const sample of samples)assert.ok(html.includes(sample.url),`the Aura gallery keeps ${sample.id}`);
+  assert.ok(!html.includes('Delete photo')&&!html.includes('Replace / Edit'));
+  const savedHtml=renderToStaticMarkup(<CustomerSalonWebsite profile={{...profile,photoGalleryInitialized:true,photoGalleryType:'unisex_salon',photoGallery:[{id:'au-own-1',category:'Hair' as const,url:'https://cdn.example.com/saved-aura-photo.jpg',title:'Our own salon work',isDemo:false}]}} services={[]} stylists={[]} readOnly onAddAppointment={async a=>a}/>);
+  assert.ok(savedHtml.includes('https://cdn.example.com/saved-aura-photo.jpg'),'a saved owner photograph appears in the Aura gallery');
+  assert.ok(savedHtml.includes('Our own salon work'),'the saved photograph keeps its caption');
+  assert.ok(!savedHtml.includes('/templates/aura-unisex/gallery-2-760.webp'),'an owner gallery replaces the bundled demo plates');
  }else if(template.id==='hair_salon'){
   // Template 01 (Ziya Women’s Hair Studio) shows nine women’s haircut style plates,
   // labels the bundled preview set as sample imagery, and renders saved owner

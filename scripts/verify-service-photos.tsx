@@ -47,6 +47,18 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
   assert.ok((changed.match(/src="https:\/\/example.com\/owner-photo.jpg"/g)||[]).length>=1,'owner photo replaces the demo photo on the Prism & Chroma card');
   continue;
  }
+ if(template.id==='unisex_salon'){
+  // Template 03 (Aura Unisex Salon & Wellness Lounge) shows every service as a
+  // tabbed image card served from the bundled Aura photography; an owner upload
+  // always replaces the template artwork.
+  assert.equal((html.match(/class="au-service-media"/g)||[]).length,services.length,'Aura renders a photograph for every service');
+  assert.ok(html.includes('/templates/aura-unisex/service-'),'Aura service cards use the bundled photographs');
+  for(const service of services)assert.ok(html.includes(service.name.replaceAll('&','&amp;')),`Aura renders ${service.name}`);
+  const custom={...services[0],name:'QA package',category:'Packages',imageUrl:'https://example.com/owner-photo.jpg'};
+  const changed=renderToStaticMarkup(<CustomerSalonWebsite profile={{...INITIAL_SALON_PROFILE,businessType:template.id}} services={[custom]} stylists={[]} onAddAppointment={async a=>a}/>);
+  assert.ok((changed.match(/src="https:\/\/example.com\/owner-photo.jpg"/g)||[]).length>=1,'owner photo replaces the Aura service photo');
+  continue;
+ }
  if(template.id==='hair_salon'){
   // Template 01 (Ziya Women’s Hair Studio) has one featured haircut plus the
   // thirteen specialist women’s haircut cards, all served from bundled photography.

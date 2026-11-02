@@ -78,6 +78,7 @@ import {IronInkWebsite} from './IronInkWebsite';
 import {ArchFlutterWebsite} from './ArchFlutterWebsite';
 import {VedaSanjeevaniWebsite} from './veda-sanjeevani/VedaSanjeevaniWebsite';
 import {LuxuryEditorialWebsite} from './LuxuryEditorialWebsite';
+import {AuraUnisexWebsite} from './AuraUnisexWebsite';
 
 const money=(value:number)=>`₹${Number(value||0).toLocaleString('en-IN')}`;
 function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGallery=[],policies,branding,loyaltyConfig,onManageDashboard,onCustomerAccount,customerSignedIn,customerName,customerPhotoUrl,onAddAppointment,readOnly,live}:SalonWebsitePreviewProps){
@@ -115,6 +116,8 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
  // Template 14 always has a full ritual menu to show: the saved catalogue wins,
  // then the template menu, so a brand-new preview is never an empty page.
  const vedaServices=(services&&services.length>0)?services:(CATEGORY_TEMPLATES.ayurvedic_spa?.services||[]);
+ // Template 03 preview: the bundled unisex menu stands in until the salon saves its own.
+ const auraServices=(services&&services.length>0)?services:(!profile.subdomain&&!profile.serviceCatalogueInitialized?CATEGORY_TEMPLATES.unisex_salon?.services||[]:[]);
  const accent=profile.customAccentColor||(barber?'#c49a6c':roopMahal?'#6D2638':pinkyNails?'#702D4B':keshPrakriti?'#183D32':vogueNoir?'#C9A96E':bodhiTree?'#4E6E58':prismChroma?'#7C5CFF':shringaar?'#5A0F1E':archFlutter?'#9A6B73':vedaSanjeevani?'#1F3B2E':palette.primaryHex);
  const [category,setCategory]=useState('All'),[chosen,setChosen]=useState<Stylist|undefined>(),[service,setService]=useState<SalonService|undefined>(),[booking,setBooking]=useState(false),[photo,setPhoto]=useState<number|null>(null);
  const [brokenGalleryIds,setBrokenGalleryIds]=useState<string[]>([]);
@@ -355,7 +358,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
       so a template preview never fabricates availability. */}
   <HairSpaWebsite profile={profile} services={keshServices} stylists={team} galleryPhotos={galleryEntries} shared={shared} bookingAvailable={Boolean(profile.subdomain)} /* Social profiles are rendered by the Template 06 footer, and the page
       hides any owner section that has no saved content. */
-  enabledSections={['promo','videos','loyalty','policies','share'].filter(section=>visible[section])} showPackages={visible.packages} customerSignedIn={customerSignedIn} customerName={customerName} customerPhotoUrl={customerPhotoUrl} onBook={(selected,specialist)=>book(selected,specialist)} onAccount={mode=>customer(mode||'signin')} onMyBookings={()=>setMyBookings(true)} onViewSpecialist={id=>setViewStaff(id)}/>
+  enabledSections={['hero','services','about','stylists','gallery','testimonials','location','promo','videos','social','loyalty','policies','share'].filter(section=>visible[section])} showPackages={visible.packages} customerSignedIn={customerSignedIn} customerName={customerName} customerPhotoUrl={customerPhotoUrl} onBook={(selected,specialist)=>book(selected,specialist)} onAccount={mode=>customer(mode||'signin')} onMyBookings={()=>setMyBookings(true)} onViewSpecialist={id=>setViewStaff(id)}/>
   {myBookings&&<SalonBookingsDialog profile={profile} onClose={()=>setMyBookings(false)}/>}
   {team.some(st=>st.id===viewStaff)&&<StylistProfile services={services} onSlot={(selected,slot)=>{setChosen(team.find(st=>st.id===slot.stylistId));setService(selected);setDirectSlot(slot);setViewStaff('');setBooking(true)}} staff={team.find(st=>st.id===viewStaff)!} profile={profile} slug={profile.subdomain} signedIn={customerSignedIn} demo={!profile.subdomain} onLogin={()=>{setViewStaff('');customer('signin')}} onClose={()=>setViewStaff('')} onBook={()=>{const specialist=team.find(st=>st.id===viewStaff);setViewStaff('');book(undefined,specialist)}}/>}
   <BookingModal isOpen={booking} onClose={()=>setBooking(false)} profile={profile} services={keshServices} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>
@@ -548,6 +551,35 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
   {myBookings&&<SalonBookingsDialog profile={profile} onClose={()=>setMyBookings(false)}/>}
   {team.some(st=>st.id===viewStaff)&&<StylistProfile services={archFlutterServices} onSlot={(selected,slot)=>{setChosen(team.find(st=>st.id===slot.stylistId));setService(selected);setDirectSlot(slot);setViewStaff('');setBooking(true)}} staff={team.find(st=>st.id===viewStaff)!} profile={profile} slug={profile.subdomain} signedIn={customerSignedIn} demo={!profile.subdomain} onLogin={()=>{setViewStaff('');customer('signin')}} onClose={()=>setViewStaff('')} onBook={()=>{const specialist=team.find(st=>st.id===viewStaff);setViewStaff('');book(undefined,specialist)}}/>}
   <BookingModal isOpen={booking} onClose={()=>{setBooking(false);setArchFlutterOfferNote('')}} profile={profile} services={archFlutterServices} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} initialBookingNote={archFlutterOfferNote} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>
+ </>;
+
+ if(profile.businessType==='unisex_salon')return <>
+  {/* Template 03 — Aura Unisex Salon & Wellness Lounge. Renders its own header,
+      three-part hero, service tabs, men & women highlights, wellness band, team,
+      gallery, reviews, booking banner, contact and four-column footer — on the
+      same booking modal, service catalogue, staff profiles, reviews, promotions,
+      loyalty, policies and customer-account wiring as every other template. */}
+  <AuraUnisexWebsite
+   profile={profile}
+   services={auraServices}
+   stylists={team}
+   galleryPhotos={galleryEntries}
+   shared={shared}
+   enabledSections={['hero','services','about','stylists','gallery','testimonials','location','promo','videos','social','loyalty','policies','share'].filter(section=>visible[section])}
+   showPackages={visible.packages}
+   customerSignedIn={customerSignedIn}
+   customerName={customerName}
+   customerPhotoUrl={customerPhotoUrl}
+   bookingAvailable={Boolean(typeof onAddAppointment==='function' && (profile as typeof profile & {bookingEnabled?:boolean}).bookingEnabled!==false)}
+   branding={branding}
+   onBook={(selected,specialist)=>book(selected,specialist)}
+   onAccount={mode=>customer(mode||'signin')}
+   onMyBookings={()=>setMyBookings(true)}
+   onViewSpecialist={id=>setViewStaff(id)}
+  />
+  {myBookings&&<SalonBookingsDialog profile={profile} onClose={()=>setMyBookings(false)}/>}
+  {team.some(st=>st.id===viewStaff)&&<StylistProfile services={auraServices} onSlot={(selected,slot)=>{setChosen(team.find(st=>st.id===slot.stylistId));setService(selected);setDirectSlot(slot);setViewStaff('');setBooking(true)}} staff={team.find(st=>st.id===viewStaff)!} profile={profile} slug={profile.subdomain} signedIn={customerSignedIn} demo={!profile.subdomain} onLogin={()=>{setViewStaff('');customer('signin')}} onClose={()=>setViewStaff('')} onBook={()=>{const specialist=team.find(st=>st.id===viewStaff);setViewStaff('');book(undefined,specialist)}}/>}
+  <BookingModal isOpen={booking} onClose={()=>setBooking(false)} profile={profile} services={auraServices} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>
  </>;
 
  const testimonialsSection=visible.testimonials&&(!pinkyNails||pinkyHasReviews||customerSignedIn)&&(
