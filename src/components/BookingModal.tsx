@@ -47,6 +47,8 @@ export interface BookingModalProps {
   initialSlot?: DirectBookingSlot;
   /** Optional private session notes from a template-specific booking flow. */
   initialBookingNote?: string;
+  /** Optional pre-selected promotion or loyalty voucher code. */
+  initialCouponCode?: string;
   consultation?: ConsultationDetails;
   onAddAppointment?: (appointment: Appointment) => void | Promise<Appointment>;
   themeAccentHex?: string;
@@ -96,6 +98,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   initialStylist: inputInitialStylist,
   initialSlot,
   initialBookingNote,
+  initialCouponCode,
   consultation,
   onAddAppointment: inputOnAddAppointment,
   themeAccentHex = '#0f172a',
@@ -297,7 +300,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   useEffect(()=>{if(isOpen&&initialService)setSelectedService(initialService);},[isOpen,initialService?.id]);
   useEffect(()=>{if(isOpen&&initialStylist)setSelectedStylist(initialStylist);},[isOpen,initialStylist?.id]);
 
-  useEffect(()=>{if(isOpen){coupon.remove();setAddOnIds([]);setServerTotal(null);reservedBooking.current=null;reservedRequest.current='';bookingRequest.current=crypto.randomUUID();if(initialSlot){setBookingDate(initialSlot.date);setSelectedBranchId(initialSlot.branchId||'');setCurrentStep(initialSlot.branchId||(profile.branches||[]).length<2?'datetime':'service');}else setCurrentStep('service');}},[isOpen,initialSlot?.date,initialSlot?.time,initialSlot?.branchId]);
+  useEffect(()=>{if(isOpen){if(initialCouponCode?.trim())coupon.change(initialCouponCode.trim());else coupon.remove();setAddOnIds([]);setServerTotal(null);reservedBooking.current=null;reservedRequest.current='';bookingRequest.current=crypto.randomUUID();if(initialSlot){setBookingDate(initialSlot.date);setSelectedBranchId(initialSlot.branchId||'');setCurrentStep(initialSlot.branchId||(profile.branches||[]).length<2?'datetime':'service');}else setCurrentStep('service');}},[isOpen,initialSlot?.date,initialSlot?.time,initialSlot?.branchId,initialCouponCode]);
   useEffect(()=>{if(isOpen&&branchChoices.length>1&&!selectedBranchId&&currentStep==='datetime')setCurrentStep('service');},[isOpen,branchChoices.length,selectedBranchId,currentStep]);
   useEffect(()=>{if(isOpen&&consultation){setGuestName(consultation.name);setGuestPhone(consultation.phone);setConsultationMessage(consultation.message);setIsPrefilled(true);}},[isOpen,consultation]);
   useEffect(()=>{if(isOpen&&initialBookingNote)setConsultationMessage(initialBookingNote);},[isOpen,initialBookingNote]);

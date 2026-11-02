@@ -13,7 +13,7 @@ export const INITIAL_SALON_PROFILE: SalonProfile = {
   ownerRole: defaultTemplate.ownerRole,
   phone: defaultTemplate.phone,
   whatsapp: defaultTemplate.whatsapp,
-  email: 'appointments@mirakihair.in',
+  email: 'hello@ziyahairstudio.in',
   tagline: defaultTemplate.tagline,
   about: defaultTemplate.about,
   ownerPhotoUrl: defaultTemplate.ownerPhotoUrl,

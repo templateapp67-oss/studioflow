@@ -94,7 +94,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setCurrentView, onSele
                   <div className="w-3 h-3 rounded-full bg-emerald-400" />
                 </div>
                 <div className="text-[11px] font-mono text-slate-500 font-semibold flex items-center gap-1">
-                  <span>mirakistudio.nexora.in</span>
+                  <span>ziyahairstudio.nexora.in</span>
                 </div>
                 <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
                   ₹ Live
@@ -105,27 +105,27 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setCurrentView, onSele
                 <div className="w-full h-48 rounded-xl relative overflow-hidden bg-slate-900">
                   <img 
                     src={CATEGORY_TEMPLATES.hair_salon.coverImageUrl}
-                    alt="Salon Preview"
+                    alt="Ziya Women’s Hair Studio Preview"
                     className="w-full h-full object-cover opacity-95 filter brightness-105 contrast-105 group-hover:scale-105 transition-all duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                   <div className="absolute bottom-3.5 left-3.5 text-white">
                     <span className="text-[10px] font-mono font-bold uppercase bg-white/20 px-2 py-0.5 rounded backdrop-blur-xs">
-                      Hair Cut & Styling Studio
+                      Women’s Haircut Specialist Salon
                     </span>
-                    <h3 className="font-bold text-base mt-1">Miraki Hair Studio</h3>
+                    <h3 className="font-bold text-base mt-1">Ziya Women’s Hair Studio</h3>
                     <p className="text-[11px] text-slate-200">100 Feet Rd, Indiranagar, Bengaluru</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-                    <div className="text-[10px] text-slate-500 font-mono">Master Cut & Blowdry</div>
-                    <div className="font-bold text-slate-900 font-mono text-base mt-0.5">₹750</div>
+                    <div className="text-[10px] text-slate-500 font-mono">Layer Haircut</div>
+                    <div className="font-bold text-slate-900 font-mono text-base mt-0.5">₹950</div>
                   </div>
                   <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-                    <div className="text-[10px] text-slate-500 font-mono">Keratin Smoothing</div>
-                    <div className="font-bold text-slate-900 font-mono text-base mt-0.5">₹4,200</div>
+                    <div className="text-[10px] text-slate-500 font-mono">Butterfly Haircut</div>
+                    <div className="font-bold text-slate-900 font-mono text-base mt-0.5">₹1,250</div>
                   </div>
                 </div>
 

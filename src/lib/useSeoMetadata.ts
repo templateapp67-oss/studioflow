@@ -2,13 +2,20 @@ import { useEffect } from 'react';
 import type { SalonProfile } from '../types';
 
 export function generateSeoDefaults(profile: Partial<SalonProfile>) {
-  const businessName = profile.businessName || 'Salon & Wellness Studio';
+  const rawName = String(profile.businessName || '').trim();
+  const isZiyaTemplate = profile.businessType === 'hair_salon';
+  const businessName =
+    isZiyaTemplate && (!rawName || /miraki|luxury editorial salon/i.test(rawName))
+      ? 'Ziya Women’s Hair Studio'
+      : rawName || 'Salon & Wellness Studio';
   const city = profile.city || '';
-  const typeLabel = (profile.businessType || 'salon').replace(/_/g, ' ');
+  const typeLabel = isZiyaTemplate
+    ? 'Women’s Haircut Specialist Salon'
+    : (profile.businessType || 'salon').replace(/_/g, ' ');
   const tagline = profile.tagline || profile.about || 'Book your appointment online for premium beauty, hair, and grooming services.';
   const citySuffix = city ? ` in ${city}` : '';
 
-  const metaTitle = `${businessName} – Premium ${typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1)}${citySuffix}`;
+  const metaTitle = `${businessName} – ${isZiyaTemplate ? typeLabel : `Premium ${typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1)}`}${citySuffix}`;
   const metaDescription = `${tagline.slice(0, 120)}. Book online instantly at ${businessName}${citySuffix} with top expert stylists and therapists.`;
   const ogTitle = `${businessName}${citySuffix} | Official Website`;
   const ogDescription = tagline.length > 150 ? `${tagline.slice(0, 147)}...` : tagline;

@@ -102,7 +102,7 @@ const CURATED_HERO_PRESETS = [
   { name: 'Glossy Chrome Gel Art', url: SALON_IMAGES.nailArt, tag: 'Nail Art' },
   { name: 'Lifted Lash & Brow Result', url: SALON_IMAGES.lashBrow, tag: 'Lash & Brow' },
   { name: 'Sterilized Tools & Polish Tray', url: SALON_IMAGES.toolsSetup, tag: 'Tools & Setup' },
-  { name: 'Luxury Miraki Hair Sanctuary', url: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1200&q=80', tag: 'Hair Studio' },
+  { name: 'Ziya Women’s Hair Studio', url: '/templates/luxury-editorial/hero-960.webp', tag: 'Women’s Haircut Studio' },
   { name: 'Gentlemen’s Grooming Barbershop', url: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=1200&q=80', tag: 'Barber Lounge' }
 ];
 
@@ -864,7 +864,7 @@ export const SidePanelCustomizer: React.FC<SidePanelCustomizerProps> = ({
                 value={profile.businessName}
                 onChange={(e) => setProfile((prev) => ({ ...prev, businessName: e.target.value }))}
                 className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-bold text-slate-900 focus:border-slate-900 focus:outline-none"
-                placeholder="e.g. Miraki Hair Studio"
+                placeholder="e.g. Ziya Women’s Hair Studio"
               />
             </div>
 
