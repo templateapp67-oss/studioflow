@@ -60,7 +60,9 @@ and the persistent preview column.
 
 Regeneration is guarded: if a section already differs from the template default,
 pressing an AI button opens a "Keep your writing?" confirmation and nothing is
-replaced until the owner chooses **Replace with new AI text**.
+replaced until the owner chooses **Replace with new AI text**. Each of those
+sections also has its own **Reset … to template** button, and the live preview can
+be switched between desktop and phone sizes without leaving the drawer.
 
 ## AI content
 

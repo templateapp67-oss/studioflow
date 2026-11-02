@@ -143,6 +143,8 @@ export function VedaCustomizer({ siteId, profile, services, stylists, publishedS
   const [publishing, setPublishing] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(true);
   const [previewPage, setPreviewPage] = useState<'home' | 'therapies' | 'packages' | 'contact'>('home');
+  /** Desktop or phone rendering of the same live website. */
+  const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [draftPrompt, setDraftPrompt] = useState<{ savedAt: number } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -536,9 +538,25 @@ export function VedaCustomizer({ siteId, profile, services, stylists, publishedS
                     </button>
                   ))}
                 </div>
+                <div className="vdc-row" role="group" aria-label="Preview size">
+                  {(['desktop', 'mobile'] as const).map((device) => (
+                    <button
+                      key={device}
+                      type="button"
+                      className={previewDevice === device ? 'is-active' : ''}
+                      aria-pressed={previewDevice === device}
+                      onClick={() => setPreviewDevice(device)}
+                    >
+                      {device}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className="vdc-preview__frame">
-                <div className="vdc-preview__viewport" key={`${config.theme}-${config.fontPair}-${config.layout}-${previewPage}`}>
+                <div
+                  className={`vdc-preview__viewport vdc-preview__viewport--${previewDevice}`}
+                  key={`${config.theme}-${config.fontPair}-${config.layout}-${previewPage}-${previewDevice}`}
+                >
                   <VedaSanjeevaniWebsite
                     profile={previewProfile}
                     services={serviceList}
@@ -811,6 +829,10 @@ function ContentTab({
   setTeam: (next: Stylist[]) => void;
   serviceList: SalonService[];
 }) {
+  /** Puts one section back to the template wording without touching the rest. */
+  const resetSection = (id: Parameters<typeof vedaResetSection>[1]) =>
+    commit((previous) => vedaResetSection(previous, id));
+
   return (
     <div className="vdc-panel">
       <header className="vdc-panel__head">
@@ -847,7 +869,10 @@ function ContentTab({
         </div>
         <Area label="Headline (use a line break for two lines)" value={config.hero.headline} onChange={(value) => patch('hero', { headline: value })} rows={2} maxLength={120} />
         <Area label="Description" value={config.hero.description} onChange={(value) => patch('hero', { description: value })} rows={3} maxLength={420} />
-        <button type="button" className="vdc-btn" onClick={() => generate('hero')} disabled={Boolean(aiBusy)}>Regenerate this section</button>
+        <div className="vdc-row vdc-row--wrap">
+          <button type="button" className="vdc-btn" onClick={() => generate('hero')} disabled={Boolean(aiBusy)}>Regenerate this section</button>
+          <button type="button" className="vdc-btn vdc-btn--quiet" onClick={() => resetSection('hero')}>Reset hero to template</button>
+        </div>
       </section>
 
       <section className="vdc-card">
@@ -859,7 +884,10 @@ function ContentTab({
         <Area label="Heading" value={config.philosophy.title} onChange={(value) => patch('philosophy', { title: value })} rows={2} />
         <Area label="Body" value={config.philosophy.body} onChange={(value) => patch('philosophy', { body: value })} rows={4} />
         <Area label="Pull quote" value={config.philosophy.quote} onChange={(value) => patch('philosophy', { quote: value })} rows={2} maxLength={300} />
-        <button type="button" className="vdc-btn" onClick={() => generate('philosophy')} disabled={Boolean(aiBusy)}>Regenerate this section</button>
+        <div className="vdc-row vdc-row--wrap">
+          <button type="button" className="vdc-btn" onClick={() => generate('philosophy')} disabled={Boolean(aiBusy)}>Regenerate this section</button>
+          <button type="button" className="vdc-btn vdc-btn--quiet" onClick={() => resetSection('philosophy')}>Reset About us to template</button>
+        </div>
       </section>
 
       <section className="vdc-card">
@@ -871,7 +899,10 @@ function ContentTab({
             <Field label="Eyebrow" value={config[section.key].eyebrow} onChange={(value) => patch(section.key, { eyebrow: value } as any)} maxLength={60} />
             <Area label="Heading" value={config[section.key].title} onChange={(value) => patch(section.key, { title: value } as any)} rows={2} />
             <Area label="Intro" value={config[section.key].body} onChange={(value) => patch(section.key, { body: value } as any)} rows={3} />
-            <button type="button" className="vdc-btn" onClick={() => generate(section.key as any)} disabled={Boolean(aiBusy)}>Regenerate {section.label.toLowerCase()}</button>
+            <div className="vdc-row vdc-row--wrap">
+              <button type="button" className="vdc-btn" onClick={() => generate(section.key as any)} disabled={Boolean(aiBusy)}>Regenerate {section.label.toLowerCase()}</button>
+              <button type="button" className="vdc-btn vdc-btn--quiet" onClick={() => resetSection(section.key)}>Reset to template</button>
+            </div>
           </details>
         ))}
       </section>

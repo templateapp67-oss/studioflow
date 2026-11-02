@@ -1019,6 +1019,8 @@ ok('wiring, security boundary, docs and styling');
   assert.equal(vedaSectionHasEdits(editedHero, 'faq'), false, 'other sections are unaffected');
   const customizerSource = readFileSync('src/components/veda-sanjeevani/VedaCustomizer.tsx', 'utf8');
   assert.ok(customizerSource.includes('Keep my text') && customizerSource.includes('Replace with new AI text'), 'the owner confirms before AI text replaces theirs');
+  assert.ok(customizerSource.includes('Reset hero to template') && customizerSource.includes('Reset About us to template'), 'each section can be reset on its own');
+  assert.ok(customizerSource.includes("previewDevice") && customizerSource.includes("'mobile'"), 'the live preview can be switched to a phone size');
   ok('AI gallery captions, prompt drafts and protected regeneration');
 }
 
