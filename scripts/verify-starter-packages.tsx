@@ -29,6 +29,17 @@ for(const t of Object.values(CATEGORY_TEMPLATES)){
   assert.ok(section.includes('Book package'),'editorial packages book through the same flow');
   continue;
  }
+ if(t.id==='unisex_salon'){
+  // Template 03 (Aura Unisex Salon & Wellness Lounge) publishes the salon's
+  // packages in its own card style after the guest reviews; the catalogue still
+  // seeds and books exactly five packages with their real ₹ prices.
+  const section=html.split('id="salon-packages"')[1].split('</section>')[0];
+  assert.equal((section.match(/au-package-card/g)||[]).length,5,'Aura package cards');
+  for(const item of packages)assert.ok(section.includes(item.name.replaceAll('&','&amp;')),'Aura shows '+item.name);
+  for(const item of packages)assert.ok(section.includes('₹'+item.price.toLocaleString('en-IN')),'Aura shows the real price for '+item.name);
+  assert.ok(section.includes('Book package'),'Aura packages book through the same flow');
+  continue;
+ }
  if(t.id==='tattoo_studio'){
   const section=html.split('id="salon-packages"')[1].split('</section>')[0];
   assert.equal((section.match(/class="sf-service-card"/g)||[]).length,5,'Iron & Ink package cards');

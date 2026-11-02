@@ -24,6 +24,7 @@ import {
 import type { SalonProfile, SalonService, Stylist } from '../types';
 import type { SalonGalleryPhoto } from '../lib/photoGallery';
 import { clientExperiences } from '../lib/demoWebsiteContent';
+import { isPackage } from '../lib/packageCatalogue';
 import { socialUrl } from '../lib/websiteContent';
 import { AppAnnouncementStrip, AppInstallSection } from './AppInstallSection';
 import { CustomerReviewPanel } from './CustomerReviewPanel';
@@ -97,6 +98,7 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
   galleryPhotos,
   shared,
   enabledSections,
+  showPackages,
   customerSignedIn,
   customerName,
   customerPhotoUrl,
@@ -133,6 +135,7 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
   const team = stylists.slice(0, 6);
   // The header only links to sections that actually have content.
   const navLinks = NAV_LINKS.filter((link) => link.href !== '#aura-team' || team.length > 0);
+  const packages = useMemo(() => services.filter((service) => isPackage(service)), [services]);
   const reviews = useMemo(() => clientExperiences(profile).slice(0, 3), [profile]);
 
   const gallery: GalleryItem[] = useMemo(() => {
@@ -687,7 +690,7 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                           className="au-btn au-btn-ghost au-btn-sm"
                           onClick={() => onViewSpecialist(stylist.id)}
                         >
-                          View Details
+                          View profile &amp; reviews
                         </button>
                       </div>
                     </div>
@@ -791,6 +794,63 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
             )}
           </div>
         </section>
+        )}
+
+        {/* ==================================================================
+            8b. PACKAGES — owner packages and bundles (kept, Aura card style)
+           ================================================================== */}
+        {showPackages && packages.length > 0 && (
+          <section id="salon-packages" data-layout="packages" className="au-section au-packages">
+            <div className="au-container">
+              <div className="au-section-head">
+                <p className="au-eyebrow">{AURA_UNISEX_COPY.packagesEyebrow}</p>
+                <h2 className="au-section-title">{AURA_UNISEX_COPY.packagesTitle}</h2>
+                <p className="au-section-text">{AURA_UNISEX_COPY.packagesText}</p>
+              </div>
+              <div className="au-service-grid au-package-grid">
+                {packages.map((pkg) => {
+                  const image = pkg.imageUrl
+                    ? { src: pkg.imageUrl, srcSet: '', alt: pkg.name }
+                    : auraServiceImage(pkg);
+                  return (
+                  <article className="au-service-card au-package-card" key={pkg.id}>
+                    <div className="au-service-media au-package-media">
+                      <img
+                        src={image.src}
+                        srcSet={image.srcSet || undefined}
+                        sizes="(max-width: 640px) 100vw, (max-width: 1100px) 50vw, 33vw"
+                        alt={image.alt}
+                        loading="lazy"
+                      />
+                    </div>
+                    <div className="au-service-body">
+                      {pkg.category && <p className="au-service-category">{pkg.category}</p>}
+                      <h3 className="au-service-name">{pkg.name}</h3>
+                      {pkg.description && <p className="au-service-text">{pkg.description}</p>}
+                      <div className="au-service-meta">
+                        <span className="au-service-price">{money(pkg.price)}</span>
+                        {pkg.showDuration !== false && pkg.durationMinutes > 0 && (
+                          <span className="au-service-time">
+                            <Clock size={13} aria-hidden="true" />
+                            {durationLabel(pkg.durationMinutes)}
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        className="au-btn au-btn-primary"
+                        onClick={() => (bookingAvailable ? onBook(pkg) : undefined)}
+                        disabled={!bookingAvailable}
+                      >
+                        {AURA_UNISEX_COPY.packagesButton}
+                      </button>
+                    </div>
+                  </article>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
         )}
 
         {/* Owner-enabled marketing sections keep using the shared workspace components. */}
