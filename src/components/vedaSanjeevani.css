@@ -1495,3 +1495,6 @@
   .vd-site .vd-why__figure img { aspect-ratio: 4 / 3 !important; }
   .vd-site .vd-why__figure figcaption { text-align: left; }
 }
+
+/* Gallery page: honest empty state when every photo is hidden */
+.vd-site .vd-gallery__empty { padding: 34px 30px; }

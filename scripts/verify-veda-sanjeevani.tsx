@@ -909,6 +909,7 @@ ok('wiring, security boundary, docs and styling');
   const sectionsSource = readFileSync('src/components/veda-sanjeevani/VedaSections.tsx', 'utf8');
   assert.ok(!/<img src=\{image\.url\}/.test(sectionsSource), 'gallery tiles render through the shared image component');
   assert.ok(sectionsSource.includes('slot="gallery"'), 'gallery uses the reusable image asset');
+  assert.ok(sectionsSource.includes('if (!galleryImages.length) return null;'), 'an empty gallery never renders an empty section');
   ok('dedicated image asset system for every section and therapy');
 }
 

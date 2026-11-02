@@ -557,6 +557,9 @@ export function VedaExperts({ config, stylists, navigate, onBook, onViewSpeciali
  * ------------------------------------------------------------------ */
 
 export function VedaGallery({ config, navigate, galleryImages, lightbox, onOpenLightbox, onCloseLightbox }: VedaSectionProps) {
+  // If every photo has been hidden in the dashboard, the section steps aside
+  // instead of showing an empty grid.
+  if (!galleryImages.length) return null;
   return (
     <section className="vd-section vd-section--sand" id="gallery" aria-labelledby="vd-gallery-title">
       <div className="vd-container">
@@ -1003,7 +1006,14 @@ export function VedaGalleryPage({ config, navigate, galleryImages, lightbox, onO
       </VedaPageHead>
       <section className="vd-section vd-section--tight" aria-label="Photo gallery">
         <div className="vd-container">
-          <VedaGalleryGrid images={galleryImages} onOpen={onOpenLightbox} />
+          {galleryImages.length ? (
+            <VedaGalleryGrid images={galleryImages} onOpen={onOpenLightbox} />
+          ) : (
+            <VedaGlassCard className="vd-gallery__empty" ariaLabel="Gallery photographs">
+              <VedaSectionHead eyebrow="Gallery" title="Our rooms, coming
+back into view." body="Every photograph is hidden right now. Add or show photos in the customizer under Photos." />
+            </VedaGlassCard>
+          )}
           <p className="vd-small vd-muted" style={{ marginTop: 22 }}>
             Sample photographs are bundled with the template. Replace them with your own from the customizer → Photos.
           </p>
