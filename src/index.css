@@ -3,6 +3,7 @@
 @import "./pinkyNails.css";
 @import "./components/hairSpaWebsite.css";
 @import "./keshPrakriti.css";
+@import "./components/appInstallSection.css";
 
 @theme {
   --color-surface-tint: #bc004f;
@@ -478,7 +479,10 @@
 .sf-button-outline{background:transparent;color:var(--sf-accent);border:1px solid var(--sf-accent)}
 .sf-button-outline:hover{background:var(--sf-accent);color:var(--sf-accent-text)}
 .sf-button-small{padding:8px 14px;font-size:13px;border-radius:10px}
-.sf-button-whatsapp{background:#128c4b;border-color:#128c4b;color:#fff}
+/* WhatsApp green darkened one step: #128c4b only reached 4.3:1 with white.
+   #0f7a41 gives 5.4:1, so the label stays pure white in every state. */
+.sf-button-whatsapp{background:#0f7a41;border-color:#0f7a41;color:var(--sf-on-accent,#fff)}
+.sf-button-whatsapp:hover{background:#0c6535;border-color:#0c6535;color:var(--sf-on-accent,#fff)}
 .sf-mood{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--sf-muted)}
 .sf-mood i{width:10px;height:10px;border-radius:50%;background:#22c55e;font-style:normal}
 .sf-badges{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px;padding:0;list-style:none}
@@ -800,21 +804,9 @@
 .service-editor-upload{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px dashed #cbd5e1;border-radius:10px;padding:10px;cursor:pointer;font-size:13px;font-weight:700;color:#475569}
 .service-remove{background:none;border:1px solid #fecaca;color:#b91c1c;border-radius:10px;padding:8px 14px;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
 .service-remove:hover{background:#fef2f2}
-/* Nexora app promotion */
-.nexora-app-promotion{background:linear-gradient(120deg,#0f172a,#312e81);color:#fff;border-radius:0}
-.nexora-app-promo-inner{max-width:1160px;margin:0 auto;padding:56px 20px;display:grid;grid-template-columns:1.1fr .9fr;gap:32px;align-items:center}
-.nexora-app-eyebrow{margin:0 0 8px;font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#c4b5fd}
-.nexora-app-copy h2{margin:0 0 10px;font-size:clamp(24px,3.4vw,34px)}
-.nexora-app-lead{color:#e0e7ff;font-size:15px;margin:0 0 18px}
-.nexora-app-actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
-.nexora-app-primary{background:#fff;color:#0f172a;border:0;border-radius:12px;padding:12px 22px;font:inherit;font-weight:800;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
-.nexora-app-secondary{background:transparent;color:#fff;border:1px solid #ffffff55;border-radius:12px;padding:12px 22px;font:inherit;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
-.nexora-app-share{background:none;border:0;color:#c4b5fd;font:inherit;font-size:13px;font-weight:700;cursor:pointer;text-decoration:underline;text-underline-offset:3px;padding:0}
-.nexora-app-notice{font-size:13px;color:#c4b5fd;margin:10px 0 0}
-.nexora-app-poster{border-radius:20px;overflow:hidden;border:1px solid #ffffff22}
-.nexora-app-poster img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover}
-.nexora-app-strip{background:#eef2ff;color:#312e81;font-size:13px;font-weight:700;text-align:center;padding:10px 16px}
-.nexora-install-steps{margin:14px 0 0;padding-left:20px;display:grid;gap:6px;font-size:13px;color:#e0e7ff}
+/* App-install banner and announcement strip: layout plus per-template theming
+   live in components/appInstallSection.css (imported at the top of this file). */
+.app-install-strip{font-size:13px;font-weight:700;text-align:center;padding:10px 16px}
 /* Utility keyframes + helpers used across owner/customer UI */
 @keyframes fade-in{from{opacity:0}to{opacity:1}}
 @keyframes zoom-in{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
@@ -831,7 +823,7 @@
 .scrollbar-thin::-webkit-scrollbar{height:6px;width:6px}
 .scrollbar-thin::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}
 /* Responsive */
-@media(max-width:1020px){.form-grid.three{grid-template-columns:1fr 1fr}.sf-barber-hero-grid{grid-template-columns:1fr}.nexora-app-promo-inner{grid-template-columns:1fr}}
+@media(max-width:1020px){.form-grid.three{grid-template-columns:1fr 1fr}.sf-barber-hero-grid{grid-template-columns:1fr}}
 @media(max-width:900px){.sf-header-links{display:none}.sf-account>button:first-child{display:none}.sf-menu-toggle{display:inline-flex}.sf-section{padding-block:44px}.sf-dock-scroll{padding-inline:16px}.owner-main{padding:18px}.sf-barber-pillars{grid-template-columns:1fr}.sf-about-with-photo{grid-template-columns:1fr}.sf-comparison-images{grid-template-columns:1fr 1fr}.sf-footer{padding-bottom:110px}.sf-mobile-tabs{display:flex;position:fixed;inset:auto 0 0 0;z-index:60;background:#fffffffa;backdrop-filter:blur(10px);border-top:1px solid var(--sf-line);padding:8px 8px calc(8px + env(safe-area-inset-bottom))}
 .sf-mobile-tabs a{flex:1;display:grid;justify-items:center;gap:2px;text-decoration:none;color:var(--sf-muted);font-size:10px;font-weight:700;padding:6px 4px;border-radius:10px}
 .sf-mobile-tabs a[aria-current=location]{color:var(--sf-accent)}}

@@ -18,6 +18,19 @@
   --vd-gold-soft: #e4d2ae;
   --vd-ink: #22251f;
 
+  /* Filled-button foregrounds. Pure white on the forest greens keeps every
+     primary CTA at 12:1 or better; the antique-gold fill keeps its warm dark
+     ink (6:1). Both stay tokenised so a theme swap never has to touch a
+     button rule again. */
+  --vd-on-forest: #ffffff;
+  --vd-on-gold: #1b1508;
+
+  /* Antique gold works as a FILL (with --vd-on-gold), but as TEXT on the ivory
+     grounds it only reaches 2.6-3.1:1. Links and FAQ questions that turn gold
+     on hover use this ink instead: the same hue mixed toward the deep forest,
+     which lands at 4.7-5.1:1 on ivory, sand and white. */
+  --vd-gold-ink: color-mix(in srgb, var(--vd-gold) 62%, var(--vd-forest-deep));
+
   --vd-surface: color-mix(in srgb, var(--vd-ivory) 82%, #fff);
   --vd-surface-raised: color-mix(in srgb, var(--vd-ivory) 92%, #fff);
   --vd-line: color-mix(in srgb, var(--vd-sage) 38%, transparent);
@@ -53,7 +66,10 @@
 
 .vd-site[data-buttons="square"] { --vd-btn-radius: 4px; }
 .vd-site[data-buttons="outline"] { --vd-btn-radius: 3px; }
-.vd-site[data-theme="neelgiri"] { --vd-surface: color-mix(in srgb, var(--vd-forest) 88%, #000); --vd-muted: color-mix(in srgb, var(--vd-ink) 72%, var(--vd-forest-deep)); }
+.vd-site[data-theme="neelgiri"] { --vd-surface: color-mix(in srgb, var(--vd-forest) 88%, #000); --vd-muted: color-mix(in srgb, var(--vd-ink) 72%, var(--vd-forest-deep));
+  /* Neelgiri Night inverts the ground, so raw gold already clears 5.3:1 there
+     and darkening it would be the wrong direction. */
+  --vd-gold-ink: var(--vd-gold); }
 
 .vd-site *,
 .vd-site *::before,
@@ -72,12 +88,18 @@
   text-wrap: balance;
 }
 .vd-site p { margin: 0; }
-.vd-site a { color: inherit; text-decoration: none; }
+/* Element resets are wrapped in `:where()` so they add no specificity of their
+ * own. Written as `.vd-site a` / `.vd-site button` they score (0,1,1) and beat
+ * every component class at (0,1,0) — which is why `.vd-btn`'s own
+ * `color: var(--vd-btn-fg)` was discarded and primary buttons inherited dark
+ * ink onto their forest-green fill (1.27:1). At (0,1,0) the reset still applies
+ * to plain links and buttons, and `.vd-btn` wins by source order. */
+.vd-site :where(a) { color: inherit; text-decoration: none; }
 .vd-site img { display: block; max-width: 100%; }
 /* Soft sand placeholder behind every template photo while it decodes, so a
  * slow or broken image never shows as a stark empty box. */
 .vd-site img[data-veda-image] { background: color-mix(in srgb, var(--vd-sand) 64%, #fff); }
-.vd-site button { font: inherit; color: inherit; }
+.vd-site :where(button) { font: inherit; color: inherit; }
 .vd-site ul { margin: 0; padding: 0; list-style: none; }
 
 .vd-site :focus-visible {
@@ -156,7 +178,8 @@
 
 .vd-btn {
   --vd-btn-bg: var(--vd-forest);
-  --vd-btn-fg: var(--vd-ivory);
+  --vd-btn-bg-hover: var(--vd-forest-deep);
+  --vd-btn-fg: var(--vd-on-forest);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -174,13 +197,37 @@
   box-shadow: var(--vd-shadow-sm);
   text-align: center;
 }
-.vd-btn:hover { transform: translateY(-2px); box-shadow: var(--vd-shadow); }
-.vd-btn:active { transform: translateY(0); }
-.vd-btn[disabled] { opacity: 0.55; cursor: not-allowed; transform: none; }
+/* Hover darkens the fill one step; the label keeps its token colour so the
+ * pair never drifts below 4.5:1. */
+.vd-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--vd-shadow);
+  background: var(--vd-btn-bg-hover, var(--vd-btn-bg));
+  color: var(--vd-btn-fg);
+}
+.vd-btn:active { transform: translateY(0); background: var(--vd-btn-bg-hover, var(--vd-btn-bg)); }
+.vd-btn:focus-visible { color: var(--vd-btn-fg); outline-color: var(--vd-gold); }
+/* Disabled mixes the fill toward sage instead of fading the whole element: an
+ * `opacity` fade composites label and fill together and drops the pair to
+ * ~3.3:1, while this keeps white-on-green at ~8.6:1. */
+.vd-btn[disabled],
+.vd-btn[aria-disabled="true"] {
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  border-color: var(--vd-line);
+  background: color-mix(in srgb, var(--vd-btn-bg) 78%, var(--vd-sage));
+  color: var(--vd-btn-fg);
+}
 
-.vd-btn--gold { --vd-btn-bg: var(--vd-gold); --vd-btn-fg: #1b1508; }
+.vd-btn--gold {
+  --vd-btn-bg: var(--vd-gold);
+  --vd-btn-bg-hover: color-mix(in srgb, var(--vd-gold) 84%, #000);
+  --vd-btn-fg: var(--vd-on-gold);
+}
 .vd-btn--ghost {
   --vd-btn-bg: transparent;
+  --vd-btn-bg-hover: transparent;
   --vd-btn-fg: currentColor;
   border-color: color-mix(in srgb, currentColor 42%, transparent);
   box-shadow: none;
@@ -188,6 +235,7 @@
 .vd-btn--ghost:hover { background: color-mix(in srgb, currentColor 8%, transparent); }
 .vd-btn--quiet {
   --vd-btn-bg: transparent;
+  --vd-btn-bg-hover: transparent;
   --vd-btn-fg: var(--vd-forest);
   border-color: var(--vd-line);
   box-shadow: none;
@@ -198,6 +246,7 @@
 
 .vd-site[data-buttons="outline"] .vd-btn:not(.vd-btn--gold):not(.vd-btn--ghost):not(.vd-btn--quiet) {
   --vd-btn-bg: transparent;
+  --vd-btn-bg-hover: transparent;
   --vd-btn-fg: currentColor;
   border-color: color-mix(in srgb, currentColor 55%, transparent);
   box-shadow: none;
@@ -218,7 +267,7 @@
   padding: 10px 2px;
   transition: gap 200ms ease, color 200ms ease;
 }
-.vd-textlink:hover { gap: 12px; color: var(--vd-gold); }
+.vd-textlink:hover { gap: 12px; color: var(--vd-gold-ink); }
 
 /* ------------------------------------------------------------------ */
 /* Announcement bar                                                     */
@@ -397,7 +446,7 @@
   text-underline-offset: 3px;
   cursor: pointer;
 }
-.vd-account__link:hover { color: var(--vd-gold); }
+.vd-account__link:hover { color: var(--vd-gold-ink); }
 .vd-account--drawer { flex-wrap: wrap; gap: 10px; padding: 4px 2px 0; }
 .vd-account--drawer .vd-account__link { text-decoration: none; border: 1px solid color-mix(in srgb, var(--vd-ink) 14%, transparent); border-radius: 999px; padding: 8px 14px; }
 @media (max-width: 1080px) {
@@ -710,7 +759,7 @@
   transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease;
   white-space: nowrap;
 }
-.vd-therapy-tabs button[aria-pressed="true"] { background: var(--vd-forest); color: var(--vd-ivory); border-color: var(--vd-forest); }
+.vd-therapy-tabs button[aria-pressed="true"] { background: var(--vd-forest); color: var(--vd-on-forest); border-color: var(--vd-forest); }
 .vd-therapy-tabs button:hover { border-color: var(--vd-gold); }
 
 .vd-grid { display: grid; gap: clamp(16px, 2vw, 26px); }
@@ -749,7 +798,7 @@
   backdrop-filter: blur(8px);
   border: 1px solid color-mix(in srgb, var(--vd-sand) 60%, transparent);
 }
-.vd-chip--gold { background: var(--vd-gold); color: #1c1608; border-color: transparent; }
+.vd-chip--gold { background: var(--vd-gold); color: var(--vd-on-gold); border-color: transparent; }
 .vd-card__body { display: flex; flex-direction: column; gap: 10px; padding: 20px 20px 22px; flex: 1; }
 .vd-card__cat { font-size: 0.66rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--vd-gold); font-weight: 700; }
 .vd-card__title { font-size: 1.28rem; line-height: 1.18; }
@@ -1010,7 +1059,7 @@
   font-size: 1.18rem;
   color: var(--vd-forest);
 }
-.vd-faq__q:hover { color: var(--vd-gold); }
+.vd-faq__q:hover { color: var(--vd-gold-ink); }
 .vd-faq__q span { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--vd-line); transition: transform 260ms ease, background-color 260ms ease; }
 .vd-faq__item[data-open="true"] .vd-faq__q span { transform: rotate(45deg); background: var(--vd-sage-soft); }
 .vd-faq__a { display: grid; overflow: hidden; }
@@ -1049,7 +1098,7 @@
 .vd-map__facade:hover, .vd-map__facade:focus-visible { filter: brightness(1.04) saturate(1.05); }
 .vd-map__ping {
   display: grid; place-items: center; flex: 0 0 auto; width: 54px; height: 54px; border-radius: 999px;
-  color: #fff; background: var(--vd-forest, #1f3d2e);
+  color: var(--vd-on-forest); background: var(--vd-forest, #1f3d2e);
   box-shadow: 0 0 0 10px rgb(31 61 46 / 12%), 0 14px 30px -12px rgb(31 61 46 / 55%);
   animation: vd-ping 3.4s var(--vd-ease-premium) infinite;
 }
@@ -1126,7 +1175,7 @@
   display: grid;
   place-items: center;
   background: var(--vd-forest);
-  color: var(--vd-ivory);
+  color: var(--vd-on-forest);
   box-shadow: var(--vd-shadow);
   border: 1px solid color-mix(in srgb, var(--vd-gold) 42%, transparent);
   transition: transform 220ms ease, background-color 220ms ease;
@@ -1183,7 +1232,7 @@
   cursor: pointer;
   transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease;
 }
-.vd-slot[aria-pressed="true"] { background: var(--vd-forest); border-color: var(--vd-forest); color: var(--vd-ivory); }
+.vd-slot[aria-pressed="true"] { background: var(--vd-forest); border-color: var(--vd-forest); color: var(--vd-on-forest); }
 .vd-slot:hover { border-color: var(--vd-gold); }
 .vd-form__row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .vd-form__actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }

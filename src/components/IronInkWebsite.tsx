@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import type { SalonProfile, SalonService, Stylist, LoyaltyConfig } from "../types";
 import { WebsiteSections } from "./WebsiteSections";
-import { AppAnnouncementStrip, CustomerAppPromotion } from "./CustomerAppPromotion";
+import { AppAnnouncementStrip, AppInstallSection } from './AppInstallSection';
 import { defaultGalleryCategory, standardGallery } from "../lib/photoGallery";
 import { createIronInkServices, IRON_INK_CATEGORIES, ironInkDefaults } from "../lib/ironInk";
 import { ironInkOwnerVideos } from "../lib/ironInkMedia";
@@ -1862,7 +1862,7 @@ export function IronInkWebsite({
             <span>INK WITH CARE. ALWAYS.</span>
           </div>
         </footer>
-        <CustomerAppPromotion />
+        <AppInstallSection />
         {lightbox && (
           <div
             className="ii-lightbox"

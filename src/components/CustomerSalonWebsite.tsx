@@ -9,7 +9,7 @@ import {ExternalReviewFeed} from './ExternalReviewFeed';
 import {StylistProfile} from './StylistProfile';
 import {photoGallery,type PhotoCategory} from '../lib/photoGallery';
 import {GalleryPhotoImage} from './GalleryPhotoImage';
-import {AppAnnouncementStrip,CustomerAppPromotion} from './CustomerAppPromotion';
+import { AppAnnouncementStrip, AppInstallSection } from './AppInstallSection';
 import {SalonBookingsDialog} from './SalonBookingsDialog';
 import {CustomerWebsiteHeader} from './CustomerWebsiteHeader';
 import {BarberReferenceHero} from './BarberReferenceHero';
@@ -753,7 +753,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
   )}
   {['bookings','policies'].filter(section=>visible[section]).map(section=><section className="sf-section sf-standalone-panel" key={section}><div className="sf-container"><WebsiteSections {...shared} sections={[section]}/></div></section>)}
   {(visible.social||visible.share)&&<section className="sf-section sf-connections-section"><div className="sf-container"><WebsiteSections {...shared} sections={['social','share']}/></div></section>}
-  <CustomerAppPromotion/>
+  <AppInstallSection/>
   {pinkyNails?(pinkyShowFooter&&<PinkyNailsFooter profile={profile} services={pinkyServices} branding={branding} mapUrl={mapUrl} whatsappUrl={wa} hasTeam={Boolean(visible.stylists&&team.length)} availableTargets={pinkyAvailableTargets} bookingAvailable={pinkyBookingFlowAvailable} onBook={pinkyBookingFlowAvailable?book:undefined}/>):roopMahal?(roopShowFooter&&<RoopMahalFooter profile={profile} services={roopServices} branding={branding} mapUrl={mapUrl} whatsappUrl={wa} hasTeam={Boolean(visible.stylists&&team.length)} availableTargets={roopAvailableTargets} bookingAvailable={roopBookingFlowAvailable} onBook={roopBookingFlowAvailable?book:undefined}/>):<footer data-layout="footer" className="sf-footer"><div className="sf-container"><strong>{profile.businessName}</strong><p>{profile.city} · Crafted care, every visit.</p>{branding?.poweredBy&&<small>Powered by {branding.platformName||'StudioFlow'}</small>}<a href="#">Back to top ↑</a></div></footer>}
   </>
  )}

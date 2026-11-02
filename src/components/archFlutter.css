@@ -51,7 +51,10 @@
 
 .af-site img { max-width: 100%; display: block; }
 
-.af-site a { color: inherit; }
+/* Scoped element resets are wrapped in `:where()` so they contribute no
+ * specificity of their own. At (0,1,1) they outranked every component class
+ * at (0,1,0) and silently discarded button label colours. */
+.af-site :where(a) { color: inherit; }
 
 .af-site :focus-visible {
   outline: 2px solid var(--af-gold-ink);
@@ -1264,16 +1267,22 @@
   right: 18px; bottom: 18px;
   z-index: 70;
   display: inline-flex; align-items: center; gap: 10px;
-  background: #128c5e;
-  color: #fff;
+  background: var(--af-wa-green, #0f7a4d);
+  color: var(--af-on-accent, #fff);
   border-radius: 999px;
   padding: 13px 18px;
   font-size: 0.8rem; font-weight: 800; letter-spacing: 0.08em;
   text-decoration: none;
-  box-shadow: 0 14px 34px rgba(18, 140, 94, 0.4);
-  transition: transform 0.3s ease;
+  box-shadow: 0 14px 34px rgba(15, 122, 77, 0.4);
+  transition: transform 0.3s ease, background-color 0.3s ease;
 }
-.af-site .af-wa-float:hover { transform: translateY(-3px) scale(1.03); }
+/* Hover keeps white text and darkens the green a step (5.4:1 -> 6.7:1). */
+.af-site .af-wa-float:hover,
+.af-site .af-wa-float:focus-visible {
+  transform: translateY(-3px) scale(1.03);
+  background: #0b6440;
+  color: var(--af-on-accent, #fff);
+}
 
 /* ---- About page ------------------------------------------------------------------------ */
 .af-site .af-about-grid { display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr); gap: clamp(24px, 4vw, 54px); align-items: center; }

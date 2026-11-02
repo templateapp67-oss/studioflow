@@ -3,10 +3,7 @@ import { useReducedMotion, useScroll, useTransform } from "motion/react";
 import type { SalonProfile, SalonService, Stylist } from "../types";
 import type { SalonGalleryPhoto } from "../lib/photoGallery";
 import { WebsiteSections } from "./WebsiteSections";
-import {
-  AppAnnouncementStrip,
-  CustomerAppPromotion,
-} from "./CustomerAppPromotion";
+import { AppAnnouncementStrip, AppInstallSection } from './AppInstallSection';
 import { HairSpaContext } from "./hair-spa/context";
 import { HairSpaHeader } from "./hair-spa/HairSpaHeader";
 import { HeroSection } from "./hair-spa/HeroSection";
@@ -510,7 +507,7 @@ export function HairSpaWebsite({
               <WebsiteSections {...shared} sections={closingSections} />
             </div>
           )}
-          <CustomerAppPromotion />
+          <AppInstallSection />
         </main>
         <HairSpaFooter />
         <GalleryLightbox />

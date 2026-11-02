@@ -1,0 +1,683 @@
+/* ==========================================================================
+   AppInstallSection — the shared app-install banner used by all 14 templates.
+
+   One implementation, fourteen looks. Every colour, radius and font below is
+   read from an `--ai-*` custom property; the "Template bindings" section at the
+   bottom maps each template's own design tokens onto them. A template never
+   needs its own copy of the markup or the layout, and re-theming a template
+   (owner brand colours, Veda's four palettes, dark/light variants) flows
+   through automatically because the bindings reference tokens, not literals.
+
+   The old panel forced `linear-gradient(120deg,#0f172a,#312e81)` onto every
+   template, cropped its 1122x1402 poster into a 4:3 `object-fit: cover` box
+   and stacked an install guide plus share tools into ~700px of height. This
+   card targets 180–240px on desktop, keeps the poster whole, and folds the
+   long-form guide into a <details> disclosure.
+   ========================================================================== */
+
+/* Fallbacks shared by the banner and its announcement strip. Both are targets
+   of the `:is(.app-install, .app-install-strip)` bindings below, and the strip
+   is a SIBLING of the banner rather than a descendant — so the defaults have to
+   be declared on both or the strip silently keeps PromotionalBanner's indigo. */
+.app-install,
+.app-install-strip {
+  --ai-surface: #ffffff;
+  --ai-surface-2: #f4f5f7;
+  --ai-ink: #14181f;
+  --ai-muted: #5b6472;
+  --ai-accent: #1f3b2e;
+  --ai-on-accent: #ffffff;
+  /* `--ai-accent` is a fill, paired with `--ai-on-accent`. `--ai-accent-ink` is
+     the same accent used as TEXT on `--ai-surface`, and is overridden wherever
+     the accent is too light to read that way. */
+  --ai-accent-ink: var(--ai-accent);
+  --ai-line: rgba(16, 20, 26, 0.14);
+  --ai-radius: 18px;
+  --ai-btn-radius: 999px;
+  --ai-font-heading: inherit;
+  --ai-font-body: inherit;
+  --ai-shadow: 0 12px 34px -24px rgba(10, 14, 20, 0.55);
+  --ai-gutter: clamp(14px, 3.4vw, 32px);
+  --ai-max: 1160px;
+  /* The poster tile is tinted from the template accent, so it always sits on
+     palette without each template having to name a second surface. */
+  --ai-media-bg: color-mix(in srgb, var(--ai-accent) 8%, var(--ai-surface));
+  --ai-image-height: 168px;
+}
+
+/* Layout properties belong to the banner only — the strip keeps the compact
+   `.nexora-announcement` metrics. */
+.app-install {
+  padding: clamp(12px, 2.2vw, 24px) var(--ai-gutter);
+  font-family: var(--ai-font-body);
+  color: var(--ai-ink);
+}
+
+/* ---- Card ---------------------------------------------------------------- */
+
+.app-install .app-install__card {
+  width: min(var(--ai-max), 100%);
+  margin-inline: auto;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(14px, 2.2vw, 28px);
+  padding: clamp(14px, 1.7vw, 20px) clamp(16px, 2.1vw, 26px);
+  background-color: var(--ai-surface);
+  border: 1px solid var(--ai-line);
+  border-radius: var(--ai-radius);
+  box-shadow: var(--ai-shadow);
+  color: var(--ai-ink);
+}
+
+/* Configurable image position. */
+.app-install[data-image-position="right"] .app-install__card {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.app-install[data-image-position="right"] .app-install__media { order: 2; }
+.app-install[data-image-position="right"] .app-install__body { order: 1; }
+
+/* ---- Preview image ------------------------------------------------------- *
+ * The whole point of this block: the poster keeps its intrinsic 1122x1402
+ * ratio and is never cropped. `width`/`height` stay `auto` so the browser
+ * scales from the attributes' ratio, `max-height` is the only budget (it sets
+ * the card's height band), and `object-fit: contain` guarantees that even if a
+ * template or a future rule constrains one axis, the image letterboxes inside
+ * its box instead of being cut. There is no fixed cropping height and no
+ * `aspect-ratio` override anywhere.
+ * -------------------------------------------------------------------------- */
+
+.app-install .app-install__media {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  padding: 8px;
+  background-color: var(--ai-media-bg);
+  border: 1px solid var(--ai-line);
+  border-radius: calc(var(--ai-radius) * 0.72);
+  text-decoration: none;
+}
+
+.app-install .app-install__media img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: var(--ai-image-height);
+  object-fit: contain;
+  border-radius: calc(var(--ai-radius) * 0.45);
+}
+
+/* ---- Copy ---------------------------------------------------------------- */
+
+.app-install .app-install__body {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  align-content: center;
+}
+
+.app-install .app-install__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ai-muted);
+}
+
+.app-install .app-install__title {
+  margin: 0;
+  font-family: var(--ai-font-heading);
+  font-size: clamp(17px, 1.45vw, 21px);
+  font-weight: 700;
+  line-height: 1.22;
+  letter-spacing: -0.01em;
+  color: var(--ai-ink);
+  overflow-wrap: anywhere;
+}
+.app-install .app-install__title-nowrap { white-space: nowrap; }
+
+.app-install .app-install__text {
+  margin: 0;
+  font-size: clamp(12px, 0.95vw, 13px);
+  line-height: 1.55;
+  color: var(--ai-muted);
+  max-width: 64ch;
+  overflow-wrap: anywhere;
+}
+
+/* ---- Actions ------------------------------------------------------------- *
+ * The filled CTA takes `--ai-accent` / `--ai-on-accent`, which every binding
+ * below sets to a pair verified at >= 4.5:1. Hover darkens the fill one step
+ * and keeps the same label colour, so the pair cannot drift apart.
+ * -------------------------------------------------------------------------- */
+
+.app-install .app-install__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.app-install .app-install__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 9px 18px;
+  border: 1px solid var(--ai-accent);
+  border-radius: var(--ai-btn-radius);
+  background: var(--ai-accent);
+  color: var(--ai-on-accent);
+  font-family: var(--ai-font-body);
+  font-size: 12.5px;
+  font-weight: 750;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.18s ease, border-color 0.18s ease,
+    color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.app-install .app-install__cta:hover {
+  /* One step darker than the resting fill, same label colour. The delta is 8%
+     rather than the usual 14%: darkening reduces contrast against a DARK label,
+     so a light accent like the barber tan (#c49a6c, labelled #1e293b) drops to
+     4.29:1 at 14% and stays at 4.87:1 here. Dark accents keep 7–14:1. */
+  background-color: color-mix(in srgb, var(--ai-accent) 92%, #000);
+  border-color: color-mix(in srgb, var(--ai-accent) 92%, #000);
+  color: var(--ai-on-accent);
+  transform: translateY(-1px);
+}
+
+.app-install .app-install__cta:focus-visible {
+  outline: 2px solid var(--ai-accent-ink);
+  outline-offset: 3px;
+  color: var(--ai-on-accent);
+}
+
+.app-install .app-install__cta--ghost {
+  background-color: transparent;
+  border-color: var(--ai-line);
+  color: var(--ai-accent-ink);
+}
+.app-install .app-install__cta--ghost:hover {
+  background-color: color-mix(in srgb, var(--ai-accent-ink) 10%, transparent);
+  border-color: var(--ai-accent-ink);
+  color: var(--ai-accent-ink);
+}
+.app-install .app-install__cta--ghost:focus-visible {
+  outline-color: var(--ai-accent-ink);
+  color: var(--ai-accent-ink);
+}
+
+/* Disabled: the fill drops away entirely and the label falls back to
+   `--ai-muted` on the card surface — a pairing every theme binding below is
+   verified against. Tinting the accent fill toward the surface instead lands
+   several palettes (sage, mint) in the mid-tone band where neither white nor
+   charcoal reaches 4.5:1. Declared last so it wins the specificity tie against
+   the hover rules above. */
+.app-install .app-install__cta[aria-disabled="true"],
+.app-install .app-install__cta:disabled,
+.app-install .app-install__cta[aria-disabled="true"]:hover,
+.app-install .app-install__cta:disabled:hover {
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  background-color: transparent;
+  border-color: var(--ai-line);
+  color: var(--ai-muted);
+}
+.app-install .app-install__cta[aria-disabled="true"]:focus-visible,
+.app-install .app-install__cta:disabled:focus-visible {
+  outline-color: var(--ai-line);
+  color: var(--ai-muted);
+}
+
+/* ---- Foot row: availability + the collapsed guide ------------------------ */
+
+.app-install .app-install__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  margin-top: 2px;
+}
+
+.app-install .app-install__availability {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--ai-muted);
+}
+
+.app-install .app-install__more { margin: 0; font-size: 11px; }
+
+.app-install .app-install__more summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ai-accent-ink);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  list-style: none;
+}
+.app-install .app-install__more summary::-webkit-details-marker { display: none; }
+.app-install .app-install__more summary::before { content: "\25B8"; font-size: 10px; }
+.app-install .app-install__more[open] summary::before { content: "\25BE"; }
+.app-install .app-install__more summary:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+.app-install .app-install__more-body {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 14px;
+  background-color: var(--ai-surface-2);
+  border: 1px solid var(--ai-line);
+  border-radius: calc(var(--ai-radius) * 0.6);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ai-muted);
+}
+.app-install .app-install__more-body h3 {
+  margin: 0;
+  font-family: var(--ai-font-body);
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ai-ink);
+}
+.app-install .app-install__more-body ol {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}
+.app-install .app-install__more-body p { margin: 0; }
+
+.app-install .app-install__share {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.app-install .app-install__share button,
+.app-install .app-install__share a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 7px 13px;
+  border: 1px solid var(--ai-line);
+  border-radius: var(--ai-btn-radius);
+  background-color: var(--ai-surface);
+  color: var(--ai-accent-ink);
+  font-family: var(--ai-font-body);
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background-color 0.18s ease;
+}
+.app-install .app-install__share button:hover,
+.app-install .app-install__share a:hover {
+  border-color: var(--ai-accent-ink);
+  background-color: color-mix(in srgb, var(--ai-accent-ink) 10%, var(--ai-surface));
+  color: var(--ai-accent-ink);
+}
+.app-install .app-install__share button:focus-visible,
+.app-install .app-install__share a:focus-visible {
+  outline: 2px solid var(--ai-accent-ink);
+  outline-offset: 2px;
+  color: var(--ai-accent-ink);
+}
+.app-install .app-install__notice {
+  margin: 0;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ai-accent-ink);
+}
+
+/* ---- Announcement strip -------------------------------------------------- */
+
+/* `PromotionalBanner` ships `.nexora-announcement` with a hardcoded indigo
+   ground (#eef2ff / #312e81) — the very palette the redesign removes. These
+   overrides retarget it at the host template's tokens instead. */
+.app-install-strip.nexora-announcement {
+  background-color: var(--ai-surface-2, #eef2ff);
+  color: var(--ai-ink, #312e81);
+  border-block: 1px solid var(--ai-line, transparent);
+}
+.app-install-strip.nexora-announcement > a { color: var(--ai-accent-ink, #312e81); }
+.app-install-strip.nexora-announcement > button {
+  color: var(--ai-muted, #312e81);
+  background-color: transparent;
+}
+
+/* ---- Tablet -------------------------------------------------------------- */
+
+@media (max-width: 1020px) {
+  .app-install { --ai-image-height: 150px; }
+  .app-install .app-install__card { gap: 16px; }
+}
+
+/* ---- Mobile: stack image over copy, keep the whole poster visible -------- */
+
+@media (max-width: 720px) {
+  .app-install { --ai-image-height: 132px; --ai-gutter: clamp(12px, 4vw, 20px); }
+
+  .app-install .app-install__card,
+  .app-install[data-image-position="right"] .app-install__card {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    padding: 14px;
+  }
+  .app-install .app-install__media,
+  .app-install[data-image-position="right"] .app-install__media { order: 0; justify-self: center; }
+  .app-install[data-image-position="right"] .app-install__body { order: 1; }
+
+  .app-install .app-install__body { gap: 5px; text-align: center; justify-items: center; }
+  .app-install .app-install__eyebrow { justify-content: center; }
+  .app-install .app-install__text { max-width: 46ch; }
+  /* CTAs span the card so they stay comfortably tappable. */
+  .app-install .app-install__actions { width: 100%; justify-content: center; }
+  .app-install .app-install__cta { flex: 1 1 auto; min-height: 44px; padding: 11px 16px; }
+  .app-install .app-install__foot { justify-content: center; text-align: center; }
+  .app-install .app-install__more-body { text-align: left; }
+}
+
+@media (max-width: 380px) {
+  .app-install { --ai-image-height: 116px; }
+}
+
+/* Respect templates that ask for no motion. */
+@media (prefers-reduced-motion: reduce) {
+  .app-install .app-install__cta,
+  .app-install .app-install__share button,
+  .app-install .app-install__share a { transition: none; }
+  .app-install .app-install__cta:hover { transform: none; }
+}
+
+/* ==========================================================================
+   Template bindings — map each template's own tokens onto the banner.
+   Nothing here restyles the template; it only tells the shared card which of
+   the host's surfaces, inks, accents, radii and fonts to use.
+   ========================================================================== */
+
+/* -- Templates 01–05: the shared `.sf-page` system ------------------------ *
+ * `--sf-accent` / `--sf-accent-text` are set inline per template, and the text
+ * token comes from getContrastTextColor(), so the CTA pair is correct for the
+ * owner's own brand colour too — not just the five bundled palettes.
+ * -------------------------------------------------------------------------- */
+.sf-page :is(.app-install, .app-install-strip) {
+  --ai-surface: var(--sf-bg, #ffffff);
+  --ai-surface-2: var(--sf-soft, #f8f8fa);
+  --ai-ink: var(--sf-ink, #172033);
+  --ai-muted: var(--sf-muted, #475569);
+  --ai-accent: var(--sf-accent, #be185d);
+  --ai-on-accent: var(--sf-accent-text, #ffffff);
+  --ai-line: var(--sf-line, #e2e8f0);
+  --ai-radius: 14px;
+  --ai-btn-radius: 12px; /* matches .sf-button */
+  --ai-max: 1160px;
+}
+
+/* 02 — The Royal Blade: the page ground is white (only its hero is dark brown),
+ * so the card stays light; the tan accent is a fill, and its ink is darkened. */
+.sf-page.sf-barber :is(.app-install, .app-install-strip) {
+  --ai-surface-2: #f7efe3;
+  --ai-line: rgba(196, 154, 108, 0.42);
+  --ai-accent-ink: #7d5f3c; /* the raw tan is only 2.6:1 as text; this is 5.9:1
+                               on white and still 5.1:1 over the hover tint */
+  --ai-media-bg: color-mix(in srgb, var(--ai-accent) 12%, #fffaf2);
+}
+
+/* 04 — Roop Mahal: cream paper, maroon accent, champagne hairline. */
+.sf-page.sf-roop-mahal :is(.app-install, .app-install-strip) {
+  --ai-surface: var(--rm-cream, #fff8f1);
+  --ai-surface-2: var(--rm-rose-soft, #f7eae6);
+  --ai-ink: var(--rm-brown, #352622);
+  --ai-muted: var(--rm-muted, #6e5650);
+  --ai-accent: var(--rm-maroon, #6d2638);
+  --ai-on-accent: var(--rm-white, #ffffff);
+  --ai-line: var(--rm-gold-soft, rgba(197, 161, 107, 0.34));
+  --ai-radius: 18px;
+  --ai-btn-radius: 999px;
+}
+
+/* 05 — Pinky Nails: warm white, berry accent, serif display type. */
+.sf-page.sf-pinky-nails :is(.app-install, .app-install-strip) {
+  --ai-surface: var(--pn-warm-white, #fffcfa);
+  --ai-surface-2: var(--pn-blush, #fff5f7);
+  --ai-ink: var(--pn-ink, #30242a);
+  --ai-muted: var(--pn-muted, #7a626b);
+  --ai-accent: var(--pn-berry, #702d4b);
+  --ai-on-accent: #fffcfa;
+  --ai-line: var(--pn-line, #eadde2);
+  --ai-font-heading: var(--pn-serif, "Cormorant Garamond", Georgia, serif);
+  --ai-radius: 18px;
+  --ai-btn-radius: 999px;
+}
+
+/* 06 — Kesh Prakriti: ivory ground, forest green accent, serif headings. */
+.kp-site :is(.app-install, .app-install-strip) {
+  --ai-surface: var(--kp-white, #ffffff);
+  --ai-surface-2: var(--kp-sage, #e4ebdd);
+  --ai-ink: var(--kp-charcoal, #252923);
+  --ai-muted: #5d685c;
+  --ai-accent: var(--kp-forest, #183d32);
+  --ai-on-accent: var(--kp-ivory, #f9f6ef);
+  --ai-line: rgba(24, 61, 50, 0.18);
+  --ai-font-heading: var(--kp-serif, "Cormorant Garamond", Georgia, serif);
+  --ai-font-body: var(--kp-sans, "Manrope", Arial, sans-serif);
+  --ai-radius: 16px;
+  --ai-btn-radius: 999px;
+  --ai-gutter: 32px;
+}
+
+/* 07 — Dermacure: ivory ground with the mint accent; mint is light enough
+ *      (L = 0.54) that its label stays black, matching `.dc-btn`. */
+.dc :is(.app-install, .app-install-strip) {
+  --ai-surface: var(--warm-white, #fff);
+  --ai-surface-2: var(--ivory-deep, #e6e6e6);
+  --ai-ink: var(--ink, #000);
+  --ai-muted: var(--muted, #5e5e5c);
+  --ai-accent: var(--gold, #24dc9d);
+  --ai-on-accent: var(--dc-btn-fg, #000);
+  --ai-accent-ink: #0a6b4a; /* the mint, darkened enough to read as text
+                               (6.5:1 on the card, 5.2:1 on the strip ground) */
+  --ai-line: var(--border, #c9c9c8);
+  --ai-radius: 6px;
+  --ai-btn-radius: 6px;
+}
+
+/* 08 — Vogue Noir: near-black shell, champagne gold accent. Gold is light
+ *      (L = 0.42) so the label is the template's own ink, not white. */
+.vn-site :is(.app-install, .app-install-strip) {
+  --ai-surface: var(--bg-surface, #151517);
+  --ai-surface-2: #1c1c1f;
+  --ai-ink: var(--text-primary, #f5efe6);
+  --ai-muted: var(--text-muted, #a8a29a);
+  --ai-accent: var(--accent-gold, #c9a96e);
+  --ai-on-accent: var(--bg-primary, #0b0b0c);
+  --ai-line: var(--border-subtle, #2a2a2d);
+  --ai-font-heading: var(--vn-serif, "Cormorant Garamond", Georgia, serif);
+  --ai-font-body: var(--vn-sans, Inter, sans-serif);
+  --ai-radius: 4px;
+  --ai-btn-radius: 2px;
+  --ai-media-bg: color-mix(in srgb, var(--ai-accent) 10%, #101012);
+  --ai-shadow: 0 18px 46px -30px rgba(0, 0, 0, 0.9);
+}
+
+/* 09 — Bodhi Tree: cream ground, sage-green accent, serif display type. */
+.bt-site :is(.app-install, .app-install-strip) {
+  --ai-surface: #fffdf8;
+  --ai-surface-2: var(--bt-sage-soft, #eaf0e2);
+  --ai-ink: var(--bt-forest, #1e3a2f);
+  --ai-muted: var(--bt-muted, #54655a);
+  --ai-accent: var(--bt-sage, #4e6e58);
+  --ai-on-accent: #ffffff;
+  --ai-line: rgba(30, 58, 47, 0.16);
+  --ai-font-heading: var(--bt-serif, "Cormorant Garamond", Georgia, serif);
+  --ai-font-body: var(--bt-sans, Inter, sans-serif);
+  --ai-radius: 14px;
+  --ai-btn-radius: 999px;
+  --ai-shadow: var(--bt-shadow-soft, 0 10px 30px rgba(30, 58, 47, 0.1));
+}
+
+/* 10 — Prism & Chroma: near-black neon shell. The brand gradient's lightest
+ *      stop only reaches 4.35:1 with white, so the CTA uses the violet mixed
+ *      down toward the page background (5.6:1) and keeps the neon identity. */
+.pc-site :is(.app-install, .app-install-strip) {
+  --ai-surface: #12121f;
+  --ai-surface-2: #1a1a28; /* solid, not the template's rgba wash: a translucent
+                              strip ground composites to whatever is behind it */
+  --ai-ink: var(--text, #f5f3ff);
+  --ai-muted: var(--muted, #a9a6c2);
+  --ai-accent: color-mix(in srgb, var(--violet, #7c5cff) 84%, var(--bg, #0b0b14));
+  --ai-on-accent: #ffffff;
+  --ai-accent-ink: var(--cyan, #35e0f0);
+  --ai-line: rgba(255, 255, 255, 0.16);
+  --ai-font-heading: var(--pc-display, "Syne", "Manrope", sans-serif);
+  --ai-font-body: var(--pc-body, "Manrope", "Inter", sans-serif);
+  --ai-radius: 20px;
+  --ai-btn-radius: 999px;
+  --ai-media-bg: color-mix(in srgb, var(--violet, #7c5cff) 14%, #0b0b14);
+  --ai-shadow: 0 18px 50px -30px rgba(124, 92, 255, 0.65);
+}
+/* 11 — Shringaar Royal: ivory paper, deep maroon accent, gold hairline. */
+.sr-site :is(.app-install, .app-install-strip) {
+  --ai-surface: var(--sr-paper, #fdf8ef);
+  --ai-surface-2: var(--sr-paper-2, #f6ecda);
+  --ai-ink: var(--sr-ink, #2a1a17);
+  --ai-muted: var(--sr-ink-70, rgba(42, 26, 23, 0.72));
+  --ai-accent: var(--sr-maroon, #5a0f1e);
+  --ai-on-accent: var(--sr-ivory, #fbf4e6);
+  --ai-line: var(--sr-gold-line, rgba(201, 162, 75, 0.5));
+  --ai-font-heading: var(--sr-serif, "Cormorant Garamond", serif);
+  --ai-font-body: var(--sr-sans, "Hanken Grotesk", "Inter", sans-serif);
+  --ai-radius: 18px;
+  --ai-btn-radius: 999px;
+  --ai-shadow: var(--sr-shadow-soft, 0 18px 44px rgba(90, 15, 30, 0.1));
+}
+
+/* 12 — Iron & Ink: black shell, the studio's own accent (crimson by default).
+ *      The raw accent reaches only 4.3:1 with white, so it is mixed toward the
+ *      page black to land at ~5.9:1 while staying the same hue. */
+.iron-ink :is(.app-install, .app-install-strip) {
+  --ai-surface: var(--ii-surface, #141417);
+  --ai-surface-2: #101012;
+  --ai-ink: var(--ii-text, #f5f5f4);
+  --ai-muted: var(--ii-muted, #a1a1aa);
+  --ai-accent: color-mix(in srgb, var(--ii-accent, #e11d48) 86%, var(--ii-bg, #0a0a0b));
+  --ai-on-accent: #ffffff;
+  --ai-accent-ink: var(--ii-gold, #c3a66b);
+  --ai-line: var(--ii-line, rgba(255, 255, 255, 0.13));
+  --ai-font-heading: var(--ii-display, Georgia, serif);
+  --ai-font-body: var(--ii-body, Inter, Arial, sans-serif);
+  --ai-radius: 12px;
+  --ai-btn-radius: 2px;
+  --ai-media-bg: color-mix(in srgb, var(--ii-gold, #c3a66b) 8%, #101012);
+  --ai-shadow: 0 18px 46px -30px rgba(0, 0, 0, 0.95);
+}
+/* 13 — Arch & Flutter: ivory/blush shell, espresso primary (15.3:1 with the
+ *      template's ivory label) and a mauve-tinted poster tile. */
+.af-site :is(.app-install, .app-install-strip) {
+  --ai-surface: #fffdfa;
+  --ai-surface-2: var(--af-blush, #f4d7d3);
+  --ai-ink: var(--af-espresso, #2b1b17);
+  --ai-muted: var(--af-ink-soft, #4a352e);
+  --ai-accent: var(--af-espresso, #2b1b17);
+  --ai-on-accent: var(--af-ivory, #fbf6f1);
+  --ai-accent-ink: var(--af-mauve-ink, #7a4f57);
+  --ai-line: var(--af-line, rgba(43, 27, 23, 0.12));
+  --ai-font-heading: var(--af-serif, "Cormorant Garamond", Georgia, serif);
+  --ai-font-body: var(--af-sans, Inter, "Hanken Grotesk", sans-serif);
+  --ai-radius: var(--af-radius, 22px);
+  --ai-btn-radius: 999px;
+  --ai-media-bg: color-mix(in srgb, var(--af-mauve, #9a6b73) 12%, #fbf6f1);
+  --ai-shadow: var(--af-shadow-soft, 0 12px 32px rgba(43, 27, 23, 0.18));
+}
+/* 14 — Veda Sanjeevani: warm ivory ground, forest green accent, antique gold
+ *      hairline, Cormorant headings. Uses the same `--vd-on-forest` token the
+ *      template's own buttons use, so the banner CTA and "Book this ritual"
+ *      can never disagree about what goes on green. */
+.vd-site :is(.app-install, .app-install-strip) {
+  --ai-surface: var(--vd-surface-raised, #fdfaf3);
+  --ai-surface-2: var(--vd-sand, #eadfcb);
+  --ai-ink: var(--vd-ink, #22251f);
+  --ai-muted: var(--vd-muted, #5d6355);
+  --ai-accent: var(--vd-forest, #1f3b2e);
+  --ai-on-accent: var(--vd-on-forest, #ffffff);
+  --ai-line: var(--vd-line-strong, rgba(176, 141, 79, 0.46));
+  --ai-font-heading: var(--vd-font-heading, "Cormorant Garamond", Georgia, serif);
+  --ai-font-body: var(--vd-font-body, Manrope, system-ui, sans-serif);
+  --ai-radius: var(--vd-radius, 18px);
+  --ai-btn-radius: var(--vd-btn-radius, 999px);
+  --ai-gutter: var(--vd-gutter, clamp(18px, 4.2vw, 56px));
+  /* Follow Veda's own content width, but never past the 1200px ceiling the
+     compact banner is specified against. */
+  --ai-max: min(1200px, var(--vd-max, 1240px));
+  --ai-media-bg: color-mix(in srgb, var(--vd-sage, #8fa58e) 16%, var(--vd-ivory, #f7f2e7));
+  --ai-shadow: var(--vd-shadow-sm, 0 1px 2px rgb(20 37 29 / 6%), 0 8px 24px -18px rgb(20 37 29 / 28%));
+}
+
+/* Veda's "Neelgiri Night" palette inverts the ground; the binding above reads
+   the theme's own variables, so the dark variant needs one nudge for the
+   poster tile, which would otherwise mix toward ivory. */
+.vd-site[data-theme="neelgiri"] :is(.app-install, .app-install-strip) {
+  --ai-surface: color-mix(in srgb, var(--vd-forest) 88%, #000);
+  --ai-surface-2: var(--vd-sand, #2c3a32);
+  --ai-media-bg: color-mix(in srgb, var(--vd-sage, #7e947f) 16%, #0d1712);
+  --ai-accent: var(--vd-gold, #c7a465);
+  --ai-on-accent: #0d1712;
+}
+
+/* The owner's live-editing canvas (`SalonWebsitePreview`) is Tailwind-only and
+   carries no template scope class, so it opts in explicitly. */
+.app-install.app-install--dark-canvas {
+  --ai-surface: #121216;
+  --ai-surface-2: #181820;
+  --ai-ink: #f4f4f5;
+  --ai-muted: #a1a1aa;
+  --ai-accent: #3f6212;
+  --ai-on-accent: #ffffff;
+  --ai-accent-ink: #a3e635;
+  --ai-line: #27272a;
+  --ai-radius: 16px;
+  --ai-btn-radius: 12px;
+  --ai-media-bg: #181820;
+  --ai-shadow: 0 16px 40px -28px rgba(0, 0, 0, 0.9);
+}
+/* The customer app hosts the same banner inside its own pink shell. */
+.cr-app :is(.app-install, .app-install-strip) {
+  --ai-surface: #ffffff;
+  --ai-surface-2: #fff0f7;
+  --ai-ink: var(--cr-ink, #29202a);
+  --ai-muted: var(--cr-muted, #766775);
+  --ai-accent: #b3005e;
+  --ai-on-accent: #ffffff;
+  --ai-line: var(--cr-border, #f0dfe8);
+  --ai-radius: 14px;
+  --ai-btn-radius: 999px;
+  --ai-media-bg: #fff0f7;
+  --ai-gutter: 0;
+  --ai-shadow: none;
+}

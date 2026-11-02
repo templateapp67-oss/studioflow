@@ -86,6 +86,9 @@
   --champagne: #d9be9a;
   --gold: #c19a6b;
   --bronze: #9d6b49;
+  /* Label colour for the bronze/green fill. The mint fill keeps black
+     (`--dc-btn-fg`); bronze is far darker, so it needs white at 5.3:1. */
+  --dc-on-bronze: #fff;
   --brown: #50372d;
   --espresso: #50372d;
   --charcoal: #211d1b;
@@ -127,7 +130,10 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
-.dc a {
+/* Scoped element resets are wrapped in `:where()` so they contribute no
+ * specificity of their own. At (0,1,1) they outranked every component class
+ * at (0,1,0) and silently discarded button label colours. */
+.dc :where(a) {
   color: inherit;
   text-decoration: none;
 }
@@ -826,6 +832,15 @@
 .dc-personalised .dc-btn {
   background: var(--bronze);
   border-color: var(--bronze);
+  /* --bronze resolves to a dark green here, so the global black label only
+     reached 3.96:1. White on it is 5.3:1. */
+  color: var(--dc-on-bronze, #fff) !important;
+}
+.dc-personalised .dc-btn:hover,
+.dc-personalised .dc-btn:focus-visible {
+  background: color-mix(in srgb, var(--bronze) 86%, #000);
+  border-color: color-mix(in srgb, var(--bronze) 86%, #000);
+  color: var(--dc-on-bronze, #fff) !important;
 }
 .dc-care-details {
   display: grid;
@@ -1158,7 +1173,7 @@
 .dc-platform-sections > div > section {
   margin-block: 32px;
 }
-.dc .nexora-app-promotion {
+.dc .app-install {
   border-top: 1px solid var(--border);
 }
 @media (min-width: 1600px) {
@@ -1561,7 +1576,7 @@
   min-height: 44px;
 }
 .dc .sf-reel-source,
-.dc .nexora-app-share a {
+.dc .app-install__share a {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
@@ -2236,6 +2251,9 @@
   --champagne: #a0a09f; --gold: #24dc9d; --bronze: #147a5a;
   --brown: #000; --espresso: #000; --charcoal: #111;
   --ink: #000; --muted: #5e5e5c; --border: #c9c9c8;
+  /* Mint #24dc9d carries black (11.8:1); the darker green --bronze #147a5a
+     carries white (5.3:1). Two fills, two tokens, no per-button overrides. */
+  --dc-btn-fg: #000; --dc-on-bronze: #fff;
   font-family: Roboto, "DIN Next Light", Arial, sans-serif;
 }
 .dc h1, .dc h2, .dc h3, .dc-pillar-card h3 { font-family: Montserrat, Roboto, Arial, sans-serif; }
@@ -2249,7 +2267,7 @@
 .dc-hero { padding-top: 0; }
 .dc-hero-photo:after { background: linear-gradient(90deg,#e6e6e6,transparent 22%); }
 .dc-hero-photo-label { background: #fafafae8; }
-.dc-btn, .dc-header-cta, .dc-light-link { background: #24dc9d; border-color: #24dc9d; color: #000 !important; }
+.dc-btn, .dc-header-cta, .dc-light-link { background: #24dc9d; border-color: #24dc9d; color: var(--dc-btn-fg, #000) !important; }
 .dc-btn:hover, .dc-header-cta:hover { background: #a3f3d6; }
 .dc-feature-icon { background: #24dc9d; color: #000; }
 .dc-card-category, .dc-review-rating { color: #000; }
@@ -2257,7 +2275,11 @@
 .dc-philosophy-banner-scrim { background: linear-gradient(100deg,#111f,#111d); }
 .dc-philosophy-banner h2 em { color: #24dc9d; }
 .dc-philosophy-banner p { color: #eee; }
-.dc-philosophy-banner .dc-btn { border-color: #24dc9d; color: #000 !important; }
+/* This button is `background: transparent` at (0,2,0) from the banner rule
+   above, which sits on the #151515 panel. The black label this theme forces
+   onto every .dc-btn therefore needs the mint fill to go with it, or the CTA
+   renders black-on-near-black (1.15:1). */
+.dc-philosophy-banner .dc-btn { background: #24dc9d; border-color: #24dc9d; color: #000 !important; }
 .dc-philosophy-banner-cta:hover { background: #24dc9d; color: #000 !important; }
 .dc-pillar-card { background: #fff; }
 .dc-search { display: flex; align-items: center; gap: 12px; }

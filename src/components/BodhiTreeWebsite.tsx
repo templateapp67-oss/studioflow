@@ -53,7 +53,7 @@ import {
   staggerItem,
 } from '../lib/motion';
 import { WebsiteSections } from './WebsiteSections';
-import { AppAnnouncementStrip, CustomerAppPromotion } from './CustomerAppPromotion';
+import { AppAnnouncementStrip, AppInstallSection } from './AppInstallSection';
 import { SafeImage } from './bodhi-tree/SafeImage';
 import { DeviceMockup } from './bodhi-tree/DeviceMockup';
 import { PalaceCollectionGrid } from './bodhi-tree/PalaceCollectionSection';
@@ -1032,7 +1032,7 @@ export function BodhiTreeWebsite({
                   </div>
                 </section>
 
-                <CustomerAppPromotion />
+                <AppInstallSection />
               </>
             )}
 

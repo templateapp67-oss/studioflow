@@ -46,7 +46,7 @@ import {
 import { VedaBookingPage } from './VedaBooking';
 import { VedaBtn, VedaMonogram, VedaPageHead, useVedaBodyLock, useVedaEscape, useVedaScrolled } from './VedaParts';
 import '../vedaSanjeevani.css';
-import { AppAnnouncementStrip, CustomerAppPromotion } from '../CustomerAppPromotion';
+import { AppAnnouncementStrip, AppInstallSection } from '../AppInstallSection';
 
 const PAGES: VedaPage[] = ['home', 'about', 'therapies', 'packages', 'gallery', 'experts', 'contact', 'booking', 'offers'];
 
@@ -430,7 +430,7 @@ export function VedaSanjeevaniWebsite(props: VedaSanjeevaniWebsiteProps) {
           )}
         </main>
 
-        <CustomerAppPromotion />
+        <AppInstallSection />
         <VedaFooter config={config} profile={profile} navigate={navigate} telHref={telHref} whatsappHref={whatsappHref} />
         <VedaMobileBar config={config} navigate={navigate} whatsappHref={whatsappHref} />
         <VedaWhatsappFab whatsappHref={whatsappHref} />

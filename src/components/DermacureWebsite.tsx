@@ -5,10 +5,7 @@ import type { SalonGalleryPhoto } from "../lib/photoGallery";
 import { ClinicGallery } from "./dermacure/ClinicGallery";
 import { ClinicTeam } from "./dermacure/ClinicTeam";
 import { PatientReviews } from "./dermacure/PatientReviews";
-import {
-  AppAnnouncementStrip,
-  CustomerAppPromotion,
-} from "./CustomerAppPromotion";
+import { AppAnnouncementStrip, AppInstallSection } from './AppInstallSection';
 import { DermacureContext, useDermacureState } from "./dermacure/context";
 import { Header } from "./dermacure/Header";
 import { HeroSection } from "./dermacure/HeroSection";
@@ -86,7 +83,7 @@ export function DermacureWebsite(
           <BookingSection />
           <ContactSection />
           <PlatformSections />
-          <CustomerAppPromotion />
+          <AppInstallSection />
         </main>
         <Footer />
         <ClinicEnquiryDialog />

@@ -22,14 +22,16 @@
 .kp-site * {
   box-sizing: border-box;
 }
-.kp-site button,
-.kp-site a {
+/* Scoped element resets are wrapped in `:where()` so they contribute no
+ * specificity of their own. At (0,1,1) they outranked every component class
+ * at (0,1,0) and silently discarded button label colours. */
+.kp-site :where(button, a) {
   font: inherit;
 }
-.kp-site button {
+.kp-site :where(button) {
   cursor: pointer;
 }
-.kp-site a {
+.kp-site :where(a) {
   color: inherit;
   text-decoration: none;
 }
@@ -38,7 +40,7 @@
   margin: 0 auto;
 }
 /* The platform app bar is shared by all templates; keep it on-palette here. */
-.kp-site .nexora-app-strip {
+.kp-site .app-install-strip {
   color: var(--kp-forest);
   background: var(--kp-sage);
   border-bottom: 1px solid #c5a46d4d;
@@ -47,7 +49,7 @@
   font-size: 12px;
   font-weight: 600;
 }
-.kp-site .nexora-app-strip a {
+.kp-site .app-install-strip a {
   color: var(--kp-forest);
   text-decoration: underline;
   text-underline-offset: 3px;
