@@ -11,6 +11,12 @@ import {
   vedaImage,
 } from './lib/vedaSanjeevani';
 import {createIronInkServices} from './lib/ironInk';
+import {
+  LUXURY_EDITORIAL_ABOUT,
+  LUXURY_EDITORIAL_IMAGES,
+  LUXURY_EDITORIAL_SELECTOR_LABEL,
+  LUXURY_EDITORIAL_TAGLINE,
+} from './lib/luxuryEditorial';
 import { CategoryTemplateConfig, BusinessTypeOption } from './types';
 import { SALON_IMAGES } from './assets/images';
 import {
@@ -77,17 +83,17 @@ import {
 } from './lib/bodhiTree';
 
 export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
-  // 1. Hair Cut & Styling Studio
+  // 1. Luxury Editorial Salon — a dedicated atelier design for hair_salon.
   hair_salon: {
     id: 'hair_salon',
-    title: 'Miraki Hair Cut & Styling Studio',
-    shortName: 'Hair Cut & Styling Studio',
-    tagline: 'Precision Cuts, Modern Geometry & High-Fashion Hair Artistry',
-    about: 'Located in the vibrant heart of Indiranagar, Miraki is Bengaluru’s premier minimalist hair craft studio. We specialize in precision dry cuts, structural bobs, international styling, and restorative keratin smoothing using cruelty-free botanical formulas.',
+    title: 'Miraki Atelier',
+    shortName: LUXURY_EDITORIAL_SELECTOR_LABEL,
+    tagline: LUXURY_EDITORIAL_TAGLINE,
+    about: LUXURY_EDITORIAL_ABOUT,
     icon: 'content_cut',
-    layoutStyle: 'modern_minimalist',
-    paletteLabel: 'Slate & Silver Theme',
-    themePreset: 'slate_silver',
+    layoutStyle: 'editorial_bento',
+    paletteLabel: 'Warm Ivory, Champagne & Espresso',
+    themePreset: 'chic_nude_beige',
     subCategories: ['Precision Cuts', 'Thermal Styling', 'Keratin & Botox', 'Scalp Rituals'],
     defaultCity: 'Bengaluru, Karnataka',
     defaultAddress: '100 Feet Road, HAL 2nd Stage, Indiranagar',
@@ -96,24 +102,24 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
     whatsapp: '+91 98450 12890',
     ownerName: 'Ananya Sharma',
     ownerRole: 'Creative Hair Director & Vidal Sassoon Alum',
-    ownerPhotoUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=500&q=80',
-    coverImageUrl: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1200&q=80',
-    instagramHandle: '@mirakihair.blr',
+    ownerPhotoUrl: LUXURY_EDITORIAL_IMAGES.aboutDetail.src,
+    coverImageUrl: LUXURY_EDITORIAL_IMAGES.hero.src,
+    instagramHandle: '@miraki.atelier',
     themeStyle: {
-      heroBackground: 'bg-[#0f172a]',
-      heroTextColor: 'text-slate-100',
-      cardBorder: 'border-slate-300',
-      cardBackground: 'bg-white',
+      heroBackground: 'bg-[#F7F3EC]',
+      heroTextColor: 'text-[#31251F]',
+      cardBorder: 'border-[#E9E0D4]',
+      cardBackground: 'bg-[#F7F3EC]',
       cardRadius: 'rounded-none',
-      accentColor: 'text-slate-900',
-      accentBg: 'bg-slate-900',
-      badgeBg: 'bg-slate-100',
-      badgeText: 'text-slate-800',
-      buttonBg: 'bg-slate-900 hover:bg-slate-800',
-      buttonText: 'text-white',
-      priceColor: 'text-slate-900',
+      accentColor: 'text-[#31251F]',
+      accentBg: 'bg-[#31251F]',
+      badgeBg: 'bg-[#E9E0D4]',
+      badgeText: 'text-[#31251F]',
+      buttonBg: 'bg-[#31251F] hover:bg-[#24211F]',
+      buttonText: 'text-[#F7F3EC]',
+      priceColor: 'text-[#31251F]',
       isDark: false,
-      headerBanner: 'border-b-2 border-slate-900 bg-slate-50'
+      headerBanner: 'border-b border-[#D8C5A3] bg-[#F7F3EC]'
     },
     services: [
       {
@@ -169,7 +175,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         id: 'hs-st-1',
         name: 'Ananya Sharma',
         role: 'Creative Director',
-        avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80',
+        avatarUrl: LUXURY_EDITORIAL_IMAGES.team[0].src,
         specialties: ['Structural Bobs', 'Precision Fringes', 'Keratin Smoothing'],
         rating: 4.97
       },
@@ -177,7 +183,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         id: 'hs-st-2',
         name: 'Rohan Kapoor',
         role: 'Senior Precision Stylist',
-        avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
+        avatarUrl: LUXURY_EDITORIAL_IMAGES.team[1].src,
         specialties: ['Dry Cutting', 'Men & Women Styling', 'Volume Blowouts'],
         rating: 4.92
       },
@@ -185,7 +191,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
         id: 'hs-st-3',
         name: 'Kavita Deshmukh',
         role: 'Hair Texture & Scalp Specialist',
-        avatarUrl: 'https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?auto=format&fit=crop&w=400&q=80',
+        avatarUrl: LUXURY_EDITORIAL_IMAGES.team[2].src,
         specialties: ['Hair Botox', 'Scalp Analysis', 'Thermal Tongs'],
         rating: 4.89
       }
@@ -1217,11 +1223,11 @@ for(const template of Object.values(CATEGORY_TEMPLATES))template.services=seedTe
 export const ALL_CATEGORY_OPTIONS: BusinessTypeOption[] = [
   {
     id: 'hair_salon',
-    title: 'Hair Cut & Styling Studio',
+    title: 'Luxury Editorial Salon',
     categoryTag: 'Hair Artistry',
     icon: 'content_cut',
-    aestheticDescription: 'Modern minimalist layout, sharp geometric cards, slate & silver theme.',
-    paletteName: 'Slate & Silver',
+    aestheticDescription: 'Editorial atelier layout, asymmetric imagery, warm ivory, champagne & espresso palette.',
+    paletteName: 'Warm Ivory & Champagne',
     badge: 'Popular',
     defaultServices: CATEGORY_TEMPLATES.hair_salon.services.map((s) => ({
       name: s.name,

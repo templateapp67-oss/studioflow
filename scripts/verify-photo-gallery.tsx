@@ -4,7 +4,7 @@ import {PhotoGalleryManager} from '../src/components/PhotoGalleryManager';import
 import {normalizeWorkspace} from '../src/lib/normalizeWorkspace';import {applyTemplateDesign} from '../src/lib/templateSelection';import {CATEGORY_TEMPLATES} from '../src/categoryTemplates';import {INITIAL_SALON_PROFILE} from '../src/mockData';import {supabase} from '../src/lib/supabase';
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;(globalThis as any).window={addEventListener(){},removeEventListener(){},matchMedia:()=>({matches:false,addEventListener(){},removeEventListener(){}})};(globalThis as any).document={hidden:false,body:{style:{}},addEventListener(){},removeEventListener(){}};
 for(const template of Object.values(CATEGORY_TEMPLATES)){
- const profile={...INITIAL_SALON_PROFILE,businessType:template.id};const samples=standardGallery(template.id);assert.equal(samples.length,5);assert.equal(new Set(samples.map(p=>p.url)).size,5);assert.equal(photoGallery(profile).length,5);assert.ok(samples.every(p=>p.id.includes(template.id)));
+ const profile={...INITIAL_SALON_PROFILE,businessType:template.id};const samples=standardGallery(template.id);const gallerySize=template.id==='hair_salon'?6:5;assert.equal(samples.length,gallerySize);assert.equal(new Set(samples.map(p=>p.url)).size,gallerySize);assert.equal(photoGallery(profile).length,gallerySize);assert.ok(samples.every(p=>p.id.includes(template.id)));
  const html=renderToStaticMarkup(<CustomerSalonWebsite profile={profile} services={[]} stylists={[]} readOnly onAddAppointment={async a=>a}/>);
  if(template.id==='skincare_clinic'){
   // Template 07 shows only photographs the clinic published itself. When the
@@ -97,10 +97,22 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
   assert.ok(savedHtml.includes('https://cdn.example.com/saved-lash-set.jpg'),'saved lash photograph appears in the Template 13 lookbook');
   assert.ok(savedHtml.includes('Our own lash set'),'saved lash photograph keeps its caption');
   assert.ok(!savedHtml.includes('Demo lookbook'),'an owner lookbook is never labelled as demo');
+ }else if(template.id==='hair_salon'){
+  // Template 01 (Luxury Editorial Salon) shows six asymmetric lookbook plates,
+  // labels the bundled preview set as sample imagery, and renders saved owner
+  // photographs without any owner controls on the public page.
+  assert.equal((html.match(/class="le-tile /g)||[]).length,6,'the editorial lookbook shows six plates');
+  assert.ok(html.includes('Sample lookbook imagery'),'the bundled lookbook is labelled as a sample');
+  for(const sample of samples)assert.ok(html.includes(sample.url),`the lookbook keeps ${sample.id}`);
+  const savedHtml=renderToStaticMarkup(<CustomerSalonWebsite profile={{...profile,photoGalleryInitialized:true,photoGalleryType:'hair_salon',photoGallery:[{id:'le-own-1',category:'Hair' as const,url:'https://cdn.example.com/saved-editorial-hair.jpg',title:'Our own gloss finish',isDemo:false}]}} services={[]} stylists={[]} readOnly onAddAppointment={async a=>a}/>);
+  assert.ok(savedHtml.includes('https://cdn.example.com/saved-editorial-hair.jpg'),'a saved owner photograph appears in the lookbook');
+  assert.ok(savedHtml.includes('Our own gloss finish'),'the saved look keeps its caption');
+  assert.ok(!savedHtml.includes('Sample lookbook imagery'),'an owner lookbook is never labelled as a sample');
+  assert.ok(!savedHtml.includes('Delete photo')&&!savedHtml.includes('Replace / Edit'));
  }else{
   assert.ok(html.includes(`${defaultGalleryCategory(template.id)} (5)`));assert.equal((html.match(/aria-label="View salon look /g)||[]).length,5);assert.ok(!html.includes('Delete photo')&&!html.includes('Replace / Edit'));
  }
- const removed=withPhotoGallery(profile,samples.filter(p=>p.id!==samples[0].id));const normalized=normalizeWorkspace(JSON.parse(JSON.stringify({profile:removed,extras:{gallery:[]}})));assert.equal(photoGallery(normalized.profile).length,4);assert.equal(normalized.extras.gallery.length,4);assert.equal(photoGallery(applyTemplateDesign(normalized.profile,template)).length,4);
+ const removed=withPhotoGallery(profile,samples.filter(p=>p.id!==samples[0].id));const remaining=samples.length-1;const normalized=normalizeWorkspace(JSON.parse(JSON.stringify({profile:removed,extras:{gallery:[]}})));assert.equal(photoGallery(normalized.profile).length,remaining);assert.equal(normalized.extras.gallery.length,remaining);assert.equal(photoGallery(applyTemplateDesign(normalized.profile,template)).length,remaining);
  const empty=withPhotoGallery(profile,[]);assert.equal(photoGallery(normalizeWorkspace({profile:empty}).profile).length,0);
 }
 const oldSamples=['hair_salon','bridal_lounge','skincare_clinic','nail_studio','barber','massage_wellness'].flatMap(type=>standardGallery(type as any));
@@ -112,8 +124,8 @@ const reloaded=normalizeWorkspace({profile:switched,extras:{gallery:[]}});assert
 assert.ok(photoGallery(INITIAL_SALON_PROFILE,['https://example.com/own.jpg']).some(p=>!p.isDemo&&p.url==='https://example.com/own.jpg'));
 let savedProfile:any;let savedGallery:string[]=[];function Harness(){const [profile,setProfile]=useState(INITIAL_SALON_PROFILE);const [gallery,setGallery]=useState<string[]>([]);savedProfile=profile;savedGallery=gallery;return <PhotoGalleryManager profile={profile} setProfile={setProfile} gallery={gallery} setGallery={setGallery}/>}
 let editor:any;await act(async()=>{editor=create(<Harness/>)});const root=()=>editor.root;const button=(label:string)=>root().findAllByType('button').find((b:any)=>b.props.children===label);const replace=()=>root().findAllByType('button').find((b:any)=>b.props['aria-label']?.startsWith('Replace '));const input=(suffix:string)=>root().findAllByType('input').find((n:any)=>n.props.id?.endsWith(suffix));
-assert.equal(root().findAllByType('article').length,5);
-await act(async()=>root().findAllByType('button').find((b:any)=>b.props['aria-label']?.startsWith('Delete ')).props.onClick());assert.equal(savedProfile.photoGallery.length,4);assert.equal(savedGallery.length,4);
+const managerSeed=photoGallery(INITIAL_SALON_PROFILE);const managerCategory=defaultGalleryCategory(INITIAL_SALON_PROFILE.businessType as any);const seedCount=managerSeed.filter(p=>p.category===managerCategory).length;assert.ok(seedCount>=5,'the active gallery category holds the seeded samples');assert.equal(root().findAllByType('article').length,seedCount);
+await act(async()=>root().findAllByType('button').find((b:any)=>b.props['aria-label']?.startsWith('Delete ')).props.onClick());assert.equal(savedProfile.photoGallery.length,managerSeed.length-1);assert.equal(savedGallery.length,managerSeed.length-1);
 await act(async()=>replace().props.onClick());await act(async()=>input('url').props.onChange({target:{value:'https://example.com/replaced.jpg'}}));await act(async()=>root().findByType('form').props.onSubmit({preventDefault(){}}));assert.ok(savedProfile.photoGallery.some((p:any)=>p.url==='https://example.com/replaced.jpg'&&!p.isDemo));
 await act(async()=>replace().props.onClick());await act(async()=>input('url').props.onChange({target:{value:'javascript:alert(1)'}}));await act(async()=>root().findByType('form').props.onSubmit({preventDefault(){}}));assert.ok(root().findByProps({role:'alert'}));await act(async()=>button('Cancel').props.onClick());assert.ok(!savedGallery.some(url=>url.startsWith('javascript:')));
 // Browser resize and storage are mocked: verify deferred upload, failure, retry, and preserved aspect ratio.
