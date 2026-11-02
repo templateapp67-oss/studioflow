@@ -78,6 +78,17 @@ export const VEDA_IMAGE_SLOTS: Record<string, ImageSlot> = {
   'ayurveda-wide': { widths: [800], ratio: '16/9', alt: 'Ayurvedic spa treatment in warm natural light' },
   ingredients: { widths: [480, 800], ratio: '1/1', alt: 'Ayurvedic herbs and oils styled on ivory stone' },
   'sanctuary-alt': { widths: [640, 1264], ratio: '3/2', alt: 'Quiet corner of the Veda Sanjeevani sanctuary' },
+  /* Ritual-specific photography: one slot per treatment so no two therapies
+     share a photograph. */
+  kizhi: { widths: [480, 800, 1200], ratio: '4/3', alt: 'Kizhi herbal leaf poultices warmed on a teak tray with a brass bowl of oil' },
+  udvartana: { widths: [480, 800, 1200], ratio: '4/3', alt: 'Udvartana herbal powder body scrub applied in upward strokes' },
+  pizhichil: { widths: [480, 800, 1200], ratio: '4/3', alt: 'Pizhichil warm oil bath poured by two therapists on a carved teak droni' },
+  'head-massage': { widths: [480, 800, 1200], ratio: '4/3', alt: 'Champi Ayurvedic head massage with warm brahmi oil' },
+  consultation: { widths: [480, 800, 1200], ratio: '4/3', alt: 'Panchakarma consultation: an Ayurvedic physician reading the pulse at a teak table' },
+  'couple-suite': { widths: [480, 800, 1200], ratio: '4/3', alt: 'Private couple treatment suite with two carved teak tables and brass lamps' },
+  'treatment-room': { widths: [480, 800, 1200], ratio: '4/3', alt: 'Ayurvedic treatment room with a hanging brass dhara vessel and jaali light' },
+  'gift-voucher': { widths: [480, 800, 1200], ratio: '4/3', alt: 'Ivory Ayurvedic gift voucher tied with forest-green ribbon and a brass seal' },
+  'promo-banner': { widths: [640, 960, 1600], ratio: '16/9', alt: 'Brass bowl of warm herbal oil and folded sage linen on an ivory stone table' },
 };
 
 const imagePath = (slot: string, width: number) => `/templates/14/${slot}-${width}.webp`;
@@ -119,6 +130,15 @@ export const VEDA_IMAGES = {
   ayurvedaWide: vedaImage('ayurveda-wide'),
   ingredients: vedaImage('ingredients'),
   sanctuaryAlt: vedaImage('sanctuary-alt'),
+  kizhi: vedaImage('kizhi'),
+  udvartana: vedaImage('udvartana'),
+  pizhichil: vedaImage('pizhichil'),
+  headMassage: vedaImage('head-massage'),
+  consultation: vedaImage('consultation'),
+  coupleSuite: vedaImage('couple-suite'),
+  treatmentRoom: vedaImage('treatment-room'),
+  giftVoucher: vedaImage('gift-voucher'),
+  promoBanner: vedaImage('promo-banner'),
 } as const;
 
 /** Bundled assets always resolve, even when an owner forgets to upload a photo. */
@@ -191,7 +211,7 @@ export const VEDA_SERVICES: VedaService[] = [
     2100,
     'A dry herbal powder massage using chickpea, triphala and neem, worked upwards with firm strokes and finished with a warm shower.',
     'spa',
-    'potli',
+    'udvartana',
     false,
     ['Herbal powder blend mixed fresh', 'Firm upward strokes', 'Warm shower and light oil finish'],
   ),
@@ -203,7 +223,7 @@ export const VEDA_SERVICES: VedaService[] = [
     2600,
     'Warm linen boluses of medicinal leaves and rice are pressed and rolled over tired shoulders and lower back, then the oil is left to settle.',
     'eco',
-    'potli',
+    'kizhi',
     false,
     ['Leaf-and-rice poultices warmed to order', 'Focus on shoulders, back and knees', 'Finishes with dry towel warmth'],
   ),
@@ -215,7 +235,7 @@ export const VEDA_SERVICES: VedaService[] = [
     3400,
     'A traditional Kerala ritual: streams of warm medicated oil are squeezed over the body by two therapists on a carved wood droni.',
     'water',
-    'oil-ritual',
+    'pizhichil',
     true,
     ['Two-therapist ritual', 'Generous medicated oil', 'Warm rest under a linen sheet'],
   ),
@@ -227,7 +247,7 @@ export const VEDA_SERVICES: VedaService[] = [
     2800,
     'Njavara rice cooked in herbal milk is tied into cloth boluses and applied in gentle, even strokes — a favourite after long travel or desk weeks.',
     'grain',
-    'potli',
+    'kizhi',
     false,
     ['Njavara rice and herbal milk', 'Gentle, even strokes', 'Warm oil finish'],
   ),
@@ -239,7 +259,7 @@ export const VEDA_SERVICES: VedaService[] = [
     2700,
     'Herbal leaves fried in castor oil are packed into warm boluses and worked over stiff knees, shoulders and back.',
     'local_florist',
-    'steam',
+    'potli',
     false,
     ['Warm leaf poultices', 'Focused joint-friendly sequence', 'Followed by herbal steam on request'],
   ),
@@ -251,7 +271,7 @@ export const VEDA_SERVICES: VedaService[] = [
     1500,
     'A one-to-one session with our Ayurvedic physician: pulse reading, routine and digestion review, and a written plan. Therapy sessions are quoted separately and only offered where appropriate.',
     'clinical_notes',
-    'herbs',
+    'consultation',
     true,
     ['Nadi pariksha (pulse reading)', 'Written routine and food notes', 'Clear pricing before any therapy'],
   ),
@@ -265,7 +285,7 @@ export const VEDA_SERVICES: VedaService[] = [
     1200,
     'A seated head, neck and shoulder massage with warm brahmi oil — easy to slot into a working day.',
     'psychology',
-    'ritual',
+    'head-massage',
     false,
     ['Warm brahmi oil', 'Neck and shoulder release', 'No oil on the face'],
   ),
@@ -277,7 +297,7 @@ export const VEDA_SERVICES: VedaService[] = [
     1800,
     'A longer head ritual: warm oil worked into the scalp, temples and shoulders, finished with a warm towel wrap and quiet rest.',
     'face_retouching_natural',
-    'ritual-hero',
+    'head-massage',
     true,
     ['Scalp, temple and shoulder work', 'Warm towel wrap', 'Ten minutes of silent rest'],
   ),
@@ -327,7 +347,7 @@ export const VEDA_SERVICES: VedaService[] = [
     5900,
     'A private suite for two: synchronised Abhyanga, foot warmth and Shirodhara, with tea afterwards. Ideal for anniversaries and slow Sundays.',
     'favorite',
-    'sanctuary-alt',
+    'couple-suite',
     true,
     ['Private suite for two', 'Synchronised therapists', 'Herbal tea and fruit afterwards'],
   ),
@@ -363,7 +383,7 @@ export const VEDA_SERVICES: VedaService[] = [
     9500,
     'A half-day retreat: consultation, two therapies, a light Ayurvedic meal and a garden rest period. Booked in advance.',
     'wb_twilight',
-    'sanctuary',
+    'treatment-room',
     false,
     ['Physician consultation', 'Two therapies of your choice', 'Light Ayurvedic meal and garden rest'],
   ),
@@ -499,7 +519,18 @@ export interface VedaSignatureExperience {
 export interface VedaPillar { title: string; body: string }
 export interface VedaWhyItem { id: string; title: string; body: string; icon: string }
 export interface VedaStat { value: string; label: string }
-export interface VedaGalleryImage { id: string; url: string; title: string; caption: string }
+export interface VedaGalleryImage {
+  id: string;
+  url: string;
+  title: string;
+  caption: string;
+  /** Optional alt override; falls back to the title. */
+  alt?: string;
+  /** Hidden photos stay saved but are not published. */
+  visible?: boolean;
+  /** Gallery grouping shown in the owner dashboard. */
+  category?: string;
+}
 
 export const VEDA_PACKAGES: VedaPackage[] = [
   {
@@ -535,7 +566,7 @@ export const VEDA_PACKAGES: VedaPackage[] = [
     duration: '2.5 hours',
     sessions: 'One visit for two guests',
     includes: ['Private couple suite', 'Synchronised Abhyanga', 'Shirodhara for both', 'Tea and fruit platter'],
-    imageUrl: vedaImage('sanctuary-alt'),
+    imageUrl: vedaImage('couple-suite'),
     popular: true,
   },
   {
@@ -547,7 +578,7 @@ export const VEDA_PACKAGES: VedaPackage[] = [
     duration: 'Across 7 days',
     sessions: 'Consultation + 3 therapies',
     includes: ['Physician consultation', 'Written routine and food notes', 'Three therapist-led sessions', 'Review call after two weeks'],
-    imageUrl: vedaImage('herbs'),
+    imageUrl: vedaImage('consultation'),
     popular: false,
   },
 ];
@@ -560,7 +591,7 @@ export const VEDA_OFFERS: VedaOffer[] = [
     badge: 'New guest',
     code: 'VEDA15',
     validTill: '',
-    imageUrl: vedaImage('oil-ritual'),
+    imageUrl: vedaImage('promo-banner'),
     voucher: false,
   },
   {
@@ -570,7 +601,7 @@ export const VEDA_OFFERS: VedaOffer[] = [
     badge: 'Gift voucher',
     code: '',
     validTill: '',
-    imageUrl: vedaImage('ritual-hero'),
+    imageUrl: vedaImage('gift-voucher'),
     voucher: true,
   },
   {
@@ -580,7 +611,7 @@ export const VEDA_OFFERS: VedaOffer[] = [
     badge: 'Together',
     code: 'TOGETHER20',
     validTill: '',
-    imageUrl: vedaImage('sanctuary'),
+    imageUrl: vedaImage('couple-suite'),
     voucher: false,
   },
 ];
@@ -738,8 +769,11 @@ export const VEDA_GALLERY: VedaGalleryImage[] = [
   { id: 'veda-g5', url: vedaImage('steam'), title: 'Herbal steam suite', caption: 'Eucalyptus and tulsi steam behind carved wood.' },
   { id: 'veda-g6', url: vedaImage('potli'), title: 'Kizhi boluses', caption: 'Leaf and rice poultices warmed to order.' },
   { id: 'veda-g7', url: vedaImage('reflexology'), title: 'Foot ritual corner', caption: 'A brass bowl, warm oil and quiet thumb work.' },
-  { id: 'veda-g8', url: vedaImage('sanctuary-alt'), title: 'Couple suite', caption: 'Two dronis, one arched window, no clocks.' },
-  { id: 'veda-g9', url: vedaImage('ritual'), title: 'Tulsi courtyard', caption: 'Where every ritual ends, with tea.' },
+  { id: 'veda-g8', url: vedaImage('couple-suite'), title: 'Couple suite', caption: 'Two dronis, one arched window, no clocks.' },
+  { id: 'veda-g9', url: vedaImage('treatment-room'), title: 'The Shirodhara room', caption: 'Brass dhara vessel, jaali light, ivory linen.' },
+  { id: 'veda-g10', url: vedaImage('kizhi'), title: 'Kizhi bench', caption: 'Poultices tied in muslin and warmed on teak before every session.' },
+  { id: 'veda-g11', url: vedaImage('consultation'), title: 'Consultation room', caption: 'Where every first visit begins — pulse first, plan second.' },
+  { id: 'veda-g12', url: vedaImage('ritual'), title: 'Tulsi courtyard', caption: 'Where every ritual ends, with tea.' },
 ];
 
 export const VEDA_OPENING_HOURS = [
@@ -910,6 +944,11 @@ export interface VedaImagePrompt {
 const promptBase =
   'Create a photorealistic luxury Ayurvedic wellness spa photograph for Veda Sanjeevani. Authentic traditional Ayurvedic setting in an elegant Indian wellness retreat, warm natural lighting, deep forest green and earthy beige interiors, premium teak wood textures, brass vessels, herbal oils, serene atmosphere, cinematic composition, realistic professional photography, high detail, 4K quality, no text, no watermark.';
 
+/**
+ * Ready-made prompts for every section and treatment in the catalogue. Each one
+ * inherits the brand block above (forest green, ivory, brass, natural light, no
+ * text/watermark) and names the aspect ratio the template renders.
+ */
 export const VEDA_IMAGE_PROMPTS: VedaImagePrompt[] = [
   { id: 'hero', label: 'Hero banner', section: 'Hero', ratio: '16:9', prompt: `${promptBase} Show a treatment room with a carved teak droni, ivory linen and a brass vessel pouring a thin stream of golden oil, morning light through a jaali screen. Landscape 16:9 composition.` },
   { id: 'abhyanga', label: 'Abhyanga massage', section: 'Therapies', ratio: '4:3', prompt: `${promptBase} Show a therapist's hands applying warm herbal oil to a client's forearm, client fully draped in sage linen, no faces visible, tasteful. 4:3 composition.` },
@@ -920,7 +959,21 @@ export const VEDA_IMAGE_PROMPTS: VedaImagePrompt[] = [
   { id: 'package', label: 'Wellness package vignette', section: 'Packages', ratio: '4:3', prompt: `${promptBase} A styled flat-lay of an Ayurvedic ritual set: brass oil cruet, herbal pouch, folded muslin, rose petals and a linen runner on ivory stone. 4:3 composition.` },
   { id: 'room', label: 'Treatment room', section: 'Gallery', ratio: '4:3', prompt: `${promptBase} A private couple suite with two carved teak tables, sage runners, arched window and soft palm shadows, candles, no people. 4:3 composition.` },
   { id: 'oils', label: 'Herbal oils & ingredients', section: 'Gallery / Offers', ratio: '1:1', prompt: `${promptBase} Amber and clear glass bottles of herbal oil with brass caps beside turmeric, neem and tulsi on textured ivory stone, warm backlight, no labels. Square 1:1 composition.` },
-  { id: 'banner', label: 'Promotional banner', section: 'Offers', ratio: '16:9', prompt: `${promptBase} A serene promotional scene with a brass bowl of warm oil, dried herbs and a folded linen throw, generous negative space on the left for offer text, warm cinematic light. 16:9 composition.` },
+  { id: 'banner', label: 'Promotional banner', section: 'Offers', ratio: '16:9', prompt: `${promptBase} A serene promotional scene with a brass bowl of warm oil, dried herbs and a folded linen throw, generous empty space on the left for offer text, warm cinematic light. 16:9 composition.` },
+  { id: 'about', label: 'About & Ayurveda philosophy', section: 'Philosophy / About', ratio: '4:3', prompt: `${promptBase} Show a quiet Ayurvedic preparation table with mortar and pestle, fresh tulsi, turmeric root and a brass oil cruet beside a folded ivory apron, as if a vaidya has just stepped away. 4:3 composition.` },
+  { id: 'panchakarma', label: 'Panchakarma consultation', section: 'Therapies', ratio: '4:3', prompt: `${promptBase} A respectful documentary view of an Ayurvedic physician's hands reading a client's pulse across a low teak table with a notebook and brass herb tray; only hands and forearms in focus, faces softly out of frame. 4:3 composition.` },
+  { id: 'potli', label: 'Herbal potli massage', section: 'Therapies', ratio: '4:3', prompt: `${promptBase} Warm muslin potli boluses filled with medicinal leaves and rice resting on folded sage linen on a carved teak table with a brass bowl of golden oil and scattered neem leaves, therapist hands lifting one bolus. 4:3 composition.` },
+  { id: 'kizhi', label: 'Kizhi therapy', section: 'Therapies', ratio: '4:3', prompt: `${promptBase} Close view of three muslin-tied kizhi leaf poultices warmed on a teak tray with a small brass bowl of oil, fresh tulsi sprigs and steam rising, no people. 4:3 composition.` },
+  { id: 'udvartana', label: 'Udvartana body scrub', section: 'Therapies', ratio: '4:3', prompt: `${promptBase} A therapist's hands working warm chickpea and triphala herbal powder in firm upward strokes on a draped forearm, fine powder visible, small brass bowl of powder nearby, no faces. 4:3 composition.` },
+  { id: 'pizhichil', label: 'Pizhichil warm oil bath', section: 'Therapies', ratio: '4:3', prompt: `${promptBase} Two therapists in sage-green linen squeezing streams of warm medicated oil from cloth over a guest resting on a carved teak droni, modestly draped, brass lamps and soft steam, warm side light. 4:3 composition.` },
+  { id: 'head', label: 'Ayurvedic head massage', section: 'Therapies', ratio: '4:3', prompt: `${promptBase} A champi head massage in progress at a brass bowl, therapist's oiled hands on the scalp, guest seen from behind in a linen wrap, steam from a brass vessel. 4:3 composition.` },
+  { id: 'reflexology', label: 'Foot reflexology', section: 'Therapies', ratio: '4:3', prompt: `${promptBase} Warm foot reflexology with a brass bowl of herbal water, oiled thumbs working the sole of a draped foot, folded towels and marigold petals beside it. 4:3 composition.` },
+  { id: 'steam', label: 'Herbal steam therapy', section: 'Therapies', ratio: '4:3', prompt: `${promptBase} A herbal steam room interior with eucalyptus and tulsi bundles, brass vessels, warm mist and carved wooden vents, no people. 4:3 composition.` },
+  { id: 'couple', label: 'Couple spa suite', section: 'Luxury spa', ratio: '4:3', prompt: `${promptBase} A private couple treatment suite with two carved teak tables side by side, sage runners, brass oil vessels, arched window with palm shadows and candles, no people. 4:3 composition.` },
+  { id: 'treatment-room', label: 'Treatment room', section: 'Gallery', ratio: '4:3', prompt: `${promptBase} A single treatment room with a hanging brass dhara vessel above a carved teak droni, olive lime-washed walls, jaali screen light, potted herbs and ivory stone floor. 4:3 composition.` },
+  { id: 'gift-card', label: 'Gift card & voucher', section: 'Offers', ratio: '4:3', prompt: `${promptBase} A thick ivory deckled-edge card (completely blank, no printed text) tied with forest-green silk ribbon and a small brass botanical seal, dry rose petals and tulsi on a linen runner. 4:3 composition.` },
+  { id: 'testimonial', label: 'Testimonial portrait', section: 'Guest stories', ratio: '1:1', prompt: `${promptBase} A candid, warm square portrait of an Indian spa guest wrapped in a sage linen robe holding a brass cup of herbal tea in a softly lit courtyard, natural light, gentle genuine expression. Square 1:1 composition.` },
+  { id: 'gallery', label: 'Sanctuary gallery detail', section: 'Gallery', ratio: '4:3', prompt: `${promptBase} A quiet sanctuary detail: folded ivory linen, a brass tray with oil cruets, a single marigold and soft jaali shadow on ivory stone. 4:3 composition.` },
 ];
 
 /** Free / paid image-tool destinations shown in the AI Image Studio. */
@@ -1244,6 +1297,9 @@ export function resolveVedaConfig(raw?: Partial<VedaConfig> | null): VedaConfig 
               url: safeImage(item.url, base.gallery.images[index % base.gallery.images.length].url),
               title: str(item.title, 'The sanctuary', 80),
               caption: str(item.caption, '', 160),
+              alt: str(item.alt, '', 160) || undefined,
+              visible: item.visible === false ? false : true,
+              category: str(item.category, 'The sanctuary', 40),
             }
           : null,
       ),

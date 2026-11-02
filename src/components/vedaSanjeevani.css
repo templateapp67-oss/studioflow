@@ -211,7 +211,8 @@
   font-weight: 650;
   color: var(--vd-forest);
   border-bottom: 1px solid var(--vd-line-strong);
-  padding-bottom: 3px;
+  min-height: 44px;
+  padding: 10px 2px;
   transition: gap 200ms ease, color 200ms ease;
 }
 .vd-textlink:hover { gap: 12px; color: var(--vd-gold); }
@@ -383,7 +384,8 @@
 .vd-account__link {
   border: 0;
   background: none;
-  padding: 6px 4px;
+  min-height: 44px;
+  padding: 10px 6px;
   font: inherit;
   font-size: 0.78rem;
   font-weight: 600;
@@ -1481,3 +1483,15 @@
 /* Expert card actions: primary booking + quiet profile link. */
 .vd-site .vd-expert__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; }
 .vd-site .vd-expert__actions .vd-textlink { font-size: 0.78rem; }
+
+/* Why-choose-us: a wide room photograph closes the icon grid. */
+.vd-site .vd-why__figure { margin: 30px 0 0; }
+.vd-site .vd-why__figure img { width: 100%; height: 100%; object-fit: cover; border-radius: var(--vd-radius-lg); }
+.vd-site .vd-why__figure figcaption {
+  margin-top: 12px; font-size: 0.82rem; letter-spacing: 0.02em;
+  color: rgb(247 242 231 / 72%); text-align: right;
+}
+@media (max-width: 720px) {
+  .vd-site .vd-why__figure img { aspect-ratio: 4 / 3 !important; }
+  .vd-site .vd-why__figure figcaption { text-align: left; }
+}

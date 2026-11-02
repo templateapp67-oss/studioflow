@@ -42,10 +42,13 @@ import {
   saveVedaDraft,
   requestVedaAiContent,
   vedaAiDetails,
+  vedaApplyImageTarget,
   vedaBlockingIssues,
   vedaConfigPatch,
   vedaCustomizerAccess,
   vedaHistory,
+  vedaImageTargets,
+  vedaSectionHasEdits,
   vedaLaunchProgress,
   vedaLaunchSteps,
   vedaPushHistory,
@@ -132,6 +135,8 @@ export function VedaCustomizer({ siteId, profile, services, stylists, publishedS
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [aiBusy, setAiBusy] = useState<string>('');
+  /** Set when a generation would replace the owner's own copy. */
+  const [confirmAi, setConfirmAi] = useState<string>('');
   const [aiNotice, setAiNotice] = useState('');
   const [busyUpload, setBusyUpload] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -207,6 +212,20 @@ export function VedaCustomizer({ siteId, profile, services, stylists, publishedS
     setDirty(true);
   };
 
+  /* ---------- AI image studio destinations ---------- */
+  const imageTargets = useMemo(() => vedaImageTargets(config, serviceList), [config, serviceList]);
+  const applyImage = useCallback(
+    (url: string, targetId: string) => {
+      const applied = vedaApplyImageTarget(config, serviceList, targetId, url);
+      commit(() => applied.config);
+      if (applied.services !== serviceList) {
+        setServiceList(applied.services);
+        setDirty(true);
+      }
+    },
+    [commit, config, serviceList],
+  );
+
   /* ---------- validation, save, publish ---------- */
   const issues = useMemo(
     () => validateVedaConfig(config, { ...profile, ...business } as SalonProfile),
@@ -248,7 +267,20 @@ export function VedaCustomizer({ siteId, profile, services, stylists, publishedS
   };
 
   /* ---------- AI ---------- */
+  /**
+   * Regeneration never silently overwrites the owner's own words: if the
+   * section already differs from the template default we ask first.
+   */
   const generate = async (mode: (typeof VEDA_AI_MODES)[number]['id']) => {
+    if (vedaSectionHasEdits(config, mode)) {
+      setConfirmAi(mode);
+      return;
+    }
+    await runGenerate(mode);
+  };
+
+  const runGenerate = async (mode: (typeof VEDA_AI_MODES)[number]['id']) => {
+    setConfirmAi(null);
     setAiBusy(mode);
     setError('');
     setAiNotice('');
@@ -356,6 +388,19 @@ export function VedaCustomizer({ siteId, profile, services, stylists, publishedS
             </nav>
 
             <div className="vdc-scroll">
+              {confirmAi ? (
+                <div className="vdc-banner vdc-banner--warn" role="alert">
+                  <strong>Keep your writing?</strong>{' '}
+                  This section already has text you or your team wrote. Generating again will replace it. Nothing is
+                  replaced until you choose.
+                  <div className="vdc-row vdc-row--wrap" style={{ marginTop: 8 }}>
+                    <button type="button" className="vdc-btn vdc-btn--primary" onClick={() => void runGenerate(confirmAi as any)}>
+                      Replace with new AI text
+                    </button>
+                    <button type="button" className="vdc-btn" onClick={() => setConfirmAi('')}>Keep my text</button>
+                  </div>
+                </div>
+              ) : null}
               {tab === 'launch' ? (
                 <LaunchTab
                   steps={launchSteps}
@@ -437,7 +482,15 @@ export function VedaCustomizer({ siteId, profile, services, stylists, publishedS
                 />
               ) : null}
 
-              {tab === 'studio' ? <VedaImageStudio onUsePhoto={() => setTab('photos')} /> : null}
+              {tab === 'studio' ? (
+                <VedaImageStudio
+                  onUsePhoto={() => setTab('photos')}
+                  targets={imageTargets}
+                  onApplyImage={applyImage}
+                  onBusyChange={setBusyUpload}
+                  aiDetails={vedaAiDetails({ ...profile, ...business } as SalonProfile, serviceList)}
+                />
+              ) : null}
 
               {tab === 'booking' ? <BookingTab config={config} patch={patch} business={business} setBusiness={(next) => { setBusiness(next); setDirty(true); }} /> : null}
 
@@ -1232,9 +1285,39 @@ function PhotosTab({
   onOpenStudio: () => void;
 }) {
   const addGallery = () => {
-    const image: VedaGalleryImage = { id: `veda-g-${Date.now().toString(36)}`, url: '/templates/14/sanctuary-960.webp', title: 'New photo', caption: '' };
+    const image: VedaGalleryImage = {
+      id: `veda-g-${Date.now().toString(36)}`,
+      url: '/templates/14/treatment-room-800.webp',
+      title: `The sanctuary ${config.gallery.images.length + 1}`,
+      caption: '',
+      category: 'The sanctuary',
+      visible: true,
+    };
     commit((previous) => ({ ...previous, gallery: { ...previous.gallery, images: [...previous.gallery.images, image] } }));
   };
+  const patchGallery = (id: string, value: Partial<VedaGalleryImage>) =>
+    commit((previous) => ({
+      ...previous,
+      gallery: { ...previous.gallery, images: previous.gallery.images.map((entry) => (entry.id === id ? { ...entry, ...value } : entry)) },
+    }));
+  const moveGallery = (index: number, direction: -1 | 1) =>
+    commit((previous) => {
+      const images = [...previous.gallery.images];
+      const target = index + direction;
+      if (target < 0 || target >= images.length) return previous;
+      [images[index], images[target]] = [images[target], images[index]];
+      return { ...previous, gallery: { ...previous.gallery, images } };
+    });
+  const patchPackageImage = (id: string, url: string) =>
+    commit((previous) => ({
+      ...previous,
+      packages: { ...previous.packages, items: previous.packages.items.map((entry) => (entry.id === id ? { ...entry, imageUrl: url } : entry)) },
+    }));
+  const patchOfferImage = (id: string, url: string) =>
+    commit((previous) => ({
+      ...previous,
+      offers: { ...previous.offers, items: previous.offers.items.map((entry) => (entry.id === id ? { ...entry, imageUrl: url } : entry)) },
+    }));
   return (
     <div className="vdc-panel">
       <header className="vdc-panel__head">
@@ -1283,17 +1366,66 @@ function PhotosTab({
       </section>
 
       <section className="vdc-card">
+        <h4>Package photos</h4>
+        {config.packages.items.map((item) => (
+          <VedaImageField
+            key={item.id}
+            label={item.name}
+            slot="ritual"
+            value={item.imageUrl}
+            onChange={(url) => patchPackageImage(item.id, url)}
+            onBusyChange={onBusyChange}
+            compact
+          />
+        ))}
+      </section>
+
+      <section className="vdc-card">
+        <h4>Offer &amp; voucher photos</h4>
+        {config.offers.items.map((item) => (
+          <VedaImageField
+            key={item.id}
+            label={item.title}
+            slot={item.voucher ? 'gift-voucher' : 'promo-banner'}
+            presetId={item.voucher ? 'services' : 'banner'}
+            value={item.imageUrl}
+            onChange={(url) => patchOfferImage(item.id, url)}
+            onBusyChange={onBusyChange}
+            compact
+          />
+        ))}
+      </section>
+
+      <section className="vdc-card">
         <div className="vdc-row vdc-row--wrap">
-          <h4>Gallery ({config.gallery.images.length})</h4>
+          <h4>Gallery ({config.gallery.images.filter((image) => image.visible !== false).length} shown)</h4>
           <button type="button" className="vdc-btn vdc-btn--primary" onClick={addGallery}><Plus size={14} aria-hidden="true" /> Add photo</button>
         </div>
+        <p className="vdc-hint">Photos appear in this order. Hide one to keep it saved without publishing it.</p>
         {config.gallery.images.map((image, index) => (
-          <div className="vdc-repeat" key={image.id}>
-            <div className="vdc-grid2">
-              <Field label="Caption title" value={image.title} onChange={(value) => commit((previous) => ({ ...previous, gallery: { ...previous.gallery, images: previous.gallery.images.map((entry, entryIndex) => (entryIndex === index ? { ...entry, title: value } : entry)) } }))} />
-              <Field label="Small note (optional)" value={image.caption} onChange={(value) => commit((previous) => ({ ...previous, gallery: { ...previous.gallery, images: previous.gallery.images.map((entry, entryIndex) => (entryIndex === index ? { ...entry, caption: value } : entry)) } }))} />
+          <div className={`vdc-repeat${image.visible === false ? ' is-hidden' : ''}`} key={image.id}>
+            <div className="vdc-row vdc-row--wrap" style={{ justifyContent: 'space-between' }}>
+              <strong style={{ fontSize: '0.82rem' }}>{index + 1}. {image.title || 'Untitled photo'}</strong>
+              <div className="vdc-row">
+                <button type="button" className="vdc-btn vdc-btn--quiet" onClick={() => moveGallery(index, -1)} disabled={index === 0} aria-label={`Move ${image.title} up`}><ArrowUp size={13} aria-hidden="true" /></button>
+                <button type="button" className="vdc-btn vdc-btn--quiet" onClick={() => moveGallery(index, 1)} disabled={index === config.gallery.images.length - 1} aria-label={`Move ${image.title} down`}><ArrowDown size={13} aria-hidden="true" /></button>
+                <label className="vdc-check">
+                  <input
+                    type="checkbox"
+                    checked={image.visible !== false}
+                    onChange={(event) => patchGallery(image.id, { visible: event.target.checked })}
+                  />
+                  Show on website
+                </label>
+              </div>
             </div>
-            <VedaImageField label="Gallery photo" slot="gallery" presetId="gallery" value={image.url} onChange={(url) => commit((previous) => ({ ...previous, gallery: { ...previous.gallery, images: previous.gallery.images.map((entry, entryIndex) => (entryIndex === index ? { ...entry, url } : entry)) } }))} onBusyChange={onBusyChange} compact />
+            <div className="vdc-grid2">
+              <Field label="Caption title" value={image.title} onChange={(value) => patchGallery(image.id, { title: value })} />
+              <Field label="Category" value={image.category || ''} onChange={(value) => patchGallery(image.id, { category: value })} />
+              <Field label="Small note (optional)" value={image.caption} onChange={(value) => patchGallery(image.id, { caption: value })} />
+              <Field label="Alt text (screen readers)" value={image.alt || ''} onChange={(value) => patchGallery(image.id, { alt: value })} />
+            </div>
+            <VedaImageField label="Gallery photo" slot="gallery" presetId="gallery" value={image.url} onChange={(url) => patchGallery(image.id, { url })} onBusyChange={onBusyChange} compact />
             <button type="button" className="vdc-btn vdc-btn--danger" onClick={() => commit((previous) => ({ ...previous, gallery: { ...previous.gallery, images: previous.gallery.images.filter((entry) => entry.id !== image.id) } }))}>
               <Trash2 size={14} aria-hidden="true" /> Remove
             </button>

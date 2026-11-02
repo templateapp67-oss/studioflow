@@ -26,7 +26,8 @@ export type VedaAiMode =
   | 'testimonials'
   | 'faq'
   | 'contact'
-  | 'seo';
+  | 'seo'
+  | 'imagePrompts';
 
 export interface VedaAiServiceInput {
   id?: string;
@@ -54,6 +55,7 @@ export const VEDA_AI_MODE_IDS: VedaAiMode[] = [
   'faq',
   'contact',
   'seo',
+  'imagePrompts',
 ];
 
 export interface VedaAiDetails {
@@ -80,7 +82,7 @@ export interface VedaAiContent {
   experts?: Heading & {
     people?: Array<{ name?: string; role?: string; bio?: string; specialties?: string[]; experienceYears?: number; qualifications?: string[] }>;
   };
-  gallery?: Heading;
+  gallery?: Heading & { items?: Array<{ title?: string; caption?: string }> };
   packages?: Heading & { items?: Array<{ name?: string; tagline?: string; duration?: string; sessions?: string; includes?: string[]; price?: number; originalPrice?: number }> };
   offers?: Heading & { items?: Array<{ title?: string; body?: string; badge?: string; code?: string; voucher?: boolean }> };
   testimonials?: Heading & { items?: Array<{ name?: string; location?: string; quote?: string; treatment?: string; rating?: number }> };
@@ -244,6 +246,14 @@ export function buildVedaFallbackContent(mode: VedaAiMode, details: VedaAiDetail
     eyebrow: 'The sanctuary',
     title: 'A look inside\nthe house.',
     body: 'Treatment rooms, the preparation kitchen and the courtyard where every ritual ends.',
+    items: [
+      { title: 'The arrival corridor', caption: 'Lime-washed green walls, ivory stone and brass lamps.' },
+      { title: 'The Abhyanga room', caption: 'A hand-carved droni and warm Dhanwantharam oil.' },
+      { title: 'The Shirodhara suite', caption: 'A brass vessel and a room kept deliberately quiet.' },
+      { title: 'The preparation kitchen', caption: 'Turmeric, brahmi and chickpea, ground the same morning.' },
+      { title: 'The herbal steam suite', caption: 'Eucalyptus and tulsi steam behind carved wood.' },
+      { title: 'The tulsi courtyard', caption: 'Where every ritual ends, with tea.' },
+    ],
   };
 
   const contact: VedaAiContent['contact'] = {
@@ -278,6 +288,7 @@ export function buildVedaFallbackContent(mode: VedaAiMode, details: VedaAiDetail
     faq,
     contact,
     seo,
+    imagePrompts: imagePromptsFor(details, brand, place),
   };
 
   if (mode === 'all') return all;
@@ -289,6 +300,7 @@ export function buildVedaFallbackContent(mode: VedaAiMode, details: VedaAiDetail
   if (mode === 'faq') return { faq };
   if (mode === 'testimonials') return { testimonials };
   if (mode === 'seo') return { seo };
+  if (mode === 'imagePrompts') return { imagePrompts: imagePromptsFor(details, brand, place) };
   if (mode === 'announcement') return { announcement };
   if (mode === 'contact') return { contact };
   if (key in all) return { [key]: (all as any)[key] } as VedaAiContent;
@@ -378,4 +390,30 @@ export function sanitizeVedaAiContent(input: unknown): VedaAiContent {
   if (Array.isArray(raw.services)) out.services = raw.services.slice(0, 30).map((item: any) => ({ id: text(item?.id, 60), name: text(item?.name, 90), category: text(item?.category, 60), description: text(item?.description, 700), benefits: Array.isArray(item?.benefits) ? item.benefits.slice(0, 4).map((entry: unknown) => text(entry, 120)).filter(Boolean) as string[] : undefined, durationMinutes: Number.isFinite(Number(item?.durationMinutes)) ? Math.max(15, Math.round(Number(item.durationMinutes))) : undefined, price: item?.price === null ? null : Number.isFinite(Number(item?.price)) ? Math.max(0, Math.round(Number(item.price))) : undefined, popular: item?.popular === true }));
   if (Array.isArray(raw.imagePrompts)) out.imagePrompts = raw.imagePrompts.slice(0, 12).map((item: any) => ({ id: text(item?.id, 40), label: text(item?.label, 60), prompt: text(item?.prompt, 900) }));
   return out;
+}
+
+/**
+ * Prompt drafts written from the owner's own menu, so the Image Studio always
+ * has something specific to copy even when the AI key is missing.
+ */
+export function imagePromptsFor(details: VedaAiDetails, brand = name(details), place = shortCity(details)): NonNullable<VedaAiContent['imagePrompts']> {
+  const base = `Photorealistic luxury Ayurvedic wellness photograph for ${brand} in ${place}: deep forest green and earthy beige interiors, warm natural light, teak and brass, ivory linen, no text, no watermark, no logos.`;
+  const ratio = (value: string) => ` ${value} composition.`;
+  const list: NonNullable<VedaAiContent['imagePrompts']> = [
+    { id: 'hero', label: 'Hero banner', prompt: `${base} A treatment room with a carved teak droni and a brass vessel pouring a thin stream of golden oil, morning light through a jaali screen.${ratio('Landscape 16:9')}` },
+    { id: 'interior', label: 'Spa interior', prompt: `${base} An arched corridor with ivory stone floors, lime-washed green walls and hanging brass lamps, late afternoon light.${ratio('Landscape 16:9')}` },
+    { id: 'therapist', label: 'Therapist portrait', prompt: `${base} A warm editorial portrait of an Ayurvedic therapist in a sage-green linen kurta, soft window light, calm expression, holding a folded towel.${ratio('Vertical 3:4')}` },
+    { id: 'package', label: 'Package vignette', prompt: `${base} A styled flat-lay of a ritual set: brass oil cruet, herbal pouch, folded muslin, dried rose petals and a linen runner on ivory stone.${ratio('4:3')}` },
+    { id: 'gift-card', label: 'Gift voucher', prompt: `${base} A blank ivory deckled-edge card tied with forest-green silk ribbon and a brass seal, beside dried petals and a sprig of tulsi.${ratio('4:3')}` },
+    { id: 'testimonial', label: 'Guest portrait', prompt: `${base} A candid square portrait of a relaxed guest in a sage linen robe holding a brass cup of herbal tea in a courtyard.${ratio('Square 1:1')}` },
+    { id: 'banner', label: 'Promotional banner', prompt: `${base} A brass bowl of warm oil, dried herbs and folded linen on the right of an ivory stone surface, empty space on the left for offer text.${ratio('Landscape 16:9')}` },
+  ];
+  for (const service of (details.services || []).slice(0, 8)) {
+    list.push({
+      id: `service-${service.id || service.name}`.toLowerCase().replace(/[^a-z0-9-]+/g, '-').slice(0, 40),
+      label: service.name,
+      prompt: `${base} A respectful treatment detail photograph for "${service.name}" (${service.category || 'Ayurvedic therapy'}): hands of a therapist at work, guest modestly draped in sage linen, oiled teak and brass props, faces and identifying features out of frame.${ratio('4:3')}`,
+    });
+  }
+  return list;
 }

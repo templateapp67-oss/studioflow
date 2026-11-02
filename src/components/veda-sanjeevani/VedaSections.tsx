@@ -478,6 +478,17 @@ export function VedaWhy({ config }: VedaSectionProps) {
             </VedaRevealItem>
           ))}
         </VedaRevealGroup>
+        <VedaReveal delay={0.08}>
+          <figure className="vd-why__figure">
+            <VedaImage
+              slot="treatment-room"
+              alt="A Veda Sanjeevani treatment room: carved teak droni, brass dhara vessel and jaali light"
+              ratio="21 / 9"
+              sizes="(max-width: 900px) 100vw, 88vw"
+            />
+            <figcaption>Four rooms, never more than four guests at a time.</figcaption>
+          </figure>
+        </VedaReveal>
       </div>
     </section>
   );
@@ -571,7 +582,13 @@ export function VedaGalleryGrid({ images, onOpen }: { images: VedaGalleryImage[]
       {images.map((image, index) => (
         <VedaRevealItem key={image.id} className="vd-gallery__cell" as="div">
           <button type="button" className="vd-gallery__tile" onClick={() => onOpen(index)} aria-label={`Open photo: ${image.title}`}>
-            <img src={image.url} alt={image.title} loading="lazy" decoding="async" />
+            <VedaImage
+              slot="gallery"
+              src={image.url}
+              alt={image.alt || image.title}
+              ratio="4 / 3"
+              sizes="(max-width: 760px) 100vw, (max-width: 1100px) 46vw, 30vw"
+            />
             <span className="vd-gallery__label">{image.title}</span>
           </button>
         </VedaRevealItem>
@@ -591,7 +608,7 @@ export function VedaLightbox({ images, index, onClose }: { images: VedaGalleryIm
         <X size={20} aria-hidden="true" />
       </button>
       <figure onClick={(event) => event.stopPropagation()}>
-        <img src={image.url} alt={image.title} />
+        <VedaImage slot="gallery" src={image.url} alt={image.alt || image.title} priority sizes="(max-width: 900px) 100vw, 70vw" />
         <figcaption>
           <strong>{image.title}</strong>
           {image.caption ? <span> — {image.caption}</span> : null}

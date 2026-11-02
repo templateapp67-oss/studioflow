@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-01T18:37:44.333Z",
+  "generatedAt": "2026-11-02T04:06:51.731Z",
   "slots": [
     {
       "slot": "hero",
@@ -382,6 +382,240 @@
         }
       ],
       "lqip": "data:image/webp;base64,UklGRroAAABXRUJQVlA4IK4AAADQBACdASoYABAAPt1apkyopSOiMAgBEBuJYgCdMoAlvRZB7UlmyISj73i1Z6pg+AD+3QwE3BHH1CutfaIWSW9+JpU4SFkrdoJ5BKbAt/fyJioOLSiccErP/G13taIx0Ngq4cdNmvM3I7Hc5/CdgdIr+rlfW0Ab6SiMVH96FFaCBn/KCmEDLNq7sV6kJIa9v5AG05IvwmOLu1PxkVrvvE7YfoQuK3/h18FE6BpAAAA="
+    },
+    {
+      "slot": "kizhi",
+      "ratio": 1.3333333333333333,
+      "alt": "Kizhi herbal leaf poultices warmed on a teak tray with a brass bowl of oil",
+      "files": [
+        {
+          "width": 480,
+          "height": 360,
+          "file": "kizhi-480.webp",
+          "bytes": 27398
+        },
+        {
+          "width": 800,
+          "height": 600,
+          "file": "kizhi-800.webp",
+          "bytes": 65446
+        },
+        {
+          "width": 1200,
+          "height": 900,
+          "file": "kizhi-1200.webp",
+          "bytes": 128522
+        }
+      ],
+      "lqip": "data:image/webp;base64,UklGRsoAAABXRUJQVlA4IL4AAACwBACdASoYABAAPt1apkyopSOiMAgBEBuJYgCdMoAlqhU49NHpUoyh/VKIWN0AAOA3A54cGG8KbwiuE7UEqfckieS79JjJYwbSUceFwjCq/KF383lOJD1lEq8sJEbzc6ss+ALhnHpoZcdBGlt2Dn4XM7r58efIEorJr4EswzYtAiRI/BiwC5wdNbdHuBxhaBZeQQUyd2vVag6TMEyuQUMfck2VM34XA8grnolwXHjxEvyZjdiE79mqeacoI6AA"
+    },
+    {
+      "slot": "udvartana",
+      "ratio": 1.3333333333333333,
+      "alt": "Udvartana herbal powder body scrub applied in upward strokes",
+      "files": [
+        {
+          "width": 480,
+          "height": 360,
+          "file": "udvartana-480.webp",
+          "bytes": 21352
+        },
+        {
+          "width": 800,
+          "height": 600,
+          "file": "udvartana-800.webp",
+          "bytes": 53644
+        },
+        {
+          "width": 1200,
+          "height": 900,
+          "file": "udvartana-1200.webp",
+          "bytes": 114230
+        }
+      ],
+      "lqip": "data:image/webp;base64,UklGRrQAAABXRUJQVlA4IKgAAACwBACdASoYABAAPt1apkyopSOiMAgBEBuJZACdMoAvQBm/16BKKXLzvQ1vpCZQAP5OBCFoTbJfKPTZP9pw+W97uxcwhAEJbTA+Jx2mMN/Tl2vN3WjCoHawnxHkZ0KFhyeagB9mxwaQsKQdg4czQMUTPzcjsakt5EaHp9YPSM76VoNzzns++sA2e8TgH2BLTMnFwTJ662iN8cH998NFZpnNBY0YCTIAAAA="
+    },
+    {
+      "slot": "pizhichil",
+      "ratio": 1.3333333333333333,
+      "alt": "Pizhichil warm oil bath poured by two therapists on a carved teak droni",
+      "files": [
+        {
+          "width": 480,
+          "height": 360,
+          "file": "pizhichil-480.webp",
+          "bytes": 27814
+        },
+        {
+          "width": 800,
+          "height": 600,
+          "file": "pizhichil-800.webp",
+          "bytes": 55436
+        },
+        {
+          "width": 1200,
+          "height": 900,
+          "file": "pizhichil-1200.webp",
+          "bytes": 94172
+        }
+      ],
+      "lqip": "data:image/webp;base64,UklGRrIAAABXRUJQVlA4IKYAAADwBACdASoYABAAPt1apkyopSOiMAgBEBuJQBOmUDX1RvRi4kKlJHu8e2wekcLvKYAA/vRUfEQY99FD8CjFxCvM4KIi3HUebgtcn5c491Ok/KtZ8YUjvA02HuZDC+cH7sqTcUGvizEjBvbN6rBq9DPjzbh8QCXy4LfxKdaCFYSKWERTgC51QM3y03YFoarI6JhsoQxExlCsKkzybnUIOdHBlN+CkWQA"
+    },
+    {
+      "slot": "head-massage",
+      "ratio": 1.3333333333333333,
+      "alt": "Champi Ayurvedic head massage with warm brahmi oil",
+      "files": [
+        {
+          "width": 480,
+          "height": 360,
+          "file": "head-massage-480.webp",
+          "bytes": 26468
+        },
+        {
+          "width": 800,
+          "height": 600,
+          "file": "head-massage-800.webp",
+          "bytes": 59234
+        },
+        {
+          "width": 1200,
+          "height": 900,
+          "file": "head-massage-1200.webp",
+          "bytes": 112640
+        }
+      ],
+      "lqip": "data:image/webp;base64,UklGRsoAAABXRUJQVlA4IL4AAADQBACdASoYABAAPt1apkyopSOiMAgBEBuJZgCdMoR3JoArkBZkNcigs1Fc8bArcAD+3W8aP9prIn7Q46ew1qhqwZ0S9NeEo3KFNvHFxk5QD0hnlJzJq4V4/IW+N2naH58V0QeZ9Gg4e/R9Rfdj5sk6D5nGKjYai04/FeknYz8STFnXMf/dGMqFn8N3o57iJWovtcr/Tf/+z5ER97HBtULTLPzxfh+dsh+YSi8TJP2dSqAr0Hokh6riF9onAAAA"
+    },
+    {
+      "slot": "consultation",
+      "ratio": 1.3333333333333333,
+      "alt": "Panchakarma consultation: an Ayurvedic physician reading the pulse at a teak table",
+      "files": [
+        {
+          "width": 480,
+          "height": 360,
+          "file": "consultation-480.webp",
+          "bytes": 25182
+        },
+        {
+          "width": 800,
+          "height": 600,
+          "file": "consultation-800.webp",
+          "bytes": 46768
+        },
+        {
+          "width": 1200,
+          "height": 900,
+          "file": "consultation-1200.webp",
+          "bytes": 79848
+        }
+      ],
+      "lqip": "data:image/webp;base64,UklGRrwAAABXRUJQVlA4ILAAAAAQBACdASoYABAAPt1apkyopSOiMAgBEBuJYgCdAYxOQVvM09alU5IcAAD2u2KmqORoLzA9fv1RoqofriXPELFw5wbYDNrSG5rK0SnCQrU/XTusEU999PFG2aoVCADaDcw2PkKLszLbAIPizXrRuHwXQPBBx+o1Hz9v9UDtVm8qW3tIk8ej09QZ2n4LeT5aXjuknSVf5ziYTIPZbZQQAmyAm/YPKUt5fIzvzkFgSMAAAA=="
+    },
+    {
+      "slot": "couple-suite",
+      "ratio": 1.3333333333333333,
+      "alt": "Private couple treatment suite with two carved teak tables and brass lamps",
+      "files": [
+        {
+          "width": 480,
+          "height": 360,
+          "file": "couple-suite-480.webp",
+          "bytes": 25828
+        },
+        {
+          "width": 800,
+          "height": 600,
+          "file": "couple-suite-800.webp",
+          "bytes": 59668
+        },
+        {
+          "width": 1200,
+          "height": 900,
+          "file": "couple-suite-1200.webp",
+          "bytes": 112470
+        }
+      ],
+      "lqip": "data:image/webp;base64,UklGRqYAAABXRUJQVlA4IJoAAACQBACdASoYABAAPt1apkyopSOiMAgBEBuJQBOmUAXoAwj8QTHGay+6LM8QWtgA/upWkmwFmZZUk2MzqFyVQNizM7ZsxEl6mlFk3sW6lQTn+m8H3fIJIn8WPl3pweRvmZav3YBsfHUaFwrG2PF2LyUyPLEEph7fQpPM2RlEALlHd+fr42DgDecpI83hXwm+8qDeOX0m7OCkgAAA"
+    },
+    {
+      "slot": "treatment-room",
+      "ratio": 1.3333333333333333,
+      "alt": "Ayurvedic treatment room with a swaying brass dhara vessel and jaali light",
+      "files": [
+        {
+          "width": 480,
+          "height": 360,
+          "file": "treatment-room-480.webp",
+          "bytes": 28564
+        },
+        {
+          "width": 800,
+          "height": 600,
+          "file": "treatment-room-800.webp",
+          "bytes": 68236
+        },
+        {
+          "width": 1200,
+          "height": 900,
+          "file": "treatment-room-1200.webp",
+          "bytes": 131250
+        }
+      ],
+      "lqip": "data:image/webp;base64,UklGRqgAAABXRUJQVlA4IJwAAAAwBACdASoYABAAPt1cpkyopSOiMAgBEBuJQBOmUABoFLY112tIcqNiWEAA/ujb2jxkYmZD8F30ap+gN9yVTGMLfU95a/eXBwpZ0arzWQkGLSilxxwLE5zlUjqGslMkX12J6lHHK+tgVkwsEWWzJJgiqN4j4bpd3J718EWgUge6f3wS4LgmpJpG5jaa60jtqiQAsFuJo89Po4jwAAA="
+    },
+    {
+      "slot": "gift-voucher",
+      "ratio": 1.3333333333333333,
+      "alt": "Ivory Ayurvedic gift voucher tied with forest-green ribbon and a brass seal",
+      "files": [
+        {
+          "width": 480,
+          "height": 360,
+          "file": "gift-voucher-480.webp",
+          "bytes": 33108
+        },
+        {
+          "width": 800,
+          "height": 600,
+          "file": "gift-voucher-800.webp",
+          "bytes": 94682
+        },
+        {
+          "width": 1200,
+          "height": 900,
+          "file": "gift-voucher-1200.webp",
+          "bytes": 197178
+        }
+      ],
+      "lqip": "data:image/webp;base64,UklGRsQAAABXRUJQVlA4ILgAAABwBACdASoYABAAPt1apkyopSOiMAgBEBuJQBOl65KwdcJWJjmmwu9geYFTgAD+72LcxwW7oHaP2dmuTDoc28T6sO+poYei0s8pzXFZ/AeTJt8I2rPbS8eYGKdIDr7CjXd2sW6hIIuNogCHTHV9+CgFcZN/jpwESSto3bHJHAMLl70/5+kP5H0n8kN/0A/9IgPsuEhDl4QeKRzoZ4LdDq4R4QwDg8cIBroYFTxCfxqcKb0OjRkAAAAA"
+    },
+    {
+      "slot": "promo-banner",
+      "ratio": 1.7777777777777777,
+      "alt": "Brass bowl of warm herbal oil and folded sage linen on an ivory stone table",
+      "files": [
+        {
+          "width": 640,
+          "height": 360,
+          "file": "promo-banner-640.webp",
+          "bytes": 25564
+        },
+        {
+          "width": 960,
+          "height": 540,
+          "file": "promo-banner-960.webp",
+          "bytes": 49264
+        },
+        {
+          "width": 1600,
+          "height": 900,
+          "file": "promo-banner-1600.webp",
+          "bytes": 104762
+        }
+      ],
+      "lqip": "data:image/webp;base64,UklGRpoAAABXRUJQVlA4II4AAAAQBACdASoYAA0APt1ep00opSOiMAgBEBuJQBUehHqEPTWMskB4FDlgAAD+v73Vkm8quN3GH3cNt8Pao5zPwO4gTunb0E8fPrY+O2raeIGiV4eJLLJHTcNtKAw0oN9vIRX5FctcaXoOuscDZLXumSgp4I4n/PZdjWw3VjhvuBFdJBVzVDSmlgAmd5TBogAA"
     }
   ]
 }

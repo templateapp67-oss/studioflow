@@ -64,6 +64,7 @@ export function VedaImage({
   sizes = '(max-width: 760px) 100vw, (max-width: 1200px) 50vw, 620px',
   priority = false,
   style,
+  focus,
 }: {
   slot: string;
   src?: string;
@@ -73,6 +74,8 @@ export function VedaImage({
   sizes?: string;
   priority?: boolean;
   style?: React.CSSProperties;
+  /** Crop focus for owner photos: a CSS object-position value or {x,y} in 0–1. */
+  focus?: string | { x: number; y: number };
 }) {
   const fallback = vedaImage(slot);
   const [current, setCurrent] = useState(src || fallback);
@@ -102,6 +105,12 @@ export function VedaImage({
       style={{
         ...style,
         ...(ratio ? { aspectRatio: ratio } : null),
+        ...(focus
+          ? {
+              objectPosition:
+                typeof focus === 'string' ? focus : `${Math.round(focus.x * 100)}% ${Math.round(focus.y * 100)}%`,
+            }
+          : null),
         opacity: loaded ? 1 : 0.001,
         transition: 'opacity 600ms cubic-bezier(0.22, 1, 0.36, 1)',
       }}

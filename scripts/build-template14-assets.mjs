@@ -45,6 +45,17 @@ const SLOTS = [
   { name: 'ayurveda-wide', source: 'ayurvedic-spa-hero.webp', from: 'reused', ratio: 16 / 9, widths: [800, 1600], alt: 'Ayurvedic spa treatment in warm natural light' },
   { name: 'ingredients', source: 'ayurvedic-herbs-still-life.webp', from: 'reused', ratio: 1, widths: [480, 800], alt: 'Ayurvedic herbs and oils styled on ivory stone' },
   { name: 'sanctuary-alt', source: 'sanctuary.webp', from: 'reused', ratio: 3 / 2, widths: [640, 1264], alt: 'Quiet corner of the Veda Sanjeevani sanctuary' },
+  /* Therapy-specific photography — one slot per catalogue ritual so every
+     service card, package and gallery tile can show its own treatment. */
+  { name: 'kizhi', source: 'therapy-kizhi.jpg', ratio: 4 / 3, widths: [480, 800, 1200], alt: 'Kizhi herbal leaf poultices warmed on a teak tray with a brass bowl of oil' },
+  { name: 'udvartana', source: 'therapy-udvartana.jpg', ratio: 4 / 3, widths: [480, 800, 1200], alt: 'Udvartana herbal powder body scrub applied in upward strokes' },
+  { name: 'pizhichil', source: 'therapy-pizhichil.jpg', ratio: 4 / 3, widths: [480, 800, 1200], alt: 'Pizhichil warm oil bath poured by two therapists on a carved teak droni' },
+  { name: 'head-massage', source: 'head-massage.jpg', ratio: 4 / 3, widths: [480, 800, 1200], alt: 'Champi Ayurvedic head massage with warm brahmi oil' },
+  { name: 'consultation', source: 'consultation-panchakarma.jpg', ratio: 4 / 3, widths: [480, 800, 1200], alt: 'Panchakarma consultation: an Ayurvedic physician reading the pulse at a teak table' },
+  { name: 'couple-suite', source: 'couple-suite.jpg', ratio: 4 / 3, widths: [480, 800, 1200], alt: 'Private couple treatment suite with two carved teak tables and brass lamps' },
+  { name: 'treatment-room', source: 'treatment-room.jpg', ratio: 4 / 3, widths: [480, 800, 1200], alt: 'Ayurvedic treatment room with a swaying brass dhara vessel and jaali light' },
+  { name: 'gift-voucher', source: 'gift-voucher.jpg', ratio: 4 / 3, widths: [480, 800, 1200], alt: 'Ivory Ayurvedic gift voucher tied with forest-green ribbon and a brass seal' },
+  { name: 'promo-banner', source: 'promo-banner.jpg', ratio: 16 / 9, widths: [640, 960, 1600], alt: 'Brass bowl of warm herbal oil and folded sage linen on an ivory stone table' },
 ];
 
 const sourcePath = (slot) => path.join(slot.from === 'reused' ? REUSED : GENERATED, slot.source);

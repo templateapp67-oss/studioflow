@@ -149,6 +149,7 @@ export function VedaSanjeevaniWebsite(props: VedaSanjeevaniWebsiteProps) {
       .map((photo) => ({ id: `owner-${photo.id}`, url: photo.url, title: photo.title || 'The sanctuary', caption: '' }));
     const seen = new Set<string>();
     const bundled = config.gallery.images.filter((image) => {
+      if (image.visible === false) return false; // hidden in the dashboard
       if (seen.has(image.url)) return false;
       seen.add(image.url);
       return true;

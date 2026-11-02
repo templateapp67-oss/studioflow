@@ -167,6 +167,22 @@ export function applyVedaAiContent(
       if (typeof section[field] === 'string' && section[field].trim()) target[field] = section[field];
     }
   }
+  // Gallery captions: the AI writes one line per photo; titles stay unless a
+  // caption is supplied for that position.
+  if ((mode === 'all' || mode === 'gallery') && content.gallery?.items?.length) {
+    next.gallery = {
+      ...next.gallery,
+      images: next.gallery.images.map((image, index) => {
+        const draft = content.gallery?.items?.[index];
+        if (!draft) return image;
+        return {
+          ...image,
+          title: draft.title?.trim() || image.title,
+          caption: draft.caption?.trim() || image.caption,
+        };
+      }),
+    };
+  }
   if ((mode === 'all' || mode === 'why') && content.why) {
     next.why = {
       ...next.why,
@@ -586,6 +602,7 @@ export const VEDA_AI_MODES: Array<{ id: VedaAiMode; label: string; hint: string 
   { id: 'faq', label: 'Generate FAQs', hint: 'Answers guests ask before booking.' },
   { id: 'testimonials', label: 'Generate review placeholders', hint: 'Clearly marked sample quotes you must replace with real ones.' },
   { id: 'seo', label: 'Generate SEO content', hint: 'Title, meta description and keywords.' },
+  { id: 'imagePrompts', label: 'Generate image prompts', hint: 'One photo prompt per section and therapy, ready to copy into an image tool.' },
 ];
 
 export type VedaAiResult = { source: 'ai' | 'template'; content: VedaAiContent; notice: string };
@@ -675,4 +692,195 @@ export function vedaDefaultContentSets() {
     announcement: VEDA_ANNOUNCEMENT_FALLBACK,
     brand: VEDA_BRAND_NAME,
   };
+}
+
+/* ------------------------------------------------------------------ *\
+ * Image destinations (AI Image Studio → website)
+ * ------------------------------------------------------------------ */
+
+export type VedaImageTarget = {
+  id: string;
+  label: string;
+  group: string;
+  /** Bundled slot used as the fallback photo + alt text. */
+  slot: string;
+  /** Upload preset applied when the photo is stored. */
+  preset: string;
+};
+
+/**
+ * Every image on the public website, as a flat list the AI Image Studio can
+ * present in a plain dropdown. Uploading or generating a photo for a target
+ * writes it straight into the site configuration, so the studio is a real
+ * editor rather than a prompt gallery.
+ */
+export function vedaImageTargets(config: VedaConfig, services: SalonService[] = []): VedaImageTarget[] {
+  const list: VedaImageTarget[] = [
+    { id: 'hero', label: 'Hero banner', group: 'Hero & story', slot: 'hero', preset: 'hero' },
+    { id: 'philosophy', label: 'About & philosophy photo', group: 'Hero & story', slot: 'sanctuary', preset: 'hero' },
+  ];
+  for (const item of config.packages.items) {
+    list.push({ id: `package:${item.id}`, label: `Package · ${item.name}`, group: 'Wellness packages', slot: 'ritual', preset: 'services' });
+  }
+  for (const item of config.offers.items) {
+    list.push({
+      id: `offer:${item.id}`,
+      label: `Offer · ${item.title}`,
+      group: 'Offers & vouchers',
+      slot: item.voucher ? 'gift-voucher' : 'promo-banner',
+      preset: item.voucher ? 'services' : 'banner',
+    });
+  }
+  for (const item of config.gallery.images) {
+    list.push({ id: `gallery:${item.id}`, label: `Gallery · ${item.title}`, group: 'Gallery', slot: 'treatment-room', preset: 'gallery' });
+  }
+  const seen = new Set<string>();
+  for (const service of services.length ? services : VEDA_SERVICES) {
+    if (!service?.id || seen.has(service.id)) continue;
+    seen.add(service.id);
+    list.push({
+      id: `service:${service.id}`,
+      label: `Therapy · ${service.name}`,
+      group: 'Therapies',
+      slot: 'abhyanga',
+      preset: 'services',
+    });
+  }
+  return list;
+}
+
+/** Applies a stored image URL to one target. Returns new state; never mutates. */
+export function vedaApplyImageTarget(
+  config: VedaConfig,
+  services: SalonService[],
+  targetId: string,
+  url: string,
+): { config: VedaConfig; services: SalonService[] } {
+  const clean = (url || '').trim();
+  const [kind, id] = targetId.split(':');
+  if (!kind) return { config, services };
+  if (kind === 'hero') return { config: { ...config, hero: { ...config.hero, image: clean } }, services };
+  if (kind === 'philosophy') return { config: { ...config, philosophy: { ...config.philosophy, image: clean } }, services };
+  if (kind === 'package') {
+    return {
+      config: {
+        ...config,
+        packages: {
+          ...config.packages,
+          items: config.packages.items.map((item) => (item.id === id ? { ...item, imageUrl: clean } : item)),
+        },
+      },
+      services,
+    };
+  }
+  if (kind === 'offer') {
+    return {
+      config: {
+        ...config,
+        offers: {
+          ...config.offers,
+          items: config.offers.items.map((item) => (item.id === id ? { ...item, imageUrl: clean } : item)),
+        },
+      },
+      services,
+    };
+  }
+  if (kind === 'gallery') {
+    return {
+      config: {
+        ...config,
+        gallery: {
+          ...config.gallery,
+          images: config.gallery.images.map((item) => (item.id === id ? { ...item, url: clean } : item)),
+        },
+      },
+      services,
+    };
+  }
+  if (kind === 'service') {
+    return { config, services: services.map((item) => (item.id === id ? { ...item, imageUrl: clean } : item)) };
+  }
+  return { config, services };
+}
+
+/** The honest result of asking the server to paint a photo. */
+export type VedaImageGenerationResult =
+  | { ok: true; reason?: undefined; dataUrl: string; promptUsed: string }
+  | { ok: false; reason: string; dataUrl?: undefined };
+
+/**
+ * Server-side AI image generation, reusing the existing
+ * `/api/generate-promo-image` endpoint (Gemini) — no new provider, no key in the
+ * browser. A missing key is reported as a clear reason, never as a fake image.
+ */
+export async function requestVedaAiImage(prompt: string, aspectRatio = '4:3'): Promise<VedaImageGenerationResult> {
+  try {
+    const response = await fetch('/api/generate-promo-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, aspectRatio }),
+    });
+    if (!response.ok) return { ok: false, reason: 'The image service could not be reached. Try again in a moment.' };
+    const data = (await response.json()) as {
+      success?: boolean;
+      imageUrl?: string | null;
+      promptUsed?: string;
+      error?: string;
+      fallbackNotice?: string;
+      notice?: string;
+    };
+    if (data?.success && typeof data.imageUrl === 'string' && data.imageUrl) {
+      return { ok: true, dataUrl: data.imageUrl, promptUsed: data.promptUsed || prompt };
+    }
+    return {
+      ok: false,
+      reason:
+        data?.fallbackNotice ||
+        data?.notice ||
+        data?.error ||
+        'AI image generation is not configured on this server. Copy the prompt and use an image tool, then upload the result.',
+    };
+  } catch {
+    return { ok: false, reason: 'The image service could not be reached. Check your connection and try again.' };
+  }
+}
+
+/** Turns a generated data URL into a File the optimiser accepts. */
+export function vedaDataUrlFile(dataUrl: string, name = 'ai-image'): File {
+  const match = /^data:([^;]+);base64,(.*)$/.exec(dataUrl || '');
+  if (!match) throw new Error('The generated image could not be read. Try generating it again.');
+  const [, mime, base64] = match;
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+  return new File([bytes], `${name}.${mime.includes('png') ? 'png' : 'jpg'}`, { type: mime });
+}
+
+/**
+ * True when the section a generation would touch already differs from the
+ * template default — i.e. the owner has written something themselves. The
+ * dashboard asks before replacing that copy.
+ */
+export function vedaSectionHasEdits(config: VedaConfig, mode: string): boolean {
+  const base = defaultVedaConfig();
+  const pick = (value: any) =>
+    JSON.stringify({
+      eyebrow: value?.eyebrow,
+      title: value?.title,
+      body: value?.body,
+      quote: value?.quote,
+      headline: value?.headline,
+      description: value?.description,
+      text: value?.text,
+      items: Array.isArray(value?.items) ? value.items.map((item: any) => item.title || item.name || item.question || item.quote) : undefined,
+    });
+  if (mode === 'all') {
+    return (['hero', 'philosophy', 'therapies', 'packages', 'offers', 'faq', 'gallery', 'announcement'] as const).some(
+      (key) => pick((config as any)[key]) !== pick((base as any)[key]),
+    );
+  }
+  if (mode === 'announcement') return config.announcement.text !== base.announcement.text;
+  const key = mode === 'therapies' ? 'therapies' : mode;
+  if (!(key in base)) return false;
+  return pick((config as any)[key]) !== pick((base as any)[key]);
 }

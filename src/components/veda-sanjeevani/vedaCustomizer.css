@@ -86,6 +86,7 @@
 .vdc-banner--ok { background: #e9f2ea; border-color: #c3dcc9; color: #1f4a31; }
 .vdc-banner--error { background: #fbeae6; border-color: #edc9c0; color: #7c2d22; }
 .vdc-banner--ai { background: #eef2f6; border-color: #ccd8e2; color: #22384a; }
+.vdc-banner--warn { background: #fdf5e6; border-color: #e8d3a6; color: #6b4a12; }
 
 /* Body layout */
 .vdc-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr; }
@@ -161,8 +162,10 @@ textarea.vdc-input { resize: vertical; min-height: 72px; }
 .vdc-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 7px;
-  padding: 8px 13px;
+  min-height: 44px;
+  padding: 9px 14px;
   border-radius: 9px;
   border: 1px solid #d8d0bd;
   background: #fff;
@@ -334,3 +337,23 @@ textarea.vdc-input { resize: vertical; min-height: 72px; }
   .vdc-prompt { grid-template-columns: 92px 1fr; }
   .vdc-savebar { position: sticky; bottom: 0; }
 }
+
+/* AI Image Studio — generated-image preview + prompt category chips */
+.vdc-studio-preview { display: grid; gap: 10px; }
+.vdc-studio-preview img { width: 100%; max-height: 280px; object-fit: cover; border-radius: 12px; border: 1px solid #e0d9c8; background: #ece7d9; }
+.vdc-chip {
+  min-height: 44px; padding: 8px 14px; border-radius: 999px; border: 1px solid #d8d1bf;
+  background: #fbf8f1; color: #3f4a40; font-size: 0.74rem; font-weight: 600; cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+.vdc-chip:hover { background: #f1ece0; }
+.vdc-chip.is-active { background: #14251d; border-color: #14251d; color: #f7f2e7; }
+.vdc-chip:focus-visible { outline: 2px solid #b08d4f; outline-offset: 2px; }
+@media (max-width: 640px) {
+  .vdc-chip { flex: 1 1 auto; }
+}
+
+/* Gallery list: hide toggle + hidden-still-saved state */
+.vdc-check { display: inline-flex; align-items: center; gap: 7px; min-height: 44px; font-size: 0.76rem; font-weight: 600; color: #3f4a40; cursor: pointer; }
+.vdc-check input { width: 18px; height: 18px; accent-color: #14251d; }
+.vdc-repeat.is-hidden { opacity: 0.62; border-style: dashed; }

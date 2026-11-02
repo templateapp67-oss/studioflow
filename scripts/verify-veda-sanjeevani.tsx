@@ -32,6 +32,7 @@ import {
   VEDA_DISCLAIMER,
   VEDA_FAQS,
   VEDA_FONT_PAIRS,
+  VEDA_GALLERY,
   VEDA_IMAGE_PROMPTS,
   VEDA_IMAGE_SLOTS,
   VEDA_IMAGE_TOOLS,
@@ -70,17 +71,22 @@ import {
   vedaConfigFor,
   vedaConfigPatch,
   vedaCustomizerAccess,
+  vedaApplyImageTarget,
   vedaHistory,
+  vedaImageTargets,
   vedaLaunchProgress,
   vedaLaunchSteps,
   vedaPresetFor,
   vedaPushHistory,
   vedaRedo,
   vedaResetSection,
+  vedaSectionHasEdits,
   vedaUndo,
   validateVedaConfig,
 } from '../src/lib/vedaSanjeevaniCustomizer';
 import { VEDA_AI_MODE_IDS, buildVedaAiPrompt, buildVedaFallbackContent, sanitizeVedaAiContent } from '../src/lib/vedaSanjeevaniAi';
+import { VedaImageStudio } from '../src/components/veda-sanjeevani/VedaImageStudio';
+import { requestVedaAiImage } from '../src/lib/vedaSanjeevaniCustomizer';
 import { VEDA_OUTPUT_BUDGET_BYTES, vedaCropRect, vedaReadableBytes, vedaUploadProblem } from '../src/lib/vedaImageOptimizer';
 
 /* react-test-renderer needs this to allow act() outside a test runner. */
@@ -712,6 +718,15 @@ assert.ok(hostNodes(customizer, (type, props) => props.className === 'vdc-progre
 
 act(() => buttonByText(customizer, 'Photos').props.onClick());
 assert.ok(hostNodes(customizer, (type, props) => type === 'input' && props.type === 'file').length >= 3, 'photo upload controls exist per slot');
+// Gallery photos: reorder + hide, and package/offer photos live in the same tab.
+const galleryMoves = hostNodes(customizer, (type, props) => type === 'button' && String(props['aria-label'] || '').endsWith(' down'));
+assert.ok(galleryMoves.length >= 10, 'every gallery photo can be reordered');
+const galleryHides = hostNodes(customizer, (type, props) => type === 'input' && props.type === 'checkbox');
+assert.ok(galleryHides.length >= 10, 'every gallery photo can be hidden without deleting it');
+const imageFields = hostNodes(customizer, (type, props) => String(props.className || '').startsWith('vdc-imagefield'));
+assert.ok(imageFields.length >= 12, `hero, story, packages, offers, therapists and gallery photos all have uploaders (${imageFields.length})`);
+const firstName = hostNodes(customizer, (type, props) => type === 'input' && props.type === 'text' && typeof props.value === 'string' && props.value.length > 3)[0];
+assert.ok(firstName, 'gallery captions and alt text are editable');
 act(() => buttonByText(customizer, 'Design').props.onClick());
 assert.ok(hostNodes(customizer, (type, props) => String(props.className || '').startsWith('vdc-theme')).length >= VEDA_THEMES.length, 'every curated theme is offered');
 assert.ok(hostNodes(customizer, (type, props) => String(props.className || '').includes('vdc-focal')).length === 0, 'focal pickers only appear where they belong');
@@ -789,7 +804,13 @@ assert.ok(customizerSource.includes('Regenerate this section'), 'per-section reg
 assert.ok(customizerSource.includes('Generate SEO content'), 'SEO content has its own button');
 const motionSource = readFileSync('src/components/veda-sanjeevani/VedaSanjeevaniWebsite.tsx', 'utf8');
 assert.ok(motionSource.includes('useReducedMotion') && motionSource.includes('MotionConfig'), 'motion respects reduced-motion preferences');
-assert.ok(readFileSync('src/components/veda-sanjeevani/vedaCustomizer.css', 'utf8').includes('.vdc-shell'), 'the customizer styles are committed');
+const customizerCss = readFileSync('src/components/veda-sanjeevani/vedaCustomizer.css', 'utf8');
+assert.ok(customizerCss.includes('.vdc-shell'), 'the customizer styles are committed');
+assert.ok(/\.vdc-btn \{[^}]*min-height: 44px/.test(customizerCss), 'customizer buttons meet the 44 px touch target');
+assert.ok(/\.vdc-chip \{[^}]*min-height: 44px/.test(customizerCss), 'prompt category chips meet the 44 px touch target');
+const siteCssSource = readFileSync('src/components/vedaSanjeevani.css', 'utf8');
+assert.ok(/\.vd-textlink \{[^}]*min-height: 44px/.test(siteCssSource), 'inline text links meet the 44 px touch target');
+assert.ok(/\.vd-account__link \{[^}]*min-height: 44px/.test(siteCssSource), 'header account links meet the 44 px touch target');
 assert.ok(readFileSync('src/components/vedaSanjeevani.css').length > 4000, 'the website design system is committed');
 const docs = readFileSync('TEMPLATE-14.md', 'utf8');
 assert.ok(docs.includes('Veda Sanjeevani') && docs.includes('/?template=14'), 'Template 14 is documented');
@@ -797,6 +818,208 @@ assert.ok(docs.includes('GEMINI_API_KEY') && docs.includes('/api/veda-website-co
 assert.ok(docs.includes('prefers-reduced-motion') && docs.includes('16:9'), 'motion and image presets are documented');
 assert.ok(readFileSync('scripts/build-template14-assets.mjs', 'utf8').includes('/templates/14'), 'the asset script targets the template folder');
 ok('wiring, security boundary, docs and styling');
+
+/* ================================================================== *
+ * 12. Dedicated image asset system (every section + every therapy)
+ * ================================================================== */
+{
+  const REQUIRED_SLOTS = [
+    'hero', 'sanctuary', 'abhyanga', 'shirodhara', 'consultation', 'potli', 'kizhi', 'udvartana', 'pizhichil',
+    'head-massage', 'reflexology', 'steam', 'couple-suite', 'ritual', 'therapist-ananya', 'treatment-room',
+    'herbs', 'gallery', 'promo-banner', 'gift-voucher', 'ingredients',
+  ];
+  for (const slot of REQUIRED_SLOTS) {
+    if (slot === 'gallery') continue; // gallery tiles reuse real room photography
+    assert.ok(VEDA_IMAGE_SLOTS[slot], `image slot "${slot}" is registered`);
+    for (const width of VEDA_IMAGE_SLOTS[slot].widths) {
+      const file = `public/templates/14/${slot}-${width}.webp`;
+      assert.ok(existsSync(file), `missing ${file}`);
+      assert.ok(readFileSync(file).length > 4 * 1024, `${file} is a real photograph, not a placeholder`);
+    }
+    assert.match(VEDA_IMAGE_SLOTS[slot].ratio, /^\d+\/\d+$/, `${slot} declares an aspect ratio`);
+    assert.ok(VEDA_IMAGE_SLOTS[slot].alt.length > 12, `${slot} ships real alt text`);
+  }
+
+  // Every therapy has its own photograph: no two rituals share an image unless
+  // they are the same treatment delivered under a second name.
+  const images = services.map((service) => service.imageUrl);
+  assert.ok(images.every((url) => typeof url === 'string' && /^\/templates\/14\/[\w-]+-\d+\.webp$/.test(url!)), 'every therapy card uses a bundled photograph');
+  const unique = new Set(images);
+  assert.ok(unique.size >= 15, `therapies use ${unique.size} distinct photographs`);
+
+  // Gallery, packages and offers all use the dedicated art.
+  const galleryUrls = VEDA_GALLERY.map((image) => image.url);
+  assert.ok(galleryUrls.length >= 12, 'the gallery has enough photographs for a full grid');
+  for (const slot of ['couple-suite', 'treatment-room', 'kizhi', 'consultation']) {
+    assert.ok(galleryUrls.includes(vedaImage(slot)), `the gallery shows the ${slot} photograph`);
+  }
+  assert.ok(VEDA_PACKAGES.every((item) => item.imageUrl.startsWith('/templates/14/')), 'packages use their own photography');
+  assert.equal(new Set(VEDA_PACKAGES.map((item) => item.imageUrl)).size, VEDA_PACKAGES.length, 'each package has a distinct photograph');
+  assert.ok(VEDA_OFFERS.some((offer) => offer.voucher && offer.imageUrl === vedaImage('gift-voucher')), 'the gift voucher offer shows the voucher photograph');
+  assert.ok(VEDA_OFFERS.some((offer) => offer.imageUrl === vedaImage('promo-banner')), 'the promotional offer shows the banner photograph');
+
+  // Prompt library covers every brief category with the right ratio.
+  const REQUIRED_PROMPTS = ['hero', 'abhyanga', 'shirodhara', 'panchakarma', 'potli', 'kizhi', 'udvartana', 'pizhichil',
+    'head', 'reflexology', 'steam', 'couple', 'package', 'therapist', 'interior', 'treatment-room', 'oils', 'gallery',
+    'banner', 'gift-card', 'testimonial', 'about'];
+  const promptIds = VEDA_IMAGE_PROMPTS.map((prompt) => prompt.id);
+  for (const id of REQUIRED_PROMPTS) assert.ok(promptIds.includes(id), `the image studio has a "${id}" prompt`);
+  assert.equal(new Set(promptIds).size, promptIds.length, 'prompt ids are unique');
+  for (const prompt of VEDA_IMAGE_PROMPTS) {
+    assert.match(prompt.ratio, /^\d+:\d+$/, `${prompt.id} declares a ratio`);
+    assert.ok(prompt.prompt.length > 150, `${prompt.id} prompt is detailed enough to reuse`);
+    assert.match(prompt.prompt, /no text, no watermark/i, `${prompt.id} forbids text and watermarks`);
+    assert.ok(!/\b(cure|heal)s?\b/i.test(prompt.label), `${prompt.id} makes no medical claim`);
+  }
+
+  // Studio → website placement maths.
+  const base = defaultVedaConfig();
+  const targets = vedaImageTargets(base, services);
+  const kinds = new Set(targets.map((target) => target.id.split(':')[0]));
+  for (const kind of ['hero', 'philosophy', 'package', 'offer', 'gallery', 'service']) assert.ok(kinds.has(kind), `the studio can place a "${kind}" image`);
+  assert.equal(targets.filter((target) => target.id.startsWith('service:')).length, services.length, 'every therapy is a placement target');
+  assert.ok(targets.every((target) => VEDA_IMAGE_SLOTS[target.slot]), 'every target has a bundled fallback slot');
+
+  const placedUrl = 'https://cdn.example/veda/new-photo.webp';
+  const heroPlaced = vedaApplyImageTarget(base, services, 'hero', placedUrl);
+  assert.equal(heroPlaced.config.hero.image, placedUrl, 'hero image lands in the hero config');
+  const philosophyPlaced = vedaApplyImageTarget(base, services, 'philosophy', placedUrl);
+  assert.equal(philosophyPlaced.config.philosophy.image, placedUrl);
+  const packagePlaced = vedaApplyImageTarget(base, services, `package:${base.packages.items[0].id}`, placedUrl);
+  assert.equal(packagePlaced.config.packages.items[0].imageUrl, placedUrl);
+  const offerPlaced = vedaApplyImageTarget(base, services, `offer:${base.offers.items[0].id}`, placedUrl);
+  assert.equal(offerPlaced.config.offers.items[0].imageUrl, placedUrl);
+  const galleryPlaced = vedaApplyImageTarget(base, services, `gallery:${base.gallery.images[0].id}`, placedUrl);
+  assert.equal(galleryPlaced.config.gallery.images[0].url, placedUrl);
+  const servicePlaced = vedaApplyImageTarget(base, services, `service:${services[0].id}`, placedUrl);
+  assert.equal(servicePlaced.services[0].imageUrl, placedUrl);
+  assert.equal(services[0].imageUrl.startsWith('/templates/14/'), true, 'applying an image never mutates the original list');
+  assert.equal(base.hero.image, defaultVedaConfig().hero.image, 'applying an image never mutates the original config');
+
+  // The studio uses the existing server endpoint and the shared optimiser.
+  const studioSource = readFileSync('src/components/veda-sanjeevani/VedaImageStudio.tsx', 'utf8');
+  assert.ok(studioSource.includes('requestVedaAiImage'), 'the studio generates through the server, not the browser');
+  assert.ok(studioSource.includes('optimizeVedaImage') && studioSource.includes('uploadVedaImage'), 'studio images run through the shared optimiser and storage');
+  assert.ok(studioSource.includes('https://chatgpt.com/'), 'the studio links to ChatGPT image generation');
+  assert.ok(studioSource.includes('Copy prompt'), 'every prompt can be copied');
+  assert.ok(studioSource.includes('Upload mine'), 'owners can upload their own photo from the studio');
+  const endpointSource = readFileSync('src/lib/vedaSanjeevaniCustomizer.ts', 'utf8');
+  assert.ok(endpointSource.includes("'/api/generate-promo-image'"), 'the studio reuses the existing image endpoint');
+  assert.ok(!/GEMINI_API_KEY/.test(studioSource), 'no API key ever reaches the browser');
+  const sectionsSource = readFileSync('src/components/veda-sanjeevani/VedaSections.tsx', 'utf8');
+  assert.ok(!/<img src=\{image\.url\}/.test(sectionsSource), 'gallery tiles render through the shared image component');
+  assert.ok(sectionsSource.includes('slot="gallery"'), 'gallery uses the reusable image asset');
+  ok('dedicated image asset system for every section and therapy');
+}
+
+/* ================================================================== *
+ * 13. AI Image Studio: generation, placement and honest failures
+ * ================================================================== */
+{
+  const realFetch = (globalThis as any).fetch;
+  let lastRequest: any = null;
+  (globalThis as any).fetch = async (url: string, init: any) => {
+    lastRequest = { url, body: JSON.parse(init?.body || '{}') };
+    if (lastRequest.body.prompt === 'force-failure') {
+      return { ok: true, json: async () => ({ success: false, fallbackNotice: 'No GEMINI_API_KEY configured.' }) };
+    }
+    return {
+      ok: true,
+      json: async () => ({ success: true, imageUrl: 'data:image/png;base64,AQID', promptUsed: lastRequest.body.prompt }),
+    };
+  };
+
+  const good = await requestVedaAiImage('a warm Ayurvedic treatment room', '4:3');
+  assert.equal(good.ok, true, 'a generated image is accepted');
+  if (good.ok) assert.ok(good.dataUrl.startsWith('data:image/png;base64,'), 'the image arrives as data, not a fake URL');
+  assert.equal(lastRequest.url, '/api/generate-promo-image', 'generation uses the existing server endpoint');
+  assert.equal(lastRequest.body.aspectRatio, '4:3', 'the requested ratio reaches the server');
+
+  const honest = await requestVedaAiImage('force-failure');
+  assert.equal(honest.ok, false, 'a missing key is reported as a failure');
+  if (!honest.ok) assert.match(honest.reason, /GEMINI_API_KEY|not configured/i, 'the reason is the real server notice');
+
+  (globalThis as any).fetch = async () => {
+    throw new Error('offline');
+  };
+  const offline = await requestVedaAiImage('anything');
+  assert.equal(offline.ok, false, 'a network failure never fabricates an image');
+  (globalThis as any).fetch = realFetch;
+
+  // The studio mounts, lists every prompt, and exposes generation + upload.
+  let studio: any;
+  const placed: Array<{ url: string; target: string }> = [];
+  const studioTargets = vedaImageTargets(defaultVedaConfig(), services);
+  await act(async () => {
+    studio = create(
+      <VedaImageStudio
+        onUsePhoto={() => {}}
+        targets={studioTargets}
+        onApplyImage={(url, target) => placed.push({ url, target })}
+      />,
+    );
+  });
+  assert.ok(hostNodes(studio, (type, props) => props['aria-label'] === 'Image destination').length === 1, 'the studio asks where the photo should go');
+  const destination = hostNodes(studio, (type, props) => props['aria-label'] === 'Image destination')[0];
+  const groupsShown = React.Children.toArray(destination.props.children);
+  assert.ok(groupsShown.length >= 5, `every image group is offered as a destination (${groupsShown.length})`);
+  const promptCards = hostNodes(studio, (type, props) => String(props.className || '') === 'vdc-prompt');
+  assert.equal(promptCards.length, VEDA_IMAGE_PROMPTS.length, `every prompt is listed (${promptCards.length}/${VEDA_IMAGE_PROMPTS.length})`);
+  assert.ok(hostNodes(studio, (type, props) => String(props.className || '').includes('vdc-chip')).length >= 5, 'prompts can be filtered by category');
+  const generateButtons = hostNodes(studio, (type, props) => (type === 'button' || type === 'a') && props.className === 'vdc-btn vdc-btn--primary');
+  assert.ok(generateButtons.length >= VEDA_IMAGE_PROMPTS.length, 'each prompt has a Generate with AI action');
+  assert.ok(hostNodes(studio, (type, props) => type === 'input' && props.type === 'file').length >= 1, 'owners can upload their own photo');
+  await act(async () => studio.unmount());
+
+  // Applying a target writes through every kind of image field.
+  const config = defaultVedaConfig();
+  const targets = vedaImageTargets(config, services);
+  for (const target of targets.slice(0, 8)) {
+    const applied = vedaApplyImageTarget(config, services, target.id, 'https://cdn.example/x.webp');
+    const json = JSON.stringify(applied.config) + JSON.stringify(applied.services);
+    assert.ok(json.includes('https://cdn.example/x.webp'), `${target.id} accepts a new image`);
+  }
+  assert.ok(targets.length >= 30, 'the studio exposes every image on the site');
+  ok('AI image studio generation, placement and honest failure states');
+}
+
+/* ================================================================== *
+ * 14. AI content for gallery captions and image prompts
+ * ================================================================== */
+{
+  // Prompt drafts are built from the owner's own menu, so the studio always has
+  // something specific even without an AI key.
+  const details = vedaAiDetails(profile(), services);
+  const drafts = buildVedaFallbackContent('imagePrompts', details);
+  assert.ok(Array.isArray(drafts.imagePrompts) && drafts.imagePrompts.length >= 10, 'prompt drafts cover every section and therapy');
+  assert.ok(drafts.imagePrompts!.every((item) => item.prompt && item.prompt.length > 120), 'each drafted prompt is detailed');
+  assert.ok(drafts.imagePrompts!.some((item) => (item.prompt || '').includes('no text')), 'drafted prompts forbid text overlays');
+  assert.ok(drafts.imagePrompts!.some((item) => item.label === services[0].name), 'the owner’s own therapy names appear in the prompts');
+  assert.ok(VEDA_AI_MODES.some((mode) => mode.id === 'imagePrompts'), 'the dashboard offers prompt generation');
+
+  // Gallery captions written by AI land on the right photo.
+  const withCaptions = applyVedaAiContent(
+    defaults,
+    services,
+    stylists,
+    { gallery: { items: [{ title: 'AI title one', caption: 'AI caption one' }, { caption: 'AI caption two' }] } },
+    'gallery',
+  );
+  assert.equal(withCaptions.config.gallery.images[0].title, 'AI title one');
+  assert.equal(withCaptions.config.gallery.images[0].caption, 'AI caption one');
+  assert.equal(withCaptions.config.gallery.images[1].caption, 'AI caption two');
+  assert.equal(withCaptions.config.gallery.images[1].title, defaults.gallery.images[1].title, 'a missing title keeps the existing one');
+  assert.equal(withCaptions.config.gallery.images[2].caption, defaults.gallery.images[2].caption, 'untouched photos stay untouched');
+
+  // Regeneration asks first when the owner has written something themselves.
+  assert.equal(vedaSectionHasEdits(defaults, 'hero'), false, 'a fresh site has no edits to protect');
+  const editedHero = { ...defaults, hero: { ...defaults.hero, headline: 'My own headline' } };
+  assert.equal(vedaSectionHasEdits(editedHero, 'hero'), true, 'an edited section is detected before regeneration');
+  assert.equal(vedaSectionHasEdits(editedHero, 'faq'), false, 'other sections are unaffected');
+  const customizerSource = readFileSync('src/components/veda-sanjeevani/VedaCustomizer.tsx', 'utf8');
+  assert.ok(customizerSource.includes('Keep my text') && customizerSource.includes('Replace with new AI text'), 'the owner confirms before AI text replaces theirs');
+  ok('AI gallery captions, prompt drafts and protected regeneration');
+}
 
 console.log(passed.join('\n'));
 console.log(`\nTemplate 14 verification passed (${passed.length} groups).`);

@@ -51,6 +51,17 @@ palettes with readable contrast, section visibility + order, therapy CRUD with
 ₹ prices and durations, image upload per slot with focal-point cropping, and a
 one-click "Generate my website content" plus per-section regeneration.
 
+The nine tabs cover the twelve requested areas: Business details and Contact &
+social live in **Business**; logo, colours, fonts, hero and layout in **Design**;
+About, offers, packages, FAQs and reviews in **Content & AI**; therapists in
+**Photos**; gallery order, visibility, category and alt text in **Photos**;
+booking rules in **Booking**; SEO in **SEO**; preview and publish in **Launch**
+and the persistent preview column.
+
+Regeneration is guarded: if a section already differs from the template default,
+pressing an AI button opens a "Keep your writing?" confirmation and nothing is
+replaced until the owner chooses **Replace with new AI text**.
+
 ## AI content
 
 `POST /api/veda-website-content` (`server.ts`) accepts `{ mode, details }` and
@@ -68,15 +79,59 @@ returns `{ source, mode, content, notice }`.
 
 `npm run assets:template14` (`scripts/build-template14-assets.mjs`) builds
 `public/templates/14/` from `design/templates/14-sources/` plus reused source
-photography: 43 committed files, ~2.7 MB total, WebP at several widths with
+photography: 72 committed files, WebP at several widths with
 `fit: 'cover', withoutEnlargement: true` (crops, never stretches), an
 `og-image.jpg` and `manifest.json` with intrinsic dimensions for every slot.
+
+### The 26 image slots
+
+| Group | Slots |
+| --- | --- |
+| Hero & story | `hero` (16:9), `sanctuary` (16:9), `sanctuary-alt` (3:2), `ayurveda-wide` (16:9) |
+| Therapies | `abhyanga`, `shirodhara`, `consultation`, `potli`, `kizhi`, `udvartana`, `pizhichil`, `head-massage`, `reflexology`, `steam` (all 4:3) |
+| Luxury spa | `couple-suite`, `treatment-room` (4:3), `ritual`, `ritual-hero` (4:5), `oil-ritual`, `ingredients`, `herbs` |
+| People | `therapist-ananya`, `therapist-meera`, `therapist-rahul` (3:4) |
+| Offers & promos | `gift-voucher` (4:3), `promo-banner` (16:9) |
+
+Every ritual in the 20-item catalogue points at its own photograph, each package
+uses a different one, and the gallery shows the rooms, the couple suite, the
+kizhi bench and the consultation room.
+
+`VedaImage` (`VedaParts.tsx`) is the one reusable image asset used by the whole
+site: real `srcset` for bundled slots, intrinsic `width`/`height` (no layout
+shift), `loading="lazy"`/`decoding="async"` everywhere except the hero,
+`priority` + `fetchPriority="high"` for above-the-fold art, a soft fade instead
+of a pop-in, an `object-position` focal point for owner photos, and a fallback
+to the bundled photo if an owner URL breaks.
 
 Owner uploads run in the browser: validate (≤12 MB, JPG/PNG/WebP/AVIF), decode,
 crop to the preset ratio around the chosen focal point, resize to the preset
 width, compress under ~420 KB, then upload through the existing
 `uploadSalonImage` storage helper. Presets: Hero 16:9 · Service 4:3 ·
 Therapist 3:4 · Gallery 4:3 · Promo 16:9 · Testimonial 1:1 · Logo 1:1.
+
+## AI Image Studio
+
+`VedaImageStudio.tsx` is a real image editor, not a prompt gallery:
+
+- **Destination picker** — every image on the site (~40 entries: hero, story,
+  packages, offers, all gallery tiles, all 20 therapies) is listed; whatever is
+  accepted is written straight into `VedaConfig` / the service catalogue.
+- **Generate with AI** — calls the existing `/api/generate-promo-image` endpoint
+  (server-side Gemini key), previews the result, then runs it through the same
+  optimiser and storage upload before placing it. A missing key is reported as a
+  plain sentence, never as a fake image.
+- **Upload mine** — the owner's own photo for the selected slot.
+- **Prompt library** — 24 brand-specific 4K cinematic prompts covering hero,
+  about, every therapy, interiors, treatment rooms, therapists, packages,
+  ingredients, gallery, promos, gift cards and testimonials, filterable by
+  category. Each one can be copied, generated, or opened in ChatGPT
+  (`https://chatgpt.com/`), with free vs paid tools labelled honestly.
+- **Prompts for my therapies** — asks the AI (`mode: imagePrompts`) for prompts
+  written from this owner's business name, city and menu; copy one, copy all, or
+  generate from it.
+- Uploads block **Save** while they run, so a half-finished image can never be
+  published.
 
 ## Accessibility & motion
 
@@ -137,9 +192,17 @@ panels deliberately stay still. Entrances use `glassIn` (26 px / 0.97 → 1, 0.7
 node scripts/verify-veda-sanjeevani.mjs   # or: npm test
 ```
 
-Covers the registry/aliases, catalogue and honest-copy rules, every bundled image
-width, config clamping, the AI contract and per-section application, undo/redo and
-drafts, launch progress, validation, owner access, image presets and focal crop
-maths, server-rendered markup (including hidden sections), mounted website and
-customizer interactions, the glassmorphism/hover/entrance rules (group 8b), and
-the wiring/security boundary.
+Fourteen groups cover the registry/aliases, catalogue and honest-copy rules, every
+bundled image width, config clamping, the AI contract and per-section
+application, undo/redo and drafts, launch progress, validation, owner access,
+image presets and focal crop maths, server-rendered markup (including hidden
+sections), mounted website and customizer interactions, the
+glassmorphism/hover/entrance rules (group 8b), the dedicated image asset system
+(one photograph per ritual, prompt coverage, studio placement maths), the AI
+Image Studio's generation/placement/honest-failure behaviour, AI gallery captions
+and protected regeneration, and the wiring/security boundary.
+
+All 94 harnesses in `scripts/verify-*.mjs` are run for every template; the only
+expected exceptions are `verify-supabase` (needs a live Supabase project) and
+`verify-render-resilience` (prints PASS then keeps its timers alive — run it under
+`timeout`).
