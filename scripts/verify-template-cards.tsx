@@ -34,8 +34,28 @@ const last=Object.values(CATEGORY_TEMPLATES).at(-1)!;
 await act(async()=>page.root.findByProps({'aria-label':'Preview template'}).props.onChange({target:{value:last.id}}));
 assert.equal(page.root.findByType(TemplatePreviewModal).props.templateId,last.id);
 const modes=page.root.findAll(node=>node.type==='button'&&node.props['aria-pressed']!==undefined);
+assert.equal(modes.length,3,'exactly three device toggles: desktop, tablet and mobile');
+await act(async()=>modes[2].props.onClick());
+assert.equal(page.root.findByType('iframe').props.style.width,390,'mobile preview renders a true phone viewport');
+await act(async()=>modes[1].props.onClick());
+assert.equal(page.root.findByType('iframe').props.style.width,834,'tablet preview renders a true tablet viewport');
+await act(async()=>modes[0].props.onClick());
+assert.equal(page.root.findByType('iframe').props.style.width,1280,'desktop preview renders a realistic desktop viewport');
 await act(async()=>modes[2].props.onClick());
 assert.equal(page.root.findByType('iframe').props.style.width,390);
+{
+ /* The preview iframe must keep its stylesheets in sync with the host —
+  * template CSS is code-split and arrives after the iframe loads, so a
+  * one-time copy renders the website as unstyled text. */
+ const {readFileSync}=await import('node:fs');
+ const cardsSource=readFileSync('src/components/TemplatePreviewCards.tsx','utf8');
+ assert.ok(cardsSource.includes('syncPreviewStyles'),'the preview modal mirrors host stylesheets live into the iframe');
+ assert.ok(!/querySelectorAll\('link\[rel="stylesheet"\], style'\)/.test(cardsSource),'the one-time stylesheet copy (which missed lazy template CSS) is gone');
+ assert.ok(readFileSync('src/components/WebsiteDeviceFrame.tsx','utf8').includes('syncPreviewStyles'),'the owner device preview frame uses the same live style sync');
+ const syncSource=readFileSync('src/lib/previewStyleSync.ts','utf8');
+ assert.ok(syncSource.includes('MutationObserver'),'late-loaded template CSS is observed and mirrored');
+ assert.ok(syncSource.includes("typeof document === 'undefined'"),'the style sync is a safe no-op without a DOM');
+}
 await act(async()=>page.root.findByType(TemplatePreviewModal).props.onChoose());
 assert.deepEqual(chosen,[last.id]);
 assert.equal(page.root.findAllByType(TemplatePreviewModal).length,0);

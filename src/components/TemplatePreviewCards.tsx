@@ -1,4 +1,5 @@
 import React, { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { Monitor, Smartphone, Tablet, X } from 'lucide-react';
 import { AppErrorBoundary } from './AppErrorBoundary';
 import { loadScreen } from '../lib/loadScreen';
 import { createPortal } from 'react-dom';
@@ -9,6 +10,7 @@ import { ACCENT_PALETTES, DEFAULT_CATEGORY_ACCENTS, getContrastTextColor } from 
 import { isArchFlutterTemplate, type ArchFlutterCustomizerConfig, type CustomizerWorkspace } from '../lib/archFlutterCustomizer';
 import { isVedaTemplate } from '../lib/vedaSanjeevaniCustomizer';
 import { DEFAULT_EXTRAS } from '../lib/workspaceDefaults';
+import { syncPreviewStyles } from '../lib/previewStyleSync';
 
 const LiveWebsite = lazy(() => loadScreen(() => import('./SalonWebsitePreview').then(m => ({ default: m.SalonWebsitePreview }))));
 /** Template 13 only: the dedicated customizer drawer, loaded on demand. */
@@ -49,9 +51,25 @@ export function TemplateThumbnail({ template: t }: { template: CategoryTemplateC
 
 export type TemplateChooseWorkspace = { profile: SalonProfile; services: SalonService[]; stylists: Stylist[] };
 
+type PreviewDevice = 'desktop' | 'tablet' | 'mobile';
+
+/**
+ * Real viewport widths per device so the website's own responsive breakpoints
+ * genuinely engage — mobile renders the template's mobile layout at a phone
+ * width instead of a shrunken desktop page.
+ */
+const PREVIEW_DEVICES: Array<{ id: PreviewDevice; label: string; width: number; Icon: typeof Monitor }> = [
+  { id: 'desktop', label: 'Desktop', width: 1280, Icon: Monitor },
+  { id: 'tablet', label: 'Tablet', width: 834, Icon: Tablet },
+  { id: 'mobile', label: 'Mobile', width: 390, Icon: Smartphone },
+];
+
+/** srcdoc shell: a real viewport meta so media queries behave like a device. */
+const PREVIEW_FRAME_HTML = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body style="margin:0"><div id="template-root"></div></body></html>';
+
 export function TemplatePreviewModal({templateId, onSelectPreview, onClose, onChoose}: {templateId:BusinessTypeId; onSelectPreview:(id:BusinessTypeId)=>void; onClose:()=>void; onChoose:(config?:ArchFlutterCustomizerConfig, workspace?:TemplateChooseWorkspace)=>void}) {
   const dialog = useRef<HTMLDialogElement>(null);
-  const [device, setDevice] = useState<'desktop'|'tablet'|'mobile'>('desktop');
+  const [device, setDevice] = useState<PreviewDevice>('desktop');
   const [frameDocument, setFrameDocument] = useState<Document | null>(null);
   const t = CATEGORY_TEMPLATES[templateId];
   /** Templates 13 (Arch & Flutter) and 14 (Veda Sanjeevani) ship their own customizer. */
@@ -76,34 +94,72 @@ export function TemplatePreviewModal({templateId, onSelectPreview, onClose, onCh
     frameDocument.addEventListener('keydown', escape);
     return () => frameDocument.removeEventListener('keydown', escape);
   }, [frameDocument, onClose]);
+  /* Live stylesheet mirroring into the iframe. Template websites are
+   * code-split, so their CSS reaches the host <head> only after the lazy
+   * chunk loads — a one-time copy at iframe load misses it and the template
+   * renders as unstyled text. The sync keeps the frame's styles current. */
+  const stopStyleSync = useRef<(() => void) | null>(null);
+  useEffect(() => () => { stopStyleSync.current?.(); stopStyleSync.current = null; }, []);
+  /* Fit-to-stage scaling: the preview keeps its true device viewport width
+   * and is scaled down visually when the stage is narrower, so there is
+   * never a nested horizontal scrollbar and the frame is never clipped. */
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(entries => {
+      const rect = entries[0]?.contentRect;
+      if (rect) setStageSize({ width: rect.width, height: rect.height });
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  const frame = PREVIEW_DEVICES.find(preset => preset.id === device) ?? PREVIEW_DEVICES[0];
+  const scale = stageSize.width > 0 ? Math.min(1, stageSize.width / frame.width) : 1;
+  const frameHeight = stageSize.height > 0 ? Math.round(stageSize.height / scale) : undefined;
   const baseExtras = {...DEFAULT_EXTRAS, gallery: [] as string[]};
   const profile:SalonProfile = {...INITIAL_SALON_PROFILE, businessType:t.id, businessName:t.title, tagline:t.tagline, about:t.about, ownerName:t.ownerName, ownerRole:t.ownerRole, ownerPhotoUrl:t.ownerPhotoUrl, phone:t.phone, whatsapp:t.whatsapp, coverImageUrl:t.coverImageUrl, themePreset:t.themePreset, themeAccentKey:DEFAULT_CATEGORY_ACCENTS[t.id], city:t.defaultCity, address:t.defaultAddress, postalCode:t.defaultPostalCode, instagramHandle:t.instagramHandle, subdomain:'', requireDeposit:false};
   const previewProfile: SalonProfile = vedaWorkspace ? vedaWorkspace.profile : customized ? customized.workspace.profile : profile;
   const previewServices: SalonService[] = vedaWorkspace ? vedaWorkspace.services : customized ? customized.workspace.services : (t.services as SalonService[]);
   const previewStylists: Stylist[] = vedaWorkspace ? vedaWorkspace.stylists : customized ? customized.workspace.stylists : (t.stylists as Stylist[]);
-  return <dialog ref={dialog} aria-labelledby="template-preview-title" onCancel={event => {event.preventDefault(); onClose();}} className="m-auto w-[calc(100%-16px)] max-w-[1440px] h-[92dvh] max-h-[92dvh] p-0 rounded-2xl border border-slate-200 shadow-2xl backdrop:bg-slate-950/70">
+  return <dialog ref={dialog} aria-labelledby="template-preview-title" onCancel={event => {event.preventDefault(); onClose();}} className="m-auto w-[95vw] max-w-[1520px] h-[92dvh] max-h-[92dvh] p-0 rounded-2xl border border-slate-200 shadow-2xl overflow-hidden backdrop:bg-slate-950/70">
     <div className="h-full flex flex-col bg-slate-100 text-slate-900">
-      <header className="bg-white border-b border-slate-200 p-3 sm:p-4 flex flex-wrap items-center gap-3">
-        <div className="flex-1 min-w-0"><h2 id="template-preview-title" className="font-bold text-sm sm:text-lg truncate">{t.title}</h2><p className="text-xs text-slate-500">Live template demo · {t.paletteLabel}</p></div>
-        <button type="button" autoFocus onClick={onClose} aria-label="Close template preview" className="rounded-lg border px-3 py-2 hover:bg-slate-100">✕</button>
-        <div className="w-full flex flex-wrap items-center gap-2">
-          <select aria-label="Preview template" value={templateId} onChange={event => onSelectPreview(event.target.value as BusinessTypeId)} className="border rounded-lg p-2 text-xs max-w-full sm:max-w-64">{Object.values(CATEGORY_TEMPLATES).map(template => <option key={template.id} value={template.id}>{template.shortName}</option>)}</select>
-          <div className="flex border rounded-lg overflow-hidden">{(['desktop','tablet','mobile'] as const).map(mode => <button key={mode} type="button" aria-pressed={device===mode} onClick={() => setDevice(mode)} className={`capitalize text-xs px-2 sm:px-3 py-2 ${device===mode ? 'bg-slate-900 text-white' : 'hover:bg-slate-100'}`}>{mode}</button>)}</div>
-          {hasCustomizer
-            ? <button type="button" onClick={() => setCustomizerOpen(true)} className="sm:ml-auto rounded-lg border border-[#C9A66B] bg-[#2B1B17] text-[#FBF6F1] font-bold text-xs px-4 py-2.5">Customize this template</button>
-            : <button type="button" onClick={() => onChoose()} className="sm:ml-auto rounded-lg bg-slate-900 text-white font-bold text-xs px-4 py-2.5">Customize this template</button>}
-          {hasCustomizer && <button type="button" onClick={() => onChoose(customized?.config, vedaWorkspace ?? undefined)} className="rounded-lg bg-slate-900 text-white font-bold text-xs px-4 py-2.5">Create my website with this template</button>}
+      <header className="shrink-0 bg-white border-b border-slate-200 px-3 sm:px-5 py-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+        <div className="min-w-0 flex-1 basis-56">
+          <h2 id="template-preview-title" className="font-bold text-sm sm:text-base leading-tight truncate">{t.title}</h2>
+          <p className="text-[11px] sm:text-xs text-slate-500 truncate">{t.shortName} · Live template demo with sample content; demo bookings are not submitted{hasCustomizer && (customized || vedaWorkspace) ? ' · Your customized demo — nothing is published until you create your website' : ''}</p>
         </div>
-        <p className="text-[11px] text-slate-500">{hasCustomizer && (customized || vedaWorkspace) ? 'Your customized demo — nothing is published until you create your website. ' : ''}Sample content. Explore the pages and booking form; demo bookings are not submitted.</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <select aria-label="Preview template" value={templateId} onChange={event => onSelectPreview(event.target.value as BusinessTypeId)} className="min-h-[44px] border border-slate-300 bg-white rounded-lg px-2 text-xs max-w-36 sm:max-w-56">{Object.values(CATEGORY_TEMPLATES).map(template => <option key={template.id} value={template.id}>{template.shortName}</option>)}</select>
+          <div role="group" aria-label="Preview device" className="flex border border-slate-300 rounded-lg overflow-hidden bg-white">
+            {PREVIEW_DEVICES.map(({ id, label, Icon }) => (
+              <button key={id} type="button" aria-pressed={device===id} title={`${label} preview`} onClick={() => setDevice(id)} className={`inline-flex items-center justify-center gap-1.5 text-xs min-h-[44px] min-w-[44px] px-2.5 sm:px-3 transition-colors ${device===id ? 'bg-slate-900 text-white' : 'hover:bg-slate-100'}`}>
+                <Icon size={15} aria-hidden="true" /><span className="hidden lg:inline">{label}</span><span className="sr-only lg:hidden">{label}</span>
+              </button>
+            ))}
+          </div>
+          {hasCustomizer
+            ? <button type="button" onClick={() => setCustomizerOpen(true)} className="min-h-[44px] rounded-lg border border-[#C9A66B] bg-[#2B1B17] text-[#FBF6F1] font-bold text-xs px-4">Customize this template</button>
+            : <button type="button" onClick={() => onChoose()} className="min-h-[44px] rounded-lg border border-slate-300 bg-white font-bold text-xs px-4 hover:bg-slate-50">Customize this template</button>}
+          <button type="button" onClick={() => hasCustomizer ? onChoose(customized?.config, vedaWorkspace ?? undefined) : onChoose()} className="min-h-[44px] rounded-lg bg-slate-900 text-white font-bold text-xs px-4 hover:bg-slate-800">Create my website with this template</button>
+          <button type="button" autoFocus onClick={onClose} aria-label="Close template preview" className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white hover:bg-slate-100"><X size={16} aria-hidden="true" /></button>
+        </div>
       </header>
-      <div className="flex-1 min-h-0 overflow-auto p-2 sm:p-4">
-        <iframe title={`${t.title} live ${device} preview`} srcDoc={'<!doctype html><html><head></head><body style="margin:0"><div id="template-root"></div></body></html>'} onLoad={event => {
-          const doc = event.currentTarget.contentDocument;
-          if (!doc) return;
-          document.querySelectorAll('link[rel="stylesheet"], style').forEach(style => doc.head.appendChild(style.cloneNode(true)));
-          doc.documentElement.style.fontFamily = 'Inter, sans-serif';
-          setFrameDocument(doc);
-        }} style={{width:device==='mobile'?390:device==='tablet'?768:1280,maxWidth:device==='mobile'?'100%':undefined,height:'100%'}} className="block mx-auto bg-white border border-slate-300 rounded-xl shadow-lg"/>
+      <div className="flex-1 min-h-0 bg-slate-200/70 px-2 pb-2 pt-2 sm:px-6 sm:pb-5 sm:pt-4">
+        <div ref={stageRef} className="h-full w-full flex justify-center overflow-hidden">
+          <div style={{ width: Math.round(frame.width * scale), height: '100%' }} className="relative overflow-hidden rounded-xl bg-white shadow-xl ring-1 ring-slate-900/10 transition-[width] duration-200 motion-reduce:transition-none">
+            <iframe title={`${t.title} live ${device} preview`} srcDoc={PREVIEW_FRAME_HTML} onLoad={event => {
+              const doc = event.currentTarget.contentDocument;
+              if (!doc) return;
+              stopStyleSync.current?.();
+              stopStyleSync.current = syncPreviewStyles(doc);
+              doc.documentElement.style.fontFamily = 'Inter, sans-serif';
+              doc.documentElement.style.background = '#fff';
+              setFrameDocument(doc);
+            }} style={{width:frame.width,height:frameHeight ?? '100%',border:0,display:'block',transform:scale < 1 ? `scale(${scale})` : undefined,transformOrigin:'top left'}} className="bg-white"/>
+          </div>
+        </div>
         {frameDocument?.getElementById('template-root') && createPortal(<AppErrorBoundary resetKey={templateId} onRecover={onClose}><Suspense fallback={<p className="p-8 text-center">Loading live template…</p>}><LiveWebsite key={`${templateId}-${customized ? 'custom' : 'demo'}`} readOnly previewDocument={frameDocument} profile={previewProfile} services={previewServices} stylists={previewStylists} onAddAppointment={async () => {throw new Error('This is a template demo. Customize and publish your salon to accept bookings.');}}/></Suspense></AppErrorBoundary>,frameDocument.getElementById('template-root')!)}
       </div>
       {customizerOpen && isVeda && createPortal(

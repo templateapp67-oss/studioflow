@@ -74,6 +74,9 @@
 .vd-site p { margin: 0; }
 .vd-site a { color: inherit; text-decoration: none; }
 .vd-site img { display: block; max-width: 100%; }
+/* Soft sand placeholder behind every template photo while it decodes, so a
+ * slow or broken image never shows as a stark empty box. */
+.vd-site img[data-veda-image] { background: color-mix(in srgb, var(--vd-sand) 64%, #fff); }
 .vd-site button { font: inherit; color: inherit; }
 .vd-site ul { margin: 0; padding: 0; list-style: none; }
 

@@ -750,7 +750,7 @@ export function VedaTestimonials({ config }: VedaSectionProps) {
                 {quote.quote}
               </blockquote>
               <figcaption className="vd-quote__who">
-                <img src={quote.photoUrl} alt="" loading="lazy" />
+                <img src={quote.photoUrl} alt="" loading="lazy" decoding="async" onError={event => { event.currentTarget.style.visibility = 'hidden'; }} />
                 <div>
                   <b>{quote.name}</b>
                   <span>{quote.treatment}{quote.location ? ` · ${quote.location}` : ''}</span>
