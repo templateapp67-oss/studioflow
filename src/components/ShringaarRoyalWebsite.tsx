@@ -54,13 +54,13 @@ import {
 } from '../lib/motion';
 import { WebsiteSections } from './WebsiteSections';
 import { usePrismSite, subscribePrismNewsletter, submitPrismEnquiry } from '../lib/prismSite';
-import { CustomerAppPromotion } from './CustomerAppPromotion';
+import { AppInstallSection } from './AppInstallSection';
 import { SafeImage } from './shringaar-royal/SafeImage';
 import { DeviceMockup } from './shringaar-royal/DeviceMockup';
 import { BeforeAfterSlider } from './shringaar-royal/BeforeAfterSlider';
 import { TestimonialCarousel } from './shringaar-royal/TestimonialCarousel';
 import { PageShell, Reveal, RevealGroup, RevealItem } from './shringaar-royal/Motion';
-import { AppAnnouncementStrip } from './CustomerAppPromotion';
+import { AppAnnouncementStrip } from './AppInstallSection';
 import {
   ArchOutline,
   CornerOrnaments,
@@ -1373,7 +1373,7 @@ export function ShringaarRoyalWebsite({
             </div>
           )}
           <div className="sr-shell">
-            <CustomerAppPromotion />
+            <AppInstallSection />
           </div>
         </PageShell>
 

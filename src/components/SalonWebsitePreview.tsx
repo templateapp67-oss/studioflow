@@ -12,7 +12,7 @@ import {IronInkEditor} from './iron-ink/IronInkEditor';
 import {ArchFlutterEditor} from './arch-flutter/ArchFlutterEditor';
 import {vedaConfigFor} from '../lib/vedaSanjeevaniCustomizer';
 import {AcademyEnquiriesPanel} from './vogue-noir/AcademyEnquiriesPanel';
-import {CustomerAppPromotion} from './CustomerAppPromotion';
+import { AppInstallSection } from './AppInstallSection';
 import {CustomerSalonWebsite} from './CustomerSalonWebsite';
 import { WebsiteSections } from './WebsiteSections';
 import { websiteSections, socialUrl } from '../lib/websiteContent';
@@ -2109,7 +2109,7 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
 
         <WebsiteSections onCustomerAccount={onCustomerAccount} profile={activeProfile} services={activeServices} onBook={handleOpenBooking} onManage={onManageDashboard} setProfile={setProfile} isEditingActive={isEditMode && !readOnly} readOnly={readOnly} policies={policies} loyaltyConfig={loyaltyConfig}/>
         {branding?.poweredBy&&<p className="text-center text-xs py-4">Powered by {branding.platformName||'StudioFlow'}</p>}
-        <CustomerAppPromotion/>
+        <AppInstallSection className={isDarkCanvas ? 'app-install--dark-canvas' : ''}/>
         {/* 8. FOOTER WITH DYNAMIC SOCIAL LINKS */}
         <footer className={`py-8 px-6 md:px-12 border-t text-center ${
           isDarkCanvas ? 'bg-[#0b0b0e] border-neutral-900 text-neutral-400' : 'bg-slate-50 border-slate-200 text-slate-500'

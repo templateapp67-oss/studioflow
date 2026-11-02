@@ -36,7 +36,7 @@ import {
 } from '../lib/vogueNoir';
 import { ServicePhoto } from './ServicePhoto';
 import { WebsiteSections } from './WebsiteSections';
-import { AppAnnouncementStrip, CustomerAppPromotion } from './CustomerAppPromotion';
+import { AppAnnouncementStrip, AppInstallSection } from './AppInstallSection';
 import { SafeImage } from './vogue-noir/SafeImage';
 import { AcademySection } from './vogue-noir/AcademySection';
 import { PortfolioSection } from './vogue-noir/PortfolioSection';
@@ -1448,7 +1448,7 @@ export function VogueNoirWebsite({
           </div>
         )}
 
-        <CustomerAppPromotion />
+        <AppInstallSection />
       </main>
 
       {/* Floating WhatsApp CTA */}

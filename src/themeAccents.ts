@@ -198,13 +198,44 @@ export function getLuminance(hex: string): number {
 }
 
 /**
- * Dynamically adjusts text color between white (#ffffff) or charcoal (#1e293b)
- * based on the relative luminance of the given accent HEX color.
+ * Picks the label colour for a filled button whose background is `hex`.
+ *
+ * This previously switched on a fixed luminance threshold of 0.45, which is far
+ * too high: the crossover where white and charcoal (#1e293b) score equally is
+ * around L = 0.18. Any accent between the two — the barber template's tan
+ * #c49a6c (L = 0.36), a mid gold like #c9a96e (L = 0.42) — was handed white
+ * text at ~2.3–2.6:1 instead of charcoal at 5.7–8.8:1. Comparing the two real
+ * contrast ratios removes the magic number and stays correct for every accent
+ * an owner can pick.
  */
 export function getContrastTextColor(hex: string): '#ffffff' | '#1e293b' {
-  const lum = getLuminance(hex);
-  // WCAG contrast threshold: if luminance > 0.45, charcoal (#1e293b) provides high contrast, else white (#ffffff)
-  return lum > 0.45 ? '#1e293b' : '#ffffff';
+  const rgb = hexToRgbTuple(hex);
+  if (!rgb) return '#ffffff';
+  const onWhite = contrastAgainst(rgb, [255, 255, 255]);
+  const onCharcoal = contrastAgainst(rgb, [30, 41, 59]);
+  return onCharcoal > onWhite ? '#1e293b' : '#ffffff';
+}
+
+/** Parses #rgb / #rrggbb / #rrggbbaa into an sRGB tuple. */
+function hexToRgbTuple(hex: string): [number, number, number] | null {
+  if (!hex) return null;
+  let clean = hex.replace('#', '').trim();
+  if (clean.length === 3 || clean.length === 4) clean = clean.split('').map((c) => c + c).join('');
+  if (clean.length !== 6 && clean.length !== 8) return null;
+  const value = parseInt(clean.slice(0, 6), 16);
+  if (Number.isNaN(value)) return null;
+  return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
+}
+
+/** WCAG 2.x contrast ratio between two sRGB tuples. */
+function contrastAgainst(a: [number, number, number], b: [number, number, number]): number {
+  const la = getLuminance(rgbToHex(a));
+  const lb = getLuminance(rgbToHex(b));
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+}
+
+function rgbToHex([r, g, b]: [number, number, number]): string {
+  return '#' + [r, g, b].map((c) => Math.round(c).toString(16).padStart(2, '0')).join('');
 }
 
 /**

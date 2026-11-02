@@ -8,3 +8,5 @@ coverage/
 !.env.example
 
 .openai/screen-asset-history/
+.tmp-audit/
+.tmp-templates/

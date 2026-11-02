@@ -70,7 +70,7 @@ import {
   publicSalonOffers,
 } from '../lib/salonOffers';
 import { WebsiteSections } from './WebsiteSections';
-import { AppAnnouncementStrip, CustomerAppPromotion } from './CustomerAppPromotion';
+import { AppAnnouncementStrip, AppInstallSection } from './AppInstallSection';
 import { SafeImage } from './arch-flutter/SafeImage';
 import { PageShell, Reveal, RevealGroup, RevealItem } from './arch-flutter/Motion';
 import { ArchDivider, ArchMonogram, FlutterStrokes, GoldRule } from './arch-flutter/Ornaments';
@@ -1134,7 +1134,7 @@ export function ArchFlutterWebsite({
     ),
     closing: (
       <>
-        <CustomerAppPromotion />
+        <AppInstallSection />
 
         {closingOwnerSections.length > 0 && <WebsiteSections {...shared} sections={closingOwnerSections} />}
       </>
@@ -1778,7 +1778,7 @@ export function ArchFlutterWebsite({
                     </Reveal>
                   </div>
                   <div className="af-wrap" style={{ marginTop: 26 }}>
-                    <CustomerAppPromotion />
+                    <AppInstallSection />
                   </div>
                 </section>
               </>

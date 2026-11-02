@@ -48,7 +48,7 @@ import {
   stagger,
 } from '../lib/motion';
 import { WebsiteSections } from './WebsiteSections';
-import { AppAnnouncementStrip, CustomerAppPromotion } from './CustomerAppPromotion';
+import { AppAnnouncementStrip, AppInstallSection } from './AppInstallSection';
 import { SafeImage } from './prism-chroma/SafeImage';
 import { DeviceMockup } from './prism-chroma/DeviceMockup';
 import { ShadeStudio } from './prism-chroma/ShadeStudio';
@@ -831,7 +831,7 @@ export function PrismChromaWebsite({
               </div>
             )}
             <div className="mx-auto max-w-7xl px-4 sm:px-6">
-              <CustomerAppPromotion />
+              <AppInstallSection />
             </div>
 
             {/* Local SEO guide */}

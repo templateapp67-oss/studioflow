@@ -1540,16 +1540,13 @@
   font-size: 14px;
 }
 
-/* Harmonize Nexora App strip & promotion on Roop Mahal */
-.sf-page[data-template="beauty_parlour"] .nexora-app-strip {
+/* Harmonize the shared Nexora app strip with Roop Mahal. The app-install card
+   itself needs no override here: `.sf-page.sf-roop-mahal .app-install` in
+   appInstallSection.css already binds the --rm-* tokens. */
+.sf-page[data-template="beauty_parlour"] .app-install-strip {
   background: #F7EAE6;
   color: var(--rm-maroon);
   border-bottom: 1px solid rgba(197, 161, 107, 0.3);
-}
-
-.sf-page[data-template="beauty_parlour"] .nexora-app-promotion {
-  background: linear-gradient(120deg, #4B1825, #6D2638);
-  border-top: 1px solid rgba(197, 161, 107, 0.35);
 }
 
 /* ==========================================================================
