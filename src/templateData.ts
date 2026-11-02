@@ -456,33 +456,32 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
   },
 
   ayurvedic_spa: {
-    foundingYear: '2016',
-    foundingNarrative: 'Sanjivani Ayurvedic Rejuvenation Spa honors the centuries-old Kerala Vaidya tradition in Chennai. We practice authentic Panchakarma therapies, continuous warm herbal Shirodhara oil streams, and Kizhi herbal poultice therapies.',
-    specialties: ['Shirodhara Medicated Oil Stream', 'Traditional Kerala Abhyanga', 'Navara Kizhi Rice Poultice', 'Mukha Lepam Herbal Facial'],
+    foundingYear: '2014',
+    foundingNarrative: 'Veda Sanjeevani is a small Ayurvedic sanctuary in Civil Lines, Kota, run on the traditional Kerala model: a physician-led consultation first, then warm-oil rituals performed by trained therapists in rooms that stay quiet. We keep four treatment rooms on purpose.',
+    specialties: ['Shirodhara warm oil stream', 'Abhyanga full-body massage', 'Herbal potli (Kizhi) therapy', 'Mukha Lepam herbal face ritual'],
     certifications: [
-      { icon: 'verified', title: 'Authentic Kerala Droni Wooden Beds', description: 'Handcrafted seasoned Neem and Vengai wood massage tables.' },
-      { icon: 'spa', title: 'Kottakkal Arya Vaidya Sala Oils', description: 'Certified classical medicated thailams prepared per Ashtanga Hridaya texts.' },
-      { icon: 'local_pharmacy', title: 'Consultations by BAMS Ayurvedic Doctors', description: 'Prakriti (Vata, Pitta, Kapha) dosha analysis before oil formulation.' },
-      { icon: 'eco', title: '100% Chemical-Free Botanical Care', description: 'Organic sun-dried wild herbs, cow’s milk, and Navara medicinal rice.' }
+      { icon: 'verified', title: 'Physician-led consultations', description: 'Every plan starts with a BAMS-qualified physician and a pulse reading.' },
+      { icon: 'spa', title: 'Classical medicated oils', description: 'Oils warmed to body temperature and mixed in small batches each morning.' },
+      { icon: 'local_florist', title: 'Fresh herb preparation', description: 'Leaf poultices and herbal pastes prepared the same day they are used.' },
+      { icon: 'eco', title: 'Four rooms only', description: 'Unhurried slots with no corridor full of waiting guests.' }
     ],
     gallery: [
-      { id: 'ay-g1', url: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&w=800&q=80', title: 'Bronze Vessel Shirodhara Oil Stream', tag: 'Shirodhara' },
-      { id: 'ay-g2', url: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=800&q=80', title: 'Authentic Teakwood Droni Therapy Bed', tag: 'Traditional Bed' },
-      { id: 'ay-g3', url: 'https://images.unsplash.com/photo-1519823551278-64ac92734fb1?auto=format&fit=crop&w=800&q=80', title: 'Warm Herbal Kizhi Poultice Preparation', tag: 'Herbal Kizhi' },
-      { id: 'ay-g4', url: 'https://images.unsplash.com/photo-1512290900672-1f55b9e07506?auto=format&fit=crop&w=800&q=80', title: 'Brass Herb Steamer & Herbal Bath', tag: 'Herbal Steam' },
-      { id: 'ay-g5', url: 'https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=800&q=80', title: 'Ayurvedic Doctor Consultation Chamber', tag: 'Diagnostics' },
-      { id: 'ay-g6', url: 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?auto=format&fit=crop&w=800&q=80', title: 'Classical Medicated Tailam Dispensary', tag: 'Herbal Oils' }
+      { id: 'vs-g1', url: '/templates/14/shirodhara-800.webp', title: 'Shirodhara warm oil stream', tag: 'Shirodhara' },
+      { id: 'vs-g2', url: '/templates/14/abhyanga-800.webp', title: 'Abhyanga room and carved teak table', tag: 'Abhyanga' },
+      { id: 'vs-g3', url: '/templates/14/potli-800.webp', title: 'Herbal potli poultices prepared to order', tag: 'Kizhi' },
+      { id: 'vs-g4', url: '/templates/14/steam-800.webp', title: 'Herbal steam suite', tag: 'Swedana' },
+      { id: 'vs-g5', url: '/templates/14/herbs-800.webp', title: 'Turmeric, brahmi and rose in the preparation room', tag: 'Ingredients' }
     ],
     reviews: [
-      { id: 'ay-r1', name: 'Sundararajan Krishnan', location: 'Besant Nagar, Chennai', rating: 5, serviceName: 'Authentic Kerala Shirodhara & Abhyanga', comment: 'The Shirodhara with warm medicated sesame oil cured my insomnia within 2 sessions. Genuine Kerala Vaidyas and pristine herbal aromas.', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80', date: '2 days ago' },
-      { id: 'ay-r2', name: 'Lakshmi Narayanan', location: 'Adyar, Chennai', rating: 5, serviceName: 'Navara Kizhi Herbal Rice Poultice', comment: 'Healed severe joint stiffness in my knees. Dr. Nair conducted an in-depth pulse reading and prescribed the exact herbal regimen.', avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80', date: '6 days ago' },
-      { id: 'ay-r3', name: 'Madhavan Venkat', location: 'Thiruvanmiyur, Chennai', rating: 5, serviceName: 'Traditional Mukha Lepam Herbal Facial', comment: 'Leaves you completely grounded and peaceful. The teakwood droni and copper vessels show their deep respect for classical tradition.', avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80', date: '2 weeks ago' }
+      { id: 'vs-r1', name: 'Ira Bansal', location: 'Talwandi, Kota', rating: 5, serviceName: 'Shirodhara Warm Oil Stream', comment: 'I booked on a whim after a hard work month and slept properly for the first time in weeks. The room smelled of warm oil and nothing was rushed.', avatarUrl: '/templates/14/herbs-480.webp', date: '3 days ago' },
+      { id: 'vs-r2', name: 'Nikhil Sharma', location: 'Civil Lines, Kota', rating: 5, serviceName: 'Panchakarma Consultation & Plan', comment: 'The consultation was refreshingly honest — I was told what would help and what would not be claimed. That built trust straight away.', avatarUrl: '/templates/14/ingredients-480.webp', date: '1 week ago' },
+      { id: 'vs-r3', name: 'Ritika Jain', location: 'Rajeev Gandhi Nagar', rating: 5, serviceName: 'Abhyanga Full-Body Ayurvedic Massage', comment: 'The four-hand Abhyanga is the closest thing to a reset button I have found in Kota. I have already booked my mother in with me.', avatarUrl: '/templates/14/ritual-480.webp', date: '2 weeks ago' }
     ],
-    totalReviewCount: 810,
-    averageRating: 4.98,
-    landmark: 'Beach Road, Besant Nagar, Near Elliot’s Beach Promenade',
-    parkingInfo: 'Private garden compound with ample car parking space',
-    openHourText: '08:30 AM',
-    closeHourText: '8:30 PM'
+    totalReviewCount: 214,
+    averageRating: 4.9,
+    landmark: 'Civil Lines, near Talwandi Circle, Kota',
+    parkingInfo: 'Courtyard parking for four cars and two-wheelers',
+    openHourText: '09:30 AM',
+    closeHourText: '08:00 PM'
   }
 };

@@ -866,6 +866,7 @@ const landing = read('src/components/LandingPage.tsx');
 const app = read('src/App.tsx');
 const previewShell = read('src/components/SalonWebsitePreview.tsx');
 assert.ok(cards.includes('const hasCustomizer = isArchFlutterTemplate(templateId)'), 'the gallery button checks the template id');
+assert.ok(cards.includes('isArchFlutterTemplate(templateId) || isVeda'), 'Template 14 can add its own drawer without changing Template 13’s branch');
 assert.ok(cards.includes('onClick={() => setCustomizerOpen(true)}'), 'Template 13 opens the drawer');
 assert.ok(cards.includes('onClick={() => onChoose()}'), 'every other template keeps the old “Customize this template” behaviour');
 assert.ok(cards.includes('demoMode'), 'the gallery drawer runs in demo mode and writes to no site record');
@@ -873,11 +874,14 @@ assert.ok(cards.includes("import('./arch-flutter-customizer/ArchFlutterCustomize
 assert.ok(landing.includes('onCustomizeTemplate'), 'the landing page can carry a customized demo into website creation');
 assert.ok(app.includes('ArchFlutterCustomizerGate') && app.includes('archCustomizer&&isArchFlutterTemplate(profile.businessType)'), 'the workspace mounts the drawer for Template 13 only');
 assert.ok(app.includes('applyCustomizerWorkspace'), 'saving writes through the existing workspace state (and its autosave)');
-assert.ok(app.includes('onOpenCustomizer={isArchFlutterTemplate(profile.businessType)?()=>setArchCustomizer(true):undefined}'), 'the editor entry point is Template 13 only');
+assert.ok(app.includes('onOpenCustomizer={isArchFlutterTemplate(profile.businessType)?()=>setArchCustomizer(true)'), 'the editor entry point is gated on the template id (Template 13 first)');
 const archEditorStart = previewShell.indexOf('function ArchFlutterPreviewEditor');
 const ironInkStart = previewShell.indexOf('function IronInkPreviewEditor');
-const customizerButtonAt = previewShell.indexOf('Open the template customizer');
-assert.ok(archEditorStart > -1 && customizerButtonAt > archEditorStart && customizerButtonAt < ironInkStart, 'the in-editor button lives in the Template 13 branch only');
+const archEditorBlock = previewShell.slice(archEditorStart, ironInkStart > archEditorStart ? ironInkStart : undefined);
+assert.ok(archEditorStart > -1 && archEditorBlock.includes('Open the template customizer'), 'the in-editor button lives in the Template 13 branch');
+const vedaEditorStart = previewShell.indexOf('function VedaSanjeevaniPreviewEditor');
+const vedaEditorBlock = previewShell.slice(vedaEditorStart, archEditorStart > vedaEditorStart ? archEditorStart : undefined);
+assert.ok(vedaEditorStart > -1 && vedaEditorBlock.includes('Open the template customizer'), 'Template 14 has its own in-editor button, never reusing the Template 13 copy');
 assert.equal(previewShell.slice(ironInkStart).includes('Open the template customizer'), false);
 
 /* CSS is scoped to .afc-* and imported by the drawer alone. */

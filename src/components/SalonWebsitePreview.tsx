@@ -10,6 +10,7 @@ import {PrismChromaEditor} from './prism-chroma/PrismChromaEditor';
 import {ShringaarRoyalEditor} from './shringaar-royal/ShringaarRoyalEditor';
 import {IronInkEditor} from './iron-ink/IronInkEditor';
 import {ArchFlutterEditor} from './arch-flutter/ArchFlutterEditor';
+import {vedaConfigFor} from '../lib/vedaSanjeevaniCustomizer';
 import {AcademyEnquiriesPanel} from './vogue-noir/AcademyEnquiriesPanel';
 import {CustomerAppPromotion} from './CustomerAppPromotion';
 import {CustomerSalonWebsite} from './CustomerSalonWebsite';
@@ -95,7 +96,7 @@ export interface SalonWebsitePreviewProps {
   customerName?:string;
   customerPhotoUrl?:string;
   onSelectCategory?: (categoryId: BusinessTypeId) => void;
-  /** Template 13 only: opens the dedicated Arch & Flutter customizer drawer. */
+  /** Templates 13 & 14: opens the template's dedicated customizer drawer. */
   onOpenCustomizer?: () => void;
 }
 
@@ -104,8 +105,24 @@ type DeviceMode = 'desktop' | 'tablet' | 'mobile';
 export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = props => {
  const [editing,setEditing]=useState(false);
  if(props.readOnly)return <CustomerSalonWebsite {...props}/>;
- return <><div className="pt-28 px-4 pb-4 flex flex-wrap gap-3 bg-white text-slate-900"><button className="secondary-action" onClick={()=>setEditing(value=>!value)}>{editing?'Show redesigned website':'Open owner editing tools'}</button><button className="secondary-action" onClick={props.onEnterClientPreview}>Customer device preview</button></div>{editing?(props.profile.businessType==='skincare_clinic'?<ClinicPreviewEditor {...props}/>:props.profile.businessType==='makeup_studio'?<VogueNoirPreviewEditor {...props}/>:props.profile.businessType==='massage_wellness'?<BodhiTreePreviewEditor {...props}/>:props.profile.businessType==='hair_coloring'?<PrismChromaPreviewEditor {...props}/>:props.profile.businessType==='bridal_lounge'?<ShringaarRoyalPreviewEditor {...props}/>:props.profile.businessType==='tattoo_studio'?<IronInkPreviewEditor {...props}/>:props.profile.businessType==='lash_brow'?<ArchFlutterPreviewEditor {...props}/>:<SalonWebsiteEditor {...props}/>):<CustomerSalonWebsite {...props} readOnly/>}</>;
+ return <><div className="pt-28 px-4 pb-4 flex flex-wrap gap-3 bg-white text-slate-900"><button className="secondary-action" onClick={()=>setEditing(value=>!value)}>{editing?'Show redesigned website':'Open owner editing tools'}</button><button className="secondary-action" onClick={props.onEnterClientPreview}>Customer device preview</button></div>{editing?(props.profile.businessType==='ayurvedic_spa'?<VedaSanjeevaniPreviewEditor {...props}/>:props.profile.businessType==='skincare_clinic'?<ClinicPreviewEditor {...props}/>:props.profile.businessType==='makeup_studio'?<VogueNoirPreviewEditor {...props}/>:props.profile.businessType==='massage_wellness'?<BodhiTreePreviewEditor {...props}/>:props.profile.businessType==='hair_coloring'?<PrismChromaPreviewEditor {...props}/>:props.profile.businessType==='bridal_lounge'?<ShringaarRoyalPreviewEditor {...props}/>:props.profile.businessType==='tattoo_studio'?<IronInkPreviewEditor {...props}/>:props.profile.businessType==='lash_brow'?<ArchFlutterPreviewEditor {...props}/>:<SalonWebsiteEditor {...props}/>):<CustomerSalonWebsite {...props} readOnly/>}</>;
 };
+
+function VedaSanjeevaniPreviewEditor(props:SalonWebsitePreviewProps) {
+ const config=vedaConfigFor(props.profile);
+ const accent='#1F3B2E';
+ return <main className="max-w-6xl mx-auto p-4 space-y-6" aria-label="Veda Sanjeevani owner editing tools">
+  <p>Edit your Veda Sanjeevani Ayurvedic Wellness &amp; Spa website — hero, philosophy, {props.services.length} Ayurvedic therapies with ₹ prices, signature experiences, experts, gallery, wellness packages, offers, guest stories, FAQs, contact details and the four-step booking page. Everything here saves with your connected workspace.</p>
+  {props.onOpenCustomizer?<div className="p-4 rounded-2xl border border-[#B08D4F]/60 bg-[#F7F2E7] text-[#1F3B2E] flex flex-wrap items-center gap-3"><span className="text-xs font-bold tracking-[0.18em] uppercase text-[#7a6a49]">Template 14 customizer</span><span className="text-sm flex-1 min-w-[220px]">Colours, fonts and layout, AI content generation, therapies and prices, photo uploads with automatic cropping, the AI Image Studio, booking handoff and SEO — with a live preview and undo.</span><button type="button" className="primary-action" onClick={props.onOpenCustomizer}>Open the template customizer</button></div>:null}
+  <div className="grid sm:grid-cols-2 gap-3">
+   <div className="p-4 rounded-xl border bg-white"><p className="text-xs uppercase tracking-wide text-slate-500">Launch progress</p><p className="text-sm mt-1">{config.hero.headline.replace(/\n/g,' ')} · {config.packages.items.length} packages · {config.faq.items.length} FAQs</p><p className="text-xs text-slate-500 mt-2">Last AI generation: {config.ai?.lastGeneratedAt?new Date(config.ai.lastGeneratedAt).toLocaleString('en-IN'):'not generated yet'}</p></div>
+   <div className="p-4 rounded-xl border bg-white"><p className="text-xs uppercase tracking-wide text-slate-500">Bundled imagery</p><p className="text-sm mt-1">17 local WebP slots, {config.gallery.images.length} gallery photos, {props.stylists.length} therapist portraits</p><p className="text-xs text-slate-500 mt-2">Uploads are cropped, resized and compressed automatically.</p></div>
+  </div>
+  {props.setProfile?<WebsiteContentManager profile={props.profile} setProfile={props.setProfile} services={props.services} gallery={props.gallery} showGallery={false}/>:<p role="status">Content editing requires a connected owner workspace.</p>}
+  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent}/>:<p role="status">Therapy editing requires a connected owner workspace.</p>}
+  {props.setStylists?<TeamManagement stylists={props.stylists} setStylists={props.setStylists} services={props.services} setServices={props.setServices} businessType="ayurvedic_spa" primaryAccentColor={accent}/>:null}
+ </main>;
+}
 
 function ArchFlutterPreviewEditor(props:SalonWebsitePreviewProps) {
  const accent=props.profile.customAccentColor||'#9A6B73';

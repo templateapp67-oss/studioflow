@@ -68,6 +68,26 @@ export const staggerItem: Variants = {
   exit: { opacity: 0, transition: { duration: 0.25, ease: 'easeOut' } },
 };
 
+/** Glass card entrance: rises, settles from 96% and sharpens — premium, never bouncy. */
+export const glassIn: Variants = {
+  hidden: { opacity: 0, y: 26, scale: 0.97 },
+  visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.7, ease: EASE_OUT } },
+  exit: { opacity: 0, y: 10, scale: 0.99, transition: { duration: 0.3, ease: 'easeOut' } },
+};
+
+/** Staggered child for grids of glass cards (slightly deeper than a plain card). */
+export const glassItem: Variants = {
+  hidden: { opacity: 0, y: 24, scale: 0.975 },
+  visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.62, ease: EASE_OUT } },
+  exit: { opacity: 0, transition: { duration: 0.25, ease: 'easeOut' } },
+};
+
+/** Section wrapper entrance used on every page of the template. */
+export const sectionIn: Variants = {
+  hidden: { opacity: 0, y: 28 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.75, ease: EASE_OUT } },
+};
+
 /** Page-level transition for use with AnimatePresence. */
 export const pageTransition: Variants = {
   hidden: { opacity: 0, y: 16 },
