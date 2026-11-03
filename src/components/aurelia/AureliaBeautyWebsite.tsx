@@ -53,7 +53,7 @@ export function AureliaBeautyWebsite(props:SalonWebsitePreviewProps){
  const sectionOrder=config.sectionOrder?.length?config.sectionOrder:orderedKeys;
  const sectionStyle=(key:string)=>({order:(sectionOrder.indexOf(key)>=0?sectionOrder.indexOf(key):orderedKeys.length+orderedKeys.indexOf(key))});
  const fallbackReviews=CATEGORY_STANDARDIZED_DATA.aurelia_beauty_parlour.reviews;
- return <div className="aurelia-site" style={{'--au-bg':config.backgroundColor||'#f6f1ea','--au-ink':config.inkColor||'#1d1612','--au-gold':config.accentColor||'#d9b98f','--au-line':config.lineColor||'#d8c8b4','--font-aurelia-display':config.displayFont||'Georgia, serif','--font-aurelia-sans':config.bodyFont||'Arial, sans-serif'} as React.CSSProperties}>
+ return <div className="aurelia-site" style={{'--au-bg':config.backgroundColor||'#f6f1ea','--au-ink':config.inkColor||'#1d1612','--au-gold':config.accentColor||'#d9b98f','--au-line':config.lineColor||'#d8c8b4','--font-aurelia-display':config.displayFont||'Georgia, serif','--font-aurelia-sans':config.bodyFont||'Arial, sans-serif'} as unknown as React.CSSProperties}>
   {show('announcement')&&<div className="aurelia-announcement">{config.announcementText||'A little more time for yourself. Discover the Aurelia experience.'}</div>}
   {show('header')&&<header className="aurelia-header">
    <a className="aurelia-wordmark" href="#aurelia-home" aria-label="Aurelia home">{profile.logoUrl?<img src={profile.logoUrl} alt={profile.businessName}/>:<><span>{profile.businessName||'AURELIA'}</span><small>BEAUTY · HAIR · WELLNESS</small></>}</a>
