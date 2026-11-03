@@ -146,4 +146,4 @@ export function AureliaBeautyEditor(props:SalonWebsitePreviewProps){
   {props.setProfile&&<WebsiteContentManager profile={profile} setProfile={props.setProfile} services={props.services} showAbout={false} showGallery={false}/>}
  </main>;
 }
-function websiteVisibility(profile:SalonProfile){return {header:true,hero:true,about:true,services:true,packages:true,stylists:true,gallery:true,videos:true,promo:true,testimonials:true,location:true,homeServices:true,...(profile.websiteSections||{})};}
+function websiteVisibility(profile:SalonProfile){return {header:true,announcement:true,hero:true,about:true,services:true,packages:true,stylists:true,gallery:true,videos:true,promo:true,testimonials:true,location:true,footer:true,homeServices:true,...(profile.websiteSections||{})};}
