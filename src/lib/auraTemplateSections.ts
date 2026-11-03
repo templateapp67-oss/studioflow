@@ -228,6 +228,17 @@ function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value ?? null)) as T;
 }
 
+/** JSONB does not preserve object key order. Compare content structurally. */
+export function auraContentEqual(left: unknown, right: unknown): boolean {
+  if (left === right) return true;
+  if (Array.isArray(left) || Array.isArray(right)) {
+    return Array.isArray(left) && Array.isArray(right) && left.length === right.length && left.every((value, index) => auraContentEqual(value, right[index]));
+  }
+  if (!isObject(left) || !isObject(right)) return false;
+  const keys = Object.keys(left);
+  return keys.length === Object.keys(right).length && keys.every((key) => Object.prototype.hasOwnProperty.call(right, key) && auraContentEqual(left[key], right[key]));
+}
+
 function imageAsset(image: AuraImage | { src?: string; [key: string]: any }, alt?: string): AuraMediaAsset {
   const candidate = image as any;
   return {
@@ -258,10 +269,15 @@ function safeMedia(value: unknown, fallback: AuraMediaAsset = {}): AuraMediaAsse
   const raw = isObject(value) ? value : {};
   const url = auraSafeMediaUrl(raw.url || raw.src || fallback.url || '');
   const path = cleanAuraText(raw.path || fallback.path || '', 500);
+  const rawSrcSet = cleanAuraText(raw.srcSet || '', 1000);
+  // Older edits could persist the bundled srcset next to a new URL. It must
+  // not win over the owner's image, even when the stale row is reloaded.
+  const staleSrcSet = Boolean(rawSrcSet && rawSrcSet === fallback.srcSet && url !== fallback.url);
   return {
     url,
     path,
-    srcSet: cleanAuraText(raw.srcSet || fallback.srcSet || '', 1000),
+    // A new URL must never inherit the bundled image's responsive candidates.
+    srcSet: raw.url || raw.src ? (staleSrcSet ? '' : rawSrcSet) : cleanAuraText(fallback.srcSet || '', 1000),
     alt: cleanAuraText(raw.alt ?? fallback.alt ?? '', 300),
     width: Number(raw.width || fallback.width || 0) || 0,
     height: Number(raw.height || fallback.height || 0) || 0,
@@ -1077,11 +1093,18 @@ export async function fetchOwnerAuraSections(client: any = supabase): Promise<Au
   return auraDraftsFromRows(data || []);
 }
 
-export async function upsertAuraSections(drafts: AuraSectionDraft[], client: any = supabase): Promise<AuraSectionDraft[]> {
+export async function upsertAuraSections(drafts: AuraSectionDraft[], client: any = supabase, baseline?: AuraSectionDraft[]): Promise<AuraSectionDraft[]> {
   const validation = validateAuraDrafts(drafts);
   if (validation.length) throw new Error(validation[0]);
+  // Only write edited sections: writing all defaults can replace pre-existing
+  // gallery/video content and clobber another manager's unrelated changes.
+  const changed = baseline ? drafts.filter((draft) => {
+    const previous = baseline.find((item) => item.sectionKey === draft.sectionKey);
+    return !previous || !auraContentEqual(draft, previous);
+  }) : drafts;
+  if (!changed.length) return clone(drafts);
   const salonId = await currentSalonId(client);
-  const payload = drafts.map((draft) => ({
+  const payload = changed.map((draft) => ({
     template_id: AURA_TEMPLATE_ID,
     salon_id: salonId,
     section_key: draft.sectionKey,
@@ -1095,7 +1118,9 @@ export async function upsertAuraSections(drafts: AuraSectionDraft[], client: any
     .upsert(payload, { onConflict: 'template_id,salon_id,section_key' })
     .select('id,template_id,salon_id,section_key,section_content,section_settings,is_visible,display_order,updated_at,updated_by');
   if (error) throw errorForAura(error, 'Could not save Template 03 content.');
-  return auraDraftsFromRows(data?.length ? data : payload.map((row) => ({ ...row, section_content: row.section_content, section_settings: row.section_settings })));
+  const returned = auraDraftsFromRows(data?.length ? data : payload);
+  const keys = new Set(changed.map((draft) => draft.sectionKey));
+  return drafts.map((draft) => keys.has(draft.sectionKey) ? returned.find((item) => item.sectionKey === draft.sectionKey)! : clone(draft));
 }
 
 /** Public storefront RPC. Only visible Template 03 rows of the published slug are returned. */
@@ -1123,8 +1148,9 @@ export async function uploadAuraMedia(
   const allowed: readonly string[] = kind === 'image' ? AURA_IMAGE_MIME_TYPES : AURA_VIDEO_MIME_TYPES;
   const maxBytes = kind === 'image' ? AURA_MAX_IMAGE_BYTES : AURA_MAX_VIDEO_BYTES;
   if (!allowed.includes(mimeType)) throw new Error(kind === 'image' ? 'Use JPG, PNG or WebP images.' : 'Use MP4, WebM or MOV videos.');
+  if (!Number.isFinite(Number(file.size)) || Number(file.size) <= 0) throw new Error('Choose a non-empty media file.');
   if (Number(file.size) > maxBytes) throw new Error(kind === 'image' ? 'Images must be 5 MB or smaller.' : 'Videos must be 50 MB or smaller.');
-  if (!/^[0-9a-f-]{36}$/i.test(salonId)) throw new Error('Could not verify the salon media folder.');
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(salonId)) throw new Error('Could not verify the salon media folder.');
   const extension = mimeType === 'image/png' ? 'png' : mimeType === 'image/webp' ? 'webp' : mimeType === 'video/webm' ? 'webm' : mimeType === 'video/quicktime' ? 'mov' : mimeType === 'video/mp4' ? 'mp4' : 'jpg';
   const path = `${salonId}/template-03/${kind === 'image' ? 'images' : 'videos'}/${uniqueId('asset')}.${extension}`;
   const { data, error } = await client.storage.from(AURA_MEDIA_BUCKET).upload(path, file, { contentType: mimeType, upsert: false });
@@ -1312,6 +1338,7 @@ export interface AuraSiteContent {
   socials: Array<{ id: string; platform: string; url: string; label: string; visible: boolean }>;
   contact: Record<string, string>;
   footer: Record<string, any>;
+  extra: Record<string, any>;
   visible: (key: AuraSectionKey, legacySection?: string) => boolean;
   hasSaved: (key: AuraSectionKey) => boolean;
   settings: (key: AuraSectionKey) => AuraJson;
@@ -1405,10 +1432,10 @@ export function createAuraSiteContent(raw: AuraSectionInput, options: { profile:
   copy.galleryTitle = stringValue('gallery', 'title', AURA_UNISEX_COPY.galleryTitle, 220);
   copy.galleryText = stringValue('gallery', 'description', AURA_UNISEX_COPY.galleryText, 1000);
   copy.videosEyebrow = stringValue('videos', 'eyebrow', AURA_UNISEX_COPY.videosEyebrow, 160);
-  copy.videosTitle = saved('videos')
+  copy.videosTitle = saved('videos') && content('videos').title !== AURA_DEFAULT_SECTION_CONTENT.videos.title
     ? stringValue('videos', 'title', AURA_UNISEX_COPY.videosTitle, 220)
     : cleanAuraText(profile.sectionHeadings?.videosTitle, 220) || AURA_UNISEX_COPY.videosTitle;
-  copy.videosText = saved('videos')
+  copy.videosText = saved('videos') && content('videos').description !== AURA_DEFAULT_SECTION_CONTENT.videos.description
     ? stringValue('videos', 'description', AURA_UNISEX_COPY.videosText, 1000)
     : cleanAuraText(profile.sectionHeadings?.videosSubtitle, 1000) || AURA_UNISEX_COPY.videosText;
   copy.reviewsEyebrow = stringValue('reviews', 'eyebrow', AURA_UNISEX_COPY.reviewsEyebrow, 160);
@@ -1418,7 +1445,7 @@ export function createAuraSiteContent(raw: AuraSectionInput, options: { profile:
   copy.promoTitle = stringValue('promotions', 'title', AURA_UNISEX_COPY.promoTitle, 220);
   copy.promoText = stringValue('promotions', 'description', AURA_UNISEX_COPY.promoText, 1000);
   copy.loyaltyEyebrow = stringValue('loyalty', 'eyebrow', AURA_UNISEX_COPY.loyaltyEyebrow, 160);
-  copy.loyaltyTitle = saved('loyalty')
+  copy.loyaltyTitle = saved('loyalty') && content('loyalty').title !== AURA_DEFAULT_SECTION_CONTENT.loyalty.title
     ? stringValue('loyalty', 'title', AURA_UNISEX_COPY.loyaltyTitle, 220)
     : cleanAuraText(profile.sectionHeadings?.loyaltyTitle, 220) || AURA_UNISEX_COPY.loyaltyTitle;
   copy.loyaltyText = stringValue('loyalty', 'description', AURA_UNISEX_COPY.loyaltyText, 1000);
@@ -1433,7 +1460,7 @@ export function createAuraSiteContent(raw: AuraSectionInput, options: { profile:
   copy.footerServices = stringValue('footer', 'servicesTitle', AURA_UNISEX_COPY.footerServices, 160);
   copy.footerContact = stringValue('footer', 'contactTitle', AURA_UNISEX_COPY.footerContact, 160);
   copy.footerRights = stringValue('footer', 'rights', AURA_UNISEX_COPY.footerRights, 160);
-  copy.footerFollow = saved('social')
+  copy.footerFollow = saved('social') && content('social').title !== AURA_DEFAULT_SECTION_CONTENT.social.title
     ? stringValue('social', 'title', AURA_UNISEX_COPY.footerFollow, 160)
     : cleanAuraText(profile.sectionHeadings?.socialTitle, 160) || AURA_UNISEX_COPY.footerFollow;
   copy.footerLegal = normalizedStringList(content('footer').legal, AURA_UNISEX_COPY.footerLegal);
@@ -1475,7 +1502,7 @@ export function createAuraSiteContent(raw: AuraSectionInput, options: { profile:
       audience: cleanAuraText(item.audience, 120),
       title: cleanAuraText(item.title, 220),
       subtitle: cleanAuraText(item.subtitle, 600),
-      image: mediaToImage(item.image, AURA_UNISEX_IMAGES.services.haircut),
+      image: mediaToImage(item.image, (AURA_CATEGORY_PILLARS.find((pillar) => pillar.id === item.id) || AURA_CATEGORY_PILLARS[index % AURA_CATEGORY_PILLARS.length]).image),
     }));
   const whyPillars = normalizedList(why.items, AURA_DEFAULT_SECTION_CONTENT.why_choose_us.items)
     .filter((item) => safeBoolean(item.visible, true))

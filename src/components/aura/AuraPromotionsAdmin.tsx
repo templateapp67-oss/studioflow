@@ -1,3 +1,5 @@
+import { AuraImage } from './AuraImage';
+import { AURA_UNISEX_IMAGES } from '../../lib/auraUnisex';
 /**
  * TEMPLATE 03 — Aura Unisex Salon & Wellness Lounge
  * Dashboard · Promotions & Offers management.
@@ -273,7 +275,7 @@ export const AuraPromotionsAdmin: React.FC<AuraPromotionsAdminProps> = ({ profil
           <input aria-label="Offer image URL" value={draft.bannerImageUrl} onChange={(event) => patch('bannerImageUrl', event.target.value)} placeholder="https://… or /templates/aura-unisex/…" />
           <small><ImageIcon size={12} aria-hidden="true" /> Paste an https URL / site path, or upload a JPG, PNG or WebP (max 5 MB).</small>
           <input aria-label="Upload offer image" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadImage(file); event.target.value = ''; }} />
-          {auraSafeImageUrl(draft.bannerImageUrl) && <img className="aura-adm-image-preview" src={auraSafeImageUrl(draft.bannerImageUrl)} alt="Offer preview" />}
+          {auraSafeImageUrl(draft.bannerImageUrl) && <AuraImage className="aura-adm-image-preview" src={auraSafeImageUrl(draft.bannerImageUrl)} alt="Offer preview" fallbackSrc={AURA_UNISEX_IMAGES.services.styling.src} />}
         </label>
         <label className="aura-adm-field wide">
           <span>Terms and conditions</span>

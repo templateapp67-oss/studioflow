@@ -16,6 +16,8 @@ import {
   type AuraPromotion,
 } from '../../lib/auraPromotions';
 import './auraPromotions.css';
+import { AuraImage } from './AuraImage';
+import { AURA_UNISEX_IMAGES } from '../../lib/auraUnisex';
 
 export interface AuraPromotionCardsProps {
   offers: AuraPromotion[];
@@ -54,7 +56,7 @@ export const AuraPromotionCards: React.FC<AuraPromotionCardsProps> = ({
           >
             {image && (
               <div className="aura-promo-media">
-                <img src={image} alt={`${offer.title} offer`} loading="lazy" />
+                <AuraImage fallbackSrc={AURA_UNISEX_IMAGES.services.styling.src} src={image} alt={`${offer.title} offer`} loading="lazy" />
               </div>
             )}
             <div className="au-offer-top">
