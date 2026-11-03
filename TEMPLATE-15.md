@@ -45,34 +45,13 @@ Demo previews never create an appointment or pretend to have available times. Th
 
 **Existing-app caveat:** the shared `save_workspace` RPC updates an already-published site's content when the owner saves. This existing behaviour was inspected, not changed globally. No publish RPC is called by this template's editor. Review a new unpublished workspace before approval if draft-only changes are required.
 
-## Image & video assets
+## Image & video assets — current status
 
-All new assets are local under `public/templates/15/`; no Ziya or other-template photographs are reused.
+All Template 15 assets are scoped under `public/templates/15/`. The responsive hero is `mens-hero-desktop.webp` / `mens-hero-mobile.webp`; the three old staff illustrations have been replaced with distinct demo portrait photos (`barber-arjun.webp`, `barber-kabir.webp`, `barber-dev.webp`). A unique local WebP photo is connected to each of the 20 haircut services, and `mens-interior-wide.webp` is used by the About / studio-story section.
 
-| Asset | Content |
-| --- | --- |
-| `hero.webp` | AI-generated editorial photo: adult Indian male client, adult male barber. Visually inspected. |
-| `fade.webp` | AI-generated adult male fade reference, visually inspected. |
-| `colour.webp` | AI-generated adult male brown/highlight reference, visually inspected. |
-| `long.webp` | AI-generated adult male long-hair reference, visually inspected. |
-| `barber-1.svg` … `barber-3.svg` | Clearly labelled male illustration placeholders, not real employee portraits. |
-| `style-1.svg` … `style-17.svg` | Individual labelled male style placeholders, not claimed as haircut-result photographs. |
-| `placeholder.svg` | Male-focused fallback for missing, broken or unreviewed images. |
-| `{fade,colour,long}-preview.mp4` | Three silent 5-second animated AI-photo references, 540×720 H.264; not haircut-process footage. |
+All 20 haircut service cards now have their own generated photograph. The ten colour service cards still share the existing colour reference. The gallery still includes repeated photographs and male SVG style illustrations; offer cards do not yet have their requested photos. `media-manifest.json` lists every requested asset, its presence state and exact file hashes. Run `npm run media:template15` to refresh the audit.
 
-Photos are compressed WebP. References are reused for related menu cards and explicitly labelled as illustrative; they are not thirty distinct service-result photographs. The gallery uses three inspected photographic references and individual illustrations for the remaining style slots.
-
-**Playable videos:** the video section now ships three bundled male-only MP4 style previews. They are honestly labelled **animated AI-photo references, not haircut-process footage**. The twelve real-process subjects remain hidden editor placeholders until the studio supplies and approves actual footage. Direct HTTPS MP4/WebM replacement videos require full-content and matching-thumbnail review. Real before/after salon results and real barber photos remain owner-supplied approval items. Rebuild the starter clips with `FFMPEG_PATH=/path/to/ffmpeg node scripts/build-template15-videos.mjs`; ffmpeg is not an application dependency.
-
-## Chat, portfolios and waitlist
-
-- **Live Chat:** fixed bottom-left launcher, accessible modal, local contextual support replies and quick prompts. Clearly simulated, no human agent and no message delivery/persistence.
-- **View Portfolio:** every barber card opens its own gallery. Preview references are assigned individually and explicitly labelled demo. Live portfolios show consented, male-reviewed work or approved external gallery images explicitly assigned to that barber in the Gallery editor; starter references are not presented as real barber work.
-- **Chat with Stylist:** selected-barber inquiry modal. Preview submission is explicitly simulated. A live site hands a composed inquiry to the barber’s configured phone, or studio WhatsApp as fallback. No delivery/response guarantee; no configured number means no send action. Messages are never silently stored in a second backend.
-- **Book / Waitlist:** date/service/barber selector, live RPC availability, and **Join Waitlist** only after a successful unavailable result (not a network error). An optional preferred time narrows the alert. Available slots hand date/time/barber into the existing booking modal. The shared booking modal also gets the same men-only waitlist option when no times are available. Preview has an explicitly labelled fully-booked example and simulated opening button.
-- **Device-only waitlist:** bounded to 30 requests, deduplicated, persisted in localStorage, removable from the page. No names, phone numbers or emails collected; no extra database tables. Live checks run while the site is open, every 60 seconds and on focus. Matching openings show an in-page alert; browser notifications require opt-in and browser permission. Alerts do **not** run after the site/browser closes, send SMS/email, reserve an appointment or guarantee a slot. Recheck availability before booking. Server-backed/offline notification delivery is not implemented.
-- Dialogs support Escape, focus containment, focus return, scroll locking and mobile layouts. Availability responses are guarded against stale date/service/barber requests. No existing fourteen-template UI acquires these controls.
-
+NEXORA branding is applied to all 30 currently present photographic image files, all 18 Template 15 SVG images, and the three existing bundled MP4s; `nexora-watermark.png` is the reusable wordmark and `nexora-branding.json` records branded hashes. Re-run `pip install -r scripts/requirements-template15-media.txt && npm run brand:template15` to brand later additions. Three bundled MP4s remain 5-second animated AI-photo references, **not haircut-process footage**; the UI labels them accordingly. Thirty requested image assets and six actual male-only process videos remain missing. Do not claim the complete image/video brief is done until those are generated/reviewed, wired, and checked in desktop, tablet and mobile browsers. See `TEMPLATE-15-MEDIA-UPDATE.md` for verification and outstanding items.
 
 ## Supabase inspection & connections
 

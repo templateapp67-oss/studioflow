@@ -238,8 +238,44 @@
   overflow: hidden;
   min-height: 620px;
 }
+.kk-hero-image picture {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
 .kk-hero-image img {
   object-position: 55% center;
+}
+.kk-about {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(300px, .9fr);
+  align-items: center;
+  gap: clamp(36px, 7vw, 110px);
+  padding: clamp(60px, 8vw, 120px) 8%;
+  background: #20231f;
+}
+.kk-about-photo {
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: #292d27;
+}
+.kk-about-photo img {
+  object-position: center;
+}
+.kk-about-copy h2 {
+  margin: 18px 0 24px;
+  max-width: 560px;
+}
+.kk-about-copy > p:not(.kk-eyebrow) {
+  max-width: 500px;
+  line-height: 1.9;
+}
+.kk-about-note {
+  display: block;
+  margin-top: 30px;
+  color: #b08a61;
+  font-size: 9px;
+  letter-spacing: .16em;
 }
 .kk-hero-image:after {
   content: "";
@@ -1001,6 +1037,14 @@
   }
   .kk-section {
     padding: 60px 6%;
+  }
+  .kk-about {
+    grid-template-columns: 1fr;
+    gap: 30px;
+    padding: 58px 6%;
+  }
+  .kk-about-photo {
+    aspect-ratio: 4 / 3;
   }
   .kk-section-head {
     display: block;

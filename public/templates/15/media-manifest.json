@@ -1,0 +1,454 @@
+{
+  "templateId": "mens_hair_studio",
+  "scope": "Template 15 only",
+  "note": "Presence is a filesystem check only. The three new photographs were generated for this task; pre-existing local assets are listed separately. Missing requested assets are intentionally not assigned placeholder URLs or mislabeled as completed.",
+  "imageGroups": {
+    "hero": [
+      {
+        "file": "mens-hero-desktop.webp",
+        "status": "present",
+        "sha256": "8cb17bd405d159ec12eb7e08cd1f29d22d1ed9d45db440e2de58f9a01eb6bc06"
+      },
+      {
+        "file": "mens-hero-mobile.webp",
+        "status": "present",
+        "sha256": "20dcdae3195fffbabe4ce8fa059726d2e9f63631bddb1d8b086c0fb0d14cc799"
+      }
+    ],
+    "services": [
+      {
+        "file": "classic-mens-cut.webp",
+        "status": "present",
+        "sha256": "a2f477fbaf9bfc55c1ebf3cb214b03d5e3a2328922f184e147bfb9503750ca2d"
+      },
+      {
+        "file": "modern-mens-cut.webp",
+        "status": "present",
+        "sha256": "f727d68fcb7473f0c579a63b99f993158eda52de75c0c055f70436b4496d719a"
+      },
+      {
+        "file": "low-fade.webp",
+        "status": "present",
+        "sha256": "da0e2a1fff89e8bd3c6cd65094a9d6cfd18b970b7862983f0412ba00bccbeabe"
+      },
+      {
+        "file": "mid-fade.webp",
+        "status": "present",
+        "sha256": "c0bf27c66a3eeeb52b721882b918832ba72874e35c84ded746f1408df0b71d8a"
+      },
+      {
+        "file": "high-fade.webp",
+        "status": "present",
+        "sha256": "5ee9254cb3acf44baecd36d84840cb3d2ec1f8066ebb67bdae5a84b2d9df0d71"
+      },
+      {
+        "file": "skin-fade.webp",
+        "status": "present",
+        "sha256": "222813bce4a696f8fb346817cae22ce6a116dd3383be09084f6eeb6e4736f5ae"
+      },
+      {
+        "file": "taper-fade.webp",
+        "status": "present",
+        "sha256": "48105e82b23a5a7e1492064865c77b3863faab7b9370c675a4f7d2212b3c8302"
+      },
+      {
+        "file": "crew-cut.webp",
+        "status": "present",
+        "sha256": "0e808af287ebc5e6b3d2ad346b5862fb5571cd6c77ad74c49396858f4db23784"
+      },
+      {
+        "file": "buzz-cut.webp",
+        "status": "present",
+        "sha256": "f7e5b36a7cceb690dc89cd848d4da36f790c06064838d537de136d01632f15be"
+      },
+      {
+        "file": "textured-crop.webp",
+        "status": "present",
+        "sha256": "95e1eba172996015247602fd05e0ab7f85384a5080bf07e2b9068a170b9ac97d"
+      },
+      {
+        "file": "french-crop.webp",
+        "status": "present",
+        "sha256": "495db684577013a5b905033473807d1de79fa94210595c9b91c783a3d13c3823"
+      },
+      {
+        "file": "undercut.webp",
+        "status": "present",
+        "sha256": "7d99ec82fbfa200fd4245701a8ecb50b8106c1bb9ad16940f22d0f3473d76d4a"
+      },
+      {
+        "file": "side-part.webp",
+        "status": "present",
+        "sha256": "1a3fa4d812ace48c128a8879631e91513bf4ef9d8e23c550e484e0a935a74ff4"
+      },
+      {
+        "file": "slick-back.webp",
+        "status": "present",
+        "sha256": "1852bdd7cec975a76ef0aa19583cfe2380b65f6c291ceaa0dd4358d5f80be4c2"
+      },
+      {
+        "file": "pompadour.webp",
+        "status": "present",
+        "sha256": "3810e63c2f898cda8db249aa526ef8799f993c2a9b92cd201fe55f8bcabff8f1"
+      },
+      {
+        "file": "quiff.webp",
+        "status": "present",
+        "sha256": "d700cd7e3dcb3ad83f67ac9bc59d61d0e5316f8f8a4c635a85588d9ba5dd57bb"
+      },
+      {
+        "file": "long-mens-cut.webp",
+        "status": "present",
+        "sha256": "c0180f23ac888052dae26f9d9423e332acddc1be4cd354d6c8083a3ef9dd45d0"
+      },
+      {
+        "file": "medium-mens-cut.webp",
+        "status": "present",
+        "sha256": "cecc56690bde5521fd846d70861b31cc27320241344b30ee99f001a0f04a5f5f"
+      },
+      {
+        "file": "scissor-cut.webp",
+        "status": "present",
+        "sha256": "738c1e5533711ee0cbe708b9b2444cfa90ff4eaa27d998239d12195616efec89"
+      },
+      {
+        "file": "mens-hair-trim.webp",
+        "status": "present",
+        "sha256": "3a174865e60b592b7ab71bdf51c1c2acd95567c5ac1e460e77f2635fe0238cc0"
+      },
+      {
+        "file": "mens-global-colour.webp",
+        "status": "missing"
+      },
+      {
+        "file": "mens-grey-coverage.webp",
+        "status": "missing"
+      },
+      {
+        "file": "mens-root-touchup.webp",
+        "status": "missing"
+      },
+      {
+        "file": "mens-highlights.webp",
+        "status": "missing"
+      },
+      {
+        "file": "mens-fashion-colour.webp",
+        "status": "missing"
+      },
+      {
+        "file": "mens-natural-black.webp",
+        "status": "missing"
+      },
+      {
+        "file": "mens-brown-colour.webp",
+        "status": "missing"
+      },
+      {
+        "file": "mens-ash-brown.webp",
+        "status": "missing"
+      },
+      {
+        "file": "mens-burgundy.webp",
+        "status": "missing"
+      },
+      {
+        "file": "mens-colour-consultation.webp",
+        "status": "missing"
+      }
+    ],
+    "barbers": [
+      {
+        "file": "barber-arjun.webp",
+        "status": "present",
+        "sha256": "5786648441e76989db3c891d0d748d9ff0a4c306bed7b160afbcfec7fb494bf5"
+      },
+      {
+        "file": "barber-kabir.webp",
+        "status": "present",
+        "sha256": "e73aeed09ba1992f01907d9a8f6291098706986469c0924a1afc4106a886df39"
+      },
+      {
+        "file": "barber-dev.webp",
+        "status": "present",
+        "sha256": "ae48b94b3e0d4b0214a59fd6dedae437ca7daae23d1aac4ddb13a68b18f1ee16"
+      }
+    ],
+    "about": [
+      {
+        "file": "mens-about-story.webp",
+        "status": "missing"
+      },
+      {
+        "file": "mens-interior-wide.webp",
+        "status": "present",
+        "sha256": "62b0c2f6ec289a5a0ea3712f842f180722d6a18cb5a7e8a3102607c0602e248d"
+      },
+      {
+        "file": "mens-chair-detail.webp",
+        "status": "missing"
+      },
+      {
+        "file": "mens-barber-tools.webp",
+        "status": "missing"
+      }
+    ],
+    "gallery": [
+      {
+        "file": "gallery-mens-fade.webp",
+        "status": "missing"
+      },
+      {
+        "file": "gallery-classic-style.webp",
+        "status": "missing"
+      },
+      {
+        "file": "gallery-textured-look.webp",
+        "status": "missing"
+      },
+      {
+        "file": "gallery-long-hair.webp",
+        "status": "missing"
+      },
+      {
+        "file": "gallery-modern-crop.webp",
+        "status": "missing"
+      },
+      {
+        "file": "gallery-premium-side-part.webp",
+        "status": "missing"
+      },
+      {
+        "file": "gallery-mens-hair-colour.webp",
+        "status": "missing"
+      },
+      {
+        "file": "gallery-grey-coverage.webp",
+        "status": "missing"
+      }
+    ],
+    "offers": [
+      {
+        "file": "offer-fresh-fade.webp",
+        "status": "missing"
+      },
+      {
+        "file": "offer-mens-colour.webp",
+        "status": "missing"
+      },
+      {
+        "file": "offer-new-look.webp",
+        "status": "missing"
+      }
+    ],
+    "videoThumbnails": [
+      {
+        "file": "thumb-mens-haircut-process.webp",
+        "status": "missing"
+      },
+      {
+        "file": "thumb-low-fade-transformation.webp",
+        "status": "missing"
+      },
+      {
+        "file": "thumb-skin-fade-process.webp",
+        "status": "missing"
+      },
+      {
+        "file": "thumb-textured-crop-styling.webp",
+        "status": "missing"
+      },
+      {
+        "file": "thumb-mens-grey-coverage.webp",
+        "status": "missing"
+      },
+      {
+        "file": "thumb-mens-highlights.webp",
+        "status": "missing"
+      }
+    ]
+  },
+  "existingPhotoReferences": [
+    {
+      "file": "hero.webp",
+      "sha256": "78da8a4560e1a581486dfc5f5393ba2aa0e157314453e18c0719e6da363525c5",
+      "note": "Existing local photo reference; not counted as a unique per-card asset."
+    },
+    {
+      "file": "fade.webp",
+      "sha256": "0400c63fe67fec916b3e861d2580563940db7673af2fc650e1a90852974b38d4",
+      "note": "Existing local photo reference; not counted as a unique per-card asset."
+    },
+    {
+      "file": "colour.webp",
+      "sha256": "111925114b34d1495d4ae0b46b07700128c2477cc760473445967a64d32d05be",
+      "note": "Existing local photo reference; not counted as a unique per-card asset."
+    },
+    {
+      "file": "long.webp",
+      "sha256": "60b948b7cf8d0c81a9748ed2eb370d2ceca9419a1f6be65f877a84ad12efc249",
+      "note": "Existing local photo reference; not counted as a unique per-card asset."
+    }
+  ],
+  "existingPlayablePreviewClips": [
+    {
+      "file": "fade-preview.mp4",
+      "status": "present",
+      "contentType": "animated AI-photo reference; not haircut-process footage"
+    },
+    {
+      "file": "colour-preview.mp4",
+      "status": "present",
+      "contentType": "animated AI-photo reference; not haircut-process footage"
+    },
+    {
+      "file": "long-preview.mp4",
+      "status": "present",
+      "contentType": "animated AI-photo reference; not haircut-process footage"
+    }
+  ],
+  "requestedProcessVideos": [
+    {
+      "file": "mens-haircut-process.mp4",
+      "status": "missing",
+      "contentType": "actual male-only haircut or colour process footage required"
+    },
+    {
+      "file": "low-fade-transformation.mp4",
+      "status": "missing",
+      "contentType": "actual male-only haircut or colour process footage required"
+    },
+    {
+      "file": "skin-fade-process.mp4",
+      "status": "missing",
+      "contentType": "actual male-only haircut or colour process footage required"
+    },
+    {
+      "file": "textured-crop-styling.mp4",
+      "status": "missing",
+      "contentType": "actual male-only haircut or colour process footage required"
+    },
+    {
+      "file": "mens-grey-coverage-video.mp4",
+      "status": "missing",
+      "contentType": "actual male-only haircut or colour process footage required"
+    },
+    {
+      "file": "mens-highlights-video.mp4",
+      "status": "missing",
+      "contentType": "actual male-only haircut or colour process footage required"
+    }
+  ],
+  "branding": {
+    "brand": "NEXORA",
+    "watermarkAsset": "nexora-watermark.png",
+    "brandedImageFiles": [
+      "barber-arjun.webp",
+      "barber-dev.webp",
+      "barber-kabir.webp",
+      "buzz-cut.webp",
+      "classic-mens-cut.webp",
+      "colour.webp",
+      "crew-cut.webp",
+      "fade.webp",
+      "french-crop.webp",
+      "hero.webp",
+      "high-fade.webp",
+      "long-mens-cut.webp",
+      "long.webp",
+      "low-fade.webp",
+      "medium-mens-cut.webp",
+      "mens-hair-trim.webp",
+      "mens-hero-desktop.webp",
+      "mens-hero-mobile.webp",
+      "mens-interior-wide.webp",
+      "mid-fade.webp",
+      "modern-mens-cut.webp",
+      "pompadour.webp",
+      "quiff.webp",
+      "scissor-cut.webp",
+      "side-part.webp",
+      "skin-fade.webp",
+      "slick-back.webp",
+      "taper-fade.webp",
+      "textured-crop.webp",
+      "undercut.webp"
+    ],
+    "brandedSvgFiles": [
+      "placeholder.svg",
+      "style-1.svg",
+      "style-10.svg",
+      "style-11.svg",
+      "style-12.svg",
+      "style-13.svg",
+      "style-14.svg",
+      "style-15.svg",
+      "style-16.svg",
+      "style-17.svg",
+      "style-2.svg",
+      "style-3.svg",
+      "style-4.svg",
+      "style-5.svg",
+      "style-6.svg",
+      "style-7.svg",
+      "style-8.svg",
+      "style-9.svg"
+    ],
+    "brandedVideoFiles": [
+      "colour-preview.mp4",
+      "fade-preview.mp4",
+      "long-preview.mp4"
+    ],
+    "exactBrandSpelling": true,
+    "unverifiedImageFiles": [],
+    "unverifiedSvgFiles": [],
+    "unverifiedVideoFiles": [],
+    "allPresentMediaBranded": true
+  },
+  "scan": {
+    "uniquePresentImageFiles": 30,
+    "currentServiceImageReferenceCount": 30,
+    "repeatedServiceImagePaths": [
+      [
+        "/templates/15/colour.webp",
+        [
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ]
+      ]
+    ],
+    "distinctCurrentServiceImagePaths": 21,
+    "placeholderIllustrationFiles": [
+      "placeholder.svg",
+      "style-1.svg",
+      "style-10.svg",
+      "style-11.svg",
+      "style-12.svg",
+      "style-13.svg",
+      "style-14.svg",
+      "style-15.svg",
+      "style-16.svg",
+      "style-17.svg",
+      "style-2.svg",
+      "style-3.svg",
+      "style-4.svg",
+      "style-5.svg",
+      "style-6.svg",
+      "style-7.svg",
+      "style-8.svg",
+      "style-9.svg"
+    ],
+    "exactDuplicateGroups": [],
+    "missingImageCount": 30,
+    "missingProcessVideoCount": 6,
+    "visuallySimilarImages": "Not assessed; no perceptual-hash/image-similarity tooling is installed in this workspace."
+  }
+}

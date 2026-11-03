@@ -1,0 +1,241 @@
+{
+  "brand": "NEXORA",
+  "watermarkAsset": "nexora-watermark.png",
+  "images": {
+    "barber-arjun.webp": {
+      "brandedSha256": "5786648441e76989db3c891d0d748d9ff0a4c306bed7b160afbcfec7fb494bf5",
+      "position": "bottom-right"
+    },
+    "barber-dev.webp": {
+      "brandedSha256": "ae48b94b3e0d4b0214a59fd6dedae437ca7daae23d1aac4ddb13a68b18f1ee16",
+      "position": "bottom-right"
+    },
+    "barber-kabir.webp": {
+      "brandedSha256": "e73aeed09ba1992f01907d9a8f6291098706986469c0924a1afc4106a886df39",
+      "position": "bottom-right"
+    },
+    "buzz-cut.webp": {
+      "brandedSha256": "f7e5b36a7cceb690dc89cd848d4da36f790c06064838d537de136d01632f15be",
+      "position": "bottom-right"
+    },
+    "classic-mens-cut.webp": {
+      "brandedSha256": "a2f477fbaf9bfc55c1ebf3cb214b03d5e3a2328922f184e147bfb9503750ca2d",
+      "position": "bottom-right"
+    },
+    "colour.webp": {
+      "brandedSha256": "111925114b34d1495d4ae0b46b07700128c2477cc760473445967a64d32d05be",
+      "position": "bottom-right"
+    },
+    "crew-cut.webp": {
+      "brandedSha256": "0e808af287ebc5e6b3d2ad346b5862fb5571cd6c77ad74c49396858f4db23784",
+      "position": "bottom-right"
+    },
+    "fade.webp": {
+      "brandedSha256": "0400c63fe67fec916b3e861d2580563940db7673af2fc650e1a90852974b38d4",
+      "position": "bottom-right"
+    },
+    "french-crop.webp": {
+      "brandedSha256": "495db684577013a5b905033473807d1de79fa94210595c9b91c783a3d13c3823",
+      "position": "bottom-right"
+    },
+    "hero.webp": {
+      "brandedSha256": "78da8a4560e1a581486dfc5f5393ba2aa0e157314453e18c0719e6da363525c5",
+      "position": "bottom-right"
+    },
+    "high-fade.webp": {
+      "brandedSha256": "5ee9254cb3acf44baecd36d84840cb3d2ec1f8066ebb67bdae5a84b2d9df0d71",
+      "position": "bottom-right"
+    },
+    "long-mens-cut.webp": {
+      "brandedSha256": "c0180f23ac888052dae26f9d9423e332acddc1be4cd354d6c8083a3ef9dd45d0",
+      "position": "bottom-right"
+    },
+    "long.webp": {
+      "brandedSha256": "60b948b7cf8d0c81a9748ed2eb370d2ceca9419a1f6be65f877a84ad12efc249",
+      "position": "bottom-right"
+    },
+    "low-fade.webp": {
+      "brandedSha256": "da0e2a1fff89e8bd3c6cd65094a9d6cfd18b970b7862983f0412ba00bccbeabe",
+      "position": "bottom-right"
+    },
+    "medium-mens-cut.webp": {
+      "brandedSha256": "cecc56690bde5521fd846d70861b31cc27320241344b30ee99f001a0f04a5f5f",
+      "position": "bottom-right"
+    },
+    "mens-hair-trim.webp": {
+      "brandedSha256": "3a174865e60b592b7ab71bdf51c1c2acd95567c5ac1e460e77f2635fe0238cc0",
+      "position": "bottom-right"
+    },
+    "mens-hero-desktop.webp": {
+      "brandedSha256": "8cb17bd405d159ec12eb7e08cd1f29d22d1ed9d45db440e2de58f9a01eb6bc06",
+      "position": "bottom-right"
+    },
+    "mens-hero-mobile.webp": {
+      "brandedSha256": "20dcdae3195fffbabe4ce8fa059726d2e9f63631bddb1d8b086c0fb0d14cc799",
+      "position": "bottom-right"
+    },
+    "mens-interior-wide.webp": {
+      "brandedSha256": "62b0c2f6ec289a5a0ea3712f842f180722d6a18cb5a7e8a3102607c0602e248d",
+      "position": "bottom-right"
+    },
+    "mid-fade.webp": {
+      "brandedSha256": "c0bf27c66a3eeeb52b721882b918832ba72874e35c84ded746f1408df0b71d8a",
+      "position": "bottom-right"
+    },
+    "modern-mens-cut.webp": {
+      "brandedSha256": "f727d68fcb7473f0c579a63b99f993158eda52de75c0c055f70436b4496d719a",
+      "position": "bottom-right"
+    },
+    "pompadour.webp": {
+      "brandedSha256": "3810e63c2f898cda8db249aa526ef8799f993c2a9b92cd201fe55f8bcabff8f1",
+      "position": "bottom-right"
+    },
+    "quiff.webp": {
+      "brandedSha256": "d700cd7e3dcb3ad83f67ac9bc59d61d0e5316f8f8a4c635a85588d9ba5dd57bb",
+      "position": "bottom-right"
+    },
+    "scissor-cut.webp": {
+      "brandedSha256": "738c1e5533711ee0cbe708b9b2444cfa90ff4eaa27d998239d12195616efec89",
+      "position": "bottom-right"
+    },
+    "side-part.webp": {
+      "brandedSha256": "1a3fa4d812ace48c128a8879631e91513bf4ef9d8e23c550e484e0a935a74ff4",
+      "position": "bottom-right"
+    },
+    "skin-fade.webp": {
+      "brandedSha256": "222813bce4a696f8fb346817cae22ce6a116dd3383be09084f6eeb6e4736f5ae",
+      "position": "bottom-right"
+    },
+    "slick-back.webp": {
+      "brandedSha256": "1852bdd7cec975a76ef0aa19583cfe2380b65f6c291ceaa0dd4358d5f80be4c2",
+      "position": "bottom-right"
+    },
+    "taper-fade.webp": {
+      "brandedSha256": "48105e82b23a5a7e1492064865c77b3863faab7b9370c675a4f7d2212b3c8302",
+      "position": "bottom-right"
+    },
+    "textured-crop.webp": {
+      "brandedSha256": "95e1eba172996015247602fd05e0ab7f85384a5080bf07e2b9068a170b9ac97d",
+      "position": "bottom-right"
+    },
+    "undercut.webp": {
+      "brandedSha256": "7d99ec82fbfa200fd4245701a8ecb50b8106c1bb9ad16940f22d0f3473d76d4a",
+      "position": "bottom-right"
+    }
+  },
+  "videos": {
+    "colour-preview.mp4": {
+      "brandedSha256": "582f00b48362dfd4e7fc3d2877bf57445cdc3772c9370c431598f1759f5a33ac",
+      "position": "burned-in bottom-right throughout playback"
+    },
+    "fade-preview.mp4": {
+      "brandedSha256": "7e652d0b7a1892c60bf7ab09e6b92884a908f94053ccad6c75e7c5e28bed16e3",
+      "position": "burned-in bottom-right throughout playback"
+    },
+    "long-preview.mp4": {
+      "brandedSha256": "cddcc013525aeaaf35f5005ff22f443783838632a00a2c66f8f3a99f0702d396",
+      "position": "burned-in bottom-right throughout playback"
+    }
+  },
+  "imageCount": 30,
+  "videoCount": 3,
+  "verification": {
+    "exactSpelling": "NEXORA",
+    "imageOverlay": true,
+    "videoOverlayBurnedIn": true,
+    "scope": "Template 15 only"
+  },
+  "svgImages": {
+    "placeholder.svg": {
+      "brandedSha256": "073f9fabb0257be2837da1c749d4e1d66ae18a00ee126b112a763bfde39760ea",
+      "position": "bottom-right",
+      "watermarkAsset": "nexora-watermark.png"
+    },
+    "style-1.svg": {
+      "brandedSha256": "95b47b99662d11154c9b0e226adf2b4babdb4e4f3837c5c7cd1003edd3f5d5eb",
+      "position": "bottom-right",
+      "watermarkAsset": "nexora-watermark.png"
+    },
+    "style-10.svg": {
+      "brandedSha256": "a2360360a449c77f1f9216aac24058b359dc23fc3bd53ed96c7acbb8bb59035a",
+      "position": "bottom-right",
+      "watermarkAsset": "nexora-watermark.png"
+    },
+    "style-11.svg": {
+      "brandedSha256": "4f57cb2559c415926c181025e16d7de60e773b4f35f120701753485cfd62df98",
+      "position": "bottom-right",
+      "watermarkAsset": "nexora-watermark.png"
+    },
+    "style-12.svg": {
+      "brandedSha256": "bfbebb3bb15da9f0d6ceea9f494b91696d564cb796036df73e6f9881b66d18d4",
+      "position": "bottom-right",
+      "watermarkAsset": "nexora-watermark.png"
+    },
+    "style-13.svg": {
+      "brandedSha256": "1752b97782b1af84dd5ab85f2ab8749028f8169f85531596bcc7f72a034d81d3",
+      "position": "bottom-right",
+      "watermarkAsset": "nexora-watermark.png"
+    },
+    "style-14.svg": {
+      "brandedSha256": "0069a6e91f628461f93f27c9bc4b0d4da0fdf062e6de600e3c82368903e50ef4",
+      "position": "bottom-right",
+      "watermarkAsset": "nexora-watermark.png"
+    },
+    "style-15.svg": {
+      "brandedSha256": "b2a8f0e086cfe743d763354a19806fdbbf4374af8dffb7e29d0a29dd8a6cc6e8",
+      "position": "bottom-right",
+      "watermarkAsset": "nexora-watermark.png"
+    },
+    "style-16.svg": {
+      "brandedSha256": "bb016e09343c9e436d14ebbe917ded23b87cc4acd230a6b2d4fe2c596d3a20d7",
+      "position": "bottom-right",
+      "watermarkAsset": "nexora-watermark.png"
+    },
+    "style-17.svg": {
+      "brandedSha256": "6c152f66107494002d58de6198a3c025d7968c9b3af2e76eefd4e55f7c3836e0",
+      "position": "bottom-right",
+      "watermarkAsset": "nexora-watermark.png"
+    },
+    "style-2.svg": {
+      "brandedSha256": "42a149577aaa145293382e39af493c7f255c8509b438015c3f745791a5d84812",
+      "position": "bottom-right",
+      "watermarkAsset": "nexora-watermark.png"
+    },
+    "style-3.svg": {
+      "brandedSha256": "25943203f5d483b328d0ed45beb596a4e0c51826c3ae07a51c551e17284025b3",
+      "position": "bottom-right",
+      "watermarkAsset": "nexora-watermark.png"
+    },
+    "style-4.svg": {
+      "brandedSha256": "4770d974c8d3f989a8c031eb081baf346c8e6d7652679adcd9088561d3f4d6a9",
+      "position": "bottom-right",
+      "watermarkAsset": "nexora-watermark.png"
+    },
+    "style-5.svg": {
+      "brandedSha256": "8985504647354ad28be6657c0501556a1950c29118dd8f7b46466087127044e6",
+      "position": "bottom-right",
+      "watermarkAsset": "nexora-watermark.png"
+    },
+    "style-6.svg": {
+      "brandedSha256": "b5a98765f7d8fcf978c346528c94af5c9fa459a8627d8a29777454049fff1273",
+      "position": "bottom-right",
+      "watermarkAsset": "nexora-watermark.png"
+    },
+    "style-7.svg": {
+      "brandedSha256": "443f6e9faf0a3587fb407009cf1fe5c9bce51350e1b09c7b61baccc3eb16b134",
+      "position": "bottom-right",
+      "watermarkAsset": "nexora-watermark.png"
+    },
+    "style-8.svg": {
+      "brandedSha256": "c42d84546daf6d45f43a51b9fb914fb3cc2203de751be0e351d3c04f2f51ac60",
+      "position": "bottom-right",
+      "watermarkAsset": "nexora-watermark.png"
+    },
+    "style-9.svg": {
+      "brandedSha256": "296b33a8762836f54d966f390cf3735e1e02b9a629a3a007ba7d435c652bfc3d",
+      "position": "bottom-right",
+      "watermarkAsset": "nexora-watermark.png"
+    }
+  },
+  "svgImageCount": 18
+}
