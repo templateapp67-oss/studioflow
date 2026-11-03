@@ -109,7 +109,7 @@ export function AureliaBeautyEditor(props:SalonWebsitePreviewProps){
    </div>
    <div className="border-t pt-4 space-y-2">
     <h3 className="font-semibold">Website section order</h3>
-    {(config.sectionOrder||['hero','services','story','team','menu','gallery','videos','offers','reviews','contact']).map((key,index)=><div key={key} className="flex items-center justify-between gap-3 border rounded-lg px-3 py-2"><span className="capitalize text-sm">{key.replace(/([A-Z])/g,' $1')}</span><div className="flex gap-1"><button className="secondary-action" disabled={index===0} onClick={()=>moveSection(index,-1)} aria-label={'Move '+key+' up'}><ChevronUp size={14}/></button><button className="secondary-action" disabled={index===(config.sectionOrder||[]).length-1} onClick={()=>moveSection(index,1)} aria-label={'Move '+key+' down'}><ChevronDown size={14}/></button></div></div>)}
+    {(config.sectionOrder||['hero','services','story','team','menu','gallery','videos','offers','reviews','contact']).map((key,index)=><div key={key} className="flex items-center justify-between gap-3 border rounded-lg px-3 py-2"><span className="capitalize text-sm">{key.replace(/([A-Z])/g,' $1')}</span><div className="flex gap-1"><button className="secondary-action" disabled={index===0} onClick={()=>moveSection(index,-1)} aria-label={'Move '+key+' up'}><ChevronUp size={14}/></button><button className="secondary-action" disabled={index===(config.sectionOrder||['hero','services','story','team','menu','gallery','videos','offers','reviews','contact']).length-1} onClick={()=>moveSection(index,1)} aria-label={'Move '+key+' down'}><ChevronDown size={14}/></button></div></div>)}
    </div>
   </section>
   <section className="workspace-card space-y-4">
