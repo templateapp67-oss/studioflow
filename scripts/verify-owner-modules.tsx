@@ -17,7 +17,10 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
  await act(async()=>{view=create(<OwnerWorkspace {...props}/>)});
  const steps=view.root.findByProps({'aria-label':'Website editing steps'}).findAllByType('button');
  const tools=view.root.findByProps({'aria-label':'Business tools'}).findAllByType('button');
- const buttons=[...steps,...tools];assert.equal(steps.length,18,template.id);assert.equal(tools.length,10,template.id);assert.equal(buttons.length,28,template.id);assert.ok(tools.some((b:any)=>b.props.title==='Branches & inventory'),template.id);
+ const isAura = template.id === 'unisex_salon';
+ const expectedTools = isAura ? 11 : 10;
+ const buttons=[...steps,...tools];assert.equal(steps.length,18,template.id);assert.equal(tools.length,expectedTools,template.id);assert.equal(buttons.length,18+expectedTools,template.id);assert.ok(tools.some((b:any)=>b.props.title==='Branches & inventory'),template.id);
+ assert.equal(tools.some((b:any)=>b.props.title==='Template 03 Content Management'),isAura,template.id);
  assert.ok(buttons.every((b:any)=>typeof b.props.onClick==='function'));
  await act(async()=>buttons.find((b:any)=>b.props.title==='3. Logo, colours & hero').props.onClick());
  assert.ok(text(view.toJSON()).includes('Hero Banner Cover Image'),template.id);
@@ -30,4 +33,4 @@ const template=Object.values(CATEGORY_TEMPLATES)[0];let team:any;
 await act(async()=>{team=create(<OwnerWorkspace profile={INITIAL_SALON_PROFILE} setProfile={()=>{}} services={template.services} setServices={()=>{}} stylists={template.stylists} setStylists={()=>{}} appointments={[]} extras={DEFAULT_EXTRAS} setExtras={()=>{}} published={null} onPublish={async()=>{}} sessionEmail="owner@example.com" templates={Object.values(CATEGORY_TEMPLATES)} onOpenPreview={()=>{}} onOpenDashboard={()=>{}} onOpenWizard={()=>{}}/>);});
 assert.ok(team.root.findAll((n:any)=>n.props['aria-current']==='page').some((n:any)=>n.props.title==='6. Team & specialists'));
 await act(async()=>team.unmount());
-console.log('PASS: all 14 templates expose 18 guided steps + 10 business tools (28 callable owner modules), hero upload controls and branding; owner module link opens Team step 06.');
+console.log('PASS: all 14 templates expose 18 guided steps + 10 business tools, with the Template 03 content tool visible only for Aura (11 tools / 29 modules); hero upload controls and branding; owner module link opens Team step 06.');
