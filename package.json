@@ -25,7 +25,9 @@
     "assets:template01": "node scripts/build-template01-assets.mjs",
     "assets:template03": "node scripts/build-template03-assets.mjs",
     "media:template15": "node scripts/verify-template15-media.mjs",
-    "brand:template15": "python3 scripts/brand-template15-media.py"
+    "brand:template15": "python3 scripts/brand-template15-media.py",
+    "prebuild": "node scripts/generate-sitemap.mjs",
+    "sitemap": "node scripts/generate-sitemap.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
