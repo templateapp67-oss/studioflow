@@ -87,7 +87,7 @@ export function AureliaBeautyEditor(props:SalonWebsitePreviewProps){
     <label><span className="field-label">Working hours display</span><input className="workspace-input" value={config.workingHoursDisplay||''} onChange={e=>updateConfig({workingHoursDisplay:e.target.value})}/></label>
    </div>
    <div className="grid md:grid-cols-2 gap-4">
-    <div className="border rounded-xl p-3 space-y-2"><span className="field-label">Salon logo</span>{profile.logoUrl&&<img src={profile.logoUrl} alt="Salon logo" className="h-16 max-w-40 object-contain"/>}<input type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" disabled={!!uploading} onChange={e=>{const file=e.target.files?.[0];if(file)void uploadLogo(file);}}/><small>Logo is stored in this salon's Supabase media area.</small></div>
+    <div className="border rounded-xl p-3 space-y-2"><span className="field-label">Salon logo</span>{profile.logoUrl&&<img src={profile.logoUrl} alt="Salon logo" className="h-16 max-w-40 object-contain"/>}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={!!uploading} onChange={e=>{const file=e.target.files?.[0];if(file)void uploadLogo(file);}}/><small>Logo is stored in this salon's Supabase media area.</small></div>
    </div>
    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
     <label><span className="field-label">Background colour</span><input className="workspace-input h-11 p-1" type="color" value={config.backgroundColor||'#f6f1ea'} onChange={e=>updateConfig({backgroundColor:e.target.value})}/></label>
