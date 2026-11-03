@@ -1,5 +1,5 @@
 import React, {useMemo, useState} from 'react';
-import {ChevronDown, ChevronUp, ImagePlus, Plus, Save, Trash2, Upload, Video, WandSparkles} from 'lucide-react';
+import {ChevronDown, ChevronUp, Plus, Save, Trash2, Video} from 'lucide-react';
 import {ServiceManagement} from '../ServiceManagement';
 import {TeamManagement} from '../TeamManagement';
 import {WebsiteContentManager} from '../WebsiteContentManager';
@@ -94,7 +94,6 @@ export function AureliaBeautyEditor(props:SalonWebsitePreviewProps){
     <label><span className="field-label">Text colour</span><input className="workspace-input h-11 p-1" type="color" value={config.inkColor||'#1d1612'} onChange={e=>updateConfig({inkColor:e.target.value})}/></label>
     <label><span className="field-label">Accent colour</span><input className="workspace-input h-11 p-1" type="color" value={config.accentColor||'#d9b98f'} onChange={e=>updateConfig({accentColor:e.target.value})}/></label>
     <label><span className="field-label">Border colour</span><input className="workspace-input h-11 p-1" type="color" value={config.lineColor||'#d8c8b4'} onChange={e=>updateConfig({lineColor:e.target.value})}/></label>
-   </div>
    </div>
    <div className="grid md:grid-cols-2 gap-4">
     <div className="border rounded-xl p-3 space-y-2"><span className="field-label">Hero image</span><img src={config.heroImageUrl||profile.coverImageUrl} alt="Hero preview" className="w-full h-40 object-cover rounded-lg"/><input type="file" accept="image/jpeg,image/png,image/webp" disabled={!!uploading} onChange={e=>{const file=e.target.files?.[0];if(file)void uploadImage(file,'heroImageUrl');}}/><small>JPG, PNG or WebP · max 5 MB · uploaded to your Supabase media folder.</small></div>
