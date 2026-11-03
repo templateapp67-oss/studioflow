@@ -28,7 +28,7 @@ export const NEXORA_BRAND = 'NEXORA';
 export const NEXORA_PREFIX = `${NEXORA_BRAND} `;
 
 /**
- * Category identity: colour, icon and description. One entry per category,
+ * Category identity: colour, icon and description. One entry per category (a category may contain multiple templates),
  * in priority order. `categoryId` is stable and used by the filter bar.
  */
 export interface NexoraCategory {
@@ -70,7 +70,7 @@ export interface NexoraTemplateMeta {
   services: string[];
   priorityRank: number;
   displayOrder: number;
-  /** Menu number shown on the card: "01", "02", … "15". */
+  /** Menu number shown on the card: "01", "02", … "16". */
   templateNumber: string;
   searchTags: string[];
   icon: string;
