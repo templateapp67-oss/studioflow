@@ -30,7 +30,7 @@ export function sitemapXml(origin: string, slugs: string[]) {
     origin + "/?app=1",
     ...new Set(
       slugs
-        .filter((s) => /^[a-z0-9][a-z0-9-]{2,62}$/.test(s))
+        .filter((s) => /^[a-z0-9][a-z0-9-]{2,62}$/.test(s) && !s.toLowerCase().startsWith('studioflow-qa-'))
         .map((s) => origin + "/?site=" + encodeURIComponent(s)),
     ),
   ];
@@ -46,11 +46,11 @@ export async function generateSitemap(
   env: NodeJS.ProcessEnv = process.env,
   fetcher: typeof fetch = fetch,
 ) {
-  const origin = canonicalOrigin(env.SITE_URL);
+  const origin = canonicalOrigin(env.SITE_URL || env.VITE_SITE_URL || 'https://nexorasalon.online');
   const endpoint =
-    env.SUPABASE_URL || "https://zilwgiuiygqqardzutxi.supabase.co";
+    env.SUPABASE_URL || env.VITE_SUPABASE_URL || "https://zilwgiuiygqqardzutxi.supabase.co";
   const key =
-    env.SUPABASE_ANON_KEY || "sb_publishable_Xck8H8PcTCCnEwkvBfiSLw_c973vJkH";
+    env.SUPABASE_ANON_KEY || env.VITE_SUPABASE_ANON_KEY || "sb_publishable_Xck8H8PcTCCnEwkvBfiSLw_c973vJkH";
   const slugs: string[] = [];
   for (let offset = 0; offset < 50000; offset += 1000) {
     const url = new URL("/rest/v1/studioflow_websites", endpoint);
