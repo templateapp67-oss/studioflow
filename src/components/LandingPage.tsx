@@ -90,7 +90,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setCurrentView, onSele
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-primary text-base">verified</span>
-                <span>15 distinct NEXORA designs</span>
+                <span>16 distinct NEXORA designs</span>
               </div>
             </div>
           </div>
@@ -156,7 +156,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setCurrentView, onSele
           </div>
         </div>
 
-        {/* NEXORA Template Library — category filters, search and all 15 templates */}
+        {/* NEXORA Template Library — category filters, search and all 16 templates */}
         <div className="pt-10 border-t border-outline-variant/30">
           <NexoraTemplateLibrary
             templates={templatesList}
