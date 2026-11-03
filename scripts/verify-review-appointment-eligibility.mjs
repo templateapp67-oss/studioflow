@@ -31,6 +31,7 @@ assert.match(salonDetail, /Complete an appointment at this salon and wait until 
 assert.match(salonDetail, /ownReview\?'Edit Review'/, 'customers must be able to edit their existing review');
 assert.match(migration, /create or replace function studioflow_android_private\.review/i, 'Android salon detail review RPC must also enforce eligibility');
 assert.match(migration, /Complete a visit before reviewing/i, 'Android review RPC must reject uncompleted or demo visits');
+assert.match(migration, /create or replace function studioflow_android_private\\.review[\\s\\S]*?set search_path='' as \\$\\$\\s*begin[\\s\\S]*?\\nend;\\s*\\$\\$;/i, 'Android review migration must use valid PostgreSQL dollar-quoted function syntax');
 assert.match(salonDetail, /\[salon\.slug,signedIn\]/, 'review eligibility must refresh when a customer signs in');
 
 console.log('PASS: salon reviews require a completed non-demo appointment, with rating/recency filters retained.');
