@@ -16,7 +16,7 @@ export const IRON_INK_PERK_SUGGESTIONS: RewardThreshold[] = [
     discountValue: 10,
     applicableCategory: "Tattoo & piercing services",
     description:
-      "Editable example. StudioFlow counts points, so set the threshold to whatever a three-visit client would earn in your programme. Nothing is published until you enable and save it.",
+      "Editable example. NEXORA counts points, so set the threshold to whatever a three-visit client would earn in your programme. Nothing is published until you enable and save it.",
     isActive: false,
     couponCodePrefix: "INK10",
   },

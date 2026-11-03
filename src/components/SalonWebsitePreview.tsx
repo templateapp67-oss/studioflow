@@ -63,6 +63,8 @@ import {
 } from 'lucide-react';
 import { SalonProfile, SalonService, Stylist, Appointment, BusinessTypeId } from '../types';
 import { CATEGORY_TEMPLATES } from '../categoryTemplates';
+import { nexoraName } from './nexora/NexoraBrand';
+import { sortTemplatesByPriority } from '../lib/nexoraTemplateCatalogue';
 import { ACCENT_PALETTES, DEFAULT_CATEGORY_ACCENTS, AccentPaletteKey, applyPrimaryAccentCssVar, getContrastTextColor, getLuminance } from '../themeAccents';
 import { CATEGORY_STANDARDIZED_DATA, Testimonial } from '../templateData';
 import { applyTemplateDesign } from '../lib/templateSelection';
@@ -875,7 +877,7 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
               <span className="material-symbols-outlined text-sm">category</span>
               15 Category Templates:
             </span>
-            {Object.values(CATEGORY_TEMPLATES).map((tmpl) => {
+            {sortTemplatesByPriority(Object.values(CATEGORY_TEMPLATES)).map((tmpl) => {
               const isSelected = tmpl.id === selectedCategoryKey;
               return (
                 <button
@@ -886,10 +888,10 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
                       ? 'bg-slate-900 text-white border-slate-900 shadow-xs scale-105'
                       : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                   }`}
-                  title={`${tmpl.title} - ${tmpl.paletteLabel}`}
+                  title={`${nexoraName(tmpl.id, tmpl.title)} - ${tmpl.paletteLabel}`}
                 >
                   <span className="material-symbols-outlined text-sm">{tmpl.icon}</span>
-                  <span>{tmpl.shortName}</span>
+                  <span>{nexoraName(tmpl.id, tmpl.shortName)}</span>
                 </button>
               );
             })}
@@ -2131,7 +2133,7 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
         )}
 
         <WebsiteSections onCustomerAccount={onCustomerAccount} profile={activeProfile} services={activeServices} onBook={handleOpenBooking} onManage={onManageDashboard} setProfile={setProfile} isEditingActive={isEditMode && !readOnly} readOnly={readOnly} policies={policies} loyaltyConfig={loyaltyConfig}/>
-        {branding?.poweredBy&&<p className="text-center text-xs py-4">Powered by {branding.platformName||'StudioFlow'}</p>}
+        {branding?.poweredBy&&<p className="text-center text-xs py-4">Powered by {branding.platformName||'NEXORA'}</p>}
         <AppInstallSection className={isDarkCanvas ? 'app-install--dark-canvas' : ''}/>
         {/* 8. FOOTER WITH DYNAMIC SOCIAL LINKS */}
         <footer className={`py-8 px-6 md:px-12 border-t text-center ${

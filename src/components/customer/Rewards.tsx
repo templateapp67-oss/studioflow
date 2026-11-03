@@ -236,7 +236,7 @@ export function CustomerRewards({points=0,rewards=[],referral,signedIn,error,sig
               Points History & Ledger
             </h2>
           </div>
-          <span className="text-xs text-slate-500 font-mono">StudioFlow Points Ledger</span>
+          <span className="text-xs text-slate-500 font-mono">NEXORA Points Ledger</span>
         </div>
 
         {!loading&&!ledger.length&&<Empty action={!signedIn?'Sign in':undefined} onAction={signIn}>{signedIn?'Your completed visits and redeemed vouchers will appear here.':'Sign in to view your private points history.'}</Empty>}<div className="space-y-2">

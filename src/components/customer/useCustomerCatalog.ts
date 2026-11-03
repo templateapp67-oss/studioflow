@@ -8,7 +8,9 @@ import {CATEGORY_TEMPLATES} from '../../categoryTemplates';
 import {isSalon,type Salon,type Service,type Stylist} from './model';
 import type {Promotion} from '../../lib/promotionStatus';
 import {withTemplateDemos} from './templateDemos';
-export type CustomerTemplate={id:string;title:string;shortName:string;tagline:string;coverImageUrl:string;defaultCity?:string;themePreset?:string;subCategories?:string[];services?:Service[];stylists?:Stylist[];demoOffer?:Promotion};
+export type CustomerTemplate={id:string;title:string;shortName:string;tagline:string;coverImageUrl:string;defaultCity?:string;themePreset?:string;subCategories?:string[];services?:Service[];stylists?:Stylist[];demoOffer?:Promotion;
+ /** NEXORA platform display name — presentation only, never the salon's own brand. */
+ displayName?:string;categoryName?:string;templateNumber?:string;priorityRank?:number;};
 export function useCustomerCatalog(revision:number){
  const [salons,setSalons]=useState<Salon[]>([]),[templates,setTemplates]=useState<CustomerTemplate[]>([]),[loading,setLoading]=useState(true),[error,setError]=useState('');
  useEffect(()=>{

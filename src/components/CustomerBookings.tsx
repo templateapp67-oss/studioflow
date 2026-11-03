@@ -47,7 +47,7 @@ export function CustomerBookings({ session,embedded=false,onClose }: { key?:Reac
         stylistName: b.stylistName || 'Salon Specialist',
         date: b.date || '',
         time: b.time || '',
-        salonName: b.salonName || 'StudioFlow Salon',
+        salonName: b.salonName || 'NEXORA Salon',
         salonAddress: b.salonAddress,
         salonCity: b.salonCity,
         salonPhone: b.salonPhone,
@@ -73,7 +73,7 @@ export function CustomerBookings({ session,embedded=false,onClose }: { key?:Reac
   };
 
   return <main className={embedded?'sf-customer-bookings':'min-h-screen bg-[#f9f9ff] p-4 sm:p-8'}><section className={embedded?'sf-customer-bookings-content':'workspace-card max-w-4xl mx-auto'}>
-    {!embedded&&<p className="eyebrow">StudioFlow · Customer account</p>}{!embedded&&<h1 className="text-3xl font-bold">My bookings</h1>}<p className="muted my-3">{session.user.email}</p>
+    {!embedded&&<p className="eyebrow">NEXORA · Customer account</p>}{!embedded&&<h1 className="text-3xl font-bold">My bookings</h1>}<p className="muted my-3">{session.user.email}</p>
     <div className="flex gap-3 flex-wrap mb-6">{embedded?<button className="secondary-action" onClick={onClose}>Back to salon</button>:returnSlug && <a className="primary-action" href={websiteLink(returnSlug)}>Return to salon / Book appointment</a>}<button className="secondary-action" onClick={() => void refresh()}>Refresh</button><BusinessNotificationLink/><button className="secondary-action" onClick={() => void supabase.auth.signOut()}>Sign out</button></div>
     {error && <p role="alert" className="text-red-700 my-4">{error}</p>}
     {loading ? <p role="status">Loading bookings…</p> : error ? null : !bookings.length ? <p>You have no bookings yet. Choose a service at the salon to book your first appointment.</p> : <div className="space-y-4">{bookings.map(({ id, status, payload: b,hold_expires_at }) => <article key={id} className="border rounded-xl p-4 bg-white shadow-xs">

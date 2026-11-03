@@ -4,7 +4,8 @@ import { applyTemplateDesign } from '../lib/templateSelection';
 import { websiteLink } from '../lib/supabase';
 import React, { useState } from 'react';
 import { SalonProfile, SalonService, Stylist, BusinessTypeId, CategoryTemplateConfig } from '../types';
-import { BUSINESS_TYPES } from '../mockData';
+import { nexoraName, nexoraCategoryLabel } from './nexora/NexoraBrand';
+import { sortTemplatesByPriority, nexoraTemplateMeta } from '../lib/nexoraTemplateCatalogue';
 import { CATEGORY_TEMPLATES } from '../categoryTemplates';
 import { AIBioModal } from './AIBioModal';
 import { SocialConnectivityStep } from './SocialConnectivityStep';
@@ -134,7 +135,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                 {[
                   { title: 'Launch New Salon Site', icon: 'web', desc: 'Create a full mobile-friendly website with online bookings.' },
                   { title: 'Enable Online Bookings', icon: 'calendar_month', desc: 'Accept client appointments and deposits 24/7.' },
-                  { title: 'Replace Existing Site', icon: 'published_with_changes', desc: 'Upgrade to StudioFlow with automated retention tools.' }
+                  { title: 'Replace Existing Site', icon: 'published_with_changes', desc: 'Upgrade to NEXORA with automated retention tools.' }
                 ].map((item, idx) => (
                   <div
                     key={idx}
@@ -166,7 +167,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 my-2 max-h-[360px] overflow-y-auto pr-1">
-                {templates.map(t => ({ id: t.id, title: t.shortName, icon: t.icon, paletteName: t.paletteLabel, aestheticDescription: t.tagline, description: t.about })).map((bt) => {
+                {sortTemplatesByPriority(templates).map(t => ({ id: t.id, title: nexoraName(t.id, t.shortName), icon: t.icon, paletteName: nexoraCategoryLabel(t.id, t.paletteLabel), aestheticDescription: nexoraTemplateMeta(t.id)?.shortDescription || t.tagline, description: t.about, rank: nexoraTemplateMeta(t.id)?.templateNumber || '' })).map((bt) => {
                   const isSelected = profile.businessType === bt.id;
                   return (
                     <button
@@ -186,7 +187,10 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                         <span className="material-symbols-outlined text-2xl">{bt.icon}</span>
                       </div>
                       <div className="flex flex-col pr-4">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-900 text-white font-bold">
+                            {bt.rank}
+                          </span>
                           <span className="font-display text-sm font-bold">{bt.title}</span>
                           <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-normal">
                             {bt.paletteName}

@@ -78,7 +78,8 @@ console.log('PASS: all Vogue Noir local WebP/SVG/PNG/JPG assets exist on disk wi
 const template08 = CATEGORY_TEMPLATES.makeup_studio;
 assert.equal(template08.shortName, 'Vogue Noir (08)');
 assert.equal(template08.title, VOGUE_NOIR_BRAND_NAME);
-assert.ok(ALL_CATEGORY_OPTIONS.some((o) => o.id === 'makeup_studio' && o.title === 'Vogue Noir (08)'));
+assert.ok(ALL_CATEGORY_OPTIONS.some((o) => o.id === 'makeup_studio' && o.title === 'NEXORA Vogue Noir Makeup Studio'),'the picker lists the NEXORA display name');
+assert.equal(CATEGORY_TEMPLATES.makeup_studio.title, VOGUE_NOIR_BRAND_NAME,'the salon demo brand stays unchanged for the generated website');
 for (const alias of ['?template=08', '?template=template-08', '?template=vogue-noir', '?template=makeup_studio', '?template=makeup']) {
   assert.equal(requestedTemplate(alias)?.id, 'makeup_studio', `Alias ${alias} must resolve to makeup_studio`);
 }

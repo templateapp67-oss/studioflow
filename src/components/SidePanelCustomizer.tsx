@@ -36,6 +36,8 @@ import { SalonProfile, BusinessTypeId, SalonService } from '../types';
 import { InteractiveMapSetup } from './InteractiveMapSetup';
 import { ACCENT_PALETTES, AccentPaletteKey } from '../themeAccents';
 import { CATEGORY_TEMPLATES } from '../categoryTemplates';
+import { nexoraName } from './nexora/NexoraBrand';
+import { sortTemplatesByPriority, nexoraTemplateMeta } from '../lib/nexoraTemplateCatalogue';
 import { SALON_IMAGES } from '../assets/images';
 import { validateAndReadImageFile, compressAndResizeImage } from '../utils/imageUploadHelper';
 import { AILogoSuiteModal } from './AILogoSuiteModal';
@@ -631,13 +633,13 @@ export const SidePanelCustomizer: React.FC<SidePanelCustomizerProps> = ({
                 onChange={(e) => {
                   const catId = e.target.value as BusinessTypeId;
                   onSelectCategory?.(catId);
-                  showToast(`Switched Category Template to ${CATEGORY_TEMPLATES[catId]?.title || catId}`);
+                  showToast(`Switched Category Template to ${nexoraName(catId, CATEGORY_TEMPLATES[catId]?.title || catId)}`);
                 }}
                 className="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:border-slate-900 focus:outline-none"
               >
-                {Object.values(CATEGORY_TEMPLATES).map((tmpl) => (
+                {sortTemplatesByPriority(Object.values(CATEGORY_TEMPLATES)).map((tmpl) => (
                   <option key={tmpl.id} value={tmpl.id}>
-                    {tmpl.title} ({tmpl.paletteLabel.split('(')[0]})
+                    {nexoraTemplateMeta(tmpl.id)?.templateNumber} · {nexoraName(tmpl.id, tmpl.title)} · {nexoraTemplateMeta(tmpl.id)?.categoryName || tmpl.paletteLabel.split('(')[0]}
                   </option>
                 ))}
               </select>

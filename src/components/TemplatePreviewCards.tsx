@@ -12,6 +12,8 @@ import { isArchFlutterTemplate, type ArchFlutterCustomizerConfig, type Customize
 import { isVedaTemplate } from '../lib/vedaSanjeevaniCustomizer';
 import { DEFAULT_EXTRAS } from '../lib/workspaceDefaults';
 import { syncPreviewStyles } from '../lib/previewStyleSync';
+import { nexoraDisplayName, nexoraTemplateMeta, sortTemplatesByPriority } from '../lib/nexoraTemplateCatalogue';
+import { NexoraBrandMark } from './nexora/NexoraBrand';
 
 const LiveWebsite = lazy(() => loadScreen(() => import('./SalonWebsitePreview').then(m => ({ default: m.SalonWebsitePreview }))));
 /** Template 13 only: the dedicated customizer drawer, loaded on demand. */
@@ -35,13 +37,13 @@ export function TemplateThumbnail({ template: t }: { template: CategoryTemplateC
   const rounded = isLuxuryEditorial ? false : isArchFlutter || ['curved_elegant', 'chic_nude', 'zen_emerald', 'earth_bamboo', 'palace_heritage'].includes(t.layoutStyle);
   return <div aria-hidden="true" className="p-4 pb-0 bg-slate-100">
     <div className={`rounded-t-xl border shadow-sm overflow-hidden ${isIronInk ? 'border-[#E11D48]/50 bg-[#0A0A0B]' : isVogueNoir ? 'border-[#2A2A2D] bg-[#0B0B0C]' : isPrismChroma ? 'border-white/20 bg-[#0B0B14]' : isShringaar ? 'border-[#C9A24B]/60 bg-[#FBF4E6]' : isArchFlutter ? 'border-[#C9A66B]/60 bg-[#FBF6F1]' : isLuxuryEditorial ? 'border-[#D8C5A3] bg-[#F7F3EC]' : 'border-slate-300 bg-white'}`}>
-      <div className={`h-6 flex items-center gap-1 px-2 border-b ${isIronInk ? 'bg-[#141417] border-white/10' : isVogueNoir ? 'bg-[#151517] border-[#2A2A2D]' : isPrismChroma ? 'bg-[#12121F] border-white/10' : isArchFlutter ? 'bg-[#FFFDFB] border-[#E0CBA6]' : isLuxuryEditorial ? 'bg-[#FBF8F2] border-[#E9E0D4]' : 'bg-white border-slate-200'}`}><i className="w-1.5 h-1.5 rounded-full bg-rose-300"/><i className="w-1.5 h-1.5 rounded-full bg-amber-300"/><i className="w-1.5 h-1.5 rounded-full bg-emerald-300"/><span className={`ml-auto text-[7px] ${isVogueNoir ? 'text-[#C9A96E] font-semibold tracking-wider' : isPrismChroma ? 'text-[#35E0F0] font-semibold tracking-wider' : isShringaar ? 'text-[#5A0F1E] font-semibold tracking-[0.18em] uppercase' : isArchFlutter ? 'text-[#7A4F57] font-semibold tracking-[0.18em] uppercase' : isLuxuryEditorial ? 'text-[#6F5B4D] font-semibold tracking-[0.2em] uppercase' : 'text-slate-400'}`}>{isIronInk ? 'IRON & INK · 12' : isShringaar ? 'Shringaar Royal · 11' : isArchFlutter ? 'Arch & Flutter · 13' : t.shortName}</span></div>
+      <div className={`h-6 flex items-center gap-1 px-2 border-b ${isIronInk ? 'bg-[#141417] border-white/10' : isVogueNoir ? 'bg-[#151517] border-[#2A2A2D]' : isPrismChroma ? 'bg-[#12121F] border-white/10' : isArchFlutter ? 'bg-[#FFFDFB] border-[#E0CBA6]' : isLuxuryEditorial ? 'bg-[#FBF8F2] border-[#E9E0D4]' : 'bg-white border-slate-200'}`}><i className="w-1.5 h-1.5 rounded-full bg-rose-300"/><i className="w-1.5 h-1.5 rounded-full bg-amber-300"/><i className="w-1.5 h-1.5 rounded-full bg-emerald-300"/><span data-nexora-card-mark className="ml-1.5 inline-flex items-center gap-1 rounded-sm bg-[#2A1E4A] px-1 py-[1px] text-[6px] font-black uppercase tracking-[0.12em] text-[#F5E9D6]">NEXORA</span><span className={`ml-auto text-[7px] ${isVogueNoir ? 'text-[#C9A96E] font-semibold tracking-wider' : isPrismChroma ? 'text-[#35E0F0] font-semibold tracking-wider' : isShringaar ? 'text-[#5A0F1E] font-semibold tracking-[0.18em] uppercase' : isArchFlutter ? 'text-[#7A4F57] font-semibold tracking-[0.18em] uppercase' : isLuxuryEditorial ? 'text-[#6F5B4D] font-semibold tracking-[0.2em] uppercase' : 'text-slate-400'}`}>{isIronInk ? 'IRON & INK · 12' : isShringaar ? 'Shringaar Royal · 11' : isArchFlutter ? 'Arch & Flutter · 13' : t.shortName}</span></div>
       <div className={`relative h-40 overflow-hidden ${t.themeStyle.heroBackground} ${t.themeStyle.heroTextColor} ${split ? 'flex' : ''}`}>
         <img src={t.coverImageUrl} alt="" loading="lazy" decoding="async" style={isShringaar ? { borderTopLeftRadius: '999px', borderTopRightRadius: '999px' } : isArchFlutter ? { borderRadius: '999px 999px 18px 18px' } : undefined} className={`${split ? 'w-1/2 order-2' : 'absolute inset-0 w-full'} h-full object-cover object-top motion-safe:transition-transform motion-safe:duration-500 motion-safe:group-hover:scale-105`} />
         {!split && <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-black/10"/>}
         <div className={`relative z-10 p-3 flex flex-col justify-end h-full ${split ? 'w-1/2' : 'text-white w-4/5'} ${rounded || isVogueNoir || isLuxuryEditorial ? 'font-serif' : ''}`}>
           <span className={`text-[7px] uppercase tracking-widest mb-2 ${isVogueNoir ? 'text-[#C9A96E]' : isArchFlutter ? 'text-[#8A6A2F]' : 'opacity-80'}`}>{t.defaultCity.split(',')[0]} · {t.shortName}</span>
-          <span className={`text-sm font-bold leading-tight ${isVogueNoir ? 'text-[#F5EFE6]' : isArchFlutter ? 'text-[#2B1B17]' : ''}`}>{t.title}</span>
+          <span className={`text-sm font-bold leading-tight ${isVogueNoir ? 'text-[#F5EFE6]' : isArchFlutter ? 'text-[#2B1B17]' : ''}`}>{nexoraDisplayName(t.id, t.title)}</span>
           <span className="text-[8px] leading-relaxed mt-1 line-clamp-2 opacity-80">{t.tagline}</span>
           <span style={{backgroundColor:accentHex, color:getContrastTextColor(accentHex)}} className={`text-[7px] font-sans font-semibold w-fit px-2.5 py-1.5 mt-2 ${rounded ? 'rounded-full' : 'rounded-sm'}`}>Explore services →</span>
         </div>
@@ -130,11 +132,21 @@ export function TemplatePreviewModal({templateId, onSelectPreview, onClose, onCh
     <div className="h-full flex flex-col bg-slate-100 text-slate-900">
       <header className="shrink-0 bg-white border-b border-slate-200 px-3 sm:px-5 py-2 flex flex-wrap items-center gap-x-3 gap-y-2">
         <div className="min-w-0 flex-1 basis-56">
-          <h2 id="template-preview-title" className="font-bold text-sm sm:text-base leading-tight truncate">{t.title}</h2>
-          <p className="text-[11px] sm:text-xs text-slate-500 truncate">{t.shortName} · Live template demo with sample content; demo bookings are not submitted{hasCustomizer && (customized || vedaWorkspace) ? ' · Your customized demo — nothing is published until you create your website' : ''}</p>
+          <div className="flex items-center gap-2">
+            <NexoraBrandMark size="sm" />
+            <h2 id="template-preview-title" className="font-bold text-sm sm:text-base leading-tight truncate">{nexoraDisplayName(templateId, t.title)}</h2>
+          </div>
+          <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] sm:text-xs text-slate-500">
+            <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 font-bold text-slate-700">
+              <span className="font-mono text-[10px] text-slate-500">{nexoraTemplateMeta(templateId)?.templateNumber}</span>
+              {nexoraTemplateMeta(templateId)?.categoryName || t.shortName}
+            </span>
+            <span className="truncate">Live template demo with sample content; demo bookings are not submitted{hasCustomizer && (customized || vedaWorkspace) ? ' · Your customized demo — nothing is published until you create your website' : ''}</span>
+          </p>
+          <p className="mt-0.5 text-[10px] text-slate-400">Salon demo brand: {t.title}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <select aria-label="Preview template" value={templateId} onChange={event => onSelectPreview(event.target.value as BusinessTypeId)} className="min-h-[44px] border border-slate-300 bg-white rounded-lg px-2 text-xs max-w-36 sm:max-w-56">{Object.values(CATEGORY_TEMPLATES).map(template => <option key={template.id} value={template.id}>{template.shortName}</option>)}</select>
+          <select aria-label="Preview template" value={templateId} onChange={event => onSelectPreview(event.target.value as BusinessTypeId)} className="min-h-[44px] border border-slate-300 bg-white rounded-lg px-2 text-xs max-w-36 sm:max-w-60">{sortTemplatesByPriority(Object.values(CATEGORY_TEMPLATES)).map(template => <option key={template.id} value={template.id}>{nexoraDisplayName(template.id, template.shortName)}</option>)}</select>
           <div role="group" aria-label="Preview device" className="flex border border-slate-300 rounded-lg overflow-hidden bg-white">
             {PREVIEW_DEVICES.map(({ id, label, Icon }) => (
               <button key={id} type="button" aria-pressed={device===id} title={`${label} preview`} onClick={() => setDevice(id)} className={`inline-flex items-center justify-center gap-1.5 text-xs min-h-[44px] min-w-[44px] px-2.5 sm:px-3 transition-colors ${device===id ? 'bg-slate-900 text-white' : 'hover:bg-slate-100'}`}>
@@ -152,7 +164,7 @@ export function TemplatePreviewModal({templateId, onSelectPreview, onClose, onCh
       <div className="flex-1 min-h-0 bg-slate-200/70 px-2 pb-2 pt-2 sm:px-6 sm:pb-5 sm:pt-4">
         <div ref={stageRef} className="h-full w-full flex justify-center overflow-hidden">
           <div style={{ width: Math.round(frame.width * scale), height: '100%' }} className="relative overflow-hidden rounded-xl bg-white shadow-xl ring-1 ring-slate-900/10 transition-[width] duration-200 motion-reduce:transition-none">
-            <iframe title={`${t.title} live ${device} preview`} srcDoc={PREVIEW_FRAME_HTML} onLoad={event => {
+            <iframe title={`${nexoraDisplayName(templateId, t.title)} live ${device} preview`} srcDoc={PREVIEW_FRAME_HTML} onLoad={event => {
               const doc = event.currentTarget.contentDocument;
               if (!doc) return;
               stopStyleSync.current?.();

@@ -89,9 +89,11 @@ assert.equal(ARCH_FLUTTER_TEMPLATE_SERVICES.filter((service) => isPackage(servic
 assert.equal(Object.keys(CATEGORY_TEMPLATES).length, 15, 'fifteen registered templates');
 const option = ALL_CATEGORY_OPTIONS.find((entry) => entry.id === 'lash_brow');
 assert.ok(option, 'Template 13 appears in the category picker');
-assert.equal(option!.title, 'Arch & Flutter Lash & Brow Bar');
+assert.equal(option!.title, 'NEXORA Arch & Flutter Lash & Brow Bar');
+assert.equal(option!.displayName, 'NEXORA Arch & Flutter Lash & Brow Bar');
 assert.equal(option!.badge, 'Template 13');
-assert.equal(option!.categoryTag, 'Eye-Area Atelier');
+assert.equal(option!.categoryTag, 'Lash & Brow');
+assert.equal(option!.priorityRank, 14);
 for (const alias of ['13', 'template-13', 'arch-flutter', 'archflutter', 'lash', 'lashes', 'lash-brow', 'lash_brow', 'brow', 'microblading']) {
   assert.equal(requestedTemplate(`?template=${alias}`)?.id, 'lash_brow', `?template=${alias} opens Template 13`);
 }

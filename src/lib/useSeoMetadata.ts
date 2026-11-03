@@ -106,7 +106,7 @@ export function applySeoMetadata(profile: SalonProfile, canonicalUrlOverride?: s
   if (ogImageUrl) {
     setMeta('property', 'og:image', ogImageUrl);
   }
-  setMeta('property', 'og:site_name', profile.businessName || 'StudioFlow');
+  setMeta('property', 'og:site_name', profile.businessName || 'NEXORA');
   setMeta('property', 'og:url', canonicalUrl);
 
   // Twitter / X Cards

@@ -19,6 +19,12 @@ import {
   LUXURY_EDITORIAL_TAGLINE,
 } from './lib/luxuryEditorial';
 import { CategoryTemplateConfig, BusinessTypeOption } from './types';
+import {
+  compareTemplatesByPriority,
+  nexoraCategory,
+  nexoraTemplateMeta,
+  type NexoraTemplateMeta,
+} from './lib/nexoraTemplateCatalogue';
 import { SALON_IMAGES } from './assets/images';
 import {
   VOGUE_NOIR_BRAND_NAME,
@@ -1413,7 +1419,12 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
 
 for(const template of Object.values(CATEGORY_TEMPLATES))if(template.id!=='mens_hair_studio')template.services=seedTemplatePackages(template);
 
-export const ALL_CATEGORY_OPTIONS: BusinessTypeOption[] = [
+/**
+ * Raw picker options. Order here is irrelevant: `ALL_CATEGORY_OPTIONS` below
+ * normalises every entry with its NEXORA name, category and priority rank and
+ * then sorts with the one shared priority comparator.
+ */
+const CATEGORY_OPTION_SEED: BusinessTypeOption[] = [
   {
     id: 'hair_salon',
     title: 'Ziya Women’s Hair Studio',
@@ -1626,4 +1637,33 @@ export const ALL_CATEGORY_OPTIONS: BusinessTypeOption[] = [
   }
 ];
 
-ALL_CATEGORY_OPTIONS.push({id:'mens_hair_studio',title:"KeshKraft Men's Hair Studio",categoryTag:"Men's Haircut & Hair Colour Studio",icon:'content_cut',aestheticDescription:'Men only. Precision haircuts and considered colour in charcoal, olive and bronze.',paletteName:'Charcoal, Olive & Bronze',badge:'New · 15',defaultServices:MENS_SERVICES.map(s=>({name:s.name,price:s.price,duration:s.durationMinutes,category:s.category}))});
+CATEGORY_OPTION_SEED.push({id:'mens_hair_studio',title:"KeshKraft Men's Hair Studio",categoryTag:"Men's Haircut & Hair Colour Studio",icon:'content_cut',aestheticDescription:'Men only. Precision haircuts and considered colour in charcoal, olive and bronze.',paletteName:'Charcoal, Olive & Bronze',badge:'New · 15',defaultServices:MENS_SERVICES.map(s=>({name:s.name,price:s.price,duration:s.durationMinutes,category:s.category}))});
+
+/**
+ * NEXORA presentation for the template picker.
+ *
+ * Adds the platform display name, the customer-facing category and the stable
+ * 1–15 priority rank to each option, then applies the shared priority
+ * comparator. Template IDs, services and prices are untouched, so anything
+ * holding a reference to an option keeps working.
+ */
+function nexoraOption(option: BusinessTypeOption): BusinessTypeOption {
+  const meta: NexoraTemplateMeta | undefined = nexoraTemplateMeta(option.id);
+  const category = meta ? nexoraCategory(meta.categoryId) : undefined;
+  return {
+    ...option,
+    title: meta?.displayName || option.title,
+    categoryTag: meta?.categoryName || option.categoryTag,
+    displayName: meta?.displayName || option.title,
+    categoryId: meta?.categoryId,
+    categoryName: meta?.categoryName || category?.categoryName,
+    priorityRank: meta?.priorityRank,
+    displayOrder: meta?.displayOrder,
+    templateNumber: meta?.templateNumber,
+    searchTags: meta?.searchTags,
+  };
+}
+
+export const ALL_CATEGORY_OPTIONS: BusinessTypeOption[] = [...CATEGORY_OPTION_SEED]
+  .map(nexoraOption)
+  .sort((a, b) => compareTemplatesByPriority({ id: a.id, priorityRank: a.priorityRank, displayOrder: a.displayOrder }, { id: b.id, priorityRank: b.priorityRank, displayOrder: b.displayOrder }));

@@ -56,7 +56,7 @@ export const EnvironmentDiagnostic = ({ profile }: { profile: any }) => {
         stylistName: 'Master Stylist',
         date: new Date().toISOString().slice(0, 10),
         time: '11:00 AM',
-        salonName: profile?.businessName || 'StudioFlow Salon',
+        salonName: profile?.businessName || 'NEXORA Salon',
         salonAddress: profile?.address || '128 Indiranagar Main Road',
         salonCity: profile?.city || 'Bengaluru',
         salonPhone: profile?.phone || '+91 98765 43210',
