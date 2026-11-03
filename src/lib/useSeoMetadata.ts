@@ -73,7 +73,7 @@ export function applySeoMetadata(profile: SalonProfile, canonicalUrlOverride?: s
   if (profile.customDomain) {
     try {
       const rawDomain = String(profile.customDomain).trim();
-      const parsedDomain = new URL(/^https?:\\/\\//i.test(rawDomain) ? rawDomain : `https://${rawDomain}`);
+      const parsedDomain = new URL(rawDomain.includes('://') ? rawDomain : `https://${rawDomain}`);
       if (parsedDomain.protocol === 'https:') customOrigin = parsedDomain.origin;
     } catch {
       // An invalid or not-yet-configured custom domain is not a canonical host.
