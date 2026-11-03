@@ -232,6 +232,12 @@ export interface AureliaBeautyConfig {
   galleryUrls?: string[];
   homeServices?: Array<{title:string;description:string;price:number;duration:string;imageUrl:string;serviceName?:string;category?:string}>;
   sectionOrder?: string[];
+  backgroundColor?: string;
+  inkColor?: string;
+  accentColor?: string;
+  lineColor?: string;
+  displayFont?: string;
+  bodyFont?: string;
 }
 
 export interface SalonProfile {
