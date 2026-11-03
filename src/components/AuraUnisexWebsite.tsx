@@ -37,7 +37,15 @@ import { clientExperiences } from '../lib/demoWebsiteContent';
 import { isPackage } from '../lib/packageCatalogue';
 import { loyaltyTheme } from '../lib/loyaltyTheme';
 import { promotionActive, usePromotionClock } from '../lib/promotionStatus';
-import { publicSalonOffers, offerDiscountLabel } from '../lib/salonOffers';
+import { publicSalonOffers } from '../lib/salonOffers';
+import {
+  auraLiveOffers,
+  auraPreviewDemoOffers,
+  auraOfferService,
+  useAuraPublicOffers,
+  type AuraPromotion,
+} from '../lib/auraPromotions';
+import { AuraPromotionCards } from './aura/AuraPromotionCards';
 import { reelSource } from '../lib/socialVideoSource';
 import { socialUrl } from '../lib/websiteContent';
 import { AppAnnouncementStrip, AppInstallSection } from './AppInstallSection';
@@ -47,7 +55,6 @@ import { InlineEditable } from './InlineEditable';
 import { WebsiteSections } from './WebsiteSections';
 import {
   AURA_CATEGORY_PILLARS,
-  AURA_DEMO_OFFERS,
   AURA_DEMO_REELS,
   AURA_DEMO_REWARDS,
   AURA_LOYALTY_TIERS,
@@ -282,38 +289,44 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
     return reels.filter((item) => item.category === videoFilter);
   }, [reels, videoFilter]);
 
-  // Promotions & Offers: active owner campaign + live offers, or Aura's 3 unisex vouchers in preview.
+  // Promotions & Offers: the published site reads active, in-date offers from
+  // Supabase. Every admin edit refreshes this list (event + focus + poll), so
+  // the customer website always shows the latest rows without a code change.
+  // The offline template preview shows the three clearly labelled demo offers.
   const promotionNow = usePromotionClock();
   const campaign = profile.promoCampaign;
   const hasActiveCampaign = Boolean(campaign && promotionActive(campaign, promotionNow));
   const publishedOffers = useMemo(() => publicSalonOffers(profile, promotionNow), [profile, promotionNow]);
-  const displayOffers = useMemo(() => {
+  const { offers: supabaseOffers, source: auraOffersSource } = useAuraPublicOffers(profile.subdomain);
+  const displayOffers = useMemo<AuraPromotion[]>(() => {
+    if (auraOffersSource === 'supabase') return auraLiveOffers(supabaseOffers, promotionNow);
     if (publishedOffers.length > 0) {
-      return publishedOffers.map((offer) => ({
-        id: offer.id,
-        badge: offer.badge || offerDiscountLabel(offer),
-        audience: 'Salon Offer',
-        title: offer.title,
-        description: offer.description || 'Special seasonal privilege from our salon team.',
-        code: offer.couponCode || '',
-        validity: offer.validTo ? `Ends ${new Date(offer.validTo).toLocaleDateString('en-IN')}` : 'Limited period',
-        matchedService: services.find((s) => offer.applicableServices?.includes(s.id)) || featuredService,
-        isDemo: Boolean(offer.isDemo),
-      }));
+      return auraLiveOffers(
+        publishedOffers.map((offer) => ({
+          id: offer.id,
+          title: offer.title,
+          description: offer.description || 'Special seasonal privilege from our salon team.',
+          discountType: (offer.offerType === 'flat' ? 'flat' : 'percentage') as 'flat' | 'percentage',
+          discountValue: Number(offer.discountValue || 0),
+          couponCode: offer.couponCode || '',
+          minBookingAmount: 0,
+          applicableServiceIds: offer.applicableServices || [],
+          startsAt: offer.validFrom || '',
+          endsAt: offer.validTo || '',
+          maxTotalUses: null,
+          maxUsesPerCustomer: 1,
+          termsConditions: offer.terms || '',
+          bannerImageUrl: offer.image || '',
+          displayOrder: 0,
+          isDemo: Boolean(offer.isDemo),
+          isActive: true,
+          demoApproved: !offer.isDemo,
+        })) as AuraPromotion[],
+        promotionNow,
+      );
     }
-    if (profile.subdomain) return [];
-    return AURA_DEMO_OFFERS.map((offer) => ({
-      id: offer.id,
-      badge: offer.badge,
-      audience: offer.audience,
-      title: offer.title,
-      description: offer.description,
-      code: offer.code,
-      validity: offer.validity,
-      matchedService: services.find((s) => offer.serviceMatchPattern.test(`${s.name} ${s.category}`)) || featuredService,
-      isDemo: true,
-    }));
-  }, [publishedOffers, profile.subdomain, services, featuredService]);
+    return auraLiveOffers(auraPreviewDemoOffers(promotionNow), promotionNow);
+  }, [auraOffersSource, supabaseOffers, publishedOffers, promotionNow]);
 
   // Loyalty & Rewards: respects shared.loyaltyConfig when provided; uses Aura sample rewards in standalone template preview.
   const rewardTheme = useMemo(() => loyaltyTheme(profile), [profile]);
@@ -1428,7 +1441,13 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
             10. PROMOTIONS & OFFERS — Perforated Boutique Offer Vouchers
            ================================================================== */}
         {sectionOn('promo') && (
-          <section id="salon-promo" data-section="promo" className="au-section au-offers">
+          <section
+            id="salon-promo"
+            data-section="promo"
+            data-aura-offers-source={auraOffersSource}
+            data-aura-offers-count={displayOffers.length}
+            className="au-section au-offers"
+          >
             <div className="au-container">
               <div className="au-split-head">
                 <div>
@@ -1507,44 +1526,20 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
               )}
 
               {displayOffers.length > 0 ? (
-                <div className="au-offer-grid">
-                  {displayOffers.map((offer) => (
-                    <article className="au-offer-voucher" key={offer.id}>
-                      <div className="au-offer-top">
-                        <span className="au-offer-badge">{offer.badge}</span>
-                        <span className="au-offer-audience">{offer.audience}</span>
-                      </div>
-                      <h3>{offer.title}</h3>
-                      <p>{offer.description}</p>
-                      <div className="au-offer-perforation" aria-hidden="true" />
-                      <div className="au-offer-bottom">
-                        <div className="au-offer-code-wrap">
-                          {offer.code ? (
-                            <button
-                              type="button"
-                              className="au-code-chip"
-                              aria-label={`Copy offer code ${offer.code}`}
-                              onClick={() => void handleCopyPromo(offer.code)}
-                            >
-                              <span>{copiedCode === offer.code ? `✓ ${offer.code}` : offer.code}</span>
-                              <Copy size={13} aria-hidden="true" />
-                            </button>
-                          ) : (
-                            <span className="au-offer-validity">{offer.validity}</span>
-                          )}
-                          {offer.code && <small className="au-offer-validity">{offer.validity}</small>}
-                        </div>
-                        <button
-                          type="button"
-                          className="au-btn au-btn-primary au-btn-sm"
-                          onClick={() => onBook(offer.matchedService, undefined, undefined, offer.code || undefined)}
-                        >
-                          Apply &amp; Book
-                        </button>
-                      </div>
-                    </article>
-                  ))}
-                </div>
+                <AuraPromotionCards
+                  offers={displayOffers}
+                  services={services}
+                  copiedCode={copiedCode}
+                  onCopy={(code) => void handleCopyPromo(code)}
+                  onBook={(offer) =>
+                    onBook(
+                      auraOfferService(offer, services) || featuredService,
+                      undefined,
+                      undefined,
+                      offer.couponCode || undefined,
+                    )
+                  }
+                />
               ) : (
                 !hasActiveCampaign && (
                   <p className="au-empty">Current seasonal offers will appear here when announced by the salon.</p>

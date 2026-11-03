@@ -8,6 +8,9 @@ const result = await build({
   format: 'esm',
   packages: 'external',
   write: false,
+  // Component-scoped stylesheets are irrelevant to this Node-only harness;
+  // stub them the same way the other offline verification runners do.
+  loader: { '.css': 'empty' },
   plugins: [
     {
       name: 'test-image-stubs',

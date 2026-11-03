@@ -113,3 +113,7 @@ assert.equal(mock.timers ? true : true, true);
 mock.timers.reset();
 console.log('PASS: AccountLoading explains slow loads after 10s, retries safely, and never signs the user out.');
 console.log('ALL RENDER-RESILIENCE CHECKS PASSED');
+// React's scheduler leaves a referenced MessagePort alive in this Node harness,
+// so `spawnSync` in run-all-verifications would otherwise wait forever even
+// though every assertion above has already passed.
+process.exit(0);

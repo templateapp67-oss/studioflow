@@ -221,7 +221,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const selectedExtras=extras.filter(s=>addOnIds.includes(s.id));
   const bookingServiceIds=[selectedService.id,...selectedExtras.map(s=>s.id)];
   const bundleKey=JSON.stringify(bookingServiceIds);
-  const coupon=useBookingCoupon(profile.subdomain,bookingServiceIds);
+  // Template 03 (Aura) validates coupons with its own Supabase RPC; every other
+  // template keeps using the original shared booking coupon endpoint.
+  const isAuraCheckout=profile.businessType==='unisex_salon';
+  const coupon=useBookingCoupon(profile.subdomain,bookingServiceIds,isAuraCheckout?'studioflow_aura_coupon_quote':'studioflow_coupon_quote');
   const totalPrice=serverTotal??coupon.quote?.finalPrice??Math.round((selectedService.price+selectedExtras.reduce((sum,s)=>sum+s.price,0))*100)/100;
   // Step 2: Date & Time Slot
   const todayStr = new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
@@ -1071,6 +1074,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           )}
 
           {currentStep === 'payment' && <BookingCoupon coupon={coupon} disabled={!!reservedBooking.current||isSubmitting}/>}
+          {currentStep === 'payment' && isAuraCheckout && coupon.quote && (
+            <p className="sf-aura-final-payable" role="status" data-aura-final-payable={coupon.quote.finalPrice}>
+              Final payable amount before booking confirmation: ₹{Number(coupon.quote.finalPrice).toLocaleString('en-IN',{maximumFractionDigits:2})}
+              {' '}(₹{Number(coupon.quote.originalPrice).toLocaleString('en-IN',{maximumFractionDigits:2})} − ₹{Number(coupon.quote.discountAmount).toLocaleString('en-IN',{maximumFractionDigits:2})} discount).
+            </p>
+          )}
           {currentStep === 'payment' && extras.length>0&&<section className="sf-booking-addons"><h3>{t('Add-on services')}</h3><p>Optional extras · Prices and time are added to your booking. Adding/removing an extra returns you to slot selection.</p>{extras.map(extra=><label key={extra.id}><input type="checkbox" checked={addOnIds.includes(extra.id)} disabled={!!reservedBooking.current||isSubmitting} onChange={e=>{const checked=e.target.checked;setAddOnIds(ids=>checked?[...ids,extra.id].slice(0,9):ids.filter(id=>id!==extra.id));setServerTotal(null);setCurrentStep('datetime');}}/>{extra.name} · +₹{extra.price} · {extra.durationMinutes} min</label>)}<strong>Payable total: ₹{totalPrice.toLocaleString('en-IN')} · {selectedService.durationMinutes+selectedExtras.reduce((sum,s)=>sum+s.durationMinutes,0)} min</strong></section>}
           {currentStep === 'payment' && (
             <motion.div
