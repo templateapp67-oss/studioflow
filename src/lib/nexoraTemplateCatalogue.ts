@@ -289,7 +289,7 @@ export function nexoraCategory(categoryId: string): NexoraCategory | undefined {
 }
 
 /**
- * The 15 templates in their fixed priority order.
+ * All templates in their fixed priority order.
  *
  * Order is data, not a sort: it never depends on object key order, locale
  * collation or the network. Refresh, storage and re-render can never shuffle
@@ -565,6 +565,24 @@ export const NEXORA_TEMPLATE_META: NexoraTemplateMeta[] = [
     icon: 'Leaf',
     badge: 'Heritage',
     previewLabel: 'Ayurvedic spa',
+  },
+  {
+    templateId: 'aurelia_beauty_parlour',
+    categoryId: 'beauty-parlour',
+    categoryName: 'Beauty Parlour',
+    displayName: 'NEXORA Aurelia Beauty Parlour',
+    salonBrand: 'Aurelia Luxury Beauty & Wellness Studio',
+    shortName: 'Beauty Parlour & Wellness',
+    shortDescription: 'A complete beauty studio with hair, colour, skin, bridal, nails and spa services.',
+    bestFor: 'Premium beauty parlours and multi-service beauty studios.',
+    services: ['Hair styling', 'Balayage & gloss', 'Radiance facial', 'Bridal styling', 'Gel manicure', 'Aromatherapy massage'],
+    priorityRank: 16,
+    displayOrder: 16,
+    templateNumber: '16',
+    searchTags: ['aurelia', 'beauty', 'beauty parlour', 'beauty parlor', 'salon', 'hair styling', 'hair colour', 'facial', 'bridal', 'nails', 'spa', 'wellness'],
+    icon: 'Sparkles',
+    badge: 'Luxury beauty',
+    previewLabel: 'Aurelia beauty parlour',
   },
 ];
 
