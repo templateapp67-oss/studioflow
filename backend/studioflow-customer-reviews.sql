@@ -23,7 +23,7 @@ create policy studioflow_review_read_own on public.studioflow_reviews for select
 -- No client table-write privileges. Mutations validate identity and media ownership below.
 create function studioflow_review_private.review_json(r public.studioflow_reviews) returns jsonb
 language sql stable security definer set search_path='' as $$
- select jsonb_build_object('id',r.id,'name',r.name,'rating',r.rating,'comment',r.comment,'serviceName',r.service_name,'imageUrl',r.image_url,'date',r.created_at,'isMine',r.customer_id=auth.uid(),'isOwnerReview',r.customer_id=r.owner_id,'verified',r.customer_id<>r.owner_id and exists(select 1 from public.studioflow_bookings b where b.owner_id=r.owner_id and b.customer_id=r.customer_id and b.status='completed'));
+ select jsonb_build_object('id',r.id,'name',r.name,'rating',r.rating,'comment',r.comment,'serviceName',r.service_name,'imageUrl',r.image_url,'date',r.created_at,'isMine',r.customer_id=auth.uid(),'isOwnerReview',r.customer_id=r.owner_id,'verified',r.customer_id<>r.owner_id and exists(select 1 from public.studioflow_bookings b where b.owner_id=r.owner_id and b.customer_id=r.customer_id and b.status='completed' and coalesce(b.payload->>'demo','false')<>'true'));
 $$;
 revoke all on function studioflow_review_private.review_json(public.studioflow_reviews) from public,anon,authenticated;
 create function studioflow_review_private.list_reviews(p_slug text) returns jsonb
@@ -34,7 +34,17 @@ begin
  if salon is null then raise exception 'Publish the salon website before collecting customer reviews'; end if;
  select coalesce(jsonb_agg(studioflow_review_private.review_json(r) order by r.updated_at desc),'[]'::jsonb) into result from (select * from public.studioflow_reviews where owner_id=salon order by updated_at desc limit 50) r;
  select studioflow_review_private.review_json(r) into own from public.studioflow_reviews r where owner_id=salon and customer_id=actor;
- return jsonb_build_object('reviews',result,'ownReview',own,'canReview',actor is not null);
+ return jsonb_build_object(
+  'reviews',result,
+  'ownReview',own,
+  'canReview',actor is not null and (
+   own is not null or exists(
+    select 1 from public.studioflow_bookings b
+    where b.owner_id=salon and b.customer_id=actor and b.status='completed'
+      and coalesce(b.payload->>'demo','false')<>'true'
+   )
+  )
+ );
 end;
 $$;
 create function studioflow_review_private.submit_review(p_slug text,p_name text,p_rating integer,p_comment text,p_service_name text default '',p_image_url text default null) returns jsonb
@@ -45,6 +55,7 @@ begin
  if exists(select 1 from auth.users where id=actor and banned_until>now()) then raise exception 'Account unavailable' using errcode='42501';end if;
  select owner_id into salon from public.studioflow_websites where slug=p_slug;
  if salon is null then raise exception 'Salon website is unavailable';end if;
+ if not exists(select 1 from public.studioflow_bookings b where b.owner_id=salon and b.customer_id=actor and b.status='completed' and coalesce(b.payload->>'demo','false')<>'true') then raise exception 'Complete an appointment at this salon before submitting a review' using errcode='42501';end if;
  if char_length(btrim(coalesce(p_name,''))) not between 2 and 100 or p_rating is null or p_rating not between 1 and 5 or char_length(btrim(coalesce(p_comment,''))) not between 10 and 2000 or char_length(coalesce(p_service_name,''))>150 then raise exception 'Provide your name, a 1–5 star rating and a review of 10–2000 characters';end if;
  p_image_url:=nullif(btrim(p_image_url),'');
  if p_image_url is not null then
