@@ -18,8 +18,7 @@ export const AURELIA_IMAGES = {
   gallerySkin: ROOT + 'video_facial_thumb_1793411344736.jpg',
   galleryBridal: ROOT + 'video_bridal_thumb_1793411345160.jpg',
   galleryStudio: ROOT + 'room_lookbook_interior_1793383607293.jpg',
-  galleryNails: ROOT + 'service_nailstudio_1793409259976.jpg',
-  gallerySpa: ROOT + 'service_spa_1793409260106.jpg',
+  galleryBts: ROOT + 'video_bts_thumb_1793411345197.jpg',
 };
 
 export const AURELIA_DEFAULT_CONFIG: AureliaBeautyConfig = {
@@ -42,7 +41,7 @@ export const AURELIA_DEFAULT_CONFIG: AureliaBeautyConfig = {
   reviewsHeading: 'Kind words, honestly shared',
   contactHeading: 'Your time at Aurelia',
   workingHoursDisplay: 'Monday – Saturday · 10:00 AM – 8:00 PM',
-  galleryUrls: [AURELIA_IMAGES.galleryHair, AURELIA_IMAGES.gallerySkin, AURELIA_IMAGES.galleryBridal, AURELIA_IMAGES.galleryStudio, AURELIA_IMAGES.galleryNails, AURELIA_IMAGES.gallerySpa],
+  galleryUrls: [AURELIA_IMAGES.galleryHair, AURELIA_IMAGES.gallerySkin, AURELIA_IMAGES.galleryBridal, AURELIA_IMAGES.galleryStudio, AURELIA_IMAGES.galleryBts],
   sectionOrder: ['hero','services','story','team','menu','gallery','videos','offers','reviews','contact'],
 };
 
