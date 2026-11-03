@@ -235,7 +235,7 @@
    ========================================================================== */
 .au-site .au-header {
   position: sticky;
-  top: 0;
+  top: var(--au-preview-offset, 0px);
   z-index: 60;
   background: rgba(250, 248, 245, 0.94);
   backdrop-filter: blur(14px);
@@ -2803,7 +2803,7 @@
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.24s ease;
-    z-index: 55;
+    z-index: 99;
   }
   .au-site .au-mobile-scrim.is-open {
     opacity: 1;
@@ -2822,7 +2822,7 @@
     box-shadow: -18px 0 44px rgba(30, 33, 31, 0.2);
     transform: translateX(100%);
     transition: transform 0.28s ease;
-    z-index: 70;
+    z-index: 100;
     padding: 20px 20px 26px;
     overflow-y: auto;
   }
@@ -3149,3 +3149,17 @@
     display: none !important;
   }
 }
+
+/* Image loading keeps the existing media frame occupied. Failed sources use
+   a local, section-appropriate sample; no remote image is overwritten. */
+.au-site img[data-aura-image-state] { background: #e7eee7; }
+.au-site img[data-aura-image-state="loading"] { background: linear-gradient(110deg, #e7eee7 30%, #f5f0e8 50%, #e7eee7 70%); background-size: 200% 100%; animation: au-image-loading 1.4s ease-in-out infinite; }
+.au-site img[data-aura-image-state="unavailable"] { visibility: hidden; }
+.au-site .au-video-frame-wrap video { width: 100%; height: 100%; object-fit: contain; background: #252525; }
+@keyframes au-image-loading { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .au-site img[data-aura-image-state="loading"] { animation: none; } }
+.au-site .au-review-panel [hidden] { display: none !important; }
+
+.au-site .au-hero-layout.is-single { grid-template-columns: 1fr; }
+/* The preview toolbar sits above the shared default overlay; keep Aura's booking dialog usable. */
+body:has(.au-site) .sf-booking-overlay { z-index: 200; }

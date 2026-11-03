@@ -7,12 +7,10 @@ import {
   AURA_SECTION_SCHEMAS,
   AURA_TEMPLATE_ID,
   auraSafeMediaUrl,
-  countAuraMediaUsage,
   defaultAuraSectionDrafts,
   fetchOwnerAuraSections,
   getAuraEditableSalonId,
   getAuraValue,
-  removeUnusedAuraMedia,
   setAuraValue,
   upsertAuraSections,
   uploadAuraMedia,
@@ -24,6 +22,8 @@ import {
 } from '../../lib/auraTemplateSections';
 import { supabase } from '../../lib/supabase';
 import './auraContentManager.css';
+import { AuraImage } from './AuraImage';
+import { AURA_UNISEX_IMAGES } from '../../lib/auraUnisex';
 
 export interface AuraContentManagerProps {
   profile: SalonProfile;
@@ -103,7 +103,7 @@ function MediaField({ field, value, label, onChange, onUpload, onRemove, disable
           ) : kind === 'video' ? (
             <a href={url} target="_blank" rel="noopener noreferrer">Open video link ↗</a>
           ) : (
-            <img src={url} alt={asset.alt || label} />
+            <AuraImage src={url} alt={asset.alt || label} fallbackSrc={AURA_UNISEX_IMAGES.aboutInterior.src} />
           )}
         </div>
       )}
@@ -124,12 +124,12 @@ function MediaField({ field, value, label, onChange, onUpload, onRemove, disable
       <label className="aura-cm-field">
         <span>{kind === 'video' ? 'Video or supported link URL' : 'Image URL'}</span>
         <input
-          type="url"
+          type="text"
           value={String(asset.url || '')}
           aria-label={`${label} URL`}
           disabled={disabled}
           placeholder={kind === 'video' ? 'https://www.youtube.com/shorts/… or https://…/video.mp4' : 'https://… or /templates/aura-unisex/…'}
-          onChange={(event) => onChange({ ...asset, url: event.target.value, path: '', mimeType: '', kind: kind === 'video' ? 'link' : undefined })}
+          onChange={(event) => onChange({ ...asset, url: event.target.value, path: '', mimeType: '', srcSet: '', width: 0, height: 0, kind: kind === 'video' ? 'link' : undefined })}
         />
       </label>
       {kind === 'image' && (
@@ -167,6 +167,7 @@ export const AuraContentManager: React.FC<AuraContentManagerProps> = ({ profile,
   const [activeKey, setActiveKey] = useState<AuraSectionKey>('hero');
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [success, setSuccess] = useState('');
@@ -186,6 +187,7 @@ export const AuraContentManager: React.FC<AuraContentManagerProps> = ({ profile,
     try {
       const [id, loaded] = await Promise.all([getAuraEditableSalonId(client), fetchOwnerAuraSections(client)]);
       setSalonId(id);
+      setReady(true);
       commit(clone(loaded));
       savedRef.current = clone(loaded);
       setDirty(false);
@@ -198,12 +200,6 @@ export const AuraContentManager: React.FC<AuraContentManagerProps> = ({ profile,
 
   useEffect(() => {
     void load();
-    // The dashboard listens for saves from other tabs/windows; no local storage is used.
-    const refresh = () => void load();
-    if (typeof window !== 'undefined') window.addEventListener(AURA_SECTION_EVENT, refresh);
-    return () => {
-      if (typeof window !== 'undefined') window.removeEventListener(AURA_SECTION_EVENT, refresh);
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client]);
 
@@ -261,9 +257,7 @@ export const AuraContentManager: React.FC<AuraContentManagerProps> = ({ profile,
   const removeItem = async (field: AuraFieldSchema, index: number) => {
     const list = getAuraValue(active.sectionContent, field.path);
     const items = Array.isArray(list) ? [...list] : [];
-    const item = items[index];
-    const assets = collectPreviewMedia(item).filter((asset) => asset.path);
-    if (typeof window !== 'undefined' && !window.confirm(`Remove ${field.itemLabel || 'item'} ${index + 1}? Unused uploaded media will also be deleted.`)) return;
+    if (typeof window !== 'undefined' && !window.confirm(`Remove ${field.itemLabel || 'item'} ${index + 1}? Uploaded files will be kept in storage.`)) return;
     items.splice(index, 1);
     const next = draftsRef.current.map((draft) =>
       draft.sectionKey === activeKey
@@ -271,13 +265,7 @@ export const AuraContentManager: React.FC<AuraContentManagerProps> = ({ profile,
         : draft,
     );
     patch(next);
-    for (const asset of assets) {
-      try {
-        await removeUnusedAuraMedia(asset, salonId, next, client);
-      } catch (cause) {
-        setError(cause instanceof Error ? cause.message : 'Could not remove unused media.');
-      }
-    }
+
   };
 
   const handleUpload = async (file: File, kind: 'image' | 'video', current: any, onChange: (value: any) => void) => {
@@ -297,26 +285,10 @@ export const AuraContentManager: React.FC<AuraContentManagerProps> = ({ profile,
     }
   };
 
-  const handleRemoveMedia = async (asset: AuraMediaAsset | undefined, onChange: (value: any) => void) => {
-    if (typeof window !== 'undefined' && !window.confirm('Remove this media from the section and delete the file if it is unused?')) return;
-    const path = String(asset?.path || '');
-    // Clear the field in the prospective draft before checking usage.
-    const before = draftsRef.current;
-    const currentContent = before.find((draft) => draft.sectionKey === activeKey)?.sectionContent || {};
-    const fieldPath = collectPreviewMedia(currentContent).includes(asset as AuraMediaAsset) ? '' : '';
-    void fieldPath;
+  const handleRemoveMedia = async (_asset: AuraMediaAsset | undefined, onChange: (value: any) => void) => {
+    if (typeof window !== 'undefined' && !window.confirm('Remove this media from the section? The uploaded file will remain in storage.')) return;
     onChange({});
-    const next = draftsRef.current;
-    if (path && countAuraMediaUsage(next, path) === 0) {
-      try {
-        const deleted = await removeUnusedAuraMedia(asset, salonId || await getAuraEditableSalonId(client), next, client);
-        setSuccess(deleted ? 'Removed the unused media file. Save changes to update Template 03.' : 'Media removed from this field. Save changes to update Template 03.');
-      } catch (cause) {
-        setError(cause instanceof Error ? cause.message : 'Could not remove the media file.');
-      }
-    } else {
-      setSuccess(path ? 'Media removed from this field. The file is still used elsewhere and was kept.' : 'Bundled asset removed. Save changes to update Template 03.');
-    }
+    setSuccess('Media removed from this field. The original file was kept. Save changes to update Template 03.');
   };
 
   const save = async () => {
@@ -331,13 +303,13 @@ export const AuraContentManager: React.FC<AuraContentManagerProps> = ({ profile,
     setError('');
     setSuccess('');
     try {
-      const saved = await upsertAuraSections(draftsRef.current, client);
+      const saved = await upsertAuraSections(draftsRef.current, client, savedRef.current);
       commit(clone(saved));
       savedRef.current = clone(saved);
       setDirty(false);
       setEditing(false);
       setValidationErrors([]);
-      setSuccess(`Saved ${AURA_SECTION_LABELS[activeKey]} and all 19 Template 03 sections to Supabase. Refresh the website to see the changes.`);
+      setSuccess(`Saved ${AURA_SECTION_LABELS[activeKey]} changes to Supabase. Refresh the website to see the changes.`);
       if (typeof window !== 'undefined') window.dispatchEvent(new Event(AURA_SECTION_EVENT));
       onSaved?.();
     } catch (cause) {
@@ -497,10 +469,11 @@ export const AuraContentManager: React.FC<AuraContentManagerProps> = ({ profile,
         </div>
         <div className="aura-cm-header-actions">
           <button type="button" className="secondary-action" disabled={!profile.subdomain} onClick={openSavedWebsite}>Open saved website ↗</button>
-          <button type="button" className="secondary-action" disabled={loading || busy} onClick={() => void load()}>Reload from Supabase</button>
+          <button type="button" className="secondary-action" disabled={loading || busy || dirty} onClick={() => void load()}>Reload from Supabase</button>
         </div>
       </header>
 
+      {profile.subdomain && <p className="aura-cm-error" role="note"><strong>Publication caution:</strong> Existing server configuration can make saved section changes visible on an already-published website immediately. Do not save unapproved changes until the publication workflow has been reviewed.</p>}
       {loading && <p role="status" className="aura-cm-status">Loading Template 03 content from Supabase…</p>}
       {busy && <p role="status" className="aura-cm-status">{editing ? 'Saving / uploading…' : 'Working…'}</p>}
       {success && <p role="status" className="aura-cm-success">{success}</p>}
@@ -524,6 +497,7 @@ export const AuraContentManager: React.FC<AuraContentManagerProps> = ({ profile,
                 aria-current={key === activeKey ? 'true' : undefined}
                 aria-label={`Edit ${AURA_SECTION_LABELS[key]}`}
                 data-section={key}
+                disabled={busy || (dirty && key !== activeKey)}
                 onClick={() => { setActiveKey(key); setEditing(false); setError(''); setValidationErrors([]); }}
               >
                 <span className="aura-cm-nav-order">{index + 1}</span>
@@ -542,7 +516,7 @@ export const AuraContentManager: React.FC<AuraContentManagerProps> = ({ profile,
             </div>
             <div className="aura-cm-actions">
               {!editing ? (
-                <button type="button" className="primary-action" disabled={loading || busy} onClick={() => setEditing(true)}>Edit</button>
+                <button type="button" className="primary-action" disabled={loading || busy || !ready} onClick={() => setEditing(true)}>Edit</button>
               ) : (
                 <>
                   <button type="button" className="primary-action aura-cm-save" disabled={busy || !dirty} onClick={() => void save()}>Save changes</button>
@@ -575,11 +549,11 @@ export const AuraContentManager: React.FC<AuraContentManagerProps> = ({ profile,
                 aria-label="Display order"
                 data-field="displayOrder"
                 value={active.displayOrder}
-                disabled={!editing || busy}
+                disabled={!editing || busy || ['header', 'branding', 'hero_media', 'buttons', 'footer'].includes(activeKey)}
                 onChange={(event) => patchActive({ displayOrder: Number(event.target.value) })}
               />
             </label>
-            <small>Lower numbers appear first. Existing header and footer positions are preserved.</small>
+            <small>Lower numbers appear first. Header and footer are fixed; branding, hero media and buttons stay with their related section.</small>
           </div>
 
           <form className="aura-cm-form" onSubmit={(event) => { event.preventDefault(); if (editing && dirty) void save(); }}>
@@ -598,7 +572,7 @@ export const AuraContentManager: React.FC<AuraContentManagerProps> = ({ profile,
                   <button type="button" className="secondary-action aura-cm-cancel" disabled={busy} onClick={cancel}>Cancel</button>
                 </>
               ) : (
-                <button type="button" className="primary-action" disabled={loading || busy} onClick={() => setEditing(true)}>Edit</button>
+                <button type="button" className="primary-action" disabled={loading || busy || !ready} onClick={() => setEditing(true)}>Edit</button>
               )}
               <button type="button" className="secondary-action aura-cm-preview" onClick={() => setPreviewOpen(true)}>Preview changes</button>
               {dirty && <span className="aura-cm-dirty">Unsaved changes</span>}
@@ -628,7 +602,7 @@ export const AuraContentManager: React.FC<AuraContentManagerProps> = ({ profile,
                 const url = auraSafeMediaUrl(asset.url);
                 return String(asset.mimeType || '').startsWith('video/')
                   ? <video key={`${url}-${index}`} src={url} controls muted playsInline />
-                  : <img key={`${url}-${index}`} src={url} alt={asset.alt || `Media preview ${index + 1}`} />;
+                  : <AuraImage key={`${url}-${index}`} src={url} alt={asset.alt || `Media preview ${index + 1}`} fallbackSrc={AURA_UNISEX_IMAGES.aboutInterior.src} />;
               })}
               {activeSchema.fields.filter((field) => field.kind === 'list').map((field) => {
                 const items = getAuraValue(active.sectionContent, field.path);

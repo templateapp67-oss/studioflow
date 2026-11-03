@@ -46,6 +46,9 @@ import {
   type AuraPromotion,
 } from '../lib/auraPromotions';
 import { AuraPromotionCards } from './aura/AuraPromotionCards';
+import { AuraImage } from './aura/AuraImage';
+import { AuraVideo } from './aura/AuraVideo';
+import { AURA_DEFAULT_SECTION_CONTENT, AURA_SECTIONS_EVENT, auraContentEqual, createAuraSiteContent, loadPublicAuraSections, type AuraSectionKey, type AuraSiteContent } from '../lib/auraTemplateSections';
 import { reelSource } from '../lib/socialVideoSource';
 import { socialUrl } from '../lib/websiteContent';
 import { AppAnnouncementStrip, AppInstallSection } from './AppInstallSection';
@@ -57,11 +60,8 @@ import {
   AURA_CATEGORY_PILLARS,
   AURA_DEMO_REELS,
   AURA_DEMO_REWARDS,
-  AURA_LOYALTY_TIERS,
-  AURA_UNISEX_COPY,
   AURA_UNISEX_IMAGES,
   AURA_VIDEO_FILTERS,
-  AURA_WHY_CHOOSE_US,
   auraAddress,
   auraBrand,
   auraCity,
@@ -71,6 +71,7 @@ import {
   auraMapsUrl,
   auraPhoneDigits,
   auraServiceImage,
+  auraServiceSlot,
   auraServiceTabs,
   auraServicesForTab,
   auraTeamImage,
@@ -127,6 +128,23 @@ interface GalleryItem {
   isDemo: boolean;
 }
 
+
+const SECTION_ORDER_IDS: Record<string, [AuraSectionKey, number]> = {
+  'aura-home': ['hero', 0], 'aura-categories': ['categories', 0], 'aura-services': ['services', 0],
+  'salon-packages': ['services', 0.1], 'aura-about': ['about', 0], 'aura-why-us': ['why_choose_us', 0],
+  'aura-wellness': ['why_choose_us', 0.1], 'aura-team': ['staff', 0], 'aura-gallery': ['gallery', 0],
+  'salon-videos': ['videos', 0], 'aura-reviews': ['reviews', 0], 'salon-promo': ['promotions', 0],
+  'salon-loyalty': ['loyalty', 0], 'aura-booking': ['booking', 0], 'aura-contact': ['contact', 0],
+};
+function AuraOrderedSections({ children, site }: { children: React.ReactNode; site: AuraSiteContent }) {
+  const ordered = React.Children.toArray(children).map((child, index) => {
+    const id = React.isValidElement<{ id?: string }>(child) ? child.props.id || '' : '';
+    const mapping = SECTION_ORDER_IDS[id];
+    return { child, index, order: mapping ? site.orderOf(mapping[0]) + mapping[1] : 10000 };
+  }).sort((a, b) => a.order - b.order || a.index - b.index);
+  return <>{ordered.map(({ child }) => child)}</>;
+}
+
 const BOOKING_TIME_SLOTS = [
   { value: '10:30', label: '10:30 AM' },
   { value: '12:00', label: '12:00 PM' },
@@ -172,10 +190,42 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
   onViewSpecialist,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [previewOffset, setPreviewOffset] = useState(0);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const toolbar = document.querySelector<HTMLElement>('[data-template-preview-toolbar]');
+    if (!toolbar) return;
+    const update = () => setPreviewOffset(toolbar.getBoundingClientRect().height);
+    update();
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(update);
+    observer?.observe(toolbar);
+    window.addEventListener('resize', update);
+    return () => { observer?.disconnect(); window.removeEventListener('resize', update); };
+  }, []);
   const [tab, setTab] = useState<AuraServiceTab>('All Services');
   const [lightbox, setLightbox] = useState<number | null>(null);
   const [videoFilter, setVideoFilter] = useState<AuraVideoFilter>('All Videos');
-  const [activeReel, setActiveReel] = useState<AuraReelItem | null>(null);
+  const [activeReel, setActiveReel] = useState<(AuraReelItem & { videoSrc?: string; embedKind?: string; externalLabel?: string }) | null>(null);
+  const [sectionData, setSectionData] = useState<Record<string, any>>({});
+
+  useEffect(() => {
+    let active = true;
+    let request = 0;
+    setSectionData({});
+    const refresh = () => {
+      if (!profile.subdomain) return;
+      const current = ++request;
+      loadPublicAuraSections(profile.subdomain, 'unisex_salon')
+        .then((data) => { if (active && current === request) setSectionData(data); })
+        .catch(() => { /* Keep the last successfully loaded content on transient failures. */ });
+    };
+    refresh();
+    window.addEventListener('focus', refresh);
+    window.addEventListener(AURA_SECTIONS_EVENT, refresh);
+    return () => { active = false; window.removeEventListener('focus', refresh); window.removeEventListener(AURA_SECTIONS_EVENT, refresh); };
+  }, [profile.subdomain]);
+  const site = useMemo(() => createAuraSiteContent(sectionData, { profile, enabledSections }), [sectionData, profile, enabledSections]);
+  const media = site.media;
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [promoToast, setPromoToast] = useState('');
 
@@ -186,26 +236,33 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
   const [selectedDate, setSelectedDate] = useState<string>(() => bookableDays[0]?.iso || '');
   const [selectedTime, setSelectedTime] = useState<string>('12:00');
 
-  const brandName = auraBrand(profile);
+  const brandName = String(site.sections.branding.sectionContent.name || '').trim() || auraBrand(profile);
   const city = auraCity(profile);
-  const address = auraAddress(profile);
-  const mapsUrl = auraMapsUrl(profile);
-  const whatsapp = auraWhatsApp(profile);
-  const phoneDigits = auraPhoneDigits(profile);
+  const address = site.contact.address || auraAddress(profile);
+  const mapsUrl = site.contact.mapUrl || auraMapsUrl(profile);
+  const whatsapp = site.contact.whatsappHref || auraWhatsApp(profile);
+  const phoneDigits = auraPhoneDigits({ phone: site.contact.phone });
   const hours = auraHours(profile);
-  const cssVars = auraCssVariables(profile) as React.CSSProperties;
+  const cssVars = { ...auraCssVariables(profile), '--au-preview-offset': `${previewOffset}px` } as React.CSSProperties;
 
-  const sectionOn = (id: string) => enabledSections.includes(id);
+  const sectionOn = (id: string) => {
+    const mapped = { hero: 'hero', services: 'services', about: 'about', stylists: 'staff', gallery: 'gallery', videos: 'videos', testimonials: 'reviews', promo: 'promotions', loyalty: 'loyalty', location: 'contact', social: 'social' } as const;
+    const key = mapped[id as keyof typeof mapped];
+    return key ? site.visible(key, id) : enabledSections.includes(id);
+  };
 
   const tabs = useMemo(() => auraServiceTabs(services), [services]);
   const activeTab: AuraServiceTab = tabs.includes(tab) ? tab : 'All Services';
-  const visibleServices = useMemo(() => auraServicesForTab(services, activeTab), [services, activeTab]);
+  const visibleServices = useMemo(() => auraServicesForTab(services, activeTab).filter((service) => site.serviceOverrides[service.id]?.visible !== false), [services, activeTab, site]);
   const wellnessServices = useMemo(() => auraServicesForTab(services, 'Wellness'), [services]);
   const popularServices = useMemo(() => services.filter((service) => service.popular).slice(0, 4), [services]);
   const footerServices = popularServices.length > 0 ? popularServices : services.slice(0, 4);
-  const team = stylists.slice(0, 6);
-  const packages = useMemo(() => services.filter((service) => isPackage(service)), [services]);
-  const reviews = useMemo(() => clientExperiences(profile).slice(0, 3), [profile]);
+  const staffOverrides = Array.isArray(site.sections.staff.sectionContent.profiles) ? site.sections.staff.sectionContent.profiles : [];
+  const hiddenStaff = new Set(staffOverrides.filter((item: any) => item?.visible === false).map((item: any) => String(item.staffId || '')));
+  const team = stylists.filter((stylist) => !hiddenStaff.has(stylist.id)).slice(0, 6);
+  const displayOnlyStaff = site.staffProfiles.filter((item) => item.name && !stylists.some((stylist) => stylist.id === item.id));
+  const packages = useMemo(() => services.filter((service) => isPackage(service) && site.serviceOverrides[service.id]?.visible !== false), [services, site]);
+  const reviews = useMemo(() => site.hasSaved('reviews') && !auraContentEqual(site.sections.reviews.sectionContent.items, AURA_DEFAULT_SECTION_CONTENT.reviews.items) ? site.reviews : clientExperiences(profile).slice(0, 3), [profile, site]);
 
   const featuredService = services.find((service) => service.popular) || services[0];
   const plannerService = useMemo(
@@ -220,17 +277,18 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
   // Navigation links only point to sections that exist on the rendered page.
   const navLinks = useMemo(() => {
     const links: Array<{ label: string; href: string }> = [];
-    if (sectionOn('hero')) links.push({ label: AURA_UNISEX_COPY.navHome, href: '#aura-home' });
-    if (sectionOn('services')) links.push({ label: AURA_UNISEX_COPY.navServices, href: '#aura-services' });
-    if (sectionOn('about')) links.push({ label: AURA_UNISEX_COPY.navAbout, href: '#aura-about' });
-    if (sectionOn('stylists') && team.length > 0) links.push({ label: AURA_UNISEX_COPY.navTeam, href: '#aura-team' });
-    if (sectionOn('gallery')) links.push({ label: AURA_UNISEX_COPY.navGallery, href: '#aura-gallery' });
-    if (sectionOn('videos')) links.push({ label: AURA_UNISEX_COPY.navVideos, href: '#salon-videos' });
-    if (sectionOn('location')) links.push({ label: AURA_UNISEX_COPY.navContact, href: '#aura-contact' });
+    if (sectionOn('hero')) links.push({ label: site.copy.navHome, href: '#aura-home' });
+    if (sectionOn('services')) links.push({ label: site.copy.navServices, href: '#aura-services' });
+    if (sectionOn('about')) links.push({ label: site.copy.navAbout, href: '#aura-about' });
+    if (sectionOn('stylists') && (team.length > 0 || displayOnlyStaff.length > 0)) links.push({ label: site.copy.navTeam, href: '#aura-team' });
+    if (sectionOn('gallery')) links.push({ label: site.copy.navGallery, href: '#aura-gallery' });
+    if (sectionOn('videos')) links.push({ label: site.copy.navVideos, href: '#salon-videos' });
+    if (sectionOn('location')) links.push({ label: site.copy.navContact, href: '#aura-contact' });
     return links;
-  }, [enabledSections, team.length]);
+  }, [enabledSections, team.length, displayOnlyStaff.length, site]);
 
   const gallery: GalleryItem[] = useMemo(() => {
+    if (site.hasSaved('gallery') && !auraContentEqual(site.sections.gallery.sectionContent.items, AURA_DEFAULT_SECTION_CONTENT.gallery.items)) return site.gallery;
     const demoTags = ['Men’s Haircut', 'Women’s Styling', 'Botanical Colour', 'Salon Lounge', 'Beard Grooming'];
     if (galleryPhotos.length > 0) {
       return galleryPhotos.map((photo, index) => ({
@@ -250,10 +308,11 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
       tag: demoTags[index % demoTags.length],
       isDemo: true,
     }));
-  }, [galleryPhotos]);
+  }, [galleryPhotos, site]);
 
   // Unisex Video Gallery: owner's custom saved videos lead; demo reels stand in unless explicitly cleared.
-  const reels: AuraReelItem[] = useMemo(() => {
+  const reels: Array<AuraReelItem & { videoSrc?: string; embedKind?: string; externalLabel?: string }> = useMemo(() => {
+    if (site.hasSaved('videos') && !auraContentEqual(site.sections.videos.sectionContent.items, AURA_DEFAULT_SECTION_CONTENT.videos.items)) return site.videos.map((video) => ({ ...video, category: video.category as AuraReelItem['category'], videoId: '' }));
     const ownerVideos = (profile.socialVideos || []).filter((video) => !video.isDemo && Boolean(reelSource(video)));
     if (ownerVideos.length > 0) {
       return ownerVideos.map((video, idx) => {
@@ -282,7 +341,7 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
       return [];
     }
     return AURA_DEMO_REELS;
-  }, [profile.socialVideos, profile.demoVideosInitialized, brandName]);
+  }, [profile.socialVideos, profile.demoVideosInitialized, brandName, site]);
 
   const visibleReels = useMemo(() => {
     if (videoFilter === 'All Videos') return reels;
@@ -369,6 +428,27 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
     document.getElementById('aura-services')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const buttonVisible = (id: string) => (!site.hasSaved('buttons') || site.sections.buttons.isVisible) && (!site.hasSaved('buttons') || site.buttons[id]?.visible !== false);
+  const runButton = (id: string, defaultAction: () => void, bookingAction: () => void = () => onBook(featuredService)) => {
+    const setting = site.buttons[id];
+    const original = AURA_DEFAULT_SECTION_CONTENT.buttons.items.find((item: { id: string }) => item.id === id);
+    if (!site.hasSaved('buttons') || !setting) return defaultAction();
+    if (!setting.visible) return;
+    if (original && setting.action === original.action && setting.href === original.href) return defaultAction();
+    if (setting.action === 'book') return bookingAction();
+    if (!setting.href) return;
+    if (setting.href.startsWith('#')) {
+      document.getElementById(setting.href.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      window.location.assign(setting.href);
+    }
+  };
+
+  const configuredHref = (id: string, fallback: string) => site.hasSaved('buttons') && site.buttons[id]?.href ? site.buttons[id].href : fallback;
+  const handleLinkAction = (event: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+    if (site.hasSaved('buttons') && site.buttons[id]?.action === 'book') { event.preventDefault(); onBook(featuredService); }
+  };
+
   const handleCopyPromo = async (code: string) => {
     if (!code) return;
     setPromoToast('');
@@ -397,9 +477,9 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
     onBook(plannerService, plannerStylist, slot);
   };
 
-  const instagramHref = socialUrl(profile.instagramHandle, 'instagram');
-  const facebookHref = socialUrl(profile.facebookPage, 'facebook');
-  const youtubeHref = socialUrl(profile.youtubeChannel, 'youtube');
+  const instagramHref = site.hasSaved('social') ? site.socials.find((item) => item.platform === 'instagram')?.url : socialUrl(profile.instagramHandle, 'instagram');
+  const facebookHref = site.hasSaved('social') ? site.socials.find((item) => item.platform === 'facebook')?.url : socialUrl(profile.facebookPage, 'facebook');
+  const youtubeHref = site.hasSaved('social') ? site.socials.find((item) => item.platform === 'youtube')?.url : socialUrl(profile.youtubeChannel, 'youtube');
   const year = new Date().getFullYear();
 
   return (
@@ -407,11 +487,11 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
       {/* ==================================================================
           HEADER — Architectural sticky bar (NO App Install in header!)
          ================================================================== */}
-      <header className="au-header" aria-label="Customer account and salon navigation">
+      {(!site.hasSaved('header') || site.sections.header.isVisible) && <><header className="au-header" aria-label="Customer account and salon navigation">
         <div className="au-header-inner">
-          <a className="au-brand" href="#aura-home" aria-label={`${brandName} home`}>
-            {profile.logoUrl ? (
-              <img className="au-brand-logo" src={profile.logoUrl} alt={brandName} />
+          <a className="au-brand" href={sectionOn('hero') ? "#aura-home" : (navLinks[0]?.href || "#")} aria-label={`${brandName} home`}>
+            {(site.sections.branding.sectionContent.logo?.url || profile.logoUrl) ? (
+              <AuraImage className="au-brand-logo" src={site.sections.branding.sectionContent.logo?.url || profile.logoUrl} alt={brandName} fallbackSrc="/templates/aura-unisex/monogram.svg" fallbackAlt={`${brandName} monogram`} />
             ) : (
               <span className="au-brand-mark" aria-hidden="true">
                 <span>A</span>
@@ -419,7 +499,7 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
             )}
             <span className="au-brand-text">
               <span className="au-brand-name">{brandName}</span>
-              <span className="au-brand-sub">{AURA_UNISEX_COPY.brandSublabel}</span>
+              <span className="au-brand-sub">{site.copy.brandSublabel}</span>
             </span>
           </a>
 
@@ -440,7 +520,7 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                 onClick={() => onAccount('signin')}
               >
                 {customerPhotoUrl ? (
-                  <img className="au-account-avatar" src={customerPhotoUrl} alt="" />
+                  <AuraImage className="au-account-avatar" src={customerPhotoUrl} alt="" fallbackSrc="/templates/aura-unisex/monogram.svg" fallbackAlt="" />
                 ) : (
                   <UserCheck size={15} aria-hidden="true" />
                 )}
@@ -459,9 +539,9 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
             <button type="button" className="au-header-link au-hide-mobile" onClick={onMyBookings}>
               My Bookings
             </button>
-            <button type="button" className="au-btn au-btn-primary au-header-cta" onClick={() => onBook(featuredService)}>
-              {AURA_UNISEX_COPY.heroPrimary}
-            </button>
+            {buttonVisible('headerCta') && <button type="button" className="au-btn au-btn-primary au-header-cta" onClick={() => runButton('headerCta', () => onBook(featuredService))}>
+              {site.buttons.headerCta?.label || site.copy.heroPrimary}
+            </button>}
             <button
               type="button"
               className="au-menu-toggle"
@@ -474,6 +554,7 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
           </div>
         </div>
 
+      </header>
         {/* Mobile slide-out drawer (strictly navigation, booking & account — NO App Install here) */}
         <div
           className={`au-mobile-scrim${menuOpen ? ' is-open' : ''}`}
@@ -506,17 +587,14 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
             ))}
           </nav>
           <div className="au-mobile-menu-actions">
-            <button
+            {buttonVisible('headerCta') && <button
               type="button"
               className="au-btn au-btn-primary au-btn-block"
-              onClick={() => {
-                setMenuOpen(false);
-                onBook(featuredService);
-              }}
+              onClick={() => { setMenuOpen(false); runButton('headerCta', () => onBook(featuredService)); }}
             >
               <CalendarCheck size={17} aria-hidden="true" />
-              {AURA_UNISEX_COPY.heroPrimary}
-            </button>
+              {site.buttons.headerCta?.label || site.copy.heroPrimary}
+            </button>}
             <button
               type="button"
               className="au-btn au-btn-outline au-btn-block"
@@ -553,61 +631,61 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
             )}
           </div>
         </div>
-      </header>
+      </>}
 
-      <main>
+      <main><AuraOrderedSections site={site}>
         {/* ==================================================================
             1. HERO BANNER — Asymmetric Editorial Split + Unisex Visual Stage
            ================================================================== */}
         {sectionOn('hero') && (
           <section id="aura-home" data-layout="hero" className="au-hero" aria-label="Aura unisex salon welcome">
             <div className="au-hero-ambient" aria-hidden="true" />
-            <div className="au-container au-hero-layout">
+            <div className={`au-container au-hero-layout${site.hasSaved('hero_media') && !site.sections.hero_media.isVisible ? ' is-single' : ''}`}>
               <div className="au-hero-copy">
                 <div className="au-hero-kicker">
                   <span className="au-gold-dot" aria-hidden="true" />
-                  <span>{AURA_UNISEX_COPY.heroEyebrow}</span>
+                  <span>{site.copy.heroEyebrow}</span>
                   <span className="au-kicker-sep" aria-hidden="true">·</span>
                   <span className="au-kicker-city">{city}</span>
                 </div>
 
-                <h1 className="au-hero-title">{AURA_UNISEX_COPY.heroTitle}</h1>
-                <p className="au-hero-text">{AURA_UNISEX_COPY.heroText}</p>
+                <h1 className="au-hero-title">{site.copy.heroTitle}</h1>
+                <p className="au-hero-text">{site.copy.heroText}</p>
 
                 <div className="au-hero-actions">
-                  <button
+                  {buttonVisible('heroPrimary') && <button
                     type="button"
                     className="au-btn au-btn-primary au-btn-lg"
-                    onClick={() => onBook(featuredService)}
+                    onClick={() => runButton('heroPrimary', () => onBook(featuredService))}
                   >
                     <CalendarCheck size={18} aria-hidden="true" />
-                    {AURA_UNISEX_COPY.heroPrimary}
-                  </button>
-                  <a className="au-btn au-btn-outline au-btn-lg" href="#aura-services">
-                    {AURA_UNISEX_COPY.heroSecondary}
+                    {site.copy.heroPrimary}
+                  </button>}
+                  {buttonVisible('heroSecondary') && (sectionOn('services') || (site.hasSaved('buttons') && site.buttons.heroSecondary?.href !== '#aura-services')) && <a className="au-btn au-btn-outline au-btn-lg" href={site.buttons.heroSecondary?.href || '#aura-services'} onClick={(event) => { if (site.hasSaved('buttons') && site.buttons.heroSecondary?.action === 'book') { event.preventDefault(); onBook(featuredService); } }}>
+                    {site.copy.heroSecondary}
                     <ArrowRight size={18} aria-hidden="true" />
-                  </a>
+                  </a>}
                 </div>
 
                 <div className="au-hero-metrics" aria-label="Studio highlights">
                   <div className="au-metric-item">
-                    <strong>4.95 ★</strong>
-                    <span>Rated by Men &amp; Women</span>
+                    <strong>{site.extra.heroRatingScore} ★</strong>
+                    <span>{site.extra.heroRatingLabel}</span>
                   </div>
                   <div className="au-metric-divider" aria-hidden="true" />
                   <div className="au-metric-item">
-                    <strong>Him &amp; Her</strong>
-                    <span>Dedicated Styling Zones</span>
+                    <strong>{site.extra.heroHimHerLabel}</strong>
+                    <span>{site.extra.heroHimHerText}</span>
                   </div>
                   <div className="au-metric-divider" aria-hidden="true" />
                   <div className="au-metric-item">
-                    <strong>100% Clean</strong>
-                    <span>Ammonia-Free &amp; Organic</span>
+                    <strong>{site.extra.heroCleanLabel}</strong>
+                    <span>{site.extra.heroCleanText}</span>
                   </div>
                 </div>
 
                 <ul className="au-hero-points" aria-label="Salon promises">
-                  {AURA_UNISEX_COPY.heroPoints.map((point) => (
+                  {site.copy.heroPoints.map((point: string) => (
                     <li key={point}>
                       <Check size={14} aria-hidden="true" />
                       <span>{point}</span>
@@ -616,20 +694,21 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                 </ul>
               </div>
 
-              <div className="au-hero-stage">
+              {(!site.hasSaved('hero_media') || site.sections.hero_media.isVisible) && <div className="au-hero-stage">
                 <figure className="au-hero-arch-frame">
-                  <img
+                  <AuraImage
                     className="au-hero-main-img"
-                    src={AURA_UNISEX_IMAGES.heroMain.src}
-                    srcSet={AURA_UNISEX_IMAGES.heroMain.srcSet}
+                    fallbackSrc={AURA_UNISEX_IMAGES.heroMain.src}
+                    src={media.heroMain.src}
+                    srcSet={media.heroMain.srcSet}
                     sizes="(max-width: 920px) 100vw, 34vw"
-                    width={AURA_UNISEX_IMAGES.heroMain.width}
-                    height={AURA_UNISEX_IMAGES.heroMain.height}
-                    alt={AURA_UNISEX_IMAGES.heroMain.alt}
+                    width={media.heroMain.width}
+                    height={media.heroMain.height}
+                    alt={media.heroMain.alt}
                   />
                   <figcaption className="au-hero-arch-badge">
                     <Sparkles size={14} aria-hidden="true" />
-                    <span>Male &amp; Female Salon Specialists</span>
+                    <span>{site.extra.heroBadge}</span>
                   </figcaption>
                 </figure>
 
@@ -638,18 +717,20 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                     type="button"
                     className="au-hero-duo-card"
                     onClick={() => goToServices(auraGenderTab(services, 'men'))}
+                    disabled={!sectionOn('services')}
                   >
-                    <img
-                      src={AURA_UNISEX_IMAGES.heroMen.src}
-                      srcSet={AURA_UNISEX_IMAGES.heroMen.srcSet}
+                    <AuraImage
+                      fallbackSrc={AURA_UNISEX_IMAGES.heroMen.src}
+                      src={media.heroMen.src}
+                      srcSet={media.heroMen.srcSet}
                       sizes="(max-width: 920px) 50vw, 20vw"
-                      width={AURA_UNISEX_IMAGES.heroMen.width}
-                      height={AURA_UNISEX_IMAGES.heroMen.height}
-                      alt={AURA_UNISEX_IMAGES.heroMen.alt}
+                      width={media.heroMen.width}
+                      height={media.heroMen.height}
+                      alt={media.heroMen.alt}
                       loading="lazy"
                     />
                     <div className="au-hero-duo-meta">
-                      <span>{AURA_UNISEX_COPY.heroCardMen}</span>
+                      <span>{site.copy.heroCardMen}</span>
                       <ArrowRight size={14} aria-hidden="true" />
                     </div>
                   </button>
@@ -658,18 +739,20 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                     type="button"
                     className="au-hero-duo-card"
                     onClick={() => goToServices(auraGenderTab(services, 'women'))}
+                    disabled={!sectionOn('services')}
                   >
-                    <img
-                      src={AURA_UNISEX_IMAGES.heroWomen.src}
-                      srcSet={AURA_UNISEX_IMAGES.heroWomen.srcSet}
+                    <AuraImage
+                      fallbackSrc={AURA_UNISEX_IMAGES.heroWomen.src}
+                      src={media.heroWomen.src}
+                      srcSet={media.heroWomen.srcSet}
                       sizes="(max-width: 920px) 50vw, 20vw"
-                      width={AURA_UNISEX_IMAGES.heroWomen.width}
-                      height={AURA_UNISEX_IMAGES.heroWomen.height}
-                      alt={AURA_UNISEX_IMAGES.heroWomen.alt}
+                      width={media.heroWomen.width}
+                      height={media.heroWomen.height}
+                      alt={media.heroWomen.alt}
                       loading="lazy"
                     />
                     <div className="au-hero-duo-meta">
-                      <span>{AURA_UNISEX_COPY.heroCardWomen}</span>
+                      <span>{site.copy.heroCardWomen}</span>
                       <ArrowRight size={14} aria-hidden="true" />
                     </div>
                   </button>
@@ -679,12 +762,12 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                       <Leaf size={17} />
                     </span>
                     <div>
-                      <strong>{AURA_UNISEX_COPY.heroCareBoxTitle}</strong>
-                      <span>{AURA_UNISEX_COPY.heroCareBoxText}</span>
+                      <strong>{site.copy.heroCareBoxTitle}</strong>
+                      <span>{site.copy.heroCareBoxText}</span>
                     </div>
                   </div>
                 </div>
-              </div>
+              </div>}
             </div>
           </section>
         )}
@@ -692,19 +775,19 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
         {/* ==================================================================
             2. SALON CATEGORIES — 5-Zone Architectural Category Showcase
            ================================================================== */}
-        {sectionOn('services') && services.length > 0 && (
+        {sectionOn('services') && (!site.hasSaved('categories') || site.sections.categories.isVisible) && services.length > 0 && (
           <section id="aura-categories" className="au-section au-categories">
             <div className="au-container">
               <div className="au-split-head">
                 <div>
-                  <p className="au-eyebrow">{AURA_UNISEX_COPY.categoriesEyebrow}</p>
-                  <h2 className="au-section-title">{AURA_UNISEX_COPY.categoriesTitle}</h2>
+                  <p className="au-eyebrow">{site.copy.categoriesEyebrow}</p>
+                  <h2 className="au-section-title">{site.copy.categoriesTitle}</h2>
                 </div>
-                <p className="au-section-text au-head-side-note">{AURA_UNISEX_COPY.categoriesText}</p>
+                <p className="au-section-text au-head-side-note">{site.copy.categoriesText}</p>
               </div>
 
               <div className="au-cat-grid">
-                {AURA_CATEGORY_PILLARS.map((pillar) => {
+                {(site.hasSaved('categories') ? site.categories : AURA_CATEGORY_PILLARS).map((pillar, pillarIndex) => {
                   const matching = auraServicesForTab(services, pillar.tab);
                   const count = matching.length;
                   const minPrice = count > 0 ? Math.min(...matching.map((s) => Number(s.price) || 0)) : null;
@@ -717,7 +800,8 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                       onClick={() => goToServices(pillar.tab)}
                     >
                       <div className="au-cat-media">
-                        <img
+                        <AuraImage
+                          fallbackSrc={(AURA_CATEGORY_PILLARS.find((item) => item.id === pillar.id) || AURA_CATEGORY_PILLARS[pillarIndex % AURA_CATEGORY_PILLARS.length]).image.src}
                           src={pillar.image.src}
                           srcSet={pillar.image.srcSet}
                           sizes="(max-width: 640px) 100vw, (max-width: 1120px) 50vw, 20vw"
@@ -757,9 +841,9 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
             <div className="au-container">
               <div className="au-split-head">
                 <div>
-                  <p className="au-eyebrow">{AURA_UNISEX_COPY.servicesEyebrow}</p>
-                  <h2 className="au-section-title">{AURA_UNISEX_COPY.servicesTitle}</h2>
-                  <p className="au-section-text">{AURA_UNISEX_COPY.servicesText}</p>
+                  <p className="au-eyebrow">{site.copy.servicesEyebrow}</p>
+                  <h2 className="au-section-title">{site.copy.servicesTitle}</h2>
+                  <p className="au-section-text">{site.copy.servicesText}</p>
                 </div>
                 {services.length > 0 && (
                   <div className="au-menu-summary-pill">
@@ -795,13 +879,16 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                     })}
                   </div>
 
-                  <div className="au-service-grid">
+                  {visibleServices.length === 0 ? <p className="au-empty">No services are available in this category.</p> : <div className="au-service-grid">
                     {visibleServices.map((service) => {
-                      const image = auraServiceImage(service);
+                      const original = auraServiceImage(service);
+                      const override = site.serviceOverrides[service.id]?.image;
+                      const image = override?.url ? { src: override.url, srcSet: override.srcSet || '', alt: override.alt || original.alt } : original;
                       return (
                         <article className="au-service-card" key={service.id}>
                           <div className="au-service-media">
-                            <img
+                            <AuraImage
+                              fallbackSrc={AURA_UNISEX_IMAGES.services[auraServiceSlot(service)].src}
                               src={image.src}
                               srcSet={image.srcSet || undefined}
                               sizes="(max-width: 640px) 100vw, (max-width: 1120px) 50vw, 260px"
@@ -820,27 +907,27 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                                 </span>
                               )}
                             </div>
-                            <h3 className="au-service-name">{service.name}</h3>
-                            {service.description && <p className="au-service-text">{service.description}</p>}
+                            <h3 className="au-service-name">{site.serviceOverrides[service.id]?.displayName || service.name}</h3>
+                            {(site.serviceOverrides[service.id]?.displayDescription || service.description) && <p className="au-service-text">{site.serviceOverrides[service.id]?.displayDescription || service.description}</p>}
                             <div className="au-service-meta">
                               <div className="au-service-price-wrap">
                                 <span className="au-price-caption">Menu Price</span>
                                 <span className="au-service-price">{money(service.price)}</span>
                               </div>
-                              <button
+                              {buttonVisible('bookNow') && <button
                                 type="button"
                                 className="au-btn au-btn-primary au-service-cta"
-                                onClick={() => onBook(service)}
+                                onClick={() => runButton('bookNow', () => onBook(service), () => onBook(service))}
                               >
-                                {AURA_UNISEX_COPY.bookNow}
+                                {site.copy.bookNow}
                                 <ArrowRight size={15} aria-hidden="true" />
-                              </button>
+                              </button>}
                             </div>
                           </div>
                         </article>
                       );
                     })}
-                  </div>
+                  </div>}
                 </>
               )}
             </div>
@@ -850,26 +937,29 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
         {/* ==================================================================
             3b. VALUE COMBO PACKAGES — Gold-Trimmed Salon Pass Cards
            ================================================================== */}
-        {showPackages && packages.length > 0 && (
+        {showPackages && sectionOn('services') && packages.length > 0 && (
           <section id="salon-packages" className="au-section au-packages">
             <div className="au-container">
               <div className="au-split-head">
                 <div>
-                  <p className="au-eyebrow">{AURA_UNISEX_COPY.packagesEyebrow}</p>
-                  <h2 className="au-section-title">{AURA_UNISEX_COPY.packagesTitle}</h2>
+                  <p className="au-eyebrow">{site.copy.packagesEyebrow}</p>
+                  <h2 className="au-section-title">{site.copy.packagesTitle}</h2>
                 </div>
-                <p className="au-section-text au-head-side-note">{AURA_UNISEX_COPY.packagesText}</p>
+                <p className="au-section-text au-head-side-note">{site.copy.packagesText}</p>
               </div>
 
               <div className="au-package-grid">
                 {packages.map((pkg, idx) => {
-                  const image = pkg.imageUrl
+                  const original = pkg.imageUrl
                     ? { src: pkg.imageUrl, srcSet: '', alt: pkg.name }
                     : auraServiceImage(pkg);
+                  const override = site.serviceOverrides[pkg.id]?.image;
+                  const image = override?.url ? { src: override.url, srcSet: override.srcSet || '', alt: override.alt || original.alt } : original;
                   return (
                     <article className="au-package-card" key={pkg.id}>
                       <div className="au-package-media">
-                        <img
+                        <AuraImage
+                          fallbackSrc={AURA_UNISEX_IMAGES.services[auraServiceSlot(pkg)].src}
                           src={image.src}
                           srcSet={image.srcSet || undefined}
                           sizes="(max-width: 640px) 100vw, (max-width: 1120px) 50vw, 33vw"
@@ -892,14 +982,14 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                               </span>
                             )}
                           </div>
-                          <button
+                          {buttonVisible('packagesButton') && <button
                             type="button"
                             className="au-btn au-btn-primary au-btn-sm"
-                            onClick={() => (bookingAvailable ? onBook(pkg) : undefined)}
+                            onClick={() => runButton('packagesButton', () => onBook(pkg), () => onBook(pkg))}
                             disabled={!bookingAvailable}
                           >
-                            {AURA_UNISEX_COPY.packagesButton}
-                          </button>
+                            {site.copy.packagesButton}
+                          </button>}
                         </div>
                       </div>
                     </article>
@@ -917,12 +1007,12 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
           <section id="aura-about" data-layout="about" className="au-section au-about">
             <div className="au-container au-about-layout">
               <div className="au-about-copy">
-                <p className="au-eyebrow">{AURA_UNISEX_COPY.aboutEyebrow}</p>
-                <h2 className="au-section-title">{AURA_UNISEX_COPY.aboutTitle}</h2>
-                <p className="au-about-lead">{profile.about ? profile.about : AURA_UNISEX_COPY.aboutDefault}</p>
+                <p className="au-eyebrow">{site.copy.aboutEyebrow}</p>
+                <h2 className="au-section-title">{site.copy.aboutTitle}</h2>
+                <p className="au-about-lead">{site.hasSaved('about') && site.sections.about.sectionContent.description !== AURA_DEFAULT_SECTION_CONTENT.about.description ? site.copy.aboutDefault : profile.about || site.copy.aboutDefault}</p>
 
                 <ul className="au-highlights">
-                  {AURA_UNISEX_COPY.aboutHighlights.map((item) => (
+                  {site.aboutHighlights.map((item) => (
                     <li key={item.title}>
                       <span className="au-highlight-dot" aria-hidden="true">
                         <Check size={14} aria-hidden="true" />
@@ -938,16 +1028,16 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                 <div className="au-about-footer">
                   <div className="au-director-note">
                     <span className="au-director-badge" aria-hidden="true">
-                      {(profile.ownerName || 'P').charAt(0)}
+                      {(site.extra.aboutOwnerName || profile.ownerName || 'P').charAt(0)}
                     </span>
                     <div>
-                      <strong>{profile.ownerName || 'Priya Nair'}</strong>
-                      <span>{profile.ownerRole || 'Executive Salon Director'}</span>
+                      <strong>{site.extra.aboutOwnerName || profile.ownerName || 'Priya Nair'}</strong>
+                      <span>{site.extra.aboutOwnerRole || profile.ownerRole || 'Executive Salon Director'}</span>
                     </div>
                   </div>
-                  {team.length > 0 && (
-                    <a className="au-btn au-btn-outline" href="#aura-team">
-                      {AURA_UNISEX_COPY.aboutButton}
+                  {buttonVisible('aboutButton') && team.length > 0 && sectionOn('stylists') && (
+                    <a className="au-btn au-btn-outline" href={site.buttons.aboutButton?.href || "#aura-team"} onClick={(event) => { if (site.hasSaved('buttons') && site.buttons.aboutButton?.action === 'book') { event.preventDefault(); onBook(featuredService); } }}>
+                      {site.copy.aboutButton}
                       <ArrowRight size={16} aria-hidden="true" />
                     </a>
                   )}
@@ -956,32 +1046,34 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
 
               <div className="au-about-mosaic">
                 <figure className="au-about-primary-frame">
-                  <img
-                    src={AURA_UNISEX_IMAGES.aboutInterior.src}
-                    srcSet={AURA_UNISEX_IMAGES.aboutInterior.srcSet}
+                  <AuraImage
+                    fallbackSrc={AURA_UNISEX_IMAGES.aboutInterior.src}
+                    src={media.aboutInterior.src}
+                    srcSet={media.aboutInterior.srcSet}
                     sizes="(max-width: 920px) 100vw, 46vw"
-                    width={AURA_UNISEX_IMAGES.aboutInterior.width}
-                    height={AURA_UNISEX_IMAGES.aboutInterior.height}
-                    alt={AURA_UNISEX_IMAGES.aboutInterior.alt}
+                    width={media.aboutInterior.width}
+                    height={media.aboutInterior.height}
+                    alt={media.aboutInterior.alt}
                     loading="lazy"
                   />
                 </figure>
                 <div className="au-about-secondary-row">
                   <figure className="au-about-detail-frame">
-                    <img
-                      src={AURA_UNISEX_IMAGES.aboutWork.src}
-                      srcSet={AURA_UNISEX_IMAGES.aboutWork.srcSet}
+                    <AuraImage
+                      fallbackSrc={AURA_UNISEX_IMAGES.aboutWork.src}
+                      src={media.aboutWork.src}
+                      srcSet={media.aboutWork.srcSet}
                       sizes="(max-width: 920px) 55vw, 22vw"
-                      width={AURA_UNISEX_IMAGES.aboutWork.width}
-                      height={AURA_UNISEX_IMAGES.aboutWork.height}
-                      alt={AURA_UNISEX_IMAGES.aboutWork.alt}
+                      width={media.aboutWork.width}
+                      height={media.aboutWork.height}
+                      alt={media.aboutWork.alt}
                       loading="lazy"
                     />
                   </figure>
                   <div className="au-about-plaque">
-                    <span className="au-plaque-year">EST. 2020</span>
-                    <strong>Inclusive Unisex Lounge</strong>
-                    <p>Separate styling, grooming and quiet skin-wellness zones under one calm roof.</p>
+                    <span className="au-plaque-year">{site.extra.aboutPlaqueYear}</span>
+                    <strong>{site.extra.aboutPlaqueTitle}</strong>
+                    <p>{site.extra.aboutPlaqueText}</p>
                   </div>
                 </div>
               </div>
@@ -992,18 +1084,18 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
         {/* ==================================================================
             5. WHY CHOOSE US + FOR HIM & HER + WELLNESS SANCTUARY
            ================================================================== */}
-        <section id="aura-why-us" className="au-section au-why">
+        {(!site.hasSaved('why_choose_us') || site.sections.why_choose_us.isVisible) && <section id="aura-why-us" className="au-section au-why">
           <div className="au-container">
             <div className="au-split-head">
               <div>
-                <p className="au-eyebrow">{AURA_UNISEX_COPY.whyEyebrow}</p>
-                <h2 className="au-section-title">{AURA_UNISEX_COPY.whyTitle}</h2>
+                <p className="au-eyebrow">{site.copy.whyEyebrow}</p>
+                <h2 className="au-section-title">{site.copy.whyTitle}</h2>
               </div>
-              <p className="au-section-text au-head-side-note">{AURA_UNISEX_COPY.whyText}</p>
+              <p className="au-section-text au-head-side-note">{site.copy.whyText}</p>
             </div>
 
             <div className="au-why-grid">
-              {AURA_WHY_CHOOSE_US.map((pillar, idx) => {
+              {site.whyPillars.map((pillar, idx) => {
                 const Icon = idx === 0 ? Users : idx === 1 ? Leaf : idx === 2 ? ShieldCheck : Award;
                 return (
                   <article className="au-why-card" key={pillar.number}>
@@ -1025,82 +1117,85 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
             <div id="aura-for-everyone" className="au-dual-grid" aria-label="Services for men and women">
               <article className="au-dual-card">
                 <div className="au-dual-media">
-                  <img
-                    src={AURA_UNISEX_IMAGES.featureMen.src}
-                    srcSet={AURA_UNISEX_IMAGES.featureMen.srcSet}
+                  <AuraImage
+                    fallbackSrc={AURA_UNISEX_IMAGES.featureMen.src}
+                    src={media.featureMen.src}
+                    srcSet={media.featureMen.srcSet}
                     sizes="(max-width: 920px) 100vw, 50vw"
-                    width={AURA_UNISEX_IMAGES.featureMen.width}
-                    height={AURA_UNISEX_IMAGES.featureMen.height}
-                    alt={AURA_UNISEX_IMAGES.featureMen.alt}
+                    width={media.featureMen.width}
+                    height={media.featureMen.height}
+                    alt={media.featureMen.alt}
                     loading="lazy"
                   />
-                  <span className="au-dual-pill">FOR HIM</span>
+                  <span className="au-dual-pill">{site.extra.menPill}</span>
                 </div>
                 <div className="au-dual-body">
-                  <h3>{AURA_UNISEX_COPY.menTitle}</h3>
-                  <p>{AURA_UNISEX_COPY.menText}</p>
-                  <button
+                  <h3>{site.copy.menTitle}</h3>
+                  <p>{site.copy.menText}</p>
+                  {buttonVisible('menButton') && sectionOn('services') && <button
                     type="button"
                     className="au-btn au-btn-primary"
-                    onClick={() => goToServices(auraGenderTab(services, 'men'))}
+                    onClick={() => runButton('menButton', () => goToServices(auraGenderTab(services, 'men')))}
                   >
-                    {AURA_UNISEX_COPY.menButton}
+                    {site.copy.menButton}
                     <ArrowRight size={16} aria-hidden="true" />
-                  </button>
+                  </button>}
                 </div>
               </article>
 
               <article className="au-dual-card">
                 <div className="au-dual-media">
-                  <img
-                    src={AURA_UNISEX_IMAGES.featureWomen.src}
-                    srcSet={AURA_UNISEX_IMAGES.featureWomen.srcSet}
+                  <AuraImage
+                    fallbackSrc={AURA_UNISEX_IMAGES.featureWomen.src}
+                    src={media.featureWomen.src}
+                    srcSet={media.featureWomen.srcSet}
                     sizes="(max-width: 920px) 100vw, 50vw"
-                    width={AURA_UNISEX_IMAGES.featureWomen.width}
-                    height={AURA_UNISEX_IMAGES.featureWomen.height}
-                    alt={AURA_UNISEX_IMAGES.featureWomen.alt}
+                    width={media.featureWomen.width}
+                    height={media.featureWomen.height}
+                    alt={media.featureWomen.alt}
                     loading="lazy"
                   />
-                  <span className="au-dual-pill">FOR HER</span>
+                  <span className="au-dual-pill">{site.extra.womenPill}</span>
                 </div>
                 <div className="au-dual-body">
-                  <h3>{AURA_UNISEX_COPY.womenTitle}</h3>
-                  <p>{AURA_UNISEX_COPY.womenText}</p>
-                  <button
+                  <h3>{site.copy.womenTitle}</h3>
+                  <p>{site.copy.womenText}</p>
+                  {buttonVisible('womenButton') && sectionOn('services') && <button
                     type="button"
                     className="au-btn au-btn-primary"
-                    onClick={() => goToServices(auraGenderTab(services, 'women'))}
+                    onClick={() => runButton('womenButton', () => goToServices(auraGenderTab(services, 'women')))}
                   >
-                    {AURA_UNISEX_COPY.womenButton}
+                    {site.copy.womenButton}
                     <ArrowRight size={16} aria-hidden="true" />
-                  </button>
+                  </button>}
                 </div>
               </article>
             </div>
           </div>
-        </section>
+        </section>}
 
         {/* ==================================================================
             5b. WELLNESS LOUNGE — Calm Architectural Split Band
            ================================================================== */}
-        <section id="aura-wellness" className="au-wellness">
+        {(!site.hasSaved('why_choose_us') || site.sections.why_choose_us.isVisible) && <section id="aura-wellness" className="au-wellness">
           <div className="au-container">
             <div className="au-wellness-shell">
               <div className="au-wellness-media">
-                <img
-                  src={AURA_UNISEX_IMAGES.wellness.src}
-                  srcSet={AURA_UNISEX_IMAGES.wellness.srcSet}
+                <AuraImage
+                  fallbackSrc={AURA_UNISEX_IMAGES.wellness.src}
+                  src={media.wellness.src}
+                  srcSet={media.wellness.srcSet}
                   sizes="(max-width: 920px) 100vw, 48vw"
-                  width={AURA_UNISEX_IMAGES.wellness.width}
-                  height={AURA_UNISEX_IMAGES.wellness.height}
-                  alt={AURA_UNISEX_IMAGES.wellness.alt}
+                  width={media.wellness.width}
+                  height={media.wellness.height}
+                  alt={media.wellness.alt}
                   loading="lazy"
                 />
               </div>
               <div className="au-wellness-copy">
-                <p className="au-eyebrow">{AURA_UNISEX_COPY.wellnessEyebrow}</p>
-                <h2 className="au-section-title">{AURA_UNISEX_COPY.wellnessTitle}</h2>
-                <p className="au-section-text">{AURA_UNISEX_COPY.wellnessText}</p>
+                <p className="au-eyebrow">{site.copy.wellnessEyebrow}</p>
+                <h2 className="au-section-title">{site.copy.wellnessTitle}</h2>
+                <p className="au-section-text">{site.copy.wellnessText}</p>
 
                 {wellnessServices.length > 0 ? (
                   <ul className="au-wellness-list">
@@ -1117,53 +1212,51 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                     ))}
                   </ul>
                 ) : (
-                  <p className="au-wellness-empty">{AURA_UNISEX_COPY.wellnessEmpty}</p>
+                  <p className="au-wellness-empty">{site.copy.wellnessEmpty}</p>
                 )}
 
-                <button type="button" className="au-btn au-btn-primary" onClick={() => goToServices('Wellness')}>
-                  {AURA_UNISEX_COPY.wellnessButton}
+                {buttonVisible('wellnessButton') && sectionOn('services') && <button type="button" className="au-btn au-btn-primary" onClick={() => runButton('wellnessButton', () => goToServices('Wellness'))}>
+                  {site.copy.wellnessButton}
                   <ArrowRight size={16} aria-hidden="true" />
-                </button>
+                </button>}
               </div>
             </div>
           </div>
-        </section>
+        </section>}
 
         {/* ==================================================================
             6. OUR HAIR EXPERTS — Tall 4:5 Editorial Portrait Cards
            ================================================================== */}
-        {sectionOn('stylists') && team.length > 0 && (
+        {sectionOn('stylists') && (team.length > 0 || displayOnlyStaff.length > 0) && (
           <section id="aura-team" data-layout="team" className="au-section au-team">
             <div className="au-container">
               <div className="au-split-head">
                 <div>
-                  <p className="au-eyebrow">{AURA_UNISEX_COPY.teamEyebrow}</p>
-                  <h2 className="au-section-title">{AURA_UNISEX_COPY.teamTitle}</h2>
+                  <p className="au-eyebrow">{site.copy.teamEyebrow}</p>
+                  <h2 className="au-section-title">{site.copy.teamTitle}</h2>
                 </div>
-                <p className="au-section-text au-head-side-note">{AURA_UNISEX_COPY.teamText}</p>
+                <p className="au-section-text au-head-side-note">{site.copy.teamText}</p>
               </div>
 
               <div className="au-team-grid">
                 {team.map((stylist, index) => {
-                  const portrait = auraTeamImage(stylist, index);
+                  const original = auraTeamImage(stylist, index);
+                  const displayProfile = site.staffProfiles.find((item) => item.id === stylist.id);
+                  const override = displayProfile?.image;
+                  const portrait = override?.url ? { src: override.url, srcSet: override.srcSet || '', alt: override.alt || original.alt } : original;
+                  const skills = displayProfile?.specialties?.length ? displayProfile.specialties : stylist.specialties;
                   const fallbackSrc = AURA_UNISEX_IMAGES.team[index % AURA_UNISEX_IMAGES.team.length].src;
                   return (
                     <article className="au-team-card" key={stylist.id}>
                       <div className="au-team-portrait">
-                        <img
+                        <AuraImage
                           className="au-team-photo"
+                          fallbackSrc={fallbackSrc}
                           src={portrait.src}
                           srcSet={portrait.srcSet || undefined}
                           sizes="(max-width: 640px) 100vw, (max-width: 1120px) 50vw, 33vw"
                           alt={portrait.alt}
                           loading="lazy"
-                          onError={(event) => {
-                            if (event.currentTarget.dataset.fallback !== '1') {
-                              event.currentTarget.dataset.fallback = '1';
-                              event.currentTarget.srcset = '';
-                              event.currentTarget.src = fallbackSrc;
-                            }
-                          }}
                         />
                         {typeof stylist.rating === 'number' && stylist.rating > 0 && (
                           <span className="au-team-rating">
@@ -1173,24 +1266,25 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                         )}
                       </div>
                       <div className="au-team-body">
-                        <p className="au-team-role">{stylist.role}</p>
-                        <h3>{stylist.name}</h3>
-                        {stylist.specialties.length > 0 && (
+                        <p className="au-team-role">{displayProfile?.role || stylist.role}</p>
+                        <h3>{displayProfile?.name || stylist.name}</h3>
+                        {displayProfile?.bio && <p>{displayProfile.bio}</p>}
+                        {skills.length > 0 && (
                           <ul className="au-team-skills">
-                            {stylist.specialties.slice(0, 3).map((skill) => (
+                            {skills.slice(0, 3).map((skill: string) => (
                               <li key={skill}>{skill}</li>
                             ))}
                           </ul>
                         )}
                         <div className="au-team-actions">
-                          <button
+                          {buttonVisible('teamButton') && <button
                             type="button"
                             className="au-btn au-btn-primary au-btn-sm"
-                            onClick={() => (bookingAvailable ? onBook(undefined, stylist) : undefined)}
+                            onClick={() => runButton('teamButton', () => onBook(undefined, stylist), () => onBook(undefined, stylist))}
                             disabled={!bookingAvailable}
                           >
-                            {AURA_UNISEX_COPY.teamButton}
-                          </button>
+                            {site.copy.teamButton}
+                          </button>}
                           <button
                             type="button"
                             className="au-btn au-btn-outline au-btn-sm"
@@ -1203,6 +1297,20 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                     </article>
                   );
                 })}
+                {displayOnlyStaff.map((person, index) => (
+                  <article className="au-team-card" key={person.id}>
+                    <div className="au-team-portrait">
+                      <AuraImage className="au-team-photo" src={person.image?.url} fallbackSrc={AURA_UNISEX_IMAGES.team[index % AURA_UNISEX_IMAGES.team.length].src} alt={person.name} loading="lazy" />
+                    </div>
+                    <div className="au-team-body">
+                      <p className="au-team-role">{person.role || 'Salon specialist'}</p>
+                      <h3>{person.name}</h3>
+                      {person.bio && <p>{person.bio}</p>}
+                      {person.specialties.length > 0 && <ul className="au-team-skills">{person.specialties.slice(0, 3).map((skill: string) => <li key={skill}>{skill}</li>)}</ul>}
+                      <small>Display profile · Contact the salon for availability</small>
+                    </div>
+                  </article>
+                ))}
               </div>
             </div>
           </section>
@@ -1211,21 +1319,21 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
         {/* ==================================================================
             7. GALLERY — Fixed 5-Tile Architectural Bento Mosaic (Zero Collages)
            ================================================================== */}
-        {sectionOn('gallery') && gallery.length > 0 && (
+        {sectionOn('gallery') && (
           <section id="aura-gallery" data-layout="gallery" className="au-section au-gallery">
             <div className="au-container">
               <div className="au-split-head">
                 <div>
-                  <p className="au-eyebrow">{AURA_UNISEX_COPY.galleryEyebrow}</p>
-                  <h2 className="au-section-title">{AURA_UNISEX_COPY.galleryTitle}</h2>
-                  <p className="au-section-text">{AURA_UNISEX_COPY.galleryText}</p>
+                  <p className="au-eyebrow">{site.copy.galleryEyebrow}</p>
+                  <h2 className="au-section-title">{site.copy.galleryTitle}</h2>
+                  <p className="au-section-text">{site.copy.galleryText}</p>
                 </div>
                 {gallery.some((item) => item.isDemo) && galleryPhotos.length === 0 && (
                   <span className="au-sample-pill">Sample salon photography · Replaced when owner uploads</span>
                 )}
               </div>
 
-              <div className={`au-gallery-grid au-gallery-count-${Math.min(gallery.length, 6)}`}>
+              {gallery.length === 0 ? <p className="au-empty">Salon photos will appear here once added.</p> : <div className={`au-gallery-grid au-gallery-count-${Math.min(gallery.length, 6)}`}>
                 {gallery.map((item, index) => (
                   <button
                     type="button"
@@ -1234,7 +1342,8 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                     onClick={() => setLightbox(index)}
                     aria-label={`View photo ${index + 1}: ${item.title}`}
                   >
-                    <img
+                    <AuraImage
+                      fallbackSrc={AURA_UNISEX_IMAGES.gallery[index % AURA_UNISEX_IMAGES.gallery.length].src}
                       src={item.src}
                       srcSet={item.srcSet || undefined}
                       sizes={index === 0 ? '(max-width: 920px) 100vw, 44vw' : '(max-width: 920px) 50vw, 27vw'}
@@ -1245,7 +1354,7 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                     <span className="au-gallery-caption">{item.title}</span>
                   </button>
                 ))}
-              </div>
+              </div>}
             </div>
           </section>
         )}
@@ -1258,11 +1367,11 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
             <div className="au-container">
               <div className="au-split-head">
                 <div>
-                  <p className="au-eyebrow au-eyebrow-gold">{AURA_UNISEX_COPY.videosEyebrow}</p>
+                  <p className="au-eyebrow au-eyebrow-gold">{site.copy.videosEyebrow}</p>
                   <InlineEditable
                     tag="h2"
                     className="au-section-title au-title-light"
-                    value={profile.sectionHeadings?.videosTitle || AURA_UNISEX_COPY.videosTitle}
+                    value={site.copy.videosTitle}
                     isEditingActive={Boolean(shared.isEditingActive && !shared.readOnly && shared.setProfile)}
                     onSave={(value) =>
                       shared.setProfile?.((prev) => ({
@@ -1272,7 +1381,7 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                     }
                   />
                   <p className="au-section-text au-text-light">
-                    {profile.sectionHeadings?.videosSubtitle || AURA_UNISEX_COPY.videosText}
+                    {site.copy.videosText}
                   </p>
                 </div>
                 <div className="au-video-head-actions">
@@ -1308,28 +1417,23 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                     ))}
                   </div>
 
-                  <div className="au-video-grid">
+                  {visibleReels.length === 0 ? <p className="au-empty">No videos are available in this category.</p> : <div className="au-video-grid">
                     {visibleReels.map((reel) => (
                       <article className="au-video-card" key={reel.id}>
                         <button
                           type="button"
                           className="sf-reel-media"
                           onClick={() => setActiveReel(reel)}
-                          aria-label={`Play video: ${reel.title}`}
+                          disabled={!reel.videoSrc && !reel.embedUrl && !reel.externalUrl}
+                          aria-label={reel.videoSrc || reel.embedUrl || reel.externalUrl ? `Play video: ${reel.title}` : `Video unavailable: ${reel.title}`}
                         >
-                          <img
+                          <AuraImage
+                            fallbackSrc={AURA_DEMO_REELS.find((item) => item.category === reel.category)?.posterSrc || AURA_UNISEX_IMAGES.aboutInterior.src}
                             src={reel.posterSrc}
                             srcSet={reel.posterSrcSet || undefined}
                             sizes="(max-width: 640px) 100vw, (max-width: 1120px) 33vw, 20vw"
                             alt={reel.title}
                             loading="lazy"
-                            onError={(event) => {
-                              if (event.currentTarget.dataset.fallback !== '1') {
-                                event.currentTarget.dataset.fallback = '1';
-                                event.currentTarget.srcset = '';
-                                event.currentTarget.src = AURA_UNISEX_IMAGES.aboutInterior.src;
-                              }
-                            }}
                           />
                           <span className="au-video-shade" aria-hidden="true" />
                           <span className="au-video-top-row">
@@ -1346,13 +1450,13 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                         </button>
                         <div className="au-video-meta-bar">
                           <span>{reel.channelLabel}</span>
-                          <a href={reel.externalUrl} target="_blank" rel="noopener noreferrer">
+                          {reel.externalUrl && <a href={reel.externalUrl} target="_blank" rel="noopener noreferrer">
                             Watch <ExternalLink size={12} aria-hidden="true" />
-                          </a>
+                          </a>}
                         </div>
                       </article>
                     ))}
-                  </div>
+                  </div>}
                 </>
               ) : (
                 <p className="au-empty">Short salon styling reels will appear here once added.</p>
@@ -1369,9 +1473,9 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
             <div className="au-container">
               <div className="au-reviews-header-card">
                 <div>
-                  <p className="au-eyebrow">{AURA_UNISEX_COPY.reviewsEyebrow}</p>
-                  <h2 className="au-section-title">{AURA_UNISEX_COPY.reviewsTitle}</h2>
-                  <p className="au-section-text">{AURA_UNISEX_COPY.reviewsText}</p>
+                  <p className="au-eyebrow">{site.copy.reviewsEyebrow}</p>
+                  <h2 className="au-section-title">{site.copy.reviewsTitle}</h2>
+                  <p className="au-section-text">{site.copy.reviewsText}</p>
                 </div>
                 <div className="au-rating-badge-box" aria-label="Average salon rating 4.95 out of 5">
                   <span className="au-rating-score">4.95</span>
@@ -1402,6 +1506,7 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                           )}
                         </div>
                       </div>
+                      {review.isDemo && <small>Sample review</small>}
                       <blockquote>{review.comment}</blockquote>
                       <div className="au-review-author">
                         <span className="au-review-initial" aria-hidden="true">
@@ -1421,7 +1526,20 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
 
               <ExternalReviewFeed profile={profile} />
               {profile.subdomain && (
-                <div className="au-review-panel">
+                <div className="au-review-panel" onErrorCapture={(event) => {
+                  const image = event.target;
+                  if (!(image instanceof HTMLImageElement)) return;
+                  // Customer review images must not be replaced with an unrelated photo.
+                  image.hidden = true;
+                  const mediaLink = image.closest('.sf-review-media');
+                  if (mediaLink instanceof HTMLElement) mediaLink.hidden = true;
+                }} onLoadCapture={(event) => {
+                  const image = event.target;
+                  if (!(image instanceof HTMLImageElement)) return;
+                  image.hidden = false;
+                  const mediaLink = image.closest('.sf-review-media');
+                  if (mediaLink instanceof HTMLElement) mediaLink.hidden = false;
+                }}>
                   <CustomerReviewPanel
                     authenticOnly
                     businessType={profile.businessType}
@@ -1451,9 +1569,9 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
             <div className="au-container">
               <div className="au-split-head">
                 <div>
-                  <p className="au-eyebrow">{AURA_UNISEX_COPY.promoEyebrow}</p>
-                  <h2 className="au-section-title">{AURA_UNISEX_COPY.promoTitle}</h2>
-                  <p className="au-section-text">{AURA_UNISEX_COPY.promoText}</p>
+                  <p className="au-eyebrow">{site.copy.promoEyebrow}</p>
+                  <h2 className="au-section-title">{site.copy.promoTitle}</h2>
+                  <p className="au-section-text">{site.copy.promoText}</p>
                 </div>
                 <div className="au-offer-head-actions">
                   {displayOffers.some((o) => o.isDemo) && (
@@ -1486,7 +1604,7 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                 <article className="au-campaign-banner">
                   {campaign.imageUrl && (
                     <div className="au-campaign-media">
-                      <img src={campaign.imageUrl} alt={campaign.headline || 'Salon offer'} loading="lazy" />
+                      <AuraImage fallbackSrc={AURA_UNISEX_IMAGES.services.styling.src} src={campaign.imageUrl} alt={campaign.headline || 'Salon offer'} loading="lazy" />
                     </div>
                   )}
                   <div className="au-campaign-body">
@@ -1541,9 +1659,20 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                   }
                 />
               ) : (
-                !hasActiveCampaign && (
+                !hasActiveCampaign && !(site.hasSaved('promotions') && !auraContentEqual(site.sections.promotions.sectionContent.items, AURA_DEFAULT_SECTION_CONTENT.promotions.items) && site.offers.length > 0) && (
                   <p className="au-empty">Current seasonal offers will appear here when announced by the salon.</p>
                 )
+              )}
+              {site.hasSaved('promotions') && !auraContentEqual(site.sections.promotions.sectionContent.items, AURA_DEFAULT_SECTION_CONTENT.promotions.items) && site.offers.length > 0 && (
+                <div className="aura-promo-grid" aria-label="Salon offer information">
+                  {site.offers.map((offer) => <article className="au-offer-voucher" key={offer.id}>
+                    <span className="au-offer-badge">{offer.badge || 'Salon offer'}</span>
+                    <h3>{offer.title}</h3><p>{offer.description}</p>
+                    {offer.code && <p>Displayed code: {offer.code}</p>}
+                    {offer.validity && <p>{offer.validity}</p>}
+                    <small>Information only · Confirm eligibility with the salon</small>
+                  </article>)}
+                </div>
               )}
             </div>
           </section>
@@ -1566,12 +1695,12 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                 <div className="au-split-head">
                   <div>
                     <p className="au-eyebrow">
-                      <Gift size={14} aria-hidden="true" /> {AURA_UNISEX_COPY.loyaltyEyebrow}
+                      <Gift size={14} aria-hidden="true" /> {site.copy.loyaltyEyebrow}
                     </p>
                     <InlineEditable
                       tag="h2"
                       className="au-section-title"
-                      value={profile.sectionHeadings?.loyaltyTitle || AURA_UNISEX_COPY.loyaltyTitle}
+                      value={site.copy.loyaltyTitle}
                       isEditingActive={Boolean(shared.isEditingActive && !shared.readOnly && shared.setProfile)}
                       onSave={(value) =>
                         shared.setProfile?.((prev) => ({
@@ -1580,7 +1709,7 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                         }))
                       }
                     />
-                    <p className="au-section-text">{AURA_UNISEX_COPY.loyaltyText}</p>
+                    <p className="au-section-text">{site.copy.loyaltyText}</p>
                   </div>
                   <div className="au-loyalty-head-actions">
                     {isSampleLoyalty && <span className="au-sample-pill">Sample Loyalty Club</span>}
@@ -1598,7 +1727,7 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
 
                 {/* Membership tier overview */}
                 <div className="au-tier-strip" aria-label="Wellness Club membership tiers">
-                  {AURA_LOYALTY_TIERS.map((tier, idx) => (
+                  {site.loyaltyTiers.map((tier, idx) => (
                     <div className={`au-tier-pill${idx === 2 ? ' is-gold' : ''}`} key={tier.name}>
                       <div className="au-tier-top">
                         <strong>{tier.name}</strong>
@@ -1631,6 +1760,14 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                       : 'Ask the salon about its current loyalty benefits.'}
                   </p>
                 )}
+                {site.hasSaved('loyalty') && !auraContentEqual(site.sections.loyalty.sectionContent.rewards, AURA_DEFAULT_SECTION_CONTENT.loyalty.rewards) && site.loyaltyRewards.length > 0 && (
+                  <div className="au-loyalty-grid" aria-label="Reward information">
+                    {site.loyaltyRewards.map((reward) => <article className="sf-loyalty-card au-loyalty-card" key={reward.id}>
+                      <h3>{reward.title}</h3><p>{reward.description}</p>
+                      <small>Information only · {reward.requiredPoints} points shown · Confirm with the salon</small>
+                    </article>)}
+                  </div>
+                )}
               </div>
             </div>
           </section>
@@ -1639,32 +1776,33 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
         {/* ==================================================================
             12. BOOKING SECTION — Salon Lounge Visual + Quick-Reserve Planner
            ================================================================== */}
-        <section id="aura-booking" className="au-booking">
+        {(!site.hasSaved('booking') || site.sections.booking.isVisible) && <section id="aura-booking" className="au-booking">
           <div className="au-container au-booking-layout">
             <div className="au-booking-left">
-              <p className="au-booking-eyebrow">{AURA_UNISEX_COPY.bookingEyebrow}</p>
-              <h2 className="au-booking-title">{AURA_UNISEX_COPY.bookingTitle}</h2>
-              <p className="au-booking-text">{AURA_UNISEX_COPY.bookingText}</p>
+              <p className="au-booking-eyebrow">{site.copy.bookingEyebrow}</p>
+              <h2 className="au-booking-title">{site.copy.bookingTitle}</h2>
+              <p className="au-booking-text">{site.copy.bookingText}</p>
 
               <figure className="au-booking-photo-frame">
-                <img
-                  src={AURA_UNISEX_IMAGES.booking.src}
-                  srcSet={AURA_UNISEX_IMAGES.booking.srcSet}
+                <AuraImage
+                  fallbackSrc={AURA_UNISEX_IMAGES.booking.src}
+                  src={media.booking.src}
+                  srcSet={media.booking.srcSet}
                   sizes="(max-width: 920px) 100vw, 48vw"
-                  width={AURA_UNISEX_IMAGES.booking.width}
-                  height={AURA_UNISEX_IMAGES.booking.height}
-                  alt={AURA_UNISEX_IMAGES.booking.alt}
+                  width={media.booking.width}
+                  height={media.booking.height}
+                  alt={media.booking.alt}
                   loading="lazy"
                 />
-                <figcaption>Unisex Hair, Beard, Colour &amp; Wellness — {city}</figcaption>
+                <figcaption>{site.extra.bookingImageCaption} — {city}</figcaption>
               </figure>
 
-              {profile.whatsapp && (
+              {site.contact.whatsapp && buttonVisible('whatsappNow') && (
                 <div className="au-booking-wa-row">
-                  <span>Prefer booking by chat?</span>
-                  <a className="au-btn au-btn-outline-light" href={whatsapp} target="_blank" rel="noreferrer">
+                  <span>{site.extra.bookingWhatsappPrompt}</span>
+                  <a className="au-btn au-btn-outline-light" href={configuredHref('whatsappNow', whatsapp)} onClick={(event) => handleLinkAction(event, 'whatsappNow')} target="_blank" rel="noreferrer">
                     <MessageCircle size={17} aria-hidden="true" />
-                    {AURA_UNISEX_COPY.whatsappNow}
+                    {site.hasSaved('booking') && site.sections.booking.sectionContent.whatsappLabel !== AURA_DEFAULT_SECTION_CONTENT.booking.whatsappLabel && !site.hasSaved('buttons') ? site.sections.booking.sectionContent.whatsappLabel : site.copy.whatsappNow}
                   </a>
                 </div>
               )}
@@ -1673,9 +1811,9 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
             <div className="au-booking-planner" aria-label="Quick appointment planner">
               <div className="au-planner-head">
                 <span className="au-planner-kicker">
-                  <Calendar size={14} aria-hidden="true" /> Instant Slot Request
+                  <Calendar size={14} aria-hidden="true" /> {site.extra.bookingPlannerKicker}
                 </span>
-                <h3>Choose Your Service &amp; Preferred Time</h3>
+                <h3>{site.extra.bookingPlannerTitle}</h3>
               </div>
 
               {services.length > 0 && (
@@ -1735,7 +1873,7 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
               </div>
 
               <div className="au-planner-field">
-                <span className="au-planner-label">4. Preferred Time Window</span>
+                <span className="au-planner-label">4. Preferred Time (availability checked at booking)</span>
                 <div className="au-time-chips" role="group" aria-label="Preferred time window">
                   {BOOKING_TIME_SLOTS.map((slot) => (
                     <button
@@ -1761,17 +1899,17 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                 </div>
               )}
 
-              <button
+              {buttonVisible('bookingButton') && <button
                 type="button"
                 className="au-btn au-btn-primary au-btn-lg au-btn-block"
-                onClick={handlePlannerBook}
+                onClick={() => runButton('bookingButton', handlePlannerBook, handlePlannerBook)}
               >
                 <CalendarCheck size={18} aria-hidden="true" />
-                {AURA_UNISEX_COPY.bookingButton}
-              </button>
+                {site.hasSaved('booking') && site.sections.booking.sectionContent.buttonLabel !== AURA_DEFAULT_SECTION_CONTENT.booking.buttonLabel && !site.hasSaved('buttons') ? site.sections.booking.sectionContent.buttonLabel : site.copy.bookingButton}
+              </button>}
             </div>
           </div>
-        </section>
+        </section>}
 
         {/* ==================================================================
             13. CONTACT DETAILS — 3-Card Studio Concierge Directory
@@ -1781,10 +1919,10 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
             <div className="au-container">
               <div className="au-split-head">
                 <div>
-                  <p className="au-eyebrow">{AURA_UNISEX_COPY.contactEyebrow}</p>
-                  <h2 className="au-section-title">{AURA_UNISEX_COPY.contactTitle}</h2>
+                  <p className="au-eyebrow">{site.copy.contactEyebrow}</p>
+                  <h2 className="au-section-title">{site.copy.contactTitle}</h2>
                 </div>
-                <p className="au-section-text au-head-side-note">{AURA_UNISEX_COPY.contactText}</p>
+                <p className="au-section-text au-head-side-note">{site.copy.contactText}</p>
               </div>
 
               <div className="au-contact-cards">
@@ -1793,16 +1931,16 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                   <span className="au-contact-icon" aria-hidden="true">
                     <MapPin size={20} />
                   </span>
-                  <h3>Salon Location</h3>
+                  <h3>{site.contact.locationTitle}</h3>
                   <p className="au-contact-address">{address}</p>
-                  {profile.landmark && <p className="au-landmark">Near {profile.landmark}</p>}
+                  {site.contact.landmark && <p className="au-landmark">Near {site.contact.landmark}</p>}
                   <div className="au-contact-card-actions">
-                    <a className="au-btn au-btn-primary au-btn-sm" href={mapsUrl} target="_blank" rel="noreferrer">
+                    {buttonVisible('directions') && <a className="au-btn au-btn-primary au-btn-sm" href={configuredHref('directions', mapsUrl)} onClick={(event) => handleLinkAction(event, 'directions')} target="_blank" rel="noreferrer">
                       <MapPin size={15} aria-hidden="true" />
-                      {AURA_UNISEX_COPY.directions}
-                    </a>
+                      {site.hasSaved('buttons') ? site.copy.directions : site.contact.directionsLabel}
+                    </a>}
                     <a className="au-map-link" href={mapsUrl} target="_blank" rel="noreferrer">
-                      View on Google Maps
+                      {site.contact.viewMapLabel}
                       <ArrowRight size={14} aria-hidden="true" />
                     </a>
                   </div>
@@ -1813,45 +1951,47 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                   <span className="au-contact-icon" aria-hidden="true">
                     <Phone size={20} />
                   </span>
-                  <h3>Direct Reception Desk</h3>
+                  <h3>{site.contact.receptionTitle}</h3>
+                  {!site.contact.phone && !site.contact.whatsapp && !site.contact.email && <p>Contact details will appear here when added by the salon.</p>}
                   <ul className="au-contact-list">
-                    {profile.phone && (
+                    {site.contact.phone && (
                       <li>
                         <Phone size={16} aria-hidden="true" />
-                        <a href={`tel:${phoneDigits}`}>{profile.phone}</a>
+                        <a href={`tel:${phoneDigits}`}>{site.contact.phone}</a>
                       </li>
                     )}
-                    {profile.whatsapp && (
+                    {site.contact.whatsapp && (
                       <li>
                         <MessageCircle size={16} aria-hidden="true" />
                         <a href={whatsapp} target="_blank" rel="noreferrer">
-                          WhatsApp {profile.whatsapp}
+                          WhatsApp {site.contact.whatsapp}
                         </a>
                       </li>
                     )}
-                    {profile.email && (
+                    {site.contact.email && (
                       <li>
                         <Sparkles size={16} aria-hidden="true" />
-                        <a href={`mailto:${profile.email}`}>{profile.email}</a>
+                        <a href={site.contact.emailHref}>{site.contact.email}</a>
                       </li>
                     )}
                   </ul>
                   <div className="au-contact-card-actions">
-                    {profile.phone && (
-                      <a className="au-btn au-btn-outline au-btn-sm" href={`tel:${phoneDigits}`}>
+                    {site.contact.phone && buttonVisible('callNow') && (
+                      <a className="au-btn au-btn-outline au-btn-sm" href={configuredHref('callNow', `tel:${phoneDigits}`)} onClick={(event) => handleLinkAction(event, 'callNow')}>
                         <Phone size={15} aria-hidden="true" />
-                        {AURA_UNISEX_COPY.callNow}
+                        {site.hasSaved('buttons') ? site.copy.callNow : site.contact.callLabel}
                       </a>
                     )}
-                    {profile.whatsapp && (
+                    {site.contact.whatsapp && buttonVisible('whatsappNow') && (
                       <a
                         className="au-btn au-btn-ghost au-btn-sm"
-                        href={whatsapp}
+                        href={configuredHref('whatsappNow', whatsapp)}
+                        onClick={(event) => handleLinkAction(event, 'whatsappNow')}
                         target="_blank"
                         rel="noreferrer"
                       >
                         <MessageCircle size={15} aria-hidden="true" />
-                        {AURA_UNISEX_COPY.whatsappNow}
+                        {site.hasSaved('buttons') ? site.copy.whatsappNow : site.contact.whatsappLabel}
                       </a>
                     )}
                   </div>
@@ -1861,7 +2001,7 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                 <article className="au-hours-card">
                   <h3>
                     <Clock size={18} aria-hidden="true" />
-                    Opening Hours
+                    {site.contact.hoursTitle}
                   </h3>
                   <dl>
                     {hours.map((row) => (
@@ -1871,7 +2011,7 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                       </div>
                     ))}
                   </dl>
-                  <p className="au-walkin-note">Walk-ins welcome · Advance booking recommended on weekends.</p>
+                  <p className="au-walkin-note">{site.contact.walkInNote}</p>
                 </article>
               </div>
             </div>
@@ -1883,12 +2023,12 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
             <WebsiteSections {...shared} sections={['policies', 'share'].filter(sectionOn)} />
           </div>
         )}
-      </main>
+      </AuraOrderedSections></main>
 
       {/* ==================================================================
           14. FOOTER — App Install Strictly in Footer + 4-Column Salon Footer
          ================================================================== */}
-      <footer data-layout="footer" className="au-footer-wrap">
+      {(!site.hasSaved('footer') || site.sections.footer.isVisible) && <footer data-layout="footer" className="au-footer-wrap">
         <div className="au-footer-app-zone">
           <AppAnnouncementStrip />
           <div className="au-container au-footer-app-inner">
@@ -1905,11 +2045,11 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                 </span>
                 <div>
                   <span className="au-footer-brand">{brandName}</span>
-                  <span className="au-footer-sub">{AURA_UNISEX_COPY.brandSublabel}</span>
+                  <span className="au-footer-sub">{site.copy.brandSublabel}</span>
                 </div>
               </div>
               <p className="au-footer-about">
-                {profile.about ? profile.about.slice(0, 220) : AURA_UNISEX_COPY.aboutDefault.slice(0, 220)}
+                {site.hasSaved('footer') && site.sections.footer.sectionContent.aboutText ? site.footer.aboutText : (profile.about || site.copy.aboutDefault).slice(0, 220)}
               </p>
               <span className="au-footer-city">
                 <MapPin size={14} aria-hidden="true" />
@@ -1918,23 +2058,23 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
             </div>
 
             <div className="au-footer-col">
-              <h4>{AURA_UNISEX_COPY.footerQuickLinks}</h4>
+              <h4>{site.copy.footerQuickLinks}</h4>
               <ul>
                 {navLinks.map((link) => (
                   <li key={link.href}>
                     <a href={link.href}>{link.label}</a>
                   </li>
                 ))}
-                <li>
+                {(!site.hasSaved('why_choose_us') || site.sections.why_choose_us.isVisible) && <li>
                   <a href="#aura-wellness">Wellness Lounge</a>
-                </li>
+                </li>}
               </ul>
             </div>
 
             <div className="au-footer-col">
-              <h4>{AURA_UNISEX_COPY.footerServices}</h4>
+              <h4>{site.copy.footerServices}</h4>
               <ul>
-                {footerServices.map((service) => (
+                {sectionOn('services') && footerServices.map((service) => (
                   <li key={service.id}>
                     <a href="#aura-services">{service.name}</a>
                   </li>
@@ -1943,29 +2083,29 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
             </div>
 
             <div className="au-footer-col">
-              <h4>{AURA_UNISEX_COPY.footerContact}</h4>
+              <h4>{site.copy.footerContact}</h4>
               <ul className="au-footer-contact">
                 <li>{address}</li>
-                {profile.phone && (
+                {site.contact.phone && (
                   <li>
-                    <a href={`tel:${phoneDigits}`}>{profile.phone}</a>
+                    <a href={`tel:${phoneDigits}`}>{site.contact.phone}</a>
                   </li>
                 )}
-                {profile.whatsapp && (
+                {site.contact.whatsapp && (
                   <li>
                     <a href={whatsapp} target="_blank" rel="noreferrer">
-                      WhatsApp {profile.whatsapp}
+                      WhatsApp {site.contact.whatsapp}
                     </a>
                   </li>
                 )}
-                {profile.email && (
+                {site.contact.email && (
                   <li>
-                    <a href={`mailto:${profile.email}`}>{profile.email}</a>
+                    <a href={site.contact.emailHref}>{site.contact.email}</a>
                   </li>
                 )}
                 <li>
                   <a href="/?app=1&install=1" className="au-footer-install-link">
-                    Install Customer App →
+                    {site.footer.installLabel}
                   </a>
                 </li>
               </ul>
@@ -1973,9 +2113,14 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
               {sectionOn('social') && (
                 <div data-section="social" className="au-footer-social-wrap">
                   <h4 className="au-footer-follow">
-                    {profile.sectionHeadings?.socialTitle || AURA_UNISEX_COPY.footerFollow}
+                    {site.copy.footerFollow}
                   </h4>
-                  {instagramHref || facebookHref || youtubeHref ? (
+                  {site.hasSaved('social') ? (
+                    site.socials.length > 0 ? <div className="au-footer-social">{site.socials.map((item) => {
+                      const Icon = item.platform === 'instagram' ? Instagram : item.platform === 'facebook' ? Facebook : item.platform === 'youtube' ? Youtube : ExternalLink;
+                      return <a key={item.id} href={item.url} target="_blank" rel="noreferrer" aria-label={item.label || item.platform}><Icon size={17} aria-hidden="true" /></a>;
+                    })}</div> : <p className="au-footer-social-note">Follow our salon updates in {city}.</p>
+                  ) : instagramHref || facebookHref || youtubeHref ? (
                     <div className="au-footer-social">
                       {instagramHref && (
                         <a
@@ -2008,10 +2153,10 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
 
           <div className="au-container au-footer-bottom">
             <span>
-              © {year} {brandName}. {AURA_UNISEX_COPY.footerRights}
+              © {year} {brandName}. {site.copy.footerRights}
             </span>
             <span className="au-footer-legal">
-              {AURA_UNISEX_COPY.footerLegal.map((label) => (
+              {sectionOn('policies') && site.copy.footerLegal.map((label: string) => (
                 <a key={label} href="#aura-policies">
                   {label}
                 </a>
@@ -2020,7 +2165,7 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
             {branding?.poweredBy && <span>Powered by {branding.platformName}</span>}
           </div>
         </div>
-      </footer>
+      </footer>}
 
       {/* Gallery Lightbox Modal */}
       {lightbox !== null && gallery[lightbox] && (
@@ -2053,7 +2198,7 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
             </button>
           )}
           <figure className="au-lightbox-figure" onClick={(event) => event.stopPropagation()}>
-            <img src={gallery[lightbox].src} alt={gallery[lightbox].title} />
+            <AuraImage fallbackSrc={AURA_UNISEX_IMAGES.gallery[lightbox % AURA_UNISEX_IMAGES.gallery.length].src} src={gallery[lightbox].src} alt={gallery[lightbox].title} />
             <figcaption>
               <span>{gallery[lightbox].title}</span>
               <span>
@@ -2102,7 +2247,9 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
               </button>
             </div>
             <div className="au-video-frame-wrap">
-              {activeReel.embedUrl.includes('youtube-nocookie.com/embed/') ? (
+              {activeReel.videoSrc ? (
+                <AuraVideo src={activeReel.videoSrc} poster={activeReel.posterSrc} title={activeReel.title} />
+              ) : activeReel.embedKind === 'iframe' || activeReel.embedUrl.includes('youtube-nocookie.com/embed/') ? (
                 <iframe
                   src={activeReel.embedUrl}
                   title={activeReel.title}
@@ -2111,14 +2258,14 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                 />
               ) : (
                 <div className="au-video-external-fallback">
-                  <img src={activeReel.posterSrc} alt={activeReel.title} />
+                  <AuraImage fallbackSrc={AURA_UNISEX_IMAGES.aboutInterior.src} src={activeReel.posterSrc} alt={activeReel.title} />
                   <a
                     className="au-btn au-btn-primary"
                     href={activeReel.externalUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    Open Reel on Instagram <ExternalLink size={16} aria-hidden="true" />
+                    {activeReel.externalLabel || 'Open Reel on Instagram'} <ExternalLink size={16} aria-hidden="true" />
                   </a>
                 </div>
               )}
@@ -2133,7 +2280,7 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                   onBook(featuredService);
                 }}
               >
-                {AURA_UNISEX_COPY.heroPrimary}
+                {site.copy.heroPrimary}
               </button>
             </div>
           </div>
