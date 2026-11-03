@@ -56,6 +56,11 @@ const SLOTS = [
   { name: 'service-styling', source: 'service-styling.jpg', ratio: 4 / 5, widths: [480, 760], gravity: 'North' },
   { name: 'service-pedicure', source: 'service-pedicure.jpg', ratio: 4 / 5, widths: [480, 760], gravity: 'Center' },
   { name: 'service-hairspa', source: 'service-hairspa.jpg', ratio: 4 / 5, widths: [480, 760], gravity: 'Center' },
+
+  // Team action-portrait plates (4:5 editorial portraits).
+  { name: 'team-1', source: 'team-1.jpg', ratio: 4 / 5, widths: [420, 640], gravity: 'North' },
+  { name: 'team-2', source: 'team-2.jpg', ratio: 4 / 5, widths: [420, 640], gravity: 'North' },
+  { name: 'team-3', source: 'team-3.jpg', ratio: 4 / 5, widths: [420, 640], gravity: 'North' },
 ];
 
 function renderWithConvert(input, target, width, height, gravity) {
