@@ -22,7 +22,9 @@
     "test:template14": "node scripts/verify-veda-sanjeevani.mjs",
     "assets:template14": "node scripts/build-template14-assets.mjs",
     "assets:template01": "node scripts/build-template01-assets.mjs",
-    "assets:template03": "node scripts/build-template03-assets.mjs"
+    "assets:template03": "node scripts/build-template03-assets.mjs",
+    "media:template15": "node scripts/verify-template15-media.mjs",
+    "brand:template15": "python3 scripts/brand-template15-media.py"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

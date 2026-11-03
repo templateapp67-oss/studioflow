@@ -6,7 +6,9 @@ import type {
 } from "../types";
 export const MENS_TEMPLATE_ID = "mens_hair_studio";
 export const MENS_CATEGORIES = ["Men's Haircuts", "Men's Hair Colour"] as const;
-export const MENS_HERO = "/templates/15/hero.webp";
+export const MENS_HERO = "/templates/15/mens-hero-desktop.webp";
+export const MENS_HERO_MOBILE = "/templates/15/mens-hero-mobile.webp";
+export const MENS_INTERIOR = "/templates/15/mens-interior-wide.webp";
 export const MENS_DESCRIPTION =
   "Expert men's haircuts and professional hair colour services. Choose your style and book your appointment online.";
 export interface MensMedia {
@@ -100,6 +102,12 @@ const colours = [
   "Men's Burgundy Hair Colour",
   "Men's Hair Colour Consultation",
 ];
+export const MENS_CUT_IMAGES = [
+  "classic-mens-cut.webp", "modern-mens-cut.webp", "low-fade.webp", "mid-fade.webp", "high-fade.webp",
+  "skin-fade.webp", "taper-fade.webp", "crew-cut.webp", "buzz-cut.webp", "textured-crop.webp",
+  "french-crop.webp", "undercut.webp", "side-part.webp", "slick-back.webp", "pompadour.webp",
+  "quiff.webp", "long-mens-cut.webp", "medium-mens-cut.webp", "scissor-cut.webp", "mens-hair-trim.webp",
+].map(file => `/templates/15/${file}`);
 export const MENS_SERVICES: SalonService[] = [...cuts, ...colours].map(
   (name, i) => ({
     id: `mens-${i + 1}`,
@@ -127,11 +135,9 @@ export const MENS_SERVICES: SalonService[] = [...cuts, ...colours].map(
     icon: "content_cut",
     origin: "template",
     imageUrl:
-      i === 16
-        ? "/templates/15/long.webp"
-        : i < 20
-          ? "/templates/15/fade.webp"
-          : "/templates/15/colour.webp",
+      i < 20
+        ? MENS_CUT_IMAGES[i]
+        : "/templates/15/colour.webp",
     mensTemplateId: MENS_TEMPLATE_ID,
   }),
 );
@@ -152,7 +158,11 @@ export const MENS_STAFF: Stylist[] = [
   id: `mens-barber-${i + 1}`,
   name,
   role: i === 1 ? "Men's Colour Expert" : "Men's Haircut Specialist",
-  avatarUrl: `/templates/15/barber-${i + 1}.svg`,
+  avatarUrl: [
+    "/templates/15/barber-arjun.webp",
+    "/templates/15/barber-kabir.webp",
+    "/templates/15/barber-dev.webp",
+  ][i],
   specialties:
     i === 1
       ? ["Men's Hair Colour", "Highlights", "Grey coverage"]
@@ -399,6 +409,10 @@ export function mensStaff(staff: Stylist[], config: MensConfig): Stylist[] {
 }
 const bundled = new Set([
   MENS_HERO,
+  MENS_HERO_MOBILE,
+  MENS_INTERIOR,
+  ...MENS_CUT_IMAGES,
+  "/templates/15/hero.webp",
   "/templates/15/fade.webp",
   "/templates/15/colour.webp",
   "/templates/15/long.webp",

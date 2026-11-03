@@ -30,6 +30,8 @@ import {
   mensPublicOffers,
   MENS_CATEGORIES,
   MENS_HERO,
+  MENS_HERO_MOBILE,
+  MENS_INTERIOR,
   MENS_LOYALTY,
 } from "../../lib/keshkraft";
 import { BookingModal } from "../BookingModal";
@@ -42,16 +44,22 @@ export function MensImage({
   alt,
   config,
   eager = false,
+  width,
+  height,
 }: {
   src?: string;
   alt: string;
   config: ReturnType<typeof mensConfig>;
   eager?: boolean;
+  width?: number;
+  height?: number;
 }) {
   return (
     <img
       src={mensImage(src, config)}
       alt={alt}
+      width={width}
+      height={height}
       loading={eager ? "eager" : "lazy"}
       decoding="async"
       onError={(e) => {
@@ -246,7 +254,7 @@ export function KeshKraftWebsite(props: SalonWebsitePreviewProps) {
             <strong>
               {profile.businessName || "KeshKraft Men's Hair Studio"}
             </strong>
-            <small>PRECISION. CHARACTER. CRAFT.</small>
+            <small>PRECISION. CHARACTER. CRAFT. · NEXORA</small>
           </span>
         </a>
         <nav aria-label="Main navigation" className={menu ? "is-open" : ""}>
@@ -310,12 +318,27 @@ export function KeshKraftWebsite(props: SalonWebsitePreviewProps) {
             </div>
           </div>
           <div className="kk-hero-image">
-            <MensImage
-              src={profile.coverImageUrl || MENS_HERO}
-              alt="Adult male customer receiving a precision haircut from a male barber"
-              config={c}
-              eager
-            />
+            {profile.coverImageUrl ? (
+              <MensImage
+                src={profile.coverImageUrl}
+                alt="Men's studio hero photograph"
+                config={c}
+                eager
+              />
+            ) : (
+              <picture>
+                <source media="(max-width: 640px)" srcSet={MENS_HERO_MOBILE} />
+                <img
+                  src={MENS_HERO}
+                  alt="Adult male customer receiving a precision haircut from a male barber"
+                  width={1376}
+                  height={768}
+                  loading="eager"
+                  fetchPriority="high"
+                  decoding="async"
+                />
+              </picture>
+            )}
             <span className="kk-photo-label">THE ART IS IN THE DETAIL.</span>
             <div className="kk-image-caption">
               <Scissors />
@@ -338,6 +361,25 @@ export function KeshKraftWebsite(props: SalonWebsitePreviewProps) {
           <span>MEN ONLY</span>
           <i>✦</i>
         </div>
+        {show("about") && (
+          <section className="kk-about" aria-labelledby="kk-about-title">
+            <div className="kk-about-photo">
+              <MensImage
+                src={MENS_INTERIOR}
+                alt="Warmly lit modern Indian men's haircut studio with barber chairs and mirrors"
+                width={1376}
+                height={768}
+                config={c}
+              />
+            </div>
+            <div className="kk-about-copy">
+              <p className="kk-eyebrow">MADE FOR MEN. BUILT AROUND YOUR STYLE.</p>
+              <h2 id="kk-about-title">A good cut starts with <em>good craft.</em></h2>
+              <p>A considered space for precise men's haircuts and colour. Talk through the look you want, get thoughtful advice, and leave with a finish that feels like you.</p>
+              <span className="kk-about-note">MEN'S HAIRCUTS · MEN'S HAIR COLOUR · NOTHING ELSE</span>
+            </div>
+          </section>
+        )}
         {notice && (
           <div role="status" className="kk-notice">
             {notice}
@@ -437,9 +479,9 @@ export function KeshKraftWebsite(props: SalonWebsitePreviewProps) {
               </button>
             )}
             <p className="kk-small">
-              Style references are AI-generated; the same reference may
-              illustrate several services. Your cut and colour are tailored in
-              person.
+              Each haircut card has its own generated style photograph. Colour
+              images are illustrative demo references until individual shade
+              photos are added; your final colour is tailored in person.
             </p>
           </section>
         )}
@@ -472,7 +514,7 @@ export function KeshKraftWebsite(props: SalonWebsitePreviewProps) {
               <p>
                 Choose your barber, or let us match you with an available hair
                 expert.
-                {!live && <small>Demo profiles · Illustrated portraits</small>}
+                {!live && <small>Demo staff portraits · Replace with actual team photos</small>}
               </p>
             </div>
             <div className="kk-team-grid">
@@ -480,7 +522,9 @@ export function KeshKraftWebsite(props: SalonWebsitePreviewProps) {
                 <article className="kk-team-card" key={person.id}>
                   <MensImage
                     src={person.avatarUrl}
-                    alt={`${person.name}, male barber portrait or illustration`}
+                    alt={`${person.name}, male barber portrait`}
+                    width={896}
+                    height={1200}
                     config={c}
                   />
                   <div>
