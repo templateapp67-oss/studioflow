@@ -12,6 +12,24 @@ export function canonicalOrigin(value: string | undefined): string {
     throw new Error("SITE_URL must be an HTTPS origin without a path");
   return url.origin;
 }
+const NEXORA_TEMPLATE_IDS = [
+  "hair_salon",
+  "barber",
+  "beauty_parlour",
+  "nail_studio",
+  "unisex_salon",
+  "mens_hair_studio",
+  "hair_spa",
+  "skincare_clinic",
+  "makeup_studio",
+  "bridal_lounge",
+  "hair_coloring",
+  "massage_wellness",
+  "tattoo_studio",
+  "lash_brow",
+  "ayurvedic_spa",
+  "aurelia_beauty_parlour",
+] as const;
 const xml = (value: string) =>
   value.replace(
     /[&<>"']/g,
@@ -28,6 +46,7 @@ export function sitemapXml(origin: string, slugs: string[]) {
   // Apex root is an auth/owner screen; deliberately exclude it and account routes.
   const urls = [
     origin + "/?app=1",
+    ...NEXORA_TEMPLATE_IDS.map((id) => origin + "/?template=" + encodeURIComponent(id)),
     ...new Set(
       slugs
         .filter((s) => /^[a-z0-9][a-z0-9-]{2,62}$/.test(s) && !s.toLowerCase().startsWith('studioflow-qa-'))
