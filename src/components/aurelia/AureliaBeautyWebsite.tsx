@@ -55,7 +55,7 @@ export function AureliaBeautyWebsite(props:SalonWebsitePreviewProps){
  const fallbackReviews=CATEGORY_STANDARDIZED_DATA.aurelia_beauty_parlour.reviews;
  return <div className="aurelia-site" style={{'--au-bg':config.backgroundColor||'#f6f1ea','--au-ink':config.inkColor||'#1d1612','--au-gold':config.accentColor||'#d9b98f','--au-line':config.lineColor||'#d8c8b4','--font-aurelia-display':config.displayFont||'Georgia, serif','--font-aurelia-sans':config.bodyFont||'Arial, sans-serif'} as React.CSSProperties}>
   {show('announcement')&&<div className="aurelia-announcement">{config.announcementText||'A little more time for yourself. Discover the Aurelia experience.'}</div>}
-  <header className="aurelia-header">
+  {show('header')&&<header className="aurelia-header">
    <a className="aurelia-wordmark" href="#aurelia-home" aria-label="Aurelia home">{profile.logoUrl?<img src={profile.logoUrl} alt={profile.businessName}/>:<><span>{profile.businessName||'AURELIA'}</span><small>BEAUTY · HAIR · WELLNESS</small></>}</a>
    <nav className={mobileNav?'aurelia-nav is-open':'aurelia-nav'} aria-label="Main navigation">{nav.map(([id,label])=><a key={id} href={'#aurelia-'+id} onClick={()=>setMobileNav(false)}>{label}</a>)}</nav>
    <div className="aurelia-header-actions">
@@ -63,7 +63,7 @@ export function AureliaBeautyWebsite(props:SalonWebsitePreviewProps){
     <button className="aurelia-book-link" disabled={!bookingAvailable} onClick={()=>book()}>{bookingAvailable?'Book a visit':'Booking after publish'}</button>
    </div>
    <button className="aurelia-menu-toggle" aria-label="Open navigation" aria-expanded={mobileNav} onClick={()=>setMobileNav(v=>!v)}>{mobileNav?<X/>:<Menu/>}</button>
-  </header>
+  </header>}
   <main className="aurelia-main">
    {show('hero')&&<section style={sectionStyle('hero')} className="aurelia-hero" id="aurelia-home">
     <div className="aurelia-hero-copy">
@@ -89,7 +89,7 @@ export function AureliaBeautyWebsite(props:SalonWebsitePreviewProps){
    {show('testimonials')&&<section style={sectionStyle('reviews')} className="aurelia-reviews" id="aurelia-reviews"><div className="aurelia-section"><div className="aurelia-section-heading"><div><p className="aurelia-eyebrow">KIND WORDS</p><h2>{config.reviewsHeading||'Kind words, honestly shared.'}</h2></div><p>Real experiences make the best recommendation.</p></div><div className="aurelia-review-grid">{(profile.websiteTestimonials?.length?profile.websiteTestimonials.map((item,index)=>({id:String(item.id||index),name:item.name||'Guest',rating:item.rating||5,quote:item.comment||''})).filter(item=>item.quote):fallbackReviews).slice(0,3).map(review=><article key={review.id}><div>{[1,2,3,4,5].map(i=><Star key={i} size={13} fill="currentColor"/>)}</div><blockquote>“{review.quote}”</blockquote><span>{review.name}</span></article>)}</div><CustomerReviewPanel businessType={profile.businessType} slug={profile.subdomain} fallbackReviews={[]} signedIn={props.customerSignedIn} services={services.map(s=>s.name)} onLogin={()=>props.onCustomerAccount?.('signin')}/></div></section>}
    {show('location')&&<section style={sectionStyle('contact')} className="aurelia-contact aurelia-section" id="aurelia-contact"><div><p className="aurelia-eyebrow">FIND YOUR WAY</p><h2>{config.contactHeading||'Your time at Aurelia.'}</h2><p>{[profile.address,profile.areaLocality,profile.city,profile.postalCode].filter(Boolean).join(', ')}</p><p>{profile.phone||profile.whatsapp}</p><p>{config.workingHoursDisplay||profile.workingHoursMonFri||'Monday – Saturday · 10:00 AM – 8:00 PM'}</p><div><button onClick={()=>book()} disabled={!bookingAvailable}>Book an appointment <ArrowRight size={14}/></button>{waUrl&&<a href={waUrl} target="_blank" rel="noreferrer"><MessageCircle size={14}/> WhatsApp</a>}</div></div><div className="aurelia-contact-mark"><span>A</span><small>BEAUTY · HAIR · WELLNESS</small><MapPin size={16}/></div></section>}
   </main>
-  <footer className="aurelia-footer"><div className="aurelia-footer-brand"><span>{profile.businessName||'AURELIA'}</span><small>Beauty · Hair · Wellness</small></div><p>{profile.city} · {profile.phone}</p>{props.branding?.poweredBy&&<small>Powered by {props.branding.platformName||'NEXORA'}</small>}<a href="#aurelia-home">Back to top ↑</a></footer>
+  {show('footer')&&<footer className="aurelia-footer"><div className="aurelia-footer-brand"><span>{profile.businessName||'AURELIA'}</span><small>Beauty · Hair · Wellness</small></div><p>{profile.city} · {profile.phone}</p>{props.branding?.poweredBy&&<small>Powered by {props.branding.platformName||'NEXORA'}</small>}<a href="#aurelia-home">Back to top ↑</a></footer>}
   {waUrl&&<a className="aurelia-whatsapp" href={waUrl} target="_blank" rel="noreferrer" aria-label="Chat on WhatsApp"><MessageCircle/></a>}
   {myBookings&&<SalonBookingsDialog profile={profile} onClose={()=>setMyBookings(false)}/>}
   {activePhoto&&<div className="aurelia-overlay" role="dialog" aria-modal="true" onClick={()=>setActivePhoto(null)}><button onClick={()=>setActivePhoto(null)} aria-label="Close gallery"><X/></button><img src={activePhoto} alt="Aurelia gallery" onClick={e=>e.stopPropagation()}/></div>}
