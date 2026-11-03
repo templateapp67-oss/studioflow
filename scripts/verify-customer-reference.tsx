@@ -2,6 +2,7 @@ import {withTemplateDemos} from '../src/components/customer/templateDemos';
 import {TemplateDemoSalon} from '../src/components/customer/TemplateDemoSalon';
 import {CUSTOMER_CATEGORY_GROUPS,matchesCustomerCategory} from '../src/components/customer/categoryGroups';
 import {CATEGORY_TEMPLATES} from '../src/categoryTemplates';
+import {nexoraTemplateMeta} from '../src/lib/nexoraTemplateCatalogue';
 import {HomeHeaderCarousel,homeBanners,bannerStep} from '../src/components/customer/HomeHeaderCarousel';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
@@ -101,13 +102,13 @@ await act(async()=>groupedHome.unmount());console.log('PASS: prominent Hair/Barb
 
 const spaKeyword=renderToStaticMarkup(<CustomerHome salons={[{...salon,content:{...salon.content,profile:{...salon.content.profile,businessName:'Wellness Studio',businessType:'ayurvedic_spa'}}}]} favorites={[]} query="spa" setQuery={()=>{}} open={()=>{}} book={()=>{}} save={()=>{}} refresh={()=>{}}/>);assert.equal((spaKeyword.match(/class="cr-salon-card"/g)||[]).length,1);console.log('PASS: category keywords such as spa find a published salon even when its name does not contain the category.');
 
-const templateMeta=Object.values(CATEGORY_TEMPLATES).map(t=>({id:t.id,title:t.title,shortName:t.shortName,tagline:t.tagline,coverImageUrl:t.coverImageUrl}));
+const templateMeta=Object.values(CATEGORY_TEMPLATES).map(t=>({id:t.id,title:t.title,shortName:t.shortName,displayName:nexoraTemplateMeta(t.id)!.displayName,tagline:t.tagline,coverImageUrl:t.coverImageUrl}));
 const demoCatalogue=withTemplateDemos([],templateMeta);
 assert.equal(demoCatalogue.length,15);
 for(const t of templateMeta){const s=demoCatalogue.find(s=>s.demoTemplateId===t.id)!;assert.ok(s);assert.ok(s.content.services?.length);assert.ok(s.content.profile.coverImageUrl);const detail=renderToStaticMarkup(<TemplateDemoSalon salon={s} back={()=>{}}/>);assert.ok(detail.includes('/?template='+t.id));assert.ok(detail.includes('SAMPLE CONTENT'));assert.ok(!detail.includes('Write Review'));assert.ok(!detail.includes('Book Appointment'));assert.ok(!detail.includes('tel:'));}
 for(const group of CUSTOMER_CATEGORY_GROUPS)assert.ok(demoCatalogue.some(s=>matchesCustomerCategory(s,group.id)));
 let demoHome:any;await act(async()=>{demoHome=create(<CustomerHome templates={templateMeta} salons={demoCatalogue} favorites={[]} query="" setQuery={()=>{}} open={()=>{}} book={()=>{}} save={()=>{}} refresh={()=>{}}/>)});
-for(const t of templateMeta){const tile=demoHome.root.findAllByType('button').find((b:any)=>b.findAllByType('strong').some((n:any)=>n.props.children===t.shortName));assert.ok(tile,t.id);await act(async()=>tile.props.onClick());const cards=demoHome.root.findAllByProps({className:'cr-salon-card'});assert.equal(cards.length,1,t.id);assert.ok(cards[0].findAllByProps({className:'cr-cover-offer'}).some((n:any)=>n.props.children==='TEMPLATE DEMO'));}
+for(const t of templateMeta){const tile=demoHome.root.findAllByType('button').find((b:any)=>b.findAllByType('strong').some((n:any)=>n.props.children===t.displayName));assert.ok(tile,t.id);await act(async()=>tile.props.onClick());const cards=demoHome.root.findAllByProps({className:'cr-salon-card'});assert.equal(cards.length,1,t.id);assert.ok(cards[0].findAllByProps({className:'cr-cover-offer'}).some((n:any)=>n.props.children==='TEMPLATE DEMO'));}
 await act(async()=>demoHome.unmount());
 const realHair={...salon,content:{...salon.content,profile:{...salon.content.profile,businessType:'hair_salon'}}};
 const replacement=withTemplateDemos([realHair],templateMeta);assert.equal(replacement.length,15);assert.equal(replacement[0],realHair);assert.equal(replacement.some(s=>s.demoTemplateId==='hair_salon'),false);assert.equal(replacement.filter(s=>s.demoTemplateId).length,14);

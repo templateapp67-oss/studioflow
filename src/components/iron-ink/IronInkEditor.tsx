@@ -491,7 +491,7 @@ export function IronInkEditor({
       {setLoyaltyConfig ? (
         <>
           <p>
-            Perks are saved through your existing StudioFlow workspace sync.
+            Perks are saved through your existing NEXORA workspace sync.
             Only enabled perks are published. Examples below stay inactive until
             you add, edit, enable and save them.
           </p>

@@ -39,7 +39,9 @@ export type LayoutStyle =
 
 export interface BusinessTypeOption {
   id: BusinessTypeId;
+  /** NEXORA platform display name ("NEXORA Ziya Women’s Haircut Studio"). */
   title: string;
+  /** Customer-facing category ("Haircut Studio", "Barber Shop", …). */
   categoryTag: string;
   icon: string;
   aestheticDescription: string;
@@ -47,6 +49,14 @@ export interface BusinessTypeOption {
   paletteName: string;
   badge: string;
   defaultServices: Array<{ name: string; price: number; duration: number; category: string }>;
+  /** NEXORA catalogue metadata, mirrored from lib/nexoraTemplateCatalogue.ts. */
+  displayName?: string;
+  categoryId?: string;
+  categoryName?: string;
+  priorityRank?: number;
+  displayOrder?: number;
+  templateNumber?: string;
+  searchTags?: string[];
 }
 
 export type SalonThemePreset = 

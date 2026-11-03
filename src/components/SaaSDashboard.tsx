@@ -8,7 +8,7 @@ import { uploadSalonImage, websiteLink } from '../lib/supabase';
 import React, { useState, useEffect } from 'react';
 import { downloadClientsCsv } from '../lib/clientExports';
 import { sendBookingConfirmationEmail, sendBookingReminderEmail } from '../lib/emailService';
-import { SalonProfile, SalonService, Stylist, Appointment, ClientRecord, LoyaltyConfig } from '../types';
+import { SalonProfile, SalonService, Stylist, Appointment, ClientRecord, LoyaltyConfig, CategoryTemplateConfig, BusinessTypeId } from '../types';
 import { ACCENT_PALETTES, AccentPaletteKey, applyPrimaryAccentCssVar, getContrastTextColor, getLuminance } from '../themeAccents';
 import { validateAndReadImageFile, compressAndResizeImage } from '../utils/imageUploadHelper';
 import { ImageCompressorWidget } from './ImageCompressorWidget';
@@ -24,6 +24,8 @@ import { PrismChromaOwnerPanel } from './prism-chroma/PrismChromaOwnerPanel';
 import { IronInkAdminPanel } from '../templates/iron-ink/AdminPanel';
 import { ZiyaAdminPanel } from './ziya/ZiyaAdminPanel';
 import { AuraPromotionsAdmin } from './aura/AuraPromotionsAdmin';
+import { NexoraTemplateGallery } from './nexora/NexoraTemplateGallery';
+import { CATEGORY_TEMPLATES } from '../categoryTemplates';
 
 interface SaaSDashboardProps {
   ownerId?:string;
@@ -43,9 +45,13 @@ interface SaaSDashboardProps {
   initialTab?:string;
   gallery?:string[];setGallery?:(images:string[])=>void;
   onRefreshBookings?:()=>Promise<void>|void;
+  /** NEXORA template library: preview or customize a template from the dashboard. */
+  templates?: CategoryTemplateConfig[];
+  onPreviewTemplate?:(id:BusinessTypeId)=>void;
+  onCustomizeTemplate?:(id:BusinessTypeId)=>void;
 }
 
-type TabType = 'ziya_studio' | 'aura_offers' | 'iron_ink' | 'contacts' | 'demo' | 'website_sections' | 'overview' | 'calendar' | 'services' | 'team' | 'clients' | 'loyalty' | 'marketing' | 'social_connectivity' | 'seo' | 'appearance' | 'website' | 'colour_studio';
+type TabType = 'ziya_studio' | 'aura_offers' | 'iron_ink' | 'contacts' | 'demo' | 'website_sections' | 'overview' | 'calendar' | 'services' | 'team' | 'clients' | 'loyalty' | 'marketing' | 'social_connectivity' | 'seo' | 'appearance' | 'website' | 'colour_studio' | 'templates';
 
 export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
   profile,
@@ -60,7 +66,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
   setClients = (_clients: React.SetStateAction<ClientRecord[]>) => {},
   loyaltyConfig: externalLoyaltyConfig,
   setLoyaltyConfig: externalSetLoyaltyConfig,
-  ownerId='',onNavigateToPreview,initialTab='overview',gallery,setGallery,onRefreshBookings,
+  ownerId='',onNavigateToPreview,initialTab='overview',gallery,setGallery,onRefreshBookings,templates,onPreviewTemplate,onCustomizeTemplate,
 }) => {
   const [internalLoyaltyConfig, setInternalLoyaltyConfig] = useState<LoyaltyConfig>(DEFAULT_LOYALTY_CONFIG);
   const loyaltyConfig = externalLoyaltyConfig || internalLoyaltyConfig;
@@ -97,7 +103,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
         stylistName: apt.stylistName,
         date: apt.date,
         time: apt.time,
-        salonName: profile.businessName || 'StudioFlow Salon',
+        salonName: profile.businessName || 'NEXORA Salon',
         salonAddress: profile.address,
         salonCity: profile.city,
         salonPhone: profile.phone,
@@ -262,6 +268,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
             { id: 'seo', label: 'SEO & Social Cards', icon: 'travel_explore' },
             { id: 'appearance', label: 'Appearance', icon: 'palette' },
             { id:'website_sections',label:'Website Sections',icon:'view_quilt' },
+            { id:'templates',label:'NEXORA Templates',icon:'grid_view' },
             ...(profile.businessType==='hair_salon'?[{ id:'ziya_studio',label:'Ziya Offers & Rewards',icon:'redeem' }]:[]),
             ...(profile.businessType==='unisex_salon'?[{ id:'aura_offers',label:'Aura Promotions & Offers',icon:'local_offer' }]:[]),
             ...(profile.businessType==='tattoo_studio'?[{id:'iron_ink',label:'Iron & Ink Studio',icon:'ink_pen'}]:[]),
@@ -308,6 +315,14 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
           })}
         </div>
 
+        {activeTab === 'templates' && (
+          <NexoraTemplateGallery
+            templates={(templates && templates.length ? templates : Object.values(CATEGORY_TEMPLATES))}
+            activeTemplateId={profile.businessType}
+            onPreview={onPreviewTemplate}
+            onCustomize={onCustomizeTemplate}
+          />
+        )}
         {activeTab === 'seo' && <SeoSettingsManager profile={profile} setProfile={setProfile} />}
         {activeTab==='website_sections'&&<WebsiteContentManager services={services} profile={profile} setProfile={setProfile} gallery={gallery} setGallery={setGallery}/>}
         {activeTab==='ziya_studio'&&profile.businessType==='hair_salon'&&<ZiyaAdminPanel profile={profile} services={services}/>}

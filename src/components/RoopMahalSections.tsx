@@ -993,7 +993,7 @@ export function RoopMahalFooter({
           <div className="sf-rm-footer-legal">
             {hasPoliciesDestination && <a href="#salon-policies">Policies &amp; Terms</a>}
             {branding?.poweredBy && (
-              <small>Powered by {branding.platformName || 'StudioFlow'}</small>
+              <small>Powered by {branding.platformName || 'NEXORA'}</small>
             )}
             {hasHomeDestination && <a href="#salon-home">Back to top ↑</a>}
           </div>

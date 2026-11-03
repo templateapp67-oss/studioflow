@@ -151,7 +151,7 @@ export const SocialConnectivityStep: React.FC<SocialConnectivityStepProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-display font-extrabold text-lg text-gray-900 tracking-tight">StudioFlow</span>
+              <span className="font-display font-extrabold text-lg text-gray-900 tracking-tight">NEXORA</span>
               <span className="text-[10px] font-mono font-bold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md border border-gray-200">BUILDER v2.4</span>
             </div>
             <div className="flex items-center gap-2 mt-0.5">

@@ -86,7 +86,8 @@ const landingHtml = renderToStaticMarkup(
     onCustomizeTemplate={() => {}}
   />,
 );
-assert.ok(landingHtml.includes('Ziya Women’s Hair Studio'), 'Landing page displays Ziya Women’s Hair Studio');
+assert.ok(landingHtml.includes('NEXORA Ziya Women’s Haircut Studio'), 'Landing page displays the NEXORA Ziya Women’s Haircut Studio template');
+assert.ok(landingHtml.includes('Haircut Studio'), 'Landing page shows the Haircut Studio category');
 assert.ok(!/miraki/i.test(landingHtml), 'Zero Miraki strings remain on LandingPage');
 
 const ziyaProfile = {

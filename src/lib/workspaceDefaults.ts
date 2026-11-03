@@ -10,6 +10,6 @@ export type Extras = {
 export const DEFAULT_EXTRAS: Extras = {
   gallery: [], cancellationWindow: 24, bookingLeadHours: 2,
   policies: readySalonPolicies(24),
-  whiteLabel: { platformName: 'StudioFlow', supportEmail: 'support@yourbrand.com', customDomain: '', poweredBy: false, faviconUrl: '' },
+  whiteLabel: { platformName: 'NEXORA', supportEmail: 'support@yourbrand.com', customDomain: '', poweredBy: false, faviconUrl: '' },
 };
 
