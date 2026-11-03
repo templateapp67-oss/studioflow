@@ -1,10 +1,9 @@
 import React, {useMemo, useState} from 'react';
-import {ArrowDown, ArrowRight, CalendarDays, ChevronRight, Clock, MapPin, Menu, MessageCircle, Play, Sparkles, Star, X} from 'lucide-react';
+import {ArrowDown, ArrowRight, ChevronRight, Clock, MapPin, Menu, MessageCircle, Play, Sparkles, Star, X} from 'lucide-react';
 import {BookingModal} from '../BookingModal';
 import {SalonBookingsDialog} from '../SalonBookingsDialog';
 import {CustomerReviewPanel} from '../CustomerReviewPanel';
 import {AURELIA_DEFAULT_CONFIG, AURELIA_DEFAULT_OFFERS, AURELIA_DEFAULT_SERVICES, AURELIA_DEFAULT_STAFF, AURELIA_IMAGES, aureliaConfigFor} from '../../lib/aureliaBeauty';
-import {websiteSections} from '../../lib/websiteContent';
 import {CATEGORY_STANDARDIZED_DATA} from '../../templateData';
 import type {SalonService, Stylist, SalonOffer} from '../../types';
 import type {SalonWebsitePreviewProps} from '../SalonWebsitePreview';
@@ -18,7 +17,6 @@ export function AureliaBeautyWebsite(props:SalonWebsitePreviewProps){
  const config=aureliaConfigFor(profile);
  const services=useMemo(()=>props.services.length?props.services:(!profile.subdomain?AURELIA_DEFAULT_SERVICES:[]),[props.services,profile.subdomain]);
  const stylists=useMemo(()=>props.stylists.length?props.stylists:(!profile.subdomain?AURELIA_DEFAULT_STAFF:[]),[props.stylists,profile.subdomain]);
- const enabled=websiteSections(profile);
  const offers=(profile.promoOffers===undefined?AURELIA_DEFAULT_OFFERS:profile.promoOffers).filter((offer:SalonOffer)=>offer.isActive && (!offer.validTo || offer.validTo>=new Date().toISOString().slice(0,10)));
  const gallery=(profile.photoGallery||[]).filter(item=>item.url&&item.url.trim()).map(item=>({url:item.url,title:item.title||'Aurelia studio detail'}));
  const images=gallery.length?gallery.map(item=>item.url):(config.galleryUrls||AURELIA_DEFAULT_CONFIG.galleryUrls||[]);
