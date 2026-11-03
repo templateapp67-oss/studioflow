@@ -159,7 +159,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
       themeAccentKey: palKey,
       customAccentColor: undefined,
     }));
-    // Updates the primary accent CSS variable across all 15 templates
+    // Updates the primary accent CSS variable across all 16 templates
     applyPrimaryAccentCssVar(pal.primaryHex, pal.secondaryHex);
     setCustomHexInput(pal.primaryHex);
     setAccentAppliedFeedback(`Applied "${pal.name}" (${pal.primaryHex}) to CSS variable --primary-accent!`);
@@ -177,7 +177,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
       ...prev,
       customAccentColor: formatted,
     }));
-    // Updates the primary accent CSS variable across all 15 templates
+    // Updates the primary accent CSS variable across all 16 templates
     applyPrimaryAccentCssVar(formatted);
     setCustomHexInput(formatted);
     setAccentAppliedFeedback(`Applied custom accent ${formatted} to CSS variable --primary-accent!`);
@@ -788,7 +788,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
                   </h2>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
-                  Customize your salon's brand assets and accent palette. Upload custom logos and hero cover banners (uploaded to your account and saved to Supabase), or pick a Theme Accent color (<code className="bg-gray-100 px-1 py-0.5 rounded text-gray-800 font-mono text-[11px]">--primary-accent</code>) used across all 15 templates.
+                  Customize your salon's brand assets and accent palette. Upload custom logos and hero cover banners (uploaded to your account and saved to Supabase), or pick a Theme Accent color (<code className="bg-gray-100 px-1 py-0.5 rounded text-gray-800 font-mono text-[11px]">--primary-accent</code>) used across all 16 templates.
                 </p>
               </div>
 
@@ -1164,7 +1164,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
               </div>
 
               <div className="text-[11px] text-gray-500 italic text-center">
-                ✓ Changes to <code className="font-mono font-bold text-gray-700">--primary-accent</code> propagate immediately to all 15 category templates (Bridal, Barbershop, Ayurvedic Spa, Hair Studio, Nail Bar, Skincare, Tattoo, etc.)
+                ✓ Changes to <code className="font-mono font-bold text-gray-700">--primary-accent</code> propagate immediately to all 16 category templates (Bridal, Barbershop, Ayurvedic Spa, Hair Studio, Nail Bar, Skincare, Tattoo, etc.)
               </div>
             </div>
           </div>
@@ -1274,7 +1274,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
 
             <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center justify-between">
               <span className="font-medium">
-                ✓ Changes update automatically in live preview and across all 15 category templates.
+                ✓ Changes update automatically in live preview and across all 16 category templates.
               </span>
               <span className="font-mono text-[11px] font-bold bg-emerald-100 px-2 py-0.5 rounded">
                 Live Synced
