@@ -14,12 +14,12 @@ export const AURELIA_IMAGES = {
   leah: ROOT + 'staff_leah_dsouza_1793411018649.jpg',
   maya: ROOT + 'staff_maya_kapoor_1793411019553.jpg',
   rohan: ROOT + 'staff_rohan_mehta_1793411019601.jpg',
-  galleryHair: ROOT + 'gallery_hair_1793411300101.jpg',
-  gallerySkin: ROOT + 'gallery_skin_1793411300102.jpg',
-  galleryBridal: ROOT + 'gallery_bridal_1793411300103.jpg',
-  galleryStudio: ROOT + 'gallery_studio_1793411300104.jpg',
-  galleryNails: ROOT + 'gallery_nails_1793411300105.jpg',
-  gallerySpa: ROOT + 'gallery_spa_1793411300106.jpg',
+  galleryHair: ROOT + 'video_balayage_thumb_1793411344176.jpg',
+  gallerySkin: ROOT + 'video_facial_thumb_1793411344736.jpg',
+  galleryBridal: ROOT + 'video_bridal_thumb_1793411345160.jpg',
+  galleryStudio: ROOT + 'room_lookbook_interior_1793383607293.jpg',
+  galleryNails: ROOT + 'service_nailstudio_1793409259976.jpg',
+  gallerySpa: ROOT + 'service_spa_1793409260106.jpg',
 };
 
 export const AURELIA_DEFAULT_CONFIG: AureliaBeautyConfig = {
