@@ -44,7 +44,7 @@ assert.match(standardized,/aurelia_beauty_parlour:\s*\{/,'Aurelia must have stan
 assert.match(gallery,/standardGallery\('aurelia_beauty_parlour'\)/,'Aurelia gallery must be available to shared gallery normalization');
 assert.match(videos,/profile\.businessType==='aurelia_beauty_parlour'/,'Aurelia must not receive unrelated generic demo videos');
 
-const serviceIds=[...data.matchAll(/id:'aur-(?:hair|colour|skin|nails|spa|bridal)-\\d+'/g)].map(m=>m[0]);
+const serviceIds=[...data.matchAll(/id:'aur-(?:hair|colour|skin|nails|spa|bridal)-\d+'/g)].map(m=>m[0]);
 assert.equal(serviceIds.length,10,'Aurelia must start with ten demo service records');
 const staffIds=[...data.matchAll(/id:'aur-staff-[^']+'/g)].map(m=>m[0]);
 assert.equal(staffIds.length,4,'Aurelia must start with four demo staff records');
