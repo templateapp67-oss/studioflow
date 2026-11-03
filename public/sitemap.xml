@@ -1,6 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://nexorasalon.online/?app=1</loc></url>
+  <url><loc>https://nexorasalon.online/?template=hair_salon</loc></url>
+  <url><loc>https://nexorasalon.online/?template=barber</loc></url>
+  <url><loc>https://nexorasalon.online/?template=beauty_parlour</loc></url>
+  <url><loc>https://nexorasalon.online/?template=nail_studio</loc></url>
+  <url><loc>https://nexorasalon.online/?template=unisex_salon</loc></url>
+  <url><loc>https://nexorasalon.online/?template=mens_hair_studio</loc></url>
+  <url><loc>https://nexorasalon.online/?template=hair_spa</loc></url>
+  <url><loc>https://nexorasalon.online/?template=skincare_clinic</loc></url>
+  <url><loc>https://nexorasalon.online/?template=makeup_studio</loc></url>
+  <url><loc>https://nexorasalon.online/?template=bridal_lounge</loc></url>
+  <url><loc>https://nexorasalon.online/?template=hair_coloring</loc></url>
+  <url><loc>https://nexorasalon.online/?template=massage_wellness</loc></url>
+  <url><loc>https://nexorasalon.online/?template=tattoo_studio</loc></url>
+  <url><loc>https://nexorasalon.online/?template=lash_brow</loc></url>
+  <url><loc>https://nexorasalon.online/?template=ayurvedic_spa</loc></url>
+  <url><loc>https://nexorasalon.online/?template=aurelia_beauty_parlour</loc></url>
   <url><loc>https://nexorasalon.online/?site=artbyuma</loc></url>
   <url><loc>https://nexorasalon.online/?site=bestsalon</loc></url>
   <url><loc>https://nexorasalon.online/?site=happyunisexsalon</loc></url>
