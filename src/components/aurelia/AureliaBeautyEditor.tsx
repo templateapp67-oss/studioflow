@@ -5,7 +5,7 @@ import {TeamManagement} from '../TeamManagement';
 import {WebsiteContentManager} from '../WebsiteContentManager';
 import {uploadSalonImage} from '../../lib/supabase';
 import {AURELIA_DEFAULT_OFFERS, AURELIA_IMAGES, aureliaConfigFor} from '../../lib/aureliaBeauty';
-import type {SalonOffer, SalonProfile, SocialVideo} from '../../types';
+import type {AureliaBeautyConfig, SalonOffer, SalonProfile, SocialVideo} from '../../types';
 import type {SalonWebsitePreviewProps} from '../SalonWebsitePreview';
 
 export function AureliaBeautyEditor(props:SalonWebsitePreviewProps){
@@ -21,7 +21,7 @@ export function AureliaBeautyEditor(props:SalonWebsitePreviewProps){
  const offers=useMemo(()=>profile.promoOffers===undefined?AURELIA_DEFAULT_OFFERS:profile.promoOffers,[profile.promoOffers]);
  const accent=profile.customAccentColor||'#9b7652';
  const updateProfile=(patch:Partial<SalonProfile>)=>props.setProfile?.(current=>({...current,...patch}));
- const updateConfig=(patch:Record<string,unknown>)=>props.setProfile?.(current=>({...current,aureliaBeauty:{...aureliaConfigFor(current),...patch}}));
+ const updateConfig=(patch:Partial<AureliaBeautyConfig>)=>props.setProfile?.(current=>({...current,aureliaBeauty:{...aureliaConfigFor(current),...patch}}));
  const updateOffer=(id:string,patch:Partial<SalonOffer>)=>updateProfile({promoOffers:offers.map(offer=>offer.id===id?{...offer,...patch,isDemo:false}:offer)});
  const addOffer=()=>{
   const title=newOfferTitle.trim();
@@ -45,7 +45,7 @@ export function AureliaBeautyEditor(props:SalonWebsitePreviewProps){
  };
  const uploadImage=async (file:File,key:'heroImageUrl'|'storyImageUrl')=>{
   setError('');setMessage('');setUploading(key);
-  try{const url=await uploadSalonImage(file);updateConfig({[key]:url});setMessage('Image uploaded and saved to this salon workspace.');}
+  try{const url=await uploadSalonImage(file);updateConfig({[key]:url} as Partial<AureliaBeautyConfig>);setMessage('Image uploaded and saved to this salon workspace.');}
   catch(e){setError(e instanceof Error?e.message:'Image upload failed.');}
   finally{setUploading('');}
  };
