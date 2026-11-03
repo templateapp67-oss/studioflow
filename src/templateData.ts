@@ -121,12 +121,11 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
       { icon: 'military_tech', title: 'Friendly Expert Team', description: 'Specialists in unisex cuts, colour and skin care with transparent ₹ pricing.' }
     ],
     gallery: [
-      { id: 'us-g1', url: 'https://nexorasalon.online/templates/aura-unisex/hero.webp', title: 'Aura Salon — Look Good. Feel Fresh. Be You.', tag: 'Salon Hero' },
-      { id: 'us-g2', url: 'https://nexorasalon.online/templates/aura-unisex/hero-men.webp', title: "Men's Haircut & Grooming", tag: 'Men\'s Grooming' },
-      { id: 'us-g3', url: 'https://nexorasalon.online/templates/aura-unisex/hero-women.webp', title: "Women's Hair & Beauty", tag: 'Women\'s Beauty' },
-      { id: 'us-g4', url: 'https://nexorasalon.online/templates/aura-unisex/about-interior.webp', title: 'Bright Unisex Salon with Sage Green Chairs', tag: 'Salon Interior' },
-      { id: 'us-g5', url: 'https://nexorasalon.online/templates/aura-unisex/about-work.webp', title: 'Priya Nair — Salon Care', tag: 'Our Work' },
-      { id: 'us-g6', url: 'https://nexorasalon.online/templates/aura-unisex/wellness.webp', title: 'Calm, Clean Wellness Room for All Customers', tag: 'Wellness' }
+      { id: 'us-g1', url: '/templates/aura-unisex/gallery-1-760.webp', title: 'Men’s Haircut & Hairline Shaping', tag: 'Hair' },
+      { id: 'us-g2', url: '/templates/aura-unisex/gallery-2-760.webp', title: 'Women’s Hair Styling & Blow Dry', tag: 'Hair' },
+      { id: 'us-g3', url: '/templates/aura-unisex/gallery-3-760.webp', title: 'Hair Colour Work', tag: 'Hair' },
+      { id: 'us-g4', url: '/templates/aura-unisex/gallery-4-760.webp', title: 'Aura Unisex Salon Interior', tag: 'Hair' },
+      { id: 'us-g5', url: '/templates/aura-unisex/gallery-5-760.webp', title: 'Beard Grooming & Men’s Styling', tag: 'Hair' }
     ],
     reviews: [
       { id: 'us-r1', name: 'Aditi Sharma', location: 'Koramangala, Bengaluru', rating: 5, serviceName: 'Designer Unisex Haircut & Moroccan Conditioning', comment: 'The team explained the service and price before starting. The visit was comfortable and the team was helpful.', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80', date: '2 days ago' },

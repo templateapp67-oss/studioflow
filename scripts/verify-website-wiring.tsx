@@ -235,7 +235,7 @@ for(const template of Object.values(CATEGORY_TEMPLATES)) {
  }
  // Templates 06 and 08 are editorial single-page sites: the sticky header is the only
  // navigation, so they have no dock duplicating the same links.
- const order=template.id==='hair_salon'?['hero','about','services','team','gallery','experiences','location','footer']:template.id==='hair_spa'?['hero','services','team','gallery','location','footer']:template.id==='makeup_studio'?['hero','services','gallery','team','experiences','location','footer']:template.id==='massage_wellness'?['hero','services','experiences','gallery','location','footer']:template.id==='hair_coloring'?['hero','services','team','gallery','experiences','location','footer']:['hero','dock','services','team','experiences','location','footer'];let previous=-1;for(const section of order){const at=html.indexOf(`data-layout="${section}"`);assert.ok(at>previous,`${template.id}: ${section} must appear in requested order`);previous=at;}
+ const order=template.id==='unisex_salon'?['hero','services','about','team','gallery','experiences','location','footer']:template.id==='hair_salon'?['hero','about','services','team','gallery','experiences','location','footer']:template.id==='hair_spa'?['hero','services','team','gallery','location','footer']:template.id==='makeup_studio'?['hero','services','gallery','team','experiences','location','footer']:template.id==='massage_wellness'?['hero','services','experiences','gallery','location','footer']:template.id==='hair_coloring'?['hero','services','team','gallery','experiences','location','footer']:['hero','dock','services','team','experiences','location','footer'];let previous=-1;for(const section of order){const at=html.indexOf(`data-layout="${section}"`);assert.ok(at>previous,`${template.id}: ${section} must appear in requested order`);previous=at;}
  if(template.id==='hair_salon'){
   // Template 01 (Luxury Editorial Salon) keeps one navigation in its sticky
   // editorial header plus the mobile drawer; there is no bottom dock.
@@ -264,18 +264,27 @@ for(const template of Object.values(CATEGORY_TEMPLATES)) {
   assert.ok(!html.includes('data-layout="dock"'),'Prism & Chroma keeps one navigation in the sticky header');
   assert.ok(html.includes('wa.me/'),'Prism & Chroma keeps a real WhatsApp contact path');
   assert.ok(html.includes('Shade Studio'),'Prism & Chroma home shows the Shade Studio');
+ }else if(template.id==='unisex_salon'){
+  // Template 03 (Aura Unisex Salon & Wellness Lounge) is a single-page site: the
+  // sticky warm-white header plus the mobile slide-out menu are the only
+  // navigation, so there is no dock duplicating the same links.
+  assert.ok(!html.includes('data-layout="dock"'),'Aura keeps one navigation in the sticky header');
+  assert.ok(html.includes('href="#aura-services"')&&html.includes('href="#aura-team"')&&html.includes('href="#aura-gallery"'),'Aura header links resolve');
+  assert.ok(html.includes('wa.me/'),'Aura keeps a real WhatsApp contact path');
+  assert.ok(html.includes('Test Studio'),'Aura header shows the saved salon name');
  }else{
   const dock=html.match(/<nav data-layout="dock"[\s\S]*?<\/nav>/)?.[0]||'';for(const label of ['Offers','Services','Our Team','Lookbook','Reviews','Location'])assert.ok(dock.includes(label),`${template.id}: ${label} dock link missing`);
   assert.ok(html.includes('WhatsApp Inquiry'));
  }
-if(['hair_salon','hair_spa','makeup_studio','massage_wellness','hair_coloring','bridal_lounge'].includes(template.id)){
+if(['hair_salon','unisex_salon','hair_spa','makeup_studio','massage_wellness','hair_coloring','bridal_lounge'].includes(template.id)){
  // Templates 01, 06, 08, 09, 10 and 11 use their own editorial hero instead of the shared "Rich warm mood" badge copy.
  assert.ok(!html.includes('Rich warm mood'),'Editorial hero must not leak shared design-reference copy');
  assert.ok(html.includes('Test Studio'),'Editorial hero shows the saved salon name');
 }else assert.ok(html.includes('Rich warm mood'));
-if(['hair_salon','hair_spa','makeup_studio','massage_wellness','hair_coloring'].includes(template.id))assert.ok(!html.includes('Verified checkout'),'Editorial demo must not imply an active verified checkout');else assert.ok(html.includes('Verified checkout'));assert.ok(html.includes('Service categories'));
+if(['hair_salon','unisex_salon','hair_spa','makeup_studio','massage_wellness','hair_coloring'].includes(template.id))assert.ok(!html.includes('Verified checkout'),'Editorial demo must not imply an active verified checkout');else assert.ok(html.includes('Verified checkout'));assert.ok(html.includes('Service categories'));
  // Templates 06 and 08 name their booking action in the studio's own words.
  if(template.id==='hair_salon'){assert.ok(html.includes('Book Haircut'),'Ziya Women’s Hair Studio service cards expose the booking action');assert.ok(html.includes('Book Appointment'),'Ziya Women’s Hair Studio header carries the booking CTA');assert.ok(html.includes('Your Hair, Your Style, Your Confidence')&&html.includes('Specialists in Women’s Haircuts'));}
+ else if(template.id==='unisex_salon'){assert.ok(html.includes('Book Now'),'Aura service cards expose the booking action in simple words');assert.ok(html.includes('Book Appointment'),'Aura header carries the booking CTA');}
  else if(template.id==='hair_spa')assert.ok(html.includes('Book this service'),'hair spa service cards expose the booking action');else if(template.id==='makeup_studio')assert.ok(html.includes('>Book<')&&html.includes('Book Appointment'),'Vogue Noir service cards expose the booking action');else if(template.id==='massage_wellness')assert.ok(html.includes('Book Now'),'Bodhi Tree service cards expose the booking action in simple words');else if(template.id==='hair_coloring')assert.ok(html.includes('Book Now'),'Prism & Chroma service cards expose the booking action in simple words');else if(template.id==='bridal_lounge'){assert.ok(html.includes('aria-label="Book '),'Shringaar Royal ritual tiles expose a book action');assert.ok(html.includes('Book Consultation'),'Shringaar Royal hero and header carry the consultation CTA');}else assert.ok(html.includes('Choose for online booking'));
  assert.ok(!html.includes('Verified client'),'Owner-entered reviews must not be labelled verified by default');
  if(template.id==='massage_wellness'){
@@ -306,6 +315,14 @@ if(['hair_salon','hair_spa','makeup_studio','massage_wellness','hair_coloring'].
   }
   for(const label of ['Refresh Duo','Signature Care','Complete Ritual','Premium Pair','Self-care Combo'])assert.ok(html.includes(label),`Ziya Women’s Hair Studio lists the ${label} package`);
   assert.ok(!html.includes('Ziya Women’s Hair Studio Refresh Duo')&&!html.includes('Luxury Editorial Salon Refresh Duo'),'package labels drop the template-selector prefix');
+ }else if(template.id==='unisex_salon'){
+  // Template 03 lists the whole unisex menu behind its category tabs, with the
+  // saved ₹ price, saved duration and a Book Now action on every card.
+  for(const service of template.services){
+   assert.ok(html.includes(service.name.replaceAll('&','&amp;').replaceAll("'",'&#x27;')),`Aura menu shows ${service.name}`);
+   assert.ok(html.includes(`${service.durationMinutes} min`),`Aura menu shows ${service.name} duration`);
+   assert.ok(html.includes(`₹${service.price.toLocaleString('en-IN')}`),`Aura menu shows the ₹ price for ${service.name}`);
+  }
  }else for(const service of template.services){assert.ok(html.includes(service.name.replaceAll('&','&amp;').replaceAll("'",'&#x27;')));assert.ok(html.includes(`${service.durationMinutes} min`));}
 }
 console.log('PASS: all 14 templates follow hero → dock → services → specialists → experiences/lookbook → location → footer; category pricing, duration, WhatsApp and specialist booking controls are present.');
@@ -395,6 +412,15 @@ assert.ok(html.includes('/templates/14/'),'Veda Sanjeevani shows its own treatme
 assert.ok(html.includes('Sample stories are labelled'),'Veda Sanjeevani states that sample stories are labelled');
 assert.ok(!html.includes('Verified client'));
 assert.ok(!html.includes('Client experiences will appear here'));
+}else if(template.id==='unisex_salon'){
+// Template 03 (Aura Unisex Salon & Wellness Lounge) renders its own three
+// review cards and its own bundled salon gallery, never the generic demo
+// labels, a verified-client claim or an empty-reviews placeholder.
+assert.ok(!html.includes('Demo testimonial'),'Aura never prints the generic demo testimonial label');
+assert.ok(html.includes('Aditi Sharma'),'Aura shows its seeded unisex salon reviews');
+assert.ok(html.includes('/templates/aura-unisex/'),'Aura shows its own salon photography');
+assert.ok(!html.includes('Verified client'));
+assert.ok(!html.includes('Client experiences will appear here'));
 }else{assert.ok(html.includes('Demo testimonial'));assert.ok(html.includes('Demo lookbook'));assert.ok(!html.includes('Client experiences will appear here'));}
  const deleted=normalizeWorkspace({profile:{...initial.profile,websiteTestimonials:[]},extras:{gallery:[]}});assert.equal(clientExperiences(deleted.profile).length,0);assert.equal(lookbookPhotos(deleted.profile,deleted.extras.gallery).length,0);
  const real={...initial.profile.websiteTestimonials[0],id:'real-review',isDemo:false,name:'Actual client',comment:'Actual client experience'};
@@ -452,7 +478,7 @@ const customService:SalonService={clinicServiceApproved:true,clinicPublicationSt
 for(const template of Object.values(CATEGORY_TEMPLATES)){
  const profile={...INITIAL_SALON_PROFILE,businessType:template.id,serviceCatalogueInitialized:true};
  const html=renderToStaticMarkup(<CustomerSalonWebsite profile={profile} services={[customService]} stylists={[]} onAddAppointment={async apt=>apt}/>);
- assert.ok(html.includes(template.id==='skincare_clinic'?'dc-directory-item':template.id==='bridal_lounge'?'sr-service ':template.id==='tattoo_studio'?'ii-category-card':template.id==='lash_brow'?'af-menu-card':template.id==='ayurvedic_spa'?'vd-card':template.id==='hair_salon'?'le-feature':'sf-service-row'));assert.ok(html.includes(customService.name));assert.ok(html.includes(customService.description));assert.ok(html.includes(customService.category));assert.ok(html.includes('₹1,250.5'));assert.ok(!html.includes('55 min'));
+ assert.ok(html.includes(template.id==='skincare_clinic'?'dc-directory-item':template.id==='bridal_lounge'?'sr-service ':template.id==='tattoo_studio'?'ii-category-card':template.id==='lash_brow'?'af-menu-card':template.id==='ayurvedic_spa'?'vd-card':template.id==='unisex_salon'?'au-service-card':template.id==='hair_salon'?'le-feature':'sf-service-row'));assert.ok(html.includes(customService.name));assert.ok(html.includes(customService.description));assert.ok(html.includes(customService.category));assert.ok(html.includes('₹1,250.5'));assert.ok(!html.includes('55 min'));
  const normalized=normalizeWorkspace(JSON.parse(JSON.stringify({profile,services:[customService]})));
  assert.deepEqual(normalized.services,[customService]);
  const switched=servicesForTemplate(normalized.services,normalized.profile,template);assert.deepEqual(switched,[customService]);
@@ -504,6 +530,8 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
   assert.ok(html.includes('vd-card__media'),'Veda Sanjeevani shows the saved service photo in its own card');
  }else if(template.id==='hair_salon'){ // Template 01 renders its own cinematic ritual cards.
   assert.ok(html.includes('le-feature-media'),'Luxury Editorial Salon shows the saved service photo in its featured ritual');
+ }else if(template.id==='unisex_salon'){ // Template 03 renders its own tabbed image cards.
+  assert.ok(html.includes('au-service-media'),'Aura shows the saved service photo in its own service card');
  }else{
   assert.ok(html.includes('sf-service-image'));if(template.id==='tattoo_studio')assert.ok(html.includes('ii-category-card'));else assert.ok(html.includes('width="600" height="400"'));
  }
@@ -540,7 +568,7 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
   for(const id of ['home','about','treatments','technology','results','contact']){assert.ok(nav.includes(`href="#${id}"`));assert.ok(html.includes(`id="${id}"`));}
   continue;
  }
- const nav=template.id==='hair_salon'?(html.match(/<nav class="le-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='hair_spa'?(html.match(/<nav class="kp-desktop-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='makeup_studio'?(html.match(/<nav class="vn-desktop-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='massage_wellness'?(html.match(/<nav class="bt-desktop-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='hair_coloring'?(html.match(/<nav[^>]*aria-label="Website navigation"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='bridal_lounge'?(html.match(/<nav class="sr-nav-links"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='tattoo_studio'?(html.match(/<nav class="ii-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='lash_brow'?(html.match(/<nav class="af-nav-links"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='ayurvedic_spa'?(html.match(/<nav class="vd-nav"[\s\S]*?<\/nav>/)?.[0]||''):html.match(/<nav class="sf-header-links"[\s\S]*?<\/nav>/)![0];
+ const nav=template.id==='hair_salon'?(html.match(/<nav class="le-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='unisex_salon'?(html.match(/<nav class="au-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='hair_spa'?(html.match(/<nav class="kp-desktop-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='makeup_studio'?(html.match(/<nav class="vn-desktop-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='massage_wellness'?(html.match(/<nav class="bt-desktop-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='hair_coloring'?(html.match(/<nav[^>]*aria-label="Website navigation"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='bridal_lounge'?(html.match(/<nav class="sr-nav-links"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='tattoo_studio'?(html.match(/<nav class="ii-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='lash_brow'?(html.match(/<nav class="af-nav-links"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='ayurvedic_spa'?(html.match(/<nav class="vd-nav"[\s\S]*?<\/nav>/)?.[0]||''):html.match(/<nav class="sf-header-links"[\s\S]*?<\/nav>/)![0];
  if(template.id==='hair_salon'){
   // The editorial header lists only sections that actually have content: with no
   // specialists passed here the Team link (present on seeded sites) is omitted.
@@ -548,6 +576,16 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
   for(const href of ['#salon-home','#salon-about','#services-section','#salon-lookbook','#salon-location']){assert.ok(html.includes(`href="${href}"`),`${template.id}: broken anchor ${href}`);assert.ok(html.includes(`id="${href.slice(1)}"`),`${template.id}: missing section ${href}`);}
   assert.ok(!nav.includes('href="#"'),'Luxury Editorial Salon navigation uses working anchors, never dead links');
 }
+ else if(template.id==='unisex_salon'){
+  // Template 03 (Aura Unisex Salon & Wellness Lounge) navigates its own single
+  // page: every entry is a real working anchor, never a dead link.
+  // With no specialists passed here the Our Team link (present on seeded sites) is omitted.
+  for(const label of ['Home','Services','About','Gallery','Contact'])assert.ok(nav.includes(label),`${template.id}: missing Aura link ${label}`);
+  if(html.includes('id="aura-team"'))assert.ok(nav.includes('Our Team'),`${template.id}: missing Aura team link`);
+  for(const href of ['#aura-home','#aura-services','#aura-about','#aura-gallery','#aura-contact']){assert.ok(html.includes(`href="${href}"`),`${template.id}: broken anchor ${href}`);assert.ok(html.includes(`id="${href.slice(1)}"`),`${template.id}: missing section ${href}`);}
+  assert.ok(!nav.includes('href="#"'),'Aura navigation uses working anchors, never dead links');
+  assert.ok(html.includes('Book Appointment'),'Aura header keeps the booking CTA');
+ }
  else if(template.id==='hair_spa'){for(const label of ['Our Philosophy','Treatments','Scalp Care','The Sanctuary','Gallery','Contact'])assert.ok(nav.includes(label),`${template.id}: missing editorial link ${label}`);for(const href of ['#philosophy','#treatments','#journey','#sanctuary','#gallery','#contact'])assert.ok(html.includes(`href="${href}"`),`${template.id}: broken anchor ${href}`);assert.ok(html.includes('id="sanctuary"')&&html.includes('id="gallery"'),'the sanctuary story and the gallery are two resolving sections');}
  else if(template.id==='makeup_studio'){for(const label of ['Home','Services','Academy','Portfolio','Reviews','Contact'])assert.ok(nav.includes(label),`${template.id}: missing Vogue Noir link ${label}`);for(const href of ['#home','#services','#academy','#portfolio','#reviews','#contact']){assert.ok(html.includes(`href="${href}"`),`${template.id}: broken anchor ${href}`);assert.ok(html.includes(`id="${href.slice(1)}"`),`${template.id}: missing section ${href}`);}}
  else if(template.id==='massage_wellness'){for(const label of ['Home','About','Massages','Palace Collection','Packages','Gallery','Team','Reviews','Contact'])assert.ok(nav.includes(label),`${template.id}: missing Bodhi Tree link ${label}`);assert.ok(!nav.includes('href="#"'),'Bodhi Tree page navigation uses working buttons, never dead anchors');}
@@ -664,7 +702,7 @@ try {
  for(const template of Object.values(CATEGORY_TEMPLATES)){
   let site:any;let prevented=false;
   await act(async()=>{site=create(<CustomerSalonWebsite profile={{...INITIAL_SALON_PROFILE,businessType:template.id,subdomain:'nav-studio'}} services={template.services} stylists={[]} onAddAppointment={async apt=>apt}/>);});
-  if(template.id==='tattoo_studio'||template.id==='ayurvedic_spa'||template.id==='hair_salon'){const button=site.root.findAllByType('button').find((item:any)=>demoText(item)==='My Bookings');assert.ok(button,`${template.id} exposes a native My Bookings action`);await act(async()=>button.props.onClick());}
+  if(template.id==='tattoo_studio'||template.id==='ayurvedic_spa'||template.id==='hair_salon'||template.id==='unisex_salon'){const button=site.root.findAllByType('button').find((item:any)=>demoText(item)==='My Bookings');assert.ok(button,`${template.id} exposes a native My Bookings action`);await act(async()=>button.props.onClick());}
   else{const link=site.root.findByProps({'aria-label':'Website navigation'}).findByProps({href:'/?customer=1&return=nav-studio'});await act(async()=>link.props.onClick({preventDefault(){prevented=true;}}));assert.ok(prevented,template.id+': My Bookings must prevent redirect');}
   assert.equal(site.root.findAllByType(SalonBookingsDialog).length,1);
   assert.ok(demoText(site.root.findByProps({role:'dialog'})).includes('My haircut'));

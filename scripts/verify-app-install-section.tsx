@@ -58,7 +58,7 @@ const LEGACY_INDIGO = new Set(['#eef2ff', '#312e81', '#0f172a', '#1e1b4b']);
 /** What each template's banner CTA is expected to resolve to. */
 const EXPECTED_CTA: Record<string, string> = {
   hair_salon: '#d8c5a3', // Luxury Editorial Salon champagne accent, espresso CTA ink
-  unisex_salon: '#0f172a',
+  unisex_salon: '#5c7362', // Template 03 Aura deeper sage: white CTA labels stay above 4.5:1
   barber: '#c49a6c',
   beauty_parlour: '#6d2638',
   nail_studio: '#702d4b',
