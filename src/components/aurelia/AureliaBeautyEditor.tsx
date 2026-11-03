@@ -18,7 +18,7 @@ export function AureliaBeautyEditor(props:SalonWebsitePreviewProps){
  const [newOfferPrice,setNewOfferPrice]=useState('0');
  const [videoLines,setVideoLines]=useState(()=> (profile.socialVideos||[]).map(v=>(v.title||'Studio video')+' | '+(v.previewVideoUrl||v.youtubeUrl)).join('\n'));
  const config=aureliaConfigFor(profile);
- const offers=useMemo(()=>profile.promoOffers?.length?profile.promoOffers:AURELIA_DEFAULT_OFFERS,[profile.promoOffers]);
+ const offers=useMemo(()=>profile.promoOffers===undefined?AURELIA_DEFAULT_OFFERS:profile.promoOffers,[profile.promoOffers]);
  const accent=profile.customAccentColor||'#9b7652';
  const updateProfile=(patch:Partial<SalonProfile>)=>props.setProfile?.(current=>({...current,...patch}));
  const updateConfig=(patch:Record<string,unknown>)=>props.setProfile?.(current=>({...current,aureliaBeauty:{...aureliaConfigFor(current),...patch}}));
