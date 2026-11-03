@@ -17,7 +17,7 @@ export function CustomerSalon({salon,salons,saved,savedSlugs,back,save,open,book
  const [ratingFilter,setRatingFilter]=useState<RatingFilterValue>('all');
  const [recencyFilter,setRecencyFilter]=useState<RecencyFilterValue>('all');
  const [recencySort,setRecencySort]=useState<RecencySortValue>('newest');
- useEffect(()=>{let active=true;setReviewsReady(false);setCanReview(false);setOwnReview(null);supabase.rpc('studioflow_list_reviews',{p_slug:salon.slug}).then(({data,error})=>{if(active){if(error)setError('Reviews could not load.');else{setReviews(data?.reviews||[]);setCanReview(Boolean(data?.canReview));setOwnReview(data?.ownReview||null);setReviewsReady(true);if(data?.ownReview){setComment(data.ownReview.comment||'');setRating(Number(data.ownReview.rating)||5);}}}});return()=>{active=false}},[salon.slug]);
+ useEffect(()=>{let active=true;setReviewsReady(false);setCanReview(false);setOwnReview(null);supabase.rpc('studioflow_list_reviews',{p_slug:salon.slug}).then(({data,error})=>{if(active){if(error)setError('Reviews could not load.');else{setReviews(data?.reviews||[]);setCanReview(Boolean(data?.canReview));setOwnReview(data?.ownReview||null);setReviewsReady(true);if(data?.ownReview){setComment(data.ownReview.comment||'');setRating(Number(data.ownReview.rating)||5);}}}});return()=>{active=false}},[salon.slug,signedIn]);
  const photos=[p.coverImageUrl,...(salon.content.gallery||[])].filter((x,i,a)=>secureMediaUrl(x)&&a.indexOf(x)===i);
  const reviewPhotos=[...new Set(reviews.flatMap(r=>[r.imageUrl,...(Array.isArray(r.photos)?r.photos:[])]).filter(secureMediaUrl))] as string[];
  const visibleReviews=filterSalonReviews(reviews,{rating:ratingFilter,recency:recencyFilter,sort:recencySort,photosOnly});
