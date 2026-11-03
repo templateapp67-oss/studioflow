@@ -1164,7 +1164,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
               </div>
 
               <div className="text-[11px] text-gray-500 italic text-center">
-                ✓ Changes to <code className="font-mono font-bold text-gray-700">--primary-accent</code> propagate immediately to all 16 category templates (Bridal, Barbershop, Ayurvedic Spa, Hair Studio, Nail Bar, Skincare, Tattoo, etc.)
+                ✓ Changes to <code className="font-mono font-bold text-gray-700">--primary-accent</code> propagate immediately to all 16 templates (Bridal, Barbershop, Ayurvedic Spa, Hair Studio, Nail Bar, Skincare, Tattoo, etc.)
               </div>
             </div>
           </div>
@@ -1274,7 +1274,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
 
             <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center justify-between">
               <span className="font-medium">
-                ✓ Changes update automatically in live preview and across all 16 category templates.
+                ✓ Changes update automatically in live preview and across all 16 templates.
               </span>
               <span className="font-mono text-[11px] font-bold bg-emerald-100 px-2 py-0.5 rounded">
                 Live Synced
