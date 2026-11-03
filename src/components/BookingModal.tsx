@@ -1,3 +1,4 @@
+import {MensJoinWaitlist} from './keshkraft/KeshKraftInteractions';
 import type { ConsultationDetails } from "./dermacure/consultation";
 import {BookingCoupon,useBookingCoupon} from './BookingCoupon';
 import {useWebsiteLanguage} from './WebsiteLanguage';
@@ -224,7 +225,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   // Template 03 (Aura) validates coupons with its own Supabase RPC; every other
   // template keeps using the original shared booking coupon endpoint.
   const isAuraCheckout=profile.businessType==='unisex_salon';
-  const coupon=useBookingCoupon(profile.subdomain,bookingServiceIds,isAuraCheckout?'studioflow_aura_coupon_quote':'studioflow_coupon_quote');
+  const coupon=useBookingCoupon(profile.subdomain,bookingServiceIds,profile.businessType==='mens_hair_studio'?'studioflow_mens_coupon_quote':isAuraCheckout?'studioflow_aura_coupon_quote':'studioflow_coupon_quote');
   const totalPrice=serverTotal??coupon.quote?.finalPrice??Math.round((selectedService.price+selectedExtras.reduce((sum,s)=>sum+s.price,0))*100)/100;
   // Step 2: Date & Time Slot
   const todayStr = new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
@@ -240,7 +241,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     if(!isOpen)return;let active=true;setSlotsLoading(true);setSlotsError('');setBookingTime('');
     if(branchChoices.length>1&&!selectedBranchId){setSlotsLoading(false);setAvailableSlots([]);return()=>{active=false;};}
     const slotStylist=selectedStylist.id;
-    const slotsRequest=selectedBranchId
+    const slotsRequest=profile.businessType==='mens_hair_studio'?supabase.rpc('studioflow_mens_slots',{p_slug:profile.subdomain,p_service_id:selectedService.id,p_date:bookingDate,p_stylist_id:slotStylist}):selectedBranchId
       ? (selectedExtras.length
         ? supabase.rpc('studioflow_branch_android_slots',{p_slug:profile.subdomain,p_services:bookingServiceIds,p_date:bookingDate,p_stylist:slotStylist,p_branch:selectedBranchId})
         : supabase.rpc('studioflow_branch_available_slots',{p_slug:profile.subdomain,p_service_id:selectedService.id,p_date:bookingDate,p_stylist:slotStylist,p_branch:selectedBranchId}))
@@ -877,6 +878,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 {slotsError && <p role="alert" className="text-red-700">{slotsError}</p>}
                 {!slotsLoading && !availableSlots.some(slot=>slot.available) && <p className="text-sm text-gray-500">No available slots for this service, specialist and date. Choose another date or check Any Specialist.</p>}
                 {!slotsLoading&&selectedStylist.id!==ANY_SPECIALIST.id&&!availableSlots.some(slot=>slot.available)&&<button type="button" className="secondary-action mb-3" onClick={()=>setSelectedStylist(ANY_SPECIALIST)}>Check Any Specialist</button>}
+                {profile.businessType==='mens_hair_studio'&&!slotsLoading&&!slotsError&&!availableSlots.some(slot=>slot.available)&&<MensJoinWaitlist profile={profile} service={selectedService} stylistId={selectedStylist.id} date={bookingDate}/>}
                 <button className="text-xs underline mb-2" onClick={()=>setSlotRetry(n=>n+1)}>Retry availability</button>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {availableSlots.map((slot) => {

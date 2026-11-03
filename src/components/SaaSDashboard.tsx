@@ -153,7 +153,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
       themeAccentKey: palKey,
       customAccentColor: undefined,
     }));
-    // Updates the primary accent CSS variable across all 14 templates
+    // Updates the primary accent CSS variable across all 15 templates
     applyPrimaryAccentCssVar(pal.primaryHex, pal.secondaryHex);
     setCustomHexInput(pal.primaryHex);
     setAccentAppliedFeedback(`Applied "${pal.name}" (${pal.primaryHex}) to CSS variable --primary-accent!`);
@@ -171,7 +171,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
       ...prev,
       customAccentColor: formatted,
     }));
-    // Updates the primary accent CSS variable across all 14 templates
+    // Updates the primary accent CSS variable across all 15 templates
     applyPrimaryAccentCssVar(formatted);
     setCustomHexInput(formatted);
     setAccentAppliedFeedback(`Applied custom accent ${formatted} to CSS variable --primary-accent!`);
@@ -773,7 +773,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
                   </h2>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
-                  Customize your salon's brand assets and accent palette. Upload custom logos and hero cover banners (uploaded to your account and saved to Supabase), or pick a Theme Accent color (<code className="bg-gray-100 px-1 py-0.5 rounded text-gray-800 font-mono text-[11px]">--primary-accent</code>) used across all 14 templates.
+                  Customize your salon's brand assets and accent palette. Upload custom logos and hero cover banners (uploaded to your account and saved to Supabase), or pick a Theme Accent color (<code className="bg-gray-100 px-1 py-0.5 rounded text-gray-800 font-mono text-[11px]">--primary-accent</code>) used across all 15 templates.
                 </p>
               </div>
 
@@ -783,7 +783,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
                   className="text-xs font-bold px-4 py-2.5 rounded-xl border border-gray-300 hover:border-gray-400 bg-white text-gray-800 flex items-center gap-1.5 shadow-xs cursor-pointer shrink-0 transition-colors"
                 >
                   <span className="material-symbols-outlined text-sm">open_in_new</span>
-                  <span>Preview Across 14 Templates</span>
+                  <span>Preview Across 15 Templates</span>
                 </button>
               )}
             </div>
@@ -1085,7 +1085,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
                   Live UI Component Test Preview (Using var(--primary-accent))
                 </span>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  See how all 14 salon category templates render this accent on buttons, badges, prices, and highlights:
+                  See how all 15 salon category templates render this accent on buttons, badges, prices, and highlights:
                 </p>
               </div>
 
@@ -1149,7 +1149,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
               </div>
 
               <div className="text-[11px] text-gray-500 italic text-center">
-                ✓ Changes to <code className="font-mono font-bold text-gray-700">--primary-accent</code> propagate immediately to all 14 category templates (Bridal, Barbershop, Ayurvedic Spa, Hair Studio, Nail Bar, Skincare, Tattoo, etc.)
+                ✓ Changes to <code className="font-mono font-bold text-gray-700">--primary-accent</code> propagate immediately to all 15 category templates (Bridal, Barbershop, Ayurvedic Spa, Hair Studio, Nail Bar, Skincare, Tattoo, etc.)
               </div>
             </div>
           </div>
@@ -1259,7 +1259,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
 
             <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center justify-between">
               <span className="font-medium">
-                ✓ Changes update automatically in live preview and across all 14 category templates.
+                ✓ Changes update automatically in live preview and across all 15 category templates.
               </span>
               <span className="font-mono text-[11px] font-bold bg-emerald-100 px-2 py-0.5 rounded">
                 Live Synced

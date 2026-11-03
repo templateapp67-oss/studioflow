@@ -1,3 +1,4 @@
+import {MENS_LOYALTY, mensConfig} from './keshkraft';
 import {photoGallery} from './photoGallery';
 import { normalizeServices } from './dermacureContent';
 import {headerSettings} from './headerNavigation';
@@ -69,6 +70,7 @@ export function normalizeWorkspace(value:unknown, identity:Record<string,any>={}
   const savedOffers=seedSalonOffers(profile as SalonProfile);
   if(savedOffers)profile.promoOffers=savedOffers;
  }
+ if(profile.businessType==='mens_hair_studio'){profile.mensStudio=mensConfig(profile);profile.websiteTestimonials=[];profile.photoGallery=[];profile.photoGalleryInitialized=true;profile.photoGalleryType='mens_hair_studio';profile.promoOffers=[];profile.comparisonPhotos=[];}
  profile.socialVideos=showcaseVideos(profile as SalonProfile);profile.demoVideosInitialized=true;
  const loyalty=record(draft.loyaltyConfig),extras=record(draft.extras);
  profile.websiteTestimonials=clientExperiences(profile as SalonProfile);profile.demoTestimonialsInitialized=true;
@@ -82,7 +84,7 @@ export function normalizeWorkspace(value:unknown, identity:Record<string,any>={}
   services:list(normalizeServices(draft.services,'saved workspace services')).map(s=>({...s,origin:serviceOrigin(s as SalonService),name:typeof s.name==='string'?s.name:'',description:typeof s.description==='string'?s.description:'',category:typeof s.category==='string'?s.category:'',price:Number.isFinite(s.price)?s.price:(s.price===null||profile.businessType==='skincare_clinic'?null:0),durationMinutes:Number.isFinite(s.durationMinutes)?s.durationMinutes:30})) as SalonService[],
   stylists:upgradeLegacyLashBrowStylists(upgradeLegacyHairColoringStylists(upgradeLegacyMassageWellnessStylists(upgradeLegacyMakeupStudioStylists(upgradeLegacyBeautyParlourStylists(normalizedStylists,profile.businessType),profile.businessType),profile.businessType),profile.businessType),profile.businessType),
   clients:list(draft.clients) as ClientRecord[],
-  loyaltyConfig:{...DEFAULT_LOYALTY_CONFIG,...loyalty,tierThresholds:{...DEFAULT_LOYALTY_CONFIG.tierThresholds,...record(loyalty.tierThresholds)},tierMultipliers:{...DEFAULT_LOYALTY_CONFIG.tierMultipliers,...record(loyalty.tierMultipliers)},rewards:Array.isArray(loyalty.rewards)?list(loyalty.rewards):DEFAULT_LOYALTY_CONFIG.rewards},
+  loyaltyConfig:profile.businessType==='mens_hair_studio'?{...MENS_LOYALTY,...loyalty,rewards:Array.isArray(loyalty.rewards)?list(loyalty.rewards):MENS_LOYALTY.rewards}:{...DEFAULT_LOYALTY_CONFIG,...loyalty,tierThresholds:{...DEFAULT_LOYALTY_CONFIG.tierThresholds,...record(loyalty.tierThresholds)},tierMultipliers:{...DEFAULT_LOYALTY_CONFIG.tierMultipliers,...record(loyalty.tierMultipliers)},rewards:Array.isArray(loyalty.rewards)?list(loyalty.rewards):DEFAULT_LOYALTY_CONFIG.rewards},
   extras:{...DEFAULT_EXTRAS,...extras,gallery:savedGallery,policies:{...DEFAULT_EXTRAS.policies,...record(extras.policies)},whiteLabel:{...DEFAULT_EXTRAS.whiteLabel,...record(extras.whiteLabel)}},
   onboardingComplete:draft.onboardingComplete===true};
 }

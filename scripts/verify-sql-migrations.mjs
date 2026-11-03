@@ -91,6 +91,7 @@ const clientRpc=(src)=>{
 };
 const walk=(dir)=>readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(dir+'/'+e.name):dir+'/'+e.name.endsWith('.tsx')||e.name.endsWith('.ts')?[dir+'/'+e.name]:[]);
 const src=['src','supabase/functions','backend/functions'].flatMap(d=>{try{return walk(d)}catch{return[]}}).map(f=>readFileSync(f,'utf8')).join('\n');
+await db.exec(readFileSync('supabase/migrations/202611030003_template15_keshkraft.sql','utf8'));
 const rpcs=clientRpc(src);
 const froms=[...src.matchAll(/\.from\(\s*['"\`]([A-Za-z0-9_-]+)['"\`]/g)].map(m=>m[1]);
 const tables=froms.filter(n=>!n.includes('-'));

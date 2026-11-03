@@ -172,7 +172,8 @@ export const DEFAULT_CATEGORY_ACCENTS: Record<BusinessTypeId, AccentPaletteKey> 
   bridal_lounge: 'crimson',
   tattoo_studio: 'obsidian',
   lash_brow: 'rose',
-  ayurvedic_spa: 'emerald'
+  ayurvedic_spa: 'emerald',
+  mens_hair_studio: 'emerald'
 };
 
 /**

@@ -86,7 +86,7 @@ assert.equal(template.themePreset, 'blush_champagne');
 assert.equal(template.subCategories.length, 15, 'Template 13 ships fifteen lash & brow categories');
 assert.equal(ARCH_FLUTTER_TEMPLATE_SERVICES.length, 64, 'Template 13 ships the full 64-service menu');
 assert.equal(ARCH_FLUTTER_TEMPLATE_SERVICES.filter((service) => isPackage(service)).length, 5, 'exactly five combo/membership packages');
-assert.equal(Object.keys(CATEGORY_TEMPLATES).length, 14, 'fourteen published templates');
+assert.equal(Object.keys(CATEGORY_TEMPLATES).length, 15, 'fifteen registered templates');
 const option = ALL_CATEGORY_OPTIONS.find((entry) => entry.id === 'lash_brow');
 assert.ok(option, 'Template 13 appears in the category picker');
 assert.equal(option!.title, 'Arch & Flutter Lash & Brow Bar');

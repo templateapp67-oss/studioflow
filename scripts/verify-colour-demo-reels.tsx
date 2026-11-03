@@ -47,7 +47,7 @@ console.log('PASS: Template 10 defaults to five colour Shorts (balayage, fashion
 
 /* 2 — The other 11 templates keep the generic list untouched (Templates 01, 10
    and 13 get their own category-true references). */
-for (const template of Object.values(CATEGORY_TEMPLATES)) {
+for (const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')) {
   const videos = createDemoVideos(template.id);
   assert.equal(videos.length, 5, `${template.id} keeps five demo reels`);
   if (template.id === 'hair_salon') assert.deepEqual(videos.map((video) => video.videoId), WOMENS_HAIRCUT_SHORTS);

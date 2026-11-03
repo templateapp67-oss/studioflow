@@ -35,6 +35,7 @@ export function serviceOrigin(service:SalonService):'custom'|'template'{
  })?'template':'custom';
 }
 export function servicesForTemplate(services:SalonService[],profile:SalonProfile,template:CategoryTemplateConfig):SalonService[]{
+ if(template.id==='mens_hair_studio'&&profile.businessType!=='mens_hair_studio'){const existing=new Set(services.map(s=>s.id));return [...services,...template.services.filter(s=>!existing.has(s.id))];}
  const seeded=()=>template.services.map(service=>({...service,origin:'template' as const}));
  if(!profile.serviceCatalogueInitialized&&!services.length)return seeded();
  // An intentionally empty or fully custom catalogue stays exactly as configured.

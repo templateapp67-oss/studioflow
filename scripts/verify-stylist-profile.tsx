@@ -1,8 +1,9 @@
+// Template 15 has dedicated male-only media, booking and editor coverage in verify-template15.
 import React from 'react';import {act,create} from 'react-test-renderer';import assert from 'node:assert/strict';import {renderToStaticMarkup} from 'react-dom/server';
 import {StylistProfile} from '../src/components/StylistProfile';import {CustomerSalonWebsite} from '../src/components/CustomerSalonWebsite';import {INITIAL_SALON_PROFILE} from '../src/mockData';import {CATEGORY_TEMPLATES} from '../src/categoryTemplates';import {normalizeWorkspace} from '../src/lib/normalizeWorkspace';import {supabase} from '../src/lib/supabase';
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;(globalThis as any).document={activeElement:null,body:{style:{}},addEventListener(){},removeEventListener(){}};(globalThis as any).window={addEventListener(){},removeEventListener(){}};
 const staff:any={id:'specialist-1',name:'Anita',role:'Senior Makeup Artist',experienceYears:7.5,bio:'Professional bridal and occasion makeup specialist.',specialties:['Bridal'],phone:'PRIVATE-PHONE',commissionRate:50,schedule:[{private:true}]};
-for(const template of Object.values(CATEGORY_TEMPLATES)){
+for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')){
  const profile={...INITIAL_SALON_PROFILE,businessType:template.id};
  // Template 09 (Bodhi Tree) is multi-page: therapist cards live on its Team page,
  // which is exactly where a customer taps through from the menu.

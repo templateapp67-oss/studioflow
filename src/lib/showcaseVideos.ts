@@ -64,10 +64,12 @@ const OLD_FULL_VIDEO_IDS=new Set(['ulbjW3JyK8E','SYSj3KPiVfg','gHVUoN5n4xw','0f6
 const GENERIC_DEMO_IDS=new Set(REFERENCES.map(([videoId])=>videoId));
 
 export function createDemoVideos(businessType:string):SocialVideo[]{
+ if(businessType==='mens_hair_studio')return [];
  return demoReferences(businessType).map(([videoId,title,channelTitle],index)=>({id:`demo-${businessType}-${index+1}`,videoId,title,youtubeUrl:`https://www.youtube.com/shorts/${videoId}`,channelTitle,thumbnailUrl:`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,categoryTag:'SHORT',isOwnerVideo:false,isDemo:true,description:'Reference YouTube Short.'}));
 }
 
 export function showcaseVideos(profile:SalonProfile):SocialVideo[]{
+ if(profile.businessType==='mens_hair_studio')return []; // Dedicated, reviewed media only.
  if(profile.socialVideos?.length||profile.demoVideosInitialized){
   const demos=createDemoVideos(profile.businessType),generic=REFERENCES;
   return (profile.socialVideos||[]).map(video=>{

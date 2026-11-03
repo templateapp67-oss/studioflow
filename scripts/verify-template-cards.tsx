@@ -7,7 +7,7 @@ import {TemplatePreviewModal} from '../src/components/TemplatePreviewCards';
 import {CATEGORY_TEMPLATES} from '../src/categoryTemplates';
 const escaped=(value:string)=>value.replaceAll('&','&amp;').replaceAll("'",'&#x27;').replaceAll('"','&quot;');
 const html=renderToStaticMarkup(<LandingPage setCurrentView={()=>{}}/>);
-assert.equal((html.match(/<article/g)||[]).length,14);
+assert.equal((html.match(/<article/g)||[]).length,15);
 for (const template of Object.values(CATEGORY_TEMPLATES)) {
  assert.ok(html.includes(`Open live preview of ${escaped(template.title)}`));
  assert.ok(html.includes(escaped(template.paletteLabel.split('(')[0].trim())));

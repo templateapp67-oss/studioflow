@@ -1,8 +1,9 @@
+// Template 15 has dedicated male-only media, booking and editor coverage in verify-template15.
 import React from 'react';import {act,create} from 'react-test-renderer';import {renderToStaticMarkup} from 'react-dom/server';import assert from 'node:assert/strict';
 import {CustomerWebsiteHeader} from '../src/components/CustomerWebsiteHeader';import {CustomerSalonWebsite} from '../src/components/CustomerSalonWebsite';import {CustomerProfilePage} from '../src/components/customer/Profile';import {CATEGORY_TEMPLATES} from '../src/categoryTemplates';import {INITIAL_SALON_PROFILE} from '../src/mockData';import {supabase} from '../src/lib/supabase';
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;(globalThis as any).window={scrollTo(){},addEventListener(){},removeEventListener(){},matchMedia:()=>({matches:false,addEventListener(){},removeEventListener(){}})};(globalThis as any).document={body:{style:{}},addEventListener(){},removeEventListener(){}};
 const photo='https://example.com/private-signed-avatar.jpg';
-for(const template of Object.values(CATEGORY_TEMPLATES)){
+for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')){
  const props={profile:{...INITIAL_SALON_PROFILE,businessType:template.id},services:[],stylists:[],readOnly:true,onAddAppointment:async(a:any)=>a,onCustomerAccount:()=>{}};
  const html=renderToStaticMarkup(<CustomerSalonWebsite {...props} customerSignedIn customerName="Customer One" customerPhotoUrl={photo}/>);assert.ok(html.includes(photo));assert.ok(html.includes('Customer One'));assert.ok(!html.includes('Customer Login')&&!html.includes('Sign up'));
  if(['hair_salon','unisex_salon','hair_spa','skincare_clinic','makeup_studio','massage_wellness','hair_coloring','bridal_lounge','lash_brow','ayurvedic_spa'].includes(template.id))assert.ok(html.includes('Manage your customer account'),'the dedicated template header exposes the signed-in account action');

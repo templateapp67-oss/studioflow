@@ -43,7 +43,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setCurrentView, onSele
               </h1>
 
               <p className="text-base text-on-surface-variant max-w-xl leading-relaxed">
-                14 handcrafted category templates designed specifically for Indian salons, spas, aesthetic clinics, and parlours. Complete with INR (₹) rates, localized sub-categories, stylist portfolios, and instant WhatsApp booking.
+                15 handcrafted category templates designed specifically for Indian salons, spas, aesthetic clinics, and parlours. Complete with INR (₹) rates, localized sub-categories, stylist portfolios, and instant WhatsApp booking.
               </p>
             </div>
 
@@ -61,7 +61,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setCurrentView, onSele
                 className="bg-surface-container hover:bg-surface-container-high border border-outline-variant/50 text-on-surface font-bold text-sm h-12 px-6 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
               >
                 <span className="material-symbols-outlined text-base">devices</span>
-                <span>Explore 14 Live Templates</span>
+                <span>Explore 15 Live Templates</span>
               </button>
             </div>
 
@@ -76,7 +76,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setCurrentView, onSele
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-primary text-base">verified</span>
-                <span>14 Distinct aesthetic themes</span>
+                <span>15 Distinct aesthetic themes</span>
               </div>
             </div>
           </div>
@@ -137,12 +137,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setCurrentView, onSele
           </div>
         </div>
 
-        {/* 14 Category Templates Showcase Section — 2-Column Layout */}
+        {/* 15 Category Templates Showcase Section — 2-Column Layout */}
         <section className="pt-10 border-t border-outline-variant/30 flex flex-col gap-6">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-3">
             <div>
               <span className="text-xs font-mono font-bold uppercase tracking-wider text-primary">
-                14 Dedicated Salon Verticals
+                15 Dedicated Salon Verticals
               </span>
               <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-on-surface mt-1" style={{ textWrap: 'balance' }}>
                 Explore Custom Templates Designed for Every Category
@@ -196,7 +196,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setCurrentView, onSele
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-4">
-            <span>14 Salon Categories</span>
+            <span>15 Salon Categories</span>
             <span>•</span>
             <span>INR (₹) Standard</span>
             <span>•</span>
