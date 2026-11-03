@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import type { SalonProfile } from '../types';
+import { NEXORA_CATEGORY_SEO_TERMS } from './nexoraTemplateCatalogue';
 
 export function generateSeoDefaults(profile: Partial<SalonProfile>) {
   const rawName = String(profile.businessName || '').trim();
@@ -15,9 +16,9 @@ export function generateSeoDefaults(profile: Partial<SalonProfile>) {
   const tagline = profile.tagline || profile.about || 'Book your appointment online for premium beauty, hair, and grooming services.';
   const citySuffix = city ? ` in ${city}` : '';
 
-  const metaTitle = `${businessName} – ${isZiyaTemplate ? typeLabel : `Premium ${typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1)}`}${citySuffix}`;
-  const metaDescription = `${tagline.slice(0, 120)}. Book online instantly at ${businessName}${citySuffix} with top expert stylists and therapists.`;
-  const ogTitle = `${businessName}${citySuffix} | Official Website`;
+  const metaTitle = `${businessName} – ${isZiyaTemplate ? typeLabel : `Premium ${typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1)}`}${citySuffix} | NEXORA SALON`;
+  const metaDescription = `${tagline.slice(0, 112)}. Book online at ${businessName}${citySuffix} with NEXORA SALON.`;
+  const ogTitle = `${businessName}${citySuffix} | NEXORA SALON`;
   const ogDescription = tagline.length > 150 ? `${tagline.slice(0, 147)}...` : tagline;
   const ogImageUrl = profile.coverImageUrl || profile.logoUrl || 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1200&q=80';
   const keywords = [
@@ -28,6 +29,7 @@ export function generateSeoDefaults(profile: Partial<SalonProfile>) {
     'beauty treatment',
     'hair stylist',
     'appointment booking',
+    ...NEXORA_CATEGORY_SEO_TERMS,
   ].filter(Boolean).join(', ');
 
   return {
@@ -65,9 +67,25 @@ export function applySeoMetadata(profile: SalonProfile, canonicalUrlOverride?: s
 
   const browserLocation =
     typeof window !== 'undefined' && window.location && typeof window.location === 'object' ? window.location : null;
-  const hostOrigin = browserLocation?.origin || 'https://studioflow.app';
-  const pagePath = browserLocation?.pathname || '';
-  const canonicalUrl = canonicalUrlOverride || seo.canonicalUrl || `${hostOrigin}${pagePath}`;
+  const hostOrigin = browserLocation?.origin || 'https://nexorasalon.online';
+  const pagePath = browserLocation?.pathname || '/';
+  let customOrigin = '';
+  if (profile.customDomain) {
+    try {
+      const rawDomain = String(profile.customDomain).trim();
+      const parsedDomain = new URL(rawDomain.includes('://') ? rawDomain : `https://${rawDomain}`);
+      if (parsedDomain.protocol === 'https:') customOrigin = parsedDomain.origin;
+    } catch {
+      // An invalid or not-yet-configured custom domain is not a canonical host.
+    }
+  }
+  const canonicalOrigin = customOrigin || hostOrigin;
+  const sitePath = customOrigin
+    ? '/'
+    : profile.subdomain
+      ? `/?site=${encodeURIComponent(profile.subdomain)}`
+      : pagePath || '/';
+  const canonicalUrl = canonicalUrlOverride || seo.canonicalUrl || `${canonicalOrigin}${sitePath}`;
 
   const prevTitle = document.title;
   document.title = metaTitle;
@@ -106,7 +124,7 @@ export function applySeoMetadata(profile: SalonProfile, canonicalUrlOverride?: s
   if (ogImageUrl) {
     setMeta('property', 'og:image', ogImageUrl);
   }
-  setMeta('property', 'og:site_name', profile.businessName || 'NEXORA');
+  setMeta('property', 'og:site_name', 'NEXORA SALON');
   setMeta('property', 'og:url', canonicalUrl);
 
   // Twitter / X Cards

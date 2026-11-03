@@ -12,6 +12,24 @@ export function canonicalOrigin(value: string | undefined): string {
     throw new Error("SITE_URL must be an HTTPS origin without a path");
   return url.origin;
 }
+const NEXORA_TEMPLATE_IDS = [
+  "hair_salon",
+  "barber",
+  "beauty_parlour",
+  "nail_studio",
+  "unisex_salon",
+  "mens_hair_studio",
+  "hair_spa",
+  "skincare_clinic",
+  "makeup_studio",
+  "bridal_lounge",
+  "hair_coloring",
+  "massage_wellness",
+  "tattoo_studio",
+  "lash_brow",
+  "ayurvedic_spa",
+  "aurelia_beauty_parlour",
+] as const;
 const xml = (value: string) =>
   value.replace(
     /[&<>"']/g,
@@ -28,9 +46,10 @@ export function sitemapXml(origin: string, slugs: string[]) {
   // Apex root is an auth/owner screen; deliberately exclude it and account routes.
   const urls = [
     origin + "/?app=1",
+    ...NEXORA_TEMPLATE_IDS.map((id) => origin + "/?template=" + encodeURIComponent(id)),
     ...new Set(
       slugs
-        .filter((s) => /^[a-z0-9][a-z0-9-]{2,62}$/.test(s))
+        .filter((s) => /^[a-z0-9][a-z0-9-]{2,62}$/.test(s) && !s.toLowerCase().startsWith('studioflow-qa-'))
         .map((s) => origin + "/?site=" + encodeURIComponent(s)),
     ),
   ];
@@ -46,11 +65,11 @@ export async function generateSitemap(
   env: NodeJS.ProcessEnv = process.env,
   fetcher: typeof fetch = fetch,
 ) {
-  const origin = canonicalOrigin(env.SITE_URL);
+  const origin = canonicalOrigin(env.SITE_URL || env.VITE_SITE_URL || 'https://nexorasalon.online');
   const endpoint =
-    env.SUPABASE_URL || "https://zilwgiuiygqqardzutxi.supabase.co";
+    env.SUPABASE_URL || env.VITE_SUPABASE_URL || "https://zilwgiuiygqqardzutxi.supabase.co";
   const key =
-    env.SUPABASE_ANON_KEY || "sb_publishable_Xck8H8PcTCCnEwkvBfiSLw_c973vJkH";
+    env.SUPABASE_ANON_KEY || env.VITE_SUPABASE_ANON_KEY || "sb_publishable_Xck8H8PcTCCnEwkvBfiSLw_c973vJkH";
   const slugs: string[] = [];
   for (let offset = 0; offset < 50000; offset += 1000) {
     const url = new URL("/rest/v1/studioflow_websites", endpoint);

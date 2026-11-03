@@ -28,6 +28,29 @@ export const NEXORA_BRAND = 'NEXORA';
 export const NEXORA_PREFIX = `${NEXORA_BRAND} `;
 
 /**
+ * Exact NEXORA category phrases used by the site-wide SEO metadata and
+ * sitemap-facing discovery copy. These are descriptive phrases, not ranking
+ * guarantees; page content and relevance still matter.
+ */
+export const NEXORA_CATEGORY_SEO_TERMS = [
+  'NEXORA Haircut Studio',
+  'NEXORA Barber Shop',
+  'NEXORA Beauty Parlour',
+  'NEXORA Nail Studio',
+  'NEXORA Unisex Salon',
+  "NEXORA Men's Hair Studio",
+  'NEXORA Hair Spa',
+  'NEXORA Skin & Aesthetic Clinic',
+  'NEXORA Makeup Studio',
+  'NEXORA Bridal Makeup',
+  'NEXORA Hair Colour Studio',
+  'NEXORA Massage & Wellness',
+  'NEXORA Tattoo & Body Art',
+  'NEXORA Lash & Brow',
+  'NEXORA Ayurvedic Wellness',
+] as const;
+
+/**
  * Category identity: colour, icon and description. One entry per category (a category may contain multiple templates),
  * in priority order. `categoryId` is stable and used by the filter bar.
  */

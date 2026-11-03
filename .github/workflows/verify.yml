@@ -1,0 +1,87 @@
+name: Repository verification
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  sync-lockfile:
+    name: Sync npm lockfile
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    outputs:
+      tested_sha: ${{ steps.commit.outputs.sha }}
+    steps:
+      - name: Check out the PR branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          persist-credentials: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+
+      - name: Regenerate npm lockfile without running package scripts
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+
+      - name: Commit the matching lockfile
+        id: commit
+        env:
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet -- package-lock.json; then
+            git add package-lock.json
+            git commit -m "Fix npm package lockfile"
+            git push origin "HEAD:refs/heads/$PR_HEAD_REF"
+          fi
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  verify:
+    name: Lint, build and offline checks
+    needs: sync-lockfile
+    if: always() && (needs.sync-lockfile.result == 'success' || needs.sync-lockfile.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Check out tested source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ needs.sync-lockfile.outputs.tested_sha || github.sha }}
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: TypeScript lint
+        run: npm run lint
+
+      - name: Edge-function lint
+        run: npm run lint:edge
+
+      - name: Production build
+        run: npm run build
+
+      - name: Offline verification suites
+        run: node scripts/run-all-verifications.mjs
