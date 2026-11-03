@@ -27,6 +27,17 @@ jobs:
         with:
           node-version: 24
 
+      - name: Regenerate the npm lockfile from package.json
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+
+      - name: Save the regenerated lockfile for the PR
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: regenerated-package-lock
+          path: package-lock.json
+          if-no-files-found: error
+          retention-days: 1
+
       - name: Install locked dependencies
         run: npm ci
 
