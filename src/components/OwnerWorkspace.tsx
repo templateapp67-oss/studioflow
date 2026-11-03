@@ -42,6 +42,7 @@ import { InteractiveMapSetup } from './InteractiveMapSetup';
 import { ReferralPanel } from './ReferralPanel';
 import { WebsitePublishPanel } from './WebsitePublishPanel';
 import { AuraContentManager } from './aura/AuraContentManager';
+import { AuraPromotionsAdmin } from './aura/AuraPromotionsAdmin';
 import { OwnerPosPanel } from './OwnerPosPanel';
 import type { CategoryTemplateConfig } from '../types';
 import { SyncIndicator } from './SyncIndicator';
@@ -120,12 +121,18 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
 
   const renderContent = () => {
     if (active === 33) return profile.businessType === 'unisex_salon'
-      ? <AuraContentManager profile={profile} onSaved={() => flash('Template 03 content saved to Supabase')}/>
+      ? <div className="stack space-y-6"><AuraContentManager profile={profile} onSaved={() => flash('Template 03 content saved to Supabase')}/><AuraPromotionsAdmin profile={profile} services={services}/></div>
       : <section className="workspace-card"><p className="eyebrow">Template 03</p><h2>Aura content management</h2><p className="muted">Choose Aura Unisex Salon & Wellness Lounge in “Choose template” to edit its 19 website sections. Other templates are unchanged.</p></section>;
     if (active === 30) return <section className="workspace-card"><EnvironmentDiagnostic profile={profile}/></section>;
     if (active === 32) return <BranchManagementPanel profile={profile} setProfile={setProfile}/>;
     if (active === 27) return <section className="workspace-card"><AboutStudioEditor profile={profile} setProfile={setProfile}/></section>;
-    if (active === 28) return profile.businessType==='hair_salon'?<div className="stack space-y-6"><ZiyaAdminPanel profile={profile} services={services} initialSubTab="promotions"/><PromoStudio profile={profile} setProfile={setProfile} services={services} onAdReady={setCampaignAd}/></div>:<PromoStudio profile={profile} setProfile={setProfile} services={services} onAdReady={setCampaignAd}/>;
+    if (active === 28) {
+      const promoStudio = <PromoStudio profile={profile} setProfile={setProfile} services={services} onAdReady={setCampaignAd}/>;
+      if (profile.businessType === 'hair_salon') return <div className="stack space-y-6"><ZiyaAdminPanel profile={profile} services={services} initialSubTab="promotions"/>{promoStudio}</div>;
+      // Template 03: full Supabase-backed offer management, no source edits needed.
+      if (profile.businessType === 'unisex_salon') return <div className="stack space-y-6"><AuraPromotionsAdmin profile={profile} services={services}/>{promoStudio}</div>;
+      return promoStudio;
+    }
     if (active === 29) return profile.businessType==='hair_salon'?<div className="stack space-y-6"><ZiyaAdminPanel profile={profile} services={services} initialSubTab="loyalty"/></div>:<LoyaltyManagement clients={clients} setClients={setClients} loyaltyConfig={loyaltyConfig} setLoyaltyConfig={setLoyaltyConfig} profile={profile} primaryAccentColor={accent} onNavigateToPreview={onOpenPreview}/>;
     if (active === 16) return <WebsiteContentManager services={services} showAbout={false} showGallery={false} profile={profile} setProfile={setProfile} gallery={extras.gallery} setGallery={gallery=>setExtras(prev=>({...prev,gallery}))}/>;
     if (active === 31) return <SeoSettingsManager profile={profile} setProfile={setProfile}/>;

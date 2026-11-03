@@ -1,0 +1,401 @@
+/* ==========================================================================
+   TEMPLATE 03 — Aura Unisex Salon & Wellness Lounge
+   Promotions & Offers: customer cards + dashboard management.
+   Scoped to .au-site (customer) and .aura-offers-admin (dashboard).
+   ========================================================================== */
+
+/* ---------- Customer-side promotion cards ------------------------------- */
+.au-site .aura-promo-grid,
+.aura-offers-admin .aura-promo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(285px, 1fr));
+  gap: 18px;
+  align-items: stretch;
+}
+
+.au-site .au-offer-voucher[data-aura-offer] {
+  padding: 0 0 20px;
+  overflow: hidden;
+  gap: 0;
+}
+
+.au-site .aura-promo-media {
+  height: 168px;
+  background: var(--au-soft-green, #e7eee7);
+  overflow: hidden;
+}
+.au-site .aura-promo-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.au-site .au-offer-voucher[data-aura-offer] > .au-offer-top,
+.au-site .au-offer-voucher[data-aura-offer] > h3,
+.au-site .au-offer-voucher[data-aura-offer] > .aura-promo-description,
+.au-site .au-offer-voucher[data-aura-offer] > .aura-promo-discount,
+.au-site .au-offer-voucher[data-aura-offer] > .aura-promo-dates,
+.au-site .au-offer-voucher[data-aura-offer] > .aura-promo-minimum,
+.au-site .au-offer-voucher[data-aura-offer] > .aura-promo-terms,
+.au-site .au-offer-voucher[data-aura-offer] > .au-offer-perforation,
+.au-site .au-offer-voucher[data-aura-offer] > .au-offer-bottom {
+  margin-left: 22px;
+  margin-right: 22px;
+}
+
+.au-site .au-offer-voucher[data-aura-offer] > .au-offer-top {
+  margin-top: 20px;
+  margin-bottom: 10px;
+}
+.au-site .au-offer-voucher[data-aura-offer] > h3 {
+  margin-bottom: 8px;
+}
+.au-site .au-offer-voucher[data-aura-offer] > .aura-promo-description {
+  flex: 0 0 auto;
+  margin-bottom: 10px;
+}
+.au-site .aura-promo-demo-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  align-self: flex-start;
+  margin: 0 22px 10px;
+  padding: 4px 10px;
+  border-radius: var(--au-radius-pill, 999px);
+  background: #fff4d8;
+  border: 1px solid #e4c477;
+  color: #7a5510;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.au-site .aura-promo-discount {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.au-site .aura-promo-discount strong {
+  font-family: var(--au-display, inherit);
+  font-size: 1.28rem;
+  font-weight: 800;
+  color: var(--au-accent-deep, #5c7362);
+}
+.au-site .aura-promo-discount span {
+  font-size: 0.76rem;
+  color: var(--au-muted, #5e5d58);
+}
+.au-site .aura-promo-dates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--au-gold-soft, #f6efe2);
+}
+.au-site .aura-promo-dates > div { min-width: 0; }
+.au-site .aura-promo-dates dt {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8a7450;
+}
+.au-site .aura-promo-dates dd {
+  margin: 3px 0 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #4f3d20;
+}
+.au-site .aura-promo-minimum {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 0.76rem !important;
+  color: var(--au-muted, #5e5d58) !important;
+}
+.au-site .aura-promo-terms {
+  margin-bottom: 4px;
+  font-size: 0.76rem;
+  color: var(--au-muted, #5e5d58);
+}
+.au-site .aura-promo-terms summary {
+  cursor: pointer;
+  font-weight: 700;
+  padding: 4px 0;
+}
+.au-site .aura-promo-terms p {
+  margin: 4px 0 8px;
+  line-height: 1.5;
+  flex: 0 0 auto;
+}
+.au-site .au-offer-voucher[data-aura-offer] > .au-offer-perforation {
+  margin-top: 12px;
+  margin-bottom: 14px;
+}
+.au-site .au-offer-voucher[data-aura-offer] > .au-offer-bottom {
+  margin-top: auto;
+}
+.au-site .au-code-chip:disabled,
+.au-site .au-btn:disabled { opacity: 0.62; cursor: default; }
+
+/* ---------- Dashboard: Aura Promotions & Offers manager ---------------- */
+.aura-offers-admin {
+  --aura-adm-ink: #252525;
+  --aura-adm-muted: #6d6b66;
+  --aura-adm-line: #e4dfd6;
+  --aura-adm-sage: #738b78;
+  --aura-adm-sage-dark: #5c7362;
+  --aura-adm-cream: #faf8f5;
+  --aura-adm-gold: #c5a46d;
+  --aura-adm-red: #9e3d3d;
+  max-width: 1180px;
+  margin: 0 auto;
+  color: var(--aura-adm-ink);
+  font-family: inherit;
+}
+.aura-offers-admin * { box-sizing: border-box; }
+.aura-offers-admin button { font: inherit; cursor: pointer; }
+.aura-offers-admin button:disabled { opacity: 0.5; cursor: not-allowed; }
+.aura-offers-admin .aura-adm-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 22px 24px;
+  border: 1px solid var(--aura-adm-line);
+  border-radius: 18px 18px 0 0;
+  background: linear-gradient(120deg, #f4f7f2, #fffdfa 65%);
+}
+.aura-offers-admin .aura-adm-eyebrow {
+  margin: 0 0 6px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--aura-adm-sage-dark);
+}
+.aura-offers-admin .aura-adm-head h2 { margin: 0 0 6px; font-size: 1.45rem; font-weight: 800; }
+.aura-offers-admin .aura-adm-head p { margin: 0; max-width: 720px; font-size: 0.87rem; line-height: 1.55; color: var(--aura-adm-muted); }
+.aura-offers-admin .aura-adm-head-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.aura-offers-admin .aura-adm-btn {
+  border-radius: 10px;
+  border: 1px solid var(--aura-adm-line);
+  background: #fff;
+  padding: 9px 14px;
+  font-size: 0.83rem;
+  font-weight: 700;
+  color: var(--aura-adm-ink);
+}
+.aura-offers-admin .aura-adm-btn:hover:not(:disabled) { border-color: var(--aura-adm-sage); }
+.aura-offers-admin .aura-adm-btn.primary { background: var(--aura-adm-sage-dark); border-color: var(--aura-adm-sage-dark); color: #fff; }
+.aura-offers-admin .aura-adm-btn.danger { color: var(--aura-adm-red); border-color: #e6c6c6; }
+.aura-offers-admin .aura-adm-btn.small { padding: 6px 10px; font-size: 0.76rem; }
+.aura-offers-admin .aura-adm-body { border: 1px solid var(--aura-adm-line); border-top: 0; border-radius: 0 0 18px 18px; padding: 20px 24px 24px; background: #fff; }
+.aura-offers-admin .aura-adm-notice {
+  margin: 0 0 16px;
+  padding: 10px 13px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+.aura-offers-admin .aura-adm-notice.ok { background: #edf6ef; color: #23634d; border: 1px solid #cbe6d4; }
+.aura-offers-admin .aura-adm-notice.error { background: #fff0ef; color: var(--aura-adm-red); border: 1px solid #f0c9c9; }
+.aura-offers-admin .aura-adm-notice.info { background: #f5f3ef; color: #5b584f; }
+.aura-offers-admin .aura-adm-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.aura-offers-admin .aura-adm-chip {
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: var(--aura-adm-cream);
+  border: 1px solid var(--aura-adm-line);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.aura-offers-admin .aura-adm-list { display: grid; gap: 14px; }
+.aura-offers-admin .aura-adm-card {
+  border: 1px solid var(--aura-adm-line);
+  border-radius: 16px;
+  padding: 16px 18px;
+  background: #fffdfa;
+}
+.aura-offers-admin .aura-adm-card.is-inactive { background: #f7f6f4; border-style: dashed; }
+.aura-offers-admin .aura-adm-card-top { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; justify-content: space-between; }
+.aura-offers-admin .aura-adm-card h3 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 800; }
+.aura-offers-admin .aura-adm-card p { margin: 0; font-size: 0.83rem; line-height: 1.5; color: var(--aura-adm-muted); }
+.aura-offers-admin .aura-adm-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.aura-offers-admin .aura-adm-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: #eef3ed;
+  color: var(--aura-adm-sage-dark);
+  border: 1px solid #d7e3d6;
+}
+.aura-offers-admin .aura-adm-pill.demo { background: #fff4d8; color: #7a5510; border-color: #e4c477; }
+.aura-offers-admin .aura-adm-pill.off { background: #f0eeec; color: #736d68; border-color: #ddd8d2; }
+.aura-offers-admin .aura-adm-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin: 14px 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--aura-adm-cream);
+}
+.aura-offers-admin .aura-adm-facts div { min-width: 0; }
+.aura-offers-admin .aura-adm-facts dt { font-size: 0.68rem; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: #8a857d; }
+.aura-offers-admin .aura-adm-facts dd { margin: 3px 0 0; font-size: 0.84rem; font-weight: 700; overflow-wrap: anywhere; }
+.aura-offers-admin .aura-adm-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.aura-offers-admin .aura-adm-form { margin-top: 16px; padding: 16px; border: 1px dashed var(--aura-adm-gold); border-radius: 14px; background: #fffefb; }
+.aura-offers-admin .aura-adm-form h4 { margin: 0 0 12px; font-size: 1rem; font-weight: 800; }
+.aura-offers-admin .aura-adm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+}
+.aura-offers-admin .aura-adm-field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.aura-offers-admin .aura-adm-field > span { font-size: 0.76rem; font-weight: 800; color: #514d48; }
+.aura-offers-admin .aura-adm-field small { font-size: 0.7rem; color: var(--aura-adm-muted); }
+.aura-offers-admin .aura-adm-field input,
+.aura-offers-admin .aura-adm-field select,
+.aura-offers-admin .aura-adm-field textarea {
+  width: 100%;
+  border: 1px solid var(--aura-adm-line);
+  border-radius: 9px;
+  padding: 9px 10px;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--aura-adm-ink);
+  background: #fff;
+}
+.aura-offers-admin .aura-adm-field textarea { min-height: 76px; resize: vertical; }
+.aura-offers-admin .aura-adm-field.wide { grid-column: 1 / -1; }
+.aura-offers-admin .aura-adm-check { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; font-weight: 600; }
+.aura-offers-admin .aura-adm-check input { width: 16px; height: 16px; }
+.aura-offers-admin .aura-adm-services {
+  max-height: 168px;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--aura-adm-line);
+  border-radius: 9px;
+  background: #fff;
+}
+.aura-offers-admin .aura-adm-form-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.aura-offers-admin .aura-adm-image-preview {
+  width: 100%;
+  max-height: 130px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid var(--aura-adm-line);
+  margin-top: 6px;
+}
+.aura-offers-admin .aura-adm-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(28, 28, 26, 0.55);
+}
+.aura-offers-admin .aura-adm-modal {
+  width: min(760px, 100%);
+  max-height: 88vh;
+  overflow-y: auto;
+  background: #faf8f5;
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22);
+}
+.aura-offers-admin .aura-adm-modal-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
+.aura-offers-admin .aura-adm-modal h3 { margin: 0; font-size: 1.1rem; font-weight: 800; }
+.aura-offers-admin .aura-adm-modal .au-offer-voucher { max-width: 360px; }
+.aura-offers-admin .aura-adm-modal .aura-promo-grid { grid-template-columns: 1fr; }
+.aura-offers-admin .aura-adm-confirm { width: min(420px, 100%); }
+.aura-offers-admin .aura-adm-redemptions { margin-top: 22px; }
+.aura-offers-admin .aura-adm-redemptions h3 { margin: 0 0 10px; font-size: 1rem; font-weight: 800; }
+.aura-offers-admin .aura-adm-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+.aura-offers-admin .aura-adm-table th,
+.aura-offers-admin .aura-adm-table td { padding: 8px 10px; border-bottom: 1px solid var(--aura-adm-line); text-align: left; }
+.aura-offers-admin .aura-adm-table th { font-size: 0.7rem; letter-spacing: 0.05em; text-transform: uppercase; color: #8a857d; }
+
+@media (max-width: 640px) {
+  .au-site .aura-promo-grid { grid-template-columns: 1fr; }
+  .aura-offers-admin .aura-adm-head,
+  .aura-offers-admin .aura-adm-body { padding-left: 14px; padding-right: 14px; }
+  .aura-offers-admin .aura-adm-grid { grid-template-columns: 1fr; }
+}
+
+/* ---------- Checkout final payable (Template 03 only) ------------------ */
+.sf-aura-final-payable {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #edf6ef;
+  border: 1px solid #cbe6d4;
+  color: #23634d;
+  font-size: 0.84rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+/* ---------- Admin preview card (rendered outside .au-site) ------------- */
+.aura-offers-admin .aura-adm-modal .au-offer-voucher {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid var(--aura-adm-gold);
+  border-radius: 20px;
+  padding: 0 0 18px;
+  overflow: hidden;
+  color: var(--aura-adm-ink);
+}
+.aura-offers-admin .aura-adm-modal .aura-promo-media {
+  height: 160px;
+  overflow: hidden;
+  background: #e7eee7;
+}
+.aura-offers-admin .aura-adm-modal .aura-promo-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.aura-offers-admin .aura-adm-modal .au-offer-voucher > * { margin-left: 18px; margin-right: 18px; }
+.aura-offers-admin .aura-adm-modal .au-offer-voucher > .aura-promo-media { margin-left: 0; margin-right: 0; }
+.aura-offers-admin .aura-adm-modal .au-offer-voucher > .au-offer-top { margin-top: 16px; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.aura-offers-admin .aura-adm-modal .au-offer-badge { padding: 4px 10px; border-radius: 999px; background: #e7eee7; color: #5c7362; font-size: 0.7rem; font-weight: 800; }
+.aura-offers-admin .aura-adm-modal .au-offer-audience { font-size: 0.74rem; color: var(--aura-adm-muted); }
+.aura-offers-admin .aura-adm-modal .au-offer-voucher h3 { font-size: 1.1rem; font-weight: 800; margin: 8px 18px; }
+.aura-offers-admin .aura-adm-modal .aura-promo-description { font-size: 0.85rem; color: var(--aura-adm-muted); line-height: 1.5; }
+.aura-offers-admin .aura-adm-modal .aura-promo-demo-label { display: inline-flex; align-self: flex-start; gap: 5px; padding: 4px 10px; border-radius: 999px; background: #fff4d8; border: 1px solid #e4c477; color: #7a5510; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; }
+.aura-offers-admin .aura-adm-modal .aura-promo-discount strong { font-size: 1.2rem; color: #5c7362; }
+.aura-offers-admin .aura-adm-modal .aura-promo-discount span { font-size: 0.76rem; color: var(--aura-adm-muted); }
+.aura-offers-admin .aura-adm-modal .aura-promo-dates { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; border-radius: 10px; background: #f6efe2; font-size: 0.76rem; }
+.aura-offers-admin .aura-adm-modal .aura-promo-dates dt { font-size: 0.66rem; font-weight: 800; text-transform: uppercase; color: #8a7450; }
+.aura-offers-admin .aura-adm-modal .aura-promo-dates dd { margin: 2px 0 0; font-weight: 700; }
+.aura-offers-admin .aura-adm-modal .aura-promo-minimum,
+.aura-offers-admin .aura-adm-modal .aura-promo-terms { font-size: 0.76rem; color: var(--aura-adm-muted); }
+.aura-offers-admin .aura-adm-modal .aura-promo-terms summary { cursor: pointer; font-weight: 700; }
+.aura-offers-admin .aura-adm-modal .au-offer-perforation { margin-top: 12px; border-top: 1.5px dashed #c5a46d; }
+.aura-offers-admin .aura-adm-modal .au-offer-bottom { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.aura-offers-admin .aura-adm-modal .au-code-chip { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 10px; border: 1px dashed #c5a46d; background: #f6efe2; color: #4f3d20; font-size: 0.78rem; font-weight: 700; }
+.aura-offers-admin .aura-adm-modal .au-offer-validity { display: block; margin-top: 4px; font-size: 0.7rem; color: var(--aura-adm-muted); }
+.aura-offers-admin .aura-adm-modal .au-btn { border: 1px solid #5c7362; border-radius: 10px; background: #5c7362; color: #fff; padding: 9px 14px; font-size: 0.8rem; font-weight: 700; }
