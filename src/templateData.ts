@@ -53,12 +53,11 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
    {icon:'workspace_premium',title:'Skilled Beauty Team',description:'Hair, skin, bridal, nail and wellness specialists in one studio.'}
   ],
   gallery:[
-   {id:'aur-g1',url:'https://raw.githubusercontent.com/vijay-facebook/Aurelia-app/main/src/assets/images/service_hairstyling_1793409240754.jpg',title:'Signature Hair Styling',tag:'Hair'},
-   {id:'aur-g2',url:'https://raw.githubusercontent.com/vijay-facebook/Aurelia-app/main/src/assets/images/service_haircolour_1793409239777.jpg',title:'Balayage & Gloss Colour',tag:'Hair Colour'},
-   {id:'aur-g3',url:'https://raw.githubusercontent.com/vijay-facebook/Aurelia-app/main/src/assets/images/service_skincare_1793409239190.jpg',title:'Radiance Skin Ritual',tag:'Skin'},
-   {id:'aur-g4',url:'https://raw.githubusercontent.com/vijay-facebook/Aurelia-app/main/src/assets/images/service_bridal_1793409259837.jpg',title:'Bridal Styling',tag:'Bridal'},
-   {id:'aur-g5',url:'https://raw.githubusercontent.com/vijay-facebook/Aurelia-app/main/src/assets/images/service_nailstudio_1793409259976.jpg',title:'Signature Nail Care',tag:'Nails'},
-   {id:'aur-g6',url:'https://raw.githubusercontent.com/vijay-facebook/Aurelia-app/main/src/assets/images/room_lookbook_interior_1793383607293.jpg',title:'Aurelia Studio Interior',tag:'Interior'}
+   {id:'aur-g1',url:'https://raw.githubusercontent.com/vijay-facebook/Aurelia-app/main/src/assets/images/video_balayage_thumb_1793411344176.jpg',title:'Signature Hair Styling',tag:'Hair'},
+   {id:'aur-g2',url:'https://raw.githubusercontent.com/vijay-facebook/Aurelia-app/main/src/assets/images/video_facial_thumb_1793411344736.jpg',title:'Radiance Skin Ritual',tag:'Skin'},
+   {id:'aur-g3',url:'https://raw.githubusercontent.com/vijay-facebook/Aurelia-app/main/src/assets/images/video_bridal_thumb_1793411345160.jpg',title:'Bridal Styling',tag:'Bridal'},
+   {id:'aur-g4',url:'https://raw.githubusercontent.com/vijay-facebook/Aurelia-app/main/src/assets/images/room_lookbook_interior_1793383607293.jpg',title:'Aurelia Studio Interior',tag:'Interior'},
+   {id:'aur-g5',url:'https://raw.githubusercontent.com/vijay-facebook/Aurelia-app/main/src/assets/images/video_bts_thumb_1793411345197.jpg',title:'Behind the Studio',tag:'Interior'}
   ],
   reviews:[
    {id:'aur-r1',name:'Aurelia Guest 1',location:'Bandra West, Mumbai',rating:5,serviceName:'Signature Hair Styling',comment:'A thoughtful consultation and a lovely studio experience. Sample review — replace with a real guest review.',avatarUrl:'',date:'Demo',isDemo:true},
