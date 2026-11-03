@@ -2,8 +2,8 @@
  * NEXORA template library verification.
  *
  * Covers the platform branding contract end to end:
- *  • all 15 templates, each with a NEXORA display name and a clear category
- *  • the exact priority order from the brief (1–15), stable across refresh
+ *  • all 16 templates, each with a NEXORA display name and a clear category
+ *  • the exact priority order from the brief (1–16), stable across refresh
  *  • category metadata system (templateId, categoryId, displayName, rank, …)
  *  • category filters + search + both together, on the real components
  *  • every card opens its own preview and its own editor
@@ -30,7 +30,7 @@ import {applyTemplateDesign} from '../src/lib/templateSelection';
 import {templateDraft} from '../src/lib/templateEntry';
 
 /* ------------------------------------------------------------------ *
- * 1 · The exact brief: 15 names, 15 categories, 1–15 priority
+ * 1 · The exact brief: 16 names, 15 categories, 1–16 priority
  * ------------------------------------------------------------------ */
 const EXPECTED = [
   ['hair_salon', 'NEXORA Ziya Women’s Haircut Studio', 'Haircut Studio', "Specialist women's haircut services and modern hairstyles."],
@@ -48,10 +48,11 @@ const EXPECTED = [
   ['tattoo_studio', 'NEXORA Iron & Ink Tattoo Studio', 'Tattoo & Body Art', 'Tattoo designs, custom tattoos and body art.'],
   ['lash_brow', 'NEXORA Arch & Flutter Lash & Brow Bar', 'Lash & Brow', 'Eyelash, eyebrow and beauty services.'],
   ['ayurvedic_spa', 'NEXORA Veda Sanjeevani Ayurvedic Spa', 'Ayurvedic Wellness', 'Ayurvedic wellness and spa services.'],
+  ['aurelia_beauty_parlour', 'NEXORA Aurelia Beauty Parlour', 'Beauty Parlour', 'A complete beauty studio with hair, colour, skin, bridal, nails and spa services.'],
 ] as const;
 
-assert.equal(NEXORA_TEMPLATE_META.length, 15, 'exactly fifteen NEXORA templates');
-assert.equal(Object.keys(CATEGORY_TEMPLATES).length, 15, 'the template registry still holds fifteen templates');
+assert.equal(NEXORA_TEMPLATE_META.length, 16, 'exactly sixteen NEXORA templates');
+assert.equal(Object.keys(CATEGORY_TEMPLATES).length, 16, 'the template registry holds sixteen templates');
 for (const [index, [id, displayName, categoryName, description]] of EXPECTED.entries()) {
   const meta = nexoraTemplateMeta(id)!;
   assert.ok(meta, `${id} has NEXORA metadata`);
@@ -76,7 +77,7 @@ assert.equal(NEXORA_TEMPLATE_META[1].templateId, 'barber', 'Barber Shop second')
 assert.equal(NEXORA_TEMPLATE_META[2].templateId, 'beauty_parlour', 'Beauty Parlour third');
 assert.equal(NEXORA_TEMPLATE_META[3].templateId, 'nail_studio', 'Nail Studio fourth');
 
-/* Categories: one per template, with colour/icon/keywords/description. */
+/* Categories: 15 clear business categories. Beauty Parlour intentionally has two templates. */
 assert.equal(NEXORA_CATEGORIES.length, 15, 'fifteen categories, no duplicates');
 assert.equal(new Set(NEXORA_CATEGORIES.map((c) => c.categoryId)).size, 15, 'category ids are unique');
 assert.equal(new Set(NEXORA_CATEGORIES.map((c) => c.categoryName)).size, 15, 'category names are unique');
@@ -85,7 +86,8 @@ for (const category of NEXORA_CATEGORIES) {
   assert.ok(category.icon, `${category.categoryName}: category icon`);
   assert.ok(category.categoryDescription.length > 10, `${category.categoryName}: category description`);
   assert.ok(category.searchKeywords.length >= 3, `${category.categoryName}: category search keywords`);
-  assert.equal(NEXORA_TEMPLATE_META.filter((meta) => meta.categoryId === category.categoryId).length, 1, `${category.categoryName}: template count is 1`);
+  const expectedCount = category.categoryId === 'beauty-parlour' ? 2 : 1;
+  assert.equal(NEXORA_TEMPLATE_META.filter((meta) => meta.categoryId === category.categoryId).length, expectedCount, `${category.categoryName}: expected template count ${expectedCount}`);
 }
 assert.equal(new Set(NEXORA_CATEGORIES.map((c) => c.icon)).size >= 12, true, 'categories use distinct icons');
 assert.equal(new Set(NEXORA_CATEGORIES.map((c) => c.color)).size, 15, 'every category has its own colour');
@@ -96,7 +98,7 @@ for (const wrong of ['Nexorra', 'NEXORAA', 'Nexora Salon', 'Nexora ']) {
 /* No duplicate template records, no second KeshKraft. */
 assert.equal(NEXORA_TEMPLATE_META.filter((meta) => /keshkraft/i.test(meta.displayName)).length, 1, 'exactly one KeshKraft template');
 assert.equal(Object.values(CATEGORY_TEMPLATES).filter((template) => template.id === 'mens_hair_studio').length, 1);
-assert.equal(new Set(Object.values(CATEGORY_TEMPLATES).map((template) => template.coverImageUrl)).size, 15, 'every template keeps unique preview artwork');
+assert.equal(new Set(Object.values(CATEGORY_TEMPLATES).map((template) => template.coverImageUrl)).size, 16, 'every template keeps unique preview artwork');
 
 /* ------------------------------------------------------------------ *
  * 2 · One shared sorting function, stable everywhere
@@ -110,19 +112,19 @@ assert.deepEqual([...EXPECTED].map(([id]) => id).sort(compareTemplatesByPriority
 assert.deepEqual(sortTemplatesByPriority(sortTemplatesByPriority(Object.values(CATEGORY_TEMPLATES))).map((t) => t.id), EXPECTED.map(([id]) => id), 'idempotent: a refresh can never reshuffle');
 
 /* The picker mirrors the same order and names. */
-assert.equal(ALL_CATEGORY_OPTIONS.length, 15, 'ALL_CATEGORY_OPTIONS lists every template once');
+assert.equal(ALL_CATEGORY_OPTIONS.length, 16, 'ALL_CATEGORY_OPTIONS lists every template once');
 assert.deepEqual(ALL_CATEGORY_OPTIONS.map((option) => option.id), EXPECTED.map(([id]) => id), 'ALL_CATEGORY_OPTIONS is in priority order');
 assert.deepEqual(ALL_CATEGORY_OPTIONS.map((option) => option.title), EXPECTED.map(([, name]) => name), 'ALL_CATEGORY_OPTIONS carries the NEXORA names');
 assert.deepEqual(ALL_CATEGORY_OPTIONS.map((option) => option.categoryTag), EXPECTED.map(([, , category]) => category), 'ALL_CATEGORY_OPTIONS carries the categories');
-assert.deepEqual(ALL_CATEGORY_OPTIONS.map((option) => option.priorityRank), Array.from({length: 15}, (_, i) => i + 1), 'ALL_CATEGORY_OPTIONS carries ranks 1–15');
+assert.deepEqual(ALL_CATEGORY_OPTIONS.map((option) => option.priorityRank), Array.from({length: 16}, (_, i) => i + 1), 'ALL_CATEGORY_OPTIONS carries ranks 1–16');
 
 /* Category filter options. */
 const filters = nexoraCategoryFilters(Object.values(CATEGORY_TEMPLATES));
 assert.equal(filters.length, 16, 'All Templates + 15 categories');
 assert.equal(filters[0].label, 'All Templates');
-assert.equal(filters[0].count, 15, 'All Templates counts all fifteen');
+assert.equal(filters[0].count, 16, 'All Templates counts all sixteen');
 assert.deepEqual(filters.slice(1).map((filter) => filter.label), NEXORA_CATEGORIES.map((category) => category.categoryName), 'filters follow the priority order');
-assert.ok(filters.slice(1).every((filter) => filter.count === 1), 'each category filter counts its own template');
+assert.ok(filters.slice(1).every((filter) => filter.count === (filter.id === 'beauty-parlour' ? 2 : 1)), 'category filters count matching templates, including both Beauty Parlour designs');
 
 /* ------------------------------------------------------------------ *
  * 3 · Search behaviour on the real search index
@@ -132,12 +134,13 @@ const searchIds = (query: string) => EXPECTED.map(([id]) => id).filter((id) => n
 for (const [query, expected] of [
   ['haircut', ['hair_salon', 'mens_hair_studio']],
   ['barber', ['barber']],
-  ['nails', ['nail_studio']],
+  ['nails', ['nail_studio', 'aurelia_beauty_parlour']],
   ['men', ['barber', 'mens_hair_studio', 'unisex_salon']],
   ['tattoo', ['tattoo_studio']],
   ['ayurveda', ['ayurvedic_spa']],
   ['lash', ['lash_brow']],
-  ['colour', ['hair_coloring', 'mens_hair_studio']],
+  ['colour', ['hair_coloring', 'mens_hair_studio', 'aurelia_beauty_parlour']],
+  ['beauty', ['beauty_parlour', 'aurelia_beauty_parlour']],
 ] as const) {
   const hits = searchIds(query);
   for (const id of expected) assert.ok(hits.includes(id), `search "${query}" finds ${id}`);
@@ -145,7 +148,7 @@ for (const [query, expected] of [
 }
 assert.ok(searchIds("women's haircut").includes('hair_salon'), 'apostrophes and accents are normalised');
 assert.deepEqual(searchIds('nonsense-xyz'), [], 'unmatched queries return nothing');
-assert.equal(searchIds('').length, 15, 'an empty query returns all fifteen');
+assert.equal(searchIds('').length, 16, 'an empty query returns all sixteen');
 
 /* ------------------------------------------------------------------ *
  * 4 · Landing page: branding, filters, search, cards
@@ -163,7 +166,7 @@ const landingHtml = renderToStaticMarkup(<LandingPage setCurrentView={() => {}} 
 assert.ok(landingHtml.includes('NEXORA'), 'landing page shows the NEXORA brand');
 assert.ok(landingHtml.includes('data-nexora-logo'), 'landing page shows the NEXORA logo lockup');
 assert.ok(landingHtml.includes('data-nexora-brand-mark'), 'template preview cards carry the NEXORA brand mark');
-assert.equal((landingHtml.match(/<article/g) || []).length, 15, 'all fifteen cards render');
+assert.equal((landingHtml.match(/<article/g) || []).length, 16, 'all sixteen cards render');
 for (const [, name] of EXPECTED) assert.ok(landingHtml.includes(esc(name)), `${name} is on the landing page`);
 for (const [, , category] of EXPECTED) assert.ok(landingHtml.includes(esc(category)), `category ${category} is reachable`);
 
@@ -177,13 +180,16 @@ const filterButton = (id: string) => page.root.findByProps({'data-category-filte
 const searchBox = () => page.root.findByProps({'aria-label': 'Search templates by name, category, salon type, service or keyword'});
 
 await act(async () => filterButton('all').props.onClick());
-assert.deepEqual(cardIds(), EXPECTED.map(([id]) => id), 'All Templates shows all fifteen in order');
-for (const [id, , category] of EXPECTED) {
-  const categoryFilter = NEXORA_CATEGORIES.find((entry) => entry.categoryName === category)!;
-  await act(async () => filterButton(categoryFilter.categoryId).props.onClick());
-  assert.deepEqual(cardIds(), [id], `filter ${category} shows only ${id}`);
-  assert.equal(filterButton(categoryFilter.categoryId).props['aria-pressed'], true, `${category}: selected filter is marked`);
-  assert.ok(page.root.findAll((node: any) => (Array.isArray(node.props?.children) ? node.props.children.join('') : String(node.props?.children ?? '')).includes('showing 1 of 15')).length > 0, `${category}: the selection is visible in text`);
+assert.deepEqual(cardIds(), EXPECTED.map(([id]) => id), 'All Templates shows all sixteen in order');
+for (const category of NEXORA_CATEGORIES) {
+  const expectedIds = EXPECTED
+    .filter(([id]) => nexoraTemplateMeta(id)!.categoryId === category.categoryId)
+    .map(([id]) => id);
+  await act(async () => filterButton(category.categoryId).props.onClick());
+  assert.deepEqual(cardIds(), expectedIds, `filter ${category.categoryName} shows its matching templates`);
+  assert.equal(filterButton(category.categoryId).props['aria-pressed'], true, `${category.categoryName}: selected filter is marked`);
+  const summary = `showing ${expectedIds.length} of 16`;
+  assert.ok(page.root.findAll((node: any) => (Array.isArray(node.props?.children) ? node.props.children.join('') : String(node.props?.children ?? '')).includes(summary)).length > 0, `${category.categoryName}: the selection is visible in text`);
 }
 await act(async () => filterButton('all').props.onClick());
 await act(async () => searchBox().props.onChange({target: {value: 'men'}}));
@@ -317,7 +323,7 @@ const dashboardHtml = renderToStaticMarkup(
 assert.ok(dashboardHtml.includes('NEXORA Template Library'), 'the dashboard has a NEXORA template library tab');
 for (const [, name] of EXPECTED) assert.ok(dashboardHtml.includes(esc(name)), `dashboard lists ${name}`);
 assert.ok(dashboardHtml.includes('In use'), 'the dashboard marks the salon’s current template');
-assert.equal((dashboardHtml.match(/data-dashboard-template-id="/g) || []).length, 15, 'the dashboard lists every template once');
+assert.equal((dashboardHtml.match(/data-dashboard-template-id="/g) || []).length, 16, 'the dashboard lists every template once');
 
 /* ------------------------------------------------------------------ *
  * 7 · The owner's own brand is never overwritten
@@ -363,4 +369,4 @@ assert.deepEqual(galleryCustomize, ['hair_salon'], 'the dashboard customize butt
 assert.deepEqual(galleryPreview, ['ayurvedic_spa'], 'the dashboard preview button targets exactly one template');
 await act(async () => gallery.unmount());
 
-console.log('PASS: NEXORA branding, 15 exact display names and categories, fixed 1–15 priority order, category filters, search (and both combined), per-template preview/customize wiring, wizard/owner/dashboard parity, and untouched salon branding.');
+console.log('PASS: NEXORA branding, 16 display names across 15 categories, fixed 1–16 priority order, category filters including both Beauty Parlour templates, search, per-template preview/customize wiring, wizard/owner/dashboard parity, and untouched salon branding.');
