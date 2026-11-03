@@ -1,3 +1,4 @@
+import {KeshKraftWebsite} from './keshkraft/KeshKraftWebsite';
 import { clinicPriceIsVerified, clinicPublicServices, normalizeServices } from '../lib/dermacureContent';
 import type { ConsultationDetails } from "./dermacure/consultation";
 import { VogueNoirWebsite } from './VogueNoirWebsite';
@@ -835,5 +836,5 @@ export function CustomerSalonWebsite(props:SalonWebsitePreviewProps){
  const stylists=useMemo(()=>Array.isArray(props.stylists)?props.stylists:[],[props.stylists]);
  // The profile can be briefly unavailable while the account or site is still loading.
  if(!props.profile||typeof props.profile!=='object')return <main role="status" aria-live="polite" className="min-h-screen flex items-center justify-center"><p>Loading website… The salon profile is unavailable right now; this page retries automatically.</p></main>;
- return <WebsiteLanguageProvider key={props.profile.subdomain||props.profile.businessType} defaultLanguage={props.profile.defaultWebsiteLanguage}><CustomerSalonWebsiteContent {...props} services={services} stylists={stylists}/></WebsiteLanguageProvider>;
+ return <WebsiteLanguageProvider key={props.profile.subdomain||props.profile.businessType} defaultLanguage={props.profile.defaultWebsiteLanguage}>{props.profile.businessType==='mens_hair_studio'?<KeshKraftWebsite {...props} services={services} stylists={stylists}/>:<CustomerSalonWebsiteContent {...props} services={services} stylists={stylists}/>}</WebsiteLanguageProvider>;
 }

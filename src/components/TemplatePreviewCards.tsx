@@ -1,3 +1,4 @@
+import {KeshKraftEditor} from './keshkraft/KeshKraftEditor';
 import React, { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Monitor, Smartphone, Tablet, X } from 'lucide-react';
 import { AppErrorBoundary } from './AppErrorBoundary';
@@ -50,7 +51,7 @@ export function TemplateThumbnail({ template: t }: { template: CategoryTemplateC
   </div>;
 }
 
-export type TemplateChooseWorkspace = { profile: SalonProfile; services: SalonService[]; stylists: Stylist[] };
+export type TemplateChooseWorkspace = { profile: SalonProfile; services: SalonService[]; stylists: Stylist[]; loyaltyConfig?:import('../types').LoyaltyConfig };
 
 type PreviewDevice = 'desktop' | 'tablet' | 'mobile';
 
@@ -75,7 +76,8 @@ export function TemplatePreviewModal({templateId, onSelectPreview, onClose, onCh
   const t = CATEGORY_TEMPLATES[templateId];
   /** Templates 13 (Arch & Flutter) and 14 (Veda Sanjeevani) ship their own customizer. */
   const isVeda = isVedaTemplate(templateId);
-  const hasCustomizer = isArchFlutterTemplate(templateId) || isVeda;
+  const isMens = templateId==='mens_hair_studio';
+  const hasCustomizer = isArchFlutterTemplate(templateId) || isVeda || isMens;
   const [customizerOpen, setCustomizerOpen] = useState(false);
   const [customized, setCustomized] = useState<{ workspace: CustomizerWorkspace; config: ArchFlutterCustomizerConfig } | null>(null);
   const [vedaWorkspace, setVedaWorkspace] = useState<TemplateChooseWorkspace | null>(null);
@@ -161,8 +163,9 @@ export function TemplatePreviewModal({templateId, onSelectPreview, onClose, onCh
             }} style={{width:frame.width,height:frameHeight ?? '100%',border:0,display:'block',transform:scale < 1 ? `scale(${scale})` : undefined,transformOrigin:'top left'}} className="bg-white"/>
           </div>
         </div>
-        {frameDocument?.getElementById('template-root') && createPortal(<AppErrorBoundary resetKey={templateId} onRecover={onClose}><Suspense fallback={<p className="p-8 text-center">Loading live template…</p>}><LiveWebsite key={`${templateId}-${customized ? 'custom' : 'demo'}`} readOnly previewDocument={frameDocument} profile={previewProfile} services={previewServices} stylists={previewStylists} onAddAppointment={async () => {throw new Error('This is a template demo. Customize and publish your salon to accept bookings.');}}/></Suspense></AppErrorBoundary>,frameDocument.getElementById('template-root')!)}
+        {frameDocument?.getElementById('template-root') && createPortal(<AppErrorBoundary resetKey={templateId} onRecover={onClose}><Suspense fallback={<p className="p-8 text-center">Loading live template…</p>}><LiveWebsite key={`${templateId}-${customized ? 'custom' : 'demo'}`} readOnly previewDocument={frameDocument} profile={previewProfile} services={previewServices} stylists={previewStylists} loyaltyConfig={vedaWorkspace?.loyaltyConfig} onAddAppointment={async () => {throw new Error('This is a template demo. Customize and publish your salon to accept bookings.');}}/></Suspense></AppErrorBoundary>,frameDocument.getElementById('template-root')!)}
       </div>
+      {customizerOpen && isMens && createPortal(<div className="fixed inset-0 z-[120] overflow-y-auto bg-[#f3eee5]" role="dialog" aria-modal="true" aria-label="Customize Template 15"><KeshKraftEditor workspace={{profile:previewProfile,services:previewServices,stylists:previewStylists,loyaltyConfig:vedaWorkspace?.loyaltyConfig}} onSave={next=>setVedaWorkspace(next)} onClose={()=>setCustomizerOpen(false)}/></div>,dialog.current!)}
       {customizerOpen && isVeda && createPortal(
         <AppErrorBoundary resetKey="veda-customizer" onRecover={() => setCustomizerOpen(false)}>
           <Suspense fallback={<p className="p-8 text-center" role="status">Loading the Template 14 customizer…</p>}>
@@ -181,7 +184,7 @@ export function TemplatePreviewModal({templateId, onSelectPreview, onClose, onCh
         </AppErrorBoundary>,
         document.body,
       )}
-      {customizerOpen && !isVeda && hasCustomizer && createPortal(
+      {customizerOpen && !isVeda && !isMens && hasCustomizer && createPortal(
         <AppErrorBoundary resetKey="arch-flutter-customizer" onRecover={() => setCustomizerOpen(false)}>
           <Suspense fallback={<p className="p-8 text-center" role="status">Loading the Template 13 customizer…</p>}>
             <ArchFlutterCustomizerGate

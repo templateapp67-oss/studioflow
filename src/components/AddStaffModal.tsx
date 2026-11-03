@@ -93,7 +93,8 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
   const saveLock=useRef(false);
 
   // Form States
-  const [selectedPhoto, setSelectedPhoto] = useState<string>(businessType==='skincare_clinic'?'':PRESET_AVATARS[0]);
+  const [selectedPhoto, setSelectedPhoto] = useState<string>(businessType==='skincare_clinic'||businessType==='mens_hair_studio'?'':PRESET_AVATARS[0]);
+  const [maleConfirmed,setMaleConfirmed]=useState(false);
   
   // Basic Info
   const [experienceYears,setExperienceYears]=useState('');
@@ -227,7 +228,8 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
 
     if(saveLock.current||photoBusy)return;
     if(!primaryRole.trim()){setFormError('Designation is required.');return}
-    if(!photoFile&&((selectedPhoto&&!validStaffUrl(selectedPhoto))||(!selectedPhoto&&businessType!=='skincare_clinic'&&staffCategory!=='skincare_clinic'))){setFormError('Enter a valid image URL or select a photo.');return}
+    if(staffCategory==='mens_hair_studio'&&!maleConfirmed){setFormError('Confirm this is a male barber / men’s hair expert.');return;}
+    if(!photoFile&&((selectedPhoto&&!validStaffUrl(selectedPhoto))||(!selectedPhoto&&businessType!=='skincare_clinic'&&staffCategory!=='skincare_clinic'&&staffCategory!=='mens_hair_studio'))){setFormError('Enter a valid image URL or select a photo.');return}
     if(experienceYears!==''&&(!Number.isFinite(Number(experienceYears))||Number(experienceYears)<0||Number(experienceYears)>80)){setFormError('Experience must be between 0 and 80 years.');return}
     saveLock.current=true;setSaving(true);setFormError('');
     try{
@@ -239,6 +241,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
       experienceYears:experienceYears===''?undefined:Number(experienceYears),
       role: primaryRole.trim(),
       businessType:staffCategory,
+      ...(staffCategory==='mens_hair_studio'?{mensMaleOnly:maleConfirmed}:{}),
       avatarUrl: photoUrl,
       rating: 0,
       specialties: categorySkills(selectedSkills,staffCategory),
@@ -304,7 +307,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
             </div>
           )}
 
-          {(businessType==='skincare_clinic'||staffCategory==='skincare_clinic')&&<p className="text-xs text-slate-600">Optional: use a real staff photo with permission, or leave this blank.</p>}<StaffPhotoField value={selectedPhoto} file={photoFile} onBusy={setPhotoBusy} onChange={(url,file)=>{setSelectedPhoto(url);setPhotoFile(file)}}/>
+          {(businessType==='skincare_clinic'||staffCategory==='skincare_clinic')&&<p className="text-xs text-slate-600">Optional: use a real staff photo with permission, or leave this blank.</p>}{staffCategory==='mens_hair_studio'&&<label className="text-sm"><input type="checkbox" checked={maleConfirmed} onChange={e=>setMaleConfirmed(e.target.checked)}/> I confirm this is a male barber / men's hair expert. Uploaded photos require male-only review in Customize before appearing on the website.</label>}<StaffPhotoField value={selectedPhoto} file={photoFile} onBusy={setPhotoBusy} onChange={(url,file)=>{setSelectedPhoto(url);setPhotoFile(file)}}/>
           {/* ========================================================= */}
           {/* SECTION 2: BASIC INFORMATION (2-COLUMN GRID) */}
           {/* ========================================================= */}

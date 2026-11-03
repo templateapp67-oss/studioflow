@@ -20,7 +20,7 @@ const later={...real,content:{...real.content,profile:{...real.content.profile,p
 assert.equal(discoveryFeed([later],now).offers.length,1);assert.equal(discoveryFeed([later],now).lastMinute.length,0);
 assert.equal(promotionActive({enabled:true}),true);
 const templates=Object.values(CATEGORY_TEMPLATES).map(t=>({...t,demoOffer:{enabled:true,selectedServiceId:t.services[0].id,headline:'Sample 20% OFF',discountPercent:20,lastMinute:true}}));
-const demos=withTemplateDemos([],templates);assert.equal(discoveryFeed(demos,now).offers.length,14);assert.equal(discoveryFeed(demos,now).lastMinute.length,14);
+const demos=withTemplateDemos([],templates);assert.equal(discoveryFeed(demos,now).offers.length,15);assert.equal(discoveryFeed(demos,now).lastMinute.length,15);
 const markup=renderToStaticMarkup(<DiscoverySections salons={demos} open={()=>{}} book={()=>{}}/>);
 for(const name of ['Quick Services','Special Discounts','Last-Minute Deals','TEMPLATE DEMO','SAMPLE DEAL'])assert.ok(markup.includes(name),name);
 assert.ok(!markup.includes('Ends in'),'No fabricated countdown for template offers');

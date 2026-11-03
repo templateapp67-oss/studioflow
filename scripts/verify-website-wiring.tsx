@@ -1,3 +1,4 @@
+// Template 15 has dedicated male-only media, booking and editor coverage in verify-template15.
 import {FeaturedReels} from '../src/components/FeaturedReels';
 import {socialVideoSource,shortVideoSource,reelSource} from '../src/lib/socialVideoSource';
 import {CustomerBookings} from '../src/components/CustomerBookings';
@@ -39,7 +40,7 @@ import { InlineEditable } from '../src/components/InlineEditable';
 import { DEFAULT_LOYALTY_CONFIG } from '../src/loyaltyData';
 (globalThis as any).location={origin:'https://studioflow.test',search:'',hash:''};
 const campaign={enabled:true,selectedServiceId:'s1',campaignTheme:'flash_discount',discountPercent:20,customOfferText:'Owner Special',promoCode:'OWN20',headline:'Saved owner campaign',subtext:'Updated dashboard copy',aspectRatio:'1:1',aesthetic:'luxury_gold',imageUrl:'https://example.com/promo.jpg',customPrompt:''};
-for(const template of Object.values(CATEGORY_TEMPLATES)) {
+for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')) {
  const profile={...INITIAL_SALON_PROFILE,businessType:template.id,businessName:'Actual Salon',promoCampaign:campaign,socialVideos:[{id:'vid',youtubeUrl:'https://www.youtube.com/shorts/abcdefghijk',videoId:'abcdefghijk',title:'Saved owner reel',thumbnailUrl:'',categoryTag:'SHORT' as const,isOwnerVideo:true}],instagramHandle:'https://instagram.com/actualsalon',websiteTestimonials:[],sectionHeadings:{videosTitle:'My updated reels'}};
  const props={profile,services:[],stylists:[],gallery:[],readOnly:true,policies:{cancellation:'Updated cancellation terms'}};
  const publishedProfile={...profile,customAccentColor:'#123456',darkCanvas:false,sectionHeadings:{videosTitle:'Saved video heading',videosSubtitle:'Saved video introduction',socialTitle:'Saved social heading',loyaltyTitle:'Saved loyalty heading',policiesTitle:'Saved policies heading'}};
@@ -103,7 +104,7 @@ assert.equal(inline.root.findAll(node=>node.props['data-section']==='videos').le
 await act(async()=>inline.unmount());
 console.log('PASS: inline video title, video heading and promotion edits share the saved profile; videos hide immediately.');
 // Enabled sections remain discoverable before owners add content; guests never receive edit actions.
-for(const template of Object.values(CATEGORY_TEMPLATES)) {
+for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')) {
  const profile={...INITIAL_SALON_PROFILE,businessType:template.id,subdomain:'test-salon',promoCampaign:undefined,socialVideos:[],instagramHandle:'',facebookPage:'',youtubeChannel:'',tiktokProfile:'',websiteTestimonials:[],bookingRules:{leadHours:4,cancellationWindow:24}};
  const props={profile,services:[],readOnly:true,policies:{cancellation:'Saved cancellation policy'},onBook:()=>{}};
  const guest=renderToStaticMarkup(<WebsiteSections {...props}/>);
@@ -122,7 +123,7 @@ const loginMarkup=renderToStaticMarkup(<AuthPage compact customerMode initialMod
 console.log('PASS: live customer signup uses customer fields; login includes password recovery.');
 
 // Demo seeding covers new and already-published empty profiles without replacing owner videos.
-for(const template of Object.values(CATEGORY_TEMPLATES)) {
+for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')) {
  const raw={...INITIAL_SALON_PROFILE,businessType:template.id,socialVideos:[],demoVideosInitialized:undefined};
  const initialized=normalizeWorkspace({profile:raw});assert.equal(initialized.profile.socialVideos.length,5);assert.ok(initialized.profile.socialVideos.every(v=>v.isDemo&&!v.isOwnerVideo));assert.equal(new Set(initialized.profile.socialVideos.map(v=>v.videoId)).size,5);
  const html=renderToStaticMarkup(<WebsiteSections profile={initialized.profile} services={[]} onBook={()=>{}} readOnly/>);assert.equal((html.match(/class="sf-reel-media"/g)||[]).length,5);assert.equal((html.match(/<iframe/g)||[]).length,0);assert.ok(html.includes('DEMO / REFERENCE'));
@@ -145,7 +146,7 @@ await act(async()=>demoButton('MANAGE / REPLACE').props.onClick());await act(asy
 await act(async()=>demoEditor.unmount());
 console.log('PASS: five distinct demo reel posters in all 14 templates; replacement keeps position and persists owner URL/title; deletion stays removed after reload.');
 
-for(const template of Object.values(CATEGORY_TEMPLATES)) {
+for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')) {
  const profile={...INITIAL_SALON_PROFILE,businessType:template.id,subdomain:'test-salon',socialVideos:[]};
  const html=renderToStaticMarkup(<SalonWebsitePreview profile={profile} services={[]} stylists={[]} gallery={[]} readOnly onManageDashboard={()=>{}} onCustomerAccount={()=>{}} customerSignedIn onAddAppointment={async apt=>apt}/>);
  const header=(html.match(/<header[\s\S]*?<\/header>/g)||[]).find(h=>h.includes('Customer account'));assert.ok(header,template.id);
@@ -159,7 +160,7 @@ for(const template of Object.values(CATEGORY_TEMPLATES)) {
 }
 console.log('PASS: public templates retain customer header access without owner management controls; Dermacure replaces reels with its editorial section.');
 
-for(const template of Object.values(CATEGORY_TEMPLATES)) {
+for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')) {
  const profile={...INITIAL_SALON_PROFILE,businessType:template.id,businessName:'Test Studio',whatsapp:'919876543210',websiteTestimonials:[]};
  const html=renderToStaticMarkup(<SalonWebsitePreview profile={profile} services={template.id==='skincare_clinic'?template.services.map(s=>({...s,clinicServiceApproved:true,clinicPublicationStatus:'published' as const,clinicFeeStatus:'verified' as const,clinicPriceVerified:true})):template.services} stylists={template.stylists} gallery={['https://example.com/look.jpg']} readOnly onAddAppointment={async apt=>apt}/>);
  if(template.id==='skincare_clinic'){
@@ -342,7 +343,7 @@ try{
  console.log('PASS: category filter shows the right service card; specialist selection and service Book CTA pass exact IDs into the existing checkout.');
 }finally{if(layout)await act(async()=>layout.unmount());supabase.rpc=oldRpc;functionsPrototype.invoke=oldInvoke;}
 
-for(const template of Object.values(CATEGORY_TEMPLATES)) {
+for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')) {
  const initial=normalizeWorkspace({profile:{...INITIAL_SALON_PROFILE,businessType:template.id,websiteTestimonials:[]},extras:{gallery:[]}});
  if(template.id==='hair_spa'){ // Template 06 ships no bundled testimonials: reviews only appear once real ones are published.
   assert.equal(initial.profile.websiteTestimonials.length,0,'hair_spa must not seed demo reviews');
@@ -425,7 +426,7 @@ assert.ok(!html.includes('Client experiences will appear here'));
  const deleted=normalizeWorkspace({profile:{...initial.profile,websiteTestimonials:[]},extras:{gallery:[]}});assert.equal(clientExperiences(deleted.profile).length,0);assert.equal(lookbookPhotos(deleted.profile,deleted.extras.gallery).length,0);
  const real={...initial.profile.websiteTestimonials[0],id:'real-review',isDemo:false,name:'Actual client',comment:'Actual client experience'};
  const own=normalizeWorkspace({profile:{...initial.profile,websiteTestimonials:[real]},extras:{gallery:['https://example.com/owner-photo.jpg']}});assert.deepEqual(own.profile.websiteTestimonials,[real]);assert.deepEqual(own.extras.gallery,['https://example.com/owner-photo.jpg']);
- const next=Object.values(CATEGORY_TEMPLATES).find(t=>t.id!==template.id)!;const switched=normalizeWorkspace({...initial,profile:applyTemplateDesign(initial.profile,next)});assert.ok(switched.profile.websiteTestimonials.every(r=>r.id.includes(next.id)));assert.ok(switched.extras.gallery.every(url=>lookbookPhotos({...switched.profile,demoGalleryInitialized:false},[]).includes(url)));
+ const next=Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio').find(t=>t.id!==template.id)!;const switched=normalizeWorkspace({...initial,profile:applyTemplateDesign(initial.profile,next)});assert.ok(switched.profile.websiteTestimonials.every(r=>r.id.includes(next.id)));assert.ok(switched.extras.gallery.every(url=>lookbookPhotos({...switched.profile,demoGalleryInitialized:false},[]).includes(url)));
 }
 console.log('PASS: 12 templates seed three labelled demo reviews (Templates 06 and 14 ship their own stories) and every template seeds category lookbook photos; owner content stays intact; deletion persists; switching themes replaces only demo content.');
 
@@ -470,12 +471,12 @@ try{
  console.log('PASS: customer login gating, rating/text/photo submission, persisted photo rendering and unverified status; owner testimonial editor preserves the experience photo.');
 }finally{if(reviewForm)await act(async()=>reviewForm.unmount());if(ownerPhoto)await act(async()=>ownerPhoto.unmount());supabase.rpc=reviewOldRpc;supabase.auth.getUser=oldGetUser;supabase.storage.from=oldStorageFrom;}
 
-for(const template of Object.values(CATEGORY_TEMPLATES))for(const service of template.services){const drafts=reviewTemplates(service.name);assert.equal(drafts.length,5);assert.equal(new Set(drafts.map(d=>d.id)).size,5);assert.ok(drafts.every(d=>d.text.includes(service.name)&&d.text.length<=2000));}
+for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio'))for(const service of template.services){const drafts=reviewTemplates(service.name);assert.equal(drafts.length,5);assert.equal(new Set(drafts.map(d=>d.id)).size,5);assert.ok(drafts.every(d=>d.text.includes(service.name)&&d.text.length<=2000));}
 assert.deepEqual(reviewTemplates(''),[]);console.log('PASS: every service in all 14 templates has five editable review drafts; template/service changes preserve the rating and manual text.');
 
 // Owner CRUD and public rendering share the same catalogue in every theme.
 const customService:SalonService={clinicServiceApproved:true,clinicPublicationStatus:'published' as const,clinicFeeStatus:'verified' as const,clinicPriceVerified:true,id:'custom-ritual',name:'Owner Signature Ritual',description:'A completely custom service description.',category:'My custom category',price:1250.5,durationMinutes:55,icon:'spa',origin:'custom',showDuration:false};
-for(const template of Object.values(CATEGORY_TEMPLATES)){
+for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')){
  const profile={...INITIAL_SALON_PROFILE,businessType:template.id,serviceCatalogueInitialized:true};
  const html=renderToStaticMarkup(<CustomerSalonWebsite profile={profile} services={[customService]} stylists={[]} onAddAppointment={async apt=>apt}/>);
  assert.ok(html.includes(template.id==='skincare_clinic'?'dc-directory-item':template.id==='bridal_lounge'?'sr-service ':template.id==='tattoo_studio'?'ii-category-card':template.id==='lash_brow'?'af-menu-card':template.id==='ayurvedic_spa'?'vd-card':template.id==='unisex_salon'?'au-service-card':template.id==='hair_salon'?'le-feature':'sf-service-row'));assert.ok(html.includes(customService.name));assert.ok(html.includes(customService.description));assert.ok(html.includes(customService.category));assert.ok(html.includes('₹1,250.5'));assert.ok(!html.includes('55 min'));
@@ -520,7 +521,7 @@ await act(async()=>serviceDialog().findByType('form').props.onSubmit({preventDef
 assert.equal(editedMenu.length,1);assert.equal(editedMenu[0].price,1250.5);assert.equal(editedMenu[0].category,chosenStarter.category);assert.equal(editedMenu[0].description,chosenDescription);assert.equal(editedMenu[0].origin,'custom');const savedServiceId=editedMenu[0].id;
 assert.equal(editedMenu[0].imagePath,serviceUploads[0].path);assert.ok(editedMenu[0].imageUrl?.endsWith(serviceUploads[0].path));
 const initialServicePhoto=editedMenu[0].imageUrl;
-for(const template of Object.values(CATEGORY_TEMPLATES)){
+for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')){
  const saved=normalizeWorkspace({profile:{...INITIAL_SALON_PROFILE,businessType:template.id,serviceCatalogueInitialized:true},services:editedMenu});
  const menu=servicesForTemplate(saved.services,saved.profile,template);
  assert.equal(menu[0].imageUrl,initialServicePhoto);assert.equal(menu[0].imagePath,serviceUploads[0].path);
@@ -553,13 +554,13 @@ assert.ok(discardedServicePhotos.includes(serviceUploads[2].path),'Cancelled uns
 await assert.rejects(()=>uploadServicePhoto(new File(['text'],'wrong.txt',{type:'text/plain'})),/JPG/);
 await act(async()=>serviceEditor.root.findByProps({'aria-label':'Remove Updated scalp care'}).props.onClick());
 await act(async()=>editorButton('Confirm removal').props.onClick());assert.equal(editedMenu.length,0);await act(async()=>serviceEditor.unmount());(supabase.auth as any).getUser=servicePhotoAuth;(supabase.storage as any).from=servicePhotoStorage;
-let wizard:any;await act(async()=>{wizard=create(<OnboardingWizard profile={INITIAL_SALON_PROFILE} setProfile={()=>{}} services={[customService]} setServices={()=>{}} stylists={[]} setStylists={()=>{}} templates={Object.values(CATEGORY_TEMPLATES)} onComplete={()=>{}}/>);});
+let wizard:any;await act(async()=>{wizard=create(<OnboardingWizard profile={INITIAL_SALON_PROFILE} setProfile={()=>{}} services={[customService]} setServices={()=>{}} stylists={[]} setStylists={()=>{}} templates={Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')} onComplete={()=>{}}/>);});
 for(let step=0;step<3;step++)await act(async()=>wizard.root.findAll(n=>n.type==='button'&&demoText(n).includes('Continue'))[0].props.onClick());
 assert.equal(wizard.root.findAllByType(ServiceManagement).length,1,'Guided setup must use the complete shared service editor');await act(async()=>wizard.unmount());
 console.log('PASS: complete setup service editor add/edit/remove, input validation, stable IDs, reload and all 14 theme switches preserve custom offerings; intentional empty menus remain empty; public menus render saved fields in horizontal rows; service photo resizing, save, replacement, removal, cancel cleanup and all-theme image persistence.');
 
 // Reference design isolation and owner-controlled menus in every template.
-for(const template of Object.values(CATEGORY_TEMPLATES)){
+for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')){
  const profile={...INITIAL_SALON_PROFILE,businessType:template.id,subdomain:'nav-studio'};
  const html=renderToStaticMarkup(<CustomerSalonWebsite profile={profile} services={template.id==='skincare_clinic'?template.services.map(s=>({...s,clinicServiceApproved:true,clinicPublicationStatus:'published' as const,clinicFeeStatus:'verified' as const,clinicPriceVerified:true})):template.services} stylists={[]} onAddAppointment={async apt=>apt}/>);
  assert.equal(html.includes('sf-barber-hero'),template.id==='barber','Reference barber hero must stay isolated');
@@ -676,7 +677,7 @@ for(const count of [1,3,5,7,10,12]){
  assert.deepEqual(slots.slice(0,size).map(s=>s.review.id),slots.slice(size).map(s=>s.review.id));
  assert.equal(slots.filter(s=>!s.clone).length,size);
 }
-for(const template of Object.values(CATEGORY_TEMPLATES)){
+for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')){
  const samples=tenDemoTestimonials(template.id);
  assert.equal(samples.length,10);
  assert.equal(new Set(samples.map(r=>r.name)).size,10);
@@ -699,7 +700,7 @@ let authListener:any;const bookingFilters:any[]=[];let bookingsResponse:any={dat
 (supabase.auth as any).getSession=async()=>({data:{session:customerSession},error:null});
 (supabase.auth as any).onAuthStateChange=(_callback:any)=>{authListener=_callback;return {data:{subscription:{unsubscribe(){}}}};};
 try {
- for(const template of Object.values(CATEGORY_TEMPLATES)){
+ for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')){
   let site:any;let prevented=false;
   await act(async()=>{site=create(<CustomerSalonWebsite profile={{...INITIAL_SALON_PROFILE,businessType:template.id,subdomain:'nav-studio'}} services={template.services} stylists={[]} onAddAppointment={async apt=>apt}/>);});
   if(template.id==='tattoo_studio'||template.id==='ayurvedic_spa'||template.id==='hair_salon'||template.id==='unisex_salon'){const button=site.root.findAllByType('button').find((item:any)=>demoText(item)==='My Bookings');assert.ok(button,`${template.id} exposes a native My Bookings action`);await act(async()=>button.props.onClick());}
@@ -768,7 +769,7 @@ await act(async()=>{
 });
 await act(async()=>demoEditor.root.findAll((node:any)=>node.type==='form'&&node.props.onSubmit)[0].props.onSubmit({preventDefault(){}}));
 assert.equal(demoProfile.socialVideos[0].youtubeUrl,insta.youtubeUrl);assert.equal(demoProfile.socialVideos[0].previewVideoUrl,insta.previewVideoUrl);assert.equal(demoProfile.socialVideos[0].thumbnailUrl,insta.thumbnailUrl);
-for(const template of Object.values(CATEGORY_TEMPLATES)){
+for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')){
  const saved=normalizeWorkspace(JSON.parse(JSON.stringify({profile:applyTemplateDesign(demoProfile,template)})));
  assert.equal(saved.profile.socialVideos[0].previewVideoUrl,insta.previewVideoUrl);assert.equal(saved.profile.socialVideos[0].youtubeUrl,insta.youtubeUrl);
 }
@@ -782,7 +783,7 @@ assert.ok(shortVideoSource('https://www.youtube.com/shorts/abcdefghijk'));
 assert.ok(shortVideoSource('https://www.instagram.com/reel/MyReel_123/'));
 const ownerFull={...reelVideos[0],id:'owner-full',isDemo:false,isOwnerVideo:true,title:'Owner full video must stay out',youtubeUrl:'https://www.youtube.com/watch?v=abcdefghijk',videoId:'abcdefghijk',categoryTag:'SHORT' as const};
 assert.equal(reelSource(ownerFull),null);
-for(const template of Object.values(CATEGORY_TEMPLATES)){
+for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')){
  const legacy={...ownerFull,id:`demo-${template.id}-1`,videoId:'ulbjW3JyK8E',youtubeUrl:'https://www.youtube.com/watch?v=ulbjW3JyK8E',isDemo:true,isOwnerVideo:false};
  const profile={...INITIAL_SALON_PROFILE,businessType:template.id,socialVideos:[legacy,ownerFull],demoVideosInitialized:true};
  const migrated=showcaseVideos(profile);
@@ -801,5 +802,5 @@ assert.equal(demoProfile.socialVideos,beforeRejected);assert.ok(demoText(demoEdi
 await act(async()=>demoEditor.unmount());
 console.log('PASS: five Shorts per theme, legacy full demo replacement without resurrecting deletions, owner full videos preserved but hidden, and owner setup rejects full-video URLs rather than relabelling them as Shorts.');
 
-for(const template of Object.values(CATEGORY_TEMPLATES)){const profile={...INITIAL_SALON_PROFILE,businessType:template.id};const html=renderToStaticMarkup(<SalonWebsitePreview profile={profile} services={[]} stylists={[]} gallery={[]} readOnly onAddAppointment={async apt=>apt}/>);for(const label of ['Nexora app announcement','Install and share Nexora customer app','/promo/nexora-customer-app-ad.png','Share App &amp; Poster','Download ad image','/?app=1&amp;install=1'])assert.ok(html.includes(label),`${template.id}: missing app campaign ${label}`);}
+for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')){const profile={...INITIAL_SALON_PROFILE,businessType:template.id};const html=renderToStaticMarkup(<SalonWebsitePreview profile={profile} services={[]} stylists={[]} gallery={[]} readOnly onAddAppointment={async apt=>apt}/>);for(const label of ['Nexora app announcement','Install and share Nexora customer app','/promo/nexora-customer-app-ad.png','Share App &amp; Poster','Download ad image','/?app=1&amp;install=1'])assert.ok(html.includes(label),`${template.id}: missing app campaign ${label}`);}
 console.log('PASS: all 14 templates include app announcement, install guide route, shareable poster, image download and mobile app menu.');

@@ -1,6 +1,6 @@
 export const WEBSITE_EDIT_STEPS = [
  {id:2,label:'Business details',icon:'storefront',hint:'Salon name, owner, contact details aur tagline set karein.'},
- {id:9,label:'Choose template',icon:'dashboard_customize',hint:'Apni business category ke hisab se 14 templates mein se design choose karein.'},
+ {id:9,label:'Choose template',icon:'dashboard_customize',hint:'Apni business category ke hisab se 15 templates mein se design choose karein.'},
  {id:10,label:'Logo, colours & hero',icon:'palette',hint:'Logo, favicon, brand colour aur home banner ki image edit karein.'},
  {id:27,label:'About our studio',icon:'person',hint:'Salon ki kahani, owner photo aur questions se About draft banayein.'},
  {id:3,label:'Services & packages',icon:'spa',hint:'Services, categories, descriptions, prices, duration, package images, bundles aur checkout add-ons edit karein.'},

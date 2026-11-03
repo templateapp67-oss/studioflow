@@ -1,3 +1,4 @@
+import {KeshKraftEditor} from './keshkraft/KeshKraftEditor';
 import {photoGallery,type PhotoCategory} from '../lib/photoGallery';
 import {updateInlineService} from '../lib/serviceCatalogue';
 import {ServiceManagement} from './ServiceManagement';
@@ -92,6 +93,7 @@ export interface SalonWebsitePreviewProps {
   policies?:Record<string,string>;
   branding?:{platformName:string;poweredBy:boolean;supportEmail:string};
   loyaltyConfig?:LoyaltyConfig;
+  onMensLoyaltyChange?:(value:LoyaltyConfig)=>void;
   onManageDashboard?:(section:string)=>void;
   onCustomerAccount?:(mode?:'signin'|'signup')=>void;
   customerSignedIn?:boolean;
@@ -107,7 +109,7 @@ type DeviceMode = 'desktop' | 'tablet' | 'mobile';
 export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = props => {
  const [editing,setEditing]=useState(false);
  if(props.readOnly)return <CustomerSalonWebsite {...props}/>;
- return <><div className="pt-28 px-4 pb-4 flex flex-wrap gap-3 bg-white text-slate-900"><button className="secondary-action" onClick={()=>setEditing(value=>!value)}>{editing?'Show redesigned website':'Open owner editing tools'}</button><button className="secondary-action" onClick={props.onEnterClientPreview}>Customer device preview</button></div>{editing?(props.profile.businessType==='hair_salon'?<ZiyaPreviewEditor {...props}/>:props.profile.businessType==='unisex_salon'?<AuraPreviewEditor {...props}/>:props.profile.businessType==='ayurvedic_spa'?<VedaSanjeevaniPreviewEditor {...props}/>:props.profile.businessType==='skincare_clinic'?<ClinicPreviewEditor {...props}/>:props.profile.businessType==='makeup_studio'?<VogueNoirPreviewEditor {...props}/>:props.profile.businessType==='massage_wellness'?<BodhiTreePreviewEditor {...props}/>:props.profile.businessType==='hair_coloring'?<PrismChromaPreviewEditor {...props}/>:props.profile.businessType==='bridal_lounge'?<ShringaarRoyalPreviewEditor {...props}/>:props.profile.businessType==='tattoo_studio'?<IronInkPreviewEditor {...props}/>:props.profile.businessType==='lash_brow'?<ArchFlutterPreviewEditor {...props}/>:<SalonWebsiteEditor {...props}/>):<CustomerSalonWebsite {...props} readOnly/>}</>;
+ return <><div className="pt-28 px-4 pb-4 flex flex-wrap gap-3 bg-white text-slate-900"><button className="secondary-action" onClick={()=>setEditing(value=>!value)}>{editing?'Show redesigned website':props.profile.businessType==='mens_hair_studio'?'Customize':'Open owner editing tools'}</button><button className="secondary-action" onClick={props.onEnterClientPreview}>Customer device preview</button></div>{editing?(props.profile.businessType==='mens_hair_studio'?<KeshKraftEditor workspace={{profile:props.profile,services:props.services,stylists:props.stylists,loyaltyConfig:props.loyaltyConfig}} onSave={next=>{props.setProfile?.(next.profile);props.setServices?.(next.services);props.setStylists?.(next.stylists);props.onMensLoyaltyChange?.(next.loyaltyConfig!);}} onClose={()=>setEditing(false)}/>:props.profile.businessType==='hair_salon'?<ZiyaPreviewEditor {...props}/>:props.profile.businessType==='unisex_salon'?<AuraPreviewEditor {...props}/>:props.profile.businessType==='ayurvedic_spa'?<VedaSanjeevaniPreviewEditor {...props}/>:props.profile.businessType==='skincare_clinic'?<ClinicPreviewEditor {...props}/>:props.profile.businessType==='makeup_studio'?<VogueNoirPreviewEditor {...props}/>:props.profile.businessType==='massage_wellness'?<BodhiTreePreviewEditor {...props}/>:props.profile.businessType==='hair_coloring'?<PrismChromaPreviewEditor {...props}/>:props.profile.businessType==='bridal_lounge'?<ShringaarRoyalPreviewEditor {...props}/>:props.profile.businessType==='tattoo_studio'?<IronInkPreviewEditor {...props}/>:props.profile.businessType==='lash_brow'?<ArchFlutterPreviewEditor {...props}/>:<SalonWebsiteEditor {...props}/>):<CustomerSalonWebsite {...props} readOnly/>}</>;
 };
 
 function ZiyaPreviewEditor(props:SalonWebsitePreviewProps) {
@@ -871,7 +873,7 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
           <div className="pt-2 border-t border-slate-100 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1">
               <span className="material-symbols-outlined text-sm">category</span>
-              14 Category Templates:
+              15 Category Templates:
             </span>
             {Object.values(CATEGORY_TEMPLATES).map((tmpl) => {
               const isSelected = tmpl.id === selectedCategoryKey;

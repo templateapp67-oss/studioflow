@@ -11,6 +11,7 @@ import {LUXURY_EDITORIAL_IMAGES,luxuryEditorialServiceImage} from './luxuryEdito
 
 /** Category-matched image templates shared by the editor and storefront. */
 export function serviceImageTemplates(service:Pick<SalonService,'id'|'name'|'category'>,type:BusinessTypeId='hair_salon'):Array<{id:string;url:string;label:string}> {
+ if(type==='mens_hair_studio')return ['/templates/15/fade.webp','/templates/15/colour.webp','/templates/15/long.webp'].map((url,i)=>({id:`mens-${i}`,url,label:'Male-only style reference'}));
  const text=`${service.category} ${service.name}`.toLowerCase();
  // Template 01 (Luxury Editorial Salon) keeps every menu and editor preset on
  // its own coordinated editorial photography.

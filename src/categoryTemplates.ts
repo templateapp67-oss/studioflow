@@ -1,3 +1,4 @@
+import { MENS_SERVICES, MENS_STAFF, MENS_CATEGORIES, MENS_HERO, MENS_DESCRIPTION } from './lib/keshkraft';
 import {seedTemplatePackages} from './lib/packageCatalogue';
 import {
   VEDA_DEFAULT_ADDRESS,
@@ -1397,10 +1398,20 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
     },
     services: VEDA_SERVICES,
     stylists: VEDA_THERAPISTS,
+  },
+  mens_hair_studio: {
+    id:'mens_hair_studio', title:"KeshKraft Men's Hair Studio", shortName:"Men's Haircut & Hair Colour Studio",
+    tagline:MENS_DESCRIPTION, about:"Precision haircuts. Considered colour. A dedicated men-only studio for your individual style.",
+    icon:'content_cut', layoutStyle:'mens_olive_editorial', paletteLabel:'Charcoal, Deep Olive, Warm Beige & Matte Bronze', themePreset:'vintage_brass',
+    subCategories:[...MENS_CATEGORIES], defaultCity:'Udaipur, Rajasthan', defaultAddress:'Studio address to be confirmed', defaultPostalCode:'313001', phone:'', whatsapp:'',
+    ownerName:'Arjun Rathore',ownerRole:"Men's Haircut Specialist",ownerPhotoUrl:MENS_STAFF[0].avatarUrl,coverImageUrl:MENS_HERO,instagramHandle:'',
+    themeStyle:{heroBackground:'bg-[#161817]',heroTextColor:'text-[#f3eee5]',cardBorder:'border-[#b08a61]',cardBackground:'bg-[#20231f]',cardRadius:'rounded-xl',accentColor:'text-[#b08a61]',accentBg:'bg-[#353d2c]',badgeBg:'bg-[#353d2c]',badgeText:'text-[#f3eee5]',buttonBg:'bg-[#b08a61]',buttonText:'text-[#161817]',priceColor:'text-[#b08a61]',isDark:true,headerBanner:'bg-[#353d2c]'},
+    services:MENS_SERVICES,stylists:MENS_STAFF,
   }
+
 };
 
-for(const template of Object.values(CATEGORY_TEMPLATES))template.services=seedTemplatePackages(template);
+for(const template of Object.values(CATEGORY_TEMPLATES))if(template.id!=='mens_hair_studio')template.services=seedTemplatePackages(template);
 
 export const ALL_CATEGORY_OPTIONS: BusinessTypeOption[] = [
   {
@@ -1614,3 +1625,5 @@ export const ALL_CATEGORY_OPTIONS: BusinessTypeOption[] = [
     }))
   }
 ];
+
+ALL_CATEGORY_OPTIONS.push({id:'mens_hair_studio',title:"KeshKraft Men's Hair Studio",categoryTag:"Men's Haircut & Hair Colour Studio",icon:'content_cut',aestheticDescription:'Men only. Precision haircuts and considered colour in charcoal, olive and bronze.',paletteName:'Charcoal, Olive & Bronze',badge:'New · 15',defaultServices:MENS_SERVICES.map(s=>({name:s.name,price:s.price,duration:s.durationMinutes,category:s.category}))});

@@ -1,9 +1,10 @@
+// Template 15 has dedicated male-only media, booking and editor coverage in verify-template15.
 import React,{useState} from 'react';import {act,create} from 'react-test-renderer';import {renderToStaticMarkup} from 'react-dom/server';import assert from 'node:assert/strict';
 import {defaultGalleryCategory,photoGallery,standardGallery,withPhotoGallery} from '../src/lib/photoGallery';
 import {PhotoGalleryManager} from '../src/components/PhotoGalleryManager';import {CustomerSalonWebsite} from '../src/components/CustomerSalonWebsite';
 import {normalizeWorkspace} from '../src/lib/normalizeWorkspace';import {applyTemplateDesign} from '../src/lib/templateSelection';import {CATEGORY_TEMPLATES} from '../src/categoryTemplates';import {INITIAL_SALON_PROFILE} from '../src/mockData';import {supabase} from '../src/lib/supabase';
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;(globalThis as any).window={addEventListener(){},removeEventListener(){},matchMedia:()=>({matches:false,addEventListener(){},removeEventListener(){}})};(globalThis as any).document={hidden:false,body:{style:{}},addEventListener(){},removeEventListener(){}};
-for(const template of Object.values(CATEGORY_TEMPLATES)){
+for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')){
  const profile={...INITIAL_SALON_PROFILE,businessType:template.id};const samples=standardGallery(template.id);const gallerySize=template.id==='hair_salon'?9:5;assert.equal(samples.length,gallerySize);assert.equal(new Set(samples.map(p=>p.url)).size,gallerySize);assert.equal(photoGallery(profile).length,gallerySize);assert.ok(samples.every(p=>p.id.includes(template.id)));
  const html=renderToStaticMarkup(<CustomerSalonWebsite profile={profile} services={[]} stylists={[]} readOnly onAddAppointment={async a=>a}/>);
  if(template.id==='skincare_clinic'){

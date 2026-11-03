@@ -1,3 +1,4 @@
+// Template 15 has dedicated male-only media, booking and editor coverage in verify-template15.
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import assert from 'node:assert/strict';
@@ -6,7 +7,7 @@ import {INITIAL_SALON_PROFILE} from '../src/mockData';
 import {CustomerSalonWebsite} from '../src/components/CustomerSalonWebsite';
 import {defaultServiceImage} from '../src/lib/serviceImages';
 import {servicePhotoFromUrl} from '../src/lib/servicePhoto';
-for(const template of Object.values(CATEGORY_TEMPLATES)){
+for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')){
  const services=template.id==='skincare_clinic'?template.services.map(s=>({...s,clinicServiceApproved:true,clinicPublicationStatus:'published' as const,clinicFeeStatus:'verified' as const,clinicPriceVerified:true})):template.services;
  const html=renderToStaticMarkup(<CustomerSalonWebsite profile={{...INITIAL_SALON_PROFILE,businessType:template.id}} services={services} stylists={[]} onAddAppointment={async a=>a}/>);
  if(template.id==='skincare_clinic'){

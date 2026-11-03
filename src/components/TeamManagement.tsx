@@ -1,3 +1,4 @@
+import {MENS_STAFF} from '../lib/keshkraft';
 import {STAFF_SKILLS,categorySkills} from '../lib/staffSkills';
 import {STAFF_TITLES} from '../lib/staffProfile';
 import {staffBookingServices,templateStaffAssignments,addStaffCategoryMenu} from '../lib/staffBookingServices';
@@ -103,6 +104,8 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
   businessType='hair_salon' as BusinessTypeId,
   onNavigateToPreview
 }) => {
+  const avatarPresets=businessType==='mens_hair_studio'?MENS_STAFF.map(s=>({label:s.name,url:s.avatarUrl})):AVATAR_PRESETS;
+  const [maleConfirmed,setMaleConfirmed]=useState(false);
   const [photoFile,setPhotoFile]=useState<File|null>(null);
   const [photoBusy,setPhotoBusy]=useState(false);
   const [saving,setSaving]=useState(false);
@@ -138,7 +141,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     name: '',
     role: '',
     experienceYears:'',
-    avatarUrl: AVATAR_PRESETS[0].url,
+    avatarUrl: avatarPresets[0].url,
     rating: 4.9,
     specialties: ['Hair Cutting', 'Hair Coloring'],
     assignedServices: [],
@@ -165,7 +168,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
       name: '',
       role: 'Senior Hair Stylist',
       experienceYears:'',
-      avatarUrl: AVATAR_PRESETS[Math.floor(Math.random() * AVATAR_PRESETS.length)].url,
+      avatarUrl: avatarPresets[Math.floor(Math.random() * avatarPresets.length)].url,
       rating: 4.9,
       specialties: ['Hair Cutting', 'Hair Coloring'],
       assignedServices: [],
@@ -180,7 +183,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
   const handleOpenEditModal = (st: Stylist) => {
     setPhotoFile(null);setPhotoBusy(false);setEditError('');
-    setEditingStylist(st);
+    setEditingStylist(st);setMaleConfirmed(st.mensMaleOnly===true);
     setFormData({
       businessType:st.businessType||businessType,
       workGallery:(st.workGallery||[]).map(p=>({...p})),
@@ -256,6 +259,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     const updated: Stylist = {
       ...editingStylist,
       businessType:formData.businessType,
+      ...(formData.businessType==='mens_hair_studio'?{mensMaleOnly:maleConfirmed}:{}),
       workGallery:formData.workGallery.filter(p=>p.imageUrl),
       name: formData.name.trim(),
       experienceYears:formData.experienceYears===''?undefined:Number(formData.experienceYears),
@@ -290,7 +294,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
   );
 
   // Filter stylists
-  const filteredStylists = (stylists || []).filter((st) => {
+  const filteredStylists = (stylists || []).filter(st=>businessType!=='mens_hair_studio'||st.businessType==='mens_hair_studio').filter((st) => {
     const matchesQuery = 
       (st.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (st.role || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -463,7 +467,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                     className="w-14 h-14 rounded-2xl object-cover border border-gray-100 shadow-xs"
                     onError={(e) => {
                       if(businessType==='skincare_clinic') e.currentTarget.style.visibility='hidden';
-                      else e.currentTarget.src = AVATAR_PRESETS[0].url;
+                      else e.currentTarget.src = avatarPresets[0].url;
                     }}
                   />}
                   <span 
@@ -748,7 +752,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                 </label>)}
               </fieldset>
 
-              <StaffPhotoField value={formData.avatarUrl} file={photoFile} onBusy={setPhotoBusy} onChange={(avatarUrl,file)=>{setFormData(prev=>({...prev,avatarUrl}));setPhotoFile(file)}}/>
+              {formData.businessType==='mens_hair_studio'&&<label className="text-sm"><input type="checkbox" checked={maleConfirmed} onChange={e=>setMaleConfirmed(e.target.checked)}/> Confirm male barber / men's hair expert. New photos need review in Customize before public display.</label>}<StaffPhotoField value={formData.avatarUrl} file={photoFile} onBusy={setPhotoBusy} onChange={(avatarUrl,file)=>{setFormData(prev=>({...prev,avatarUrl}));setPhotoFile(file)}}/>
               <StaffPortfolioEditor value={formData.workGallery} services={bookingServices} onChange={workGallery=>setFormData(prev=>({...prev,workGallery}))} onBusy={setPhotoBusy}/>
               {/* Specialties / Skills Tags */}
               <div>

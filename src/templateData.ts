@@ -1,3 +1,4 @@
+import { MENS_DEFAULTS } from './lib/keshkraft';
 import { BusinessTypeId } from './types';
 import { SALON_IMAGES } from './assets/images';
 
@@ -42,6 +43,7 @@ export interface CategoryStandardData {
 }
 
 export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandardData> = {
+ mens_hair_studio:{foundingYear:'',foundingNarrative:'Precision haircuts and considered colour. Men only.',specialties:["Men's Haircuts","Men's Hair Colour"],certifications:[],gallery:MENS_DEFAULTS.gallery.map(g=>({id:g.id,url:g.url,title:g.title,tag:'Men'})),reviews:MENS_DEFAULTS.reviews.map(r=>({id:r.id,name:r.name,location:'Demo',rating:5,serviceName:r.service,comment:r.text,avatarUrl:'',date:'Demo',isDemo:true})),totalReviewCount:0,averageRating:0,landmark:'Udaipur',parkingInfo:'Ask the studio',openHourText:'10:00 AM',closeHourText:'08:00 PM'},
   hair_salon: {
     foundingYear: '2020',
     foundingNarrative: 'Founded by master hairstylist Ziya Khan, Ziya Women’s Hair Studio was created exclusively for women seeking thoughtful face-shape consultations, modern layered silhouettes, sculpted bobs, curtain bangs, and texture-true curly haircuts in a calm rose-ivory studio.',

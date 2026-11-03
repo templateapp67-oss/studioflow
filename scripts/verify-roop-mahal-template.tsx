@@ -139,7 +139,7 @@ assert.deepEqual(
 // 4. Case 11: Templates 01–03 and 05–14 remain completely unchanged
 // ============================================================================
 const nonRoopTemplates = Object.values(CATEGORY_TEMPLATES).filter((t) => t.id !== 'beauty_parlour');
-assert.equal(nonRoopTemplates.length, 13, 'Must verify all 13 other templates');
+assert.equal(nonRoopTemplates.length, 14, 'Must verify all 14 other templates');
 
 for (const template of Object.values(CATEGORY_TEMPLATES)) {
   const profile = applyTemplateDesign({ ...INITIAL_SALON_PROFILE, subdomain: `iso-${template.id}` }, template);

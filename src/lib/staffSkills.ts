@@ -1,6 +1,7 @@
 import {CATEGORY_TEMPLATES} from '../categoryTemplates';
 import type {BusinessTypeId} from '../types';
 export const STAFF_SKILLS:Record<BusinessTypeId,string[]>={
+ mens_hair_studio:["Men's Haircuts","Men's Hair Colour",'Precision fades','Scissor cuts','Highlights','Grey coverage'],
  hair_salon:['Hair Cutting','Layer & Butterfly Cuts','Bob & Blunt Cuts','Pixie & Short Cuts','Curtain Bangs & Fringe','Face-Framing Layers','Curly Haircuts','Blowdry Styling'],
  barber:['Hair Cutting','Beard Sculpting','Beard Shaping','Fade Haircuts','Hot Towel Shave','Men’s Grooming'],
  unisex_salon:['Hair Cutting','Hair Coloring','Balayage','Keratin Treatment','Facial Treatments','Threading & Waxing'],

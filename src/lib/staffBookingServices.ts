@@ -1,3 +1,4 @@
+import {mensServices} from './keshkraft';
 import {CATEGORY_TEMPLATES} from '../categoryTemplates';
 import type {BusinessTypeId,SalonService} from '../types';
 const normalize=(value:string)=>value.trim().replace(/\s+/g,' ').toLowerCase();
@@ -11,7 +12,7 @@ export function staffBookingServices(services:SalonService[],type:BusinessTypeId
  const foreignIds=new Set(foreign.flatMap(t=>t.services.map(s=>s.id)));
  const foreignNames=new Set(foreign.flatMap(t=>t.services.map(s=>normalize(s.name))).filter(name=>!ownNames.has(name)));
  const seen=new Set<string>();
- return services.filter(service=>{
+ return (type==='mens_hair_studio'?mensServices(services):services).filter(service=>{
   const name=normalize(service.name),category=normalize(service.category);
   if(foreignIds.has(service.id)||foreignNames.has(name))return false;
   if(foreign.some(t=>service.id.startsWith('template-pkg-'+t.id+'-')||name.startsWith(normalize(t.shortName)+' ')))return false;

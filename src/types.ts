@@ -14,7 +14,8 @@ export type BusinessTypeId =
   | 'bridal_lounge'      // Bridal Makeup & Makeover Lounge
   | 'tattoo_studio'      // Tattoo & Body Art Studio
   | 'lash_brow'          // Lash & Brow Bar
-  | 'ayurvedic_spa';     // Ayurvedic Rejuvenation Spa
+  | 'ayurvedic_spa'
+  | 'mens_hair_studio';     // Ayurvedic Rejuvenation Spa
 
 export type LayoutStyle = 
   | 'modern_minimalist'
@@ -33,7 +34,8 @@ export type LayoutStyle =
   | 'ayurvedic_terracotta'
   | 'palace_heritage'
   | 'prism_holographic'
-  | 'editorial_bento';
+  | 'editorial_bento'
+  | 'mens_olive_editorial';
 
 export interface BusinessTypeOption {
   id: BusinessTypeId;
@@ -196,6 +198,7 @@ export interface StaffBranchSchedule {
 }
 
 export interface SalonProfile {
+  mensStudio?: import('./lib/keshkraft').MensConfig;
   /** Public projection of confirmed clinic services whose fee is not confirmed (no price). */
   clinicEnquiryServices?: SalonService[];
   clinicArticles?: ClinicArticle[];
@@ -293,6 +296,8 @@ export interface SalonProfile {
 }
 
 export interface SalonService {
+  mensTemplateId?: 'mens_hair_studio';
+  mensHidden?: boolean;
   /** Template 07 starter data only: never represent these illustrative values as a clinic-confirmed offer. */
   clinicDemoData?: boolean;
   /** Template 07 only: explicit clinic confirmation, never inferred from template or edits. */
@@ -330,6 +335,7 @@ export interface DaySchedule {
 
 export interface StaffWorkPhoto {id:string;imageUrl:string;caption:string;serviceId?:string;consented:boolean;}
 export interface Stylist {
+  mensMaleOnly?: boolean;
   businessType?:BusinessTypeId;
   workGallery?:StaffWorkPhoto[];
   expertiseServiceIds?:string[];

@@ -2,6 +2,7 @@ import type {CategoryTemplateConfig,SalonService} from '../types';
 export const isPackage=(service:Pick<SalonService,'name'|'category'>)=>/package|combo|bundle/i.test(`${service.category} ${service.name}`);
 /** Five category-specific starters, using only services offered by that template. */
 export function packageStarters(template:CategoryTemplateConfig):SalonService[]{
+ if(template.id==='mens_hair_studio')return [];
  const services=template.services.filter(service=>!isPackage(service));
  const pairs=[[0,1],[0,2],[1,2],[2,3],[0,3]],titles=['Refresh Duo','Signature Care','Complete Ritual','Premium Pair','Self-care Combo'];
  return pairs.map(([a,b],index)=>{
@@ -10,6 +11,7 @@ export function packageStarters(template:CategoryTemplateConfig):SalonService[]{
  });
 }
 export function seedTemplatePackages(template:CategoryTemplateConfig):SalonService[]{
+ if(template.id==='mens_hair_studio')return template.services;
  const missing=Math.max(0,5-template.services.filter(isPackage).length);
  return [...template.services,...packageStarters(template).filter(item=>!template.services.some(s=>s.id===item.id)).slice(0,missing)];
 }

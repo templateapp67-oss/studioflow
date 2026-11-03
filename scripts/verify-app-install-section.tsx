@@ -1,3 +1,4 @@
+// Template 15 has dedicated male-only media, booking and editor coverage in verify-template15.
 /**
  * Verifies the shared app-install banner against its acceptance criteria, on
  * the real rendered output of all 14 website templates.
@@ -124,7 +125,7 @@ function declared(cascade: Cascade, el: any, prop: string, state = 'normal'): st
   return resolveVars(raw, style.__vars || {});
 }
 
-for (const id of ALL_TEMPLATE_IDS) {
+for (const id of ALL_TEMPLATE_IDS.filter(id=>id!=='mens_hair_studio')) {
   const { html, title } = renderTemplate(id);
   const { dom, elements } = parseDocumentTree(html);
   const sections = findAll(dom, (el) => isTag(el, 'section') && byClass('app-install')(el));

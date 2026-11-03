@@ -3,6 +3,7 @@ import {ACCENT_PALETTES,DEFAULT_CATEGORY_ACCENTS,getLuminance} from '../themeAcc
 type RewardTheme={surface:string;card:string;text:string;muted:string;border:string;radius:string;dark:boolean;font:string};
 const sans='inherit',serif='Georgia, serif';
 export const LOYALTY_THEMES:Record<BusinessTypeId,RewardTheme>={
+ mens_hair_studio:{surface:'#161817',card:'#20231f',text:'#f3eee5',muted:'#c5bcad',border:'#b08a61',radius:'12px',dark:true,font:sans},
  hair_salon:{surface:'#f8fafc',card:'#ffffff',text:'#0f172a',muted:'#475569',border:'#cbd5e1',radius:'0px',dark:false,font:sans},
  barber:{surface:'#181512',card:'#211711',text:'#f5efe6',muted:'#c9bdb0',border:'#705638',radius:'8px',dark:true,font:serif},
  unisex_salon:{surface:'#e7eee7',card:'#faf8f5',text:'#252525',muted:'#5a5954',border:'#d2dcd2',radius:'18px',dark:false,font:sans},

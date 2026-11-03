@@ -7,7 +7,7 @@ import {AboutDraftBuilder} from '../src/components/AboutDraftBuilder';
 import type {SalonProfile} from '../src/types';
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;
 let calls=0;globalThis.fetch=async()=>{calls++;throw Error('No network allowed');};
-const templates=Object.values(CATEGORY_TEMPLATES);assert.equal(templates.length,14);
+const templates=Object.values(CATEGORY_TEMPLATES);assert.equal(templates.length,15);
 for(const template of templates){
  const p={businessType:template.id,businessName:'Owner Brand',ownerName:'Owner Person',city:'Test City',about:'Keep this text'} as SalonProfile;
  for(const language of ['English','Hindi','Hinglish'] as const)for(const tone of ['Warm','Elegant','Simple'] as const){
