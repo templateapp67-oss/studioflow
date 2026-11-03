@@ -26,7 +26,7 @@ const money = (value: number) => `₹${Number(value || 0).toLocaleString('en-IN'
 
 /**
  * NEXORA Template Library: brand header, category filters, search, and the
- * fifteen priority-ordered template cards.
+ * sixteen priority-ordered template cards.
  *
  * Filtering is presentation only — it never mutates the template data, never
  * reorders it, and never changes which template ID an action targets.
@@ -76,12 +76,12 @@ export const NexoraTemplateLibrary: React.FC<NexoraTemplateLibraryProps> = ({
               Template Library
             </h2>
             <p className="max-w-2xl text-sm text-[#5B5470]">
-              All 15 NEXORA templates, in priority order. Every template belongs to one clear category, so you can see exactly which salon type it is built for before you open it.
+              All 16 NEXORA templates, in priority order. Every template belongs to one clear category, so you can see exactly which salon type it is built for before you open it.
             </p>
           </div>
           <dl className="grid grid-cols-3 gap-2 sm:gap-3 text-center">
             {[
-              { label: 'Templates', value: '15' },
+              { label: 'Templates', value: '16' },
               { label: 'Categories', value: String(NEXORA_CATEGORIES.length) },
               { label: 'Services', value: `${new Set(ordered.flatMap((t) => t.services.map((s) => s.name))).size}+` },
             ].map((stat) => (
@@ -205,7 +205,7 @@ export const NexoraTemplateLibrary: React.FC<NexoraTemplateLibraryProps> = ({
             }}
             className="mt-4 inline-flex min-h-[40px] items-center gap-2 rounded-xl bg-[#2A1E4A] px-4 text-xs font-bold text-white hover:bg-[#3E2A63]"
           >
-            Show all 15 templates
+            Show all 16 templates
           </button>
         </div>
       )}
@@ -362,7 +362,7 @@ export const NexoraCategoryPicker: React.FC<{
   return (
     <div data-nexora-category-picker className="inline-flex w-full items-center justify-between gap-3 rounded-xl border border-[#E4DCCB] bg-[#FBF8F2] px-3 py-2.5">
       <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-[#6B5E7A]">
-        <NexoraBrandMark size="xs" /> NEXORA · 15 templates in priority order
+        <NexoraBrandMark size="xs" /> NEXORA · 16 templates in priority order
       </span>
       <a href="#nexora-template-library" className="inline-flex items-center gap-1 text-[11px] font-bold text-[#7A4E8F] hover:underline">
         Category filters <ArrowUpRight size={12} aria-hidden="true" />
