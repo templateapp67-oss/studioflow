@@ -25,5 +25,9 @@ assert.match(panel, /Complete an appointment at this salon before sharing a revi
 assert.match(panel, /Review after visit/, 'ineligible signed-in customers must see a clear disabled action');
 assert.match(salonDetail, /studioflow_android_review/, 'salon detail view must keep the completed-visit review RPC');
 assert.match(salonDetail, /filterSalonReviews/, 'salon detail view must keep its rating and recency filters');
+assert.match(salonDetail, /setCanReview\(Boolean\(data\?\.canReview\)\)/, 'salon detail view must load completed-visit eligibility');
+assert.match(salonDetail, /disabled=\{signedIn&&\(!reviewsReady\|\|\(!canReview&&!ownReview\)\)\}/, 'salon detail review action must stay disabled until eligible');
+assert.match(salonDetail, /Complete an appointment at this salon and wait until it is marked completed/, 'salon detail must explain when reviews unlock');
+assert.match(salonDetail, /ownReview\?'Edit Review'/, 'customers must be able to edit their existing review');
 
 console.log('PASS: salon reviews require a completed non-demo appointment, with rating/recency filters retained.');
