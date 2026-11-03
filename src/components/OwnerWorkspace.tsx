@@ -41,6 +41,7 @@ import { BranchLocationsEditor } from './BranchLocationsEditor';
 import { InteractiveMapSetup } from './InteractiveMapSetup';
 import { ReferralPanel } from './ReferralPanel';
 import { WebsitePublishPanel } from './WebsitePublishPanel';
+import { AuraContentManager } from './aura/AuraContentManager';
 import { OwnerPosPanel } from './OwnerPosPanel';
 import type { CategoryTemplateConfig } from '../types';
 import { SyncIndicator } from './SyncIndicator';
@@ -118,6 +119,9 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
 
 
   const renderContent = () => {
+    if (active === 33) return profile.businessType === 'unisex_salon'
+      ? <AuraContentManager profile={profile} onSaved={() => flash('Template 03 content saved to Supabase')}/>
+      : <section className="workspace-card"><p className="eyebrow">Template 03</p><h2>Aura content management</h2><p className="muted">Choose Aura Unisex Salon & Wellness Lounge in “Choose template” to edit its 19 website sections. Other templates are unchanged.</p></section>;
     if (active === 30) return <section className="workspace-card"><EnvironmentDiagnostic profile={profile}/></section>;
     if (active === 32) return <BranchManagementPanel profile={profile} setProfile={setProfile}/>;
     if (active === 27) return <section className="workspace-card"><AboutStudioEditor profile={profile} setProfile={setProfile}/></section>;
@@ -152,6 +156,7 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
 
   const stepIndex=WEBSITE_EDIT_STEPS.findIndex(step=>step.id===active);
   const currentStep=WEBSITE_EDIT_STEPS[stepIndex];
+  const visibleBusinessTools=OWNER_BUSINESS_TOOLS.filter(tool=>tool.id!==33||profile.businessType==='unisex_salon');
   const currentLabel=currentStep?.label||OWNER_BUSINESS_TOOLS.find(tool=>tool.id===active)?.label||'Owner workspace';
   const previous=adjacentOwnerStep(active,-1),next=adjacentOwnerStep(active,1);
   const stepControls=<div className="flex items-center gap-3"><button type="button" className="px-4 py-2 text-xs font-bold bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 rounded-xl transition-all cursor-pointer disabled:opacity-40" disabled={previous===null} onClick={()=>previous!==null&&navigate(previous)}>← Previous step</button>{next!==null?<button type="button" className="px-4 py-2 text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white rounded-xl shadow-xs transition-all cursor-pointer" onClick={()=>navigate(next)}>Next: {WEBSITE_EDIT_STEPS[stepIndex+1].label} →</button>:<button type="button" className="px-4 py-2 text-xs font-bold bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 rounded-xl transition-all cursor-pointer" onClick={()=>navigate(2)}>Back to step 1</button>}</div>;
@@ -221,7 +226,7 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
               <span className="material-symbols-outlined text-sm group-open:rotate-180 transition-transform">expand_more</span>
             </summary>
             <nav aria-label="Business tools" className="mt-2 space-y-0.5">
-              {OWNER_BUSINESS_TOOLS.map(tool=><Nav key={tool.id} {...tool} active={active} onClick={navigate}/>)}
+              {visibleBusinessTools.map(tool=><Nav key={tool.id} {...tool} active={active} onClick={navigate}/>)}
             </nav>
           </details>
         </aside>
@@ -235,7 +240,7 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
             className="w-full bg-slate-800 text-white border border-slate-700 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-pink-500"
           >
             <optgroup label="Edit website — in order">{WEBSITE_EDIT_STEPS.map((step,index)=><option key={step.id} value={step.id}>{index+1}. {step.label}</option>)}</optgroup>
-            <optgroup label="Business tools">{OWNER_BUSINESS_TOOLS.map(tool=><option key={tool.id} value={tool.id}>{tool.label}</option>)}</optgroup>
+            <optgroup label="Business tools">{visibleBusinessTools.map(tool=><option key={tool.id} value={tool.id}>{tool.label}</option>)}</optgroup>
           </select>
         </div>
 
