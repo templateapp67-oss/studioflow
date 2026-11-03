@@ -27,7 +27,7 @@ export const NexoraTemplateGallery: React.FC<{
             NEXORA Template Library
           </h2>
           <p className="text-xs text-[#5B5470] max-w-xl">
-            All 15 templates in priority order. Your current template is marked “In use”. Choosing another template only applies it when you click Customize.
+            All 16 templates in priority order. Your current template is marked “In use”. Choosing another template only applies it when you click Customize.
           </p>
         </div>
         {activeMeta && (
