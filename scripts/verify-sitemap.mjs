@@ -46,7 +46,7 @@ assert.match(xml, /<urlset xmlns="http:\/\/www\.sitemaps\.org\/schemas\/sitemap\
 assert.match(xml, /https:\/\/nexorasalon\.online\/\?app=1/);
 assert.match(xml, /https:\/\/nexorasalon\.online\/\?site=bestsalon/);
 assert.doesNotMatch(xml, /studioflow-qa|not-a-slug/i);
-assert.match(sitemapXml('https://nexorasalon.online', ['a&b']), /a&amp;b/);
+assert.match(sitemapXml('https://nexorasalon.online?a=1&b=2', ['bestsalon']), /nexorasalon\.online\?a=1&amp;b=2/);
 
 const robots = await readFile('public/robots.txt', 'utf8');
 assert.match(robots, /Sitemap:\s*https:\/\/nexorasalon\.online\/sitemap\.xml/i);
