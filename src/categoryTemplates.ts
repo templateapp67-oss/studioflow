@@ -1,4 +1,5 @@
 import { MENS_SERVICES, MENS_STAFF, MENS_CATEGORIES, MENS_HERO, MENS_DESCRIPTION } from './lib/keshkraft';
+import { AURELIA_DEFAULT_SERVICES, AURELIA_DEFAULT_STAFF, AURELIA_IMAGES } from './lib/aureliaBeauty';
 import {seedTemplatePackages} from './lib/packageCatalogue';
 import {
   VEDA_DEFAULT_ADDRESS,
@@ -1413,6 +1414,46 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
     ownerName:'Arjun Rathore',ownerRole:"Men's Haircut Specialist",ownerPhotoUrl:MENS_STAFF[0].avatarUrl,coverImageUrl:MENS_HERO,instagramHandle:'',
     themeStyle:{heroBackground:'bg-[#161817]',heroTextColor:'text-[#f3eee5]',cardBorder:'border-[#b08a61]',cardBackground:'bg-[#20231f]',cardRadius:'rounded-xl',accentColor:'text-[#b08a61]',accentBg:'bg-[#353d2c]',badgeBg:'bg-[#353d2c]',badgeText:'text-[#f3eee5]',buttonBg:'bg-[#b08a61]',buttonText:'text-[#161817]',priceColor:'text-[#b08a61]',isDark:true,headerBanner:'bg-[#353d2c]'},
     services:MENS_SERVICES,stylists:MENS_STAFF,
+  },
+  aurelia_beauty_parlour: {
+    id:'aurelia_beauty_parlour',
+    title:'Aurelia Luxury Beauty & Wellness Studio',
+    shortName:'Beauty Parlour & Wellness Studio',
+    tagline:'A thoughtful space for hair, skin and self-care.',
+    about:'Aurelia is a warm, modern beauty and wellness studio inspired by thoughtful service, skilled artistry and a personal approach to every visit.',
+    icon:'auto_awesome',
+    layoutStyle:'aurelia_editorial',
+    paletteLabel:'Warm Ivory, Coffee Brown, Sandstone & Champagne',
+    themePreset:'rose_gold_ivory',
+    subCategories:['Hair Styling','Hair Colour','Skin Rituals','Bridal','Nail Studio','Spa & Wellness'],
+    defaultCity:'Mumbai, Maharashtra',
+    defaultAddress:'Bandra West, Mumbai',
+    defaultPostalCode:'400050',
+    phone:'',
+    whatsapp:'',
+    ownerName:'Aurelia Studio Team',
+    ownerRole:'Beauty & Wellness Studio',
+    ownerPhotoUrl:AURELIA_IMAGES.leah,
+    coverImageUrl:AURELIA_IMAGES.hero,
+    instagramHandle:'',
+    themeStyle:{
+      heroBackground:'bg-[#F6F1EA]',
+      heroTextColor:'text-[#1D1612]',
+      cardBorder:'border-[#D8C8B4]',
+      cardBackground:'bg-[#EFE6DA]',
+      cardRadius:'rounded-sm',
+      accentColor:'text-[#8C6A43]',
+      accentBg:'bg-[#1D1612]',
+      badgeBg:'bg-[#E8DDCF]',
+      badgeText:'text-[#5A4635]',
+      buttonBg:'bg-[#1D1612] hover:bg-[#8C6A43]',
+      buttonText:'text-[#F6F1EA]',
+      priceColor:'text-[#1D1612]',
+      isDark:false,
+      headerBanner:'bg-[#F6F1EA] border-b border-[#D8C8B4]'
+    },
+    services:AURELIA_DEFAULT_SERVICES,
+    stylists:AURELIA_DEFAULT_STAFF
   }
 
 };
@@ -1638,6 +1679,7 @@ const CATEGORY_OPTION_SEED: BusinessTypeOption[] = [
 ];
 
 CATEGORY_OPTION_SEED.push({id:'mens_hair_studio',title:"KeshKraft Men's Hair Studio",categoryTag:"Men's Haircut & Hair Colour Studio",icon:'content_cut',aestheticDescription:'Men only. Precision haircuts and considered colour in charcoal, olive and bronze.',paletteName:'Charcoal, Olive & Bronze',badge:'New · 15',defaultServices:MENS_SERVICES.map(s=>({name:s.name,price:s.price,duration:s.durationMinutes,category:s.category}))});
+CATEGORY_OPTION_SEED.push({id:'aurelia_beauty_parlour',title:'Aurelia Luxury Beauty & Wellness Studio',categoryTag:'Beauty Parlour',icon:'auto_awesome',aestheticDescription:'A warm editorial beauty studio in ivory, coffee brown and champagne, with hair, skin, bridal, nails and wellness services.',paletteName:'Warm Ivory, Coffee Brown & Champagne',badge:'New · 16',defaultServices:AURELIA_DEFAULT_SERVICES.map(s=>({name:s.name,price:Number(s.price||0),duration:s.durationMinutes,category:s.category}))});
 
 /**
  * NEXORA presentation for the template picker.
