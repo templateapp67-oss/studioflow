@@ -15,7 +15,8 @@ export type BusinessTypeId =
   | 'tattoo_studio'      // Tattoo & Body Art Studio
   | 'lash_brow'          // Lash & Brow Bar
   | 'ayurvedic_spa'
-  | 'mens_hair_studio';     // Ayurvedic Rejuvenation Spa
+  | 'mens_hair_studio'      // Men's Hair Studio
+  | 'aurelia_beauty_parlour'; // Template 16 — Aurelia Beauty Parlour
 
 export type LayoutStyle = 
   | 'modern_minimalist'
@@ -35,7 +36,8 @@ export type LayoutStyle =
   | 'palace_heritage'
   | 'prism_holographic'
   | 'editorial_bento'
-  | 'mens_olive_editorial';
+  | 'mens_olive_editorial'
+  | 'aurelia_editorial';
 
 export interface BusinessTypeOption {
   id: BusinessTypeId;
@@ -207,8 +209,35 @@ export interface StaffBranchSchedule {
   schedule: DaySchedule[];
 }
 
+export interface AureliaBeautyConfig {
+  announcementText?: string;
+  heroEyebrow?: string;
+  heroHeading?: string;
+  heroSubtext?: string;
+  heroImageUrl?: string;
+  heroBadge?: string;
+  storyEyebrow?: string;
+  storyHeading?: string;
+  storyText?: string;
+  storyImageUrl?: string;
+  servicesHeading?: string;
+  menuHeading?: string;
+  teamHeading?: string;
+  galleryHeading?: string;
+  videosHeading?: string;
+  offersHeading?: string;
+  reviewsHeading?: string;
+  contactHeading?: string;
+  workingHoursDisplay?: string;
+  galleryUrls?: string[];
+  homeServices?: Array<{title:string;description:string;price:number;duration:string;imageUrl:string;serviceName?:string;category?:string}>;
+  sectionOrder?: string[];
+}
+
 export interface SalonProfile {
   mensStudio?: import('./lib/keshkraft').MensConfig;
+  /** Template 16 — Aurelia Beauty Parlour section content, saved in the owner workspace. */
+  aureliaBeauty?: AureliaBeautyConfig;
   /** Public projection of confirmed clinic services whose fee is not confirmed (no price). */
   clinicEnquiryServices?: SalonService[];
   clinicArticles?: ClinicArticle[];
