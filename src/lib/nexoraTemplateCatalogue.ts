@@ -80,8 +80,8 @@ export interface NexoraTemplateMeta {
 }
 
 /**
- * Categories, in priority order. Each category maps 1:1 to a template so that
- * the filter bar, its counting and the card order can never drift apart.
+ * Categories are in priority order. Multiple templates may share a category;
+ * the filter and counts are derived from the template metadata below.
  */
 export const NEXORA_CATEGORIES: NexoraCategory[] = [
   {
