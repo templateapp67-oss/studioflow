@@ -69,7 +69,7 @@ export function createDemoVideos(businessType:string):SocialVideo[]{
 }
 
 export function showcaseVideos(profile:SalonProfile):SocialVideo[]{
- if(profile.businessType==='mens_hair_studio')return []; // Dedicated, reviewed media only.
+ if(profile.businessType==='mens_hair_studio'||profile.businessType==='aurelia_beauty_parlour')return []; // These templates add their own reviewed media; never seed unrelated generic clips.
  if(profile.socialVideos?.length||profile.demoVideosInitialized){
   const demos=createDemoVideos(profile.businessType),generic=REFERENCES;
   return (profile.socialVideos||[]).map(video=>{

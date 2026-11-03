@@ -57,7 +57,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setCurrentView, onSele
               </h1>
 
               <p className="text-base text-on-surface-variant max-w-xl leading-relaxed">
-                15 handcrafted NEXORA templates for Indian salons, spas, aesthetic clinics and parlours — each one in a clear category with INR (₹) rates, local sub-categories, stylist portfolios and instant WhatsApp booking.
+                16 handcrafted NEXORA templates for Indian salons, spas, aesthetic clinics and parlours — each one in a clear category with INR (₹) rates, local sub-categories, stylist portfolios and instant WhatsApp booking.
               </p>
             </div>
 
@@ -75,7 +75,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setCurrentView, onSele
                 className="bg-surface-container hover:bg-surface-container-high border border-outline-variant/50 text-on-surface font-bold text-sm h-12 px-6 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
               >
                 <span className="material-symbols-outlined text-base">devices</span>
-                <span>Explore 15 Live Templates</span>
+                <span>Explore 16 Live Templates</span>
               </a>
             </div>
 
@@ -90,7 +90,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setCurrentView, onSele
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-primary text-base">verified</span>
-                <span>15 distinct NEXORA designs</span>
+                <span>16 distinct NEXORA designs</span>
               </div>
             </div>
           </div>
@@ -156,7 +156,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setCurrentView, onSele
           </div>
         </div>
 
-        {/* NEXORA Template Library — category filters, search and all 15 templates */}
+        {/* NEXORA Template Library — category filters, search and all 16 templates */}
         <div className="pt-10 border-t border-outline-variant/30">
           <NexoraTemplateLibrary
             templates={templatesList}
@@ -176,7 +176,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setCurrentView, onSele
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-4">
-            <span>15 NEXORA salon categories</span>
+            <span>16 NEXORA salon templates · 15 categories</span>
             <span>•</span>
             <span>INR (₹) Standard</span>
             <span>•</span>

@@ -43,6 +43,29 @@ export interface CategoryStandardData {
 }
 
 export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandardData> = {
+ aurelia_beauty_parlour:{
+  foundingYear:'2019',
+  foundingNarrative:'Aurelia is a thoughtful beauty and wellness studio bringing together skilled artistry, a warm space and a personal approach to every visit.',
+  specialties:['Hair Styling & Colour','Skin Rituals','Bridal & Occasion Beauty','Nail Care','Spa & Wellness'],
+  certifications:[
+   {icon:'verified',title:'Thoughtful Consultation',description:'Every service starts with a conversation about your needs, preferences and comfort.'},
+   {icon:'spa',title:'A Calm Studio Experience',description:'A welcoming space with careful attention to cleanliness and personal care.'},
+   {icon:'workspace_premium',title:'Skilled Beauty Team',description:'Hair, skin, bridal, nail and wellness specialists in one studio.'}
+  ],
+  gallery:[
+   {id:'aur-g1',url:'https://raw.githubusercontent.com/vijay-facebook/Aurelia-app/main/src/assets/images/video_balayage_thumb_1793411344176.jpg',title:'Signature Hair Styling',tag:'Hair'},
+   {id:'aur-g2',url:'https://raw.githubusercontent.com/vijay-facebook/Aurelia-app/main/src/assets/images/video_facial_thumb_1793411344736.jpg',title:'Radiance Skin Ritual',tag:'Skin'},
+   {id:'aur-g3',url:'https://raw.githubusercontent.com/vijay-facebook/Aurelia-app/main/src/assets/images/video_bridal_thumb_1793411345160.jpg',title:'Bridal Styling',tag:'Bridal'},
+   {id:'aur-g4',url:'https://raw.githubusercontent.com/vijay-facebook/Aurelia-app/main/src/assets/images/room_lookbook_interior_1793383607293.jpg',title:'Aurelia Studio Interior',tag:'Interior'},
+   {id:'aur-g5',url:'https://raw.githubusercontent.com/vijay-facebook/Aurelia-app/main/src/assets/images/video_bts_thumb_1793411345197.jpg',title:'Behind the Studio',tag:'Interior'}
+  ],
+  reviews:[
+   {id:'aur-r1',name:'Aurelia Guest 1',location:'Bandra West, Mumbai',rating:5,serviceName:'Signature Hair Styling',comment:'A thoughtful consultation and a lovely studio experience. Sample review — replace with a real guest review.',avatarUrl:'',date:'Demo',isDemo:true},
+   {id:'aur-r2',name:'Aurelia Guest 2',location:'Mumbai',rating:5,serviceName:'Radiance Facial',comment:'The team explained each step and made the visit comfortable. Sample review — replace with a real guest review.',avatarUrl:'',date:'Demo',isDemo:true},
+   {id:'aur-r3',name:'Aurelia Guest 3',location:'Mumbai',rating:5,serviceName:'Balayage & Gloss',comment:'A calm space and helpful colour advice. Sample review — replace with a real guest review.',avatarUrl:'',date:'Demo',isDemo:true}
+  ],
+  totalReviewCount:0,averageRating:0,landmark:'Bandra West, Mumbai',parkingInfo:'Ask the studio about nearby parking',openHourText:'10:00 AM',closeHourText:'8:00 PM'
+ },
  mens_hair_studio:{foundingYear:'',foundingNarrative:'Precision haircuts and considered colour. Men only.',specialties:["Men's Haircuts","Men's Hair Colour"],certifications:[],gallery:MENS_DEFAULTS.gallery.map(g=>({id:g.id,url:g.url,title:g.title,tag:'Men'})),reviews:MENS_DEFAULTS.reviews.map(r=>({id:r.id,name:r.name,location:'Demo',rating:5,serviceName:r.service,comment:r.text,avatarUrl:'',date:'Demo',isDemo:true})),totalReviewCount:0,averageRating:0,landmark:'Udaipur',parkingInfo:'Ask the studio',openHourText:'10:00 AM',closeHourText:'08:00 PM'},
   hair_salon: {
     foundingYear: '2020',

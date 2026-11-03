@@ -28,7 +28,7 @@ export const NEXORA_BRAND = 'NEXORA';
 export const NEXORA_PREFIX = `${NEXORA_BRAND} `;
 
 /**
- * Category identity: colour, icon and description. One entry per category,
+ * Category identity: colour, icon and description. One entry per category (a category may contain multiple templates),
  * in priority order. `categoryId` is stable and used by the filter bar.
  */
 export interface NexoraCategory {
@@ -70,7 +70,7 @@ export interface NexoraTemplateMeta {
   services: string[];
   priorityRank: number;
   displayOrder: number;
-  /** Menu number shown on the card: "01", "02", … "15". */
+  /** Menu number shown on the card: "01", "02", … "16". */
   templateNumber: string;
   searchTags: string[];
   icon: string;
@@ -80,8 +80,8 @@ export interface NexoraTemplateMeta {
 }
 
 /**
- * Categories, in priority order. Each category maps 1:1 to a template so that
- * the filter bar, its counting and the card order can never drift apart.
+ * Categories are in priority order. Multiple templates may share a category;
+ * the filter and counts are derived from the template metadata below.
  */
 export const NEXORA_CATEGORIES: NexoraCategory[] = [
   {
@@ -289,7 +289,7 @@ export function nexoraCategory(categoryId: string): NexoraCategory | undefined {
 }
 
 /**
- * The 15 templates in their fixed priority order.
+ * All templates in their fixed priority order.
  *
  * Order is data, not a sort: it never depends on object key order, locale
  * collation or the network. Refresh, storage and re-render can never shuffle
@@ -565,6 +565,24 @@ export const NEXORA_TEMPLATE_META: NexoraTemplateMeta[] = [
     icon: 'Leaf',
     badge: 'Heritage',
     previewLabel: 'Ayurvedic spa',
+  },
+  {
+    templateId: 'aurelia_beauty_parlour',
+    categoryId: 'beauty-parlour',
+    categoryName: 'Beauty Parlour',
+    displayName: 'NEXORA Aurelia Beauty Parlour',
+    salonBrand: 'Aurelia Luxury Beauty & Wellness Studio',
+    shortName: 'Beauty Parlour & Wellness',
+    shortDescription: 'A complete beauty studio with hair, colour, skin, bridal, nails and spa services.',
+    bestFor: 'Premium beauty parlours and multi-service beauty studios.',
+    services: ['Hair styling', 'Balayage & gloss', 'Radiance facial', 'Bridal styling', 'Gel manicure', 'Aromatherapy massage'],
+    priorityRank: 16,
+    displayOrder: 16,
+    templateNumber: '16',
+    searchTags: ['aurelia', 'beauty', 'beauty parlour', 'beauty parlor', 'salon', 'hair styling', 'hair colour', 'facial', 'bridal', 'nails', 'spa', 'wellness'],
+    icon: 'Sparkles',
+    badge: 'Luxury beauty',
+    previewLabel: 'Aurelia beauty parlour',
   },
 ];
 
