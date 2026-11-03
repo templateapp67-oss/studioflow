@@ -134,12 +134,13 @@ const searchIds = (query: string) => EXPECTED.map(([id]) => id).filter((id) => n
 for (const [query, expected] of [
   ['haircut', ['hair_salon', 'mens_hair_studio']],
   ['barber', ['barber']],
-  ['nails', ['nail_studio']],
+  ['nails', ['nail_studio', 'aurelia_beauty_parlour']],
   ['men', ['barber', 'mens_hair_studio', 'unisex_salon']],
   ['tattoo', ['tattoo_studio']],
   ['ayurveda', ['ayurvedic_spa']],
   ['lash', ['lash_brow']],
-  ['colour', ['hair_coloring', 'mens_hair_studio']],
+  ['colour', ['hair_coloring', 'mens_hair_studio', 'aurelia_beauty_parlour']],
+  ['beauty', ['beauty_parlour', 'aurelia_beauty_parlour']],
 ] as const) {
   const hits = searchIds(query);
   for (const id of expected) assert.ok(hits.includes(id), `search "${query}" finds ${id}`);
