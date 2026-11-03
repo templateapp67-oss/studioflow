@@ -74,5 +74,14 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
-      - name: Run lint, production build and verification suites
-        run: npm test
+      - name: TypeScript lint
+        run: npm run lint
+
+      - name: Edge-function lint
+        run: npm run lint:edge
+
+      - name: Production build
+        run: npm run build
+
+      - name: Offline verification suites
+        run: node scripts/run-all-verifications.mjs
