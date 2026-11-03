@@ -4,6 +4,25 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+const NEXORA_TEMPLATE_IDS = [
+  'hair_salon',
+  'barber',
+  'beauty_parlour',
+  'nail_studio',
+  'unisex_salon',
+  'mens_hair_studio',
+  'hair_spa',
+  'skincare_clinic',
+  'makeup_studio',
+  'bridal_lounge',
+  'hair_coloring',
+  'massage_wellness',
+  'tattoo_studio',
+  'lash_brow',
+  'ayurvedic_spa',
+  'aurelia_beauty_parlour',
+];
+
 const DEFAULT_ORIGIN = 'https://nexorasalon.online';
 const DEFAULT_SUPABASE_URL = 'https://zilwgiuiygqqardzutxi.supabase.co';
 const DEFAULT_PUBLISHABLE_KEY = 'sb_publishable_Xck8H8PcTCCnEwkvBfiSLw_c973vJkH';
@@ -44,6 +63,7 @@ function publicSlugs(values) {
 export function sitemapXml(origin, slugs) {
   const urls = [
     origin + '/?app=1',
+    ...NEXORA_TEMPLATE_IDS.map((id) => origin + '/?template=' + encodeURIComponent(id)),
     ...publicSlugs(slugs).map((slug) => origin + '/?site=' + encodeURIComponent(slug)),
   ];
   if (urls.length > 50000) {
