@@ -45,6 +45,9 @@ const xml = await generateSitemap({
 assert.match(xml, /<urlset xmlns="http:\/\/www\.sitemaps\.org\/schemas\/sitemap\/0\.9">/);
 assert.match(xml, /https:\/\/nexorasalon\.online\/\?app=1/);
 assert.match(xml, /https:\/\/nexorasalon\.online\/\?site=bestsalon/);
+assert.match(xml, /https:\/\/nexorasalon\.online\/\?template=hair_salon/);
+assert.match(xml, /https:\/\/nexorasalon\.online\/\?template=aurelia_beauty_parlour/);
+assert.equal((xml.match(/<url>/g) || []).length, 19, 'app + 16 NEXORA templates + 2 published test salons');
 assert.doesNotMatch(xml, /studioflow-qa|not-a-slug/i);
 assert.match(sitemapXml('https://nexorasalon.online?a=1&b=2', ['bestsalon']), /nexorasalon\.online\?a=1&amp;b=2/);
 
@@ -53,5 +56,8 @@ assert.match(robots, /Sitemap:\s*https:\/\/nexorasalon\.online\/sitemap\.xml/i);
 const committedSitemap = await readFile('public/sitemap.xml', 'utf8');
 assert.match(committedSitemap, /<urlset/);
 assert.match(committedSitemap, /https:\/\/nexorasalon\.online\/\?app=1/);
+assert.match(committedSitemap, /https:\/\/nexorasalon\.online\/\?template=hair_salon/);
+assert.match(committedSitemap, /https:\/\/nexorasalon\.online\/\?template=aurelia_beauty_parlour/);
+assert.equal((committedSitemap.match(/<url>/g) || []).length, 21, 'static sitemap should contain the app, 16 templates, and 4 published salons');
 
 console.log('PASS: static sitemap generation, canonical URLs, QA exclusion and robots.txt verified.');
