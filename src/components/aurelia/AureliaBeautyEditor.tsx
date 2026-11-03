@@ -1,5 +1,5 @@
 import React, {useMemo, useState} from 'react';
-import {ImagePlus, Plus, Save, Trash2, Upload, Video, WandSparkles} from 'lucide-react';
+import {ChevronDown, ChevronUp, ImagePlus, Plus, Save, Trash2, Upload, Video, WandSparkles} from 'lucide-react';
 import {ServiceManagement} from '../ServiceManagement';
 import {TeamManagement} from '../TeamManagement';
 import {WebsiteContentManager} from '../WebsiteContentManager';
@@ -31,6 +31,18 @@ export function AureliaBeautyEditor(props:SalonWebsitePreviewProps){
   updateProfile({promoOffers:[...offers,item]});setNewOfferTitle('');setNewOfferDescription('');setNewOfferPrice('0');setMessage('Offer added to your Aurelia workspace.');
  };
  const deleteOffer=(id:string)=>updateProfile({promoOffers:offers.filter(offer=>offer.id!==id)});
+ const moveSection=(index:number,direction:-1|1)=>{
+  const order=[...(config.sectionOrder||['hero','services','story','team','menu','gallery','videos','offers','reviews','contact'])];
+  const target=index+direction;if(target<0||target>=order.length)return;
+  [order[index],order[target]]=[order[target],order[index]];
+  updateConfig({sectionOrder:order});
+ };
+ const uploadLogo=async(file:File)=>{
+  setError('');setMessage('');setUploading('logo');
+  try{const url=await uploadSalonImage(file);updateProfile({logoUrl:url});setMessage('Logo uploaded to this salon workspace.');}
+  catch(e){setError(e instanceof Error?e.message:'Logo upload failed.');}
+  finally{setUploading('');}
+ };
  const uploadImage=async (file:File,key:'heroImageUrl'|'storyImageUrl')=>{
   setError('');setMessage('');setUploading(key);
   try{const url=await uploadSalonImage(file);updateConfig({[key]:url});setMessage('Image uploaded and saved to this salon workspace.');}
@@ -67,7 +79,22 @@ export function AureliaBeautyEditor(props:SalonWebsitePreviewProps){
     <label className="md:col-span-2"><span className="field-label">Hero heading</span><input className="workspace-input" value={config.heroHeading||''} onChange={e=>updateConfig({heroHeading:e.target.value})}/></label>
     <label className="md:col-span-2"><span className="field-label">Hero subtext</span><textarea className="workspace-input min-h-24" value={config.heroSubtext||''} onChange={e=>updateConfig({heroSubtext:e.target.value})}/></label>
     <label className="md:col-span-2"><span className="field-label">About / story</span><textarea className="workspace-input min-h-28" value={profile.about} onChange={e=>updateProfile({about:e.target.value})}/></label>
-    <label className="md:col-span-2"><span className="field-label">Story heading</span><input className="workspace-input" value={config.storyHeading||''} onChange={e=>updateConfig({storyHeading:e.target.value})}/></label>
+    <label className="md:col-span-2"><span className="field-label">Story heading</span><input className="workspace-input" value={config.storyHeading||''} onChange={e=>updateConfig({storyHeading:e.target.value})}/></label></div><div className="grid md:grid-cols-2 gap-4">
+    <label><span className="field-label">Announcement bar</span><input className="workspace-input" value={config.announcementText||''} onChange={e=>updateConfig({announcementText:e.target.value})}/></label>
+    <label><span className="field-label">Hero eyebrow</span><input className="workspace-input" value={config.heroEyebrow||''} onChange={e=>updateConfig({heroEyebrow:e.target.value})}/></label>
+    <label><span className="field-label">Hero badge</span><input className="workspace-input" value={config.heroBadge||''} onChange={e=>updateConfig({heroBadge:e.target.value})}/></label>
+    <label><span className="field-label">Story eyebrow</span><input className="workspace-input" value={config.storyEyebrow||''} onChange={e=>updateConfig({storyEyebrow:e.target.value})}/></label>
+    <label><span className="field-label">Working hours display</span><input className="workspace-input" value={config.workingHoursDisplay||''} onChange={e=>updateConfig({workingHoursDisplay:e.target.value})}/></label>
+   </div>
+   <div className="grid md:grid-cols-2 gap-4">
+    <div className="border rounded-xl p-3 space-y-2"><span className="field-label">Salon logo</span>{profile.logoUrl&&<img src={profile.logoUrl} alt="Salon logo" className="h-16 max-w-40 object-contain"/>}<input type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" disabled={!!uploading} onChange={e=>{const file=e.target.files?.[0];if(file)void uploadLogo(file);}}/><small>Logo is stored in this salon's Supabase media area.</small></div>
+   </div>
+   <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+    <label><span className="field-label">Background colour</span><input className="workspace-input h-11 p-1" type="color" value={config.backgroundColor||'#f6f1ea'} onChange={e=>updateConfig({backgroundColor:e.target.value})}/></label>
+    <label><span className="field-label">Text colour</span><input className="workspace-input h-11 p-1" type="color" value={config.inkColor||'#1d1612'} onChange={e=>updateConfig({inkColor:e.target.value})}/></label>
+    <label><span className="field-label">Accent colour</span><input className="workspace-input h-11 p-1" type="color" value={config.accentColor||'#d9b98f'} onChange={e=>updateConfig({accentColor:e.target.value})}/></label>
+    <label><span className="field-label">Border colour</span><input className="workspace-input h-11 p-1" type="color" value={config.lineColor||'#d8c8b4'} onChange={e=>updateConfig({lineColor:e.target.value})}/></label>
+   </div>
    </div>
    <div className="grid md:grid-cols-2 gap-4">
     <div className="border rounded-xl p-3 space-y-2"><span className="field-label">Hero image</span><img src={config.heroImageUrl||profile.coverImageUrl} alt="Hero preview" className="w-full h-40 object-cover rounded-lg"/><input type="file" accept="image/jpeg,image/png,image/webp" disabled={!!uploading} onChange={e=>{const file=e.target.files?.[0];if(file)void uploadImage(file,'heroImageUrl');}}/><small>JPG, PNG or WebP · max 5 MB · uploaded to your Supabase media folder.</small></div>
@@ -79,6 +106,10 @@ export function AureliaBeautyEditor(props:SalonWebsitePreviewProps){
    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">{Object.entries(websiteVisibility(profile)).map(([key,value])=><label key={key} className="border rounded-xl p-3 flex items-center gap-3 capitalize"><input type="checkbox" checked={value} onChange={e=>updateProfile({websiteSections:{...websiteVisibility(profile),[key]:e.target.checked}})}/>{key.replace(/([A-Z])/g,' $1')}</label>)}</div>
    <div className="grid md:grid-cols-2 gap-3">
     {(['servicesHeading','menuHeading','teamHeading','galleryHeading','videosHeading','offersHeading','reviewsHeading','contactHeading'] as const).map(key=><label key={key}><span className="field-label">{key.replace(/([A-Z])/g,' $1')}</span><input className="workspace-input" value={config[key]||''} onChange={e=>updateConfig({[key]:e.target.value})}/></label>)}
+   </div>
+   <div className="border-t pt-4 space-y-2">
+    <h3 className="font-semibold">Website section order</h3>
+    {(config.sectionOrder||['hero','services','story','team','menu','gallery','videos','offers','reviews','contact']).map((key,index)=><div key={key} className="flex items-center justify-between gap-3 border rounded-lg px-3 py-2"><span className="capitalize text-sm">{key.replace(/([A-Z])/g,' $1')}</span><div className="flex gap-1"><button className="secondary-action" disabled={index===0} onClick={()=>moveSection(index,-1)} aria-label={'Move '+key+' up'}><ChevronUp size={14}/></button><button className="secondary-action" disabled={index===(config.sectionOrder||[]).length-1} onClick={()=>moveSection(index,1)} aria-label={'Move '+key+' down'}><ChevronDown size={14}/></button></div></div>)}
    </div>
   </section>
   <section className="workspace-card space-y-4">
@@ -116,4 +147,4 @@ export function AureliaBeautyEditor(props:SalonWebsitePreviewProps){
   {props.setProfile&&<WebsiteContentManager profile={profile} setProfile={props.setProfile} services={props.services} showAbout={false} showGallery={false}/>}
  </main>;
 }
-function websiteVisibility(profile:SalonProfile){return {header:true,hero:true,about:true,services:true,packages:true,stylists:true,gallery:true,videos:true,promo:true,testimonials:true,location:true,...(profile.websiteSections||{})};}
+function websiteVisibility(profile:SalonProfile){return {header:true,hero:true,about:true,services:true,packages:true,stylists:true,gallery:true,videos:true,promo:true,testimonials:true,location:true,homeServices:true,...(profile.websiteSections||{})};}
