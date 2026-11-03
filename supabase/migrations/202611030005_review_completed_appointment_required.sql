@@ -165,7 +165,7 @@ create or replace function studioflow_android_private.review(
  p_rating integer,
  p_comment text
 ) returns jsonb
-language plpgsql security definer set search_path='' as $
+language plpgsql security definer set search_path='' as $$
 begin
  if auth.uid() is null or not exists(
   select 1
@@ -181,7 +181,7 @@ begin
 
  return public.studioflow_submit_review(p_slug,p_name,p_rating,p_comment,'',null);
 end;
-$;
+$$;
 
 notify pgrst,'reload schema';
 commit;
