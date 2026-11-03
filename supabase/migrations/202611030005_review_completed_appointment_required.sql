@@ -158,5 +158,30 @@ begin
 end;
 $$;
 
+-- The Android/customer-detail review entry point uses the same completed-visit rule.
+create or replace function studioflow_android_private.review(
+ p_slug text,
+ p_name text,
+ p_rating integer,
+ p_comment text
+) returns jsonb
+language plpgsql security definer set search_path='' as $
+begin
+ if auth.uid() is null or not exists(
+  select 1
+  from public.studioflow_bookings b
+  join public.studioflow_websites w on w.owner_id=b.owner_id
+  where w.slug=p_slug
+    and b.customer_id=auth.uid()
+    and b.status='completed'
+    and coalesce(b.payload->>'demo','false')<>'true'
+ ) then
+  raise exception 'Complete a visit before reviewing' using errcode='42501';
+ end if;
+
+ return public.studioflow_submit_review(p_slug,p_name,p_rating,p_comment,'',null);
+end;
+$;
+
 notify pgrst,'reload schema';
 commit;
