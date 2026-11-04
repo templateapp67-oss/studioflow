@@ -128,10 +128,10 @@ function Application() {
  if(customerApp)return <CustomerApp session={session}/>;
  if(slug)return <AppErrorBoundary resetKey={slug}><PublishedWebsite key={slug} slug={slug} session={session} /></AppErrorBoundary>;
  if(entryTemplate&&!createTemplate&&!slug&&!customer&&!recovery)return <TemplateEntry templateId={entryTemplate.id} />;
+ if(!authReady)return <Loading text="Checking your session…" />;
  const authRequested = ['signin','signup','forgot'].includes(new URLSearchParams(location.search).get('auth') || '');
  const reservedRootEntry = customer || recovery || !!ownerSlug || !!entryTemplate || createTemplate || new URLSearchParams(location.search).has('panel');
  if(!session && !authRequested && !reservedRootEntry)return <PublicHomePage />;
- if(!authReady)return <Loading text="Checking your session…" />;
  if(!session)return <><div className="bg-white border-b px-4 py-3 text-center text-sm">Looking for a salon appointment? <a className="text-violet-600 font-semibold" href="/?app=1">Open Nexora Customer App →</a></div><AuthPage /></>;
  if(customer)return <CustomerBookings session={session} />;
  if(error)return <main className="p-8"><h1 className="text-2xl font-bold">Account could not load</h1><p role="alert" className="my-4">{error.includes('database') || error.includes('connection') ? 'There was a database connection issue. Please check your internet or try again later.' : error}</p><button className="primary-action" onClick={()=>setRetry(r=>r+1)}>Retry</button><button className="secondary-action ml-3" onClick={()=>void supabase.auth.signOut()}>Sign out</button><button className="secondary-action ml-3" onClick={()=>{localStorage.removeItem('studioflow_pending_ref');const url=new URL(location.href);url.searchParams.delete('ref');history.replaceState(null,'',url);setSkipReferral(true);setRetry(r=>r+1);}}>Continue without pending referral</button></main>;
