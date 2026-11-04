@@ -17,8 +17,9 @@ assert.deepEqual(cards.map(c=>c.id),NEXORA_TEMPLATE_META.map(m=>m.templateId),'c
 assert.deepEqual(cards.map(c=>c.rank),Array.from({length:16},(_,i)=>i+1),'priority ranks are stable 1..16');
 assert.equal(cards[0].id,'hair_salon','Haircut Studio is first');
 assert.equal(cards[1].id,'barber','Barber Shop is second');
-assert.equal(cards[2].id,'beauty_parlour','Beauty Parlour is third');
-assert.equal(cards[3].id,'nail_studio','Nail Studio is fourth');
+assert.equal(cards[2].id,'unisex_salon','Aura Unisex Salon is third');
+assert.equal(cards[3].id,'beauty_parlour','Roop Mahal Beauty Parlour is fourth');
+assert.equal(cards[4].id,'nail_studio','Pinky Nails Studio is fifth');
 const cardOrder=[...html.matchAll(/id="nexora-template-(\d{2})"/g)].map(m=>m[1]);
 assert.deepEqual(cardOrder,Array.from({length:16},(_,i)=>String(i+1).padStart(2,'0')),'template numbers run 01 → 16 in order');
 
