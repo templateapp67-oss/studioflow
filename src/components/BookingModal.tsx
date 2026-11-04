@@ -5,6 +5,7 @@ import {useWebsiteLanguage} from './WebsiteLanguage';
 import type {DirectBookingSlot} from './SpecialistWeek';
 import { paymentRequest, payBookingDeposit, reconcileBookingPayment } from '../lib/platformPayments';
 import { supabase } from '../lib/supabase';
+import {previewStaffForService} from '../lib/bookingStaff';
 import { sendBookingConfirmationEmail, sendBookingReminderEmail } from '../lib/emailService';
 import {getContrastTextColor} from '../themeAccents';
 import React, { useState, useEffect, useRef, useId } from 'react';
@@ -200,9 +201,18 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   const [specialistCheck,setSpecialistCheck]=useState<{key:string;ids:string[];published:boolean;error:string}|null>(null);
   const [specialistRetry,setSpecialistRetry]=useState(0);
-  const specialistKey=JSON.stringify([profile.subdomain,selectedService.id,selectedBranchId]);
+  const [expandedStaffId,setExpandedStaffId]=useState<string|null>(null);
+  const specialistKey=JSON.stringify([profile.subdomain,profile.businessType,selectedService.id,selectedBranchId]);
   const specialistsReady=specialistCheck?.key===specialistKey&&!specialistCheck.error;
-  const eligibleStylists=specialistsReady?stylists.filter(st=>specialistCheck!.ids.includes(st.id)):[];
+  const localPreviewStylists=previewStaffForService(stylists,selectedService,profile.businessType);
+  // Draft websites preview the same staff records the owner edits in the dashboard.
+  // Live websites remain strictly limited to IDs approved by the booking RPC.
+  const eligibleStylists=specialistsReady
+    ? specialistCheck!.published
+      ? stylists.filter(st=>specialistCheck!.ids.includes(st.id))
+      : localPreviewStylists
+    : [];
+  const canContinueToDateSlot=Boolean(specialistsReady&&specialistCheck!.published&&eligibleStylists.length);
   useEffect(()=>{
     if(!isOpen)return;let active=true;
     if(branchChoices.length>1&&!selectedBranchId){setSpecialistCheck({key:specialistKey,ids:[],published:false,error:'Choose a location first.'});return()=>{active=false;};}
@@ -213,10 +223,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       if(!active)return;
       if(error||!data||!Array.isArray(data.specialistIds)){setSpecialistCheck({key:specialistKey,ids:[],published:false,error:error?.message||'Could not check specialists. Please retry.'});return;}
       setSpecialistCheck({key:specialistKey,ids:data.specialistIds,published:data.published,error:''});
-      setSelectedStylist(current=>current.id===ANY_SPECIALIST.id||data.specialistIds.includes(current.id)?current:ANY_SPECIALIST);
+      const availableIds=data.published?data.specialistIds:previewStaffForService(stylists,selectedService,profile.businessType).map(st=>st.id);
+      setSelectedStylist(current=>current.id===ANY_SPECIALIST.id||availableIds.includes(current.id)?current:ANY_SPECIALIST);
     });return()=>{active=false;};
-  },[isOpen,specialistKey,specialistRetry,branchChoices.length,selectedBranchId]);
-  const chooseService=(service:SalonService)=>{setAddOnIds([]);setServerTotal(null);setSelectedService(service);if(service.id!==selectedService.id)setSelectedStylist(ANY_SPECIALIST);};
+  },[isOpen,specialistKey,specialistRetry,branchChoices.length,selectedBranchId,stylists]);
+  const chooseService=(service:SalonService)=>{setAddOnIds([]);setServerTotal(null);setExpandedStaffId(null);setSelectedService(service);if(service.id!==selectedService.id)setSelectedStylist(ANY_SPECIALIST);};
 
   const extras=services.filter(s=>(profile.bookingAddOnServiceIds||[]).includes(s.id)&&s.id!==selectedService.id);
   const selectedExtras=extras.filter(s=>addOnIds.includes(s.id));
@@ -775,37 +786,61 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     </div>
                   </button>
 
-                  {/* Individual Specialists */}
+                  {/* Individual Specialists: draft uses the dashboard's saved-in-workspace team;
+                      published booking uses only the specialist IDs approved by Supabase. */}
                   {eligibleStylists.map((st) => {
                     const isSelected = selectedStylist.id === st.id;
+                    const isExpanded = expandedStaffId === st.id;
+                    const profileId = `booking-staff-profile-${st.id.replace(/[^a-zA-Z0-9_-]/g,'-')}`;
+                    const workPhotos = (st.workGallery || []).filter(photo => photo.consented && photo.imageUrl).slice(0,6);
+                    const hasDetails = Boolean(st.bio || st.experienceYears !== undefined || st.qualifications?.length || st.specializedTreatments?.length || st.education || st.languages?.length || workPhotos.length);
                     return (
-                      <button
-                        type="button" aria-pressed={isSelected} aria-label={`Select specialist ${st.name}`}
-                        key={st.id}
-                        onClick={() => setSelectedStylist(st)}
-                        className={`p-2.5 rounded-xl border cursor-pointer transition-all flex flex-col items-center text-center gap-1.5 ${
-                          isSelected
-                            ? 'border-slate-900 bg-slate-50 ring-1 ring-slate-900 shadow-xs'
-                            : 'border-slate-200 hover:border-slate-300 bg-white'
-                        }`}
-                      >
-                        <img
-                          src={st.avatarUrl}
-                          alt={st.name}
-                          className="w-9 h-9 rounded-full object-cover shadow-xs"
-                        />
-                        <div className="min-w-0 w-full">
-                          <div className="font-bold text-[11px] text-slate-900 truncate">{st.name.split(' ')[0]}</div>
-                          <div className="text-[10px] text-slate-500 truncate">★ {st.rating}</div>
-                        </div>
-                      </button>
+                      <div key={st.id} className="min-w-0 rounded-xl border border-slate-200 bg-white p-2 flex flex-col gap-1.5">
+                        <button
+                          type="button" aria-pressed={isSelected} aria-label={`Select specialist ${st.name}`}
+                          onClick={() => setSelectedStylist(st)}
+                          className={`w-full min-w-0 rounded-lg p-1.5 cursor-pointer transition-all flex flex-col items-center text-center gap-1.5 ${
+                            isSelected ? 'bg-slate-50 ring-1 ring-slate-900' : 'hover:bg-slate-50'
+                          }`}
+                        >
+                          {st.avatarUrl
+                            ? <img src={st.avatarUrl} alt={st.name} className="w-11 h-11 rounded-full object-cover shadow-xs" />
+                            : <span aria-hidden="true" className="w-11 h-11 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold">{st.name.trim().slice(0,1).toUpperCase()}</span>}
+                          <span className="min-w-0 w-full">
+                            <span className="block font-bold text-[11px] text-slate-900 truncate">{st.name}</span>
+                            <span className="block text-[10px] text-slate-600 truncate">{st.role || 'Salon Specialist'}</span>
+                            {Number.isFinite(st.rating)&&st.rating>0&&<span className="block text-[10px] text-amber-700">★ {st.rating.toFixed(1)}</span>}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          aria-expanded={isExpanded}
+                          aria-controls={profileId}
+                          onClick={() => setExpandedStaffId(current=>current===st.id?null:st.id)}
+                          className="w-full text-[10px] font-semibold text-slate-700 underline underline-offset-2 py-1 cursor-pointer"
+                        >
+                          {isExpanded?'Hide full profile':'View full profile'}
+                        </button>
+                        {isExpanded&&<section id={profileId} className="border-t border-slate-100 pt-2 text-left flex flex-col gap-2">
+                          {st.bio&&<p className="text-[11px] leading-relaxed text-slate-700">{st.bio}</p>}
+                          {st.experienceYears!==undefined&&<p className="text-[10px] text-slate-600"><strong>Experience:</strong> {st.experienceYears} {st.experienceYears===1?'year':'years'}</p>}
+                          {st.specialties?.length>0&&<div><p className="text-[10px] font-bold text-slate-500 mb-1">SPECIALITIES</p><div className="flex flex-wrap gap-1">{st.specialties.map((skill,index)=><span key={`${st.id}-skill-${index}`} className="rounded-full bg-slate-100 px-2 py-1 text-[10px] text-slate-700">{skill}</span>)}</div></div>}
+                          {st.specializedTreatments?.length>0&&<div><p className="text-[10px] font-bold text-slate-500 mb-1">TREATMENTS</p><div className="flex flex-wrap gap-1">{st.specializedTreatments.map((skill,index)=><span key={`${st.id}-treatment-${index}`} className="rounded-full bg-slate-100 px-2 py-1 text-[10px] text-slate-700">{skill}</span>)}</div></div>}
+                          {st.qualifications?.length>0&&<p className="text-[10px] text-slate-600"><strong>Qualifications:</strong> {st.qualifications.join(', ')}</p>}
+                          {st.education&&<p className="text-[10px] text-slate-600"><strong>Education:</strong> {st.education}</p>}
+                          {st.languages?.length>0&&<p className="text-[10px] text-slate-600"><strong>Languages:</strong> {st.languages.join(', ')}</p>}
+                          {workPhotos.length>0&&<div><p className="text-[10px] font-bold text-slate-500 mb-1">WORK GALLERY</p><div className="grid grid-cols-3 gap-1">{workPhotos.map(photo=><img key={photo.id} src={photo.imageUrl} alt={photo.caption||`${st.name} work sample`} className="w-full aspect-square rounded-lg object-cover"/>)}</div></div>}
+                          {!hasDetails&&<p className="text-[10px] text-slate-500">This specialist has not added more profile details yet.</p>}
+                        </section>}
+                      </div>
                     );
                   })}
                 </div>
                 {!specialistsReady&&<p role="status" className="text-xs text-slate-700 mt-3">{specialistCheck?.key===specialistKey&&specialistCheck.error?'Could not check specialists.':'Checking specialists for this service…'}</p>}
                 {specialistCheck?.key===specialistKey&&specialistCheck.error&&<button type="button" className="text-xs underline" onClick={()=>setSpecialistRetry(n=>n+1)}>Retry specialist check</button>}
-                {specialistsReady&&!eligibleStylists.length&&<p role="status" className="text-xs text-amber-800 mt-3">{specialistCheck!.published?'No specialists are assigned to this service. Choose another service or contact the salon.':'This salon is not published yet. The owner needs to publish it before online booking.'}</p>}
-                <p className="text-xs text-slate-700 mt-3">Only specialists assigned to this service are listed. Changing service selects Any Specialist.</p>
+                {specialistsReady&&!specialistCheck!.published&&eligibleStylists.length>0&&<p role="status" className="text-xs text-amber-800 mt-3">Preview staff from the owner dashboard. Online booking will be enabled after this salon is published.</p>}
+                {specialistsReady&&!eligibleStylists.length&&<p role="status" className="text-xs text-amber-800 mt-3">{specialistCheck!.published?'No specialists are assigned to this service. Choose another service or contact the salon.':'No staff profiles have been added yet. The owner can add or edit staff in Team Management.'}</p>}
+                {specialistsReady&&specialistCheck!.published&&<p className="text-xs text-slate-700 mt-3">Only specialists assigned to this service are listed. Changing service selects Any Specialist.</p>}
                 <p role="status" className="text-xs text-slate-700 mt-3">Selected specialist: <strong>{selectedStylist.name}</strong>. Use Continue to Date &amp; Slot below.</p>
               </div>
 
@@ -1323,7 +1358,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               <button
                 type="button"
                 onClick={() => setCurrentStep('datetime')}
-                disabled={!specialistsReady||!eligibleStylists.length}
+                disabled={!canContinueToDateSlot}
                 className="w-full py-3 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95 active:scale-[0.99] mt-2"
                 style={actionStyle}
               >
