@@ -26,7 +26,7 @@ import { loadScreen } from './lib/loadScreen';
 import { ensureTemplate12Seeded, syncIronInkWorkspace } from './templates/iron-ink/api';
 import { WebsitePublishPanel } from './components/WebsitePublishPanel';
 import { WebsiteDeviceFrame } from './components/WebsiteDeviceFrame';
-import { servicesForTemplate } from './lib/serviceCatalogue';
+import { servicesForTemplate, withPairedServiceImages } from './lib/serviceCatalogue';
 import { applyTemplateDesign } from './lib/templateSelection';
 import { normalizeWorkspace, isRecord } from './lib/normalizeWorkspace';
 import { bootstrapSalonAccount, loadTemplateCatalogue } from './lib/accountBootstrap';
@@ -194,7 +194,7 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
      const draft=latest.current;
      if(sameWorkspace(draft,JSON.parse(lastSaved.current))){setSync('Saved to Supabase');setSyncError('');setSaveConflicts([]);return;}
      setSync('Saving…');setSyncError('');
-     const {data,error}=await supabase.rpc('studioflow_save_workspace',{p_draft:draft,p_revision:revision.current});
+     const {data,error}=await supabase.rpc('studioflow_save_workspace',{p_draft:withPairedServiceImages(draft),p_revision:revision.current});
      if(error){
       if(!revisionConflict(error))throw error;
       const fresh=await supabase.from('studioflow_accounts').select('draft,revision').eq('user_id',session.user.id).single();
