@@ -4,7 +4,7 @@ import {secureMediaUrl} from './socialVideoSource';
 export const PHOTO_CATEGORIES=['Hair','Bridal','Skin','Nails','Men','Spa','Tattoo'] as const;
 export type PhotoCategory=typeof PHOTO_CATEGORIES[number];
 export type SalonGalleryPhoto={id:string;category:PhotoCategory;url:string;title:string;isDemo:boolean};
-export const defaultGalleryCategory=(type:BusinessTypeId):PhotoCategory=>type==='tattoo_studio'?'Tattoo':type==='barber'?'Men':type==='nail_studio'?'Nails':['bridal_lounge','makeup_studio'].includes(type)?'Bridal':['skincare_clinic','beauty_parlour','lash_brow'].includes(type)?'Skin':['massage_wellness','ayurvedic_spa','hair_spa'].includes(type)?'Spa':'Hair';
+export const defaultGalleryCategory=(type:BusinessTypeId):PhotoCategory=>type==='tattoo_studio'?'Tattoo':type==='barber'?'Men':type==='nail_studio'?'Nails':['bridal_lounge','makeup_studio'].includes(type)?'Bridal':['skincare_clinic','beauty_parlour','aurelia_beauty_parlour','lash_brow'].includes(type)?'Skin':['massage_wellness','ayurvedic_spa','hair_spa'].includes(type)?'Spa':'Hair';
 /** Template 01 (Ziya Women’s Hair Studio) presents nine women’s haircut style plates. */
 const aureliaGalleryCategory=(tag:string):PhotoCategory=>/bridal|wedding/i.test(tag)?'Bridal':/skin|facial/i.test(tag)?'Skin':/nail|manicure/i.test(tag)?'Nails':/spa|massage|wellness/i.test(tag)?'Spa':'Hair';
 const hairGalleryCategory=(tag:string):PhotoCategory=>/bridal|wedding/i.test(tag)?'Bridal':/men|barber/i.test(tag)?'Men':/spa|scalp/i.test(tag)?'Spa':'Hair';
