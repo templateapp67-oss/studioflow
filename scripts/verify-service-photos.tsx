@@ -138,6 +138,16 @@ for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_h
   }finally{delete (globalThis as any).window;}
   continue;
  }
+ if(template.id==='aurelia_beauty_parlour'){
+  // Template 16 owns its editorial image grid and signature package cards.
+  assert.equal((html.match(/class="aurelia-service-image"/g)||[]).length,services.length,'Aurelia renders every service with its own image');
+  assert.equal((html.match(/class="aurelia-package-image"/g)||[]).length,5,'Aurelia renders images for all five packages');
+  for(const service of services){const expectedPhoto=service.imageUrl||defaultServiceImage(service,template.id);assert.ok(html.includes(expectedPhoto.replaceAll('&','&amp;')),'Aurelia photo missing for '+service.name);}
+  const custom={...services[0],name:'QA package',category:'Packages',imageUrl:'https://example.com/owner-photo.jpg'};
+  const changed=renderToStaticMarkup(<CustomerSalonWebsite profile={{...INITIAL_SALON_PROFILE,businessType:template.id}} services={[custom]} stylists={[]} onAddAppointment={async a=>a}/>);
+  assert.equal((changed.match(/src="https:\/\/example.com\/owner-photo.jpg"/g)||[]).length,2,'owner package photo appears in menu and package card');
+  continue;
+ }
  // Templates 06 and 08 lift packages out of the menu grid, so every saved service
  // still needs a photo — just rendered once instead of in two card grids.
  const count=['hair_spa','makeup_studio'].includes(template.id)?services.length:services.length+services.filter(s=>/package|combo|bundle/i.test(s.name+' '+s.category)).length;
@@ -157,4 +167,4 @@ try{
  globalThis.fetch=async()=>new Response('too large',{headers:{'content-type':'image/png','content-length':String(21*1024*1024)}});await assert.rejects(()=>servicePhotoFromUrl('https://example.com/photo'),/20 MB/);
  globalThis.fetch=async()=>{throw new TypeError('CORS')};await assert.rejects(()=>servicePhotoFromUrl('https://example.com/photo'),/blocks image import/);
 }finally{globalThis.fetch=original;}
-console.log('PASS: all 14 themes have service + package photos; owner override used in both sections; HTTPS URL import validates MIME, size, credentials and blocked-host errors.');
+console.log('PASS: all themes have service + package photos; owner override used in both sections; HTTPS URL import validates MIME, size, credentials and blocked-host errors.');
