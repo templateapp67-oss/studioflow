@@ -72,8 +72,8 @@ assert.match(site,/serviceReviewImages/,'Aurelia demo reviews must include relev
 assert.ok(site.includes("fallbackReviews={fallbackReviews}"),'Aurelia fallback testimonials must reach the shared review panel');
 assert.ok(reviewPanel.includes("businessType==='aurelia_beauty_parlour')?dedupedActual"),'Aurelia must show supplied review stories instead of unrelated generic samples');
 assert.ok(reviewCarousel.includes("r.serviceImageUrl||r.imageUrl||r.reviewImageUrl"),'Review cards must display editorial service images as well as guest-uploaded photos');
-assert.ok(globalCss.includes(".sf-review-card blockquote{display:block!important"),'Review text must remain visible and readable');
-assert.ok(globalCss.includes(".sf-review-card .sf-review-photo{display:block"),'Review images must use a visible card image layout');
+assert.ok(globalCss.includes(".aurelia-review-panel .sf-review-card blockquote{display:block!important"),'Review text must remain visible and readable');
+assert.ok(globalCss.includes(".aurelia-review-panel .sf-review-card .sf-review-photo{display:block"),'Review images must use a visible card image layout');
 assert.match(site,/AppInstallSection/,'Aurelia must include the shared app-install section');
 assert.match(site,/Customer Login/,'guest customers must have a sign-in action');
 assert.match(site,/Sign up/,'guest customers must have a sign-up action');
