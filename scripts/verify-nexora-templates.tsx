@@ -74,8 +74,9 @@ for (const [index, [id, displayName, categoryName, description]] of EXPECTED.ent
 assert.deepEqual(NEXORA_TEMPLATE_META.map((meta) => meta.templateId), EXPECTED.map(([id]) => id), 'master priority order');
 assert.equal(NEXORA_TEMPLATE_META[0].templateId, 'hair_salon', 'Haircut Studio first');
 assert.equal(NEXORA_TEMPLATE_META[1].templateId, 'barber', 'Barber Shop second');
-assert.equal(NEXORA_TEMPLATE_META[2].templateId, 'beauty_parlour', 'Beauty Parlour third');
-assert.equal(NEXORA_TEMPLATE_META[3].templateId, 'nail_studio', 'Nail Studio fourth');
+assert.equal(NEXORA_TEMPLATE_META[2].templateId, 'unisex_salon', 'Aura Unisex Salon third');
+assert.equal(NEXORA_TEMPLATE_META[3].templateId, 'beauty_parlour', 'Roop Mahal Beauty Parlour fourth');
+assert.equal(NEXORA_TEMPLATE_META[4].templateId, 'nail_studio', 'Pinky Nails Studio fifth');
 
 /* Categories: 15 clear business categories. Beauty Parlour intentionally has two templates. */
 assert.equal(NEXORA_CATEGORIES.length, 15, 'fifteen categories, no duplicates');
