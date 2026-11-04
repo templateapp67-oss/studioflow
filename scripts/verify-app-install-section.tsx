@@ -319,11 +319,17 @@ for (const id of ALL_TEMPLATE_IDS.filter(id=>id!=='mens_hair_studio')) {
   // ground; the shared bindings have to retarget it, or the strip stays the one
   // piece of the feature that ignores the template.
   const strip = findOne(dom, (el) => isTag(el, 'aside') && byClass('app-install-strip')(el));
-  check(!!strip, `${id}: no app announcement strip rendered`);
-  check(strip?.attribs?.['aria-label'] === 'Nexora app announcement',
-    `${id}: strip aria-label is "${strip?.attribs?.['aria-label']}"`);
+  // Aurelia keeps the app installation banner in the footer only; its header
+  // must stay free of app-install strip links, matching the footer-placement rule.
+  if (id === 'aurelia_beauty_parlour') {
+    check(!strip, 'Aurelia keeps the app install call-to-action out of the header');
+  } else {
+    check(!!strip, `${id}: no app announcement strip rendered`);
+    check(strip?.attribs?.['aria-label'] === 'Nexora app announcement',
+      `${id}: strip aria-label is "${strip?.attribs?.['aria-label']}"`);
+  }
   const stripLink = strip ? findOne(strip, (el) => isTag(el, 'a')) : null;
-  check(stripLink?.attribs?.href === '/?app=1&install=1',
+  if (strip) check(stripLink?.attribs?.href === '/?app=1&install=1',
     `${id}: strip link href is "${stripLink?.attribs?.href}"`);
   for (const [device, width] of DEVICES) {
     const cascade = new Cascade({ rules, elements, width });
