@@ -173,7 +173,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     }
   );
   const [selectedStylist, setSelectedStylist] = useState<Stylist>(
-    initialStylist || (stylists && stylists[0]) || ANY_SPECIALIST
+    initialStylist || ANY_SPECIALIST
   );
   const [branchChoices, setBranchChoices] = useState<SalonBranch[]>(profile.branches || []);
   const [selectedBranchId, setSelectedBranchId] = useState('');
@@ -839,7 +839,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 {!specialistsReady&&<p role="status" className="text-xs text-slate-700 mt-3">{specialistCheck?.key===specialistKey&&specialistCheck.error?'Could not check specialists.':'Checking specialists for this service…'}</p>}
                 {specialistCheck?.key===specialistKey&&specialistCheck.error&&<button type="button" className="text-xs underline" onClick={()=>setSpecialistRetry(n=>n+1)}>Retry specialist check</button>}
                 {specialistsReady&&!specialistCheck!.published&&eligibleStylists.length>0&&<p role="status" className="text-xs text-amber-800 mt-3">Preview staff from the owner dashboard. Online booking will be enabled after this salon is published.</p>}
-                {specialistsReady&&!eligibleStylists.length&&<p role="status" className="text-xs text-amber-800 mt-3">{specialistCheck!.published?'No specialists are assigned to this service. Choose another service or contact the salon.':'No staff profiles have been added yet. The owner can add or edit staff in Team Management.'}</p>}
+                {specialistsReady&&!eligibleStylists.length&&<p role="status" className="text-xs text-amber-800 mt-3">{specialistCheck!.published?'No specialists are assigned to this service. Choose another service or contact the salon.':stylists.length?'No staff are assigned to this service yet. The owner can update service assignments in Team Management.':'No staff profiles have been added yet. The owner can add staff in Team Management.'}</p>}
                 {specialistsReady&&specialistCheck!.published&&<p className="text-xs text-slate-700 mt-3">Only specialists assigned to this service are listed. Changing service selects Any Specialist.</p>}
                 <p role="status" className="text-xs text-slate-700 mt-3">Selected specialist: <strong>{selectedStylist.name}</strong>. Use Continue to Date &amp; Slot below.</p>
               </div>
