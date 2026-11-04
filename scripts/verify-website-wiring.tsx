@@ -22,6 +22,7 @@ import {supabase} from '../src/lib/supabase';
 import React, {useState} from 'react';
 import {act,create} from 'react-test-renderer';
 import {showcaseVideos} from '../src/lib/showcaseVideos';
+import {AURELIA_DEFAULT_SERVICES,AURELIA_DEFAULT_STAFF} from '../src/lib/aureliaBeauty';
 import {AuthPage} from '../src/components/AuthPage';
 import {PromoStudio} from '../src/components/PromoStudio';
 import {SocialConnectivityStep} from '../src/components/SocialConnectivityStep';
@@ -787,6 +788,13 @@ for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_h
  const legacy={...ownerFull,id:`demo-${template.id}-1`,videoId:'ulbjW3JyK8E',youtubeUrl:'https://www.youtube.com/watch?v=ulbjW3JyK8E',isDemo:true,isOwnerVideo:false};
  const profile={...INITIAL_SALON_PROFILE,businessType:template.id,socialVideos:[legacy,ownerFull],demoVideosInitialized:true};
  const migrated=showcaseVideos(profile);
+ if(template.id==='aurelia_beauty_parlour'){
+  assert.deepEqual(migrated,[ownerFull],'Aurelia removes unrelated demo reels but preserves uploaded owner videos');
+  const ownerShort={...ownerFull,id:'aurelia-owner-short',videoId:'abcdefghijk',youtubeUrl:'https://www.youtube.com/shorts/abcdefghijk',categoryTag:'SHORT' as const};
+  assert.deepEqual(showcaseVideos({...profile,socialVideos:[ownerShort]}),[ownerShort],'Aurelia keeps published owner Shorts');
+  assert.deepEqual(showcaseVideos({...profile,socialVideos:[],demoVideosInitialized:false}),[],'Aurelia does not seed unrelated generic demo videos');
+  continue;
+ }
  assert.equal(migrated.length,2);assert.equal(migrated[0].id,legacy.id);assert.ok(reelSource(migrated[0]));assert.equal(migrated[1],ownerFull);
  const html=renderToStaticMarkup(<WebsiteSections profile={profile} services={[]} onBook={()=>{}} readOnly/>);
  assert.ok(!html.includes(ownerFull.title));assert.ok(!html.includes('ulbjW3JyK8E'));assert.ok(html.includes('/shorts/'));
@@ -804,3 +812,137 @@ console.log('PASS: five Shorts per theme, legacy full demo replacement without r
 
 for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')){const profile={...INITIAL_SALON_PROFILE,businessType:template.id};const html=renderToStaticMarkup(<SalonWebsitePreview profile={profile} services={[]} stylists={[]} gallery={[]} readOnly onAddAppointment={async apt=>apt}/>);for(const label of ['Nexora app announcement','Install and share Nexora customer app','/promo/nexora-customer-app-ad.png','Share App &amp; Poster','Download ad image','/?app=1&amp;install=1'])assert.ok(html.includes(label),`${template.id}: missing app campaign ${label}`);}
 console.log('PASS: all 14 templates include app announcement, install guide route, shareable poster, image download and mobile app menu.');
+
+
+
+// Template 16 — actual customer-facing Aurelia booking UI, with only external
+// Supabase/Razorpay services replaced by deterministic QA doubles. This checks
+// the real selected service, staff, date/time, guest payload and confirmation
+// path without inserting a real booking row or charging a card.
+{
+ const originalRpc=(supabase as any).rpc;
+ const originalInvoke=(supabase.functions as any).invoke;
+ const originalWindow=(globalThis as any).window;
+ const originalDocument=(globalThis as any).document;
+ const originalLocalStorage=(globalThis as any).localStorage;
+ const rpcCalls:any[]=[];
+ let savedAppointment:any=null;
+ let razorpayVerified=false;
+ let tree:any;
+ const profile={...INITIAL_SALON_PROFILE,businessType:'aurelia_beauty_parlour',businessName:'Aurelia QA Studio',subdomain:'aurelia-qa-booking',city:'Mumbai',address:'Bandra West, Mumbai',bookingEnabled:true} as any;
+ const qaDate=new Date(Date.now()+2*86400000).toISOString().slice(0,10);
+ const qaTime='11:00';
+ const settle=async()=>{await act(async()=>{await Promise.resolve();await new Promise(resolve=>setTimeout(resolve,5));});};
+ const textOf=(node:any):string=>{
+  if(node==null)return '';
+  if(typeof node==='string'||typeof node==='number')return String(node);
+  if(Array.isArray(node))return node.map(textOf).join(' ');
+  if(typeof node==='object')return textOf(node.props?.children??node.children);
+  return '';
+ };
+ const button=(predicate:(node:any)=>boolean)=>tree.root.findAllByType('button').find(predicate);
+ (globalThis as any).document={body:{style:{overflow:''}},hidden:false,activeElement:null,addEventListener(){},removeEventListener(){},querySelector(){return null;},head:{appendChild(){}}};
+ (globalThis as any).localStorage={getItem(){return null;},setItem(){}};
+ class MockRazorpay{
+  options:any;handlers:Record<string,Function>={};
+  constructor(options:any){this.options=options;}
+  on(name:string,handler:Function){this.handlers[name]=handler;return this;}
+  open(){void this.options.handler({razorpay_order_id:'order_aurelia_qa',razorpay_payment_id:'pay_aurelia_qa',razorpay_signature:'simulated-signature'}).catch((error:any)=>this.handlers['payment.failed']?.(error));}
+ }
+ (globalThis as any).window={innerHeight:900,addEventListener(){},removeEventListener(){},scrollTo(){},matchMedia:()=>({matches:false,addEventListener(){},removeEventListener(){}}),Razorpay:MockRazorpay};
+ (supabase as any).rpc=async(name:string,args:any)=>{
+  rpcCalls.push({name,args});
+  if(name==='studioflow_public_branches')return {data:[],error:null};
+  if(name==='studioflow_booking_specialists')return {data:{specialistIds:AURELIA_DEFAULT_STAFF.map(st=>st.id),published:true},error:null};
+  if(name==='studioflow_available_slots')return {data:[{time:qaTime,label:'11:00 AM',available:true,status:'available'}],error:null};
+  if(name==='studioflow_book'){
+   savedAppointment={...args.p_request,id:'qa-booking-aurelia-001',status:'pending'};
+   return {data:savedAppointment,error:null};
+  }
+  return {data:[],error:null};
+ };
+ (supabase.functions as any).invoke=async(_name:string,options:any)=>{
+  const action=options?.body?.action;
+  if(action==='status')return {data:{configured:true},error:null};
+  if(action==='create')return {data:{keyId:'rzp_test_simulated',orderId:'order_aurelia_qa',amount:35000,currency:'INR',bookingId:'qa-booking-aurelia-001'},error:null};
+  if(action==='verify'){
+   razorpayVerified=true;
+   return {data:{booking:{...savedAppointment,status:'confirmed',amountPaid:350,stylistName:savedAppointment?.stylistName}},error:null};
+  }
+  throw new Error('Unexpected mocked Razorpay action: '+action);
+ };
+ const onAddAppointment=async(appointment:any)=>{
+  const {data,error}=await (supabase as any).rpc('studioflow_book',{p_slug:profile.subdomain,p_request:appointment});
+  if(error)throw error;
+  return data?.payload||data;
+ };
+ try{
+  await act(async()=>{tree=create(<CustomerSalonWebsite profile={profile} services={AURELIA_DEFAULT_SERVICES} stylists={AURELIA_DEFAULT_STAFF} readOnly onAddAppointment={onAddAppointment}/>);});
+  const service=AURELIA_DEFAULT_SERVICES.find(item=>item.name==='Aurelia Blowout');
+  assert.ok(service,'Aurelia seeded service exists');
+  const serviceButton=button(node=>node.props['aria-label']===`Book ${service!.name}`);
+  assert.ok(serviceButton,'the customer-facing service menu exposes a book action');
+  await act(async()=>serviceButton.props.onClick());
+  await settle();
+
+  const chosenStaff=AURELIA_DEFAULT_STAFF[0];
+  const staffButton=tree.root.findByProps({'aria-label':`Select specialist ${chosenStaff.name}`});
+  assert.ok(staffButton,'booking modal displays the assigned specialist');
+  await act(async()=>staffButton.props.onClick());
+  await settle();
+  const continueToDate=button(node=>textOf(node.props.children).includes('Continue to Date & Slot'));
+  assert.ok(continueToDate&&!continueToDate.props.disabled,'service/staff selection unlocks date selection');
+  await act(async()=>continueToDate.props.onClick());
+  await settle();
+
+  const dateInput=tree.root.findByProps({'aria-label':'Appointment date'});
+  await act(async()=>dateInput.props.onChange({target:{value:qaDate}}));
+  await settle();
+  const slotButton=button(node=>textOf(node.props.children).includes('11:00 AM'));
+  assert.ok(slotButton,'the selected service/staff/date returns the QA slot');
+  await act(async()=>slotButton.props.onClick());
+  const continueToGuest=button(node=>textOf(node.props.children).includes('Continue to Guest Details'));
+  assert.ok(continueToGuest&&!continueToGuest.props.disabled,'available slot unlocks guest details');
+  await act(async()=>continueToGuest.props.onClick());
+
+  const guestForm=tree.root.findAllByType('form').find(form=>form.findAllByType('input').some(input=>input.props.placeholder==='e.g. Aarti Sharma'));
+  assert.ok(guestForm,'guest details form is available');
+  const nameInput=guestForm.findAllByType('input').find(input=>input.props.placeholder==='e.g. Aarti Sharma');
+  const phoneInput=guestForm.findAllByType('input').find(input=>input.props.placeholder==='98765 43210');
+  assert.ok(nameInput&&phoneInput,'guest name and Indian phone fields are available');
+  await act(async()=>nameInput.props.onChange({target:{value:'Aurelia QA Guest'}}));
+  await act(async()=>phoneInput.props.onChange({target:{value:'9876543210'}}));
+  await act(async()=>guestForm.props.onSubmit({preventDefault(){}}));
+  await settle();
+
+  const payButton=button(node=>textOf(node.props.children).includes('Pay ₹350 & Book'));
+  assert.ok(payButton&&!payButton.props.disabled,'the simulated Razorpay checkout is ready');
+  await act(async()=>{await payButton.props.onClick();});
+  await settle();
+
+  assert.ok(savedAppointment,'the booking callback saves through the shared studioflow_book RPC');
+  assert.equal(savedAppointment.serviceId,service!.id);
+  assert.equal(savedAppointment.serviceName,service!.name);
+  assert.equal(savedAppointment.stylistId,chosenStaff.id);
+  assert.equal(savedAppointment.stylistName,chosenStaff.name);
+  assert.equal(savedAppointment.date,qaDate);
+  assert.equal(savedAppointment.time,qaTime);
+  assert.equal(savedAppointment.clientName,'Aurelia QA Guest');
+  assert.equal(savedAppointment.clientPhone,'+91 9876543210');
+  assert.equal(savedAppointment.status,'pending');
+  assert.ok(razorpayVerified,'Razorpay test signature verification completes');
+  assert.ok(rpcCalls.some(call=>call.name==='studioflow_booking_specialists'&&call.args.p_service_id===service!.id),'staff lookup is scoped to the selected service');
+  assert.ok(rpcCalls.some(call=>call.name==='studioflow_available_slots'&&call.args.p_service_id===service!.id&&call.args.p_stylist_id===chosenStaff.id&&call.args.p_date===qaDate),'slot lookup is scoped to the selected service, staff and date');
+  assert.equal(rpcCalls.filter(call=>call.name==='studioflow_book').length,1,'exactly one booking save request is sent');
+  const confirmation=textOf(tree.toJSON()).toLowerCase();
+  assert.ok(confirmation.includes('booking confirmed')||confirmation.includes('booking is confirmed'),'the UI confirms booking only after Razorpay verification');
+  console.log('PASS: simulated Aurelia customer booking E2E — service, staff, date/time, guest details, shared Supabase booking RPC and Razorpay test verification. No live appointment row or payment was created.');
+ }finally{
+  if(tree)await act(async()=>tree.unmount());
+  (supabase as any).rpc=originalRpc;
+  (supabase.functions as any).invoke=originalInvoke;
+  if(originalWindow===undefined)delete (globalThis as any).window;else (globalThis as any).window=originalWindow;
+  if(originalDocument===undefined)delete (globalThis as any).document;else (globalThis as any).document=originalDocument;
+  if(originalLocalStorage===undefined)delete (globalThis as any).localStorage;else (globalThis as any).localStorage=originalLocalStorage;
+ }
+}
