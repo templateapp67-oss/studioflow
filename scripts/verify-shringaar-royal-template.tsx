@@ -74,7 +74,7 @@ for (const option of ALL_CATEGORY_OPTIONS) {
   assert.equal(option.badge, 'Template 11');
   assert.equal(option.title, 'NEXORA Shringaar Royal Bridal Lounge');
   assert.equal(option.categoryTag, 'Bridal Makeup');
-  assert.equal(option.priorityRank, 10);
+  assert.equal(option.priorityRank, 11);
   assert.ok(option.aestheticDescription.includes('Rajputana'));
 }
 
