@@ -1,7 +1,7 @@
 // Template 15 has dedicated male-only media, booking and editor coverage in verify-template15.
 /**
  * Verifies the shared app-install banner against its acceptance criteria, on
- * the real rendered output of all 14 website templates.
+ * the real rendered output of all 16 website templates.
  *
  * Checked per template, at desktop / tablet / mobile:
  *  1. ONE shared implementation — the same component skeleton everywhere, no
@@ -69,6 +69,7 @@ const EXPECTED_CTA: Record<string, string> = {
   bridal_lounge: '#5a0f1e',
   lash_brow: '#2b1b17',
   ayurvedic_spa: '#1f3b2e',
+  aurelia_beauty_parlour: '#8c6a43',
 };
 
 const failures: string[] = [];
@@ -347,7 +348,7 @@ for (const id of ALL_TEMPLATE_IDS.filter(id=>id!=='mens_hair_studio')) {
 
 // -- 5b. The 14 templates must not collapse onto one shared background ------
 check(ctaBackgrounds.size >= 6,
-  `only ${ctaBackgrounds.size} distinct CTA backgrounds across 14 templates — the banner is not following each theme`);
+  `only ${ctaBackgrounds.size} distinct CTA backgrounds across 16 templates — the banner is not following each theme`);
 check(cardSurfaces.size >= 4,
   `only ${cardSurfaces.size} distinct card surfaces across 14 templates`);
 
@@ -360,5 +361,5 @@ if (failures.length) {
   for (const failure of unique) console.error('  ✗ ' + failure);
   process.exitCode = 1;
 } else {
-  console.log('\nPASS: all 14 templates render one shared, compact, theme-matched app-install banner with an uncropped poster and 4.5:1 CTAs in every state.');
+  console.log('\nPASS: all 16 templates render one shared, compact, theme-matched app-install banner with an uncropped poster and 4.5:1 CTAs in every state.');
 }
