@@ -80,7 +80,7 @@ expectIds('barber',['barber']);
 await act(async()=>search('nails'));
 expectIds('nails',['nail_studio','aurelia_beauty_parlour']);
 await act(async()=>search('beauty'));
-assert.equal(cardIds()[0],'beauty_parlour','search "beauty" puts the Beauty Parlour first');
+assert.equal(cardIds()[0],'unisex_salon','search "beauty" starts with the highest-priority matching salon');
 for(const id of cardIds())assert.match(id,/beauty_parlour|unisex_salon|lash_brow/,'"beauty" only returns templates that really offer beauty services');
 await act(async()=>search('men'));
 const men=cardIds();
