@@ -32,5 +32,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Run TypeScript lint
+        run: npm run lint
       - name: Run the complete project test suite
         run: npm test
+      - name: Verify standalone production build
+        run: npm run build
