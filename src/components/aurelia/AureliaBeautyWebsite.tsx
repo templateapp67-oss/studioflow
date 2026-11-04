@@ -5,6 +5,7 @@ import {SalonBookingsDialog} from '../SalonBookingsDialog';
 import {CustomerReviewPanel} from '../CustomerReviewPanel';
 import {StylistProfile} from '../StylistProfile';
 import {isPackage} from '../../lib/packageCatalogue';
+import {photoGallery as getPhotoGallery} from '../../lib/photoGallery';
 import {AURELIA_DEFAULT_CONFIG, AURELIA_DEFAULT_OFFERS, AURELIA_DEFAULT_SERVICES, AURELIA_DEFAULT_STAFF, AURELIA_IMAGES, aureliaConfigFor} from '../../lib/aureliaBeauty';
 import {CATEGORY_STANDARDIZED_DATA, type Testimonial} from '../../templateData';
 import type {SalonService, Stylist, SalonOffer} from '../../types';
@@ -23,8 +24,8 @@ export function AureliaBeautyWebsite(props:SalonWebsitePreviewProps){
  const stylists=useMemo(()=>props.stylists.length?props.stylists:(!profile.subdomain?AURELIA_DEFAULT_STAFF:[]),[props.stylists,profile.subdomain]);
  const offers=(profile.promoOffers===undefined?AURELIA_DEFAULT_OFFERS:profile.promoOffers).filter((offer:SalonOffer)=>offer.isActive && (!offer.validTo || offer.validTo>=new Date().toISOString().slice(0,10)));
  const campaign=profile.promoCampaign?.enabled?profile.promoCampaign:undefined;
- const gallery=(profile.photoGallery||[]).filter(item=>item.url&&item.url.trim()).map(item=>({url:item.url,title:item.title||'Aurelia studio detail'}));
- const images=gallery.length?gallery.map(item=>item.url):(config.galleryUrls||AURELIA_DEFAULT_CONFIG.galleryUrls||[]);
+ const gallery=getPhotoGallery(profile);
+ const images=gallery.map(item=>item.url).filter(Boolean);
  const videos=(profile.socialVideos||[]).filter(item=>item.previewVideoUrl||validExternalLink(item.youtubeUrl));
  const [booking,setBooking]=useState(false);
  const [myBookings,setMyBookings]=useState(false);
