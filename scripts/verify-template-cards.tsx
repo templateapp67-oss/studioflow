@@ -9,18 +9,18 @@ import {NEXORA_CATEGORIES, NEXORA_TEMPLATE_META, nexoraTemplateMeta, sortTemplat
 const escaped=(value:string)=>value.replaceAll('&','&amp;').replaceAll("'",'&#x27;').replaceAll('"','&quot;');
 const html=renderToStaticMarkup(<LandingPage setCurrentView={()=>{}}/>);
 
-/* ---------- 15 NEXORA cards, priority order, unique artwork ---------- */
-assert.equal((html.match(/<article/g)||[]).length,15,'exactly fifteen template cards');
+/* ---------- 16 NEXORA cards, priority order, unique artwork ---------- */
+assert.equal((html.match(/<article/g)||[]).length,16,'exactly sixteen template cards');
 const cards=[...html.matchAll(/data-template-id="([^"]+)" data-template-rank="(\d+)"/g)].map(m=>({id:m[1],rank:Number(m[2])}));
-assert.equal(cards.length,15,'every card carries its template id and priority rank');
+assert.equal(cards.length,16,'every card carries its template id and priority rank');
 assert.deepEqual(cards.map(c=>c.id),NEXORA_TEMPLATE_META.map(m=>m.templateId),'cards are rendered in the fixed NEXORA priority order');
-assert.deepEqual(cards.map(c=>c.rank),Array.from({length:15},(_,i)=>i+1),'priority ranks are stable 1..15');
+assert.deepEqual(cards.map(c=>c.rank),Array.from({length:16},(_,i)=>i+1),'priority ranks are stable 1..16');
 assert.equal(cards[0].id,'hair_salon','Haircut Studio is first');
 assert.equal(cards[1].id,'barber','Barber Shop is second');
 assert.equal(cards[2].id,'beauty_parlour','Beauty Parlour is third');
 assert.equal(cards[3].id,'nail_studio','Nail Studio is fourth');
 const cardOrder=[...html.matchAll(/id="nexora-template-(\d{2})"/g)].map(m=>m[1]);
-assert.deepEqual(cardOrder,Array.from({length:15},(_,i)=>String(i+1).padStart(2,'0')),'template numbers run 01 → 15 in order');
+assert.deepEqual(cardOrder,Array.from({length:16},(_,i)=>String(i+1).padStart(2,'0')),'template numbers run 01 → 16 in order');
 
 const seenCovers=new Map<string,string>();
 for (const template of Object.values(CATEGORY_TEMPLATES)) {
@@ -40,9 +40,9 @@ for (const template of Object.values(CATEGORY_TEMPLATES)) {
  assert.ok(html.includes(template.coverImageUrl.replaceAll('&','&amp;')),`${template.id} renders its own preview image`);
  seenCovers.set(template.coverImageUrl,(seenCovers.get(template.coverImageUrl)||'')+template.id);
 }
-assert.equal(seenCovers.size,15,'every template card uses a unique preview image');
+assert.equal(seenCovers.size,16,'every template card uses a unique preview image');
 assert.ok((html.match(/data-template-id="[^"]+"[\s\S]*?data-nexora-brand-mark/g)||[]).length>0,'cards carry the NEXORA brand mark');
-assert.equal((html.match(/<article[\s\S]*?<\/article>/g)||[]).filter(card=>card.includes('data-nexora-brand-mark')).length,15,'every template card carries the NEXORA brand mark');
+assert.equal((html.match(/<article[\s\S]*?<\/article>/g)||[]).filter(card=>card.includes('data-nexora-brand-mark')).length,16,'every template card carries the NEXORA brand mark');
 assert.ok(html.includes('data-nexora-logo'),'the template library shows the NEXORA logo');
 for(const category of NEXORA_CATEGORIES)assert.ok(html.includes(escaped(category.categoryName)),`category filter ${category.categoryName} is shown`);
 assert.ok((html.match(/data-category-filter="/g)||[]).length, 'category filters render');
@@ -77,7 +77,7 @@ assert.ok(!cardIds().includes('tattoo_studio'),'search "haircut" excludes unrela
 await act(async()=>search('barber'));
 expectIds('barber',['barber']);
 await act(async()=>search('nails'));
-expectIds('nails',['nail_studio']);
+expectIds('nails',['nail_studio','aurelia_beauty_parlour']);
 await act(async()=>search('beauty'));
 assert.equal(cardIds()[0],'beauty_parlour','search "beauty" puts the Beauty Parlour first');
 for(const id of cardIds())assert.match(id,/beauty_parlour|unisex_salon|lash_brow/,'"beauty" only returns templates that really offer beauty services');
@@ -97,7 +97,7 @@ await act(async()=>search('nonsense-query-xyz'));
 assert.deepEqual(cardIds(),[],'an unmatched search shows no cards');
 assert.ok(renderToStaticMarkup(<LandingPage setCurrentView={()=>{}}/>).length>0,'the empty state never crashes the page');
 await act(async()=>search(''));
-assert.equal(cardIds().length,15,'clearing the search restores all fifteen');
+assert.equal(cardIds().length,16,'clearing the search restores all sixteen');
 await act(async()=>filter('haircut-studio').props.onClick());
 await act(async()=>search('butterfly'));
 assert.deepEqual(cardIds(),['hair_salon'],'search and category filters combine');
@@ -137,7 +137,7 @@ const last=Object.values(CATEGORY_TEMPLATES).at(-1)!;
 await act(async()=>page.root.findByProps({'aria-label':'Preview template'}).props.onChange({target:{value:last.id}}));
 assert.equal(page.root.findByType(TemplatePreviewModal).props.templateId,last.id);
 const options=page.root.findByProps({'aria-label':'Preview template'}).findAllByType('option');
-assert.deepEqual(options.map((o:any)=>o.props.children),NEXORA_TEMPLATE_META.map(m=>m.displayName),'the prevew switcher lists all fifteen NEXORA names in priority order');
+assert.deepEqual(options.map((o:any)=>o.props.children),NEXORA_TEMPLATE_META.map(m=>m.displayName),'the prevew switcher lists all sixteen NEXORA names in priority order');
 const modes=page.root.findAll(node=>node.type==='button'&&node.props['aria-pressed']!==undefined&&node.props['data-category-filter']===undefined);
 assert.equal(modes.length,3,'exactly three device toggles: desktop, tablet and mobile');
 await act(async()=>modes[2].props.onClick());
@@ -167,4 +167,4 @@ await act(async()=>page.root.findByType(TemplatePreviewModal).props.onChoose());
 assert.deepEqual(chosen,[last.id]);
 assert.equal(page.root.findAllByType(TemplatePreviewModal).length,0);
 await act(async()=>page.unmount());
-console.log('PASS: 15 NEXORA template cards in fixed priority order, unique artwork, category filters, combined search, empty state, NEXORA preview titles/switcher, matching live previews, device frames, close and explicit customization without draft mutation.');
+console.log('PASS: 16 NEXORA template cards in fixed priority order, unique artwork, category filters, combined search, empty state, NEXORA preview titles/switcher, matching live previews, device frames, close and explicit customization without draft mutation.');
