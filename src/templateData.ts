@@ -11,6 +11,8 @@ export interface GalleryPhoto {
 
 export interface Testimonial {
   reviewImageUrl?:string;
+  /** Editorial service image shown with a demo testimonial; not a guest-uploaded photo. */
+  serviceImageUrl?:string;
   isDemo?:boolean;
   verified?:boolean;
   id: string;
@@ -60,9 +62,9 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
    {id:'aur-g5',url:'https://raw.githubusercontent.com/vijay-facebook/Aurelia-app/main/src/assets/images/video_bts_thumb_1793411345197.jpg',title:'Behind the Studio',tag:'Interior'}
   ],
   reviews:[
-   {id:'aur-r1',name:'Aurelia Guest 1',location:'Bandra West, Mumbai',rating:5,serviceName:'Signature Hair Styling',comment:'A thoughtful consultation and a lovely studio experience. Sample review — replace with a real guest review.',avatarUrl:'',date:'Demo',isDemo:true},
-   {id:'aur-r2',name:'Aurelia Guest 2',location:'Mumbai',rating:5,serviceName:'Radiance Facial',comment:'The team explained each step and made the visit comfortable. Sample review — replace with a real guest review.',avatarUrl:'',date:'Demo',isDemo:true},
-   {id:'aur-r3',name:'Aurelia Guest 3',location:'Mumbai',rating:5,serviceName:'Balayage & Gloss',comment:'A calm space and helpful colour advice. Sample review — replace with a real guest review.',avatarUrl:'',date:'Demo',isDemo:true}
+   {id:'aur-r1',name:'Aurelia Guest 1',location:'Bandra West, Mumbai',rating:5,serviceName:'Signature Hair Styling',comment:'My stylist took time to understand the finish I wanted. The consultation felt personal, and the result was easy to style at home.',avatarUrl:'',date:'Demo',isDemo:true,serviceImageUrl:'https://raw.githubusercontent.com/vijay-facebook/Aurelia-app/main/src/assets/images/service_hairstyling_1793409240754.jpg'},
+   {id:'aur-r2',name:'Aurelia Guest 2',location:'Mumbai',rating:5,serviceName:'Radiance Facial',comment:'The facial felt calm and well planned. The team explained each step and checked that I was comfortable throughout the visit.',avatarUrl:'',date:'Demo',isDemo:true,serviceImageUrl:'https://raw.githubusercontent.com/vijay-facebook/Aurelia-app/main/src/assets/images/service_skincare_1793409239190.jpg'},
+   {id:'aur-r3',name:'Aurelia Guest 3',location:'Mumbai',rating:5,serviceName:'Balayage & Gloss',comment:'The colour consultation helped me understand the tone and care routine. The studio felt calm, and the finish looked natural.',avatarUrl:'',date:'Demo',isDemo:true,serviceImageUrl:'https://raw.githubusercontent.com/vijay-facebook/Aurelia-app/main/src/assets/images/service_haircolour_1793409239777.jpg'}
   ],
   totalReviewCount:0,averageRating:0,landmark:'Bandra West, Mumbai',parkingInfo:'Ask the studio about nearby parking',openHourText:'10:00 AM',closeHourText:'8:00 PM'
  },
