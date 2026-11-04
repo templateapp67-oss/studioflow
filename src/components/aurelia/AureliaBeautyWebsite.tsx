@@ -18,7 +18,7 @@ const validExternalLink=(value?:string)=>Boolean(value && (value.startsWith('htt
 export function AureliaBeautyWebsite(props:SalonWebsitePreviewProps){
  const {profile}=props;
  const baseConfig=aureliaConfigFor(profile);
- const config={...baseConfig,videosHeading:profile.sectionHeadings?.videosTitle||baseConfig.videosHeading};
+ const config={...baseConfig,videosHeading:profile.sectionHeadings?.videosTitle||baseConfig.videosHeading,videosSubtitle:profile.sectionHeadings?.videosSubtitle||baseConfig.videosSubtitle};
  const services=useMemo(()=>props.services.length?props.services:(!profile.subdomain?AURELIA_DEFAULT_SERVICES:[]),[props.services,profile.subdomain]);
  const packages=useMemo(()=>services.filter(isPackage),[services]);
  const stylists=useMemo(()=>props.stylists.length?props.stylists:(!profile.subdomain?AURELIA_DEFAULT_STAFF:[]),[props.stylists,profile.subdomain]);
@@ -66,7 +66,7 @@ export function AureliaBeautyWebsite(props:SalonWebsitePreviewProps){
   id:String(review.id||'aurelia-review-'+index),
   serviceImageUrl:review.serviceImageUrl||serviceReviewImages[index%serviceReviewImages.length],
  }));
- return <div className="aurelia-site" style={{'--au-bg':config.backgroundColor||'#f6f1ea','--au-ink':config.inkColor||'#1d1612','--au-gold':config.accentColor||'#d9b98f','--au-line':config.lineColor||'#d8c8b4','--font-aurelia-display':config.displayFont||'Georgia, serif','--font-aurelia-sans':config.bodyFont||'Arial, sans-serif'} as unknown as React.CSSProperties}>
+ return <div className="aurelia-site" style={{'--au-bg':config.backgroundColor||'#f6f1ea','--au-ink':config.inkColor||'#1d1612','--au-gold':profile.customAccentColor||config.accentColor||'#d9b98f','--au-line':config.lineColor||'#d8c8b4','--font-aurelia-display':config.displayFont||'Georgia, serif','--font-aurelia-sans':config.bodyFont||'Arial, sans-serif'} as unknown as React.CSSProperties}>
   {show('announcement')&&<div className="aurelia-announcement">{config.announcementText||'A little more time for yourself. Discover the Aurelia experience.'}</div>}
   {show('header')&&<header className="aurelia-header">
    <a className="aurelia-wordmark" href="#aurelia-home" aria-label="Aurelia home">{profile.logoUrl?<img src={profile.logoUrl} alt={profile.businessName}/>:<><span>{profile.businessName||'AURELIA'}</span><small>BEAUTY · HAIR · WELLNESS</small></>}</a>
