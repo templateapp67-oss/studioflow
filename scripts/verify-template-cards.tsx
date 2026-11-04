@@ -62,11 +62,11 @@ await act(async()=>filter('barber-shop').props.onClick());
 assert.deepEqual(cardIds(),['barber'],'Barber Shop filter shows only the barber template');
 assert.equal(filter('barber-shop').props['aria-pressed'],true,'the selected category is clearly marked');
 await act(async()=>filter('nail-studio').props.onClick());
-assert.deepEqual(cardIds(),['nail_studio'],'Nail Studio filter shows only the nail template');
+assert.deepEqual(cardIds(),['nail_studio','aurelia_beauty_parlour'],'Nail Studio filter shows both nail service templates');
 await act(async()=>filter('mens-hair-studio').props.onClick());
 assert.deepEqual(cardIds(),['mens_hair_studio'],'Men’s Hair Studio filter is a real, separate category');
 await act(async()=>filter('all').props.onClick());
-assert.deepEqual(cardIds(),NEXORA_TEMPLATE_META.map(m=>m.templateId),'All Templates restores all fifteen in priority order');
+assert.deepEqual(cardIds(),NEXORA_TEMPLATE_META.map(m=>m.templateId),'All Templates restores all sixteen in priority order');
 
 /* ---------- Search behaviour (and search + filter together) ---------- */
 const search=(value:string)=>page.root.findByProps({'aria-label':'Search templates by name, category, salon type, service or keyword'}).props.onChange({target:{value}});
@@ -88,7 +88,7 @@ await act(async()=>search('bridal'));
 assert.ok(cardIds().includes('bridal_lounge'),'search "bridal" finds the bridal lounge');
 assert.deepEqual(cardIds(),sortTemplatesByPriority(cardIds().map(id=>({id}))).map(t=>t.id),'filtered results stay in priority order');
 await act(async()=>search('balayage'));
-assert.deepEqual(cardIds(),['hair_coloring'],'search hits service names too');
+assert.deepEqual(cardIds(),['hair_coloring','aurelia_beauty_parlour'],'search hits colour service names across templates');
 await act(async()=>search('keratin'));
 assert.ok(cardIds().includes('hair_spa'),'search hits template keywords');
 await act(async()=>search('ziya'));
