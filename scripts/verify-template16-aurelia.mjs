@@ -14,6 +14,9 @@ const videos=read('src/lib/showcaseVideos.ts');
 const data=read('src/lib/aureliaBeauty.ts');
 const site=read('src/components/aurelia/AureliaBeautyWebsite.tsx');
 const editor=read('src/components/aurelia/AureliaBeautyEditor.tsx');
+const reviewPanel=read('src/components/CustomerReviewPanel.tsx');
+const reviewCarousel=read('src/components/ReviewCarousel.tsx');
+const globalCss=read('src/index.css');
 const migration=read('supabase/migrations/202611030004_template15_16_catalogue_sync.sql');
 
 assert.match(types,/\|\s*'aurelia_beauty_parlour'/,'Template 16 ID must be in BusinessTypeId');
@@ -60,7 +63,22 @@ for(const asset of [
  'room_lookbook_interior_1793383607293.jpg'
 ]) assert.ok(data.includes(asset),'Aurelia image path missing: '+asset);
 assert.match(site,/BookingModal/,'Aurelia must use shared StudioFlow booking modal');
+assert.ok(site.includes("bookingAvailable=Boolean(props.onAddAppointment && profile.subdomain"),'Aurelia booking must require a published salon and real booking callback');
+assert.ok(site.includes("onAddAppointment={props.onAddAppointment}"),'Aurelia booking must submit through the shared StudioFlow booking handler');
 assert.match(site,/CustomerReviewPanel/,'Aurelia must use shared customer review panel');
+assert.equal((site.match(/<CustomerReviewPanel/g)||[]).length,1,'Aurelia must render one shared reviews panel');
+assert.doesNotMatch(site,/aurelia-review-grid/,'Aurelia must not render a second static review card grid');
+assert.match(site,/serviceReviewImages/,'Aurelia demo reviews must include relevant service images');
+assert.ok(site.includes("fallbackReviews={fallbackReviews}"),'Aurelia fallback testimonials must reach the shared review panel');
+assert.ok(reviewPanel.includes("businessType==='aurelia_beauty_parlour')?dedupedActual"),'Aurelia must show supplied review stories instead of unrelated generic samples');
+assert.ok(reviewCarousel.includes("r.serviceImageUrl||r.imageUrl||r.reviewImageUrl"),'Review cards must display editorial service images as well as guest-uploaded photos');
+assert.ok(globalCss.includes(".aurelia-review-panel .sf-review-card blockquote{display:block!important"),'Review text must remain visible and readable');
+assert.ok(globalCss.includes(".aurelia-review-panel .sf-review-card .sf-review-photo{display:block"),'Review images must use a visible card image layout');
+assert.match(site,/AppInstallSection/,'Aurelia must include the shared app-install section');
+assert.match(site,/Customer Login/,'guest customers must have a sign-in action');
+assert.match(site,/Sign up/,'guest customers must have a sign-up action');
+assert.match(site,/experienceYears/,'Aurelia team cards must show staff experience');
+assert.match(site,/data-loyalty-template/,'Aurelia loyalty cards must use the shared theme marker');
 assert.match(editor,/uploadSalonImage/,'Owner image uploads must use StudioFlow Supabase media');
 assert.match(editor,/Add new offer/,'Owner must be able to add offers');
 assert.match(editor,/Website section order/,'Owner must be able to reorder website sections');

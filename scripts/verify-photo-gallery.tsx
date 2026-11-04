@@ -124,7 +124,11 @@ for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_h
   assert.ok(!savedHtml.includes('Sample lookbook imagery'),'an owner lookbook is never labelled as a sample');
   assert.ok(!savedHtml.includes('Delete photo')&&!savedHtml.includes('Replace / Edit'));
  }else{
-  assert.ok(html.includes(`${defaultGalleryCategory(template.id)} (5)`));assert.equal((html.match(/aria-label="View salon look /g)||[]).length,5);assert.ok(!html.includes('Delete photo')&&!html.includes('Replace / Edit'));
+  if(template.id==='aurelia_beauty_parlour'){
+   assert.ok(html.includes('Gallery'),'Aurelia has its gallery section');
+   assert.equal((html.match(/aria-label="View salon look /g)||[]).length,5,'Aurelia shows five photos across their own categories');
+  }else assert.ok(html.includes(`${defaultGalleryCategory(template.id)} (5)`));
+  assert.ok(!html.includes('Delete photo')&&!html.includes('Replace / Edit'));
  }
  const removed=withPhotoGallery(profile,samples.filter(p=>p.id!==samples[0].id));const remaining=samples.length-1;const normalized=normalizeWorkspace(JSON.parse(JSON.stringify({profile:removed,extras:{gallery:[]}})));assert.equal(photoGallery(normalized.profile).length,remaining);assert.equal(normalized.extras.gallery.length,remaining);assert.equal(photoGallery(applyTemplateDesign(normalized.profile,template)).length,remaining);
  const empty=withPhotoGallery(profile,[]);assert.equal(photoGallery(normalizeWorkspace({profile:empty}).profile).length,0);

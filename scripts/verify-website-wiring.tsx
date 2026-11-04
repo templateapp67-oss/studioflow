@@ -22,6 +22,7 @@ import {supabase} from '../src/lib/supabase';
 import React, {useState} from 'react';
 import {act,create} from 'react-test-renderer';
 import {showcaseVideos} from '../src/lib/showcaseVideos';
+import {AURELIA_DEFAULT_SERVICES,AURELIA_DEFAULT_STAFF} from '../src/lib/aureliaBeauty';
 import {AuthPage} from '../src/components/AuthPage';
 import {PromoStudio} from '../src/components/PromoStudio';
 import {SocialConnectivityStep} from '../src/components/SocialConnectivityStep';
@@ -41,7 +42,7 @@ import { DEFAULT_LOYALTY_CONFIG } from '../src/loyaltyData';
 (globalThis as any).location={origin:'https://studioflow.test',search:'',hash:''};
 const campaign={enabled:true,selectedServiceId:'s1',campaignTheme:'flash_discount',discountPercent:20,customOfferText:'Owner Special',promoCode:'OWN20',headline:'Saved owner campaign',subtext:'Updated dashboard copy',aspectRatio:'1:1',aesthetic:'luxury_gold',imageUrl:'https://example.com/promo.jpg',customPrompt:''};
 for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')) {
- const profile={...INITIAL_SALON_PROFILE,businessType:template.id,businessName:'Actual Salon',promoCampaign:campaign,socialVideos:[{id:'vid',youtubeUrl:'https://www.youtube.com/shorts/abcdefghijk',videoId:'abcdefghijk',title:'Saved owner reel',thumbnailUrl:'',categoryTag:'SHORT' as const,isOwnerVideo:true}],instagramHandle:'https://instagram.com/actualsalon',websiteTestimonials:[],sectionHeadings:{videosTitle:'My updated reels'}};
+ const profile={...INITIAL_SALON_PROFILE,businessType:template.id,businessName:'Actual Salon',promoCampaign:campaign,socialVideos:[{id:'vid',youtubeUrl:'https://www.youtube.com/shorts/abcdefghijk',videoId:'abcdefghijk',title:'Saved owner reel',thumbnailUrl:'https://example.com/saved-owner-reel.jpg',categoryTag:'SHORT' as const,isOwnerVideo:true}],instagramHandle:'https://instagram.com/actualsalon',websiteTestimonials:[],sectionHeadings:{videosTitle:'My updated reels'}};
  const props={profile,services:[],stylists:[],gallery:[],readOnly:true,policies:{cancellation:'Updated cancellation terms'}};
  const publishedProfile={...profile,customAccentColor:'#123456',darkCanvas:false,sectionHeadings:{videosTitle:'Saved video heading',videosSubtitle:'Saved video introduction',socialTitle:'Saved social heading',loyaltyTitle:'Saved loyalty heading',policiesTitle:'Saved policies heading'}};
  const loyaltyConfig={...DEFAULT_LOYALTY_CONFIG,programEnabled:true,rewards:[{id:'qa-reward',isActive:true,title:'Saved customer reward',description:'Reward description',requiredPoints:100}]};
@@ -115,7 +116,7 @@ for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_h
  const hidden=renderToStaticMarkup(<WebsiteSections {...props} profile={{...profile,websiteSections:{bookings:false,share:false}}}/>);
  assert.ok(!hidden.includes('data-section="bookings"'));assert.ok(!hidden.includes('data-section="share"'));
 }
-console.log('PASS: all 14 templates show enabled empty customer sections and saved booking rules; edit actions are owner-only; bookings/share toggles hide sections.');
+console.log('PASS: all 15 non-men-only templates show enabled empty customer sections and saved booking rules; edit actions are owner-only; bookings/share toggles hide sections.');
 
 const signupMarkup=renderToStaticMarkup(<AuthPage compact customerMode initialMode="signup" returnSlug="test-salon"/>);
 assert.ok(signupMarkup.includes('Create your customer account'));assert.ok(!signupMarkup.includes('Salon name'));assert.ok(signupMarkup.includes('Full name'));
@@ -125,7 +126,13 @@ console.log('PASS: live customer signup uses customer fields; login includes pas
 // Demo seeding covers new and already-published empty profiles without replacing owner videos.
 for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')) {
  const raw={...INITIAL_SALON_PROFILE,businessType:template.id,socialVideos:[],demoVideosInitialized:undefined};
- const initialized=normalizeWorkspace({profile:raw});assert.equal(initialized.profile.socialVideos.length,5);assert.ok(initialized.profile.socialVideos.every(v=>v.isDemo&&!v.isOwnerVideo));assert.equal(new Set(initialized.profile.socialVideos.map(v=>v.videoId)).size,5);
+ const initialized=normalizeWorkspace({profile:raw});
+ if(template.id==='aurelia_beauty_parlour'){
+  assert.equal(initialized.profile.socialVideos.length,0,'Aurelia does not seed unrelated generic demo reels');
+  assert.equal(showcaseVideos(initialized.profile).length,0,'Aurelia shows no reel until the owner uploads one');
+  continue;
+ }
+ assert.equal(initialized.profile.socialVideos.length,5);assert.ok(initialized.profile.socialVideos.every(v=>v.isDemo&&!v.isOwnerVideo));assert.equal(new Set(initialized.profile.socialVideos.map(v=>v.videoId)).size,5);
  const html=renderToStaticMarkup(<WebsiteSections profile={initialized.profile} services={[]} onBook={()=>{}} readOnly/>);assert.equal((html.match(/class="sf-reel-media"/g)||[]).length,5);assert.equal((html.match(/<iframe/g)||[]).length,0);assert.ok(html.includes('DEMO / REFERENCE'));
  const removed=normalizeWorkspace({profile:{...initialized.profile,socialVideos:[]}});assert.equal(showcaseVideos(removed.profile).length,0,'Deleted demos must not return');
 }
@@ -144,7 +151,7 @@ assert.equal(demoProfile.socialVideos.length,5);assert.equal(demoProfile.socialV
 assert.equal(normalizeWorkspace({profile:demoProfile}).profile.socialVideos[0].title,'My actual salon reel');
 await act(async()=>demoButton('MANAGE / REPLACE').props.onClick());await act(async()=>demoButton('Delete Video').props.onClick());assert.equal(demoProfile.socialVideos.length,4);assert.equal(normalizeWorkspace({profile:demoProfile}).profile.socialVideos.length,4);
 await act(async()=>demoEditor.unmount());
-console.log('PASS: five distinct demo reel posters in all 14 templates; replacement keeps position and persists owner URL/title; deletion stays removed after reload.');
+console.log('PASS: five distinct demo reel posters on video-enabled templates; Aurelia keeps owner-uploaded reels only; replacement keeps position and persists owner URL/title; deletion stays removed after reload.');
 
 for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')) {
  const profile={...INITIAL_SALON_PROFILE,businessType:template.id,subdomain:'test-salon',socialVideos:[]};
@@ -152,7 +159,7 @@ for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_h
  const header=(html.match(/<header[\s\S]*?<\/header>/g)||[]).find(h=>h.includes('Customer account'));assert.ok(header,template.id);
  for(const label of ['Manage your customer account','My Bookings'])assert.ok(header.includes(label),`${template.id}: ${label} must be inside salon header`);assert.ok(!header.includes('Customer Login')&&!header.includes('Sign up'),`${template.id}: signed-in header must hide guest buttons`);
  for(const label of ['Replace / Manage video','Edit this section','owner-content','Edit featured client experiences','The salon owner can replace'])assert.ok(!html.includes(label),`${template.id}: public page must hide ${label}`);
- const genericReelCount=template.id==='hair_salon'||template.id==='skincare_clinic'||template.id==='tattoo_studio'||template.id==='lash_brow'?0:5;assert.equal((html.match(/class="sf-reel-media"/g)||[]).length,genericReelCount);
+ const genericReelCount=template.id==='hair_salon'||template.id==='skincare_clinic'||template.id==='tattoo_studio'||template.id==='lash_brow'||template.id==='aurelia_beauty_parlour'?0:5;assert.equal((html.match(/class="sf-reel-media"/g)||[]).length,genericReelCount);
  if(template.id==='hair_salon'){assert.ok((html.match(/class="le-video-card/g)||[]).length>=10,'Ziya Women’s Hair Studio shows its dedicated women’s haircut video gallery');assert.ok(!header.includes('app-install-strip'),'App Install strip stays out of the header');}
  if(template.id==='tattoo_studio'){assert.ok((html.match(/class="ii-reel-card/g)||[]).length>=5,'Iron & Ink shows its own editorial media cards');assert.ok(html.includes('DEMO POSTER'));}
  if(template.id==='lash_brow'){assert.ok((html.match(/class="af-reel"/g)||[]).length>=5,'Arch & Flutter shows its own featured video and reel rail');assert.ok(html.includes('af-featured'),'Arch & Flutter keeps a main featured film beside the rail');}
@@ -756,7 +763,7 @@ assert.equal(reels.root.findAll(n=>n.type==='a'&&n.props.className==='sf-reel-me
 await act(async()=>nativePlayer.props.onError());assert.equal(reels.root.findAllByType('video').length,0);assert.ok(reels.root.findAllByType('img').length);
 await act(async()=>reels.unmount());
 assert.equal(socialVideoSource('javascript:alert(1)'),null);assert.equal(socialVideoSource('https://youtube.com.evil.test/watch?v=abcdefghijk'),null);assert.equal(socialVideoSource('https://www.youtube.com/shorts/abcdefghijk')?.platform,'YouTube');assert.equal(socialVideoSource(insta.youtubeUrl)?.platform,'Instagram');
-console.log('PASS: portrait reel posters across 14 templates, one muted autoplay hover preview, stop on leave, source navigation, cover fallback, Instagram/native previews and safe source URL validation.');
+console.log('PASS: portrait reel posters across video-enabled templates, one muted autoplay hover preview, stop on leave, source navigation, cover fallback, Instagram/native previews and safe source URL validation.');
 
 // Setup accepts Instagram links plus owner-provided poster/video previews, kept on theme switch.
 await act(async()=>{demoEditor=create(<DemoHarness/>);});
@@ -787,6 +794,13 @@ for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_h
  const legacy={...ownerFull,id:`demo-${template.id}-1`,videoId:'ulbjW3JyK8E',youtubeUrl:'https://www.youtube.com/watch?v=ulbjW3JyK8E',isDemo:true,isOwnerVideo:false};
  const profile={...INITIAL_SALON_PROFILE,businessType:template.id,socialVideos:[legacy,ownerFull],demoVideosInitialized:true};
  const migrated=showcaseVideos(profile);
+ if(template.id==='aurelia_beauty_parlour'){
+  assert.deepEqual(migrated,[ownerFull],'Aurelia removes unrelated demo reels but preserves uploaded owner videos');
+  const ownerShort={...ownerFull,id:'aurelia-owner-short',videoId:'abcdefghijk',youtubeUrl:'https://www.youtube.com/shorts/abcdefghijk',categoryTag:'SHORT' as const};
+  assert.deepEqual(showcaseVideos({...profile,socialVideos:[ownerShort]}),[ownerShort],'Aurelia keeps published owner Shorts');
+  assert.deepEqual(showcaseVideos({...profile,socialVideos:[],demoVideosInitialized:false}),[],'Aurelia does not seed unrelated generic demo videos');
+  continue;
+ }
  assert.equal(migrated.length,2);assert.equal(migrated[0].id,legacy.id);assert.ok(reelSource(migrated[0]));assert.equal(migrated[1],ownerFull);
  const html=renderToStaticMarkup(<WebsiteSections profile={profile} services={[]} onBook={()=>{}} readOnly/>);
  assert.ok(!html.includes(ownerFull.title));assert.ok(!html.includes('ulbjW3JyK8E'));assert.ok(html.includes('/shorts/'));
@@ -804,3 +818,137 @@ console.log('PASS: five Shorts per theme, legacy full demo replacement without r
 
 for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')){const profile={...INITIAL_SALON_PROFILE,businessType:template.id};const html=renderToStaticMarkup(<SalonWebsitePreview profile={profile} services={[]} stylists={[]} gallery={[]} readOnly onAddAppointment={async apt=>apt}/>);for(const label of ['Nexora app announcement','Install and share Nexora customer app','/promo/nexora-customer-app-ad.png','Share App &amp; Poster','Download ad image','/?app=1&amp;install=1'])assert.ok(html.includes(label),`${template.id}: missing app campaign ${label}`);}
 console.log('PASS: all 14 templates include app announcement, install guide route, shareable poster, image download and mobile app menu.');
+
+
+
+// Template 16 — actual customer-facing Aurelia booking UI, with only external
+// Supabase/Razorpay services replaced by deterministic QA doubles. This checks
+// the real selected service, staff, date/time, guest payload and confirmation
+// path without inserting a real booking row or charging a card.
+{
+ const originalRpc=(supabase as any).rpc;
+ const originalInvoke=(supabase.functions as any).invoke;
+ const originalWindow=(globalThis as any).window;
+ const originalDocument=(globalThis as any).document;
+ const originalLocalStorage=(globalThis as any).localStorage;
+ const rpcCalls:any[]=[];
+ let savedAppointment:any=null;
+ let razorpayVerified=false;
+ let tree:any;
+ const profile={...INITIAL_SALON_PROFILE,businessType:'aurelia_beauty_parlour',businessName:'Aurelia QA Studio',subdomain:'aurelia-qa-booking',city:'Mumbai',address:'Bandra West, Mumbai',bookingEnabled:true} as any;
+ const qaDate=new Date(Date.now()+2*86400000).toISOString().slice(0,10);
+ const qaTime='11:00';
+ const settle=async()=>{await act(async()=>{await Promise.resolve();await new Promise(resolve=>setTimeout(resolve,5));});};
+ const textOf=(node:any):string=>{
+  if(node==null)return '';
+  if(typeof node==='string'||typeof node==='number')return String(node);
+  if(Array.isArray(node))return node.map(textOf).join(' ');
+  if(typeof node==='object')return textOf(node.props?.children??node.children);
+  return '';
+ };
+ const button=(predicate:(node:any)=>boolean)=>tree.root.findAllByType('button').find(predicate);
+ (globalThis as any).document={body:{style:{overflow:''}},hidden:false,activeElement:null,addEventListener(){},removeEventListener(){},querySelector(){return null;},head:{appendChild(){}}};
+ (globalThis as any).localStorage={getItem(){return null;},setItem(){}};
+ class MockRazorpay{
+  options:any;handlers:Record<string,Function>={};
+  constructor(options:any){this.options=options;}
+  on(name:string,handler:Function){this.handlers[name]=handler;return this;}
+  open(){void this.options.handler({razorpay_order_id:'order_aurelia_qa',razorpay_payment_id:'pay_aurelia_qa',razorpay_signature:'simulated-signature'}).catch((error:any)=>this.handlers['payment.failed']?.(error));}
+ }
+ (globalThis as any).window={innerHeight:900,addEventListener(){},removeEventListener(){},scrollTo(){},matchMedia:()=>({matches:false,addEventListener(){},removeEventListener(){}}),Razorpay:MockRazorpay};
+ (supabase as any).rpc=async(name:string,args:any)=>{
+  rpcCalls.push({name,args});
+  if(name==='studioflow_public_branches')return {data:[],error:null};
+  if(name==='studioflow_booking_specialists')return {data:{specialistIds:AURELIA_DEFAULT_STAFF.map(st=>st.id),published:true},error:null};
+  if(name==='studioflow_available_slots')return {data:[{time:qaTime,label:'11:00 AM',available:true,status:'available'}],error:null};
+  if(name==='studioflow_book'){
+   savedAppointment={...args.p_request,id:'qa-booking-aurelia-001',status:'pending'};
+   return {data:savedAppointment,error:null};
+  }
+  return {data:[],error:null};
+ };
+ (supabase.functions as any).invoke=async(_name:string,options:any)=>{
+  const action=options?.body?.action;
+  if(action==='status')return {data:{configured:true},error:null};
+  if(action==='create')return {data:{keyId:'rzp_test_simulated',orderId:'order_aurelia_qa',amount:35000,currency:'INR',bookingId:'qa-booking-aurelia-001'},error:null};
+  if(action==='verify'){
+   razorpayVerified=true;
+   return {data:{booking:{...savedAppointment,status:'confirmed',amountPaid:350,stylistName:savedAppointment?.stylistName}},error:null};
+  }
+  throw new Error('Unexpected mocked Razorpay action: '+action);
+ };
+ const onAddAppointment=async(appointment:any)=>{
+  const {data,error}=await (supabase as any).rpc('studioflow_book',{p_slug:profile.subdomain,p_request:appointment});
+  if(error)throw error;
+  return data?.payload||data;
+ };
+ try{
+  await act(async()=>{tree=create(<CustomerSalonWebsite profile={profile} services={AURELIA_DEFAULT_SERVICES} stylists={AURELIA_DEFAULT_STAFF} readOnly onAddAppointment={onAddAppointment}/>);});
+  const service=AURELIA_DEFAULT_SERVICES.find(item=>item.name==='Aurelia Blowout');
+  assert.ok(service,'Aurelia seeded service exists');
+  const serviceButton=button(node=>node.props['aria-label']===`Book ${service!.name}`);
+  assert.ok(serviceButton,'the customer-facing service menu exposes a book action');
+  await act(async()=>serviceButton.props.onClick());
+  await settle();
+
+  const chosenStaff=AURELIA_DEFAULT_STAFF[0];
+  const staffButton=tree.root.findByProps({'aria-label':`Select specialist ${chosenStaff.name}`});
+  assert.ok(staffButton,'booking modal displays the assigned specialist');
+  await act(async()=>staffButton.props.onClick());
+  await settle();
+  const continueToDate=button(node=>textOf(node.props.children).includes('Continue to Date & Slot'));
+  assert.ok(continueToDate&&!continueToDate.props.disabled,'service/staff selection unlocks date selection');
+  await act(async()=>continueToDate.props.onClick());
+  await settle();
+
+  const dateInput=tree.root.findByProps({'aria-label':'Appointment date'});
+  await act(async()=>dateInput.props.onChange({target:{value:qaDate}}));
+  await settle();
+  const slotButton=button(node=>textOf(node.props.children).includes('11:00 AM'));
+  assert.ok(slotButton,'the selected service/staff/date returns the QA slot');
+  await act(async()=>slotButton.props.onClick());
+  const continueToGuest=button(node=>textOf(node.props.children).includes('Continue to Guest Details'));
+  assert.ok(continueToGuest&&!continueToGuest.props.disabled,'available slot unlocks guest details');
+  await act(async()=>continueToGuest.props.onClick());
+
+  const guestForm=tree.root.findAllByType('form').find(form=>form.findAllByType('input').some(input=>input.props.placeholder==='e.g. Aarti Sharma'));
+  assert.ok(guestForm,'guest details form is available');
+  const nameInput=guestForm.findAllByType('input').find(input=>input.props.placeholder==='e.g. Aarti Sharma');
+  const phoneInput=guestForm.findAllByType('input').find(input=>input.props.placeholder==='98765 43210');
+  assert.ok(nameInput&&phoneInput,'guest name and Indian phone fields are available');
+  await act(async()=>nameInput.props.onChange({target:{value:'Aurelia QA Guest'}}));
+  await act(async()=>phoneInput.props.onChange({target:{value:'9876543210'}}));
+  await act(async()=>guestForm.props.onSubmit({preventDefault(){}}));
+  await settle();
+
+  const payButton=button(node=>textOf(node.props.children).includes('Pay ₹350 & Book'));
+  assert.ok(payButton&&!payButton.props.disabled,'the simulated Razorpay checkout is ready');
+  await act(async()=>{await payButton.props.onClick();});
+  await settle();
+
+  assert.ok(savedAppointment,'the booking callback saves through the shared studioflow_book RPC');
+  assert.equal(savedAppointment.serviceId,service!.id);
+  assert.equal(savedAppointment.serviceName,service!.name);
+  assert.equal(savedAppointment.stylistId,chosenStaff.id);
+  assert.equal(savedAppointment.stylistName,chosenStaff.name);
+  assert.equal(savedAppointment.date,qaDate);
+  assert.equal(savedAppointment.time,qaTime);
+  assert.equal(savedAppointment.clientName,'Aurelia QA Guest');
+  assert.equal(savedAppointment.clientPhone,'+91 9876543210');
+  assert.equal(savedAppointment.status,'pending');
+  assert.ok(razorpayVerified,'Razorpay test signature verification completes');
+  assert.ok(rpcCalls.some(call=>call.name==='studioflow_booking_specialists'&&call.args.p_service_id===service!.id),'staff lookup is scoped to the selected service');
+  assert.ok(rpcCalls.some(call=>call.name==='studioflow_available_slots'&&call.args.p_service_id===service!.id&&call.args.p_stylist_id===chosenStaff.id&&call.args.p_date===qaDate),'slot lookup is scoped to the selected service, staff and date');
+  assert.equal(rpcCalls.filter(call=>call.name==='studioflow_book').length,1,'exactly one booking save request is sent');
+  const confirmation=textOf(tree.toJSON()).toLowerCase();
+  assert.ok(confirmation.includes('booking confirmed')||confirmation.includes('booking is confirmed'),'the UI confirms booking only after Razorpay verification');
+  console.log('PASS: simulated Aurelia customer booking E2E — service, staff, date/time, guest details, shared Supabase booking RPC and Razorpay test verification. No live appointment row or payment was created.');
+ }finally{
+  if(tree)await act(async()=>tree.unmount());
+  (supabase as any).rpc=originalRpc;
+  (supabase.functions as any).invoke=originalInvoke;
+  if(originalWindow===undefined)delete (globalThis as any).window;else (globalThis as any).window=originalWindow;
+  if(originalDocument===undefined)delete (globalThis as any).document;else (globalThis as any).document=originalDocument;
+  if(originalLocalStorage===undefined)delete (globalThis as any).localStorage;else (globalThis as any).localStorage=originalLocalStorage;
+ }
+}

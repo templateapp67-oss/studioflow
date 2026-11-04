@@ -602,6 +602,14 @@
 .sf-review-card{flex:0 0 320px;width:320px;border:1px solid var(--sf-line);border-radius:18px;background:#fff;padding:20px;display:grid;gap:10px;align-content:start}
 .sf-review-stars{color:#d97706;font-size:15px;letter-spacing:2px}
 .sf-review-card p{margin:0;font-size:14px}
+.aurelia-review-panel .sf-review-card blockquote{display:block!important;visibility:visible!important;opacity:1!important;margin:2px 0 6px;padding:0;color:#3e332b;font:400 15px/1.7 Georgia,serif;white-space:normal;overflow-wrap:anywhere;min-height:84px}
+.aurelia-review-panel .sf-review-card .sf-card-top{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}
+.aurelia-review-panel .sf-review-card .sf-review-stars{display:flex;align-items:center;gap:3px;color:#b9823f;flex-shrink:0}
+.aurelia-review-panel .sf-review-card .sf-category-label{font-size:10px;line-height:1.4;letter-spacing:.08em;text-align:right}
+.aurelia-review-panel .sf-review-card .sf-review-author strong{display:block;color:#2d241e;font-size:13px;font-weight:750}
+.aurelia-review-panel .sf-review-card .sf-review-author small{line-height:1.5}
+.aurelia-review-panel .sf-review-card .sf-review-media{display:block;width:100%;overflow:hidden;border-radius:12px}
+.aurelia-review-panel .sf-review-card .sf-review-photo{display:block;width:100%;height:154px;max-height:none;object-fit:cover;border-radius:12px}
 .sf-review-author{display:flex;align-items:center;gap:10px;font-size:13px}
 .sf-review-author img{width:34px;height:34px;border-radius:50%;object-fit:cover}
 .sf-review-author small{display:block;color:var(--sf-muted);font-size:11px}

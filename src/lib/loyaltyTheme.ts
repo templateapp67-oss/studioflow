@@ -8,6 +8,7 @@ export const LOYALTY_THEMES:Record<BusinessTypeId,RewardTheme>={
  barber:{surface:'#181512',card:'#211711',text:'#f5efe6',muted:'#c9bdb0',border:'#705638',radius:'8px',dark:true,font:serif},
  unisex_salon:{surface:'#e7eee7',card:'#faf8f5',text:'#252525',muted:'#5a5954',border:'#d2dcd2',radius:'18px',dark:false,font:sans},
  beauty_parlour:{surface:'#fff6f3',card:'#ffffff',text:'#44241f',muted:'#795950',border:'#f2d5cf',radius:'24px',dark:false,font:serif},
+ aurelia_beauty_parlour:{surface:'#f6f1ea',card:'#fffaf4',text:'#1d1612',muted:'#766d64',border:'#d8c8b4',radius:'4px',dark:false,font:serif},
  nail_studio:{surface:'#FFF5F7',card:'#FFFCFA',text:'#30242A',muted:'#7A626B',border:'#F4C8D5',radius:'20px',dark:false,font:sans},
  hair_spa:{surface:'#ecf7ef',card:'#f7fcf9',text:'#173d30',muted:'#496658',border:'#bbdfc9',radius:'18px',dark:false,font:sans},
  skincare_clinic:{surface:'#f0f9ff',card:'#ffffff',text:'#12354d',muted:'#47677a',border:'#bae6fd',radius:'12px',dark:false,font:sans},

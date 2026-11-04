@@ -26,6 +26,7 @@ import {
   MENS_LOYALTY,
 } from "../src/lib/keshkraft";
 import { seedTemplatePackages } from "../src/lib/packageCatalogue";
+import { nexoraTemplateMeta } from "../src/lib/nexoraTemplateCatalogue";
 import { normalizeWorkspace } from "../src/lib/normalizeWorkspace";
 import { servicesForTemplate } from "../src/lib/serviceCatalogue";
 import { createDemoVideos, showcaseVideos } from "../src/lib/showcaseVideos";
@@ -36,9 +37,9 @@ import { createDemoVideos, showcaseVideos } from "../src/lib/showcaseVideos";
   confirm: () => true,
 };
 const t = CATEGORY_TEMPLATES.mens_hair_studio;
-assert.equal(Object.keys(CATEGORY_TEMPLATES).length, 15);
-assert.equal(ALL_CATEGORY_OPTIONS.length, 15);
-assert.equal(Object.values(CATEGORY_TEMPLATES).at(-1)?.id, "mens_hair_studio");
+assert.equal(Object.keys(CATEGORY_TEMPLATES).length, 16);
+assert.equal(ALL_CATEGORY_OPTIONS.length, 16);
+assert.equal(nexoraTemplateMeta("mens_hair_studio")?.displayOrder, 15, "KeshKraft remains Template 15 in the NEXORA display order");
 assert.equal(t.title, "KeshKraft Men's Hair Studio");
 assert.deepEqual(t.subCategories, MENS_CATEGORIES);
 for (const route of [
@@ -260,5 +261,5 @@ assert.ok(migration.includes("mensPointsEarned"));
 assert.ok(migration.includes("on conflict(id) do nothing"));
 assert.ok(existsSync("TEMPLATE-15.md"));
 console.log(
-  "Template 15 UI/data: 15 entries, all aliases, 20 cuts + 10 colours, no packages, contamination rejection, male-only media gates, demo offers/reviews, rewards, filtering, demo booking protection, editor CRUD, deletion persistence and prior-record preservation passed.",
+  "Template 15 UI/data: 16 entries, all aliases, 20 cuts + 10 colours, no packages, contamination rejection, male-only media gates, demo offers/reviews, rewards, filtering, demo booking protection, editor CRUD, deletion persistence and prior-record preservation passed.",
 );

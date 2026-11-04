@@ -615,6 +615,24 @@
   --ai-media-bg: color-mix(in srgb, var(--af-mauve, #9a6b73) 12%, #fbf6f1);
   --ai-shadow: var(--af-shadow-soft, 0 12px 32px rgba(43, 27, 23, 0.18));
 }
+/* 16 — Aurelia: warm ivory, coffee ink and champagne accent. */
+.aurelia-site :is(.app-install, .app-install-strip) {
+  --ai-surface: var(--au-bg, #f6f1ea);
+  --ai-surface-2: #eee5d9;
+  --ai-ink: var(--au-ink, #1d1612);
+  --ai-muted: #64564a;
+  --ai-accent: #8c6a43;
+  --ai-on-accent: #ffffff;
+  --ai-accent-ink: #72512e;
+  --ai-line: var(--au-line, #d8c8b4);
+  --ai-font-heading: var(--font-aurelia-display, Georgia, serif);
+  --ai-font-body: var(--font-aurelia-sans, Arial, sans-serif);
+  --ai-radius: 8px;
+  --ai-btn-radius: 4px;
+  --ai-media-bg: #efe5d8;
+  --ai-shadow: 0 12px 32px rgba(29, 22, 18, 0.08);
+}
+
 /* 14 — Veda Sanjeevani: warm ivory ground, forest green accent, antique gold
  *      hairline, Cormorant headings. Uses the same `--vd-on-forest` token the
  *      template's own buttons use, so the banner CTA and "Book this ritual"

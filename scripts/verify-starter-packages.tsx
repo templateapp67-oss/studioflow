@@ -20,6 +20,15 @@ for(const t of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_stu
   assert.ok(section.includes('/templates/11/packages/'),'each bridal package card carries its own photograph');
   continue;
  }
+ if(t.id==='aurelia_beauty_parlour'){
+  const section=html.split('id="salon-packages"')[1]?.split('</section>')[0]||'';
+  assert.ok(section,'Aurelia publishes a signature packages section');
+  assert.equal((section.match(/class="aurelia-package-card"/g)||[]).length,5,'Aurelia displays five signature package cards');
+  assert.equal((section.match(/class="aurelia-package-image"/g)||[]).length,5,'Aurelia package cards each display a service photo');
+  for(const item of packages){assert.ok(section.includes(item.name.replaceAll('&','&amp;')),'Aurelia shows '+item.name);assert.ok(section.includes('₹'+item.price.toLocaleString('en-IN')),'Aurelia shows the real starting price for '+item.name);}
+  assert.ok(section.includes('Book package'),'Aurelia package cards open the shared booking flow');
+  continue;
+ }
  if(t.id==='hair_salon'){
   // Template 01 (Ziya Women’s Hair Studio) presents the starter pairings as an
   // editorial menu; the five catalogue packages, their real ₹ totals and their
@@ -91,4 +100,4 @@ let editor:any;await act(async()=>{editor=create(<Fixture/>)});const button=(tex
 await act(async()=>button('Packages & Signature Rituals').props.onClick());assert.equal(editor.root.findAllByProps({className:'service-editor-card'}).length,5);
 const first=menu.find(isPackage)!;await act(async()=>editor.root.findByProps({'aria-label':`Edit ${first.name}`}).props.onClick());const dialog=editor.root.findByProps({role:'dialog'});await act(async()=>dialog.findAllByType('input')[2].props.onChange({target:{value:'999'}}));await act(async()=>dialog.findByType('form').props.onSubmit({preventDefault(){}}));assert.equal(menu.find(p=>p.id===first.id)!.price,999);
 await act(async()=>editor.root.findByProps({'aria-label':`Remove ${first.name}`}).props.onClick());await act(async()=>button('Confirm removal').props.onClick());assert.equal(menu.filter(isPackage).length,4);const reloaded=JSON.parse(JSON.stringify(menu));assert.ok(!reloaded.some((p:SalonService)=>p.id===first.id));await act(async()=>editor.unmount());
-console.log('PASS: five category-specific packages and photos in all 14 templates; valid prices/durations, no duplicate seeding, package filter, edit, delete and saved menu preservation.');
+console.log('PASS: five category-specific packages and photos in all 15 salon templates; valid prices/durations, no duplicate seeding, package filter, edit, delete and saved menu preservation.');
