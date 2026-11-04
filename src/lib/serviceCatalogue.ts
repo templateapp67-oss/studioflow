@@ -45,3 +45,26 @@ export function servicesForTemplate(services:SalonService[],profile:SalonProfile
  const ids=new Set(custom.map(service=>service.id));
  return [...custom,...seeded().filter(service=>!ids.has(service.id)).slice(0,MAX_SERVICES-custom.length)];
 }
+
+/**
+ * The save RPC stores service photos as an atomic URL + storage-path pair.
+ * Starter/template photos can have a URL without an owner-storage path, so
+ * incomplete or blank pairs must not be sent to the RPC. Strip both fields
+ * from the outgoing draft only; the in-memory workspace stays untouched and
+ * the site can fall back to its template/category photography.
+ */
+export function withPairedServiceImages<T extends {services?:SalonService[]}>(draft:T):T {
+ if(!Array.isArray(draft.services))return draft;
+ let changed=false;
+ const services=draft.services.map(service=>{
+  const rawUrl=service.imageUrl;
+  const rawPath=service.imagePath;
+  const url=typeof rawUrl==='string'?rawUrl.trim():'';
+  const path=typeof rawPath==='string'?rawPath.trim():'';
+  if(url&&path)return service;
+  if(rawUrl==null&&rawPath==null)return service;
+  changed=true;
+  return {...service,imageUrl:undefined,imagePath:undefined};
+ });
+ return changed?{...draft,services}:draft;
+}
