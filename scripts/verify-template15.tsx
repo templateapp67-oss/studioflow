@@ -39,7 +39,7 @@ import { createDemoVideos, showcaseVideos } from "../src/lib/showcaseVideos";
 const t = CATEGORY_TEMPLATES.mens_hair_studio;
 assert.equal(Object.keys(CATEGORY_TEMPLATES).length, 16);
 assert.equal(ALL_CATEGORY_OPTIONS.length, 16);
-assert.equal(nexoraTemplateMeta("mens_hair_studio")?.priorityRank, 15, "KeshKraft remains Template 15 in the NEXORA catalogue");
+assert.equal(nexoraTemplateMeta("mens_hair_studio")?.displayOrder, 15, "KeshKraft remains Template 15 in the NEXORA display order");
 assert.equal(t.title, "KeshKraft Men's Hair Studio");
 assert.deepEqual(t.subCategories, MENS_CATEGORIES);
 for (const route of [
