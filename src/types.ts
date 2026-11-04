@@ -225,6 +225,7 @@ export interface AureliaBeautyConfig {
   teamHeading?: string;
   galleryHeading?: string;
   videosHeading?: string;
+  videosSubtitle?: string;
   offersHeading?: string;
   reviewsHeading?: string;
   contactHeading?: string;
