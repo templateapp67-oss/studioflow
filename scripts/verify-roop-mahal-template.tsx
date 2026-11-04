@@ -139,7 +139,7 @@ assert.deepEqual(
 // 4. Case 11: Templates 01–03 and 05–14 remain completely unchanged
 // ============================================================================
 const nonRoopTemplates = Object.values(CATEGORY_TEMPLATES).filter((t) => t.id !== 'beauty_parlour');
-assert.equal(nonRoopTemplates.length, 14, 'Must verify all 14 other templates');
+assert.equal(nonRoopTemplates.length, 15, 'Must verify all 15 other templates');
 
 for (const template of Object.values(CATEGORY_TEMPLATES)) {
   const profile = applyTemplateDesign({ ...INITIAL_SALON_PROFILE, subdomain: `iso-${template.id}` }, template);
@@ -917,5 +917,5 @@ assert.equal(customOwnerDraft.profile.ownerPhotoUrl, 'https://cdn.example.com/re
 assert.equal(customOwnerDraft.profile.tagline, 'Bespoke Bridal & Herbal Parlour in Connaught Place');
 
 console.log(
-  'PASS: Template 04 (Roop Mahal) design + Explicit Section Visibility Rules + stale Supabase catalog & legacy draft upgrades verified with Templates 01–03 & 05–14 unchanged.',
+  'PASS: Template 04 (Roop Mahal) design + Explicit Section Visibility Rules + stale Supabase catalog & legacy draft upgrades verified with Templates 01–03 & 05–16 unchanged.',
 );
