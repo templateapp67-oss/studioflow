@@ -93,7 +93,7 @@ assert.equal(option!.title, 'NEXORA Arch & Flutter Lash & Brow Bar');
 assert.equal(option!.displayName, 'NEXORA Arch & Flutter Lash & Brow Bar');
 assert.equal(option!.badge, 'Template 13');
 assert.equal(option!.categoryTag, 'Lash & Brow');
-assert.equal(option!.priorityRank, 14);
+assert.equal(option!.priorityRank, 13);
 for (const alias of ['13', 'template-13', 'arch-flutter', 'archflutter', 'lash', 'lashes', 'lash-brow', 'lash_brow', 'brow', 'microblading']) {
   assert.equal(requestedTemplate(`?template=${alias}`)?.id, 'lash_brow', `?template=${alias} opens Template 13`);
 }
