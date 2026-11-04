@@ -20,27 +20,20 @@ for(const t of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_stu
   assert.ok(section.includes('/templates/11/packages/'),'each bridal package card carries its own photograph');
   continue;
  }
- if(t.id==='hair_salon'){
-  // Template 01 (Ziya Women’s Hair Studio) presents the starter pairings as an
-  // editorial menu; the five catalogue packages, their real ₹ totals and their
-  // book action remain the same.
-  if(t.id==='aurelia_beauty_parlour'){
-  if(t.id==='aurelia_beauty_parlour'){
-  const section=html.split('id="salon-packages"')[1].split('</section>')[0];
+ if(t.id==='aurelia_beauty_parlour'){
+  const section=html.split('id="salon-packages"')[1]?.split('</section>')[0]||'';
+  assert.ok(section,'Aurelia publishes a signature packages section');
   assert.equal((section.match(/class="aurelia-package-card"/g)||[]).length,5,'Aurelia displays five signature package cards');
   assert.equal((section.match(/class="aurelia-package-image"/g)||[]).length,5,'Aurelia package cards each display a service photo');
   for(const item of packages){assert.ok(section.includes(item.name.replaceAll('&','&amp;')),'Aurelia shows '+item.name);assert.ok(section.includes('₹'+item.price.toLocaleString('en-IN')),'Aurelia shows the real starting price for '+item.name);}
   assert.ok(section.includes('Book package'),'Aurelia package cards open the shared booking flow');
   continue;
  }
- const section=html.split('id="salon-packages"')[1].split('</section>')[0];
-  assert.equal((section.match(/class="aurelia-package-card"/g)||[]).length,5,'Aurelia displays five package cards');
-  assert.equal((section.match(/class="aurelia-package-image"/g)||[]).length,5,'Aurelia package cards each have a photograph');
-  for(const item of packages){assert.ok(section.includes(item.name.replaceAll('&','&amp;')),'Aurelia shows '+item.name);assert.ok(section.includes('₹'+item.price.toLocaleString('en-IN')),'Aurelia shows the actual starting price');}
-  assert.ok(section.includes('Book package'),'Aurelia package cards open the shared booking flow');
-  continue;
- }
- const section=html.split('id="salon-packages"')[1].split('</section>')[0];
+ if(t.id==='hair_salon'){
+  // Template 01 (Ziya Women’s Hair Studio) presents the starter pairings as an
+  // editorial menu; the five catalogue packages, their real ₹ totals and their
+  // book action remain the same.
+  const section=html.split('id="salon-packages"')[1].split('</section>')[0];
   assert.equal((section.match(/class="le-package-card"/g)||[]).length,5,'editorial package cards');
   for(const item of packages){const label=item.name.replace(/^Ziya Women’s Hair Studio\s*/,'').replace(/^Luxury Editorial Salon\s*/,'').replace(/\s*Package$/,'');assert.ok(section.includes(label),'editorial packages show '+label);}
   assert.ok(section.includes('Book package'),'editorial packages book through the same flow');
