@@ -36,7 +36,7 @@ export function CustomerReviewPanel({authenticOnly=false,businessType='hair_salo
   const seenIds=new Set<string>(),seenComments=new Set<string>();
   return rawCombined.filter(item=>{
    const commentText=typeof item?.comment==='string'?item.comment.trim():'';
-   if((isRoopMahal||isPinkyNails)&&!commentText)return false;
+   if((isRoopMahal||isPinkyNails||businessType==='aurelia_beauty_parlour')&&!commentText)return false;
    const key=commentText.toLowerCase();
    if((item.id&&seenIds.has(item.id))||(key&&seenComments.has(key)))return false;
    if(item.id)seenIds.add(item.id);
