@@ -74,6 +74,11 @@ assert.ok(reviewPanel.includes("businessType==='aurelia_beauty_parlour')?deduped
 assert.ok(reviewCarousel.includes("r.serviceImageUrl||r.imageUrl||r.reviewImageUrl"),'Review cards must display editorial service images as well as guest-uploaded photos');
 assert.ok(globalCss.includes(".sf-review-card blockquote{display:block!important"),'Review text must remain visible and readable');
 assert.ok(globalCss.includes(".sf-review-card .sf-review-photo{display:block"),'Review images must use a visible card image layout');
+assert.match(site,/AppInstallSection/,'Aurelia must include the shared app-install section');
+assert.match(site,/Customer Login/,'guest customers must have a sign-in action');
+assert.match(site,/Sign up/,'guest customers must have a sign-up action');
+assert.match(site,/experienceYears/,'Aurelia team cards must show staff experience');
+assert.match(site,/data-loyalty-template/,'Aurelia loyalty cards must use the shared theme marker');
 assert.match(editor,/uploadSalonImage/,'Owner image uploads must use StudioFlow Supabase media');
 assert.match(editor,/Add new offer/,'Owner must be able to add offers');
 assert.match(editor,/Website section order/,'Owner must be able to reorder website sections');
