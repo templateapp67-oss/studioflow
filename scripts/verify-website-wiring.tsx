@@ -116,7 +116,7 @@ for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_h
  const hidden=renderToStaticMarkup(<WebsiteSections {...props} profile={{...profile,websiteSections:{bookings:false,share:false}}}/>);
  assert.ok(!hidden.includes('data-section="bookings"'));assert.ok(!hidden.includes('data-section="share"'));
 }
-console.log('PASS: all 14 templates show enabled empty customer sections and saved booking rules; edit actions are owner-only; bookings/share toggles hide sections.');
+console.log('PASS: all 15 non-men-only templates show enabled empty customer sections and saved booking rules; edit actions are owner-only; bookings/share toggles hide sections.');
 
 const signupMarkup=renderToStaticMarkup(<AuthPage compact customerMode initialMode="signup" returnSlug="test-salon"/>);
 assert.ok(signupMarkup.includes('Create your customer account'));assert.ok(!signupMarkup.includes('Salon name'));assert.ok(signupMarkup.includes('Full name'));
@@ -126,7 +126,13 @@ console.log('PASS: live customer signup uses customer fields; login includes pas
 // Demo seeding covers new and already-published empty profiles without replacing owner videos.
 for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')) {
  const raw={...INITIAL_SALON_PROFILE,businessType:template.id,socialVideos:[],demoVideosInitialized:undefined};
- const initialized=normalizeWorkspace({profile:raw});assert.equal(initialized.profile.socialVideos.length,5);assert.ok(initialized.profile.socialVideos.every(v=>v.isDemo&&!v.isOwnerVideo));assert.equal(new Set(initialized.profile.socialVideos.map(v=>v.videoId)).size,5);
+ const initialized=normalizeWorkspace({profile:raw});
+ if(template.id==='aurelia_beauty_parlour'){
+  assert.equal(initialized.profile.socialVideos.length,0,'Aurelia does not seed unrelated generic demo reels');
+  assert.equal(showcaseVideos(initialized.profile).length,0,'Aurelia shows no reel until the owner uploads one');
+  continue;
+ }
+ assert.equal(initialized.profile.socialVideos.length,5);assert.ok(initialized.profile.socialVideos.every(v=>v.isDemo&&!v.isOwnerVideo));assert.equal(new Set(initialized.profile.socialVideos.map(v=>v.videoId)).size,5);
  const html=renderToStaticMarkup(<WebsiteSections profile={initialized.profile} services={[]} onBook={()=>{}} readOnly/>);assert.equal((html.match(/class="sf-reel-media"/g)||[]).length,5);assert.equal((html.match(/<iframe/g)||[]).length,0);assert.ok(html.includes('DEMO / REFERENCE'));
  const removed=normalizeWorkspace({profile:{...initialized.profile,socialVideos:[]}});assert.equal(showcaseVideos(removed.profile).length,0,'Deleted demos must not return');
 }
@@ -145,7 +151,7 @@ assert.equal(demoProfile.socialVideos.length,5);assert.equal(demoProfile.socialV
 assert.equal(normalizeWorkspace({profile:demoProfile}).profile.socialVideos[0].title,'My actual salon reel');
 await act(async()=>demoButton('MANAGE / REPLACE').props.onClick());await act(async()=>demoButton('Delete Video').props.onClick());assert.equal(demoProfile.socialVideos.length,4);assert.equal(normalizeWorkspace({profile:demoProfile}).profile.socialVideos.length,4);
 await act(async()=>demoEditor.unmount());
-console.log('PASS: five distinct demo reel posters in all 14 templates; replacement keeps position and persists owner URL/title; deletion stays removed after reload.');
+console.log('PASS: five distinct demo reel posters on video-enabled templates; Aurelia keeps owner-uploaded reels only; replacement keeps position and persists owner URL/title; deletion stays removed after reload.');
 
 for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')) {
  const profile={...INITIAL_SALON_PROFILE,businessType:template.id,subdomain:'test-salon',socialVideos:[]};
@@ -757,7 +763,7 @@ assert.equal(reels.root.findAll(n=>n.type==='a'&&n.props.className==='sf-reel-me
 await act(async()=>nativePlayer.props.onError());assert.equal(reels.root.findAllByType('video').length,0);assert.ok(reels.root.findAllByType('img').length);
 await act(async()=>reels.unmount());
 assert.equal(socialVideoSource('javascript:alert(1)'),null);assert.equal(socialVideoSource('https://youtube.com.evil.test/watch?v=abcdefghijk'),null);assert.equal(socialVideoSource('https://www.youtube.com/shorts/abcdefghijk')?.platform,'YouTube');assert.equal(socialVideoSource(insta.youtubeUrl)?.platform,'Instagram');
-console.log('PASS: portrait reel posters across 14 templates, one muted autoplay hover preview, stop on leave, source navigation, cover fallback, Instagram/native previews and safe source URL validation.');
+console.log('PASS: portrait reel posters across video-enabled templates, one muted autoplay hover preview, stop on leave, source navigation, cover fallback, Instagram/native previews and safe source URL validation.');
 
 // Setup accepts Instagram links plus owner-provided poster/video previews, kept on theme switch.
 await act(async()=>{demoEditor=create(<DemoHarness/>);});
