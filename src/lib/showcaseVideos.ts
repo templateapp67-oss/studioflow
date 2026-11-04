@@ -69,7 +69,8 @@ export function createDemoVideos(businessType:string):SocialVideo[]{
 }
 
 export function showcaseVideos(profile:SalonProfile):SocialVideo[]{
- if(profile.businessType==='mens_hair_studio'||profile.businessType==='aurelia_beauty_parlour')return []; // These templates add their own reviewed media; never seed unrelated generic clips.
+ if(profile.businessType==='mens_hair_studio')return []; // KeshKraft has its dedicated reviewed media.
+ if(profile.businessType==='aurelia_beauty_parlour')return (profile.socialVideos||[]).filter(video=>!video.isDemo); // Never seed unrelated demo clips, but preserve the owner's uploaded Aurelia reels.
  if(profile.socialVideos?.length||profile.demoVideosInitialized){
   const demos=createDemoVideos(profile.businessType),generic=REFERENCES;
   return (profile.socialVideos||[]).map(video=>{
