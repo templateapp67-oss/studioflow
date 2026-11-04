@@ -62,7 +62,7 @@ await act(async()=>filter('barber-shop').props.onClick());
 assert.deepEqual(cardIds(),['barber'],'Barber Shop filter shows only the barber template');
 assert.equal(filter('barber-shop').props['aria-pressed'],true,'the selected category is clearly marked');
 await act(async()=>filter('nail-studio').props.onClick());
-assert.deepEqual(cardIds(),['nail_studio','aurelia_beauty_parlour'],'Nail Studio filter shows both nail service templates');
+assert.deepEqual(cardIds(),['nail_studio'],'Nail Studio filter shows only the dedicated nail template');
 await act(async()=>filter('mens-hair-studio').props.onClick());
 assert.deepEqual(cardIds(),['mens_hair_studio'],'Men’s Hair Studio filter is a real, separate category');
 await act(async()=>filter('all').props.onClick());
