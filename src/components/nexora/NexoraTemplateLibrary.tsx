@@ -20,6 +20,9 @@ export interface NexoraTemplateLibraryProps {
   onCustomize: (id: CategoryTemplateConfig['id']) => void;
   /** Highlights the template already applied to the signed-in salon. */
   activeTemplateId?: string;
+  activeCategoryId?: string;
+  onActiveCategoryChange?: (categoryId: string) => void;
+  showCategoryFilters?: boolean;
 }
 
 const money = (value: number) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
@@ -36,8 +39,12 @@ export const NexoraTemplateLibrary: React.FC<NexoraTemplateLibraryProps> = ({
   onPreview,
   onCustomize,
   activeTemplateId,
+  activeCategoryId,
+  onActiveCategoryChange,
+  showCategoryFilters = true,
 }) => {
-  const [activeCategory, setActiveCategory] = useState('all');
+  const [localActiveCategory, setLocalActiveCategory] = useState('all');
+  const activeCategory = activeCategoryId ?? localActiveCategory;
   const [query, setQuery] = useState('');
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -62,7 +69,8 @@ export const NexoraTemplateLibrary: React.FC<NexoraTemplateLibraryProps> = ({
   const activeFilter = filters.find((filter) => filter.id === activeCategory) || filters[0];
   const trimmedQuery = query.trim();
   const selectCategory = (id: string) => {
-    setActiveCategory(id);
+    if (onActiveCategoryChange) onActiveCategoryChange(id);
+    else setLocalActiveCategory(id);
     listRef.current?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
   };
 
@@ -125,7 +133,7 @@ export const NexoraTemplateLibrary: React.FC<NexoraTemplateLibraryProps> = ({
       </div>
 
       {/* Category filters */}
-      <div role="group" aria-label="Filter templates by category" className="flex flex-wrap gap-2">
+      {showCategoryFilters && <div role="group" aria-label="Filter templates by category" className="flex flex-wrap gap-2">
         {filters.map((filter) => {
           const selected = filter.id === activeCategory;
           return (
@@ -152,7 +160,7 @@ export const NexoraTemplateLibrary: React.FC<NexoraTemplateLibraryProps> = ({
             </button>
           );
         })}
-      </div>
+      </div>}
 
       {/* Active filter summary */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#E4DCCB] bg-white px-4 py-3">
@@ -166,7 +174,7 @@ export const NexoraTemplateLibrary: React.FC<NexoraTemplateLibraryProps> = ({
           <button
             type="button"
             onClick={() => {
-              setActiveCategory('all');
+              selectCategory('all');
               setQuery('');
             }}
             className="inline-flex items-center gap-1.5 rounded-lg border border-[#E4DCCB] px-2.5 py-1.5 text-xs font-bold text-[#6B5E7A] hover:bg-[#FBF8F2]"
@@ -200,7 +208,7 @@ export const NexoraTemplateLibrary: React.FC<NexoraTemplateLibraryProps> = ({
           <button
             type="button"
             onClick={() => {
-              setActiveCategory('all');
+              selectCategory('all');
               setQuery('');
             }}
             className="mt-4 inline-flex min-h-[40px] items-center gap-2 rounded-xl bg-[#2A1E4A] px-4 text-xs font-bold text-white hover:bg-[#3E2A63]"
