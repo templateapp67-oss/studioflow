@@ -4,6 +4,7 @@ import {BookingModal} from '../BookingModal';
 import {SalonBookingsDialog} from '../SalonBookingsDialog';
 import {CustomerReviewPanel} from '../CustomerReviewPanel';
 import {StylistProfile} from '../StylistProfile';
+import {AppInstallSection} from '../AppInstallSection';
 import {isPackage} from '../../lib/packageCatalogue';
 import {photoGallery as getPhotoGallery} from '../../lib/photoGallery';
 import {AURELIA_DEFAULT_CONFIG, AURELIA_DEFAULT_OFFERS, AURELIA_DEFAULT_SERVICES, AURELIA_DEFAULT_STAFF, AURELIA_IMAGES, aureliaConfigFor} from '../../lib/aureliaBeauty';
@@ -106,6 +107,7 @@ export function AureliaBeautyWebsite(props:SalonWebsitePreviewProps){
    {show('loyalty')&&<section data-section="loyalty" data-loyalty-template={profile.businessType} style={sectionStyle('loyalty')} className="aurelia-section aurelia-loyalty" id="aurelia-loyalty"><div className="aurelia-section-heading"><div><p className="aurelia-eyebrow">A THANK YOU FOR COMING BACK</p><h2>{profile.sectionHeadings?.loyaltyTitle||'Little rewards for every visit.'}</h2></div><p>Ask the team how your visits can add up to salon rewards.</p></div><div className="aurelia-loyalty-grid">{(props.loyaltyConfig?.rewards||[]).filter(reward=>reward.isActive).map(reward=><article className="sf-loyalty-card" key={reward.id}><h3>{reward.title}</h3><p>{reward.description}</p><strong>{reward.requiredPoints} points required</strong></article>)}</div></section>}
    {show('policies')&&<section data-section="policies" style={sectionStyle('policies')} className="aurelia-section aurelia-policies" id="aurelia-policies"><div className="aurelia-section-heading"><div><p className="aurelia-eyebrow">GOOD TO KNOW</p><h2>{profile.sectionHeadings?.policiesTitle||'Before your visit.'}</h2></div><p>These notes help make every appointment smooth and comfortable.</p></div><div className="aurelia-policy-grid">{Object.entries(props.policies||{}).filter(([,value])=>typeof value==='string'&&value.trim()).map(([label,value])=><article key={label}><h3>{label.replace(/([A-Z])/g,' $1').replaceAll('_',' ')}</h3><p>{value}</p></article>)}</div></section>}
   </main>
+  <AppInstallSection hidden={!show('appInstall')}/>
   {show('footer')&&<footer className="aurelia-footer"><div className="aurelia-footer-brand"><span>{profile.businessName||'AURELIA'}</span><small>Beauty · Hair · Wellness</small></div><p>{profile.city} · {profile.phone}</p>{props.branding?.poweredBy&&<small>Powered by {props.branding.platformName||'NEXORA'}</small>}<a href="#aurelia-home">Back to top ↑</a></footer>}
   {waUrl&&<a className="aurelia-whatsapp" href={waUrl} target="_blank" rel="noreferrer" aria-label="Chat on WhatsApp"><MessageCircle/></a>}
   {activeStylist&&<StylistProfile staff={activeStylist} profile={profile} slug={profile.subdomain} signedIn={props.customerSignedIn} demo={!profile.subdomain} services={services} onClose={()=>setActiveStylist(null)} onLogin={()=>props.onCustomerAccount?.('signin')} onBook={()=>{const person=activeStylist;setActiveStylist(null);book(undefined,person);}}/>}
