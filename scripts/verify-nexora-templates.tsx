@@ -35,21 +35,21 @@ import {templateDraft} from '../src/lib/templateEntry';
 const EXPECTED = [
   ['hair_salon', 'NEXORA Ziya Women’s Haircut Studio', 'Haircut Studio', "Specialist women's haircut services and modern hairstyles."],
   ['barber', 'NEXORA Royal Blade Men’s Barber Shop', 'Barber Shop', "Men's haircuts, beard grooming and classic barber services."],
+  ['unisex_salon', 'NEXORA Aura Unisex Salon', 'Unisex Salon', 'Hair, skin, grooming and salon services for men and women.'],
   ['beauty_parlour', 'NEXORA Roop Mahal Beauty Parlour', 'Beauty Parlour', 'Beauty services, facials and makeover services.'],
   ['nail_studio', 'NEXORA Pinky Nails Studio', 'Nail Studio', 'Nail art, nail care and nail design services.'],
-  ['unisex_salon', 'NEXORA Aura Unisex Salon', 'Unisex Salon', 'Hair, skin, grooming and salon services for men and women.'],
-  ['mens_hair_studio', 'NEXORA KeshKraft Men’s Hair Studio', "Men's Hair Studio", "Men's haircuts and men's hair colour only."],
   ['hair_spa', 'NEXORA Kesh Prakriti Hair Spa', 'Hair Spa & Hair Care', 'Hair spa, hair care and related services.'],
   ['skincare_clinic', 'NEXORA Dermacure Aesthetic Clinic', 'Skin & Aesthetic Clinic', 'Skincare, aesthetic and clinic services.'],
   ['makeup_studio', 'NEXORA Vogue Noir Makeup Studio', 'Makeup Studio', 'Professional makeup, occasion looks and makeup academy.'],
-  ['bridal_lounge', 'NEXORA Shringaar Royal Bridal Lounge', 'Bridal Makeup', 'Bridal makeup, wedding looks and bridal styling.'],
-  ['hair_coloring', 'NEXORA Prism & Chroma Hair Colour Studio', 'Hair Colour Studio', 'Hair colouring, highlights, balayage and colour services.'],
   ['massage_wellness', 'NEXORA Bodhi Tree Massage & Wellness', 'Massage & Wellness', 'Massage, wellness and relaxation services.'],
+  ['hair_coloring', 'NEXORA Prism & Chroma Hair Colour Studio', 'Hair Colour Studio', 'Hair colouring, highlights, balayage and colour services.'],
+  ['bridal_lounge', 'NEXORA Shringaar Royal Bridal Lounge', 'Bridal Makeup', 'Bridal makeup, wedding looks and bridal styling.'],
   ['tattoo_studio', 'NEXORA Iron & Ink Tattoo Studio', 'Tattoo & Body Art', 'Tattoo designs, custom tattoos and body art.'],
   ['lash_brow', 'NEXORA Arch & Flutter Lash & Brow Bar', 'Lash & Brow', 'Eyelash, eyebrow and beauty services.'],
   ['ayurvedic_spa', 'NEXORA Veda Sanjeevani Ayurvedic Spa', 'Ayurvedic Wellness', 'Ayurvedic wellness and spa services.'],
+  ['mens_hair_studio', 'NEXORA KeshKraft Men’s Hair Studio', "Men's Hair Studio", "Men's haircuts and men's hair colour only."],
   ['aurelia_beauty_parlour', 'NEXORA Aurelia Beauty Parlour', 'Beauty Parlour', 'A complete beauty studio with hair, colour, skin, bridal, nails and spa services.'],
-] as const;
+] as const;;
 
 assert.equal(NEXORA_TEMPLATE_META.length, 16, 'exactly sixteen NEXORA templates');
 assert.equal(Object.keys(CATEGORY_TEMPLATES).length, 16, 'the template registry holds sixteen templates');
