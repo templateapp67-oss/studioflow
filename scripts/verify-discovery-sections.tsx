@@ -20,7 +20,7 @@ const later={...real,content:{...real.content,profile:{...real.content.profile,p
 assert.equal(discoveryFeed([later],now).offers.length,1);assert.equal(discoveryFeed([later],now).lastMinute.length,0);
 assert.equal(promotionActive({enabled:true}),true);
 const templates=Object.values(CATEGORY_TEMPLATES).map(t=>({...t,demoOffer:{enabled:true,selectedServiceId:t.services[0].id,headline:'Sample 20% OFF',discountPercent:20,lastMinute:true}}));
-const demos=withTemplateDemos([],templates);assert.equal(discoveryFeed(demos,now).offers.length,15);assert.equal(discoveryFeed(demos,now).lastMinute.length,15);
+const demos=withTemplateDemos([],templates);assert.equal(discoveryFeed(demos,now).offers.length,16);assert.equal(discoveryFeed(demos,now).lastMinute.length,16);
 const markup=renderToStaticMarkup(<DiscoverySections salons={demos} open={()=>{}} book={()=>{}}/>);
 for(const name of ['Quick Services','Special Discounts','Last-Minute Deals','TEMPLATE DEMO','SAMPLE DEAL'])assert.ok(markup.includes(name),name);
 assert.ok(!markup.includes('Ends in'),'No fabricated countdown for template offers');
@@ -34,4 +34,4 @@ await act(async()=>tree.root.findAllByType('button').find((b:any)=>b.props.child
 assert.equal(opened,'actual');assert.equal(tree.root.findAllByProps({role:'dialog'}).length,0);
 await act(async()=>tree.unmount());
 assert.equal(discoveryFeed(withTemplateDemos([{...real,content:{...real.content,profile:{...real.content.profile,businessType:'hair_salon'}}}],templates),now).offers.filter(o=>o.salon.demoTemplateId==='hair_salon').length,0);
-console.log('PASS: genuine <=30-minute services; exact booking service; owner offers respect enable/service/expiry; final-24h deals; all 14 Supabase template demo offers; demo replacement; honest prices/countdowns; offer details and salon navigation.');
+console.log('PASS: genuine <=30-minute services; exact booking service; owner offers respect enable/service/expiry; final-24h deals; all 16 Supabase template demo offers; demo replacement; honest prices/countdowns; offer details and salon navigation.');
