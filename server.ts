@@ -637,12 +637,29 @@ Return strictly valid JSON in this format:
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), "dist");
+    const appEntryQueryKeys = [
+      "app", "customer", "site", "s", "subdomain", "template", "category",
+      "create", "owner", "panel", "auth", "recovery", "ref", "customer_ref",
+      "return", "passwordUpdated", "code", "error", "error_description", "tab",
+    ];
+    app.get("/", (req, res, next) => {
+      const hasAppEntryQuery = appEntryQueryKeys.some((key) =>
+        Object.prototype.hasOwnProperty.call(req.query || {}, key),
+      );
+      if (hasAppEntryQuery) {
+        return res.sendFile(path.join(distPath, "app.html"), (error) => {
+          if (error) next(error);
+        });
+      }
+      return next();
+    });
     app.use(express.static(distPath));
     app.all("/api/*", (_req, res) => {
       res.status(404).json({error:'Unknown API endpoint'});
     });
+    // Non-root application paths use the non-prerendered app shell.
     app.get("*", (_req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
+      res.sendFile(path.join(distPath, "app.html"));
     });
   }
 
