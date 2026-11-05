@@ -92,6 +92,8 @@ const clientRpc=(src)=>{
 const walk=(dir)=>readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(dir+'/'+e.name):dir+'/'+e.name.endsWith('.tsx')||e.name.endsWith('.ts')?[dir+'/'+e.name]:[]);
 const src=['src','supabase/functions','backend/functions'].flatMap(d=>{try{return walk(d)}catch{return[]}}).map(f=>readFileSync(f,'utf8')).join('\n');
 await db.exec(readFileSync('supabase/migrations/202611030003_template15_keshkraft.sql','utf8'));
+await db.exec(readFileSync('supabase/migrations/202611050001_booking_multi_services.sql','utf8'));
+await db.exec(readFileSync('supabase/migrations/202611050001_booking_multi_services.sql','utf8'));
 const rpcs=clientRpc(src);
 const froms=[...src.matchAll(/\.from\(\s*['"\`]([A-Za-z0-9_-]+)['"\`]/g)].map(m=>m[1]);
 const tables=froms.filter(n=>!n.includes('-'));
@@ -154,4 +156,6 @@ await applyFile('roop-mahal-template-sync.sql');
 const {rows: [repairedAgain]} = await db.query(`select config from public.studioflow_templates where id='beauty_parlour'`);
 assert.equal(JSON.stringify(repairedAgain.config),stableConfig,'Template 04 catalog sync must be idempotent');
 console.log('PASS: Template 04 SQL sync repairs legacy stock/catalog design only; services and Templates 01–03 & 05–14 remain unchanged.');
+const {verifyBookingBundles}=await import('./fixtures/booking-bundles.mjs');
+await verifyBookingBundles(db);
 await db.close();
