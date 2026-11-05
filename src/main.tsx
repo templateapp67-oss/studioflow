@@ -118,6 +118,8 @@ if (
     },
   );
   authSubscription = authListener.data.subscription;
+  // Supabase may emit an initial signed-in session before the assignment above.
+  if (applicationMounted) authSubscription.unsubscribe();
 
   // Signed-in owners still reach their existing workspace from the root URL.
   void supabase.auth.getSession().then(({ data, error }) => {
