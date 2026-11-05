@@ -1,0 +1,63 @@
+name: NEXORA web build and verification
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/nexora-web-checks.yml"
+      - "index.html"
+      - "app.html"
+      - "package.json"
+      - "package-lock.json"
+      - "server.ts"
+      - "server/**"
+      - "src/**"
+      - "scripts/**"
+      - "public/robots.txt"
+      - "public/sitemap.xml"
+      - "public/nexora-social-preview.png"
+      - "vercel.json"
+      - "vite.config.ts"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/nexora-web-checks.yml"
+      - "index.html"
+      - "app.html"
+      - "package.json"
+      - "package-lock.json"
+      - "server.ts"
+      - "server/**"
+      - "src/**"
+      - "scripts/**"
+      - "public/robots.txt"
+      - "public/sitemap.xml"
+      - "public/nexora-social-preview.png"
+      - "vercel.json"
+      - "vite.config.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nexora-web-checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: TypeScript, production build and offline verifications
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Run TypeScript, production build and offline verification suites
+        run: npm test
