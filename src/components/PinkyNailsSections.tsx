@@ -600,9 +600,9 @@ export function PinkyNailsTeamCard({
 
   return (
     <article className={`sf-pn-team-card${selected ? ' is-selected' : ''}${showPhoto ? '' : ' is-no-photo'}`}>
-      <button type="button" className="sf-pn-team-portrait" onClick={onView} aria-label={`${t('View profile & reviews')}: ${name}`}>
+      <button type="button" className="sf-pn-team-portrait h-80 w-full aspect-[3/4] overflow-hidden" onClick={onView} aria-label={`${t('View profile & reviews')}: ${name}`}>
         {showPhoto ? (
-          <img src={avatar} alt={name} loading="lazy" onError={() => setFailed(true)} />
+          <img src={avatar} alt={name} loading="lazy" className="w-full h-full object-cover" onError={() => setFailed(true)} />
         ) : (
           <span className="sf-pn-team-initials" aria-hidden="true">
             {initials || 'PN'}

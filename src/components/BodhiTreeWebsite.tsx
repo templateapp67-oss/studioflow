@@ -1271,14 +1271,14 @@ export function BodhiTreeWebsite({
                   {team.length > 0 ? (
                     <motion.div variants={stagger} initial={canObserveViewport ? 'hidden' : 'visible'} whileInView={canObserveViewport ? 'visible' : undefined} viewport={revealViewport} className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
                       {team.map((member) => (
-                        <motion.article key={member.id} variants={staggerItem} className="bt-glass-cream bt-lift flex flex-col overflow-hidden">
+                        <motion.article key={member.id} variants={staggerItem} className="bt-glass-cream bt-lift flex flex-col overflow-hidden h-80 w-full aspect-[3/4]">
                           <SafeImage
                             src={member.avatarUrl}
                             fallback={BODHI_TREE_IMAGES.team.kavita}
                             alt={`Photo of ${member.name}, ${member.role}`}
                             width={600}
                             height={600}
-                            className="aspect-square w-full object-cover"
+                            className="aspect-square w-full h-full object-cover"
                           />
                           <div className="flex flex-1 flex-col p-5">
                             <h3 className="bt-serif text-[1.45rem] font-semibold leading-snug">{member.name}</h3>

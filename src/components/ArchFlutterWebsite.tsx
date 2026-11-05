@@ -620,8 +620,8 @@ export function ArchFlutterWebsite({
 
   const artistCard = (artist: Stylist) => (
     <RevealItem key={artist.id} as="article" className="af-glass-solid af-artist">
-      <div className="af-artist-photo">
-        <SafeImage src={artist.avatarUrl} fallback={ARCH_FLUTTER_ART.team} alt={`${artist.name}, ${artist.role} at ${brandName}`} width={440} height={506} loading="lazy" />
+      <div className="af-artist-photo h-80 w-full aspect-[3/4] overflow-hidden">
+        <SafeImage src={artist.avatarUrl} fallback={ARCH_FLUTTER_ART.team} alt={`${artist.name}, ${artist.role} at ${brandName}`} width={440} height={506} loading="lazy" className="w-full h-full object-cover" />
       </div>
       <b>{artist.name}</b>
       <span className="af-role">{artist.role}</span>

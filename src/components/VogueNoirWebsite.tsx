@@ -1013,13 +1013,14 @@ export function VogueNoirWebsite({
               <div className="vn-artists-grid">
                 {displayArtists.map((artist) => (
                   <article key={artist.id} className="vn-artist-card">
-                    <div className="vn-artist-photo">
+                    <div className="vn-artist-photo h-80 w-full aspect-[3/4] overflow-hidden">
                       <SafeImage
                         src={artist.avatarUrl}
                         fallback={VOGUE_NOIR_IMAGES.artists.riya}
                         alt={`${artist.name}, ${artist.role || 'Makeup Artist'}`}
                         width={600}
                         height={750}
+                        className="w-full h-full object-cover"
                       />
                     </div>
                     <div className="vn-artist-body">

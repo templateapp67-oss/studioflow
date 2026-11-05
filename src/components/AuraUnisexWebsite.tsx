@@ -1251,16 +1251,16 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                   const fallbackSrc = AURA_UNISEX_IMAGES.team[index % AURA_UNISEX_IMAGES.team.length].src;
                   return (
                     <article className="au-team-card" key={stylist.id}>
-                      <div className="au-team-portrait">
+                      <div className="au-team-portrait h-80 w-full aspect-[3/4] overflow-hidden">
                         <AuraImage
-                          className="au-team-photo"
-                          fallbackSrc={fallbackSrc}
-                          src={portrait.src}
-                          srcSet={portrait.srcSet || undefined}
-                          sizes="(max-width: 640px) 100vw, (max-width: 1120px) 50vw, 33vw"
-                          alt={portrait.alt}
-                          loading="lazy"
-                        />
+                          className="au-team-photo w-full h-full object-cover"
+                        fallbackSrc={fallbackSrc}
+                        src={portrait.src}
+                        srcSet={portrait.srcSet || undefined}
+                        sizes="(max-width: 640px) 100vw, (max-width: 1120px) 50vw, 33vw"
+                        alt={portrait.alt}
+                        loading="lazy"
+                      />
                         {typeof stylist.rating === 'number' && stylist.rating > 0 && (
                           <span className="au-team-rating">
                             <Star size={13} fill="currentColor" aria-hidden="true" />
@@ -1302,8 +1302,8 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                 })}
                 {displayOnlyStaff.map((person, index) => (
                   <article className="au-team-card" key={person.id}>
-                    <div className="au-team-portrait">
-                      <AuraImage className="au-team-photo" src={person.image?.url} fallbackSrc={AURA_UNISEX_IMAGES.team[index % AURA_UNISEX_IMAGES.team.length].src} alt={person.name} loading="lazy" />
+                    <div className="au-team-portrait h-80 w-full aspect-[3/4] overflow-hidden">
+                      <AuraImage className="au-team-photo w-full h-full object-cover" src={person.image?.url} fallbackSrc={AURA_UNISEX_IMAGES.team[index % AURA_UNISEX_IMAGES.team.length].src} alt={person.name} loading="lazy" />
                     </div>
                     <div className="au-team-body">
                       <p className="au-team-role">{person.role || 'Salon specialist'}</p>
