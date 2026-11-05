@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Search, X, Eye, Wand2, MapPin, ArrowUpRight, Check, LayoutGrid } from 'lucide-react';
 import type { CategoryTemplateConfig } from '../../types';
 import {
@@ -11,6 +11,7 @@ import {
   type NexoraTemplateMeta,
 } from '../../lib/nexoraTemplateCatalogue';
 import { NexoraLogo, NexoraBrandMark, CategoryIconTile } from './NexoraBrand';
+import { nexoraPreviewImage } from '../../lib/nexoraPreviewImages';
 
 export interface NexoraTemplateLibraryProps {
   /** Templates to show. Always re-sorted into the fixed NEXORA priority order. */
@@ -20,6 +21,10 @@ export interface NexoraTemplateLibraryProps {
   onCustomize: (id: CategoryTemplateConfig['id']) => void;
   /** Highlights the template already applied to the signed-in salon. */
   activeTemplateId?: string;
+  /** Optional controlled category state, shared with public category shortcuts. */
+  activeCategory?: string;
+  onCategoryChange?: (categoryId: string) => void;
+  /** Backward-compatible aliases used by the interim public page on main. */
   activeCategoryId?: string;
   onActiveCategoryChange?: (categoryId: string) => void;
   showCategoryFilters?: boolean;
@@ -39,12 +44,19 @@ export const NexoraTemplateLibrary: React.FC<NexoraTemplateLibraryProps> = ({
   onPreview,
   onCustomize,
   activeTemplateId,
+  activeCategory: controlledCategory,
+  onCategoryChange,
   activeCategoryId,
   onActiveCategoryChange,
   showCategoryFilters = true,
 }) => {
-  const [localActiveCategory, setLocalActiveCategory] = useState('all');
-  const activeCategory = activeCategoryId ?? localActiveCategory;
+  const [internalCategory, setInternalCategory] = useState('all');
+  const activeCategory = controlledCategory ?? activeCategoryId ?? internalCategory;
+  const setActiveCategory = useCallback((categoryId: string) => {
+    setInternalCategory(categoryId);
+    onCategoryChange?.(categoryId);
+    onActiveCategoryChange?.(categoryId);
+  }, [onCategoryChange, onActiveCategoryChange]);
   const [query, setQuery] = useState('');
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -69,8 +81,7 @@ export const NexoraTemplateLibrary: React.FC<NexoraTemplateLibraryProps> = ({
   const activeFilter = filters.find((filter) => filter.id === activeCategory) || filters[0];
   const trimmedQuery = query.trim();
   const selectCategory = (id: string) => {
-    if (onActiveCategoryChange) onActiveCategoryChange(id);
-    else setLocalActiveCategory(id);
+    setActiveCategory(id);
     listRef.current?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
   };
 
@@ -174,7 +185,7 @@ export const NexoraTemplateLibrary: React.FC<NexoraTemplateLibraryProps> = ({
           <button
             type="button"
             onClick={() => {
-              selectCategory('all');
+              setActiveCategory('all');
               setQuery('');
             }}
             className="inline-flex items-center gap-1.5 rounded-lg border border-[#E4DCCB] px-2.5 py-1.5 text-xs font-bold text-[#6B5E7A] hover:bg-[#FBF8F2]"
@@ -208,7 +219,7 @@ export const NexoraTemplateLibrary: React.FC<NexoraTemplateLibraryProps> = ({
           <button
             type="button"
             onClick={() => {
-              selectCategory('all');
+              setActiveCategory('all');
               setQuery('');
             }}
             className="mt-4 inline-flex min-h-[40px] items-center gap-2 rounded-xl bg-[#2A1E4A] px-4 text-xs font-bold text-white hover:bg-[#3E2A63]"
@@ -260,7 +271,8 @@ export const NexoraTemplateCard: React.FC<{
         >
           <div className="relative h-44 w-full overflow-hidden bg-[#221B34]">
             <img
-              src={template.coverImageUrl}
+              src={nexoraPreviewImage(template)}
+              data-registry-cover={template.coverImageUrl}
               alt={`${meta.displayName} template preview`}
               loading="lazy"
               decoding="async"

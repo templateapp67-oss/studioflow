@@ -41,7 +41,6 @@ import { Header } from './components/Header';
 import { DEFAULT_EXTRAS } from './lib/workspaceDefaults';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { AuthPage } from './components/AuthPage';
-import { PublicHomePage } from './components/PublicHomePage';
 import { CustomerBookings } from './components/CustomerBookings';
 import { useCustomerWelcomeDelivery } from './components/CustomerWelcomeDelivery';
 import { CustomerInvitePage } from './components/CustomerInvitePage';
@@ -50,9 +49,11 @@ import { CustomerReferralBridge } from './components/CustomerReferralBridge';
 import { CustomerApp } from './components/CustomerApp';
 import { supabase, captureReferral } from './lib/supabase';
 import { applySeoMetadata } from './lib/useSeoMetadata';
+import { applyPublicSeoMetadata, NEXORA_HOME_SEO, NEXORA_LOGIN_SEO } from './lib/publicSeo';
 
 const WebsiteCustomerAccount = lazy(() => import('./components/WebsiteCustomerAccount').then(m => ({ default: m.WebsiteCustomerAccount })));
 const LandingPage = lazy(() => loadScreen(() => import('./components/LandingPage').then(m => ({ default: m.LandingPage ?? (m as unknown as { default: typeof m.LandingPage }).default }))));
+const PublicHomepage = lazy(() => loadScreen(() => import('./components/PublicHomepage').then(m => ({ default: m.PublicHomepage }))));
 const OnboardingWizard = lazy(() => loadScreen(() => import('./components/OnboardingWizard').then(m => ({ default: m.OnboardingWizard }))));
 const SalonWebsitePreview = lazy(() => loadScreen(() => import('./components/SalonWebsitePreview').then(m => ({ default: m.SalonWebsitePreview }))));
 const SaaSDashboard = lazy(() => loadScreen(() => import('./components/SaaSDashboard').then(m => ({ default: m.SaaSDashboard }))));
@@ -83,10 +84,18 @@ function Application() {
  const entryTemplate=requestedTemplate(location.search);
  const createTemplate=new URLSearchParams(location.search).get('create')==='1';
  const ownerSlug=new URLSearchParams(location.search).get('owner');
+ const isLoginRoute=/^\/login\/?$/.test(location.pathname);
+ // Legacy root auth/create/owner/panel links keep working; new public links use /login explicitly.
+ const reservedRootEntry=customer||recovery||!!ownerSlug||!!entryTemplate||createTemplate||new URLSearchParams(location.search).has('panel');
+ const authEntry=isLoginRoute||reservedRootEntry||new URLSearchParams(location.search).has('auth');
  const onRecovery=useCallback(()=>{try{sessionStorage.setItem('studioflow_recovery','1');}catch{}setRecovery(true);},[]);
  const {session,ready:authReady,error:authError}=useAuthSession(onRecovery);
  useCustomerWelcomeDelivery(session);
  useEffect(()=>{captureReferral();},[]);
+ useEffect(()=>{
+  if(slug||customer||customerApp||inviteEntry)return;
+  applyPublicSeoMetadata(authEntry?NEXORA_LOGIN_SEO:NEXORA_HOME_SEO);
+ },[slug,customer,customerApp,inviteEntry,authEntry]);
  useEffect(()=>{if(!session){setAccount(null);setError('');return;}if(slug||customer||customerApp||recovery)return;let active=true;setAccount(null);setError('');
  (async()=>{
   if(ownerSlug){const target=await withTimeout(supabase.from('studioflow_websites').select('slug').eq('slug',ownerSlug).eq('owner_id',session.user.id).maybeSingle(),15000,'Checking this salon website');if(target.error)throw target.error;if(!target.data)throw new Error('Sign in with the owner account for this salon to manage its website.');}
@@ -127,12 +136,9 @@ function Application() {
  if(inviteEntry&&!recovery)return <CustomerInvitePage session={session}/>;
  if(customerApp)return <CustomerApp session={session}/>;
  if(slug)return <AppErrorBoundary resetKey={slug}><PublishedWebsite key={slug} slug={slug} session={session} /></AppErrorBoundary>;
- if(entryTemplate&&!createTemplate&&!slug&&!customer&&!recovery)return <TemplateEntry templateId={entryTemplate.id} />;
+ if(entryTemplate&&!createTemplate&&!isLoginRoute&&!slug&&!customer&&!recovery)return <TemplateEntry templateId={entryTemplate.id} />;
  if(!authReady)return <Loading text="Checking your session…" />;
- const authRequested = ['signin','signup','forgot'].includes(new URLSearchParams(location.search).get('auth') || '');
- const reservedRootEntry = customer || recovery || !!ownerSlug || !!entryTemplate || createTemplate || new URLSearchParams(location.search).has('panel');
- if(!session && !authRequested && !reservedRootEntry)return <PublicHomePage />;
- if(!session)return <><div className="bg-white border-b px-4 py-3 text-center text-sm">Looking for a salon appointment? <a className="text-violet-600 font-semibold" href="/?app=1">Open Nexora Customer App →</a></div><AuthPage /></>;
+ if(!session)return authEntry?<>{authError&&<p role="alert" className="p-4">{authError}</p>}<div className="bg-white border-b px-4 py-3 text-center text-sm">Looking for a salon appointment? <a className="text-violet-600 font-semibold" href="/?app=1">Open Nexora Customer App →</a></div><AuthPage /></>:<PublicHomepage />;
  if(customer)return <CustomerBookings session={session} />;
  if(error)return <main className="p-8"><h1 className="text-2xl font-bold">Account could not load</h1><p role="alert" className="my-4">{error.includes('database') || error.includes('connection') ? 'There was a database connection issue. Please check your internet or try again later.' : error}</p><button className="primary-action" onClick={()=>setRetry(r=>r+1)}>Retry</button><button className="secondary-action ml-3" onClick={()=>void supabase.auth.signOut()}>Sign out</button><button className="secondary-action ml-3" onClick={()=>{localStorage.removeItem('studioflow_pending_ref');const url=new URL(location.href);url.searchParams.delete('ref');history.replaceState(null,'',url);setSkipReferral(true);setRetry(r=>r+1);}}>Continue without pending referral</button></main>;
  if(!account||account.user_id!==session.user.id)return <AccountLoading profileState={account?'user-mismatch':'loading'} userId={session.user.id} onRetry={()=>setRetry(r=>r+1)} onSignOut={()=>void supabase.auth.signOut()} />;
@@ -149,7 +155,7 @@ function TemplateEntry({templateId}:{templateId:BusinessTypeId}){
  const draft=templateDraft(source);
  if(mergedRemote?.demoOffer)draft.profile.promoCampaign={selectedServiceId:'',campaignTheme:'flash_discount',discountPercent:0,customOfferText:'',promoCode:'',subtext:'',aspectRatio:'16:9',aesthetic:'minimalist_chic',imageUrl:source.coverImageUrl,customPrompt:'',...mergedRemote.demoOffer,headline:'TEMPLATE DEMO · '+(mergedRemote.demoOffer.headline||'Sample offer')};
  const create=()=>{if(templateId==='mens_hair_studio'&&mensDraft)try{sessionStorage.setItem('studioflow_template15_draft',JSON.stringify(mensDraft));}catch{}location.assign(`/?template=${encodeURIComponent(templateId)}&create=1`);};
- return <><div data-template-preview-toolbar className="sticky top-0 z-[90] bg-white border-b px-4 py-3 flex flex-wrap justify-between items-center gap-3"><a className="font-semibold" href="https://nexora-beauty-network.templateapp67.chatgpt.site/templates/">← All templates</a><span><strong>{nexoraName(templateId, template.shortName)}</strong> · Demo template</span>{templateId==='mens_hair_studio'&&<button className="secondary-action" onClick={()=>setMensEditing(true)}>Customize</button>}<button className="primary-action" onClick={create}>Create my website with this template</button></div>{mensEditing&&templateId==='mens_hair_studio'?<KeshKraftEditor workspace={mensDraft||draft} onSave={next=>setMensDraft(next)} onClose={()=>setMensEditing(false)}/>:<SalonWebsitePreview readOnly profile={mensDraft?.profile||draft.profile} services={mensDraft?.services||draft.services} stylists={mensDraft?.stylists||draft.stylists} loyaltyConfig={mensDraft?.loyaltyConfig} gallery={draft.extras.gallery} onCustomerAccount={create} onAddAppointment={async()=>{throw new Error('This is a template preview. Choose Create my website to set up your own bookings.');}} />}</>;
+ return <><div data-template-preview-toolbar className="sticky top-0 z-[90] bg-white border-b px-4 py-3 flex flex-wrap justify-between items-center gap-3"><a className="font-semibold" href="/#nexora-template-library">← All templates</a><span><strong>{nexoraName(templateId, template.shortName)}</strong> · Demo template</span>{templateId==='mens_hair_studio'&&<button className="secondary-action" onClick={()=>setMensEditing(true)}>Customize</button>}<button className="primary-action" onClick={create}>Create my website with this template</button></div>{mensEditing&&templateId==='mens_hair_studio'?<KeshKraftEditor workspace={mensDraft||draft} onSave={next=>setMensDraft(next)} onClose={()=>setMensEditing(false)}/>:<SalonWebsitePreview readOnly profile={mensDraft?.profile||draft.profile} services={mensDraft?.services||draft.services} stylists={mensDraft?.stylists||draft.stylists} loyaltyConfig={mensDraft?.loyaltyConfig} gallery={draft.extras.gallery} onCustomerAccount={create} onAddAppointment={async()=>{throw new Error('This is a template preview. Choose Create my website to set up your own bookings.');}} />}</>;
 }
 function Loading({text}:{text:string}){return <main role="status" className="min-h-screen flex items-center justify-center bg-[#f9f9ff]"><p>{text}</p></main>;}
 /**

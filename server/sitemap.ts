@@ -25,8 +25,9 @@ const xml = (value: string) =>
       })[c]!,
   );
 export function sitemapXml(origin: string, slugs: string[]) {
-  // Apex root is an auth/owner screen; deliberately exclude it and account routes.
+  // The apex is the public marketing homepage. Account/login routes stay excluded.
   const urls = [
+    origin + "/",
     origin + "/?app=1",
     ...new Set(
       slugs
