@@ -28,3 +28,28 @@ assert.equal(restricted.root.findAllByProps({'aria-label':`Select specialist ${t
 eligibleIds=[];await act(async()=>restricted.root.findAllByType('button').find((node:any)=>text(node).includes(template.services[2].name)).props.onClick());assert.equal(restricted.root.findAllByType('button').find((node:any)=>text(node).includes('Continue to Date & Slot')).props.disabled,true,'Do not show fake availability when no specialist is eligible');
 await act(async()=>restricted.unmount());
 assert.ok(calls.every(call=>['studioflow_android_slots','studioflow_mens_slots','studioflow_available_slots','studioflow_booking_specialists','studioflow_public_branches'].includes(call.name)),'No booking or payment created by this test');console.log('PASS: all 14 templates, white-accent contrast, specialist/any selection and RPC wiring, date/slot gating, guest form and payment review. No bookings or payments created.');
+
+// RPC outage: the step must still render the salon's own roster (with a notice), keep
+// multi-service assignment honest, and keep View Profile independent of selection.
+{
+ const original=supabase.rpc;
+ (supabase as any).rpc=(async(name:string)=>name==='studioflow_public_branches'?{data:[],error:null}:{data:null,error:{message:'Could not find the function public.studioflow_booking_specialists'}}) as any;
+ const tpl=CATEGORY_TEMPLATES.nail_studio;
+ const staff=tpl.stylists.map((st,i)=>i===0?{...st,assignedServices:[tpl.services[0].id]}:{...st,assignedServices:[]});
+ let down:any;await act(async()=>{down=create(<BookingModal isOpen onClose={()=>{}} profile={{...INITIAL_SALON_PROFILE,subdomain:'qa-salon'}} services={tpl.services} stylists={staff}/>)});
+ const pick=(label:string)=>down.root.findAllByType('button').find((node:any)=>text(node).includes(label));
+ await act(async()=>pick(tpl.services[0].name).props.onClick());
+ await act(async()=>pick(tpl.services[1].name).props.onClick());
+ assert.equal(down.root.findAllByProps({'aria-label':`Select specialist ${staff[0].name}`}).length,0,'Fallback must drop specialists not assigned to every selected service');
+ assert.equal(down.root.findAllByProps({'aria-label':`Select specialist ${staff[1].name}`}).length,1,'Fallback must still show eligible specialists');
+ const notice=down.root.findAll((node:any)=>node.type==='p'&&node.props.role==='status'&&text(node).includes('Live specialist check is unavailable')).length;
+ assert.equal(notice,1,'Fallback shows exactly one notice');
+ assert.ok(!text(down.toJSON()).includes('Could not find the function'),'RPC error text must not leak into the UI');
+ assert.ok(text(down.toJSON()).includes('Expert in:'),'Specialist cards list the services they are expert in');
+ const toggle=down.root.findByProps({'aria-label':`View Profile: ${staff[1].name}`});
+ await act(async()=>toggle.props.onClick());
+ assert.equal(down.root.findByProps({'aria-label':'Select Any Specialist'}).props['aria-pressed'],true,'Opening a profile never changes selection');
+ await act(async()=>down.unmount());
+ (supabase as any).rpc=original;
+}
+console.log('PASS: specialist RPC outage falls back to the salon roster with a notice, matches multi-service assignment and keeps View Profile passive.');
