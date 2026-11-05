@@ -18,6 +18,7 @@ export const LOYALTY_THEMES:Record<BusinessTypeId,RewardTheme>={
  tattoo_studio:{surface:'#0b0b0b',card:'#181818',text:'#f5f5f5',muted:'#bcbcbc',border:'#555555',radius:'0px',dark:true,font:sans},
  lash_brow:{surface:'#FBF6F1',card:'#FFFDFB',text:'#2B1B17',muted:'#7A4F57',border:'#E0CBA6',radius:'22px',dark:false,font:serif},
  ayurvedic_spa:{surface:'#f9ecda',card:'#fffaf2',text:'#512e1e',muted:'#7c5b45',border:'#e7ba91',radius:'18px',dark:false,font:serif},
+ aurelia_beauty_parlour:{surface:'#f6f1ea',card:'#fffdf9',text:'#1d1612',muted:'#73665a',border:'#d8c8b4',radius:'18px',dark:false,font:serif},
 };
 export function loyaltyTheme(profile:SalonProfile){
  const base=LOYALTY_THEMES[profile.businessType]||LOYALTY_THEMES.hair_salon;
