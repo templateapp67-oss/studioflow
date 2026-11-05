@@ -66,6 +66,7 @@ import {
   useZiyaPublicStorefrontData,
 } from './ziya/ZiyaStorefrontSections';
 import './luxuryEditorial.css';
+import { ServiceMerchTags, ServiceTerms } from './ServiceMerchandising';
 
 type SharedWebsiteProps = React.ComponentProps<typeof WebsiteSections>;
 
@@ -1229,6 +1230,8 @@ export const LuxuryEditorialWebsite: React.FC<LuxuryEditorialWebsiteProps> = ({
                           {service.description ||
                             'Precision women’s haircut customized to your face shape and hair texture.'}
                         </p>
+                        <ServiceMerchTags service={service} className="sf-merch-inline" />
+                        <ServiceTerms service={service} className="sf-merch-inline" />
                         <div className="le-service-footer">
                           <strong className="le-service-price">
                             {formatInr(service.price, profile.currency || '₹')}

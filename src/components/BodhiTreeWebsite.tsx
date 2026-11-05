@@ -57,6 +57,7 @@ import { AppAnnouncementStrip, AppInstallSection } from './AppInstallSection';
 import { SafeImage } from './bodhi-tree/SafeImage';
 import { DeviceMockup } from './bodhi-tree/DeviceMockup';
 import { PalaceCollectionGrid } from './bodhi-tree/PalaceCollectionSection';
+import { ServiceMerchTags, ServiceTerms } from './ServiceMerchandising';
 
 type BodhiPage =
   | 'home'
@@ -397,6 +398,8 @@ export function BodhiTreeWebsite({
         <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[color:var(--bt-sage)]">{service.category}</p>
         <h3 className="bt-serif pt-1 text-[1.4rem] font-semibold leading-snug">{service.name}</h3>
         <p className="pt-1.5 text-sm leading-relaxed text-[color:var(--bt-muted)]">{service.description}</p>
+        <ServiceMerchTags service={service} className="sf-merch-inline" />
+        <ServiceTerms service={service} className="sf-merch-inline" />
         <div className="mt-auto flex items-end justify-between gap-3 pt-4">
           <div>
             <span className="bt-price text-[1.55rem] leading-none">{bodhiFormatInr(service.price)}</span>

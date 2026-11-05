@@ -23,6 +23,7 @@ import {
   X,
   Youtube,
 } from 'lucide-react';
+import { ServiceMerchTags, ServiceTerms } from './ServiceMerchandising';
 import type { SalonProfile, SalonService, Stylist } from '../types';
 import type { SalonGalleryPhoto } from '../lib/photoGallery';
 import { isPackage } from '../lib/packageCatalogue';
@@ -905,6 +906,8 @@ export function ShringaarRoyalWebsite({
                           <span className="sr-service-cat">{service.category}</span>
                           <span className="sr-service-name">{service.name}</span>
                           <span className="sr-service-desc">{service.description}</span>
+                          <ServiceMerchTags service={service} className="sf-merch-inline" />
+                          <ServiceTerms service={service} className="sf-merch-inline" />
                           <span className="sr-service-meta">
                             <b>{shringaarFormatInr(service.price)}</b>
                             {service.showDuration !== false && service.durationMinutes > 0 ? (

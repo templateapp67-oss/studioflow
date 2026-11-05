@@ -35,6 +35,7 @@ import {
   vogueNoirCssVariables,
 } from '../lib/vogueNoir';
 import { ServicePhoto } from './ServicePhoto';
+import { ServiceMerchTags, ServiceTerms } from './ServiceMerchandising';
 import { WebsiteSections } from './WebsiteSections';
 import { AppAnnouncementStrip, AppInstallSection } from './AppInstallSection';
 import { SafeImage } from './vogue-noir/SafeImage';
@@ -767,6 +768,8 @@ export function VogueNoirWebsite({
                         </p>
                         <h3 className="vn-service-title">{service.name}</h3>
                         <p className="vn-service-desc">{service.description}</p>
+                        <ServiceMerchTags service={service} className="sf-merch-inline" />
+                        <ServiceTerms service={service} className="sf-merch-inline" />
                         {service.showDuration !== false && service.durationMinutes > 0 && (
                           <span className="vn-duration-chip">
                             <Clock3 size={13} aria-hidden="true" />

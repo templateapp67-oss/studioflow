@@ -22,6 +22,7 @@ import {
   Youtube,
   X,
 } from 'lucide-react';
+import { ServiceMerchTags, ServiceTerms } from '../ServiceMerchandising';
 import type { SalonProfile, SalonService, Stylist } from '../../types';
 import {
   VEDA_DISCLAIMER,
@@ -279,6 +280,8 @@ function TherapyCard({
         <p className="vd-card__cat">{String(index + 1).padStart(2, '0')} · {service.category}</p>
         <h3 className="vd-card__title">{service.name}</h3>
         <p className="vd-card__desc">{service.description}</p>
+        <ServiceMerchTags service={service} className="sf-merch-inline" />
+        <ServiceTerms service={service} className="sf-merch-inline" />
         {benefits.length ? (
           <ul className="vd-benefits">
             {benefits.map((benefit) => (

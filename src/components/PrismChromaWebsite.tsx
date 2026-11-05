@@ -73,6 +73,7 @@ import {
   usePrismSite,
 } from '../lib/prismSite';
 import { PrismEmptyState, PrismSectionError } from './prism-chroma/LiveStates';
+import { ServiceMerchTags, ServiceTerms } from './ServiceMerchandising';
 
 const MARQUEE_WORDS = ['Balayage', 'Highlights', 'Fashion Colours', 'Gloss', 'Keratin', 'Colour Correction', 'Global Colour', 'Pastel Shades'];
 
@@ -522,6 +523,8 @@ export function PrismChromaWebsite({
                             <p className="pc-eyebrow" style={{ fontSize: '0.62rem' }}>{service.category}</p>
                             <h3 className="mt-2 text-lg font-bold leading-snug">{service.name}</h3>
                             <p className="pc-muted mt-2 flex-1 text-sm leading-relaxed">{service.description}</p>
+                            <ServiceMerchTags service={service} className="sf-merch-inline" />
+                            <ServiceTerms service={service} className="sf-merch-inline" />
                             <details className="pc-includes">
                               <summary>What&apos;s included</summary>
                               <ul>

@@ -343,6 +343,8 @@ export interface SalonProfile {
 export interface SalonService {
   mensTemplateId?: 'mens_hair_studio';
   mensHidden?: boolean;
+  /** Template-wise titles, badges, offers, description and terms for this service. */
+  merchandising?: ServiceMerchandising;
   /** Template 07 starter data only: never represent these illustrative values as a clinic-confirmed offer. */
   clinicDemoData?: boolean;
   /** Template 07 only: explicit clinic confirmation, never inferred from template or edits. */
@@ -1186,6 +1188,59 @@ export interface ArchFlutterOffer {
 
 /** How a promotion reduces the price. */
 export type SalonOfferType = 'percent' | 'flat' | 'combo' | 'free_addon';
+
+/**
+ * Template-wise service merchandising.
+ *
+ * `none` means the service has no offer — the salon-level "Promotions & offers"
+ * records stay completely separate. A template only ever offers the subset of
+ * these types that suits its salon type (see `lib/serviceTemplateSetup.ts`), so
+ * nothing is invented for the service and no discount value is ever guessed.
+ */
+export type ServiceOfferType =
+  | 'none'
+  | 'percent'
+  | 'flat'
+  | 'combo'
+  | 'bogo'
+  | 'seasonal'
+  | 'festive'
+  | 'first_visit'
+  | 'membership'
+  | 'package'
+  | 'limited_time';
+
+/**
+ * One service's template-specific copy and merchandising.
+ *
+ * Every field is additive and optional at the `SalonService` level, so services
+ * saved before this feature keep loading exactly as they are. The owner-facing
+ * values (`badges`, `offerType`, `offerDetails`, `tags`, `terms`) are what the
+ * website renders. The `suggestions` block is the untouched automatic output and
+ * is never rendered publicly — it lets the editor show what the template would
+ * recommend without overwriting anything the owner edited.
+ */
+export interface ServiceMerchandising {
+  /** Template this copy was prepared for. A mismatch means "template changed". */
+  templateId: BusinessTypeId;
+  badges: string[];
+  offerType: ServiceOfferType;
+  /** Free text the owner confirms, e.g. "₹200 off on weekday bookings". */
+  offerDetails: string;
+  tags: string[];
+  terms: string;
+  /** Prepare-only suggestions, kept separate from the confirmed values above. */
+  suggestions: {
+    badges: string[];
+    offerType: ServiceOfferType;
+    offerDetails: string;
+    description: string;
+    terms: string;
+    generatedAt: string;
+  };
+  /** Fields the owner typed or chose by hand; regeneration must not overwrite them. */
+  edited: Partial<Record<'description' | 'terms' | 'badges' | 'offerType' | 'offerDetails', boolean>>;
+}
 
 /**
  * One editable "Promotions & offers" record, stored on the salon profile so it

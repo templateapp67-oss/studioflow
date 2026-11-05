@@ -1,3 +1,4 @@
+import { ServiceMerchTags } from './ServiceMerchandising';
 import React, { useEffect, useMemo, useState } from "react";
 import {
   AnimatePresence,
@@ -655,6 +656,7 @@ export function IronInkWebsite({
                           </div>
                           <h3>{item.name}</h3>
                           {actualServices.find(service=>safeLower(service.category)===safeLower(item.name))?.name!==item.name&&<small>{actualServices.find(service=>safeLower(service.category)===safeLower(item.name))?.name}</small>}
+                          {(() => { const matched = actualServices.find(service=>safeLower(service.category)===safeLower(item.name)) || actualServices.find(service=>safeLower(service.name)===safeLower(item.name)); return matched ? <ServiceMerchTags service={matched} inline /> : null; })()}
                           <p>{item.description}</p>
                           <span className="ii-price">
                             FROM {money(item.price)}

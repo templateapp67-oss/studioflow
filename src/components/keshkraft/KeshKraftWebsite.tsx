@@ -6,6 +6,7 @@ import {
   MensWaitlistMonitor,
 } from "./KeshKraftInteractions";
 import type { DirectBookingSlot } from "../SpecialistWeek";
+import { ServiceMerchTags, ServiceTerms } from '../ServiceMerchandising';
 import React, { useEffect, useState } from "react";
 import {
   ArrowUpRight,
@@ -448,6 +449,8 @@ export function KeshKraftWebsite(props: SalonWebsitePreviewProps) {
                   <div className="kk-service-body">
                     <h3>{s.name}</h3>
                     <p>{s.description}</p>
+                    <ServiceMerchTags service={s} className="sf-merch-inline" />
+                    <ServiceTerms service={s} className="sf-merch-inline" />
                     <div className="kk-service-meta">
                       <b>{inr(s.price)}</b>
                       <span>
