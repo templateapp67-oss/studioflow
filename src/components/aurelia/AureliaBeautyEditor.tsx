@@ -60,7 +60,7 @@ export function AureliaBeautyEditor(props:SalonWebsitePreviewProps){
   finally{setUploading('');}
  };
  const saveVideoLinks=()=>{
-  const items:SocialVideo[]=videoLines.split('\n').map((line,index)=>{
+  const items:SocialVideo[]=videoLines.split('\n').map((line,index):SocialVideo=>{
    const parts=line.split('|');const title=(parts[0]||'Studio video').trim();const url=(parts.slice(1).join('|')||'').trim();
    return {id:'aurelia-owner-video-'+index+'-'+Date.now(),title,description:'Video added by the salon owner.',youtubeUrl:url,previewVideoUrl:/\.(mp4|webm)(\?|$)/i.test(url)?url:undefined,videoId:'',thumbnailUrl:AURELIA_IMAGES.galleryStudio,categoryTag:'SHOWCASE',isOwnerVideo:true,views:'',isDemo:false};
   }).filter(video=>video.youtubeUrl.startsWith('https://')||video.youtubeUrl.startsWith('http://'));
