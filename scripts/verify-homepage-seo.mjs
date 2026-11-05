@@ -12,7 +12,7 @@ const count = (source, expression) => [...source.matchAll(expression)].length;
 assert.match(homepage, /data-prerendered="true"/);
 assert.match(homepage, /<h1\b[^>]*>[\s\S]*?Launch Your Salon Website in/);
 assert.equal(count(homepage, /rel="canonical"/g), 1, "homepage must have one canonical tag");
-assert.match(homepage, /href="https:\/\/studioflow-ashen-pi\.vercel\.app\//);
+assert.match(homepage, /href="https:\/\/nexorasalon\.online\//);
 assert.equal(count(homepage, /property="og:url"/g), 1, "homepage must have one og:url");
 assert.equal(count(homepage, /property="og:type"/g), 1, "homepage must have one og:type");
 assert.equal(count(homepage, /property="og:image"/g), 1, "homepage must have one og:image");
@@ -26,13 +26,13 @@ assert.ok(jsonLdMatch, "homepage JSON-LD must be present in initial HTML");
 const jsonLd = JSON.parse(jsonLdMatch[1]);
 assert.equal(jsonLd["@type"], "SoftwareApplication");
 assert.equal(jsonLd.name, "NEXORA Salon OS");
-assert.equal(jsonLd.url, "https://studioflow-ashen-pi.vercel.app/");
+assert.equal(jsonLd.url, "https://nexorasalon.online/");
 
 assert.equal(robots.trim(), [
   "User-agent: *",
   "Allow: /",
   "",
-  "Sitemap: https://studioflow-ashen-pi.vercel.app/sitemap.xml",
+  "Sitemap: https://nexorasalon.online/sitemap.xml",
 ].join("\n"));
 
 assert.match(
@@ -41,8 +41,8 @@ assert.match(
 );
 const locations = [...sitemap.matchAll(/<loc>(https:\/\/[^<]+)<\/loc>/g)].map((match) => match[1]);
 assert.equal(locations.length, 18, "static sitemap must list homepage, customer app and 16 templates");
-assert.ok(locations.includes("https://studioflow-ashen-pi.vercel.app/"));
-assert.ok(locations.includes("https://studioflow-ashen-pi.vercel.app/?template=aurelia_beauty_parlour"));
+assert.ok(locations.includes("https://nexorasalon.online/"));
+assert.ok(locations.includes("https://nexorasalon.online/?template=aurelia_beauty_parlour"));
 
 assert.equal(socialImage.readUInt32BE(16), 1200, "social preview width must be 1200px");
 assert.equal(socialImage.readUInt32BE(20), 630, "social preview height must be 630px");

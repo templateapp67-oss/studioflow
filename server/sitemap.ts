@@ -1,4 +1,4 @@
-export const DEFAULT_SITEMAP_ORIGIN = "https://studioflow-ashen-pi.vercel.app";
+export const DEFAULT_SITEMAP_ORIGIN = "https://nexorasalon.online";
 
 const NEXORA_TEMPLATE_IDS = [
   "hair_salon",
