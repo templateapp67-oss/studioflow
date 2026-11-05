@@ -22,7 +22,7 @@ try {
     React.createElement(PublicHomePage),
   );
 
-  if (!/<h1\\b[^>]*>/.test(pageMarkup)) {
+  if (!/<h1\b[^>]*>/.test(pageMarkup)) {
     throw new Error("The prerendered public homepage must contain its visible H1.");
   }
 
