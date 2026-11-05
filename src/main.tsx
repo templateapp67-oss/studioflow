@@ -74,6 +74,15 @@ const appEntryQueryKeys = [
   'error',
   'error_description',
   'tab',
+  'type',
+  'token_hash',
+  'access_token',
+  'refresh_token',
+  'provider_token',
+  'provider_refresh_token',
+  'expires_in',
+  'expires_at',
+  'scope',
 ];
 
 const query = new URLSearchParams(window.location.search);
