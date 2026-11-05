@@ -7,107 +7,297 @@
     },
     {
       "source": "/",
-      "has": [{ "type": "query", "key": "app" }],
+      "has": [
+        {
+          "type": "query",
+          "key": "app"
+        }
+      ],
       "destination": "/app.html"
     },
     {
       "source": "/",
-      "has": [{ "type": "query", "key": "customer" }],
+      "has": [
+        {
+          "type": "query",
+          "key": "customer"
+        }
+      ],
       "destination": "/app.html"
     },
     {
       "source": "/",
-      "has": [{ "type": "query", "key": "site" }],
+      "has": [
+        {
+          "type": "query",
+          "key": "site"
+        }
+      ],
       "destination": "/app.html"
     },
     {
       "source": "/",
-      "has": [{ "type": "query", "key": "s" }],
+      "has": [
+        {
+          "type": "query",
+          "key": "s"
+        }
+      ],
       "destination": "/app.html"
     },
     {
       "source": "/",
-      "has": [{ "type": "query", "key": "subdomain" }],
+      "has": [
+        {
+          "type": "query",
+          "key": "subdomain"
+        }
+      ],
       "destination": "/app.html"
     },
     {
       "source": "/",
-      "has": [{ "type": "query", "key": "template" }],
+      "has": [
+        {
+          "type": "query",
+          "key": "template"
+        }
+      ],
       "destination": "/app.html"
     },
     {
       "source": "/",
-      "has": [{ "type": "query", "key": "category" }],
+      "has": [
+        {
+          "type": "query",
+          "key": "category"
+        }
+      ],
       "destination": "/app.html"
     },
     {
       "source": "/",
-      "has": [{ "type": "query", "key": "create" }],
+      "has": [
+        {
+          "type": "query",
+          "key": "create"
+        }
+      ],
       "destination": "/app.html"
     },
     {
       "source": "/",
-      "has": [{ "type": "query", "key": "owner" }],
+      "has": [
+        {
+          "type": "query",
+          "key": "owner"
+        }
+      ],
       "destination": "/app.html"
     },
     {
       "source": "/",
-      "has": [{ "type": "query", "key": "panel" }],
+      "has": [
+        {
+          "type": "query",
+          "key": "panel"
+        }
+      ],
       "destination": "/app.html"
     },
     {
       "source": "/",
-      "has": [{ "type": "query", "key": "auth" }],
+      "has": [
+        {
+          "type": "query",
+          "key": "auth"
+        }
+      ],
       "destination": "/app.html"
     },
     {
       "source": "/",
-      "has": [{ "type": "query", "key": "recovery" }],
+      "has": [
+        {
+          "type": "query",
+          "key": "recovery"
+        }
+      ],
       "destination": "/app.html"
     },
     {
       "source": "/",
-      "has": [{ "type": "query", "key": "ref" }],
+      "has": [
+        {
+          "type": "query",
+          "key": "ref"
+        }
+      ],
       "destination": "/app.html"
     },
     {
       "source": "/",
-      "has": [{ "type": "query", "key": "customer_ref" }],
+      "has": [
+        {
+          "type": "query",
+          "key": "customer_ref"
+        }
+      ],
       "destination": "/app.html"
     },
     {
       "source": "/",
-      "has": [{ "type": "query", "key": "return" }],
+      "has": [
+        {
+          "type": "query",
+          "key": "return"
+        }
+      ],
       "destination": "/app.html"
     },
     {
       "source": "/",
-      "has": [{ "type": "query", "key": "passwordUpdated" }],
+      "has": [
+        {
+          "type": "query",
+          "key": "passwordUpdated"
+        }
+      ],
       "destination": "/app.html"
     },
     {
       "source": "/",
-      "has": [{ "type": "query", "key": "code" }],
+      "has": [
+        {
+          "type": "query",
+          "key": "code"
+        }
+      ],
       "destination": "/app.html"
     },
     {
       "source": "/",
-      "has": [{ "type": "query", "key": "error" }],
+      "has": [
+        {
+          "type": "query",
+          "key": "error"
+        }
+      ],
       "destination": "/app.html"
     },
     {
       "source": "/",
-      "has": [{ "type": "query", "key": "error_description" }],
+      "has": [
+        {
+          "type": "query",
+          "key": "error_description"
+        }
+      ],
       "destination": "/app.html"
     },
     {
       "source": "/",
-      "has": [{ "type": "query", "key": "tab" }],
+      "has": [
+        {
+          "type": "query",
+          "key": "tab"
+        }
+      ],
       "destination": "/app.html"
     },
     {
       "source": "/(.*\\..*)",
       "destination": "/$1"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "query",
+          "key": "type"
+        }
+      ],
+      "destination": "/app.html"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "query",
+          "key": "token_hash"
+        }
+      ],
+      "destination": "/app.html"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "query",
+          "key": "access_token"
+        }
+      ],
+      "destination": "/app.html"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "query",
+          "key": "refresh_token"
+        }
+      ],
+      "destination": "/app.html"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "query",
+          "key": "provider_token"
+        }
+      ],
+      "destination": "/app.html"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "query",
+          "key": "provider_refresh_token"
+        }
+      ],
+      "destination": "/app.html"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "query",
+          "key": "expires_in"
+        }
+      ],
+      "destination": "/app.html"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "query",
+          "key": "expires_at"
+        }
+      ],
+      "destination": "/app.html"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "query",
+          "key": "scope"
+        }
+      ],
+      "destination": "/app.html"
     },
     {
       "source": "/",
