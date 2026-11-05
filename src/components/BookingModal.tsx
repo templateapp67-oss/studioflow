@@ -1,5 +1,5 @@
 import {StaffPortfolio} from './StaffPortfolio';
-import {resolveBookingSpecialists, summarizeBookingServices, toggleBookingService} from '../lib/bookingSelection';
+import {localEligibleSpecialists, resolveBookingSpecialists, specialistExpertise, summarizeBookingServices, toggleBookingService} from '../lib/bookingSelection';
 import {MensJoinWaitlist} from './keshkraft/KeshKraftInteractions';
 import type { ConsultationDetails } from "./dermacure/consultation";
 import {BookingCoupon,useBookingCoupon} from './BookingCoupon';
@@ -199,7 +199,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     if (!branchChoices.some(branch => branch.id === selectedBranchId)) setSelectedBranchId(branchChoices.length === 1 ? branchChoices[0].id : '');
   }, [branchChoices, selectedBranchId]);
 
-  const [specialistCheck,setSpecialistCheck]=useState<{key:string;ids:string[];stylists:Stylist[];published:boolean;error:string}|null>(null);
+  const [specialistCheck,setSpecialistCheck]=useState<{key:string;ids:string[];stylists:Stylist[];published:boolean;error:string;fallback?:boolean}|null>(null);
   const [specialistRetry,setSpecialistRetry]=useState(0);
   const specialistKey=JSON.stringify([profile.subdomain,bundleKey,selectedBranchId]);
   const specialistsReady=specialistCheck?.key===specialistKey&&!specialistCheck.error;
@@ -222,7 +222,24 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         const profiles=results.flatMap(({data})=>Array.isArray(data.specialists)?data.specialists:[]);
         setSpecialistCheck({...empty,ids,stylists:profiles,published:results.every(({data})=>data.published)});
         setSelectedStylist(current=>current.id===ANY_SPECIALIST.id||ids.includes(current.id)?current:ANY_SPECIALIST);
-      }).catch(error=>{if(active)setSpecialistCheck({...empty,error:error.message||'Could not check specialists. Please retry.'});});
+      }).catch(error=>{
+        if(!active)return;
+        // Live check unavailable (missing function, stale PostgREST schema cache or network
+        // error). Fall back to the salon's own published roster so the step still works; the
+        // server re-validates eligibility on slots and on booking. Demo/seed staff are never
+        // used as a fallback, and the customer sees a short notice.
+        const roster=[...(inputStylists||[]),...(aliasStylistsList||[])];
+        const local=localEligibleSpecialists(roster,bookingServiceIds,selectedBranchId);
+        if(roster.length){
+          console.warn('[booking] specialist RPC unavailable, using the salon roster:',error?.message||error);
+          const profiles=local.map(st=>roster.find(item=>item.id===st.id)||st);
+          const ids=profiles.map(st=>st.id);
+          setSpecialistCheck({...empty,ids,stylists:profiles,published:true,fallback:true});
+          setSelectedStylist(current=>current.id===ANY_SPECIALIST.id||ids.includes(current.id)?current:ANY_SPECIALIST);
+          return;
+        }
+        setSpecialistCheck({...empty,error:error?.message||'Could not check specialists. Please retry.'});
+      });
     return()=>{active=false;};
   },[isOpen,specialistKey,specialistRetry,branchChoices.length]);
   const chooseService=(service:SalonService)=>{
@@ -803,10 +820,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   {eligibleStylists.map(st=>{
                     const isSelected=selectedStylist.id===st.id;
                     const expanded=previewStylist?.id===st.id;
+                    const expertise=specialistExpertise(st,services);
                     return <article key={st.id} className={`sf-booking-specialist ${isSelected?'is-selected':''}`}>
                       <button type="button" aria-pressed={isSelected} aria-label={`Select specialist ${st.name}`} onClick={()=>setSelectedStylist(st)} className="sf-booking-specialist-select">
                         {st.avatarUrl?<img src={st.avatarUrl} alt="" onError={e=>{e.currentTarget.style.display='none';}}/>:<span className="sf-booking-avatar" aria-hidden="true">{st.name.slice(0,1)}</span>}
-                        <span><strong>{st.name}</strong><span>{st.role||'Salon specialist'}</span><span>{Number.isFinite(st.experienceYears)?`${st.experienceYears} years experience`:'Experience not listed'}</span><span>{Number.isFinite(st.rating)&&st.rating>0?`★ ${st.rating} · Salon-listed rating`:'Not yet rated'}</span></span>
+                        <span><strong>{st.name}</strong><span>{st.role||'Salon specialist'}</span><span>{Number.isFinite(st.experienceYears)?`${st.experienceYears} years experience`:'Experience not listed'}</span><span>{Number.isFinite(st.rating)&&st.rating>0?`★ ${st.rating} · Salon-listed rating`:'Not yet rated'}</span>{!!expertise.length&&<span className="sf-booking-expertise">Expert in: {expertise.slice(0,4).join(', ')}{expertise.length>4?` +${expertise.length-4} more`:''}</span>}</span>
                         {isSelected&&<Check size={16} aria-hidden="true"/>}
                       </button>
                       <button type="button" className="sf-booking-profile-toggle" aria-label={`View Profile: ${st.name}`} aria-expanded={expanded} aria-controls={`${guestFormId}-specialist-profile`} onClick={()=>setPreviewStylistId(expanded?null:st.id)}>{expanded?'Hide Profile':'View Profile'}</button>
@@ -822,6 +840,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </section>}
 
                 {!specialistsReady&&<p role="status" className="text-xs text-slate-700 mt-3">{specialistCheck?.key===specialistKey&&specialistCheck.error?specialistCheck.error:'Checking specialists for all selected services…'}</p>}
+                {specialistsReady&&specialistCheck?.fallback&&<p role="status" className="text-xs text-amber-800 mt-3">Live specialist check is unavailable, so this salon's listed specialists are shown instead. Availability is still verified by the salon when you pick a time.</p>}
                 {specialistCheck?.key===specialistKey&&specialistCheck.error&&<button type="button" className="text-xs underline" onClick={()=>setSpecialistRetry(n=>n+1)}>Retry specialist check</button>}
                 {specialistsReady&&!eligibleStylists.length&&<p role="status" className="text-xs text-amber-800 mt-3">{!bookingServiceIds.length?'Choose services to see specialists.':specialistCheck!.published?'No specialist can handle all selected services at this location. Adjust your selection or contact the salon.':'This salon is not published yet. The owner needs to publish it before online booking.'}</p>}
                 <p className="text-xs text-slate-700 mt-3">Only specialists eligible for every selected service are listed. Changing services resets to Any Available Specialist. View Profile never changes your selection.</p>
