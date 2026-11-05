@@ -48,6 +48,8 @@
     "@electric-sql/pglite": "^0.5.10",
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
     "autoprefixer": "^10.4.21",
     "css-select": "^7.0.0",
     "css-what": "^8.0.0",
