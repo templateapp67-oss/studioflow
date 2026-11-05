@@ -631,6 +631,12 @@ Return strictly valid JSON in this format:
       server: { middlewareMode: true, allowedHosts: ['.e2b.app', 'localhost', '127.0.0.1'], hmr: disableHmr ? false : { server: httpServer } },
       appType: "spa",
     });
+    // Serve route-owned login metadata while preserving auth/template query state.
+    app.get(/^\/login\/?$/, (req, _res, next) => {
+      const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+      req.url = '/login.html' + query;
+      next();
+    });
     app.all("/api/*", (_req, res) => {
       res.status(404).json({error:'Unknown API endpoint'});
     });
@@ -640,6 +646,9 @@ Return strictly valid JSON in this format:
     app.use(express.static(distPath));
     app.all("/api/*", (_req, res) => {
       res.status(404).json({error:'Unknown API endpoint'});
+    });
+    app.get(/^\/login\/?$/, (_req, res) => {
+      res.sendFile(path.join(distPath, "login.html"));
     });
     app.get("*", (_req, res) => {
       res.sendFile(path.join(distPath, "index.html"));

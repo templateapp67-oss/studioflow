@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Search, X, Eye, Wand2, MapPin, ArrowUpRight, Check, LayoutGrid } from 'lucide-react';
 import type { CategoryTemplateConfig } from '../../types';
 import {
@@ -11,6 +11,7 @@ import {
   type NexoraTemplateMeta,
 } from '../../lib/nexoraTemplateCatalogue';
 import { NexoraLogo, NexoraBrandMark, CategoryIconTile } from './NexoraBrand';
+import { nexoraPreviewImage } from '../../lib/nexoraPreviewImages';
 
 export interface NexoraTemplateLibraryProps {
   /** Templates to show. Always re-sorted into the fixed NEXORA priority order. */
@@ -20,6 +21,9 @@ export interface NexoraTemplateLibraryProps {
   onCustomize: (id: CategoryTemplateConfig['id']) => void;
   /** Highlights the template already applied to the signed-in salon. */
   activeTemplateId?: string;
+  /** Optional controlled category state, shared with public category shortcuts. */
+  activeCategory?: string;
+  onCategoryChange?: (categoryId: string) => void;
 }
 
 const money = (value: number) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
@@ -36,8 +40,15 @@ export const NexoraTemplateLibrary: React.FC<NexoraTemplateLibraryProps> = ({
   onPreview,
   onCustomize,
   activeTemplateId,
+  activeCategory: controlledCategory,
+  onCategoryChange,
 }) => {
-  const [activeCategory, setActiveCategory] = useState('all');
+  const [internalCategory, setInternalCategory] = useState('all');
+  const activeCategory = controlledCategory ?? internalCategory;
+  const setActiveCategory = useCallback((categoryId: string) => {
+    setInternalCategory(categoryId);
+    onCategoryChange?.(categoryId);
+  }, [onCategoryChange]);
   const [query, setQuery] = useState('');
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -252,7 +263,8 @@ export const NexoraTemplateCard: React.FC<{
         >
           <div className="relative h-44 w-full overflow-hidden bg-[#221B34]">
             <img
-              src={template.coverImageUrl}
+              src={nexoraPreviewImage(template)}
+              data-registry-cover={template.coverImageUrl}
               alt={`${meta.displayName} template preview`}
               loading="lazy"
               decoding="async"

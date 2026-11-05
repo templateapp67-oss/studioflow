@@ -113,6 +113,7 @@ export function resolveSiteSlug(
         first !== 'app' &&
         first !== 'invite' &&
         first !== 'api' &&
+        first !== 'login' &&
         first.length > 1 &&
         /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(first)
       ) {

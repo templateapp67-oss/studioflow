@@ -199,7 +199,7 @@ assert.deepEqual(cardIds(), ['barber'], 'search and filter work together');
 await act(async () => searchBox().props.onChange({target: {value: 'nails'}}));
 assert.deepEqual(cardIds(), [], 'a template from another category never leaks through the filter');
 await act(async () => filterButton('all').props.onClick());
-assert.deepEqual(cardIds(), ['nail_studio'], 'the search survives a filter change');
+assert.deepEqual(cardIds(), ['nail_studio', 'aurelia_beauty_parlour'], 'the search survives a filter change and finds every matching nail service');
 await act(async () => searchBox().props.onChange({target: {value: 'zzz'}}));
 assert.deepEqual(cardIds(), [], 'no matches shows the empty state');
 assert.ok(page.root.findAll((node: any) => String(node.props?.children).includes('No template matches')).length > 0, 'the empty state is explicit');

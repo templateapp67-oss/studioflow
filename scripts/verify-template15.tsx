@@ -36,9 +36,9 @@ import { createDemoVideos, showcaseVideos } from "../src/lib/showcaseVideos";
   confirm: () => true,
 };
 const t = CATEGORY_TEMPLATES.mens_hair_studio;
-assert.equal(Object.keys(CATEGORY_TEMPLATES).length, 15);
-assert.equal(ALL_CATEGORY_OPTIONS.length, 15);
-assert.equal(Object.values(CATEGORY_TEMPLATES).at(-1)?.id, "mens_hair_studio");
+assert.equal(Object.keys(CATEGORY_TEMPLATES).length, 16);
+assert.equal(ALL_CATEGORY_OPTIONS.length, 16);
+assert.equal(Object.values(CATEGORY_TEMPLATES).at(-1)?.id, "aurelia_beauty_parlour");
 assert.equal(t.title, "KeshKraft Men's Hair Studio");
 assert.deepEqual(t.subCategories, MENS_CATEGORIES);
 for (const route of [

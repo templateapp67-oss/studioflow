@@ -71,7 +71,7 @@ const PREVIEW_DEVICES: Array<{ id: PreviewDevice; label: string; width: number; 
 /** srcdoc shell: a real viewport meta so media queries behave like a device. */
 const PREVIEW_FRAME_HTML = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body style="margin:0"><div id="template-root"></div></body></html>';
 
-export function TemplatePreviewModal({templateId, onSelectPreview, onClose, onChoose}: {templateId:BusinessTypeId; onSelectPreview:(id:BusinessTypeId)=>void; onClose:()=>void; onChoose:(config?:ArchFlutterCustomizerConfig, workspace?:TemplateChooseWorkspace)=>void}) {
+export function TemplatePreviewModal({templateId, onSelectPreview, onClose, onChoose, requireAuthToCustomize = false}: {templateId:BusinessTypeId; onSelectPreview:(id:BusinessTypeId)=>void; onClose:()=>void; onChoose:(config?:ArchFlutterCustomizerConfig, workspace?:TemplateChooseWorkspace)=>void; requireAuthToCustomize?:boolean}) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [device, setDevice] = useState<PreviewDevice>('desktop');
   const [frameDocument, setFrameDocument] = useState<Document | null>(null);
@@ -141,7 +141,7 @@ export function TemplatePreviewModal({templateId, onSelectPreview, onClose, onCh
               <span className="font-mono text-[10px] text-slate-500">{nexoraTemplateMeta(templateId)?.templateNumber}</span>
               {nexoraTemplateMeta(templateId)?.categoryName || t.shortName}
             </span>
-            <span className="truncate">Live template demo with sample content; demo bookings are not submitted{hasCustomizer && (customized || vedaWorkspace) ? ' · Your customized demo — nothing is published until you create your website' : ''}</span>
+            <span className="truncate">{requireAuthToCustomize ? 'Explore freely — no account needed to preview. Sign up only when you customize.' : 'Live template demo with sample content; demo bookings are not submitted'}{!requireAuthToCustomize && hasCustomizer && (customized || vedaWorkspace) ? ' · Your customized demo — nothing is published until you create your website' : ''}</span>
           </p>
           <p className="mt-0.5 text-[10px] text-slate-400">Salon demo brand: {t.title}</p>
         </div>
@@ -154,10 +154,10 @@ export function TemplatePreviewModal({templateId, onSelectPreview, onClose, onCh
               </button>
             ))}
           </div>
-          {hasCustomizer
+          {hasCustomizer && !requireAuthToCustomize
             ? <button type="button" onClick={() => setCustomizerOpen(true)} className="min-h-[44px] rounded-lg border border-[#C9A66B] bg-[#2B1B17] text-[#FBF6F1] font-bold text-xs px-4">Customize this template</button>
             : <button type="button" onClick={() => onChoose()} className="min-h-[44px] rounded-lg border border-slate-300 bg-white font-bold text-xs px-4 hover:bg-slate-50">Customize this template</button>}
-          <button type="button" onClick={() => hasCustomizer ? onChoose(customized?.config, vedaWorkspace ?? undefined) : onChoose()} className="min-h-[44px] rounded-lg bg-slate-900 text-white font-bold text-xs px-4 hover:bg-slate-800">Create my website with this template</button>
+          <button type="button" onClick={() => !requireAuthToCustomize && hasCustomizer ? onChoose(customized?.config, vedaWorkspace ?? undefined) : onChoose()} className="min-h-[44px] rounded-lg bg-slate-900 text-white font-bold text-xs px-4 hover:bg-slate-800">Create my website with this template</button>
           <button type="button" autoFocus onClick={onClose} aria-label="Close template preview" className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white hover:bg-slate-100"><X size={16} aria-hidden="true" /></button>
         </div>
       </header>

@@ -1,0 +1,29 @@
+/* Public marketing surface only — existing NEXORA tokens, fonts and palette stay unchanged. */
+.public-homepage {
+  overflow-x: hidden;
+  overflow-x: clip;
+}
+
+.public-homepage h1,
+.public-homepage h2,
+.public-homepage h3 {
+  text-shadow: none;
+}
+
+.public-homepage img {
+  max-width: 100%;
+}
+
+.public-homepage section[id],
+.public-homepage [id="nexora-template-library"] {
+  scroll-margin-top: 92px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .public-homepage *,
+  .public-homepage *::before,
+  .public-homepage *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
