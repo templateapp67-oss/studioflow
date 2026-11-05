@@ -56,6 +56,7 @@ import {
  roopMahalContactSummary,
 } from '../lib/roopMahalReference';
 import {ServicePhoto} from './ServicePhoto';
+import {ServiceMerchTags, ServiceTerms} from './ServiceMerchandising';
 import {BARBER_REFERENCE_IMAGES} from '../lib/barberReference';
 import {SALON_IMAGES} from '../assets/images';
 import {CustomerReviewPanel} from './CustomerReviewPanel';
@@ -672,9 +673,11 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
             </div>
            )}
            <h3 tabIndex={0}>{s.name.trim()}</h3>
+           <ServiceMerchTags service={s}/>
            <div className="flex-1">
             {Boolean(s.description?.trim())&&<p tabIndex={0} aria-label={`Description of ${s.name}`}>{s.description.trim()}</p>}
            </div>
+           <ServiceTerms service={s}/>
            {showBottom&&(
             <div className="sf-service-bottom">
              {(validPrice||validDuration)&&(
@@ -696,7 +699,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
      </div>
     </section>
    ):(
-     <section data-layout="services" id="services-section" className="sf-section"><div className="sf-container"><div className="sf-section-heading"><div><p className="sf-eyebrow">The service edit</p><h2>{heading('servicesTitle',t('Curated Services & Treatments'))}</h2><p>{heading('servicesSubtitle','Expert care, transparent prices. Find the treatment that feels right for you.')}</p></div><span className="sf-section-count">{services.length} services</span></div><div className="sf-category-tabs" role="group" aria-label="Service categories">{['All',...categories].map(item=><button key={item} aria-pressed={activeCategory===item} onClick={()=>setCategory(item)}>{item}</button>)}</div><div className="sf-service-row grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch" tabIndex={0} aria-label="Service menu. Swipe or scroll horizontally to explore treatments.">{services.filter(s=>activeCategory==='All'||(s.category||'Signature services')===activeCategory).map(s=><article className="sf-service-card" key={s.id}><ServicePhoto service={s} type={profile.businessType}/><div className="sf-card-top"><span className="sf-category-label">{s.category||'Signature services'}</span>{s.popular&&<span className="sf-popular">Popular</span>}</div><h3 tabIndex={0}>{s.name}</h3><div className="flex-1"><p tabIndex={0} aria-label={`Description of ${s.name}`}>{s.description}</p></div><div className="sf-service-bottom"><div><strong>{money(s.price)}</strong>{s.showDuration!==false&&<span><Clock size={13}/>{s.durationMinutes} min</span>}</div><button className="sf-button sf-button-small" onClick={()=>book(s)}>{t('Book')}<ArrowUpRight size={14}/></button></div></article>)}</div>{!services.length&&<p className="sf-empty">The studio is updating its service menu. Contact us for treatment details.</p>}</div></section>
+     <section data-layout="services" id="services-section" className="sf-section"><div className="sf-container"><div className="sf-section-heading"><div><p className="sf-eyebrow">The service edit</p><h2>{heading('servicesTitle',t('Curated Services & Treatments'))}</h2><p>{heading('servicesSubtitle','Expert care, transparent prices. Find the treatment that feels right for you.')}</p></div><span className="sf-section-count">{services.length} services</span></div><div className="sf-category-tabs" role="group" aria-label="Service categories">{['All',...categories].map(item=><button key={item} aria-pressed={activeCategory===item} onClick={()=>setCategory(item)}>{item}</button>)}</div><div className="sf-service-row grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch" tabIndex={0} aria-label="Service menu. Swipe or scroll horizontally to explore treatments.">{services.filter(s=>activeCategory==='All'||(s.category||'Signature services')===activeCategory).map(s=><article className="sf-service-card" key={s.id}><ServicePhoto service={s} type={profile.businessType}/><div className="sf-card-top"><span className="sf-category-label">{s.category||'Signature services'}</span>{s.popular&&<span className="sf-popular">Popular</span>}</div><h3 tabIndex={0}>{s.name}</h3><ServiceMerchTags service={s}/><div className="flex-1"><p tabIndex={0} aria-label={`Description of ${s.name}`}>{s.description}</p></div><ServiceTerms service={s}/><div className="sf-service-bottom"><div><strong>{money(s.price)}</strong>{s.showDuration!==false&&<span><Clock size={13}/>{s.durationMinutes} min</span>}</div><button className="sf-button sf-button-small" onClick={()=>book(s)}>{t('Book')}<ArrowUpRight size={14}/></button></div></article>)}</div>{!services.length&&<p className="sf-empty">The studio is updating its service menu. Contact us for treatment details.</p>}</div></section>
    )
   )}
   {visible.packages&&(
@@ -721,9 +724,11 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
            <ServicePhoto service={item} type={profile.businessType}/>
            {(typeof item.category==='string'&&item.category.trim()!=='')&&<span className="sf-category-label">{item.category.trim()}</span>}
            <h3 tabIndex={0}>{item.name.trim()}</h3>
+           <ServiceMerchTags service={item}/>
            <div className="flex-1">
             {Boolean(item.description?.trim())&&<p tabIndex={0} aria-label={`Description of ${item.name}`}>{item.description.trim()}</p>}
            </div>
+           <ServiceTerms service={item}/>
            {showBottom&&(
             <div className="sf-service-bottom">
              {(validPrice||validDuration)&&(
@@ -745,7 +750,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
      </div>
     </section>
    ):(
-    <section id="salon-packages" className="sf-section sf-packages"><div className="sf-container"><div className="sf-section-heading"><div><p className="sf-eyebrow">A little more time for you</p><h2>{heading('packagesTitle',t('Packages & Signature Rituals'))}</h2><p>Curated combinations from our service catalogue.</p></div></div>{packages.length?<div className="sf-service-row grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">{packages.map(item=><article className="sf-service-card flex flex-col h-full justify-between" key={item.id}><ServicePhoto service={item} type={profile.businessType}/><span className="sf-category-label">{item.category}</span><h3 tabIndex={0}>{item.name}</h3><div className="flex-1"><p tabIndex={0} aria-label={`Description of ${item.name}`}>{item.description}</p></div><div className="sf-service-bottom"><div><strong>{money(item.price)}</strong>{item.showDuration!==false&&<span>{item.durationMinutes} min</span>}</div><button className="sf-button sf-button-small" onClick={()=>book(item)}>{t('Book')}<ArrowUpRight size={14}/></button></div></article>)}</div>:<p className="sf-empty">Ask the studio about tailored packages and combinations.</p>}</div></section>
+    <section id="salon-packages" className="sf-section sf-packages"><div className="sf-container"><div className="sf-section-heading"><div><p className="sf-eyebrow">A little more time for you</p><h2>{heading('packagesTitle',t('Packages & Signature Rituals'))}</h2><p>Curated combinations from our service catalogue.</p></div></div>{packages.length?<div className="sf-service-row grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">{packages.map(item=><article className="sf-service-card flex flex-col h-full justify-between" key={item.id}><ServicePhoto service={item} type={profile.businessType}/><span className="sf-category-label">{item.category}</span><h3 tabIndex={0}>{item.name}</h3><ServiceMerchTags service={item}/><div className="flex-1"><p tabIndex={0} aria-label={`Description of ${item.name}`}>{item.description}</p></div><ServiceTerms service={item}/><div className="sf-service-bottom"><div><strong>{money(item.price)}</strong>{item.showDuration!==false&&<span>{item.durationMinutes} min</span>}</div><button className="sf-button sf-button-small" onClick={()=>book(item)}>{t('Book')}<ArrowUpRight size={14}/></button></div></article>)}</div>:<p className="sf-empty">Ask the studio about tailored packages and combinations.</p>}</div></section>
    )
   )}
   {roopMahal&&visible.about&&<RoopMahalAboutSection profile={profile} knowMoreHref={roopKnowMoreHref}/>}

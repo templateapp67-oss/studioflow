@@ -78,6 +78,7 @@ import { ArchFlutterDeviceMockup } from './arch-flutter/DeviceMockup';
 import { ArchFlutterBeforeAfter } from './arch-flutter/BeforeAfterSlider';
 import { ArchFlutterReelsSection } from './arch-flutter/ReelsRail';
 import { ArchFlutterTestimonials } from './arch-flutter/TestimonialCarousel';
+import { ServiceMerchTags, ServiceTerms } from './ServiceMerchandising';
 import './archFlutter.css';
 
 type ArchFlutterPage =
@@ -437,6 +438,8 @@ export function ArchFlutterWebsite({
             {service.popular && <span className="af-flag">Most booked</span>}
           </div>
           {service.description && <p className="af-menu-desc">{service.description}</p>}
+          <ServiceMerchTags service={service} className="sf-merch-inline" />
+          <ServiceTerms service={service} className="sf-merch-inline" />
           <div className="af-menu-foot">
             <span className="af-pkg-note">{gstNote}</span>
             <button type="button" className="af-btn af-btn-primary af-btn-sm" onClick={() => book(service)} aria-label={`Book ${service.name}, ${archFlutterFormatInr(service.price)}`}>

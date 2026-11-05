@@ -35,6 +35,7 @@ import type { SalonProfile, SalonService, Stylist } from '../types';
 import type { SalonGalleryPhoto } from '../lib/photoGallery';
 import { clientExperiences } from '../lib/demoWebsiteContent';
 import { isPackage } from '../lib/packageCatalogue';
+import { ServiceMerchTags, ServiceTerms } from './ServiceMerchandising';
 import { loyaltyTheme } from '../lib/loyaltyTheme';
 import { promotionActive, usePromotionClock } from '../lib/promotionStatus';
 import { publicSalonOffers } from '../lib/salonOffers';
@@ -908,7 +909,9 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
                               )}
                             </div>
                             <h3 className="au-service-name">{site.serviceOverrides[service.id]?.displayName || service.name}</h3>
+                            <ServiceMerchTags service={service} className="sf-merch-inline" />
                             {(site.serviceOverrides[service.id]?.displayDescription || service.description) && <p className="au-service-text">{site.serviceOverrides[service.id]?.displayDescription || service.description}</p>}
+                            <ServiceTerms service={service} className="sf-merch-inline" />
                             <div className="au-service-meta">
                               <div className="au-service-price-wrap">
                                 <span className="au-price-caption">Menu Price</span>

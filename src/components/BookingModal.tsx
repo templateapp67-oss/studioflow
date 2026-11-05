@@ -7,6 +7,7 @@ import { paymentRequest, payBookingDeposit, reconcileBookingPayment } from '../l
 import { supabase } from '../lib/supabase';
 import { sendBookingConfirmationEmail, sendBookingReminderEmail } from '../lib/emailService';
 import {getContrastTextColor} from '../themeAccents';
+import { ServiceTerms } from './ServiceMerchandising';
 import React, { useState, useEffect, useRef, useId } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import {
@@ -1082,6 +1083,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               {' '}(₹{Number(coupon.quote.originalPrice).toLocaleString('en-IN',{maximumFractionDigits:2})} − ₹{Number(coupon.quote.discountAmount).toLocaleString('en-IN',{maximumFractionDigits:2})} discount).
             </p>
           )}
+          {currentStep === 'payment' && <ServiceTerms service={selectedService} className="sf-merch-inline sf-booking-terms" />}
           {currentStep === 'payment' && extras.length>0&&<section className="sf-booking-addons"><h3>{t('Add-on services')}</h3><p>Optional extras · Prices and time are added to your booking. Adding/removing an extra returns you to slot selection.</p>{extras.map(extra=><label key={extra.id}><input type="checkbox" checked={addOnIds.includes(extra.id)} disabled={!!reservedBooking.current||isSubmitting} onChange={e=>{const checked=e.target.checked;setAddOnIds(ids=>checked?[...ids,extra.id].slice(0,9):ids.filter(id=>id!==extra.id));setServerTotal(null);setCurrentStep('datetime');}}/>{extra.name} · +₹{extra.price} · {extra.durationMinutes} min</label>)}<strong>Payable total: ₹{totalPrice.toLocaleString('en-IN')} · {selectedService.durationMinutes+selectedExtras.reduce((sum,s)=>sum+s.durationMinutes,0)} min</strong></section>}
           {currentStep === 'payment' && (
             <motion.div

@@ -121,7 +121,7 @@ function ZiyaPreviewEditor(props:SalonWebsitePreviewProps) {
   <p>Edit your Ziya Women’s Hair Studio website — hero, women’s haircut menu &amp; ₹ prices, female hairstylist team, haircut style gallery, video showcase, verified coupon promotions, Ziya Style Rewards, client reviews, and haircut consultation enquiries.</p>
   <ZiyaAdminPanel profile={props.profile} services={props.services}/>
   {props.setProfile?<WebsiteContentManager profile={props.profile} setProfile={props.setProfile} services={props.services} gallery={props.gallery}/>:<p role="status">Content editing requires a connected owner workspace.</p>}
-  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
+  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent} policies={props.policies}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
   {props.setStylists?<TeamManagement stylists={props.stylists} setStylists={props.setStylists} services={props.services} setServices={props.setServices} businessType="hair_salon" primaryAccentColor={accent}/>:null}
  </main>;
 }
@@ -145,7 +145,7 @@ function VedaSanjeevaniPreviewEditor(props:SalonWebsitePreviewProps) {
    <div className="p-4 rounded-xl border bg-white"><p className="text-xs uppercase tracking-wide text-slate-500">Bundled imagery</p><p className="text-sm mt-1">17 local WebP slots, {config.gallery.images.length} gallery photos, {props.stylists.length} therapist portraits</p><p className="text-xs text-slate-500 mt-2">Uploads are cropped, resized and compressed automatically.</p></div>
   </div>
   {props.setProfile?<WebsiteContentManager profile={props.profile} setProfile={props.setProfile} services={props.services} gallery={props.gallery} showGallery={false}/>:<p role="status">Content editing requires a connected owner workspace.</p>}
-  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent}/>:<p role="status">Therapy editing requires a connected owner workspace.</p>}
+  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent} policies={props.policies}/>:<p role="status">Therapy editing requires a connected owner workspace.</p>}
   {props.setStylists?<TeamManagement stylists={props.stylists} setStylists={props.setStylists} services={props.services} setServices={props.setServices} businessType="ayurvedic_spa" primaryAccentColor={accent}/>:null}
  </main>;
 }
@@ -156,14 +156,14 @@ function ArchFlutterPreviewEditor(props:SalonWebsitePreviewProps) {
   <p>Edit your Arch &amp; Flutter Lash &amp; Brow Bar website — hero, the fifteen eye-area categories, ₹ menu and packages, featured video and reels, artists, before &amp; after, offers, aftercare journal, reviews and contact details. Services, prices, team and gallery save with your connected workspace.</p>
   {props.onOpenCustomizer?<div className="p-4 rounded-2xl border border-[#C9A66B]/60 bg-[#FBF6F1] text-[#2B1B17] flex flex-wrap items-center gap-3"><span className="text-xs font-bold tracking-[0.18em] uppercase text-[#8A6A2F]">Template 13 customizer</span><span className="text-sm flex-1 min-w-[220px]">Brand, colours &amp; fonts, hero, section order, menu, offers, reels, gallery, team, testimonials &amp; FAQ, contact, booking and SEO — with a live preview and undo.</span><button type="button" className="primary-action" onClick={props.onOpenCustomizer}>Open the template customizer</button></div>:null}
   {props.setProfile?<><ArchFlutterEditor profile={props.profile} setProfile={props.setProfile}/><WebsiteContentManager profile={props.profile} setProfile={props.setProfile} services={props.services} gallery={props.gallery} showGallery={false}/></>:<p role="status">Content editing requires a connected owner workspace.</p>}
-  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
+  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent} policies={props.policies}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
   {props.setStylists?<TeamManagement stylists={props.stylists} setStylists={props.setStylists} services={props.services} setServices={props.setServices} businessType="lash_brow" primaryAccentColor={accent}/>:null}
  </main>;
 }
 
 function IronInkPreviewEditor(props:SalonWebsitePreviewProps) {
  const accent=props.profile.customAccentColor||'#E11D48';
- return <main className="max-w-6xl mx-auto p-4 space-y-6" aria-label="Iron and Ink owner editing tools"><p>Customize the Template 12 tattoo category catalog, image direction, prices, booking deposit and FAQs. Studio profile, artists and uploaded gallery content flow through automatically.</p>{props.setProfile?<><IronInkEditor profile={props.profile} setProfile={props.setProfile} services={props.services} setServices={props.setServices}/><WebsiteContentManager profile={props.profile} setProfile={props.setProfile} services={props.services} gallery={props.gallery} showGallery={false}/></>:<p role="status">Content editing requires a connected owner workspace.</p>}{props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent}/>:null}{props.setStylists?<TeamManagement stylists={props.stylists} setStylists={props.setStylists} services={props.services} setServices={props.setServices} businessType="tattoo_studio" primaryAccentColor={accent}/>:null}</main>;
+ return <main className="max-w-6xl mx-auto p-4 space-y-6" aria-label="Iron and Ink owner editing tools"><p>Customize the Template 12 tattoo category catalog, image direction, prices, booking deposit and FAQs. Studio profile, artists and uploaded gallery content flow through automatically.</p>{props.setProfile?<><IronInkEditor profile={props.profile} setProfile={props.setProfile} services={props.services} setServices={props.setServices}/><WebsiteContentManager profile={props.profile} setProfile={props.setProfile} services={props.services} gallery={props.gallery} showGallery={false}/></>:<p role="status">Content editing requires a connected owner workspace.</p>}{props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent} policies={props.policies}/>:null}{props.setStylists?<TeamManagement stylists={props.stylists} setStylists={props.setStylists} services={props.services} setServices={props.setServices} businessType="tattoo_studio" primaryAccentColor={accent}/>:null}</main>;
 }
 
 function VogueNoirPreviewEditor(props:SalonWebsitePreviewProps) {
@@ -171,7 +171,7 @@ function VogueNoirPreviewEditor(props:SalonWebsitePreviewProps) {
  return <main className="max-w-6xl mx-auto p-4 space-y-6" aria-label="Vogue Noir owner editing tools">
   <p>Edit your Vogue Noir Makeup Studio &amp; Academy website, Bridal Packages, optional Academy module, services, artists, and enquiries. Changes save with your connected workspace.</p>
   {props.setProfile?<><VogueNoirEditor profile={props.profile} setProfile={props.setProfile} showBrandIdentityFields/><WebsiteContentManager profile={props.profile} setProfile={props.setProfile} services={props.services} gallery={props.gallery} showGallery={false}/></>:<p role="status">Content editing requires a connected owner workspace.</p>}
-  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
+  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent} policies={props.policies}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
   {props.setStylists?<TeamManagement stylists={props.stylists} setStylists={props.setStylists} services={props.services} setServices={props.setServices} businessType="makeup_studio" primaryAccentColor={accent}/>:null}
   <AcademyEnquiriesPanel/>
  </main>;
@@ -182,7 +182,7 @@ function ShringaarRoyalPreviewEditor(props:SalonWebsitePreviewProps) {
  return <main className="max-w-6xl mx-auto p-4 space-y-6" aria-label="Shringaar Royal owner editing tools">
   <p>Edit your Shringaar Royal Indian Bridal Lounge website — hero, signature collections, lookbook, heirloom packages, bridal journey, bride reviews, offer banner and booking card. Services, ₹ prices, team and gallery save with your connected workspace.</p>
   {props.setProfile?<><ShringaarRoyalEditor profile={props.profile} setProfile={props.setProfile}/><WebsiteContentManager profile={props.profile} setProfile={props.setProfile} services={props.services} gallery={props.gallery} showGallery={false}/></>:<p role="status">Content editing requires a connected owner workspace.</p>}
-  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
+  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent} policies={props.policies}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
   {props.setStylists?<TeamManagement stylists={props.stylists} setStylists={props.setStylists} services={props.services} setServices={props.setServices} businessType="bridal_lounge" primaryAccentColor={accent}/>:null}
  </main>;
 }
@@ -192,7 +192,7 @@ function PrismChromaPreviewEditor(props:SalonWebsitePreviewProps) {
  return <main className="max-w-6xl mx-auto p-4 space-y-6" aria-label="Prism and Chroma owner editing tools">
   <p>Edit your Prism &amp; Chroma Hair Color Atelier website — hero, Shade Studio, branches, services, colour experts and reviews. Changes save with your connected workspace.</p>
   {props.setProfile?<><PrismChromaEditor profile={props.profile} setProfile={props.setProfile} showBrandIdentityFields/><WebsiteContentManager profile={props.profile} setProfile={props.setProfile} services={props.services} gallery={props.gallery} showGallery={false}/></>:<p role="status">Content editing requires a connected owner workspace.</p>}
-  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
+  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent} policies={props.policies}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
   {props.setStylists?<TeamManagement stylists={props.stylists} setStylists={props.setStylists} services={props.services} setServices={props.setServices} businessType="hair_coloring" primaryAccentColor={accent}/>:null}
  </main>;
 }
@@ -202,7 +202,7 @@ function BodhiTreePreviewEditor(props:SalonWebsitePreviewProps) {
  return <main className="max-w-6xl mx-auto p-4 space-y-6" aria-label="Bodhi Tree owner editing tools">
   <p>Edit your Bodhi Tree Massage &amp; Wellness Sanctuary website — hero, Jaipur Palace Collection, branches, services, therapists and reviews. Changes save with your connected workspace.</p>
   {props.setProfile?<><BodhiTreeEditor profile={props.profile} setProfile={props.setProfile} showBrandIdentityFields/><WebsiteContentManager profile={props.profile} setProfile={props.setProfile} services={props.services} gallery={props.gallery} showGallery={false}/></>:<p role="status">Content editing requires a connected owner workspace.</p>}
-  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
+  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent} policies={props.policies}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
   {props.setStylists?<TeamManagement stylists={props.stylists} setStylists={props.setStylists} services={props.services} setServices={props.setServices} businessType="massage_wellness" primaryAccentColor={accent}/>:null}
  </main>;
 }
@@ -213,7 +213,7 @@ function ClinicPreviewEditor(props:SalonWebsitePreviewProps) {
  return <main className="max-w-6xl mx-auto p-4 space-y-6" aria-label="Clinic owner editing tools">
   <p>These are the existing workspace editors. Changes use your connected workspace save; verify service details and fees before publication.</p>
   {props.setProfile?<><WebsiteContentManager profile={props.profile} setProfile={props.setProfile} services={props.services} gallery={props.gallery} showGallery={false}/><section className="workspace-card"><ClinicTechnologyEditor profile={props.profile} setProfile={props.setProfile}/></section></>:<p role="status">Content editing requires a connected owner workspace.</p>}
-  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
+  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent} policies={props.policies}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
   {props.setStylists?<TeamManagement stylists={props.stylists} setStylists={props.setStylists} services={props.services} setServices={props.setServices} businessType="skincare_clinic" primaryAccentColor={accent}/>:null}
  </main>;
 }

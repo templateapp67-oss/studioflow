@@ -41,6 +41,7 @@ import {
   pinkyNailsContactSummary,
 } from '../lib/pinkyNails';
 import { ServicePhoto } from './ServicePhoto';
+import { ServiceMerchTags, ServiceTerms } from './ServiceMerchandising';
 import { useWebsiteLanguage } from './WebsiteLanguage';
 
 const money = (value: number) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
@@ -282,11 +283,13 @@ export function PinkyNailsServiceCard({
       </div>
       <div className="sf-pn-service-body">
         <h3 tabIndex={0}>{service.name.trim()}</h3>
+        <ServiceMerchTags service={service} className="sf-merch-inline" />
         {description && (
           <p tabIndex={0} aria-label={`Description of ${service.name}`}>
             {description}
           </p>
         )}
+        <ServiceTerms service={service} className="sf-merch-inline" />
         {(validPrice || validDuration) && (
           <div className="sf-pn-service-meta">
             {validPrice && <strong>{money(service.price)}</strong>}
