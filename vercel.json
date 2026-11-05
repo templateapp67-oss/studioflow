@@ -6,12 +6,116 @@
       "destination": "/api/sitemap"
     },
     {
+      "source": "/",
+      "has": [{ "type": "query", "key": "app" }],
+      "destination": "/app.html"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "query", "key": "customer" }],
+      "destination": "/app.html"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "query", "key": "site" }],
+      "destination": "/app.html"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "query", "key": "s" }],
+      "destination": "/app.html"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "query", "key": "subdomain" }],
+      "destination": "/app.html"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "query", "key": "template" }],
+      "destination": "/app.html"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "query", "key": "category" }],
+      "destination": "/app.html"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "query", "key": "create" }],
+      "destination": "/app.html"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "query", "key": "owner" }],
+      "destination": "/app.html"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "query", "key": "panel" }],
+      "destination": "/app.html"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "query", "key": "auth" }],
+      "destination": "/app.html"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "query", "key": "recovery" }],
+      "destination": "/app.html"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "query", "key": "ref" }],
+      "destination": "/app.html"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "query", "key": "customer_ref" }],
+      "destination": "/app.html"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "query", "key": "return" }],
+      "destination": "/app.html"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "query", "key": "passwordUpdated" }],
+      "destination": "/app.html"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "query", "key": "code" }],
+      "destination": "/app.html"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "query", "key": "error" }],
+      "destination": "/app.html"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "query", "key": "error_description" }],
+      "destination": "/app.html"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "query", "key": "tab" }],
+      "destination": "/app.html"
+    },
+    {
       "source": "/(.*\\..*)",
       "destination": "/$1"
     },
     {
-      "source": "/(.*)",
+      "source": "/",
       "destination": "/index.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/app.html"
     }
   ],
   "headers": [
