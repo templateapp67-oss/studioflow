@@ -958,7 +958,7 @@
 .af-site .af-artist-photo {
   border-radius: var(--af-arch);
   overflow: hidden;
-  aspect-ratio: 4 / 4.6;
+  aspect-ratio: 3 / 4;
   border: 1px solid var(--af-gold-line);
   background: linear-gradient(160deg, #fff, var(--af-blush));
   margin-bottom: 14px;

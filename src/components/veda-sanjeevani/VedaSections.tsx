@@ -517,8 +517,8 @@ export function VedaExperts({ config, stylists, navigate, onBook, onViewSpeciali
         <VedaRevealGroup className="vd-grid vd-grid--3" style={{ marginTop: 34 }} variant="glass">
           {stylists.map((person) => (
             <VedaRevealItem key={person.id} className="vd-expert" as="article" variant="glass">
-              <div className="vd-expert__media">
-                <VedaImage slot="therapist-ananya" src={person.avatarUrl} alt={person.name} ratio="3 / 4" sizes="(max-width: 760px) 100vw, 30vw" />
+              <div className="vd-expert__media h-80 w-full aspect-[3/4] overflow-hidden">
+                <VedaImage slot="therapist-ananya" src={person.avatarUrl} alt={person.name} ratio="3 / 4" sizes="(max-width: 760px) 100vw, 30vw" className="w-full h-full object-cover" />
               </div>
               <div className="vd-expert__body">
                 <p className="vd-expert__role">{person.role}</p>

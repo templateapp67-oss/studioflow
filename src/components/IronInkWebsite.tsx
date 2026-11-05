@@ -694,7 +694,7 @@ export function IronInkWebsite({
                     <div className="ii-artist-grid">
                       {artistList.slice(0, 4).map((artist, index) => (
                         <button
-                          className="ii-artist-card"
+                          className="ii-artist-card h-80 w-full aspect-[3/4] overflow-hidden"
                           key={artist.id}
                           onClick={() => {
                             setArtistView(artist);
@@ -706,6 +706,7 @@ export function IronInkWebsite({
                               siteProfile.ownerPhotoUrl ||
                               fallback,
                             `${artist.name}, tattoo artist`,
+                            "w-full h-full object-cover",
                           )}
                           <span className="ii-artist-no">
                             View artist profile ↗ · ARTIST 0{index + 1}
@@ -1213,13 +1214,14 @@ export function IronInkWebsite({
                       <div className="ii-artist-grid">
                         {artistList.map((artist) => (
                           <button
-                            className="ii-artist-card"
+                            className="ii-artist-card h-80 w-full aspect-[3/4] overflow-hidden"
                             key={artist.id}
                             onClick={() => setArtistView(artist)}
                           >
                             {img(
                               artist.avatarUrl || fallback,
                               `${artist.name}, tattoo artist`,
+                              "w-full h-full object-cover",
                             )}
                             <span className="ii-artist-no">
                               View artist profile ↗

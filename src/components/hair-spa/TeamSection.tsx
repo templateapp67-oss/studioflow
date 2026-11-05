@@ -29,7 +29,7 @@ function SpecialistPhoto({
   const [failedSrc, setFailedSrc] = useState<string>("");
   const usable = Boolean(portrait.src) && failedSrc !== portrait.src;
   return (
-    <div className="kp-team-photo" data-portrait={portrait.isDemo ? "demo" : "saved"}>
+    <div className="kp-team-photo h-80 w-full aspect-[3/4] overflow-hidden" data-portrait={portrait.isDemo ? "demo" : "saved"}>
       {usable ? (
         <img
           src={portrait.src}
@@ -38,6 +38,7 @@ function SpecialistPhoto({
           decoding="async"
           width={1408}
           height={768}
+          className="w-full h-full object-cover"
           onError={() => setFailedSrc(portrait.src)}
         />
       ) : (

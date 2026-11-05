@@ -740,7 +740,7 @@
 }
 .kp-team-photo {
   background: var(--kp-sage);
-  height: 285px;
+  height: 320px;
   margin-bottom: 18px;
   overflow: hidden;
 }
@@ -1592,7 +1592,7 @@
     padding: 21px;
   }
   .kp-team-photo {
-    height: 350px;
+    height: 320px;
   }
   .kp-steps {
     grid-template-columns: 1fr;
@@ -2232,8 +2232,8 @@
 /* --- Team portraits: fixed ratio, labelled demo note, specialty chips ---- */
 .kp-team-photo {
   position: relative;
-  height: auto;
-  aspect-ratio: 4 / 3;
+  height: 320px;
+  aspect-ratio: 3 / 4;
 }
 .kp-site .kp-team-photo img {
   object-position: center 32%;

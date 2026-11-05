@@ -524,17 +524,18 @@ export function RoopMahalTeamCard({
       aria-label={`${staffName} specialist card`}
     >
       {showAvatar && (
-        <button
-          type="button"
-          className="sf-rm-team-portrait"
-          onClick={onView}
-          aria-label={`${t('View profile & reviews')}: ${staffName}`}
-        >
-          <img
-            src={avatarSrc}
-            alt={staffName}
-            loading="lazy"
-            onError={() => {
+          <button
+            type="button"
+            className="sf-rm-team-portrait h-80 w-full aspect-[3/4] overflow-hidden"
+            onClick={onView}
+            aria-label={`${t('View profile & reviews')}: ${staffName}`}
+          >
+            <img
+              src={avatarSrc}
+              alt={staffName}
+              loading="lazy"
+              className="w-full h-full object-cover"
+              onError={() => {
               if (ownerAvatar && !ownerImgFailed) setOwnerImgFailed(true);
               else setFallbackImgFailed(true);
             }}

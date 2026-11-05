@@ -971,7 +971,7 @@ export function ShringaarRoyalWebsite({
                   <RevealItem as="article" className="sr-artist" key={artist.id}>
                     <div className="sr-artist-arch">
                       <div className="sr-arch">
-                        <div className="sr-arch-inner">
+                        <div className="sr-arch-inner h-80 w-full aspect-[3/4] overflow-hidden">
                           <button
                             type="button"
                             onClick={() => onViewSpecialist(artist.id)}
@@ -985,7 +985,7 @@ export function ShringaarRoyalWebsite({
                               width={560}
                               height={700}
                               loading="lazy"
-                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              className="w-full h-full object-cover"
                             />
                           </button>
                         </div>

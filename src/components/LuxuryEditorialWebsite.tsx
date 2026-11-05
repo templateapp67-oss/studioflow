@@ -1499,8 +1499,8 @@ export const LuxuryEditorialWebsite: React.FC<LuxuryEditorialWebsiteProps> = ({
                 const firstName = stylist.name.split(' ')[0] || 'Stylist';
                 const expYears = stylist.experienceYears || [9, 7, 6, 6][index % 4];
                 return (
-                  <article key={stylist.id} className="le-stylist-card">
-                    <div className="le-stylist-media">
+                  <article key={stylist.id} className="le-stylist-card h-80 w-full aspect-[3/4] overflow-hidden">
+                    <div className="le-stylist-media h-80 w-full aspect-[3/4] overflow-hidden">
                       <img
                         src={photo.src}
                         srcSet={photo.srcSet || undefined}
@@ -1509,58 +1509,59 @@ export const LuxuryEditorialWebsite: React.FC<LuxuryEditorialWebsiteProps> = ({
                         height={photo.height}
                         alt={photo.alt}
                         loading="lazy"
+                        className="w-full h-full object-cover"
                       />
                       <span className="le-exp-badge">{expYears}+ Yrs Experience</span>
                     </div>
 
-                    <div className="le-stylist-body">
-                      <div className="le-stylist-top">
-                        <span className="le-stylist-role">
-                          {stylist.role || 'Women’s Haircut Specialist'}
-                        </span>
-                        {stylist.rating && (
-                          <span className="le-stylist-rating">
-                            <Star size={13} fill="currentColor" aria-hidden="true" />
-                            {Number(stylist.rating).toFixed(2)}
+                      <div className="le-stylist-body">
+                        <div className="le-stylist-top">
+                          <span className="le-stylist-role">
+                            {stylist.role || 'Women’s Haircut Specialist'}
                           </span>
+                          {stylist.rating && (
+                            <span className="le-stylist-rating">
+                              <Star size={13} fill="currentColor" aria-hidden="true" />
+                              {Number(stylist.rating).toFixed(2)}
+                            </span>
+                          )}
+                        </div>
+
+                        <h3 className="le-stylist-name">{stylist.name}</h3>
+
+                        {stylist.bio && <p className="le-stylist-bio">{stylist.bio}</p>}
+
+                        {Array.isArray(stylist.specialties) && stylist.specialties.length > 0 && (
+                          <ul className="le-specialty-tags" aria-label={`${stylist.name} haircut specialties`}>
+                            {stylist.specialties.slice(0, 3).map((spec) => (
+                              <li key={spec}>{spec}</li>
+                            ))}
+                          </ul>
                         )}
-                      </div>
 
-                      <h3 className="le-stylist-name">{stylist.name}</h3>
-
-                      {stylist.bio && <p className="le-stylist-bio">{stylist.bio}</p>}
-
-                      {Array.isArray(stylist.specialties) && stylist.specialties.length > 0 && (
-                        <ul className="le-specialty-tags" aria-label={`${stylist.name} haircut specialties`}>
-                          {stylist.specialties.slice(0, 3).map((spec) => (
-                            <li key={spec}>{spec}</li>
-                          ))}
-                        </ul>
-                      )}
-
-                      <div className="le-stylist-actions">
-                        {bookingAvailable && (
+                        <div className="le-stylist-actions">
+                          {bookingAvailable && (
+                            <button
+                              type="button"
+                              className="le-btn le-btn-primary le-btn-sm le-btn-block"
+                              onClick={() => {
+                                setSelectedStylistId(stylist.id);
+                                onBook(undefined, stylist);
+                              }}
+                            >
+                              Book with {firstName}
+                            </button>
+                          )}
                           <button
                             type="button"
-                            className="le-btn le-btn-primary le-btn-sm le-btn-block"
-                            onClick={() => {
-                              setSelectedStylistId(stylist.id);
-                              onBook(undefined, stylist);
-                            }}
+                            className="le-stylist-profile-link"
+                            onClick={() => onViewSpecialist(stylist.id)}
                           >
-                            Book with {firstName}
+                            View profile &amp; reviews
                           </button>
-                        )}
-                        <button
-                          type="button"
-                          className="le-stylist-profile-link"
-                          onClick={() => onViewSpecialist(stylist.id)}
-                        >
-                          View profile &amp; reviews
-                        </button>
+                        </div>
                       </div>
-                    </div>
-                  </article>
+                    </article>
                 );
               })}
             </div>

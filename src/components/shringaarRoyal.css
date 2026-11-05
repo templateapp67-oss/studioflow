@@ -1526,7 +1526,7 @@
   max-width: 300px;
 }
 .sr-artist-arch .sr-arch { aspect-ratio: 4 / 5; }
-.sr-artist-arch .sr-arch-inner { aspect-ratio: 4 / 5; }
+.sr-artist-arch .sr-arch-inner { aspect-ratio: 3 / 4; }
 .sr-artist:nth-child(2) .sr-artist-arch { transform: translateY(12px); }
 .sr-artist-role {
   font-size: 0.62rem;

@@ -755,9 +755,9 @@ export function PrismChromaWebsite({
               <FadeInGroup className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
                 {team.map((member, idx) => (
                   <FadeIn key={member.id}>
-                    <article className="pc-glass pc-glass-hover h-full overflow-hidden text-left">
+                    <article className="pc-glass pc-glass-hover h-80 overflow-hidden aspect-[3/4] text-left">
                       <button type="button" className="block w-full cursor-pointer" onClick={() => onViewSpecialist(member.id)} aria-label={`View profile & reviews: ${member.name}`}>
-                        <SafeImage src={member.avatarUrl} fallback={[PRISM_CHROMA_IMAGES.team.aarushi, PRISM_CHROMA_IMAGES.team.kiara, PRISM_CHROMA_IMAGES.team.priya, PRISM_CHROMA_IMAGES.team.tara][idx % 4]} alt={`Portrait of ${member.name}, ${member.role} at ${brandName}`} width={600} height={640} className="pc-team-img pc-img-zoom h-60 w-full" />
+                        <SafeImage src={member.avatarUrl} fallback={[PRISM_CHROMA_IMAGES.team.aarushi, PRISM_CHROMA_IMAGES.team.kiara, PRISM_CHROMA_IMAGES.team.priya, PRISM_CHROMA_IMAGES.team.tara][idx % 4]} alt={`Portrait of ${member.name}, ${member.role} at ${brandName}`} width={600} height={640} className="pc-team-img pc-img-zoom w-full h-full object-cover" />
                       </button>
                       <div className="p-5">
                         <h3 className="text-lg font-bold">{member.name}</h3>

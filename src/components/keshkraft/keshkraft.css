@@ -493,8 +493,8 @@
   border-bottom: 1px solid #fff3;
 }
 .kk-team-card > img {
-  aspect-ratio: 4/4;
-  height: auto;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
 }
 .kk-team-card > div {

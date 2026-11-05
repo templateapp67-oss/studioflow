@@ -283,8 +283,8 @@ export function VedaBookingPage({
                           onClick={() => { setStylistId(person.id); setStep(3); }}
                           style={{ gridTemplateColumns: '86px 1fr', textAlign: 'left', cursor: 'pointer', borderColor: stylistId === person.id ? 'var(--vd-gold)' : undefined }}
                         >
-                          <div className="vd-offer__media">
-                            <VedaImage slot="therapist-ananya" src={person.avatarUrl} alt="" ratio="3 / 4" sizes="86px" />
+                          <div className="vd-offer__media h-80 w-full aspect-[3/4] overflow-hidden">
+                            <VedaImage slot="therapist-ananya" src={person.avatarUrl} alt="" ratio="3 / 4" sizes="86px" className="w-full h-full object-cover" />
                           </div>
                           <span className="vd-offer__body" style={{ padding: '14px 16px 14px 0' }}>
                             <span className="vd-offer__badge">{person.role}</span>
