@@ -84,15 +84,8 @@ export async function generateSitemap(
   env: NodeJS.ProcessEnv = process.env,
   fetcher: typeof fetch = fetch,
 ) {
-  let origin = DEFAULT_SITEMAP_ORIGIN;
-  try {
-    origin = canonicalOrigin(
-      env.SITE_URL || env.VITE_SITE_URL || DEFAULT_SITEMAP_ORIGIN,
-    );
-  } catch (error) {
-    // A missing or stale SITE_URL must not turn /sitemap.xml into a 503 page.
-    console.error("[SITEMAP] Invalid SITE_URL; using the configured site origin:", error);
-  }
+  // Match the canonical homepage, robots.txt, and public static sitemap.
+  const origin = DEFAULT_SITEMAP_ORIGIN;
 
   const endpoint =
     env.SUPABASE_URL ||
