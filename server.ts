@@ -641,6 +641,8 @@ Return strictly valid JSON in this format:
       "app", "customer", "site", "s", "subdomain", "template", "category",
       "create", "owner", "panel", "auth", "recovery", "ref", "customer_ref",
       "return", "passwordUpdated", "code", "error", "error_description", "tab",
+      "type", "token_hash", "access_token", "refresh_token", "provider_token",
+      "provider_refresh_token", "expires_in", "expires_at", "scope",
     ];
     app.get("/", (req, res, next) => {
       const hasAppEntryQuery = appEntryQueryKeys.some((key) =>
