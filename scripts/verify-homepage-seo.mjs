@@ -5,7 +5,7 @@ const homepage = await readFile("dist/index.html", "utf8");
 const appShell = await readFile("dist/app.html", "utf8");
 const robots = await readFile("dist/robots.txt", "utf8");
 const sitemap = await readFile("dist/sitemap.xml", "utf8");
-const socialImage = await readFile("dist/nexora-social-preview.svg", "utf8");
+const socialImage = await readFile("dist/nexora-social-preview.png");
 
 const count = (source, expression) => [...source.matchAll(expression)].length;
 
@@ -44,8 +44,8 @@ assert.equal(locations.length, 18, "static sitemap must list homepage, customer 
 assert.ok(locations.includes("https://studioflow-ashen-pi.vercel.app/"));
 assert.ok(locations.includes("https://studioflow-ashen-pi.vercel.app/?template=aurelia_beauty_parlour"));
 
-assert.match(socialImage, /<svg[^>]*width="1200"[^>]*height="630"/, "social preview must be a real 1200x630 image asset");
-assert.match(socialImage, /<title[^>]*>NEXORA Salon OS/, "social preview must carry the NEXORA homepage identity");
+assert.equal(socialImage.readUInt32BE(16), 1200, "social preview width must be 1200px");
+assert.equal(socialImage.readUInt32BE(20), 630, "social preview height must be 630px");
 
 assert.match(appShell, /<div id="root"><\/div>/, "application routes must keep the empty React root");
 assert.doesNotMatch(appShell, /data-prerendered="true"/);
