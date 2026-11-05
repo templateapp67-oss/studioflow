@@ -410,6 +410,8 @@ export interface Stylist {
 }
 
 export interface Appointment {
+  serviceIds?: string[];
+  durationMinutes?: number;
   branchId?: string;
   branchName?: string;
   consultationMessage?: string;

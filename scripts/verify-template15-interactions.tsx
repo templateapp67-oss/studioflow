@@ -267,7 +267,7 @@ try {
 }
 assert.ok(
   readFileSync("src/components/BookingModal.tsx", "utf8").includes(
-    "profile.businessType==='mens_hair_studio'&&!slotsLoading&&!slotsError",
+    "profile.businessType==='mens_hair_studio'&&selectedService&&bookingServiceIds.length===1&&!slotsLoading&&!slotsError",
   ),
   "shared modal waitlist is men-only and successful-availability-only",
 );

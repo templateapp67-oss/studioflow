@@ -1,3 +1,5 @@
+import {StaffPortfolio} from './StaffPortfolio';
+import {resolveBookingSpecialists, summarizeBookingServices, toggleBookingService} from '../lib/bookingSelection';
 import {MensJoinWaitlist} from './keshkraft/KeshKraftInteractions';
 import type { ConsultationDetails } from "./dermacure/consultation";
 import {BookingCoupon,useBookingCoupon} from './BookingCoupon';
@@ -116,7 +118,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 }) => {
   const {t}=useWebsiteLanguage();
   const reducedMotion=useReducedMotion();
-  const [addOnIds,setAddOnIds]=useState<string[]>([]);
   const [serverTotal,setServerTotal]=useState<number|null>(null);
   const bookingRequest=useRef(crypto.randomUUID());
   const bookingAccent=/^#[0-9a-f]{6}$/i.test(themeAccentHex)?themeAccentHex:'#0f172a';
@@ -138,6 +139,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       clientPhone: apt.clientPhone,
       clientEmail: apt.clientEmail,
       service: { id: apt.serviceId, name: apt.serviceName, price: apt.servicePrice },
+      serviceIds: apt.serviceIds,
+      addOnIds: apt.addOnIds,
+      durationMinutes: apt.durationMinutes,
       stylist: { id: apt.stylistId, name: apt.stylistName },
       branchId: apt.branchId,
       branchName: apt.branchName,
@@ -161,20 +165,16 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   // Step 1: Branch, Service & Specialist
 
-  const [selectedService, setSelectedService] = useState<SalonService>(
-    initialService || (services && services[0]) || {
-      id: 'default',
-      name: 'Signature Service',
-      category: 'Hair',
-      durationMinutes: 45,
-      price: 1200,
-      description: 'Standard treatment',
-      icon: 'sparkles'
-    }
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(
+    initialService ? [initialService.id] : services[0] ? [services[0].id] : []
   );
-  const [selectedStylist, setSelectedStylist] = useState<Stylist>(
-    initialStylist || (stylists && stylists[0]) || ANY_SPECIALIST
-  );
+  const selectedServices = selectedServiceIds.map(id => services.find(service => service.id === id)).filter((service): service is SalonService => !!service);
+  const selectedService = selectedServices[0]; // Legacy primary-service contract.
+  const bookingServiceIds = selectedServices.map(service => service.id);
+  const bundleKey = JSON.stringify(bookingServiceIds);
+  const {serviceName, totalMinutes, subtotal} = summarizeBookingServices(selectedServices);
+  const [selectedStylist, setSelectedStylist] = useState<Stylist>(initialStylist || ANY_SPECIALIST);
+  const [previewStylistId, setPreviewStylistId] = useState<string | null>(null);
   const [branchChoices, setBranchChoices] = useState<SalonBranch[]>(profile.branches || []);
   const [selectedBranchId, setSelectedBranchId] = useState('');
   const selectedBranch = branchChoices.find(branch => branch.id === selectedBranchId);
@@ -199,35 +199,43 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     if (!branchChoices.some(branch => branch.id === selectedBranchId)) setSelectedBranchId(branchChoices.length === 1 ? branchChoices[0].id : '');
   }, [branchChoices, selectedBranchId]);
 
-  const [specialistCheck,setSpecialistCheck]=useState<{key:string;ids:string[];published:boolean;error:string}|null>(null);
+  const [specialistCheck,setSpecialistCheck]=useState<{key:string;ids:string[];stylists:Stylist[];published:boolean;error:string}|null>(null);
   const [specialistRetry,setSpecialistRetry]=useState(0);
-  const specialistKey=JSON.stringify([profile.subdomain,selectedService.id,selectedBranchId]);
+  const specialistKey=JSON.stringify([profile.subdomain,bundleKey,selectedBranchId]);
   const specialistsReady=specialistCheck?.key===specialistKey&&!specialistCheck.error;
-  const eligibleStylists=specialistsReady?stylists.filter(st=>specialistCheck!.ids.includes(st.id)):[];
+  // Prefer current public profiles returned by the server, not a potentially stale parent list.
+  const eligibleStylists=specialistsReady?resolveBookingSpecialists(specialistCheck!.ids,specialistCheck!.stylists,stylists):[];
+  const previewStylist=eligibleStylists.find(st=>st.id===previewStylistId);
   useEffect(()=>{
     if(!isOpen)return;let active=true;
-    if(branchChoices.length>1&&!selectedBranchId){setSpecialistCheck({key:specialistKey,ids:[],published:false,error:'Choose a location first.'});return()=>{active=false;};}
-    const request=selectedBranchId
-      ? supabase.rpc('studioflow_branch_specialists',{p_slug:profile.subdomain,p_service_id:selectedService.id,p_branch:selectedBranchId})
-      : supabase.rpc('studioflow_booking_specialists',{p_slug:profile.subdomain,p_service_id:selectedService.id});
-    void request.then(({data,error})=>{
-      if(!active)return;
-      if(error||!data||!Array.isArray(data.specialistIds)){setSpecialistCheck({key:specialistKey,ids:[],published:false,error:error?.message||'Could not check specialists. Please retry.'});return;}
-      setSpecialistCheck({key:specialistKey,ids:data.specialistIds,published:data.published,error:''});
-      setSelectedStylist(current=>current.id===ANY_SPECIALIST.id||data.specialistIds.includes(current.id)?current:ANY_SPECIALIST);
-    });return()=>{active=false;};
-  },[isOpen,specialistKey,specialistRetry,branchChoices.length,selectedBranchId]);
-  const chooseService=(service:SalonService)=>{setAddOnIds([]);setServerTotal(null);setSelectedService(service);if(service.id!==selectedService.id)setSelectedStylist(ANY_SPECIALIST);};
-
-  const extras=services.filter(s=>(profile.bookingAddOnServiceIds||[]).includes(s.id)&&s.id!==selectedService.id);
-  const selectedExtras=extras.filter(s=>addOnIds.includes(s.id));
-  const bookingServiceIds=[selectedService.id,...selectedExtras.map(s=>s.id)];
-  const bundleKey=JSON.stringify(bookingServiceIds);
+    const empty={key:specialistKey,ids:[],stylists:[],published:true,error:''};
+    setPreviewStylistId(null);
+    if(!bookingServiceIds.length){setSpecialistCheck(empty);return;}
+    if(branchChoices.length>1&&!selectedBranchId){setSpecialistCheck({...empty,error:'Choose a location first.'});return;}
+    void Promise.all(bookingServiceIds.map(id=>selectedBranchId
+      ? supabase.rpc('studioflow_branch_specialists',{p_slug:profile.subdomain,p_service_id:id,p_branch:selectedBranchId})
+      : supabase.rpc('studioflow_booking_specialists',{p_slug:profile.subdomain,p_service_id:id})))
+      .then(results=>{
+        if(!active)return;
+        for(const {data,error} of results){if(error||!data||!Array.isArray(data.specialistIds))throw new Error(error?.message||'Could not check specialists. Please retry.');}
+        const ids=results[0].data.specialistIds.filter((id:string)=>results.every(({data})=>data.specialistIds.includes(id)));
+        const profiles=results.flatMap(({data})=>Array.isArray(data.specialists)?data.specialists:[]);
+        setSpecialistCheck({...empty,ids,stylists:profiles,published:results.every(({data})=>data.published)});
+        setSelectedStylist(current=>current.id===ANY_SPECIALIST.id||ids.includes(current.id)?current:ANY_SPECIALIST);
+      }).catch(error=>{if(active)setSpecialistCheck({...empty,error:error.message||'Could not check specialists. Please retry.'});});
+    return()=>{active=false;};
+  },[isOpen,specialistKey,specialistRetry,branchChoices.length]);
+  const chooseService=(service:SalonService)=>{
+    if(reservedBooking.current||isSubmitting)return;
+    setSelectedServiceIds(ids=>toggleBookingService(ids,service.id));
+    setServerTotal(null);setSelectedStylist(ANY_SPECIALIST);setBookingTime('');setAvailableSlots([]);
+  };
+  const extras=services.filter(s=>(profile.bookingAddOnServiceIds||[]).includes(s.id));
   // Template 03 (Aura) validates coupons with its own Supabase RPC; every other
   // template keeps using the original shared booking coupon endpoint.
   const isAuraCheckout=profile.businessType==='unisex_salon';
   const coupon=useBookingCoupon(profile.subdomain,bookingServiceIds,profile.businessType==='mens_hair_studio'?'studioflow_mens_coupon_quote':isAuraCheckout?'studioflow_aura_coupon_quote':'studioflow_coupon_quote');
-  const totalPrice=serverTotal??coupon.quote?.finalPrice??Math.round((selectedService.price+selectedExtras.reduce((sum,s)=>sum+s.price,0))*100)/100;
+  const totalPrice=serverTotal??coupon.quote?.finalPrice??subtotal;
   // Step 2: Date & Time Slot
   const todayStr = new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
   const tomorrowStr=new Date(Date.parse(`${todayStr}T12:00:00Z`)+86400000).toISOString().slice(0,10);
@@ -240,18 +248,18 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [slotRetry,setSlotRetry]=useState(0);
   useEffect(()=>{
     if(!isOpen)return;let active=true;setSlotsLoading(true);setSlotsError('');setBookingTime('');
-    if(branchChoices.length>1&&!selectedBranchId){setSlotsLoading(false);setAvailableSlots([]);return()=>{active=false;};}
+    if(!bookingServiceIds.length||!specialistsReady||!eligibleStylists.length||(branchChoices.length>1&&!selectedBranchId)){setSlotsLoading(false);setAvailableSlots([]);return()=>{active=false;};}
     const slotStylist=selectedStylist.id;
-    const slotsRequest=profile.businessType==='mens_hair_studio'?supabase.rpc('studioflow_mens_slots',{p_slug:profile.subdomain,p_service_id:selectedService.id,p_date:bookingDate,p_stylist_id:slotStylist}):selectedBranchId
-      ? (selectedExtras.length
+    const slotsRequest=profile.businessType==='mens_hair_studio'&&bookingServiceIds.length===1?supabase.rpc('studioflow_mens_slots',{p_slug:profile.subdomain,p_service_id:selectedService?.id,p_date:bookingDate,p_stylist_id:slotStylist}):selectedBranchId
+      ? (bookingServiceIds.length>1
         ? supabase.rpc('studioflow_branch_android_slots',{p_slug:profile.subdomain,p_services:bookingServiceIds,p_date:bookingDate,p_stylist:slotStylist,p_branch:selectedBranchId})
-        : supabase.rpc('studioflow_branch_available_slots',{p_slug:profile.subdomain,p_service_id:selectedService.id,p_date:bookingDate,p_stylist:slotStylist,p_branch:selectedBranchId}))
-      : (selectedExtras.length
+        : supabase.rpc('studioflow_branch_available_slots',{p_slug:profile.subdomain,p_service_id:selectedService?.id,p_date:bookingDate,p_stylist:slotStylist,p_branch:selectedBranchId}))
+      : (bookingServiceIds.length>1
         ? supabase.rpc('studioflow_android_slots',{p_slug:profile.subdomain,p_services:bookingServiceIds,p_date:bookingDate,p_stylist:slotStylist})
-        : supabase.rpc('studioflow_available_slots',{p_slug:profile.subdomain,p_service_id:selectedService.id,p_date:bookingDate,p_stylist_id:slotStylist}));
-    slotsRequest.then(({data,error})=>{if(!active)return;setSlotsLoading(false);if(error){setSlotsError(error.message);setAvailableSlots([]);setBookingTime('');}else{setAvailableSlots((data||[]).map((s:any)=>({...s,available:s.available!==false})));if(initialSlot&&selectedService.id===initialService?.id&&bookingDate===initialSlot.date&&selectedStylist.id===initialSlot.stylistId&&(data||[]).some((s:any)=>s.time===initialSlot.time&&s.available!==false))setBookingTime(initialSlot.time);}});
+        : supabase.rpc('studioflow_available_slots',{p_slug:profile.subdomain,p_service_id:selectedService?.id,p_date:bookingDate,p_stylist_id:slotStylist}));
+    slotsRequest.then(({data,error})=>{if(!active)return;setSlotsLoading(false);if(error){setSlotsError(error.message);setAvailableSlots([]);setBookingTime('');}else{setAvailableSlots((data||[]).map((s:any)=>({...s,available:s.available!==false})));if(initialSlot&&bookingServiceIds.length===1&&selectedService?.id===initialService?.id&&bookingDate===initialSlot.date&&selectedStylist.id===initialSlot.stylistId&&(data||[]).some((s:any)=>s.time===initialSlot.time&&s.available!==false))setBookingTime(initialSlot.time);}});
     return()=>{active=false;};
-  },[isOpen,profile.subdomain,selectedService.id,selectedStylist.id,bookingDate,slotRetry,bundleKey,selectedBranchId,branchChoices.length]);
+  },[isOpen,profile.subdomain,selectedService?.id,selectedStylist.id,bookingDate,slotRetry,bundleKey,selectedBranchId,branchChoices.length,specialistsReady,specialistCheck]);
 
 
   // Step 3: Guest Information
@@ -301,11 +309,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   }, []);
 
   // Initialize the chosen service only when opening or when the parent launches
-  // a different service. Never undo the customer's own dropdown selection.
-  useEffect(()=>{if(isOpen&&initialService)setSelectedService(initialService);},[isOpen,initialService?.id]);
-  useEffect(()=>{if(isOpen&&initialStylist)setSelectedStylist(initialStylist);},[isOpen,initialStylist?.id]);
+  // a different service. Never undo the customer's own selections.
+  useEffect(()=>{if(isOpen)setSelectedServiceIds(initialService?[initialService.id]:services[0]?[services[0].id]:[]);},[isOpen,initialService?.id]);
+  useEffect(()=>{if(isOpen)setSelectedStylist(initialStylist||ANY_SPECIALIST);},[isOpen,initialStylist?.id]);
 
-  useEffect(()=>{if(isOpen){if(initialCouponCode?.trim())coupon.change(initialCouponCode.trim());else coupon.remove();setAddOnIds([]);setServerTotal(null);reservedBooking.current=null;reservedRequest.current='';bookingRequest.current=crypto.randomUUID();if(initialSlot){setBookingDate(initialSlot.date);setSelectedBranchId(initialSlot.branchId||'');setCurrentStep(initialSlot.branchId||(profile.branches||[]).length<2?'datetime':'service');}else setCurrentStep('service');}},[isOpen,initialSlot?.date,initialSlot?.time,initialSlot?.branchId,initialCouponCode]);
+  useEffect(()=>{if(isOpen){if(initialCouponCode?.trim())coupon.change(initialCouponCode.trim());else coupon.remove();setPreviewStylistId(null);setServerTotal(null);reservedBooking.current=null;reservedRequest.current='';bookingRequest.current=crypto.randomUUID();if(initialSlot){setBookingDate(initialSlot.date);setSelectedBranchId(initialSlot.branchId||'');setCurrentStep(initialSlot.branchId||(profile.branches||[]).length<2?'datetime':'service');}else setCurrentStep('service');}},[isOpen,initialSlot?.date,initialSlot?.time,initialSlot?.branchId,initialCouponCode]);
   useEffect(()=>{if(isOpen&&branchChoices.length>1&&!selectedBranchId&&currentStep==='datetime')setCurrentStep('service');},[isOpen,branchChoices.length,selectedBranchId,currentStep]);
   useEffect(()=>{if(isOpen&&consultation){setGuestName(consultation.name);setGuestPhone(consultation.phone);setConsultationMessage(consultation.message);setIsPrefilled(true);}},[isOpen,consultation]);
   useEffect(()=>{if(isOpen&&initialBookingNote)setConsultationMessage(initialBookingNote);},[isOpen,initialBookingNote]);
@@ -382,6 +390,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     const refNum = `NX-${cityCode}-${Math.floor(10000 + Math.random() * 90000)}`;
     setBookingRef(refNum);
 
+    if(!selectedServices.length||!specialistsReady||!eligibleStylists.length)throw new Error('Choose services and an available specialist first.');
     if(branchChoices.length>0&&!selectedBranchId) throw new Error('Choose a location before booking.');
     const newApt: Appointment = {
       id: `apt-${Date.now()}`,
@@ -390,11 +399,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       clientName: guestName.trim() || 'Guest Client',
       clientPhone: `+91 ${cleanPhone}`,
       clientEmail: guestEmail.trim() || `${cleanPhone}@guest.in`,
-      serviceId: selectedService.id,
-      serviceName: selectedService.name,
+      serviceId: selectedService!.id,
+      serviceIds: bookingServiceIds,
+      durationMinutes: totalMinutes,
+      serviceName,
       servicePrice: totalPrice,
       couponCode:coupon.quote?.code,couponExpectedTotal:coupon.quote?.finalPrice,
-      addOnIds:selectedExtras.map(s=>s.id),requestId:bookingRequest.current,
+      addOnIds:bookingServiceIds.slice(1),requestId:bookingRequest.current,
       stylistId: selectedStylist.id,
       stylistName: selectedStylist.name,
       date: bookingDate,
@@ -428,7 +439,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         clientName: guestName.trim() || 'Valued Guest',
         clientPhone: `+91 ${cleanPhone}`,
         bookingRef: saved.id || refNum,
-        serviceName: selectedService.name,
+        serviceName,
         servicePrice: totalPrice,
         amountPaid: saved.amountPaid || paidAmount,
         stylistName: saved.stylistName || selectedStylist.name,
@@ -483,7 +494,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         clientName: guestName.trim() || 'Valued Guest',
         clientPhone: guestPhone,
         bookingRef: bookingRef || 'NX-BOOKING',
-        serviceName: selectedService.name,
+        serviceName,
         servicePrice: totalPrice,
         amountPaid: paidAmount,
         stylistName: selectedStylist.name,
@@ -522,7 +533,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         clientName: guestName.trim() || 'Valued Guest',
         clientPhone: guestPhone,
         bookingRef: bookingRef || 'NX-BOOKING',
-        serviceName: selectedService.name,
+        serviceName,
         servicePrice: totalPrice,
         amountPaid: paidAmount,
         stylistName: selectedStylist.name,
@@ -560,7 +571,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     const msg = `Namaste ${guestName}! Your booking request with ${profile.businessName} is ${serverStatus || 'saved'}!\n\n` +
       `📅 Date: ${bookingDate}\n` +
       `⏰ Time: ${bookingTime} IST\n` +
-      `💇 Service: ${selectedService.name} (₹${totalPrice})\n` +
+      `💇 Service: ${serviceName} (₹${totalPrice})\n` +
       `👤 Specialist: ${selectedStylist.name}\n` +
       `📍 Branch: ${selectedBranch?.name || profile.businessName}, ${selectedBranch?.address || profile.address}, ${selectedBranch?.city || profile.city}\n` +
       `🔖 Reference: ${bookingRef}\n` +
@@ -576,7 +587,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     const formattedPhone = (profile.whatsapp || '').replace(/\D/g, '');
     const msg = `Namaste ${profile.businessName}! 🌟\n\n` +
       `I would like to book a quick appointment with these details:\n` +
-      `💇‍♂️ Service: ${selectedService.name} (₹${totalPrice.toLocaleString('en-IN')})\n` +
+      `💇‍♂️ Service: ${serviceName} (₹${totalPrice.toLocaleString('en-IN')})\n` +
       `📅 Date: ${bookingDate}\n` +
       `⏰ Time: ${bookingTime} IST\n` +
       `👤 Specialist: ${selectedStylist.name}\n\n` +
@@ -589,8 +600,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   // Reset modal state to start fresh
   const handleReset = () => {
     coupon.remove();
-    setAddOnIds([]);setServerTotal(null);reservedBooking.current=null;reservedRequest.current='';setPaidAmount(0);setSubmitError('');
-    setCurrentStep('service');
+    setPreviewStylistId(null);setServerTotal(null);reservedBooking.current=null;reservedRequest.current='';setPaidAmount(0);setSubmitError('');
+    setCurrentStep('service');setSelectedServiceIds(initialService?[initialService.id]:services[0]?[services[0].id]:[]);setSelectedStylist(ANY_SPECIALIST);setBookingTime('');bookingRequest.current=crypto.randomUUID();
 
     setBookingRef('');
 
@@ -697,18 +708,21 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="text-xs font-bold font-mono-caps text-slate-700">
-                    2. Select Treatment / Service
+                    2. Select Treatments / Services
                   </label>
                   <span className="text-[11px] text-emerald-700 font-mono font-bold">
                     All prices in ₹ INR
                   </span>
                 </div>
-                <div className="grid grid-cols-1 gap-2">
+                <p className="text-xs text-slate-600 mb-3">Choose one or more services (up to 10). One specialist will handle your entire appointment.</p>
+                <div className="grid grid-cols-1 gap-2" role="group" aria-label="Services">
                   {(services || []).map((srv) => {
-                    const isSelected = selectedService.id === srv.id;
+                    const isSelected = bookingServiceIds.includes(srv.id);
                     return (
                       <button
-                        type="button" aria-pressed={isSelected}
+                        type="button" role="checkbox" aria-checked={isSelected}
+                        aria-label={`Select service ${srv.name}`}
+                        disabled={!!reservedBooking.current||(!isSelected&&bookingServiceIds.length>=10)}
                         key={srv.id}
                         onClick={() => chooseService(srv)}
                         className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
@@ -717,7 +731,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                             : 'border-slate-200 hover:border-slate-300 bg-white'
                         }`}
                       >
-                        <div className="min-w-0 flex-1 pr-2">
+                        <span aria-hidden="true" className={`sf-booking-checkbox ${isSelected?'is-checked':''}`}>{isSelected&&<Check size={14}/>}</span>
+                        <div className="min-w-0 flex-1 pr-2 text-left">
                           <div className="flex items-center gap-2">
                             <span className="font-extrabold text-xs text-slate-900">{srv.name}</span>
                             {srv.popular && (
@@ -751,15 +766,23 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </div>
               </div>
 
+              <section className="sf-booking-bundle-summary" aria-label="Selected services total" aria-live="polite">
+                <strong>{bookingServiceIds.length} services selected</strong>
+                <span>Total Price <b>₹{totalPrice.toLocaleString('en-IN')}</b></span>
+                <span>Total Duration <b>{totalMinutes} mins</b></span>
+                <span>25% advance <b>₹{advanceTokenAmount.toLocaleString('en-IN')}</b></span>
+                {!bookingServiceIds.length&&<p>Select at least one service to continue.</p>}
+              </section>
+
               {/* Specialist Selection ("Any Available" by default) */}
               <div>
                 <label className="text-xs font-bold font-mono-caps text-slate-700 block mb-1.5">
                   3. Select Specialist
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {/* Option 1: Any Available (Default) */}
                   <button
-                    type="button" aria-pressed={selectedStylist.id===ANY_SPECIALIST.id} aria-label="Select Any Specialist"
+                    type="button" disabled={!bookingServiceIds.length||!specialistsReady||!eligibleStylists.length} aria-pressed={selectedStylist.id===ANY_SPECIALIST.id} aria-label="Select Any Specialist"
                     onClick={() => setSelectedStylist(ANY_SPECIALIST)}
                     className={`p-2.5 rounded-xl border cursor-pointer transition-all flex flex-col items-center text-center gap-1.5 ${
                       selectedStylist.id === ANY_SPECIALIST.id
@@ -771,42 +794,37 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       <Sparkles className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 w-full">
-                      <div className="font-bold text-[11px] text-slate-900 truncate">Any Specialist</div>
-                      <div className="text-[10px] text-emerald-700 font-medium">Fastest Slot</div>
+                      <div className="font-bold text-[11px] text-slate-900 truncate">Any Available Specialist</div>
+                      <div className="text-[10px] text-emerald-700 font-medium">One professional for all selected services</div>
                     </div>
                   </button>
 
-                  {/* Individual Specialists */}
-                  {eligibleStylists.map((st) => {
-                    const isSelected = selectedStylist.id === st.id;
-                    return (
-                      <button
-                        type="button" aria-pressed={isSelected} aria-label={`Select specialist ${st.name}`}
-                        key={st.id}
-                        onClick={() => setSelectedStylist(st)}
-                        className={`p-2.5 rounded-xl border cursor-pointer transition-all flex flex-col items-center text-center gap-1.5 ${
-                          isSelected
-                            ? 'border-slate-900 bg-slate-50 ring-1 ring-slate-900 shadow-xs'
-                            : 'border-slate-200 hover:border-slate-300 bg-white'
-                        }`}
-                      >
-                        <img
-                          src={st.avatarUrl}
-                          alt={st.name}
-                          className="w-9 h-9 rounded-full object-cover shadow-xs"
-                        />
-                        <div className="min-w-0 w-full">
-                          <div className="font-bold text-[11px] text-slate-900 truncate">{st.name.split(' ')[0]}</div>
-                          <div className="text-[10px] text-slate-500 truncate">★ {st.rating}</div>
-                        </div>
+                  {/* Selection and profile preview are deliberately separate buttons. */}
+                  {eligibleStylists.map(st=>{
+                    const isSelected=selectedStylist.id===st.id;
+                    const expanded=previewStylist?.id===st.id;
+                    return <article key={st.id} className={`sf-booking-specialist ${isSelected?'is-selected':''}`}>
+                      <button type="button" aria-pressed={isSelected} aria-label={`Select specialist ${st.name}`} onClick={()=>setSelectedStylist(st)} className="sf-booking-specialist-select">
+                        {st.avatarUrl?<img src={st.avatarUrl} alt="" onError={e=>{e.currentTarget.style.display='none';}}/>:<span className="sf-booking-avatar" aria-hidden="true">{st.name.slice(0,1)}</span>}
+                        <span><strong>{st.name}</strong><span>{st.role||'Salon specialist'}</span><span>{Number.isFinite(st.experienceYears)?`${st.experienceYears} years experience`:'Experience not listed'}</span><span>{Number.isFinite(st.rating)&&st.rating>0?`★ ${st.rating} · Salon-listed rating`:'Not yet rated'}</span></span>
+                        {isSelected&&<Check size={16} aria-hidden="true"/>}
                       </button>
-                    );
+                      <button type="button" className="sf-booking-profile-toggle" aria-label={`View Profile: ${st.name}`} aria-expanded={expanded} aria-controls={`${guestFormId}-specialist-profile`} onClick={()=>setPreviewStylistId(expanded?null:st.id)}>{expanded?'Hide Profile':'View Profile'}</button>
+                    </article>;
                   })}
                 </div>
-                {!specialistsReady&&<p role="status" className="text-xs text-slate-700 mt-3">{specialistCheck?.key===specialistKey&&specialistCheck.error?'Could not check specialists.':'Checking specialists for this service…'}</p>}
+                {previewStylist&&<section id={`${guestFormId}-specialist-profile`} className="sf-booking-profile-preview" role="region" aria-label={`${previewStylist.name} profile`} onKeyDown={event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();setPreviewStylistId(null);dialogRef.current?.querySelector<HTMLButtonElement>('[aria-expanded="true"]')?.focus();}}}>
+                  <header><h3>{previewStylist.name} · {previewStylist.role||'Specialist'}</h3><button type="button" onClick={()=>{setPreviewStylistId(null);dialogRef.current?.querySelector<HTMLButtonElement>('[aria-expanded="true"]')?.focus();}}>Back to booking</button></header>
+                  <p>{previewStylist.bio||'This specialist has not added a bio yet.'}</p>
+                  {!!previewStylist.qualifications?.length&&<p>Qualifications: {previewStylist.qualifications.join(', ')}</p>}
+                  {!!previewStylist.languages?.length&&<p>Languages: {previewStylist.languages.join(', ')}</p>}
+                  <StaffPortfolio staff={previewStylist} services={services}/>
+                </section>}
+
+                {!specialistsReady&&<p role="status" className="text-xs text-slate-700 mt-3">{specialistCheck?.key===specialistKey&&specialistCheck.error?specialistCheck.error:'Checking specialists for all selected services…'}</p>}
                 {specialistCheck?.key===specialistKey&&specialistCheck.error&&<button type="button" className="text-xs underline" onClick={()=>setSpecialistRetry(n=>n+1)}>Retry specialist check</button>}
-                {specialistsReady&&!eligibleStylists.length&&<p role="status" className="text-xs text-amber-800 mt-3">{specialistCheck!.published?'No specialists are assigned to this service. Choose another service or contact the salon.':'This salon is not published yet. The owner needs to publish it before online booking.'}</p>}
-                <p className="text-xs text-slate-700 mt-3">Only specialists assigned to this service are listed. Changing service selects Any Specialist.</p>
+                {specialistsReady&&!eligibleStylists.length&&<p role="status" className="text-xs text-amber-800 mt-3">{!bookingServiceIds.length?'Choose services to see specialists.':specialistCheck!.published?'No specialist can handle all selected services at this location. Adjust your selection or contact the salon.':'This salon is not published yet. The owner needs to publish it before online booking.'}</p>}
+                <p className="text-xs text-slate-700 mt-3">Only specialists eligible for every selected service are listed. Changing services resets to Any Available Specialist. View Profile never changes your selection.</p>
                 <p role="status" className="text-xs text-slate-700 mt-3">Selected specialist: <strong>{selectedStylist.name}</strong>. Use Continue to Date &amp; Slot below.</p>
               </div>
 
@@ -879,9 +897,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 {slotsError && <p role="alert" className="text-red-700">{slotsError}</p>}
                 {!slotsLoading && !availableSlots.some(slot=>slot.available) && <p className="text-sm text-gray-500">No available slots for this service, specialist and date. Choose another date or check Any Specialist.</p>}
                 {!slotsLoading&&selectedStylist.id!==ANY_SPECIALIST.id&&!availableSlots.some(slot=>slot.available)&&<button type="button" className="secondary-action mb-3" onClick={()=>setSelectedStylist(ANY_SPECIALIST)}>Check Any Specialist</button>}
-                {profile.businessType==='mens_hair_studio'&&!slotsLoading&&!slotsError&&!availableSlots.some(slot=>slot.available)&&<MensJoinWaitlist profile={profile} service={selectedService} stylistId={selectedStylist.id} date={bookingDate}/>}
+                {profile.businessType==='mens_hair_studio'&&selectedService&&bookingServiceIds.length===1&&!slotsLoading&&!slotsError&&!availableSlots.some(slot=>slot.available)&&<MensJoinWaitlist profile={profile} service={selectedService} stylistId={selectedStylist.id} date={bookingDate}/>}
                 <button className="text-xs underline mb-2" onClick={()=>setSlotRetry(n=>n+1)}>Retry availability</button>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {availableSlots.map((slot) => {
                     const isSelected = bookingTime === slot.time;
                     return (
@@ -921,7 +939,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   <Calendar className="w-4 h-4 text-slate-500" />
                   <span>{bookingDate} at {bookingTime} IST</span>
                 </div>
-                <span className="text-slate-600">{selectedService.name} ({selectedStylist.name})</span>
+                <span className="text-slate-600">{serviceName} ({selectedStylist.name})</span>
               </div>
 
               {/* Quick WhatsApp Booking Shortcut */}
@@ -932,7 +950,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     <span>⚡ Quick WhatsApp Booking Shortcut</span>
                   </div>
                   <p className="text-[10.5px] text-slate-600 dark:text-neutral-400 mt-1 leading-relaxed">
-                    Send an enquiry directly to the salon. Tap to instantly send a pre-filled booking request for <strong>{selectedService.name}</strong> on WhatsApp.
+                    Send an enquiry directly to the salon. Tap to instantly send a pre-filled booking request for <strong>{serviceName}</strong> on WhatsApp.
                   </p>
                 </div>
                 <button
@@ -1083,8 +1101,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               {' '}(₹{Number(coupon.quote.originalPrice).toLocaleString('en-IN',{maximumFractionDigits:2})} − ₹{Number(coupon.quote.discountAmount).toLocaleString('en-IN',{maximumFractionDigits:2})} discount).
             </p>
           )}
-          {currentStep === 'payment' && <ServiceTerms service={selectedService} className="sf-merch-inline sf-booking-terms" />}
-          {currentStep === 'payment' && extras.length>0&&<section className="sf-booking-addons"><h3>{t('Add-on services')}</h3><p>Optional extras · Prices and time are added to your booking. Adding/removing an extra returns you to slot selection.</p>{extras.map(extra=><label key={extra.id}><input type="checkbox" checked={addOnIds.includes(extra.id)} disabled={!!reservedBooking.current||isSubmitting} onChange={e=>{const checked=e.target.checked;setAddOnIds(ids=>checked?[...ids,extra.id].slice(0,9):ids.filter(id=>id!==extra.id));setServerTotal(null);setCurrentStep('datetime');}}/>{extra.name} · +₹{extra.price} · {extra.durationMinutes} min</label>)}<strong>Payable total: ₹{totalPrice.toLocaleString('en-IN')} · {selectedService.durationMinutes+selectedExtras.reduce((sum,s)=>sum+s.durationMinutes,0)} min</strong></section>}
+          {currentStep === 'payment' && selectedServices.map(service=><ServiceTerms key={service.id} service={service} className="sf-merch-inline sf-booking-terms" />)}
+          {currentStep === 'payment' && extras.length>0&&<section className="sf-booking-addons"><h3>{t('Add-on services')}</h3><p>Optional extras add price and time. Changing services returns you to specialist selection.</p>{extras.map(extra=><label key={extra.id}><input type="checkbox" checked={bookingServiceIds.includes(extra.id)} disabled={!!reservedBooking.current||isSubmitting||(!bookingServiceIds.includes(extra.id)&&bookingServiceIds.length>=10)} onChange={()=>{chooseService(extra);setCurrentStep('service');}}/>{extra.name} · ₹{extra.price} · {extra.durationMinutes} min</label>)}<strong>Payable total: ₹{totalPrice.toLocaleString('en-IN')} · {totalMinutes} min</strong></section>}
           {currentStep === 'payment' && (
             <motion.div
               initial={reducedMotion ? false : { opacity: 0, x: 10 }}
@@ -1108,8 +1126,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 <div className="flex justify-between items-start pb-2 border-b border-slate-200">
                   <div>
                     <span className="text-slate-400 font-mono text-[10px] uppercase">Service & Specialist</span>
-                    <div className="font-bold text-sm text-slate-900">{selectedService.name}</div>
-                    <div className="text-[11px] text-slate-500">With {selectedStylist.name} ({selectedService.durationMinutes} mins)</div>
+                    <div className="font-bold text-sm text-slate-900">{serviceName}</div>
+                    <ul className="text-xs text-slate-600 mt-2" aria-label="Booking service breakdown">{selectedServices.map(service=><li key={service.id}>{service.name} · ₹{service.price.toLocaleString('en-IN')} · {service.durationMinutes} mins</li>)}</ul>
+                    <div className="text-[11px] text-slate-500 mt-2">With {selectedStylist.name} ({totalMinutes} mins)</div>
                   </div>
                   <div className="text-right">
                     <span className="text-slate-400 font-mono text-[10px] uppercase">{taxExcluded ? 'Fee before GST' : 'Total Fee'}</span>
@@ -1207,7 +1226,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
                 <div className="flex justify-between items-center text-slate-700 font-sans">
                   <span>Treatment:</span>
-                  <strong>{selectedService.name} ({selectedStylist.name})</strong>
+                  <strong>{serviceName} ({selectedStylist.name})</strong>
                 </div>
 
                 <div className="flex justify-between items-center text-slate-700 font-sans">
@@ -1325,7 +1344,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               <button
                 type="button"
                 onClick={() => setCurrentStep('datetime')}
-                disabled={!specialistsReady||!eligibleStylists.length}
+                disabled={!bookingServiceIds.length||!specialistsReady||!eligibleStylists.length}
                 className="w-full py-3 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95 active:scale-[0.99] mt-2"
                 style={actionStyle}
               >
@@ -1345,7 +1364,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setCurrentStep('guest')}
-                  disabled={!bookingTime || slotsLoading}
+                  disabled={!bookingTime || slotsLoading || !specialistsReady || !eligibleStylists.length}
                   className="flex-1 py-3 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95"
                   style={actionStyle}
                 >
@@ -1377,7 +1396,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setCurrentStep('guest')}
-                  disabled={!bookingTime || slotsLoading}
+                  disabled={!bookingTime || slotsLoading || !specialistsReady || !eligibleStylists.length}
                   className="px-4 py-3 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-50 cursor-pointer flex items-center gap-1.5"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -1386,7 +1405,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 <button
                   type="button"
                   onClick={handleFinalSubmitBooking}
-                  disabled={isSubmitting || !gatewayReady || coupon.busy || (!reservedBooking.current && !!coupon.code.trim() && !coupon.quote)}
+                  disabled={!bookingServiceIds.length || !bookingTime || !specialistsReady || !eligibleStylists.length || isSubmitting || !gatewayReady || coupon.busy || (!reservedBooking.current && !!coupon.code.trim() && !coupon.quote)}
                   className="flex-1 py-3.5 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95"
                   style={actionStyle}
                 >
