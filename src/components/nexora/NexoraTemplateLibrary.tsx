@@ -24,6 +24,10 @@ export interface NexoraTemplateLibraryProps {
   /** Optional controlled category state, shared with public category shortcuts. */
   activeCategory?: string;
   onCategoryChange?: (categoryId: string) => void;
+  /** Backward-compatible aliases used by the interim public page on main. */
+  activeCategoryId?: string;
+  onActiveCategoryChange?: (categoryId: string) => void;
+  showCategoryFilters?: boolean;
 }
 
 const money = (value: number) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
@@ -42,13 +46,17 @@ export const NexoraTemplateLibrary: React.FC<NexoraTemplateLibraryProps> = ({
   activeTemplateId,
   activeCategory: controlledCategory,
   onCategoryChange,
+  activeCategoryId,
+  onActiveCategoryChange,
+  showCategoryFilters = true,
 }) => {
   const [internalCategory, setInternalCategory] = useState('all');
-  const activeCategory = controlledCategory ?? internalCategory;
+  const activeCategory = controlledCategory ?? activeCategoryId ?? internalCategory;
   const setActiveCategory = useCallback((categoryId: string) => {
     setInternalCategory(categoryId);
     onCategoryChange?.(categoryId);
-  }, [onCategoryChange]);
+    onActiveCategoryChange?.(categoryId);
+  }, [onCategoryChange, onActiveCategoryChange]);
   const [query, setQuery] = useState('');
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -136,7 +144,7 @@ export const NexoraTemplateLibrary: React.FC<NexoraTemplateLibraryProps> = ({
       </div>
 
       {/* Category filters */}
-      <div role="group" aria-label="Filter templates by category" className="flex flex-wrap gap-2">
+      {showCategoryFilters && <div role="group" aria-label="Filter templates by category" className="flex flex-wrap gap-2">
         {filters.map((filter) => {
           const selected = filter.id === activeCategory;
           return (
@@ -163,7 +171,7 @@ export const NexoraTemplateLibrary: React.FC<NexoraTemplateLibraryProps> = ({
             </button>
           );
         })}
-      </div>
+      </div>}
 
       {/* Active filter summary */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#E4DCCB] bg-white px-4 py-3">

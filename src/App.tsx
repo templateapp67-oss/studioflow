@@ -85,8 +85,9 @@ function Application() {
  const createTemplate=new URLSearchParams(location.search).get('create')==='1';
  const ownerSlug=new URLSearchParams(location.search).get('owner');
  const isLoginRoute=/^\/login\/?$/.test(location.pathname);
- // Legacy root auth/create links keep working; new public links use /login explicitly.
- const authEntry=isLoginRoute||createTemplate||new URLSearchParams(location.search).has('auth')||recovery;
+ // Legacy root auth/create/owner/panel links keep working; new public links use /login explicitly.
+ const reservedRootEntry=customer||recovery||!!ownerSlug||!!entryTemplate||createTemplate||new URLSearchParams(location.search).has('panel');
+ const authEntry=isLoginRoute||reservedRootEntry||new URLSearchParams(location.search).has('auth');
  const onRecovery=useCallback(()=>{try{sessionStorage.setItem('studioflow_recovery','1');}catch{}setRecovery(true);},[]);
  const {session,ready:authReady,error:authError}=useAuthSession(onRecovery);
  useCustomerWelcomeDelivery(session);
