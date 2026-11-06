@@ -8,6 +8,7 @@ import {AppInstallSection} from '../AppInstallSection';
 import {WebsiteSections} from '../WebsiteSections';
 import {isPackage} from '../../lib/packageCatalogue';
 import {photoGallery} from '../../lib/photoGallery';
+import {defaultServiceImage} from '../../lib/serviceImages';
 import {AURELIA_DEFAULT_OFFERS, AURELIA_DEFAULT_SERVICES, AURELIA_DEFAULT_STAFF, AURELIA_IMAGES, aureliaConfigFor} from '../../lib/aureliaBeauty';
 import {CATEGORY_STANDARDIZED_DATA} from '../../templateData';
 import type {SalonService, Stylist, SalonOffer} from '../../types';
@@ -48,16 +49,7 @@ export function AureliaBeautyWebsite(props:SalonWebsitePreviewProps){
    setSelectedStylist(stylist);
    setBooking(true);
  };
- const serviceImage=(service:SalonService)=>{
-   if(service.imageUrl)return service.imageUrl;
-   const key=(service.category+' '+service.name).toLowerCase();
-   if(key.includes('skin')||key.includes('facial')||key.includes('hydra'))return AURELIA_IMAGES.skin;
-   if(key.includes('bridal')||key.includes('makeup'))return AURELIA_IMAGES.bridal;
-   if(key.includes('nail')||key.includes('manicure'))return AURELIA_IMAGES.nails;
-   if(key.includes('spa')||key.includes('massage'))return AURELIA_IMAGES.spa;
-   if(key.includes('colour')||key.includes('color')||key.includes('balayage'))return AURELIA_IMAGES.colour;
-   return AURELIA_IMAGES.hair;
- };
+ const serviceImage=(service:SalonService)=>service.imageUrl||defaultServiceImage(service,'aurelia_beauty_parlour');
  const nav=[['services','Services'],['story','Our story'],['team','Our artists'],['menu','Packages'],['gallery','Gallery'],['videos','Videos'],['reviews','Reviews'],['offers','Offers'],['contact','Visit us']];
  const show=(key:string)=> (profile.websiteSections as Record<string,boolean>|undefined)?.[key]!==false;
  const homeServices=config.homeServices||[];
