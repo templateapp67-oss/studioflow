@@ -14,6 +14,7 @@
 | Reconcile the 19 failing offline verification suites reported by PR #69. | Failures include catalogue assumptions and Template 16 wiring assertions; these need root-cause triage, not test suppression. | P1 — outstanding |
 | Protect the booking-email sending endpoint. | A public caller must not be able to use the service as an unrestricted email relay or inject untrusted HTML. | P1 if Node API is exposed — outstanding |
 | Confirm that all current template IDs, category filters and service catalogues agree across frontend and Supabase. | Prevent missing templates, incorrect cards and invalid saved workspace data. | P1/P2 — needs automated cross-layer check |
+| Keep Template 16 on the same shared customer-site contracts as the other templates. | Customers need profile controls, stylist details, packages, gallery persistence, promotions, loyalty, policies and app install on the dedicated Aurelia renderer. | P1/P2 — integration fixes added on audit branch; CI pending |
 
 ### 2. Required for production readiness
 
