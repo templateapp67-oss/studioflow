@@ -91,26 +91,30 @@ export async function generateSitemap(
   }
 }
 
-// Express and Vercel share the exact handler. No request Host is trusted as canonical.
-export async function sitemapHandler(
-  _req: object,
-  res: {
-    status: (statusCode: number) => any;
-    setHeader: (name: string, value: string) => unknown;
-    send: (body: string) => unknown;
-  },
+// Express and Vercel share the exact handler. Test dependencies are injected by factory,
+// not as extra request-handler parameters (Express reserves argument three for next()).
+type SitemapResponse = {
+  status: (statusCode: number) => unknown;
+  setHeader: (name: string, value: string) => unknown;
+  send: (body: string) => unknown;
+};
+
+export function createSitemapHandler(
   env: NodeJS.ProcessEnv = process.env,
   fetcher: typeof fetch = fetch,
 ) {
-  try {
-    const body = await generateSitemap(env, fetcher);
-    res.setHeader("Content-Type", "application/xml; charset=utf-8");
-    res.setHeader("Cache-Control", "public, max-age=300, s-maxage=300");
-    res.send(body);
-  } catch {
-    res.setHeader("Cache-Control", "no-store");
-    res
-      .status(503)
-      .send("Sitemap temporarily unavailable. Check canonical-domain configuration.");
-  }
+  return async (_req: object, res: SitemapResponse): Promise<void> => {
+    try {
+      const body = await generateSitemap(env, fetcher);
+      res.setHeader("Content-Type", "application/xml; charset=utf-8");
+      res.setHeader("Cache-Control", "public, max-age=300, s-maxage=300");
+      res.send(body);
+    } catch {
+      res.setHeader("Cache-Control", "no-store");
+      res.status(503);
+      res.send("Sitemap temporarily unavailable. Check canonical-domain configuration.");
+    }
+  };
 }
+
+export const sitemapHandler = createSitemapHandler();
