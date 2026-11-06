@@ -1,3 +1,6 @@
+import { NEXORA_PUBLIC_ORIGIN } from "../src/lib/publicSeo";
+import { NEXORA_TEMPLATE_META, nexoraTemplatePagePath } from "../src/lib/nexoraTemplateCatalogue";
+
 export function canonicalOrigin(value: string | undefined): string {
   if (!value) throw new Error("SITE_URL must be configured");
   const url = new URL(value);
@@ -25,10 +28,10 @@ const xml = (value: string) =>
       })[c]!,
   );
 export function sitemapXml(origin: string, slugs: string[]) {
-  // The apex is the public marketing homepage. Account/login routes stay excluded.
+  // Public marketing and template pages are crawlable; app/auth routes are not.
   const urls = [
     origin + "/",
-    origin + "/?app=1",
+    ...NEXORA_TEMPLATE_META.map((meta) => origin + nexoraTemplatePagePath(meta.templateId)),
     ...new Set(
       slugs
         .filter((s) => /^[a-z0-9][a-z0-9-]{2,62}$/.test(s))
@@ -47,7 +50,7 @@ export async function generateSitemap(
   env: NodeJS.ProcessEnv = process.env,
   fetcher: typeof fetch = fetch,
 ) {
-  const origin = canonicalOrigin(env.SITE_URL);
+  const origin = canonicalOrigin(env.SITE_URL || env.VITE_SITE_URL || NEXORA_PUBLIC_ORIGIN);
   const endpoint =
     env.SUPABASE_URL || "https://zilwgiuiygqqardzutxi.supabase.co";
   const key =

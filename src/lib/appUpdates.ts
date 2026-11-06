@@ -1,4 +1,5 @@
-export const CURRENT_BUILD=import.meta.env?.VITE_SCREEN_BUILD||'development';
+const BUILD_ID = typeof __APP_BUILD_ID__ !== 'undefined' ? __APP_BUILD_ID__ : import.meta.env?.VITE_SCREEN_BUILD;
+export const CURRENT_BUILD = BUILD_ID || 'development';
 export async function latestAppVersion():Promise<string|null>{
  const response=await fetch('/app-version.json?t='+Date.now(),{cache:'no-store',credentials:'omit'});
  if(!response.ok)return null;

@@ -123,14 +123,19 @@ assert.ok(
     !xml.includes("module=") &&
     !xml.includes("recovery="),
 );
-assert.ok(sitemapXml("https://clinic.example", ["abc"]).includes("/?app=1"));
+const publicSitemap = sitemapXml("https://clinic.example", ["abc"]);
+assert.ok(publicSitemap.includes("https://clinic.example/template-pages/hair-salon.html"));
+assert.ok(!publicSitemap.includes("/?app=1"), "customer-app entry is excluded from search indexing");
 await assert.rejects(() =>
   generateSitemap({ SITE_URL: "https://clinic.example" }, (async () => ({
     ok: false,
   })) as any),
 );
 const prior = process.env.SITE_URL;
+const priorViteSite = process.env.VITE_SITE_URL;
+const priorFetch = globalThis.fetch;
 delete process.env.SITE_URL;
+delete process.env.VITE_SITE_URL;
 let status = 200,
   body = "";
 const headers: Record<string, string> = {};
@@ -142,12 +147,16 @@ const res: any = {
   setHeader: (k: string, v: string) => (headers[k] = v),
   send: (s: string) => (body = s),
 };
+globalThis.fetch = (async () => ({ ok: false, status: 503 }) as Response) as typeof fetch;
 await sitemapHandler({}, res);
 assert.equal(status, 503);
 assert.equal(headers["Cache-Control"], "no-store");
 assert.ok(!body.includes("<html"));
 if (prior === undefined) delete process.env.SITE_URL;
 else process.env.SITE_URL = prior;
+if (priorViteSite === undefined) delete process.env.VITE_SITE_URL;
+else process.env.VITE_SITE_URL = priorViteSite;
+globalThis.fetch = priorFetch;
 const css = readFileSync("src/components/customer/touch-targets.css", "utf8");
 assert.ok(css.includes("min-height:44px"));
 assert.ok(css.includes(".cr-app.cr-zip-ui .cr-dots button"));

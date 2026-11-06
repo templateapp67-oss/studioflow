@@ -74,3 +74,49 @@
 @media(max-width:390px){.aurelia-hero h1{font-size:49px}.aurelia-team-grid{grid-template-columns:1fr}.aurelia-team-card>img{height:270px}.aurelia-hero-actions{gap:13px;flex-wrap:wrap}}
 
 .aurelia-main{display:flex;flex-direction:column}.aurelia-main>section{width:100%;flex:0 0 auto}
+
+/* Shared service, gallery, account and booking pieces keep Template 16 data in
+   the same normalised flows as the other public templates. */
+.aurelia-service-image>.sf-service-image{position:absolute;inset:0;width:100%;height:100%;display:block}
+.aurelia-service-image>.sf-service-image img{width:100%;height:100%;object-fit:cover}
+.aurelia-package-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:22px}
+.aurelia-package-card{background:#efe6da;border:1px solid #d8c8b4;overflow:hidden;display:flex;flex-direction:column}
+.aurelia-package-card>.sf-service-image{height:210px;overflow:hidden;background:#e3d7c7}
+.aurelia-package-card>.sf-service-image img{width:100%;height:100%;object-fit:cover}
+.aurelia-package-copy{display:flex;flex-direction:column;gap:9px;padding:18px 20px 20px;flex:1}
+.aurelia-package-copy>span{font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:#745a42}
+.aurelia-package-copy h3{font:300 23px/1.15 var(--font-aurelia-display,Georgia,serif);margin:0}
+.aurelia-package-copy>p{font-size:11px;line-height:1.65;color:#67594d;margin:0;flex:1}
+.aurelia-package-meta{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #d8c8b4;padding-top:11px}
+.aurelia-package-meta strong{font-size:15px;color:#2d231b}.aurelia-package-meta small{font-size:10px;color:#6b5e52}
+.aurelia-package-copy>button{min-height:44px;display:inline-flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid #5f4938;background:#5f4938;color:#fff;padding:11px 14px;font-size:9px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer}
+.aurelia-package-copy>button:disabled{opacity:.62;cursor:not-allowed}
+.aurelia-gallery-filters{display:flex;flex-wrap:wrap;gap:8px;margin:-16px 0 20px}
+.aurelia-gallery-filters button{min-height:40px;padding:8px 13px;border:1px solid #d8c8b4;background:transparent;color:#4d3d31;font-size:10px;cursor:pointer}
+.aurelia-gallery-filters button[aria-pressed="true"]{background:#4d3d31;color:#fff;border-color:#4d3d31}
+.aurelia-gallery-grid button{position:relative;min-height:150px}
+.aurelia-gallery-grid button>span{position:absolute;inset:auto 0 0;padding:12px 14px;background:linear-gradient(transparent,rgba(28,21,16,.8));color:#fff;text-align:left;font-size:10px;letter-spacing:.04em}
+.aurelia-team-experience{display:block;margin-top:7px}
+.aurelia-team-card button{min-height:38px}
+.aurelia-account-group{display:flex;align-items:center;gap:9px}
+.aurelia-profile-account{display:flex;align-items:center;gap:8px;max-width:190px}
+.aurelia-profile-account>img{width:30px;height:30px;border-radius:50%;object-fit:cover;border:1px solid #d8c8b4}
+.aurelia-profile-account>span:not(.sr-only){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.aurelia-mobile-account,.aurelia-mobile-account-group{display:none}
+.aurelia-mobile-account-group{gap:12px;align-items:center}
+.aurelia-mobile-account{border:0;background:transparent;color:#54483f;text-decoration:none;font-size:11px;min-height:44px;padding:10px 0;text-align:left;cursor:pointer}
+.aurelia-shared-section{background:var(--au-bg,#f6f1ea);color:var(--au-ink,#1d1612);width:100%;flex:0 0 auto}
+.aurelia-shared-section--videos{background:#1d1612;color:#f6f1ea}
+.aurelia-empty{color:#6b5e52;font-size:12px}
+
+@media(max-width:760px){
+ .aurelia-nav.is-open{z-index:25;max-height:calc(100dvh - 72px);overflow:auto}
+ .aurelia-mobile-account,.aurelia-mobile-account-group{display:flex}
+ .aurelia-mobile-account-group{flex-direction:column;align-items:flex-start;gap:0}
+ .aurelia-package-grid{grid-template-columns:1fr}
+ .aurelia-package-card>.sf-service-image{height:220px}
+ .aurelia-gallery-filters{margin-top:-8px}
+ .aurelia-gallery-filters button{min-height:44px}
+ .aurelia-team-card button{min-height:44px;align-items:flex-start;text-align:left}
+}
+.aurelia-service-info>.aurelia-service-description{font-size:11px;letter-spacing:normal;text-transform:none;color:#67594d;line-height:1.65;margin:0 0 12px}

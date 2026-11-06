@@ -1,3 +1,4 @@
+import './app.css';
 import {KeshKraftEditor,type MensWorkspace} from './components/keshkraft/KeshKraftEditor';
 import {MENS_LOYALTY,MENS_STAFF} from './lib/keshkraft';
 import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
@@ -52,6 +53,7 @@ import { CustomerApp } from './components/CustomerApp';
 import { supabase, captureReferral } from './lib/supabase';
 import { applySeoMetadata } from './lib/useSeoMetadata';
 import { applyPublicSeoMetadata, NEXORA_HOME_SEO, NEXORA_LOGIN_SEO } from './lib/publicSeo';
+import { loadApplicationFonts } from './lib/loadApplicationFonts';
 
 const WebsiteCustomerAccount = lazy(() => import('./components/WebsiteCustomerAccount').then(m => ({ default: m.WebsiteCustomerAccount })));
 const LandingPage = lazy(() => loadScreen(() => import('./components/LandingPage').then(m => ({ default: m.LandingPage ?? (m as unknown as { default: typeof m.LandingPage }).default }))));
@@ -66,11 +68,7 @@ const ArchFlutterCustomizerGate = lazy(() => loadScreen(() => import('./componen
 const VedaCustomizerGate = lazy(() => loadScreen(() => import('./components/veda-sanjeevani/VedaCustomizerGate').then(m => ({ default: m.VedaCustomizerGate }))));
 
 export default function App(){
-  useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(console.error);
-    }
-  }, []);
+  useEffect(() => loadApplicationFonts(), []);
   return <AppErrorBoundary><Suspense fallback={<Loading text="Loading NEXORA…" />}><CustomerReferralBridge/><Application /></Suspense></AppErrorBoundary>;
 }
 function readRecoveryFlag(){try{return sessionStorage.getItem('studioflow_recovery')==='1';}catch{return false;}}

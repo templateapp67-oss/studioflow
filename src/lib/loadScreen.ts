@@ -1,5 +1,5 @@
 // Each release gets one automatic recovery; manual recovery always fetches a fresh document.
-const build=import.meta.env?.VITE_SCREEN_BUILD||'development';
+const build=typeof __APP_BUILD_ID__!=='undefined'?__APP_BUILD_ID__:import.meta.env?.VITE_SCREEN_BUILD||'development';
 export function isChunkLoadError(error:unknown){
  const message=error&&typeof error==='object'&&'message' in error?String(error.message):String(error);
  return /Failed to fetch dynamically imported module|Importing a module script failed|Loading chunk .* failed|ChunkLoadError|Unable to preload CSS/i.test(message);

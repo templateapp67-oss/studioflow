@@ -74,10 +74,10 @@ const L = (path: string) => `/templates/10/${path}`;
 export const PRISM_CHROMA_IMAGES = {
   logoSvg: '/templates/10/logo.svg',
   faviconSvg: '/templates/10/favicon.svg',
-  hero: '/templates/10/hero.jpg',
+  hero: '/templates/10/hero.webp',
   about: '/templates/10/about.jpg',
-  booking: '/templates/10/hero.jpg',
-  preview: '/templates/10/hero.jpg',
+  booking: '/templates/10/hero.webp',
+  preview: '/templates/10/hero.webp',
   ogImage: '/templates/10/hero.jpg',
   interior: L('interior.jpg'),
   services: {

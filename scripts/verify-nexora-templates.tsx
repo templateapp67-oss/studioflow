@@ -344,7 +344,7 @@ for (const file of ['src/components/nexora/NexoraTemplateLibrary.tsx', 'src/comp
   const source = readFileSync(file, 'utf8');
   for (const wrong of ['Nexorra', 'NEXORAA', 'Nexora Salon']) assert.ok(!source.includes(wrong), `${file}: no misspelt brand ${wrong}`);
 }
-assert.ok(readFileSync('src/components/TemplatePreviewCards.tsx', 'utf8').includes('nexoraDisplayName'), 'the preview modal titles use the NEXORA names');
+assert.ok(readFileSync('src/components/TemplatePreviewModal.tsx', 'utf8').includes('nexoraDisplayName'), 'the preview modal titles use the NEXORA names');
 assert.ok(readFileSync('src/components/SalonWebsitePreview.tsx', 'utf8').includes('nexoraName'), 'the in-editor template switcher uses the NEXORA names');
 assert.ok(readFileSync('src/components/SidePanelCustomizer.tsx', 'utf8').includes('nexoraName'), 'the side-panel category switcher uses the NEXORA names');
 assert.ok(readFileSync('index.html', 'utf8').includes('NEXORA'), 'the document title is NEXORA');

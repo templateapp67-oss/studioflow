@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import {
   ArrowRight,
   BriefcaseBusiness,
@@ -19,18 +19,21 @@ import {
   WandSparkles,
   X,
 } from 'lucide-react';
-import { CATEGORY_TEMPLATES } from '../categoryTemplates';
 import {
   NEXORA_CATEGORIES,
   nexoraCategoryFilters,
   nexoraDisplayName,
+  nexoraTemplateMeta,
   sortTemplatesByPriority,
 } from '../lib/nexoraTemplateCatalogue';
+import { NEXORA_PUBLIC_TEMPLATES, NEXORA_PUBLIC_TEMPLATES_BY_ID, type NexoraTemplateCardData } from '../lib/nexoraPublicTemplates';
+import { nexoraPreviewImage } from '../lib/nexoraPreviewImages';
 import type { BusinessTypeId } from '../types';
 import { NexoraTemplateLibrary } from './nexora/NexoraTemplateLibrary';
 import { CategoryIconTile, NexoraBrandMark } from './nexora/NexoraBrand';
-import { TemplatePreviewModal, TemplateThumbnail } from './TemplatePreviewCards';
 import './publicHomepage.css';
+
+const TemplatePreviewModal = lazy(() => import('./TemplatePreviewModal').then((module) => ({ default: module.TemplatePreviewModal })));
 
 export const PUBLIC_SIGNUP_PATH = '/login?auth=signup';
 
@@ -123,9 +126,50 @@ function PublicBrand() {
   );
 }
 
-/** Public, signed-out marketing homepage. All template content comes from the existing registry. */
+function PublicTemplateArtwork({ template }: { template: NexoraTemplateCardData }) {
+  const meta = nexoraTemplateMeta(template.id);
+  return (
+    <div aria-hidden="true" className="bg-slate-100 p-4 pb-0">
+      <div className="overflow-hidden rounded-t-xl border border-slate-300 bg-white shadow-sm">
+        <div className="flex h-6 items-center gap-1 border-b border-slate-200 bg-white px-2">
+          <i className="h-1.5 w-1.5 rounded-full bg-rose-300" />
+          <i className="h-1.5 w-1.5 rounded-full bg-amber-300" />
+          <i className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
+          <span className="ml-1.5 rounded-sm bg-[#2A1E4A] px-1 py-px text-[6px] font-black uppercase tracking-[0.12em] text-[#F5E9D6]">NEXORA</span>
+          <span className="ml-auto truncate text-[7px] font-semibold tracking-wide text-[#6B5E7A]">{template.shortName}</span>
+        </div>
+        <div className="relative h-40 overflow-hidden bg-[#221B34]">
+          <img
+            src={nexoraPreviewImage(template)}
+            alt=""
+            width={1200}
+            height={700}
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
+            sizes="(min-width: 1024px) 52vw, 100vw"
+            className="h-full w-full object-cover object-top"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#14101F]/85 via-[#14101F]/25 to-transparent" />
+          <div className="absolute inset-x-3 bottom-3 text-white">
+            <span className="text-[7px] font-semibold uppercase tracking-[0.16em] text-white/80">{meta?.categoryName || 'Salon website'}</span>
+            <p className="mt-1 text-sm font-extrabold leading-tight">{template.title}</p>
+            <p className="mt-1 text-[8px] leading-relaxed text-white/80">{meta?.bestFor}</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-1.5 bg-white p-2">
+          {(meta?.services || []).slice(0, 3).map((service) => (
+            <div key={service} className="truncate border border-slate-100 px-1.5 py-2 text-[7px] font-semibold text-slate-700">{service}</div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Public, signed-out marketing homepage. Cards use presentation metadata only. */
 export function PublicHomepage() {
-  const templates = sortTemplatesByPriority(Object.values(CATEGORY_TEMPLATES));
+  const templates = sortTemplatesByPriority(NEXORA_PUBLIC_TEMPLATES);
   const categoryFilters = nexoraCategoryFilters(templates).slice(1);
   const [activeCategory, setActiveCategory] = useState('all');
   const [previewId, setPreviewId] = useState<BusinessTypeId | null>(null);
@@ -163,10 +207,11 @@ export function PublicHomepage() {
     setPreviewId(templateId);
   }, []);
 
-  const heroTemplate = CATEGORY_TEMPLATES.hair_salon;
+  const heroTemplate = NEXORA_PUBLIC_TEMPLATES_BY_ID.hair_salon;
 
   return (
     <div className="public-homepage min-h-screen bg-surface font-body-md text-on-surface antialiased">
+      <a className="public-skip-link" href="#public-main-content">Skip to main content</a>
       <header className="sticky top-0 z-50 border-b border-[#E4DCCB]/80 bg-white/95 backdrop-blur-xl">
         <div className="mx-auto flex min-h-[76px] max-w-[1440px] items-center gap-4 px-4 py-3 sm:px-6 lg:px-10">
           <a href="/" aria-label="NEXORA Salon OS home" className="shrink-0 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#7A4E8F]">
@@ -217,7 +262,7 @@ export function PublicHomepage() {
         )}
       </header>
 
-      <main>
+      <main id="public-main-content">
         {/* 1 · Hero and actual template experience */}
         <section aria-labelledby="public-home-title" className="relative overflow-hidden border-b border-[#E4DCCB]/70 bg-gradient-to-br from-[#FBF8F2] via-white to-[#F6F1E6]">
           <div aria-hidden="true" className="pointer-events-none absolute -right-32 -top-40 h-[480px] w-[480px] rounded-full bg-primary-fixed/25 blur-3xl" />
@@ -229,7 +274,7 @@ export function PublicHomepage() {
                 Your salon. Your website. Your brand.
               </div>
               <h1 id="public-home-title" className="max-w-[720px] font-display text-[2.55rem] font-extrabold leading-[1.08] tracking-[-0.035em] text-[#1B1630] sm:text-5xl lg:text-[3.35rem] xl:text-[3.75rem]" style={{ textWrap: 'balance' }}>
-                Launch Your Salon Website in 30 Minutes
+                Launch Your NEXORA Salon Website in 30 Minutes
               </h1>
               <p className="mt-6 max-w-xl text-base leading-7 text-[#5B5470] sm:text-lg sm:leading-8">
                 Create a professional website for your salon without coding. Choose a design, add your services and business details, then share your website with customers.
@@ -266,11 +311,11 @@ export function PublicHomepage() {
                   </div>
                   <span className="hidden rounded-full bg-[#EDE9FE] px-2 py-1 text-[9px] font-extrabold uppercase tracking-wider text-[#7A4E8F] sm:inline-flex">Live demo</span>
                 </div>
-                <TemplateThumbnail template={heroTemplate} />
+                <PublicTemplateArtwork template={heroTemplate} />
                 <div className="flex flex-col gap-3 border-t border-[#E4DCCB] bg-white p-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                   <div className="min-w-0">
                     <p className="truncate text-xs font-extrabold text-[#1B1630]">{nexoraDisplayName('hair_salon', heroTemplate.title)}</p>
-                    <p className="mt-1 text-[11px] text-[#6B5E7A]">Actual template artwork, services and pricing</p>
+                    <p className="mt-1 text-[11px] text-[#6B5E7A]">Template artwork and sample services</p>
                   </div>
                   <button type="button" onClick={() => previewTemplate('hair_salon')} className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-xl bg-[#2A1E4A] px-4 text-xs font-bold text-white transition hover:bg-[#3E2A63] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A4E8F]">
                     <Eye size={15} aria-hidden="true" /> Open interactive preview
@@ -443,17 +488,19 @@ export function PublicHomepage() {
       </footer>
 
       {previewId && (
-        <TemplatePreviewModal
-          templateId={previewId}
-          onSelectPreview={setPreviewId}
-          onClose={closePreview}
-          onChoose={() => {
-            const id = previewId;
-            setPreviewId(null);
-            customizeTemplate(id);
-          }}
-          requireAuthToCustomize
-        />
+        <Suspense fallback={<div className="fixed inset-0 z-[100] grid place-items-center bg-[#1B1630]/75 p-4 text-sm font-semibold text-white" role="status">Loading template preview…</div>}>
+          <TemplatePreviewModal
+            templateId={previewId}
+            onSelectPreview={setPreviewId}
+            onClose={closePreview}
+            onChoose={() => {
+              const id = previewId;
+              setPreviewId(null);
+              customizeTemplate(id);
+            }}
+            requireAuthToCustomize
+          />
+        </Suspense>
       )}
     </div>
   );

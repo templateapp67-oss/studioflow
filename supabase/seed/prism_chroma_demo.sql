@@ -36,7 +36,7 @@ set title = 'Prism & Chroma Hair Color Atelier',
       'ownerName', 'Aarushi Mehta',
       'ownerRole', 'Master Colourist & Founder',
       'ownerPhotoUrl', '/templates/10/team/aarushi.jpg',
-      'coverImageUrl', '/templates/10/hero.jpg',
+      'coverImageUrl', '/templates/10/hero.webp',
       'instagramHandle', '@prismchroma.colour',
       'themeStyle', '{
         "heroBackground": "bg-[#0B0B14]",

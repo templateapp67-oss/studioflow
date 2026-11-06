@@ -1,50 +1,40 @@
-// Ensure window.fetch has both getter and setter in iframe environments
-try {
-  const desc = Object.getOwnPropertyDescriptor(window, 'fetch');
-  if (!desc || !desc.set) {
-    let currentFetch = window.fetch;
-    Object.defineProperty(window, 'fetch', {
-      get() {
-        return currentFetch;
-      },
-      set(fn) {
-        currentFetch = fn;
-      },
-      configurable: true,
-      enumerable: true,
-    });
-  }
-} catch {
-  // Ignore descriptor errors
-}
-
-import React, { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import App from './App';
-import { AppUpdateManager } from './components/AppUpdateManager';
+import React, { StrictMode, Suspense, lazy } from 'react';
+import { createRoot, hydrateRoot } from 'react-dom/client';
+import { AppRouter, requiresFullApplication } from './AppRouter';
 import { DebugBoundary } from './components/DebugBoundary';
 import { installScreenRecovery } from './lib/loadScreen';
 import { registerCustomerPwa } from './lib/customerPwa';
 import './index.css';
-import './components/dermacure.css';
-import './components/vogueNoir.css';
-import './components/bodhiTree.css';
-import './components/prismChroma.css';
-import './components/shringaarRoyal.css';
-import './components/archFlutter.css';
+
+const AppUpdateManager = lazy(() =>
+  import('./components/AppUpdateManager').then((module) => ({ default: module.AppUpdateManager })),
+);
 
 installScreenRecovery();
 registerCustomerPwa();
 
 const rootElement = document.getElementById('root');
 if (rootElement) {
-  createRoot(rootElement).render(
+  const content = (
     <StrictMode>
-      {/* DebugBoundary sits above App so a render failure can never leave a blank page. */}
       <DebugBoundary>
-        <App />
+        <AppRouter />
       </DebugBoundary>
-      <AppUpdateManager />
-    </StrictMode>,
+      <Suspense fallback={null}>
+        <AppUpdateManager />
+      </Suspense>
+    </StrictMode>
   );
+
+  // The production homepage is server-rendered. Hydrate it only on the matching
+  // public route; published sites and auth routes keep their existing client app.
+  const canHydrate = rootElement.hasChildNodes()
+    && !requiresFullApplication(window.location);
+
+  if (canHydrate) {
+    hydrateRoot(rootElement, content);
+  } else {
+    if (rootElement.hasChildNodes()) rootElement.replaceChildren();
+    createRoot(rootElement).render(content);
+  }
 }

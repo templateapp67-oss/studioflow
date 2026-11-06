@@ -1,15 +1,16 @@
 /** Canonical public production origin already used by NEXORA account and customer links. */
-export const NEXORA_PUBLIC_ORIGIN = 'https://nexora-one-white-label.templateapp67.chatgpt.site';
+export const NEXORA_PUBLIC_ORIGIN = 'https://studioflow-ashen-pi.vercel.app';
 export const NEXORA_HOME_OG_IMAGE = `${NEXORA_PUBLIC_ORIGIN}/nexora-homepage-og.jpg`;
 
 export const NEXORA_HOME_SEO = {
-  title: 'NEXORA Salon OS – Launch Your Salon Website in 30 Minutes',
+  title: 'NEXORA Salon OS – Launch Your NEXORA Salon Website in 30 Minutes',
   description: 'Create your salon website in 30 minutes with NEXORA Salon OS. Choose from 16 salon templates, customise your design and launch your professional salon website easily.',
-  ogTitle: 'NEXORA Salon OS – Launch Your Salon Website in 30 Minutes',
+  ogTitle: 'NEXORA Salon OS – Launch Your NEXORA Salon Website in 30 Minutes',
   ogDescription: 'Create your salon website in 30 minutes with NEXORA Salon OS. Choose from 16 salon templates, customise your design and launch your professional salon website easily.',
-  twitterTitle: 'NEXORA Salon OS – Launch Your Salon Website in 30 Minutes',
+  twitterTitle: 'NEXORA Salon OS – Launch Your NEXORA Salon Website in 30 Minutes',
   twitterDescription: 'Create your salon website with 16 ready-made templates. Customise and launch easily with NEXORA Salon OS.',
   canonicalUrl: `${NEXORA_PUBLIC_ORIGIN}/`,
+  robots: 'index,follow',
 } as const;
 
 export const NEXORA_LOGIN_SEO = {
@@ -20,6 +21,7 @@ export const NEXORA_LOGIN_SEO = {
   twitterTitle: 'NEXORA Salon OS — Sign in',
   twitterDescription: 'Sign in to NEXORA to keep your website, team and business data with your account across devices.',
   canonicalUrl: `${NEXORA_PUBLIC_ORIGIN}/login`,
+  robots: 'noindex,follow',
 } as const;
 
 export type PublicSeoPage = typeof NEXORA_HOME_SEO | typeof NEXORA_LOGIN_SEO;
@@ -48,7 +50,7 @@ export function applyPublicSeoMetadata(page: PublicSeoPage) {
   canonical.setAttribute('href', page.canonicalUrl);
 
   setMeta('name', 'description', page.description);
-  setMeta('name', 'robots', 'index,follow');
+  setMeta('name', 'robots', page.robots);
   setMeta('property', 'og:type', 'website');
   setMeta('property', 'og:site_name', 'NEXORA Salon OS');
   setMeta('property', 'og:title', page.ogTitle);

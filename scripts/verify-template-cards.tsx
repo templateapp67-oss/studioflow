@@ -183,7 +183,7 @@ assert.equal(page.root.findByType('dialog').props['data-preview-mode'],'windowed
   * template CSS is code-split and arrives after the iframe loads, so a
   * one-time copy renders the website as unstyled text. */
  const {readFileSync}=await import('node:fs');
- const cardsSource=readFileSync('src/components/TemplatePreviewCards.tsx','utf8');
+ const cardsSource=readFileSync('src/components/TemplatePreviewModal.tsx','utf8');
  assert.ok(cardsSource.includes('syncPreviewStyles'),'the preview modal mirrors host stylesheets live into the iframe');
  assert.ok(!/querySelectorAll\('link\[rel="stylesheet"\], style'\)/.test(cardsSource),'the one-time stylesheet copy (which missed lazy template CSS) is gone');
  assert.ok(readFileSync('src/components/WebsiteDeviceFrame.tsx','utf8').includes('syncPreviewStyles'),'the owner device preview frame uses the same live style sync');
