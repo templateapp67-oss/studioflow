@@ -67,12 +67,20 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promi
 
 async function startServer() {
   const app = express();
+  app.disable('x-powered-by');
+  app.use((_req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'camera=(self), microphone=(), geolocation=(self), payment=(self), usb=()');
+    next();
+  });
   const httpServer = createServer(app);
   const portArg = process.argv.indexOf('--port');
   const PORT = Number(portArg>=0?process.argv[portArg+1]:process.env.PORT||3000);
   if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) throw new Error('Invalid server port');
 
-  app.use(express.json());
+  app.use(express.json({ limit: '100kb' }));
 
   // Optional demo/preview entry: when PREVIEW_TEMPLATE is set (e.g. "prism-chroma"),
   // the site root opens that template directly. Off by default — no effect in production.
