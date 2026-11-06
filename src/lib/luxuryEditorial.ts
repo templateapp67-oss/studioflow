@@ -424,9 +424,9 @@ export function matchGalleryStyleMeta(title: string, index: number): ZiyaStyleLo
 
 export const LUXURY_EDITORIAL_SELECTOR_LABEL = 'Ziya Women’s Hair Studio';
 export const LUXURY_EDITORIAL_TAGLINE =
-  'Professional women’s haircuts designed around your face shape, hair type and personal style.';
+  'Women’s haircuts shaped around your face, your hair and how you actually style it.';
 export const LUXURY_EDITORIAL_ABOUT =
-  'Ziya Women’s Hair Studio is a dedicated women’s haircutting studio built exclusively around precision scissor work, face-shape matching, and modern women’s haircut silhouettes — from cascading layers, butterfly cuts and curtain bangs to sculpted bobs, pixies and curl-by-curl dry cuts.';
+  'Ziya is a women-only hair studio built around good scissor work and shapes that suit your face — soft layers, butterfly cuts and curtain bangs, or clean bobs, pixies and dry cuts done curl by curl.';
 
 const LEGACY_HAIR_SALON_URLS = [
   '1560066984-138dadb4c035',

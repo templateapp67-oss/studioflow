@@ -28,8 +28,8 @@ export const BODHI_TREE_TEMPLATE_CODE = '09';
 export const BODHI_TREE_SLUG = 'bodhi-tree';
 export const BODHI_TREE_SELECTOR_LABEL = 'Bodhi Tree (09)';
 export const BODHI_TREE_BRAND_NAME = 'Bodhi Tree Massage & Wellness Sanctuary';
-export const BODHI_TREE_TAGLINE = 'Rest well. Feel light. Padharo, Jaipur.';
-export const BODHI_TREE_HERO_HEADING = 'Rest Well. Feel Light.';
+export const BODHI_TREE_TAGLINE = 'Rest well, feel light — padharo, Jaipur.';
+export const BODHI_TREE_HERO_HEADING = 'Rest well. Feel light.';
 export const BODHI_TREE_HERO_SUBTEXT =
   'A calm massage and wellness place in the heart of Jaipur. Pure oils, trained therapists and simple, honest care — so you can relax, sleep better and feel fresh.';
 export const BODHI_TREE_DEFAULT_ABOUT =

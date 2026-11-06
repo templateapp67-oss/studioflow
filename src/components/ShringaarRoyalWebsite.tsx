@@ -362,7 +362,7 @@ export function ShringaarRoyalWebsite({
             {[0, 1].map((copy) => (
               <span key={copy} style={{ display: 'inline-flex', gap: 44 }}>
                 <span>✦ {config.announcementText}</span>
-                <span>✦ Royal Rajputana Trousseaus</span>
+                <span>✦ Rajputana Bridal Trousseaus</span>
                 <span>✦ Hand-draped in Jaipur</span>
                 <span>✦ Complimentary trial look book</span>
               </span>
@@ -768,7 +768,7 @@ export function ShringaarRoyalWebsite({
             <div className="sr-shell">
               <Reveal className="sr-section-head">
                 <div>
-                  <p className="sr-eyebrow">The Sabyasachi Aesthetic</p>
+                  <p className="sr-eyebrow">Our Signature Bridal Look</p>
                   <h2 id="sr-looks-heading" className="sr-h2" style={{ marginTop: 12 }}>
                     {config.looksHeading}
                   </h2>

@@ -10,7 +10,7 @@ export const MENS_HERO = "/templates/15/mens-hero-desktop.webp";
 export const MENS_HERO_MOBILE = "/templates/15/mens-hero-mobile.webp";
 export const MENS_INTERIOR = "/templates/15/mens-interior-wide.webp";
 export const MENS_DESCRIPTION =
-  "Expert men's haircuts and professional hair colour services. Choose your style and book your appointment online.";
+  "Neat men's haircuts and hair colour, done by people who do only this. Pick your style and book online in a minute.";
 export interface MensMedia {
   id: string;
   title: string;
