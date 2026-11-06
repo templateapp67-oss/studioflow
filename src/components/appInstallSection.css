@@ -683,7 +683,8 @@
 }
 
 /* Template 16 — Aurelia's warm sandstone, espresso and copper palette. */
-.aurelia-site :is(.app-install, .app-install-strip) {
+.aurelia-site .app-install,
+.aurelia-site .app-install-strip {
   --ai-surface: #efe6da;
   --ai-surface-2: #f6f1ea;
   --ai-ink: #1d1612;
