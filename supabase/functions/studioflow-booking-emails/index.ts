@@ -402,9 +402,13 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: 'Request body missing or too large' }, 400);
     }
 
-    const payload: BookingEmailRequest = JSON.parse(raw);
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') {
+      return jsonResponse({ error: 'Invalid email request.' }, 400);
+    }
+    const payload = parsed as BookingEmailRequest;
 
-    if (!payload.to || typeof payload.to !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.to.trim())) {
+    if (!payload.to || typeof payload.to !== 'string' || payload.to.trim().length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.to.trim())) {
       return jsonResponse({ error: 'Valid recipient email address (to) is required.' }, 400);
     }
 
