@@ -8,6 +8,7 @@ import type {DirectBookingSlot} from './SpecialistWeek';
 import { paymentRequest, payBookingDeposit, reconcileBookingPayment } from '../lib/platformPayments';
 import { supabase } from '../lib/supabase';
 import { sendBookingConfirmationEmail, sendBookingReminderEmail } from '../lib/emailService';
+import { bookingEmailFeedback } from '../lib/emailFeedback';
 import {getContrastTextColor} from '../themeAccents';
 import { ServiceTerms } from './ServiceMerchandising';
 import React, { useState, useEffect, useRef, useId } from 'react';
@@ -470,11 +471,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         salonSlug: profile.subdomain,
       }).then(res => {
         setIsSendingEmail(false);
-        if (res.success) {
-          setEmailStatusMessage(res.delivered ? `Confirmation email delivered to ${targetEmail}!` : `Confirmation email prepared for ${targetEmail}`);
-        } else {
-          setEmailStatusMessage(res.error || 'Automated confirmation email queued.');
-        }
+        setEmailStatusMessage(bookingEmailFeedback(res, targetEmail, 'Confirmation'));
       }).catch(err => {
         setIsSendingEmail(false);
         setEmailStatusMessage(err instanceof Error ? err.message : 'Email delivery failed');
@@ -499,6 +496,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   const handleSendManualConfirmationEmail = async (overrideEmail?: string) => {
     const to = (overrideEmail || recipientEmailInput || guestEmail).trim();
+    if (!bookingRef) {
+      setEmailStatusMessage('Booking reference unavailable. Refresh the confirmation and try again.');
+      return;
+    }
     if (!to || !to.includes('@')) {
       setEmailStatusMessage('Please enter a valid email address.');
       return;
@@ -510,7 +511,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         to,
         clientName: guestName.trim() || 'Valued Guest',
         clientPhone: guestPhone,
-        bookingRef: bookingRef || 'NX-BOOKING',
+        bookingRef,
         serviceName,
         servicePrice: totalPrice,
         amountPaid: paidAmount,
@@ -524,11 +525,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         salonWhatsapp: profile.whatsapp,
         salonSlug: profile.subdomain,
       });
-      if (res.success) {
-        setEmailStatusMessage(res.delivered ? `Confirmation email delivered to ${to}!` : `Confirmation email sent to ${to}`);
-      } else {
-        setEmailStatusMessage(res.error || 'Failed to dispatch email');
-      }
+      setEmailStatusMessage(bookingEmailFeedback(res, to, 'Confirmation'));
     } catch (err: any) {
       setEmailStatusMessage(err?.message || 'Email delivery failed');
     } finally {
@@ -538,6 +535,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   const handleSendManualReminderEmail = async () => {
     const to = (recipientEmailInput || guestEmail).trim();
+    if (!bookingRef) {
+      setEmailStatusMessage('Booking reference unavailable. Refresh the confirmation and try again.');
+      return;
+    }
     if (!to || !to.includes('@')) {
       setEmailStatusMessage('Please enter a valid email address.');
       return;
@@ -549,7 +550,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         to,
         clientName: guestName.trim() || 'Valued Guest',
         clientPhone: guestPhone,
-        bookingRef: bookingRef || 'NX-BOOKING',
+        bookingRef,
         serviceName,
         servicePrice: totalPrice,
         amountPaid: paidAmount,
@@ -563,11 +564,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         salonWhatsapp: profile.whatsapp,
         salonSlug: profile.subdomain,
       });
-      if (res.success) {
-        setEmailStatusMessage(res.delivered ? `Reminder email delivered to ${to}!` : `Reminder email prepared for ${to}`);
-      } else {
-        setEmailStatusMessage(res.error || 'Failed to dispatch reminder');
-      }
+      setEmailStatusMessage(bookingEmailFeedback(res, to, 'Reminder'));
     } catch (err: any) {
       setEmailStatusMessage(err?.message || 'Reminder delivery failed');
     } finally {

@@ -42,14 +42,20 @@ export function categoryIconComponent(name?: string): LucideIcon {
   return (name && ICONS[name]) || Scissors;
 }
 
-/** Small square NEXORA mark — used on every template preview card. */
+/**
+ * Small square NEXORA mark — used on every template preview card.
+ *
+ * The mark uses a solid brand purple, not a gradient: axe-core cannot resolve a
+ * background gradient behind text, so every mark was reported as an
+ * indeterminate SC 1.4.3 finding. `#F5E9D6` on `#3E2A63` measures 10.2:1.
+ */
 export const NexoraBrandMark: React.FC<{ size?: 'xs' | 'sm' | 'md'; className?: string }> = ({ size = 'xs', className = '' }) => {
   const box = size === 'md' ? 'h-9 w-9 text-sm' : size === 'sm' ? 'h-7 w-7 text-[11px]' : 'h-5 w-5 text-[9px]';
   return (
     <span
       aria-hidden="true"
       data-nexora-brand-mark
-      className={`inline-flex shrink-0 items-center justify-center rounded-[7px] bg-gradient-to-br from-[#2A1E4A] via-[#3E2A63] to-[#7A4E8F] font-black tracking-tight text-[#F5E9D6] shadow-[0_1px_6px_rgba(42,30,74,0.35)] ring-1 ring-[#C9A66B]/50 ${box} ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-[7px] bg-[#3E2A63] font-black tracking-tight text-[#F5E9D6] shadow-[0_1px_6px_rgba(42,30,74,0.35)] ring-1 ring-[#C9A66B]/50 ${box} ${className}`}
       style={{ fontFamily: 'Manrope, Inter, sans-serif' }}
     >
       {NEXORA_BRAND_MARK}
@@ -75,7 +81,7 @@ export const NexoraLogo: React.FC<{ tone?: 'light' | 'dark'; size?: 'sm' | 'md' 
     <div className={`flex items-center gap-3 ${className}`} data-nexora-logo>
       <span
         aria-hidden="true"
-        className={`inline-flex items-center justify-center rounded-xl bg-gradient-to-br from-[#2A1E4A] via-[#3E2A63] to-[#7A4E8F] font-black text-[#F5E9D6] shadow-lg shadow-[#2A1E4A]/25 ring-1 ring-[#C9A66B]/60 ${markSize}`}
+        className={`inline-flex items-center justify-center rounded-xl bg-[#3E2A63] font-black text-[#F5E9D6] shadow-lg shadow-[#2A1E4A]/25 ring-1 ring-[#C9A66B]/60 ${markSize}`}
         style={{ fontFamily: 'Manrope, Inter, sans-serif' }}
       >
         {NEXORA_BRAND_MARK}

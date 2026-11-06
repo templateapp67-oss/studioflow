@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState, useRef } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase, websiteLink } from '../lib/supabase';
 import { sendBookingConfirmationEmail, sendBookingReminderEmail } from '../lib/emailService';
+import { bookingEmailFeedback } from '../lib/emailFeedback';
 
 export function CustomerBookings({ session,embedded=false,onClose }: { key?:React.Key;session: Session;embedded?:boolean;onClose?:()=>void }) {
   const [bookings, setBookings] = useState<any[]>([]); const [error, setError] = useState('');
@@ -40,7 +41,7 @@ export function CustomerBookings({ session,embedded=false,onClose }: { key?:Reac
         to,
         clientName: b.clientName || 'Valued Guest',
         clientPhone: b.clientPhone || '',
-        bookingRef: b.bookingRef || bookingId.slice(0, 8).toUpperCase(),
+        bookingRef: b.bookingRef || bookingId,
         serviceName: b.serviceName || 'Salon Service',
         servicePrice: b.servicePrice || 0,
         amountPaid: b.amountPaid || 0,
@@ -57,14 +58,8 @@ export function CustomerBookings({ session,embedded=false,onClose }: { key?:Reac
       const res = type === 'confirmation' 
         ? await sendBookingConfirmationEmail(emailPayload)
         : await sendBookingReminderEmail(emailPayload);
-      if (res.success) {
-        setEmailFeedback(prev => ({ 
-          ...prev, 
-          [bookingId]: res.delivered ? `Email sent to ${to}` : `Email dispatched to ${to}`
-        }));
-      } else {
-        setEmailFeedback(prev => ({ ...prev, [bookingId]: res.error || 'Failed to dispatch email' }));
-      }
+      const feedback = bookingEmailFeedback(res, to, type === 'reminder' ? 'Reminder' : 'Confirmation');
+      setEmailFeedback(prev => ({ ...prev, [bookingId]: feedback }));
     } catch (err: any) {
       setEmailFeedback(prev => ({ ...prev, [bookingId]: err?.message || 'Email delivery failed' }));
     } finally {

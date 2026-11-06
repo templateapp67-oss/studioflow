@@ -202,7 +202,9 @@ export const NEXORA_CATEGORIES: NexoraCategory[] = [
     monogram: 'MS',
     icon: 'Paintbrush',
     materialIcon: 'brush',
-    color: '#A16207',
+    // WCAG AA: #A16207 on this tint scored 4.42:1 (BrowserStack SC 1.4.3 violation).
+    // Darkened just enough to clear 4.5:1 on the tint while keeping the amber identity.
+    color: '#96590A',
     tint: '#FEF3C7',
     onColor: '#FFFFFF',
     searchKeywords: ['makeup', 'make up', 'party look', 'academy', 'artist', 'bridal makeup', 'portfolio'],
@@ -241,7 +243,8 @@ export const NEXORA_CATEGORIES: NexoraCategory[] = [
     monogram: 'MW',
     icon: 'Flower2',
     materialIcon: 'self_improvement',
-    color: '#4D7C0F',
+    // WCAG AA: #4D7C0F on this tint scored 4.5028:1 — passing, but with no headroom.
+    color: '#48740E',
     tint: '#ECF7DF',
     onColor: '#FFFFFF',
     searchKeywords: ['massage', 'wellness', 'relaxation', 'therapy', 'body', 'aroma', 'spa'],

@@ -8,6 +8,7 @@ import { uploadSalonImage, websiteLink } from '../lib/supabase';
 import React, { useState, useEffect } from 'react';
 import { downloadClientsCsv } from '../lib/clientExports';
 import { sendBookingConfirmationEmail, sendBookingReminderEmail } from '../lib/emailService';
+import { bookingEmailFeedback } from '../lib/emailFeedback';
 import { SalonProfile, SalonService, Stylist, Appointment, ClientRecord, LoyaltyConfig, CategoryTemplateConfig, BusinessTypeId } from '../types';
 import { ACCENT_PALETTES, AccentPaletteKey, applyPrimaryAccentCssVar, getContrastTextColor, getLuminance } from '../themeAccents';
 import { validateAndReadImageFile, compressAndResizeImage } from '../utils/imageUploadHelper';
@@ -96,7 +97,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
         to: targetEmail,
         clientName: apt.clientName || 'Valued Guest',
         clientPhone: apt.clientPhone || '',
-        bookingRef: apt.id.slice(0, 8).toUpperCase(),
+        bookingRef: apt.id,
         serviceName: apt.serviceName,
         servicePrice: apt.servicePrice,
         amountPaid: apt.amountPaid || 0,
@@ -113,14 +114,8 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
       const res = type === 'confirmation'
         ? await sendBookingConfirmationEmail(payload)
         : await sendBookingReminderEmail(payload);
-      if (res.success) {
-        setAptEmailFeedback(prev => ({
-          ...prev,
-          [apt.id]: res.delivered ? `Email sent to ${targetEmail}` : `Email dispatched to ${targetEmail}`,
-        }));
-      } else {
-        setAptEmailFeedback(prev => ({ ...prev, [apt.id]: res.error || 'Failed to dispatch email' }));
-      }
+      const feedback = bookingEmailFeedback(res, targetEmail, type === 'reminder' ? 'Reminder' : 'Confirmation');
+      setAptEmailFeedback(prev => ({ ...prev, [apt.id]: feedback }));
     } catch (err: any) {
       setAptEmailFeedback(prev => ({ ...prev, [apt.id]: err?.message || 'Email delivery failed' }));
     } finally {

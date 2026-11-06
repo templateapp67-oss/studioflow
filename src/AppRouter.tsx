@@ -2,6 +2,7 @@ import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { PublicHomepage } from './components/PublicHomepage';
 import { loadScreen } from './lib/loadScreen';
 import { capturePublicReferral } from './lib/publicReferral';
+import { AUTH_CALLBACK_QUERY_KEYS, hasAuthCallbackFragment } from './lib/authEntry';
 import { resolveSiteSlug } from './lib/resolveSite';
 
 const FullApplication = lazy(() =>
@@ -9,9 +10,9 @@ const FullApplication = lazy(() =>
 );
 
 const APP_QUERY_KEYS = [
-  'site', 's', 'subdomain', 'app', 'customer', 'customer_ref', 'auth', 'create',
-  'owner', 'panel', 'template', 'recovery', 'invite', 'module', 'code',
-  'access_token', 'error', 'error_description',
+  'site', 's', 'subdomain', 'app', 'customer', 'customer_ref', 'create',
+  'owner', 'panel', 'template', 'category', 'module',
+  ...AUTH_CALLBACK_QUERY_KEYS,
 ];
 
 export function requiresFullApplication(location: Pick<Location, 'pathname' | 'search' | 'hash' | 'hostname'>): boolean {
@@ -21,9 +22,7 @@ export function requiresFullApplication(location: Pick<Location, 'pathname' | 's
   const query = new URLSearchParams(location.search);
   if (APP_QUERY_KEYS.some((key) => query.has(key))) return true;
 
-  const fragment = new URLSearchParams(location.hash.replace(/^#/, ''));
-  return ['type', 'access_token', 'refresh_token', 'code', 'error', 'error_description']
-    .some((key) => fragment.has(key));
+  return hasAuthCallbackFragment(location.hash);
 }
 
 function hasPersistedOwnerSession(): boolean {
