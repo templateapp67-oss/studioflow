@@ -157,4 +157,4 @@ try{
  globalThis.fetch=async()=>new Response('too large',{headers:{'content-type':'image/png','content-length':String(21*1024*1024)}});await assert.rejects(()=>servicePhotoFromUrl('https://example.com/photo'),/20 MB/);
  globalThis.fetch=async()=>{throw new TypeError('CORS')};await assert.rejects(()=>servicePhotoFromUrl('https://example.com/photo'),/blocks image import/);
 }finally{globalThis.fetch=original;}
-console.log('PASS: all 14 themes have service + package photos; owner override used in both sections; HTTPS URL import validates MIME, size, credentials and blocked-host errors.');
+console.log('PASS: all 15 customer-facing templates have service + package photos; owner override used in both sections; HTTPS URL import validates MIME, size, credentials and blocked-host errors.');
