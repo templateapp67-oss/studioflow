@@ -1,3 +1,4 @@
+import './dermacure.css';
 import { useRevealRecovery } from "./dermacure/useRevealRecovery";
 import type { CSSProperties } from "react";
 import type { Stylist } from "../types";

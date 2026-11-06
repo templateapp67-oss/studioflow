@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { AppRouter, requiresFullApplication } from '../src/AppRouter';
 import { PublicHomepage, PUBLIC_SIGNUP_PATH, templateSignupPath } from '../src/components/PublicHomepage';
 import { AuthPage } from '../src/components/AuthPage';
 import { CATEGORY_TEMPLATES } from '../src/categoryTemplates';
@@ -18,10 +19,43 @@ import {
 } from '../src/lib/publicSeo';
 
 const esc = (value: string) => value.replaceAll('&', '&amp;').replaceAll("'", '&#x27;').replaceAll('"', '&quot;');
+assert.equal(requiresFullApplication({ pathname: '/', search: '', hash: '', hostname: 'www.nexora.app' }), false, 'public root stays lightweight');
+assert.equal(requiresFullApplication({ pathname: '/', search: '?site=salon', hash: '', hostname: 'www.nexora.app' }), true, 'published salon route keeps using the application');
+assert.equal(requiresFullApplication({ pathname: '/login', search: '', hash: '', hostname: 'www.nexora.app' }), true, 'auth routes keep using the application');
+assert.equal(requiresFullApplication({ pathname: '/', search: '?app=1', hash: '', hostname: 'www.nexora.app' }), true, 'explicit application entry stays supported');
+assert.equal(requiresFullApplication({ pathname: '/', search: '', hash: '', hostname: 'owner.nexorasalon.online' }), true, 'published salon subdomains keep using the application');
 const homeHtml = renderToStaticMarkup(<PublicHomepage />);
+const authenticatedHomeHtml = renderToStaticMarkup(<PublicHomepage authenticated />);
+const renderRoutedRoot = (session: string | null) => {
+  const previousWindow = (globalThis as any).window;
+  try {
+    (globalThis as any).window = {
+      location: { pathname: '/', search: '', hash: '', hostname: 'www.nexora.app' },
+      localStorage: { getItem: (key: string) => key === 'studioflow_supabase_session' ? session : null },
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    };
+    return renderToStaticMarkup(<AppRouter />);
+  } finally {
+    if (previousWindow === undefined) delete (globalThis as any).window;
+    else (globalThis as any).window = previousWindow;
+  }
+};
+const signedInRootHtml = renderRoutedRoot('persisted-session');
+const signedOutRootHtml = renderRoutedRoot(null);
+assert.ok(signedInRootHtml.includes('public-home-title'), 'authenticated visitors stay on the public root');
+assert.ok(signedInRootHtml.includes('Owner Workspace'), 'the routed homepage detects a persisted owner session');
+assert.ok(signedOutRootHtml.includes('public-home-title'), 'signed-out visitors stay on the public root');
+assert.ok(signedOutRootHtml.includes('Sign In'), 'the routed homepage offers sign-in when no session exists');
 assert.equal((homeHtml.match(/<h1\b/g) || []).length, 1, 'homepage has exactly one H1');
 assert.ok(homeHtml.includes('<h1 id="public-home-title"'), 'homepage H1 is the marketing headline');
-assert.ok(homeHtml.includes('Launch Your Salon Website in 30 Minutes'));
+assert.ok(homeHtml.includes('A beautiful salon website, made for your brand'), 'premium hero headline renders');
+assert.ok(authenticatedHomeHtml.includes('Owner Workspace'), 'signed-in owners receive a workspace action');
+assert.ok(authenticatedHomeHtml.includes('Open Workspace'), 'signed-in owners can open the full workspace');
+assert.ok(!authenticatedHomeHtml.includes('Get Started'), 'signed-in owners do not see the signup CTA');
+assert.ok(homeHtml.includes('href="#public-main-content">Skip to main content</a>'), 'homepage provides a keyboard skip link');
+assert.ok(homeHtml.includes('<main id="public-main-content">'), 'skip link target exists');
+assert.ok(!homeHtml.includes('Launch Your NEXORA Salon Website in 30 Minutes'), 'SEO title copy is not substituted for the premium hero');
 assert.ok(!homeHtml.includes('Sign in to NEXORA Salon OS.'), 'login headline never appears on homepage');
 assert.equal((homeHtml.match(/data-template-id="/g) || []).length, 16, 'all 16 registry templates render once');
 assert.equal((homeHtml.match(/data-category-shortcut="/g) || []).length, 15, 'all existing category shortcuts render');
@@ -59,7 +93,7 @@ const loginHtml = renderToStaticMarkup(<AuthPage />);
 assert.equal((loginHtml.match(/<h1\b/g) || []).length, 1, 'login has exactly one H1');
 assert.ok(loginHtml.includes('Sign in to NEXORA Salon OS.'), 'exact login H1');
 assert.ok(loginHtml.includes('existing salon website, team and business information'));
-assert.ok(!loginHtml.includes('Launch Your Salon Website in 30 Minutes'), 'marketing headline never appears on login');
+assert.ok(!loginHtml.includes('Launch Your NEXORA Salon Website in 30 Minutes'), 'marketing headline never appears on login');
 
 // Lightweight DOM harness verifies route-owned metadata and preview-host-independent canonicals.
 class MetaElement {
@@ -85,7 +119,7 @@ const documentHarness = {
 const value = (attribute: 'name' | 'property', key: string) => documentHarness.querySelector(`meta[${attribute}="${key}"]`)?.getAttribute('content');
 
 applyPublicSeoMetadata(NEXORA_HOME_SEO);
-assert.equal(documentHarness.title, 'NEXORA Salon OS – Launch Your Salon Website in 30 Minutes');
+assert.equal(documentHarness.title, 'NEXORA Salon OS – Launch Your NEXORA Salon Website in 30 Minutes');
 assert.equal(value('name', 'description'), NEXORA_HOME_SEO.description);
 assert.equal(value('property', 'og:title'), NEXORA_HOME_SEO.ogTitle);
 assert.equal(value('property', 'og:description'), NEXORA_HOME_SEO.ogDescription);
@@ -98,6 +132,7 @@ assert.equal(documentHarness.querySelector('link[rel="canonical"]')?.getAttribut
 
 applyPublicSeoMetadata(NEXORA_LOGIN_SEO);
 assert.equal(documentHarness.title, 'NEXORA Salon OS — Sign in');
+assert.equal(value('name', 'robots'), 'noindex,follow');
 assert.equal(value('name', 'description'), 'Sign in to NEXORA to keep your website, team and business data with your account across devices.');
 assert.equal(value('property', 'og:title'), NEXORA_LOGIN_SEO.ogTitle);
 assert.equal(value('property', 'og:description'), NEXORA_LOGIN_SEO.ogDescription);
@@ -111,11 +146,17 @@ assert.ok(indexHtml.includes(NEXORA_HOME_SEO.description));
 assert.ok(indexHtml.includes(NEXORA_HOME_SEO.twitterDescription));
 assert.ok(indexHtml.includes(NEXORA_HOME_OG_IMAGE));
 assert.ok(indexHtml.includes(`<link rel="canonical" href="${NEXORA_PUBLIC_ORIGIN}/" />`));
+assert.ok(indexHtml.includes('type="application/ld+json"'), 'homepage exposes static structured data');
+assert.ok(indexHtml.includes('/fonts/hanken-grotesk-latin-wght-normal.woff2'), 'homepage preloads its local font');
+assert.ok(!indexHtml.includes('window.fetch'), 'fetch is not monkey-patched');
+assert.ok(!indexHtml.includes('fonts.googleapis.com/css'), 'marketing HTML has no render-blocking third-party font stylesheet');
 assert.ok(!indexHtml.includes('15 template categories'), 'outdated homepage SEO copy removed');
 const loginDocument = readFileSync('login.html', 'utf8');
 assert.ok(loginDocument.includes(`<title>${NEXORA_LOGIN_SEO.title}</title>`), 'raw login HTML owns the sign-in title');
 assert.ok(loginDocument.includes(NEXORA_LOGIN_SEO.description), 'raw login HTML owns the sign-in description');
 assert.ok(loginDocument.includes(`<link rel="canonical" href="${NEXORA_PUBLIC_ORIGIN}/login" />`));
+assert.ok(loginDocument.includes('<meta name="robots" content="noindex,follow" />'));
+assert.ok(!loginDocument.includes('window.fetch'), 'login does not monkey-patch fetch');
 assert.ok(loginDocument.includes(`<meta name="twitter:title" content="${NEXORA_LOGIN_SEO.twitterTitle}" />`));
 assert.ok(!loginDocument.includes(NEXORA_HOME_SEO.description), 'login never reuses homepage metadata');
 assert.ok(readFileSync('server/sitemap.ts', 'utf8').includes('origin + "/",'), 'public root is included in sitemap');

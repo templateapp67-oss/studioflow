@@ -644,7 +644,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
     ownerName: 'Sunita Agarwal',
     ownerRole: 'Founder & Herbal Beauty Master',
     ownerPhotoUrl: '/templates/roop-mahal/staff-sunita.jpg',
-    coverImageUrl: '/templates/roop-mahal/hero-bridal.jpg',
+    coverImageUrl: '/templates/roop-mahal/hero-bridal.webp',
     instagramHandle: '@roopmahal.delhi',
     themeStyle: {
       heroBackground: 'bg-[#FFF8F1]',
@@ -760,7 +760,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplateConfig> = {
     ownerName: 'Aanya Sen',
     ownerRole: 'Celebrity Nail Designer & Lash Artist',
     ownerPhotoUrl: '/templates/pinky-nails/team-nail-artist.jpg',
-    coverImageUrl: '/templates/pinky-nails/hero-nail-artist.jpg',
+    coverImageUrl: '/templates/pinky-nails/hero-nail-artist.webp',
     instagramHandle: '@pinkynails.studio',
     themeStyle: {
       heroBackground: 'bg-[#FFF5F7]',

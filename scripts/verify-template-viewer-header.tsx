@@ -134,7 +134,7 @@ for (const template of templates) {
 assert.deepEqual(tested, templates.map(template => template.id), 'every template is verified in the canonical NEXORA order');
 
 /* 4 · Every viewer entry point shares the same chrome — nothing can drift. */
-const cards = readFileSync('src/components/TemplatePreviewCards.tsx', 'utf8');
+const cards = readFileSync('src/components/TemplatePreviewModal.tsx', 'utf8');
 const app = readFileSync('src/App.tsx', 'utf8');
 const chrome = readFileSync('src/components/template-preview/TemplatePreviewChrome.tsx', 'utf8');
 assert.ok(cards.includes('UnifiedTemplateActionButton'), 'the template preview header uses the shared unified action');

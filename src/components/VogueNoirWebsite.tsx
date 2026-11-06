@@ -1,3 +1,4 @@
+import './vogueNoir.css';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowUpRight,

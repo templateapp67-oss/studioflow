@@ -1,3 +1,4 @@
+import '../pinkyNails.css';
 import React, { useEffect, useState } from 'react';
 import {
   ArrowUpRight,

@@ -1,3 +1,4 @@
+import './bodhiTree.css';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import {

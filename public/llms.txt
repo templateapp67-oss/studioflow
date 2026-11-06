@@ -1,0 +1,28 @@
+# NEXORA Salon OS
+
+> NEXORA Salon OS helps salon, spa and beauty businesses explore customisable website templates and manage their online presence.
+
+## Key pages
+- [Homepage](https://studioflow-ashen-pi.vercel.app/): Explore NEXORA and all public salon website templates.
+- [Salon website templates](https://studioflow-ashen-pi.vercel.app/#nexora-template-library): Compare example designs and choose a starting point.
+- [Hair salon website template](https://studioflow-ashen-pi.vercel.app/template-pages/hair-salon.html)
+- [Barber shop website template](https://studioflow-ashen-pi.vercel.app/template-pages/barber.html)
+- [Beauty parlour website template](https://studioflow-ashen-pi.vercel.app/template-pages/beauty-parlour.html)
+- [Nail studio website template](https://studioflow-ashen-pi.vercel.app/template-pages/nail-studio.html)
+- [Unisex salon website template](https://studioflow-ashen-pi.vercel.app/template-pages/unisex-salon.html)
+- [Hair spa website template](https://studioflow-ashen-pi.vercel.app/template-pages/hair-spa.html)
+- [Skincare clinic website template](https://studioflow-ashen-pi.vercel.app/template-pages/skincare-clinic.html)
+- [Makeup studio website template](https://studioflow-ashen-pi.vercel.app/template-pages/makeup-studio.html)
+- [Massage and wellness website template](https://studioflow-ashen-pi.vercel.app/template-pages/massage-wellness.html)
+- [Hair colour website template](https://studioflow-ashen-pi.vercel.app/template-pages/hair-coloring.html)
+- [Bridal lounge website template](https://studioflow-ashen-pi.vercel.app/template-pages/bridal-lounge.html)
+- [Tattoo studio website template](https://studioflow-ashen-pi.vercel.app/template-pages/tattoo-studio.html)
+- [Lash and brow website template](https://studioflow-ashen-pi.vercel.app/template-pages/lash-brow.html)
+- [Ayurvedic spa website template](https://studioflow-ashen-pi.vercel.app/template-pages/ayurvedic-spa.html)
+- [Men's hair studio website template](https://studioflow-ashen-pi.vercel.app/template-pages/mens-hair-studio.html)
+- [Aurelia beauty parlour website template](https://studioflow-ashen-pi.vercel.app/template-pages/aurelia-beauty-parlour.html)
+
+## Notes
+- Template service categories are examples. Owners customise business information, services, prices and imagery before publishing.
+- Published salon sites remain available through their existing `/<slug>` and `/?site=<slug>` routes.
+- Sign-in and account pages are not public documentation: https://studioflow-ashen-pi.vercel.app/login

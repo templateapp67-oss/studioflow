@@ -368,7 +368,7 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
       { icon: 'workspace_premium', title: 'Trained Colour Experts', description: 'Colourists trained in balayage, pastel shades and colour correction.' }
     ],
     gallery: [
-      { id: 'hc-g1', url: '/templates/10/hero.jpg', title: 'Vivid balayage, fresh from the chair', tag: 'Balayage' },
+      { id: 'hc-g1', url: '/templates/10/hero.webp', title: 'Vivid balayage, fresh from the chair', tag: 'Balayage' },
       { id: 'hc-g2', url: '/templates/10/about.jpg', title: 'Mixing fresh colour in the studio', tag: 'Colour Lab' },
       { id: 'hc-g3', url: '/templates/10/gallery/gallery-3.jpg', title: 'Magenta muse colour', tag: 'Fashion Colour' },
       { id: 'hc-g4', url: '/templates/10/gallery/gallery-8.jpg', title: 'Global colour and blow-dry', tag: 'Global Colour' },

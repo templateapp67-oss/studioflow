@@ -123,6 +123,14 @@ for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_h
   assert.ok(savedHtml.includes('Our own gloss finish'),'the saved look keeps its caption');
   assert.ok(!savedHtml.includes('Sample lookbook imagery'),'an owner lookbook is never labelled as a sample');
   assert.ok(!savedHtml.includes('Delete photo')&&!savedHtml.includes('Replace / Edit'));
+ }else if(template.id==='aurelia_beauty_parlour'){
+  assert.equal((html.match(/aria-label="View salon look /g)||[]).length,5,'Aurelia renders all five normalized lookbook photos');
+  for(const sample of samples){assert.ok(html.includes(sample.url),`Aurelia lookbook keeps ${sample.id}`);assert.ok(html.includes(sample.title.replaceAll('&','&amp;')),`Aurelia lookbook captions ${sample.id}`);}
+  assert.ok(html.includes('Photo gallery categories'),'Aurelia lookbook can filter its mixed beauty categories');
+  const savedHtml=renderToStaticMarkup(<CustomerSalonWebsite profile={{...profile,photoGalleryInitialized:true,photoGalleryType:'aurelia_beauty_parlour',photoGallery:[{id:'aur-own-1',category:'Skin' as const,url:'https://cdn.example.com/saved-aurelia-photo.jpg',title:'Our own studio work',isDemo:false}]}} services={[]} stylists={[]} readOnly onAddAppointment={async a=>a}/>);
+  assert.ok(savedHtml.includes('https://cdn.example.com/saved-aurelia-photo.jpg')&&savedHtml.includes('Our own studio work'),'saved Aurelia photo and caption are rendered');
+  assert.ok(!savedHtml.includes(samples[0].url),'saved Aurelia photos replace the demo lookbook');
+  assert.ok(!html.includes('Delete photo')&&!html.includes('Replace / Edit'));
  }else{
   assert.ok(html.includes(`${defaultGalleryCategory(template.id)} (5)`));assert.equal((html.match(/aria-label="View salon look /g)||[]).length,5);assert.ok(!html.includes('Delete photo')&&!html.includes('Replace / Edit'));
  }

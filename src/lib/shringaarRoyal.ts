@@ -33,8 +33,9 @@ import type {
  *
  * This is a Vite + React SPA (not Next.js), so photography is served from
  * bundled local files under /public/templates/11/ through the shared
- * <SafeImage> component (plain <img loading="lazy">, fixed width/height,
- * descriptive alt text) — no external stock hotlinks and no empty frames.
+ * <SafeImage> component (below-the-fold images lazy-loaded; the LCP hero is
+ * eager/high-priority; all images have fixed dimensions and descriptive alt
+ * text) — no external stock hotlinks and no empty frames.
  */
 
 export const SHRINGAAR_TEMPLATE_CODE = '11';
@@ -74,11 +75,11 @@ export const SHRINGAAR_IMAGES = {
   logoSvg: R('logo.svg'),
   faviconSvg: R('favicon.svg'),
   ogImage: R('og-image.jpg'),
-  hero: R('hero-bride.jpg'),
+  hero: R('hero-bride.webp'),
   about: R('venue.jpg'),
-  booking: R('hero-bride.jpg'),
+  booking: R('hero-bride.webp'),
   offer: R('venue.jpg'),
-  preview: R('hero-bride.jpg'),
+  preview: R('hero-bride.webp'),
   owner: R('artist-anuradha.jpg'),
   collections: {
     lehenga: R('collections/lehenga.jpg'),

@@ -27,6 +27,12 @@ export const NEXORA_BRAND = 'NEXORA';
 /** Every platform template name starts with this prefix. */
 export const NEXORA_PREFIX = `${NEXORA_BRAND} `;
 
+/** Stable, crawlable landing page for a public template preview. */
+export function nexoraTemplatePagePath(templateId: string): string {
+  const slug = templateId.trim().toLowerCase().replace(/_/g, '-');
+  return `/template-pages/${encodeURIComponent(slug)}.html`;
+}
+
 /**
  * Category identity: colour, icon and description. One entry per category (a category may contain multiple templates),
  * in priority order. `categoryId` is stable and used by the filter bar.

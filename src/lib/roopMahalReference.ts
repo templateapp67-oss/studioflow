@@ -12,7 +12,7 @@ export const ROOP_MAHAL_PALETTE = {
 } as const;
 
 export const ROOP_MAHAL_IMAGES = {
-  heroBridal: '/templates/roop-mahal/hero-bridal.jpg',
+  heroBridal: '/templates/roop-mahal/hero-bridal.webp',
   heroMakeupArtist: '/templates/roop-mahal/hero-makeup-artist.jpg',
   aboutInterior: '/templates/roop-mahal/about-interior.jpg',
   aboutMakeupWork: '/templates/roop-mahal/about-makeup-work.jpg',

@@ -1,12 +1,14 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Search, X, Eye, Wand2, MapPin, ArrowUpRight, Check, LayoutGrid } from 'lucide-react';
-import type { CategoryTemplateConfig } from '../../types';
+import type { BusinessTypeId, CategoryTemplateConfig } from '../../types';
+import type { NexoraTemplateCardData } from '../../lib/nexoraPublicTemplates';
 import {
   NEXORA_CATEGORIES,
   nexoraCategoryFilters,
   nexoraSearchIndex,
   nexoraMatchesSearch,
   nexoraTemplateMeta,
+  nexoraTemplatePagePath,
   sortTemplatesByPriority,
   type NexoraTemplateMeta,
 } from '../../lib/nexoraTemplateCatalogue';
@@ -15,10 +17,10 @@ import { nexoraPreviewImage } from '../../lib/nexoraPreviewImages';
 
 export interface NexoraTemplateLibraryProps {
   /** Templates to show. Always re-sorted into the fixed NEXORA priority order. */
-  templates: CategoryTemplateConfig[];
-  onPreview: (id: CategoryTemplateConfig['id']) => void;
+  templates: NexoraTemplateCardData[];
+  onPreview: (id: BusinessTypeId) => void;
   /** Opens the owner editor for exactly this template. */
-  onCustomize: (id: CategoryTemplateConfig['id']) => void;
+  onCustomize: (id: BusinessTypeId) => void;
   /** Highlights the template already applied to the signed-in salon. */
   activeTemplateId?: string;
   /** Optional controlled category state, shared with public category shortcuts. */
@@ -102,10 +104,10 @@ export const NexoraTemplateLibrary: React.FC<NexoraTemplateLibraryProps> = ({
             {[
               { label: 'Templates', value: '16' },
               { label: 'Categories', value: String(NEXORA_CATEGORIES.length) },
-              { label: 'Services', value: `${new Set(ordered.flatMap((t) => t.services.map((s) => s.name))).size}+` },
+              { label: 'Example services', value: `${new Set(ordered.flatMap((t) => nexoraTemplateMeta(t.id)?.services || [])).size}+` },
             ].map((stat) => (
               <div key={stat.label} className="rounded-xl border border-[#E4DCCB] bg-white/80 px-3 py-2">
-                <dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8A7F98]">{stat.label}</dt>
+                <dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#6B5E7A]">{stat.label}</dt>
                 <dd className="font-display text-lg font-extrabold text-[#1B1630]">{stat.value}</dd>
               </div>
             ))}
@@ -116,7 +118,7 @@ export const NexoraTemplateLibrary: React.FC<NexoraTemplateLibraryProps> = ({
       {/* Search */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
-          <Search size={16} aria-hidden="true" className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8A7F98]" />
+          <Search size={16} aria-hidden="true" className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6B5E7A]" />
           <input
             id="nexora-template-search"
             type="search"
@@ -238,17 +240,18 @@ export const NexoraTemplateLibrary: React.FC<NexoraTemplateLibraryProps> = ({
  * best for, main services and its own preview artwork.
  */
 export const NexoraTemplateCard: React.FC<{
-  template: CategoryTemplateConfig;
+  template: NexoraTemplateCardData;
   meta: NexoraTemplateMeta;
   isActive?: boolean;
-  onPreview: (id: CategoryTemplateConfig['id']) => void;
-  onCustomize: (id: CategoryTemplateConfig['id']) => void;
+  onPreview: (id: BusinessTypeId) => void;
+  onCustomize: (id: BusinessTypeId) => void;
   compact?: boolean;
 }> = ({ template, meta, isActive = false, onPreview, onCustomize, compact = false }) => {
   const category = NEXORA_CATEGORIES.find((entry) => entry.categoryId === meta.categoryId);
   const color = category?.color || '#7A4E8F';
   const tint = category?.tint || '#F3EEE4';
-  const from = template.services.length ? Math.min(...template.services.map((service) => service.price)) : 0;
+  const samplePrices = (template.services || []).map((service) => Number(service.price)).filter(Number.isFinite);
+  const from = samplePrices.length ? Math.min(...samplePrices) : 0;
   const articleId = `nexora-template-${meta.templateNumber}`;
 
   return (
@@ -304,7 +307,9 @@ export const NexoraTemplateCard: React.FC<{
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <h3 id={`${articleId}-title`} className="font-display text-[15px] font-extrabold leading-snug text-[#1B1630]">
-              {meta.displayName}
+              <a href={nexoraTemplatePagePath(template.id)} className="rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A4E8F] hover:underline">
+                {meta.displayName}
+              </a>
             </h3>
             <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] font-semibold text-[#6B5E7A]">
               <span className="uppercase tracking-[0.12em]">Category:</span>
@@ -330,7 +335,7 @@ export const NexoraTemplateCard: React.FC<{
 
         {!compact && (
           <div>
-            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#8A7F98]">Main services</p>
+            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#6B5E7A]">Main services</p>
             <ul className="flex flex-wrap gap-1.5">
               {meta.services.map((service) => (
                 <li key={service} className="rounded-md border border-[#EDE6D8] bg-white px-1.5 py-1 text-[10px] font-semibold text-[#4A4058]">
@@ -343,10 +348,10 @@ export const NexoraTemplateCard: React.FC<{
 
         <div className="mt-auto flex flex-col gap-2 pt-1">
           <div className="flex items-center justify-between gap-2 text-[11px] font-semibold text-[#6B5E7A]">
-            <span className="inline-flex items-center gap-1">
-              <MapPin size={11} aria-hidden="true" /> {template.defaultCity}
+            <span className="inline-flex min-w-0 items-center gap-1 truncate">
+              {template.defaultCity ? <><MapPin size={11} aria-hidden="true" /> {template.defaultCity}</> : 'Sample website preview'}
             </span>
-            <span className="font-mono text-[#1B1630]">{from ? `From ${money(from)}` : 'View menu'}</span>
+            <span className="shrink-0 font-mono text-[#1B1630]">{from ? `From ${money(from)}` : 'Prices are customisable'}</span>
           </div>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <button

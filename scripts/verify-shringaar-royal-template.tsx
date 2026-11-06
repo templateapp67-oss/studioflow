@@ -315,9 +315,12 @@ for (const tag of imgTags) {
   assert.ok(src.startsWith('/templates/11/') || src.startsWith('data:') || platformAsset, `unexpected image source ${src}`);
   if (platformAsset) continue;
   assert.ok(/alt="[^"]*"/.test(tag), `image without alt text: ${tag.slice(0, 80)}`);
-  if (!src.includes('hero-bride.jpg')) assert.ok(tag.includes('loading="lazy"'), `image must lazy-load: ${src}`);
+  if (src === '/templates/11/hero-bride.webp' && tag.includes('kundan jewellery')) {
+    assert.ok(tag.includes('loading="eager"'), `the above-the-fold hero must not be lazy-loaded: ${tag}`);
+    assert.ok(tag.includes('fetchPriority="high"'), 'the above-the-fold hero is requested at high priority');
+  } else assert.ok(tag.includes('loading="lazy"'), `below-the-fold image must lazy-load: ${src}`);
 }
-assert.ok(html.includes('/templates/11/hero-bride.jpg'), 'hero uses the bundled bridal portrait');
+assert.ok(html.includes('/templates/11/hero-bride.webp'), 'hero uses the optimized bundled bridal portrait');
 
 /* Customer account affordances stay inside the storefront header. */
 const header = (html.match(/<header[\s\S]*?<\/header>/g) || []).find((block) => block.includes('Customer account'));

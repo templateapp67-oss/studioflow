@@ -64,12 +64,13 @@ const OLD_FULL_VIDEO_IDS=new Set(['ulbjW3JyK8E','SYSj3KPiVfg','gHVUoN5n4xw','0f6
 const GENERIC_DEMO_IDS=new Set(REFERENCES.map(([videoId])=>videoId));
 
 export function createDemoVideos(businessType:string):SocialVideo[]{
- if(businessType==='mens_hair_studio')return [];
+ if(businessType==='mens_hair_studio'||businessType==='aurelia_beauty_parlour')return [];
  return demoReferences(businessType).map(([videoId,title,channelTitle],index)=>({id:`demo-${businessType}-${index+1}`,videoId,title,youtubeUrl:`https://www.youtube.com/shorts/${videoId}`,channelTitle,thumbnailUrl:`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,categoryTag:'SHORT',isOwnerVideo:false,isDemo:true,description:'Reference YouTube Short.'}));
 }
 
 export function showcaseVideos(profile:SalonProfile):SocialVideo[]{
- if(profile.businessType==='mens_hair_studio'||profile.businessType==='aurelia_beauty_parlour')return []; // These templates add their own reviewed media; never seed unrelated generic clips.
+ if(profile.businessType==='mens_hair_studio')return []; // Men's template uses its own reviewed media; never seed unrelated clips.
+ if(profile.businessType==='aurelia_beauty_parlour')return profile.socialVideos||[]; // Show saved Aurelia media only; never seed unrelated generic clips.
  if(profile.socialVideos?.length||profile.demoVideosInitialized){
   const demos=createDemoVideos(profile.businessType),generic=REFERENCES;
   return (profile.socialVideos||[]).map(video=>{

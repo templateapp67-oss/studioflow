@@ -32,7 +32,7 @@ export const NexoraTemplateGallery: React.FC<{
         </div>
         {activeMeta && (
           <div className="rounded-xl border border-[#E4DCCB] bg-[#FBF8F2] px-4 py-3">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8A7F98]">Your template</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#6B5E7A]">Your template</p>
             <p className="mt-1 flex items-center gap-2 font-display text-sm font-extrabold text-[#1B1630]">
               <NexoraBrandMark size="xs" /> {activeMeta.displayName}
             </p>

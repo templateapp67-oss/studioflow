@@ -137,7 +137,7 @@ await applyFile('roop-mahal-template-sync.sql');
 const {rows: [repaired]} = await db.query(`select id,title,config,active from public.studioflow_templates where id='beauty_parlour'`);
 assert.equal(repaired.title,'Roop Mahal Beauty Parlour & Makeover Space');
 assert.equal(repaired.config.paletteLabel,'Warm Cream, Soft Rose, Deep Maroon & Champagne Gold');
-assert.equal(repaired.config.coverImageUrl,'/templates/roop-mahal/hero-bridal.jpg');
+assert.equal(repaired.config.coverImageUrl,'/templates/roop-mahal/hero-bridal.webp');
 assert.equal(repaired.config.ownerPhotoUrl,'/templates/roop-mahal/staff-sunita.jpg');
 assert.equal(repaired.config.themeStyle.heroBackground,'bg-[#FFF8F1]');
 assert.equal(repaired.config.themeStyle.badgeBg,'bg-[#D9A6A1]/25');

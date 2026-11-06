@@ -18,7 +18,7 @@ import {
   WandSparkles,
   X,
 } from 'lucide-react';
-import { CATEGORY_TEMPLATES } from '../categoryTemplates';
+import { NEXORA_PUBLIC_TEMPLATES, NEXORA_PUBLIC_TEMPLATES_BY_ID } from '../lib/nexoraPublicTemplates';
 import {
   NEXORA_CATEGORIES,
   nexoraCategoryFilters,
@@ -28,9 +28,10 @@ import {
 import type { BusinessTypeId } from '../types';
 import { NexoraTemplateLibrary } from './nexora/NexoraTemplateLibrary';
 import { CategoryIconTile, NexoraBrandMark } from './nexora/NexoraBrand';
-const TemplatePreviewModal = lazy(() => import('./TemplatePreviewCards').then((module) => ({ default: module.TemplatePreviewModal })));
 import { LUXURY_EDITORIAL_IMAGES } from '../lib/luxuryEditorial';
 import './publicHomepage.css';
+
+const TemplatePreviewModal = lazy(() => import('./TemplatePreviewModal').then((module) => ({ default: module.TemplatePreviewModal })));
 
 export const PUBLIC_SIGNUP_PATH = '/login?auth=signup';
 
@@ -125,7 +126,7 @@ function PublicBrand() {
 
 /** Public marketing homepage, also shown to authenticated owners at the site root. All template content comes from the existing registry. */
 export function PublicHomepage({ authenticated = false }: { authenticated?: boolean } = {}) {
-  const templates = sortTemplatesByPriority(Object.values(CATEGORY_TEMPLATES));
+  const templates = sortTemplatesByPriority(NEXORA_PUBLIC_TEMPLATES);
   const categoryFilters = nexoraCategoryFilters(templates).slice(1);
   const [activeCategory, setActiveCategory] = useState('all');
   const [previewId, setPreviewId] = useState<BusinessTypeId | null>(null);
@@ -163,10 +164,11 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
     setPreviewId(templateId);
   }, []);
 
-  const heroTemplate = CATEGORY_TEMPLATES.hair_salon;
+  const heroTemplate = NEXORA_PUBLIC_TEMPLATES_BY_ID.hair_salon;
 
   return (
     <div className="public-homepage min-h-screen bg-surface font-body-md text-on-surface antialiased">
+      <a className="public-skip-link" href="#public-main-content">Skip to main content</a>
       <header className="sticky top-0 z-50 border-b border-[#E4DCCB]/80 bg-white/95 backdrop-blur-xl">
         <div className="mx-auto flex min-h-[76px] max-w-[1440px] items-center gap-4 px-4 py-3 sm:px-6 lg:px-10">
           <a href="/" aria-label="NEXORA Salon OS home" className="shrink-0 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#7A4E8F]">
@@ -217,7 +219,7 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
         )}
       </header>
 
-      <main>
+      <main id="public-main-content">
         {/* 1 · Premium hero — keeps the real NEXORA template and signup flows */}
         <section aria-labelledby="public-home-title" className="relative isolate overflow-hidden border-b border-[#E9DED5] bg-[#FBF7F3]">
           <div aria-hidden="true" className="pointer-events-none absolute -right-32 -top-36 h-[460px] w-[460px] rounded-full bg-[#EBCFC9]/35 blur-3xl" />

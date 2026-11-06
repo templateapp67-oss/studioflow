@@ -19,7 +19,7 @@ export const PINKY_NAILS_PALETTE = {
 } as const;
 
 export const PINKY_NAILS_IMAGES = {
-  heroArtist: '/templates/pinky-nails/hero-nail-artist.jpg',
+  heroArtist: '/templates/pinky-nails/hero-nail-artist.webp',
   nailArtCloseup: '/templates/pinky-nails/nail-art-closeup.jpg',
   manicureTreatment: '/templates/pinky-nails/manicure-treatment.jpg',
   studioInterior: '/templates/pinky-nails/studio-interior.jpg',
