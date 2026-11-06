@@ -93,7 +93,7 @@ export async function generateSitemap(
 
 // Express and Vercel share the exact handler. No request Host is trusted as canonical.
 export async function sitemapHandler(
-  _req: unknown,
+  _req: object,
   res: {
     status: (statusCode: number) => any;
     setHeader: (name: string, value: string) => unknown;
