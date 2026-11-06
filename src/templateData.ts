@@ -45,7 +45,7 @@ export interface CategoryStandardData {
 export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandardData> = {
  aurelia_beauty_parlour:{
   foundingYear:'2019',
-  foundingNarrative:'Aurelia is a thoughtful beauty and wellness studio bringing together skilled artistry, a warm space and a personal approach to every visit.',
+  foundingNarrative:'Aurelia is a friendly beauty and wellness studio for hair, skin and self-care. Our team listens first and helps you choose a service that feels right for you.',
   specialties:['Hair Styling & Colour','Skin Rituals','Bridal & Occasion Beauty','Nail Care','Spa & Wellness'],
   certifications:[
    {icon:'verified',title:'Thoughtful Consultation',description:'Every service starts with a conversation about your needs, preferences and comfort.'},
@@ -59,17 +59,14 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
    {id:'aur-g4',url:'https://raw.githubusercontent.com/vijay-facebook/Aurelia-app/main/src/assets/images/room_lookbook_interior_1793383607293.jpg',title:'Aurelia Studio Interior',tag:'Interior'},
    {id:'aur-g5',url:'https://raw.githubusercontent.com/vijay-facebook/Aurelia-app/main/src/assets/images/video_bts_thumb_1793411345197.jpg',title:'Behind the Studio',tag:'Interior'}
   ],
-  reviews:[
-   {id:'aur-r1',name:'Aurelia Guest 1',location:'Bandra West, Mumbai',rating:5,serviceName:'Signature Hair Styling',comment:'A thoughtful consultation and a lovely studio experience. Sample review — replace with a real guest review.',avatarUrl:'',date:'Demo',isDemo:true},
-   {id:'aur-r2',name:'Aurelia Guest 2',location:'Mumbai',rating:5,serviceName:'Radiance Facial',comment:'The team explained each step and made the visit comfortable. Sample review — replace with a real guest review.',avatarUrl:'',date:'Demo',isDemo:true},
-   {id:'aur-r3',name:'Aurelia Guest 3',location:'Mumbai',rating:5,serviceName:'Balayage & Gloss',comment:'A calm space and helpful colour advice. Sample review — replace with a real guest review.',avatarUrl:'',date:'Demo',isDemo:true}
-  ],
+  // Do not seed made-up guest reviews; the website displays approved customer reviews only.
+  reviews:[],
   totalReviewCount:0,averageRating:0,landmark:'Bandra West, Mumbai',parkingInfo:'Ask the studio about nearby parking',openHourText:'10:00 AM',closeHourText:'8:00 PM'
  },
- mens_hair_studio:{foundingYear:'',foundingNarrative:'Precision haircuts and considered colour. Men only.',specialties:["Men's Haircuts","Men's Hair Colour"],certifications:[],gallery:MENS_DEFAULTS.gallery.map(g=>({id:g.id,url:g.url,title:g.title,tag:'Men'})),reviews:MENS_DEFAULTS.reviews.map(r=>({id:r.id,name:r.name,location:'Demo',rating:5,serviceName:r.service,comment:r.text,avatarUrl:'',date:'Demo',isDemo:true})),totalReviewCount:0,averageRating:0,landmark:'Udaipur',parkingInfo:'Ask the studio',openHourText:'10:00 AM',closeHourText:'08:00 PM'},
+ mens_hair_studio:{foundingYear:'',foundingNarrative:'A men-only studio for clean haircuts, colour and easy-to-follow grooming advice.',specialties:["Men's Haircuts","Men's Hair Colour"],certifications:[],gallery:MENS_DEFAULTS.gallery.map(g=>({id:g.id,url:g.url,title:g.title,tag:'Men'})),reviews:MENS_DEFAULTS.reviews.map(r=>({id:r.id,name:r.name,location:'Demo',rating:5,serviceName:r.service,comment:r.text,avatarUrl:'',date:'Demo',isDemo:true})),totalReviewCount:0,averageRating:0,landmark:'Udaipur',parkingInfo:'Ask the studio',openHourText:'10:00 AM',closeHourText:'08:00 PM'},
   hair_salon: {
     foundingYear: '2020',
-    foundingNarrative: 'Founded by master hairstylist Ziya Khan, Ziya Women’s Hair Studio was created exclusively for women seeking thoughtful face-shape consultations, modern layered silhouettes, sculpted bobs, curtain bangs, and texture-true curly haircuts in a calm rose-ivory studio.',
+    foundingNarrative: 'Ziya Women’s Hair Studio is a relaxed space for women’s haircuts and styling. We take time to understand your face shape, hair texture and daily routine before suggesting a look that feels like you.',
     specialties: ['Layer & Butterfly Haircuts', 'Precision Bob & Blunt Cuts', 'Curtain Bangs & Face-Framing', 'Curl-by-Curl Dry Shaping'],
     certifications: [
       { icon: 'verified', title: '100% Sanitized Japanese Shears', description: 'Every precision cutting shear and carbon sectioning comb is sterilized between appointments.' },
@@ -89,12 +86,12 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
       { id: 'hs-g9', url: '/templates/luxury-editorial/gallery-9-760.webp', title: 'Before & After Step Haircut Result', tag: 'Haircut Result' }
     ],
     reviews: [
-      { id: 'hs-r1', name: 'Ananya Deshmukh', location: 'Indiranagar, Bengaluru', rating: 5, serviceName: 'Layer Haircut', comment: 'Ziya studied my face shape and hair density for ten minutes before picking up her scissors. My new layer haircut has effortless bounce and frames my cheekbones even when I air-dry at home.', avatarUrl: '/templates/luxury-editorial/service-layer-480.webp', date: '2 days ago' },
-      { id: 'hs-r2', name: 'Rhea Malhotra', location: 'Koramangala, Bengaluru', rating: 5, serviceName: 'Bob Haircut', comment: 'Meera gave me the cleanest chin-to-collarbone bob haircut I have ever had! She balanced the back graduation so my fine hair looks noticeably fuller and tucks in naturally without daily ironing.', avatarUrl: '/templates/luxury-editorial/service-bob-480.webp', date: '5 days ago' },
-      { id: 'hs-r3', name: 'Sneha Iyer', location: 'HSR Layout, Bengaluru', rating: 5, serviceName: 'Face-Framing Haircut', comment: 'Walked in unsure what style would suit my round face. Their face-shape consultation suggested soft cheekbone-skimming curtain bangs with contoured layers — easily my favourite haircut in years.', avatarUrl: '/templates/luxury-editorial/service-bangs-480.webp', date: '1 week ago' },
-      { id: 'hs-r4', name: 'Nandini Verma', location: 'Sadashivanagar, Bengaluru', rating: 5, serviceName: 'Butterfly Haircut', comment: 'I wanted movement without losing my waist-grazing length, and Kavya nailed my butterfly haircut. So much crown volume and feathery wings while keeping every inch of length!', avatarUrl: '/templates/luxury-editorial/service-butterfly-480.webp', date: '2 weeks ago' },
-      { id: 'hs-r5', name: 'Kritika Menon', location: 'Jayanagar, Bengaluru', rating: 5, serviceName: 'Curly Haircut', comment: 'Finally a women-only hair studio that truly understands Indian curls! Diya cut my curls dry, curl by curl, removing heaviness at the sides so my ringlets spring up evenly.', avatarUrl: '/templates/luxury-editorial/service-curly-480.webp', date: '2 weeks ago' },
-      { id: 'hs-r6', name: 'Pooja Kulkarni', location: 'Whitefield, Bengaluru', rating: 5, serviceName: 'Pixie Haircut', comment: 'Took the leap to a short textured pixie cut and felt completely safe in Ziya’s hands. Calm studio, all-female team, transparent ₹ pricing and truly world-class cutting skill.', avatarUrl: '/templates/luxury-editorial/service-pixie-480.webp', date: '3 weeks ago' }
+      { id: 'hs-r1', name: 'Ananya Deshmukh', location: 'Indiranagar, Bengaluru', rating: 5, serviceName: 'Layer Haircut', comment: 'Ziya took time to understand my hair and the look I wanted. My layers frame my face nicely and are easy to manage at home.', avatarUrl: '/templates/luxury-editorial/service-layer-480.webp', date: '2 days ago' },
+      { id: 'hs-r2', name: 'Rhea Malhotra', location: 'Koramangala, Bengaluru', rating: 5, serviceName: 'Bob Haircut', comment: 'Meera gave me a lovely bob that makes my fine hair look fuller. It sits well even when I don’t style it every day.', avatarUrl: '/templates/luxury-editorial/service-bob-480.webp', date: '5 days ago' },
+      { id: 'hs-r3', name: 'Sneha Iyer', location: 'HSR Layout, Bengaluru', rating: 5, serviceName: 'Face-Framing Haircut', comment: 'I wasn’t sure which style would suit me, but the team suggested soft curtain bangs and layers. I’m so happy with the cut.', avatarUrl: '/templates/luxury-editorial/service-bangs-480.webp', date: '1 week ago' },
+      { id: 'hs-r4', name: 'Nandini Verma', location: 'Sadashivanagar, Bengaluru', rating: 5, serviceName: 'Butterfly Haircut', comment: 'I wanted layers without losing my length. Kavya got it just right, and my hair has lovely movement now.', avatarUrl: '/templates/luxury-editorial/service-butterfly-480.webp', date: '2 weeks ago' },
+      { id: 'hs-r5', name: 'Kritika Menon', location: 'Jayanagar, Bengaluru', rating: 5, serviceName: 'Curly Haircut', comment: 'Diya understood my curls and shaped them carefully while dry. They feel lighter and fall much more evenly now.', avatarUrl: '/templates/luxury-editorial/service-curly-480.webp', date: '2 weeks ago' },
+      { id: 'hs-r6', name: 'Pooja Kulkarni', location: 'Whitefield, Bengaluru', rating: 5, serviceName: 'Pixie Haircut', comment: 'I went for a short pixie cut and felt comfortable throughout. The team explained the price clearly and I love how it looks.', avatarUrl: '/templates/luxury-editorial/service-pixie-480.webp', date: '3 weeks ago' }
     ],
     totalReviewCount: 548,
     averageRating: 4.98,
@@ -106,7 +103,7 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
 
   barber: {
     foundingYear: '2018',
-    foundingNarrative: 'The Royal Blade revives the gentleman’s sanctuary on Bandra’s 33rd Road. We pair time-honored straight razor hot towel shaves with modern skin fades, beard architecture, and imported organic pomades.',
+    foundingNarrative: 'The Royal Blade is a neighbourhood barbershop on Bandra’s 33rd Road. Drop in for a clean fade, a classic shave or a beard trim, and get simple advice on keeping your look fresh.',
     specialties: ['Straight Razor Hot Shave', 'Low & Mid Skin Fades', 'Charcoal Beard Sculpting', 'Maharaja Head Massage'],
     certifications: [
       { icon: 'verified', title: 'Single-Use Japanese Blades', description: 'Fresh Feather Hi-Stainless razor blade unwrapped for every customer.' },
@@ -123,9 +120,9 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
       { id: 'bb-g6', url: 'https://images.unsplash.com/photo-1593702295094-aea22597af65?auto=format&fit=crop&w=800&q=80', title: 'Eucalyptus Steamed Towel Ritual', tag: 'Relaxation' }
     ],
     reviews: [
-      { id: 'bb-r1', name: 'Rohan Mehta', location: 'Bandra West, Mumbai', rating: 5, serviceName: 'Royal Maharaja Shave & Steam', comment: 'The eucalyptus hot towel followed by straight razor shave was pure heaven. Vikram is an absolute master of his craft. Unbelievable vibe!', avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80', date: 'Yesterday' },
-      { id: 'bb-r2', name: 'Kabir Singhania', location: 'Juhu, Mumbai', rating: 5, serviceName: 'Signature Skin Fade & Beard Sculpt', comment: 'Found my permanent barber in Mumbai. Cleanest skin fade with razor-sharp beard edges. Super disciplined appointments with zero delays.', avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=200&q=80', date: '4 days ago' },
-      { id: 'bb-r3', name: 'Farhan Merchant', location: 'Khar, Mumbai', rating: 5, serviceName: 'Executive Scissor Cut & Charcoal Hair Wash', comment: 'Old-world charm with top-tier hygiene. They sanitize every scissor and clippers right in front of you. Worth every single rupee.', avatarUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=200&q=80', date: '1 week ago' }
+      { id: 'bb-r1', name: 'Rohan Mehta', location: 'Bandra West, Mumbai', rating: 5, serviceName: 'Royal Maharaja Shave & Steam', comment: 'The hot towel shave was relaxing and Vikram did a great job. A lovely place to unwind and get a fresh look.', avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80', date: 'Yesterday' },
+      { id: 'bb-r2', name: 'Kabir Singhania', location: 'Juhu, Mumbai', rating: 5, serviceName: 'Signature Skin Fade & Beard Sculpt', comment: 'A neat fade and a sharp beard trim, right on time. I’ll definitely be coming back.', avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=200&q=80', date: '4 days ago' },
+      { id: 'bb-r3', name: 'Farhan Merchant', location: 'Khar, Mumbai', rating: 5, serviceName: 'Executive Scissor Cut & Charcoal Hair Wash', comment: 'The shop has a great feel and the team keeps everything clean. My haircut was worth the visit.', avatarUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=200&q=80', date: '1 week ago' }
     ],
     totalReviewCount: 680,
     averageRating: 4.98,
@@ -137,7 +134,7 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
 
   unisex_salon: {
     foundingYear: '2020',
-    foundingNarrative: 'Aura was created as a welcoming unisex sanctuary in Koramangala where everyone — men, women and families — can look good and feel confident. From fresh haircuts and Inoa colour to de-tan cleanups and paraffin pedicures, our friendly team makes every visit comfortable, clean and relaxing.',
+    foundingNarrative: 'Aura is a friendly unisex salon in Koramangala for men, women and families. Visit us for haircuts, colour, facials and grooming, with a team that will help you choose what works for you.',
     specialties: ['Unisex Haircuts & Styling', 'Ammonia-Free Inoa Colour', 'Organic De-Tan Cleanups', 'Paraffin Spa Pedicures'],
     certifications: [
       { icon: 'verified', title: 'Hospital-Grade Hygiene', description: 'Dual UV-C autoclaves and sealed linen ensuring pristine equipment for every station.' },
@@ -167,7 +164,7 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
 
   beauty_parlour: {
     foundingYear: '2016',
-    foundingNarrative: 'Roop Mahal is a Connaught Place beauty parlour and makeover space celebrating Indian bridal artistry, signature herbal facials, graceful hair styling, and thoughtful everyday beauty care.',
+    foundingNarrative: 'Roop Mahal is a beauty parlour in Connaught Place for bridal looks, facials, hair styling and everyday beauty care. Our team will listen to what you have in mind and help you feel at ease.',
     specialties: ['Bridal Makeovers & Shringaar', 'Signature Herbal Facials', 'Festive Hair Styling', 'Everyday Beauty Care'],
     certifications: [
       { icon: 'verified', title: '100% Female Staff Sanctuary', description: 'Private, secure, and serene environment managed completely by women.' },
@@ -197,7 +194,7 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
 
   nail_studio: {
     foundingYear: '2021',
-    foundingNarrative: 'Polished Palette was established to turn nail aesthetics into bespoke micro-art. From mirror-chrome glazed donuts to Russian cuticle precision, our studio sets the benchmark for high-fashion nail extensions.',
+    foundingNarrative: 'Pinky Nails Studio is a cheerful spot for manicures, pedicures and nail art. Choose a simple, neat finish or share an idea with our nail artists and we’ll create a look you’ll love.',
     specialties: ['Russian Dry E-File Cuticle Care', 'Chrome & Cat-Eye Gel Art', 'Sculpted Gel Extensions', 'Spa Paraffin Pedicures'],
     certifications: [
       { icon: 'verified', title: 'Individual Sealed Drill Bits', description: 'Diamond and ceramic E-file bits sterilized in medical autoclave bags.' },
@@ -213,9 +210,9 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
       { id: 'ns-g5', url: '/templates/pinky-nails/gallery-glitter-gold.jpg', title: 'Gold Glitter Encapsulation Nails', tag: 'Glitter Art' }
     ],
     reviews: [
-      { id: 'ns-r1', name: 'Ayesha Shroff', location: 'Jubilee Hills, Hyderabad', rating: 5, serviceName: 'Russian Dry E-File Gel Manicure', comment: 'My nails have never looked this clean. The Russian technique is unbelievable—zero hangnails and still perfect after 3 weeks!', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80', date: '3 days ago' },
-      { id: 'ns-r2', name: 'Zoya Qureshi', location: 'Banjara Hills, Hyderabad', rating: 5, serviceName: 'Full Set Sculpted Hard Gel Extensions', comment: 'They created the exact Pinterest chrome design I requested. The studio has built-in dust collectors so no chemical smells whatsoever.', avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=200&q=80', date: '1 week ago' },
-      { id: 'ns-r3', name: 'Sneha Reddy', location: 'Gachibowli, Hyderabad', rating: 5, serviceName: 'Cat-Eye Magnetic Gel Overlay', comment: 'The lighting, velvet chairs, and iced green tea they serve makes this a 5-star experience every single time.', avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80', date: '2 weeks ago' }
+      { id: 'ns-r1', name: 'Ayesha Shroff', location: 'Jubilee Hills, Hyderabad', rating: 5, serviceName: 'Russian Dry E-File Gel Manicure', comment: 'My manicure was neat and comfortable, and the gel finish still looked good after a few weeks.', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80', date: '3 days ago' },
+      { id: 'ns-r2', name: 'Zoya Qureshi', location: 'Banjara Hills, Hyderabad', rating: 5, serviceName: 'Full Set Sculpted Hard Gel Extensions', comment: 'They recreated the chrome nail design I showed them and checked every detail with me. Very happy with the finish.', avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=200&q=80', date: '1 week ago' },
+      { id: 'ns-r3', name: 'Sneha Reddy', location: 'Gachibowli, Hyderabad', rating: 5, serviceName: 'Cat-Eye Magnetic Gel Overlay', comment: 'The studio is comfortable, the team is warm and my nails always come out beautifully.', avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80', date: '2 weeks ago' }
     ],
     totalReviewCount: 460,
     averageRating: 4.96,
@@ -259,7 +256,7 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
 
   skincare_clinic: {
     foundingYear: '2019',
-    foundingNarrative: 'Dermalux is a clinical medical-aesthetic clinic bridging certified dermatology science and luxurious restorative facial protocols. We specialize in non-invasive skin remodeling, pigmentation correction, and medical hydra-dermabrasion.',
+    foundingNarrative: 'Dermacure is a skin clinic offering consultations and treatments for concerns such as acne and pigmentation. We explain each option clearly and help you understand what to expect before you begin.',
     specialties: ['Medical Hydra-Dermabrasion', 'Glutathione Radiance Peel', 'LED Phototherapy', 'Acne Scar Rejuvenation'],
     certifications: [
       { icon: 'verified', title: 'US-FDA Approved Technology', description: 'All clinical medical devices certified for safety across Indian Fitzpatrick skin types.' },
@@ -276,9 +273,9 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
       { id: 'sc-g6', url: 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?auto=format&fit=crop&w=800&q=80', title: 'Glass Skin Radiance Transformation', tag: 'Results' }
     ],
     reviews: [
-      { id: 'sc-r1', name: 'Dr. Shalini Ghosh', location: 'Salt Lake Sector V, Kolkata', rating: 5, serviceName: 'Hydra-Facial MD with Peptides', comment: 'As a medical professional, I am extremely picky about clinics. Dermalux maintains flawless sterilization and top US-FDA machines. Skin looked radiant!', avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80', date: '2 days ago' },
-      { id: 'sc-r2', name: 'Tanmoy Mukherjee', location: 'Park Street, Kolkata', rating: 5, serviceName: 'Clinical Carbon Laser Peel', comment: 'Removed stubborn open pores and hyperpigmentation after just 2 sessions. Transparent pricing and no false promises.', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80', date: '5 days ago' },
-      { id: 'sc-r3', name: 'Sayantani Sen', location: 'New Town, Kolkata', rating: 5, serviceName: 'Glutathione Brightening Peel', comment: 'Zero downtime and glowing skin for my cousin’s wedding. The team explains every ingredient they apply to your face.', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80', date: '2 weeks ago' }
+      { id: 'sc-r1', name: 'Dr. Shalini Ghosh', location: 'Salt Lake Sector V, Kolkata', rating: 5, serviceName: 'Hydra-Facial MD with Peptides', comment: 'The team explained the treatment clearly and kept the clinic clean. My skin felt fresh afterwards.', avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80', date: '2 days ago' },
+      { id: 'sc-r2', name: 'Tanmoy Mukherjee', location: 'Park Street, Kolkata', rating: 5, serviceName: 'Clinical Carbon Laser Peel', comment: 'I was given clear advice and pricing before the treatment. My skin looks more even, and the team never made unrealistic promises.', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80', date: '5 days ago' },
+      { id: 'sc-r3', name: 'Sayantani Sen', location: 'New Town, Kolkata', rating: 5, serviceName: 'Glutathione Brightening Peel', comment: 'The team explained each step and made me feel comfortable. My skin looked fresh for the wedding.', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80', date: '2 weeks ago' }
     ],
     totalReviewCount: 580,
     averageRating: 4.97,
@@ -290,7 +287,7 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
 
   makeup_studio: {
     foundingYear: '2018',
-    foundingNarrative: 'Vogue Noir Makeup Studio & Academy blends editorial skin minimalism with heirloom Indian bridal artistry and hands-on certified pro makeup education.',
+    foundingNarrative: 'Vogue Noir Makeup Studio & Academy offers makeup for weddings, parties and photoshoots, along with practical classes for aspiring makeup artists.',
     specialties: ['HD & Silicone Airbrush Bridal', 'Engagement & Party Glam', 'Editorial Beauty', 'Certified Pro Makeup Academy'],
     certifications: [
       { icon: 'verified', title: '100% Authentic Global Vanity', description: 'Charlotte Tilbury, Dior Backstage, NARS, Huda Beauty, MAC & Temptu Pro.' },
@@ -307,10 +304,10 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
       { id: 'ms-g6', url: '/templates/vogue-noir/gallery/party-2.webp', title: 'Sangeet Plum & Champagne', tag: 'Party' }
     ],
     reviews: [
-      { id: 'ms-r1', name: 'Ananya S.', location: 'Studio City', rating: 5, serviceName: 'Bridal Makeup', comment: 'Flawless skin finish that lasted 14 hours through tears and dancing. Looked natural in person and stunning on camera!', avatarUrl: '/templates/vogue-noir/testimonials/ananya.webp', date: 'Demo' },
-      { id: 'ms-r2', name: 'Pooja R.', location: 'Studio City', rating: 5, serviceName: 'Pro Makeup Course', comment: 'Joined with zero experience, graduated with a full bridal portfolio and started taking paid clients within a month.', avatarUrl: '/templates/vogue-noir/testimonials/pooja.webp', date: 'Demo' },
-      { id: 'ms-r3', name: 'Kriti M.', location: 'Studio City', rating: 5, serviceName: 'Airbrush Makeup', comment: 'Riya understood my skin tone perfectly. No cakey layers, just pure luxury glow.', avatarUrl: '/templates/vogue-noir/testimonials/kriti.webp', date: 'Demo' },
-      { id: 'ms-r4', name: 'Sana K.', location: 'Studio City', rating: 5, serviceName: 'Bridal Masterclass', comment: 'Hands-on practice on real models, international products, and supportive mentors. Worth every rupee.', avatarUrl: '/templates/vogue-noir/testimonials/sana.webp', date: 'Demo' }
+      { id: 'ms-r1', name: 'Ananya S.', location: 'Studio City', rating: 5, serviceName: 'Bridal Makeup', comment: 'My makeup stayed fresh through the celebrations and looked natural in photos. The team understood exactly what I wanted.', avatarUrl: '/templates/vogue-noir/testimonials/ananya.webp', date: 'Demo' },
+      { id: 'ms-r2', name: 'Pooja R.', location: 'Studio City', rating: 5, serviceName: 'Pro Makeup Course', comment: 'I joined as a beginner and learnt a lot through hands-on practice. The team was encouraging throughout.', avatarUrl: '/templates/vogue-noir/testimonials/pooja.webp', date: 'Demo' },
+      { id: 'ms-r3', name: 'Kriti M.', location: 'Studio City', rating: 5, serviceName: 'Airbrush Makeup', comment: 'Riya matched my makeup to my skin tone beautifully. It felt light and looked lovely all evening.', avatarUrl: '/templates/vogue-noir/testimonials/kriti.webp', date: 'Demo' },
+      { id: 'ms-r4', name: 'Sana K.', location: 'Studio City', rating: 5, serviceName: 'Bridal Masterclass', comment: 'The classes gave me plenty of practice and helpful feedback. I’m glad I joined.', avatarUrl: '/templates/vogue-noir/testimonials/sana.webp', date: 'Demo' }
     ],
     totalReviewCount: 2500,
     averageRating: 5.0,
@@ -322,7 +319,7 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
 
   massage_wellness: {
     foundingYear: '2017',
-    foundingNarrative: 'Bodhi Tree is a calm massage and wellness place in the heart of Jaipur. Our trained therapists use pure oils and Ayurvedic methods to help you relax, sleep better and feel fresh. Four branches across the Pink City — C-Scheme, Malviya Nagar, Vaishali Nagar and Bani Park.',
+    foundingNarrative: 'Bodhi Tree is a welcoming massage and wellness studio in Jaipur. Our therapists offer relaxing massages and Ayurvedic treatments at our C-Scheme, Malviya Nagar, Vaishali Nagar and Bani Park branches.',
     specialties: ['Ayurvedic Abhyanga & Shirodhara', 'Deep Tissue & Thai Massage', 'Jaipur Palace Collection', 'Couple & Bridal Packages'],
     certifications: [
       { icon: 'verified', title: 'Trained Therapists', description: 'Every therapist is trained in Ayurvedic and classic massage.' },
@@ -359,7 +356,7 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
 
   hair_coloring: {
     foundingYear: '2018',
-    foundingNarrative: 'Prism & Chroma is a premium hair colour studio. We do balayage, global colour, fashion and pastel shades, highlights, colour correction, keratin and gloss treatments — with a full hair-health check and a clear price in ₹ before we start.',
+    foundingNarrative: 'Prism & Chroma offers balayage, global colour, highlights and colour correction. We check your hair, discuss the shade you want and share the price in ₹ before we begin.',
     specialties: ['Signature Balayage', 'Fashion & Pastel Colours', 'Colour Correction', 'Keratin & Gloss Care'],
     certifications: [
       { icon: 'verified', title: 'Patch Test First', description: 'A small patch test 24-48 hours before full colour keeps your skin safe.' },
@@ -390,7 +387,7 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
 
   bridal_lounge: {
     foundingYear: '2014',
-    foundingNarrative: 'Shringaar Royal is Jaipur’s bridal atelier for Rajputana trousseaus, kundan heirloom styling and hand-draped poshaks. Eleven wedding seasons of private bridal chambers, written look books and pre-bridal ubtan rituals, styled for the bride who wants to be remembered.',
+    foundingNarrative: 'Shringaar Royal is a Jaipur bridal studio for wedding makeup, hair and draping. Our team will plan each look with you, from your first trial to the celebrations on the big day.',
     specialties: ['Royal Rajputana Bridal Trousseau', 'Sabyasachi Crimson Bridal Glam', 'Heritage Bridal Hair Architecture', 'Poshak & Dupatta Draping', 'Pre-Bridal Ubtan Glow'],
     certifications: [
       { icon: 'verified', title: 'Private Bridal Chambers', description: 'A suite for the bride and her bridal party, with chai, mirrors and daylight-balanced lights.' },
@@ -409,9 +406,9 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
       { id: 'sr-g8', url: '/templates/11/gallery/gallery-8.jpg', title: 'Pre-Bridal Ubtan Ritual', tag: 'Pre-Bridal' }
     ],
     reviews: [
-      { id: 'sr-r1', name: 'Gayatri Rathore', location: 'C-Scheme, Jaipur', rating: 5, serviceName: 'Royal Rajputana Bridal Trousseau', comment: 'Fifteen kilos of zardozi and not one pin slipped from the varmala to the vidaai. Anuradha set my grandmother’s polki herself, and the base was still flawless at 2 am.', avatarUrl: '/templates/11/testimonials/bride-1.jpg', date: '3 weeks ago' },
-      { id: 'sr-r2', name: 'Ananya Singhal', location: 'London → Jaipur', rating: 5, serviceName: 'Sangeet & Wedding Look Book', comment: 'I flew in for a three-day wedding and had exactly one trial. The look book meant my sangeet and wedding looks matched without repeating a single thing.', avatarUrl: '/templates/11/testimonials/bride-2.jpg', date: '2 months ago' },
-      { id: 'sr-r3', name: 'Meher Bhandari', location: 'Rambagh, Jaipur', rating: 5, serviceName: 'Pre-Bridal 7-Day Ubtan & Glow Ritual', comment: 'The seven-day ubtan plan is the reason my skin needed almost no base. My photographer asked who did my makeup before he asked for my name.', avatarUrl: '/templates/11/testimonials/bride-3.jpg', date: '4 months ago' }
+      { id: 'sr-r1', name: 'Gayatri Rathore', location: 'C-Scheme, Jaipur', rating: 5, serviceName: 'Royal Rajputana Bridal Trousseau', comment: 'Anuradha helped me feel comfortable in my bridal look all day. The jewellery and drape stayed in place through every ceremony.', avatarUrl: '/templates/11/testimonials/bride-1.jpg', date: '3 weeks ago' },
+      { id: 'sr-r2', name: 'Ananya Singhal', location: 'London → Jaipur', rating: 5, serviceName: 'Sangeet & Wedding Look Book', comment: 'I had one trial before my wedding events, and the team planned each look so they felt different but still suited me.', avatarUrl: '/templates/11/testimonials/bride-2.jpg', date: '2 months ago' },
+      { id: 'sr-r3', name: 'Meher Bhandari', location: 'Rambagh, Jaipur', rating: 5, serviceName: 'Pre-Bridal 7-Day Ubtan & Glow Ritual', comment: 'The pre-bridal care felt gentle and well planned. I felt confident in my skin on the wedding day.', avatarUrl: '/templates/11/testimonials/bride-3.jpg', date: '4 months ago' }
     ],
     totalReviewCount: 1200,
     averageRating: 4.9,
@@ -423,7 +420,7 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
 
   tattoo_studio: {
     foundingYear: '2017',
-    foundingNarrative: 'Iron & Ink is Bengaluru’s foremost sterile custom tattoo and body piercing studio on Church Street. We specialize in intricate fine-line micro-realism, sacred geometry, and custom Indian mythological sleeves.',
+    foundingNarrative: 'Iron & Ink is a tattoo and piercing studio on Church Street, Bengaluru. Talk to our artists about your idea, design and placement, and we’ll explain the process and aftercare before you decide.',
     specialties: ['Single-Needle Fine Line', 'Sacred Geometry & Mandalas', 'Micro-Realism Portraits', 'Titanium Body Piercings'],
     certifications: [
       { icon: 'verified', title: 'Hospital Class-B Autoclave Sterilization', description: 'Every grip, tube, and tool sanitized in medical vacuum chambers.' },
@@ -440,9 +437,9 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
       { id: 'ts-g6', url: 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=800&q=80', title: 'Implant-Grade Titanium Ear Curation', tag: 'Piercing' }
     ],
     reviews: [
-      { id: 'ts-r1', name: 'Devendra Gowda', location: 'Church Street, Bengaluru', rating: 5, serviceName: 'Custom Fine-Line Sacred Geometry Tattoo', comment: 'Rudra is a genius. Cleanest needle work in India. The studio hygiene looks cleaner than a hospital operating theatre. 10/10.', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80', date: 'Yesterday' },
-      { id: 'ts-r2', name: 'Natasha D’Souza', location: 'MG Road, Bengaluru', rating: 5, serviceName: 'Micro-Realism Pet Portrait', comment: 'The fine line detail on my dog’s portrait blew my mind. Healed seamlessly with the Derm-Shield they provided.', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80', date: '3 days ago' },
-      { id: 'ts-r3', name: 'Karthik Raman', location: 'Indiranagar, Bengaluru', rating: 5, serviceName: 'Implant-Grade Titanium Helix Piercing', comment: 'Pierced with surgical needle, not a gun! Virtually zero pain, and the titanium jewelry looks stunning.', avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80', date: '1 week ago' }
+      { id: 'ts-r1', name: 'Devendra Gowda', location: 'Church Street, Bengaluru', rating: 5, serviceName: 'Custom Fine-Line Sacred Geometry Tattoo', comment: 'Rudra took time to discuss my design and placement. The studio was clean and the whole process was explained clearly.', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80', date: 'Yesterday' },
+      { id: 'ts-r2', name: 'Natasha D’Souza', location: 'MG Road, Bengaluru', rating: 5, serviceName: 'Micro-Realism Pet Portrait', comment: 'The fine lines in my dog’s portrait came out beautifully. I also got clear advice on aftercare.', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80', date: '3 days ago' },
+      { id: 'ts-r3', name: 'Karthik Raman', location: 'Indiranagar, Bengaluru', rating: 5, serviceName: 'Implant-Grade Titanium Helix Piercing', comment: 'The team explained the piercing and aftercare, and the process was quick. The titanium jewellery looks great.', avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80', date: '1 week ago' }
     ],
     totalReviewCount: 790,
     averageRating: 4.99,
@@ -454,7 +451,7 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
 
   lash_brow: {
     foundingYear: '2019',
-    foundingNarrative: 'Arch & Flutter is Jaipur’s eye-area-only atelier on Ashok Marg, C-Scheme. Seven seasons of feather-light Russian volume, golden-ratio brow mapping, brushed-up laminations and semi-permanent powder brows — every set face-mapped, patch tested and priced honestly in ₹, GST included.',
+    foundingNarrative: 'Arch & Flutter is a lash and brow studio in C-Scheme, Jaipur. We’ll help you choose a look to suit your features, carry out a patch test when needed and confirm the price in ₹ before starting.',
     specialties: ['Russian Volume & Mega Volume Lashes', 'Keratin Lash Lift & Tint', 'Brow Lamination & Henna', 'Microblading & Powder Brows', 'Bridal Eye Packages'],
     certifications: [
       { icon: 'verified', title: 'Vegan, Fume-Free Adhesives', description: 'Latex-free and formaldehyde-free adhesives, safe for sensitive eyes and contact-lens wearers.' },
@@ -473,9 +470,9 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
       { id: 'af-g8', url: '/templates/13/art/tools.svg', title: 'Sterilised tools, single-use cartridges', tag: 'Hygiene' }
     ],
     reviews: [
-      { id: 'af-r1', name: 'Sneha Agarwal', location: 'Vaishali Nagar, Jaipur', rating: 5, serviceName: 'Russian Volume 2D–3D Full Set', comment: 'Third set with Meher and my natural lashes are healthier than before she started. Lightest lashes in Jaipur, I have compared.', avatarUrl: '/templates/13/art/team.svg', date: '3 days ago' },
-      { id: 'af-r2', name: 'Priyanka Choudhary', location: 'Malviya Nagar, Jaipur', rating: 5, serviceName: 'Brow Lamination (Feathered Brushed-up)', comment: 'Ritika mapped my brows with actual calipers before touching them. Six weeks later they still brush up perfectly. Worth every rupee.', avatarUrl: '/templates/13/art/brow.svg', date: '1 week ago' },
-      { id: 'af-r3', name: 'Farah Siddiqui', location: 'Raja Park, Jaipur', rating: 5, serviceName: 'Microblading Hair-stroke Brows (first sitting)', comment: 'Aisha explained the pigment, showed the sealed cartridge and numbed me properly. The strokes look like my own brow, just more of it.', avatarUrl: '/templates/13/art/microblading.svg', date: '2 weeks ago' }
+      { id: 'af-r1', name: 'Sneha Agarwal', location: 'Vaishali Nagar, Jaipur', rating: 5, serviceName: 'Russian Volume 2D–3D Full Set', comment: 'I’ve been back to Meher a few times now. My lashes feel light, and she always checks the look with me.', avatarUrl: '/templates/13/art/team.svg', date: '3 days ago' },
+      { id: 'af-r2', name: 'Priyanka Choudhary', location: 'Malviya Nagar, Jaipur', rating: 5, serviceName: 'Brow Lamination (Feathered Brushed-up)', comment: 'Ritika took care with my brow shape, and the result still looks neat weeks later. Very happy with it.', avatarUrl: '/templates/13/art/brow.svg', date: '1 week ago' },
+      { id: 'af-r3', name: 'Farah Siddiqui', location: 'Raja Park, Jaipur', rating: 5, serviceName: 'Microblading Hair-stroke Brows (first sitting)', comment: 'Aisha explained each step before starting. My brows look natural, and I felt comfortable throughout.', avatarUrl: '/templates/13/art/microblading.svg', date: '2 weeks ago' }
     ],
     totalReviewCount: 1200,
     averageRating: 4.9,
@@ -487,7 +484,7 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
 
   ayurvedic_spa: {
     foundingYear: '2014',
-    foundingNarrative: 'Veda Sanjeevani is a small Ayurvedic sanctuary in Civil Lines, Kota, run on the traditional Kerala model: a physician-led consultation first, then warm-oil rituals performed by trained therapists in rooms that stay quiet. We keep four treatment rooms on purpose.',
+    foundingNarrative: 'Veda Sanjeevani is an Ayurvedic wellness studio in Civil Lines, Kota. Each visit starts with a consultation, followed by a treatment planned around your needs and carried out by our trained team.',
     specialties: ['Shirodhara warm oil stream', 'Abhyanga full-body massage', 'Herbal potli (Kizhi) therapy', 'Mukha Lepam herbal face ritual'],
     certifications: [
       { icon: 'verified', title: 'Physician-led consultations', description: 'Every plan starts with a BAMS-qualified physician and a pulse reading.' },
@@ -503,9 +500,9 @@ export const CATEGORY_STANDARDIZED_DATA: Record<BusinessTypeId, CategoryStandard
       { id: 'vs-g5', url: '/templates/14/herbs-800.webp', title: 'Turmeric, brahmi and rose in the preparation room', tag: 'Ingredients' }
     ],
     reviews: [
-      { id: 'vs-r1', name: 'Ira Bansal', location: 'Talwandi, Kota', rating: 5, serviceName: 'Shirodhara Warm Oil Stream', comment: 'I booked on a whim after a hard work month and slept properly for the first time in weeks. The room smelled of warm oil and nothing was rushed.', avatarUrl: '/templates/14/herbs-480.webp', date: '3 days ago' },
-      { id: 'vs-r2', name: 'Nikhil Sharma', location: 'Civil Lines, Kota', rating: 5, serviceName: 'Panchakarma Consultation & Plan', comment: 'The consultation was refreshingly honest — I was told what would help and what would not be claimed. That built trust straight away.', avatarUrl: '/templates/14/ingredients-480.webp', date: '1 week ago' },
-      { id: 'vs-r3', name: 'Ritika Jain', location: 'Rajeev Gandhi Nagar', rating: 5, serviceName: 'Abhyanga Full-Body Ayurvedic Massage', comment: 'The four-hand Abhyanga is the closest thing to a reset button I have found in Kota. I have already booked my mother in with me.', avatarUrl: '/templates/14/ritual-480.webp', date: '2 weeks ago' }
+      { id: 'vs-r1', name: 'Ira Bansal', location: 'Talwandi, Kota', rating: 5, serviceName: 'Shirodhara Warm Oil Stream', comment: 'I booked after a busy month and found the treatment very relaxing. The room was peaceful and the team never rushed me.', avatarUrl: '/templates/14/herbs-480.webp', date: '3 days ago' },
+      { id: 'vs-r2', name: 'Nikhil Sharma', location: 'Civil Lines, Kota', rating: 5, serviceName: 'Panchakarma Consultation & Plan', comment: 'The consultation was clear and honest. I appreciated that the team explained what the treatment could and couldn’t do.', avatarUrl: '/templates/14/ingredients-480.webp', date: '1 week ago' },
+      { id: 'vs-r3', name: 'Ritika Jain', location: 'Rajeev Gandhi Nagar', rating: 5, serviceName: 'Abhyanga Full-Body Ayurvedic Massage', comment: 'The Abhyanga massage was deeply relaxing. I’ve booked another visit with my mother.', avatarUrl: '/templates/14/ritual-480.webp', date: '2 weeks ago' }
     ],
     totalReviewCount: 214,
     averageRating: 4.9,

@@ -666,10 +666,10 @@ export const AURA_UNISEX_COPY = {
   navContact: 'Contact',
 
   heroEyebrow: 'UNISEX SALON & WELLNESS LOUNGE',
-  heroTitle: 'Modern Hair, Grooming & Calm Wellness for Every Style.',
+  heroTitle: 'Hair, skin and grooming for everyone.',
   heroText:
-    'A welcoming, contemporary salon for men and women — bringing precision haircuts, beard styling, ammonia-free colour, organic skin care and relaxing wellness under one roof.',
-  heroPrimary: 'Book Appointment',
+    'A friendly salon for men and women, with haircuts, beard care, colour, skin services and relaxing wellness in one place.',
+  heroPrimary: 'Book an appointment',
   heroSecondary: 'Explore Services',
   heroPoints: ['Men & Women Specialists', 'Ammonia-Free Colour', 'Clean Wellness Rooms'],
   heroCardMen: 'For Him · Haircut & Beard',
@@ -678,18 +678,18 @@ export const AURA_UNISEX_COPY = {
   heroCareBoxText: 'Thoughtful zones for men, women and families.',
 
   categoriesEyebrow: 'Salon Categories',
-  categoriesTitle: 'Five Dedicated Zones Under One Roof',
+  categoriesTitle: 'Explore our salon services',
   categoriesText:
-    'Select any salon category below to explore tailored services for men and women with transparent rupee pricing.',
+    'Choose a category to find services for men and women. Prices are shown in ₹.',
 
   servicesEyebrow: 'Salon & Wellness Menu',
   servicesTitle: 'Services for Men & Women',
   servicesText:
-    'Every service includes a brief style or skin check before we begin. Prices and timings appear exactly as listed by the salon.',
+    'We’ll check what you need before starting. See each service’s price and time here.',
   bookNow: 'Book Now',
 
   aboutEyebrow: 'About the Salon',
-  aboutTitle: 'A Calm, Modern Space Built Around Personal Care',
+  aboutTitle: 'A relaxed salon with care for everyone',
   aboutDefault:
     'At Aura, we believe everyone deserves to look sharp and feel relaxed. Whether you are visiting for a tailored haircut, neat beard styling, ammonia-free hair colour or a soothing de-tan cleanup, our friendly team listens first and works with gentle, trusted products in a bright, spotless Koramangala lounge.',
   aboutHighlights: [
@@ -702,7 +702,7 @@ export const AURA_UNISEX_COPY = {
   whyEyebrow: 'Why Choose Us',
   whyTitle: 'Why Guests Trust Aura Every Month',
   whyText:
-    'Designed from the ground up as a balanced unisex studio — never rushed, always transparent and welcoming to everyone.',
+    'A friendly unisex salon where you can take your time, ask questions and feel welcome.',
 
   menTitle: "Men's Grooming Lounge",
   menText: 'Tailored haircuts, clean fades, beard shaping, grey blending and refreshing scalp care.',
@@ -732,7 +732,7 @@ export const AURA_UNISEX_COPY = {
   videosText: 'Short unisex salon clips covering men’s haircuts, women’s blowouts, glossy colour and skin care.',
 
   reviewsEyebrow: 'Customer Reviews',
-  reviewsTitle: 'Loved by Men, Women & Families',
+  reviewsTitle: 'Kind words from our clients',
   reviewsText: 'Honest feedback from guests who visit us for haircuts, colour, cleanups and wellness.',
 
   packagesEyebrow: 'Value Combos',
