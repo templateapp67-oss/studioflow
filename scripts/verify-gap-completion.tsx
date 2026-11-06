@@ -144,9 +144,10 @@ const res: any = {
   setHeader: (k: string, v: string) => (headers[k] = v),
   send: (s: string) => (body = s),
 };
-await sitemapHandler({}, res, {}, (async () => {
+const simulatedHandler = createSitemapHandler({}, (async () => {
   throw new Error("simulated public catalogue outage");
 }) as any);
+await simulatedHandler({}, res);
 assert.equal(status, 200);
 assert.equal(headers["Content-Type"], "application/xml; charset=utf-8");
 assert.equal(headers["Cache-Control"], "public, max-age=300, s-maxage=300");
