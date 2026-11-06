@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { AppRouter, requiresFullApplication } from '../src/AppRouter';
 import { PublicHomepage, PUBLIC_SIGNUP_PATH, templateSignupPath } from '../src/components/PublicHomepage';
 import { AuthPage } from '../src/components/AuthPage';
 import { CATEGORY_TEMPLATES } from '../src/categoryTemplates';
@@ -18,12 +19,43 @@ import {
 } from '../src/lib/publicSeo';
 
 const esc = (value: string) => value.replaceAll('&', '&amp;').replaceAll("'", '&#x27;').replaceAll('"', '&quot;');
+assert.equal(requiresFullApplication({ pathname: '/', search: '', hash: '', hostname: 'www.nexora.app' }), false, 'public root stays lightweight');
+assert.equal(requiresFullApplication({ pathname: '/', search: '?site=salon', hash: '', hostname: 'www.nexora.app' }), true, 'published salon route keeps using the application');
+assert.equal(requiresFullApplication({ pathname: '/login', search: '', hash: '', hostname: 'www.nexora.app' }), true, 'auth routes keep using the application');
+assert.equal(requiresFullApplication({ pathname: '/', search: '?app=1', hash: '', hostname: 'www.nexora.app' }), true, 'explicit application entry stays supported');
+assert.equal(requiresFullApplication({ pathname: '/', search: '', hash: '', hostname: 'owner.nexorasalon.online' }), true, 'published salon subdomains keep using the application');
 const homeHtml = renderToStaticMarkup(<PublicHomepage />);
+const authenticatedHomeHtml = renderToStaticMarkup(<PublicHomepage authenticated />);
+const renderRoutedRoot = (session: string | null) => {
+  const previousWindow = (globalThis as any).window;
+  try {
+    (globalThis as any).window = {
+      location: { pathname: '/', search: '', hash: '', hostname: 'www.nexora.app' },
+      localStorage: { getItem: (key: string) => key === 'studioflow_supabase_session' ? session : null },
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    };
+    return renderToStaticMarkup(<AppRouter />);
+  } finally {
+    if (previousWindow === undefined) delete (globalThis as any).window;
+    else (globalThis as any).window = previousWindow;
+  }
+};
+const signedInRootHtml = renderRoutedRoot('persisted-session');
+const signedOutRootHtml = renderRoutedRoot(null);
+assert.ok(signedInRootHtml.includes('public-home-title'), 'authenticated visitors stay on the public root');
+assert.ok(signedInRootHtml.includes('Owner Workspace'), 'the routed homepage detects a persisted owner session');
+assert.ok(signedOutRootHtml.includes('public-home-title'), 'signed-out visitors stay on the public root');
+assert.ok(signedOutRootHtml.includes('Sign In'), 'the routed homepage offers sign-in when no session exists');
 assert.equal((homeHtml.match(/<h1\b/g) || []).length, 1, 'homepage has exactly one H1');
 assert.ok(homeHtml.includes('<h1 id="public-home-title"'), 'homepage H1 is the marketing headline');
+assert.ok(homeHtml.includes('A beautiful salon website, made for your brand'), 'premium hero headline renders');
+assert.ok(authenticatedHomeHtml.includes('Owner Workspace'), 'signed-in owners receive a workspace action');
+assert.ok(authenticatedHomeHtml.includes('Open Workspace'), 'signed-in owners can open the full workspace');
+assert.ok(!authenticatedHomeHtml.includes('Get Started'), 'signed-in owners do not see the signup CTA');
 assert.ok(homeHtml.includes('href="#public-main-content">Skip to main content</a>'), 'homepage provides a keyboard skip link');
 assert.ok(homeHtml.includes('<main id="public-main-content">'), 'skip link target exists');
-assert.ok(homeHtml.includes('Launch Your NEXORA Salon Website in 30 Minutes'));
+assert.ok(!homeHtml.includes('Launch Your NEXORA Salon Website in 30 Minutes'), 'SEO title copy is not substituted for the premium hero');
 assert.ok(!homeHtml.includes('Sign in to NEXORA Salon OS.'), 'login headline never appears on homepage');
 assert.equal((homeHtml.match(/data-template-id="/g) || []).length, 16, 'all 16 registry templates render once');
 assert.equal((homeHtml.match(/data-category-shortcut="/g) || []).length, 15, 'all existing category shortcuts render');

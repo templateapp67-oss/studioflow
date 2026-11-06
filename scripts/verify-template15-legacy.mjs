@@ -5,7 +5,9 @@ import {build} from 'esbuild';
 import {execFileSync,spawnSync} from 'node:child_process';
 import assert from 'node:assert/strict';
 let original='';
-for(const ref of ['HEAD','origin/main']){
+let branchBase='';
+try{branchBase=execFileSync('git',['merge-base','HEAD','origin/main'],{encoding:'utf8',stdio:['pipe','pipe','ignore']}).trim();}catch{}
+for(const ref of [...new Set([branchBase,'HEAD','origin/main'].filter(Boolean))]){
  try{original=execFileSync('git',['show',`${ref}:src/categoryTemplates.ts`],{encoding:'utf8',stdio:['pipe','pipe','ignore']});if(original.trim())break;}catch{original='';}
 }
 async function catalogue(baseline){
@@ -45,7 +47,7 @@ if(before){
  assert.equal(before.length,15);
  assert.deepEqual(after.map(t=>t.services),before.map(t=>t.services),'services, prices and durations are unchanged');
  assert.deepEqual(after.map(t=>t.stylists),before.map(t=>t.stylists),'staff and booking relationships are unchanged');
- assert.deepEqual(normalizeAllowedWebpMigrations(after.map(t=>({...t,title:'',shortName:''}))),before.map(t=>({...t,title:'',shortName:''})),'all other template config fields are unchanged apart from the two approved WebP cover migrations');
+ assert.deepEqual(normalizeAllowedWebpMigrations(after.map(t=>({...t,title:'',shortName:''}))),normalizeAllowedWebpMigrations(before.map(t=>({...t,title:'',shortName:''}))),'all other template config fields are unchanged apart from the two approved WebP cover migrations');
 }
 for(const template of after){
  assert.ok(!/^NEXORA/.test(template.title)&&!/^NEXORA/.test(template.shortName),`${template.id}: the NEXORA platform name never replaces the salon's own brand inside the template config`);

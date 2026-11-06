@@ -2,6 +2,7 @@ import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { PublicHomepage } from './components/PublicHomepage';
 import { loadScreen } from './lib/loadScreen';
 import { capturePublicReferral } from './lib/publicReferral';
+import { resolveSiteSlug } from './lib/resolveSite';
 
 const FullApplication = lazy(() =>
   loadScreen(() => import('./App').then((module) => ({ default: module.default }))),
@@ -13,8 +14,9 @@ const APP_QUERY_KEYS = [
   'access_token', 'error', 'error_description',
 ];
 
-export function requiresFullApplication(location: Pick<Location, 'pathname' | 'search' | 'hash'>): boolean {
+export function requiresFullApplication(location: Pick<Location, 'pathname' | 'search' | 'hash' | 'hostname'>): boolean {
   if (location.pathname !== '/' && location.pathname !== '/index.html') return true;
+  if (resolveSiteSlug(location)) return true;
 
   const query = new URLSearchParams(location.search);
   if (APP_QUERY_KEYS.some((key) => query.has(key))) return true;
@@ -33,24 +35,25 @@ function hasPersistedOwnerSession(): boolean {
 }
 
 /**
- * Keep the signed-out homepage independent from the auth/Supabase workspace.
- * Query/path-based salon sites and every auth, invite, customer, and owner entry
- * continue through the existing application unchanged.
+ * Keep the public homepage independent from auth/bootstrap for signed-in and
+ * signed-out visitors. Query/path-based salon sites and every auth, invite,
+ * customer, and owner entry continue through the existing application unchanged.
  */
 export function AppRouter() {
-  const [showApplication, setShowApplication] = useState(() =>
+  const [showApplication] = useState(() =>
     typeof window !== 'undefined' && requiresFullApplication(window.location),
+  );
+  const [authenticated, setAuthenticated] = useState(() =>
+    typeof window !== 'undefined' && hasPersistedOwnerSession(),
   );
 
   useEffect(() => {
-    if (!showApplication && typeof window !== 'undefined') {
-      if (requiresFullApplication(window.location) || hasPersistedOwnerSession()) {
-        setShowApplication(true);
-      }
-    }
-  }, [showApplication]);
+    const refreshAuthentication = () => setAuthenticated(hasPersistedOwnerSession());
+    window.addEventListener('storage', refreshAuthentication);
+    return () => window.removeEventListener('storage', refreshAuthentication);
+  }, []);
 
-  if (!showApplication) return <PublicHomepage />;
+  if (!showApplication) return <PublicHomepage authenticated={authenticated} />;
 
   return (
     <Suspense fallback={<main className="grid min-h-screen place-items-center bg-white px-6 text-center text-sm font-semibold text-slate-700" role="status">Loading NEXORA…</main>}>

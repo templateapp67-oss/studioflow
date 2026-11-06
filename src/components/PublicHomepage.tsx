@@ -11,7 +11,6 @@ import {
   LayoutTemplate,
   Menu,
   MonitorSmartphone,
-  MousePointer2,
   Rocket,
   Sparkles,
   Star,
@@ -19,18 +18,17 @@ import {
   WandSparkles,
   X,
 } from 'lucide-react';
+import { NEXORA_PUBLIC_TEMPLATES, NEXORA_PUBLIC_TEMPLATES_BY_ID } from '../lib/nexoraPublicTemplates';
 import {
   NEXORA_CATEGORIES,
   nexoraCategoryFilters,
   nexoraDisplayName,
-  nexoraTemplateMeta,
   sortTemplatesByPriority,
 } from '../lib/nexoraTemplateCatalogue';
-import { NEXORA_PUBLIC_TEMPLATES, NEXORA_PUBLIC_TEMPLATES_BY_ID, type NexoraTemplateCardData } from '../lib/nexoraPublicTemplates';
-import { nexoraPreviewImage } from '../lib/nexoraPreviewImages';
 import type { BusinessTypeId } from '../types';
 import { NexoraTemplateLibrary } from './nexora/NexoraTemplateLibrary';
 import { CategoryIconTile, NexoraBrandMark } from './nexora/NexoraBrand';
+import { LUXURY_EDITORIAL_IMAGES } from '../lib/luxuryEditorial';
 import './publicHomepage.css';
 
 const TemplatePreviewModal = lazy(() => import('./TemplatePreviewModal').then((module) => ({ default: module.TemplatePreviewModal })));
@@ -126,49 +124,8 @@ function PublicBrand() {
   );
 }
 
-function PublicTemplateArtwork({ template }: { template: NexoraTemplateCardData }) {
-  const meta = nexoraTemplateMeta(template.id);
-  return (
-    <div aria-hidden="true" className="bg-slate-100 p-4 pb-0">
-      <div className="overflow-hidden rounded-t-xl border border-slate-300 bg-white shadow-sm">
-        <div className="flex h-6 items-center gap-1 border-b border-slate-200 bg-white px-2">
-          <i className="h-1.5 w-1.5 rounded-full bg-rose-300" />
-          <i className="h-1.5 w-1.5 rounded-full bg-amber-300" />
-          <i className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
-          <span className="ml-1.5 rounded-sm bg-[#2A1E4A] px-1 py-px text-[6px] font-black uppercase tracking-[0.12em] text-[#F5E9D6]">NEXORA</span>
-          <span className="ml-auto truncate text-[7px] font-semibold tracking-wide text-[#6B5E7A]">{template.shortName}</span>
-        </div>
-        <div className="relative h-40 overflow-hidden bg-[#221B34]">
-          <img
-            src={nexoraPreviewImage(template)}
-            alt=""
-            width={1200}
-            height={700}
-            loading="eager"
-            fetchPriority="high"
-            decoding="async"
-            sizes="(min-width: 1024px) 52vw, 100vw"
-            className="h-full w-full object-cover object-top"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#14101F]/85 via-[#14101F]/25 to-transparent" />
-          <div className="absolute inset-x-3 bottom-3 text-white">
-            <span className="text-[7px] font-semibold uppercase tracking-[0.16em] text-white/80">{meta?.categoryName || 'Salon website'}</span>
-            <p className="mt-1 text-sm font-extrabold leading-tight">{template.title}</p>
-            <p className="mt-1 text-[8px] leading-relaxed text-white/80">{meta?.bestFor}</p>
-          </div>
-        </div>
-        <div className="grid grid-cols-3 gap-1.5 bg-white p-2">
-          {(meta?.services || []).slice(0, 3).map((service) => (
-            <div key={service} className="truncate border border-slate-100 px-1.5 py-2 text-[7px] font-semibold text-slate-700">{service}</div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/** Public, signed-out marketing homepage. Cards use presentation metadata only. */
-export function PublicHomepage() {
+/** Public marketing homepage, also shown to authenticated owners at the site root. All template content comes from the existing registry. */
+export function PublicHomepage({ authenticated = false }: { authenticated?: boolean } = {}) {
   const templates = sortTemplatesByPriority(NEXORA_PUBLIC_TEMPLATES);
   const categoryFilters = nexoraCategoryFilters(templates).slice(1);
   const [activeCategory, setActiveCategory] = useState('all');
@@ -228,10 +185,10 @@ export function PublicHomepage() {
 
           <div className="ml-auto flex items-center gap-2 lg:ml-3">
             <a href="/login" className="hidden min-h-[44px] items-center rounded-xl px-4 text-sm font-bold text-[#2A1E4A] transition hover:bg-[#F6F1E6] focus-visible:outline-2 focus-visible:outline-[#7A4E8F] sm:inline-flex">
-              Sign In
+              {authenticated ? 'Owner Workspace' : 'Sign In'}
             </a>
-            <a href={PUBLIC_SIGNUP_PATH} className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl bg-primary px-4 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition hover:bg-primary-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:px-5">
-              Get Started <ArrowRight size={15} aria-hidden="true" />
+            <a href={authenticated ? '/login' : PUBLIC_SIGNUP_PATH} className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl bg-primary px-4 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition hover:bg-primary-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:px-5">
+              {authenticated ? 'Open Workspace' : 'Get Started'} <ArrowRight size={15} aria-hidden="true" />
             </a>
             <button
               type="button"
@@ -255,7 +212,7 @@ export function PublicHomepage() {
                 </a>
               ))}
               <a href="/login" className="mt-2 inline-flex min-h-[46px] items-center justify-center rounded-xl border border-[#D9CFBC] px-4 text-sm font-bold text-[#2A1E4A] hover:bg-[#FBF8F2] sm:hidden">
-                Sign In
+                {authenticated ? 'Owner Workspace' : 'Sign In'}
               </a>
             </div>
           </nav>
@@ -263,72 +220,96 @@ export function PublicHomepage() {
       </header>
 
       <main id="public-main-content">
-        {/* 1 · Hero and actual template experience */}
-        <section aria-labelledby="public-home-title" className="relative overflow-hidden border-b border-[#E4DCCB]/70 bg-gradient-to-br from-[#FBF8F2] via-white to-[#F6F1E6]">
-          <div aria-hidden="true" className="pointer-events-none absolute -right-32 -top-40 h-[480px] w-[480px] rounded-full bg-primary-fixed/25 blur-3xl" />
-          <div aria-hidden="true" className="pointer-events-none absolute -bottom-48 -left-40 h-[420px] w-[420px] rounded-full bg-[#7A4E8F]/10 blur-3xl" />
-          <div className="relative mx-auto grid max-w-[1440px] items-center gap-12 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[0.88fr_1.12fr] lg:gap-14 lg:px-10 lg:py-24 xl:gap-20">
-            <div className="min-w-0">
-              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#E4DCCB] bg-white/85 px-3.5 py-2 text-[11px] font-extrabold uppercase tracking-[0.13em] text-[#2A1E4A] shadow-sm">
-                <Sparkles size={14} aria-hidden="true" className="text-primary" />
+        {/* 1 · Premium hero — keeps the real NEXORA template and signup flows */}
+        <section aria-labelledby="public-home-title" className="relative isolate overflow-hidden border-b border-[#E9DED5] bg-[#FBF7F3]">
+          <div aria-hidden="true" className="pointer-events-none absolute -right-32 -top-36 h-[460px] w-[460px] rounded-full bg-[#EBCFC9]/35 blur-3xl" />
+          <div aria-hidden="true" className="pointer-events-none absolute -bottom-52 -left-40 h-[420px] w-[420px] rounded-full bg-[#E9DCCB]/45 blur-3xl" />
+          <div className="relative mx-auto grid max-w-[1440px] items-center gap-9 px-4 py-10 sm:px-6 sm:py-14 lg:grid-cols-[0.92fr_1.08fr] lg:gap-14 lg:px-10 lg:py-20 xl:gap-20">
+            <div className="relative z-10 min-w-0">
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#E5D5CD] bg-white/90 px-3.5 py-2 text-[11px] font-extrabold uppercase tracking-[0.13em] text-[#39263A] shadow-sm">
+                <Sparkles size={14} aria-hidden="true" className="text-[#9C566F]" />
                 Your salon. Your website. Your brand.
               </div>
-              <h1 id="public-home-title" className="max-w-[720px] font-display text-[2.55rem] font-extrabold leading-[1.08] tracking-[-0.035em] text-[#1B1630] sm:text-5xl lg:text-[3.35rem] xl:text-[3.75rem]" style={{ textWrap: 'balance' }}>
-                Launch Your NEXORA Salon Website in 30 Minutes
+              <h1 id="public-home-title" className="max-w-[680px] font-display text-[2.35rem] font-extrabold leading-[1.08] tracking-[-0.035em] text-[#251A24] sm:text-5xl lg:text-[3.3rem] xl:text-[3.7rem]" style={{ textWrap: 'balance' }}>
+                A beautiful salon website, made for your brand
               </h1>
-              <p className="mt-6 max-w-xl text-base leading-7 text-[#5B5470] sm:text-lg sm:leading-8">
-                Create a professional website for your salon without coding. Choose a design, add your services and business details, then share your website with customers.
+              <p className="mt-5 max-w-xl text-base leading-7 text-[#51434D] sm:text-lg sm:leading-8">
+                Choose a ready-made NEXORA design, add your services and business details, and give customers a simple way to explore your salon and book appointments.
               </p>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <a href="#nexora-template-library" className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-primary px-6 text-sm font-bold text-on-primary shadow-xl shadow-primary/20 transition hover:-translate-y-0.5 hover:bg-primary-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-                  Explore Templates <ArrowRight size={17} aria-hidden="true" />
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                <a href="#nexora-template-library" className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-[#302033] px-6 text-sm font-bold text-white shadow-lg shadow-[#302033]/15 transition hover:-translate-y-0.5 hover:bg-[#48304A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8C4D67]">
+                  Explore 16 Templates <ArrowRight size={17} aria-hidden="true" />
                 </a>
-                <a href={PUBLIC_SIGNUP_PATH} className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl border border-[#C9A66B] bg-white px-6 text-sm font-bold text-[#2A1E4A] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#FBF8F2] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A4E8F]">
-                  Get Started <Rocket size={16} aria-hidden="true" />
+                <a href={authenticated ? '/login' : PUBLIC_SIGNUP_PATH} className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl border border-[#A96A7E] bg-white px-6 text-sm font-bold text-[#39263A] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#FFF9F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8C4D67]">
+                  {authenticated ? 'Open Workspace' : 'Get Started'} <Rocket size={16} aria-hidden="true" />
                 </a>
               </div>
-              <ul className="mt-8 flex flex-wrap gap-x-5 gap-y-3 text-xs font-semibold text-[#5B5470]" aria-label="Product highlights">
-                {['16 ready-made designs', 'No coding required', 'Preview before signup'].map((item) => (
-                  <li key={item} className="inline-flex items-center gap-1.5">
-                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#EDE9FE] text-[#7A4E8F]"><Check size={12} strokeWidth={3} aria-hidden="true" /></span>
-                    {item}
-                  </li>
-                ))}
+              <ul className="mt-7 flex flex-wrap gap-x-5 gap-y-3 text-xs font-semibold text-[#51434D]" aria-label="NEXORA product features">
+                <li className="inline-flex items-center gap-1.5">
+                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#F1E1E4] text-[#743D55]"><Check size={12} strokeWidth={3} aria-hidden="true" /></span>
+                  {templates.length} ready-made designs
+                </li>
+                <li className="inline-flex items-center gap-1.5">
+                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#F1E1E4] text-[#743D55]"><Check size={12} strokeWidth={3} aria-hidden="true" /></span>
+                  No coding required
+                </li>
+                <li className="inline-flex items-center gap-1.5">
+                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#F1E1E4] text-[#743D55]"><Check size={12} strokeWidth={3} aria-hidden="true" /></span>
+                  Preview before signup
+                </li>
               </ul>
+              <p className="mt-5 text-xs font-medium text-[#62515B]">
+                Built for salons, spas, beauty parlours and wellness businesses.
+              </p>
             </div>
 
-            <div className="relative mx-auto w-full min-w-0 max-w-[720px] lg:mx-0">
-              <div className="group relative overflow-hidden rounded-[22px] border border-[#D9CFBC] bg-white shadow-[0_28px_80px_rgba(42,30,74,0.18)] ring-1 ring-[#2A1E4A]/5">
-                <div className="flex h-12 items-center gap-3 border-b border-[#E4DCCB] bg-[#FBF8F2] px-4 sm:px-5">
-                  <div className="flex gap-1.5" aria-hidden="true">
-                    <span className="h-2.5 w-2.5 rounded-full bg-[#D9A6A1]" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-[#C9A66B]" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-[#738B78]" />
-                  </div>
-                  <div className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-lg border border-[#E4DCCB] bg-white px-3 py-1.5 text-[10px] font-semibold text-[#6B5E7A]">
-                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-600" aria-hidden="true" />
-                    <span className="truncate">ziyahairstudio.nexora.in</span>
-                  </div>
-                  <span className="hidden rounded-full bg-[#EDE9FE] px-2 py-1 text-[9px] font-extrabold uppercase tracking-wider text-[#7A4E8F] sm:inline-flex">Live demo</span>
+            <div className="relative mx-auto w-full min-w-0 max-w-[680px] lg:mx-0">
+              <div className="public-hero-photo relative isolate overflow-hidden rounded-[26px] border border-[#E5D5CD] bg-[#EADBD4] shadow-[0_24px_70px_rgba(59,36,49,0.18)]">
+                <picture className="block h-full w-full">
+                  <source
+                    type="image/webp"
+                    srcSet={LUXURY_EDITORIAL_IMAGES.hero.srcSet}
+                    sizes="(max-width: 639px) calc(100vw - 32px), (max-width: 1023px) calc(100vw - 48px), (max-width: 1439px) 48vw, 620px"
+                  />
+                  <img
+                    src="/templates/luxury-editorial/hero-fallback.jpg"
+                    alt={LUXURY_EDITORIAL_IMAGES.hero.alt}
+                    width={LUXURY_EDITORIAL_IMAGES.hero.width}
+                    height={LUXURY_EDITORIAL_IMAGES.hero.height}
+                    loading="eager"
+                    fetchPriority="high"
+                    decoding="async"
+                    className="h-full w-full object-cover object-center"
+                  />
+                </picture>
+                <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#241820]/75 via-[#241820]/5 to-transparent" />
+                <div className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-full border border-white/65 bg-white/95 px-3 py-2 text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#39263A] shadow-md sm:left-5 sm:top-5">
+                  <span className="h-2 w-2 rounded-full bg-[#9C566F]" aria-hidden="true" />
+                  NEXORA · Featured design
                 </div>
-                <PublicTemplateArtwork template={heroTemplate} />
-                <div className="flex flex-col gap-3 border-t border-[#E4DCCB] bg-white p-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-extrabold text-[#1B1630]">{nexoraDisplayName('hair_salon', heroTemplate.title)}</p>
-                    <p className="mt-1 text-[11px] text-[#6B5E7A]">Template artwork and sample services</p>
-                  </div>
-                  <button type="button" onClick={() => previewTemplate('hair_salon')} className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-xl bg-[#2A1E4A] px-4 text-xs font-bold text-white transition hover:bg-[#3E2A63] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A4E8F]">
-                    <Eye size={15} aria-hidden="true" /> Open interactive preview
-                  </button>
+                <div className="absolute inset-x-4 bottom-5 text-white sm:inset-x-6 sm:bottom-7">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#F5DDE4]">Haircut Studio · Template 01</p>
+                  <h2 className="mt-1 max-w-[520px] font-display text-2xl font-bold leading-tight sm:text-3xl">
+                    {nexoraDisplayName('hair_salon', heroTemplate.title)}
+                  </h2>
+                  <p className="mt-2 max-w-md text-sm leading-6 text-white/95">
+                    A real website design to preview, personalise and make your own.
+                  </p>
                 </div>
               </div>
-              <div className="absolute -right-3 -top-4 hidden items-center gap-2 rounded-2xl border border-[#E4DCCB] bg-white px-3.5 py-3 shadow-xl sm:flex lg:-right-5">
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-primary-fixed/60 text-primary"><Clock3 size={17} aria-hidden="true" /></span>
-                <span><strong className="block text-xs text-[#1B1630]">Ready in 30 minutes</strong><span className="text-[10px] text-[#6B5E7A]">Simple guided setup</span></span>
+
+              <div className="relative mt-4 flex flex-col gap-3 rounded-2xl border border-[#E5D5CD] bg-white p-4 shadow-[0_12px_34px_rgba(59,36,49,0.08)] sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-extrabold text-[#251A24]">{nexoraDisplayName('hair_salon', heroTemplate.title)}</p>
+                  <p className="mt-1 text-xs text-[#62515B]">Open the actual template preview before creating your website.</p>
+                </div>
+                <button type="button" onClick={() => previewTemplate('hair_salon')} className="inline-flex min-h-[46px] shrink-0 items-center justify-center gap-2 rounded-xl bg-[#302033] px-4 text-xs font-bold text-white transition hover:bg-[#48304A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8C4D67]">
+                  <Eye size={15} aria-hidden="true" /> Open interactive preview
+                </button>
               </div>
-              <div className="absolute left-0 top-full mt-4 hidden items-center gap-2 rounded-2xl border border-[#E4DCCB] bg-white px-3.5 py-3 shadow-xl sm:flex">
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-[#F3EEE4] text-[#7A4E8F]"><MousePointer2 size={17} aria-hidden="true" /></span>
-                <span><strong className="block text-xs text-[#1B1630]">Try before you sign up</strong><span className="text-[10px] text-[#6B5E7A]">Desktop, tablet & mobile</span></span>
+              <div className="pointer-events-none absolute -right-2 -top-3 hidden items-center gap-2 rounded-2xl border border-[#E5D5CD] bg-white px-3.5 py-3 shadow-xl sm:flex lg:-right-4">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-[#F7E9EB] text-[#743D55]"><Clock3 size={17} aria-hidden="true" /></span>
+                <span><strong className="block text-xs text-[#251A24]">Simple guided setup</strong><span className="text-[10px] text-[#62515B]">No code needed</span></span>
               </div>
             </div>
           </div>
@@ -410,8 +391,8 @@ export function PublicHomepage() {
               ))}
             </ol>
             <div className="mt-9 text-center">
-              <a href={PUBLIC_SIGNUP_PATH} className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-[#F6F1E6] px-6 text-sm font-extrabold text-[#2A1E4A] shadow-lg transition hover:-translate-y-0.5 hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A66B]">
-                Start building your website <ArrowRight size={16} aria-hidden="true" />
+              <a href={authenticated ? '/login' : PUBLIC_SIGNUP_PATH} className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-[#F6F1E6] px-6 text-sm font-extrabold text-[#2A1E4A] shadow-lg transition hover:-translate-y-0.5 hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A66B]">
+                {authenticated ? 'Open Owner Workspace' : 'Start building your website'} <ArrowRight size={16} aria-hidden="true" />
               </a>
             </div>
           </div>
@@ -473,10 +454,10 @@ export function PublicHomepage() {
             </nav>
             <nav aria-label="Footer account navigation">
               <p className="text-xs font-extrabold uppercase tracking-[0.15em] text-white">Your NEXORA account</p>
-              <p className="mt-4 text-sm leading-6 text-[#C8C0D3]">Already have a salon workspace? Sign in to continue where you left off.</p>
+              <p className="mt-4 text-sm leading-6 text-[#C8C0D3]">Already have a salon workspace? {authenticated ? 'Open it to continue where you left off.' : 'Sign in to continue where you left off.'}</p>
               <div className="mt-5 flex flex-wrap gap-2.5">
-                <a href="/login" className="inline-flex min-h-[44px] items-center rounded-xl border border-white/25 px-4 text-xs font-bold text-white hover:bg-white/10">Sign In</a>
-                <a href={PUBLIC_SIGNUP_PATH} className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl bg-[#F6F1E6] px-4 text-xs font-bold text-[#2A1E4A] hover:bg-white">Get Started <ArrowRight size={13} aria-hidden="true" /></a>
+                <a href="/login" className="inline-flex min-h-[44px] items-center rounded-xl border border-white/25 px-4 text-xs font-bold text-white hover:bg-white/10">{authenticated ? 'Owner Workspace' : 'Sign In'}</a>
+                <a href={authenticated ? '/login' : PUBLIC_SIGNUP_PATH} className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl bg-[#F6F1E6] px-4 text-xs font-bold text-[#2A1E4A] hover:bg-white">{authenticated ? 'Open Workspace' : 'Get Started'} <ArrowRight size={13} aria-hidden="true" /></a>
               </div>
             </nav>
           </div>
@@ -488,7 +469,7 @@ export function PublicHomepage() {
       </footer>
 
       {previewId && (
-        <Suspense fallback={<div className="fixed inset-0 z-[100] grid place-items-center bg-[#1B1630]/75 p-4 text-sm font-semibold text-white" role="status">Loading template preview…</div>}>
+        <Suspense fallback={<div role="status" aria-live="polite" className="sr-only">Loading interactive template preview…</div>}>
           <TemplatePreviewModal
             templateId={previewId}
             onSelectPreview={setPreviewId}
