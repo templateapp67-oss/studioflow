@@ -122,10 +122,17 @@ export interface CategoryTemplateConfig {
 
 export type VideoCategoryTag = 'SHOWCASE' | 'SHORT' | 'LONG';
 
+/** Presentation format chosen in Step 06's Add Social Video modal. */
+export type SocialVideoFormat = 'SHORT' | 'REEL' | 'FACEBOOK';
+
 export interface SocialVideo {
   id: string;
   isDemo?:boolean;
-  youtubeUrl: string; // Source link: YouTube or Instagram (legacy field name).
+  youtubeUrl: string; // Source link: YouTube, Instagram or Facebook (legacy field name).
+  /** Facebook reel/watch/video link when the source is Facebook (mirrors youtubeUrl). */
+  facebookUrl?: string;
+  /** Format picked in the Add Social Video modal — display tag only; all three stay in the reel feed. */
+  videoFormat?: SocialVideoFormat;
   previewVideoUrl?: string; // Optional owner-provided playable MP4/WebM preview.
   videoId: string;
   title: string;

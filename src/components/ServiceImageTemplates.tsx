@@ -21,8 +21,8 @@ export function ServiceImageTemplates({name,category,description,type,enabled,di
   }catch{if(alive.current){setPending(true);setError('Connection interrupted. Check the existing result before generating again.');}}
   finally{running.current=false;if(alive.current){setBusy(false);onBusyChange(false);}}
  };
- if(!enabled)return <ServiceImagePrompt name={name} category={category} description={description} enabled={false}/>;
- return <div className="service-image-template-picker"><ServiceImagePrompt name={name} category={category} description={description} enabled={enabled}/><details className="service-api-images"><summary>Generate inside this app (API credits required)</summary><strong>Generate new images with AI</strong><small>Creates three original images for your selected service. AI-generated illustrations are not photographs of your actual salon. API credits are required; each new set uses credits.</small>
+ if(!enabled)return <ServiceImagePrompt name={name} category={category} description={description} type={type} enabled={false}/>;
+ return <div className="service-image-template-picker"><ServiceImagePrompt name={name} category={category} description={description} type={type} enabled={enabled}/><details className="service-api-images"><summary>Generate inside this app (API credits required)</summary><strong>Generate new images with AI</strong><small>Creates three original images from the same category playbook used by the ChatGPT brief — accurate tools for this template, 3:2 · 1536 × 1024, visible Nexora wordmark, 12% safe crop and adult, fully clothed subjects. AI-generated illustrations are not photographs of your actual salon. API credits are required; each new set uses credits.</small>
   <button type="button" className="secondary-action" disabled={disabled||busy} onClick={()=>void generate()}>{busy?'Generating 3 AI images…':pending?'Check generation result':images.length?'Generate 3 new AI images':'Generate 3 AI images'}</button>
   {busy&&<p role="status">Creating original images. This can take up to two minutes. Keep this editor open.</p>}
   {error&&<p role="alert" className="service-editor-error">{error}</p>}

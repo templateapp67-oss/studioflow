@@ -1,7 +1,18 @@
 import {KeshKraftEditor} from './keshkraft/KeshKraftEditor';
-import React, { lazy, Suspense, useEffect, useRef, useState } from 'react';
-import { Monitor, Smartphone, Tablet, X } from 'lucide-react';
+import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { Rocket, Sliders, X } from 'lucide-react';
 import { AppErrorBoundary } from './AppErrorBoundary';
+import {
+  PREVIEW_DEVICES,
+  PreviewViewportControls,
+  UnifiedTemplateActionButton,
+  previewDialogClass,
+  previewFrameClass,
+  previewFrameWidth,
+  previewStageClass,
+  type PreviewDeviceId,
+  type TemplateAction,
+} from './template-preview/TemplatePreviewChrome';
 import { loadScreen } from '../lib/loadScreen';
 import { createPortal } from 'react-dom';
 import { BusinessTypeId, CategoryTemplateConfig, SalonProfile, SalonService, Stylist } from '../types';
@@ -55,25 +66,18 @@ export function TemplateThumbnail({ template: t }: { template: CategoryTemplateC
 
 export type TemplateChooseWorkspace = { profile: SalonProfile; services: SalonService[]; stylists: Stylist[]; loyaltyConfig?:import('../types').LoyaltyConfig };
 
-type PreviewDevice = 'desktop' | 'tablet' | 'mobile';
-
-/**
- * Real viewport widths per device so the website's own responsive breakpoints
- * genuinely engage — mobile renders the template's mobile layout at a phone
- * width instead of a shrunken desktop page.
- */
-const PREVIEW_DEVICES: Array<{ id: PreviewDevice; label: string; width: number; Icon: typeof Monitor }> = [
-  { id: 'desktop', label: 'Desktop', width: 1280, Icon: Monitor },
-  { id: 'tablet', label: 'Tablet', width: 834, Icon: Tablet },
-  { id: 'mobile', label: 'Mobile', width: 390, Icon: Smartphone },
-];
-
 /** srcdoc shell: a real viewport meta so media queries behave like a device. */
 const PREVIEW_FRAME_HTML = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body style="margin:0"><div id="template-root"></div></body></html>';
 
 export function TemplatePreviewModal({templateId, onSelectPreview, onClose, onChoose, requireAuthToCustomize = false}: {templateId:BusinessTypeId; onSelectPreview:(id:BusinessTypeId)=>void; onClose:()=>void; onChoose:(config?:ArchFlutterCustomizerConfig, workspace?:TemplateChooseWorkspace)=>void; requireAuthToCustomize?:boolean}) {
   const dialog = useRef<HTMLDialogElement>(null);
-  const [device, setDevice] = useState<PreviewDevice>('desktop');
+  const [device, setDevice] = useState<PreviewDeviceId>('desktop');
+  /**
+   * Full-page preview mode. Shared by every template: the dialog itself grows
+   * to 100% of the viewport (`previewDialogClass`) and the iframe stage drops
+   * the dashboard padding/framing so the website can be tested full screen.
+   */
+  const [fullPage, setFullPage] = useState(false);
   const [frameDocument, setFrameDocument] = useState<Document | null>(null);
   const t = CATEGORY_TEMPLATES[templateId];
   /** Templates 13 (Arch & Flutter) and 14 (Veda Sanjeevani) ship their own customizer. */
@@ -84,21 +88,38 @@ export function TemplatePreviewModal({templateId, onSelectPreview, onClose, onCh
   const [customized, setCustomized] = useState<{ workspace: CustomizerWorkspace; config: ArchFlutterCustomizerConfig } | null>(null);
   const [vedaWorkspace, setVedaWorkspace] = useState<TemplateChooseWorkspace | null>(null);
   useEffect(() => { setCustomized(null); setVedaWorkspace(null); setCustomizerOpen(false); }, [templateId]);
+  const fullPageRef = useRef(fullPage);
+  fullPageRef.current = fullPage;
+  /** Escape always leaves full-page mode first; a second Escape closes the preview. */
+  const handleEscape = useCallback(() => {
+    if (fullPageRef.current) { setFullPage(false); return; }
+    onClose();
+  }, [onClose]);
   useEffect(() => {
     const el = dialog.current;
     if (el && !el.open) { if(typeof el.showModal==='function') el.showModal(); else el.setAttribute('open',''); }
     if(typeof document==='undefined')return;const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    const escape = (event:KeyboardEvent) => { if(event.key === 'Escape') { event.preventDefault(); onClose(); } };
+    const escape = (event:KeyboardEvent) => {
+      if(event.key === 'Escape') { event.preventDefault(); handleEscape(); return; }
+      /* “F” toggles the full-page test view without hunting for the button. */
+      if((event.key === 'f' || event.key === 'F') && !event.metaKey && !event.ctrlKey && !event.altKey) {
+        const target = event.target as HTMLElement | null;
+        const typing = !!target && typeof target.closest === 'function' && !!target.closest('input, textarea, select, [contenteditable="true"]');
+        if (typing) return;
+        event.preventDefault();
+        setFullPage(value => !value);
+      }
+    };
     window.addEventListener('keydown', escape);
     return () => { window.removeEventListener('keydown', escape); document.body.style.overflow = previousOverflow; if(el?.open){if(typeof el.close==='function')el.close();else el.removeAttribute('open');} };
-  }, [onClose]);
+  }, [handleEscape]);
   useEffect(() => {
     if (!frameDocument) return;
-    const escape = (event:KeyboardEvent) => { if(event.key === 'Escape') {event.preventDefault(); onClose();} };
+    const escape = (event:KeyboardEvent) => { if(event.key === 'Escape') {event.preventDefault(); handleEscape();} };
     frameDocument.addEventListener('keydown', escape);
     return () => frameDocument.removeEventListener('keydown', escape);
-  }, [frameDocument, onClose]);
+  }, [frameDocument, handleEscape]);
   /* Live stylesheet mirroring into the iframe. Template websites are
    * code-split, so their CSS reaches the host <head> only after the lazy
    * chunk loads — a one-time copy at iframe load misses it and the template
@@ -121,49 +142,65 @@ export function TemplatePreviewModal({templateId, onSelectPreview, onClose, onCh
     return () => observer.disconnect();
   }, []);
   const frame = PREVIEW_DEVICES.find(preset => preset.id === device) ?? PREVIEW_DEVICES[0];
-  const scale = stageSize.width > 0 ? Math.min(1, stageSize.width / frame.width) : 1;
-  const frameHeight = stageSize.height > 0 ? Math.round(stageSize.height / scale) : undefined;
+  /* Full-page desktop is fluid (100% of the viewport); tablet/mobile keep their
+   * true device widths so their responsive layouts stay honest. */
+  const frameWidth = previewFrameWidth({ fullPage, device, stageWidth: stageSize.width, desktopWidth: frame.width });
+  /* A full-page desktop preview is genuinely fluid: the iframe is 100% of the
+   * screen instead of a 1280px viewport scaled to fit. */
+  const fluidDesktop = fullPage && device === 'desktop';
+  const scale = !fluidDesktop && stageSize.width > 0 ? Math.min(1, stageSize.width / frameWidth) : 1;
+  const frameHeight = !fluidDesktop && stageSize.height > 0 ? Math.round(stageSize.height / scale) : undefined;
   const baseExtras = {...DEFAULT_EXTRAS, gallery: [] as string[]};
   const profile:SalonProfile = {...INITIAL_SALON_PROFILE, businessType:t.id, businessName:t.title, tagline:t.tagline, about:t.about, ownerName:t.ownerName, ownerRole:t.ownerRole, ownerPhotoUrl:t.ownerPhotoUrl, phone:t.phone, whatsapp:t.whatsapp, coverImageUrl:t.coverImageUrl, themePreset:t.themePreset, themeAccentKey:DEFAULT_CATEGORY_ACCENTS[t.id], city:t.defaultCity, address:t.defaultAddress, postalCode:t.defaultPostalCode, instagramHandle:t.instagramHandle, subdomain:'', requireDeposit:false};
   const previewProfile: SalonProfile = vedaWorkspace ? vedaWorkspace.profile : customized ? customized.workspace.profile : profile;
   const previewServices: SalonService[] = vedaWorkspace ? vedaWorkspace.services : customized ? customized.workspace.services : (t.services as SalonService[]);
   const previewStylists: Stylist[] = vedaWorkspace ? vedaWorkspace.stylists : customized ? customized.workspace.stylists : (t.stylists as Stylist[]);
-  return <dialog ref={dialog} aria-labelledby="template-preview-title" onCancel={event => {event.preventDefault(); onClose();}} className="m-auto w-[95vw] max-w-[1520px] h-[92dvh] max-h-[92dvh] p-0 rounded-2xl border border-slate-200 shadow-2xl overflow-hidden backdrop:bg-slate-950/70">
+  /* Both original header buttons live inside this one merged action, so every
+   * customizer drawer, auth gate and create-website hand-off still triggers —
+   * it is simply organised instead of overlapping. */
+  const customizeAction: TemplateAction = hasCustomizer && !requireAuthToCustomize
+    ? { id: 'customize', label: 'Customize this template', description: 'Open this template’s design studio: brand, sections, services and media.', icon: Sliders, onSelect: () => setCustomizerOpen(true) }
+    : { id: 'customize', label: 'Customize this template', description: requireAuthToCustomize ? 'The preview stays free — sign up when you are ready to customise.' : 'Start the guided setup and tailor this template to your studio.', icon: Sliders, onSelect: () => onChoose() };
+  const buildAction: TemplateAction = {
+    id: 'build',
+    label: 'Create my website with this template',
+    description: customized || vedaWorkspace
+      ? 'Carry your saved customisations into your own salon website.'
+      : 'Set up your own salon website on this template — nothing publishes until you say so.',
+    icon: Rocket,
+    onSelect: () => (hasCustomizer && !requireAuthToCustomize ? onChoose(customized?.config, vedaWorkspace ?? undefined) : onChoose()),
+  };
+  const templateActions = [customizeAction, buildAction];
+  return <dialog ref={dialog} aria-labelledby="template-preview-title" data-preview-mode={fullPage ? 'full-page' : 'windowed'} onCancel={event => {event.preventDefault(); handleEscape();}} className={previewDialogClass(fullPage)}>
     <div className="h-full flex flex-col bg-slate-100 text-slate-900">
-      <header className="shrink-0 bg-white border-b border-slate-200 px-3 sm:px-5 py-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+      <header className={`relative z-30 shrink-0 bg-white border-b border-slate-200 flex flex-wrap items-center gap-x-3 gap-y-2 ${fullPage ? 'px-2.5 py-1.5' : 'px-3 sm:px-5 py-2'}`}>
         <div className="min-w-0 flex-1 basis-56">
           <div className="flex items-center gap-2">
             <NexoraBrandMark size="sm" />
             <h2 id="template-preview-title" className="font-bold text-sm sm:text-base leading-tight truncate">{nexoraDisplayName(templateId, t.title)}</h2>
+            {fullPage && <span className="rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Full page</span>}
           </div>
-          <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] sm:text-xs text-slate-500">
-            <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 font-bold text-slate-700">
-              <span className="font-mono text-[10px] text-slate-500">{nexoraTemplateMeta(templateId)?.templateNumber}</span>
-              {nexoraTemplateMeta(templateId)?.categoryName || t.shortName}
-            </span>
-            <span className="truncate">{requireAuthToCustomize ? 'Explore freely — no account needed to preview. Sign up only when you customize.' : 'Live template demo with sample content; demo bookings are not submitted'}{!requireAuthToCustomize && hasCustomizer && (customized || vedaWorkspace) ? ' · Your customized demo — nothing is published until you create your website' : ''}</span>
-          </p>
-          <p className="mt-0.5 text-[10px] text-slate-400">Salon demo brand: {t.title}</p>
+          {!fullPage && <>
+            <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] sm:text-xs text-slate-500">
+              <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 font-bold text-slate-700">
+                <span className="font-mono text-[10px] text-slate-500">{nexoraTemplateMeta(templateId)?.templateNumber}</span>
+                {nexoraTemplateMeta(templateId)?.categoryName || t.shortName}
+              </span>
+              <span className="truncate">{requireAuthToCustomize ? 'Explore freely — no account needed to preview. Sign up only when you customize.' : 'Live template demo with sample content; demo bookings are not submitted'}{!requireAuthToCustomize && hasCustomizer && (customized || vedaWorkspace) ? ' · Your customized demo — nothing is published until you create your website' : ''}</span>
+            </p>
+            <p className="mt-0.5 text-[10px] text-slate-400">Salon demo brand: {t.title}</p>
+          </>}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <select aria-label="Preview template" value={templateId} onChange={event => onSelectPreview(event.target.value as BusinessTypeId)} className="min-h-[44px] border border-slate-300 bg-white rounded-lg px-2 text-xs max-w-36 sm:max-w-60">{sortTemplatesByPriority(Object.values(CATEGORY_TEMPLATES)).map(template => <option key={template.id} value={template.id}>{nexoraDisplayName(template.id, template.shortName)}</option>)}</select>
-          <div role="group" aria-label="Preview device" className="flex border border-slate-300 rounded-lg overflow-hidden bg-white">
-            {PREVIEW_DEVICES.map(({ id, label, Icon }) => (
-              <button key={id} type="button" aria-pressed={device===id} title={`${label} preview`} onClick={() => setDevice(id)} className={`inline-flex items-center justify-center gap-1.5 text-xs min-h-[44px] min-w-[44px] px-2.5 sm:px-3 transition-colors ${device===id ? 'bg-slate-900 text-white' : 'hover:bg-slate-100'}`}>
-                <Icon size={15} aria-hidden="true" /><span className="hidden lg:inline">{label}</span><span className="sr-only lg:hidden">{label}</span>
-              </button>
-            ))}
-          </div>
-          {hasCustomizer && !requireAuthToCustomize
-            ? <button type="button" onClick={() => setCustomizerOpen(true)} className="min-h-[44px] rounded-lg border border-[#C9A66B] bg-[#2B1B17] text-[#FBF6F1] font-bold text-xs px-4">Customize this template</button>
-            : <button type="button" onClick={() => onChoose()} className="min-h-[44px] rounded-lg border border-slate-300 bg-white font-bold text-xs px-4 hover:bg-slate-50">Customize this template</button>}
-          <button type="button" onClick={() => !requireAuthToCustomize && hasCustomizer ? onChoose(customized?.config, vedaWorkspace ?? undefined) : onChoose()} className="min-h-[44px] rounded-lg bg-slate-900 text-white font-bold text-xs px-4 hover:bg-slate-800">Create my website with this template</button>
-          <button type="button" autoFocus onClick={onClose} aria-label="Close template preview" className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white hover:bg-slate-100"><X size={16} aria-hidden="true" /></button>
+          <select aria-label="Preview template" value={templateId} onChange={event => onSelectPreview(event.target.value as BusinessTypeId)} className={`min-h-[44px] border border-slate-300 bg-white rounded-lg px-2 text-xs max-w-36 sm:max-w-60 ${fullPage ? 'hidden sm:block' : ''}`}>{sortTemplatesByPriority(Object.values(CATEGORY_TEMPLATES)).map(template => <option key={template.id} value={template.id}>{nexoraDisplayName(template.id, template.shortName)}</option>)}</select>
+          <PreviewViewportControls device={device} onDeviceChange={setDevice} fullPage={fullPage} onToggleFullPage={() => setFullPage(value => !value)} />
+          <UnifiedTemplateActionButton actions={templateActions} badge={customized || vedaWorkspace ? 'Customized' : undefined} />
+          <button type="button" autoFocus onClick={onClose} aria-label={fullPage ? 'Exit full-page preview and close' : 'Close template preview'} title="Close template preview (Esc)" className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white hover:bg-slate-100"><X size={16} aria-hidden="true" /></button>
         </div>
       </header>
-      <div className="flex-1 min-h-0 bg-slate-200/70 px-2 pb-2 pt-2 sm:px-6 sm:pb-5 sm:pt-4">
+      <div className={previewStageClass(fullPage)}>
         <div ref={stageRef} className="h-full w-full flex justify-center overflow-hidden">
-          <div style={{ width: Math.round(frame.width * scale), height: '100%' }} className="relative overflow-hidden rounded-xl bg-white shadow-xl ring-1 ring-slate-900/10 transition-[width] duration-200 motion-reduce:transition-none">
+          <div style={{ width: fluidDesktop ? '100%' : Math.round(frameWidth * scale), height: '100%' }} className={previewFrameClass(fullPage)}>
             <iframe title={`${nexoraDisplayName(templateId, t.title)} live ${device} preview`} srcDoc={PREVIEW_FRAME_HTML} onLoad={event => {
               const doc = event.currentTarget.contentDocument;
               if (!doc) return;
@@ -172,7 +209,7 @@ export function TemplatePreviewModal({templateId, onSelectPreview, onClose, onCh
               doc.documentElement.style.fontFamily = 'Inter, sans-serif';
               doc.documentElement.style.background = '#fff';
               setFrameDocument(doc);
-            }} style={{width:frame.width,height:frameHeight ?? '100%',border:0,display:'block',transform:scale < 1 ? `scale(${scale})` : undefined,transformOrigin:'top left'}} className="bg-white"/>
+            }} style={{width:fluidDesktop ? '100%' : frameWidth,height:frameHeight ?? '100%',border:0,display:'block',transform:scale < 1 ? `scale(${scale})` : undefined,transformOrigin:'top left'}} className="bg-white"/>
           </div>
         </div>
         {frameDocument?.getElementById('template-root') && createPortal(<AppErrorBoundary resetKey={templateId} onRecover={onClose}><Suspense fallback={<p className="p-8 text-center">Loading live template…</p>}><LiveWebsite key={`${templateId}-${customized ? 'custom' : 'demo'}`} readOnly previewDocument={frameDocument} profile={previewProfile} services={previewServices} stylists={previewStylists} loyaltyConfig={vedaWorkspace?.loyaltyConfig} onAddAppointment={async () => {throw new Error('This is a template demo. Customize and publish your salon to accept bookings.');}}/></Suspense></AppErrorBoundary>,frameDocument.getElementById('template-root')!)}

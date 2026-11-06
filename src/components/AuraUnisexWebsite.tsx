@@ -334,6 +334,7 @@ export const AuraUnisexWebsite: React.FC<AuraUnisexWebsiteProps> = ({
           externalUrl: src.url,
           posterSrc: video.thumbnailUrl || fallbackPoster,
           channelLabel: video.channelTitle || brandName,
+          externalLabel: src.platform === 'Facebook' ? 'Open Reel on Facebook' : 'Open Reel on Instagram',
           isDemo: false,
         };
       });
