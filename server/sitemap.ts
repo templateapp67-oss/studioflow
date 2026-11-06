@@ -1,6 +1,7 @@
+export const DEFAULT_SITEMAP_ORIGIN = "https://nexorasalon.online";
+
 export function canonicalOrigin(value: string | undefined): string {
-  if (!value) throw new Error("SITE_URL must be configured");
-  const url = new URL(value);
+  const url = new URL(value?.trim() || DEFAULT_SITEMAP_ORIGIN);
   if (
     url.protocol !== "https:" ||
     url.username ||
@@ -53,7 +54,8 @@ export async function generateSitemap(
   const key =
     env.SUPABASE_ANON_KEY || "sb_publishable_Xck8H8PcTCCnEwkvBfiSLw_c973vJkH";
   const slugs: string[] = [];
-  for (let offset = 0; offset < 50000; offset += 1000) {
+  try {
+    for (let offset = 0; offset < 50000; offset += 1000) {
     const url = new URL("/rest/v1/studioflow_websites", endpoint);
     url.searchParams.set("select", "slug");
     url.searchParams.set("order", "slug.asc");
@@ -71,9 +73,14 @@ export async function generateSitemap(
     )
       throw new Error("Invalid public catalogue");
     slugs.push(...data.map((row) => row.slug));
-    if (data.length < 1000) return sitemapXml(origin, slugs);
+      if (data.length < 1000) return sitemapXml(origin, slugs);
+    }
+    throw new Error("Sitemap index required for this catalogue size");
+  } catch (error) {
+    // Keep the sitemap valid during a temporary public-catalogue outage.
+    console.error("[SITEMAP] Published-site catalogue unavailable; serving base URLs:", error);
+    return sitemapXml(origin, []);
   }
-  throw new Error("Sitemap index required for this catalogue size");
 }
 // Express and Vercel share the exact handler. No request Host is trusted as canonical.
 export async function sitemapHandler(
