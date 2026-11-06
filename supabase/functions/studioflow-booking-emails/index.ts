@@ -1,13 +1,66 @@
-const cors = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-};
+
 
 function getEnv(name: string): string {
   const val = Deno.env.get(name);
   return val ? val.trim().replace(/^['"]|['"]$/g, '') : '';
 }
+function allowedOrigins(): Set<string> {
+  const configured = getEnv('ALLOWED_ORIGINS').split(',').map(value => value.trim()).filter(Boolean);
+  return new Set(configured.length ? configured : [
+    'https://nexorasalon.online',
+    'https://studioflow-ashen-pi.vercel.app',
+  ]);
+}
+
+function corsHeadersFor(req: Request): Record<string, string> {
+  const origin = req.headers.get('Origin');
+  const headers: Record<string, string> = {
+    'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Vary': 'Origin',
+  };
+  if (origin && allowedOrigins().has(origin)) headers['Access-Control-Allow-Origin'] = origin;
+  return headers;
+}
+
+async function getAuthenticatedUser(req: Request): Promise<{ id: string; email: string } | null> {
+  const authorization = req.headers.get('Authorization') || '';
+  if (!/^Bearer\\s+\\S+/i.test(authorization)) return null;
+  const supabaseUrl = getEnv('SUPABASE_URL');
+  const publicKey = getEnv('SUPABASE_ANON_KEY') || getEnv('SUPABASE_PUBLISHABLE_KEY');
+  if (!supabaseUrl || !publicKey) return null;
+  try {
+    const response = await fetch(`${supabaseUrl.replace(/\\/+$/, '')}/auth/v1/user`, {
+      headers: { apikey: publicKey, Authorization: authorization },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!response.ok) return null;
+    const user = await response.json();
+    if (typeof user?.id !== 'string' || typeof user?.email !== 'string') return null;
+    return { id: user.id, email: user.email.trim().toLowerCase() };
+  } catch {
+    return null;
+  }
+}
+
+const emailSendWindows = new Map<string, { count: number; resetAt: number }>();
+
+function consumeEmailQuota(userId: string): boolean {
+  const now = Date.now();
+  const current = emailSendWindows.get(userId);
+  if (!current || current.resetAt <= now) {
+    emailSendWindows.set(userId, { count: 1, resetAt: now + 10 * 60 * 1000 });
+    return true;
+  }
+  if (current.count >= 5) return false;
+  current.count += 1;
+  return true;
+}
+
+function cleanSubjectPart(value: unknown, max = 100): string {
+  return String(value ?? '').replace(/[\\u0000-\\u001f\\u007f]/g, ' ').replace(/[\\r\\n]+/g, ' ').trim().slice(0, max);
+}
+
 
 interface BookingEmailRequest {
   type?: 'confirmation' | 'reminder';
@@ -309,6 +362,9 @@ ${salon}`;
 }
 
 Deno.serve(async (req: Request) => {
+  const cors = corsHeadersFor(req);
+  const origin = req.headers.get('Origin');
+  const originAllowed = !origin || cors['Access-Control-Allow-Origin'] === origin;
   const jsonResponse = (body: unknown, status = 200) =>
     new Response(JSON.stringify(body), {
       status,
@@ -316,13 +372,17 @@ Deno.serve(async (req: Request) => {
     });
 
   if (req.method === 'OPTIONS') {
+    if (!originAllowed) return new Response('Forbidden', { status: 403, headers: { Vary: 'Origin' } });
     return new Response('ok', { headers: cors });
   }
+  if (!originAllowed) return jsonResponse({ error: 'Origin not allowed.' }, 403);
 
   const resendApiKey = getEnv('RESEND_API_KEY');
   const fromEmail = getEnv('RESEND_FROM_EMAIL') || 'StudioFlow <onboarding@resend.dev>';
 
   if (req.method === 'GET') {
+    const user = await getAuthenticatedUser(req);
+    if (!user) return jsonResponse({ error: 'Authentication required.' }, 401);
     return jsonResponse({
       status: 'ok',
       service: 'studioflow-booking-emails',
@@ -349,31 +409,49 @@ Deno.serve(async (req: Request) => {
     }
 
     const recipient = payload.to.trim();
+    const user = await getAuthenticatedUser(req);
+    if (!user) return jsonResponse({ error: 'Authentication required.' }, 401);
+    if (user.email !== recipient.toLowerCase()) {
+      return jsonResponse({ error: 'Booking email recipient must match the signed-in account.' }, 403);
+    }
+    if (!consumeEmailQuota(user.id)) {
+      return jsonResponse({ error: 'Email send limit reached. Try again in a few minutes.' }, 429);
+    }
+
+    const clip = (value: unknown, max: number) => typeof value === 'string' ? value.trim().slice(0, max) : '';
+    payload.clientName = clip(payload.clientName, 100);
+    payload.bookingRef = clip(payload.bookingRef, 64);
+    payload.serviceName = clip(payload.serviceName, 120);
+    payload.stylistName = clip(payload.stylistName, 100);
+    payload.date = clip(payload.date, 40);
+    payload.time = clip(payload.time, 40);
+    payload.salonName = clip(payload.salonName, 100);
+    payload.salonAddress = clip(payload.salonAddress, 160);
+    payload.salonCity = clip(payload.salonCity, 100);
+    payload.salonPhone = clip(payload.salonPhone, 32);
+    payload.salonWhatsapp = clip(payload.salonWhatsapp, 32);
+    const priceValue = Number(payload.servicePrice);
+    const paidValue = Number(payload.amountPaid);
+    payload.servicePrice = Number.isFinite(priceValue) ? Math.max(0, priceValue) : 0;
+    payload.amountPaid = Number.isFinite(paidValue) ? Math.max(0, paidValue) : 0;
     const type = payload.type === 'reminder' ? 'reminder' : 'confirmation';
     const salonName = payload.salonName || 'StudioFlow Salon';
     const serviceName = payload.serviceName || 'Salon Service';
 
     const subject =
       type === 'reminder'
-        ? `Reminder: Your appointment tomorrow at ${salonName}`
-        : `Booking Confirmed: ${serviceName} at ${salonName} (${payload.bookingRef || 'Ref'})`;
+        ? `Reminder: Your appointment tomorrow at ${cleanSubjectPart(salonName)}`
+        : `Booking Confirmed: ${cleanSubjectPart(serviceName)} at ${cleanSubjectPart(salonName)} (${cleanSubjectPart(payload.bookingRef || 'Ref', 64)})`;
 
     const html = type === 'reminder' ? generateReminderHtml(payload) : generateConfirmationHtml(payload);
     const text = generatePlainText(payload, type);
 
-    // If Resend API key is not configured, return simulated success with preview
     if (!resendApiKey) {
-      console.warn('RESEND_API_KEY not configured in environment; returning preview representation');
       return jsonResponse({
-        success: true,
+        success: false,
         delivered: false,
-        simulated: true,
-        type,
-        to: recipient,
-        subject,
-        notice: 'Email generated successfully. Configure RESEND_API_KEY in environment to deliver live emails.',
-        emailId: `sim_${Date.now()}`,
-      });
+        error: 'Email delivery is not configured. Set RESEND_API_KEY before sending customer emails.',
+      }, 503);
     }
 
     // Call Resend API
