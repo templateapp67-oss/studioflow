@@ -467,7 +467,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     const targetEmail = emailUser?.email?.trim() || accountEmail.trim();
     if (targetEmail) setAccountEmail(targetEmail);
     if (targetEmail && targetEmail.includes('@')) {
-      setRecipientEmailInput(targetEmail);
       setIsSendingEmail(true);
       setEmailStatusMessage(`Sending confirmation email to ${targetEmail}…`);
       void sendBookingConfirmationEmail({
@@ -519,7 +518,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const handleSendManualConfirmationEmail = async () => {
     const to = accountEmail.trim();
     if (!to || !to.includes('@')) {
-      setEmailStatusMessage('Please enter a valid email address.');
+      setEmailStatusMessage('Add an email address to your customer account to send booking emails.');
       return;
     }
     setIsSendingEmail(true);
@@ -1311,7 +1310,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   </div>
                 )}
 
-                {/* Email address input if missing or to override */}
+                {/* Booking email is always sent to the signed-in customer account. */}
                 <div className="flex items-center gap-2">
                   <div className="relative flex-1">
                     <input
