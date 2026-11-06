@@ -12,7 +12,7 @@
 | Resolve the canonical-domain mismatch across static and runtime metadata. | Search engines and social crawlers must see one consistent production origin. | P1 — corrected on audit branch |
 | Make `/sitemap.xml` valid when `SITE_URL` is unset or the public salon catalogue is temporarily unavailable. | A temporary Supabase/catalogue outage must not remove the entire sitemap. | P1 — corrected on audit branch |
 | Reconcile the 19 failing offline verification suites reported by PR #69. | Failures include catalogue assumptions and Template 16 wiring assertions; these need root-cause triage, not test suppression. | P1 — outstanding |
-| Protect the booking-email sending endpoint. | A public caller must not be able to use the service as an unrestricted email relay or inject untrusted HTML. | P1 if Node API is exposed — outstanding |
+| Protect the booking-email sending endpoint. | A public caller must not be able to use the service as an unrestricted email relay or inject untrusted HTML. | P1 — JWT validation, recipient binding, CORS allow-list and per-instance throttling added; distributed rate limit and verified salon-owner sending remain future work |
 | Confirm that all current template IDs, category filters and service catalogues agree across frontend and Supabase. | Prevent missing templates, incorrect cards and invalid saved workspace data. | P1/P2 — needs automated cross-layer check |
 | Keep Template 16 on the same shared customer-site contracts as the other templates. | Customers need profile controls, stylist details, packages, gallery persistence, promotions, loyalty, policies and app install on the dedicated Aurelia renderer. | P1/P2 — integration fixes added on audit branch; CI pending |
 
