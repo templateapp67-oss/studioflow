@@ -9,7 +9,7 @@ import {
   canonicalOrigin,
   generateSitemap,
   sitemapXml,
-  sitemapHandler,
+  createSitemapHandler,
 } from "../server/sitemap";
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 const store = new Map<string, string>();
