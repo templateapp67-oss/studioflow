@@ -1,8 +1,10 @@
 # NEXORA public homepage QA
 
-Latest continuation: [Accessibility contrast fix — 2026-11-06](accessibility-contrast-fix-2026-11-06.md) (BrowserStack `color-contrast` export: 17 confirmed + 69 indeterminate SC 1.4.3 findings fixed, new contrast regression suite, 120/120 suites, no deployment).
+Latest continuation: [PR #81 production hardening + quality gate — 2026-11-06](pr81-production-hardening-2026-11-06.md) (SEO origin pinned to nexorasalon.online, lazy owner editors, public-access-hardening migration file, sitemap custom-domain fix, quality-gate workflow, 120/120 suites, no deployment).
 
-Previous: [End-to-end fix report — 2026-11-06](end-to-end-fix-2026-11-06.md) (auth/email/CSP/route fixes, 119/119 suites, no deployment).
+Previous: [Accessibility contrast fix — 2026-11-06](accessibility-contrast-fix-2026-11-06.md) (BrowserStack `color-contrast` export: 17 confirmed + 69 indeterminate SC 1.4.3 findings fixed, new contrast regression suite, 120/120 suites, no deployment).
+
+Earlier: [End-to-end fix report — 2026-11-06](end-to-end-fix-2026-11-06.md) (auth/email/CSP/route fixes, 119/119 suites, no deployment).
 
 Earlier: [Production audit — 2026-11-06](production-audit-2026-11-06.md) (PR #79 baseline, Vercel rate-limit investigation, no deployment).
 
