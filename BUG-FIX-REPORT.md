@@ -58,6 +58,14 @@
 - **Fix:** Added injectable environment/fetch dependencies to the handler and updated tests to assert a valid default-origin XML sitemap during a catalogue outage while retaining rejection of invalid configured origins.
 - **Status:** Implemented on branch; tests not yet executed.
 
+### FIX-007 — Add baseline deployment/server security headers and explicit request size limit
+
+- **Severity:** P2
+- **Root cause:** Vercel had only a subset of baseline security headers; Express did not set equivalent headers and relied on the implicit JSON parser size default.
+- **Files:** `vercel.json`, `server.ts`, `scripts/verify-security-headers.mjs`.
+- **Fix:** Added HSTS and least-privilege Permissions-Policy to Vercel; added X-Content-Type-Options, X-Frame-Options, Referrer-Policy and Permissions-Policy to Express; disabled X-Powered-By; set the JSON body limit explicitly to 100 KB; added a static regression check.
+- **Status:** Implemented on branch; CI verification pending. CSP is intentionally not enforced without external-origin inventory.
+
 ## Outstanding confirmed or high-risk issues
 
 - PR #69 CI reports 19 failing offline suites; the latest inspected run reports 90/109 passing. These have not been represented as fixed by the SEO changes above.
