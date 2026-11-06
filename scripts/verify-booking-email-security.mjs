@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 const edge = readFileSync('supabase/functions/studioflow-booking-emails/index.ts', 'utf8');
 const server = readFileSync('server.ts', 'utf8');
 const client = readFileSync('src/lib/emailService.ts', 'utf8');
+const bookingModal = readFileSync('src/components/BookingModal.tsx', 'utf8');
 const env = readFileSync('.env.example', 'utf8');
 
 assert.ok(edge.includes('function allowedOrigins()'), 'Edge email CORS allow-list is required');
@@ -24,5 +25,9 @@ assert.ok(server.includes('Email delivery is not configured'), 'Express must not
 
 assert.ok(client.includes('sessionAuthorizationHeaders'), 'Client must forward the signed-in Supabase session to the server proxy');
 assert.ok(client.includes('Authorization: `Bearer ${session.access_token}`'), 'Client must send the session bearer token');
+assert.ok(client.includes('params.to.trim().toLowerCase() !== accountEmail'), 'Client must not send booking emails to a different recipient');
+assert.ok(bookingModal.includes('readOnly={!!accountEmail}'), 'Booking form must use the signed-in account email');
+assert.ok(bookingModal.includes('const to = accountEmail.trim()'), 'Manual booking emails must use the signed-in account email');
+assert.ok(!bookingModal.includes('recipientEmailInput'), 'Arbitrary manual recipient input must not remain');
 assert.ok(env.includes('ALLOWED_ORIGINS='), 'The Edge Function CORS allow-list must be documented');
 console.log('PASS: booking email APIs require a signed-in account, bind recipient to that account, throttle sends, restrict CORS and never fake delivery.');
