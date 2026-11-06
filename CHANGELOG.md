@@ -13,6 +13,9 @@
 - `public/robots.txt` — crawler access and canonical sitemap reference.
 
 ### Fixed on this branch
+- Restored Template 16 shared customer website integrations: customer profile controls (desktop/mobile), staff full-profile view, service/package photo rendering, dedicated package cards, saved gallery categories, app-install banner theme, shared promotion/social/loyalty/policy sections and saved section headings.
+- Added Aurelia to the customer Beauty Parlour discovery category.
+- Reconciled backend catalogue documentation and booking add-ons verification from 14 to 16 templates.
 - Updated homepage, login and runtime SEO canonical/Open Graph/Twitter URLs to `https://nexorasalon.online`.
 - Made sitemap generation use the NEXORA production origin when `SITE_URL` is unset.
 - Added a valid base sitemap fallback when the published salon catalogue cannot be fetched.
