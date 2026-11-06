@@ -123,8 +123,8 @@ function PublicBrand() {
   );
 }
 
-/** Public, signed-out marketing homepage. All template content comes from the existing registry. */
-export function PublicHomepage() {
+/** Public marketing homepage, also shown to authenticated owners at the site root. All template content comes from the existing registry. */
+export function PublicHomepage({ authenticated = false }: { authenticated?: boolean } = {}) {
   const templates = sortTemplatesByPriority(Object.values(CATEGORY_TEMPLATES));
   const categoryFilters = nexoraCategoryFilters(templates).slice(1);
   const [activeCategory, setActiveCategory] = useState('all');
@@ -183,10 +183,10 @@ export function PublicHomepage() {
 
           <div className="ml-auto flex items-center gap-2 lg:ml-3">
             <a href="/login" className="hidden min-h-[44px] items-center rounded-xl px-4 text-sm font-bold text-[#2A1E4A] transition hover:bg-[#F6F1E6] focus-visible:outline-2 focus-visible:outline-[#7A4E8F] sm:inline-flex">
-              Sign In
+              {authenticated ? 'Owner Workspace' : 'Sign In'}
             </a>
-            <a href={PUBLIC_SIGNUP_PATH} className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl bg-primary px-4 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition hover:bg-primary-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:px-5">
-              Get Started <ArrowRight size={15} aria-hidden="true" />
+            <a href={authenticated ? '/login' : PUBLIC_SIGNUP_PATH} className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl bg-primary px-4 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition hover:bg-primary-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:px-5">
+              {authenticated ? 'Open Workspace' : 'Get Started'} <ArrowRight size={15} aria-hidden="true" />
             </a>
             <button
               type="button"
@@ -210,7 +210,7 @@ export function PublicHomepage() {
                 </a>
               ))}
               <a href="/login" className="mt-2 inline-flex min-h-[46px] items-center justify-center rounded-xl border border-[#D9CFBC] px-4 text-sm font-bold text-[#2A1E4A] hover:bg-[#FBF8F2] sm:hidden">
-                Sign In
+                {authenticated ? 'Owner Workspace' : 'Sign In'}
               </a>
             </div>
           </nav>
@@ -238,8 +238,8 @@ export function PublicHomepage() {
                 <a href="#nexora-template-library" className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-[#302033] px-6 text-sm font-bold text-white shadow-lg shadow-[#302033]/15 transition hover:-translate-y-0.5 hover:bg-[#48304A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8C4D67]">
                   Explore 16 Templates <ArrowRight size={17} aria-hidden="true" />
                 </a>
-                <a href={PUBLIC_SIGNUP_PATH} className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl border border-[#A96A7E] bg-white px-6 text-sm font-bold text-[#39263A] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#FFF9F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8C4D67]">
-                  Get Started <Rocket size={16} aria-hidden="true" />
+                <a href={authenticated ? '/login' : PUBLIC_SIGNUP_PATH} className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl border border-[#A96A7E] bg-white px-6 text-sm font-bold text-[#39263A] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#FFF9F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8C4D67]">
+                  {authenticated ? 'Open Workspace' : 'Get Started'} <Rocket size={16} aria-hidden="true" />
                 </a>
               </div>
               <ul className="mt-7 flex flex-wrap gap-x-5 gap-y-3 text-xs font-semibold text-[#51434D]" aria-label="NEXORA product features">
@@ -389,8 +389,8 @@ export function PublicHomepage() {
               ))}
             </ol>
             <div className="mt-9 text-center">
-              <a href={PUBLIC_SIGNUP_PATH} className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-[#F6F1E6] px-6 text-sm font-extrabold text-[#2A1E4A] shadow-lg transition hover:-translate-y-0.5 hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A66B]">
-                Start building your website <ArrowRight size={16} aria-hidden="true" />
+              <a href={authenticated ? '/login' : PUBLIC_SIGNUP_PATH} className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-[#F6F1E6] px-6 text-sm font-extrabold text-[#2A1E4A] shadow-lg transition hover:-translate-y-0.5 hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A66B]">
+                {authenticated ? 'Open Owner Workspace' : 'Start building your website'} <ArrowRight size={16} aria-hidden="true" />
               </a>
             </div>
           </div>
@@ -452,10 +452,10 @@ export function PublicHomepage() {
             </nav>
             <nav aria-label="Footer account navigation">
               <p className="text-xs font-extrabold uppercase tracking-[0.15em] text-white">Your NEXORA account</p>
-              <p className="mt-4 text-sm leading-6 text-[#C8C0D3]">Already have a salon workspace? Sign in to continue where you left off.</p>
+              <p className="mt-4 text-sm leading-6 text-[#C8C0D3]">Already have a salon workspace? {authenticated ? 'Open it to continue where you left off.' : 'Sign in to continue where you left off.'}</p>
               <div className="mt-5 flex flex-wrap gap-2.5">
-                <a href="/login" className="inline-flex min-h-[44px] items-center rounded-xl border border-white/25 px-4 text-xs font-bold text-white hover:bg-white/10">Sign In</a>
-                <a href={PUBLIC_SIGNUP_PATH} className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl bg-[#F6F1E6] px-4 text-xs font-bold text-[#2A1E4A] hover:bg-white">Get Started <ArrowRight size={13} aria-hidden="true" /></a>
+                <a href="/login" className="inline-flex min-h-[44px] items-center rounded-xl border border-white/25 px-4 text-xs font-bold text-white hover:bg-white/10">{authenticated ? 'Owner Workspace' : 'Sign In'}</a>
+                <a href={authenticated ? '/login' : PUBLIC_SIGNUP_PATH} className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl bg-[#F6F1E6] px-4 text-xs font-bold text-[#2A1E4A] hover:bg-white">{authenticated ? 'Open Workspace' : 'Get Started'} <ArrowRight size={13} aria-hidden="true" /></a>
               </div>
             </nav>
           </div>

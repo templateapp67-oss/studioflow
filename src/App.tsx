@@ -90,6 +90,7 @@ function Application() {
  // Legacy root auth/create/owner/panel links keep working; new public links use /login explicitly.
  const reservedRootEntry=customer||recovery||!!ownerSlug||!!entryTemplate||createTemplate||new URLSearchParams(location.search).has('panel');
  const authEntry=isLoginRoute||reservedRootEntry||new URLSearchParams(location.search).has('auth');
+ const publicHomeRoute=location.pathname==='/'&&!slug&&!customer&&!customerApp&&!inviteEntry&&!recovery&&!ownerSlug&&!entryTemplate&&!createTemplate&&!authEntry;
  const onRecovery=useCallback(()=>{try{sessionStorage.setItem('studioflow_recovery','1');}catch{}setRecovery(true);},[]);
  const {session,ready:authReady,error:authError}=useAuthSession(onRecovery);
  useCustomerWelcomeDelivery(session);
@@ -98,7 +99,7 @@ function Application() {
   if(slug||customer||customerApp||inviteEntry)return;
   applyPublicSeoMetadata(authEntry?NEXORA_LOGIN_SEO:NEXORA_HOME_SEO);
  },[slug,customer,customerApp,inviteEntry,authEntry]);
- useEffect(()=>{if(!session){setAccount(null);setError('');return;}if(slug||customer||customerApp||recovery)return;let active=true;setAccount(null);setError('');
+ useEffect(()=>{if(!session){setAccount(null);setError('');return;}if(slug||customer||customerApp||recovery||publicHomeRoute)return;let active=true;setAccount(null);setError('');
  (async()=>{
   if(ownerSlug){const target=await withTimeout(supabase.from('studioflow_websites').select('slug').eq('slug',ownerSlug).eq('owner_id',session.user.id).maybeSingle(),15000,'Checking this salon website');if(target.error)throw target.error;if(!target.data)throw new Error('Sign in with the owner account for this salon to manage its website.');}
   // Bounded, self-healing bootstrap: the RPC is tried first, the already-saved
@@ -132,13 +133,14 @@ function Application() {
   ]);
   if(active){setTemplates(catalogue.templates.some(t=>t.id==='mens_hair_studio')?catalogue.templates:[...catalogue.templates,CATEGORY_TEMPLATES.mens_hair_studio]);setAccount({...bootstrap.account,identity:identity.error?null:identity.data});try{localStorage.removeItem('studioflow_pending_ref');}catch{}}
  })().catch(e=>{if(active)setError(e.message||'Could not load your account');});return()=>{active=false;};
- },[session?.user?.id,retry,slug,customer,customerApp,recovery,skipReferral,ownerSlug]);
+ },[session?.user?.id,retry,slug,customer,customerApp,recovery,skipReferral,ownerSlug,publicHomeRoute]);
  if(recovery&&session)return <AuthPage recovery onRecovered={()=>{setRecovery(false);setRetry(r=>r+1);}} />;
  if(customerApp&&!authReady)return <Loading text="Opening Nexora…" />;
  if(inviteEntry&&!recovery)return <CustomerInvitePage session={session}/>;
  if(customerApp)return <CustomerApp session={session}/>;
  if(slug)return <AppErrorBoundary resetKey={slug}><PublishedWebsite key={slug} slug={slug} session={session} /></AppErrorBoundary>;
  if(entryTemplate&&!createTemplate&&!isLoginRoute&&!slug&&!customer&&!recovery)return <TemplateEntry templateId={entryTemplate.id} />;
+ if(publicHomeRoute)return <PublicHomepage authenticated={Boolean(session)} />;
  if(!authReady)return <Loading text="Checking your session…" />;
  if(!session)return authEntry?<>{authError&&<p role="alert" className="p-4">{authError}</p>}<div className="bg-white border-b px-4 py-3 text-center text-sm">Looking for a salon appointment? <a className="text-violet-600 font-semibold" href="/?app=1">Open Nexora Customer App →</a></div><AuthPage /></>:<PublicHomepage />;
  if(customer)return <CustomerBookings session={session} />;
