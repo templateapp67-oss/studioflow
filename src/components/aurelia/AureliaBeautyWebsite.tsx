@@ -6,7 +6,7 @@ import {CustomerReviewPanel} from '../CustomerReviewPanel';
 import {StylistProfile} from '../StylistProfile';
 import {AppInstallSection} from '../AppInstallSection';
 import {isPackage} from '../../lib/packageCatalogue';
-import {defaultGalleryCategory} from '../../lib/photoGallery';
+import {defaultGalleryCategory,photoGallery} from '../../lib/photoGallery';
 import {AURELIA_DEFAULT_CONFIG, AURELIA_DEFAULT_OFFERS, AURELIA_DEFAULT_SERVICES, AURELIA_DEFAULT_STAFF, AURELIA_IMAGES, aureliaConfigFor} from '../../lib/aureliaBeauty';
 import {CATEGORY_STANDARDIZED_DATA} from '../../templateData';
 import type {SalonService, Stylist, SalonOffer} from '../../types';
@@ -23,9 +23,9 @@ export function AureliaBeautyWebsite(props:SalonWebsitePreviewProps){
  const services=useMemo(()=>props.services.length?props.services:(!profile.subdomain?AURELIA_DEFAULT_SERVICES:[]),[props.services,profile.subdomain]);
  const stylists=useMemo(()=>props.stylists.length?props.stylists:(!profile.subdomain?AURELIA_DEFAULT_STAFF:[]),[props.stylists,profile.subdomain]);
  const offers=(profile.promoOffers===undefined?AURELIA_DEFAULT_OFFERS:profile.promoOffers).filter((offer:SalonOffer)=>offer.isActive && (!offer.validTo || offer.validTo>=new Date().toISOString().slice(0,10)));
- const gallery=(profile.photoGallery||[]).filter(item=>item.url&&item.url.trim()).map(item=>({url:item.url,title:item.title||'Aurelia studio detail'}));
- const images=gallery.length?gallery.map(item=>item.url):(config.galleryUrls||AURELIA_DEFAULT_CONFIG.galleryUrls||[]);
- const galleryCategory=defaultGalleryCategory(profile.businessType);
+ const gallery=photoGallery(profile);
+ const images=gallery.map(item=>item.url);
+ const galleryCategory=gallery[0]?.category||defaultGalleryCategory(profile.businessType);
  const packages=services.filter(isPackage);
  const savedHeadings=(profile as typeof profile & {sectionHeadings?:Record<string,string>}).sectionHeadings||{};
  const heading=(key:string,fallback:string)=>savedHeadings[key]?.trim()||fallback;
@@ -67,7 +67,17 @@ export function AureliaBeautyWebsite(props:SalonWebsitePreviewProps){
   {show('announcement')&&<div className="aurelia-announcement">{config.announcementText||'A little more time for yourself. Discover the Aurelia experience.'}</div>}
   {show('header')&&<header className="aurelia-header">
    <a className="aurelia-wordmark" href="#aurelia-home" aria-label="Aurelia home">{profile.logoUrl?<img src={profile.logoUrl} alt={profile.businessName}/>:<><span>{profile.businessName||'AURELIA'}</span><small>BEAUTY · HAIR · WELLNESS</small></>}</a>
-   <nav className={mobileNav?'aurelia-nav is-open':'aurelia-nav'} aria-label="Main navigation">{nav.map(([id,label])=><a key={id} href={'#aurelia-'+id} onClick={()=>setMobileNav(false)}>{label}</a>)}</nav>
+   <nav id="aurelia-mobile-nav" className={mobileNav?'aurelia-nav is-open':'aurelia-nav'} aria-label="Main navigation">{nav.map(([id,label])=><a key={id} href={'#aurelia-'+id} onClick={()=>setMobileNav(false)}>{label}</a>)}
+    <div className="aurelia-mobile-account">
+     {props.customerSignedIn? <>
+      <button onClick={()=>{setMobileNav(false);props.onCustomerAccount?.('signin');}}>My profile &amp; settings</button>
+      <button onClick={()=>{setMobileNav(false);setMyBookings(true);}}>My bookings</button>
+     </>: <>
+      <button onClick={()=>{setMobileNav(false);props.onCustomerAccount?.('signin');}}>Customer Login</button>
+      <button onClick={()=>{setMobileNav(false);props.onCustomerAccount?.('signup');}}>Sign up</button>
+     </>}
+    </div>
+   </nav>
    <div className="aurelia-header-actions">
     {props.customerSignedIn? <>
      <button className="aurelia-account aurelia-customer-profile" aria-label="Manage your customer account" onClick={()=>props.onCustomerAccount?.('signin')}>
@@ -81,7 +91,7 @@ export function AureliaBeautyWebsite(props:SalonWebsitePreviewProps){
     </>}
     <button className="aurelia-book-link" disabled={!bookingAvailable} onClick={()=>book()}>{bookingAvailable?'Book a visit':'Booking after publish'}</button>
    </div>
-   <button className="aurelia-menu-toggle" aria-label="Open navigation" aria-expanded={mobileNav} onClick={()=>setMobileNav(v=>!v)}>{mobileNav?<X/>:<Menu/>}</button>
+   <button className="aurelia-menu-toggle" aria-label="Open navigation" aria-expanded={mobileNav} aria-controls="aurelia-mobile-nav" onClick={()=>setMobileNav(v=>!v)}>{mobileNav?<X/>:<Menu/>}</button>
   </header>}
   <main className="aurelia-main">
    {show('hero')&&<section style={sectionStyle('hero')} className="aurelia-hero" id="aurelia-home">
