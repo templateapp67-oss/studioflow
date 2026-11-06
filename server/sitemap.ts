@@ -99,9 +99,11 @@ export async function sitemapHandler(
     setHeader: (name: string, value: string) => unknown;
     send: (body: string) => unknown;
   },
+  env: NodeJS.ProcessEnv = process.env,
+  fetcher: typeof fetch = fetch,
 ) {
   try {
-    const body = await generateSitemap();
+    const body = await generateSitemap(env, fetcher);
     res.setHeader("Content-Type", "application/xml; charset=utf-8");
     res.setHeader("Cache-Control", "public, max-age=300, s-maxage=300");
     res.send(body);
