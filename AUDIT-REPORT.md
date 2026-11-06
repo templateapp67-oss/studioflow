@@ -3,7 +3,7 @@
 **Audit date:** 2026-11-06  
 **Repository:** `templateapp67-oss/studioflow`  
 **Inspected baseline:** `main` at `67db419b3cf2f926bf0ac259add0126d779240ae`  
-**Repair branch:** `audit/studioflow-end-to-end-autopsy-2026-11-06`
+**Repair branch:** `fix/studioflow-autopsy-final-2026-11-06`
 
 ## Executive summary
 
@@ -11,7 +11,7 @@ The repository is a sizeable salon SaaS application, not a simple static website
 
 The application architecture is broadly established: React 19 + Vite 6 + TypeScript, Supabase Auth/Postgres/Storage/RPCs/Edge Functions, an optional Express API server, and Vercel static/SPA routing. The repository documents substantial booking, owner workspace, service, staff, review, loyalty, and payment functionality. This audit does not assume that documented functionality is live or fully verified.
 
-**No P0 issue was confirmed from the repository snapshot.** Several P1/P2 issues are confirmed below. Three SEO/configuration fixes have been implemented on this branch; they are not yet merged or deployed.
+**No P0 issue was confirmed from the repository snapshot.** Several P1/P2 issues are confirmed below. SEO, sitemap, security-header, booking-email and Template 16 repairs have been implemented on the repair branch; they are not yet merged or deployed.
 
 ## Repository inventory
 
@@ -65,7 +65,7 @@ The application architecture is broadly established: React 19 + Vite 6 + TypeScr
 ## P0 / P1 risk assessment
 
 - P0: none confirmed from available evidence.
-- P1: SEO origin mismatch (fixed on branch); sitemap availability/configuration (fixed on branch); failing PR #69 verification; missing main-branch web CI; conditional email endpoint abuse/injection risk.
+- P1: SEO origin mismatch and sitemap availability/configuration (fixed on branch); PR #69's older-base verification failures; no general web CI on main; booking-email relay risk mitigated on branch, with distributed rate limiting and live provider verification still outstanding.
 
 ## Scope and limitations
 
