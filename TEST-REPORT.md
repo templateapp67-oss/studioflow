@@ -36,4 +36,5 @@ Observed failure groups include template-count/category assumptions, customer ac
 ## New targeted verification added on this branch
 
 - `scripts/verify-public-seo-domain.mjs` checks homepage/login/runtime canonical origin, robots.txt sitemap discovery, sitemap origin default, rejection of HTTP origins and a simulated Supabase catalogue outage fallback.
+- `scripts/verify-security-headers.mjs` checks Vercel/Express baseline headers, HSTS, powered-by removal and the explicit JSON body limit.
 - This new script has not yet been run in CI; it must be reported as pending until a successful Actions run is observed.
