@@ -462,7 +462,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     setBookingRef(saved.id);setServerStatus(saved.status);setPaidAmount(saved.amountPaid);setServerTotal(saved.servicePrice??totalPrice);setSelectedStylist(prev=>({...prev,name:saved.stylistName||prev.name}));
     setCurrentStep('confirmed');
 
-    // Trigger automated booking confirmation email if guest provided email address
+    // Send the booking confirmation only to the authenticated account email.
     const { data: { user: emailUser } } = await supabase.auth.getUser();
     const targetEmail = emailUser?.email?.trim() || accountEmail.trim();
     if (targetEmail) setAccountEmail(targetEmail);
@@ -497,6 +497,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         setIsSendingEmail(false);
         setEmailStatusMessage(err instanceof Error ? err.message : 'Email delivery failed');
       });
+    } else {
+      setEmailStatusMessage('Add an email address to your customer account to receive booking confirmations.');
     }
 
     if (onShowToast) {
