@@ -1,7 +1,7 @@
 /* ==========================================================================
-   AppInstallSection — the shared app-install banner used by all 14 templates.
+   AppInstallSection — the shared app-install banner used by all 16 templates.
 
-   One implementation, fourteen looks. Every colour, radius and font below is
+   One implementation, sixteen looks. Every colour, radius and font below is
    read from an `--ai-*` custom property; the "Template bindings" section at the
    bottom maps each template's own design tokens onto them. A template never
    needs its own copy of the markup or the layout, and re-theming a template
