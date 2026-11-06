@@ -9,6 +9,7 @@ assert.equal(header('X-Content-Type-Options'), 'nosniff');
 assert.equal(header('X-Frame-Options'), 'SAMEORIGIN');
 assert.equal(header('Referrer-Policy'), 'strict-origin-when-cross-origin');
 assert.equal(header('Permissions-Policy'), 'camera=(self), microphone=(), geolocation=(self), payment=(self), usb=()');
+assert.equal(header('Strict-Transport-Security'), 'max-age=31536000');
 
 const server = readFileSync('server.ts', 'utf8');
 for (const directive of [
