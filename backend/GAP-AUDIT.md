@@ -1,12 +1,14 @@
 # StudioFlow end-to-end audit — 11 October 2026
 
+> **Catalogue update (6 November 2026):** The original 14-template count below was accurate for the October audit. The current main branch includes Template 15 (KeshKraft Men’s Hair Studio) and Template 16 (Aurelia Beauty Parlour); the current catalogue has 16 templates. The October validation totals and provider/deployment limitations below are historical, not a fresh November verification.
+
 | Area | Fix / current behavior |
 | --- | --- |
 | Signup and login | Supabase Auth with persisted sessions, actionable errors, show password, optional validated referral and confirmation resend. Customer signup does not require a salon name. |
 | Password | Forgot-password request and recovery form; signed-in password change. Real password update, old-password rejection and new-password login passed. Email delivery and the hosted project's redirect allowlist have not been verified. |
 | Referrals | Explicit empty code skips metadata fallback. Invalid stale metadata no longer prevents account access. Existing attribution remains immutable. |
 | Drafts | Revision checked Supabase saves, serialized writes, account-scoped browser recovery, conflict backup, unload warning and retry on reconnect. Local draft survives a failed-save signout. |
-| Templates | Fourteen catalog templates; owner identity and existing services preserved when switching. |
+| Templates | Sixteen catalog templates (the original 14 plus Templates 15 and 16); owner identity and existing services preserved when switching. |
 | Publish and links | Public sanitized content; real Sites `/?site=slug` links in wizard, preview, loyalty and promo copy. Custom domains remain an external configuration step. |
 | Booking | Authoritative pricing, authenticated requests, atomic specialist overlap protection, assigned-service filtering, unpublished specialist exclusion, IST date bounds and lead time. Fixed mobile numbers beginning with 91. |
 | Customer dashboard | Own booking list and cancellation through restricted RPC. Return-to-salon link carried through signin/signup. |
