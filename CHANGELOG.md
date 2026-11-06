@@ -13,6 +13,8 @@
 - `public/robots.txt` — crawler access and canonical sitemap reference.
 
 ### Fixed on this branch
+- Secured booking email delivery with Supabase JWT checks, signed-in account recipient binding, a configured Edge Function CORS allow-list, per-user send throttling, HTML escaping, bounded inputs and explicit failure when Resend is unconfigured.
+- Updated booking UI and email client to use the authenticated account email instead of accepting arbitrary recipients.
 - Added Vercel HSTS and Permissions-Policy plus matching baseline Express headers, removed the Express powered-by header and made the 100 KB JSON request limit explicit.
 - Added a security-header configuration regression script.
 - Restored Template 16 shared customer website integrations: customer profile controls (desktop/mobile), staff full-profile view, service/package photo rendering, dedicated package cards, saved gallery categories, app-install banner theme, shared promotion/social/loyalty/policy sections and saved section headings.
