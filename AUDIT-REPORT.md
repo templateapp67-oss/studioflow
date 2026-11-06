@@ -45,15 +45,16 @@ The application architecture is broadly established: React 19 + Vite 6 + TypeScr
 | AUD-005 | P1 | Main has no general web build/test workflow in its checked-in workflow directory. | Confirmed in main's recursive tree; only Android QA workflow was present. A green Vercel deployment status is not a substitute for the test suite. |
 | AUD-006 | P1 (conditional) | The Node `/api/send-booking-email` route accepts a caller-supplied recipient and interpolates caller-supplied values into HTML without visible route-level authentication, rate limiting or HTML escaping. | Confirmed by source inspection in `server.ts`; production exposure of this Express route is not established. Treat as high risk if the Node API is publicly reachable. |
 | AUD-007 | P2 | CSP and Permissions-Policy headers are absent from the inspected `vercel.json`; some baseline headers are present. | Confirmed in `vercel.json`. CSP requires origin inventory and report-only validation before enforcement. |
-| AUD-008 | P2 | Template/migration documentation is stale. | `backend/README.md` and `backend/GAP-AUDIT.md` still state 14 templates while the current catalogue/migration includes Templates 15 and 16. |
+| AUD-008 | P2 | Template/migration documentation was stale. | `backend/README.md`, `backend/GAP-AUDIT.md` and the booking add-ons verification script were reconciled on this branch to the 16-template catalogue. |
 | AUD-009 | P2 | Database migration sources are split between 85 backend SQL files and 12 Supabase migration files. | Confirmed by tree inventory; deployment ordering and source-of-truth need one documented, automated process. |
 | AUD-010 | P2 | Real browser end-to-end verification is not established. | Backend README states browser QA is unavailable; current evidence is primarily offline component/source checks and database assertions. |
 | AUD-011 | P2 | Large image assets and a large CSS bundle need optimization review. | Tree contains multiple 700–850 KB JPGs and duplicates under source/public paths. PR #69 CI build snapshot reported main CSS 765.76 KB (127.48 KB gzip); this is not a fresh production measurement. |
 | AUD-012 | P3 | Test output contains React test-renderer deprecation/context-renderer warnings and an empty image src warning. | Observed in PR #69 CI logs; investigate after functional failures. |
+| AUD-013 | P1/P2 | Template 16's dedicated renderer bypassed shared customer-site contracts (profile actions, staff detail, packages, gallery persistence, app-install, social/loyalty/policies and saved section headings). | Confirmed by source and verification assertions; shared integrations and Template 16-specific rendering were added on this branch. CI verification remains pending. |
 
 ## PR and CI state observed
 
-- PR #69 is open, has 2 commits and 18 changed files, and is not mergeable according to the inspected PR metadata. Its CI run #2 failed.
+- PR #69 is open, has 2 commits and 18 changed files, and is not mergeable according to the inspected PR metadata. Its CI run #2 failed. Its base SHA predates the inspected current main SHA; several template-count assertions were already updated on current main, so PR #69's 19 failures are not a valid current-main test result.
 - PR #62 is open, has 74 commits and 37 changed files. The inspected latest run for it failed.
 - Multiple other PRs are open. This audit branch does not alter or close them.
 - Main's latest commit at audit time was a merge of PR #77. Its combined status showed a Vercel check success; no general web test check was present in that status response.
