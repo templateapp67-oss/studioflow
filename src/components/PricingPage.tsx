@@ -97,16 +97,6 @@ function AddOns() {
   return <section className="np-section np-addons-section" id="addons"><div className="np-container"><div className="np-section-heading"><span className="np-section-kicker">EXTEND YOUR WORKSPACE</span><h2>Grow Your Salon With Powerful Add-ons.</h2><p>Ask us about these options. Availability, plan overlap and prices must be confirmed before purchase.</p></div><div className="np-addon-grid">{PRICING_ADD_ONS.map((addon,index)=>{const Icon=addOnIcons[index];return <article className="np-addon-card" key={addon.id}><span className="np-addon-icon"><Icon size={19}/></span><div><h3>{addon.name}</h3><p>{addon.description}</p><span className="np-addon-price">{addon.price===null?'Contact Nexora for Add-on Pricing':`₹${money(addon.price)}`}</span></div><button type="button" onClick={()=>document.getElementById('pricing-addon-note')?.scrollIntoView({behavior:'smooth',block:'center'})}>Learn More <ArrowUpRight size={14}/></button></article>;})}</div><p className="np-addon-note" id="pricing-addon-note"><ShieldCheck size={16}/> Add-ons cannot be purchased from this page. Pricing and duplicate-feature checks are not configured.</p></div></section>;
 }
 
-function Testimonials() {
-  const cards = [
-    ['Priya Sharma','Salon Owner','Jaipur','Easier billing · organized bookings'],
-    ['Rahul Verma','Unisex Salon Owner','Delhi','Staff scheduling · daily operations'],
-    ['Neha Gupta','Beauty Studio Owner','Mumbai','Customer retention · business visibility'],
-    ['Anjali Mehta','Salon Owner','Ahmedabad','Customer records · appointment management'],
-  ];
-  return <section className="np-section np-testimonials"><div className="np-container"><div className="np-section-heading"><span className="np-section-kicker">SALON STORIES</span><h2>Real Salon Businesses. Smarter Management.</h2><p>Sample testimonial concepts · demo content only · not verified customer reviews</p></div><div className="np-testimonial-grid">{cards.map(([name,job,city,topic],i)=><article className="np-testimonial" key={name}><div className="np-demo-quote"><span>PREVIEW DRAFT</span><MessageCircle size={20}/></div><p className="np-testimonial-topic">“{topic}”</p><div className="np-testimonial-person"><span className="np-avatar">{name.split(' ').map(n=>n[0]).join('')}</span><span><b>{name}</b><small>{job} · {city}</small></span></div><small className="np-unpublished">Unpublished example — not a real endorsement.</small></article>)}</div></div></section>;
-}
-
 function Benefits() {
   return <section className="np-section np-benefits"><div className="np-container np-benefits-grid"><div className="np-benefit-intro"><span className="np-section-kicker">MADE FOR EVERYDAY SALON WORK</span><h2>Why Salons Choose Nexora SalonOS.</h2><p>Bring supported salon workflows into a connected workspace, with tools designed around the way salons work.</p><a href="/#features">Explore platform features <ArrowRight size={16}/></a></div><div className="np-benefit-list">{benefits.map(([title,description,Icon])=><article key={title}><span><Icon size={19}/></span><div><h3>{title}</h3><p>{description}</p></div></article>)}</div></div></section>;
 }
@@ -155,5 +145,5 @@ export function PricingPage() {
     let script=document.getElementById('nexora-pricing-faq-jsonld') as HTMLScriptElement|null;if(!script){script=document.createElement('script');script.id='nexora-pricing-faq-jsonld';script.type='application/ld+json';document.head.appendChild(script);}script.textContent=JSON.stringify(faqSchema);
   },[faqSchema]);
   const selectPlan=(plan:PricingPlan)=>setSelected(plan);
-  return <main className={`nexora-pricing ${shouldReduceMotion?'reduce-motion':''}`}><a className="np-skip" href="#plans">Skip to pricing plans</a><PriceHeader/><Hero onExplore={()=>document.getElementById('plans')?.scrollIntoView({behavior:shouldReduceMotion?'auto':'smooth'})}/><PricingGrid interval={interval} setInterval={setInterval} onSelect={selectPlan}/><FeatureMatrix/><AddOns/><Testimonials/><Benefits/><FAQ/><FinalCTA onSelect={()=>selectPlan(PRICING_PLANS[1])}/><PricingFooter/><SelectionDialog plan={selected} interval={interval} onClose={()=>setSelected(null)}/></main>;
+  return <main className={`nexora-pricing ${shouldReduceMotion?'reduce-motion':''}`}><a className="np-skip" href="#plans">Skip to pricing plans</a><PriceHeader/><Hero onExplore={()=>document.getElementById('plans')?.scrollIntoView({behavior:shouldReduceMotion?'auto':'smooth'})}/><PricingGrid interval={interval} setInterval={setInterval} onSelect={selectPlan}/><FeatureMatrix/><AddOns/><Benefits/><FAQ/><FinalCTA onSelect={()=>selectPlan(PRICING_PLANS[1])}/><PricingFooter/><SelectionDialog plan={selected} interval={interval} onClose={()=>setSelected(null)}/></main>;
 }
