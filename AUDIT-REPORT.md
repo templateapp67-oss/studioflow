@@ -52,6 +52,7 @@ The application architecture is broadly established: React 19 + Vite 6 + TypeScr
 | AUD-012 | P3 | Test output contains React test-renderer deprecation/context-renderer warnings and an empty image src warning. | Observed in PR #69 CI logs; investigate after functional failures. |
 | AUD-013 | P1/P2 | Template 16's dedicated renderer bypassed shared customer-site contracts (profile actions, staff detail, packages, gallery persistence, app-install, social/loyalty/policies and saved section headings). | Confirmed by source and verification assertions; shared integrations and Template 16-specific rendering were added on this branch. CI verification remains pending. |
 | AUD-014 | P1 | Booking-email APIs accepted arbitrary recipient addresses; Edge Function used wildcard CORS and returned simulated success when Resend was unconfigured. | Added Supabase JWT validation, recipient binding to the signed-in account, origin allow-list, per-user per-process throttling, HTML escaping, input limits and explicit 503 for unconfigured delivery. Live Edge Function configuration and distributed rate limiting remain pending. |
+| AUD-015 | P2 | Public homepage H1 did not contain the primary salon website builder keyword identified by the earlier SEO review. | Updated the H1 to include the NEXORA salon website builder and management software phrase; added an SEO assertion. |
 
 ## PR and CI state observed
 
