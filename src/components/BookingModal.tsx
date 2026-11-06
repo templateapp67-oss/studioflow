@@ -284,6 +284,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [guestName, setGuestName] = useState<string>('');
   const [guestPhone, setGuestPhone] = useState<string>('');
   const [guestEmail, setGuestEmail] = useState<string>('');
+  const [accountEmail, setAccountEmail] = useState<string>('');
   const [guestPhoneError, setGuestPhoneError] = useState<string>('');
   const [guestNameError, setGuestNameError] = useState<string>('');
   const [rememberGuest, setRememberGuest] = useState<boolean>(true);
@@ -307,7 +308,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [copiedRef, setCopiedRef] = useState<boolean>(false);
   const [emailStatusMessage, setEmailStatusMessage] = useState<string>('');
   const [isSendingEmail, setIsSendingEmail] = useState<boolean>(false);
-  const [recipientEmailInput, setRecipientEmailInput] = useState<string>('');
 
   // Load persistent guest details from localStorage
   useEffect(() => {
@@ -324,6 +324,23 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       // Ignore parsing errors
     }
   }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let active = true;
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!active) return;
+      const email = user?.email?.trim() || '';
+      setAccountEmail(email);
+      if (email) {
+        setGuestEmail(email);
+        setIsPrefilled(true);
+      }
+    }).catch(() => {
+      if (active) setAccountEmail('');
+    });
+    return () => { active = false; };
+  }, [isOpen]);
 
   // Initialize the chosen service only when opening or when the parent launches
   // a different service. Never undo the customer's own selections.
@@ -446,7 +463,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     setCurrentStep('confirmed');
 
     // Trigger automated booking confirmation email if guest provided email address
-    const targetEmail = (guestEmail || '').trim();
+    const { data: { user: emailUser } } = await supabase.auth.getUser();
+    const targetEmail = emailUser?.email?.trim() || accountEmail.trim();
+    if (targetEmail) setAccountEmail(targetEmail);
     if (targetEmail && targetEmail.includes('@')) {
       setRecipientEmailInput(targetEmail);
       setIsSendingEmail(true);
@@ -497,8 +516,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     finally { setIsSubmitting(false); }
   };
 
-  const handleSendManualConfirmationEmail = async (overrideEmail?: string) => {
-    const to = (overrideEmail || recipientEmailInput || guestEmail).trim();
+  const handleSendManualConfirmationEmail = async () => {
+    const to = accountEmail.trim();
     if (!to || !to.includes('@')) {
       setEmailStatusMessage('Please enter a valid email address.');
       return;
@@ -537,7 +556,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   };
 
   const handleSendManualReminderEmail = async () => {
-    const to = (recipientEmailInput || guestEmail).trim();
+    const to = accountEmail.trim();
     if (!to || !to.includes('@')) {
       setEmailStatusMessage('Please enter a valid email address.');
       return;
@@ -1074,7 +1093,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   </p>
                 ) : (
                   <p className="text-[11px] text-slate-400 mt-1">
-                    Use your WhatsApp number for booking contact details. Sign in or create a customer account when saving your booking.
+                    {accountEmail ? "Booking confirmations use your signed-in account email." : "Email receipts require an email address on your customer account; this optional address is only for calendar details."}
                   </p>
                 )}
               </div>
@@ -1082,13 +1101,14 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               {/* Email Address (Optional) */}
               <div>
                 <label className="text-xs font-bold font-mono-caps text-slate-700 block mb-1">
-                  Email Address <span className="text-slate-400 font-normal">(Optional for calendar invite)</span>
+                  Email Address <span className="text-slate-400 font-normal">{accountEmail ? "(Signed-in account email)" : "(Optional for calendar invite)"}</span>
                 </label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                   <input
                     type="email"
-                    value={guestEmail}
+                    value={accountEmail || guestEmail}
+                    readOnly={!!accountEmail}
                     onChange={(e) => setGuestEmail(e.target.value)}
                     placeholder="name@example.in"
                     className="w-full pl-9 pr-3 py-2.5 text-xs rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-slate-900 outline-none"
@@ -1296,9 +1316,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   <div className="relative flex-1">
                     <input
                       type="email"
-                      value={recipientEmailInput || guestEmail}
-                      onChange={(e) => setRecipientEmailInput(e.target.value)}
-                      placeholder="client@example.com"
+                      value={accountEmail}
+                      readOnly
+                      disabled={!accountEmail}
+                      placeholder="No email on your customer account"
                       className="w-full text-xs px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                   </div>
@@ -1307,7 +1328,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    disabled={isSendingEmail || !(recipientEmailInput || guestEmail)}
+                    disabled={isSendingEmail || !accountEmail}
                     onClick={() => { void handleSendManualConfirmationEmail(); }}
                     className="py-2 px-3 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 disabled:opacity-50 text-slate-700 font-medium text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
@@ -1316,7 +1337,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   </button>
                   <button
                     type="button"
-                    disabled={isSendingEmail || !(recipientEmailInput || guestEmail)}
+                    disabled={isSendingEmail || !accountEmail}
                     onClick={handleSendManualReminderEmail}
                     className="py-2 px-3 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 disabled:opacity-50 text-slate-700 font-medium text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
