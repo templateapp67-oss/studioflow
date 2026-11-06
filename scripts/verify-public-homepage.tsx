@@ -24,6 +24,7 @@ assert.equal(requiresFullApplication({ pathname: '/', search: '?site=salon', has
 assert.equal(requiresFullApplication({ pathname: '/login', search: '', hash: '', hostname: 'www.nexora.app' }), true, 'auth routes keep using the application');
 assert.equal(requiresFullApplication({ pathname: '/', search: '?app=1', hash: '', hostname: 'www.nexora.app' }), true, 'explicit application entry stays supported');
 assert.equal(requiresFullApplication({ pathname: '/', search: '', hash: '', hostname: 'owner.nexorasalon.online' }), true, 'published salon subdomains keep using the application');
+assert.equal(NEXORA_PUBLIC_ORIGIN, 'https://nexorasalon.online', 'SEO must use the production domain, never a Vercel preview host');
 const homeHtml = renderToStaticMarkup(<PublicHomepage />);
 const authenticatedHomeHtml = renderToStaticMarkup(<PublicHomepage authenticated />);
 const renderRoutedRoot = (session: string | null) => {
@@ -160,5 +161,8 @@ assert.ok(!loginDocument.includes('window.fetch'), 'login does not monkey-patch 
 assert.ok(loginDocument.includes(`<meta name="twitter:title" content="${NEXORA_LOGIN_SEO.twitterTitle}" />`));
 assert.ok(!loginDocument.includes(NEXORA_HOME_SEO.description), 'login never reuses homepage metadata');
 assert.ok(readFileSync('server/sitemap.ts', 'utf8').includes('origin + "/",'), 'public root is included in sitemap');
+const robotsTxt = readFileSync('public/robots.txt', 'utf8');
+assert.ok(robotsTxt.includes(`Sitemap: ${NEXORA_PUBLIC_ORIGIN}/sitemap.xml`), 'robots.txt sitemap URL uses the production origin');
+assert.ok(![indexHtml, loginDocument, robotsTxt].some(source => source.includes('studioflow-ashen-pi.vercel.app')), 'static SEO files contain no preview-domain URLs');
 
 console.log('PASS: public homepage hierarchy/content, 16 templates/15 categories, signup template handoff, exact login H1, distinct home/login SEO, social images, canonical URLs and sitemap.');
