@@ -21,6 +21,15 @@ const validExternalLink=(value?:string)=>Boolean(value && (value.startsWith('htt
 
 export function AureliaBeautyWebsite(props:SalonWebsitePreviewProps){
  const {profile}=props;
+ const [booking,setBooking]=useState(false);
+ const [myBookings,setMyBookings]=useState(false);
+ const [mobileNav,setMobileNav]=useState(false);
+ const [selectedService,setSelectedService]=useState<SalonService|undefined>();
+ const [selectedStylist,setSelectedStylist]=useState<Stylist|undefined>();
+ const [activePhoto,setActivePhoto]=useState<string|null>(null);
+ const [viewStaff,setViewStaff]=useState<string|null>(null);
+ const touchStart=useRef<number|null>(null);
+ const lightboxRef=useRef<HTMLDivElement|null>(null);
  const config=aureliaConfigFor(profile);
  const services=useMemo(()=>props.services.length?props.services:(!profile.subdomain?AURELIA_DEFAULT_SERVICES:[]),[props.services,profile.subdomain]);
  const stylists=useMemo(()=>props.stylists.length?props.stylists:(!profile.subdomain?AURELIA_DEFAULT_STAFF:[]),[props.stylists,profile.subdomain]);
@@ -36,15 +45,6 @@ export function AureliaBeautyWebsite(props:SalonWebsitePreviewProps){
  const savedHeadings=(profile as typeof profile & {sectionHeadings?:Record<string,string>}).sectionHeadings||{};
  const heading=(key:string,fallback:string)=>savedHeadings[key]?.trim()||fallback;
  const videos=(profile.socialVideos||[]).filter(item=>item.previewVideoUrl||validExternalLink(item.youtubeUrl));
- const [booking,setBooking]=useState(false);
- const [myBookings,setMyBookings]=useState(false);
- const [mobileNav,setMobileNav]=useState(false);
- const [selectedService,setSelectedService]=useState<SalonService|undefined>();
- const [selectedStylist,setSelectedStylist]=useState<Stylist|undefined>();
- const [activePhoto,setActivePhoto]=useState<string|null>(null);
- const [viewStaff,setViewStaff]=useState<string|null>(null);
- const touchStart=useRef<number|null>(null);
- const lightboxRef=useRef<HTMLDivElement|null>(null);
  const bookingAvailable=Boolean(props.onAddAppointment && profile.subdomain && (profile as typeof profile & {bookingEnabled?:boolean}).bookingEnabled!==false && services.length>0);
  const wa=profile.whatsapp?.replace(/\D/g,'')||'';
  const waUrl=wa?'https://wa.me/'+wa+'?text='+encodeURIComponent('Hello '+profile.businessName+', I would like to book an appointment.'):'';
