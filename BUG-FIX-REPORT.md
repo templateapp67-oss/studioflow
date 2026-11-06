@@ -74,6 +74,14 @@
 - **Fix:** Validate Supabase access tokens through Auth; require the recipient to match the authenticated account email persisted by the booking RPC; forward session tokens from the client; make the booking email field read-only for signed-in accounts; restrict Edge Function CORS to configured origins; add a five-send/10-minute per-user in-memory throttle; escape HTML and sanitize email subjects; cap recipient and body fields; return HTTP 503 rather than simulated success when Resend is not configured.
 - **Status:** Implemented on branch; CI and live Supabase/Resend verification pending. The in-memory throttle is per process/isolate, not a distributed global quota.
 
+### FIX-009 — Put the primary salon website builder keyword in the homepage H1
+
+- **Severity:** P2
+- **Root cause:** The homepage H1 described a salon website but did not include the primary `salon website builder` keyword from the prior SEO review.
+- **Files:** `src/components/PublicHomepage.tsx`, `scripts/verify-public-seo-domain.mjs`.
+- **Fix:** Updated the H1 to `NEXORA Salon Website Builder & Management Software` and added a regression assertion.
+- **Status:** Implemented on branch; CI verification pending.
+
 ## Outstanding confirmed or high-risk issues
 
 - PR #69 CI reports 19 failing offline suites; the latest inspected run reports 90/109 passing. These have not been represented as fixed by the SEO changes above.
