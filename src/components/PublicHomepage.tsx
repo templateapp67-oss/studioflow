@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import {
   ArrowRight,
   BriefcaseBusiness,
@@ -28,7 +28,7 @@ import {
 import type { BusinessTypeId } from '../types';
 import { NexoraTemplateLibrary } from './nexora/NexoraTemplateLibrary';
 import { CategoryIconTile, NexoraBrandMark } from './nexora/NexoraBrand';
-import { TemplatePreviewModal } from './TemplatePreviewCards';
+const TemplatePreviewModal = lazy(() => import('./TemplatePreviewCards').then((module) => ({ default: module.TemplatePreviewModal })));
 import { LUXURY_EDITORIAL_IMAGES } from '../lib/luxuryEditorial';
 import './publicHomepage.css';
 
@@ -467,17 +467,19 @@ export function PublicHomepage() {
       </footer>
 
       {previewId && (
-        <TemplatePreviewModal
-          templateId={previewId}
-          onSelectPreview={setPreviewId}
-          onClose={closePreview}
-          onChoose={() => {
-            const id = previewId;
-            setPreviewId(null);
-            customizeTemplate(id);
-          }}
-          requireAuthToCustomize
-        />
+        <Suspense fallback={<div role="status" aria-live="polite" className="sr-only">Loading interactive template preview…</div>}>
+          <TemplatePreviewModal
+            templateId={previewId}
+            onSelectPreview={setPreviewId}
+            onClose={closePreview}
+            onChoose={() => {
+              const id = previewId;
+              setPreviewId(null);
+              customizeTemplate(id);
+            }}
+            requireAuthToCustomize
+          />
+        </Suspense>
       )}
     </div>
   );
