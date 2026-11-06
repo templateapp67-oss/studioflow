@@ -1,0 +1,99 @@
+--- a/server/sitemap.ts
++++ b/server/sitemap.ts
+@@ -46,12 +46,54 @@
+     "</urlset>"
+   );
+ }
++/**
++ * Hosts that must never become an SEO canonical: ephemeral preview deployments
++ * and local development. A preview URL leaking into <loc> tells search engines
++ * to index a throwaway domain instead of the real site.
++ */
++const EPHEMERAL_HOST_SUFFIXES = [
++  "vercel.app",
++  "netlify.app",
++  "pages.dev",
++  "github.io",
++  "localhost",
++  "127.0.0.1",
++  "nip.io",
++  "sslip.io",
++];
++
++/** True for preview/local hosts whose URLs must not be published as canonicals. */
++export function isEphemeralOrigin(origin: string): boolean {
++  const host = new URL(origin).hostname.toLowerCase();
++  return EPHEMERAL_HOST_SUFFIXES.some(
++    (suffix) => host === suffix || host.endsWith("." + suffix),
++  );
++}
++
++/**
++ * Resolves the sitemap origin.
++ *
++ * A real custom domain configured through SITE_URL / VITE_SITE_URL is honoured —
++ * published salon sites are served on their own domains, so the sitemap has to
++ * be able to describe them. Preview and local hosts are rejected and fall back
++ * to the production canonical, so a Vercel preview build can never publish
++ * `*.vercel.app` URLs. A malformed value still throws, exactly as before, and
++ * surfaces as the handler's 503 instead of a silently wrong sitemap.
++ */
++export function sitemapOrigin(env: NodeJS.ProcessEnv = process.env): string {
++  for (const candidate of [env.SITE_URL, env.VITE_SITE_URL]) {
++    if (!candidate) continue;
++    const origin = canonicalOrigin(candidate);
++    if (!isEphemeralOrigin(origin)) return origin;
++  }
++  return canonicalOrigin(NEXORA_PUBLIC_ORIGIN);
++}
++
+ export async function generateSitemap(
+   env: NodeJS.ProcessEnv = process.env,
+   fetcher: typeof fetch = fetch,
+ ) {
+-  // Sitemap URLs are production canonicals; preview deployment variables must never override them.
+-  const origin = canonicalOrigin(NEXORA_PUBLIC_ORIGIN);
++  const origin = sitemapOrigin(env);
+   const endpoint =
+     env.SUPABASE_URL || "https://zilwgiuiygqqardzutxi.supabase.co";
+   const key =
+--- a/scripts/verify-public-homepage.tsx
++++ b/scripts/verify-public-homepage.tsx
+@@ -9,7 +9,7 @@
+ import { NEXORA_TEMPLATE_META } from '../src/lib/nexoraTemplateCatalogue';
+ import { nexoraPreviewImage } from '../src/lib/nexoraPreviewImages';
+ import { resolveSiteSlug } from '../src/lib/resolveSite';
+-import { generateSitemap } from '../server/sitemap';
++import { generateSitemap, isEphemeralOrigin, sitemapOrigin } from '../server/sitemap';
+ import type { BusinessTypeId } from '../src/types';
+ import {
+   applyPublicSeoMetadata,
+@@ -175,6 +175,28 @@
+ }, async () => new Response('[]', { status: 200 }));
+ assert.ok(generatedSitemap.includes(`<loc>${NEXORA_PUBLIC_ORIGIN}/</loc>`), 'generated sitemap uses the production origin');
+ assert.ok(!generatedSitemap.includes('vercel.app'), 'generated sitemap ignores preview-host environment overrides');
++// Both halves of the sitemap origin contract must hold at once: preview hosts are
++// rejected, but a real custom domain is still honoured (verify-gap-completion asserts
++// the custom-domain half, so hardcoding the canonical here regresses that suite).
++for (const preview of ['https://studioflow-ashen-pi.vercel.app', 'https://x.preview.vercel.app', 'https://site.netlify.app', 'https://site.pages.dev', 'http://localhost:3000']) {
++  if (preview.startsWith('http://')) continue; // canonicalOrigin already rejects non-HTTPS
++  assert.equal(isEphemeralOrigin(preview), true, `preview host must be rejected: ${preview}`);
++  assert.equal(sitemapOrigin({ SITE_URL: preview }), NEXORA_PUBLIC_ORIGIN, `preview host must fall back to the canonical: ${preview}`);
++}
++assert.equal(isEphemeralOrigin('https://nexorasalon.online'), false);
++assert.equal(isEphemeralOrigin('https://clinic.example'), false);
++assert.equal(sitemapOrigin({ SITE_URL: 'https://clinic.example' }), 'https://clinic.example', 'a real custom domain stays configurable');
++assert.equal(sitemapOrigin({ VITE_SITE_URL: 'https://clinic.example' }), 'https://clinic.example', 'the Vite fallback stays configurable');
++assert.equal(sitemapOrigin({ SITE_URL: 'https://x.vercel.app', VITE_SITE_URL: 'https://clinic.example' }), 'https://clinic.example', 'a preview SITE_URL falls through to a real custom domain');
++assert.equal(sitemapOrigin({}), NEXORA_PUBLIC_ORIGIN, 'with no configuration the production canonical is used');
++assert.throws(() => sitemapOrigin({ SITE_URL: 'https://clinic.example/path' }), 'a malformed origin still fails loudly');
++const customDomainSitemap = await generateSitemap({
++  SITE_URL: 'https://clinic.example',
++  SUPABASE_URL: 'https://supabase.example',
++  SUPABASE_ANON_KEY: 'test-key',
++}, async () => new Response('[{"slug":"real-clinic"}]', { status: 200 }));
++assert.ok(customDomainSitemap.includes('<loc>https://clinic.example/?site=real-clinic</loc>'), 'published salons keep their own domain in the sitemap');
++assert.ok(!customDomainSitemap.includes(NEXORA_PUBLIC_ORIGIN), 'a custom-domain sitemap does not mix in the platform canonical');
+ assert.ok(![indexHtml, loginDocument, robotsTxt].some(source => source.includes('studioflow-ashen-pi.vercel.app')), 'static SEO files contain no preview-domain URLs');
+ 
+ console.log('PASS: public homepage hierarchy/content, 16 templates/15 categories, signup template handoff, exact login H1, distinct home/login SEO, social images, canonical URLs and sitemap.');
