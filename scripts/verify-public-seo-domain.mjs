@@ -14,7 +14,7 @@ assert.ok(statSync('public/nexora-homepage-og.jpg').size > 10000, 'NEXORA social
 const vercel = JSON.parse(readFileSync('vercel.json', 'utf8'));
 assert.ok(vercel.rewrites.some((rewrite) => rewrite.source === '/sitemap.xml' && rewrite.destination === '/api/sitemap'), 'Vercel must route the public sitemap path to the API handler');
 const indexHtml = readFileSync('index.html', 'utf8');
-const schemaMatch = indexHtml.match(/<script type="application\\/ld\\+json">([\\s\\S]*?)<\\/script>/);
+const schemaMatch = indexHtml.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
 assert.ok(schemaMatch, 'Homepage SoftwareApplication JSON-LD must exist');
 const schema = JSON.parse(schemaMatch[1]);
 assert.equal(schema['@type'], 'SoftwareApplication');
