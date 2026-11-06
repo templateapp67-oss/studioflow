@@ -11,6 +11,8 @@ for (const path of ['index.html', 'login.html', 'src/lib/publicSeo.ts']) {
   assert.ok(source.includes('/nexora-homepage-og.jpg'), path + ': verified social image path missing');
 }
 assert.ok(statSync('public/nexora-homepage-og.jpg').size > 10000, 'NEXORA social preview image must exist and be non-empty');
+const vercel = JSON.parse(readFileSync('vercel.json', 'utf8'));
+assert.ok(vercel.rewrites.some((rewrite) => rewrite.source === '/sitemap.xml' && rewrite.destination === '/api/sitemap'), 'Vercel must route the public sitemap path to the API handler');
 const robots = readFileSync('public/robots.txt', 'utf8');
 assert.match(robots, /User-agent: \*/);
 assert.ok(robots.includes(origin + '/sitemap.xml'));
