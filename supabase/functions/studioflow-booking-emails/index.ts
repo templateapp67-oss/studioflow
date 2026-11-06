@@ -25,12 +25,12 @@ function corsHeadersFor(req: Request): Record<string, string> {
 
 async function getAuthenticatedUser(req: Request): Promise<{ id: string; email: string } | null> {
   const authorization = req.headers.get('Authorization') || '';
-  if (!/^Bearer\\s+\\S+/i.test(authorization)) return null;
+  if (!/^Bearer\s+\S+/i.test(authorization)) return null;
   const supabaseUrl = getEnv('SUPABASE_URL');
   const publicKey = getEnv('SUPABASE_ANON_KEY') || getEnv('SUPABASE_PUBLISHABLE_KEY');
   if (!supabaseUrl || !publicKey) return null;
   try {
-    const response = await fetch(`${supabaseUrl.replace(/\\/+$/, '')}/auth/v1/user`, {
+    const response = await fetch(`${supabaseUrl.replace(/\/+$/, '')}/auth/v1/user`, {
       headers: { apikey: publicKey, Authorization: authorization },
       signal: AbortSignal.timeout(5000),
     });
@@ -58,7 +58,7 @@ function consumeEmailQuota(userId: string): boolean {
 }
 
 function cleanSubjectPart(value: unknown, max = 100): string {
-  return String(value ?? '').replace(/[\\u0000-\\u001f\\u007f]/g, ' ').replace(/[\\r\\n]+/g, ' ').trim().slice(0, max);
+  return String(value ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/[\r\n]+/g, ' ').trim().slice(0, max);
 }
 
 
