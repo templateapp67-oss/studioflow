@@ -10,7 +10,7 @@ for (const path of ['index.html', 'login.html', 'src/lib/publicSeo.ts']) {
   assert.ok(!source.includes(legacyOrigin), path + ': legacy canonical origin remains');
 }
 const robots = readFileSync('public/robots.txt', 'utf8');
-assert.match(robots, /User-agent: \\*/);
+assert.match(robots, /User-agent: \*/);
 assert.ok(robots.includes(origin + '/sitemap.xml'));
 
 const built = await build({
