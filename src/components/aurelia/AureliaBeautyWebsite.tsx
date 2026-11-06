@@ -28,6 +28,8 @@ export function AureliaBeautyWebsite(props:SalonWebsitePreviewProps){
  const campaign=profile.promoCampaign;
  const gallery=photoGallery(profile);
  const images=gallery.map(item=>item.url);
+ const activePhotoIndex=activePhoto?images.indexOf(activePhoto):-1;
+ const changePhoto=(delta:number)=>{if(images.length<2)return;const current=Math.max(0,activePhotoIndex);setActivePhoto(images[(current+delta+images.length)%images.length]);};
  const galleryCategoryCounts=Array.from(new Set(gallery.map(item=>item.category))).map(category=>({category,count:gallery.filter(item=>item.category===category).length}));
  const packages=services.filter(isPackage);
  const savedHeadings=(profile as typeof profile & {sectionHeadings?:Record<string,string>}).sectionHeadings||{};
@@ -40,6 +42,7 @@ export function AureliaBeautyWebsite(props:SalonWebsitePreviewProps){
  const [selectedStylist,setSelectedStylist]=useState<Stylist|undefined>();
  const [activePhoto,setActivePhoto]=useState<string|null>(null);
  const [viewStaff,setViewStaff]=useState<string|null>(null);
+ const touchStart=useRef<number|null>(null);
  const bookingAvailable=Boolean(props.onAddAppointment && profile.subdomain && (profile as typeof profile & {bookingEnabled?:boolean}).bookingEnabled!==false && services.length>0);
  const wa=profile.whatsapp?.replace(/\D/g,'')||'';
  const waUrl=wa?'https://wa.me/'+wa+'?text='+encodeURIComponent('Hello '+profile.businessName+', I would like to book an appointment.'):'';
@@ -126,7 +129,13 @@ export function AureliaBeautyWebsite(props:SalonWebsitePreviewProps){
   <AppInstallSection/>
   {viewStaff&&stylists.some(person=>person.id===viewStaff)&&<StylistProfile staff={stylists.find(person=>person.id===viewStaff)!} profile={profile} slug={profile.subdomain} signedIn={props.customerSignedIn} demo={!profile.subdomain} services={services} onSlot={(service,slot)=>{setSelectedService(service);setSelectedStylist(stylists.find(person=>person.id===slot.stylistId));setViewStaff(null);setBooking(true);}} onLogin={()=>props.onCustomerAccount?.('signin')} onClose={()=>setViewStaff(null)} onBook={()=>{const person=stylists.find(item=>item.id===viewStaff);setViewStaff(null);if(person)book(undefined,person);}}/>}
   {myBookings&&<SalonBookingsDialog profile={profile} onClose={()=>setMyBookings(false)}/>}
-  {activePhoto&&<div className="aurelia-overlay" role="dialog" aria-modal="true" onClick={()=>setActivePhoto(null)}><button onClick={()=>setActivePhoto(null)} aria-label="Close gallery"><X/></button><img src={activePhoto} alt="Aurelia gallery" onClick={e=>e.stopPropagation()}/></div>}
+  {activePhoto&&<div className="aurelia-overlay" role="dialog" aria-modal="true" aria-label="Gallery photo" tabIndex={-1} onKeyDown={event=>{if(event.key==='Escape')setActivePhoto(null);if(event.key==='ArrowLeft')changePhoto(-1);if(event.key==='ArrowRight')changePhoto(1);}} onTouchStart={event=>{touchStart.current=event.changedTouches[0]?.clientX??null;}} onTouchEnd={event=>{const start=touchStart.current;const end=event.changedTouches[0]?.clientX??null;touchStart.current=null;if(start!==null&&end!==null&&Math.abs(end-start)>45)changePhoto(start-end>0?1:-1);}} onClick={()=>setActivePhoto(null)}>
+   <button onClick={event=>{event.stopPropagation();setActivePhoto(null);}} aria-label="Close gallery"><X/></button>
+   {images.length>1&&<button className="aurelia-lightbox-prev" aria-label="Previous photo" onClick={event=>{event.stopPropagation();changePhoto(-1);}}><ChevronLeft/></button>}
+   <img src={activePhoto} alt="Aurelia gallery" onClick={event=>event.stopPropagation()}/>
+   {images.length>1&&<button className="aurelia-lightbox-next" aria-label="Next photo" onClick={event=>{event.stopPropagation();changePhoto(1);}}><ChevronRight/></button>}
+   <p className="aurelia-lightbox-count">{Math.max(0,activePhotoIndex)+1} / {images.length}</p>
+  </div>}
   <BookingModal isOpen={booking} onClose={()=>setBooking(false)} profile={profile} services={services} stylists={stylists} initialService={selectedService} initialStylist={selectedStylist} onAddAppointment={props.onAddAppointment} themeAccentHex={profile.customAccentColor||'#D9B98F'}/>
  </div>;
 }
