@@ -10,7 +10,7 @@
  * desktop) that inherits the surrounding template's design system: every
  * colour, radius and font is read from `--ai-*` custom properties, which
  * `appInstallSection.css` binds to each template's own tokens (`.vd-site`,
- * `.bt-site`, `.iron-ink`, `.sf-page`, …). One implementation, fourteen looks.
+ * `.bt-site`, `.iron-ink`, `.sf-page`, …). One implementation, sixteen looks.
  *
  * The poster is laid out from its intrinsic ratio with `object-fit: contain`,
  * so it is fully visible at every breakpoint and never stretched or cropped.
