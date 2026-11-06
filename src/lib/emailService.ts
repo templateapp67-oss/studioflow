@@ -96,8 +96,13 @@ export async function sendBookingEmail(params: BookingEmailParams): Promise<Emai
     };
   }
 
-  const { data: { user } } = await supabase.auth.getUser();
-  const accountEmail = user?.email?.trim().toLowerCase();
+  let accountEmail = '';
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (!error) accountEmail = user?.email?.trim().toLowerCase() || '';
+  } catch {
+    accountEmail = '';
+  }
   if (!accountEmail) {
     return { success: false, error: 'Sign in with an email address to receive booking emails.' };
   }
