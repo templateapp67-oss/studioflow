@@ -1,7 +1,7 @@
 # StudioFlow Bug Fix Report
 
 **Date:** 2026-11-06  
-**Repair branch:** `audit/studioflow-end-to-end-autopsy-2026-11-06`  
+**Repair branch:** `fix/studioflow-autopsy-final-2026-11-06`  
 **Base:** `67db419b3cf2f926bf0ac259add0126d779240ae`
 
 ## Fixes implemented on this branch
