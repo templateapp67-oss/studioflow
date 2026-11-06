@@ -5,7 +5,7 @@
 ### Added
 - `AUDIT-REPORT.md` — repository inventory, severity register and evidence limitations.
 - `GAP-ANALYSIS.md` — essential, production-readiness, useful and optional gaps.
-- `BUG-FIX-REPORT.md` — root causes and fixes made on the audit branch.
+- `BUG-FIX-REPORT.md` — root causes and fixes made on the final repair branch.
 - `SECURITY-REPORT.md` — source-level security findings and remaining risks.
 - `PERFORMANCE-REPORT.md` — build/asset evidence and measurement limitations.
 - `TEST-REPORT.md` — verified CI evidence and pending checks.
@@ -35,7 +35,7 @@
 - No claim that all 109 verification suites pass or that Core Web Vitals targets are met.
 
 ### Next work
-- Run CI on this branch and fix the new test or source regressions if any.
+- Run CI on the final repair branch and fix the new test or source regressions if any.
 - Triage each failing PR #69 suite and establish a passing baseline on current main.
 - Fix/secure the booking email API and add a web CI workflow.
 - Verify Vercel environment variables, custom domain attachment, live headers, robots, sitemap and social image.
