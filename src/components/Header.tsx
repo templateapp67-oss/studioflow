@@ -37,7 +37,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Brand / Logo */}
         <button
           type="button"
-          onClick={() => setCurrentView('landing')}
+          onClick={() => window.location.assign('/')}
           className="flex items-center gap-2.5 cursor-pointer group text-left shrink-0"
         >
           <span className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-xs group-hover:scale-105 transition-transform">
