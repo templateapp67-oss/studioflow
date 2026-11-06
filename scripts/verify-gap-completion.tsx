@@ -9,7 +9,7 @@ import {
   canonicalOrigin,
   generateSitemap,
   sitemapXml,
-  sitemapHandler,
+  createSitemapHandler,
 } from "../server/sitemap";
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 const store = new Map<string, string>();
@@ -90,8 +90,8 @@ assert.equal(
   canonicalOrigin("https://clinic.example/"),
   "https://clinic.example",
 );
+assert.equal(canonicalOrigin(undefined), "https://nexorasalon.online");
 for (const origin of [
-  undefined,
   "http://clinic.example",
   "https://user:pass@clinic.example",
   "https://clinic.example/path",
@@ -124,11 +124,13 @@ assert.ok(
     !xml.includes("recovery="),
 );
 assert.ok(sitemapXml("https://clinic.example", ["abc"]).includes("/?app=1"));
-await assert.rejects(() =>
-  generateSitemap({ SITE_URL: "https://clinic.example" }, (async () => ({
-    ok: false,
-  })) as any),
+const outageXml = await generateSitemap(
+  { SITE_URL: "https://clinic.example" },
+  (async () => ({ ok: false, status: 503 })) as any,
 );
+assert.ok(outageXml.includes("https://clinic.example/"));
+assert.ok(outageXml.includes("https://clinic.example/?app=1"));
+assert.ok(!outageXml.includes("site=real-clinic"));
 const prior = process.env.SITE_URL;
 delete process.env.SITE_URL;
 let status = 200,
@@ -142,9 +144,15 @@ const res: any = {
   setHeader: (k: string, v: string) => (headers[k] = v),
   send: (s: string) => (body = s),
 };
-await sitemapHandler({}, res);
-assert.equal(status, 503);
-assert.equal(headers["Cache-Control"], "no-store");
+const simulatedHandler = createSitemapHandler({}, (async () => {
+  throw new Error("simulated public catalogue outage");
+}) as any);
+await simulatedHandler({}, res);
+assert.equal(status, 200);
+assert.equal(headers["Content-Type"], "application/xml; charset=utf-8");
+assert.equal(headers["Cache-Control"], "public, max-age=300, s-maxage=300");
+assert.ok(body.startsWith('<?xml'));
+assert.ok(body.includes("https://nexorasalon.online/"));
 assert.ok(!body.includes("<html"));
 if (prior === undefined) delete process.env.SITE_URL;
 else process.env.SITE_URL = prior;

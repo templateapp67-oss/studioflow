@@ -17,7 +17,7 @@ begin
   if saved->'profile'->'bookingAddOnServiceIds'<>'["qa-extra"]'::jsonb or saved->'profile'->>'defaultWebsiteLanguage'<>'hi' or saved->'profile'->'comparisonPhotos'->0->>'title'<>'QA comparison' or saved->'profile'->'reviewSource'->>'mode'<>'simulation' then raise exception 'Feature state projection failed';end if;
   if saved->'profile' ? 'email' or saved->'stylists'->0 ? 'schedule' then raise exception 'Private data exposed';end if;n:=n+1;
  end loop;
- if n<>14 then raise exception 'Expected 14 templates';end if;
+ if n<>16 then raise exception 'Expected 16 active templates';end if;
  perform set_config('request.jwt.claim.sub',client::text,true);
  options:=public.studioflow_android_slots(salon_slug,'["qa-base","qa-extra"]',when_date,'qa-addon-staff');chosen:=options->0;if chosen is null then raise exception 'No QA bundle slot';end if;
  request:=jsonb_build_object('serviceId','qa-base','addOnIds',jsonb_build_array('qa-extra'),'stylistId','qa-addon-staff','date',when_date,'time',chosen->>'time','clientName','QA Customer','clientPhone','9876543210','servicePrice',1,'requestId',gen_random_uuid());
@@ -34,4 +34,4 @@ begin
  execute 'reset role';
 end $$;
 rollback;
-select 'PASS: 14-template state projection, server 1200/60min bundle, 300 advance, idempotency, overlap protection, unknown/duplicate rejection and customer privacy. All QA changes rolled back.' as result;
+select 'PASS: 16-template state projection, server 1200/60min bundle, 300 advance, idempotency, overlap protection, unknown/duplicate rejection and customer privacy. All QA changes rolled back.' as result;

@@ -1,7 +1,7 @@
 // Template 15 has dedicated male-only media, booking and editor coverage in verify-template15.
 /**
  * Verifies the shared app-install banner against its acceptance criteria, on
- * the real rendered output of all 14 website templates.
+ * the real rendered output of all 16 website templates.
  *
  * Checked per template, at desktop / tablet / mobile:
  *  1. ONE shared implementation — the same component skeleton everywhere, no
@@ -15,7 +15,7 @@
  *  4. Compact — content width inside 1100–1200px, no viewport-height sizing,
  *     no forced full-bleed gradient, long-form copy folded away.
  *  5. Theme-matched — the banner resolves to the host template's own palette,
- *     and the 14 templates do not all share one background.
+ *     and the 16 templates do not all share one background.
  *  6. Contrast — every CTA, share control and text run clears 4.5:1 in the
  *     normal, hover, focus and disabled states.
  *  7. Mobile — single-column stack, 44px tap targets, nothing fixed-width
@@ -347,9 +347,9 @@ for (const id of ALL_TEMPLATE_IDS.filter(id=>id!=='mens_hair_studio')) {
 
 // -- 5b. The 14 templates must not collapse onto one shared background ------
 check(ctaBackgrounds.size >= 6,
-  `only ${ctaBackgrounds.size} distinct CTA backgrounds across 14 templates — the banner is not following each theme`);
+  `only ${ctaBackgrounds.size} distinct CTA backgrounds across 16 templates — the banner is not following each theme`);
 check(cardSurfaces.size >= 4,
-  `only ${cardSurfaces.size} distinct card surfaces across 14 templates`);
+  `only ${cardSurfaces.size} distinct card surfaces across 16 templates`);
 
 console.log(rows.join('\n'));
 console.log(`\n${ALL_TEMPLATE_IDS.length} templates · ${ctaBackgrounds.size} distinct CTA accents · ${cardSurfaces.size} distinct card surfaces`);
@@ -360,5 +360,5 @@ if (failures.length) {
   for (const failure of unique) console.error('  ✗ ' + failure);
   process.exitCode = 1;
 } else {
-  console.log('\nPASS: all 14 templates render one shared, compact, theme-matched app-install banner with an uncropped poster and 4.5:1 CTAs in every state.');
+  console.log('\nPASS: all 16 templates render one shared, compact, theme-matched app-install banner with an uncropped poster and 4.5:1 CTAs in every state.');
 }

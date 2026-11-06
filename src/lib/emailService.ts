@@ -1,5 +1,16 @@
 import { supabase } from './supabase';
 
+async function sessionAuthorizationHeaders(): Promise<Record<string, string>> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token
+      ? { Authorization: `Bearer ${session.access_token}` }
+      : {};
+  } catch {
+    return {};
+  }
+}
+
 export interface BookingEmailParams {
   type?: 'confirmation' | 'reminder';
   to: string;
@@ -44,7 +55,7 @@ export interface EmailSendResult {
 export async function checkEmailServiceStatus(): Promise<EmailServiceStatus> {
   // Try server proxy first
   try {
-    const res = await fetch('/api/email-service-status', { signal: AbortSignal.timeout(5000) });
+    const res = await fetch('/api/email-service-status', { headers: await sessionAuthorizationHeaders(), signal: AbortSignal.timeout(5000) });
     if (res.ok) {
       const data = await res.json();
       return data;
@@ -85,12 +96,27 @@ export async function sendBookingEmail(params: BookingEmailParams): Promise<Emai
     };
   }
 
+  let accountEmail = '';
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (!error) accountEmail = user?.email?.trim().toLowerCase() || '';
+  } catch {
+    accountEmail = '';
+  }
+  if (!accountEmail) {
+    return { success: false, error: 'Sign in with an email address to receive booking emails.' };
+  }
+  if (params.to.trim().toLowerCase() !== accountEmail) {
+    return { success: false, error: 'Booking emails can only be sent to the email on your customer account.' };
+  }
+
   // 1. Try server API endpoint
   try {
     const response = await fetch('/api/send-booking-email', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...await sessionAuthorizationHeaders(),
       },
       body: JSON.stringify(params),
       signal: AbortSignal.timeout(12000),

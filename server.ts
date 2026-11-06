@@ -65,14 +65,70 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promi
   });
 }
 
+
+const bookingEmailWindows = new Map<string, { count: number; resetAt: number }>();
+
+function cleanEmailText(value: unknown, max = 200): string {
+  return String(value ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, max);
+}
+
+function escapeEmailHtml(value: unknown, max = 200): string {
+  const replacements: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;',
+  };
+  return cleanEmailText(value, max).replace(/[&<>"']/g, character => replacements[character] ?? character);
+}
+
+async function getAuthenticatedEmail(authorization?: string): Promise<string | null> {
+  if (!authorization || !/^Bearer\s+\S+/i.test(authorization)) return null;
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const publicKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
+  if (!supabaseUrl || !publicKey) return null;
+  try {
+    const response = await fetch(`${supabaseUrl.replace(/\/+$/, '')}/auth/v1/user`, {
+      headers: { apikey: publicKey, Authorization: authorization },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!response.ok) return null;
+    const user = await response.json();
+    return user?.id && typeof user.email === 'string' ? user.email.trim().toLowerCase() : null;
+  } catch {
+    return null;
+  }
+}
+
+function consumeBookingEmailQuota(email: string): boolean {
+  const now = Date.now();
+  const current = bookingEmailWindows.get(email);
+  if (!current || current.resetAt <= now) {
+    bookingEmailWindows.set(email, { count: 1, resetAt: now + 10 * 60 * 1000 });
+    return true;
+  }
+  if (current.count >= 5) return false;
+  current.count += 1;
+  return true;
+}
+
 async function startServer() {
   const app = express();
+  app.disable('x-powered-by');
+  app.use((_req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'camera=(self), microphone=(), geolocation=(self), payment=(self), usb=()');
+    next();
+  });
   const httpServer = createServer(app);
   const portArg = process.argv.indexOf('--port');
   const PORT = Number(portArg>=0?process.argv[portArg+1]:process.env.PORT||3000);
   if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) throw new Error('Invalid server port');
 
-  app.use(express.json());
+  app.use(express.json({ limit: '100kb' }));
 
   // Optional demo/preview entry: when PREVIEW_TEMPLATE is set (e.g. "prism-chroma"),
   // the site root opens that template directly. Off by default — no effect in production.
@@ -413,15 +469,18 @@ Return strictly valid JSON in this format:
   });
 
   // Email Service Status Endpoint
-  app.get("/api/email-service-status", (_req, res) => {
+  app.get("/api/email-service-status", async (req, res) => {
+    const userEmail = await getAuthenticatedEmail(req.get('authorization'));
+    if (!userEmail) return res.status(401).json({ error: 'Authentication required.' });
     const resendApiKey = process.env.RESEND_API_KEY;
     const fromEmail = process.env.RESEND_FROM_EMAIL || 'StudioFlow <onboarding@resend.dev>';
+    res.setHeader('Cache-Control', 'no-store');
     res.json({
       status: "ok",
       provider: "resend",
       configured: Boolean(resendApiKey),
       from: fromEmail,
-      mode: resendApiKey ? "live" : "preview"
+      mode: resendApiKey ? "live" : "unconfigured"
     });
   });
 
@@ -446,23 +505,42 @@ Return strictly valid JSON in this format:
         salonWhatsapp = ''
       } = req.body;
 
-      if (!to || typeof to !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to.trim())) {
+      if (!to || typeof to !== 'string' || to.trim().length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to.trim())) {
         return res.status(400).json({ error: 'Valid recipient email address is required.' });
       }
 
       const recipient = to.trim();
+      const userEmail = await getAuthenticatedEmail(req.get('authorization'));
+      if (!userEmail) return res.status(401).json({ error: 'Authentication required.' });
+      if (userEmail !== recipient.toLowerCase()) return res.status(403).json({ error: 'Booking email recipient must match the signed-in account.' });
+      if (!consumeBookingEmailQuota(userEmail)) return res.status(429).json({ error: 'Email send limit reached. Try again in a few minutes.' });
       const resendApiKey = process.env.RESEND_API_KEY;
       const fromEmail = process.env.RESEND_FROM_EMAIL || 'StudioFlow <onboarding@resend.dev>';
       const isReminder = type === 'reminder';
       const ref = bookingRef || 'NX-BOOKING';
+      const subjectSalon = cleanEmailText(salonName, 100).replace(/[\r\n]+/g, ' ');
+      const subjectService = cleanEmailText(serviceName || 'Salon Service', 100).replace(/[\r\n]+/g, ' ');
+      const subjectRef = cleanEmailText(ref, 64).replace(/[\r\n]+/g, ' ');
       const subject = isReminder
-        ? `Reminder: Your appointment tomorrow at ${salonName}`
-        : `Booking Confirmed: ${serviceName || 'Salon Service'} at ${salonName} (${ref})`;
+        ? `Reminder: Your appointment tomorrow at ${subjectSalon}`
+        : `Booking Confirmed: ${subjectService} at ${subjectSalon} (${subjectRef})`;
 
-      const price = Number(servicePrice) || 0;
-      const paid = Number(amountPaid) || 0;
+      const priceValue = Number(servicePrice);
+      const paidValue = Number(amountPaid);
+      const price = Number.isFinite(priceValue) ? Math.max(0, priceValue) : 0;
+      const paid = Number.isFinite(paidValue) ? Math.max(0, paidValue) : 0;
       const balance = Math.max(0, price - paid);
-      const fullAddress = [salonAddress, salonCity].filter(Boolean).join(', ') || 'Salon Studio';
+      const fullAddress = [salonAddress, salonCity].filter(Boolean).map(value => cleanEmailText(value, 160)).join(', ') || 'Salon Studio';
+      const safeSalonName = escapeEmailHtml(salonName, 100);
+      const safeClientName = escapeEmailHtml(clientName || 'Guest', 100);
+      const safeServiceName = escapeEmailHtml(serviceName || 'Salon Service', 120);
+      const safeStylistName = escapeEmailHtml(stylistName, 100);
+      const safeDate = escapeEmailHtml(date || '', 40);
+      const safeTime = escapeEmailHtml(time || '', 40);
+      const safeRef = escapeEmailHtml(ref, 64);
+      const safeFullAddress = escapeEmailHtml(fullAddress, 240);
+      const safeSalonPhone = escapeEmailHtml(salonPhone, 32);
+      const phoneHref = String(salonPhone || '').replace(/[^\d+]/g, '').slice(0, 24);
 
       // HTML template
       const html = isReminder
@@ -470,22 +548,22 @@ Return strictly valid JSON in this format:
           <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px;border:1px solid #e2e8f0;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.06);">
             <div style="background:#0f172a;color:#ffffff;padding:28px 24px;text-align:center;">
               <span style="background:rgba(255,255,255,0.18);padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#fcd34d;">Appointment Reminder</span>
-              <h1 style="margin:8px 0 0;font-size:22px;font-weight:800;">See You Tomorrow at ${salonName}!</h1>
+              <h1 style="margin:8px 0 0;font-size:22px;font-weight:800;">See You Tomorrow at ${safeSalonName}!</h1>
             </div>
             <div style="padding:24px;">
-              <p style="margin:0 0 16px;font-size:14px;line-height:1.6;">Hello <strong>${clientName || 'Guest'}</strong>, your salon visit is scheduled for tomorrow:</p>
+              <p style="margin:0 0 16px;font-size:14px;line-height:1.6;">Hello <strong>${safeClientName}</strong>, your salon visit is scheduled for tomorrow:</p>
               <div style="background:#fff5f9;border:1px solid #fbcfe8;border-radius:12px;padding:18px;text-align:center;margin-bottom:20px;">
-                <div style="font-size:22px;font-weight:900;color:#9f1239;font-family:monospace;">${date} @ ${time} IST</div>
-                <div style="font-size:14px;font-weight:700;color:#334155;margin-top:4px;">${serviceName} with ${stylistName}</div>
-                <div style="font-size:11px;color:#64748b;margin-top:4px;">Ref: ${ref}</div>
+                <div style="font-size:22px;font-weight:900;color:#9f1239;font-family:monospace;">${safeDate} @ ${safeTime} IST</div>
+                <div style="font-size:14px;font-weight:700;color:#334155;margin-top:4px;">${safeServiceName} with ${safeStylistName}</div>
+                <div style="font-size:11px;color:#64748b;margin-top:4px;">Ref: ${safeRef}</div>
               </div>
               <div style="background:#f1f5f9;border-radius:10px;padding:12px 16px;font-size:13px;color:#475569;margin-bottom:18px;">
-                <strong>Location:</strong> ${fullAddress}
+                <strong>Location:</strong> ${safeFullAddress}
               </div>
-              ${salonPhone ? `<p style="font-size:13px;text-align:center;color:#64748b;">Questions? Contact the salon at <a href="tel:${salonPhone}" style="color:#9f1239;font-weight:700;">${salonPhone}</a></p>` : ''}
+              ${salonPhone ? `<p style="font-size:13px;text-align:center;color:#64748b;">Questions? Contact the salon at <a href="tel:${phoneHref}" style="color:#9f1239;font-weight:700;">${safeSalonPhone}</a></p>` : ''}
             </div>
             <div style="background:#f8fafc;padding:16px;border-top:1px solid #e2e8f0;text-align:center;font-size:11px;color:#94a3b8;">
-              ${salonName} • Automated notification by StudioFlow
+              ${safeSalonName} • Automated notification by StudioFlow
             </div>
           </div>
         </body></html>`
@@ -494,22 +572,22 @@ Return strictly valid JSON in this format:
             <div style="background:linear-gradient(135deg,#702d4b,#9f1239);color:#ffffff;padding:32px 24px;text-align:center;">
               <span style="background:rgba(255,255,255,0.2);padding:4px 12px;border-radius:99px;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Confirmed Appointment</span>
               <h1 style="margin:10px 0 0;font-size:24px;font-weight:800;">Booking Confirmed!</h1>
-              <p style="margin:6px 0 0;font-size:14px;opacity:0.9;">${salonName}</p>
+              <p style="margin:6px 0 0;font-size:14px;opacity:0.9;">${safeSalonName}</p>
             </div>
             <div style="padding:24px;">
-              <p style="margin:0 0 16px;font-size:14px;line-height:1.6;">Namaste <strong>${clientName || 'Guest'}</strong>, your booking is confirmed with ${salonName}.</p>
+              <p style="margin:0 0 16px;font-size:14px;line-height:1.6;">Namaste <strong>${safeClientName}</strong>, your booking is confirmed with ${safeSalonName}.</p>
               <div style="border:1px dashed #cbd5e1;background:#f8fafc;border-radius:12px;padding:14px 18px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;">
                 <div>
                   <div style="font-size:10px;text-transform:uppercase;color:#64748b;font-weight:700;">Booking Reference</div>
-                  <div style="font-size:18px;font-family:monospace;font-weight:800;color:#0f172a;">${ref}</div>
+                  <div style="font-size:18px;font-family:monospace;font-weight:800;color:#0f172a;">${safeRef}</div>
                 </div>
                 <span style="background:#ecfdf5;color:#047857;padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700;">Confirmed</span>
               </div>
               <table style="width:100%;font-size:13px;border-collapse:collapse;margin-bottom:20px;">
-                <tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:8px 0;color:#64748b;">Service:</td><td style="padding:8px 0;text-align:right;font-weight:700;">${serviceName}</td></tr>
-                <tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:8px 0;color:#64748b;">Specialist:</td><td style="padding:8px 0;text-align:right;font-weight:600;">${stylistName}</td></tr>
-                <tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:8px 0;color:#64748b;">Date & Time:</td><td style="padding:8px 0;text-align:right;font-weight:800;color:#be185d;font-family:monospace;">${date} @ ${time} IST</td></tr>
-                <tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:8px 0;color:#64748b;">Salon Address:</td><td style="padding:8px 0;text-align:right;">${fullAddress}</td></tr>
+                <tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:8px 0;color:#64748b;">Service:</td><td style="padding:8px 0;text-align:right;font-weight:700;">${safeServiceName}</td></tr>
+                <tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:8px 0;color:#64748b;">Specialist:</td><td style="padding:8px 0;text-align:right;font-weight:600;">${safeStylistName}</td></tr>
+                <tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:8px 0;color:#64748b;">Date & Time:</td><td style="padding:8px 0;text-align:right;font-weight:800;color:#be185d;font-family:monospace;">${safeDate} @ ${safeTime} IST</td></tr>
+                <tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:8px 0;color:#64748b;">Salon Address:</td><td style="padding:8px 0;text-align:right;">${safeFullAddress}</td></tr>
               </table>
               <div style="background:#fff5f9;border:1px solid #fbcfe8;border-radius:12px;padding:14px;margin-bottom:20px;font-size:13px;">
                 <div style="font-weight:700;color:#9f1239;margin-bottom:6px;">Payment Summary</div>
@@ -519,25 +597,25 @@ Return strictly valid JSON in this format:
               </div>
               <div style="font-size:12px;color:#64748b;line-height:1.6;background:#f8fafc;padding:12px;border-radius:8px;">
                 • Please arrive 10 minutes before your slot.<br/>
-                • Show your reference code (${ref}) at reception.<br/>
+                • Show your reference code (${safeRef}) at reception.<br/>
                 • Balance can be paid via cash, UPI, or card at the salon.
               </div>
             </div>
             <div style="background:#f8fafc;padding:16px;border-top:1px solid #e2e8f0;text-align:center;font-size:11px;color:#94a3b8;">
-              ${salonName} • Automated confirmation by StudioFlow
+              ${safeSalonName} • Automated confirmation by StudioFlow
             </div>
           </div>
         </body></html>`;
 
-      const text = `${salonName} - ${isReminder ? 'Appointment Reminder' : 'Booking Confirmation'}\n\n` +
-        `Client: ${clientName || 'Guest'}\n` +
-        `Reference: ${ref}\n` +
-        `Service: ${serviceName}\n` +
-        `Specialist: ${stylistName}\n` +
-        `Date & Time: ${date} at ${time} IST\n` +
-        `Address: ${fullAddress}\n` +
+      const text = `${safeSalonName} - ${isReminder ? 'Appointment Reminder' : 'Booking Confirmation'}\n\n` +
+        `Client: ${safeClientName}\n` +
+        `Reference: ${safeRef}\n` +
+        `Service: ${safeServiceName}\n` +
+        `Specialist: ${safeStylistName}\n` +
+        `Date & Time: ${safeDate} at ${safeTime} IST\n` +
+        `Address: ${safeFullAddress}\n` +
         `Total: Rs. ${price} | Paid: Rs. ${paid} | Balance Due: Rs. ${balance}\n\n` +
-        `Please arrive 10 minutes prior to your appointment.\n${salonPhone ? `Phone: ${salonPhone}\n` : ''}`;
+        `Please arrive 10 minutes prior to your appointment.\n${salonPhone ? `Phone: ${safeSalonPhone}\n` : ''}`;
 
       // If Resend is configured, call Resend API directly
       if (resendApiKey) {
@@ -574,17 +652,10 @@ Return strictly valid JSON in this format:
         });
       }
 
-      // If Resend API key is not in dev server env, succeed gracefully with preview info
-      console.log(`[Email Service] Automated ${type} email prepared for ${recipient}: "${subject}"`);
-      return res.json({
-        success: true,
+      return res.status(503).json({
+        success: false,
         delivered: false,
-        simulated: true,
-        emailId: `sim_${Date.now()}`,
-        to: recipient,
-        type,
-        subject,
-        notice: 'Email generated. Add RESEND_API_KEY to your environment to send live emails via Resend.',
+        error: 'Email delivery is not configured. Set RESEND_API_KEY before sending customer emails.',
       });
     } catch (err: any) {
       console.error('Send booking email error:', err);
