@@ -82,6 +82,14 @@
 - **Fix:** Updated the H1 to `NEXORA Salon Website Builder & Management Software` and added a regression assertion.
 - **Status:** Implemented on branch; CI verification pending.
 
+### FIX-010 — Add crawlable SoftwareApplication structured data
+
+- **Severity:** P2
+- **Root cause:** The public homepage had no crawlable JSON-LD for the StudioFlow salon SaaS product.
+- **Files:** `index.html`, `scripts/verify-public-seo-domain.mjs`.
+- **Fix:** Added a `SoftwareApplication` schema with NEXORA publisher, canonical URL, verified social image and product description; added a parser-based regression assertion.
+- **Status:** Implemented on branch; CI verification pending.
+
 ## Outstanding confirmed or high-risk issues
 
 - PR #69 CI reports 19 failing offline suites; the latest inspected run reports 90/109 passing. These have not been represented as fixed by the SEO changes above.
