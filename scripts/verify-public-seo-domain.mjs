@@ -13,6 +13,13 @@ for (const path of ['index.html', 'login.html', 'src/lib/publicSeo.ts']) {
 assert.ok(statSync('public/nexora-homepage-og.jpg').size > 10000, 'NEXORA social preview image must exist and be non-empty');
 const vercel = JSON.parse(readFileSync('vercel.json', 'utf8'));
 assert.ok(vercel.rewrites.some((rewrite) => rewrite.source === '/sitemap.xml' && rewrite.destination === '/api/sitemap'), 'Vercel must route the public sitemap path to the API handler');
+const indexHtml = readFileSync('index.html', 'utf8');
+const schemaMatch = indexHtml.match(/<script type="application\\/ld\\+json">([\\s\\S]*?)<\\/script>/);
+assert.ok(schemaMatch, 'Homepage SoftwareApplication JSON-LD must exist');
+const schema = JSON.parse(schemaMatch[1]);
+assert.equal(schema['@type'], 'SoftwareApplication');
+assert.equal(schema.url, 'https://nexorasalon.online/');
+assert.equal(schema.image, 'https://nexorasalon.online/nexora-homepage-og.jpg');
 const homepage = readFileSync('src/components/PublicHomepage.tsx', 'utf8');
 assert.ok(homepage.includes('NEXORA Salon Website Builder & Management Software'), 'Homepage H1 must include the primary salon website builder keyword');
 const robots = readFileSync('public/robots.txt', 'utf8');
