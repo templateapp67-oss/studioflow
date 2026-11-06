@@ -1,18 +1,5 @@
-
-
 import {photoGallery,type PhotoCategory} from '../lib/photoGallery';
 import {updateInlineService} from '../lib/serviceCatalogue';
-
-
-
-
-
-
-
-
-
-
-
 
 import {vedaConfigFor} from '../lib/vedaSanjeevaniCustomizer';
 
@@ -24,25 +11,6 @@ import type { LoyaltyConfig } from '../types';
 import { websiteLink } from '../lib/supabase';
 import React, { useState, useEffect } from 'react';
 
-// Load editing-only modules after the owner opens the editor, not with the first website preview.
-const KeshKraftEditor = React.lazy(() => import('./keshkraft/KeshKraftEditor').then((module) => ({ default: module.KeshKraftEditor })));
-const AureliaBeautyEditor = React.lazy(() => import('./aurelia/AureliaBeautyEditor').then((module) => ({ default: module.AureliaBeautyEditor })));
-const ServiceManagement = React.lazy(() => import('./ServiceManagement').then((module) => ({ default: module.ServiceManagement })));
-const TeamManagement = React.lazy(() => import('./TeamManagement').then((module) => ({ default: module.TeamManagement })));
-const WebsiteContentManager = React.lazy(() => import('./WebsiteContentManager').then((module) => ({ default: module.WebsiteContentManager })));
-const ClinicTechnologyEditor = React.lazy(() => import('./dermacure/ClinicTechnologyEditor').then((module) => ({ default: module.ClinicTechnologyEditor })));
-const VogueNoirEditor = React.lazy(() => import('./vogue-noir/VogueNoirEditor').then((module) => ({ default: module.VogueNoirEditor })));
-const BodhiTreeEditor = React.lazy(() => import('./bodhi-tree/BodhiTreeEditor').then((module) => ({ default: module.BodhiTreeEditor })));
-const PrismChromaEditor = React.lazy(() => import('./prism-chroma/PrismChromaEditor').then((module) => ({ default: module.PrismChromaEditor })));
-const ShringaarRoyalEditor = React.lazy(() => import('./shringaar-royal/ShringaarRoyalEditor').then((module) => ({ default: module.ShringaarRoyalEditor })));
-const IronInkEditor = React.lazy(() => import('./iron-ink/IronInkEditor').then((module) => ({ default: module.IronInkEditor })));
-const ArchFlutterEditor = React.lazy(() => import('./arch-flutter/ArchFlutterEditor').then((module) => ({ default: module.ArchFlutterEditor })));
-const ZiyaAdminPanel = React.lazy(() => import('./ziya/ZiyaAdminPanel').then((module) => ({ default: module.ZiyaAdminPanel })));
-const AuraPromotionsAdmin = React.lazy(() => import('./aura/AuraPromotionsAdmin').then((module) => ({ default: module.AuraPromotionsAdmin })));
-const AcademyEnquiriesPanel = React.lazy(() => import('./vogue-noir/AcademyEnquiriesPanel').then((module) => ({ default: module.AcademyEnquiriesPanel })));
-const PinkyNailsFaqEditor = React.lazy(() => import('./PinkyNailsFaqEditor').then((module) => ({ default: module.PinkyNailsFaqEditor })));
-const InteractiveMapSetup = React.lazy(() => import('./InteractiveMapSetup').then((module) => ({ default: module.InteractiveMapSetup })));
-const TestimonialModal = React.lazy(() => import('./ClientTestimonials').then((module) => ({ default: module.TestimonialModal })));
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   CheckCircle2, 
@@ -98,6 +66,25 @@ import { PINKY_NAILS_AI_PRESETS, pinkyNailsAiRewrite } from '../lib/pinkyNails';
 
 import { computeHeroAIStyling, extractImageMoodAsync, HeroAIStyling } from '../utils/heroImageMood';
 
+// Load editing-only modules after the owner opens the editor, not with the first website preview.
+const KeshKraftEditor = React.lazy(() => import('./keshkraft/KeshKraftEditor').then((module) => ({ default: module.KeshKraftEditor })));
+const AureliaBeautyEditor = React.lazy(() => import('./aurelia/AureliaBeautyEditor').then((module) => ({ default: module.AureliaBeautyEditor })));
+const ServiceManagement = React.lazy(() => import('./ServiceManagement').then((module) => ({ default: module.ServiceManagement })));
+const TeamManagement = React.lazy(() => import('./TeamManagement').then((module) => ({ default: module.TeamManagement })));
+const WebsiteContentManager = React.lazy(() => import('./WebsiteContentManager').then((module) => ({ default: module.WebsiteContentManager })));
+const ClinicTechnologyEditor = React.lazy(() => import('./dermacure/ClinicTechnologyEditor').then((module) => ({ default: module.ClinicTechnologyEditor })));
+const VogueNoirEditor = React.lazy(() => import('./vogue-noir/VogueNoirEditor').then((module) => ({ default: module.VogueNoirEditor })));
+const BodhiTreeEditor = React.lazy(() => import('./bodhi-tree/BodhiTreeEditor').then((module) => ({ default: module.BodhiTreeEditor })));
+const PrismChromaEditor = React.lazy(() => import('./prism-chroma/PrismChromaEditor').then((module) => ({ default: module.PrismChromaEditor })));
+const ShringaarRoyalEditor = React.lazy(() => import('./shringaar-royal/ShringaarRoyalEditor').then((module) => ({ default: module.ShringaarRoyalEditor })));
+const IronInkEditor = React.lazy(() => import('./iron-ink/IronInkEditor').then((module) => ({ default: module.IronInkEditor })));
+const ArchFlutterEditor = React.lazy(() => import('./arch-flutter/ArchFlutterEditor').then((module) => ({ default: module.ArchFlutterEditor })));
+const ZiyaAdminPanel = React.lazy(() => import('./ziya/ZiyaAdminPanel').then((module) => ({ default: module.ZiyaAdminPanel })));
+const AuraPromotionsAdmin = React.lazy(() => import('./aura/AuraPromotionsAdmin').then((module) => ({ default: module.AuraPromotionsAdmin })));
+const AcademyEnquiriesPanel = React.lazy(() => import('./vogue-noir/AcademyEnquiriesPanel').then((module) => ({ default: module.AcademyEnquiriesPanel })));
+const PinkyNailsFaqEditor = React.lazy(() => import('./PinkyNailsFaqEditor').then((module) => ({ default: module.PinkyNailsFaqEditor })));
+const InteractiveMapSetup = React.lazy(() => import('./InteractiveMapSetup').then((module) => ({ default: module.InteractiveMapSetup })));
+const TestimonialModal = React.lazy(() => import('./ClientTestimonials').then((module) => ({ default: module.TestimonialModal })));
 
 export interface SalonWebsitePreviewProps {
   profile: SalonProfile;
