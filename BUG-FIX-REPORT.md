@@ -34,6 +34,30 @@
 - **Validation added:** SEO verification checks the wildcard rule and sitemap reference.
 - **Status:** Implemented on branch; not yet CI-verified or deployed.
 
+### FIX-004 — Restore Template 16 shared customer website contracts
+
+- **Severity:** P1/P2
+- **Root cause:** The dedicated Aurelia renderer bypassed shared `CustomerSalonWebsite` and `WebsiteSections` behaviour, leaving the public customer page inconsistent with the other templates.
+- **Files:** `src/components/aurelia/AureliaBeautyWebsite.tsx`, `src/components/aurelia/aureliaBeauty.css`, `src/components/appInstallSection.css`, `src/components/customer/categoryGroups.ts`, `scripts/verify-photo-gallery.tsx`.
+- **Fix:** Added signed-in customer identity/profile controls and mobile account actions; full specialist-profile entry and modal; five package cards with shared service image resolution; shared saved-gallery persistence and category counts; app-install banner with Aurelia theme; saved section headings; and shared promo, social, loyalty and policy sections. Added Aurelia to Beauty Parlour customer discovery and updated gallery assertions to verify real category counts.
+- **Status:** Implemented on branch; not yet CI-verified or deployed.
+
+### FIX-005 — Reconcile backend documentation and template-count verification
+
+- **Severity:** P2
+- **Root cause:** Backend README and October gap-audit notes did not explain the later Template 15/16 catalogue migration; booking add-ons SQL verification still expected 14 active templates.
+- **Files:** `backend/README.md`, `backend/GAP-AUDIT.md`, `backend/booking-add-ons-verification.sql`.
+- **Fix:** Clarified that the initial migration seeded 14 templates and later migrations add Templates 15 and 16; updated the current verification expectation to 16.
+- **Status:** Implemented on branch; SQL verification not executed against a database.
+
+### FIX-006 — Align sitemap tests with resilient fallback behaviour
+
+- **Severity:** P1
+- **Root cause:** The previous regression suite expected an unset `SITE_URL` and temporary catalogue failure to produce HTTP 503, which contradicted the safer public sitemap fallback.
+- **Files:** `server/sitemap.ts`, `scripts/verify-gap-completion.tsx`, `scripts/verify-public-seo-domain.mjs`.
+- **Fix:** Added injectable environment/fetch dependencies to the handler and updated tests to assert a valid default-origin XML sitemap during a catalogue outage while retaining rejection of invalid configured origins.
+- **Status:** Implemented on branch; tests not yet executed.
+
 ## Outstanding confirmed or high-risk issues
 
 - PR #69 CI reports 19 failing offline suites; the latest inspected run reports 90/109 passing. These have not been represented as fixed by the SEO changes above.
