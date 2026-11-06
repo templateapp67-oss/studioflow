@@ -57,13 +57,13 @@ export const NexoraTemplateGallery: React.FC<{
               <div className="relative h-24 overflow-hidden bg-[#221B34]">
                 <img src={template.coverImageUrl} alt={`${meta.displayName} preview`} loading="lazy" className="h-full w-full object-cover object-top" />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#14101F]/85 to-transparent" />
-                <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-white/92 px-1.5 py-0.5">
+                <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-white px-1.5 py-0.5">
                   <NexoraBrandMark size="xs" />
                   <span className="text-[8px] font-black uppercase tracking-[0.12em] text-[#2A1E4A]">NEXORA</span>
                 </span>
-                <span className="absolute right-2 top-2 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] font-bold text-white tabular-nums">{meta.templateNumber}</span>
+                <span className="absolute right-2 top-2 rounded-full bg-[#14101F] px-1.5 py-0.5 text-[9px] font-bold text-white tabular-nums">{meta.templateNumber}</span>
                 {isActive && (
-                  <span className="absolute right-2 bottom-2 inline-flex items-center gap-1 rounded-full bg-emerald-500 px-1.5 py-0.5 text-[9px] font-bold text-white">
+                  <span className="absolute right-2 bottom-2 inline-flex items-center gap-1 rounded-full bg-emerald-700 px-1.5 py-0.5 text-[9px] font-bold text-white">
                     <Check size={9} aria-hidden="true" /> In use
                   </span>
                 )}

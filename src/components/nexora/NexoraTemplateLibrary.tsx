@@ -89,7 +89,7 @@ export const NexoraTemplateLibrary: React.FC<NexoraTemplateLibraryProps> = ({
 
   return (
     <section id="nexora-template-library" data-nexora-template-library aria-labelledby="nexora-library-title" className="flex flex-col gap-5 scroll-mt-24">
-      <div className="rounded-2xl border border-[#E4DCCB] bg-gradient-to-br from-[#FBF8F2] via-white to-[#F6F1E6] p-5 sm:p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="rounded-2xl border border-[#E4DCCB] bg-[#FBF8F2] p-5 sm:p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-col gap-2">
             <NexoraLogo size="md" withTagline />
@@ -106,7 +106,7 @@ export const NexoraTemplateLibrary: React.FC<NexoraTemplateLibraryProps> = ({
               { label: 'Categories', value: String(NEXORA_CATEGORIES.length) },
               { label: 'Example services', value: `${new Set(ordered.flatMap((t) => nexoraTemplateMeta(t.id)?.services || [])).size}+` },
             ].map((stat) => (
-              <div key={stat.label} className="rounded-xl border border-[#E4DCCB] bg-white/80 px-3 py-2">
+              <div key={stat.label} className="rounded-xl border border-[#E4DCCB] bg-white px-3 py-2">
                 <dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#6B5E7A]">{stat.label}</dt>
                 <dd className="font-display text-lg font-extrabold text-[#1B1630]">{stat.value}</dd>
               </div>
@@ -166,7 +166,7 @@ export const NexoraTemplateLibrary: React.FC<NexoraTemplateLibraryProps> = ({
               <CategoryIconTile icon={filter.icon} color={selected ? '#FFFFFF' : filter.color} tint={selected ? 'rgba(255,255,255,0.18)' : filter.tint} size="sm" />
               <span>{filter.label}</span>
               <span
-                className={`rounded-full px-1.5 py-0.5 text-[10px] font-extrabold tabular-nums ${selected ? 'bg-white/25' : 'bg-[#F1ECDF] text-[#6B5E7A]'}`}
+                className={`rounded-full px-1.5 py-0.5 text-[10px] font-extrabold tabular-nums ${selected ? 'bg-white text-[#1B1630]' : 'bg-[#F1ECDF] text-[#6B5E7A]'}`}
               >
                 {filter.count}
               </span>
@@ -283,7 +283,7 @@ export const NexoraTemplateCard: React.FC<{
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#14101F]/85 via-[#14101F]/25 to-transparent" />
             {/* NEXORA brand mark on every card */}
-            <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-white/92 px-2 py-1 shadow-sm backdrop-blur">
+            <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-white px-2 py-1 shadow-sm backdrop-blur">
               <NexoraBrandMark size="xs" />
               <span className="text-[9px] font-black uppercase tracking-[0.14em] text-[#2A1E4A]">NEXORA</span>
             </div>
@@ -294,7 +294,7 @@ export const NexoraTemplateCard: React.FC<{
               {meta.templateNumber}
             </span>
             <div className="absolute inset-x-3 bottom-3">
-              <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[10px] font-extrabold uppercase tracking-[0.1em] text-white" style={{ backgroundColor: `${color}E6` }}>
+              <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[10px] font-extrabold uppercase tracking-[0.1em] text-white" style={{ backgroundColor: color }}>
                 <CategoryIconTile icon={meta.icon} color="#FFFFFF" tint="transparent" size="sm" className="!h-4 !w-4 !rounded-md" />
                 {meta.categoryName}
               </span>

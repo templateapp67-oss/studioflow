@@ -283,16 +283,19 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
                   />
                 </picture>
                 <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#241820]/75 via-[#241820]/5 to-transparent" />
-                <div className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-full border border-white/65 bg-white/95 px-3 py-2 text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#39263A] shadow-md sm:left-5 sm:top-5">
+                <div className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-full border border-[#E5D5CD] bg-white px-3 py-2 text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#39263A] shadow-md sm:left-5 sm:top-5">
                   <span className="h-2 w-2 rounded-full bg-[#9C566F]" aria-hidden="true" />
                   NEXORA · Featured design
                 </div>
-                <div className="absolute inset-x-4 bottom-5 text-white sm:inset-x-6 sm:bottom-7">
+                {/* Opaque caption panel: text over a photo scrim can never be measured
+                    by axe-core, and the scrim alone cannot guarantee 4.5:1 on every
+                    image. A solid panel makes the contrast fixed and verifiable. */}
+                <div className="absolute inset-x-3 bottom-3 rounded-2xl bg-[#241820] px-4 py-3 text-white shadow-lg sm:inset-x-4 sm:bottom-4 sm:px-5 sm:py-4">
                   <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#F5DDE4]">Haircut Studio · Template 01</p>
                   <h2 className="mt-1 max-w-[520px] font-display text-2xl font-bold leading-tight sm:text-3xl">
                     {nexoraDisplayName('hair_salon', heroTemplate.title)}
                   </h2>
-                  <p className="mt-2 max-w-md text-sm leading-6 text-white/95">
+                  <p className="mt-2 max-w-md text-sm leading-6 text-[#F0E7EB]">
                     A real website design to preview, personalise and make your own.
                   </p>
                 </div>
@@ -307,7 +310,10 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
                   <Eye size={15} aria-hidden="true" /> Open interactive preview
                 </button>
               </div>
-              <div className="pointer-events-none absolute -right-2 -top-3 hidden items-center gap-2 rounded-2xl border border-[#E5D5CD] bg-white px-3.5 py-3 shadow-xl sm:flex lg:-right-4">
+              {/* z-10 keeps this badge in its own layer above the isolated hero photo —
+                  without it axe-core treats the photo as painting over the badge text
+                  and reports the background as overlapped. */}
+              <div className="pointer-events-none absolute -right-2 -top-3 z-10 hidden items-center gap-2 rounded-2xl border border-[#E5D5CD] bg-white px-3.5 py-3 shadow-xl sm:flex lg:-right-4">
                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-[#F7E9EB] text-[#743D55]"><Clock3 size={17} aria-hidden="true" /></span>
                 <span><strong className="block text-xs text-[#251A24]">Simple guided setup</strong><span className="text-[10px] text-[#62515B]">No code needed</span></span>
               </div>
@@ -415,7 +421,7 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
                 </article>
               ))}
             </div>
-            <div className="mt-10 flex flex-col items-center justify-between gap-5 rounded-2xl border border-[#E4DCCB] bg-gradient-to-r from-[#F6F1E6] to-[#FBF8F2] p-6 sm:flex-row sm:p-7">
+            <div className="mt-10 flex flex-col items-center justify-between gap-5 rounded-2xl border border-[#E4DCCB] bg-[#F6F1E6] p-6 sm:flex-row sm:p-7">
               <div className="flex items-start gap-3 text-center sm:text-left">
                 <span className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-primary shadow-sm sm:inline-flex"><Star size={21} aria-hidden="true" /></span>
                 <div><p className="font-display text-lg font-extrabold text-[#1B1630]">Your next salon website starts here.</p><p className="mt-1 text-sm text-[#5B5470]">Explore every template freely, then customise when you are ready.</p></div>
