@@ -149,7 +149,7 @@ assert.ok(indexHtml.includes(NEXORA_HOME_SEO.twitterDescription));
 assert.ok(indexHtml.includes(NEXORA_HOME_OG_IMAGE));
 assert.ok(indexHtml.includes(`<link rel="canonical" href="${NEXORA_PUBLIC_ORIGIN}/" />`));
 assert.ok(indexHtml.includes('type="application/ld+json"'), 'homepage exposes static structured data');
-const jsonLdMatch = indexHtml.match(/<script type="application\\/ld\\+json">([\\s\\S]*?)<\\/script>/);
+const jsonLdMatch = indexHtml.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
 assert.ok(jsonLdMatch, 'homepage JSON-LD script is present');
 const homepageSchema = JSON.parse(jsonLdMatch[1]) as { url?: string };
 assert.equal(homepageSchema.url, `${NEXORA_PUBLIC_ORIGIN}/`, 'homepage structured data uses the production origin');
