@@ -24,7 +24,7 @@
 | Vite production build + server bundle | Passed |
 | Offline verification suites | 90/109 passed; 19 failed |
 
-Observed failure groups include template-count/category assumptions, customer account/discovery, gallery/loyalty, service/staff/profile, starter packages, Template 15 legacy/media and website wiring. A concrete assertion was `aurelia_beauty_parlour: Saved video heading missing`. Another asserted that the Aurelia template's services/packages all need photos. The test log also showed outdated expectations for 14/15 templates. These failures require individual root-cause review; they are not all necessarily application defects, and the assertions must not simply be weakened.
+Observed failure groups include template-count/category assumptions, customer account/discovery, gallery/loyalty, service/staff/profile, starter packages, Template 15 legacy/media and website wiring. A concrete assertion was `aurelia_beauty_parlour: Saved video heading missing`. Another asserted that the Aurelia template's services/packages all need photos. The PR #69 base predates the inspected current main; current main already updates several 14/15-template assertions to 16. Therefore the 19 failures are branch-specific evidence, not a verified current-main baseline. The actual Aurelia integration gaps identified in the current tree have been addressed on this audit branch, but the suite has not yet been rerun.
 
 ## Browser and live integration
 
