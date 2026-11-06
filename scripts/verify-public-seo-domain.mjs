@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { build } from 'esbuild';
 
 const origin = 'https://nexorasalon.online';
@@ -8,7 +8,9 @@ for (const path of ['index.html', 'login.html', 'src/lib/publicSeo.ts']) {
   const source = readFileSync(path, 'utf8');
   assert.ok(source.includes(origin), path + ': canonical NEXORA origin missing');
   assert.ok(!source.includes(legacyOrigin), path + ': legacy canonical origin remains');
+  assert.ok(source.includes('/nexora-homepage-og.jpg'), path + ': verified social image path missing');
 }
+assert.ok(statSync('public/nexora-homepage-og.jpg').size > 10000, 'NEXORA social preview image must exist and be non-empty');
 const robots = readFileSync('public/robots.txt', 'utf8');
 assert.match(robots, /User-agent: \*/);
 assert.ok(robots.includes(origin + '/sitemap.xml'));
