@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useDermacure } from './context';
 import { EditorialImage } from './EditorialImage';
-import { reelSource } from '../../lib/socialVideoSource';
+import { reelSource, socialVideoEmbedUrl, socialVideoSource } from '../../lib/socialVideoSource';
 import type { TreatmentStory } from '../../types';
 
 export const DEFAULT_TREATMENT_STORIES: TreatmentStory[] = [
@@ -378,13 +378,19 @@ export function ClinicTreatmentStories() {
                 <article key={video.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                   <div className="relative aspect-video bg-gray-900">
                     {open ? (
-                      <iframe
-                        src={`https://www.youtube.com/embed/${source.id}?rel=0`}
-                        title={video.title || 'Clinic treatment video'}
-                        className="w-full h-full border-0"
-                        allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      />
+                      socialVideoEmbedUrl(source, { controls: true }) ? (
+                        <iframe
+                          src={socialVideoEmbedUrl(source, { controls: true })}
+                          title={video.title || 'Clinic treatment video'}
+                          className="w-full h-full border-0"
+                          allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      ) : (
+                        <a href={source.url} target="_blank" rel="noopener noreferrer" className="w-full h-full flex items-center justify-center text-white text-xs font-semibold bg-gray-900">
+                          Open this video on {socialVideoSource(video.youtubeUrl)?.platform || 'the original post'}
+                        </a>
+                      )
                     ) : (
                       <button
                         type="button"

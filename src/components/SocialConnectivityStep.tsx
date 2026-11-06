@@ -1,10 +1,29 @@
-import {shortVideoSource,secureMediaUrl,videoSource} from '../lib/socialVideoSource';
+import {shortVideoSource,socialVideoSource,secureMediaUrl,videoSource} from '../lib/socialVideoSource';
 import {createDemoVideos,showcaseVideos} from '../lib/showcaseVideos';
 import { socialUrl } from '../lib/websiteContent';
-import React, { useState } from 'react';
-import { SalonProfile, SocialVideo, VideoCategoryTag } from '../types';
+import { uploadSalonImage } from '../lib/supabase';
+import { SocialVideoCoverField, type SocialVideoCoverMode } from './SocialVideoCoverField';
+import React, { useEffect, useState } from 'react';
+import { SalonProfile, SocialVideo, SocialVideoFormat, VideoCategoryTag } from '../types';
 
 export const DEFAULT_SHOWCASE_VIDEOS = createDemoVideos('nail_studio');
+
+/** Placeholder for the required video link field (YouTube · Instagram · Facebook). */
+export const VIDEO_URL_PLACEHOLDER = 'https://youtube.com/shorts/... or https://instagram.com/reel/... or https://facebook.com/reel/...';
+
+/** Formats offered by the Add Social Video modal. All three stay in the reel feed. */
+export const SOCIAL_VIDEO_FORMATS: ReadonlyArray<{ id: SocialVideoFormat; hint: string }> = [
+  { id: 'SHORT', hint: 'YouTube Shorts — vertical clip shown in your reels rail.' },
+  { id: 'REEL', hint: 'Instagram Reel — vertical clip shown in your reels rail.' },
+  { id: 'FACEBOOK', hint: 'Facebook Reel, Watch or page video — vertical clip shown in your reels rail.' },
+];
+
+/** Format implied by the pasted link's platform. */
+export function detectedVideoFormat(raw: string): SocialVideoFormat | null {
+  const source = socialVideoSource(raw);
+  if (!source) return null;
+  return source.platform === 'Facebook' ? 'FACEBOOK' : source.platform === 'Instagram' ? 'REEL' : 'SHORT';
+}
 
 export function extractYouTubeId(url: string): string | null {
   if (!url) return null;
@@ -29,16 +48,36 @@ export const SocialConnectivityStep: React.FC<SocialConnectivityStepProps> = ({
   const isInstaConnected=!!instagram.trim(), isFbConnected=!!facebook.trim(), isYtConnected=!!youtube.trim(), isTtConnected=!!tiktok.trim();
   const videos=showcaseVideos(profile);
   const [editingVideo,setEditingVideo]=useState<SocialVideo|null>(null);
-  const replaceVideo=(video:SocialVideo)=>{setEditingVideo(video);setVideoUrlInput(video.youtubeUrl);setPreviewUrlInput(video.previewVideoUrl||'');setPosterUrlInput(video.thumbnailUrl?.startsWith('https://img.youtube.com/vi/')?'':video.thumbnailUrl||'');setVideoTitleInput(video.title);setVideoCategoryInput(video.categoryTag);setManagingVideo(null);setIsAddModalOpen(true);setUrlError(null);};
+  const replaceVideo=(video:SocialVideo)=>{setEditingVideo(video);setVideoUrlInput(video.youtubeUrl);setPreviewUrlInput(video.previewVideoUrl||'');setCoverImageUrl(video.thumbnailUrl?.startsWith('https://img.youtube.com/vi/')?'':video.thumbnailUrl||'');setCoverMode('url');setCoverImageFile(null);setCoverError(null);setVideoTitleInput(video.title);setVideoFormatInput(video.videoFormat||detectedVideoFormat(video.youtubeUrl)||'SHORT');setManagingVideo(null);setIsAddModalOpen(true);setUrlError(null);};
   // Modal / Form state for Add Social Video
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
   const [videoUrlInput, setVideoUrlInput] = useState<string>('');
   const [previewUrlInput,setPreviewUrlInput]=useState('');
-  const [posterUrlInput,setPosterUrlInput]=useState('');
+  const [coverMode,setCoverMode]=useState<SocialVideoCoverMode>('url');
+  const [coverImageUrl,setCoverImageUrl]=useState('');
+  const [coverImageFile,setCoverImageFile]=useState<File|null>(null);
+  const [coverError,setCoverError]=useState<string|null>(null);
   const [videoTitleInput, setVideoTitleInput] = useState<string>('');
-  const [videoCategoryInput, setVideoCategoryInput] = useState<VideoCategoryTag>('SHORT');
+  const [videoFormatInput, setVideoFormatInput] = useState<SocialVideoFormat>('SHORT');
   const [urlError, setUrlError] = useState<string | null>(null);
+  const [isSavingVideo, setIsSavingVideo] = useState<boolean>(false);
   const [addSuccessMessage, setAddSuccessMessage] = useState<string | null>(null);
+
+  const closeAddModal = () => {
+    setIsAddModalOpen(false);
+    setUrlError(null);
+    setCoverError(null);
+  };
+
+  // Escape closes the Add Social Video dialog (kept DOM-safe for SSR/tests).
+  useEffect(() => {
+    if (!isAddModalOpen || typeof window === 'undefined') return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeAddModal();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isAddModalOpen]);
 
   // Manage Video modal state
   const [managingVideo, setManagingVideo] = useState<SocialVideo | null>(null);
@@ -71,27 +110,62 @@ export const SocialConnectivityStep: React.FC<SocialConnectivityStepProps> = ({
     if(!url){setUrlError('Enter your actual social profile URL or handle first.');return;}
     setUrlError(null);window.open(url,'_blank','noopener,noreferrer');
   };
-  const handleAddVideoSubmit = (e: React.FormEvent) => {
+  const handleAddVideoSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSavingVideo) return;
     setUrlError(null);
+    setCoverError(null);
 
     const source = shortVideoSource(videoUrlInput);
     if (!source) {
-      setUrlError('Only YouTube Shorts (/shorts/) or Instagram Reels (/reel/) links are allowed here. Full-length videos are not supported.');
+      setUrlError('Paste a YouTube Shorts, Instagram Reel or Facebook Video/Reel link — e.g. youtube.com/shorts/…, instagram.com/reel/…, facebook.com/reel/…, facebook.com/watch/?v=… or fb.watch/…. Full-length videos are not supported here.');
       return;
     }
 
-    if((previewUrlInput.trim()&&!secureMediaUrl(previewUrlInput))||(posterUrlInput.trim()&&!secureMediaUrl(posterUrlInput))){setUrlError('Preview and cover image URLs must use HTTPS.');return;}
+    if (previewUrlInput.trim() && !secureMediaUrl(previewUrlInput)) {
+      setUrlError('The short preview URL must start with https://.');
+      return;
+    }
+    if (coverMode === 'url' && coverImageUrl.trim() && !secureMediaUrl(coverImageUrl)) {
+      setCoverError('The cover image URL must start with https://.');
+      return;
+    }
+    if (coverMode === 'upload' && !coverImageFile) {
+      setCoverError('Choose a cover image file, or switch back to “Paste URL”.');
+      return;
+    }
+
+    // Uploaded covers go to the Supabase media bucket on save; URL covers are
+    // normalised through secureMediaUrl so only https images reach the site.
+    let coverUrl = coverMode === 'url' ? secureMediaUrl(coverImageUrl) : '';
+    if (coverMode === 'upload' && coverImageFile) {
+      setIsSavingVideo(true);
+      try {
+        coverUrl = await uploadSalonImage(coverImageFile);
+      } catch (error) {
+        setCoverError(error instanceof Error ? error.message : 'Could not upload the cover image. Try again or paste an image URL.');
+        setIsSavingVideo(false);
+        return;
+      }
+      setIsSavingVideo(false);
+    }
+
     const title = videoTitleInput.trim() || `Client Transformation Reel #${videos.length + 1}`;
     const newVideo: SocialVideo = {
       id: editingVideo?.id || `vid-owner-${Date.now()}`,
       isDemo:false,
       youtubeUrl: source.url,
+      facebookUrl: source.platform === 'Facebook' ? source.url : '',
+      videoFormat: videoFormatInput,
       videoId: source.id,
       previewVideoUrl:secureMediaUrl(previewUrlInput),
       title,
       channelTitle: profile?.businessName || 'Your Salon Channel',
-      thumbnailUrl: secureMediaUrl(posterUrlInput)||(source.platform==='YouTube'?`https://img.youtube.com/vi/${source.id}/hqdefault.jpg`:profile.coverImageUrl||''),
+      thumbnailUrl: coverUrl
+        || (source.platform === 'YouTube' ? `https://img.youtube.com/vi/${source.id}/hqdefault.jpg` : '')
+        || (editingVideo && !editingVideo.thumbnailUrl?.startsWith('https://img.youtube.com/vi/') ? editingVideo.thumbnailUrl : '')
+        || profile.coverImageUrl
+        || '',
       categoryTag: 'SHORT',
       isOwnerVideo: true, // "yours"
       views: '',
@@ -101,8 +175,9 @@ export const SocialConnectivityStep: React.FC<SocialConnectivityStepProps> = ({
     const updated = editingVideo ? videos.map(video=>video.id===editingVideo.id?newVideo:video) : [newVideo, ...videos];
     syncToProfile(instagram, facebook, youtube, tiktok, updated);
 
-    setVideoUrlInput('');setPreviewUrlInput('');setPosterUrlInput('');
-    setVideoTitleInput('');
+    setVideoUrlInput('');setPreviewUrlInput('');setCoverImageUrl('');
+    setCoverMode('url');setCoverImageFile(null);setCoverError(null);
+    setVideoTitleInput('');setVideoFormatInput('SHORT');
     setIsAddModalOpen(false);
     setAddSuccessMessage(editingVideo?'Video replaced successfully on your website.':'New social video added successfully to your website feed!');setEditingVideo(null);
     setTimeout(() => setAddSuccessMessage(null), 4000);
@@ -423,14 +498,14 @@ export const SocialConnectivityStep: React.FC<SocialConnectivityStepProps> = ({
                 </h3>
               </div>
               <p className="text-xs text-purple-200 mt-1 leading-relaxed">
-                Add YouTube Shorts or Instagram Reels only. Full-length videos stay out of this feed.
+                Add a YouTube Short, Instagram Reel or Facebook Reel/Watch link. Full-length videos stay out of this feed.
               </p>
             </div>
 
             <div className="pt-2">
               <button
                 type="button"
-                onClick={() => {setEditingVideo(null);setVideoUrlInput('');setPreviewUrlInput('');setPosterUrlInput('');setVideoTitleInput('');setIsAddModalOpen(true);}}
+                onClick={() => {setEditingVideo(null);setVideoUrlInput('');setPreviewUrlInput('');setCoverImageUrl('');setCoverMode('url');setCoverImageFile(null);setCoverError(null);setVideoTitleInput('');setVideoFormatInput('SHORT');setUrlError(null);setIsAddModalOpen(true);}}
                 className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-[#b0004a] to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
               >
                 <span className="material-symbols-outlined text-base">add_circle</span>
@@ -869,110 +944,168 @@ export const SocialConnectivityStep: React.FC<SocialConnectivityStepProps> = ({
       {/* ADD SOCIAL VIDEO MODAL */}
       {/* ============================================================ */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border border-gray-200 rounded-2xl max-w-lg w-full p-6 shadow-2xl flex flex-col gap-5 animate-scale-up">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-[#b0004a] text-xl">add_to_queue</span>
-                <h3 className="font-display font-bold text-lg text-gray-900">
-                  {editingVideo?'Replace Video URL & Title':'Add Social Video URL'}
-                </h3>
+        <div
+          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto"
+          onClick={closeAddModal}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-social-video-title"
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl w-full max-w-xl my-auto shadow-2xl flex flex-col max-h-[92vh] animate-scale-up"
+          >
+            <div className="flex items-start justify-between gap-3 border-b border-gray-100 dark:border-slate-800 px-5 sm:px-6 py-4">
+              <div className="flex items-start gap-2.5">
+                <span className="material-symbols-outlined text-[#b0004a] text-xl leading-6">add_to_queue</span>
+                <div>
+                  <h3 id="add-social-video-title" className="font-display font-bold text-lg text-gray-900 dark:text-slate-100 leading-tight">
+                    {editingVideo?'Replace Video URL & Title':'Add Social Video URL'}
+                  </h3>
+                  <p className="text-[11px] text-gray-500 dark:text-slate-400 mt-0.5">
+                    Step 06 · appears as a portrait reel on your website.
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
-                onClick={() => {
-                  setIsAddModalOpen(false);
-                  setUrlError(null);
-                }}
-                className="text-gray-400 hover:text-gray-700 text-sm font-bold cursor-pointer"
+                onClick={closeAddModal}
+                aria-label="Close add video dialog"
+                className="text-gray-400 hover:text-gray-700 dark:hover:text-slate-200 text-sm font-bold cursor-pointer shrink-0"
               >
                 ✕
               </button>
             </div>
 
-            <p className="text-xs text-gray-600 leading-relaxed">
-              Add a YouTube Shorts or Instagram Reel link only. YouTube covers are automatic. For Instagram hover playback, add your own playable MP4/WebM preview URL.
-            </p>
+            <div className="px-5 sm:px-6 py-4 overflow-y-auto flex flex-col gap-4">
+              <p className="text-xs text-gray-600 dark:text-slate-400 leading-relaxed">
+                Add a YouTube Short, Instagram Reel or Facebook Reel/Watch link. YouTube covers are automatic — for any platform you can paste a cover URL or upload your own file. For Instagram/Facebook hover playback, add your own playable MP4/WebM preview URL.
+              </p>
 
-            {urlError && (
-              <div className="bg-rose-50 border border-rose-200 text-rose-800 p-3 rounded-xl text-xs font-medium flex items-center gap-2">
-                <span className="material-symbols-outlined text-rose-600 text-base">error</span>
-                <span>{urlError}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleAddVideoSubmit} className="flex flex-col gap-4">
-              <div>
-                <label className="text-xs font-bold text-gray-700 uppercase font-mono-caps block mb-1">
-                  YouTube Shorts / Instagram Reel URL *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={videoUrlInput}
-                  onChange={(e) => setVideoUrlInput(e.target.value)}
-                  placeholder="https://youtube.com/shorts/... or https://instagram.com/reel/..."
-                  className="w-full text-xs font-mono p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#b0004a] focus:outline-none text-gray-900"
-                />
-              </div>
-
-              <label className="text-xs font-bold text-gray-700">Cover image URL (optional)
-                <input type="url" value={posterUrlInput} onChange={e=>setPosterUrlInput(e.target.value)} placeholder="https://your-site.com/reel-cover.jpg" className="block w-full mt-1 p-3 rounded-xl border border-gray-300 text-gray-900"/>
-              </label>
-              <label className="text-xs font-bold text-gray-700">Short preview URL (optional MP4 / WebM, up to 3 minutes)
-                <input type="url" value={previewUrlInput} onChange={e=>setPreviewUrlInput(e.target.value)} placeholder="https://your-site.com/reel-preview.mp4" className="block w-full mt-1 p-3 rounded-xl border border-gray-300 text-gray-900"/>
-              </label>
-              <div>
-                <label className="text-xs font-bold text-gray-700 uppercase font-mono-caps block mb-1">
-                  Video Title (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={videoTitleInput}
-                  onChange={(e) => setVideoTitleInput(e.target.value)}
-                  placeholder="e.g. Keratin Smooth Transformation Reel"
-                  className="w-full text-xs p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#b0004a] focus:outline-none text-gray-900"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-gray-700 uppercase font-mono-caps block mb-1">
-                  Video format — Shorts / Reels only
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(['SHORT'] as VideoCategoryTag[]).map((cat) => (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => setVideoCategoryInput(cat)}
-                      className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all ${
-                        videoCategoryInput === cat
-                          ? 'bg-[#b0004a] text-white border-[#b0004a] shadow-xs'
-                          : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
-                      }`}
-                    >
-                      {cat}
-                    </button>
-                  ))}
+              {urlError && (
+                <div role="alert" className="bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 text-rose-800 dark:text-rose-300 p-3 rounded-xl text-xs font-medium flex items-start gap-2">
+                  <span className="material-symbols-outlined text-rose-600 dark:text-rose-400 text-base leading-5">error</span>
+                  <span>{urlError}</span>
                 </div>
-              </div>
+              )}
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100 mt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl border border-gray-300 text-xs font-bold text-gray-700 hover:bg-gray-100 cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2.5 rounded-xl bg-[#b0004a] hover:bg-[#d81b60] text-white text-xs font-bold shadow-md cursor-pointer transition-all"
-                >
-                  {editingVideo?'Save replacement':'Save & Add Video'}
-                </button>
-              </div>
-            </form>
+              <form id="add-social-video-form" onSubmit={handleAddVideoSubmit} className="flex flex-col gap-4">
+                <div>
+                  <label htmlFor="social-video-url" className="text-xs font-bold text-gray-700 dark:text-slate-200 uppercase font-mono-caps block mb-1">
+                    Video / Reel URL *
+                  </label>
+                  <input
+                    id="social-video-url"
+                    type="text"
+                    required
+                    inputMode="url"
+                    value={videoUrlInput}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setVideoUrlInput(value);
+                      setUrlError(null);
+                      const detected = detectedVideoFormat(value);
+                      if (detected) setVideoFormatInput(detected);
+                    }}
+                    placeholder={VIDEO_URL_PLACEHOLDER}
+                    aria-describedby="social-video-url-help"
+                    className="w-full text-xs font-mono p-3 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:ring-2 focus:ring-[#b0004a] focus:outline-none text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500"
+                  />
+                  <p id="social-video-url-help" className="mt-1.5 text-[10.5px] leading-relaxed text-gray-500 dark:text-slate-400">
+                    Supports YouTube Shorts, Instagram Reels, or Facebook Video/Reel links.
+                  </p>
+                </div>
+
+                <SocialVideoCoverField
+                  mode={coverMode}
+                  onModeChange={setCoverMode}
+                  url={coverImageUrl}
+                  onUrlChange={(value) => { setCoverImageUrl(value); setCoverError(null); }}
+                  file={coverImageFile}
+                  onFileChange={(file) => { setCoverImageFile(file); setCoverError(null); }}
+                  fallbackUrl={editingVideo?.thumbnailUrl}
+                  error={coverError}
+                  disabled={isSavingVideo}
+                />
+
+                <label className="text-xs font-bold text-gray-700 dark:text-slate-200">
+                  Short preview URL (optional MP4 / WebM, up to 3 minutes)
+                  <input
+                    type="url"
+                    value={previewUrlInput}
+                    onChange={e=>setPreviewUrlInput(e.target.value)}
+                    placeholder="https://your-site.com/reel-preview.mp4"
+                    className="mt-1 block w-full p-3 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-xs font-mono text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500"
+                  />
+                  <span className="block mt-1 text-[10.5px] font-normal text-gray-500 dark:text-slate-400">Plays on hover in the reels rail. Leave empty to link straight to the post.</span>
+                </label>
+
+                <div>
+                  <label htmlFor="social-video-title" className="text-xs font-bold text-gray-700 dark:text-slate-200 uppercase font-mono-caps block mb-1">
+                    Video Title (Optional)
+                  </label>
+                  <input
+                    id="social-video-title"
+                    type="text"
+                    value={videoTitleInput}
+                    onChange={(e) => setVideoTitleInput(e.target.value)}
+                    placeholder="e.g. Keratin Smooth Transformation Reel"
+                    className="w-full text-xs p-3 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:ring-2 focus:ring-[#b0004a] focus:outline-none text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500"
+                  />
+                </div>
+
+                <div>
+                  <span id="social-video-format-label" className="text-xs font-bold text-gray-700 dark:text-slate-200 uppercase font-mono-caps block mb-1">
+                    Video format
+                  </span>
+                  <div role="group" aria-labelledby="social-video-format-label" className="grid grid-cols-3 gap-2">
+                    {SOCIAL_VIDEO_FORMATS.map((format) => (
+                      <button
+                        key={format.id}
+                        type="button"
+                        aria-pressed={videoFormatInput === format.id}
+                        title={format.hint}
+                        onClick={() => setVideoFormatInput(format.id)}
+                        className={`py-2 px-2 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                          videoFormatInput === format.id
+                            ? 'bg-[#b0004a] text-white border-[#b0004a] shadow-xs'
+                            : 'bg-gray-50 dark:bg-slate-950 border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        {format.id}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-1.5 text-[10.5px] leading-relaxed text-gray-500 dark:text-slate-400">
+                    {SOCIAL_VIDEO_FORMATS.find((format) => format.id === videoFormatInput)?.hint}
+                    {videoUrlInput.trim() && detectedVideoFormat(videoUrlInput) && detectedVideoFormat(videoUrlInput) !== videoFormatInput && (
+                      <span className="block mt-1 text-amber-700 dark:text-amber-400 font-medium">
+                        Heads up: this link looks like a {detectedVideoFormat(videoUrlInput) === 'FACEBOOK' ? 'Facebook' : detectedVideoFormat(videoUrlInput) === 'REEL' ? 'Instagram' : 'YouTube'} post — pick {detectedVideoFormat(videoUrlInput)} to label it correctly.
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </form>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 px-5 sm:px-6 py-4 border-t border-gray-100 dark:border-slate-800 bg-gray-50/70 dark:bg-slate-950/40 rounded-b-2xl">
+              <button
+                type="button"
+                onClick={closeAddModal}
+                disabled={isSavingVideo}
+                className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-slate-700 text-xs font-bold text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 cursor-pointer disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="add-social-video-form"
+                disabled={isSavingVideo}
+                className="px-6 py-2.5 rounded-xl bg-[#b0004a] hover:bg-[#d81b60] text-white text-xs font-bold shadow-md cursor-pointer transition-all disabled:opacity-70 disabled:cursor-wait"
+              >
+                {isSavingVideo?'Uploading cover…':editingVideo?'Save replacement':'Save & Add Video'}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1093,7 +1226,7 @@ export const SocialConnectivityStep: React.FC<SocialConnectivityStepProps> = ({
             </div>
 
             <div className="aspect-video w-full rounded-xl bg-black overflow-hidden border border-slate-800">
-              {secureMediaUrl(previewActiveVideo.previewVideoUrl)?<video className="w-full h-full" src={previewActiveVideo.previewVideoUrl} autoPlay muted playsInline controls/>:videoSource(previewActiveVideo)?.platform==='YouTube'?<iframe src={`https://www.youtube.com/embed/${previewActiveVideo.videoId}?autoplay=1&mute=1&playsinline=1`} title={previewActiveVideo.title} className="w-full h-full border-0" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen/>:<a href={videoSource(previewActiveVideo)?.url} target="_blank" rel="noopener noreferrer" className="block p-6 text-white underline">Open Reel on Instagram</a>}
+              {secureMediaUrl(previewActiveVideo.previewVideoUrl)?<video className="w-full h-full" src={previewActiveVideo.previewVideoUrl} autoPlay muted playsInline controls/>:videoSource(previewActiveVideo)?.platform==='YouTube'?<iframe src={`https://www.youtube.com/embed/${previewActiveVideo.videoId}?autoplay=1&mute=1&playsinline=1`} title={previewActiveVideo.title} className="w-full h-full border-0" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen/>:<a href={videoSource(previewActiveVideo)?.url} target="_blank" rel="noopener noreferrer" className="block p-6 text-white underline">Open on {videoSource(previewActiveVideo)?.platform || 'Instagram'}</a>}
             </div>
           </div>
         </div>

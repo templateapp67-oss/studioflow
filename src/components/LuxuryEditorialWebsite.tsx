@@ -30,7 +30,7 @@ import { PHOTO_CATEGORIES, type PhotoCategory } from '../lib/photoGallery';
 import { clientExperiences } from '../lib/demoWebsiteContent';
 import { socialUrl } from '../lib/websiteContent';
 import { showcaseVideos } from '../lib/showcaseVideos';
-import { reelSource } from '../lib/socialVideoSource';
+import { reelSource, socialVideoEmbedUrl, socialVideoSource } from '../lib/socialVideoSource';
 import { supabase } from '../lib/supabase';
 import {
   LUXURY_EDITORIAL_COPY,
@@ -1396,14 +1396,23 @@ export const LuxuryEditorialWebsite: React.FC<LuxuryEditorialWebsiteProps> = ({
                                 playsInline
                                 className="le-video-embed"
                               />
-                            ) : (
+                            ) : socialVideoEmbedUrl(socialVideoSource(vid.youtubeUrl), { autoplay: true, muted: videoMuted, controls: true }) ? (
                               <iframe
-                                src={`https://www.youtube-nocookie.com/embed/${vid.videoId}?autoplay=1&mute=${videoMuted ? 1 : 0}&controls=1&playsinline=1&rel=0&modestbranding=1`}
+                                src={socialVideoEmbedUrl(socialVideoSource(vid.youtubeUrl), { autoplay: true, muted: videoMuted, controls: true })}
                                 title={vid.title}
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                 allowFullScreen
                                 className="le-video-embed"
                               />
+                            ) : (
+                              <a
+                                href={vid.youtubeUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="le-video-embed flex items-center justify-center bg-black text-white text-sm font-semibold"
+                              >
+                                Open this reel on {socialVideoSource(vid.youtubeUrl)?.platform || 'the original post'}
+                              </a>
                             )}
                             <div className="le-video-live-bar">
                               <button

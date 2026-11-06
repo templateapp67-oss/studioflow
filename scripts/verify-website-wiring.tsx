@@ -24,7 +24,7 @@ import {act,create} from 'react-test-renderer';
 import {showcaseVideos} from '../src/lib/showcaseVideos';
 import {AuthPage} from '../src/components/AuthPage';
 import {PromoStudio} from '../src/components/PromoStudio';
-import {SocialConnectivityStep} from '../src/components/SocialConnectivityStep';
+import {SocialConnectivityStep,VIDEO_URL_PLACEHOLDER} from '../src/components/SocialConnectivityStep';
 import {renderToStaticMarkup} from 'react-dom/server';
 import assert from 'node:assert/strict';
 import {CATEGORY_STANDARDIZED_DATA} from '../src/templateData';
@@ -137,7 +137,7 @@ const demoButton=(label:string)=>demoEditor.root.findAll((node:any)=>node.type==
 const originalDemoId=demoProfile.socialVideos[0].id;
 await act(async()=>demoButton('MANAGE / REPLACE').props.onClick());
 await act(async()=>demoButton('Replace video / Edit URL & title').props.onClick());
-await act(async()=>demoEditor.root.findByProps({placeholder:'https://youtube.com/shorts/... or https://instagram.com/reel/...'}).props.onChange({target:{value:'https://www.youtube.com/shorts/abcdefghijk'}}));
+await act(async()=>demoEditor.root.findByProps({placeholder:VIDEO_URL_PLACEHOLDER}).props.onChange({target:{value:'https://www.youtube.com/shorts/abcdefghijk'}}));
 await act(async()=>demoEditor.root.findByProps({placeholder:'e.g. Keratin Smooth Transformation Reel'}).props.onChange({target:{value:'My actual salon reel'}}));
 await act(async()=>demoEditor.root.findAll((node:any)=>node.type==='form'&&node.props.onSubmit)[0].props.onSubmit({preventDefault(){}}));
 assert.equal(demoProfile.socialVideos.length,5);assert.equal(demoProfile.socialVideos[0].id,originalDemoId);assert.equal(demoProfile.socialVideos[0].videoId,'abcdefghijk');assert.equal(demoProfile.socialVideos[0].isDemo,false);
@@ -763,7 +763,7 @@ await act(async()=>{demoEditor=create(<DemoHarness/>);});
 await act(async()=>demoButton('MANAGE / REPLACE').props.onClick());
 await act(async()=>demoButton('Replace video / Edit URL & title').props.onClick());
 await act(async()=>{
- demoEditor.root.findByProps({placeholder:'https://youtube.com/shorts/... or https://instagram.com/reel/...'}).props.onChange({target:{value:insta.youtubeUrl}});
+ demoEditor.root.findByProps({placeholder:VIDEO_URL_PLACEHOLDER}).props.onChange({target:{value:insta.youtubeUrl}});
  demoEditor.root.findByProps({placeholder:'https://your-site.com/reel-cover.jpg'}).props.onChange({target:{value:insta.thumbnailUrl}});
  demoEditor.root.findByProps({placeholder:'https://your-site.com/reel-preview.mp4'}).props.onChange({target:{value:insta.previewVideoUrl}});
 });
@@ -795,7 +795,7 @@ for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_h
 }
 await act(async()=>{demoEditor=create(<DemoHarness/>);});
 await act(async()=>demoButton('MANAGE / REPLACE').props.onClick());await act(async()=>demoButton('Replace video / Edit URL & title').props.onClick());
-await act(async()=>demoEditor.root.findByProps({placeholder:'https://youtube.com/shorts/... or https://instagram.com/reel/...'}).props.onChange({target:{value:ownerFull.youtubeUrl}}));
+await act(async()=>demoEditor.root.findByProps({placeholder:VIDEO_URL_PLACEHOLDER}).props.onChange({target:{value:ownerFull.youtubeUrl}}));
 const beforeRejected=demoProfile.socialVideos;
 await act(async()=>demoEditor.root.findAll((node:any)=>node.type==='form'&&node.props.onSubmit)[0].props.onSubmit({preventDefault(){}}));
 assert.equal(demoProfile.socialVideos,beforeRejected);assert.ok(demoText(demoEditor.root).includes('Full-length videos are not supported'));
