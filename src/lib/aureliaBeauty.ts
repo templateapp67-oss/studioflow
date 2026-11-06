@@ -25,12 +25,12 @@ export const AURELIA_DEFAULT_CONFIG: AureliaBeautyConfig = {
   announcementText: 'A little more time for yourself. Discover the Aurelia experience.',
   heroEyebrow: 'AURELIA · BANDRA WEST, MUMBAI',
   heroHeading: 'Beauty, considered.',
-  heroSubtext: 'A thoughtful space for hair, skin and self-care. Expert hands, honest advice and rituals made around you.',
+  heroSubtext: 'A calm space for your hair, skin and everyday self-care. Skilled hands, honest advice, and services planned around you.',
   heroImageUrl: AURELIA_IMAGES.hero,
   heroBadge: 'A quiet kind of luxury',
   storyEyebrow: 'THE AURELIA STORY',
   storyHeading: 'A softer way to feel your best.',
-  storyText: 'Aurelia brings together thoughtful beauty, skilled artistry and a welcoming studio atmosphere. Every appointment begins with a conversation, so your service feels personal rather than one-size-fits-all.',
+  storyText: 'Aurelia brings together good beauty work, skilled hands and a warm studio. Every appointment begins with a conversation, so your service feels personal, never rushed or off-the-shelf.',
   storyImageUrl: AURELIA_IMAGES.story,
   servicesHeading: 'The Aurelia edit',
   menuHeading: 'A menu made for you',
@@ -46,9 +46,9 @@ export const AURELIA_DEFAULT_CONFIG: AureliaBeautyConfig = {
 };
 
 export const AURELIA_DEFAULT_SERVICES: SalonService[] = [
-  {id:'aur-hair-01',name:'Signature Cut & Finish',category:'Hair',durationMinutes:75,price:1800,description:'A considered cut, tailored consultation, wash and polished finish.',icon:'content_cut',popular:true,imageUrl:AURELIA_IMAGES.hair,origin:'template'},
+  {id:'aur-hair-01',name:'Signature Cut & Finish',category:'Hair',durationMinutes:75,price:1800,description:'A proper consultation, a wash, and a cut that suits your hair and daily routine — finished with a neat blow-dry.',icon:'content_cut',popular:true,imageUrl:AURELIA_IMAGES.hair,origin:'template'},
   {id:'aur-hair-02',name:'Aurelia Blowout',category:'Hair',durationMinutes:50,price:1400,description:'Soft movement, shape and long-lasting volume with a heat-safe finish.',icon:'styler',imageUrl:AURELIA_IMAGES.hair,origin:'template'},
-  {id:'aur-colour-01',name:'Balayage & Gloss',category:'Hair Colour',durationMinutes:180,price:9500,description:'Personalised hand-painted colour, tone and gloss. Final pricing is confirmed after consultation.',icon:'brush',popular:true,imageUrl:AURELIA_IMAGES.colour,origin:'template'},
+  {id:'aur-colour-01',name:'Balayage & Gloss',category:'Hair Colour',durationMinutes:180,price:9500,description:'Hand-painted colour blended to suit your skin tone, sealed with a shine gloss. Final price is confirmed after the consultation.',icon:'brush',popular:true,imageUrl:AURELIA_IMAGES.colour,origin:'template'},
   {id:'aur-colour-02',name:'Gloss & Tone',category:'Hair Colour',durationMinutes:90,price:4500,description:'Refresh your existing shade with a custom gloss and tone service.',icon:'palette',imageUrl:AURELIA_IMAGES.colour,origin:'template'},
   {id:'aur-skin-01',name:'Radiance Facial',category:'Skin',durationMinutes:60,price:3200,description:'A calming cleanse, gentle exfoliation and hydration-focused facial ritual.',icon:'sparkles',popular:true,imageUrl:AURELIA_IMAGES.skin,origin:'template'},
   {id:'aur-skin-02',name:'Hydra-Infusion Facial',category:'Skin',durationMinutes:75,price:4800,description:'A refreshing hydration session tailored to your skin consultation.',icon:'droplets',imageUrl:AURELIA_IMAGES.skin,origin:'template'},

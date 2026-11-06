@@ -51,13 +51,13 @@ export const ARCH_FLUTTER_TEMPLATE_CODE = '13';
 export const ARCH_FLUTTER_SLUG = 'arch-flutter';
 export const ARCH_FLUTTER_SELECTOR_LABEL = 'Arch & Flutter (13)';
 export const ARCH_FLUTTER_BRAND_NAME = 'Arch & Flutter Lash & Brow Bar';
-export const ARCH_FLUTTER_TAGLINE = 'Frame your eyes. Flutter your confidence.';
-export const ARCH_FLUTTER_HERO_KICKER = 'Lash & Brow Atelier · Est. 2019';
+export const ARCH_FLUTTER_TAGLINE = 'Lashes and brows done carefully, with a patch test before we start.';
+export const ARCH_FLUTTER_HERO_KICKER = 'Lash & Brow Studio · Since 2019';
 export const ARCH_FLUTTER_HERO_HEADING = 'Frame Your Eyes. Flutter Your Confidence.';
 export const ARCH_FLUTTER_HERO_SUBTEXT =
-  'An eye-area-only beauty bar in Jaipur: weightless lash extensions, feathered brow lamination, henna and semi-permanent artistry — mapped to your bone structure, priced honestly in ₹.';
+  'We do only lashes and brows, in C-Scheme, Jaipur — light lash extensions, brow lamination, henna and permanent makeup, mapped to your eye shape and priced honestly in ₹.';
 export const ARCH_FLUTTER_DEFAULT_ABOUT =
-  'Arch & Flutter is not a full-service salon — we do one thing and we do it obsessively: the eye area. Since 2019 our C-Scheme bar has built a reputation for feather-light Russian volume, brushed-up laminations and powder brows that photograph like your own. Every set starts with a face-map and a patch test, every adhesive is vegan and fume-free, and every price you see is the price you pay, GST included.';
+  'At Arch & Flutter we only do the eye area — lashes and brows — and nothing else. We have been in C-Scheme since 2019. Every set begins with a face map and a patch test, all our products are vegan and fume-free, and the price you see is the price you pay — GST included.';
 export const ARCH_FLUTTER_DEFAULT_CITY = 'Jaipur, Rajasthan';
 export const ARCH_FLUTTER_DEFAULT_ADDRESS = '12, Ashok Marg, C-Scheme, Near Statue Circle';
 export const ARCH_FLUTTER_DEFAULT_POSTAL_CODE = '302001';
@@ -599,7 +599,7 @@ export function resolveArchFlutterConfig(profile: SalonProfile): ResolvedArchFlu
       (raw.reelsSubtext || '').trim() ||
       'Application films, transformations and studio stories. Tap a reel to unmute; open the source to watch full-length.',
     teamHeading: (raw.teamHeading || '').trim() || 'The artists behind the arch',
-    reviewsHeading: (raw.reviewsHeading || '').trim() || 'Clients who fluttered out',
+    reviewsHeading: (raw.reviewsHeading || '').trim() || 'Kind words from our clients',
     galleryHeading: (raw.galleryHeading || '').trim() || 'From the studio, this month',
     offersHeading: (raw.offersHeading || '').trim() || 'This season at the bar',
     journalHeading: (raw.journalHeading || '').trim() || 'Aftercare journal',

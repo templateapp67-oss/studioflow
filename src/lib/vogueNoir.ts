@@ -16,7 +16,7 @@ import type {
 
 export const VOGUE_NOIR_SELECTOR_LABEL = 'Vogue Noir (08)';
 export const VOGUE_NOIR_BRAND_NAME = 'Vogue Noir Makeup Studio & Academy';
-export const VOGUE_NOIR_HERO_HEADING = 'Luxury Makeup, Made For Every Indian Bride';
+export const VOGUE_NOIR_HERO_HEADING = 'Bridal makeup, made for every Indian bride';
 export const VOGUE_NOIR_TAGLINE =
   'Aapki Shaadi, Aapka Glow';
 export const VOGUE_NOIR_DEFAULT_ADDRESS =
@@ -109,7 +109,7 @@ export const VOGUE_NOIR_IMAGES = {
 } as const;
 
 export const VOGUE_NOIR_DEFAULT_ABOUT =
-  'Vogue Noir is a premium makeup studio and academy, trusted by brides across Delhi, Mumbai, Bengaluru and more. We believe makeup should make you look like the best version of yourself, not like someone else. Our artists are trained in every Indian skin tone and bridal tradition, so your look stays perfect from the pheras to the last dance at the reception.';
+  'Vogue Noir is a makeup studio and academy, trusted by brides across Delhi, Mumbai and Bengaluru. We believe makeup should make you look like the best version of yourself — not like someone else. Our artists work with every Indian skin tone and bridal tradition, so your look stays fresh from the pheras to the last dance at the reception.';
 
 export const VOGUE_NOIR_DEFAULT_STATS: VogueNoirStatItem[] = [
   { id: 'vn-stat-1', value: '8+', label: 'Years Experience' },

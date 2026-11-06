@@ -41,12 +41,12 @@ export const PRISM_CHROMA_TEMPLATE_CODE = '10';
 export const PRISM_CHROMA_SLUG = 'prism-chroma';
 export const PRISM_CHROMA_SELECTOR_LABEL = 'Prism & Chroma (10)';
 export const PRISM_CHROMA_BRAND_NAME = 'Prism & Chroma Hair Color Atelier';
-export const PRISM_CHROMA_TAGLINE = 'Colour that turns heads. Care that keeps hair strong.';
-export const PRISM_CHROMA_HERO_HEADING = 'Your Hair, Every Colour of Light';
+export const PRISM_CHROMA_TAGLINE = 'Colour that turns heads, with care that keeps hair strong.';
+export const PRISM_CHROMA_HERO_HEADING = 'Your hair, in every shade of light';
 export const PRISM_CHROMA_HERO_SUBTEXT =
   'Balayage, bold fashion colours, soft pastels and full colour correction — done by trained colour experts who first check your hair, then colour it with care.';
 export const PRISM_CHROMA_DEFAULT_ABOUT =
-  'Prism & Chroma is a premium hair colour studio. We do balayage, global colour, fashion and pastel shades, highlights, colour correction, keratin and gloss treatments. Before any colour, we check your hair health, do a patch test, and tell you the full price in ₹ — no surprises later. You pick the shade, we mix it fresh for your hair and skin tone.';
+  'Prism & Chroma is a hair colour studio in Bandra West. We do balayage, global colour, fashion and pastel shades, highlights, colour correction, keratin and gloss. Before any colour, we check your hair health, do a patch test, and tell you the full price in ₹ — no surprises later. You pick the shade, we mix it fresh for your hair and skin tone.';
 export const PRISM_CHROMA_DEFAULT_CITY = 'Mumbai, Maharashtra';
 export const PRISM_CHROMA_DEFAULT_ADDRESS = 'Linking Road, Bandra West';
 export const PRISM_CHROMA_DEFAULT_POSTAL_CODE = '400050';
