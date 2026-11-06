@@ -73,13 +73,14 @@ function cleanEmailText(value: unknown, max = 200): string {
 }
 
 function escapeEmailHtml(value: unknown, max = 200): string {
-  return cleanEmailText(value, max).replace(/[&<>"']/g, (character) => ({
+  const replacements: Record<string, string> = {
     '&': '&amp;',
     '<': '&lt;',
     '>': '&gt;',
     '"': '&quot;',
     "'": '&#039;',
-  })[character] || character);
+  };
+  return cleanEmailText(value, max).replace(/[&<>"']/g, character => replacements[character] ?? character);
 }
 
 async function getAuthenticatedEmail(authorization?: string): Promise<string | null> {
