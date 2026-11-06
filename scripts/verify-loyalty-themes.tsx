@@ -15,4 +15,4 @@ for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_h
 assert.equal(loyaltyTheme({...INITIAL_SALON_PROFILE,businessType:'barber',darkCanvas:false}).dark,true,'Barber storefront is always its dark reference theme');
 assert.equal(loyaltyTheme({...INITIAL_SALON_PROFILE,businessType:'hair_salon',darkCanvas:true}).dark,true);
 assert.equal(loyaltyTheme({...INITIAL_SALON_PROFILE,businessType:'makeup_studio',darkCanvas:false}).dark,false);
-console.log('PASS: all 14 loyalty themes, readable card/badge contrast, custom accent, dark/light settings, saved reward content, disabled and hidden states.');
+console.log('PASS: all 15 customer-facing templates, readable card/badge contrast, custom accent, dark/light settings, saved reward content, disabled and hidden states.');

@@ -5,7 +5,7 @@ Project: zilwgiuiygqqardzutxi. Uses the existing Auth, profiles, growth_partners
 Applied SQL, in order:
 1. studioflow-shared-tables.sql (profiles, growth_*, partner_referrals; extends shared tables, never replaces)
 2. studioflow-schema.sql
-3. studioflow-template-catalog.sql (14 templates present in this Site)
+3. studioflow-template-catalog.sql (initial 14-template catalogue; Templates 15 and 16 are added by the later template 15/16 catalogue-sync migration)
 4. studioflow-backend-validation.sql
 5. studioflow-storage-and-booking-status.sql
 6. studioflow-availability.sql
@@ -52,7 +52,7 @@ Apply `studioflow-service-images.sql` after the catalogue migration. Service pho
 
 All customer themes use a 3:2 `object-fit: cover` frame; owner previews update directly from React state. Remove photo clears the saved service association. Saved media is retained when detached to avoid breaking reuse; newly uploaded images abandoned before saving are cleaned up through the Storage API. `studioflow-service-images-verification.sql` checks upload ownership, URL/path matching, save/replace/remove, theme persistence and public synchronization with rollback.
 
-Advanced conversion features: apply `booking-add-ons.sql` after the mobile multi-service booking functions. It keeps `studioflow_book` compatible with old requests, accepts optional `addOnIds` + `requestId`, and validates offered extras, combined duration, staff eligibility, overlap locks and server prices through the existing multi-service contract. `booking-add-ons-verification.sql` runs a rollback-only synthetic booking/privacy/state test across all 14 templates. Payment continues to use the saved server price and 25% deposit.
+Advanced conversion features: apply `booking-add-ons.sql` after the mobile multi-service booking functions. It keeps `studioflow_book` compatible with old requests, accepts optional `addOnIds` + `requestId`, and validates offered extras, combined duration, staff eligibility, overlap locks and server prices through the existing multi-service contract. `booking-add-ons-verification.sql` runs a rollback-only synthetic booking/privacy/state test across all 16 templates. Payment continues to use the saved server price and 25% deposit.
 
 Owner profile state now includes `bookingAddOnServiceIds` (step 5), `comparisonPhotos` (step 7), `reviewSource` and `defaultWebsiteLanguage` (step 11). These use the existing versioned workspace save and sanitized published projection. Comparison pairs require explicit permission confirmation. External review modes are profile link, labelled owner-curated excerpts, or labelled simulation; no Google/Instagram scraping or external review API is configured. Published salon feed settings refresh from Supabase every 60 seconds and on manual refresh. The language selector switches key website UI labels; custom salon copy is not automatically translated.
 
