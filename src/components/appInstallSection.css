@@ -681,3 +681,20 @@
   --ai-gutter: 0;
   --ai-shadow: none;
 }
+
+/* Template 16 — Aurelia's warm sandstone, espresso and copper palette. */
+.aurelia-site :is(.app-install, .app-install-strip) {
+  --ai-surface: #efe6da;
+  --ai-surface-2: #f6f1ea;
+  --ai-ink: #1d1612;
+  --ai-muted: #766d64;
+  --ai-accent: #1d1612;
+  --ai-on-accent: #f6f1ea;
+  --ai-accent-ink: #1d1612;
+  --ai-line: #d8c8b4;
+  --ai-radius: 0px;
+  --ai-btn-radius: 0px;
+  --ai-font-heading: var(--font-aurelia-display, Georgia, serif);
+  --ai-font-body: var(--font-aurelia-sans, Arial, sans-serif);
+  --ai-shadow: 0 12px 34px -24px rgba(29, 22, 18, 0.45);
+}
