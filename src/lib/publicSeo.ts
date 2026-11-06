@@ -1,5 +1,5 @@
 /** Canonical public production origin already used by NEXORA account and customer links. */
-export const NEXORA_PUBLIC_ORIGIN = 'https://studioflow-ashen-pi.vercel.app';
+export const NEXORA_PUBLIC_ORIGIN = 'https://nexorasalon.online';
 export const NEXORA_HOME_OG_IMAGE = `${NEXORA_PUBLIC_ORIGIN}/nexora-homepage-og.jpg`;
 
 export const NEXORA_HOME_SEO = {
