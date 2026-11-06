@@ -98,6 +98,16 @@ for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_h
   assert.ok(savedHtml.includes('https://cdn.example.com/saved-lash-set.jpg'),'saved lash photograph appears in the Template 13 lookbook');
   assert.ok(savedHtml.includes('Our own lash set'),'saved lash photograph keeps its caption');
   assert.ok(!savedHtml.includes('Demo lookbook'),'an owner lookbook is never labelled as demo');
+ }else if(template.id==='aurelia_beauty_parlour'){
+  const counts=samples.reduce((map,photo)=>map.set(photo.category,(map.get(photo.category)||0)+1),new Map<string,number>());
+  assert.ok(html.includes(`Lookbook (${samples.length})`),'Aurelia shows the total lookbook count');
+  for(const [category,count] of counts)assert.ok(html.includes(`${category} (${count})`),`Aurelia counts its ${category} photographs`);
+  assert.equal((html.match(/aria-label="View salon look /g)||[]).length,5,'Aurelia has five accessible gallery controls');
+  for(const sample of samples)assert.ok(html.includes(sample.url),`Aurelia gallery keeps ${sample.id}`);
+  assert.ok(!html.includes('Delete photo')&&!html.includes('Replace / Edit'));
+  const savedHtml=renderToStaticMarkup(<CustomerSalonWebsite profile={{...profile,photoGalleryInitialized:true,photoGalleryType:'aurelia_beauty_parlour',photoGallery:[{id:'au-own-1',category:'Skin' as const,url:'https://cdn.example.com/saved-aurelia-photo.jpg',title:'Our own beauty work',isDemo:false}]}} services={[]} stylists={[]} readOnly onAddAppointment={async a=>a}/>);
+  assert.ok(savedHtml.includes('https://cdn.example.com/saved-aurelia-photo.jpg'),'Aurelia shows the saved owner photograph');
+  assert.ok(savedHtml.includes('Skin (1)'),'Aurelia reports the saved photo category');
  }else if(template.id==='unisex_salon'){
   // Template 03 (Aura Unisex Salon & Wellness Lounge) renders its own mixed
   // gallery — one large plate plus four smaller ones — from the same saved-photo
