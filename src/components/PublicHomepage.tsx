@@ -11,7 +11,6 @@ import {
   LayoutTemplate,
   Menu,
   MonitorSmartphone,
-  MousePointer2,
   Rocket,
   Sparkles,
   Star,
