@@ -13,6 +13,8 @@
 - `public/robots.txt` — crawler access and canonical sitemap reference.
 
 ### Fixed on this branch
+- Added Vercel HSTS and Permissions-Policy plus matching baseline Express headers, removed the Express powered-by header and made the 100 KB JSON request limit explicit.
+- Added a security-header configuration regression script.
 - Restored Template 16 shared customer website integrations: customer profile controls (desktop/mobile), staff full-profile view, service/package photo rendering, dedicated package cards, saved gallery categories, app-install banner theme, shared promotion/social/loyalty/policy sections and saved section headings.
 - Added Aurelia to the customer Beauty Parlour discovery category.
 - Reconciled backend catalogue documentation and booking add-ons verification from 14 to 16 templates.
