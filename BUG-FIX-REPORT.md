@@ -66,6 +66,14 @@
 - **Fix:** Added HSTS and least-privilege Permissions-Policy to Vercel; added X-Content-Type-Options, X-Frame-Options, Referrer-Policy and Permissions-Policy to Express; disabled X-Powered-By; set the JSON body limit explicitly to 100 KB; added a static regression check.
 - **Status:** Implemented on branch; CI verification pending. CSP is intentionally not enforced without external-origin inventory.
 
+### FIX-008 — Close the booking-email relay and remove simulated delivery success
+
+- **Severity:** P1
+- **Root cause:** Express and Supabase Edge email endpoints accepted caller-supplied recipients without verifying the signed-in user; the Edge Function allowed wildcard CORS; the development path could report a simulated send as successful when Resend was not configured.
+- **Files:** `server.ts`, `supabase/functions/studioflow-booking-emails/index.ts`, `src/lib/emailService.ts`, `src/components/BookingModal.tsx`, `.env.example`, `scripts/verify-booking-email-security.mjs`.
+- **Fix:** Validate Supabase access tokens through Auth; require the recipient to match the authenticated account email persisted by the booking RPC; forward session tokens from the client; make the booking email field read-only for signed-in accounts; restrict Edge Function CORS to configured origins; add a five-send/10-minute per-user in-memory throttle; escape HTML and sanitize email subjects; cap recipient and body fields; return HTTP 503 rather than simulated success when Resend is not configured.
+- **Status:** Implemented on branch; CI and live Supabase/Resend verification pending. The in-memory throttle is per process/isolate, not a distributed global quota.
+
 ## Outstanding confirmed or high-risk issues
 
 - PR #69 CI reports 19 failing offline suites; the latest inspected run reports 90/109 passing. These have not been represented as fixed by the SEO changes above.
