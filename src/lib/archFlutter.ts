@@ -53,9 +53,9 @@ export const ARCH_FLUTTER_SELECTOR_LABEL = 'Arch & Flutter (13)';
 export const ARCH_FLUTTER_BRAND_NAME = 'Arch & Flutter Lash & Brow Bar';
 export const ARCH_FLUTTER_TAGLINE = 'Lashes and brows done carefully, with a patch test before we start.';
 export const ARCH_FLUTTER_HERO_KICKER = 'Lash & Brow Studio · Since 2019';
-export const ARCH_FLUTTER_HERO_HEADING = 'Frame Your Eyes. Flutter Your Confidence.';
+export const ARCH_FLUTTER_HERO_HEADING = 'Lash and brow care, just for you';
 export const ARCH_FLUTTER_HERO_SUBTEXT =
-  'We do only lashes and brows, in C-Scheme, Jaipur — light lash extensions, brow lamination, henna and permanent makeup, mapped to your eye shape and priced honestly in ₹.';
+  'Visit us in C-Scheme, Jaipur for lash extensions and brow care. We’ll help you choose a look, explain the steps and confirm the price in ₹.';
 export const ARCH_FLUTTER_DEFAULT_ABOUT =
   'At Arch & Flutter we only do the eye area — lashes and brows — and nothing else. We have been in C-Scheme since 2019. Every set begins with a face map and a patch test, all our products are vegan and fume-free, and the price you see is the price you pay — GST included.';
 export const ARCH_FLUTTER_DEFAULT_CITY = 'Jaipur, Rajasthan';

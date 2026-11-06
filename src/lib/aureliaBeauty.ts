@@ -22,22 +22,22 @@ export const AURELIA_IMAGES = {
 };
 
 export const AURELIA_DEFAULT_CONFIG: AureliaBeautyConfig = {
-  announcementText: 'A little more time for yourself. Discover the Aurelia experience.',
+  announcementText: 'Take a little time for yourself. We’d love to see you at Aurelia.',
   heroEyebrow: 'AURELIA · BANDRA WEST, MUMBAI',
-  heroHeading: 'Beauty, considered.',
-  heroSubtext: 'A calm space for your hair, skin and everyday self-care. Skilled hands, honest advice, and services planned around you.',
+  heroHeading: 'Feel good, look your best.',
+  heroSubtext: 'A friendly space for hair, skin and a little self-care. We listen, share honest advice and plan each visit around you.',
   heroImageUrl: AURELIA_IMAGES.hero,
   heroBadge: 'A quiet kind of luxury',
   storyEyebrow: 'THE AURELIA STORY',
-  storyHeading: 'A softer way to feel your best.',
-  storyText: 'Aurelia brings together good beauty work, skilled hands and a warm studio. Every appointment begins with a conversation, so your service feels personal, never rushed or off-the-shelf.',
+  storyHeading: 'Good care, with a personal touch.',
+  storyText: 'Aurelia is a warm studio where good beauty work starts with listening. We take time to understand what you want, so your visit feels personal and never rushed.',
   storyImageUrl: AURELIA_IMAGES.story,
-  servicesHeading: 'The Aurelia edit',
+  servicesHeading: 'Services to make time for yourself',
   menuHeading: 'A menu made for you',
-  teamHeading: 'The craftspeople',
+  teamHeading: 'Meet your beauty team',
   galleryHeading: 'A glimpse of Aurelia',
   videosHeading: 'Inside the studio',
-  offersHeading: 'A little something extra',
+  offersHeading: 'Something extra for your visit',
   reviewsHeading: 'Kind words, honestly shared',
   contactHeading: 'Your time at Aurelia',
   workingHoursDisplay: 'Monday – Saturday · 10:00 AM – 8:00 PM',
@@ -46,16 +46,16 @@ export const AURELIA_DEFAULT_CONFIG: AureliaBeautyConfig = {
 };
 
 export const AURELIA_DEFAULT_SERVICES: SalonService[] = [
-  {id:'aur-hair-01',name:'Signature Cut & Finish',category:'Hair',durationMinutes:75,price:1800,description:'A proper consultation, a wash, and a cut that suits your hair and daily routine — finished with a neat blow-dry.',icon:'content_cut',popular:true,imageUrl:AURELIA_IMAGES.hair,origin:'template'},
-  {id:'aur-hair-02',name:'Aurelia Blowout',category:'Hair',durationMinutes:50,price:1400,description:'Soft movement, shape and long-lasting volume with a heat-safe finish.',icon:'styler',imageUrl:AURELIA_IMAGES.hair,origin:'template'},
-  {id:'aur-colour-01',name:'Balayage & Gloss',category:'Hair Colour',durationMinutes:180,price:9500,description:'Hand-painted colour blended to suit your skin tone, sealed with a shine gloss. Final price is confirmed after the consultation.',icon:'brush',popular:true,imageUrl:AURELIA_IMAGES.colour,origin:'template'},
-  {id:'aur-colour-02',name:'Gloss & Tone',category:'Hair Colour',durationMinutes:90,price:4500,description:'Refresh your existing shade with a custom gloss and tone service.',icon:'palette',imageUrl:AURELIA_IMAGES.colour,origin:'template'},
-  {id:'aur-skin-01',name:'Radiance Facial',category:'Skin',durationMinutes:60,price:3200,description:'A calming cleanse, gentle exfoliation and hydration-focused facial ritual.',icon:'sparkles',popular:true,imageUrl:AURELIA_IMAGES.skin,origin:'template'},
-  {id:'aur-skin-02',name:'Hydra-Infusion Facial',category:'Skin',durationMinutes:75,price:4800,description:'A refreshing hydration session tailored to your skin consultation.',icon:'droplets',imageUrl:AURELIA_IMAGES.skin,origin:'template'},
-  {id:'aur-nails-01',name:'Signature Gel Manicure',category:'Nails',durationMinutes:60,price:1800,description:'Nail shaping, cuticle care and a long-wear gel finish.',icon:'hand',imageUrl:AURELIA_IMAGES.nails,origin:'template'},
-  {id:'aur-spa-01',name:'Aromatherapy Massage',category:'Spa',durationMinutes:75,price:3800,description:'A relaxing full-body massage with a choice of gentle aromatic oils.',icon:'flower',imageUrl:AURELIA_IMAGES.spa,origin:'template'},
-  {id:'aur-spa-02',name:'Botanical Head Spa',category:'Spa',durationMinutes:60,price:2600,description:'A slow scalp and hair ritual with a relaxing wash and finish.',icon:'leaf',imageUrl:AURELIA_IMAGES.spa,origin:'template'},
-  {id:'aur-bridal-01',name:'Bridal Trial & Styling',category:'Bridal',durationMinutes:150,price:11500,description:'A detailed bridal look trial with hair and makeup planning.',icon:'gem',imageUrl:AURELIA_IMAGES.bridal,origin:'template'},
+  {id:'aur-hair-01',name:'Signature Cut & Finish',category:'Hair',durationMinutes:75,price:1800,description:'We’ll talk through the look you want, then wash, cut and blow-dry your hair to suit your everyday routine.',icon:'content_cut',popular:true,imageUrl:AURELIA_IMAGES.hair,origin:'template'},
+  {id:'aur-hair-02',name:'Aurelia Blowout',category:'Hair',durationMinutes:50,price:1400,description:'A smooth blow-dry with soft movement and volume, finished with heat protection.',icon:'styler',imageUrl:AURELIA_IMAGES.hair,origin:'template'},
+  {id:'aur-colour-01',name:'Balayage & Gloss',category:'Hair Colour',durationMinutes:180,price:9500,description:'Hand-painted colour chosen to suit you, finished with a gloss for extra shine. We’ll confirm the final price after a quick consultation.',icon:'brush',popular:true,imageUrl:AURELIA_IMAGES.colour,origin:'template'},
+  {id:'aur-colour-02',name:'Gloss & Tone',category:'Hair Colour',durationMinutes:90,price:4500,description:'Refresh your current shade with a gloss and tone chosen to suit your hair.',icon:'palette',imageUrl:AURELIA_IMAGES.colour,origin:'template'},
+  {id:'aur-skin-01',name:'Radiance Facial',category:'Skin',durationMinutes:60,price:3200,description:'A gentle cleanse and exfoliation, followed by a hydrating facial to leave your skin feeling fresh.',icon:'sparkles',popular:true,imageUrl:AURELIA_IMAGES.skin,origin:'template'},
+  {id:'aur-skin-02',name:'Hydra-Infusion Facial',category:'Skin',durationMinutes:75,price:4800,description:'A refreshing facial planned around your skin and what it needs.',icon:'droplets',imageUrl:AURELIA_IMAGES.skin,origin:'template'},
+  {id:'aur-nails-01',name:'Signature Gel Manicure',category:'Nails',durationMinutes:60,price:1800,description:'Nail shaping and cuticle care, finished with gel colour that lasts.',icon:'hand',imageUrl:AURELIA_IMAGES.nails,origin:'template'},
+  {id:'aur-spa-01',name:'Aromatherapy Massage',category:'Spa',durationMinutes:75,price:3800,description:'Unwind with a full-body massage and your choice of aromatic oil.',icon:'flower',imageUrl:AURELIA_IMAGES.spa,origin:'template'},
+  {id:'aur-spa-02',name:'Botanical Head Spa',category:'Spa',durationMinutes:60,price:2600,description:'A relaxing scalp and hair treatment, followed by a wash and easy finish.',icon:'leaf',imageUrl:AURELIA_IMAGES.spa,origin:'template'},
+  {id:'aur-bridal-01',name:'Bridal Trial & Styling',category:'Bridal',durationMinutes:150,price:11500,description:'Try your bridal look and plan your hair and makeup with our team.',icon:'gem',imageUrl:AURELIA_IMAGES.bridal,origin:'template'},
 ];
 
 export const AURELIA_DEFAULT_STAFF: Stylist[] = [

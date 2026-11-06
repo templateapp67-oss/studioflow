@@ -31,7 +31,7 @@ export const BODHI_TREE_BRAND_NAME = 'Bodhi Tree Massage & Wellness Sanctuary';
 export const BODHI_TREE_TAGLINE = 'Rest well, feel light — padharo, Jaipur.';
 export const BODHI_TREE_HERO_HEADING = 'Rest well. Feel light.';
 export const BODHI_TREE_HERO_SUBTEXT =
-  'A calm massage and wellness place in the heart of Jaipur. Pure oils, trained therapists and simple, honest care — so you can relax, sleep better and feel fresh.';
+  'Take a break with a relaxing massage or Ayurvedic treatment in Jaipur. Our team will help you choose a service that suits you.';
 export const BODHI_TREE_DEFAULT_ABOUT =
   'Bodhi Tree is a calm place in the heart of Jaipur. Our trained therapists use pure oils and Ayurvedic methods to help you relax, sleep better and feel fresh.';
 export const BODHI_TREE_DEFAULT_CITY = 'Jaipur, Rajasthan';

@@ -200,7 +200,7 @@ export const MENS_LOYALTY: LoyaltyConfig = {
   })),
 };
 export const MENS_DEFAULTS: MensConfig = {
-  heroHeading: "Own Your Look. Own Your Style.",
+  heroHeading: "A fresh cut, your way.",
   heroDescription: MENS_DESCRIPTION,
   haircutButton: "Book Your Haircut",
   stylesButton: "Explore Men's Styles",

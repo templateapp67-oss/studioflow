@@ -44,12 +44,12 @@ export const SHRINGAAR_SELECTOR_LABEL = 'Shringaar Royal (11)';
 export const SHRINGAAR_BRAND_NAME = 'Shringaar Royal Indian Bridal Lounge';
 export const SHRINGAAR_TAGLINE =
   'Rajputana bridal trousseaus · heirloom jewellery styling · complete wedding packages';
-export const SHRINGAAR_HERO_HEADING = 'Where every bride becomes royalty';
+export const SHRINGAAR_HERO_HEADING = 'Your wedding look, planned with care';
 export const SHRINGAAR_HERO_SCRIPT = 'Shringaar';
 export const SHRINGAAR_HERO_SUBTEXT =
-  'Bridal makeovers, hand-draped Rajputana trousseaus and kundan jewellery styling — all in Jaipur, for the bride who wants to be remembered.';
+  'Bridal makeup, hair and draping in Jaipur. We’ll plan your look with you, from the first trial to the wedding day.';
 export const SHRINGAAR_DEFAULT_ABOUT =
-  'Shringaar is a bridal studio, not an everyday parlour. For eleven wedding seasons we have dressed Rajputana brides in Jaipur — hand-worked lehengas, kundan jewellery, and a look that lasts a fourteen-hour wedding day. Every bride is styled in her own private room, with a trial, a written look book and her own pre-bridal plan.';
+  'Shringaar Royal is a Jaipur bridal studio for makeup, hair and draping. We plan each look with you, with a trial and a clear schedule for your wedding celebrations.';
 export const SHRINGAAR_DEFAULT_CITY = 'Jaipur, Rajasthan';
 export const SHRINGAAR_DEFAULT_ADDRESS = 'MI Road, Near Panch Batti & Raj Mandir';
 export const SHRINGAAR_DEFAULT_POSTAL_CODE = '302001';
@@ -678,7 +678,7 @@ export function resolveShringaarRoyalConfig(profile: SalonProfile): ResolvedShri
     offerText:
       (raw.offerText || '').trim() ||
       'Book your bridal date this month and receive a complimentary trial look book, a pre-bridal glow consultation and ₹5,000 off the Maharani Heirloom package.',
-    bookingHeading: (raw.bookingHeading || '').trim() || 'Book Your Bridal Consultation',
+    bookingHeading: (raw.bookingHeading || '').trim() || 'Plan your bridal look',
     announcementText: (raw.announcementText || '').trim() || SHRINGAAR_DEFAULT_ANNOUNCEMENT,
     bookingImageUrl: (raw.bookingImageUrl || '').trim() || SHRINGAAR_IMAGES.booking,
     offerImageUrl: (raw.offerImageUrl || '').trim() || SHRINGAAR_IMAGES.offer,

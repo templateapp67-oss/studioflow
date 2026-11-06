@@ -527,12 +527,12 @@ export function luxuryEditorialCssVariables(profile: Pick<SalonProfile, 'customA
 export const LUXURY_EDITORIAL_COPY = {
   brandName: 'Ziya Women’s Hair Studio',
   brandSublabel: 'Women’s Haircut Specialist Salon',
-  heroEyebrow: 'Ziya Women’s Hair Studio · Specialist Cut Atelier',
-  heroHeadline: 'Your Hair, Your Style, Your Confidence',
+  heroEyebrow: 'ZIYA WOMEN’S HAIR STUDIO · BENGALURU',
+  heroHeadline: 'A haircut that feels like you',
   heroSubheadline:
-    'Professional women’s haircuts designed around your face shape, hair type and personal style.',
-  heroPrimaryCta: 'Book Your Haircut',
-  heroSecondaryCta: 'Explore Haircut Styles',
+    'Thoughtful haircuts for women, shaped around your face, hair and everyday style.',
+  heroPrimaryCta: 'Book an appointment',
+  heroSecondaryCta: 'See our styles',
   heroHighlights: [
     'Face-Shape Matched Cuts',
     '100% Female Hairstylist Team',
