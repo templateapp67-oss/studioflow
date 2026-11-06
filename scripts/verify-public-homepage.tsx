@@ -9,6 +9,7 @@ import { CATEGORY_TEMPLATES } from '../src/categoryTemplates';
 import { NEXORA_TEMPLATE_META } from '../src/lib/nexoraTemplateCatalogue';
 import { nexoraPreviewImage } from '../src/lib/nexoraPreviewImages';
 import { resolveSiteSlug } from '../src/lib/resolveSite';
+import { generateSitemap, isEphemeralOrigin, sitemapOrigin } from '../server/sitemap';
 import { AUTH_CALLBACK_FRAGMENT_KEYS, AUTH_CALLBACK_QUERY_KEYS, hasAuthCallbackFragment, hasAuthCallbackQuery } from '../src/lib/authEntry';
 import type { BusinessTypeId } from '../src/types';
 import {
@@ -47,6 +48,7 @@ for (const key of AUTH_CALLBACK_QUERY_KEYS) {
   assert.equal(hasAuthCallbackQuery(`?${key}=1`), true, `application must treat ${key} as an auth entry`);
 }
 assert.equal(hasAuthCallbackQuery('?ref=ABC123'), false, 'business referrals alone stay on the public signup path');
+assert.equal(NEXORA_PUBLIC_ORIGIN, 'https://nexorasalon.online', 'SEO must use the production domain, never a Vercel preview host');
 const homeHtml = renderToStaticMarkup(<PublicHomepage />);
 const authenticatedHomeHtml = renderToStaticMarkup(<PublicHomepage authenticated />);
 const renderRoutedRoot = (session: string | null) => {
@@ -173,6 +175,10 @@ assert.ok(indexHtml.includes(NEXORA_HOME_SEO.twitterDescription));
 assert.ok(indexHtml.includes(NEXORA_HOME_OG_IMAGE));
 assert.ok(indexHtml.includes(`<link rel="canonical" href="${NEXORA_PUBLIC_ORIGIN}/" />`));
 assert.ok(indexHtml.includes('type="application/ld+json"'), 'homepage exposes static structured data');
+const jsonLdMatch = indexHtml.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+assert.ok(jsonLdMatch, 'homepage JSON-LD script is present');
+const homepageSchema = JSON.parse(jsonLdMatch[1]) as { url?: string };
+assert.equal(homepageSchema.url, `${NEXORA_PUBLIC_ORIGIN}/`, 'homepage structured data uses the production origin');
 assert.ok(indexHtml.includes('/fonts/hanken-grotesk-latin-wght-normal.woff2'), 'homepage preloads its local font');
 assert.ok(!indexHtml.includes('window.fetch'), 'fetch is not monkey-patched');
 assert.ok(!indexHtml.includes('fonts.googleapis.com/css'), 'marketing HTML has no render-blocking third-party font stylesheet');
@@ -186,5 +192,37 @@ assert.ok(!loginDocument.includes('window.fetch'), 'login does not monkey-patch 
 assert.ok(loginDocument.includes(`<meta name="twitter:title" content="${NEXORA_LOGIN_SEO.twitterTitle}" />`));
 assert.ok(!loginDocument.includes(NEXORA_HOME_SEO.description), 'login never reuses homepage metadata');
 assert.ok(readFileSync('server/sitemap.ts', 'utf8').includes('origin + "/",'), 'public root is included in sitemap');
+const robotsTxt = readFileSync('public/robots.txt', 'utf8');
+assert.ok(robotsTxt.includes(`Sitemap: ${NEXORA_PUBLIC_ORIGIN}/sitemap.xml`), 'robots.txt sitemap URL uses the production origin');
+const generatedSitemap = await generateSitemap({
+  SITE_URL: 'https://studioflow-ashen-pi.vercel.app',
+  SUPABASE_URL: 'https://supabase.example',
+  SUPABASE_ANON_KEY: 'test-key',
+}, async () => new Response('[]', { status: 200 }));
+assert.ok(generatedSitemap.includes(`<loc>${NEXORA_PUBLIC_ORIGIN}/</loc>`), 'generated sitemap uses the production origin');
+assert.ok(!generatedSitemap.includes('vercel.app'), 'generated sitemap ignores preview-host environment overrides');
+// Both halves of the sitemap origin contract must hold at once: preview hosts are
+// rejected, but a real custom domain is still honoured (verify-gap-completion asserts
+// the custom-domain half, so hardcoding the canonical here regresses that suite).
+for (const preview of ['https://studioflow-ashen-pi.vercel.app', 'https://x.preview.vercel.app', 'https://site.netlify.app', 'https://site.pages.dev', 'http://localhost:3000']) {
+  if (preview.startsWith('http://')) continue; // canonicalOrigin already rejects non-HTTPS
+  assert.equal(isEphemeralOrigin(preview), true, `preview host must be rejected: ${preview}`);
+  assert.equal(sitemapOrigin({ SITE_URL: preview }), NEXORA_PUBLIC_ORIGIN, `preview host must fall back to the canonical: ${preview}`);
+}
+assert.equal(isEphemeralOrigin('https://nexorasalon.online'), false);
+assert.equal(isEphemeralOrigin('https://clinic.example'), false);
+assert.equal(sitemapOrigin({ SITE_URL: 'https://clinic.example' }), 'https://clinic.example', 'a real custom domain stays configurable');
+assert.equal(sitemapOrigin({ VITE_SITE_URL: 'https://clinic.example' }), 'https://clinic.example', 'the Vite fallback stays configurable');
+assert.equal(sitemapOrigin({ SITE_URL: 'https://x.vercel.app', VITE_SITE_URL: 'https://clinic.example' }), 'https://clinic.example', 'a preview SITE_URL falls through to a real custom domain');
+assert.equal(sitemapOrigin({}), NEXORA_PUBLIC_ORIGIN, 'with no configuration the production canonical is used');
+assert.throws(() => sitemapOrigin({ SITE_URL: 'https://clinic.example/path' }), 'a malformed origin still fails loudly');
+const customDomainSitemap = await generateSitemap({
+  SITE_URL: 'https://clinic.example',
+  SUPABASE_URL: 'https://supabase.example',
+  SUPABASE_ANON_KEY: 'test-key',
+}, async () => new Response('[{"slug":"real-clinic"}]', { status: 200 }));
+assert.ok(customDomainSitemap.includes('<loc>https://clinic.example/?site=real-clinic</loc>'), 'published salons keep their own domain in the sitemap');
+assert.ok(!customDomainSitemap.includes(NEXORA_PUBLIC_ORIGIN), 'a custom-domain sitemap does not mix in the platform canonical');
+assert.ok(![indexHtml, loginDocument, robotsTxt].some(source => source.includes('studioflow-ashen-pi.vercel.app')), 'static SEO files contain no preview-domain URLs');
 
 console.log('PASS: public homepage hierarchy/content, 16 templates/15 categories, signup template handoff, exact login H1, distinct home/login SEO, social images, canonical URLs and sitemap.');

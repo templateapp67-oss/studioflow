@@ -3,4 +3,4 @@ Allow: /
 Disallow: /login
 Disallow: /api/
 
-Sitemap: https://studioflow-ashen-pi.vercel.app/sitemap.xml
+Sitemap: https://nexorasalon.online/sitemap.xml
