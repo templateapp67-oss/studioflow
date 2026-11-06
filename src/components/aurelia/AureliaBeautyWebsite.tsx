@@ -4,7 +4,7 @@ import {BookingModal} from '../BookingModal';
 import {SalonBookingsDialog} from '../SalonBookingsDialog';
 import {CustomerReviewPanel} from '../CustomerReviewPanel';
 import {StylistProfile} from '../StylistProfile';
-import {AppInstallSection} from '../AppInstallSection';
+import {AppAnnouncementStrip,AppInstallSection} from '../AppInstallSection';
 import {WebsiteSections} from '../WebsiteSections';
 import {isPackage} from '../../lib/packageCatalogue';
 import {photoGallery} from '../../lib/photoGallery';
@@ -126,6 +126,7 @@ export function AureliaBeautyWebsite(props:SalonWebsitePreviewProps){
   <WebsiteSections profile={profile} services={services} onBook={service=>book(service)} policies={props.policies} loyaltyConfig={props.loyaltyConfig} readOnly={props.readOnly} customerSignedIn={props.customerSignedIn} onCustomerAccount={()=>props.onCustomerAccount?.('signin')} onMyBookings={()=>setMyBookings(true)} sections={['social','loyalty','policies']}/>
   {show('footer')&&<footer className="aurelia-footer"><div className="aurelia-footer-brand"><span>{profile.businessName||'AURELIA'}</span><small>Beauty · Hair · Wellness</small></div><p>{profile.city} · {profile.phone}</p>{props.branding?.poweredBy&&<small>Powered by {props.branding.platformName||'NEXORA'}</small>}<a href="#aurelia-home">Back to top ↑</a></footer>}
   {waUrl&&<a className="aurelia-whatsapp" href={waUrl} target="_blank" rel="noreferrer" aria-label="Chat on WhatsApp"><MessageCircle/></a>}
+  <AppAnnouncementStrip/>
   <AppInstallSection/>
   {viewStaff&&stylists.some(person=>person.id===viewStaff)&&<StylistProfile staff={stylists.find(person=>person.id===viewStaff)!} profile={profile} slug={profile.subdomain} signedIn={props.customerSignedIn} demo={!profile.subdomain} services={services} onSlot={(service,slot)=>{setSelectedService(service);setSelectedStylist(stylists.find(person=>person.id===slot.stylistId));setViewStaff(null);setBooking(true);}} onLogin={()=>props.onCustomerAccount?.('signin')} onClose={()=>setViewStaff(null)} onBook={()=>{const person=stylists.find(item=>item.id===viewStaff);setViewStaff(null);if(person)book(undefined,person);}}/>}
   {myBookings&&<SalonBookingsDialog profile={profile} onClose={()=>setMyBookings(false)}/>}
