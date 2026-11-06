@@ -867,8 +867,15 @@ const app = read('src/App.tsx');
 const previewShell = read('src/components/SalonWebsitePreview.tsx');
 assert.ok(cards.includes('const hasCustomizer = isArchFlutterTemplate(templateId)'), 'the gallery button checks the template id');
 assert.ok(cards.includes('isArchFlutterTemplate(templateId) || isVeda'), 'Template 14 can add its own drawer without changing Template 13’s branch');
-assert.ok(cards.includes('onClick={() => setCustomizerOpen(true)}'), 'Template 13 opens the drawer');
-assert.ok(cards.includes('onClick={() => onChoose()}'), 'every other template keeps the old “Customize this template” behaviour');
+/* The two original header buttons now live inside the shared unified action
+ * component, so Template 13 still opens its drawer and every other template
+ * still keeps the “Customize this template” → onChoose() behaviour. */
+assert.ok(cards.includes('onSelect: () => setCustomizerOpen(true)'), 'Template 13 opens the drawer from the merged action');
+assert.ok(cards.includes('onSelect: () => onChoose()'), 'every other template keeps the old “Customize this template” behaviour');
+const previewChrome = read('src/components/template-preview/TemplatePreviewChrome.tsx');
+assert.ok(cards.includes('UnifiedTemplateActionButton'), 'the header uses the shared unified action component');
+assert.ok(previewChrome.includes('Customize & Build Website'), 'the merged primary button has one clear label');
+assert.ok(previewChrome.includes("label: 'Customize this template'") === false, 'action labels stay owned by the viewer, not hard-coded in the chrome');
 assert.ok(cards.includes('demoMode'), 'the gallery drawer runs in demo mode and writes to no site record');
 assert.ok(cards.includes("import('./arch-flutter-customizer/ArchFlutterCustomizerGate')"), 'the drawer is code-split out of the landing bundle');
 assert.ok(landing.includes('onCustomizeTemplate'), 'the landing page can carry a customized demo into website creation');

@@ -26,6 +26,8 @@ import { loadScreen } from './lib/loadScreen';
 import { ensureTemplate12Seeded, syncIronInkWorkspace } from './templates/iron-ink/api';
 import { WebsitePublishPanel } from './components/WebsitePublishPanel';
 import { WebsiteDeviceFrame } from './components/WebsiteDeviceFrame';
+import { Rocket, Sliders } from 'lucide-react';
+import { UnifiedTemplateActionButton, type TemplateAction } from './components/template-preview/TemplatePreviewChrome';
 import { servicesForTemplate, withPairedServiceImages } from './lib/serviceCatalogue';
 import { applyTemplateDesign } from './lib/templateSelection';
 import { normalizeWorkspace, isRecord } from './lib/normalizeWorkspace';
@@ -155,7 +157,12 @@ function TemplateEntry({templateId}:{templateId:BusinessTypeId}){
  const draft=templateDraft(source);
  if(mergedRemote?.demoOffer)draft.profile.promoCampaign={selectedServiceId:'',campaignTheme:'flash_discount',discountPercent:0,customOfferText:'',promoCode:'',subtext:'',aspectRatio:'16:9',aesthetic:'minimalist_chic',imageUrl:source.coverImageUrl,customPrompt:'',...mergedRemote.demoOffer,headline:'TEMPLATE DEMO · '+(mergedRemote.demoOffer.headline||'Sample offer')};
  const create=()=>{if(templateId==='mens_hair_studio'&&mensDraft)try{sessionStorage.setItem('studioflow_template15_draft',JSON.stringify(mensDraft));}catch{}location.assign(`/?template=${encodeURIComponent(templateId)}&create=1`);};
- return <><div data-template-preview-toolbar className="sticky top-0 z-[90] bg-white border-b px-4 py-3 flex flex-wrap justify-between items-center gap-3"><a className="font-semibold" href="/#nexora-template-library">← All templates</a><span><strong>{nexoraName(templateId, template.shortName)}</strong> · Demo template</span>{templateId==='mens_hair_studio'&&<button className="secondary-action" onClick={()=>setMensEditing(true)}>Customize</button>}<button className="primary-action" onClick={create}>Create my website with this template</button></div>{mensEditing&&templateId==='mens_hair_studio'?<KeshKraftEditor workspace={mensDraft||draft} onSave={next=>setMensDraft(next)} onClose={()=>setMensEditing(false)}/>:<SalonWebsitePreview readOnly profile={mensDraft?.profile||draft.profile} services={mensDraft?.services||draft.services} stylists={mensDraft?.stylists||draft.stylists} loyaltyConfig={mensDraft?.loyaltyConfig} gallery={draft.extras.gallery} onCustomerAccount={create} onAddAppointment={async()=>{throw new Error('This is a template preview. Choose Create my website to set up your own bookings.');}} />}</>;
+ /* Same merged action as every other template viewer: the “Customize” and
+  * “Create my website with this template” triggers are one primary button with
+  * the individual flows organised in its dropdown. */
+ const canCustomize=templateId==='mens_hair_studio';
+ const templateActions:TemplateAction[]=[...(canCustomize?[{id:'customize' as const,label:'Customize this template',description:'Open the Men’s Hair Studio editor before creating your website.',icon:Sliders,onSelect:()=>setMensEditing(true)}]:[]),{id:'build' as const,label:'Create my website with this template',description:'Take this demo into your dashboard as a starting point.',icon:Rocket,onSelect:create}];
+ return <><div data-template-preview-toolbar className="sticky top-0 z-[90] bg-white border-b px-4 py-3 flex flex-wrap justify-between items-center gap-3"><a className="font-semibold" href="/#nexora-template-library">← All templates</a><span><strong>{nexoraName(templateId, template.shortName)}</strong> · Demo template</span><UnifiedTemplateActionButton actions={templateActions} label={canCustomize?'Customize & Build Website':'Create my website with this template'} defaultActionId={canCustomize?'customize':'build'} /></div>{mensEditing&&templateId==='mens_hair_studio'?<KeshKraftEditor workspace={mensDraft||draft} onSave={next=>setMensDraft(next)} onClose={()=>setMensEditing(false)}/>:<SalonWebsitePreview readOnly profile={mensDraft?.profile||draft.profile} services={mensDraft?.services||draft.services} stylists={mensDraft?.stylists||draft.stylists} loyaltyConfig={mensDraft?.loyaltyConfig} gallery={draft.extras.gallery} onCustomerAccount={create} onAddAppointment={async()=>{throw new Error('This is a template preview. Choose Create my website to set up your own bookings.');}} />}</>;
 }
 function Loading({text}:{text:string}){return <main role="status" className="min-h-screen flex items-center justify-center bg-[#f9f9ff]"><p>{text}</p></main>;}
 /**

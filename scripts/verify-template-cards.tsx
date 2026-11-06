@@ -138,7 +138,8 @@ await act(async()=>page.root.findByProps({'aria-label':'Preview template'}).prop
 assert.equal(page.root.findByType(TemplatePreviewModal).props.templateId,last.id);
 const options=page.root.findByProps({'aria-label':'Preview template'}).findAllByType('option');
 assert.deepEqual(options.map((o:any)=>o.props.children),NEXORA_TEMPLATE_META.map(m=>m.displayName),'the prevew switcher lists all fifteen NEXORA names in priority order');
-const modes=page.root.findAll(node=>node.type==='button'&&node.props['aria-pressed']!==undefined&&node.props['data-category-filter']===undefined);
+const deviceGroup=page.root.findByProps({'aria-label':'Preview device'});
+const modes=deviceGroup.findAll(node=>node.type==='button'&&node.props['aria-pressed']!==undefined);
 assert.equal(modes.length,3,'exactly three device toggles: desktop, tablet and mobile');
 await act(async()=>modes[2].props.onClick());
 assert.equal(page.root.findByType('iframe').props.style.width,390,'mobile preview renders a true phone viewport');
@@ -146,6 +147,37 @@ await act(async()=>modes[1].props.onClick());
 assert.equal(page.root.findByType('iframe').props.style.width,834,'tablet preview renders a true tablet viewport');
 await act(async()=>modes[0].props.onClick());
 assert.equal(page.root.findByType('iframe').props.style.width,1280,'desktop preview renders a realistic desktop viewport');
+
+/* ---------- Unified action button (both original buttons merged) ---------- */
+assert.equal(page.root.findAllByProps({'data-template-actions':true}).length,1,'the header has one unified action component, not overlapping buttons');
+assert.equal(page.root.findByProps({'data-template-actions':true}).props['data-template-primary-action'],'customize','the merged primary button customizes first');
+assert.equal(page.root.findAllByProps({'aria-label':'Customize this template'}).length,0,'the old “Customize this template” button is no longer loose in the header');
+assert.equal(page.root.findAllByProps({'aria-label':'Create my website with this template'}).length,0,'the old “Create my website with this template” button is folded into the dropdown');
+await act(async()=>page.root.findByProps({'aria-label':'More template actions'}).props.onClick());
+assert.ok(page.root.findByProps({'data-template-action-menu':true}),'the merged button opens its organised action menu');
+assert.ok(page.root.findByProps({'aria-label':'Customize this template'}),'the customize flow is preserved inside the menu');
+assert.ok(page.root.findByProps({'aria-label':'Create my website with this template'}),'the create-website flow is preserved inside the menu');
+assert.equal(page.root.findByProps({'aria-label':'More template actions'}).props['aria-expanded'],true,'the dropdown announces its open state');
+await act(async()=>page.root.findByProps({'aria-label':'More template actions'}).props.onClick());
+assert.equal(page.root.findAllByProps({'data-template-action-menu':true}).length,0,'the dropdown closes again');
+
+/* ---------- Full-page viewport preview ---------- */
+const {previewDialogClass,previewFrameWidth,previewStageClass}=await import('../src/components/template-preview/TemplatePreviewChrome');
+assert.ok(previewDialogClass(true).includes('w-screen')&&previewDialogClass(true).includes('h-dvh')&&previewDialogClass(true).includes('max-w-none')&&previewDialogClass(true).includes('max-h-none'),'full-page mode covers 100% of the screen width and height');
+assert.ok(previewDialogClass(true).includes('rounded-none')&&previewDialogClass(true).includes('border-0'),'full-page mode drops the dashboard framing and rounded window');
+assert.ok(previewStageClass(true).includes('p-0'),'full-page mode drops the preview stage padding');
+assert.equal(previewFrameWidth({fullPage:true,device:'desktop',stageWidth:1600,desktopWidth:1280}),1600,'full-page desktop fills the real screen width');
+assert.equal(previewFrameWidth({fullPage:false,device:'desktop',stageWidth:1600,desktopWidth:1280}),1280,'the dashboard window keeps the true desktop viewport');
+const fullPageToggle=page.root.findByProps({'aria-label':'Full-page preview'});
+assert.equal(fullPageToggle.props['aria-pressed'],false,'the full-page toggle sits next to the device views and starts off');
+assert.equal(page.root.findByType('dialog').props['data-preview-mode'],'windowed');
+await act(async()=>fullPageToggle.props.onClick());
+assert.equal(page.root.findByType('dialog').props['data-preview-mode'],'full-page','clicking the toggle expands the preview to the full page');
+assert.ok(page.root.findByType('dialog').props.className.includes('w-screen'),'the expanded preview is 100% wide');
+assert.equal(page.root.findByProps({'aria-label':'Exit full-page preview'}).props['aria-pressed'],true,'the toggle becomes a clear exit control');
+assert.equal(page.root.findByProps({'aria-label':'Exit full-page preview and close'}).props['aria-label'],'Exit full-page preview and close','closing is still available in full-page mode');
+await act(async()=>page.root.findByProps({'aria-label':'Exit full-page preview'}).props.onClick());
+assert.equal(page.root.findByType('dialog').props['data-preview-mode'],'windowed','the exit control returns to the normal dashboard view');
 {
  /* The preview iframe must keep its stylesheets in sync with the host —
   * template CSS is code-split and arrives after the iframe loads, so a
@@ -163,8 +195,9 @@ assert.equal(page.root.findByType('iframe').props.style.width,1280,'desktop prev
  assert.ok(!/StudioFlow/.test(landing),'the customer-facing landing page carries NEXORA branding only');
  for(const wrong of ['Nexorra','Nexora Salon','NEXORAA'])assert.ok(!cardsSource.includes(wrong)&&!landing.includes(wrong),`no misspelt brand: ${wrong}`);
 }
-await act(async()=>page.root.findByType(TemplatePreviewModal).props.onChoose());
-assert.deepEqual(chosen,[last.id]);
+await act(async()=>page.root.findByProps({'aria-label':'More template actions'}).props.onClick());
+await act(async()=>page.root.findByProps({'aria-label':'Create my website with this template'}).props.onClick());
+assert.deepEqual(chosen,[last.id],'the merged dropdown still creates a website with the chosen template');
 assert.equal(page.root.findAllByType(TemplatePreviewModal).length,0);
 await act(async()=>page.unmount());
-console.log('PASS: 16 NEXORA template cards in fixed priority order, unique artwork, category filters, combined search, empty state, NEXORA preview titles/switcher, matching live previews, device frames, close and explicit customization without draft mutation.');
+console.log('PASS: 16 NEXORA template cards in fixed priority order, unique artwork, category filters, combined search, empty state, NEXORA preview titles/switcher, matching live previews, three device frames, one merged action button with both flows intact, full-page viewport preview with a clear exit, close and explicit customization without draft mutation.');
