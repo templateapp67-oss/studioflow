@@ -46,11 +46,54 @@ export function sitemapXml(origin: string, slugs: string[]) {
     "</urlset>"
   );
 }
+/**
+ * Hosts that must never become an SEO canonical: ephemeral preview deployments
+ * and local development. A preview URL leaking into <loc> tells search engines
+ * to index a throwaway domain instead of the real site.
+ */
+const EPHEMERAL_HOST_SUFFIXES = [
+  "vercel.app",
+  "netlify.app",
+  "pages.dev",
+  "github.io",
+  "localhost",
+  "127.0.0.1",
+  "nip.io",
+  "sslip.io",
+];
+
+/** True for preview/local hosts whose URLs must not be published as canonicals. */
+export function isEphemeralOrigin(origin: string): boolean {
+  const host = new URL(origin).hostname.toLowerCase();
+  return EPHEMERAL_HOST_SUFFIXES.some(
+    (suffix) => host === suffix || host.endsWith("." + suffix),
+  );
+}
+
+/**
+ * Resolves the sitemap origin.
+ *
+ * A real custom domain configured through SITE_URL / VITE_SITE_URL is honoured —
+ * published salon sites are served on their own domains, so the sitemap has to
+ * be able to describe them. Preview and local hosts are rejected and fall back
+ * to the production canonical, so a Vercel preview build can never publish
+ * `*.vercel.app` URLs. A malformed value still throws, exactly as before, and
+ * surfaces as the handler's 503 instead of a silently wrong sitemap.
+ */
+export function sitemapOrigin(env: NodeJS.ProcessEnv = process.env): string {
+  for (const candidate of [env.SITE_URL, env.VITE_SITE_URL]) {
+    if (!candidate) continue;
+    const origin = canonicalOrigin(candidate);
+    if (!isEphemeralOrigin(origin)) return origin;
+  }
+  return canonicalOrigin(NEXORA_PUBLIC_ORIGIN);
+}
+
 export async function generateSitemap(
   env: NodeJS.ProcessEnv = process.env,
   fetcher: typeof fetch = fetch,
 ) {
-  const origin = canonicalOrigin(env.SITE_URL || env.VITE_SITE_URL || NEXORA_PUBLIC_ORIGIN);
+  const origin = sitemapOrigin(env);
   const endpoint =
     env.SUPABASE_URL || "https://zilwgiuiygqqardzutxi.supabase.co";
   const key =
