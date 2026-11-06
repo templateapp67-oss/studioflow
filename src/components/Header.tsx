@@ -62,7 +62,9 @@ export const Header: React.FC<HeaderProps> = ({
                 key={tab.id}
                 type="button"
                 onClick={() => {
-                  if (tab.id === 'preview') {
+                  if (tab.id === 'landing') {
+                    window.location.assign('/');
+                  } else if (tab.id === 'preview') {
                     if (onBuildWebsiteClick) onBuildWebsiteClick();
                     else setCurrentView('preview');
                   } else {
