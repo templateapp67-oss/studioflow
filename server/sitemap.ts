@@ -50,7 +50,8 @@ export async function generateSitemap(
   env: NodeJS.ProcessEnv = process.env,
   fetcher: typeof fetch = fetch,
 ) {
-  const origin = canonicalOrigin(env.SITE_URL || env.VITE_SITE_URL || NEXORA_PUBLIC_ORIGIN);
+  // Sitemap URLs are production canonicals; preview deployment variables must never override them.
+  const origin = canonicalOrigin(NEXORA_PUBLIC_ORIGIN);
   const endpoint =
     env.SUPABASE_URL || "https://zilwgiuiygqqardzutxi.supabase.co";
   const key =
