@@ -1,21 +1,21 @@
-import {KeshKraftEditor} from './keshkraft/KeshKraftEditor';
-import {AureliaBeautyEditor} from './aurelia/AureliaBeautyEditor';
+
+
 import {photoGallery,type PhotoCategory} from '../lib/photoGallery';
 import {updateInlineService} from '../lib/serviceCatalogue';
-import {ServiceManagement} from './ServiceManagement';
-import {TeamManagement} from './TeamManagement';
-import {WebsiteContentManager} from './WebsiteContentManager';
-import {ClinicTechnologyEditor} from './dermacure/ClinicTechnologyEditor';
-import {VogueNoirEditor} from './vogue-noir/VogueNoirEditor';
-import {BodhiTreeEditor} from './bodhi-tree/BodhiTreeEditor';
-import {PrismChromaEditor} from './prism-chroma/PrismChromaEditor';
-import {ShringaarRoyalEditor} from './shringaar-royal/ShringaarRoyalEditor';
-import {IronInkEditor} from './iron-ink/IronInkEditor';
-import {ArchFlutterEditor} from './arch-flutter/ArchFlutterEditor';
-import {ZiyaAdminPanel} from './ziya/ZiyaAdminPanel';
-import {AuraPromotionsAdmin} from './aura/AuraPromotionsAdmin';
+
+
+
+
+
+
+
+
+
+
+
+
 import {vedaConfigFor} from '../lib/vedaSanjeevaniCustomizer';
-import {AcademyEnquiriesPanel} from './vogue-noir/AcademyEnquiriesPanel';
+
 import { AppInstallSection } from './AppInstallSection';
 import {CustomerSalonWebsite} from './CustomerSalonWebsite';
 import { WebsiteSections } from './WebsiteSections';
@@ -23,6 +23,26 @@ import { websiteSections, socialUrl } from '../lib/websiteContent';
 import type { LoyaltyConfig } from '../types';
 import { websiteLink } from '../lib/supabase';
 import React, { useState, useEffect } from 'react';
+
+// Load editing-only modules after the owner opens the editor, not with the first website preview.
+const KeshKraftEditor = React.lazy(() => import('./keshkraft/KeshKraftEditor').then((module) => ({ default: module.KeshKraftEditor })));
+const AureliaBeautyEditor = React.lazy(() => import('./aurelia/AureliaBeautyEditor').then((module) => ({ default: module.AureliaBeautyEditor })));
+const ServiceManagement = React.lazy(() => import('./ServiceManagement').then((module) => ({ default: module.ServiceManagement })));
+const TeamManagement = React.lazy(() => import('./TeamManagement').then((module) => ({ default: module.TeamManagement })));
+const WebsiteContentManager = React.lazy(() => import('./WebsiteContentManager').then((module) => ({ default: module.WebsiteContentManager })));
+const ClinicTechnologyEditor = React.lazy(() => import('./dermacure/ClinicTechnologyEditor').then((module) => ({ default: module.ClinicTechnologyEditor })));
+const VogueNoirEditor = React.lazy(() => import('./vogue-noir/VogueNoirEditor').then((module) => ({ default: module.VogueNoirEditor })));
+const BodhiTreeEditor = React.lazy(() => import('./bodhi-tree/BodhiTreeEditor').then((module) => ({ default: module.BodhiTreeEditor })));
+const PrismChromaEditor = React.lazy(() => import('./prism-chroma/PrismChromaEditor').then((module) => ({ default: module.PrismChromaEditor })));
+const ShringaarRoyalEditor = React.lazy(() => import('./shringaar-royal/ShringaarRoyalEditor').then((module) => ({ default: module.ShringaarRoyalEditor })));
+const IronInkEditor = React.lazy(() => import('./iron-ink/IronInkEditor').then((module) => ({ default: module.IronInkEditor })));
+const ArchFlutterEditor = React.lazy(() => import('./arch-flutter/ArchFlutterEditor').then((module) => ({ default: module.ArchFlutterEditor })));
+const ZiyaAdminPanel = React.lazy(() => import('./ziya/ZiyaAdminPanel').then((module) => ({ default: module.ZiyaAdminPanel })));
+const AuraPromotionsAdmin = React.lazy(() => import('./aura/AuraPromotionsAdmin').then((module) => ({ default: module.AuraPromotionsAdmin })));
+const AcademyEnquiriesPanel = React.lazy(() => import('./vogue-noir/AcademyEnquiriesPanel').then((module) => ({ default: module.AcademyEnquiriesPanel })));
+const PinkyNailsFaqEditor = React.lazy(() => import('./PinkyNailsFaqEditor').then((module) => ({ default: module.PinkyNailsFaqEditor })));
+const InteractiveMapSetup = React.lazy(() => import('./InteractiveMapSetup').then((module) => ({ default: module.InteractiveMapSetup })));
+const TestimonialModal = React.lazy(() => import('./ClientTestimonials').then((module) => ({ default: module.TestimonialModal })));
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   CheckCircle2, 
@@ -73,11 +93,11 @@ import { INITIAL_SALON_PROFILE } from '../mockData';
 import { BookingModal } from './BookingModal';
 import { InlineEditable } from './InlineEditable';
 import { SidePanelCustomizer, SectionVisibilityState, DEFAULT_SECTION_VISIBILITY } from './SidePanelCustomizer';
-import { PinkyNailsFaqEditor } from './PinkyNailsFaqEditor';
+
 import { PINKY_NAILS_AI_PRESETS, pinkyNailsAiRewrite } from '../lib/pinkyNails';
-import { InteractiveMapSetup } from './InteractiveMapSetup';
+
 import { computeHeroAIStyling, extractImageMoodAsync, HeroAIStyling } from '../utils/heroImageMood';
-import { TestimonialModal } from './ClientTestimonials';
+
 
 export interface SalonWebsitePreviewProps {
   profile: SalonProfile;
@@ -112,7 +132,7 @@ type DeviceMode = 'desktop' | 'tablet' | 'mobile';
 export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = props => {
  const [editing,setEditing]=useState(false);
  if(props.readOnly)return <CustomerSalonWebsite {...props}/>;
- return <><div className="pt-28 px-4 pb-4 flex flex-wrap gap-3 bg-white text-slate-900"><button className="secondary-action" onClick={()=>setEditing(value=>!value)}>{editing?'Show redesigned website':(props.profile.businessType==='mens_hair_studio'||props.profile.businessType==='aurelia_beauty_parlour')?'Customize':'Open owner editing tools'}</button><button className="secondary-action" onClick={props.onEnterClientPreview}>Customer device preview</button></div>{editing?(props.profile.businessType==='aurelia_beauty_parlour'?<AureliaBeautyEditor {...props}/>:props.profile.businessType==='mens_hair_studio'?<KeshKraftEditor workspace={{profile:props.profile,services:props.services,stylists:props.stylists,loyaltyConfig:props.loyaltyConfig}} onSave={next=>{props.setProfile?.(next.profile);props.setServices?.(next.services);props.setStylists?.(next.stylists);props.onMensLoyaltyChange?.(next.loyaltyConfig!);}} onClose={()=>setEditing(false)}/>:props.profile.businessType==='hair_salon'?<ZiyaPreviewEditor {...props}/>:props.profile.businessType==='unisex_salon'?<AuraPreviewEditor {...props}/>:props.profile.businessType==='ayurvedic_spa'?<VedaSanjeevaniPreviewEditor {...props}/>:props.profile.businessType==='skincare_clinic'?<ClinicPreviewEditor {...props}/>:props.profile.businessType==='makeup_studio'?<VogueNoirPreviewEditor {...props}/>:props.profile.businessType==='massage_wellness'?<BodhiTreePreviewEditor {...props}/>:props.profile.businessType==='hair_coloring'?<PrismChromaPreviewEditor {...props}/>:props.profile.businessType==='bridal_lounge'?<ShringaarRoyalPreviewEditor {...props}/>:props.profile.businessType==='tattoo_studio'?<IronInkPreviewEditor {...props}/>:props.profile.businessType==='lash_brow'?<ArchFlutterPreviewEditor {...props}/>:<SalonWebsiteEditor {...props}/>):<CustomerSalonWebsite {...props} readOnly/>}</>;
+ return <><div className="pt-28 px-4 pb-4 flex flex-wrap gap-3 bg-white text-slate-900"><button className="secondary-action" onClick={()=>setEditing(value=>!value)}>{editing?'Show redesigned website':(props.profile.businessType==='mens_hair_studio'||props.profile.businessType==='aurelia_beauty_parlour')?'Customize':'Open owner editing tools'}</button><button className="secondary-action" onClick={props.onEnterClientPreview}>Customer device preview</button></div>{editing?<React.Suspense fallback={<div role="status" className="p-6 text-sm text-slate-600">Loading template editor…</div>}>{(props.profile.businessType==='aurelia_beauty_parlour'?<AureliaBeautyEditor {...props}/>:props.profile.businessType==='mens_hair_studio'?<KeshKraftEditor workspace={{profile:props.profile,services:props.services,stylists:props.stylists,loyaltyConfig:props.loyaltyConfig}} onSave={next=>{props.setProfile?.(next.profile);props.setServices?.(next.services);props.setStylists?.(next.stylists);props.onMensLoyaltyChange?.(next.loyaltyConfig!);}} onClose={()=>setEditing(false)}/>:props.profile.businessType==='hair_salon'?<ZiyaPreviewEditor {...props}/>:props.profile.businessType==='unisex_salon'?<AuraPreviewEditor {...props}/>:props.profile.businessType==='ayurvedic_spa'?<VedaSanjeevaniPreviewEditor {...props}/>:props.profile.businessType==='skincare_clinic'?<ClinicPreviewEditor {...props}/>:props.profile.businessType==='makeup_studio'?<VogueNoirPreviewEditor {...props}/>:props.profile.businessType==='massage_wellness'?<BodhiTreePreviewEditor {...props}/>:props.profile.businessType==='hair_coloring'?<PrismChromaPreviewEditor {...props}/>:props.profile.businessType==='bridal_lounge'?<ShringaarRoyalPreviewEditor {...props}/>:props.profile.businessType==='tattoo_studio'?<IronInkPreviewEditor {...props}/>:props.profile.businessType==='lash_brow'?<ArchFlutterPreviewEditor {...props}/>:<SalonWebsiteEditor {...props}/>)}</React.Suspense>:<CustomerSalonWebsite {...props} readOnly/>}</>;
 };
 
 function ZiyaPreviewEditor(props:SalonWebsitePreviewProps) {
