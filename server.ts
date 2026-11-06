@@ -539,7 +539,7 @@ Return strictly valid JSON in this format:
       const safeRef = escapeEmailHtml(ref, 64);
       const safeFullAddress = escapeEmailHtml(fullAddress, 240);
       const safeSalonPhone = escapeEmailHtml(salonPhone, 32);
-      const phoneHref = String(salonPhone || '').replace(/[^\\d+]/g, '').slice(0, 24);
+      const phoneHref = String(salonPhone || '').replace(/[^\d+]/g, '').slice(0, 24);
 
       // HTML template
       const html = isReminder
