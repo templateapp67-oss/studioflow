@@ -229,7 +229,7 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
                 Your salon. Your website. Your brand.
               </div>
               <h1 id="public-home-title" className="max-w-[680px] font-display text-[2.35rem] font-extrabold leading-[1.08] tracking-[-0.035em] text-[#251A24] sm:text-5xl lg:text-[3.3rem] xl:text-[3.7rem]" style={{ textWrap: 'balance' }}>
-                A beautiful salon website, made for your brand
+                NEXORA Salon Website Builder & Management Software
               </h1>
               <p className="mt-5 max-w-xl text-base leading-7 text-[#51434D] sm:text-lg sm:leading-8">
                 Choose a ready-made NEXORA design, add your services and business details, and give customers a simple way to explore your salon and book appointments.
