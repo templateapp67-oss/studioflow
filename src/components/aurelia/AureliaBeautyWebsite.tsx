@@ -1,5 +1,5 @@
-import React, {useMemo, useState} from 'react';
-import {ArrowDown, ArrowRight, ChevronRight, Clock, MapPin, Menu, MessageCircle, Play, Sparkles, Star, X} from 'lucide-react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
+import {ArrowDown, ArrowRight, ChevronLeft, ChevronRight, Clock, MapPin, Menu, MessageCircle, Play, Sparkles, Star, X} from 'lucide-react';
 import {BookingModal} from '../BookingModal';
 import {SalonBookingsDialog} from '../SalonBookingsDialog';
 import {CustomerReviewPanel} from '../CustomerReviewPanel';
