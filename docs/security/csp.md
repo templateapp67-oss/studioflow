@@ -2,7 +2,7 @@
 
 Vercel serves an enforcing `Content-Security-Policy` header on application, published-site, template, and API routes. It is not a report-only header.
 
-The executable-script policy is restricted to same-origin bundles plus the two runtime libraries the product loads on demand: Razorpay Checkout and Leaflet from unpkg (both are loaded with Subresource Integrity). Inline scripts and `eval` are not allowed. The JSON-LD blocks are non-executable data blocks.
+The executable-script policy is restricted to same-origin bundles plus the two runtime libraries the product loads on demand: Razorpay Checkout from `checkout.razorpay.com` and Leaflet from `unpkg.com`. Leaflet is pinned and loaded with Subresource Integrity; Razorpay's official Checkout SDK is a dynamic vendor script and is currently allowed by host without SRI. Inline scripts and `eval` are not allowed. The JSON-LD blocks are non-executable data blocks.
 
 The policy allows the configured Supabase project and its Realtime WebSocket for auth, database, storage, Edge Functions, and live updates; Razorpay for payment checkout; Google Fonts only for the deferred full application; OpenStreetMap Nominatim/tiles; and the known image/video embed hosts used by salon templates. All other URLs use same-origin defaults.
 

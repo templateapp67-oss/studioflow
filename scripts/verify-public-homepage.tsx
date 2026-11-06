@@ -9,6 +9,7 @@ import { CATEGORY_TEMPLATES } from '../src/categoryTemplates';
 import { NEXORA_TEMPLATE_META } from '../src/lib/nexoraTemplateCatalogue';
 import { nexoraPreviewImage } from '../src/lib/nexoraPreviewImages';
 import { resolveSiteSlug } from '../src/lib/resolveSite';
+import { AUTH_CALLBACK_FRAGMENT_KEYS, AUTH_CALLBACK_QUERY_KEYS, hasAuthCallbackFragment, hasAuthCallbackQuery } from '../src/lib/authEntry';
 import type { BusinessTypeId } from '../src/types';
 import {
   applyPublicSeoMetadata,
@@ -24,6 +25,28 @@ assert.equal(requiresFullApplication({ pathname: '/', search: '?site=salon', has
 assert.equal(requiresFullApplication({ pathname: '/login', search: '', hash: '', hostname: 'www.nexora.app' }), true, 'auth routes keep using the application');
 assert.equal(requiresFullApplication({ pathname: '/', search: '?app=1', hash: '', hostname: 'www.nexora.app' }), true, 'explicit application entry stays supported');
 assert.equal(requiresFullApplication({ pathname: '/', search: '', hash: '', hostname: 'owner.nexorasalon.online' }), true, 'published salon subdomains keep using the application');
+
+// Regression matrix: the prerendered public root must not swallow legacy query
+// entries or Supabase auth callbacks/errors after the lightweight router split.
+const publicRoot = { pathname: '/', hash: '', hostname: 'www.nexora.app' };
+for (const search of ['', '?ref=ABC123', '?utm_source=audit']) {
+  assert.equal(requiresFullApplication({ ...publicRoot, search }), false, `public root stays lightweight for ${search || '(no query)'}`);
+}
+assert.equal(requiresFullApplication({ ...publicRoot, search: '', hash: '#nexora-template-library' }), false, 'marketing fragments stay lightweight');
+for (const key of ['site', 's', 'subdomain', 'app', 'customer', 'customer_ref', 'create', 'owner', 'panel', 'template', 'category', 'module', ...AUTH_CALLBACK_QUERY_KEYS]) {
+  assert.equal(requiresFullApplication({ ...publicRoot, search: `?${key}=1` }), true, `legacy/application query must load the full app: ${key}`);
+}
+for (const key of AUTH_CALLBACK_FRAGMENT_KEYS) {
+  assert.equal(requiresFullApplication({ ...publicRoot, search: '', hash: `#${key}=callback` }), true, `auth fragment must load the full app: ${key}`);
+  assert.equal(hasAuthCallbackFragment(`#${key}=callback`), true, `application must treat ${key} fragment as an auth entry`);
+}
+for (const pathname of ['/login', '/login/', '/index.html', '/template-pages/hair-salon.html', '/salon-slug']) {
+  assert.equal(requiresFullApplication({ pathname, search: '', hash: '', hostname: 'www.nexora.app' }), pathname === '/index.html' ? false : true, `path routing contract: ${pathname}`);
+}
+for (const key of AUTH_CALLBACK_QUERY_KEYS) {
+  assert.equal(hasAuthCallbackQuery(`?${key}=1`), true, `application must treat ${key} as an auth entry`);
+}
+assert.equal(hasAuthCallbackQuery('?ref=ABC123'), false, 'business referrals alone stay on the public signup path');
 const homeHtml = renderToStaticMarkup(<PublicHomepage />);
 const authenticatedHomeHtml = renderToStaticMarkup(<PublicHomepage authenticated />);
 const renderRoutedRoot = (session: string | null) => {
@@ -94,6 +117,9 @@ assert.equal((loginHtml.match(/<h1\b/g) || []).length, 1, 'login has exactly one
 assert.ok(loginHtml.includes('Sign in to NEXORA Salon OS.'), 'exact login H1');
 assert.ok(loginHtml.includes('existing salon website, team and business information'));
 assert.ok(!loginHtml.includes('Launch Your NEXORA Salon Website in 30 Minutes'), 'marketing headline never appears on login');
+(globalThis as any).location = { search: '?passwordUpdated=1', hash: '', pathname: '/', href: 'https://owner.test/?passwordUpdated=1', origin: 'https://owner.test' };
+const passwordUpdatedHtml = renderToStaticMarkup(<AuthPage />);
+assert.ok(passwordUpdatedHtml.includes('Password updated successfully. Sign in with your new password.'), 'legacy post-recovery redirect keeps its success state');
 
 // Lightweight DOM harness verifies route-owned metadata and preview-host-independent canonicals.
 class MetaElement {

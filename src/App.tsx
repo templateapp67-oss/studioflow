@@ -4,6 +4,7 @@ import {MENS_LOYALTY,MENS_STAFF} from './lib/keshkraft';
 import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { useAuthSession } from './lib/useAuthSession';
+import { hasAuthCallbackFragment, hasAuthCallbackQuery } from './lib/authEntry';
 import { workspaceSnapshot, sameWorkspace, mergeWorkspace, revisionConflict, conflictMessage, type ConflictChoice } from './lib/workspaceSync';
 import { useCustomerProfile } from './components/customer/useCustomerProfile';
 import { applyWebsiteFavicon, websiteFavicon } from './lib/websiteFavicon';
@@ -87,7 +88,7 @@ function Application() {
  const isLoginRoute=/^\/login\/?$/.test(location.pathname);
  // Legacy root auth/create/owner/panel links keep working; new public links use /login explicitly.
  const reservedRootEntry=customer||recovery||!!ownerSlug||!!entryTemplate||createTemplate||new URLSearchParams(location.search).has('panel');
- const authEntry=isLoginRoute||reservedRootEntry||new URLSearchParams(location.search).has('auth');
+ const authEntry=isLoginRoute||reservedRootEntry||hasAuthCallbackQuery(location.search)||hasAuthCallbackFragment(location.hash);
  const publicHomeRoute=location.pathname==='/'&&!slug&&!customer&&!customerApp&&!inviteEntry&&!recovery&&!ownerSlug&&!entryTemplate&&!createTemplate&&!authEntry;
  const onRecovery=useCallback(()=>{try{sessionStorage.setItem('studioflow_recovery','1');}catch{}setRecovery(true);},[]);
  const {session,ready:authReady,error:authError}=useAuthSession(onRecovery);

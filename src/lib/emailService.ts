@@ -38,126 +38,102 @@ export interface EmailSendResult {
   subject?: string;
 }
 
-/**
- * Check if the email service (Resend / Edge function) is configured and active.
- */
-export async function checkEmailServiceStatus(): Promise<EmailServiceStatus> {
-  // Try server proxy first
-  try {
-    const res = await fetch('/api/email-service-status', { signal: AbortSignal.timeout(5000) });
-    if (res.ok) {
-      const data = await res.json();
-      return data;
-    }
-  } catch {
-    // Fall back to checking Edge function
-  }
-
-  // Fallback check on Supabase edge function
-  try {
-    const { data, error } = await supabase.functions.invoke('studioflow-booking-emails', {
-      method: 'GET',
-    });
-    if (!error && data) {
-      return data as EmailServiceStatus;
-    }
-  } catch {
-    // Fallback default
-  }
-
+function normalizeResult(data: any): EmailSendResult {
   return {
-    status: 'ok',
-    configured: false,
-    provider: 'resend',
-    mode: 'preview',
+    success: Boolean(data?.success),
+    delivered: Boolean(data?.delivered),
+    simulated: Boolean(data?.simulated),
+    emailId: typeof data?.emailId === 'string' ? data.emailId : undefined,
+    error: typeof data?.error === 'string' ? data.error : undefined,
+    notice: typeof data?.notice === 'string' ? data.notice : undefined,
+    subject: typeof data?.subject === 'string' ? data.subject : undefined,
   };
 }
 
+async function jsonOrNull(response: Response): Promise<any | null> {
+  const type = response.headers.get('content-type') || '';
+  if (!type.includes('application/json')) return null;
+  return response.json().catch(() => null);
+}
+
+/** Check the legacy proxy first, then the Edge fallback. Never claim preview delivery. */
+export async function checkEmailServiceStatus(): Promise<EmailServiceStatus> {
+  try {
+    const res = await fetch('/api/email-service-status', { signal: AbortSignal.timeout(5000) });
+    const data = await jsonOrNull(res);
+    if (res.ok && data && typeof data.configured === 'boolean') return data as EmailServiceStatus;
+  } catch {
+    // Fall back to the Edge function.
+  }
+
+  try {
+    const { data, error } = await supabase.functions.invoke('studioflow-booking-emails', { method: 'GET' });
+    if (!error && data && typeof (data as any).configured === 'boolean') return data as EmailServiceStatus;
+  } catch {
+    // Honest unconfigured default below.
+  }
+
+  return { status: 'ok', configured: false, provider: 'resend', mode: 'unconfigured' };
+}
+
 /**
- * Send an automated booking confirmation or reminder email.
- * Tries the server-side proxy route first, then falls back to invoking the Supabase Edge Function.
+ * Send a booking confirmation/reminder through the legacy API path, falling
+ * back to the Supabase Edge Function on static hosts. Both paths require the
+ * signed-in owner/customer of the stored booking and bind the recipient server-side.
  */
 export async function sendBookingEmail(params: BookingEmailParams): Promise<EmailSendResult> {
   if (!params.to || !params.to.includes('@')) {
-    return {
-      success: false,
-      error: 'Please provide a valid recipient email address.',
-    };
+    return { success: false, error: 'Please provide a valid recipient email address.' };
   }
 
-  // 1. Try server API endpoint
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  const token = sessionData.session?.access_token;
+  if (sessionError || !token) {
+    return { success: false, error: 'Sign in before sending booking email.' };
+  }
+
   try {
     const response = await fetch('/api/send-booking-email', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify(params),
       signal: AbortSignal.timeout(12000),
     });
-
-    if (response.ok) {
-      const data = await response.json();
-      return {
-        success: true,
-        delivered: data.delivered,
-        simulated: data.simulated,
-        emailId: data.emailId,
-        subject: data.subject,
-        notice: data.notice,
-      };
+    const data = await jsonOrNull(response);
+    if (response.ok && data?.success) return normalizeResult(data);
+    // Authorization/validation/rate-limit failures are authoritative; do not
+    // bypass them through the fallback. Missing/static/unconfigured proxies may
+    // still fall back to a configured Edge Function.
+    if ([400, 401, 403, 409, 429].includes(response.status)) {
+      return { success: false, delivered: false, error: data?.error || 'Booking email request was rejected.' };
     }
-  } catch (err) {
-    console.warn('Server proxy email endpoint unreachable; attempting Supabase Edge Function...', err);
+  } catch {
+    // Network/static hosting fallback below.
   }
 
-  // 2. Fallback to Supabase Edge Function directly
   try {
-    const { data, error } = await supabase.functions.invoke('studioflow-booking-emails', {
-      body: params,
-    });
-
+    const { data, error } = await supabase.functions.invoke('studioflow-booking-emails', { body: params });
     if (error) {
-      const msg = error.message || 'Email delivery failed';
-      return {
-        success: false,
-        error: msg,
-      };
+      let message = error.message || 'Email delivery failed';
+      const context = (error as any).context;
+      if (context && typeof context.json === 'function') {
+        const body = await context.json().catch(() => null);
+        if (typeof body?.error === 'string') message = body.error;
+      }
+      return { success: false, delivered: false, error: message };
     }
-
-    return {
-      success: true,
-      delivered: data?.delivered,
-      simulated: data?.simulated,
-      emailId: data?.emailId,
-      notice: data?.notice,
-      subject: data?.subject,
-    };
+    const result = normalizeResult(data);
+    if (!result.success) return { ...result, error: result.error || result.notice || 'Email delivery failed' };
+    return result;
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Failed to send automated email';
-    return {
-      success: false,
-      error: msg,
-    };
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to send automated email' };
   }
 }
 
-/**
- * Helper to dispatch automated booking confirmation email.
- */
 export async function sendBookingConfirmationEmail(params: Omit<BookingEmailParams, 'type'>): Promise<EmailSendResult> {
-  return sendBookingEmail({
-    ...params,
-    type: 'confirmation',
-  });
+  return sendBookingEmail({ ...params, type: 'confirmation' });
 }
 
-/**
- * Helper to dispatch automated booking reminder email.
- */
 export async function sendBookingReminderEmail(params: Omit<BookingEmailParams, 'type'>): Promise<EmailSendResult> {
-  return sendBookingEmail({
-    ...params,
-    type: 'reminder',
-  });
+  return sendBookingEmail({ ...params, type: 'reminder' });
 }
