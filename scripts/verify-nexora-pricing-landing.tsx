@@ -39,7 +39,6 @@ const requiredSections = [
   'id="how-it-works"',
   'id="pricing"',
   'id="comparison"',
-  'id="salon-marketing"',
   'id="benefits"',
   'id="product-preview"',
   'id="testimonials"',
@@ -61,7 +60,7 @@ for (const anchor of anchors) {
   assert.notEqual(anchor, '#', 'No placeholder "#" links are used');
   assert.ok(sectionIds.has(anchor.slice(1)), `Anchor ${anchor} resolves to a rendered section`);
 }
-for (const label of ['Platform', 'Features', 'Salon categories', 'Pricing', 'Salon Promotion Studio', 'FAQs']) {
+for (const label of ['Platform', 'Features', 'Salon categories', 'Pricing', 'FAQs']) {
   assert.ok(pageText.includes(label), `The header navigation exposes "${label}"`);
 }
 const absoluteLinks = Array.from(html.matchAll(/href="(\/[^"#]*)"/g)).map((match) => match[1].replace(/&amp;/g, '&'));
@@ -141,9 +140,12 @@ assert.ok(
 );
 assert.ok(!/₹\s?\d[\d,]*\s*(?:\/|per )\s*(month|user|seat)/i.test(pageText), 'No add-on price is invented');
 
-/* --- Promotion studio ----------------------------------------------------- */
-assert.ok(pageText.includes('Original sample creatives built for this page'), 'The creative gallery is labelled as sample work');
-assert.ok(html.includes('/?app=1&amp;module=22'), 'The promotion CTA targets the live marketing campaigns module');
+/* --- Salon Promotion Studio is removed ------------------------------------ */
+assert.ok(!html.includes('salon-marketing'), 'The retired Salon Promotion Studio anchor is not rendered');
+assert.ok(!html.includes('sl-promo'), 'No Salon Promotion Studio styling hook is rendered');
+assert.ok(!pageText.includes('SALON PROMOTION STUDIO'), 'The Salon Promotion Studio heading is removed');
+assert.ok(!pageText.includes('Original sample creatives built for this page'), 'The creative gallery is removed');
+assert.ok(!pageText.includes('Where you can share'), 'The promotion sharing list is removed');
 
 /* --- Honest social proof -------------------------------------------------- */
 assert.ok(

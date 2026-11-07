@@ -109,6 +109,22 @@ export interface LandingModel {
   fromDatabase: boolean;
 }
 
+/**
+ * Anchors whose section has been removed from the page layout. Published
+ * navigation rows can predate a layout change, so a link that points at a
+ * retired anchor is dropped instead of being rendered as a dead end.
+ */
+const RETIRED_ANCHORS = new Set(['#salon-marketing']);
+
+const keepLiveLinks = <T extends { href: string }>(links: T[]): T[] =>
+  links.filter((link) => !RETIRED_ANCHORS.has(link.href));
+
+/** Drops retired anchors and any group left without a destination. */
+const keepLiveFooterNav = (groups: LandingNavGroup[]): LandingNavGroup[] =>
+  groups
+    .map((group) => ({ title: group.title, links: keepLiveLinks(group.links) }))
+    .filter((group) => group.links.length > 0);
+
 const FEATURE_ITEMS: Record<string, FeatureItem> = Object.fromEntries(
   FEATURE_CATEGORIES.flatMap((category) => category.items).map((item) => [item.id, item]),
 );
@@ -117,9 +133,11 @@ const FEATURE_ITEMS: Record<string, FeatureItem> = Object.fromEntries(
 export const STATIC_LANDING_MODEL: LandingModel = {
   copy: { ...NEXORA_LANDING_COPY },
   seo: { ...NEXORA_LANDING_SEO },
-  nav: NEXORA_LANDING_NAV.map((link) => ({ ...link })),
-  mobileNav: NEXORA_LANDING_NAV.map((link) => ({ ...link })),
-  footerNav: NEXORA_FOOTER_NAV.map((group) => ({ title: group.title, links: group.links.map((link) => ({ ...link })) })),
+  nav: keepLiveLinks(NEXORA_LANDING_NAV.map((link) => ({ ...link }))),
+  mobileNav: keepLiveLinks(NEXORA_LANDING_NAV.map((link) => ({ ...link }))),
+  footerNav: keepLiveFooterNav(
+    NEXORA_FOOTER_NAV.map((group) => ({ title: group.title, links: group.links.map((link) => ({ ...link })) })),
+  ),
   cta: { signup: NEXORA_SIGNUP_PATH, login: NEXORA_LOGIN_PATH, promoStudio: NEXORA_PROMO_STUDIO_PATH },
   businessTypes: NEXORA_BUSINESS_TYPES.map((item) => ({ ...item })),
   facts: NEXORA_OVERVIEW_FACTS.map((fact) => ({ ...fact })),
@@ -404,12 +422,13 @@ export function buildModelFromDatabase(db: LandingDbContent): LandingModel {
     href: safePath(row.href, '#'),
     external: Boolean(row.open_new_tab),
   });
-  const headerRows = db.navigation.filter((row) => row.location === 'header');
-  const mobileRows = db.navigation.filter((row) => row.location === 'mobile');
+  const liveRows = db.navigation.filter((row) => !RETIRED_ANCHORS.has(row.href));
+  const headerRows = liveRows.filter((row) => row.location === 'header');
+  const mobileRows = liveRows.filter((row) => row.location === 'mobile');
   if (headerRows.length) model.nav = headerRows.map(toLink);
   if (mobileRows.length) model.mobileNav = mobileRows.map(toLink);
 
-  const footerRows = db.navigation.filter((row) => row.location === 'footer');
+  const footerRows = liveRows.filter((row) => row.location === 'footer');
   if (footerRows.length) {
     const used = new Set<string>();
     const groups: LandingNavGroup[] = model.footerNav.map((group) => ({
@@ -425,7 +444,7 @@ export function buildModelFromDatabase(db: LandingDbContent): LandingModel {
     }));
     const leftovers = footerRows.filter((row) => !used.has(row.label)).map(toLink);
     if (leftovers.length) groups.push({ title: 'More', links: leftovers });
-    model.footerNav = groups;
+    model.footerNav = keepLiveFooterNav(groups);
   }
 
   /* ---- business categories ---- */

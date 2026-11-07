@@ -32,7 +32,6 @@ export const NEXORA_LANDING_NAV: LandingNavLink[] = [
   { label: 'Features', href: '#features' },
   { label: 'Solutions', href: '#solutions' },
   { label: 'Pricing', href: '#pricing' },
-  { label: 'Salon Marketing', href: '#salon-marketing' },
   { label: 'Resources', href: '#faq' },
 ];
 
@@ -50,8 +49,6 @@ export const NEXORA_FOOTER_NAV: { title: string; links: LandingNavLink[] }[] = [
   {
     title: 'Salon marketing',
     links: [
-      { label: 'Promotion studio', href: '#salon-marketing' },
-      { label: 'Creative gallery', href: '#salon-marketing' },
       { label: 'Marketing campaigns', href: NEXORA_PROMO_STUDIO_PATH, external: true },
     ],
   },

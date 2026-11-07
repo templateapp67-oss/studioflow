@@ -23,7 +23,7 @@ export function OperationsSection() {
   const { copy, cta } = useLandingModel();
 
   return (
-    <section className="sl-section sl-section--soft" aria-labelledby="sl-operations-title">
+    <section className="sl-section" aria-labelledby="sl-operations-title">
       <div className="sl-container sl-operations">
         <div className="sl-operations__copy">
           <Eyebrow>WHY GO DIGITAL</Eyebrow>

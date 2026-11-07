@@ -11,7 +11,6 @@ import { FeatureSections } from './sections/FeatureSections';
 import { HowItWorksSection } from './sections/HowItWorksSection';
 import { PricingSection } from './sections/PricingSection';
 import { PricingDetailPointer } from './sections/PricingDetailPointer';
-import { PromotionStudioSection } from './sections/PromotionStudioSection';
 import { OperationsSection } from './sections/OperationsSection';
 import { BenefitsSection } from './sections/BenefitsSection';
 import { ProductPreviewSection } from './sections/ProductPreviewSection';
@@ -105,7 +104,6 @@ function LandingDocument() {
         <HowItWorksSection />
         <PricingSection aliasId="plans" />
         <PricingDetailPointer />
-        <PromotionStudioSection />
         <OperationsSection />
         <BenefitsSection />
         <ProductPreviewSection />
