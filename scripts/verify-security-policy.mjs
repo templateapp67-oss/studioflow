@@ -80,6 +80,8 @@ assert.ok(fonts.includes('https://fonts.gstatic.com'));
 // Prerendered SEO data blocks are allowed; executable inline scripts are not.
 const prerender = readFileSync('scripts/prerender-public.tsx', 'utf8');
 for (const match of prerender.matchAll(/<script([^>]*)>/g)) {
+  // The entry-script matcher is source code, not an inline script.
+  if (match[1].includes('type="module"')) continue;
   assert.ok(match[1].includes('type="application/ld+json"'), 'prerendered pages may only inline JSON-LD data blocks');
 }
 
@@ -87,6 +89,9 @@ for (const match of prerender.matchAll(/<script([^>]*)>/g)) {
 assert.deepEqual(config.rewrites.map((entry) => [entry.source, entry.destination]), [
   ['/login', '/login.html'],
   ['/sitemap.xml', '/api/sitemap'],
+  ['/salon-os', '/salon-os/index.html'],
+  ['/pricing', '/pricing/index.html'],
+  ['/privacy', '/privacy/index.html'],
   ['/(.*\\..*)', '/$1'],
   ['/(.*)', '/index.html'],
 ]);

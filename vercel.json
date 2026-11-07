@@ -10,6 +10,18 @@
       "destination": "/api/sitemap"
     },
     {
+      "source": "/salon-os",
+      "destination": "/salon-os/index.html"
+    },
+    {
+      "source": "/pricing",
+      "destination": "/pricing/index.html"
+    },
+    {
+      "source": "/privacy",
+      "destination": "/privacy/index.html"
+    },
+    {
       "source": "/(.*\\..*)",
       "destination": "/$1"
     },

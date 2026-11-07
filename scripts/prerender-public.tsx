@@ -6,6 +6,8 @@ import { createServer } from 'vite';
 import { NEXORA_CATEGORIES, NEXORA_TEMPLATE_META, nexoraTemplatePagePath } from '../src/lib/nexoraTemplateCatalogue';
 import { NEXORA_PUBLIC_ORIGIN } from '../src/lib/publicSeo';
 import { NEXORA_PUBLIC_TEMPLATES_BY_ID } from '../src/lib/nexoraPublicTemplates';
+import { NEXORA_LANDING_SEO, nexoraSalonLandingSchema } from '../src/lib/nexoraLandingContent';
+import { NEXORA_PRICING_SEO, nexoraPricingSchema } from '../src/lib/nexoraPricingSeo';
 import { getAppBuildId } from './buildId';
 
 const dist = join(process.cwd(), 'dist');
@@ -22,15 +24,156 @@ const vite = await createServer({
   optimizeDeps: { noDiscovery: true, include: [] },
 });
 let renderedHomepage: string;
+let renderedLanding: string;
+let renderedPricing: string;
+let renderedPrivacy: string;
 try {
   const homepage = await vite.ssrLoadModule('/src/components/PublicHomepage.tsx');
   renderedHomepage = renderToString(React.createElement(homepage.PublicHomepage));
+  const landing = await vite.ssrLoadModule('/src/components/nexora-landing/NexoraSalonLandingPage.tsx');
+  renderedLanding = renderToString(React.createElement(landing.NexoraSalonLandingPage));
+  const pricing = await vite.ssrLoadModule('/src/components/nexora-landing/NexoraPricingLandingPage.tsx');
+  renderedPricing = renderToString(React.createElement(pricing.NexoraPricingLandingPage));
+  const privacy = await vite.ssrLoadModule('/src/components/nexora-landing/NexoraPrivacyNoticePage.tsx');
+  renderedPrivacy = renderToString(React.createElement(privacy.NexoraPrivacyNoticePage));
 } finally {
   await vite.close();
 }
 const rootMarker = '<div id="root"></div>';
 if (!indexHtml.includes(rootMarker)) throw new Error('Expected an empty #root in Vite index.html before prerendering.');
 await writeFile(indexPath, indexHtml.replace(rootMarker, `<div id="root">${renderedHomepage}</div>`));
+
+// The SalonOS landing page is prerendered into its own document so crawlers
+// receive the full page content instead of an empty client-only shell.
+const moduleScript = indexHtml.match(/<script type="module"[^>]*><\/script>/)?.[0] ?? '';
+const stylesheet = indexHtml.match(/<link rel="stylesheet"[^>]*>/)?.[0] ?? '';
+if (!moduleScript || !stylesheet) throw new Error('Expected the built entry script and stylesheet in dist/index.html.');
+const landingCanonical = `${NEXORA_PUBLIC_ORIGIN}${NEXORA_LANDING_SEO.canonicalPath}`;
+const landingHtml = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>${escapeHtml(NEXORA_LANDING_SEO.title)}</title>
+<meta name="description" content="${escapeHtml(NEXORA_LANDING_SEO.description)}" />
+<meta name="robots" content="index,follow" />
+<link rel="canonical" href="${escapeHtml(landingCanonical)}" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=2" />
+<link rel="shortcut icon" href="/favicon.ico?v=2" />
+<link rel="apple-touch-icon" href="/customer-icon-192.png" />
+<meta name="theme-color" content="${escapeHtml(NEXORA_LANDING_SEO.themeColor)}" />
+<link rel="preload" href="/fonts/poppins/poppins-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
+<link rel="preload" href="/fonts/poppins/poppins-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="NEXORA SALONOS" />
+<meta property="og:title" content="${escapeHtml(NEXORA_LANDING_SEO.title)}" />
+<meta property="og:description" content="${escapeHtml(NEXORA_LANDING_SEO.description)}" />
+<meta property="og:url" content="${escapeHtml(landingCanonical)}" />
+<meta property="og:image" content="${escapeHtml(`${NEXORA_PUBLIC_ORIGIN}${NEXORA_LANDING_SEO.ogImagePath}`)}" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="NEXORA SALONOS salon management software" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="${escapeHtml(NEXORA_LANDING_SEO.title)}" />
+<meta name="twitter:description" content="${escapeHtml(NEXORA_LANDING_SEO.description)}" />
+<meta name="twitter:image" content="${escapeHtml(`${NEXORA_PUBLIC_ORIGIN}${NEXORA_LANDING_SEO.ogImagePath}`)}" />
+<script type="application/ld+json">${safeJson(nexoraSalonLandingSchema(NEXORA_PUBLIC_ORIGIN))}</script>
+${moduleScript}
+${stylesheet}
+</head>
+<body>
+<div id="root">${renderedLanding}</div>
+</body>
+</html>`;
+await mkdir(join(dist, 'salon-os'), { recursive: true });
+await writeFile(join(dist, 'salon-os', 'index.html'), landingHtml);
+
+// The complete NEXORA SALONOS landing page is published at /pricing. It is
+// prerendered into its own document so crawlers receive the full page
+// content (hero, plans, comparison matrix, FAQs) instead of a client shell.
+const pricingCanonical = `${NEXORA_PUBLIC_ORIGIN}/pricing`;
+const pricingHtml = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>${escapeHtml(NEXORA_PRICING_SEO.title)}</title>
+<meta name="description" content="${escapeHtml(NEXORA_PRICING_SEO.description)}" />
+<meta name="robots" content="index,follow" />
+<link rel="canonical" href="${escapeHtml(pricingCanonical)}" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=2" />
+<link rel="shortcut icon" href="/favicon.ico?v=2" />
+<link rel="apple-touch-icon" href="/customer-icon-192.png" />
+<meta name="theme-color" content="#FF2323" />
+<link rel="preload" href="/fonts/poppins/poppins-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
+<link rel="preload" href="/fonts/poppins/poppins-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="NEXORA SALONOS" />
+<meta property="og:title" content="${escapeHtml(NEXORA_PRICING_SEO.title)}" />
+<meta property="og:description" content="${escapeHtml(NEXORA_PRICING_SEO.description)}" />
+<meta property="og:url" content="${escapeHtml(pricingCanonical)}" />
+<meta property="og:image" content="${escapeHtml(`${NEXORA_PUBLIC_ORIGIN}${NEXORA_PRICING_SEO.ogImagePath}`)}" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="NEXORA SALONOS salon management software" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="${escapeHtml(NEXORA_PRICING_SEO.title)}" />
+<meta name="twitter:description" content="${escapeHtml(NEXORA_PRICING_SEO.description)}" />
+<meta name="twitter:image" content="${escapeHtml(`${NEXORA_PUBLIC_ORIGIN}${NEXORA_PRICING_SEO.ogImagePath}`)}" />
+<script type="application/ld+json">${safeJson(nexoraPricingSchema(NEXORA_PUBLIC_ORIGIN))}</script>
+${moduleScript}
+${stylesheet}
+</head>
+<body>
+<div id="root">${renderedPricing}</div>
+</body>
+</html>`;
+await mkdir(join(dist, 'pricing'), { recursive: true });
+await writeFile(join(dist, 'pricing', 'index.html'), pricingHtml);
+
+// The public privacy notice is prerendered as well, so the demo form can
+// link to a real policy document instead of a dead anchor.
+const privacyCanonical = `${NEXORA_PUBLIC_ORIGIN}/privacy`;
+const privacyTitle = 'Privacy notice \u2014 Nexora SalonOS demo requests';
+const privacyDescription =
+  'How Nexora SalonOS collects, stores, uses and deletes the details you send with a demo request.';
+const privacyHtml = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>${escapeHtml(privacyTitle)}</title>
+<meta name="description" content="${escapeHtml(privacyDescription)}" />
+<meta name="robots" content="index,follow" />
+<link rel="canonical" href="${escapeHtml(privacyCanonical)}" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=2" />
+<link rel="shortcut icon" href="/favicon.ico?v=2" />
+<link rel="apple-touch-icon" href="/customer-icon-192.png" />
+<meta name="theme-color" content="#CC1C1C" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="NEXORA SALONOS" />
+<meta property="og:title" content="${escapeHtml(privacyTitle)}" />
+<meta property="og:description" content="${escapeHtml(privacyDescription)}" />
+<meta property="og:url" content="${escapeHtml(privacyCanonical)}" />
+<meta property="og:image" content="${escapeHtml(`${NEXORA_PUBLIC_ORIGIN}/nexora-homepage-og.jpg`)}" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="NEXORA SALONOS salon management software" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="${escapeHtml(privacyTitle)}" />
+<meta name="twitter:description" content="${escapeHtml(privacyDescription)}" />
+${moduleScript}
+${stylesheet}
+</head>
+<body>
+<div id="root">${renderedPrivacy}</div>
+</body>
+</html>`;
+await mkdir(join(dist, 'privacy'), { recursive: true });
+await writeFile(join(dist, 'privacy', 'index.html'), privacyHtml);
 
 const pagesDirectory = join(dist, 'template-pages');
 await mkdir(pagesDirectory, { recursive: true });
@@ -98,4 +241,4 @@ for (const meta of NEXORA_TEMPLATE_META) {
 
 const buildId = getAppBuildId();
 await writeFile(join(dist, 'app-version.json'), `${JSON.stringify({ version: buildId })}\n`);
-console.log(`Prerendered the public homepage, ${NEXORA_TEMPLATE_META.length} template landing pages, and build ${buildId}.`);
+console.log(`Prerendered the public homepage, the SalonOS landing page, the pricing landing page, the privacy notice, ${NEXORA_TEMPLATE_META.length} template landing pages, and build ${buildId}.`);

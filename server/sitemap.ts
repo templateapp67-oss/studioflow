@@ -33,6 +33,7 @@ export function sitemapXml(origin: string, slugs: string[]) {
     origin + "/",
     origin + "/salon-os",
     origin + "/pricing",
+    origin + "/privacy",
     ...NEXORA_TEMPLATE_META.map((meta) => origin + nexoraTemplatePagePath(meta.templateId)),
     ...new Set(
       slugs

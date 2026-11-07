@@ -55,8 +55,8 @@ export interface PricingPlan {
 
 export const PRICING_PLANS: PricingPlan[] = [
   { id: 'lite', name: 'Lite', annualMonthlyEquivalent: 625, annualTotal: 7500, monthlyPrice: null, description: 'Great for Solopreneurs and Just Getting Started.', positioning: 'For independent beauty professionals who need an organized way to manage their everyday salon business.', cta: 'Get Started' },
-  { id: 'grow', name: 'Grow', annualMonthlyEquivalent: 1249, annualTotal: 14988, monthlyPrice: null, description: 'Great for small businesses with steady bookings.', positioning: 'For salons that want better customer management, booking control and business visibility.', cta: 'Choose Grow', popular: true },
-  { id: 'standard', name: 'Standard', annualMonthlyEquivalent: 1999, annualTotal: 23988, monthlyPrice: null, description: 'Growing businesses with automation, reminders & insights.', positioning: 'For growing teams looking for more connected day-to-day salon operations.', cta: 'Choose Standard' },
+  { id: 'grow', name: 'Grow', annualMonthlyEquivalent: 1249, annualTotal: 14988, monthlyPrice: null, description: 'Great for small businesses with steady bookings.', positioning: 'For salons that want better customer management, booking control and business visibility.', cta: 'Choose Grow' },
+  { id: 'standard', name: 'Standard', annualMonthlyEquivalent: 1999, annualTotal: 23988, monthlyPrice: null, description: 'Growing businesses with automation, reminders & insights.', positioning: 'For growing teams looking for more connected day-to-day salon operations.', cta: 'Choose Standard', popular: true },
   { id: 'premium', name: 'Premium', annualMonthlyEquivalent: 4999, annualTotal: 59988, monthlyPrice: null, description: 'For high-traffic businesses needing full control.', positioning: 'For established salons and larger beauty businesses requiring comprehensive management and advanced operational controls.', cta: 'Contact Sales' },
 ];
 
