@@ -48,7 +48,7 @@ export const FEATURE_CATEGORIES: FeatureCategory[] = [
     ['analytics','Dashboard Analytics','Owner dashboard summaries.'],['booking-reports','Booking Reports','Booking activity reporting.'],['customer-reports','Customer Reports','Customer reporting.'],['revenue-analytics','Revenue Analytics','Revenue analytics.'],['staff-reports','Staff Reports','Staff reporting.'],['stock-reports','Inventory Reports','Inventory reporting.'],['insights','Business Insights','Business performance insights.'],['advanced-analytics','Advanced Analytics','Advanced analytics capabilities.'],
   ]) },
   { id: 'business', label: 'Business Management', items: items([
-    ['multiple-staff','Multiple Staff Support','Multiple staff member support.'],['branches','Multi-Branch Management','Multiple salon location support.'],['advanced-permissions','Advanced Permissions','Advanced role and access controls.'],['performance-dashboard','Business Performance Dashboard','Business operations overview.'],['priority-support','Priority Support','Priority support service.'],['premium-support','Premium Support','Premium support service.'],
+    ['advanced-salon-management','Advanced Salon Management','Advanced salon operations, as named in the approved Standard plan inputs.'],['multiple-staff','Multiple Staff Support','Multiple staff member support.'],['branches','Multi-Branch Management','Multiple salon location support.'],['advanced-permissions','Advanced Permissions','Advanced role and access controls.'],['performance-dashboard','Business Performance Dashboard','Business operations overview.'],['priority-support','Priority Support','Priority support service.'],['premium-support','Premium Support','Premium support service.'],
   ]) },
 ];
 
@@ -57,20 +57,59 @@ export const FEATURE_CATEGORIES: FeatureCategory[] = [
  * assignments in this single admin-editable map and use `review` until commercial
  * entitlements have been confirmed; the UI must not infer access from code presence.
  */
+const unconfirmedEntitlements = { lite: 'review', grow: 'review', standard: 'review', premium: 'review' } as const;
 export const FEATURE_PLAN_ENTITLEMENTS: Record<string, Record<PricingPlanId, EntitlementState>> = Object.fromEntries(
-  FEATURE_CATEGORIES.flatMap(category => category.items.map(feature => [feature.id, { lite: 'review', grow: 'review', standard: 'review', premium: 'review' }]))
+  FEATURE_CATEGORIES.flatMap(category => category.items.map(feature => [feature.id, { ...unconfirmedEntitlements }]))
 ) as Record<string, Record<PricingPlanId, EntitlementState>>;
 
-export type AddOn = { id: string; name: string; description: string; price: number | null; availability: 'unconfigured' | 'available'; };
+// Only these Standard inclusions were explicitly approved in the product brief.
+// All other tier assignments remain `review`; do not infer access from code presence.
+FEATURE_PLAN_ENTITLEMENTS['whatsapp-api'].standard = 'included';
+FEATURE_PLAN_ENTITLEMENTS.attendance.standard = 'included';
+FEATURE_PLAN_ENTITLEMENTS['advanced-salon-management'].standard = 'included';
+
+export const PENDING_PRICING_SELECTION_KEY = 'nexora_pending_pricing_selection';
+export interface PendingPricingSelection { planId: PricingPlanId; billingInterval: BillingInterval; savedAt: number; }
+export function isPricingPlanId(value: string | null | undefined): value is PricingPlanId {
+  return PRICING_PLANS.some(plan => plan.id === value);
+}
+export function isBillingInterval(value: string | null | undefined): value is BillingInterval {
+  return value === 'monthly' || value === 'annual';
+}
+export function savePendingPricingSelection(selection: PendingPricingSelection): void {
+  try { if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(PENDING_PRICING_SELECTION_KEY, JSON.stringify(selection)); } catch { /* URL redirect also carries the non-sensitive plan identifiers. */ }
+}
+export function readPendingPricingSelection(): PendingPricingSelection | null {
+  if (typeof sessionStorage === 'undefined') return null;
+  try {
+    const value = JSON.parse(sessionStorage.getItem(PENDING_PRICING_SELECTION_KEY) || 'null') as Partial<PendingPricingSelection> | null;
+    if (!value || !isPricingPlanId(value.planId) || !isBillingInterval(value.billingInterval) || !Number.isFinite(value.savedAt)) return null;
+    if (Date.now() - Number(value.savedAt) > 30 * 60 * 1000) return null;
+    return { planId: value.planId, billingInterval: value.billingInterval, savedAt: Number(value.savedAt) };
+  } catch { return null; }
+}
+export function clearPendingPricingSelection(): void {
+  try { if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(PENDING_PRICING_SELECTION_KEY); } catch { /* Storage can be unavailable in privacy-restricted contexts. */ }
+}
+export function pricingAuthPath(selection: Pick<PendingPricingSelection, 'planId' | 'billingInterval'>): string {
+  const params = new URLSearchParams({ auth: 'signup', pricing_plan: selection.planId, billing_interval: selection.billingInterval });
+  return `/login?${params.toString()}`;
+}
+export function pricingResumePath(selection: Pick<PendingPricingSelection, 'planId' | 'billingInterval'>): string {
+  const params = new URLSearchParams({ resume_plan: selection.planId, billing_interval: selection.billingInterval });
+  return `/pricing?${params.toString()}`;
+}
+
+export type AddOn = { id: string; name: string; description: string; price: number | null; availability: 'unconfigured' | 'available'; includedPlanIds: PricingPlanId[]; };
 export const PRICING_ADD_ONS: AddOn[] = [
-  { id: 'wa-api', name: 'WhatsApp Business API', description: 'Connect business messaging workflows with WhatsApp Business API.', price: null, availability: 'unconfigured' },
-  { id: 'marketing', name: 'Advanced Marketing Automation', description: 'Build more connected campaign and customer recall workflows.', price: null, availability: 'unconfigured' },
-  { id: 'staff-seats', name: 'Additional Staff Seats', description: 'Extend team access for a larger salon team.', price: null, availability: 'unconfigured' },
-  { id: 'branches', name: 'Additional Branches', description: 'Manage operations across additional salon locations.', price: null, availability: 'unconfigured' },
-  { id: 'inventory', name: 'Advanced Inventory Management', description: 'Add deeper product and stock management workflows.', price: null, availability: 'unconfigured' },
-  { id: 'analytics', name: 'Advanced Analytics', description: 'Explore deeper operational and business reporting.', price: null, availability: 'unconfigured' },
-  { id: 'website', name: 'Premium Website Customization', description: 'Explore additional customization for your salon website.', price: null, availability: 'unconfigured' },
-  { id: 'support', name: 'Priority Support', description: 'Ask about support options for your salon team.', price: null, availability: 'unconfigured' },
+  { id: 'wa-api', name: 'WhatsApp Business API', description: 'Connect business messaging workflows with WhatsApp Business API.', price: null, availability: 'unconfigured', includedPlanIds: ['standard'] },
+  { id: 'marketing', name: 'Advanced Marketing Automation', description: 'Build more connected campaign and customer recall workflows.', price: null, availability: 'unconfigured', includedPlanIds: [] },
+  { id: 'staff-seats', name: 'Additional Staff Seats', description: 'Extend team access for a larger salon team.', price: null, availability: 'unconfigured', includedPlanIds: [] },
+  { id: 'branches', name: 'Additional Branches', description: 'Manage operations across additional salon locations.', price: null, availability: 'unconfigured', includedPlanIds: [] },
+  { id: 'inventory', name: 'Advanced Inventory Management', description: 'Add deeper product and stock management workflows.', price: null, availability: 'unconfigured', includedPlanIds: [] },
+  { id: 'analytics', name: 'Advanced Analytics', description: 'Explore deeper operational and business reporting.', price: null, availability: 'unconfigured', includedPlanIds: [] },
+  { id: 'website', name: 'Premium Website Customization', description: 'Explore additional customization for your salon website.', price: null, availability: 'unconfigured', includedPlanIds: [] },
+  { id: 'support', name: 'Priority Support', description: 'Ask about support options for your salon team.', price: null, availability: 'unconfigured', includedPlanIds: [] },
 ];
 
 export const PRICING_FAQS = [
@@ -79,7 +118,7 @@ export const PRICING_FAQS = [
   ['Can I switch plans later?', 'Plan changes are not currently handled by a configured subscription workflow. Please confirm plan-change terms with Nexora before purchasing.'],
   ['Is there a monthly billing option?', 'Monthly subscription rates have not been configured. This page does not invent or charge a monthly amount. The displayed annual rate is a monthly equivalent billed annually.'],
   ['How does annual billing work?', 'The approved annual total is charged once for the annual period. Prices shown as per month are monthly equivalents, not monthly installments. GST treatment has not been confirmed here.'],
-  ['Is WhatsApp API included?', 'WhatsApp API plan entitlements and availability are not yet confirmed. Contact Nexora for confirmation before relying on this integration.'],
+  ['Is WhatsApp API included?', 'The approved pricing inputs list WhatsApp API in Standard. The other tiers are unconfirmed. API credentials, delivery setup and subscription checkout are separate platform configuration and are not activated by this pricing page.'],
   ['Does Nexora provide a mini website?', 'Nexora currently supports salon websites built from its existing templates. A mini website entitlement by plan has not been configured.'],
   ['Can customers book appointments online?', 'The existing product supports appointment booking through published salon websites. Exact plan availability has not yet been configured.'],
   ['Can I manage multiple staff members?', 'The workspace includes existing staff management tools. Staff limits and access by subscription tier are not configured on this page.'],
