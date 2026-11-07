@@ -1,7 +1,6 @@
-import { SectionHeading } from '../ui';
 import { useLandingModel } from '../LandingContentProvider';
 import { FeatureComparisonTable } from '../../nexora-pricing/table/FeatureComparisonTable';
-import { PUBLISHED_COMPARISON_FEATURE_IDS } from '../../../lib/nexoraPricing';
+import { PUBLISHED_COMPARISON_FEATURE_IDS, PRICING_ADD_ONS } from '../../../lib/nexoraPricing';
 import '../../nexora-pricing/table/comparisonTable.css';
 
 /**
@@ -17,17 +16,11 @@ export function ComparisonSection({ id = 'comparison' }: { id?: string }) {
   const { plans, featureItems, comparisonGroups, entitlements } = useLandingModel();
 
   return (
-    <section className="sl-section sl-section--soft" id={id} aria-labelledby="sl-comparison-title">
+    <section className="sl-section sl-section--soft" id={id} aria-label="Feature comparison">
       <div className="sl-container">
-        <SectionHeading
-          eyebrow="SIDE-BY-SIDE DETAILS"
-          id="sl-comparison-title"
-          title="Compare every feature, plan by plan."
-          description="Every row below is an approved plan entitlement. A green tick means the plan includes the feature; a red cross means it does not. Hover, focus or tap the info icon for a plain-language description."
-        />
-
         <FeatureComparisonTable
           plans={plans}
+          addOns={PRICING_ADD_ONS}
           groups={comparisonGroups}
           featureItems={featureItems}
           entitlements={entitlements}
@@ -37,8 +30,7 @@ export function ComparisonSection({ id = 'comparison' }: { id?: string }) {
         />
 
         <p className="sl-table__approval-note">
-          Plan entitlements follow the approved Nexora SalonOS pricing policy. Support service levels and add-on
-          pricing are not configured yet — ask the Nexora team before you rely on them.
+          Add-ons cannot be purchased on this page. No add-on price, checkout or entitlement is published here because none is configured.
         </p>
       </div>
     </section>

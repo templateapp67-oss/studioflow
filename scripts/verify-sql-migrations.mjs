@@ -169,4 +169,6 @@ assert.equal(JSON.stringify(repairedAgain.config),stableConfig,'Template 04 cata
 console.log('PASS: Template 04 SQL sync repairs legacy stock/catalog design only; services and Templates 01–03 & 05–14 remain unchanged.');
 const {verifyBookingBundles}=await import('./fixtures/booking-bundles.mjs');
 await verifyBookingBundles(db);
+const {verifyAdminTenantIsolation}=await import('./fixtures/admin-tenant-isolation.mjs');
+await verifyAdminTenantIsolation(db);
 await db.close();

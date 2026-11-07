@@ -39,7 +39,6 @@ const requiredSections = [
   'id="how-it-works"',
   'id="pricing"',
   'id="comparison"',
-  'id="addons"',
   'id="salon-marketing"',
   'id="benefits"',
   'id="product-preview"',
@@ -103,7 +102,6 @@ for (const plan of PRICING_PLANS) {
   assert.ok(pageText.includes(total), `Plan ${plan.name} shows its annual total (${total})`);
 }
 assert.ok(pageText.includes('GST inclusive'), 'GST inclusion is explained');
-assert.ok(pageText.includes('Not configured'), 'Unconfigured monthly billing is disclosed, not invented');
 assert.ok(pageText.includes('billed annually'), 'The annual billing basis is unmistakable');
 assert.ok(pageText.includes('subscription checkout'), 'The missing subscription checkout is disclosed');
 assert.ok(!pageText.includes('Free trial'), 'No free-trial promise is published');
@@ -130,7 +128,7 @@ assert.ok(!html.includes('lucide-circle-help'), 'No question-mark icon appears i
 const renderedFeatureRows = (html.match(/class="nx-compare__feature-label"/g) || []).length;
 assert.equal(renderedFeatureRows, PUBLISHED_COMPARISON_FEATURE_IDS.length, 'Every approved catalogue feature is listed exactly once');
 const renderedGroups = (html.match(/class="nx-cat__cell"/g) || []).length;
-assert.equal(renderedGroups, 8, 'Every documented comparison group renders a heading row');
+assert.equal(renderedGroups, 9, 'Every documented comparison group renders a heading row');
 
 /* --- Add-ons -------------------------------------------------------------- */
 assert.equal(PRICING_ADD_ONS.length, 8, 'Eight add-ons are documented');

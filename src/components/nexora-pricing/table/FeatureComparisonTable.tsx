@@ -1,5 +1,5 @@
 import { ArrowRight } from 'lucide-react';
-import type { EntitlementState, FeatureItem, PricingPlan } from '../../../lib/nexoraPricing';
+import type { AddOn, EntitlementState, FeatureItem, PricingPlan } from '../../../lib/nexoraPricing';
 import { FeatureStatus } from './FeatureStatus';
 import { FeatureInfoTooltip } from './FeatureInfoTooltip';
 import { FeatureCategoryRow } from './FeatureCategoryRow';
@@ -29,6 +29,7 @@ type EntitlementLookup = Record<string, Partial<Record<string, EntitlementState>
  */
 export function FeatureComparisonTable({
   plans,
+  addOns = [],
   groups,
   featureItems,
   entitlements,
@@ -38,6 +39,7 @@ export function FeatureComparisonTable({
   scrollLabel = 'Feature comparison by plan. Scroll horizontally on small screens.',
 }: {
   plans: PricingPlan[];
+  addOns?: AddOn[];
   groups: ComparisonGroup[];
   featureItems: Record<string, FeatureItem>;
   entitlements: EntitlementLookup;
@@ -81,6 +83,22 @@ export function FeatureComparisonTable({
             </tr>
           </thead>
           <tbody>
+            {addOns.length > 0 && <>
+              <FeatureCategoryRow category={{ id: 'addons', label: 'Add-ons' }} planCount={plans.length} featureCount={addOns.length} />
+              {addOns.map((addOn) => (
+                <tr key={addOn.id} className="nx-compare__row">
+                  <th scope="row" className="nx-compare__feature">
+                    <span className="nx-compare__addon-label">{addOn.name}</span>
+                    <FeatureInfoTooltip label={addOn.name} description={addOn.description} />
+                  </th>
+                  {plans.map((plan) => (
+                    <td key={plan.id} className={`nx-compare__cell${plan.popular ? ' is-recommended' : ''}`} data-plan={plan.id}>
+                      <FeatureStatus state={addOn.includedPlanIds.includes(plan.id) ? 'included' : 'excluded'} planName={plan.name} featureLabel={addOn.name} />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </>}
             {visibleGroups.map((group) => (
               <FragmentGroup key={group.id} group={group} plans={plans} featureItems={featureItems} entitlements={entitlements} />
             ))}

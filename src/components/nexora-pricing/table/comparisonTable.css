@@ -419,3 +419,19 @@
     transition: none;
   }
 }
+
+/* Category rows span columns; paint the Standard column through the separator. */
+.nx-compare tbody .nx-cat__cell {
+  background: linear-gradient(to right, var(--nx-table-bg) 0 69%, var(--nx-table-standard-bg) 69% 84.5%, var(--nx-table-bg) 84.5% 100%);
+}
+@media (max-width: 1024px) {
+  .nx-compare__col-plan { width: 15%; }
+  .nx-compare tbody .nx-cat__cell { background: linear-gradient(to right, var(--nx-table-bg) 0 70%, var(--nx-table-standard-bg) 70% 85%, var(--nx-table-bg) 85% 100%); }
+}
+@media (max-width: 760px) {
+  .nx-compare__col-plan { width: auto; }
+  .nx-compare tbody .nx-cat__cell { background: linear-gradient(to right, var(--nx-table-bg) 0 73%, var(--nx-table-standard-bg) 73% 86.5%, var(--nx-table-bg) 86.5% 100%); }
+}
+@media (max-width: 480px) {
+  .nx-compare tbody .nx-cat__cell { background: linear-gradient(to right, var(--nx-table-bg) 0 75%, var(--nx-table-standard-bg) 75% 87.5%, var(--nx-table-bg) 87.5% 100%); }
+}

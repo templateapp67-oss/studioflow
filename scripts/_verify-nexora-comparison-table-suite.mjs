@@ -349,9 +349,9 @@ assert.ok(
   PRICING_ADD_ONS.filter((addOn) => addOn.includedPlanIds.length).every((addOn) => addOn.id === 'wa-api'),
   'Only the approved WhatsApp API bundling is published',
 );
-const addOnSection = readFileSync('src/components/nexora-landing/sections/AddOnsSection.tsx', 'utf8');
-assert.ok(addOnSection.includes('CircleCheck') && addOnSection.includes('CircleX'), 'Add-ons use the same check/cross icon language');
-assert.ok(!addOnSection.includes('CircleHelp'), 'Add-ons no longer use question-mark indicators');
+const addOnTable = readFileSync('src/components/nexora-pricing/table/FeatureComparisonTable.tsx', 'utf8');
+assert.ok(addOnTable.includes('addOn.includedPlanIds.includes(plan.id)') && addOnTable.includes('<FeatureStatus'), 'Add-ons use the shared check/cross status component and approved bundling');
+assert.ok(!addOnTable.includes('CircleHelp'), 'Add-ons do not use question-mark indicators');
 
 /* ==========================================================================
  * 6. Preserved pricing behaviour (regression gate)

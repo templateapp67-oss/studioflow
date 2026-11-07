@@ -30,9 +30,8 @@ import { ProblemSolutionSection } from './sections/ProblemSolutionSection';
 import { PlatformOverviewSection } from './sections/PlatformOverviewSection';
 import { FeatureSections } from './sections/FeatureSections';
 import { HowItWorksSection } from './sections/HowItWorksSection';
-import { PricingSection } from './sections/PricingSection';
+import { PricingPlansSection } from './sections/PricingPlansSection';
 import { ComparisonSection } from './sections/ComparisonSection';
-import { AddOnsSection } from './sections/AddOnsSection';
 import { PromotionStudioSection } from './sections/PromotionStudioSection';
 import { BenefitsSection } from './sections/BenefitsSection';
 import { ProductPreviewSection } from './sections/ProductPreviewSection';
@@ -120,12 +119,14 @@ const pricingOverrides = {
 function PricingLandingDocument({
   interval,
   selected,
+  setInterval,
   setSelected,
   selectPlan,
   selectionMessage,
 }: {
   interval: BillingInterval;
   selected: PricingPlan | null;
+  setInterval: (interval: BillingInterval) => void;
   setSelected: (plan: PricingPlan | null) => void;
   selectPlan: (plan: PricingPlan) => void;
   selectionMessage: string;
@@ -200,14 +201,13 @@ function PricingLandingDocument({
         <PlatformOverviewSection id="platform" />
         <FeatureSections id="features" />
         <HowItWorksSection id="how-it-works" />
-        <PricingSection id="pricing" aliasId="plans" onSelect={selectPlan} />
+        <PricingPlansSection interval={interval} onIntervalChange={setInterval} onSelect={selectPlan} />
         {selectionMessage ? (
           <p className="sl-container sl-selection-message" role="status">
             {selectionMessage}
           </p>
         ) : null}
         <ComparisonSection id="comparison" />
-        <AddOnsSection id="addons" />
         <PromotionStudioSection id="salon-marketing" />
         <BenefitsSection id="benefits" />
         <ProductPreviewSection id="product-preview" />
@@ -295,6 +295,7 @@ export function NexoraPricingLandingPage() {
       <DemoProvider>
         <PricingLandingDocument
           interval={interval}
+          setInterval={setInterval}
           selected={selected}
           setSelected={setSelected}
           selectPlan={(plan) => {
