@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { NexoraPricingLandingPage } from '../src/components/nexora-landing/NexoraPricingLandingPage';
-import { FEATURE_CATEGORIES, PRICING_FAQS, PRICING_PLANS } from '../src/lib/nexoraPricing';
+import { FEATURE_CATEGORIES, PRICING_FAQS, PRICING_PLANS, PUBLISHED_COMPARISON_FEATURE_IDS } from '../src/lib/nexoraPricing';
 import { PRICING_ADD_ONS } from '../src/lib/nexoraPricing';
 
 const html = renderToStaticMarkup(<NexoraPricingLandingPage />);
@@ -113,19 +113,23 @@ assert.ok(!/\bper month\b(?![^.]{0,40}equivalent)/i.test(pageText) || pageText.i
 
 /* --- Comparison matrix ---------------------------------------------------- */
 const catalogueIds = FEATURE_CATEGORIES.flatMap((category) => category.items).map((item) => item.id);
-assert.ok(html.includes('<table class="sl-table">'), 'The comparison uses real table semantics');
+assert.ok(html.includes('<table class="nx-compare">'), 'The comparison uses real table semantics');
 assert.ok(html.includes('scope="row"'), 'Feature rows use row headers');
 assert.ok(html.includes('scope="colgroup"'), 'Feature groups use column group headers');
 assert.ok(
   html.includes('role="region"') && html.includes('aria-label="Feature comparison by plan.'),
   'The scrollable table region is labelled',
 );
-for (const label of ['Included', 'Not included', 'Pending plan confirmation']) {
-  assert.ok(html.includes(label), `Every entitlement state has a text alternative: ${label}`);
+// The customer-facing table publishes exactly two binary states; no cell is
+// allowed to sit in an unresolved "pending" state.
+for (const label of ['Included', 'Not included']) {
+  assert.ok(html.includes(label), `Every published entitlement state has a text alternative: ${label}`);
 }
-const renderedFeatureRows = (html.match(/class="sl-table__feature-label"/g) || []).length;
-assert.equal(renderedFeatureRows, catalogueIds.length, 'Every approved catalogue feature is listed exactly once');
-const renderedGroups = (html.match(/class="sl-table__group"/g) || []).length;
+assert.ok(!html.includes('Pending plan confirmation'), 'No plan cell is published as pending');
+assert.ok(!html.includes('lucide-circle-help'), 'No question-mark icon appears in the comparison table');
+const renderedFeatureRows = (html.match(/class="nx-compare__feature-label"/g) || []).length;
+assert.equal(renderedFeatureRows, PUBLISHED_COMPARISON_FEATURE_IDS.length, 'Every approved catalogue feature is listed exactly once');
+const renderedGroups = (html.match(/class="nx-cat__cell"/g) || []).length;
 assert.equal(renderedGroups, 8, 'Every documented comparison group renders a heading row');
 
 /* --- Add-ons -------------------------------------------------------------- */

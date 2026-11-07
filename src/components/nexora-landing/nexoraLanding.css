@@ -1390,217 +1390,19 @@
   color: var(--nx-color-primary-dark);
 }
 
-/* ---- Comparison table --------------------------------------------------- */
 
-.sl-table__intro {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--nx-space-3);
-  max-width: 900px;
-  margin: 0 auto var(--nx-space-6);
-  padding: var(--nx-space-4);
-  border: 1px solid var(--nx-color-border);
-  border-radius: var(--nx-radius-card);
-  background: var(--nx-color-surface);
-  font-size: 14px;
+/* ---- Comparison table ----------------------------------------------------
+   The table component and its tokens live in the shared stylesheet
+   `nexora-pricing/table/comparisonTable.css`, which both `/pricing` and the
+   legacy nexora-pricing page import, so the two surfaces cannot drift. Only the
+   section-level note stays here.
+------------------------------------------------------------------------- */
+
+.sl-table__approval-note {
+  margin: var(--nx-space-4) 0 0;
+  font-size: 12.5px;
   line-height: 1.6;
   color: var(--nx-color-text-secondary);
-}
-
-.sl-table__intro svg {
-  flex: none;
-  margin-top: 3px;
-  color: var(--nx-color-primary-dark);
-}
-
-.sl-table__intro b {
-  color: var(--nx-color-text);
-}
-
-.sl-table-wrap {
-  max-width: 100%;
-  min-width: 0;
-  overflow-x: auto;
-  /* Keep the wide comparison matrix inside its own scrollport: without paint
-     containment the 760px table leaks into the root scroll width and the page
-     reports horizontal overflow on small screens. */
-  contain: paint;
-  border: 1px solid var(--nx-color-border);
-  border-radius: var(--nx-radius-card);
-  background: var(--nx-color-surface);
-  -webkit-overflow-scrolling: touch;
-}
-
-.sl-table {
-  width: 100%;
-  min-width: 760px;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-
-.sl-table thead th {
-  position: sticky;
-  top: 0;
-  z-index: 3;
-  padding: var(--nx-space-4);
-  border-bottom: 1px solid var(--nx-color-border);
-  background: var(--nx-color-surface-secondary);
-  text-align: center;
-  font-size: 14px;
-  font-weight: var(--nx-weight-semibold);
-  vertical-align: middle;
-}
-
-.sl-table thead th.is-recommended {
-  background: var(--nx-color-text);
-  color: var(--nx-color-on-dark);
-}
-
-.sl-table__feature-head {
-  text-align: left !important;
-  left: 0;
-  z-index: 4;
-  min-width: 260px;
-}
-
-.sl-table__plan {
-  display: block;
-}
-
-.sl-table__plan-flag {
-  display: block;
-  margin-top: 4px;
-  font-size: 10px;
-  font-weight: var(--nx-weight-medium);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--nx-color-primary);
-}
-
-.sl-table__group th {
-  padding: var(--nx-space-3) var(--nx-space-4);
-  background: var(--nx-color-surface-elevated);
-  text-align: left;
-  font-size: 12px;
-  font-weight: var(--nx-weight-semibold);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--nx-color-text);
-}
-
-.sl-table tbody th,
-.sl-table tbody td {
-  padding: var(--nx-space-3) var(--nx-space-4);
-  border-bottom: 1px solid var(--nx-color-border);
-  vertical-align: middle;
-}
-
-.sl-table tbody tr:hover th,
-.sl-table tbody tr:hover td {
-  background: var(--nx-color-surface-secondary);
-}
-
-.sl-table__feature {
-  position: sticky;
-  left: 0;
-  z-index: 2;
-  background: var(--nx-color-surface);
-  text-align: left;
-  font-weight: var(--nx-weight-medium);
-  min-width: 260px;
-}
-
-.sl-table__feature-label {
-  vertical-align: middle;
-}
-
-.sl-table__feature-info {
-  display: inline-grid;
-  place-items: center;
-  width: 18px;
-  height: 18px;
-  margin-left: var(--nx-space-2);
-  border: 1px solid var(--nx-color-border);
-  border-radius: var(--nx-radius-full);
-  font-size: 10px;
-  font-style: normal;
-  color: var(--nx-color-text-secondary);
-  cursor: help;
-}
-
-.sl-table__feature-info:hover {
-  border-color: var(--nx-color-text);
-  color: var(--nx-color-text);
-}
-
-.sl-table tbody td {
-  text-align: center;
-}
-
-.sl-table tbody td.is-recommended {
-  background: rgba(16, 16, 16, 0.03);
-}
-
-.sl-table tbody tr:hover td.is-recommended {
-  background: rgba(16, 16, 16, 0.05);
-}
-
-.sl-table__state {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: var(--nx-radius-full);
-}
-
-.sl-table__state--yes {
-  background: rgba(22, 138, 69, 0.1);
-  color: var(--nx-color-success);
-}
-
-.sl-table__state--no {
-  background: var(--nx-color-surface-secondary);
-  color: var(--nx-color-text-secondary);
-}
-
-.sl-table__state--review {
-  background: var(--nx-color-surface-elevated);
-  color: var(--nx-color-text-secondary);
-}
-
-.sl-table__hint {
-  display: none;
-  align-items: center;
-  gap: var(--nx-space-2);
-  margin: var(--nx-space-3) 0 0;
-  color: var(--nx-color-text-secondary);
-  font-size: 12px;
-}
-
-.sl-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--nx-space-3) var(--nx-space-5);
-  margin: var(--nx-space-5) 0 0;
-  padding: 0;
-  list-style: none;
-  color: var(--nx-color-text-secondary);
-  font-size: 13px;
-}
-
-.sl-legend li {
-  display: flex;
-  align-items: center;
-  gap: var(--nx-space-2);
-}
-
-.sl-legend svg {
-  flex: none;
-}
-
-.sl-legend li:first-child svg {
-  color: var(--nx-color-success);
 }
 
 /* ---- Promotion studio ---------------------------------------------------- */
@@ -2732,6 +2534,40 @@
   font-size: 13px !important;
 }
 
+.sl-addon__state svg {
+  flex: none;
+  color: var(--nx-color-primary);
+}
+
+/* Add-on plan bundling uses the same approved icon language as the comparison
+   table: green circled check = the plan includes it, red circled cross = it
+   does not. */
+.sl-addon__plans {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sl-addon__plans li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: var(--nx-weight-medium);
+  color: var(--nx-color-text-secondary);
+}
+
+.sl-addon__plans li.is-included svg {
+  color: #00c853;
+}
+
+.sl-addon__plans li.is-excluded svg {
+  color: #ff2323;
+}
+
 .sl-addons__note {
   display: flex;
   align-items: flex-start;
@@ -3231,10 +3067,6 @@
     flex: 1;
     justify-content: center;
     padding: 0 var(--nx-space-3);
-  }
-
-  .sl-table__hint {
-    display: flex;
   }
 
   .sl-promo__head {

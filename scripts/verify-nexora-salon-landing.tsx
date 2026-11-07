@@ -207,8 +207,12 @@ assert.ok(styles.includes('prefers-reduced-motion'), 'Reduced motion is respecte
 for (const width of ['1280px', '1024px', '921px', '767px', '480px', '375px', '320px']) {
   assert.ok(styles.includes(`max-width:${width}`) || styles.includes(`max-width: ${width}`), `Responsive breakpoint ${width} is defined`);
 }
-assert.ok(styles.includes('.sl-table-wrap') && styles.includes('overflow-x: auto'), 'The comparison table scrolls horizontally on small screens');
-assert.ok(/position:\s*sticky/.test(styles), 'The comparison feature column is sticky on wide screens');
+// The /pricing comparison table lives in the shared stylesheet so both pricing
+// surfaces render identically; the companion route must not re-implement it.
+const comparisonStyles = readFileSync('src/components/nexora-pricing/table/comparisonTable.css', 'utf8');
+assert.ok(comparisonStyles.includes('.nx-compare__wrap') && comparisonStyles.includes('overflow-x: auto'), 'The comparison table scrolls horizontally on small screens');
+assert.ok(/position:\s*sticky/.test(comparisonStyles), 'The comparison feature column is sticky on wide screens');
+assert.ok(!styles.includes('.sl-table-wrap'), 'The retired comparison table rules are removed from the landing stylesheet');
 
 const landingSources = [
   'src/components/nexora-landing/NexoraSalonLandingPage.tsx',

@@ -1,4 +1,4 @@
-import { CircleHelp, ShieldCheck } from 'lucide-react';
+import { CircleCheck, CircleX, ShieldCheck } from 'lucide-react';
 import { SectionHeading } from '../ui';
 import { PRICING_ADD_ONS, PRICING_PLANS } from '../../../lib/nexoraPricing';
 
@@ -34,12 +34,29 @@ export function AddOnsSection({ id = 'addons' }: { id?: string }) {
                     ? `Included in ${includedIn.join(', ')} — no separate add-on charge`
                     : 'Contact Nexora for add-on pricing'}
                 </p>
-                <p className="sl-addon__state">
-                  <CircleHelp size={14} aria-hidden="true" />
-                  {addon.availability === 'available'
-                    ? 'Available on request'
-                    : 'Availability and pricing are not configured yet'}
-                </p>
+                {includedIn.length ? (
+                  <ul className="sl-addon__plans" aria-label={`${addon.name} plan entitlement`}>
+                    {PRICING_PLANS.map((plan) => {
+                      const included = addon.includedPlanIds.includes(plan.id);
+                      const Icon = included ? CircleCheck : CircleX;
+                      return (
+                        <li
+                          key={plan.id}
+                          className={included ? 'is-included' : 'is-excluded'}
+                          aria-label={`${plan.name}: ${included ? `Included in ${plan.name}` : `Not included in ${plan.name}`}`}
+                        >
+                          <Icon size={18} strokeWidth={1.9} aria-hidden="true" focusable="false" />
+                          <span>{plan.name}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <p className="sl-addon__state">
+                    <CircleX size={14} aria-hidden="true" />
+                    Not bundled with any plan — {addon.availability === 'available' ? 'available on request' : 'availability and pricing are not configured yet'}
+                  </p>
+                )}
               </li>
             );
           })}
