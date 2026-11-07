@@ -21,6 +21,8 @@ reported as passing that was not run.
 | `node scripts/run-all-verifications.mjs` | same set as `npm test` |
 | `npm audit` | **0 vulnerabilities** (with and without `--omit=dev`) |
 | `npm run test:debug` | `node scripts/verify-debug-boundary.mjs` — part of the suite above |
+| GitHub Actions on the pull request | "High and critical dependency audit" **pass**; "TypeScript, build and complete offline verification" **fails** — it runs `npm test`, and the single failing suite is the pre-existing `verify-template16-aurelia.mjs`. The identical workflow fails on `main` for the base commit `ec06166` (run `42344849000`). |
+| Vercel preview deployment | **built** — `https://studioflow-git-arena-a4fea2d2-c3ab7a-templateapp67-oss-projects.vercel.app` (status *Ready*). It cannot be requested from this environment (`*.vercel.app` is outside the sandbox's outbound allowlist), so the preview smoke test is still outstanding. |
 | `npm run test:live` | **not run** — needs a configured test project with email autoconfirm and network access to `*.supabase.co`, which the review environment does not have. The live behaviour that *was* executed is listed in §4. |
 
 ## 2. Suites added or changed for this work

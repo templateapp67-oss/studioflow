@@ -83,12 +83,21 @@ All names are documented in `.env.example`; the file contains no value.
 | 6 | Migrations applied in order, advisors reviewed | **done** — 0001…0006 applied; RLS and grants verified with live queries (`npm audit` clean as well) |
 | 7 | Edge Functions deployed with the right JWT setting | **done** — `submit-landing-lead` v7, `verify_jwt = false`, CORS allow-list |
 | 8 | Vercel API routes discovered and not rewritten to HTML | **done in code** — `api/nexora-demo-lead.ts` and `api/nexora-demo-leads.ts` exist and the rewrite table leaves `/api/*` to the functions |
-| 9 | Preview deployment built and tested | **partially** — the production build was built and served locally (§5b); a **Vercel preview was not created** (no project access from this environment) |
-| 10 | Public routes and journeys tested on the preview | **partially** — the routes, the demo endpoint and the lead register were tested against the local production build (§5b); the Vercel preview still has to be smoke-tested |
+| 9 | Preview deployment built and tested | **done** — the Vercel GitHub integration built a preview deployment (`https://studioflow-git-arena-a4fea2d2-c3ab7a-templateapp67-oss-projects.vercel.app`, deployment `4CFHcFdnEEqgBRFDwdZMtWcJYaMb`, status *Ready*, the `Vercel` check passed). The production build was additionally served and tested locally (§5b) |
+| 10 | Public routes and journeys tested on the preview | **partially** — the routes, the demo endpoint and the lead register were tested against the local production build (§5b); the **preview itself could not be requested from this environment** (`*.vercel.app` is outside the sandbox's outbound allowlist: DNS resolves, the TLS handshake is dropped) |
 | 11 | Deployment and Supabase logs reviewed | **partially** — the Edge Function logs were reviewed through the live probes; the Vercel log review needs the deployment |
 | 12 | Promotion to production | **not performed** — promotion needs explicit authorisation |
 | 13 | Rollback path | the previous deployment stays available; the change is additive in the database and reversible by removing the new routes |
 | 14 | Production URL verified after promotion | **pending** — `https://nexorasalon.online/pricing` must be checked after promotion |
+
+## 5a. GitHub Actions and the Vercel preview
+
+| Check | Result |
+|---|---|
+| "High and critical dependency audit" (`npm audit --audit-level=high`) | **pass** (16 s) |
+| "TypeScript, build and complete offline verification" (`npm test`) | **fails** — the same single pre-existing suite (`verify-template16-aurelia.mjs`) that fails on `main`; the workflow run for the base commit `ec06166` (`42344849000`) fails identically, which is the independent confirmation that this branch did not introduce it |
+| Vercel preview deployment | **built** by the Vercel GitHub integration — `https://studioflow-git-arena-a4fea2d2-c3ab7a-templateapp67-oss-projects.vercel.app`, deployment `4CFHcFdnEEqgBRFDwdZMtWcJYaMb`, status *Ready*, the `Vercel` check passed |
+| Preview smoke test | **not executed from this environment** — `*.vercel.app` is outside the sandbox's outbound allowlist (the TLS handshake is dropped, the same restriction that blocks `*.supabase.co`). The smoke tests below were executed against the local production build instead and must be repeated against the preview URL by someone with access |
 
 ## 5b. Local production-runtime smoke test (executed)
 
