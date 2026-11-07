@@ -94,6 +94,17 @@ const src=['src','supabase/functions','backend/functions'].flatMap(d=>{try{retur
 await db.exec(readFileSync('supabase/migrations/202611030003_template15_keshkraft.sql','utf8'));
 await db.exec(readFileSync('supabase/migrations/202611050001_booking_multi_services.sql','utf8'));
 await db.exec(readFileSync('supabase/migrations/202611050001_booking_multi_services.sql','utf8'));
+// NEXORA SALONOS landing data layer: schema, published seed content and the
+// shared lead rate-limit counters. The landing page reads these tables with
+// the publishable browser key, so their RLS state is verified here as well.
+await db.exec(readFileSync('supabase/migrations/202611070001_nexora_salon_landing_database.sql','utf8'));
+await db.exec(readFileSync('supabase/migrations/202611070002_nexora_salon_landing_seed.sql','utf8'));
+await db.exec(readFileSync('supabase/migrations/202611070003_nexora_salon_landing_rate_limits.sql','utf8'));
+// Demo-request operations: idempotency, CRM delivery state, retention, the
+// audit trail and the published privacy notice link.
+await db.exec(readFileSync('supabase/migrations/202611070004_nexora_demo_lead_operations.sql','utf8'));
+await db.exec(readFileSync('supabase/migrations/202611070005_nexora_demo_lead_retention_default.sql','utf8'));
+await db.exec(readFileSync('supabase/migrations/202611070006_nexora_landing_privacy_link.sql','utf8'));
 const rpcs=clientRpc(src);
 const froms=[...src.matchAll(/\.from\(\s*['"\`]([A-Za-z0-9_-]+)['"\`]/g)].map(m=>m[1]);
 const tables=froms.filter(n=>!n.includes('-'));
@@ -111,12 +122,12 @@ for(const t of new Set(tables)){
   else if(!hit.rows[0].relrowsecurity)missingTables.push(t+' (RLS off)');
 }
 assert.deepEqual(missingTables,[],'Client tables missing or without RLS');
-const buckets=await db.query(`select id from storage.buckets where id in ('studioflow-media','nexora-customer-private','ink-logos','ink-gallery','ink-artists','ink-references','ink-blog')`);
-assert.equal(buckets.rows.length,7,'StudioFlow and Template 12 storage buckets exist');
-for(const b of bucketsUsed){assert.ok(['studioflow-media','nexora-customer-private','ink-logos','ink-gallery','ink-artists','ink-references','ink-blog'].includes(b),'Unknown bucket reference: '+b);}
+const buckets=await db.query(`select id from storage.buckets where id in ('studioflow-media','nexora-customer-private','ink-logos','ink-gallery','ink-artists','ink-references','ink-blog','nexora-public-assets')`);
+assert.equal(buckets.rows.length,8,'StudioFlow, Template 12 and the NEXORA landing asset bucket exist');
+for(const b of bucketsUsed){assert.ok(['studioflow-media','nexora-customer-private','ink-logos','ink-gallery','ink-artists','ink-references','ink-blog','nexora-public-assets'].includes(b),'Unknown bucket reference: '+b);}
 const pub=await db.query(`select count(*)::int c from pg_publication_tables where pubname='supabase_realtime' and tablename in ('studioflow_websites','studioflow_templates','studioflow_bookings','studioflow_accounts','studioflow_demo_bookings','studioflow_customer_reward_claims')`);
 assert.equal(pub.rows[0].c,6,'Realtime publication complete');
-console.log(`PASS: live catalog serves all ${rpcs.length} client RPCs, ${new Set(tables).size} RLS tables, 7 buckets, 6 baseline realtime tables.`);
+console.log(`PASS: live catalog serves all ${rpcs.length} client RPCs, ${new Set(tables).size} RLS tables, 8 buckets, 6 baseline realtime tables.`);
 
 // Exercise the targeted, repeatable live catalog repair against a deliberately
 // stale Template 04 row. The service catalogue and every other template must

@@ -1,7 +1,9 @@
 import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { PublicHomepage } from './components/PublicHomepage';
-import { PricingPage } from './components/PricingPage';
 import { NexoraSalonLandingPage } from './components/nexora-landing/NexoraSalonLandingPage';
+import { NexoraPricingLandingPage } from './components/nexora-landing/NexoraPricingLandingPage';
+import { NexoraPrivacyNoticePage } from './components/nexora-landing/NexoraPrivacyNoticePage';
+import { NexoraDemoLeadsAdmin } from './components/nexora-landing/admin/NexoraDemoLeadsAdmin';
 import { loadScreen } from './lib/loadScreen';
 import { capturePublicReferral } from './lib/publicReferral';
 import { AUTH_CALLBACK_QUERY_KEYS, hasAuthCallbackFragment } from './lib/authEntry';
@@ -17,14 +19,25 @@ const APP_QUERY_KEYS = [
   ...AUTH_CALLBACK_QUERY_KEYS,
 ];
 
+/**
+ * Public marketing routes that ship their own prerendered document. They stay
+ * outside the owner application so the landing page can be indexed and
+ * hydrated without booting the workspace bundle.
+ */
+const PUBLIC_MARKETING_ROUTES = new Set(['/salon-os', '/pricing', '/privacy']);
+
 export function requiresFullApplication(location: Pick<Location, 'pathname' | 'search' | 'hash' | 'hostname'>): boolean {
-  if (location.pathname !== '/' && location.pathname !== '/index.html') return true;
   if (resolveSiteSlug(location)) return true;
 
   const query = new URLSearchParams(location.search);
   if (APP_QUERY_KEYS.some((key) => query.has(key))) return true;
+  if (hasAuthCallbackFragment(location.hash)) return true;
 
-  return hasAuthCallbackFragment(location.hash);
+  const normalisedPath = location.pathname.replace(/\/+$/, '') || '/';
+  if (PUBLIC_MARKETING_ROUTES.has(normalisedPath)) return false;
+  if (location.pathname !== '/' && location.pathname !== '/index.html') return true;
+
+  return false;
 }
 
 function hasPersistedOwnerSession(): boolean {
@@ -56,7 +69,9 @@ export function AppRouter() {
 
   const publicPath = typeof window !== 'undefined' ? window.location.pathname.replace(/\/$/, '') : '';
   if (publicPath === '/salon-os') return <NexoraSalonLandingPage />;
-  if (publicPath === '/pricing') return <PricingPage />;
+  if (publicPath === '/pricing') return <NexoraPricingLandingPage />;
+  if (publicPath === '/privacy') return <NexoraPrivacyNoticePage />;
+  if (publicPath === '/admin/demo-leads') return <NexoraDemoLeadsAdmin />;
   if (!showApplication) return <PublicHomepage authenticated={authenticated} />;
 
   return (

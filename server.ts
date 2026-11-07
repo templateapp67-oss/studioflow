@@ -14,7 +14,8 @@ import {
   sanitizeVedaAiContent,
   type VedaAiDetails,
 } from "./src/lib/vedaSanjeevaniAi";
-
+import { nexoraDemoLeadHandler } from "./server/nexoraDemoLead";
+import { nexoraDemoLeadsAdminHandler } from "./server/nexoraDemoLeads";
 
 /** Rejects huge or malformed bodies before they reach the AI provider. */
 function normalizeVedaDetails(input: any): VedaAiDetails | null {
@@ -92,63 +93,38 @@ async function startServer() {
     res.json({ status: "ok", app: "StudioFlow White-label Salon OS" });
   });
 
-  // Demo enquiries are forwarded server-to-server; CRM credentials never enter browser code.
-  const demoLeadAttempts = new Map<string, number[]>();
+  // Demo enquiries are handled by one shared server-side implementation that
+  // is used by both this Express server and the Vercel function
+  // `api/nexora-demo-lead.ts`. Credentials never enter browser code, the
+  // enquiry is stored by the `submit-landing-lead` Supabase Edge Function in
+  // the private `public.landing_leads` table, and the durable rate limit of
+  // that function applies across every instance.
   app.post("/api/nexora-demo-lead", async (req, res) => {
-    const body = req.body && typeof req.body === 'object' ? req.body : {};
-    const clip = (value: unknown, max: number) => typeof value === 'string' ? value.trim().slice(0, max) : '';
-    // Honeypot submissions are acknowledged without forwarding or persisting their contents.
-    if (clip(body.website, 200)) return res.status(202).json({ ok: true });
+    await nexoraDemoLeadHandler(
+      {
+        method: req.method,
+        body: req.body,
+        headers: req.headers as Record<string, string | string[] | undefined>,
+        get: (name: string) => req.get(name),
+        ip: req.ip,
+      },
+      res,
+    );
+  });
 
-    const name = clip(body.name, 100);
-    const email = clip(body.email, 254).toLowerCase();
-    const salonName = clip(body.salonName, 120);
-    const phone = clip(body.phone, 20);
-    const city = clip(body.city, 80);
-    if (!name || !salonName || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || body.consent !== true) {
-      return res.status(400).json({ error: 'Enter your name, a valid email, your business name, and consent to be contacted.' });
-    }
-    if (phone && !/^[+()\d .-]{7,20}$/.test(phone)) return res.status(400).json({ error: 'Enter a valid phone number or leave it blank.' });
-
-    const now = Date.now();
-    const clientKey = req.ip || 'unknown';
-    const recent = (demoLeadAttempts.get(clientKey) || []).filter(timestamp => now - timestamp < 60 * 60 * 1000);
-    if (recent.length >= 5) return res.status(429).json({ error: 'Too many demo requests. Please try again later.' });
-    recent.push(now);
-    demoLeadAttempts.set(clientKey, recent);
-    if (demoLeadAttempts.size > 2000) {
-      for (const [key, timestamps] of demoLeadAttempts) if (!timestamps.some(timestamp => now - timestamp < 60 * 60 * 1000)) demoLeadAttempts.delete(key);
-    }
-
-    const endpoint = (process.env.NEXORA_CRM_LEAD_ENDPOINT || '').trim();
-    if (!endpoint) return res.status(503).json({ error: 'Demo requests are not configured yet. No request was sent; please try again later.' });
-    let target: URL;
-    try {
-      target = new URL(endpoint);
-      if (target.protocol !== 'https:' || target.username || target.password) throw new Error('Invalid endpoint');
-    } catch {
-      return res.status(503).json({ error: 'The demo request service is not configured correctly. No request was sent.' });
-    }
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-    try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
-      const token = (process.env.NEXORA_CRM_LEAD_TOKEN || '').trim();
-      if (token) headers.Authorization = `Bearer ${token}`;
-      const response = await fetch(target, {
-        method: 'POST',
-        headers,
-        signal: controller.signal,
-        body: JSON.stringify({ name, email, salonName, phone: phone || null, city: city || null, consent: true, source: 'nexora-pricing-demo' }),
-      });
-      if (!response.ok) return res.status(502).json({ error: 'The demo request service did not accept your request. Please try again later.' });
-      return res.status(201).json({ ok: true });
-    } catch {
-      return res.status(502).json({ error: 'Could not reach the demo request service. No request was confirmed; please try again later.' });
-    } finally {
-      clearTimeout(timeout);
-    }
+  // Manager-only operations on the demo-request register (listing, export and
+  // erasure on request). The manager role is taken from the signed JWT's
+  // server-controlled `app_metadata.site_role` claim.
+  app.post("/api/nexora-demo-leads", async (req, res) => {
+    await nexoraDemoLeadsAdminHandler(
+      {
+        method: req.method,
+        body: req.body,
+        headers: req.headers as Record<string, string | string[] | undefined>,
+        get: (name: string) => req.get(name),
+      },
+      res,
+    );
   });
 
   // AI Bio Generation Route with Gemini
@@ -531,12 +507,26 @@ Return strictly valid JSON in this format:
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
+    // `redirect: false` keeps the marketing documents on their canonical,
+    // slash-free URLs. Without it `express.static` answers `/pricing` with a
+    // 301 to `/pricing/`, which contradicts the canonical link in the
+    // document and differs from the Vercel rewrite.
+    app.use(express.static(distPath, { redirect: false }));
     app.all("/api/*", (_req, res) => {
       res.status(404).json({error:'Unknown API endpoint'});
     });
     app.get(/^\/login\/?$/, (_req, res) => {
       res.sendFile(path.join(distPath, "login.html"));
+    });
+    // The SalonOS landing page ships as its own prerendered document.
+    app.get(/^\/salon-os\/?$/, (_req, res) => {
+      res.sendFile(path.join(distPath, "salon-os", "index.html"));
+    });
+    app.get(/^\/pricing\/?$/, (_req, res) => {
+      res.sendFile(path.join(distPath, "pricing", "index.html"));
+    });
+    app.get(/^\/privacy\/?$/, (_req, res) => {
+      res.sendFile(path.join(distPath, "privacy", "index.html"));
     });
     app.get("*", (_req, res) => {
       res.sendFile(path.join(distPath, "index.html"));

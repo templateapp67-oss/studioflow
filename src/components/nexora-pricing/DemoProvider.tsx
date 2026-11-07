@@ -1,5 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { X } from 'lucide-react';
+import { NEXORA_PRIVACY_NOTICE_VERSION, submitLandingLead } from '../../lib/nexoraLandingData';
+import {
+  createLeadIdempotencyKey,
+  isLeadSubmissionSuccess,
+  postLeadToServerRoute,
+} from '../../lib/nexoraLeadSubmission';
 
 type DemoContextValue = { openDemo: () => void };
 const DemoContext = createContext<DemoContextValue | null>(null);
@@ -27,12 +33,15 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   const consentId = useId();
   const nameRef = useRef<HTMLInputElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
+  // Stable per submission so a retry collapses onto the same stored lead.
+  const idempotencyKeyRef = useRef<string>(createLeadIdempotencyKey());
 
   const openDemo = useCallback(() => {
     returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setLead(initialLead);
     setMessage('');
     setSubmitted(false);
+    idempotencyKeyRef.current = createLeadIdempotencyKey();
     setOpen(true);
   }, []);
   const closeDemo = useCallback(() => {
@@ -63,22 +72,61 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     };
   }, [open, closeDemo]);
 
+  /**
+   * Sends the enquiry to the `submit-landing-lead` Edge Function. The browser
+   * never writes to the leads table itself — it only calls the public
+   * submission endpoint. If that call cannot be made (offline, blocked
+   * origin, function outage) the same-origin server route is used, which
+   * forwards to the very same Edge Function. Success is only reported after a
+   * real `{ ok: true }` answer; the form keeps the visitor's input on failure.
+   */
   const submitLead = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (submitting) return;
     setSubmitting(true);
     setMessage('');
+    const pagePath = typeof window === 'undefined' ? '/salon-os' : window.location.pathname;
+    const successMessage =
+      'Your demo request has been received. Nexora will contact you using the details you provided.';
+    const idempotencyKey = idempotencyKeyRef.current;
     try {
-      const response = await fetch('/api/nexora-demo-lead', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(lead),
+      await submitLandingLead({
+        lead_type: 'demo_request',
+        full_name: lead.name.trim(),
+        business_name: lead.salonName.trim(),
+        email: lead.email.trim().toLowerCase(),
+        phone: lead.phone.trim() || undefined,
+        city: lead.city.trim() || undefined,
+        preferred_contact: lead.phone.trim() ? 'phone' : 'email',
+        page_path: pagePath,
+        consent_given: true,
+        privacy_notice_version: NEXORA_PRIVACY_NOTICE_VERSION,
+        website: lead.website,
+        idempotency_key: idempotencyKey,
       });
-      const result = await response.json().catch(() => ({})) as { error?: string };
-      if (!response.ok) throw new Error(result.error || 'We could not send your request. Please try again later.');
       setSubmitted(true);
-      setMessage('Your demo request has been received. Nexora will contact you using the details you provided.');
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'We could not send your request. No request was confirmed. Please try again later.');
+      setMessage(successMessage);
+    } catch (primaryError) {
+      // The Edge Function could not be reached. The same-origin server route
+      // forwards to the very same lead service; its answer is validated with
+      // the shared contract, so an HTML or empty response can never be shown
+      // as a successful request.
+      const outcome = await postLeadToServerRoute('/api/nexora-demo-lead', {
+        ...lead,
+        pagePath,
+        idempotencyKey,
+      });
+      if (!isLeadSubmissionSuccess(outcome)) {
+        const reason =
+          outcome.error ||
+          (primaryError instanceof Error && primaryError.message
+            ? primaryError.message
+            : 'We could not send your request. No request was confirmed. Please try again later.');
+        setMessage(reason);
+      } else {
+        setSubmitted(true);
+        setMessage(successMessage);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -102,7 +150,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
             <label className="np-demo-consent" htmlFor={consentId}><input id={consentId} type="checkbox" required checked={lead.consent} onChange={event => setLead({ ...lead, consent: event.target.checked })}/><span>I agree that Nexora may use these details to respond to my demo request.</span></label>
             {message && <p className="np-demo-message" role="status">{message}</p>}
             <button className="np-demo-submit" type="submit" disabled={submitting}>{submitting ? 'Sending request…' : 'Request a demo'}</button>
-            <small className="np-demo-privacy">Your details are sent only through the server-side demo integration. No API keys or CRM credentials are exposed in the browser.</small>
+            <small className="np-demo-privacy">Your details are sent to Nexora through the secure submission endpoint and stored in the private Nexora lead register. No API keys or CRM credentials are exposed in the browser. <a href="/privacy">Read the privacy notice</a>.</small>
           </form>
         </> : <div className="np-demo-success"><span aria-hidden="true">✓</span><h2 id="nexora-demo-title">Request received</h2><p id="nexora-demo-description" role="status">{message}</p><button className="np-demo-submit" type="button" onClick={closeDemo}>Done</button></div>}
       </section>

@@ -18,7 +18,7 @@ assert.deepEqual(
   'Approved annual rate and total pairs remain exact',
 );
 assert.ok(pricing.PRICING_PLANS.every(plan => plan.monthlyPrice === null), 'Do not invent monthly prices');
-assert.equal(pricing.PRICING_PLANS.find(plan => plan.popular)?.id, 'grow');
+assert.equal(pricing.PRICING_PLANS.find(plan => plan.popular)?.id, 'standard');
 assert.ok(pricing.PRICING_PLANS.every(plan => plan.annualMonthlyEquivalent * 12 === plan.annualTotal));
 assert.deepEqual(
   pricing.FEATURE_CATEGORIES.map(category => category.id),
@@ -63,13 +63,12 @@ const authPage = readFileSync('src/components/AuthPage.tsx', 'utf8');
 const landingPage = readFileSync('src/components/nexora-landing/NexoraSalonLandingPage.tsx', 'utf8');
 const appRouter = readFileSync('src/AppRouter.tsx', 'utf8');
 const landingContent = readFileSync('src/lib/nexoraLandingContent.ts', 'utf8');
-const templateSection = readFileSync('src/components/nexora-landing/sections/TemplateShowcase.tsx', 'utf8');
-const resultsDisclosure = readFileSync('src/components/nexora-landing/sections/ResultsDisclosure.tsx', 'utf8');
 const sitemap = readFileSync('server/sitemap.ts', 'utf8');
 const styles = readFileSync('src/components/pricingPage.css', 'utf8');
 const demoProvider = readFileSync('src/components/nexora-pricing/DemoProvider.tsx', 'utf8');
 const demoCta = readFileSync('src/components/nexora-pricing/CtaButton.tsx', 'utf8');
 const server = readFileSync('server.ts', 'utf8');
+const demoLeadHandler = readFileSync('server/nexoraDemoLead.ts', 'utf8');
 const content = readFileSync('src/lib/nexoraPricing.ts', 'utf8');
 assert.ok(page.includes("supabase.auth.getSession()"), 'Plan selection checks the current authentication session');
 assert.ok(hero.includes('aria-pressed={activeView===view}') && hero.includes('onClick={()=>setActiveView(view)}'), 'Dashboard preview section controls are keyboard-operable interactive buttons');
@@ -82,16 +81,16 @@ assert.ok(page.includes('<DemoProvider>') && page.includes('<DemoSection/>') && 
 const sectionSequence = ['<PriceHeader/>', '<Hero ', '<PricingGrid ', '<FeatureMatrix/>', '<AddOns/>', '<Benefits/>', '<DemoSection/>', '<FAQ/>', '<FinalCTA ', '<PricingFooter/>'];
 const sectionPositions = sectionSequence.map(section => page.indexOf(section));
 assert.ok(sectionPositions.every(position => position >= 0) && sectionPositions.every((position, index) => index === 0 || position > sectionPositions[index - 1]), 'The ten pricing landing-page sections render in the documented order');
-assert.ok(appRouter.includes("publicPath === '/salon-os'") && landingPage.includes('<LandingHero/>') && landingPage.includes('<FeatureMatrix/>'), 'The full adapted SalonOS landing page is an additive public route');
-const landingSequence = ['<LandingHero/>', '<TemplateShowcase/>', '<AudienceSection/>', '<VerifiedOverview/>', '<FeatureMatrix/>', '<WorkflowSection/>', '<ModuleGrid/>', '<ResultsDisclosure/>', '<TrustAndDemo/>', '<FAQ/>'];
+assert.ok(appRouter.includes("publicPath === '/salon-os'") && landingPage.includes('<HeroSection />') && landingPage.includes('<FeatureSections aliasId="platform" />'), 'The SalonOS companion route stays an additive public route');
+const landingSequence = ['<SiteHeader />', '<HeroSection />', '<BusinessTypesSection aliasId="salon-categories" />', '<ProblemSolutionSection />', '<FeatureSections aliasId="platform" />', '<HowItWorksSection />', '<PricingSection aliasId="plans" />', '<PricingDetailPointer />', '<PromotionStudioSection />', '<OperationsSection />', '<BenefitsSection />', '<ProductPreviewSection />', '<TestimonialSection />', '<FaqSection />', '<FinalCtaSection />', '<SiteFooter />'];
 const landingPositions = landingSequence.map(section => landingPage.indexOf(section));
-assert.ok(landingPositions.every(position => position >= 0) && landingPositions.every((position, index) => index === 0 || position > landingPositions[index - 1]), 'The complete landing page composes ten sections in order');
-assert.ok(landingContent.includes('NEXORA_TEMPLATE_META.length') && templateSection.includes('These are product templates—not partner salons'), 'Sample partner names are replaced with verifiable template catalogue content');
-assert.ok(resultsDisclosure.includes('No independently verified revenue-uplift') && landingContent.includes('No refund guarantee'), 'Sample ROI and guarantee claims are replaced with honest disclosures');
-assert.ok(sitemap.includes('origin + "/salon-os"') && sitemap.includes('origin + "/pricing"'), 'Both public marketing routes are included in the sitemap');
-assert.ok(demoProvider.includes("fetch('/api/nexora-demo-lead'") && demoProvider.includes('id={consentId} type="checkbox" required') && demoProvider.includes('checked={lead.consent}'), 'Demo dialog validates consent and posts to the server-side lead route');
+assert.ok(landingPositions.every(position => position >= 0) && landingPositions.every((position, index) => index === 0 || position > landingPositions[index - 1]), 'The complete landing page composes the documented sections in order');
+assert.ok(landingContent.includes('NEXORA_TEMPLATE_META.length'), 'Landing content is derived from the verifiable template catalogue');
+assert.ok(landingContent.includes('No independently verified revenue-uplift') && landingContent.includes('No refund guarantee'), 'Sample ROI and guarantee claims are replaced with honest disclosures');
+assert.ok(sitemap.includes('origin + "/salon-os"') && sitemap.includes('origin + "/pricing"') && sitemap.includes('origin + "/privacy"'), 'The public marketing routes are included in the sitemap');
+assert.ok(demoProvider.includes("postLeadToServerRoute('/api/nexora-demo-lead'") && demoProvider.includes('id={consentId} type="checkbox" required') && demoProvider.includes('checked={lead.consent}'), 'Demo dialog validates consent and posts to the server-side lead route');
 assert.ok(demoCta.includes('openDemo()'), 'Shared marketing CTAs open the demo dialog');
-assert.ok(server.includes("app.post(\"/api/nexora-demo-lead\"") && server.includes('NEXORA_CRM_LEAD_ENDPOINT') && server.includes("target.protocol !== 'https:'") && server.includes('NEXORA_CRM_LEAD_TOKEN'), 'Demo lead forwarding requires server-side HTTPS CRM configuration');
+assert.ok(server.includes('app.post("/api/nexora-demo-lead"') && demoLeadHandler.includes('NEXORA_CRM_LEAD_ENDPOINT') && demoLeadHandler.includes("protocol === 'https:'") && demoLeadHandler.includes('!parsed.password') && demoLeadHandler.includes('NEXORA_CRM_LEAD_TOKEN'), 'Demo lead forwarding requires server-side HTTPS CRM configuration');
 assert.ok(content.includes('SAMPLE_CONTENT = false') && !content.includes('Sample testimonial') && !content.includes('ROI metric'), 'No unverified testimonial, rating, partner or ROI claims are published');
 assert.ok(styles.includes('@media(max-width:350px)') && styles.includes('@media(max-width:480px)') && styles.includes('@media(max-width:760px)') && styles.includes('@media(max-width:820px)') && styles.includes('@media(max-width:1050px)'), 'Mobile/tablet/desktop responsive breakpoints are present');
 
