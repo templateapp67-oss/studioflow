@@ -18,6 +18,7 @@ import {
   SHRINGAAR_DEFAULT_COLLECTIONS,
   SHRINGAAR_DEFAULT_COLORS,
   SHRINGAAR_IMAGES,
+  SHRINGAAR_HERO_HEADING,
   SHRINGAAR_SERVICES,
   SHRINGAAR_TEMPLATE_SERVICES,
   buildShringaarSeo,
@@ -113,7 +114,7 @@ for (const path of ['logo.svg', 'favicon.svg', 'og-image.jpg']) {
 /* ---------- 3. Resolver: demo defaults + onboarding overrides ---------- */
 const demoProfile = { ...INITIAL_SALON_PROFILE, businessType: 'bridal_lounge' as const };
 const defaults = resolveShringaarRoyalConfig(demoProfile);
-assert.equal(defaults.heroHeading, 'Where Every Bride Becomes Royalty');
+assert.equal(defaults.heroHeading, SHRINGAAR_HERO_HEADING);
 assert.equal(defaults.heroImageUrl, SHRINGAAR_IMAGES.hero);
 assert.deepEqual(defaults.collections, SHRINGAAR_DEFAULT_COLLECTIONS);
 assert.deepEqual(defaults.colors, SHRINGAAR_DEFAULT_COLORS);
@@ -274,16 +275,16 @@ for (const order of ['hero', 'services', 'team', 'experiences', 'location', 'foo
 }
 const text = html.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&#x27;/g, "'").replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ');
 for (const copy of [
-  'Where Every Bride Becomes Royalty',
-  'Royal Rajputana Trousseaus',
-  'The Sabyasachi Aesthetic',
-  'Heirloom Makeover Packages',
-  'The Bridal Menu',
-  'Your Bridal Journey',
-  'Brides Who Became Royalty',
-  'From Our Bridal Diaries',
-  'Wedding Season 2026',
-  'Book Your Bridal Consultation',
+  SHRINGAAR_HERO_HEADING,
+  defaults.collectionsHeading,
+  defaults.looksHeading,
+  defaults.packagesHeading,
+  defaults.servicesHeading,
+  defaults.processHeading,
+  defaults.reviewsHeading,
+  defaults.galleryHeading,
+  defaults.offerHeading,
+  'Book Consultation',
 ]) {
   assert.ok(text.includes(copy), `Template 11 copy renders: ${copy}`);
 }

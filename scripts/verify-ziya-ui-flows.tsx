@@ -8,6 +8,7 @@ import { selectAll, selectOne } from 'css-select';
 import { textContent } from 'domutils';
 
 import { CATEGORY_TEMPLATES } from '../src/categoryTemplates';
+import { LUXURY_EDITORIAL_COPY, isLegacyHairSalonTagline } from '../src/lib/luxuryEditorial';
 import { INITIAL_SALON_PROFILE } from '../src/mockData';
 import { generateSeoDefaults } from '../src/lib/useSeoMetadata';
 import { CustomerSalonWebsite } from '../src/components/CustomerSalonWebsite';
@@ -109,15 +110,13 @@ const ssrHtml = renderToStaticMarkup(
 const doc = parseDocument(ssrHtml);
 
 // Exact Hero copy checks
-assert.ok(ssrHtml.includes('Your Hair, Your Style, Your Confidence'), 'Hero heading exact');
-assert.ok(
-  ssrHtml.includes(
-    'Professional women’s haircuts designed around your face shape, hair type and personal style.',
-  ),
-  'Hero subheadline exact',
-);
-assert.ok(ssrHtml.includes('Book Your Haircut'), 'Primary CTA exact');
-assert.ok(ssrHtml.includes('Explore Haircut Styles'), 'Secondary CTA exact');
+assert.ok(ssrHtml.includes(LUXURY_EDITORIAL_COPY.heroHeadline), 'current hero heading renders');
+const expectedHeroSubheadline = ziyaProfile.tagline && !isLegacyHairSalonTagline(ziyaProfile.tagline)
+  ? ziyaProfile.tagline
+  : LUXURY_EDITORIAL_COPY.heroSubheadline;
+assert.ok(ssrHtml.includes(expectedHeroSubheadline), 'current hero subheadline or owner tagline renders');
+assert.ok(ssrHtml.includes(LUXURY_EDITORIAL_COPY.heroPrimaryCta), 'current primary CTA renders');
+assert.ok(ssrHtml.includes(LUXURY_EDITORIAL_COPY.heroSecondaryCta), 'current secondary CTA renders');
 
 // Forbidden content check (no men's grooming, beard, bridal makeup, nail art, facials, spa, or loyalty placeholder)
 const lowerVisibleText = textContent(doc).toLowerCase();

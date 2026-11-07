@@ -20,6 +20,8 @@ import {
   ARCH_FLUTTER_DEFAULT_OFFERS,
   ARCH_FLUTTER_IMAGES,
   ARCH_FLUTTER_TAGLINE,
+  ARCH_FLUTTER_HERO_KICKER,
+  ARCH_FLUTTER_HERO_HEADING,
   ARCH_FLUTTER_TEMPLATE_SERVICES,
   buildArchFlutterSeo,
   archFlutterFormatInr,
@@ -103,7 +105,7 @@ const draft = templateDraft(template);
 assert.equal(draft.profile.businessType, 'lash_brow');
 assert.equal(draft.profile.businessName, ARCH_FLUTTER_BRAND_NAME);
 assert.ok(draft.services.length >= 60, 'onboarding pre-fills the whole menu');
-assert.ok(draft.profile.tagline.includes('Flutter your confidence'), 'onboarding pre-fills the tagline');
+assert.equal(draft.profile.tagline, ARCH_FLUTTER_TAGLINE, 'onboarding pre-fills the current plain-language tagline');
 assert.equal(applyTemplateDesign({ ...INITIAL_SALON_PROFILE, businessType: 'hair_salon' }, template).businessType, 'lash_brow');
 
 /* ---------- 2. Bundled assets all exist ---------- */
@@ -131,8 +133,8 @@ assert.equal(archFlutterFormatInr(1250.5), '₹1,250.5');
 assert.equal(archFlutterFormatInr(0), '₹0');
 assert.equal(archFlutterFormatInr(null), 'On consult');
 const resolved = resolveArchFlutterConfig({ ...INITIAL_SALON_PROFILE, businessType: 'lash_brow' } as SalonProfile);
-assert.ok(resolved.heroKicker.includes('Atelier'), 'the hero eyebrow ships with the template');
-assert.ok(resolved.heroHeading.includes('Confidence'), 'hero headline ships with the template');
+assert.equal(resolved.heroKicker, ARCH_FLUTTER_HERO_KICKER, 'the current hero eyebrow ships with the template');
+assert.equal(resolved.heroHeading, ARCH_FLUTTER_HERO_HEADING, 'the current hero headline ships with the template');
 assert.ok(resolved.categoriesHeading.length > 3, 'the categories block has its own heading');
 const owned = resolveArchFlutterConfig({
   ...INITIAL_SALON_PROFILE,
@@ -315,7 +317,8 @@ const render = (profile: SalonProfile, hash: string, services = ARCH_FLUTTER_TEM
 
 const home = render(publishedProfile, '#home');
 assert.ok(home.includes('data-layout="hero"'), 'Template 13 renders its hero');
-assert.ok(home.includes('Confidence.'), 'the hero headline ships with the template');
+const renderedHeroHeading = home.match(/<h1[^>]*id="af-hero-title"[^>]*>([\s\S]*?)<\/h1>/)?.[1] || '';
+assert.ok(renderedHeroHeading.includes('Lash') && renderedHeroHeading.includes('brow') && renderedHeroHeading.includes('you'), 'the current animated hero headline renders in the template');
 const homeCards = home.split('class="af-glass af-hover af-offer-card').length - 1;
 assert.ok(homeCards >= 1 && homeCards <= 3, `the home page teases up to three offers (${homeCards} rendered)`);
 assert.ok(home.includes('All offers'), 'the home teaser links to the offers page');

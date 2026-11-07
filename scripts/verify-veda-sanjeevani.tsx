@@ -526,7 +526,7 @@ ok('image presets, focal crops and upload validation');
  * ================================================================== */
 const markup = renderToStaticMarkup(React.createElement(VedaSanjeevaniWebsite, websiteProps() as any));
 assert.ok(markup.includes('vd-site'), 'the design system root renders');
-assert.ok(markup.includes('Return to your'), 'the hero headline renders');
+assert.ok(markup.includes(defaultVedaConfig().hero.headline.split('\n')[0]), 'the current hero headline renders');
 assert.ok(markup.includes('--vd-forest:#1F3B2E'), 'theme tokens are injected');
 assert.ok(markup.includes('data-theme="sanjeevani"') && markup.includes('data-buttons="pill"') && markup.includes('data-layout="cinematic"'), 'design attributes are applied');
 assert.ok(markup.includes('Abhyanga'), 'therapies render');

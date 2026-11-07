@@ -24,7 +24,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { CATEGORY_TEMPLATES } from '../src/categoryTemplates';
-import { upgradeUnisexSalonTemplate } from '../src/lib/auraUnisex';
+import { AURA_UNISEX_COPY, upgradeUnisexSalonTemplate } from '../src/lib/auraUnisex';
 import { renderTemplate } from './lib/renderTemplates';
 
 const failures: string[] = [];
@@ -82,7 +82,7 @@ ok('sticky Aura header is present', html.includes('class="au-header"'));
 for (const label of ['Home', 'Services', 'About', 'Our Team', 'Gallery', 'Contact']) {
   ok(`header nav link "${label}"`, html.includes(`>${label}</a>`));
 }
-ok('header shows the Book Appointment button', headerBlock.includes('Book Appointment'));
+ok('header shows the configured booking action', headerBlock.includes(AURA_UNISEX_COPY.heroPrimary));
 ok('header shows the mobile menu toggle', headerBlock.includes('au-menu-toggle'));
 ok('header shows the salon sub-label', headerBlock.includes('Unisex Salon &amp; Wellness'));
 ok(
@@ -95,7 +95,7 @@ ok(
 /* ------------------------------------------------------------------ */
 ok('hero section present', html.includes('id="aura-home"') && html.includes('au-hero-layout'));
 ok('hero kicker for men and women', html.includes('UNISEX SALON &amp; WELLNESS LOUNGE'));
-ok('hero heading "Modern Hair, Grooming & Calm Wellness for Every Style."', html.includes('Modern Hair, Grooming &amp; Calm Wellness for Every Style.'));
+ok('hero heading matches the current Aura copy', html.includes(AURA_UNISEX_COPY.heroTitle));
 ok('hero primary CTA "Book Appointment"', html.includes('Book Appointment'));
 ok('hero secondary CTA "Explore Services"', html.includes('Explore Services'));
 for (const point of ['Men &amp; Women Specialists', 'Ammonia-Free Colour', 'Clean Wellness Rooms']) {
@@ -132,7 +132,7 @@ ok('combo packages section renders 5 bundle cards', html.includes('id="salon-pac
 ok('about section present', html.includes('id="aura-about"'));
 ok('about shows the interior image', html.includes('/templates/aura-unisex/about-interior-1080.webp'));
 ok('about shows the stylist-at-work image', html.includes('/templates/aura-unisex/about-work-620.webp'));
-ok('about heading', html.includes('A Calm, Modern Space Built Around Personal Care'));
+ok('about heading matches the current Aura copy', html.includes(AURA_UNISEX_COPY.aboutTitle));
 for (const highlight of ['Consultation Before Every Cut', 'Gentle Botanical Formulas', 'Calm &amp; Spotless Lounge']) {
   ok(`about highlight "${highlight}"`, html.includes(highlight));
 }
