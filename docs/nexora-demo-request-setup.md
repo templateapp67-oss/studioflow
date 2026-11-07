@@ -1,6 +1,6 @@
 # Nexora demo-request integration
 
-The pricing page's demo dialog posts to the same-origin server endpoint `POST /api/nexora-demo-lead`. The browser never receives CRM credentials. The server validates the required fields and consent, applies a small in-process request limit, rejects non-HTTPS CRM URLs, applies an eight-second timeout, and only reports success after the configured receiver returns a 2xx response.
+The modular SalonOS landing page is available at `/salon-os`, and the detailed pricing page remains at `/pricing`. Both share the same demo dialog, which posts to the same-origin server endpoint `POST /api/nexora-demo-lead`. The browser never receives CRM credentials. The server validates the required fields and consent, applies a small in-process request limit, rejects non-HTTPS CRM URLs, applies an eight-second timeout, and only reports success after the configured receiver returns a 2xx response.
 
 ## Configure before accepting real demo requests
 

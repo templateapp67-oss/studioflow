@@ -1,6 +1,7 @@
 import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { PublicHomepage } from './components/PublicHomepage';
 import { PricingPage } from './components/PricingPage';
+import { NexoraSalonLandingPage } from './components/nexora-landing/NexoraSalonLandingPage';
 import { loadScreen } from './lib/loadScreen';
 import { capturePublicReferral } from './lib/publicReferral';
 import { AUTH_CALLBACK_QUERY_KEYS, hasAuthCallbackFragment } from './lib/authEntry';
@@ -53,7 +54,9 @@ export function AppRouter() {
     return () => window.removeEventListener('storage', refreshAuthentication);
   }, []);
 
-  if (typeof window !== 'undefined' && window.location.pathname.replace(/\/$/, '') === '/pricing') return <PricingPage />;
+  const publicPath = typeof window !== 'undefined' ? window.location.pathname.replace(/\/$/, '') : '';
+  if (publicPath === '/salon-os') return <NexoraSalonLandingPage />;
+  if (publicPath === '/pricing') return <PricingPage />;
   if (!showApplication) return <PublicHomepage authenticated={authenticated} />;
 
   return (

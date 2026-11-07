@@ -60,6 +60,12 @@ const hero = readFileSync('src/components/nexora-pricing/sections/Hero.tsx', 'ut
 const pricingGrid = readFileSync('src/components/nexora-pricing/sections/PricingGrid.tsx', 'utf8');
 const selectionDialog = readFileSync('src/components/nexora-pricing/sections/SelectionDialog.tsx', 'utf8');
 const authPage = readFileSync('src/components/AuthPage.tsx', 'utf8');
+const landingPage = readFileSync('src/components/nexora-landing/NexoraSalonLandingPage.tsx', 'utf8');
+const appRouter = readFileSync('src/AppRouter.tsx', 'utf8');
+const landingContent = readFileSync('src/lib/nexoraLandingContent.ts', 'utf8');
+const templateSection = readFileSync('src/components/nexora-landing/sections/TemplateShowcase.tsx', 'utf8');
+const resultsDisclosure = readFileSync('src/components/nexora-landing/sections/ResultsDisclosure.tsx', 'utf8');
+const sitemap = readFileSync('server/sitemap.ts', 'utf8');
 const styles = readFileSync('src/components/pricingPage.css', 'utf8');
 const demoProvider = readFileSync('src/components/nexora-pricing/DemoProvider.tsx', 'utf8');
 const demoCta = readFileSync('src/components/nexora-pricing/CtaButton.tsx', 'utf8');
@@ -75,7 +81,14 @@ assert.ok(authPage.includes('pricingReturnPath') && authPage.includes('location.
 assert.ok(page.includes('<DemoProvider>') && page.includes('<DemoSection/>') && page.includes('<FAQ/>') && page.includes('<PricingFooter/>'), 'Pricing page composes separate sections through the current Vite/React app');
 const sectionSequence = ['<PriceHeader/>', '<Hero ', '<PricingGrid ', '<FeatureMatrix/>', '<AddOns/>', '<Benefits/>', '<DemoSection/>', '<FAQ/>', '<FinalCTA ', '<PricingFooter/>'];
 const sectionPositions = sectionSequence.map(section => page.indexOf(section));
-assert.ok(sectionPositions.every(position => position >= 0) && sectionPositions.every((position, index) => index === 0 || position > sectionPositions[index - 1]), 'The ten landing-page sections render in the documented order');
+assert.ok(sectionPositions.every(position => position >= 0) && sectionPositions.every((position, index) => index === 0 || position > sectionPositions[index - 1]), 'The ten pricing landing-page sections render in the documented order');
+assert.ok(appRouter.includes("publicPath === '/salon-os'") && landingPage.includes('<LandingHero/>') && landingPage.includes('<FeatureMatrix/>'), 'The full adapted SalonOS landing page is an additive public route');
+const landingSequence = ['<LandingHero/>', '<TemplateShowcase/>', '<AudienceSection/>', '<VerifiedOverview/>', '<FeatureMatrix/>', '<WorkflowSection/>', '<ModuleGrid/>', '<ResultsDisclosure/>', '<TrustAndDemo/>', '<FAQ/>'];
+const landingPositions = landingSequence.map(section => landingPage.indexOf(section));
+assert.ok(landingPositions.every(position => position >= 0) && landingPositions.every((position, index) => index === 0 || position > landingPositions[index - 1]), 'The complete landing page composes ten sections in order');
+assert.ok(landingContent.includes('NEXORA_TEMPLATE_META.length') && templateSection.includes('These are product templates—not partner salons'), 'Sample partner names are replaced with verifiable template catalogue content');
+assert.ok(resultsDisclosure.includes('No independently verified revenue-uplift') && landingContent.includes('No refund guarantee'), 'Sample ROI and guarantee claims are replaced with honest disclosures');
+assert.ok(sitemap.includes('origin + "/salon-os"') && sitemap.includes('origin + "/pricing"'), 'Both public marketing routes are included in the sitemap');
 assert.ok(demoProvider.includes("fetch('/api/nexora-demo-lead'") && demoProvider.includes('id={consentId} type="checkbox" required') && demoProvider.includes('checked={lead.consent}'), 'Demo dialog validates consent and posts to the server-side lead route');
 assert.ok(demoCta.includes('openDemo()'), 'Shared marketing CTAs open the demo dialog');
 assert.ok(server.includes("app.post(\"/api/nexora-demo-lead\"") && server.includes('NEXORA_CRM_LEAD_ENDPOINT') && server.includes("target.protocol !== 'https:'") && server.includes('NEXORA_CRM_LEAD_TOKEN'), 'Demo lead forwarding requires server-side HTTPS CRM configuration');
