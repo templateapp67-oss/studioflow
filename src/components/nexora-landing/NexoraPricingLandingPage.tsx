@@ -32,9 +32,7 @@ import { FeatureSections } from './sections/FeatureSections';
 import { HowItWorksSection } from './sections/HowItWorksSection';
 import { PricingPlansSection } from './sections/PricingPlansSection';
 import { ComparisonSection } from './sections/ComparisonSection';
-import { PromotionStudioSection } from './sections/PromotionStudioSection';
 import { BenefitsSection } from './sections/BenefitsSection';
-import { ProductPreviewSection } from './sections/ProductPreviewSection';
 import { TestimonialSection } from './sections/TestimonialSection';
 import { FaqSection } from './sections/FaqSection';
 import { FinalCtaSection } from './sections/FinalCtaSection';
@@ -49,7 +47,6 @@ const PRICING_NAV: LandingNavLink[] = [
   { label: 'Features', href: '#features' },
   { label: 'Salon categories', href: '#salon-categories' },
   { label: 'Pricing', href: '#pricing' },
-  { label: 'Salon Promotion Studio', href: '#salon-marketing' },
   { label: 'FAQs', href: '#faq' },
 ];
 
@@ -66,14 +63,12 @@ const PRICING_FOOTER_NAV = [
   {
     title: 'Salon marketing',
     links: [
-      { label: 'Promotion studio', href: '#salon-marketing' },
       { label: 'Salon categories', href: '#salon-categories' },
     ] as LandingNavLink[],
   },
   {
     title: 'Resources',
     links: [
-      { label: 'Product preview', href: '#product-preview' },
       { label: 'Business benefits', href: '#benefits' },
       { label: 'FAQs', href: '#faq' },
     ] as LandingNavLink[],
@@ -208,9 +203,7 @@ function PricingLandingDocument({
           </p>
         ) : null}
         <ComparisonSection id="comparison" />
-        <PromotionStudioSection id="salon-marketing" />
         <BenefitsSection id="benefits" />
-        <ProductPreviewSection id="product-preview" />
         <TestimonialSection id="testimonials" />
         <FaqSection id="faq" />
         <FinalCtaSection id="get-started" primaryLabel="Get Started With Nexora SalonOS" demoLabel="Request a Demo" />

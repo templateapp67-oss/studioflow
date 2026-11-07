@@ -8,8 +8,8 @@
  *     price, no invented discount);
  *   * plan_features is generated from the approved entitlement matrix
  *     (src/lib/nexoraPlanEntitlements.ts); an unapproved cell aborts the run;
- *   * promotional creatives are seeded as DRAFTS because the image objects do
- *     not exist in the bucket yet;
+ *   * the Salon Promotion Studio section is not seeded — the block has been
+ *     removed from the public layout, together with its creatives and channels;
  *   * testimonials are never seeded — no approved customer quote exists.
  *
  * Run: node scripts/generate-nexora-landing-db-seed.mjs
@@ -97,8 +97,8 @@ push('--   * pricing_plans.price_monthly stays NULL (no monthly rate is configur
 push('--   * price_yearly holds the approved GST-inclusive annual total only;');
 push('--   * plan_features contains the approved entitlement matrix only; an');
 push('--     unapproved (review) cell aborts this generator instead of being guessed;');
-push('--   * promotional_creatives are DRAFTS until the image objects are uploaded');
-push('--     to the nexora-public-assets bucket;');
+push('--   * the Salon Promotion Studio section, its creatives and its channel');
+push('--     list are no longer seeded — the block was removed from the layout;');
 push('--   * testimonials are intentionally NOT seeded (no approved quote exists);');
 push('--   * landing_leads is never seeded with example data.');
 push('--');
@@ -201,32 +201,12 @@ const sections = [
     },
   },
   {
-    key: 'salon_promotion_studio',
-    title: copy.promotionTitle, subtitle: copy.promotionDescription,
-    content: {
-      workflow: content.NEXORA_PROMOTION_WORKFLOW.map((step) => ({
-        id: step.id, title: step.title, description: step.description, icon_key: step.icon,
-      })),
-      channels: content.NEXORA_PROMOTION_CHANNELS.map((channel) => ({
-        id: channel.id, label: channel.label, status: channel.status, note: channel.note,
-      })),
-    },
-  },
-  {
     key: 'business_benefits',
     title: copy.benefitsTitle, subtitle: copy.operationsSubtitle,
     content: {
       benefits: content.NEXORA_BUSINESS_BENEFITS.map((benefit) => ({
         id: benefit.id, title: benefit.title, description: benefit.description, icon_key: benefit.icon,
       })),
-    },
-  },
-  {
-    key: 'product_preview',
-    title: copy.previewTitle, subtitle: copy.previewDescription,
-    content: {
-      note: 'Illustrative interface preview — no live salon data is shown.',
-      areas: ['Appointments', 'Customers', 'Billing', 'Staff', 'Inventory', 'Reports'],
     },
   },
   {
@@ -429,32 +409,6 @@ push('  notes=excluded.notes, updated_at=now();');
 push();
 
 /* --------------------------------------------------------------------------
- * promotional_creatives (drafts — image objects still have to be uploaded)
- * ------------------------------------------------------------------------ */
-const shareTargets = content.NEXORA_PROMOTION_CHANNELS
-  .filter((channel) => channel.status === 'available')
-  .map((channel) => channel.id.replace('-', '_'));
-
-push('-- promotional_creatives — DRAFT rows. Upload the image objects to the');
-push('-- nexora-public-assets bucket before setting is_published = true.');
-push('insert into public.promotional_creatives (title, category, description, image_path, image_alt, cta_label, cta_href, share_targets, display_order, is_published)');
-push('select v.title, v.category, v.description, v.image_path, v.image_alt, v.cta_label, v.cta_href, v.share_targets, v.ord, false');
-push('from (values');
-content.NEXORA_PROMOTION_CREATIVES.forEach((creative, index) => {
-  const imagePath = `promotions/${creative.id}-offer.webp`;
-  const alt = `${creative.headline} — ${creative.detail} (illustrative Nexora sample creative)`;
-  const values = [
-    q(creative.headline), q(creative.category), q(`${creative.offer} · ${creative.detail}`),
-    q(imagePath), q(alt), q('Learn more'), q('/salon-os#final-cta'),
-    `array[${shareTargets.map(q).join(', ')}]`, String(index + 1),
-  ];
-  push(`  ${row(values)}${index === content.NEXORA_PROMOTION_CREATIVES.length - 1 ? '' : ','}`);
-});
-push(') as v(title, category, description, image_path, image_alt, cta_label, cta_href, share_targets, ord)');
-push('where not exists (select 1 from public.promotional_creatives p where p.title = v.title);');
-push();
-
-/* --------------------------------------------------------------------------
  * faqs
  * ------------------------------------------------------------------------ */
 const faqCategories = [
@@ -485,4 +439,4 @@ push('-- `submit-landing-lead` Edge Function only.');
 const target = 'supabase/migrations/202611070002_nexora_salon_landing_seed.sql';
 writeFileSync(target, `${sql.join('\n')}\n`);
 console.log(`Wrote ${target} (${sql.length} lines).`);
-console.log(`Sections: ${sections.length}, nav rows: ${navRows.length}, categories: ${content.NEXORA_BUSINESS_TYPES.length}, feature groups: ${content.NEXORA_LANDING_COMPARISON_GROUPS.length}, features: ${featureRows.length}, plans: ${content.PRICING_PLANS.length}, confirmed entitlements: ${confirmedEntitlements.length}, creatives (draft): ${content.NEXORA_PROMOTION_CREATIVES.length}, faqs: ${content.NEXORA_LANDING_FAQS.length}.`);
+console.log(`Sections: ${sections.length}, nav rows: ${navRows.length}, categories: ${content.NEXORA_BUSINESS_TYPES.length}, feature groups: ${content.NEXORA_LANDING_COMPARISON_GROUPS.length}, features: ${featureRows.length}, plans: ${content.PRICING_PLANS.length}, confirmed entitlements: ${confirmedEntitlements.length}, faqs: ${content.NEXORA_LANDING_FAQS.length}.`);

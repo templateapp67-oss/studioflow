@@ -32,7 +32,6 @@ export const NEXORA_LANDING_NAV: LandingNavLink[] = [
   { label: 'Features', href: '#features' },
   { label: 'Solutions', href: '#solutions' },
   { label: 'Pricing', href: '#pricing' },
-  { label: 'Salon Marketing', href: '#salon-marketing' },
   { label: 'Resources', href: '#faq' },
 ];
 
@@ -50,15 +49,12 @@ export const NEXORA_FOOTER_NAV: { title: string; links: LandingNavLink[] }[] = [
   {
     title: 'Salon marketing',
     links: [
-      { label: 'Promotion studio', href: '#salon-marketing' },
-      { label: 'Creative gallery', href: '#salon-marketing' },
       { label: 'Marketing campaigns', href: NEXORA_PROMO_STUDIO_PATH, external: true },
     ],
   },
   {
     title: 'Resources',
     links: [
-      { label: 'Product preview', href: '#product-preview' },
       { label: 'Business benefits', href: '#benefits' },
       { label: 'FAQs', href: '#faq' },
       { label: 'Salon templates', href: '/', external: true },
@@ -114,9 +110,6 @@ export const NEXORA_LANDING_COPY = {
   operationsTitle: 'Your Salon Deserves More Than Manual Management.',
   operationsSubtitle: 'One Connected Place for Your Salon Operations.',
   benefitsTitle: 'More Control Over Your Daily Salon Operations.',
-  previewTitle: 'A Clear View of Your Salon Business.',
-  previewDescription:
-    'An illustrative look at the workspace areas a salon team uses every day.',
   testimonialsTitle: 'Built Around Real Salon Business Needs.',
   faqTitle: 'Frequently Asked Questions',
   finalTitle: 'Ready to Manage Your Salon More Simply?',

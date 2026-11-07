@@ -52,9 +52,7 @@ const sectionOrder = [
   'id="how-it-works"',
   'id="pricing"',
   'id="comparison"',
-  'id="salon-marketing"',
   'id="benefits"',
-  'id="product-preview"',
   'id="testimonials"',
   'id="faq"',
   'id="get-started"',
@@ -146,14 +144,43 @@ assert.ok(!html.includes('★') && !html.includes('aria-label="5 out of 5'), 'No
 assert.ok(!/\b\d+\+?\s*(happy|customers|clients|salons|reviews)\b/i.test(strip(html)), 'No invented customer or review counts are published');
 assert.ok(!/guarantee/i.test(priceText), 'No guarantee claim is published');
 
-// --- Promotions ------------------------------------------------------------
-assert.equal(NEXORA_PROMOTION_CREATIVES.length, 8, 'Eight original promotional creatives are shown');
-for (const creative of NEXORA_PROMOTION_CREATIVES) assert.ok(priceText.includes(creative.headline), `Creative "${creative.headline}" renders`);
-for (const channel of NEXORA_PROMOTION_CHANNELS) {
-  assert.ok(priceText.includes(channel.label), `Channel "${channel.label}" is listed`);
-  assert.ok(priceText.includes(channel.status === 'available' ? 'Available now' : 'Not connected yet'), `Channel "${channel.label}" states its availability`);
+// --- Product experience section is removed ---------------------------------
+assert.ok(!html.includes('product-preview'), 'The retired product preview anchor is not rendered');
+assert.ok(!html.includes('sl-preview'), 'No product preview styling hook is rendered');
+assert.ok(!priceText.includes('A Clear View of Your Salon Business'), 'The product preview heading is removed');
+assert.ok(
+  !priceText.includes('Daily slots, booking status and availability in one owner-side view.'),
+  'The appointment preview card is removed',
+);
+assert.ok(
+  !priceText.includes('Profile, visit history and notes available when the counter needs them.'),
+  'The customer record preview card is removed',
+);
+assert.ok(
+  !priceText.includes('Appointment, revenue, staff and stock reporting from real records.'),
+  'The business reports preview card is removed',
+);
+assert.ok(!priceText.includes('Open your workspace'), 'The product preview CTA is removed');
+for (const link of NEXORA_LANDING_NAV) {
+  assert.notEqual(link.href, '#product-preview', 'Navigation no longer points at the removed section');
 }
-assert.ok(html.includes('/?app=1&amp;module=22'), 'The promotion CTA targets the live marketing campaigns module');
+assert.ok(!priceText.includes('Product preview'), 'Footer navigation no longer lists the removed section');
+
+// --- Salon Promotion Studio is removed -------------------------------------
+assert.ok(!html.includes('salon-marketing'), 'The retired Salon Promotion Studio anchor is not rendered');
+assert.ok(!html.includes('sl-promo'), 'No Salon Promotion Studio styling hook is rendered');
+assert.ok(!priceText.includes('SALON PROMOTION STUDIO'), 'The Salon Promotion Studio heading is removed');
+assert.ok(!priceText.includes('How the promotion flow works'), 'The promotion workflow list is removed');
+assert.ok(!priceText.includes('Where you can share'), 'The promotion sharing list is removed');
+for (const creative of NEXORA_PROMOTION_CREATIVES) {
+  assert.ok(!priceText.includes(creative.headline), `Retired creative "${creative.headline}" no longer renders`);
+}
+for (const channel of NEXORA_PROMOTION_CHANNELS) {
+  assert.ok(!priceText.includes(channel.label), `Retired sharing channel "${channel.label}" no longer renders`);
+}
+for (const link of NEXORA_LANDING_NAV) {
+  assert.notEqual(link.href, '#salon-marketing', 'Navigation no longer points at the removed section');
+}
 
 // --- Content integrity -----------------------------------------------------
 for (const type of NEXORA_BUSINESS_TYPES) assert.ok(priceText.includes(type.title), `Business type "${type.title}" renders`);
@@ -234,4 +261,4 @@ if (existsSync(prerendered)) {
   assert.ok(!document.includes('fonts.googleapis.com'), 'The prerendered page has no third-party font request');
 }
 
-console.log('PASS: Nexora SalonOS companion landing page structure, approved pricing summary, pointer to the canonical pricing comparison, accessible FAQ, honest social proof, promotion gallery, design tokens, responsive breakpoints, visible focus, brand integrity and prerendered SEO document.');
+console.log('PASS: Nexora SalonOS companion landing page structure, approved pricing summary, pointer to the canonical pricing comparison, accessible FAQ, honest social proof, retired promotion studio and product experience blocks, design tokens, responsive breakpoints, visible focus, brand integrity and prerendered SEO document.');
