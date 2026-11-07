@@ -124,6 +124,8 @@ export const NEXORA_LANDING_COPY = {
     'Bring your appointments, customers, team and business operations into one connected platform.',
 } as const;
 
+export const NEXORA_PRICING_INTRO = 'A tailored software solution for every salon, spa, tattoo studio, nail studio, pet grooming center, and skin clinic, regardless of business size.';
+
 export interface BusinessType {
   id: string;
   title: string;
