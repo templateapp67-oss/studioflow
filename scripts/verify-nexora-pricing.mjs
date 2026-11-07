@@ -62,6 +62,7 @@ assert.ok(page.includes("supabase.auth.getSession()"), 'Plan selection checks th
 assert.ok(page.includes('aria-pressed={activeView===view}') && page.includes('onClick={()=>setActiveView(view)}'), 'Dashboard preview section controls are keyboard-operable interactive buttons');
 assert.ok(page.includes('no live salon data') && page.includes('No live business data'), 'Illustrative preview does not imply real customer or sales metrics');
 assert.ok(page.includes('Subscription checkout is not configured'), 'No false subscription payment success is shown');
+assert.ok(page.includes('Approved annual prices are GST-inclusive') && pricing.PRICING_FAQS.some(([question, answer]) => question === 'How does annual billing work?' && answer.includes('include GST')), 'Approved annual totals communicate GST inclusion');
 assert.ok(!page.includes("invoke('studioflow-payments'"), 'Subscription selection must not reuse salon booking-deposit checkout');
 assert.ok(authPage.includes('pricingReturnPath') && authPage.includes('location.assign(pricingReturnPath)'), 'Authentication returns to the selected pricing summary');
 assert.ok(styles.includes('@media(max-width:350px)') && styles.includes('@media(max-width:480px)') && styles.includes('@media(max-width:760px)') && styles.includes('@media(max-width:820px)') && styles.includes('@media(max-width:1050px)'), 'Mobile/tablet/desktop responsive breakpoints are present');
