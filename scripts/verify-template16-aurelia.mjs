@@ -15,6 +15,8 @@ const data=read('src/lib/aureliaBeauty.ts');
 const site=read('src/components/aurelia/AureliaBeautyWebsite.tsx');
 const editor=read('src/components/aurelia/AureliaBeautyEditor.tsx');
 const migration=read('supabase/migrations/202611030004_template15_16_catalogue_sync.sql');
+const reviewPanel=read('src/components/CustomerReviewPanel.tsx');
+const reviewDisplay=read('src/lib/aureliaReviewDisplay.ts');
 
 assert.match(types,/\|\s*'aurelia_beauty_parlour'/,'Template 16 ID must be in BusinessTypeId');
 assert.match(types,/aureliaBeauty\?: AureliaBeautyConfig/,'Aurelia owner config must be part of SalonProfile');
@@ -61,6 +63,19 @@ for(const asset of [
 ]) assert.ok(data.includes(asset),'Aurelia image path missing: '+asset);
 assert.match(site,/BookingModal/,'Aurelia must use shared StudioFlow booking modal');
 assert.match(site,/CustomerReviewPanel/,'Aurelia must use shared customer review panel');
+assert.match(site,/authenticOnly/,'Aurelia must display approved customer reviews only');
+assert.match(reviewPanel,/filterAureliaReviews\(rawCombined\)/,'Aurelia reviews must be filtered before rendering');
+assert.equal((site.match(/<CustomerReviewPanel\b/g)||[]).length,1,'Aurelia must render a single testimonials panel');
+assert.match(reviewPanel,/sf-aurelia-reviews-grid/,'Aurelia reviews must render in one unified grid');
+assert.match(reviewPanel,/sf-aurelia-review-stars/,'Aurelia review cards must show the five-star rating row');
+assert.match(reviewPanel,/sf-aurelia-template-tag/,'Aurelia review cards must identify the active template/brand');
+assert.match(reviewPanel,/reviewDetails\.avatarUrl\|\|reviewDetails\.customerPhotoUrl/,'Customer avatar should use a supplied profile photo when available');
+assert.match(reviewPanel,/sf-aurelia-review-initial/,'Customer avatar must fall back to a reviewer initial');
+assert.match(reviewPanel,/Booked: \$\{serviceName\}/,'Every card must show a booked-service tag');
+assert.match(reviewPanel,/Location not shared/,'Missing customer location must not be replaced with an assumed location');
+assert.match(reviewDisplay,/aurelia\s+guest/i,'Placeholder Aurelia guest names must be removed');
+assert.match(reviewDisplay,/return !comment/,'Blank review text must be removed');
+
 assert.match(editor,/uploadSalonImage/,'Owner image uploads must use StudioFlow Supabase media');
 assert.match(editor,/Add new offer/,'Owner must be able to add offers');
 assert.match(editor,/Website section order/,'Owner must be able to reorder website sections');
