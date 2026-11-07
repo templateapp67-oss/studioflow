@@ -26,6 +26,8 @@ import { BusinessNotificationLink } from './components/BusinessNotificationLink'
 import { SalonBookingsDialog } from './components/SalonBookingsDialog';
 import { loadScreen } from './lib/loadScreen';
 import { ensureTemplate12Seeded, syncIronInkWorkspace } from './templates/iron-ink/api';
+import { useTemplate12Sync } from './hooks/useTemplate12Sync';
+import { SyncStatusBanner } from './components/SyncStatusBanner';
 import { WebsitePublishPanel } from './components/WebsitePublishPanel';
 import { WebsiteDeviceFrame } from './components/WebsiteDeviceFrame';
 import { Rocket, Sliders } from 'lucide-react';
@@ -55,6 +57,8 @@ import { supabase, captureReferral } from './lib/supabase';
 import { applySeoMetadata } from './lib/useSeoMetadata';
 import { applyPublicSeoMetadata, NEXORA_HOME_SEO, NEXORA_LOGIN_SEO } from './lib/publicSeo';
 import { loadApplicationFonts } from './lib/loadApplicationFonts';
+
+type Template12WorkspaceDraft = { profile: SalonProfile; services: SalonService[]; stylists: Stylist[]; galleryUrls: string[] };
 
 const WebsiteCustomerAccount = lazy(() => import('./components/WebsiteCustomerAccount').then(m => ({ default: m.WebsiteCustomerAccount })));
 const LandingPage = lazy(() => loadScreen(() => import('./components/LandingPage').then(m => ({ default: m.LandingPage ?? (m as unknown as { default: typeof m.LandingPage }).default }))));
@@ -195,6 +199,8 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
  const [loyaltyConfig,setLoyaltyConfig]=useState<LoyaltyConfig>(initial.loyaltyConfig||DEFAULT_LOYALTY_CONFIG);
  const [extras,setExtras]=useState({...DEFAULT_EXTRAS,...initial.extras});
  const [onboardingComplete,setOnboardingComplete]=useState(!!initial.onboardingComplete);
+ const restoreTemplate12Draft=useCallback((draft:Template12WorkspaceDraft)=>{setProfile(draft.profile);setServiceState(draft.services||[]);setStylists(draft.stylists||[]);setExtras(prev=>({...prev,gallery:draft.galleryUrls||[]}));setOnboardingComplete(true);},[]);
+ const template12Sync=useTemplate12Sync<Template12WorkspaceDraft>(session.user.id,{onRestore:restoreTemplate12Draft,enabled:profile.businessType==='tattoo_studio'});
  const [appointments,setAppointments]=useState<Appointment[]>([]);const [published,setPublished]=useState<any>(null);
  const [sync,setSync]=useState('Saved to Supabase');const [syncError,setSyncError]=useState('');const [saveConflicts,setSaveConflicts]=useState<string[]>([]);
  const workspaceActive=useRef(true);useEffect(()=>{workspaceActive.current=true;return()=>{workspaceActive.current=false}},[]);
@@ -279,7 +285,7 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
  useEffect(()=>{const p=ACCENT_PALETTES[(profile.themeAccentKey as AccentPaletteKey)||'slate'];applyPrimaryAccentCssVar(profile.customAccentColor||p?.primaryHex||'#0f172a',p?.secondaryHex||'#334155');},[profile.customAccentColor,profile.themeAccentKey]);
  const applyTemplate=(id:BusinessTypeId)=>{const t=templates.find(t=>t.id===id)||CATEGORY_TEMPLATES[id];if(!t)return;setServices(servicesForTemplate(services,profile,t));setProfile(p=>({...applyTemplateDesign(p,t),serviceCatalogueInitialized:true}));if(id==='mens_hair_studio'){setStylists(prev=>[...prev,...MENS_STAFF.filter(s=>!prev.some(p=>p.id===s.id))]);setLoyaltyConfig(structuredClone(MENS_LOYALTY));}else if(!stylists.length)setStylists(t.stylists);else if(id==='beauty_parlour')setStylists(prev=>upgradeLegacyBeautyParlourStylists(prev,'beauty_parlour'));};
  const ironInkSeeded=useRef('');
- useEffect(()=>{if(!onboardingComplete||profile.businessType!=='tattoo_studio')return;let active=true;const timer=setTimeout(()=>{void(async()=>{try{if(ironInkSeeded.current!==session.user.id){await ensureTemplate12Seeded();if(!active)return;ironInkSeeded.current=session.user.id;}await syncIronInkWorkspace(session.user.id,profile,services,stylists,extras.gallery||[]);}catch(error){if(active)setSyncError(error instanceof Error?`Template 12 sync: ${error.message}`:'Template 12 data could not sync.');}})();},900);return()=>{active=false;clearTimeout(timer);};},[onboardingComplete,profile,services,stylists,extras.gallery,session.user.id]);
+ useEffect(()=>{if(!onboardingComplete||profile.businessType!=='tattoo_studio')return;const payload:Template12WorkspaceDraft={profile,services,stylists,galleryUrls:extras.gallery||[]};const timer=setTimeout(()=>{void template12Sync.save(payload,async()=>{if(ironInkSeeded.current!==session.user.id){await ensureTemplate12Seeded();ironInkSeeded.current=session.user.id;}return syncIronInkWorkspace(session.user.id,payload.profile,payload.services,payload.stylists,payload.galleryUrls);});},900);return()=>clearTimeout(timer);},[onboardingComplete,profile,services,stylists,extras.gallery,session.user.id,template12Sync.save]);
  const chooseTemplate=(id:BusinessTypeId)=>{applyTemplate(id);setCurrentView('wizard');};
  // Template 13 customizer: opened from the template gallery demo or from this salon's website editor.
  const [archCustomizer,setArchCustomizer]=useState(false);
@@ -347,6 +353,7 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
       </div>
     </div>
   )}
+  {profile.businessType==='tattoo_studio'&&<SyncStatusBanner status={template12Sync.status} error={template12Sync.error} draftAt={template12Sync.draftAt} onRetry={()=>void template12Sync.retry()} />}
   {!clientPreview&&<><div className="h-10 lg:hidden" /><Header brandName={extras.whiteLabel.platformName} currentView={currentView} setCurrentView={setCurrentView} salonName={profile.businessName} onBuildWebsiteClick={()=>setCurrentView(onboardingComplete?'preview':'wizard')} />
   <div className="fixed bottom-3 left-3 right-3 sm:left-auto sm:right-4 sm:w-auto z-[80] rounded-2xl bg-white/95 backdrop-blur-md shadow-xl border border-slate-200/80 p-3.5 text-xs flex flex-wrap items-center gap-2.5">
     <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 font-semibold border border-slate-200/60 shrink-0">

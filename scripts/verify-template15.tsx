@@ -175,7 +175,7 @@ const html = renderToStaticMarkup(
     onAddAppointment={async (a) => a}
   />,
 );
-assert.ok(html.includes("Own Your Look. Own Your Style."));
+assert.ok(html.includes(MENS_DEFAULTS.heroHeading), 'the current KeshKraft hero heading renders');
 assert.ok(html.includes("Demo prices"));
 assert.ok(html.includes("DEMO OFFER"));
 assert.ok(html.includes("DEMO REVIEW"));

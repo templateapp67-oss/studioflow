@@ -46,6 +46,7 @@ const navigation = [
   { label: '16 Templates', href: '#nexora-template-library' },
   { label: 'How It Works', href: '#how-it-works' },
   { label: 'Features', href: '#features' },
+  { label: 'Pricing', href: '/pricing' },
 ];
 
 const steps = [

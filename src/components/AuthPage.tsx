@@ -3,6 +3,7 @@ import {captureCustomerReferral,rememberCustomerReferral,clearCustomerReferral} 
 import {whatsappNational,validCustomerWhatsApp,customerWhatsApp} from '../lib/customerWhatsApp';
 import {customerToday,validCustomerBirthDate} from '../lib/customerBirthDate';
 import { requestedTemplate } from '../lib/templateEntry';
+import { isBillingInterval, isPricingPlanId, pricingResumePath } from '../lib/nexoraPricing';
 import { Eye, EyeOff } from 'lucide-react';
 import { supabase, captureReferral } from '../lib/supabase';
 
@@ -12,8 +13,12 @@ export function AuthPage({ compact = false, recovery = false, onRecovered, custo
   const customer = customerMode ?? new URLSearchParams(location.search).has('customer');
   const customerReturn=returnSlug||new URLSearchParams(location.search).get('return');
   const selectedTemplate=requestedTemplate(location.search);
+  const loginParams=new URLSearchParams(location.search);
+  const pricingPlanId=loginParams.get('pricing_plan');
+  const pricingBilling=loginParams.get('billing_interval');
+  const pricingReturnPath=isPricingPlanId(pricingPlanId)?pricingResumePath({planId:pricingPlanId,billingInterval:isBillingInterval(pricingBilling)?pricingBilling:'annual'}):'';
   const pendingCustomerRef=customer?captureCustomerReferral():'';
-  const baseRedirectPath=new URLSearchParams(location.search).has('app')?'/?app=1':customer?`/?customer=1${customerReturn?'&return='+encodeURIComponent(customerReturn):''}`:selectedTemplate?`/?template=${encodeURIComponent(selectedTemplate.id)}&create=1`:'/';
+  const baseRedirectPath=loginParams.has('app')?'/?app=1':customer?`/?customer=1${customerReturn?'&return='+encodeURIComponent(customerReturn):''}`:selectedTemplate?`/?template=${encodeURIComponent(selectedTemplate.id)}&create=1`:pricingReturnPath||'/';
   const redirectPath=baseRedirectPath+(pendingCustomerRef?(baseRedirectPath.includes('?')?'&':'?')+'customer_ref='+encodeURIComponent(pendingCustomerRef):'');
   const [mode, setMode] = useState<'signin'|'signup'|'forgot'>((new URLSearchParams(location.search).get('auth') === 'forgot' ? 'forgot' : new URLSearchParams(location.search).get('auth')==='signin'?'signin':initialMode) || (new URLSearchParams(location.search).get('auth')==='signup' || (customer?pendingCustomerRef:captureReferral()) ? 'signup' : 'signin'));
   const signup = mode === 'signup';
@@ -57,6 +62,7 @@ export function AuthPage({ compact = false, recovery = false, onRecovered, custo
       const result = signup ? await supabase.auth.signUp({ email: email.trim(), password, options: { emailRedirectTo: `${location.origin}${invitationMode?'/?app=1&tab=rewards':customer?baseRedirectPath+(ref.trim()?(baseRedirectPath.includes('?')?'&':'?')+'customer_ref='+encodeURIComponent(ref.trim().toUpperCase()):''):redirectPath}`, data: { full_name: name.trim(), salon_name: salon.trim(), ...(customer?{customer_referral_code:ref.trim().toUpperCase(),date_of_birth:birthDate||null,whatsapp_number:customerWhatsApp(whatsapp),whatsapp_welcome_opt_in:welcomeWhatsApp}:{referral_code:ref.trim().toUpperCase()}), source: 'studioflow' } } }) : await supabase.auth.signInWithPassword({ email: email.trim(), password });
       if (result.error) throw result.error;
       if(invitationMode&&result.data.session){clearCustomerReferral();location.assign('/?app=1&tab=rewards');return;}
+      if(result.data.session&&pricingReturnPath){location.assign(pricingReturnPath);return;}
       if (signup && !result.data.session) { setConfirmationPending(true); setMessage('Check your email to confirm your account, then sign in. If you already have an account, use Sign in or Forgot password.'); }
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Could not complete this request. Please try again.'); }
     finally { setBusy(false); }

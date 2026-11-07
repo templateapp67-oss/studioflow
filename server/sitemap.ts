@@ -31,6 +31,8 @@ export function sitemapXml(origin: string, slugs: string[]) {
   // Public marketing and template pages are crawlable; app/auth routes are not.
   const urls = [
     origin + "/",
+    origin + "/salon-os",
+    origin + "/pricing",
     ...NEXORA_TEMPLATE_META.map((meta) => origin + nexoraTemplatePagePath(meta.templateId)),
     ...new Set(
       slugs
