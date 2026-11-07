@@ -40,7 +40,6 @@ const requiredSections = [
   'id="pricing"',
   'id="comparison"',
   'id="benefits"',
-  'id="product-preview"',
   'id="testimonials"',
   'id="faq"',
   'id="get-started"',
@@ -139,6 +138,16 @@ assert.ok(
   'The page states that add-ons cannot be purchased here',
 );
 assert.ok(!/₹\s?\d[\d,]*\s*(?:\/|per )\s*(month|user|seat)/i.test(pageText), 'No add-on price is invented');
+
+/* --- Product experience section is removed -------------------------------- */
+assert.ok(!html.includes('product-preview'), 'The retired product preview anchor is not rendered');
+assert.ok(!html.includes('sl-preview'), 'No product preview styling hook is rendered');
+assert.ok(!pageText.includes('A Clear View of Your Salon Business'), 'The product preview heading is removed');
+assert.ok(
+  !pageText.includes('Illustrative interface preview. The panels show layout only and contain no live salon data.'),
+  'The product preview note is removed',
+);
+assert.ok(!pageText.includes('Open your workspace'), 'The product preview CTA is removed');
 
 /* --- Salon Promotion Studio is removed ------------------------------------ */
 assert.ok(!html.includes('salon-marketing'), 'The retired Salon Promotion Studio anchor is not rendered');

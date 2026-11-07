@@ -33,7 +33,6 @@ import { HowItWorksSection } from './sections/HowItWorksSection';
 import { PricingPlansSection } from './sections/PricingPlansSection';
 import { ComparisonSection } from './sections/ComparisonSection';
 import { BenefitsSection } from './sections/BenefitsSection';
-import { ProductPreviewSection } from './sections/ProductPreviewSection';
 import { TestimonialSection } from './sections/TestimonialSection';
 import { FaqSection } from './sections/FaqSection';
 import { FinalCtaSection } from './sections/FinalCtaSection';
@@ -70,7 +69,6 @@ const PRICING_FOOTER_NAV = [
   {
     title: 'Resources',
     links: [
-      { label: 'Product preview', href: '#product-preview' },
       { label: 'Business benefits', href: '#benefits' },
       { label: 'FAQs', href: '#faq' },
     ] as LandingNavLink[],
@@ -206,7 +204,6 @@ function PricingLandingDocument({
         ) : null}
         <ComparisonSection id="comparison" />
         <BenefitsSection id="benefits" />
-        <ProductPreviewSection id="product-preview" />
         <TestimonialSection id="testimonials" />
         <FaqSection id="faq" />
         <FinalCtaSection id="get-started" primaryLabel="Get Started With Nexora SalonOS" demoLabel="Request a Demo" />

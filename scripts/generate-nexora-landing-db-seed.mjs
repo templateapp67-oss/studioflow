@@ -210,14 +210,6 @@ const sections = [
     },
   },
   {
-    key: 'product_preview',
-    title: copy.previewTitle, subtitle: copy.previewDescription,
-    content: {
-      note: 'Illustrative interface preview — no live salon data is shown.',
-      areas: ['Appointments', 'Customers', 'Billing', 'Staff', 'Inventory', 'Reports'],
-    },
-  },
-  {
     key: 'testimonials',
     title: copy.testimonialsTitle,
     content: {

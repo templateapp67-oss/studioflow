@@ -13,7 +13,6 @@ import { PricingSection } from './sections/PricingSection';
 import { PricingDetailPointer } from './sections/PricingDetailPointer';
 import { OperationsSection } from './sections/OperationsSection';
 import { BenefitsSection } from './sections/BenefitsSection';
-import { ProductPreviewSection } from './sections/ProductPreviewSection';
 import { TestimonialSection } from './sections/TestimonialSection';
 import { FaqSection } from './sections/FaqSection';
 import { FinalCtaSection } from './sections/FinalCtaSection';
@@ -106,7 +105,6 @@ function LandingDocument() {
         <PricingDetailPointer />
         <OperationsSection />
         <BenefitsSection />
-        <ProductPreviewSection />
         <TestimonialSection />
         <FaqSection />
         <FinalCtaSection />

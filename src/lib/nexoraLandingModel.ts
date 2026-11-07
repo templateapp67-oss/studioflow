@@ -114,7 +114,7 @@ export interface LandingModel {
  * navigation rows can predate a layout change, so a link that points at a
  * retired anchor is dropped instead of being rendered as a dead end.
  */
-const RETIRED_ANCHORS = new Set(['#salon-marketing']);
+const RETIRED_ANCHORS = new Set(['#salon-marketing', '#product-preview']);
 
 const keepLiveLinks = <T extends { href: string }>(links: T[]): T[] =>
   links.filter((link) => !RETIRED_ANCHORS.has(link.href));
@@ -311,10 +311,6 @@ export function buildModelFromDatabase(db: LandingDbContent): LandingModel {
   const benefitsCopy = copyFromSection('business_benefits');
   model.copy.benefitsTitle = benefitsCopy.title ?? model.copy.benefitsTitle;
   model.copy.operationsSubtitle = benefitsCopy.subtitle ?? model.copy.operationsSubtitle;
-
-  const previewCopy = copyFromSection('product_preview');
-  model.copy.previewTitle = previewCopy.title ?? model.copy.previewTitle;
-  model.copy.previewDescription = previewCopy.subtitle ?? model.copy.previewDescription;
 
   const testimonialCopy = copyFromSection('testimonials');
   model.copy.testimonialsTitle = testimonialCopy.title ?? model.copy.testimonialsTitle;
