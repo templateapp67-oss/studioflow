@@ -1,3 +1,5 @@
+import { addOnIncludedPlanIds, resolveApprovedEntitlements } from './nexoraPlanEntitlements';
+
 export type BillingInterval = 'monthly' | 'annual';
 export type PricingPlanId = 'lite' | 'grow' | 'standard' | 'premium';
 
@@ -92,20 +94,31 @@ export const FEATURE_CATEGORIES: FeatureCategory[] = [
 ];
 
 /**
- * No plan-entitlement matrix exists in the inspected application. Keep all tier
- * assignments in this single admin-editable map and use `review` until commercial
- * entitlements have been confirmed; the UI must not infer access from code presence.
+ * The plan-entitlement matrix now lives in `nexoraPlanEntitlements.ts` as one
+ * explicit, approved line per catalogue feature. Every cell is `included` or
+ * `excluded`; `review` is kept in the type so an unapproved row can fail closed,
+ * but it must never appear in that matrix (the pricing verification suite fails
+ * the build if it does).
+ *
+ * The UI must still not infer access from code presence — it reads this map only.
  */
-const unconfirmedEntitlements = { lite: 'review', grow: 'review', standard: 'review', premium: 'review' } as const;
-export const FEATURE_PLAN_ENTITLEMENTS: Record<string, Record<PricingPlanId, EntitlementState>> = Object.fromEntries(
-  FEATURE_CATEGORIES.flatMap(category => category.items.map(feature => [feature.id, { ...unconfirmedEntitlements }]))
-) as Record<string, Record<PricingPlanId, EntitlementState>>;
+export const FEATURE_PLAN_ENTITLEMENTS: Record<string, Record<PricingPlanId, EntitlementState>> =
+  resolveApprovedEntitlements();
 
-// Only these Standard inclusions were explicitly approved in the product brief.
-// All other tier assignments remain `review`; do not infer access from code presence.
-FEATURE_PLAN_ENTITLEMENTS['whatsapp-api'].standard = 'included';
-FEATURE_PLAN_ENTITLEMENTS.attendance.standard = 'included';
-FEATURE_PLAN_ENTITLEMENTS['advanced-salon-management'].standard = 'included';
+/** True only when every cell of a feature is an approved binary entitlement. */
+export function isEntitlementApproved(featureId: string): boolean {
+  const plans = FEATURE_PLAN_ENTITLEMENTS[featureId];
+  return Boolean(plans) && PRICING_PLANS.every(plan => plans[plan.id] === 'included' || plans[plan.id] === 'excluded');
+}
+
+/**
+ * Catalogue entries the comparison table may render. Unapproved (`review`) cells
+ * are never published, so a row missing from the approved matrix cannot leak a
+ * half-answered comparison into the customer-facing table.
+ */
+export const PUBLISHED_COMPARISON_FEATURE_IDS: string[] = FEATURE_CATEGORIES
+  .flatMap(category => category.items.map(item => item.id))
+  .filter(isEntitlementApproved);
 
 export const PENDING_PRICING_SELECTION_KEY = 'nexora_pending_pricing_selection';
 export interface PendingPricingSelection { planId: PricingPlanId; billingInterval: BillingInterval; savedAt: number; }
@@ -141,7 +154,9 @@ export function pricingResumePath(selection: Pick<PendingPricingSelection, 'plan
 
 export type AddOn = { id: string; name: string; description: string; price: number | null; availability: 'unconfigured' | 'available'; includedPlanIds: PricingPlanId[]; };
 export const PRICING_ADD_ONS: AddOn[] = [
-  { id: 'wa-api', name: 'WhatsApp Business API', description: 'Connect business messaging workflows with WhatsApp Business API.', price: null, availability: 'unconfigured', includedPlanIds: ['standard'] },
+  // Bundling is derived from the approved entitlement matrix so an add-on can
+  // never be billed on top of a plan that already includes the capability.
+  { id: 'wa-api', name: 'WhatsApp Business API', description: 'Connect business messaging workflows with WhatsApp Business API.', price: null, availability: 'unconfigured', includedPlanIds: addOnIncludedPlanIds('wa-api') },
   { id: 'marketing', name: 'Advanced Marketing Automation', description: 'Build more connected campaign and customer recall workflows.', price: null, availability: 'unconfigured', includedPlanIds: [] },
   { id: 'staff-seats', name: 'Additional Staff Seats', description: 'Extend team access for a larger salon team.', price: null, availability: 'unconfigured', includedPlanIds: [] },
   { id: 'branches', name: 'Additional Branches', description: 'Manage operations across additional salon locations.', price: null, availability: 'unconfigured', includedPlanIds: [] },
@@ -153,18 +168,18 @@ export const PRICING_ADD_ONS: AddOn[] = [
 
 export const PRICING_FAQS = [
   ['What is Nexora SalonOS?', 'Nexora SalonOS is a connected platform for creating a salon website and managing supported salon workflows such as services, staff and appointments. Available features can vary by workspace configuration.'],
-  ['Which plan is right for my salon?', 'Lite is positioned for independent professionals, Grow for small salons with steady bookings, Standard for growing businesses and Premium for established or higher-traffic operations. Confirm feature entitlements with Nexora before subscribing.'],
+  ['Which plan is right for my salon?', 'Lite is positioned for independent professionals, Grow for small salons with steady bookings, Standard for growing businesses and Premium for established or higher-traffic operations. The comparison table lists the approved feature entitlements for each plan.'],
   ['Can I switch plans later?', 'Plan changes are not currently handled by a configured subscription workflow. Please confirm plan-change terms with Nexora before purchasing.'],
   ['Is there a monthly billing option?', 'Monthly subscription rates have not been configured. This page does not invent or charge a monthly amount. The displayed annual rate is a monthly equivalent billed annually.'],
   ['How does annual billing work?', 'The approved annual prices include GST. Prices shown per month are monthly equivalents, not installments. Monthly billed rates remain unconfigured, and subscription checkout is not available on this page, so no subscription charge is made here.'],
-  ['Is WhatsApp API included?', 'The approved pricing inputs list WhatsApp API in Standard. The other tiers are unconfirmed. API credentials, delivery setup and subscription checkout are separate platform configuration and are not activated by this pricing page.'],
-  ['Does Nexora provide a mini website?', 'Nexora currently supports salon websites built from its existing templates. A mini website entitlement by plan has not been configured.'],
-  ['Can customers book appointments online?', 'The existing product supports appointment booking through published salon websites. Exact plan availability has not yet been configured.'],
-  ['Can I manage multiple staff members?', 'The workspace includes existing staff management tools. Staff limits and access by subscription tier are not configured on this page.'],
-  ['Does Nexora support salon billing and POS?', 'The application includes owner-side POS tools. Plan availability and the scope of billing features should be confirmed with Nexora.'],
-  ['Is inventory management available?', 'Inventory entitlements have not been confirmed in the subscription configuration. Please verify availability before purchase.'],
-  ['Can I collect payments through my own salon QR code?', 'Salon QR collections are separate from Nexora subscription payments. QR collection support is not being represented as a subscription payment method here.'],
+  ['Is WhatsApp API included?', 'The approved plan entitlements include the official WhatsApp Business API from the Standard plan onward, at no separate add-on charge. Lite and Grow do not include it. API credentials, delivery setup and subscription checkout are separate platform configuration and are not activated by this pricing page.'],
+  ['Does Nexora provide a mini website?', 'Yes. A mini website for the store is included in every plan, Lite through Premium, built from Nexora\u2019s existing salon templates.'],
+  ['Can customers book appointments online?', 'Yes. Online booking, booking availability and owner-side booking management are included in every plan, Lite through Premium.'],
+  ['Can I manage multiple staff members?', 'Grow, Standard and Premium include staff profiles, staff access, scheduling and staff management. Lite is a single-operator plan for independent professionals and does not include team management.'],
+  ['Does Nexora support salon billing and POS?', 'Yes. Owner-side POS billing, service billing, invoices, payment tracking and day-level sales reports are included in every plan. Expense management and revenue reporting start from Grow.'],
+  ['Is inventory management available?', 'Inventory tracking, stock management, low-stock alerts and product sales are included from the Grow plan onward. Inventory reports start from Standard. Lite does not include inventory management.'],
+  ['Can I collect payments through my own salon QR code?', 'Salon QR payment collection is included in every plan, and it stays separate from Nexora subscription payments. QR collection is not a subscription payment method.'],
   ['What happens when my subscription expires?', 'Subscription lifecycle and expiry behavior have not been configured for this pricing page. No plan activation or expiry change is performed here.'],
-  ['Can I contact support?', 'Support destinations and service levels are not configured in this repository. Please use the support channel already provided to your Nexora account.'],
+  ['Can I contact support?', 'Support service levels are not configured yet, so no plan currently promises Priority or Premium Support. Please use the support channel already provided to your Nexora account.'],
   ['Are there additional charges?', 'Add-on rates, GST treatment and any additional fees have not been configured. Confirm the complete amount with Nexora before payment.'],
 ] as const;

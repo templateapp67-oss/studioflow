@@ -1,0 +1,421 @@
+/* ==========================================================================
+   NEXORA SALONOS — pricing comparison table.
+   Shared by /pricing (nexora-landing ComparisonSection) and the legacy
+   nexora-pricing FeatureMatrix, so the two surfaces cannot drift apart.
+
+   Every colour below is an approved token from the redesign brief. Nothing in
+   this file may hard-code a colour outside the token block.
+   ========================================================================== */
+
+.nx-compare-tokens,
+.nx-compare,
+.nx-compare__wrap,
+.nx-legend {
+  --nx-table-bg: #ffffff;
+  --nx-table-text: #000000;
+  --nx-table-category: #ff2323;
+  --nx-table-primary: #ff2323;
+  --nx-table-included: #00c853;
+  --nx-table-excluded: #ff2323;
+  --nx-table-standard-bg: #ffe9ea;
+  --nx-table-divider: #eeeeee;
+  --nx-table-description: #4b4f58;
+  --nx-table-info: #4b4f58;
+  --nx-table-info-border: #d7d9dd;
+  --nx-table-hover: #fafafa;
+}
+
+/* ---- scroll port --------------------------------------------------------- */
+
+.nx-compare__wrap {
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  /* Paint containment keeps the wide table out of the root scroll width, so the
+     page itself never scrolls sideways on mobile. */
+  contain: paint;
+  border: 1px solid var(--nx-table-divider);
+  border-radius: 14px;
+  background: var(--nx-table-bg);
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+/* ---- table --------------------------------------------------------------- */
+
+.nx-compare {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--nx-table-bg);
+  color: var(--nx-table-text);
+  font-family: 'Poppins', sans-serif;
+  table-layout: fixed;
+}
+
+.nx-compare__col-feature {
+  width: 38%;
+}
+
+.nx-compare__col-plan {
+  width: 15.5%;
+}
+
+/* ---- header -------------------------------------------------------------- */
+
+.nx-compare thead th {
+  padding: 20px 16px;
+  background: var(--nx-table-bg);
+  border-bottom: 1px solid var(--nx-table-divider);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--nx-table-text);
+  text-align: center;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.nx-compare thead th.nx-compare__feature-head {
+  text-align: left;
+  padding-left: 22px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--nx-table-description);
+}
+
+/* The Standard column is highlighted continuously, header included. */
+.nx-compare thead th.is-recommended,
+.nx-compare__cell.is-recommended,
+.nx-compare tbody tr:hover td.is-recommended {
+  background: var(--nx-table-standard-bg);
+}
+
+.nx-compare thead th.is-recommended .nx-planhead__name {
+  color: var(--nx-table-primary);
+}
+
+.nx-planhead__name {
+  display: block;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.nx-planhead__flag {
+  display: block;
+  margin-top: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--nx-table-primary);
+}
+
+/* ---- category separator -------------------------------------------------- */
+
+.nx-cat__cell {
+  padding: 26px 22px 10px !important;
+  background: var(--nx-table-bg);
+  border-bottom: 1px solid var(--nx-table-divider);
+  text-align: left;
+}
+
+.nx-cat__name {
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--nx-table-category);
+}
+
+.nx-cat__count {
+  margin-left: 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--nx-table-description);
+}
+
+/* ---- feature rows -------------------------------------------------------- */
+
+.nx-compare tbody th,
+.nx-compare tbody td {
+  padding: 15px 16px;
+  border-bottom: 1px solid var(--nx-table-divider);
+  background: var(--nx-table-bg);
+  vertical-align: middle;
+}
+
+.nx-compare__feature {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  text-align: left;
+  padding-left: 22px !important;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--nx-table-text);
+}
+
+.nx-compare__feature-label {
+  display: inline;
+}
+
+.nx-compare__cell {
+  text-align: center;
+  font-size: 15px;
+}
+
+.nx-compare tbody tr:hover th.nx-compare__feature,
+.nx-compare tbody tr:hover td:not(.is-recommended) {
+  background: var(--nx-table-hover);
+}
+
+/* ---- status icons (the highest-priority part of the design) -------------- */
+
+.nx-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 24px;
+  background: transparent;
+  line-height: 0;
+}
+
+.nx-status svg {
+  display: block;
+  /* Lucide draws with currentColor; the stroke colour is therefore the token. */
+  stroke: currentColor;
+  background: transparent;
+}
+
+.nx-status--included {
+  color: var(--nx-table-included);
+}
+
+.nx-status--excluded {
+  color: var(--nx-table-excluded);
+}
+
+.nx-status[data-status='review'] {
+  color: var(--nx-table-description);
+}
+
+/* ---- information tooltip ------------------------------------------------- */
+
+.nx-info {
+  position: relative;
+  display: inline-flex;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.nx-info__trigger {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid var(--nx-table-info-border);
+  border-radius: 50%;
+  background: var(--nx-table-bg);
+  color: var(--nx-table-info);
+  cursor: help;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.nx-info__trigger:hover,
+.nx-info__trigger[aria-expanded='true'],
+.nx-info__trigger:focus-visible {
+  color: var(--nx-table-text);
+  border-color: var(--nx-table-text);
+}
+
+.nx-info__trigger:focus-visible {
+  outline: 2px solid var(--nx-table-text);
+  outline-offset: 2px;
+}
+
+/* The panel hangs under the label and is capped in width so it never reaches
+   the adjacent plan-status column. */
+.nx-info__panel {
+  position: absolute;
+  z-index: 12;
+  top: calc(100% + 8px);
+  left: -6px;
+  width: max-content;
+  max-width: 260px;
+  padding: 10px 12px;
+  border: 1px solid var(--nx-table-divider);
+  border-radius: 8px;
+  background: var(--nx-table-bg);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.12);
+  color: var(--nx-table-description);
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.55;
+  text-align: left;
+  white-space: normal;
+}
+
+/* Keep the last rows' tooltips inside the scroll port. */
+.nx-compare tbody tr:nth-last-child(-n + 2) .nx-info__panel {
+  top: auto;
+  bottom: calc(100% + 8px);
+}
+
+/* ---- hint + legend ------------------------------------------------------- */
+
+.nx-compare__hint {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 0 0;
+  color: var(--nx-table-description);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.nx-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--nx-table-description);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.nx-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nx-legend .nx-status {
+  width: auto;
+  min-height: 0;
+}
+
+.nx-compare__empty {
+  margin: 0;
+  padding: 22px;
+  border: 1px dashed var(--nx-table-divider);
+  border-radius: 14px;
+  color: var(--nx-table-description);
+  font-size: 14px;
+}
+
+.nx-visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---- responsive ---------------------------------------------------------- */
+
+@media (max-width: 1024px) {
+  .nx-compare__col-feature {
+    width: 40%;
+  }
+
+  .nx-compare thead th,
+  .nx-planhead__name {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 760px) {
+  .nx-compare {
+    min-width: 640px;
+  }
+
+  .nx-compare__col-feature {
+    width: 46%;
+  }
+
+  /* Let the four plan columns share the remaining width equally instead of
+     keeping the desktop percentage split. */
+  .nx-compare__col-plan {
+    width: auto;
+  }
+
+  .nx-compare thead th {
+    padding: 15px 10px;
+    font-size: 16px;
+  }
+
+  .nx-planhead__name {
+    font-size: 16px;
+  }
+
+  .nx-compare thead th.nx-compare__feature-head {
+    font-size: 16px;
+    padding-left: 14px;
+  }
+
+  .nx-compare__feature {
+    padding-left: 14px !important;
+    font-size: 14px;
+    max-width: 230px;
+  }
+
+  .nx-compare tbody th,
+  .nx-compare tbody td {
+    padding: 13px 10px;
+  }
+
+  .nx-cat__cell {
+    padding: 20px 14px 8px !important;
+  }
+
+  .nx-cat__name {
+    font-size: 18px;
+  }
+
+  .nx-compare__hint {
+    display: flex;
+  }
+
+  /* Touch-first tooltip: the panel spans the feature column and sits above the
+     row so it cannot cover the status icons below it on a narrow screen. */
+  .nx-info__panel {
+    left: 0;
+    max-width: min(240px, 72vw);
+  }
+}
+
+@media (max-width: 480px) {
+  .nx-compare {
+    min-width: 560px;
+  }
+
+  .nx-compare__col-feature {
+    width: 50%;
+  }
+
+  .nx-compare__feature {
+    font-size: 13.5px;
+    max-width: 200px;
+  }
+
+  .nx-info {
+    margin-left: 6px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nx-info__trigger {
+    transition: none;
+  }
+}

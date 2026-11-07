@@ -26,16 +26,24 @@ assert.deepEqual(
 );
 assert.ok(pricing.FEATURE_CATEGORIES.reduce((count, category) => count + category.items.length, 0) >= 64);
 for (const featureId of ['whatsapp-api', 'attendance', 'advanced-salon-management']) {
-  assert.equal(pricing.FEATURE_PLAN_ENTITLEMENTS[featureId].standard, 'included');
+  assert.equal(pricing.FEATURE_PLAN_ENTITLEMENTS[featureId].standard, 'included', `${featureId} stays an approved Standard inclusion`);
 }
-assert.ok(Object.entries(pricing.FEATURE_PLAN_ENTITLEMENTS).every(([featureId, plans]) =>
-  ['lite', 'grow', 'standard', 'premium'].every(planId =>
-    ['included', 'excluded', 'review'].includes(plans[planId]) &&
-    (['whatsapp-api', 'attendance', 'advanced-salon-management'].includes(featureId) || plans[planId] === 'review'),
-  ),
-), 'Only explicitly approved entitlements are marked included');
+// Every published cell must be an approved binary state. `review` remains a valid
+// internal value in the type, but it may never reach a customer-facing table.
+assert.ok(Object.entries(pricing.FEATURE_PLAN_ENTITLEMENTS).every(([, plans]) =>
+  ['lite', 'grow', 'standard', 'premium'].every(planId => plans[planId] === 'included' || plans[planId] === 'excluded'),
+), 'Every feature-plan assignment is an approved binary entitlement (no unresolved `review` cell)');
+assert.deepEqual(
+  pricing.PUBLISHED_COMPARISON_FEATURE_IDS.slice().sort(),
+  pricing.FEATURE_CATEGORIES.flatMap(category => category.items.map(item => item.id)).sort(),
+  'Every catalogued feature is publishable because every row is approved',
+);
 const whatsAppAddOn = pricing.PRICING_ADD_ONS.find(addOn => addOn.id === 'wa-api');
-assert.deepEqual(whatsAppAddOn.includedPlanIds, ['standard'], 'Do not charge twice for Standard WhatsApp API');
+assert.deepEqual(whatsAppAddOn.includedPlanIds, ['standard', 'premium'], 'Do not charge twice where a plan already includes WhatsApp API');
+assert.ok(
+  pricing.PRICING_ADD_ONS.filter(addOn => addOn.includedPlanIds.length).every(addOn => addOn.id === 'wa-api'),
+  'Only approved add-on bundling is published',
+);
 assert.ok(pricing.PRICING_ADD_ONS.every(addOn => addOn.price === null && addOn.availability === 'unconfigured'));
 assert.equal(pricing.PRICING_FAQS.length, 15);
 
@@ -65,6 +73,12 @@ const appRouter = readFileSync('src/AppRouter.tsx', 'utf8');
 const landingContent = readFileSync('src/lib/nexoraLandingContent.ts', 'utf8');
 const sitemap = readFileSync('server/sitemap.ts', 'utf8');
 const styles = readFileSync('src/components/pricingPage.css', 'utf8');
+const comparisonStyles = readFileSync('src/components/nexora-pricing/table/comparisonTable.css', 'utf8');
+const comparisonTable = readFileSync('src/components/nexora-pricing/table/FeatureComparisonTable.tsx', 'utf8');
+const featureStatus = readFileSync('src/components/nexora-pricing/table/FeatureStatus.tsx', 'utf8');
+const featureInfoTooltip = readFileSync('src/components/nexora-pricing/table/FeatureInfoTooltip.tsx', 'utf8');
+const featureMatrix = readFileSync('src/components/nexora-pricing/sections/FeatureMatrix.tsx', 'utf8');
+const entitlementsSource = readFileSync('src/lib/nexoraPlanEntitlements.ts', 'utf8');
 const demoProvider = readFileSync('src/components/nexora-pricing/DemoProvider.tsx', 'utf8');
 const demoCta = readFileSync('src/components/nexora-pricing/CtaButton.tsx', 'utf8');
 const server = readFileSync('server.ts', 'utf8');
@@ -92,6 +106,35 @@ assert.ok(demoProvider.includes("postLeadToServerRoute('/api/nexora-demo-lead'")
 assert.ok(demoCta.includes('openDemo()'), 'Shared marketing CTAs open the demo dialog');
 assert.ok(server.includes('app.post("/api/nexora-demo-lead"') && demoLeadHandler.includes('NEXORA_CRM_LEAD_ENDPOINT') && demoLeadHandler.includes("protocol === 'https:'") && demoLeadHandler.includes('!parsed.password') && demoLeadHandler.includes('NEXORA_CRM_LEAD_TOKEN'), 'Demo lead forwarding requires server-side HTTPS CRM configuration');
 assert.ok(content.includes('SAMPLE_CONTENT = false') && !content.includes('Sample testimonial') && !content.includes('ROI metric'), 'No unverified testimonial, rating, partner or ROI claims are published');
+/* --- Comparison table redesign ------------------------------------------- */
+for (const [token, value] of [
+  ['--nx-table-included', '#00c853'],
+  ['--nx-table-excluded', '#ff2323'],
+  ['--nx-table-standard-bg', '#ffe9ea'],
+  ['--nx-table-category', '#ff2323'],
+  ['--nx-table-primary', '#ff2323'],
+  ['--nx-table-divider', '#eeeeee'],
+]) {
+  assert.ok(comparisonStyles.includes(`${token}: ${value}`), `Centralised comparison token ${token} keeps its approved value`);
+}
+assert.ok(featureStatus.includes('CircleCheck') && featureStatus.includes('CircleX'), 'Status rendering uses the outlined circular check and cross');
+assert.ok(!featureStatus.includes('CircleHelp') && !featureStatus.includes('HelpCircle'), 'No question-mark status icon exists');
+assert.ok(featureStatus.includes('Included in') && featureStatus.includes('Not included in'), 'Statuses expose "Included in <plan>" / "Not included in <plan>" labels');
+assert.ok(
+  featureInfoTooltip.includes('role="tooltip"') && featureInfoTooltip.includes("event.key === 'Escape'"),
+  'Feature descriptions open in a real, dismissible tooltip',
+);
+assert.ok(
+  comparisonTable.includes('PUBLISHED_COMPARISON') || featureMatrix.includes('PUBLISHED_COMPARISON_FEATURE_IDS'),
+  'The rendered table publishes only approved rows',
+);
+assert.ok(
+  featureMatrix.includes('FeatureComparisonTable') && !featureMatrix.includes('CircleHelp') && !featureMatrix.includes('Minus'),
+  'The legacy matrix shares the redesigned table and keeps no ambiguous icons',
+);
+assert.ok(entitlementsSource.includes('APPROVED_ENTITLEMENT_POLICY') && entitlementsSource.includes('PENDING_COMMERCIAL_DECISIONS'), 'Entitlement approval provenance and open commercial decisions are recorded');
+assert.ok(!styles.includes('.matrix-review'), 'The retired review chip styling is removed');
+/* --- Preserved responsive + pricing behaviour ---------------------------- */
 assert.ok(styles.includes('@media(max-width:350px)') && styles.includes('@media(max-width:480px)') && styles.includes('@media(max-width:760px)') && styles.includes('@media(max-width:820px)') && styles.includes('@media(max-width:1050px)'), 'Mobile/tablet/desktop responsive breakpoints are present');
 
-console.log('PASS modular Nexora pricing sections, approved GST-inclusive annual totals, fail-closed feature map, quote-only add-ons, demo lead security posture, auth-resumed selection, FAQ count, no booking-checkout reuse, and responsive breakpoint definitions.');
+console.log('PASS modular Nexora pricing sections, approved GST-inclusive annual totals, approved binary plan-entitlement matrix, green-check/red-cross comparison table, quote-only add-ons, demo lead security posture, auth-resumed selection, FAQ count, no booking-checkout reuse, and responsive breakpoint definitions.');

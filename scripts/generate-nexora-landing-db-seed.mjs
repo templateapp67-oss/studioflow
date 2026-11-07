@@ -6,8 +6,8 @@
  *   * only copy that is already live on nexorasalon.online/salon-os is written;
  *   * prices are the approved annual totals (monthly stays NULL — no invented
  *     price, no invented discount);
- *   * only the three explicitly confirmed Standard entitlements get a
- *     plan_features row — every unconfirmed tier assignment stays absent;
+ *   * plan_features is generated from the approved entitlement matrix
+ *     (src/lib/nexoraPlanEntitlements.ts); an unapproved cell aborts the run;
  *   * promotional creatives are seeded as DRAFTS because the image objects do
  *     not exist in the bucket yet;
  *   * testimonials are never seeded — no approved customer quote exists.
@@ -60,12 +60,28 @@ if (unknownFeatures.length) {
   throw new Error(`Comparison groups reference unknown features: ${unknownFeatures.join(', ')}`);
 }
 
-const confirmedEntitlements = Object.entries(content.FEATURE_PLAN_ENTITLEMENTS).filter(
-  ([, plans]) => plans.standard === 'included',
+/**
+ * The approved entitlement matrix (src/lib/nexoraPlanEntitlements.ts) is the
+ * single commercial source of truth. Every cell must already be a binary
+ * approved state before a row can be written, so an unapproved `review` value
+ * can never reach the published database.
+ */
+const entitlementRows = Object.entries(content.FEATURE_PLAN_ENTITLEMENTS);
+const unapproved = entitlementRows.flatMap(([featureId, plans]) =>
+  content.PRICING_PLANS
+    .filter((plan) => plans[plan.id] !== 'included' && plans[plan.id] !== 'excluded')
+    .map((plan) => `${featureId}/${plan.id}=${plans[plan.id]}`),
 );
-if (confirmedEntitlements.length !== 3) {
-  throw new Error('Expected exactly three approved Standard entitlements.');
+if (unapproved.length) {
+  throw new Error(`Unapproved plan entitlements must not be seeded: ${unapproved.join(', ')}`);
 }
+const includedRows = entitlementRows.flatMap(([featureId, plans]) =>
+  content.PRICING_PLANS.filter((plan) => plans[plan.id] === 'included').map((plan) => [plan.id, featureId]),
+);
+const excludedRows = entitlementRows.flatMap(([featureId, plans]) =>
+  content.PRICING_PLANS.filter((plan) => plans[plan.id] === 'excluded').map((plan) => [plan.id, featureId]),
+);
+const confirmedEntitlements = includedRows.filter(([planId]) => planId === 'standard');
 
 /* --------------------------------------------------------------------------
  * Header
@@ -79,8 +95,8 @@ push('--');
 push('-- Publishing rules honoured here:');
 push('--   * pricing_plans.price_monthly stays NULL (no monthly rate is configured);');
 push('--   * price_yearly holds the approved GST-inclusive annual total only;');
-push('--   * plan_features contains ONLY the explicitly confirmed Standard');
-push('--     entitlements — unconfirmed tier assignments are absent, not guessed;');
+push('--   * plan_features contains the approved entitlement matrix only; an');
+push('--     unapproved (review) cell aborts this generator instead of being guessed;');
 push('--   * promotional_creatives are DRAFTS until the image objects are uploaded');
 push('--     to the nexora-public-assets bucket;');
 push('--   * testimonials are intentionally NOT seeded (no approved quote exists);');
@@ -379,14 +395,34 @@ push();
 /* --------------------------------------------------------------------------
  * plan_features (only explicitly confirmed entitlements)
  * ------------------------------------------------------------------------ */
-push('-- plan_features — only the three confirmed Standard inclusions; every other');
-push('-- tier assignment stays absent until it is commercially confirmed');
+push('-- plan_features — the approved entitlement matrix');
+push('-- (src/lib/nexoraPlanEntitlements.ts, approval NEXORA-PLAN-ENTITLEMENTS-2026-11-07).');
+push('-- Every feature x plan cell is an approved binary state, so the comparison');
+push('-- table can render a green check or a red cross for every visible row.');
 push('insert into public.plan_features (plan_id, feature_id, availability, quantity_limit, limit_unit, display_value, notes, sort_order)');
-push('select pp.id, f.id, \'included\', null, null, \'Included\',');
-push(`  ${q('Confirmed in the approved Standard plan inputs.')}, 0`);
-push('from public.pricing_plans pp join public.features f on f.slug in (');
-push(`  ${confirmedEntitlements.map(([featureId]) => q(featureId)).join(', ')})`);
-push("where pp.plan_key = 'standard'");
+push(`select pp.id, f.id, 'included', null, null, 'Included', ${q('Approved plan entitlement (NEXORA-PLAN-ENTITLEMENTS-2026-11-07).')}, 0`);
+push('from (values');
+includedRows.forEach(([planId, featureId], index) => {
+  push(`  (${q(planId)}, ${q(featureId)})${index === includedRows.length - 1 ? '' : ','}`);
+});
+push(') as v(plan_key, feature_slug)');
+push('join public.pricing_plans pp on pp.plan_key = v.plan_key');
+push('join public.features f on f.slug = v.feature_slug');
+push('on conflict (plan_id, feature_id) do update set');
+push('  availability=excluded.availability, display_value=excluded.display_value,');
+push('  notes=excluded.notes, updated_at=now();');
+push();
+push('-- Explicit exclusions are recorded too, so the published database can never');
+push('-- contradict the approved table by leaving a cell unstated.');
+push('insert into public.plan_features (plan_id, feature_id, availability, quantity_limit, limit_unit, display_value, notes, sort_order)');
+push(`select pp.id, f.id, 'not_included', null, null, 'Not included', ${q('Approved plan exclusion (NEXORA-PLAN-ENTITLEMENTS-2026-11-07).')}, 0`);
+push('from (values');
+excludedRows.forEach(([planId, featureId], index) => {
+  push(`  (${q(planId)}, ${q(featureId)})${index === excludedRows.length - 1 ? '' : ','}`);
+});
+push(') as v(plan_key, feature_slug)');
+push('join public.pricing_plans pp on pp.plan_key = v.plan_key');
+push('join public.features f on f.slug = v.feature_slug');
 push('on conflict (plan_id, feature_id) do update set');
 push('  availability=excluded.availability, display_value=excluded.display_value,');
 push('  notes=excluded.notes, updated_at=now();');
