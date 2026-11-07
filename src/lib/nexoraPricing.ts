@@ -1,5 +1,44 @@
 export type BillingInterval = 'monthly' | 'annual';
 export type PricingPlanId = 'lite' | 'grow' | 'standard' | 'premium';
+
+// The attached landing-page reference flags generic metrics/testimonials as sample.
+// This experience contains none of those claims; only user-approved pricing is shown.
+export const SAMPLE_CONTENT = false;
+export const PRICING_PAGE_COPY = {
+  hero: {
+    eyebrow: 'NEXORA SALONOS PRICING',
+    title: 'The Right Tools to Grow Your',
+    emphasis: 'Salon Business.',
+    description: 'Whether you run an independent beauty studio or manage a growing salon chain, Nexora SalonOS gives you tools to manage bookings, customers, staff, payments and business operations from one platform.',
+    note: 'Simple pricing. Powerful salon management. Built for Indian businesses.',
+  },
+  benefits: {
+    eyebrow: 'MADE FOR EVERYDAY SALON WORK',
+    title: 'Why Salons Choose Nexora SalonOS.',
+    description: 'Bring supported salon workflows into a connected workspace, with tools designed around the way salons work.',
+  },
+  demo: {
+    eyebrow: 'SEE NEXORA IN ACTION',
+    title: 'Explore the workspace with our team.',
+    description: 'Request a walkthrough of the salon workflows and plan details you want to review.',
+  },
+  closing: {
+    eyebrow: 'YOUR NEXT STEP',
+    title: 'Ready to Take Your Salon Business Forward?',
+    description: 'Start managing your salon more professionally with Nexora SalonOS.',
+  },
+} as const;
+
+export const PRICING_BENEFITS = [
+  { title: 'Your salon business in one place', description: 'Keep supported salon workflows together in one owner workspace.', icon: 'workspace' },
+  { title: 'Better appointment management', description: 'Review and manage appointments made through your published salon website.', icon: 'calendar' },
+  { title: 'Organized customer records', description: 'Find customer and booking details in the tools your workspace supports.', icon: 'customers' },
+  { title: 'Easier billing and payments', description: 'Use available owner-side POS tools for salon transactions.', icon: 'payments' },
+  { title: 'Better staff coordination', description: 'Manage staff profiles and supported team workflows.', icon: 'staff' },
+  { title: 'Customer retention tools', description: 'Explore existing customer engagement and loyalty tools.', icon: 'retention' },
+  { title: 'Business analytics', description: 'See operational information provided by your existing workspace.', icon: 'analytics' },
+  { title: 'A professional online presence', description: 'Build a salon website from Nexora’s existing templates.', icon: 'online' },
+] as const;
 export type EntitlementState = 'included' | 'excluded' | 'review';
 
 export interface PricingPlan {
@@ -117,7 +156,7 @@ export const PRICING_FAQS = [
   ['Which plan is right for my salon?', 'Lite is positioned for independent professionals, Grow for small salons with steady bookings, Standard for growing businesses and Premium for established or higher-traffic operations. Confirm feature entitlements with Nexora before subscribing.'],
   ['Can I switch plans later?', 'Plan changes are not currently handled by a configured subscription workflow. Please confirm plan-change terms with Nexora before purchasing.'],
   ['Is there a monthly billing option?', 'Monthly subscription rates have not been configured. This page does not invent or charge a monthly amount. The displayed annual rate is a monthly equivalent billed annually.'],
-  ['How does annual billing work?', 'The approved annual total is billed once for the annual period, and the displayed annual prices include GST. Prices shown as per month are monthly equivalents, not monthly installments. Monthly billed rates remain unconfigured.'],
+  ['How does annual billing work?', 'The approved annual prices include GST. Prices shown per month are monthly equivalents, not installments. Monthly billed rates remain unconfigured, and subscription checkout is not available on this page, so no subscription charge is made here.'],
   ['Is WhatsApp API included?', 'The approved pricing inputs list WhatsApp API in Standard. The other tiers are unconfirmed. API credentials, delivery setup and subscription checkout are separate platform configuration and are not activated by this pricing page.'],
   ['Does Nexora provide a mini website?', 'Nexora currently supports salon websites built from its existing templates. A mini website entitlement by plan has not been configured.'],
   ['Can customers book appointments online?', 'The existing product supports appointment booking through published salon websites. Exact plan availability has not yet been configured.'],
