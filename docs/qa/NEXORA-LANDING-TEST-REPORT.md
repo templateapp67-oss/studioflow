@@ -17,11 +17,11 @@ reported as passing that was not run.
 | `npm run lint:edge` (`tsc -p tsconfig.edge.json --noEmit`) | **pass**, no diagnostics |
 | `npm run build` | **pass** — Vite build, prerender of the public homepage, `/salon-os`, `/pricing`, `/privacy` and the 16 template pages, then the `dist/server.cjs` bundle |
 | `npm run test:wiring` | **pass** — "all 14 storefronts open themed customer bookings without redirect …" |
-| `npm test` | **129 of 130** verification suites pass (see §3) |
+| `npm test` | **130 of 130** verification suites pass, exit code 0 (see §3) |
 | `node scripts/run-all-verifications.mjs` | same set as `npm test` |
 | `npm audit` | **0 vulnerabilities** (with and without `--omit=dev`) |
 | `npm run test:debug` | `node scripts/verify-debug-boundary.mjs` — part of the suite above |
-| GitHub Actions on the pull request | "High and critical dependency audit" **pass**; "TypeScript, build and complete offline verification" **fails** — it runs `npm test`, and the single failing suite is the pre-existing `verify-template16-aurelia.mjs`. The identical workflow fails on `main` for the base commit `ec06166` (run `42344849000`). |
+| GitHub Actions on the pull request | "High and critical dependency audit" **pass**; "TypeScript, build and complete offline verification" runs `npm test` and is **green** after the Aurelia suite fix below (before the fix it failed on `main` for the base commit `ec06166` too, run `42344849000`) |
 | Vercel preview deployment | **built** — `https://studioflow-git-arena-a4fea2d2-c3ab7a-templateapp67-oss-projects.vercel.app` (status *Ready*). It cannot be requested from this environment (`*.vercel.app` is outside the sandbox's outbound allowlist), so the preview smoke test is still outstanding. |
 | `npm run test:live` | **not run** — needs a configured test project with email autoconfirm and network access to `*.supabase.co`, which the review environment does not have. The live behaviour that *was* executed is listed in §4. |
 
@@ -43,15 +43,33 @@ reported as passing that was not run.
 ## 3. Suite result of the full run
 
 ```
-129/130 verification suites passed.
-Failed: verify-template16-aurelia.mjs
+130/130 verification suites passed.
 ```
 
-`verify-template16-aurelia.mjs` fails with “Every card must show a booked-service tag” (the suite expects the
-Aurelia review card to contain `Booked: ${serviceName}`). The same failure was reproduced in a clean
-`git worktree` at the untouched base commit `ec06166`, so it is a **pre-existing** failure of the Template 16
-(Aurelia) content and is not caused by this branch. It was left untouched on purpose: the brief forbids disabling an
-existing suite to obtain a green build.
+### The one suite that was failing — and how it was fixed
+
+`verify-template16-aurelia.mjs` was the only red suite. It asserted that the Aurelia review card contains
+`Booked: ${serviceName}` — the **template-literal** spelling. PR #88 moved the Aurelia cards out of
+`AureliaBeautyWebsite.tsx` into the shared `CustomerReviewPanel.tsx`, where the same tag is rendered as **JSX
+text**: `<span>Booked: {serviceName}</span>`. The rendered output is identical; only the source spelling changed, and
+the source-contract assertion was never updated. The failure was reproduced in a clean `git worktree` at the base
+commit `ec06166`, which confirmed that no product code was broken.
+
+The fix (commit `fix(tests): align the Aurelia booked-service assertion with the shared review panel`):
+
+1. The assertion now requires the tag **inside the Aurelia card markup** and accepts either spelling —
+   `Booked: ${serviceName}` (template literal) or `Booked: {serviceName}` (JSX text) — so neither spelling can
+   silently disappear again.
+2. A **render-level** check was added: `scripts/verify-template16-aurelia-review-cards.tsx` renders the shared panel
+   for `businessType="aurelia_beauty_parlour"` with `renderToStaticMarkup` and asserts what a visitor actually
+   sees — `Booked: Radiance Facial`, `Booked: Signature Cut & Finish`, `Location not shared` for a missing
+   location, the announced five-star rating, the template tag and the avatar fallback — and that no placeholder or
+   demo card is rendered. The suite bundles and runs it (the same esbuild pattern the other React suites use), so the
+   number of verification suites is unchanged.
+3. The fix was proven to be meaningful: removing the booked-service tag from the component makes the suite fail
+   again (verified by temporarily mutating the component and restoring it afterwards).
+
+No suite was disabled, skipped or weakened, and no product behaviour was changed to obtain the green build.
 
 Every NEXORA suite passes: `verify-nexora-pricing-landing`, `verify-nexora-pricing`, `verify-nexora-salon-landing`,
 `verify-nexora-demo-lead`, `verify-nexora-lead-submission-client`, `verify-nexora-env`,

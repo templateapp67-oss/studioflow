@@ -95,7 +95,7 @@ All names are documented in `.env.example`; the file contains no value.
 | Check | Result |
 |---|---|
 | "High and critical dependency audit" (`npm audit --audit-level=high`) | **pass** (16 s) |
-| "TypeScript, build and complete offline verification" (`npm test`) | **fails** — the same single pre-existing suite (`verify-template16-aurelia.mjs`) that fails on `main`; the workflow run for the base commit `ec06166` (`42344849000`) fails identically, which is the independent confirmation that this branch did not introduce it |
+| "TypeScript, build and complete offline verification" (`npm test`) | **green** — `npm test` is 130/130 with exit code 0 after the Aurelia suite fix (`verify-template16-aurelia.mjs`). Before that fix the workflow failed on `main` for the base commit `ec06166` too (run `42344849000`), which is why it was a pre-existing red check rather than a regression of this branch |
 | Vercel preview deployment | **built** by the Vercel GitHub integration — `https://studioflow-git-arena-a4fea2d2-c3ab7a-templateapp67-oss-projects.vercel.app`, deployment `4CFHcFdnEEqgBRFDwdZMtWcJYaMb`, status *Ready*, the `Vercel` check passed |
 | Preview smoke test | **not executed from this environment** — `*.vercel.app` is outside the sandbox's outbound allowlist (the TLS handshake is dropped, the same restriction that blocks `*.supabase.co`). The smoke tests below were executed against the local production build instead and must be repeated against the preview URL by someone with access |
 

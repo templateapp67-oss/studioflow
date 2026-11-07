@@ -62,16 +62,19 @@ one pricing source of truth (`src/lib/nexoraPricing.ts`).
 
 ## 5. What was verified in the repository
 
-`npm run lint`, `npm run lint:edge`, `npm run build`, `npm run test:wiring` and `npm test` (126 verification
-suites) were executed; the results are listed in `NEXORA-LANDING-TEST-REPORT.md`.
+`npm run lint`, `npm run lint:edge`, `npm run build`, `npm run test:wiring` and `npm test` (**130 of 130**
+verification suites, exit code 0) were executed; the results are listed in `NEXORA-LANDING-TEST-REPORT.md`.
 
 ## 6. Known limitations carried over
 
-* `scripts/verify-template16-aurelia.mjs` fails on this branch **and** on the untouched base commit — it is a
-  pre-existing failure of the Template 16 (Aurelia) content, unrelated to the marketing work. It was reproduced in
-  a clean `git worktree` at `ec06166` to prove the origin.
-* No browser binary is available in the review environment, so no pixel screenshot, axe-core scan or Lighthouse
-  run could be executed here. The accessibility and performance reports state exactly which checks are static
-  assertions and which are still outstanding.
+* `scripts/verify-template16-aurelia.mjs` was the one red suite when this audit started: it expected the Aurelia
+  review card to contain the template literal `Booked: ${serviceName}`, while the shared review panel renders the
+  same tag as JSX text (`Booked: {serviceName}`) since PR #88. The failure was reproduced in a clean `git worktree`
+  at `ec06166` to prove the origin, and it has since been **fixed** by aligning the assertion with the actual
+  markup and adding a render-level check — see `NEXORA-LANDING-TEST-REPORT.md` §3.
+* The browser QA that was blocked at the time of the first audit **was** executed afterwards: headless Chromium 153
+  with axe-core 4.14.0 over `/pricing`, `/salon-os` and `/privacy` (0 violations), LCP/CLS measurements, a 14-width
+  overflow sweep and before/after screenshots in `docs/qa/screenshots/`. The Lighthouse category scores and the
+  keyboard/screen-reader pass remain outstanding and are listed as such in the accessibility and performance reports.
 * Subscription checkout, monthly billing, add-on prices and CRM credentials are not configured in this
   environment; the pages say so instead of inventing values.

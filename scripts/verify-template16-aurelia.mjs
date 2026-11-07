@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {build} from 'esbuild';
+import {spawnSync} from 'node:child_process';
 
 const read=(path)=>readFileSync(path,'utf8');
 const types=read('src/types.ts');
@@ -71,7 +73,18 @@ assert.match(reviewPanel,/sf-aurelia-review-stars/,'Aurelia review cards must sh
 assert.match(reviewPanel,/sf-aurelia-template-tag/,'Aurelia review cards must identify the active template/brand');
 assert.match(reviewPanel,/reviewDetails\.avatarUrl\|\|reviewDetails\.customerPhotoUrl/,'Customer avatar should use a supplied profile photo when available');
 assert.match(reviewPanel,/sf-aurelia-review-initial/,'Customer avatar must fall back to a reviewer initial');
-assert.match(reviewPanel,/Booked: \$\{serviceName\}/,'Every card must show a booked-service tag');
+// PR #88 moved the Aurelia review cards out of the website component and into
+// the shared customer review panel. There the booked service is rendered as
+// JSX text (`Booked: {serviceName}`), not as the template literal
+// (`Booked: ${serviceName}`) this assertion used to expect, even though the
+// visitor sees exactly the same tag. The tag is required inside the Aurelia
+// card markup, and both spellings are accepted so a future refactor of either
+// form cannot silently drop it. The rendered result is asserted below by
+// `scripts/verify-template16-aurelia-review-cards.tsx`.
+const aureliaCardStart=reviewPanel.indexOf('sf-aurelia-review-card');
+assert.ok(aureliaCardStart>=0,'Aurelia review cards must exist in the shared review panel');
+const aureliaCardBlock=reviewPanel.slice(aureliaCardStart,aureliaCardStart+4000);
+assert.match(aureliaCardBlock,/Booked:\s*(?:\$\{serviceName\}|\{serviceName\})/,'Every card must show a booked-service tag');
 assert.match(reviewPanel,/Location not shared/,'Missing customer location must not be replaced with an assumed location');
 assert.match(reviewDisplay,/aurelia\s+guest/i,'Placeholder Aurelia guest names must be removed');
 assert.match(reviewDisplay,/return !comment/,'Blank review text must be removed');
@@ -83,5 +96,15 @@ assert.match(migration,/mens_hair_studio/,'Catalogue migration must restore miss
 assert.match(migration,/aurelia_beauty_parlour/,'Catalogue migration must add Template 16');
 assert.match(migration,/on conflict \(id\) do update/i,'Catalogue migration must be safe to re-run');
 assert.doesNotMatch(migration,/drop\s+table/i,'Catalogue migration must not drop tables');
+
+/* --- Rendered Aurelia review cards --------------------------------------- */
+const built=await build({
+ entryPoints:['scripts/verify-template16-aurelia-review-cards.tsx'],
+ bundle:true, platform:'node', format:'esm', packages:'external', write:false,
+ plugins:[{name:'aurelia-review-card-stubs',setup(b){b.onLoad({filter:/\.(png|jpe?g|webp)$/},()=>({contents:'export default "https://example.com/test-image.jpg";',loader:'js'}));b.onLoad({filter:/\.css$/},()=>({contents:'export default "";',loader:'js'}));}}],
+});
+const rendered=spawnSync(process.execPath,['--input-type=module'],{input:built.outputFiles[0].text,stdio:['pipe','inherit','inherit']});
+if(rendered.error)throw rendered.error;
+assert.equal(rendered.status,0,'The rendered Aurelia review cards must show the booked-service tag');
 
 console.log('Template 16 Aurelia offline verification passed.');
