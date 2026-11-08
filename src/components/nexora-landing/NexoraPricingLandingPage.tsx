@@ -33,6 +33,16 @@ import { HowItWorksSection } from './sections/HowItWorksSection';
 import { PricingPlansSection } from './sections/PricingPlansSection';
 import { ComparisonSection } from './sections/ComparisonSection';
 import { BenefitsSection } from './sections/BenefitsSection';
+import { CustomerAppExperienceSection } from './sections/CustomerAppExperienceSection';
+import { MultiDeviceExperienceSection } from './sections/MultiDeviceExperienceSection';
+import { RecurringPackagesSection } from './sections/RecurringPackagesSection';
+import { GroupManagementSection } from './sections/GroupManagementSection';
+import { CustomerRecallSection } from './sections/CustomerRecallSection';
+import { BirthdaySpecialGiftsSection } from './sections/BirthdaySpecialGiftsSection';
+import { CustomerLoyaltySection } from './sections/CustomerLoyaltySection';
+import { WhatsAppCommunicationSection } from './sections/WhatsAppCommunicationSection';
+import { StaffCommissionPerformanceSection } from './sections/StaffCommissionPerformanceSection';
+import { NearbyCustomerDiscoverySection } from './sections/NearbyCustomerDiscoverySection';
 import { TestimonialSection } from './sections/TestimonialSection';
 import { FaqSection } from './sections/FaqSection';
 import { FinalCtaSection } from './sections/FinalCtaSection';
@@ -204,6 +214,16 @@ function PricingLandingDocument({
         ) : null}
         <ComparisonSection id="comparison" />
         <BenefitsSection id="benefits" />
+        <CustomerAppExperienceSection />
+        <MultiDeviceExperienceSection />
+        <RecurringPackagesSection />
+        <GroupManagementSection />
+        <CustomerRecallSection />
+        <BirthdaySpecialGiftsSection />
+        <CustomerLoyaltySection />
+        <WhatsAppCommunicationSection />
+        <StaffCommissionPerformanceSection />
+        <NearbyCustomerDiscoverySection />
         <TestimonialSection id="testimonials" />
         <FaqSection id="faq" />
         <FinalCtaSection id="get-started" primaryLabel="Get Started With Nexora SalonOS" demoLabel="Request a Demo" />

@@ -353,12 +353,128 @@ await assert.rejects(
 // A one-use offer, so limits can be tested deterministically.
 const limited = { ...newOffer, id: undefined, title: 'One Use Test Offer', couponCode: 'ONCEONLY', discountType: 'percentage', discountValue: 10, minBookingAmount: 0, applicableServiceIds: ['us-1'], maxTotalUses: 1, maxUsesPerCustomer: 1, startsAt: lastWeek, endsAt: nextMonth };
 const limitedRes = await asUser(ownerA, 'authenticated', async () => (await db.query(`select public.studioflow_aura_admin_save_offer($1::jsonb) as res`, [JSON.stringify(limited)])).rows[0].res);
-const futureDate = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+
+// Choose dates from the actual branch hours and projected staff schedule. Do not
+// assume that +7 days has the same weekday: the seeded branch is closed Sunday.
+const openWindow = await db.query(`
+  select b.id::text as branch_id,
+         (current_date + days.step)::text as booking_date,
+         trim(to_char(current_date + days.step, 'Day')) as day_name,
+         studioflow_private.branch_is_open(
+           b.id, (current_date + days.step)::date, time '11:00', time '11:45'
+         ) as branch_open,
+         exists (
+           select 1
+             from public.studioflow_staff_branch_schedules s
+            where s.site_id = b.site_id
+              and s.branch_id = b.id
+              and s.staff_id = $2
+              and s.day_of_week = trim(to_char(current_date + days.step, 'Day'))
+              and s.is_active
+              and s.starts_at <= time '11:00'
+              and s.ends_at >= time '11:45'
+         ) as stylist_scheduled
+    from public.branches b
+    cross join generate_series(1, 30) as days(step)
+   where b.site_id = $1
+     and b.is_active
+     and studioflow_private.branch_is_open(
+       b.id, (current_date + days.step)::date, time '11:00', time '11:45'
+     )
+     and exists (
+       select 1
+         from public.studioflow_staff_branch_schedules s
+        where s.site_id = b.site_id
+          and s.branch_id = b.id
+          and s.staff_id = $2
+          and s.day_of_week = trim(to_char(current_date + days.step, 'Day'))
+          and s.is_active
+          and s.starts_at <= time '11:00'
+          and s.ends_at >= time '11:45'
+     )
+   order by current_date + days.step
+   limit 1
+`, [ownerA, 'us-st-1']);
+assert.equal(openWindow.rows.length, 1, 'A future date exists when the seeded branch and stylist both cover 11:00–11:45');
+const bookingWindow = openWindow.rows[0];
+assert.equal(bookingWindow.branch_open, true, 'The selected date and time are inside the branch operating hours');
+assert.equal(bookingWindow.stylist_scheduled, true, 'The assigned stylist is scheduled for the complete 11:00–11:45 appointment');
+
+const closedWindow = await db.query(`
+  select b.id::text as branch_id,
+         (current_date + days.step)::text as booking_date,
+         trim(to_char(current_date + days.step, 'Day')) as day_name
+    from public.branches b
+    cross join generate_series(1, 30) as days(step)
+   where b.site_id = $1
+     and b.is_active
+     and not exists (
+       select 1
+         from jsonb_array_elements(b.operating_hours) h
+        where h->>'day' = trim(to_char(current_date + days.step, 'Day'))
+          and coalesce((h->>'enabled')::boolean, false)
+     )
+   order by current_date + days.step
+   limit 1
+`, [ownerA]);
+assert.equal(closedWindow.rows.length, 1, 'A future closed day exists in the seeded branch operating hours');
+const closedBookingWindow = closedWindow.rows[0];
+const closedBranchState = await db.query(`
+  select studioflow_private.branch_is_open($1, $2::date, time '11:00', time '11:45') as is_open
+`, [closedBookingWindow.branch_id, closedBookingWindow.booking_date]);
+assert.equal(closedBranchState.rows[0].is_open, false, 'The selected closed day is rejected by the actual seeded branch-hours function');
+const closedStaffSchedule = await db.query(`
+  select count(*)::int as n
+    from public.studioflow_staff_branch_schedules
+   where site_id = $1
+     and branch_id = $2
+     and staff_id = $3
+     and day_of_week = $4
+     and is_active
+     and starts_at <= time '11:00'
+     and ends_at >= time '11:45'
+`, [ownerA, closedBookingWindow.branch_id, 'us-st-1', closedBookingWindow.day_name]);
+assert.equal(closedStaffSchedule.rows[0].n, 0, 'The projected stylist schedule does not mark the branch-closed day available');
+
+const closedRequestId = '55555555-5555-4555-8555-555555555552';
+const closedRequest = {
+  requestId: closedRequestId, serviceId: 'us-1', stylistId: 'us-st-1', clientName: 'Aditi Sharma', clientPhone: '9876543210',
+  date: closedBookingWindow.booking_date, time: '11:00', couponCode: 'ONCEONLY', branchId: closedBookingWindow.branch_id,
+};
+await assert.rejects(
+  () => asUser(customerA, 'authenticated', async () => db.query(`select public.studioflow_aura_coupon_book($1, $2::jsonb) as b`, [SLUG, JSON.stringify(closedRequest)])),
+  /Slot unavailable|Specialist is not available at this location and time/i,
+  'A coupon booking on a day when the actual branch is closed is rejected',
+);
+const rejectedRequest = await db.query(`
+  select count(*)::int as n
+    from public.studioflow_android_requests
+   where customer_id = $1 and request_id = $2::uuid
+`, [customerA, closedRequestId]);
+assert.equal(rejectedRequest.rows[0].n, 0, 'A rejected closed-day booking leaves no request or reservation behind');
+await assert.rejects(
+  () => db.query(`
+    insert into public.studioflow_bookings(owner_id, customer_id, stylist_id, starts_at, ends_at, status, payload, branch_id)
+    values (
+      $1, $2, $3,
+      ($4::date + time '11:00') at time zone 'Asia/Kolkata',
+      ($4::date + time '11:45') at time zone 'Asia/Kolkata',
+      'pending', '{}'::jsonb, $5
+    )
+  `, [ownerA, customerA, 'us-st-1', closedBookingWindow.booking_date, closedBookingWindow.branch_id]),
+  (error) => {
+    assert.equal(error.code, 'P0001', 'The branch-availability trigger keeps its exception code');
+    assert.match(error.message, /Specialist is not available at this location and time/);
+    return true;
+  },
+  'The database booking guard independently rejects an explicitly selected branch-closed slot',
+);
+
 const requestId = '55555555-5555-4555-8555-555555555551';
 // Browser-supplied discount values are stripped before the booking core runs.
 const tamperedRequest = {
   requestId, serviceId: 'us-1', stylistId: 'us-st-1', clientName: 'Aditi Sharma', clientPhone: '9876543210',
-  date: futureDate, time: '11:00', couponCode: 'ONCEONLY',
+  date: bookingWindow.booking_date, time: '11:00', couponCode: 'ONCEONLY', branchId: bookingWindow.branch_id,
   discountAmount: 9999, discountValue: 9999, finalPrice: 1, finalAmount: 1, originalPrice: 1, servicePrice: 1,
   coupon: { discountAmount: 9999, finalPrice: 1 },
 };
@@ -368,6 +484,7 @@ assert.equal(Number(payload.discountAmount), 65, 'Browser discount values ignore
 assert.equal(Number(payload.servicePrice), 585, 'Final payable amount comes from the server');
 const bookingId = booked.id || payload.id;
 assert.ok(bookingId, 'Booking was created through the existing flow');
+assert.equal(booked.branch_id, bookingWindow.branch_id, 'Booking remains attached to the branch whose hours and staff schedule were selected');
 const beforeConfirm = await db.query(`select count(*)::int as n from public.aura_promotion_redemptions where booking_id=$1`, [bookingId]);
 assert.equal(beforeConfirm.rows[0].n, 0, 'No redemption record is saved before booking confirmation');
 await assert.rejects(
@@ -397,6 +514,10 @@ await assert.rejects(
 await db.query(`update public.studioflow_bookings set status='cancelled' where id=$1`, [bookingId]);
 const released = await db.query(`select status from public.aura_promotion_redemptions where booking_id=$1`, [bookingId]);
 assert.equal(released.rows[0].status, 'released', 'Cancelled booking releases its redemption');
+const availableAfterCancellation = await asUser(customerA, 'authenticated', async () =>
+  (await db.query(`select public.studioflow_aura_coupon_quote($1, '[\"us-1\"]'::jsonb, 'ONCEONLY') as q`, [SLUG])).rows[0].q,
+);
+assert.equal(Number(availableAfterCancellation.discountAmount), 65, 'A cancelled booking releases the total and per-customer use so the coupon can be used again');
 
 /* ---------------------------------------------------------------- 12. TEST 13 — Saved after refresh */
 const refreshedAdmin = await asUser(ownerA, 'authenticated', async () => (await db.query(`select public.studioflow_aura_admin_offers() as data`)).rows[0].data);
