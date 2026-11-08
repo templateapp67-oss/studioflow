@@ -528,9 +528,9 @@
   margin: 9px;
   padding: 8px 10px;
   border-radius: 999px;
-  color: #81908a;
+  color: var(--sl-wc-muted);
   background: #fff;
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .sl-page .sl-whatsapp-communication__send-icon {

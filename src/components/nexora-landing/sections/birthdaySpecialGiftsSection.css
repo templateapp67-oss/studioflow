@@ -220,8 +220,8 @@
 }
 
 .sl-page .sl-birthday-gifts__filters small {
-  color: #87918e;
-  font-size: 7px;
+  color: var(--sl-bg-muted);
+  font-size: 9px;
   font-weight: 800;
   text-transform: uppercase;
 }

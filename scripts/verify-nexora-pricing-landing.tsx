@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { NexoraPricingLandingPage } from '../src/components/nexora-landing/NexoraPricingLandingPage';
 import { FEATURE_CATEGORIES, PRICING_FAQS, PRICING_PLANS, PUBLISHED_COMPARISON_FEATURE_IDS } from '../src/lib/nexoraPricing';
 import { PRICING_ADD_ONS } from '../src/lib/nexoraPricing';
+import { PlanSummaryDialog } from '../src/components/nexora-landing/sections/PlanSummaryDialog';
 
 const html = renderToStaticMarkup(<NexoraPricingLandingPage />);
 const strip = (value: string) =>
@@ -116,7 +117,8 @@ assert.ok(pageText.includes('Manual campaign preparation'), 'WhatsApp section di
 assert.ok(pageText.includes('Scheduled automation & receipts'), 'WhatsApp section does not imply an automated send schedule');
 assert.ok(pageText.includes('BUSINESS PLATFORM / API'), 'WhatsApp section distinguishes provider/API sending from Click-to-Chat');
 assert.ok(pageText.includes('Campaign outcome labels'), 'WhatsApp section shows honest outcome categories without invented counts');
-assert.ok(pageText.includes('the called send function is not present in this checkout'), 'WhatsApp bulk sending is clearly conditional and unverified');
+assert.ok(pageText.includes('sender source exists under backend/functions'), 'WhatsApp sender source is acknowledged without claiming deployment');
+assert.ok(pageText.includes('deployment, allowed origins, credentials and approved templates are not verified in this checkout'), 'WhatsApp deployment and provider configuration remain explicitly unverified');
 assert.ok(pageText.includes('accepted” as not confirmed delivery'), 'WhatsApp provider acceptance is distinguished from delivery');
 assert.ok(pageText.includes('Unknown not auto-retried'), 'WhatsApp unknown outcomes are not portrayed as automatically retried');
 assert.ok(pageText.includes('More merge fields'), 'WhatsApp section distinguishes live tokens from illustrative tokens');
@@ -225,6 +227,32 @@ for (const [name, path] of retentionCssFiles) {
   assert.ok(css.includes('.sl-page .sl-'), `${name} CSS selectors are scoped to the NEXORA page`);
   assert.ok(!['\nbody {', '\nhtml {', '\n:root {'].some((selector) => css.includes(selector)), `${name} stylesheet does not add global rules`);
 }
+const wcagContrastRatio = (foreground: string, background: string) => {
+  const luminance = (hex: string) => {
+    const channels = hex.slice(1).match(/.{2}/g)!.map((part) => parseInt(part, 16) / 255);
+    const linear = channels.map((channel) => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+  };
+  const [lighter, darker] = [luminance(foreground), luminance(background)].sort((a, b) => b - a);
+  return (lighter + 0.05) / (darker + 0.05);
+};
+const extractCssVariable = (css: string, variable: string) =>
+  css.match(new RegExp(`${variable}:\\s*(#[0-9a-fA-F]{6})`))?.[1];
+const birthdayCss = readFileSync('src/components/nexora-landing/sections/birthdaySpecialGiftsSection.css', 'utf8');
+const recallCss = readFileSync('src/components/nexora-landing/sections/customerRecallSection.css', 'utf8');
+const whatsappCss = readFileSync('src/components/nexora-landing/sections/whatsappCommunicationSection.css', 'utf8');
+const birthdayFilterRule = birthdayCss.split('.sl-page .sl-birthday-gifts__filters small {')[1]?.split('}')[0] ?? '';
+const recallColumnsRule = recallCss.split('.sl-page .sl-customer-recall__columns {')[1]?.split('}')[0] ?? '';
+const whatsappPhoneRule = whatsappCss.split('.sl-page .sl-whatsapp-communication__phone-input {')[1]?.split('}')[0] ?? '';
+const birthdayMuted = extractCssVariable(birthdayCss, '--sl-bg-muted');
+const recallMuted = extractCssVariable(recallCss, '--sl-cr-muted');
+const whatsappMuted = extractCssVariable(whatsappCss, '--sl-wc-muted');
+assert.ok(birthdayFilterRule.includes('color: var(--sl-bg-muted)'), 'Birthday filter metadata uses the accessible muted token');
+assert.ok(recallColumnsRule.includes('color: var(--sl-cr-muted)'), 'Recall column labels use the accessible muted token');
+assert.ok(whatsappPhoneRule.includes('color: var(--sl-wc-muted)'), 'WhatsApp phone preview text uses the accessible muted token');
+assert.ok(birthdayMuted && wcagContrastRatio(birthdayMuted, '#ffffff') >= 4.5, 'Birthday filter text meets 4.5:1 contrast on white');
+assert.ok(recallMuted && wcagContrastRatio(recallMuted, '#fbfbfd') >= 4.5, 'Recall column text meets 4.5:1 contrast on near-white');
+assert.ok(whatsappMuted && wcagContrastRatio(whatsappMuted, '#ffffff') >= 4.5, 'WhatsApp phone preview text meets 4.5:1 contrast on white');
 const recurringCss = readFileSync('src/components/nexora-landing/sections/recurringPackagesSection.css', 'utf8');
 const groupManagementCss = readFileSync('src/components/nexora-landing/sections/groupManagementSection.css', 'utf8');
 for (const [name, css] of [['package', recurringCss], ['group', groupManagementCss]]) {
@@ -303,6 +331,19 @@ assert.ok(!pageText.includes('Free trial'), 'No free-trial promise is published'
 assert.ok(!pageText.includes('money back'), 'No money-back promise is published');
 assert.ok(!/\d+% off/i.test(pageText), 'No invented discount percentage is published');
 assert.ok(!/\bper month\b(?![^.]{0,40}equivalent)/i.test(pageText) || pageText.includes('Monthly equivalent'), 'No monthly instalment is implied');
+
+const annualSummary = renderToStaticMarkup(
+  <PlanSummaryDialog plan={PRICING_PLANS[0]} interval="annual" onClose={() => undefined} />,
+);
+assert.ok(annualSummary.includes('role="dialog"') && annualSummary.includes('aria-modal="true"'), 'The plan summary renders a modal dialog');
+assert.ok(annualSummary.includes('aria-labelledby="sl-dialog-title"') && annualSummary.includes('aria-describedby="sl-dialog-checkout-note"'), 'The plan summary has accessible title and description references');
+assert.ok(annualSummary.includes('Subscription checkout is not configured.'), 'The dialog does not imply that plan selection charges or activates a subscription');
+const planDialogSource = readFileSync('src/components/nexora-landing/sections/PlanSummaryDialog.tsx', 'utf8');
+assert.match(planDialogSource, /event\.key === 'Escape'/, 'The plan summary closes on Escape');
+assert.match(planDialogSource, /event\.key !== 'Tab'/, 'The plan summary traps keyboard focus');
+assert.match(planDialogSource, /event\.shiftKey && focused === first/, 'Shift+Tab wraps focus to the final dialog control');
+assert.match(planDialogSource, /!event\.shiftKey && focused === last/, 'Tab wraps focus to the first dialog control');
+assert.match(planDialogSource, /previousFocus\.focus\(\)/, 'Closing the plan summary restores focus to its trigger');
 
 /* --- Comparison matrix ---------------------------------------------------- */
 const catalogueIds = FEATURE_CATEGORIES.flatMap((category) => category.items).map((item) => item.id);

@@ -257,8 +257,8 @@
   gap: 10px;
   margin: 19px 0 8px;
   padding: 0 11px;
-  color: #85908f;
-  font-size: 9px;
+  color: var(--sl-cr-muted);
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;

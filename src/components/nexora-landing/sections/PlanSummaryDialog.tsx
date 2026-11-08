@@ -22,16 +22,60 @@ export function PlanSummaryDialog({
   onClose: () => void;
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!plan) return;
+
+    const activeElement = document.activeElement;
+    previousFocusRef.current = activeElement instanceof HTMLElement ? activeElement : null;
     closeRef.current?.focus();
+
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+      const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      )).filter((element) => element.getAttribute('aria-hidden') !== 'true');
+      if (focusable.length === 0) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const focused = document.activeElement;
+      if (!dialog.contains(focused)) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+      } else if (event.shiftKey && focused === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && focused === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [plan, onClose]);
+
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      const previousFocus = previousFocusRef.current;
+      previousFocusRef.current = null;
+      if (previousFocus?.isConnected) previousFocus.focus();
+    };
+  }, [plan]);
 
   if (!plan) return null;
 
@@ -39,7 +83,15 @@ export function PlanSummaryDialog({
     <div className="sl-dialog-backdrop" role="presentation" onMouseDown={(event) => {
       if (event.target === event.currentTarget) onClose();
     }}>
-      <section className="sl-dialog" role="dialog" aria-modal="true" aria-labelledby="sl-dialog-title">
+      <section
+        ref={dialogRef}
+        className="sl-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="sl-dialog-title"
+        aria-describedby="sl-dialog-checkout-note"
+        tabIndex={-1}
+      >
         <button ref={closeRef} type="button" className="sl-dialog__close" aria-label="Close plan summary" onClick={onClose}>
           <X size={20} aria-hidden="true" />
         </button>
@@ -61,7 +113,7 @@ export function PlanSummaryDialog({
         ) : null}
         <div className="sl-dialog__alert">
           <CircleHelp size={18} aria-hidden="true" />
-          <p>
+          <p id="sl-dialog-checkout-note">
             <b>Subscription checkout is not configured.</b>
             <br />
             Nexora subscription payments are not configured. The existing Razorpay integration is for salon booking
