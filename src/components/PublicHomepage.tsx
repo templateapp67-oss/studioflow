@@ -49,6 +49,12 @@ const navigation = [
   { label: 'Pricing', href: '/pricing' },
 ];
 
+const moreLinks = [
+  { label: 'Salon Onboarding', href: '/salon-onboarding' },
+  { label: 'Salon Growth', href: '/salon-growth' },
+  { label: 'Growth Partner Rewards', href: '/growth-partner-rewards' },
+];
+
 const steps = [
   {
     number: '01',
@@ -182,6 +188,10 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
                 {item.label}
               </a>
             ))}
+            <details className="relative">
+              <summary className="cursor-pointer list-none rounded-lg px-3 py-2.5 text-sm font-semibold text-[#4A4058] hover:bg-[#F6F1E6] focus-visible:outline-2 focus-visible:outline-[#7A4E8F]">MORE</summary>
+              <div className="absolute right-0 top-full z-30 mt-2 w-56 rounded-xl border border-[#E4DCCB] bg-white p-2 shadow-xl">{moreLinks.map((item) => <a key={item.href} href={item.href} className="block rounded-lg px-3 py-2.5 text-sm font-semibold text-[#4A4058] hover:bg-[#F6F1E6]">{item.label}</a>)}</div>
+            </details>
           </nav>
 
           <div className="ml-auto flex items-center gap-2 lg:ml-3">
@@ -212,6 +222,8 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
                   {item.label} <ArrowRight size={15} aria-hidden="true" />
                 </a>
               ))}
+              <p className="px-3 pt-3 text-xs font-extrabold tracking-[.18em] text-[#806d88]">MORE</p>
+              {moreLinks.map((item) => <a key={item.href} href={item.href} onClick={() => setMenuOpen(false)} className="flex min-h-[46px] items-center justify-between rounded-xl px-3 text-sm font-bold text-[#3F3550] hover:bg-[#F6F1E6]">{item.label}<ArrowRight size={15} aria-hidden="true" /></a>)}
               <a href="/login" className="mt-2 inline-flex min-h-[46px] items-center justify-center rounded-xl border border-[#D9CFBC] px-4 text-sm font-bold text-[#2A1E4A] hover:bg-[#FBF8F2] sm:hidden">
                 {authenticated ? 'Owner Workspace' : 'Sign In'}
               </a>
@@ -429,6 +441,18 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
               </div>
               <a href="#nexora-template-library" className="inline-flex min-h-[46px] shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary-container">Explore Templates <ArrowRight size={15} aria-hidden="true" /></a>
             </div>
+          </div>
+        </section>
+        <section className="border-y border-[#E9DED5] bg-[#FBF7F3] px-4 py-14 sm:px-6 lg:px-10" aria-labelledby="ecosystem-heading">
+          <div className="mx-auto max-w-[1440px]">
+            <p className="text-xs font-extrabold uppercase tracking-[.2em] text-[#8C4D67]">NEXORA SALONOS</p>
+            <h2 id="ecosystem-heading" className="mt-3 max-w-3xl font-display text-3xl font-black text-[#1B1630] sm:text-4xl">Apne Business Ko Next Level Par Le Jaiye.</h2>
+            <p className="mt-4 max-w-3xl leading-7 text-[#5B5470]">Nexora SalonOS helps Indian salons build their digital identity, manage customer relationships and organise their business through one connected platform.</p>
+            <div className="mt-7 flex flex-wrap gap-3"><a href="/salon-growth" className="rounded-xl bg-[#302033] px-5 py-3 text-sm font-bold text-white">Explore Salon Growth</a><a href="#nexora-template-library" className="rounded-xl border border-[#A96A7E] bg-white px-5 py-3 text-sm font-bold text-[#39263A]">Explore Salon Website Templates</a><a href={authenticated ? '/login' : PUBLIC_SIGNUP_PATH} className="rounded-xl border border-[#D9CFBC] px-5 py-3 text-sm font-bold text-[#39263A]">{authenticated ? 'Open Workspace' : 'Get Started'}</a></div>
+            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{[
+              ['Digital salon branding', '/salon-onboarding'], ['Online booking & availability', '/salon-growth'], ['Customer management & recall', '/salon-growth'], ['Birthday and loyalty workflows', '/salon-growth'], ['Salon QR experience', '/salon-growth'], ['Customer discovery', '/salon-growth'], ['Salon business growth', '/salon-growth'], ['Growth Partner rewards', '/growth-partner-rewards'],
+            ].map(([label, href]) => <a key={label} href={href} className="rounded-xl border border-[#E4DCCB] bg-white p-5 font-bold text-[#3F3550] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">{label} <span aria-hidden="true">↗</span></a>)}</div>
+            <div className="mt-8 rounded-2xl bg-white p-6 shadow-sm"><div className="flex flex-wrap items-center justify-between gap-4"><div><h3 className="text-xl font-extrabold text-[#1B1630]">Growth Partner Rewards</h3><p className="mt-1 text-sm text-[#5B5470]">Explore programme milestones and eligibility terms.</p></div><a href="/growth-partner-rewards" className="rounded-xl bg-[#F6F1E6] px-5 py-3 text-sm font-bold text-[#2A1E4A]">Explore Growth Partner Rewards →</a></div></div>
           </div>
         </section>
       </main>

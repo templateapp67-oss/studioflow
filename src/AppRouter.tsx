@@ -3,6 +3,7 @@ import { PublicHomepage } from './components/PublicHomepage';
 import { NexoraSalonLandingPage } from './components/nexora-landing/NexoraSalonLandingPage';
 import { NexoraPricingLandingPage } from './components/nexora-landing/NexoraPricingLandingPage';
 import { NexoraPrivacyNoticePage } from './components/nexora-landing/NexoraPrivacyNoticePage';
+import { NexoraEcosystemPage } from './components/nexora-landing/NexoraEcosystemPage';
 import { NexoraDemoLeadsAdmin } from './components/nexora-landing/admin/NexoraDemoLeadsAdmin';
 import { loadScreen } from './lib/loadScreen';
 import { capturePublicReferral } from './lib/publicReferral';
@@ -24,7 +25,7 @@ const APP_QUERY_KEYS = [
  * outside the owner application so the landing page can be indexed and
  * hydrated without booting the workspace bundle.
  */
-const PUBLIC_MARKETING_ROUTES = new Set(['/salon-os', '/pricing', '/privacy']);
+const PUBLIC_MARKETING_ROUTES = new Set(['/salon-os', '/pricing', '/privacy', '/salon-onboarding', '/salon-growth', '/growth-partner-rewards']);
 
 export function requiresFullApplication(location: Pick<Location, 'pathname' | 'search' | 'hash' | 'hostname'>): boolean {
   if (resolveSiteSlug(location)) return true;
@@ -71,6 +72,9 @@ export function AppRouter() {
   if (publicPath === '/salon-os') return <NexoraSalonLandingPage />;
   if (publicPath === '/pricing') return <NexoraPricingLandingPage />;
   if (publicPath === '/privacy') return <NexoraPrivacyNoticePage />;
+  if (publicPath === '/salon-onboarding' || publicPath === '/salon-growth' || publicPath === '/growth-partner-rewards') {
+    return <NexoraEcosystemPage path={publicPath} />;
+  }
   if (publicPath === '/admin/demo-leads') return <NexoraDemoLeadsAdmin />;
   if (!showApplication) return <PublicHomepage authenticated={authenticated} />;
 

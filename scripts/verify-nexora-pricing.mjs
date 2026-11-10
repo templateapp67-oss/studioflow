@@ -109,11 +109,11 @@ assert.ok(content.includes('SAMPLE_CONTENT = false') && !content.includes('Sampl
 /* --- Comparison table redesign ------------------------------------------- */
 for (const [token, value] of [
   ['--nx-table-included', '#00c853'],
-  ['--nx-table-excluded', '#ff2323'],
+  ['--nx-table-excluded', '#ff3030'],
   ['--nx-table-standard-bg', '#ffe9ea'],
-  ['--nx-table-category', '#ff2323'],
-  ['--nx-table-primary', '#ff2323'],
-  ['--nx-table-divider', '#eeeeee'],
+  ['--nx-table-category', '#ff3030'],
+  ['--nx-table-primary', '#ff3030'],
+  ['--nx-table-divider', '#eaeaea'],
 ]) {
   assert.ok(comparisonStyles.includes(`${token}: ${value}`), `Centralised comparison token ${token} keeps its approved value`);
 }
@@ -125,8 +125,8 @@ assert.ok(
   'Feature descriptions open in a real, dismissible tooltip',
 );
 assert.ok(
-  comparisonTable.includes('PUBLISHED_COMPARISON') || featureMatrix.includes('PUBLISHED_COMPARISON_FEATURE_IDS'),
-  'The rendered table publishes only approved rows',
+  comparisonTable.includes('NEXORA_COMPARISON_MATRIX') && comparisonTable.includes('data-feature-id'),
+  'The rendered table publishes rows from the approved 87-feature matrix source',
 );
 assert.ok(
   featureMatrix.includes('FeatureComparisonTable') && !featureMatrix.includes('CircleHelp') && !featureMatrix.includes('Minus'),

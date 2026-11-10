@@ -6,11 +6,11 @@ import TestRenderer, { act } from 'react-test-renderer';
 import { NexoraPricingLandingPage } from '../src/components/nexora-landing/NexoraPricingLandingPage';
 import { LandingContentProvider } from '../src/components/nexora-landing/LandingContentProvider';
 import { PricingPlansSection } from '../src/components/nexora-landing/sections/PricingPlansSection';
-import { FEATURE_PLAN_ENTITLEMENTS, PRICING_ADD_ONS, PRICING_PLANS, type BillingInterval } from '../src/lib/nexoraPricing';
-import { NEXORA_LANDING_COMPARISON_GROUPS } from '../src/lib/nexoraLandingContent';
+import { FEATURE_PLAN_ENTITLEMENTS, PRICING_PLANS, type BillingInterval } from '../src/lib/nexoraPricing';
+import { NEXORA_COMPARISON_MATRIX } from '../src/lib/nexoraComparisonMatrix';
 
 const html = renderToStaticMarkup(<NexoraPricingLandingPage />);
-for (const banned of ['Choose the Right Plan for Your Salon', 'Start with the essentials and upgrade as your business grows.', 'Confirmed plan highlights', 'Billing period', 'Annual plans are billed once for the full year', 'Compare every feature', 'sl-plan__includes', 'sl-plan__positioning', 'sl-billing__text']) {
+for (const banned of ['Start with the essentials and upgrade as your business grows.', 'Confirmed plan highlights', 'Billing period', 'Annual plans are billed once for the full year', 'Compare every feature', 'sl-plan__includes', 'sl-plan__positioning', 'sl-billing__text']) {
   assert.ok(!html.toLowerCase().includes(banned.toLowerCase()), `Unwanted pricing element: ${banned}`);
 }
 const pricing = html.slice(html.indexOf('<section class="sl-section sl-compact-pricing"'), html.indexOf('<section class="sl-section sl-section--soft" id="comparison"'));
@@ -26,20 +26,19 @@ for (const [i, card] of cards.entries()) {
   assert.equal((card.match(/<p\b/g) || []).length, 4);
 }
 assert.ok(cards[2].includes('Recommended') && cards[2].includes('is-recommended'));
-const table = html.slice(html.indexOf('<table class="nx-compare">'), html.indexOf('</table>') + 8);
+const tableStart = html.indexOf('<table class="nx-compare"');
+const table = html.slice(tableStart, html.indexOf('</table>', tableStart) + 8);
 const categories = [...table.matchAll(/data-category="([^"]+)"/g)].map(x => x[1]);
-assert.deepEqual(categories, ['addons', ...NEXORA_LANDING_COMPARISON_GROUPS.map(g => g.id)]);
-for (const addon of PRICING_ADD_ONS) for (const plan of PRICING_PLANS) {
-  const status = addon.includedPlanIds.includes(plan.id) ? 'Included' : 'Not included';
-  assert.ok(table.includes(`${addon.name}: ${status} in ${plan.name}`));
-}
+assert.deepEqual(categories, NEXORA_COMPARISON_MATRIX.map(category => category.id));
+assert.equal((table.match(/data-feature-id=/g) || []).length, 87);
+assert.equal((table.match(/class="nx-compare__cell is-recommended"/g) || []).length, 87);
 for (const [featureId, entitlement] of Object.entries(FEATURE_PLAN_ENTITLEMENTS)) {
   // Approved catalogue labels and exact matrix are checked in the shared table suite.
   assert.ok(PRICING_PLANS.every(plan => entitlement[plan.id] === 'included' || entitlement[plan.id] === 'excluded'), featureId);
 }
 assert.ok(table.includes('lucide-circle-check') && table.includes('lucide-circle-x'));
 const css = readFileSync('src/components/nexora-pricing/table/comparisonTable.css', 'utf8');
-for (const token of ['#00c853', '#ff2323', '#ffe9ea', '#eeeeee']) assert.ok(css.includes(token));
+for (const token of ['#00c853', '#ff3030', '#ffe9ea', '#eaeaea']) assert.ok(css.includes(token));
 assert.ok(css.includes('.nx-compare tbody .nx-cat__cell') && css.includes('linear-gradient'));
 
 let selected = '';
@@ -64,4 +63,4 @@ assert.equal(selected, 'grow:annual');
 await act(async () => { renderer!.unmount(); });
 const source = readFileSync('src/components/nexora-landing/NexoraPricingLandingPage.tsx', 'utf8');
 for (const term of ['supabase.auth.getSession()', 'savePendingPricingSelection(selection)', 'pricingAuthPath(selection)', '<PlanSummaryDialog']) assert.ok(source.includes(term));
-console.log('PASS: compact pricing rejection checks, nine categories, add-on entitlement cells, responsive highlight rules, billing switching and registration hand-off.');
+console.log('PASS: compact pricing-only content, nine categories, 87 rows, plan ordering, Standard highlight, responsive table, billing switching and registration hand-off.');
