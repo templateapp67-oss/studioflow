@@ -1,5 +1,6 @@
 import { NEXORA_PUBLIC_TEMPLATES } from '../../lib/nexoraPublicTemplates';
 import { nexoraTemplatePagePath, NEXORA_TEMPLATE_META } from '../../lib/nexoraTemplateCatalogue';
+import { NexoraEcosystemSeoHead } from './NexoraEcosystemSeoHead';
 
 const pageData = {
   '/salon-onboarding': {
@@ -43,6 +44,7 @@ export function NexoraEcosystemPage({ path }: { path: keyof typeof pageData }) {
   const isOnboarding = path === '/salon-onboarding';
   const isRewards = path === '/growth-partner-rewards';
   return <div className="min-h-screen bg-white text-[#211B2B]">
+    <NexoraEcosystemSeoHead path={path} />
     <header className="sticky top-0 z-20 border-b border-[#eee] bg-white/95 backdrop-blur">
       <nav className="mx-auto flex max-w-7xl flex-wrap items-center gap-5 px-5 py-4" aria-label="Main navigation">
         <a className="mr-auto font-black tracking-[.18em] text-[#312347]" href="/">NEXORA <span className="text-xs tracking-normal">SALON OS</span></a>

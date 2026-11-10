@@ -528,6 +528,17 @@ Return strictly valid JSON in this format:
     app.get(/^\/privacy\/?$/, (_req, res) => {
       res.sendFile(path.join(distPath, "privacy", "index.html"));
     });
+    // The NEXORA marketing routes ship their own prerendered documents too, so
+    // the production server never answers them with the homepage shell.
+    app.get(/^\/salon-onboarding\/?$/, (_req, res) => {
+      res.sendFile(path.join(distPath, "salon-onboarding", "index.html"));
+    });
+    app.get(/^\/salon-growth\/?$/, (_req, res) => {
+      res.sendFile(path.join(distPath, "salon-growth", "index.html"));
+    });
+    app.get(/^\/growth-partner-rewards\/?$/, (_req, res) => {
+      res.sendFile(path.join(distPath, "growth-partner-rewards", "index.html"));
+    });
     app.get("*", (_req, res) => {
       res.sendFile(path.join(distPath, "index.html"));
     });

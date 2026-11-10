@@ -36,6 +36,17 @@ try {
   route = await get('/template-pages/hair-salon.html');
   assert.equal(route.status, 200);
   assert.ok(route.body.includes('data-template-id="hair_salon"'));
+  // Each NEXORA marketing route must answer with its own prerendered document,
+  // not the homepage shell that used to own every non-app path.
+  for (const path of ['/salon-onboarding', '/salon-growth', '/growth-partner-rewards']) {
+    route = await get(path);
+    assert.equal(route.status, 200);
+    assert.ok(
+      route.body.includes(`<link rel="canonical" href="https://nexorasalon.online${path}"`),
+      `${path} serves its own prerendered document`,
+    );
+    assert.ok(route.body.includes('<div id="root">'), `${path} hydrates into the root element`);
+  }
   for (const path of ['/?site=demo-salon', '/?app=1', '/?category=hair_salon', '/?passwordUpdated=1', '/?error_code=otp_expired']) {
     route = await get(path);
     assert.equal(route.status, 200);

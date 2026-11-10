@@ -20,6 +20,7 @@
     "test:template12-sync": "tsx scripts/verify-template12-sync.ts",
     "test:multibranch": "node scripts/verify-multibranch-migration.mjs",
     "test:template03": "node scripts/verify-template03-ui.mjs && node scripts/verify-aura-promotions.mjs && node scripts/verify-aura-promotions-ui.mjs && node scripts/verify-template03-media.mjs",
+    "test:nexora-routes": "node scripts/verify-nexora-ecosystem-routes.mjs",
     "test:template14": "node scripts/verify-veda-sanjeevani.mjs",
     "test:template16": "node scripts/verify-template16-aurelia.mjs",
     "assets:template14": "node scripts/build-template14-assets.mjs",
