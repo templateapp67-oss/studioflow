@@ -47,6 +47,7 @@ import {
   type VedaWhyItem,
 } from './vedaSanjeevani';
 import type { SalonProfile, SalonService, Stylist } from '../types';
+import { aiRequestHeaders } from './aiRequestAuth';
 
 export const VEDA_TEMPLATE_ID = 'ayurvedic_spa';
 const VEDA_REFS = new Set([
@@ -636,7 +637,7 @@ export async function requestVedaAiContent(mode: VedaAiMode, details: VedaAiDeta
   try {
     const response = await fetch(VEDA_AI_ENDPOINT, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await aiRequestHeaders(),
       body: JSON.stringify({ mode, details }),
       signal,
     });
@@ -817,7 +818,7 @@ export async function requestVedaAiImage(prompt: string, aspectRatio = '4:3'): P
   try {
     const response = await fetch('/api/generate-promo-image', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await aiRequestHeaders(),
       body: JSON.stringify({ prompt, aspectRatio }),
     });
     if (!response.ok) return { ok: false, reason: 'The image service could not be reached. Try again in a moment.' };

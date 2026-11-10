@@ -171,4 +171,10 @@ const {verifyBookingBundles}=await import('./fixtures/booking-bundles.mjs');
 await verifyBookingBundles(db);
 const {verifyAdminTenantIsolation}=await import('./fixtures/admin-tenant-isolation.mjs');
 await verifyAdminTenantIsolation(db);
+// Referral + reschedule RPC contract: exact signature, pinned search_path and
+// role-scoped EXECUTE (never PUBLIC). Names asked for in review (`apply_referral`,
+// `reschedule_booking`) do not exist in this schema — the fixtures file records
+// which functions actually implement those flows.
+const {verifyRpcContract}=await import('./fixtures/rpc-contract.mjs');
+await verifyRpcContract(db);
 await db.close();

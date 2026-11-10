@@ -6,6 +6,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { SalonProfile, SalonService } from '../types';
 import { CATEGORY_STANDARDIZED_DATA } from '../templateData';
 
+import { aiRequestHeaders } from '../lib/aiRequestAuth';
 interface PromoStudioProps {
   profile: SalonProfile;
   services: SalonService[];
@@ -188,7 +189,7 @@ ${bookingUrl}
     try {
       const res = await fetch('/api/generate-promo-image', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await aiRequestHeaders(),
         body: JSON.stringify({ prompt: customPrompt || undefined, serviceName: selectedService.name, category: selectedService.category, style: aesthetic, aspectRatio }),
       });
       if (!res.ok) throw new Error('Image service unavailable');
@@ -224,7 +225,7 @@ ${bookingUrl}
     try {
       const res = await fetch('/api/generate-promo-copy', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await aiRequestHeaders(),
         body: JSON.stringify({ businessName: profile.businessName, serviceName: selectedService.name, price: selectedService.price, offer: customOfferText, city: profile.city, discountPercent }),
       });
       if (!res.ok) throw new Error('Copy service unavailable');

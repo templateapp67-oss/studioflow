@@ -16,6 +16,18 @@ import {
 } from "./src/lib/vedaSanjeevaniAi";
 import { nexoraDemoLeadHandler } from "./server/nexoraDemoLead";
 import { nexoraDemoLeadsAdminHandler } from "./server/nexoraDemoLeads";
+import {
+  apiErrorHandler,
+  asArray,
+  asNumber,
+  asObject,
+  asString,
+  asyncHandler,
+  installProcessGuards,
+  sendJson,
+} from "./server/httpSafety";
+import { rateLimit } from "./server/rateLimit";
+import { optionalVerifiedUser, requireVerifiedUser } from "./server/supabaseAuth";
 
 /** Rejects huge or malformed bodies before they reach the AI provider. */
 function normalizeVedaDetails(input: any): VedaAiDetails | null {
@@ -74,7 +86,43 @@ async function startServer() {
   const PORT = Number(portArg>=0?process.argv[portArg+1]:process.env.PORT||3000);
   if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) throw new Error('Invalid server port');
 
-  app.use(express.json());
+  // Behind a proxy (Vercel sets VERCEL=1) the caller address arrives in
+  // x-forwarded-for. `trust proxy` is enabled only there or when TRUST_PROXY is
+  // set explicitly, so a directly exposed server cannot be spoofed into
+  // resetting its own rate-limit budget with a forged header.
+  const trustProxy = process.env.TRUST_PROXY || (process.env.VERCEL ? '1' : '');
+  if (trustProxy) app.set('trust proxy', trustProxy);
+  app.disable('x-powered-by');
+
+  // AI prompts are small; capping the body keeps a large payload from reaching
+  // the provider or the JSON parser's memory.
+  app.use(express.json({ limit: '256kb' }));
+
+  // Defence in depth behind asyncHandler: a stray rejection is logged instead of
+  // taking the API down. See server/httpSafety.ts for the full rationale.
+  installProcessGuards();
+
+  // Per-caller budgets for the cost-bearing AI routes. Each request costs a
+  // Gemini call, so the ceiling is deliberately low; verified owners get their
+  // own budget keyed by user id instead of sharing their network address.
+  const AI_WINDOW_MS = 10 * 60 * 1000;
+  const aiLimiters = {
+    bio: rateLimit({ name: 'generate-bio', windowMs: AI_WINDOW_MS, max: 20 }),
+    promoImage: rateLimit({ name: 'generate-promo-image', windowMs: AI_WINDOW_MS, max: 10 }),
+    promoCopy: rateLimit({ name: 'generate-promo-copy', windowMs: AI_WINDOW_MS, max: 30 }),
+    veda: rateLimit({ name: 'veda-website-content', windowMs: AI_WINDOW_MS, max: 15 }),
+    recommendations: rateLimit({
+      name: 'ai-recommendations',
+      windowMs: AI_WINDOW_MS,
+      max: 30,
+      authenticatedMax: 120,
+    }),
+  };
+  // Sign-in is required for the four owner-workspace generators. The customer
+  // recommendation route stays readable without an account and is limited
+  // anonymously instead.
+  const requireSignedIn = requireVerifiedUser();
+  const identifyCustomer = optionalVerifiedUser();
 
   // Optional demo/preview entry: when PREVIEW_TEMPLATE is set (e.g. "prism-chroma"),
   // the site root opens that template directly. Off by default — no effect in production.
@@ -99,7 +147,7 @@ async function startServer() {
   // enquiry is stored by the `submit-landing-lead` Supabase Edge Function in
   // the private `public.landing_leads` table, and the durable rate limit of
   // that function applies across every instance.
-  app.post("/api/nexora-demo-lead", async (req, res) => {
+  app.post("/api/nexora-demo-lead", asyncHandler(async (req, res) => {
     await nexoraDemoLeadHandler(
       {
         method: req.method,
@@ -110,12 +158,12 @@ async function startServer() {
       },
       res,
     );
-  });
+  }));
 
   // Manager-only operations on the demo-request register (listing, export and
   // erasure on request). The manager role is taken from the signed JWT's
   // server-controlled `app_metadata.site_role` claim.
-  app.post("/api/nexora-demo-leads", async (req, res) => {
+  app.post("/api/nexora-demo-leads", asyncHandler(async (req, res) => {
     await nexoraDemoLeadsAdminHandler(
       {
         method: req.method,
@@ -125,12 +173,19 @@ async function startServer() {
       },
       res,
     );
-  });
+  }));
 
   // AI Bio Generation Route with Gemini
-  app.post("/api/generate-bio", async (req, res) => {
+  app.post("/api/generate-bio", requireSignedIn, aiLimiters.bio, asyncHandler(async (req, res) => {
+    // Validated once, so neither the prompt nor the fallback can be handed a
+    // non-string (an object with `.replace` missing used to throw in `catch`).
+    const input = asObject(req.body);
+    const businessName = asString(input.businessName, 120);
+    const businessType = asString(input.businessType, 60);
+    const ownerName = asString(input.ownerName, 80);
+    const vibe = asString(input.vibe, 80);
+    const specialties = asString(input.specialties, 200);
     try {
-      const { businessName, businessType, ownerName, vibe, specialties } = req.body;
 
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) {
@@ -181,15 +236,20 @@ Return strictly valid JSON in this format:
       return res.json({
         source: "template",
         tagline: `Redefining beauty & relaxation in a luxury space.`,
-        bio: `Welcome to ${req.body.businessName || 'our studio'}. Our passionate team offers bespoke salon treatments designed to accentuate your unique natural style.`
+        bio: `Welcome to ${businessName || 'our studio'}. Our passionate team offers bespoke salon treatments designed to accentuate your unique natural style.`
       });
     }
-  });
+  }));
 
   // Promotional Image Generation Endpoint with Gemini
-  app.post("/api/generate-promo-image", async (req, res) => {
+  app.post("/api/generate-promo-image", requireSignedIn, aiLimiters.promoImage, asyncHandler(async (req, res) => {
+    const input = asObject(req.body);
+    const prompt = asString(input.prompt, 1200);
+    const serviceName = asString(input.serviceName, 120);
+    const category = asString(input.category, 80);
+    const style = asString(input.style, 80);
+    const aspectRatio = asString(input.aspectRatio, 10) || '1:1';
     try {
-      const { prompt, serviceName, category, style, aspectRatio = "1:1" } = req.body;
       const apiKey = process.env.GEMINI_API_KEY;
 
       const detailedPrompt = prompt || `A professional, ultra-high quality, editorial advertising photo for a luxury salon promoting "${serviceName}" in the "${category || 'Beauty & Wellness'}" category. Aesthetic: ${style || 'Luxury Chic & Modern Elegance'}, warm studio lighting, pristine clean background, 8k resolution commercial photoshoot.`;
@@ -259,12 +319,21 @@ Return strictly valid JSON in this format:
         error: err?.message || "Failed to generate promotional image with AI.",
       });
     }
-  });
+  }));
 
   // Promotional Copy and Caption Generation Endpoint
-  app.post("/api/generate-promo-copy", async (req, res) => {
+  app.post("/api/generate-promo-copy", requireSignedIn, aiLimiters.promoCopy, asyncHandler(async (req, res) => {
+    // `offer` used to be interpolated with truthiness checks and then
+    // `.toUpperCase()`-d in the fallback: a truthy non-string threw inside the
+    // catch block and took the process down. It is a bounded string now.
+    const input = asObject(req.body);
+    const businessName = asString(input.businessName, 120);
+    const serviceName = asString(input.serviceName, 120);
+    const price = asNumber(input.price, 0, 0, 10_000_000);
+    const offer = asString(input.offer, 80);
+    const city = asString(input.city, 80);
+    const discountPercent = asNumber(input.discountPercent, 0, 0, 100);
     try {
-      const { businessName, serviceName, price, offer, city, discountPercent } = req.body;
       const apiKey = process.env.GEMINI_API_KEY;
 
       if (!apiKey) {
@@ -317,13 +386,13 @@ Return strictly JSON with the following keys:
       console.error("Copy generation error:", err);
       return res.json({
         source: "template",
-        whatsapp: `✨ *EXCLUSIVE SALON OFFER* ✨\n\nHey beautiful! Treat yourself to *${req.body.serviceName || 'our signature treatment'}* at *${req.body.businessName || 'our salon'}*.\n\n🎉 *Special Deal*: ${req.body.offer || 'Exclusive Discount This Week'}\n💰 *Price*: ₹${req.body.price || 'Special Rate'}\n\n📲 Book your appointment now!`,
-        instagramCaption: `✨ Elevate your everyday glow! ✨\n\nBook your *${req.body.serviceName || 'treatment'}* today at ${req.body.businessName || 'our studio'}.\n\n👇 Tap link in bio to book your appointment!\n\n#Salon #Beauty #SelfCare #SalonDeals`,
-        headline: `Special Offer: ${req.body.serviceName || 'Signature Service'}`,
-        badgeText: req.body.offer ? req.body.offer.toUpperCase() : 'LIMITED SPECIAL'
+        whatsapp: `✨ *EXCLUSIVE SALON OFFER* ✨\n\nHey beautiful! Treat yourself to *${serviceName || 'our signature treatment'}* at *${businessName || 'our salon'}*.\n\n🎉 *Special Deal*: ${offer || 'Exclusive Discount This Week'}\n💰 *Price*: ₹${price ? price.toLocaleString('en-IN') : 'Special Rate'}\n\n📲 Book your appointment now!`,
+        instagramCaption: `✨ Elevate your everyday glow! ✨\n\nBook your *${serviceName || 'treatment'}* today at ${businessName || 'our studio'}.\n\n👇 Tap link in bio to book your appointment!\n\n#Salon #Beauty #SelfCare #SalonDeals`,
+        headline: `Special Offer: ${serviceName || 'Signature Service'}`,
+        badgeText: offer ? offer.toUpperCase() : 'LIMITED SPECIAL'
       });
     }
-  });
+  }));
 
   /**
    * Template 14 — Veda Sanjeevani AI website content.
@@ -333,7 +402,7 @@ Return strictly JSON with the following keys:
    * honest, brand-specific draft produced by the shared template library, so the
    * "Generate my website content" button always does something useful.
    */
-  app.post("/api/veda-website-content", async (req, res) => {
+  app.post("/api/veda-website-content", requireSignedIn, aiLimiters.veda, asyncHandler(async (req, res) => {
     const body = req.body && typeof req.body === 'object' ? req.body : {};
     const mode = (VEDA_AI_MODE_IDS as readonly string[]).includes(body.mode) ? body.mode : 'all';
     const details = normalizeVedaDetails(body.details);
@@ -383,25 +452,36 @@ Return strictly JSON with the following keys:
         notice: 'The AI service could not be reached just now, so the template drafted this instead. Try again in a moment, or edit this copy directly.',
       });
     }
-  });
+  }));
 
   // AI Personalized Recommendations Endpoint with Gemini
-  app.post("/api/ai-recommendations", async (req, res) => {
+  app.post("/api/ai-recommendations", identifyCustomer, aiLimiters.recommendations, asyncHandler(async (req, res) => {
+    // Every field is validated before use. A body of `null`, a string or an
+    // object where an array is expected used to throw inside this handler and,
+    // because the old fallback re-read the same unvalidated value, inside the
+    // `catch` block too — which killed the process. Nothing below can throw on
+    // a hostile body: the fallback is built from the validated values only.
+    const body = asObject(req.body);
+    const bookingHistory = asArray(body.bookingHistory, 10);
+    const favorites = asArray(body.favorites, 20);
+    const availableServices = asArray<Record<string, unknown>>(body.availableServices, 30);
+
+    const fallback = (reason: string) => ({
+      source: 'template' as const,
+      recommendations: availableServices.slice(0, 4).map((service) => ({
+        salonSlug: asString(service?.salonSlug, 80),
+        serviceId: asString(service?.serviceId, 80),
+        serviceName: asString(service?.serviceName, 120),
+        aiReason: reason,
+      })).filter((service) => service.serviceName),
+    });
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || availableServices.length === 0) {
+      return sendJson(res, 200, fallback('Based on the services you have been browsing, this signature treatment is curated for you.'));
+    }
+
     try {
-      const { bookingHistory = [], favorites = [], availableServices = [] } = req.body;
-      const apiKey = process.env.GEMINI_API_KEY;
-
-      if (!apiKey || availableServices.length === 0) {
-        return res.json({
-          recommendations: availableServices.slice(0, 4).map((s: any) => ({
-            salonSlug: s.salonSlug,
-            serviceId: s.serviceId,
-            serviceName: s.serviceName,
-            aiReason: `Based on your interest in ${s.category || 'luxury wellness'}, this signature treatment is curated for you.`
-          }))
-        });
-      }
-
       const ai = new GoogleGenAI({
         apiKey,
         httpOptions: {
@@ -412,41 +492,50 @@ Return strictly JSON with the following keys:
       });
 
       const prompt = `You are an AI beauty and wellness concierge for Nexora salon platform.
-User's past booking history: ${JSON.stringify(bookingHistory.slice(0, 10))}
+User's past booking history: ${JSON.stringify(bookingHistory)}
 User's favorite salons: ${JSON.stringify(favorites)}
-Available services across salons: ${JSON.stringify(availableServices.slice(0, 30).map((s: any, i: number) => ({ id: i, salonSlug: s.salonSlug, serviceId: s.serviceId, name: s.serviceName, category: s.category, price: s.price })))}
+Available services across salons: ${JSON.stringify(availableServices.map((s, i) => ({ id: i, salonSlug: asString(s?.salonSlug, 80), serviceId: asString(s?.serviceId, 80), name: asString(s?.serviceName, 120), category: asString(s?.category, 60), price: asNumber(s?.price, 0) })))}
 
 Select up to 4 best matching services from the available services based on the user's history and preferences, and write a short, engaging, personalized AI recommendation reason ("aiReason") for each.
 Return strictly valid JSON in this format:
 {"recommendations": [{"index": number, "aiReason": "..."}]}`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json'
-        }
-      });
+      const response = await withTimeout(
+        ai.models.generateContent({
+          model: 'gemini-3.8-flash',
+          contents: prompt,
+          config: {
+            responseMimeType: 'application/json'
+          }
+        }),
+        20000,
+        'The AI service took too long to respond',
+      );
 
-      const text = response.text;
-      if (text) {
-        const parsed = JSON.parse(text);
-        return res.json(parsed);
-      } else {
-        throw new Error("Empty AI recommendations response");
-      }
-    } catch (err) {
-      console.error("AI recommendations error:", err);
-      return res.json({
-        recommendations: (req.body.availableServices || []).slice(0, 4).map((s: any) => ({
-          salonSlug: s.salonSlug,
-          serviceId: s.serviceId,
-          serviceName: s.serviceName,
-          aiReason: `Curated recommendation matching your style and beauty preferences.`
-        }))
-      });
+      const text = typeof response.text === 'string' ? response.text : '';
+      if (!text.trim()) throw new Error('Empty AI recommendations response');
+
+      const parsed = JSON.parse(stripJsonFence(text)) as { recommendations?: unknown };
+      const recommendations = asArray<Record<string, unknown>>(parsed?.recommendations, 4)
+        .map((item) => {
+          const index = Math.trunc(asNumber(item?.index, -1, -1, availableServices.length - 1));
+          const service = index >= 0 ? availableServices[index] : undefined;
+          return {
+            salonSlug: asString(service?.salonSlug, 80),
+            serviceId: asString(service?.serviceId, 80),
+            serviceName: asString(service?.serviceName, 120),
+            aiReason: asString(item?.aiReason, 400),
+          };
+        })
+        .filter((item) => item.serviceName && item.aiReason);
+
+      if (recommendations.length === 0) throw new Error('AI response had no usable recommendations');
+      return sendJson(res, 200, { source: 'ai', recommendations });
+    } catch (error) {
+      console.error('AI recommendations error:', error instanceof Error ? error.message : error);
+      return sendJson(res, 200, fallback('Curated recommendation matching your style and beauty preferences.'));
     }
-  });
+  }));
 
   // Email Service Status Endpoint (legacy path preserved)
   app.get("/api/email-service-status", emailStatusHandler);
@@ -455,6 +544,10 @@ Return strictly valid JSON in this format:
   // authenticates the caller, uses booking RLS and binds the recipient to the
   // stored booking before delivery.
   app.post("/api/send-booking-email", bookingEmailHandler);
+
+  // Terminal error handler: an unexpected throw becomes a logged 500 JSON
+  // response instead of an unhandled rejection that stops the server.
+  app.use(apiErrorHandler());
 
   // Optional direct template preview, used only when explicitly enabled in development.
   // Query-string routes (including published sites and other templates) are unchanged.
