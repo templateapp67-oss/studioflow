@@ -12,14 +12,14 @@
 .nx-compare__wrap,
 .nx-legend {
   --nx-table-bg: #ffffff;
-  --nx-table-text: #000000;
-  --nx-table-category: #ff2323;
-  --nx-table-primary: #ff2323;
+  --nx-table-text: #111827;
+  --nx-table-category: #ff3030;
+  --nx-table-primary: #ff3030;
   --nx-table-included: #00c853;
-  --nx-table-excluded: #ff2323;
+  --nx-table-excluded: #ff3030;
   --nx-table-standard-bg: #ffe9ea;
-  --nx-table-divider: #eeeeee;
-  --nx-table-description: #4b4f58;
+  --nx-table-divider: #eaeaea;
+  --nx-table-description: #6b7280;
   --nx-table-info: #4b4f58;
   --nx-table-info-border: #d7d9dd;
   --nx-table-hover: #fafafa;
@@ -116,7 +116,7 @@
 /* ---- category separator -------------------------------------------------- */
 
 .nx-cat__cell {
-  padding: 26px 22px 10px !important;
+  padding: 14px 16px 6px !important;
   background: var(--nx-table-bg);
   border-bottom: 1px solid var(--nx-table-divider);
   text-align: left;
@@ -164,7 +164,16 @@
 
 .nx-compare__cell {
   text-align: center;
-  font-size: 15px;
+  font-size: 14px;
+}
+
+.nx-compare__numeric {
+  display: inline-block;
+  color: var(--nx-table-text);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: normal;
 }
 
 .nx-compare tbody tr:hover th.nx-compare__feature,

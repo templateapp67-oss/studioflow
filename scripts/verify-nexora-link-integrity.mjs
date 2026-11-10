@@ -9,7 +9,7 @@ import { existsSync, readFileSync } from 'node:fs';
  * every same-page anchor must resolve to a rendered element id.
  */
 
-const ROUTES = new Set(['/', '/pricing', '/salon-os', '/privacy', '/admin/demo-leads', '/login', '/index.html']);
+const ROUTES = new Set(['/', '/pricing', '/salon-os', '/privacy', '/admin/demo-leads', '/login', '/index.html', '/salon-onboarding', '/salon-growth', '/growth-partner-rewards']);
 
 const DOCUMENTS = [
   { path: '/', file: 'dist/index.html' },

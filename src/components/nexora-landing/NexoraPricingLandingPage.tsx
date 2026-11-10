@@ -24,7 +24,6 @@ import {
 } from '../../lib/nexoraLandingContent';
 import { LandingContentProvider, useLandingModel } from './LandingContentProvider';
 import { SiteHeader } from './sections/SiteHeader';
-import { HeroSection } from './sections/HeroSection';
 import { BusinessTypesSection } from './sections/BusinessTypesSection';
 import { ProblemSolutionSection } from './sections/ProblemSolutionSection';
 import { PlatformOverviewSection } from './sections/PlatformOverviewSection';
@@ -46,41 +45,23 @@ import { NearbyCustomerDiscoverySection } from './sections/NearbyCustomerDiscove
 import { TestimonialSection } from './sections/TestimonialSection';
 import { FaqSection } from './sections/FaqSection';
 import { FinalCtaSection } from './sections/FinalCtaSection';
-import { SiteFooter } from './sections/SiteFooter';
-import { MobileActionBar } from './sections/MobileActionBar';
 import { PlanSummaryDialog } from './sections/PlanSummaryDialog';
 import './nexoraLanding.css';
 
 /** Navigation for this route. Every entry resolves to a rendered section. */
 const PRICING_NAV: LandingNavLink[] = [
-  { label: 'Platform', href: '#platform' },
-  { label: 'Features', href: '#features' },
-  { label: 'Salon categories', href: '#salon-categories' },
-  { label: 'Pricing', href: '#pricing' },
+  { label: 'Plans', href: '#pricing' },
+  { label: 'Compare plans', href: '#comparison' },
   { label: 'FAQs', href: '#faq' },
 ];
 
 const PRICING_FOOTER_NAV = [
   {
-    title: 'Product',
+    title: 'Plans',
     links: [
-      { label: 'Platform', href: '#platform' },
-      { label: 'Features', href: '#features' },
-      { label: 'How it works', href: '#how-it-works' },
+      { label: 'Subscription plans', href: '#pricing' },
       { label: 'Compare plans', href: '#comparison' },
-    ] as LandingNavLink[],
-  },
-  {
-    title: 'Salon marketing',
-    links: [
-      { label: 'Salon categories', href: '#salon-categories' },
-    ] as LandingNavLink[],
-  },
-  {
-    title: 'Resources',
-    links: [
-      { label: 'Business benefits', href: '#benefits' },
-      { label: 'FAQs', href: '#faq' },
+      { label: 'Pricing FAQs', href: '#faq' },
     ] as LandingNavLink[],
   },
   {
@@ -195,17 +176,14 @@ function PricingLandingDocument({
       </a>
       <SiteHeader links={PRICING_NAV} mobileLinks={PRICING_NAV} demoLabel="Request a Demo" />
       <main id="sl-main">
-        <HeroSection
-          primaryLabel="Explore Plans"
-          primaryHref="#pricing"
-          secondaryLabel="Request a Demo"
-          secondaryAction="demo"
-        />
-        <BusinessTypesSection id="salon-categories" />
-        <ProblemSolutionSection />
-        <PlatformOverviewSection id="platform" />
-        <FeatureSections id="features" />
-        <HowItWorksSection id="how-it-works" />
+        <section className="sl-section" aria-labelledby="sl-hero-title">
+          <div className="sl-container">
+            <p className="sl-eyebrow">NEXORA SALONOS · SUBSCRIPTION PRICING</p>
+            <h1 id="sl-hero-title">Choose the right plan for your salon.</h1>
+            <p>Review subscription prices, billing terms and included features for Lite, Grow, Standard and Premium.</p>
+            <div className="sl-hero__actions"><a className="sl-btn sl-btn--primary" href="#pricing">View Plans</a><a className="sl-btn sl-btn--secondary" href="#comparison">Compare Features</a></div>
+          </div>
+        </section>
         <PricingPlansSection interval={interval} onIntervalChange={setInterval} onSelect={selectPlan} />
         {selectionMessage ? (
           <p className="sl-container sl-selection-message" role="status">
@@ -213,23 +191,9 @@ function PricingLandingDocument({
           </p>
         ) : null}
         <ComparisonSection id="comparison" />
-        <BenefitsSection id="benefits" />
-        <CustomerAppExperienceSection />
-        <MultiDeviceExperienceSection />
-        <RecurringPackagesSection />
-        <GroupManagementSection />
-        <CustomerRecallSection />
-        <BirthdaySpecialGiftsSection />
-        <CustomerLoyaltySection />
-        <WhatsAppCommunicationSection />
-        <StaffCommissionPerformanceSection />
-        <NearbyCustomerDiscoverySection />
-        <TestimonialSection id="testimonials" />
         <FaqSection id="faq" />
-        <FinalCtaSection id="get-started" primaryLabel="Get Started With Nexora SalonOS" demoLabel="Request a Demo" />
       </main>
-      <SiteFooter />
-      <MobileActionBar />
+      <footer className="sl-footer"><div className="sl-container sl-footer__bottom"><p>© {new Date().getFullYear()} NEXORA SALONOS</p><a href="/privacy">Privacy notice</a></div></footer>
       <PlanSummaryDialog plan={selected} interval={interval} onClose={() => setSelected(null)} />
     </div>
   );

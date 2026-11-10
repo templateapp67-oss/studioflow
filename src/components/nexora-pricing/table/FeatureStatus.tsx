@@ -39,7 +39,7 @@ export function FeatureStatus({
 
   return (
     <span className={`nx-status ${included ? 'nx-status--included' : 'nx-status--excluded'}`} data-status={state} role="img" aria-label={`${featureLabel}: ${label}`}>
-      <Icon size={22} strokeWidth={1.9} aria-hidden="true" focusable="false" />
+      <Icon size={18} strokeWidth={1.9} aria-hidden="true" focusable="false" />
     </span>
   );
 }
