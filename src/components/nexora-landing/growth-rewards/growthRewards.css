@@ -1,0 +1,1799 @@
+/*
+ * NEXORA Growth Partner Rewards — page stylesheet.
+ *
+ * The page is styled here and not with utility classes. The public entry
+ * (src/index.css) generates utilities only for the few files it lists, so a
+ * utility written in this folder produces no CSS at all; that is how the page
+ * once rendered white text on a white background. Every rule below is scoped
+ * to `.ngr-page` and sits outside any cascade layer, so it also takes
+ * precedence over the base layer of the global entry.
+ *
+ * Contents
+ *   1. Tokens          5. Hero               9. Recognition
+ *   2. Base            6. Section heading   10. Verification process
+ *   3. Layout          7. Reward journey    11. Call to action
+ *   4. Buttons, header 8. Notes             12. Footer, motion
+ */
+
+/* 1. Tokens ---------------------------------------------------------------- */
+
+.ngr-page {
+  /* Palette */
+  --ngr-navy: #101827;
+  --ngr-charcoal: #1e293b;
+  --ngr-gold: #c29a5b;
+  --ngr-surface: #f8fafc;
+  --ngr-white: #ffffff;
+
+  /* Text on light surfaces. Plain gold is too light to read on white, so
+     gold-toned text uses the darker ink. */
+  --ngr-ink: #172033;
+  --ngr-slate: #475569;
+  --ngr-gold-ink: #75561c;
+
+  /* Text on navy */
+  --ngr-on-navy: #ffffff;
+  --ngr-on-navy-soft: #d5dce7;
+  --ngr-gold-soft: #e6cb96;
+  --ngr-gold-pale: #f6ead0;
+
+  /* Supporting surfaces and lines */
+  --ngr-cream: #fcf8ef;
+  --ngr-studio: #f5f0e4; /* backdrop of the reward images: keep in step with scripts/build-growth-rewards-assets.mjs */
+  --ngr-line: #e2e8f0;
+  --ngr-line-warm: #eadfc9;
+  --ngr-gold-fill: linear-gradient(135deg, #ecd9ae 0%, #c29a5b 58%, #b38a47 100%);
+
+  /* Type */
+  --ngr-font-body: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --ngr-font-display: 'Manrope', 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+
+  /* Shape, depth, layout */
+  --ngr-radius: 18px;
+  --ngr-shadow: 0 1px 2px rgba(16, 24, 39, 0.05), 0 10px 28px rgba(16, 24, 39, 0.08);
+  --ngr-shadow-lift: 0 2px 4px rgba(16, 24, 39, 0.06), 0 22px 44px rgba(16, 24, 39, 0.15);
+  --ngr-gutter: 16px;
+  --ngr-header: 64px;
+  --ngr-focus: var(--ngr-navy);
+
+  /* The global base layer gives every heading a dark text shadow. */
+  --heading-text-shadow: none;
+
+  min-height: 100vh;
+  overflow-x: clip;
+  background: var(--ngr-surface);
+  color: var(--ngr-ink);
+  color-scheme: light;
+  font-family: var(--ngr-font-body);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.6;
+  text-align: left;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Sections on navy switch the focus ring to a colour that shows on navy. */
+.ngr-dark {
+  --ngr-focus: var(--ngr-gold-pale);
+}
+
+@media (min-width: 600px) {
+  .ngr-page {
+    --ngr-gutter: 24px;
+  }
+}
+
+@media (min-width: 1000px) {
+  .ngr-page {
+    --ngr-gutter: 32px;
+    --ngr-header: 72px;
+  }
+}
+
+/* 2. Base ------------------------------------------------------------------ */
+
+.ngr-page,
+.ngr-page *,
+.ngr-page *::before,
+.ngr-page *::after {
+  box-sizing: border-box;
+}
+
+.ngr-page :where(h1, h2, h3, p, ul, ol, figure) {
+  margin: 0;
+  padding: 0;
+}
+
+.ngr-page :where(ul, ol) {
+  list-style: none;
+}
+
+.ngr-page :where(h1, h2, h3) {
+  font-family: var(--ngr-font-display);
+  text-shadow: none;
+  text-wrap: balance;
+}
+
+.ngr-page :where(a) {
+  color: inherit;
+  text-decoration: none;
+}
+
+.ngr-page :where(img, svg) {
+  display: block;
+  max-width: 100%;
+}
+
+.ngr-page :where(a, summary):focus-visible {
+  outline: 3px solid var(--ngr-focus);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+
+.ngr-skip {
+  position: absolute;
+  left: 12px;
+  top: -80px;
+  z-index: 100;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: var(--ngr-navy);
+  color: var(--ngr-on-navy);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.ngr-skip:focus {
+  top: 12px;
+}
+
+/* 3. Layout ---------------------------------------------------------------- */
+
+.ngr-container {
+  width: min(100% - 2 * var(--ngr-gutter), 1240px);
+  margin-inline: auto;
+}
+
+.ngr-container--wide {
+  width: min(100% - 2 * var(--ngr-gutter), 1460px);
+}
+
+.ngr-section {
+  padding-block: clamp(56px, 3rem + 3vw, 96px);
+}
+
+.ngr-eyebrow {
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.4;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ngr-gold-ink);
+}
+
+/* Second line of a two-tone heading on navy. */
+.ngr-accent {
+  display: block;
+  color: var(--ngr-gold-soft);
+}
+
+/* 4. Buttons and header ---------------------------------------------------- */
+
+.ngr-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 14px 26px;
+  border: 1.5px solid transparent;
+  border-radius: 999px;
+  font-family: var(--ngr-font-body);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    filter 0.2s ease;
+}
+
+.ngr-btn svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  transition: transform 0.2s ease;
+}
+
+.ngr-btn:hover svg {
+  transform: translateX(3px);
+}
+
+.ngr-btn--gold {
+  background-color: var(--ngr-gold);
+  background-image: var(--ngr-gold-fill);
+  color: var(--ngr-navy);
+  box-shadow:
+    0 10px 26px rgba(194, 154, 91, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.ngr-btn--gold:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.05);
+  box-shadow:
+    0 16px 34px rgba(194, 154, 91, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.ngr-btn--gold:active {
+  transform: translateY(0);
+}
+
+.ngr-btn--ghost {
+  border-color: rgba(255, 255, 255, 0.6);
+  background-color: rgba(255, 255, 255, 0.03);
+  color: var(--ngr-on-navy);
+}
+
+.ngr-btn--ghost:hover {
+  border-color: var(--ngr-gold-soft);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.ngr-btn--compact {
+  min-height: 44px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-size: 14px;
+  box-shadow:
+    0 4px 12px rgba(194, 154, 91, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.ngr-btn--compact svg {
+  width: 16px;
+  height: 16px;
+}
+
+.ngr-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  border-bottom: 1px solid var(--ngr-line);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 2px 14px rgba(16, 24, 39, 0.05);
+  -webkit-backdrop-filter: saturate(160%) blur(12px);
+  backdrop-filter: saturate(160%) blur(12px);
+}
+
+.ngr-header__bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--ngr-header);
+}
+
+.ngr-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 44px;
+  margin-right: auto;
+  color: var(--ngr-navy);
+}
+
+.ngr-brand__mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background-color: var(--ngr-gold);
+  background-image: var(--ngr-gold-fill);
+  color: var(--ngr-navy);
+  font-family: var(--ngr-font-display);
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow:
+    0 2px 6px rgba(194, 154, 91, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+/* Two classes, so the size holds against the larger header mark at every width. */
+.ngr-brand__mark.ngr-brand__mark--small {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  font-size: 16px;
+}
+
+.ngr-brand__text {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  line-height: 1;
+}
+
+.ngr-brand__name {
+  font-family: var(--ngr-font-display);
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.ngr-brand__tag {
+  display: none;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  white-space: nowrap;
+  color: var(--ngr-slate);
+}
+
+.ngr-nav {
+  display: none;
+}
+
+.ngr-nav ul {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.ngr-nav a {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 10px;
+  font-size: 14.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--ngr-ink);
+  transition: color 0.2s ease;
+}
+
+.ngr-nav a::after {
+  content: '';
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 5px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--ngr-gold);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.25s ease;
+}
+
+.ngr-nav a:hover,
+.ngr-nav a[aria-current='page'] {
+  color: var(--ngr-gold-ink);
+}
+
+.ngr-nav a:hover::after,
+.ngr-nav a[aria-current='page']::after {
+  transform: scaleX(1);
+}
+
+.ngr-nav a[aria-current='page'] {
+  font-weight: 700;
+}
+
+.ngr-header__cta {
+  flex: none;
+  min-height: 40px;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.ngr-header__cta svg {
+  display: none;
+}
+
+.ngr-menu {
+  flex: none;
+}
+
+.ngr-menu__toggle {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--ngr-line);
+  border-radius: 12px;
+  background: var(--ngr-white);
+  color: var(--ngr-navy);
+  list-style: none;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.ngr-menu__toggle::-webkit-details-marker {
+  display: none;
+}
+
+.ngr-menu__toggle:hover,
+.ngr-menu[open] .ngr-menu__toggle {
+  border-color: var(--ngr-gold);
+  background: var(--ngr-cream);
+}
+
+.ngr-menu__icon {
+  width: 22px;
+  height: 22px;
+}
+
+.ngr-menu__icon--close,
+.ngr-menu[open] .ngr-menu__icon--open {
+  display: none;
+}
+
+.ngr-menu[open] .ngr-menu__icon--close {
+  display: block;
+}
+
+/* The bar is as wide as the container, so the panel reaches the viewport
+   edges by extending one gutter on each side. */
+.ngr-menu__panel {
+  position: absolute;
+  left: calc(var(--ngr-gutter) * -1);
+  right: calc(var(--ngr-gutter) * -1);
+  top: 100%;
+  padding: 8px var(--ngr-gutter) 16px;
+  border-top: 1px solid var(--ngr-line);
+  border-bottom: 1px solid var(--ngr-line);
+  background: var(--ngr-white);
+  box-shadow: 0 18px 30px rgba(16, 24, 39, 0.12);
+}
+
+.ngr-menu__panel li + li {
+  margin-top: 2px;
+}
+
+.ngr-menu__panel li a {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ngr-ink);
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.ngr-menu__panel li a:hover {
+  background: var(--ngr-surface);
+  color: var(--ngr-gold-ink);
+}
+
+.ngr-menu__panel li a[aria-current='page'] {
+  background: var(--ngr-cream);
+  box-shadow: inset 3px 0 0 var(--ngr-gold);
+  color: var(--ngr-gold-ink);
+  font-weight: 700;
+}
+
+.ngr-menu__cta {
+  display: none;
+  width: 100%;
+  margin-top: 10px;
+}
+
+/* On the narrowest phones the bar keeps the brand and the menu; the partner
+   link moves into the menu. */
+@media (max-width: 369.98px) {
+  .ngr-header__cta {
+    display: none;
+  }
+
+  .ngr-menu__cta {
+    display: inline-flex;
+  }
+}
+
+@media (min-width: 440px) {
+  .ngr-brand__tag {
+    display: block;
+  }
+
+  .ngr-header__cta {
+    min-height: 44px;
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+
+  .ngr-header__cta svg {
+    display: block;
+  }
+}
+
+@media (min-width: 600px) {
+  .ngr-header__bar {
+    gap: 14px;
+  }
+
+  .ngr-brand__mark {
+    width: 42px;
+    height: 42px;
+    font-size: 23px;
+  }
+
+  .ngr-brand__name {
+    font-size: 22px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .ngr-brand {
+    margin-right: 0;
+  }
+
+  .ngr-nav {
+    display: block;
+    margin-inline: auto;
+  }
+
+  .ngr-menu {
+    display: none;
+  }
+
+  .ngr-header__cta {
+    padding: 10px 18px;
+  }
+}
+
+/* 5. Hero ------------------------------------------------------------------ */
+
+.ngr-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: clamp(40px, 5.2vw, 76px) 0 clamp(76px, 9.4vw, 132px);
+  background-color: var(--ngr-navy);
+  background-image:
+    radial-gradient(ellipse 58% 72% at 80% 40%, rgba(194, 154, 91, 0.22), transparent 64%),
+    radial-gradient(ellipse 50% 60% at 6% 0%, rgba(71, 98, 140, 0.3), transparent 66%),
+    linear-gradient(120deg, #0b111d 0%, var(--ngr-navy) 46%, var(--ngr-charcoal) 100%);
+  color: var(--ngr-on-navy);
+}
+
+.ngr-hero__grid {
+  display: grid;
+  align-items: center;
+  gap: clamp(36px, 5vw, 56px);
+}
+
+.ngr-hero__copy {
+  min-width: 0;
+}
+
+.ngr-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid rgba(230, 203, 150, 0.42);
+  border-radius: 999px;
+  background: rgba(230, 203, 150, 0.1);
+  color: var(--ngr-gold-soft);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.ngr-chip svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+}
+
+/* Sized from the viewport so "Salon Onboarding Se" always fits on one line
+   and the heading stays the two lines it is written as. */
+.ngr-hero__title {
+  margin-top: 20px;
+  font-size: clamp(1.5rem, 8.2vw, 3.5rem);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  text-wrap: wrap;
+  color: var(--ngr-on-navy);
+}
+
+.ngr-hero__lead {
+  max-width: 34em;
+  margin-top: 18px;
+  font-size: clamp(1rem, 0.94rem + 0.4vw, 1.2rem);
+  line-height: 1.6;
+  color: var(--ngr-on-navy-soft);
+}
+
+.ngr-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.ngr-hero__actions .ngr-btn {
+  flex: 1 1 100%;
+}
+
+.ngr-hero__points {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin-top: 24px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ngr-on-navy-soft);
+}
+
+.ngr-hero__points li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ngr-hero__points svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--ngr-gold-soft);
+}
+
+.ngr-hero__edge {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  width: 100%;
+  height: clamp(34px, 6.25vw, 90px);
+  pointer-events: none;
+}
+
+.ngr-hero__edge-fill {
+  fill: var(--ngr-surface);
+}
+
+.ngr-hero__edge-line {
+  stroke: var(--ngr-gold);
+}
+
+/* The journey illustration. Its parts are placed with the --x, --y and --d
+   percentages set on each stop, all relative to this fixed-ratio box. */
+.ngr-climb {
+  --ngr-climb-target: clamp(10px, 2.9vw, 14px); /* size of the targets under the baseline */
+  position: relative;
+  width: 100%;
+  max-width: 620px;
+  margin-inline: auto;
+}
+
+.ngr-climb__scene {
+  position: relative;
+  display: block;
+  aspect-ratio: 700 / 512;
+}
+
+.ngr-climb__chart {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* A highlight one tenth of the path long. At rest it is parked before the
+   start of the path, so it shows only while the animation runs. */
+.ngr-climb__pulse {
+  stroke-dasharray: 0.1 1.2;
+  stroke-dashoffset: 0.1;
+  opacity: 0;
+}
+
+/* A stop only carries the position of its milestone; it has no box of its own. */
+.ngr-climb__stop {
+  display: contents;
+}
+
+.ngr-climb__medal {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--d);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--ngr-studio);
+  box-shadow:
+    0 0 0 2px var(--ngr-gold),
+    0 0 0 6px rgba(194, 154, 91, 0.2),
+    0 14px 30px rgba(0, 0, 0, 0.45);
+  transform: translate(-50%, -50%);
+}
+
+.ngr-climb__medal .ngr-image {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.ngr-climb__crown {
+  position: absolute;
+  right: -5%;
+  top: -5%;
+  display: grid;
+  place-items: center;
+  width: 32%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background-color: var(--ngr-gold);
+  background-image: var(--ngr-gold-fill);
+  color: var(--ngr-navy);
+  box-shadow: 0 0 0 2px var(--ngr-navy);
+}
+
+.ngr-climb__crown svg {
+  width: 58%;
+  height: 58%;
+}
+
+.ngr-climb__target {
+  position: absolute;
+  left: var(--x);
+  top: 88.3%;
+  font-family: var(--ngr-font-display);
+  font-size: var(--ngr-climb-target);
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--ngr-gold-soft);
+  transform: translateX(-50%);
+}
+
+.ngr-climb__axis {
+  position: absolute;
+  right: 1.7%;
+  top: calc(88.3% + var(--ngr-climb-target) + 12px);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: clamp(9px, 2.5vw, 11px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ngr-on-navy-soft);
+}
+
+.ngr-climb__axis svg {
+  width: 1.2em;
+  height: 1.2em;
+}
+
+.ngr-climb__note {
+  position: absolute;
+  left: 0;
+  top: 3%;
+  display: grid;
+  gap: 5px;
+  max-width: 54%;
+  padding: 10px 14px;
+  border: 1px solid rgba(230, 203, 150, 0.3);
+  border-radius: 14px;
+  background: rgba(16, 24, 39, 0.72);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+  line-height: 1.25;
+}
+
+.ngr-climb__note-kicker {
+  font-size: clamp(9px, 2.5vw, 11px);
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  white-space: nowrap;
+  color: var(--ngr-gold-soft);
+}
+
+.ngr-climb__note-text {
+  font-size: clamp(12px, 3.3vw, 15px);
+  font-weight: 700;
+  color: var(--ngr-on-navy);
+}
+
+@media (min-width: 480px) {
+  .ngr-hero__actions .ngr-btn {
+    flex: 0 1 auto;
+  }
+}
+
+@media (min-width: 1024px) {
+  .ngr-hero__grid {
+    grid-template-columns: minmax(0, 1.04fr) minmax(0, 0.96fr);
+  }
+
+  .ngr-hero__title {
+    font-size: clamp(2.5rem, 4vw, 3.75rem);
+  }
+}
+
+/* 6. Section heading ------------------------------------------------------- */
+
+.ngr-heading {
+  max-width: 780px;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.ngr-heading__title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 10px;
+  font-size: clamp(1.7rem, 1.25rem + 2vw, 2.6rem);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--ngr-ink);
+}
+
+.ngr-heading__title::before,
+.ngr-heading__title::after {
+  content: '';
+  flex: 1 1 0;
+  display: none;
+  max-width: 110px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--ngr-gold));
+}
+
+.ngr-heading__title::after {
+  background: linear-gradient(90deg, var(--ngr-gold), transparent);
+}
+
+.ngr-heading__lead {
+  margin-top: 12px;
+  font-size: clamp(0.975rem, 0.93rem + 0.25vw, 1.1rem);
+  line-height: 1.6;
+  color: var(--ngr-slate);
+}
+
+@media (min-width: 720px) {
+  .ngr-heading__title::before,
+  .ngr-heading__title::after {
+    display: block;
+  }
+}
+
+/* 7. Reward journey -------------------------------------------------------- */
+
+.ngr-journey {
+  scroll-margin-top: calc(var(--ngr-header) - 8px);
+  background: var(--ngr-surface);
+}
+
+/* --ngr-gap is the space between neighbouring steps; the connector uses it to
+   bridge from one step to the next. */
+.ngr-steps {
+  --ngr-gap: 14px;
+  --ngr-node: 40px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ngr-gap);
+  margin-top: clamp(30px, 4vw, 48px);
+}
+
+.ngr-step {
+  position: relative;
+  display: grid;
+  min-width: 0;
+}
+
+/* The connector: one segment per step, drawn through the centre of its node. */
+.ngr-step::before {
+  content: '';
+  position: absolute;
+  background: var(--ngr-gold);
+  pointer-events: none;
+}
+
+.ngr-step__node {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: var(--ngr-node);
+  height: var(--ngr-node);
+  border: 3px solid var(--ngr-white);
+  border-radius: 50%;
+  background-color: var(--ngr-gold);
+  background-image: var(--ngr-gold-fill);
+  color: var(--ngr-navy);
+  font-family: var(--ngr-font-display);
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow:
+    0 0 0 1px rgba(194, 154, 91, 0.6),
+    0 6px 14px rgba(16, 24, 39, 0.16);
+}
+
+.ngr-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--ngr-line-warm);
+  border-bottom: 3px solid var(--ngr-gold);
+  border-radius: var(--ngr-radius);
+  background: var(--ngr-white);
+  box-shadow: var(--ngr-shadow);
+  transition:
+    transform 0.28s cubic-bezier(0.2, 0.7, 0.2, 1),
+    box-shadow 0.28s ease,
+    border-color 0.28s ease;
+}
+
+.ngr-card:hover {
+  border-color: var(--ngr-gold);
+  box-shadow: var(--ngr-shadow-lift);
+  transform: translateY(-5px);
+}
+
+/* Navy target block. Its lower edge is cut to a shallow point that sits over
+   the top of the image. */
+.ngr-card__head {
+  position: relative;
+  z-index: 1;
+  margin-bottom: -10px;
+  padding: 14px 8px 22px;
+  background-color: var(--ngr-navy);
+  background-image: linear-gradient(160deg, var(--ngr-charcoal), var(--ngr-navy) 72%);
+  color: var(--ngr-on-navy);
+  line-height: 1.1;
+  text-align: center;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), 50% 100%, 0 calc(100% - 10px));
+}
+
+.ngr-card__number {
+  display: block;
+  font-family: var(--ngr-font-display);
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--ngr-gold-soft);
+}
+
+.ngr-card__unit {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ngr-on-navy);
+}
+
+.ngr-card__media {
+  position: relative;
+  background: var(--ngr-studio);
+}
+
+.ngr-media {
+  min-width: 0;
+}
+
+.ngr-media__frame {
+  display: block;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: var(--ngr-studio);
+}
+
+.ngr-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.ngr-card:hover .ngr-image {
+  transform: scale(1.05);
+}
+
+/* Shown in place of an image that could not be loaded. */
+.ngr-image--missing {
+  display: grid;
+  place-items: center;
+  background: var(--ngr-studio);
+  color: var(--ngr-gold);
+}
+
+.ngr-image--missing svg {
+  width: 34%;
+  max-width: 56px;
+  height: auto;
+}
+
+.ngr-card__media--pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  background: var(--ngr-white);
+}
+
+/* Centred on the seam between the two images: each image is half the width
+   and 4:3, so its vertical centre is 18.75% of the full width. */
+.ngr-card__plus {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: 18.75% 0 0 -14px;
+  border-radius: 50%;
+  background: var(--ngr-navy);
+  color: var(--ngr-gold-soft);
+  box-shadow: 0 0 0 3px var(--ngr-studio);
+  transform: translateY(-50%);
+}
+
+.ngr-card__plus svg {
+  width: 16px;
+  height: 16px;
+}
+
+.ngr-media__caption {
+  padding: 8px 8px 0;
+  background: var(--ngr-white);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: center;
+  color: var(--ngr-ink);
+}
+
+.ngr-card__body {
+  flex: 1;
+  padding: 14px 12px 18px;
+  text-align: center;
+}
+
+.ngr-card__kicker {
+  font-size: 10.5px;
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ngr-gold-ink);
+}
+
+.ngr-card__title {
+  margin-top: 6px;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.3;
+  color: var(--ngr-ink);
+}
+
+.ngr-card__text {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ngr-slate);
+}
+
+/* Phones: a vertical timeline. The line runs down the left through the nodes
+   and each card sets its image beside its text. */
+@media (max-width: 599.98px) {
+  .ngr-step {
+    grid-template-columns: var(--ngr-node) minmax(0, 1fr);
+    align-items: start;
+    column-gap: 12px;
+  }
+
+  .ngr-step::before {
+    left: calc(var(--ngr-node) / 2 - 1px);
+    top: 0;
+    bottom: calc(var(--ngr-gap) * -1);
+    width: 2px;
+  }
+
+  .ngr-step:first-child::before {
+    top: 24px;
+  }
+
+  .ngr-step:last-child::before {
+    bottom: auto;
+    height: 24px;
+  }
+
+  .ngr-step__node {
+    margin-top: 4px;
+  }
+
+  .ngr-card__head {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 0;
+    padding: 10px 14px 11px;
+    text-align: left;
+    clip-path: none;
+  }
+
+  .ngr-card__number {
+    font-size: 24px;
+  }
+
+  .ngr-card__unit {
+    margin-top: 0;
+  }
+
+  .ngr-card__body {
+    padding: 12px 14px 14px;
+    text-align: left;
+  }
+
+  .ngr-step:not(.ngr-step--summit) .ngr-card {
+    display: grid;
+    grid-template-columns: 44% minmax(0, 1fr);
+  }
+
+  .ngr-step:not(.ngr-step--summit) .ngr-card__head {
+    grid-column: 1 / -1;
+  }
+
+  .ngr-step:not(.ngr-step--summit) .ngr-card__media {
+    display: flex;
+    align-items: center;
+  }
+
+  .ngr-step:not(.ngr-step--summit) .ngr-media {
+    width: 100%;
+  }
+
+  /* The cell is taller than the image when the text runs long; fading the
+     image's upper and lower edge keeps the backdrop continuous. */
+  .ngr-step:not(.ngr-step--summit) .ngr-media__frame {
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 9%, #000 91%, transparent);
+    mask-image: linear-gradient(to bottom, transparent, #000 9%, #000 91%, transparent);
+  }
+
+  .ngr-step:not(.ngr-step--summit) .ngr-card__body {
+    align-self: center;
+  }
+}
+
+/* From 600px: rows of cards, each with its node above it. A segment bridges
+   to the neighbour on either side; where a row wraps it fades out. */
+@media (min-width: 600px) {
+  .ngr-steps {
+    --ngr-gap: 16px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    row-gap: 30px;
+  }
+
+  .ngr-step {
+    grid-template-rows: auto 1fr;
+    justify-items: center;
+    row-gap: 12px;
+  }
+
+  .ngr-step::before {
+    left: calc(var(--ngr-gap) / -2);
+    right: calc(var(--ngr-gap) / -2);
+    top: calc(var(--ngr-node) / 2 - 1px);
+    height: 2px;
+  }
+
+  .ngr-step:first-child::before {
+    left: 50%;
+  }
+
+  .ngr-step:last-child::before {
+    right: 50%;
+  }
+
+  .ngr-card {
+    width: 100%;
+  }
+}
+
+/* Three to a row: 1-3, 4-6, then the last milestone on its own, centred. */
+@media (min-width: 600px) and (max-width: 999.98px) {
+  .ngr-step:nth-child(3n)::before {
+    right: 0;
+    background: linear-gradient(90deg, var(--ngr-gold) 50%, transparent);
+  }
+
+  .ngr-step:nth-child(3n + 1):not(:first-child)::before {
+    left: 0;
+    background: linear-gradient(90deg, transparent, var(--ngr-gold) 50%);
+  }
+
+  .ngr-step--summit {
+    grid-column: 1 / -1;
+  }
+
+  .ngr-step--summit::before {
+    background: linear-gradient(90deg, transparent, var(--ngr-gold));
+  }
+
+  .ngr-step--summit .ngr-card {
+    width: calc((100% - 2 * var(--ngr-gap)) / 3 * 2 + var(--ngr-gap));
+  }
+}
+
+/* Four to a row: 1-4, then 5, 6 and the last milestone at double width. */
+@media (min-width: 1000px) and (max-width: 1359.98px) {
+  .ngr-steps {
+    --ngr-gap: 18px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .ngr-step:nth-child(4)::before {
+    right: 0;
+    background: linear-gradient(90deg, var(--ngr-gold) 50%, transparent);
+  }
+
+  .ngr-step:nth-child(5)::before {
+    left: 0;
+    background: linear-gradient(90deg, transparent, var(--ngr-gold) 50%);
+  }
+
+  .ngr-step--summit {
+    grid-column: span 2;
+  }
+
+  .ngr-card__number {
+    font-size: 32px;
+  }
+
+  .ngr-card__title {
+    font-size: 16px;
+  }
+
+  .ngr-card__text {
+    font-size: 13.5px;
+  }
+}
+
+/* One row: six milestones and the last one at double width. */
+@media (min-width: 1360px) {
+  .ngr-steps {
+    --ngr-gap: 14px;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+
+  .ngr-step--summit {
+    grid-column: span 2;
+  }
+
+  .ngr-card__number {
+    font-size: 28px;
+  }
+
+  .ngr-card__unit {
+    font-size: 10.5px;
+  }
+
+  .ngr-card__body {
+    padding: 12px 10px 16px;
+  }
+
+  .ngr-card__title {
+    font-size: 14.5px;
+  }
+}
+
+/* 8. Notes ----------------------------------------------------------------- */
+
+.ngr-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: fit-content;
+  max-width: min(100%, 920px);
+  margin: clamp(28px, 3.4vw, 40px) auto 0;
+  padding: 14px 18px;
+  border: 1px solid var(--ngr-line-warm);
+  border-radius: 14px;
+  background: var(--ngr-cream);
+  color: var(--ngr-slate);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+.ngr-note > svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  color: var(--ngr-gold-ink);
+}
+
+.ngr-note__aside {
+  margin-top: 4px;
+}
+
+.ngr-note--panel {
+  background: rgba(255, 255, 255, 0.78);
+}
+
+/* 9. Additional recognition ------------------------------------------------ */
+
+.ngr-recognition {
+  background: var(--ngr-white);
+}
+
+.ngr-panel {
+  padding: clamp(28px, 4vw, 52px) clamp(16px, 3.4vw, 44px);
+  border: 1px solid var(--ngr-line-warm);
+  border-radius: 28px;
+  background-color: var(--ngr-cream);
+  background-image: linear-gradient(135deg, #fffdf8 0%, #fbf4e6 55%, #f6ead4 100%);
+  box-shadow: 0 12px 34px rgba(88, 66, 30, 0.07);
+}
+
+.ngr-flag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 16px auto 0;
+  padding: 8px 16px;
+  border: 1px solid rgba(194, 154, 91, 0.65);
+  border-radius: 14px;
+  background: var(--ngr-white);
+  color: var(--ngr-ink);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.ngr-flag svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--ngr-gold-ink);
+}
+
+.ngr-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: clamp(24px, 3vw, 36px);
+}
+
+.ngr-tile {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--ngr-line-warm);
+  border-radius: 16px;
+  background: var(--ngr-white);
+  box-shadow: var(--ngr-shadow);
+  transition:
+    transform 0.28s cubic-bezier(0.2, 0.7, 0.2, 1),
+    box-shadow 0.28s ease;
+}
+
+.ngr-tile:hover {
+  box-shadow: var(--ngr-shadow-lift);
+  transform: translateY(-4px);
+}
+
+.ngr-tile__art {
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: var(--ngr-navy);
+}
+
+.ngr-art {
+  width: 100%;
+  height: 100%;
+}
+
+.ngr-tile__body {
+  flex: 1;
+  padding: 14px 12px 16px;
+  text-align: center;
+}
+
+.ngr-tile__title {
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.3;
+  color: var(--ngr-ink);
+}
+
+.ngr-tile__text {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ngr-slate);
+}
+
+@media (min-width: 600px) {
+  .ngr-tiles {
+    gap: 18px;
+  }
+
+  .ngr-tile__title {
+    font-size: 16px;
+  }
+
+  .ngr-tile__text {
+    font-size: 14px;
+  }
+}
+
+@media (min-width: 1000px) {
+  .ngr-tiles {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 20px;
+  }
+}
+
+/* 10. Verification process ------------------------------------------------- */
+
+.ngr-process {
+  background: var(--ngr-surface);
+}
+
+.ngr-process__steps {
+  --ngr-gap: 44px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ngr-gap);
+  margin-top: clamp(28px, 4vw, 40px);
+}
+
+.ngr-process__step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  align-content: start;
+  column-gap: 14px;
+  padding: 18px 16px;
+  border: 1px solid var(--ngr-line);
+  border-radius: var(--ngr-radius);
+  background: var(--ngr-white);
+  box-shadow: var(--ngr-shadow);
+}
+
+.ngr-process__icon {
+  grid-row: 1 / span 3;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background-color: var(--ngr-navy);
+  background-image: linear-gradient(160deg, var(--ngr-charcoal), var(--ngr-navy) 72%);
+  color: var(--ngr-gold-soft);
+  box-shadow: 0 8px 18px rgba(16, 24, 39, 0.22);
+}
+
+.ngr-process__icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.ngr-process__label {
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ngr-gold-ink);
+}
+
+.ngr-process__title {
+  margin-top: 4px;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.3;
+  text-wrap: wrap; /* balancing would split "Previous-period" at its hyphen */
+  color: var(--ngr-ink);
+}
+
+.ngr-process__text {
+  margin-top: 6px;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--ngr-slate);
+}
+
+/* Points from each step to the next: down while the steps are stacked. */
+.ngr-process__arrow {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--ngr-gap) / -2);
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  color: var(--ngr-navy);
+  transform: translate(-50%, 50%) rotate(90deg);
+}
+
+.ngr-process__arrow svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* From 600px the icon sits on the top edge of its card and the arrow points
+   across the gap at the same height. */
+@media (min-width: 600px) {
+  .ngr-process__steps {
+    --ngr-gap: 36px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 64px;
+    margin-top: clamp(56px, 6vw, 72px);
+  }
+
+  .ngr-process__step {
+    display: block;
+    padding: 44px 22px 26px;
+    text-align: center;
+    transition:
+      transform 0.28s cubic-bezier(0.2, 0.7, 0.2, 1),
+      box-shadow 0.28s ease;
+  }
+
+  .ngr-process__step:hover {
+    box-shadow: var(--ngr-shadow-lift);
+    transform: translateY(-4px);
+  }
+
+  .ngr-process__icon {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 56px;
+    height: 56px;
+    box-shadow:
+      0 0 0 5px var(--ngr-surface),
+      0 8px 18px rgba(16, 24, 39, 0.22);
+    transform: translate(-50%, -50%);
+  }
+
+  .ngr-process__icon svg {
+    width: 26px;
+    height: 26px;
+  }
+
+  .ngr-process__title {
+    margin-top: 8px;
+  }
+
+  .ngr-process__arrow {
+    left: auto;
+    right: calc(var(--ngr-gap) / -2);
+    top: 0;
+    bottom: auto;
+    transform: translate(50%, -50%);
+  }
+
+  .ngr-process__step:nth-child(even) .ngr-process__arrow {
+    display: none;
+  }
+}
+
+@media (min-width: 1000px) {
+  .ngr-process__steps {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .ngr-process__step:nth-child(even) .ngr-process__arrow {
+    display: grid;
+  }
+}
+
+/* 11. Call to action ------------------------------------------------------- */
+
+.ngr-cta {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding-block: clamp(52px, 6vw, 88px);
+  background-color: var(--ngr-navy);
+  background-image:
+    radial-gradient(ellipse 48% 80% at 86% 52%, rgba(194, 154, 91, 0.2), transparent 66%),
+    linear-gradient(115deg, #0b111d 0%, var(--ngr-navy) 50%, var(--ngr-charcoal) 100%);
+  color: var(--ngr-on-navy);
+}
+
+.ngr-cta__grid {
+  display: grid;
+  align-items: center;
+  gap: 32px;
+}
+
+.ngr-cta__copy {
+  min-width: 0;
+}
+
+.ngr-cta .ngr-eyebrow {
+  color: var(--ngr-gold-soft);
+}
+
+.ngr-cta__title {
+  margin-top: 12px;
+  font-size: clamp(1.7rem, 1.1rem + 2.5vw, 3rem);
+  font-weight: 800;
+  line-height: 1.14;
+  letter-spacing: -0.02em;
+  color: var(--ngr-on-navy);
+}
+
+.ngr-cta__lead {
+  max-width: 36em;
+  margin-top: 16px;
+  font-size: clamp(1rem, 0.95rem + 0.3vw, 1.125rem);
+  line-height: 1.65;
+  color: var(--ngr-on-navy-soft);
+}
+
+.ngr-cta .ngr-btn {
+  margin-top: 28px;
+}
+
+.ngr-cta__art {
+  width: 100%;
+  max-width: 420px;
+  margin-inline: auto;
+}
+
+.ngr-art--growth {
+  height: auto;
+  overflow: visible;
+}
+
+@media (max-width: 479.98px) {
+  .ngr-cta .ngr-btn {
+    width: 100%;
+  }
+}
+
+@media (min-width: 860px) {
+  .ngr-cta__grid {
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
+    gap: 48px;
+  }
+}
+
+/* 12. Footer and motion ---------------------------------------------------- */
+
+.ngr-footer {
+  padding-block: 20px;
+  border-top: 1px solid var(--ngr-line);
+  background: var(--ngr-white);
+}
+
+.ngr-footer__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 24px;
+}
+
+.ngr-footer__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-family: var(--ngr-font-display);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: var(--ngr-ink);
+}
+
+.ngr-footer__product {
+  font-family: var(--ngr-font-body);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--ngr-slate);
+}
+
+.ngr-footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 4px;
+  margin-inline: -10px;
+}
+
+.ngr-footer__links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ngr-slate);
+  transition: color 0.2s ease;
+}
+
+.ngr-footer__links a:hover {
+  color: var(--ngr-gold-ink);
+}
+
+/* Motion is an enhancement. Nothing is hidden while waiting for an animation,
+   and each loop starts from the resting state, so the page looks the same
+   whether or not it runs. */
+@media (prefers-reduced-motion: no-preference) {
+  html:has(.ngr-page) {
+    scroll-behavior: smooth;
+  }
+
+  /* A few passes on arrival, then the illustration rests. This is the only
+     animation that runs by itself. Keep it that way: a second one that changed
+     a paint value slowly (the summit rings breathing through stroke-opacity)
+     made a headless browser take eight seconds or more to capture the page. */
+  .ngr-climb__pulse {
+    animation: ngr-pulse 5.5s cubic-bezier(0.45, 0, 0.3, 1) 1.2s 4;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ngr-page *,
+  .ngr-page *::before,
+  .ngr-page *::after {
+    transition-duration: 0.01ms !important;
+    animation: none !important;
+  }
+}
+
+@keyframes ngr-pulse {
+  0% {
+    stroke-dashoffset: 0.1;
+    opacity: 0;
+  }
+
+  8% {
+    opacity: 0.9;
+  }
+
+  52% {
+    opacity: 0.9;
+  }
+
+  60%,
+  100% {
+    stroke-dashoffset: -1;
+    opacity: 0;
+  }
+}
