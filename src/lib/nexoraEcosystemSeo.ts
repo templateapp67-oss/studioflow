@@ -72,7 +72,7 @@ export const NEXORA_ECOSYSTEM_SEO: Readonly<Record<NexoraEcosystemPath, NexoraEc
     ogImagePath: '/nexora-homepage-og.jpg',
     ogImageAlt: 'NEXORA Growth Partner reward programme',
     themeColor: '#312347',
-    contentMarker: 'Salon Onboarding Se Achievement Tak.',
+    contentMarker: 'Salon Onboarding Se',
   },
 };
 
