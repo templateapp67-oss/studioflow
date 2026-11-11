@@ -16,7 +16,13 @@ const DOCUMENTS = [
   { path: '/pricing', file: 'dist/pricing/index.html' },
   { path: '/salon-os', file: 'dist/salon-os/index.html' },
   { path: '/privacy', file: 'dist/privacy/index.html' },
+  { path: '/salon-onboarding', file: 'dist/salon-onboarding/index.html' },
+  { path: '/salon-growth', file: 'dist/salon-growth/index.html' },
+  { path: '/growth-partner-rewards', file: 'dist/growth-partner-rewards/index.html' },
 ];
+
+/** Prerendered document that owns a route, used to resolve cross-page anchors. */
+const DOCUMENT_BY_ROUTE = new Map(DOCUMENTS.map((document) => [document.path, document.file]));
 
 for (const document of DOCUMENTS) {
   assert.ok(existsSync(document.file), `The prerendered document ${document.file} must exist`);
@@ -77,10 +83,7 @@ for (const document of DOCUMENTS) {
     );
     if (hash) {
       // A cross-page anchor is only meaningful when the target page renders it.
-      const targetFile = target === '/pricing' ? 'dist/pricing/index.html'
-        : target === '/salon-os' ? 'dist/salon-os/index.html'
-        : target === '/privacy' ? 'dist/privacy/index.html'
-        : null;
+      const targetFile = DOCUMENT_BY_ROUTE.get(target) ?? null;
       if (targetFile && existsSync(targetFile)) {
         assert.ok(
           idsOf(readFileSync(targetFile, 'utf8')).has(hash),

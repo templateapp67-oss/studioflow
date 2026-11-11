@@ -22,6 +22,18 @@
       "destination": "/privacy/index.html"
     },
     {
+      "source": "/salon-onboarding",
+      "destination": "/salon-onboarding/index.html"
+    },
+    {
+      "source": "/salon-growth",
+      "destination": "/salon-growth/index.html"
+    },
+    {
+      "source": "/growth-partner-rewards",
+      "destination": "/growth-partner-rewards/index.html"
+    },
+    {
       "source": "/(.*\\..*)",
       "destination": "/$1"
     },

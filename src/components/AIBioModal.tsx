@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 
+import { aiRequestHeaders } from '../lib/aiRequestAuth';
 interface AIBioModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -35,7 +36,7 @@ export const AIBioModal: React.FC<AIBioModalProps> = ({
     try {
       const res = await fetch('/api/generate-bio', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await aiRequestHeaders(),
         body: JSON.stringify({ businessName, businessType, ownerName, vibe, specialties }),
       });
       if (!res.ok) throw new Error('Bio service unavailable');

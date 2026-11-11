@@ -1,4 +1,5 @@
 import { NEXORA_PUBLIC_ORIGIN } from "../src/lib/publicSeo";
+import { NEXORA_ECOSYSTEM_ROUTES } from "../src/lib/nexoraEcosystemSeo";
 import { NEXORA_TEMPLATE_META, nexoraTemplatePagePath } from "../src/lib/nexoraTemplateCatalogue";
 
 export function canonicalOrigin(value: string | undefined): string {
@@ -34,6 +35,7 @@ export function sitemapXml(origin: string, slugs: string[]) {
     origin + "/salon-os",
     origin + "/pricing",
     origin + "/privacy",
+    ...NEXORA_ECOSYSTEM_ROUTES.map((path) => origin + path),
     ...NEXORA_TEMPLATE_META.map((meta) => origin + nexoraTemplatePagePath(meta.templateId)),
     ...new Set(
       slugs

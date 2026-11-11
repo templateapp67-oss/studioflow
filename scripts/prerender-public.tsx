@@ -8,6 +8,12 @@ import { NEXORA_PUBLIC_ORIGIN } from '../src/lib/publicSeo';
 import { NEXORA_PUBLIC_TEMPLATES_BY_ID } from '../src/lib/nexoraPublicTemplates';
 import { NEXORA_LANDING_SEO, nexoraSalonLandingSchema } from '../src/lib/nexoraLandingContent';
 import { NEXORA_PRICING_SEO, nexoraPricingSchema } from '../src/lib/nexoraPricingSeo';
+import {
+  NEXORA_ECOSYSTEM_ROUTES,
+  NEXORA_ECOSYSTEM_SEO,
+  nexoraEcosystemCanonicalUrl,
+  nexoraEcosystemSchema,
+} from '../src/lib/nexoraEcosystemSeo';
 import { getAppBuildId } from './buildId';
 
 const dist = join(process.cwd(), 'dist');
@@ -27,6 +33,7 @@ let renderedHomepage: string;
 let renderedLanding: string;
 let renderedPricing: string;
 let renderedPrivacy: string;
+const renderedEcosystem: Record<string, string> = {};
 try {
   const homepage = await vite.ssrLoadModule('/src/components/PublicHomepage.tsx');
   renderedHomepage = renderToString(React.createElement(homepage.PublicHomepage));
@@ -36,6 +43,12 @@ try {
   renderedPricing = renderToString(React.createElement(pricing.NexoraPricingLandingPage));
   const privacy = await vite.ssrLoadModule('/src/components/nexora-landing/NexoraPrivacyNoticePage.tsx');
   renderedPrivacy = renderToString(React.createElement(privacy.NexoraPrivacyNoticePage));
+  const ecosystem = await vite.ssrLoadModule('/src/components/nexora-landing/NexoraEcosystemPage.tsx');
+  for (const path of NEXORA_ECOSYSTEM_ROUTES) {
+    renderedEcosystem[path] = renderToString(
+      React.createElement(ecosystem.NexoraEcosystemPage, { path }),
+    );
+  }
 } finally {
   await vite.close();
 }
@@ -175,6 +188,61 @@ ${stylesheet}
 await mkdir(join(dist, 'privacy'), { recursive: true });
 await writeFile(join(dist, 'privacy', 'index.html'), privacyHtml);
 
+// The three NEXORA marketing routes (/salon-onboarding, /salon-growth and
+// /growth-partner-rewards) share one component but must not share a document:
+// served from the SPA shell they would all carry the homepage's title,
+// description and canonical, so the two growth routes would compete with the
+// homepage instead of being indexable pages of their own. Each route is
+// prerendered with the head metadata owned by `nexoraEcosystemSeo.ts`.
+for (const path of NEXORA_ECOSYSTEM_ROUTES) {
+  const seo = NEXORA_ECOSYSTEM_SEO[path];
+  const rendered = renderedEcosystem[path];
+  if (!rendered?.includes(seo.contentMarker)) {
+    throw new Error(`Prerender produced the wrong document for ${path}`);
+  }
+  const canonical = nexoraEcosystemCanonicalUrl(path);
+  const ogImage = `${NEXORA_PUBLIC_ORIGIN}${seo.ogImagePath}`;
+  const html = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>${escapeHtml(seo.title)}</title>
+<meta name="description" content="${escapeHtml(seo.description)}" />
+<meta name="robots" content="index,follow" />
+<link rel="canonical" href="${escapeHtml(canonical)}" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=2" />
+<link rel="shortcut icon" href="/favicon.ico?v=2" />
+<link rel="apple-touch-icon" href="/customer-icon-192.png" />
+<meta name="theme-color" content="${escapeHtml(seo.themeColor)}" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="NEXORA SALONOS" />
+<meta property="og:title" content="${escapeHtml(seo.title)}" />
+<meta property="og:description" content="${escapeHtml(seo.description)}" />
+<meta property="og:url" content="${escapeHtml(canonical)}" />
+<meta property="og:image" content="${escapeHtml(ogImage)}" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="${escapeHtml(seo.ogImageAlt)}" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="${escapeHtml(seo.title)}" />
+<meta name="twitter:description" content="${escapeHtml(seo.description)}" />
+<meta name="twitter:image" content="${escapeHtml(ogImage)}" />
+<meta name="twitter:image:alt" content="${escapeHtml(seo.ogImageAlt)}" />
+<script type="application/ld+json">${safeJson(nexoraEcosystemSchema(path))}</script>
+${moduleScript}
+${stylesheet}
+</head>
+<body>
+<div id="root">${rendered}</div>
+</body>
+</html>`;
+  const directory = join(dist, path.slice(1));
+  await mkdir(directory, { recursive: true });
+  await writeFile(join(directory, 'index.html'), html);
+}
+
 const pagesDirectory = join(dist, 'template-pages');
 await mkdir(pagesDirectory, { recursive: true });
 for (const meta of NEXORA_TEMPLATE_META) {
@@ -241,4 +309,4 @@ for (const meta of NEXORA_TEMPLATE_META) {
 
 const buildId = getAppBuildId();
 await writeFile(join(dist, 'app-version.json'), `${JSON.stringify({ version: buildId })}\n`);
-console.log(`Prerendered the public homepage, the SalonOS landing page, the pricing landing page, the privacy notice, ${NEXORA_TEMPLATE_META.length} template landing pages, and build ${buildId}.`);
+console.log(`Prerendered the public homepage, the SalonOS landing page, the pricing landing page, the privacy notice, ${NEXORA_ECOSYSTEM_ROUTES.length} NEXORA marketing route documents (${NEXORA_ECOSYSTEM_ROUTES.join(', ')}), ${NEXORA_TEMPLATE_META.length} template landing pages, and build ${buildId}.`);
