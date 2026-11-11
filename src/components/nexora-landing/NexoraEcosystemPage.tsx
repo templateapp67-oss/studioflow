@@ -1,6 +1,7 @@
 import { NEXORA_PUBLIC_TEMPLATES } from '../../lib/nexoraPublicTemplates';
 import { nexoraTemplatePagePath, NEXORA_TEMPLATE_META } from '../../lib/nexoraTemplateCatalogue';
 import { NexoraEcosystemSeoHead } from './NexoraEcosystemSeoHead';
+import { NexoraGrowthPartnerRewardsPage } from './NexoraGrowthPartnerRewardsPage';
 
 const pageData = {
   '/salon-onboarding': {
@@ -43,6 +44,7 @@ export function NexoraEcosystemPage({ path }: { path: keyof typeof pageData }) {
   const page = pageData[path];
   const isOnboarding = path === '/salon-onboarding';
   const isRewards = path === '/growth-partner-rewards';
+  if (isRewards) return <><NexoraEcosystemSeoHead path={path} /><NexoraGrowthPartnerRewardsPage /></>;
   return <div className="min-h-screen bg-white text-[#211B2B]">
     <NexoraEcosystemSeoHead path={path} />
     <header className="sticky top-0 z-20 border-b border-[#eee] bg-white/95 backdrop-blur">
