@@ -132,14 +132,14 @@ for (const path of NEXORA_ECOSYSTEM_ROUTES) {
   // otherwise ship a visible HTML page without its background and layout styles.
   if (path === '/growth-partner-rewards') {
     const stylesheetPaths = Array.from(
-      html.matchAll(/<link rel="stylesheet"[^>]*href="([^"]+\\.css)"/g),
-      (match) => `dist/${match[1].replace(/^\\//, '')}`,
+      html.matchAll(/<link rel="stylesheet"[^>]*href="([^"]+\.css)"/g),
+      (match) => `dist/${match[1].replace(/^\//, '')}`,
     );
     assert.ok(stylesheetPaths.length > 0, 'Growth Partner Rewards emits at least one stylesheet');
     const stylesheet = stylesheetPaths.map((assetPath) => {
       assert.ok(existsSync(assetPath), `Built stylesheet exists: ${assetPath}`);
       return readFileSync(assetPath, 'utf8');
-    }).join('\\n');
+    }).join('\n');
     assert.ok(
       stylesheet.includes('#101a2b') && stylesheet.includes('#f8fafc'),
       'Growth Partner Rewards hero and page background utilities are included in the built CSS',
