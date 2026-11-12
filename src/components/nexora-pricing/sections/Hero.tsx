@@ -32,7 +32,7 @@ export function Hero({ onExplore }: { onExplore: () => void }) {
       <p>{PRICING_PAGE_COPY.hero.description}</p>
       <div className="np-hero-note">{PRICING_PAGE_COPY.hero.note}</div>
       <div className="np-hero-actions"><button className="np-btn np-btn-gold" onClick={onExplore}>Explore Plans <ArrowDown size={17}/></button><a className="np-btn np-btn-outline" href="#comparison">Compare All Features <ArrowRight size={16}/></a></div>
-      <div className="np-trust-line"><span><ShieldCheck size={16}/> Clear annual pricing</span><span><Clock3 size={16}/> No fabricated monthly rates</span></div>
+      <div className="np-trust-line"><span><ShieldCheck size={16}/> Clear annual pricing</span><span><IndianRupee size={16}/> Approved monthly and yearly rates</span></div>
     </motion.div><motion.div className="np-hero-art" initial={{opacity:0,scale:.97}} animate={{opacity:1,scale:1}} transition={{duration:reduceMotion?0:.65,delay:reduceMotion?0:.12}}><div className="np-art-glow"/><DashboardPreview/><div className="np-float-tag np-float-calendar"><CalendarDays size={16}/><span><b>Booking calendar</b><small>Appointments at a glance</small></span></div><div className="np-float-tag np-float-secure"><ShieldCheck size={16}/><span><b>Salon workspace</b><small>Tools in one place</small></span></div></motion.div>
   </div></section>;
 }
