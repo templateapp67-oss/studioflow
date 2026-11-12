@@ -1,13 +1,9 @@
 import {
   ArrowRight,
-  Award,
   CheckCircle2,
   ClipboardList,
   Gift,
   ShieldCheck,
-  Sparkles,
-  Trophy,
-  TrendingUp,
 } from 'lucide-react';
 
 type RewardKind = 'shirt' | 'tablet' | 'laptop' | 'scooter' | 'phone' | 'motorcycle' | 'suv';
@@ -75,23 +71,20 @@ export function NexoraGrowthPartnerRewardsPage() {
       </header>
 
       <main>
-        <section className="relative isolate overflow-hidden bg-[#101a2b] px-5 py-14 text-white sm:py-20 lg:py-24">
+        <section className="relative isolate overflow-hidden bg-[#101a2b] px-5 py-6 text-white sm:py-8 lg:py-6">
           <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_78%_40%,rgba(214,157,66,0.28),transparent_28%),radial-gradient(circle_at_15%_10%,rgba(76,104,145,0.22),transparent_34%),linear-gradient(115deg,#0c1524_0%,#17243a_56%,#31263a_100%)]" />
           <div className="absolute -right-20 top-0 -z-10 h-80 w-80 rounded-full border border-[#d8ad66]/20" />
           <div className="absolute -right-8 top-12 -z-10 h-64 w-64 rounded-full border border-[#d8ad66]/15" />
           <div className="mx-auto grid max-w-[1320px] items-center gap-10 lg:grid-cols-[1.15fr_.85fr]">
             <div className="max-w-3xl">
-              <p className="inline-flex items-center gap-2 rounded-full border border-[#e7bc72]/35 bg-[#e7bc72]/10 px-3.5 py-2 text-[11px] font-extrabold uppercase tracking-[.2em] text-[#f2ca7e]">
-                <Sparkles size={14} /> NEXORA Growth Partner Programme
-              </p>
-              <h1 className="mt-6 text-4xl font-black leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-[4.25rem]">
+              <h1 className="mt-0 text-4xl font-black leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-[3.5rem]">
                 Salon Onboarding Se
                 <span className="block bg-gradient-to-r from-[#ffe3a1] via-[#f6c15c] to-[#d8952f] bg-clip-text text-transparent">Achievement Tak.</span>
               </h1>
-              <p className="mt-6 max-w-2xl text-base leading-7 text-[#e4e9f1] sm:text-lg sm:leading-8">
+              <p className="mt-4 max-w-2xl text-base leading-7 text-[#e4e9f1] sm:text-lg sm:leading-8">
                 Grow your salon network with NEXORA and unlock exciting rewards as you achieve new milestones.
               </p>
-              <div className="mt-8 flex flex-wrap gap-3">
+              <div className="mt-6 flex flex-wrap gap-3">
                 <a href="/login" className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#ffd575] to-[#d99427] px-6 py-3.5 text-sm font-extrabold text-[#152033] shadow-[0_12px_30px_rgba(211,151,49,.22)] transition hover:-translate-y-0.5 hover:shadow-lg">
                   Become a Nexora Growth Partner <ArrowRight size={17} />
                 </a>
@@ -99,12 +92,8 @@ export function NexoraGrowthPartnerRewardsPage() {
                   Explore Reward Milestones
                 </a>
               </div>
-              <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-xs font-medium text-[#c4cedb]">
-                <span className="inline-flex items-center gap-2"><CheckCircle2 size={14} className="text-[#f4c56f]" /> Clear milestone targets</span>
-                <span className="inline-flex items-center gap-2"><CheckCircle2 size={14} className="text-[#f4c56f]" /> Verification-led rewards</span>
-              </div>
             </div>
-            <div className="relative mx-auto flex min-h-[280px] w-full max-w-[470px] items-center justify-center sm:min-h-[340px]">
+            <div className="relative mx-auto flex min-h-[230px] w-full max-w-[470px] items-center justify-center sm:min-h-[270px]">
               <div className="absolute bottom-5 left-4 right-4 h-12 rounded-full bg-[#eab65c]/20 blur-2xl" />
               <div className="absolute bottom-8 left-6 right-6 flex items-end justify-center gap-3 opacity-70">
                 {[38, 65, 92, 124, 158, 194].map((height, index) => <span key={index} className="w-7 rounded-t-md border border-[#e9bd70]/30 bg-gradient-to-t from-[#a56a26]/35 to-[#f3c76d]/80" style={{ height }} />)}
@@ -132,11 +121,11 @@ export function NexoraGrowthPartnerRewardsPage() {
               <h2 className="mt-3 text-3xl font-black tracking-tight text-[#111c2e] sm:text-4xl">Your Reward Journey</h2>
               <p className="mt-3 text-sm leading-6 text-[#475569] sm:text-base">Grow your network, reach new milestones and unlock exciting rewards.</p>
             </div>
-            <div className="relative mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-7">
-              <div className="absolute left-[7%] right-[7%] top-5 hidden h-0.5 bg-gradient-to-r from-[#e7bb65] via-[#c98b2b] to-[#e7bb65] xl:block" />
+            <div className="relative mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7">
+              <div className="absolute left-[7%] right-[7%] top-5 hidden h-0.5 bg-gradient-to-r from-[#e7bb65] via-[#c98b2b] to-[#e7bb65] lg:block" />
               {rewardMilestones.map((milestone, index) => (
                 <article key={milestone.target} className="group relative flex min-w-0 flex-col overflow-hidden rounded-[22px] border border-[#e8dcc8] bg-white shadow-[0_8px_24px_rgba(32,42,58,.07)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_16px_32px_rgba(32,42,58,.13)]">
-                  <div className="relative z-10 flex justify-center pt-0 xl:pt-0">
+                  <div className="relative z-10 flex justify-center pt-0 lg:pt-0">
                     <span className="flex h-10 w-10 items-center justify-center rounded-full border-[3px] border-white bg-gradient-to-br from-[#ffe29a] to-[#d99b38] text-sm font-black text-[#2a251d] shadow-md">{index + 1}</span>
                   </div>
                   <div className="mt-2 bg-[#17253a] px-3 py-3 text-center text-white">
@@ -188,7 +177,7 @@ export function NexoraGrowthPartnerRewardsPage() {
               <h2 className="mt-3 text-3xl font-black tracking-tight text-[#111c2e] sm:text-4xl">Verification &amp; Fulfilment Process</h2>
               <p className="mt-3 text-sm text-[#526075] sm:text-base">A transparent process for a rewarding journey.</p>
             </div>
-            <div className="mt-10 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {verificationSteps.map((step, index) => {
                 const Icon = step.icon;
                 return (
