@@ -6,6 +6,7 @@
 @source "../login.html";
 @source "./components/PublicHomepage.tsx";
 @source "./components/nexora/*.tsx";
+@source "./components/nexora-landing/NexoraGrowthPartnerRewardsPage.tsx";
 @source "./components/AppUpdateManager.tsx";
 @source "./components/UpdateNotificationSettings.tsx";
 

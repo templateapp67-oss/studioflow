@@ -126,6 +126,25 @@ for (const path of NEXORA_ECOSYSTEM_ROUTES) {
   /* The prerendered shell must still boot the app so the page hydrates. */
   assert.match(html, /<script type="module"[^>]*src="\/assets\/[^"]+\.js"/, `${path} loads the built entry script`);
   assert.match(html, /<link rel="stylesheet"[^>]*href="\/assets\/[^"]+\.css"/, `${path} loads the built stylesheet`);
+
+  // Keep a built-CSS regression guard for Rewards. Its component lives outside
+  // the default public-page Tailwind globs, so missing source registration can
+  // otherwise ship a visible HTML page without its background and layout styles.
+  if (path === '/growth-partner-rewards') {
+    const stylesheetPaths = Array.from(
+      html.matchAll(/<link rel="stylesheet"[^>]*href="([^"]+\.css)"/g),
+      (match) => `dist/${match[1].replace(/^\//, '')}`,
+    );
+    assert.ok(stylesheetPaths.length > 0, 'Growth Partner Rewards emits at least one stylesheet');
+    const stylesheet = stylesheetPaths.map((assetPath) => {
+      assert.ok(existsSync(assetPath), `Built stylesheet exists: ${assetPath}`);
+      return readFileSync(assetPath, 'utf8');
+    }).join('\n');
+    assert.ok(
+      stylesheet.includes('#101a2b') && stylesheet.includes('#f8fafc'),
+      'Growth Partner Rewards hero and page background utilities are included in the built CSS',
+    );
+  }
   assert.ok(html.includes(`<div id="root">`), `${path} hydrates into the root element`);
 
   for (const [map, value, label] of [
