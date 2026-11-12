@@ -126,6 +126,27 @@ for (const path of NEXORA_ECOSYSTEM_ROUTES) {
   /* The prerendered shell must still boot the app so the page hydrates. */
   assert.match(html, /<script type="module"[^>]*src="\/assets\/[^"]+\.js"/, `${path} loads the built entry script`);
   assert.match(html, /<link rel="stylesheet"[^>]*href="\/assets\/[^"]+\.css"/, `${path} loads the built stylesheet`);
+
+  // Keep a built-CSS regression guard for Rewards. The page once shipped as
+  // visible HTML without its background and layout styles. It now takes them
+  // from the stylesheet its component imports (growth-rewards/growthRewards.css),
+  // so the guard looks for that stylesheet's hero and page background colours.
+  // verify-growth-partner-rewards.mjs checks every class of the page.
+  if (path === '/growth-partner-rewards') {
+    const stylesheetPaths = Array.from(
+      html.matchAll(/<link rel="stylesheet"[^>]*href="([^"]+\.css)"/g),
+      (match) => `dist/${match[1].replace(/^\//, '')}`,
+    );
+    assert.ok(stylesheetPaths.length > 0, 'Growth Partner Rewards emits at least one stylesheet');
+    const stylesheet = stylesheetPaths.map((assetPath) => {
+      assert.ok(existsSync(assetPath), `Built stylesheet exists: ${assetPath}`);
+      return readFileSync(assetPath, 'utf8');
+    }).join('\n');
+    assert.ok(
+      stylesheet.includes('#101827') && stylesheet.includes('#f8fafc'),
+      'Growth Partner Rewards hero and page background colours are included in the built CSS',
+    );
+  }
   assert.ok(html.includes(`<div id="root">`), `${path} hydrates into the root element`);
 
   for (const [map, value, label] of [
