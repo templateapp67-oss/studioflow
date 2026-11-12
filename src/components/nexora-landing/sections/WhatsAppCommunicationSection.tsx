@@ -28,7 +28,7 @@ const COMMUNICATION_MODES = [
     id: 'business-provider',
     title: 'Business Platform bulk send',
     status: 'CONDITIONAL',
-    detail: 'The sender implementation is checked in under backend/functions; deployment, allowed origins and live provider credentials remain unverified.',
+    detail: 'The sender implementation is checked in under supabase/functions; deployment, allowed origins and live provider credentials remain unverified.',
     icon: MessageCircle,
   },
   {
@@ -58,7 +58,7 @@ export function WhatsAppCommunicationSection() {
             id="sl-whatsapp-communication-title"
             align="left"
             title="Prepare the right message. Keep consent and human review in control."
-            description="The owner workspace supports customer consent controls, campaign preparation and individual WhatsApp drafts. Business Platform bulk sending is provider-dependent: sender source exists under backend/functions, but deployment, allowed origins and live credentials cannot be verified from this checkout."
+            description="The owner workspace supports customer consent controls, campaign preparation and individual WhatsApp drafts. Business Platform bulk sending is provider-dependent: sender source exists under supabase/functions, but deployment, allowed origins and live credentials cannot be verified from this checkout."
           />
           <span className="sl-whatsapp-communication__status"><span aria-hidden="true" /> PARTIAL · PROVIDER SETUP UNVERIFIED</span>
         </div>
@@ -123,7 +123,7 @@ export function WhatsAppCommunicationSection() {
 
         <div className="sl-whatsapp-communication__api-note">
           <div className="sl-whatsapp-communication__api-icon" aria-hidden="true"><MessageCircle size={19} /></div>
-          <div className="sl-whatsapp-communication__api-copy"><span className="sl-whatsapp-communication__eyebrow">BUSINESS PLATFORM / API · CONFIGURATION-DEPENDENT</span><h3>Provider readiness must be verified before bulk sending.</h3><p>Sender source exists under backend/functions, but deployment, allowed origins, credentials and approved templates are not verified in this checkout. The app labels “accepted” as not confirmed delivery, keeps unknown outcomes distinct, and does not automatically retry them. Read receipts are not claimed.</p></div>
+          <div className="sl-whatsapp-communication__api-copy"><span className="sl-whatsapp-communication__eyebrow">BUSINESS PLATFORM / API · CONFIGURATION-DEPENDENT</span><h3>Provider readiness must be verified before bulk sending.</h3><p>Sender source exists under supabase/functions, but deployment, allowed origins, credentials and approved templates are not verified in this checkout. The app labels “accepted” as not confirmed delivery, keeps unknown outcomes distinct, and does not automatically retry them. Read receipts are not claimed.</p></div>
           <span className="sl-whatsapp-communication__api-status">NOT VERIFIED</span>
         </div>
 

@@ -18,7 +18,6 @@
   },
   "include": [
     "supabase/functions/**/*.ts",
-    "backend/functions/**/*.ts",
     "types/edge-runtime.d.ts"
   ]
 }
