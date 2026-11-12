@@ -1,0 +1,5 @@
+import {build} from 'esbuild';
+import {spawnSync} from 'node:child_process';
+const result=await build({entryPoints:['scripts/verify-edge-cors.ts'],bundle:true,platform:'node',format:'esm',packages:'external',write:false});
+const checked=spawnSync(process.execPath,['--input-type=module'],{input:result.outputFiles[0].text,stdio:['pipe','inherit','inherit']});
+if(checked.error)throw checked.error;process.exitCode=checked.status??1;

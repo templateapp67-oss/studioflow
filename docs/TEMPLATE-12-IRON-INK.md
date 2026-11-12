@@ -11,6 +11,11 @@ Template 12 uses StudioFlow's existing Supabase project, browser client, owner i
 
 The browser continues to use `src/lib/supabase.ts`. For the optional Edge Function, deploy `supabase/functions/iron-ink-public` to the same Supabase project and provide that project's `SUPABASE_URL` and `SUPABASE_ANON_KEY` as function environment variables. It needs no service-role secret. The current frontend calls the project RPCs directly; the Edge Function is a public integration surface for trusted consumers.
 
+**What `iron-ink-public` does and does not enforce (G-03).** It is a deliberately public, unauthenticated API: its `action` of `site` / `availability` is a read-through to RLS-scoped RPCs, and the anon key is the only credential it carries. Two consequences are part of the contract rather than defects, and are recorded here so they are not re-discovered as surprises:
+
+- It has **no per-caller rate limiting of its own**. Abuse resistance comes from the RPC layer (booking/enquiry rate-limit triggers and validation) and from Supabase's own quotas. If this endpoint is exposed to an untrusted third party, put it behind a gateway or add a limiter before advertising it.
+- `action: 'enquiry'` forwards to `submit_ink_enquiry`, which is a `security definer` function granted to `anon`. Anonymous inserts are accepted by design (RLS permits `insert` with `is_read=false` for existing sites); length/format are enforced by table CHECK constraints, but volume is not. Treat the studio inbox as spam-reachable until a limiter or captcha is added.
+
 ## Tables and public exposure
 
 Template-owned tables: `ink_studio_settings`, `ink_categories`, `ink_artists`, `ink_portfolio`, `ink_pricing_plans`, `ink_bookings`, `ink_availability`, `ink_blocked_dates`, `ink_testimonials`, `ink_faqs`, `ink_aftercare`, `ink_blog_posts`, `ink_enquiries`, `ink_onboarding`, and `ink_notifications`. They have timestamps, update triggers, tenant-scoped indexes and constraints; active bookings have a partial unique index on artist/date/start time excluding cancelled bookings.

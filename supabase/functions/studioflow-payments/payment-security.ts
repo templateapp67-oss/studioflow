@@ -11,3 +11,12 @@ export async function signatureMatches(secret:string,message:string,signature:st
  const hex=Array.from(digest,b=>b.toString(16).padStart(2,'0')).join('');let diff=0;
  for(let i=0;i<hex.length;i++)diff|=hex.charCodeAt(i)^signature.toLowerCase().charCodeAt(i);return diff===0;
 }
+
+// Constant-time comparison for the service-role bearer. A plain `!==` leaks
+// length and the matching-prefix position through timing; submit-landing-lead
+// already compares this way, so the payments path now matches it.
+export function sameSecret(given:string,expected:string){
+ if(!expected||typeof given!=='string'||given.length!==expected.length)return false;
+ let diff=0;for(let i=0;i<given.length;i++)diff|=given.charCodeAt(i)^expected.charCodeAt(i);
+ return diff===0;
+}
