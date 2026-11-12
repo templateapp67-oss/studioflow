@@ -568,7 +568,7 @@
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  padding: clamp(40px, 5.2vw, 76px) 0 clamp(76px, 9.4vw, 132px);
+  padding: clamp(24px, 3.2vw, 44px) 0 clamp(56px, 6vw, 84px);
   background-color: var(--ngr-navy);
   background-image:
     radial-gradient(ellipse 58% 72% at 80% 40%, rgba(194, 154, 91, 0.22), transparent 64%),
@@ -580,39 +580,16 @@
 .ngr-hero__grid {
   display: grid;
   align-items: center;
-  gap: clamp(36px, 5vw, 56px);
+  gap: clamp(28px, 4vw, 48px);
 }
 
 .ngr-hero__copy {
   min-width: 0;
 }
 
-.ngr-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  border: 1px solid rgba(230, 203, 150, 0.42);
-  border-radius: 999px;
-  background: rgba(230, 203, 150, 0.1);
-  color: var(--ngr-gold-soft);
-  font-size: 11px;
-  font-weight: 800;
-  line-height: 1.3;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
-.ngr-chip svg {
-  flex: none;
-  width: 14px;
-  height: 14px;
-}
-
 /* Sized from the viewport so "Salon Onboarding Se" always fits on one line
    and the heading stays the two lines it is written as. */
 .ngr-hero__title {
-  margin-top: 20px;
   font-size: clamp(1.5rem, 8.2vw, 3.5rem);
   font-weight: 800;
   line-height: 1.08;
@@ -623,7 +600,7 @@
 
 .ngr-hero__lead {
   max-width: 34em;
-  margin-top: 18px;
+  margin-top: 14px;
   font-size: clamp(1rem, 0.94rem + 0.4vw, 1.2rem);
   line-height: 1.6;
   color: var(--ngr-on-navy-soft);
@@ -633,34 +610,11 @@
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  margin-top: 28px;
+  margin-top: 22px;
 }
 
 .ngr-hero__actions .ngr-btn {
   flex: 1 1 100%;
-}
-
-.ngr-hero__points {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 24px;
-  margin-top: 24px;
-  font-size: 13.5px;
-  font-weight: 500;
-  color: var(--ngr-on-navy-soft);
-}
-
-.ngr-hero__points li {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.ngr-hero__points svg {
-  flex: none;
-  width: 16px;
-  height: 16px;
-  color: var(--ngr-gold-soft);
 }
 
 .ngr-hero__edge {
@@ -669,7 +623,7 @@
   right: 0;
   bottom: -1px;
   width: 100%;
-  height: clamp(34px, 6.25vw, 90px);
+  height: clamp(28px, 4.4vw, 60px);
   pointer-events: none;
 }
 
@@ -687,7 +641,7 @@
   --ngr-climb-target: clamp(10px, 2.9vw, 14px); /* size of the targets under the baseline */
   position: relative;
   width: 100%;
-  max-width: 620px;
+  max-width: 460px;
   margin-inline: auto;
 }
 
@@ -828,13 +782,34 @@
   }
 }
 
+/* Side by side. The illustration is sized from the viewport, which keeps the
+   hero about 30% as tall as it is wide; its lettering scales with it. */
 @media (min-width: 1024px) {
   .ngr-hero__grid {
-    grid-template-columns: minmax(0, 1.04fr) minmax(0, 0.96fr);
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .ngr-hero__title {
     font-size: clamp(2.5rem, 4vw, 3.75rem);
+  }
+
+  .ngr-climb {
+    --ngr-climb-target: clamp(11px, 0.97vw, 14px);
+    width: clamp(350px, 31vw, 450px);
+    max-width: none;
+  }
+
+  .ngr-climb__note {
+    padding: 8px 12px;
+  }
+
+  .ngr-climb__note-kicker,
+  .ngr-climb__axis {
+    font-size: clamp(9px, 0.76vw, 11px);
+  }
+
+  .ngr-climb__note-text {
+    font-size: clamp(12px, 1.04vw, 15px);
   }
 }
 
@@ -1227,7 +1202,7 @@
 }
 
 /* Three to a row: 1-3, 4-6, then the last milestone on its own, centred. */
-@media (min-width: 600px) and (max-width: 999.98px) {
+@media (min-width: 600px) and (max-width: 1023.98px) {
   .ngr-step:nth-child(3n)::before {
     right: 0;
     background: linear-gradient(90deg, var(--ngr-gold) 50%, transparent);
@@ -1251,49 +1226,91 @@
   }
 }
 
-/* Four to a row: 1-4, then 5, 6 and the last milestone at double width. */
-@media (min-width: 1000px) and (max-width: 1359.98px) {
+/* From 1024px: one row, six milestones and the last one at double width. */
+@media (min-width: 1024px) {
   .ngr-steps {
-    --ngr-gap: 18px;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .ngr-step:nth-child(4)::before {
-    right: 0;
-    background: linear-gradient(90deg, var(--ngr-gold) 50%, transparent);
-  }
-
-  .ngr-step:nth-child(5)::before {
-    left: 0;
-    background: linear-gradient(90deg, transparent, var(--ngr-gold) 50%);
-  }
-
-  .ngr-step--summit {
-    grid-column: span 2;
-  }
-
-  .ngr-card__number {
-    font-size: 32px;
-  }
-
-  .ngr-card__title {
-    font-size: 16px;
-  }
-
-  .ngr-card__text {
-    font-size: 13.5px;
-  }
-}
-
-/* One row: six milestones and the last one at double width. */
-@media (min-width: 1360px) {
-  .ngr-steps {
-    --ngr-gap: 14px;
     grid-template-columns: repeat(8, minmax(0, 1fr));
   }
 
   .ngr-step--summit {
     grid-column: span 2;
+  }
+}
+
+/* Up to 1359px the columns are narrow, so the card is set a size smaller:
+   every label stays on one line and titles break between words. */
+@media (min-width: 1024px) and (max-width: 1359.98px) {
+  .ngr-steps {
+    --ngr-gap: 10px;
+    --ngr-node: 34px;
+  }
+
+  .ngr-step {
+    row-gap: 10px;
+  }
+
+  .ngr-step__node {
+    border-width: 2px;
+    font-size: 13.5px;
+  }
+
+  .ngr-card {
+    border-radius: 14px;
+  }
+
+  .ngr-card__head {
+    padding: 12px 4px 20px;
+  }
+
+  .ngr-card__number {
+    font-size: clamp(22px, 2.15vw, 28px);
+  }
+
+  .ngr-card__unit {
+    margin-top: 5px;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+  }
+
+  .ngr-card__plus {
+    width: 22px;
+    height: 22px;
+    margin-left: -11px;
+  }
+
+  .ngr-card__plus svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  .ngr-media__caption {
+    padding: 6px 4px 0;
+    font-size: 11px;
+  }
+
+  .ngr-card__body {
+    padding: 10px 8px 14px;
+  }
+
+  .ngr-card__kicker {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+  }
+
+  .ngr-card__title {
+    font-size: clamp(13px, 1.1vw, 14.5px);
+    line-height: 1.25;
+  }
+
+  .ngr-card__text {
+    font-size: clamp(12px, 0.98vw, 13px);
+    line-height: 1.45;
+  }
+}
+
+@media (min-width: 1360px) {
+  .ngr-steps {
+    --ngr-gap: 14px;
   }
 
   .ngr-card__number {

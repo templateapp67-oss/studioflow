@@ -12,7 +12,7 @@ import { RewardImage } from './RewardImage';
 import { SectionHeading } from './SectionHeading';
 
 /** Width of one reward visual at each layout of the journey (see `.ngr-steps` in the stylesheet). */
-const VISUAL_SIZES = '(min-width: 1360px) 190px, (min-width: 1000px) 24vw, (min-width: 600px) 31vw, 44vw';
+const VISUAL_SIZES = '(min-width: 1360px) 190px, (min-width: 1024px) 12vw, (min-width: 600px) 31vw, 44vw';
 
 function MilestoneCard({ milestone, index }: { milestone: RewardMilestone; index: number }) {
   const summit = index === REWARD_MILESTONES.length - 1;
@@ -60,9 +60,9 @@ function MilestoneCard({ milestone, index }: { milestone: RewardMilestone; index
 
 /**
  * The reward journey: one card per milestone, joined in order by a gold line.
- * A single row on wide screens, wrapped rows on tablets and a vertical
- * timeline on phones. The last milestone awards two things, so its card is
- * twice as wide and shows both.
+ * A single row from 1024px, rows of three on tablets and a vertical timeline
+ * on phones. The last milestone awards two things, so its card is twice as
+ * wide and shows both.
  */
 export function RewardJourney() {
   return (

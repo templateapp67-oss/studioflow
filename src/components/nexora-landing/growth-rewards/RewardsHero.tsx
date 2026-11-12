@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { ArrowRight, CheckCircle2, Crown, Sparkles } from 'lucide-react';
+import { ArrowRight, Crown } from 'lucide-react';
 import { REWARD_MILESTONES, REWARD_TARGET_UNIT, REWARDS_JOURNEY_ID, REWARDS_PARTNER_HREF } from './content';
 import { RewardImage } from './RewardImage';
 import { CLIMB_VIEW, ClimbChart, HeroEdge, type ClimbPoint } from './RewardsArtwork';
@@ -85,9 +85,6 @@ export function RewardsHero() {
     <section className="ngr-hero ngr-dark" aria-labelledby="ngr-hero-title">
       <div className="ngr-container ngr-hero__grid">
         <div className="ngr-hero__copy">
-          <p className="ngr-chip">
-            <Sparkles aria-hidden="true" /> NEXORA Growth Partner Programme
-          </p>
           <h1 id="ngr-hero-title" className="ngr-hero__title">
             Salon Onboarding Se <span className="ngr-accent">Achievement Tak.</span>
           </h1>
@@ -102,14 +99,6 @@ export function RewardsHero() {
               Explore Reward Milestones
             </a>
           </div>
-          <ul className="ngr-hero__points">
-            <li>
-              <CheckCircle2 aria-hidden="true" /> Clear milestone targets
-            </li>
-            <li>
-              <CheckCircle2 aria-hidden="true" /> Verification-led rewards
-            </li>
-          </ul>
         </div>
         <RewardClimb />
       </div>
