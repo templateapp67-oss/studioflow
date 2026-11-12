@@ -118,10 +118,14 @@ verification scripts import, so the two can never drift apart.
 | `submit-landing-lead` | Own check: service-role bearer for the server path, rate-limited public form path | `--no-verify-jwt` |
 | `nexora-mobile-qr` | Own check: `getUser` (service client) | `--no-verify-jwt` |
 | `iron-ink-public` | Public read surface; anon key + RLS and validated RPCs. Never add a service-role key | `--no-verify-jwt` |
-| `snapshot-accounts` | Expects a service-role bearer from `pg_cron`; make no path to it public | default (`verify_jwt` on) |
+| `snapshot-accounts` | Own check: constant-time compare against `SUPABASE_SERVICE_ROLE_KEY` of the bearer `pg_cron` sends | `--no-verify-jwt` (the service-role bearer is not a user JWT, so the gateway cannot validate it) |
 
-Every function above already validates its own caller, so `--no-verify-jwt` does not widen access:
-the JWT, origin, worker-token or signature check inside the function is what actually decides.
+Every function above validates its own caller, so `--no-verify-jwt` does not widen access: the
+JWT, origin, worker-token, signature or service-role check inside the function is what decides.
+Deploying `snapshot-accounts` *with* gateway verification would break the cron, because the
+service-role key is not a user JWT — its own check is the authorization boundary.
+`scripts/verify-edge-functions.mjs` asserts that every function has an authorization check, so a
+new public function cannot slip in without one.
 
 ```bash
 supabase functions deploy <name> --project-ref <ref> --no-verify-jwt

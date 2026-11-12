@@ -1,34 +1,71 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+// Nightly copy of public.studioflow_accounts into the append-only,
+// service-role-only public.studioflow_accounts_backup table.
+//
+// Caller contract (see supabase/migrations/daily_snapshot.sql): pg_cron POSTs
+// this function with `Authorization: Bearer <service_role_key>`. Because the
+// function reads every account row and writes with a privileged client, it
+// verifies that bearer itself. Without the check the gateway only proves "some
+// valid JWT" — i.e. any signed-in customer could queue a full account copy.
+import { createClient } from 'npm:@supabase/supabase-js@2.117.3';
 
-const supabase = createClient(
-  Deno.env.get("SUPABASE_URL")!,
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-)
+const cors = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
 
-serve(async (req) => {
+const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
+  status,
+  headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+});
+
+// Constant-time comparison so the check cannot be probed byte by byte.
+function sameToken(given: string, expected: string): boolean {
+  if (!expected || given.length !== expected.length) return false;
+  let difference = 0;
+  for (let index = 0; index < given.length; index += 1) {
+    difference |= given.charCodeAt(index) ^ expected.charCodeAt(index);
+  }
+  return difference === 0;
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
+  if (req.method !== 'POST') return json({ error: 'POST required' }, 405);
+
+  const url = Deno.env.get('SUPABASE_URL') || '';
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+  if (!url || !serviceKey) return json({ error: 'Snapshot service is not configured' }, 503);
+
+  const authorization = req.headers.get('authorization') || '';
+  const token = /^Bearer\s+\S+/i.test(authorization)
+    ? authorization.replace(/^Bearer\s+/i, '').trim()
+    : '';
+  if (!sameToken(token, serviceKey)) return json({ error: 'Service authorization required' }, 401);
+
   try {
-    // 1. Snapshot the data
-    const { data, error } = await supabase.from("studioflow_accounts").select("*");
+    const supabase = createClient(url, serviceKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+
+    const { data, error } = await supabase.from('studioflow_accounts').select('*');
     if (error) throw error;
+    const rows = Array.isArray(data) ? data : [];
+    if (rows.length === 0) {
+      return json({ message: 'No accounts to snapshot', copied: 0, snapshotDate: null });
+    }
 
-    // 2. Insert into a backup table (assumes studioflow_accounts_backup exists)
-    const backupData = data.map(record => ({
-      ...record,
-      snapshot_date: new Date().toISOString()
-    }));
-
-    const { error: insertError } = await supabase.from("studioflow_accounts_backup").insert(backupData);
+    const snapshotDate = new Date().toISOString();
+    const backupData = rows.map((record) => ({ ...record, snapshot_date: snapshotDate }));
+    const { error: insertError } = await supabase
+      .from('studioflow_accounts_backup')
+      .insert(backupData);
     if (insertError) throw insertError;
 
-    return new Response(JSON.stringify({ message: "Snapshot created successfully" }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return json({ message: 'Snapshot created successfully', copied: backupData.length, snapshotDate });
+  } catch (caught) {
+    // Do not echo database/provider internals back to the caller.
+    console.error('snapshot-accounts failed', caught instanceof Error ? caught.name : 'unknown');
+    return json({ error: 'Snapshot could not be completed' }, 500);
   }
-})
+});
