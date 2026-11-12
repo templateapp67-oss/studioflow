@@ -13,9 +13,12 @@ const cors = {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const WINDOW_MS = 10 * 60 * 1000;
+const WINDOW_SECONDS = 10 * 60;
 const MAX_PER_WINDOW = 5;
-const windows = new Map<string, { count: number; resetAt: number }>();
+// The quota is claimed in Postgres, not in module state: Edge Functions run on
+// several isolates, so a per-process Map made the real ceiling
+// `MAX_PER_WINDOW × live isolates` and reset on every cold start (gap G-06).
+// See supabase/migrations/202611120001_studioflow_edge_rate_limits.sql.
 
 function getEnv(name: string): string {
   const val = Deno.env.get(name);
@@ -37,17 +40,40 @@ function money(value: unknown): number {
   return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
 }
 
-function consumeQuota(key: string): boolean {
-  const now = Date.now();
-  for (const [candidate, window] of windows) if (window.resetAt <= now) windows.delete(candidate);
-  const current = windows.get(key);
-  if (!current) {
-    windows.set(key, { count: 1, resetAt: now + WINDOW_MS });
-    return true;
+type QuotaDecision = { allowed: boolean; retryAfterSeconds: number };
+
+// Claim one send from the shared, transactional counter. A failure here is
+// treated as "not allowed" rather than fail-open: the whole point of the limit
+// is to stop repeat sends, so an unreachable counter must not silently disable
+// it. The caller gets an explicit 503, never a false success.
+async function claimQuota(
+  url: string,
+  serviceKey: string,
+  key: string,
+): Promise<QuotaDecision> {
+  try {
+    const response = await fetch(`${url.replace(/\/+$/, '')}/rest/v1/rpc/studioflow_edge_rate_limit_claim`, {
+      method: 'POST',
+      headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        p_bucket_key: key,
+        p_window_seconds: WINDOW_SECONDS,
+        p_max_attempts: MAX_PER_WINDOW,
+      }),
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!response.ok) throw new Error(`rate limit status ${response.status}`);
+    const decision = await response.json();
+    return {
+      allowed: decision?.allowed === true,
+      retryAfterSeconds: Number.isFinite(Number(decision?.retryAfterSeconds))
+        ? Math.max(Math.trunc(Number(decision.retryAfterSeconds)), 1)
+        : WINDOW_SECONDS,
+    };
+  } catch {
+    // Distinguish "limiter unavailable" from "limit reached" for the caller.
+    throw new Error('rate_limit_unavailable');
   }
-  if (current.count >= MAX_PER_WINDOW) return false;
-  current.count += 1;
-  return true;
 }
 
 function jsonResponse(body: unknown, status = 200) {
@@ -135,10 +161,24 @@ Deno.serve(async (req: Request) => {
       return fail(403, 'Booking email recipient must match the email saved on the booking.');
     }
 
-    if (!consumeQuota(`${user.id}:${bookingRef}:${type}`)) {
+    const serviceKey = getEnv('SUPABASE_SERVICE_ROLE_KEY');
+    if (!serviceKey) {
+      return fail(503, 'Email send limit cannot be enforced because the server credential is missing.', {
+        notice: 'No email was sent.',
+      });
+    }
+    let quota: QuotaDecision;
+    try {
+      quota = await claimQuota(getEnv('SUPABASE_URL'), serviceKey, `${user.id}:${bookingRef}:${type}`);
+    } catch {
+      return fail(503, 'Email send limit is temporarily unavailable. Try again shortly.', {
+        notice: 'No email was sent.',
+      });
+    }
+    if (!quota.allowed) {
       return new Response(JSON.stringify({ success: false, delivered: false, error: 'Email send limit reached. Try again in a few minutes.' }), {
         status: 429,
-        headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Retry-After': String(WINDOW_MS / 1000) },
+        headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Retry-After': String(quota.retryAfterSeconds) },
       });
     }
     if (!resendApiKey) {

@@ -63,6 +63,9 @@ const corsHeaders = (origin: string | null) => {
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': 'no-store',
+    // The response carries a per-request origin, so a shared cache must never
+    // reuse it for another origin.
+    Vary: 'Origin',
   };
   if (origin && ALLOWED_ORIGINS.has(origin)) headers['Access-Control-Allow-Origin'] = origin;
   return headers;

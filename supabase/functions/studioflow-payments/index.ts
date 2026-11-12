@@ -1,6 +1,6 @@
 // Secrets stay in Supabase Edge Function settings, never in the browser bundle.
 import {createClient} from 'npm:@supabase/supabase-js@2.117.3';
-import {signatureMatches,depositPaise} from './payment-security.ts';
+import {signatureMatches,depositPaise,sameSecret} from './payment-security.ts';
 
 const cors={
   'Access-Control-Allow-Origin':'*',
@@ -114,7 +114,7 @@ Deno.serve(async(req:Request)=>{
       if(worker){
         const verified=await service.rpc('studioflow_payments_verify_worker',{p_token:worker});
         if(verified.error||!verified.data)return respond({error:'Unauthorized'},401);
-      }else if(token!==serviceKey){
+      }else if(!sameSecret(token,serviceKey)){
         return respond({error:'Unauthorized'},401);
       }
       if(!creds.configured)return respond({error:'Platform payment gateway is not configured. The platform owner must add Razorpay credentials.'},503);

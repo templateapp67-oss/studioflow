@@ -90,7 +90,7 @@ const clientRpc=(src)=>{
   return [...names].filter(n=>/^(studioflow_|get_my_|nexora_)/.test(n));
 };
 const walk=(dir)=>readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(dir+'/'+e.name):dir+'/'+e.name.endsWith('.tsx')||e.name.endsWith('.ts')?[dir+'/'+e.name]:[]);
-const src=['src','supabase/functions','backend/functions'].flatMap(d=>{try{return walk(d)}catch{return[]}}).map(f=>readFileSync(f,'utf8')).join('\n');
+const src=['src','supabase/functions'].flatMap(d=>{try{return walk(d)}catch{return[]}}).map(f=>readFileSync(f,'utf8')).join('\n');
 await db.exec(readFileSync('supabase/migrations/202611030003_template15_keshkraft.sql','utf8'));
 await db.exec(readFileSync('supabase/migrations/202611050001_booking_multi_services.sql','utf8'));
 await db.exec(readFileSync('supabase/migrations/202611050001_booking_multi_services.sql','utf8'));

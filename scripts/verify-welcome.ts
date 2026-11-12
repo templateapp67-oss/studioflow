@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {welcomeTemplate,sendWelcome} from '../backend/functions/studioflow-welcome-whatsapp/core';
+import {welcomeTemplate,sendWelcome} from '../supabase/functions/studioflow-welcome-whatsapp/core';
 const job={customer_id:'customer-qa',phone:'+919876543210',name:'QA Customer',referral_code:'QA-CODE123'};
 const config={token:'mock-token',phoneId:'1234',version:'v99.0',template:'nexora_welcome',language:'en_US'};
 const body=welcomeTemplate(job,config.template,config.language);assert.equal(body.to,'919876543210');const params=body.template.components[0].parameters.map(p=>p.text);assert.equal(params[1],'customer-qa');assert.ok(params[2].endsWith('?app=1&auth=signin'));assert.ok(params[3].endsWith('customer_ref=QA-CODE123'));assert.ok(!JSON.stringify(body).includes('password'));assert.ok(!JSON.stringify(body).includes('mock-token'));
