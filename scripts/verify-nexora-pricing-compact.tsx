@@ -53,7 +53,13 @@ const buttons = () => renderer!.root.findAllByType('button');
 assert.equal(buttons()[1].props['aria-pressed'], true);
 await act(async () => { buttons()[0].props.onClick(); });
 assert.equal(buttons()[0].props['aria-pressed'], true);
-assert.equal(renderer!.root.findAllByProps({className: 'sl-compact-card__price'}).filter(node => node.children.includes('Not configured')).length, 4);
+const monthlyMarkup = renderToStaticMarkup(
+  <LandingContentProvider><PricingPlansSection interval="monthly" onIntervalChange={() => undefined} onSelect={() => undefined} /></LandingContentProvider>,
+);
+for (const [planId, expected] of [['lite', '₹799'], ['grow', '₹1,499'], ['standard', '₹2,499'], ['premium', '₹4,999']]) {
+  assert.ok(monthlyMarkup.includes(expected), `${planId} compact card shows its approved monthly price`);
+}
+assert.ok(!monthlyMarkup.includes('Not configured'), 'No unconfigured monthly placeholder is rendered');
 await act(async () => { buttons()[2].props.onClick(); });
 assert.equal(selected, 'lite:monthly');
 await act(async () => { buttons()[1].props.onClick(); buttons()[3].props.onClick(); });

@@ -76,7 +76,7 @@ const css = readFileSync('src/components/nexora-pricing/table/comparisonTable.cs
 assert.ok(css.includes('--nx-table-standard-bg: #ffe9ea'), 'Pale-pink Standard highlight remains');
 assert.ok(css.includes('overflow-x: auto'), 'Mobile table scroll remains contained');
 assert.deepEqual(PRICING_PLANS.map((plan) => [plan.id, plan.annualMonthlyEquivalent, plan.annualTotal, plan.monthlyPrice]), [
-  ['lite', 625, 7500, null], ['grow', 1249, 14988, null], ['standard', 1999, 23988, null], ['premium', 4999, 59988, null],
-], 'Subscription values remain the approved existing values');
+  ['lite', 7990 / 12, 7990, 799], ['grow', 14990 / 12, 14990, 1499], ['standard', 24990 / 12, 24990, 2499], ['premium', 49990 / 12, 49990, 4999],
+], 'Subscription values reflect the approved INR monthly and annual tiers');
 
 console.log(`PASS: nine categories and ${NEXORA_COMPARISON_ROW_COUNT} feature rows render from the single matrix; four plan order, numeric limits, boolean mappings, Standard highlight and price values verified.`);

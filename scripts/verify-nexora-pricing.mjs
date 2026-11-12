@@ -13,11 +13,11 @@ const dataUrl = `data:text/javascript;base64,${Buffer.from(bundled.outputFiles[0
 const pricing = await import(dataUrl);
 
 assert.deepEqual(
-  pricing.PRICING_PLANS.map(({ id, annualMonthlyEquivalent, annualTotal }) => [id, annualMonthlyEquivalent, annualTotal]),
-  [['lite', 625, 7500], ['grow', 1249, 14988], ['standard', 1999, 23988], ['premium', 4999, 59988]],
-  'Approved annual rate and total pairs remain exact',
+  pricing.PRICING_PLANS.map(({ id, monthlyPrice, annualTotal }) => [id, monthlyPrice, annualTotal]),
+  [['lite', 799, 7990], ['grow', 1499, 14990], ['standard', 2499, 24990], ['premium', 4999, 49990]],
+  'Approved INR monthly and annual price pairs remain exact',
 );
-assert.ok(pricing.PRICING_PLANS.every(plan => plan.monthlyPrice === null), 'Do not invent monthly prices');
+assert.ok(pricing.PRICING_PLANS.every(plan => Number.isFinite(plan.monthlyPrice) && plan.monthlyPrice > 0), 'Every plan has an approved monthly price');
 assert.equal(pricing.PRICING_PLANS.find(plan => plan.popular)?.id, 'standard');
 assert.ok(pricing.PRICING_PLANS.every(plan => plan.annualMonthlyEquivalent * 12 === plan.annualTotal));
 assert.deepEqual(

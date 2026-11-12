@@ -35,7 +35,7 @@ export function BillingToggle({ interval, onChange }: { interval: BillingInterva
     <div className="sl-billing">
       <div className="sl-billing__text">
         <h3>Billing period</h3>
-        <p>Annual plans are billed once for the full year. Monthly billing rates are not configured yet.</p>
+        <p>Annual plans are billed once for the full year. Monthly billing is available at the rates shown on this page.</p>
       </div>
       <div className="sl-billing__control" role="group" aria-label="Billing period">
         <button

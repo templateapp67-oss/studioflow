@@ -89,7 +89,8 @@ for (const plan of PRICING_PLANS) {
 assert.equal(PRICING_PLANS.find(plan => plan.popular)?.id, 'standard', 'Standard is the recommended plan');
 assert.ok(priceText.includes('Recommended'), 'The recommended plan is labelled');
 assert.ok(priceText.includes('GST inclusive'), 'GST inclusion is explained');
-assert.ok(priceText.includes('Not configured'), 'Unconfigured monthly billing is disclosed, not invented');
+assert.ok(!priceText.includes('Not configured'), 'No unconfigured billing placeholder is published');
+assert.ok(PRICING_PLANS.every(plan => Number.isFinite(plan.monthlyPrice) && plan.monthlyPrice > 0), 'Every plan has an approved monthly price');
 assert.ok(!priceText.includes('Free trial'), 'No free-trial promise is published');
 assert.ok(!priceText.includes('money back') && !priceText.includes('refund guarantee'), 'No refund promise is published');
 assert.ok(
