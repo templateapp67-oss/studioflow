@@ -1,9 +1,12 @@
 import {
   ArrowRight,
+  Award,
   CheckCircle2,
   ClipboardList,
   Gift,
   ShieldCheck,
+  Trophy,
+  TrendingUp,
 } from 'lucide-react';
 
 type RewardKind = 'shirt' | 'tablet' | 'laptop' | 'scooter' | 'phone' | 'motorcycle' | 'suv';
