@@ -8,6 +8,8 @@
 @source "./components/nexora/*.tsx";
 @source "./components/AppUpdateManager.tsx";
 @source "./components/UpdateNotificationSettings.tsx";
+@source "./components/nexora-landing/NexoraGrowthPartnerRewardsPage.tsx";
+@source "./components/nexora-landing/NexoraEcosystemPage.tsx";
 
 @font-face {
   font-family: "Hanken Grotesk";
