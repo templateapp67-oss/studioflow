@@ -783,7 +783,8 @@
 }
 
 /* Side by side. The illustration is sized from the viewport, which keeps the
-   hero about 30% as tall as it is wide; its lettering scales with it. */
+   hero about a third as tall as the viewport is wide up to 1440px; its
+   lettering scales with it. */
 @media (min-width: 1024px) {
   .ngr-hero__grid {
     grid-template-columns: minmax(0, 1fr) auto;
