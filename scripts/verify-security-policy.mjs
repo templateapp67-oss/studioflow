@@ -96,11 +96,12 @@ assert.deepEqual(config.rewrites.map((entry) => [entry.source, entry.destination
   ['/salon-growth', '/salon-growth/index.html'],
   ['/growth-partner-rewards', '/growth-partner-rewards/index.html'],
   ['/(.*\\..*)', '/$1'],
+  ['/partner-rewards', '/partner-rewards/index.html'],
   ['/(.*)', '/index.html'],
 ]);
 // Every prerendered marketing document must also be routed to by a rewrite,
 // otherwise the SPA shell answers the URL and the per-route head is never sent.
-for (const route of ['/salon-os', '/pricing', '/privacy', '/salon-onboarding', '/salon-growth', '/growth-partner-rewards']) {
+for (const route of ['/salon-os', '/pricing', '/privacy', '/salon-onboarding', '/salon-growth', '/growth-partner-rewards', '/partner-rewards']) {
   assert.ok(
     config.rewrites.some((entry) => entry.source === route && entry.destination === `${route}/index.html`),
     `the ${route} document must be served by its own rewrite, not the SPA shell`,

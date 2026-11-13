@@ -38,6 +38,10 @@
       "destination": "/$1"
     },
     {
+      "source": "/partner-rewards",
+      "destination": "/partner-rewards/index.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
