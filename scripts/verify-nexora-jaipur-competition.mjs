@@ -37,7 +37,7 @@ for (const path of assetPaths) {
 
 assert.match(migration, /end_date\s*=\s*start_date\s*\+\s*89/, 'The inclusive competition window must be exactly 90 days');
 assert.match(migration, /Asia\/Kolkata/, 'Competition dates must use India Standard Time');
-assert.match(migration, /daterange\(c\.start_date,c\.end_date \+ 1,'\[)'\)/, 'Overlapping Jaipur competition cycles must be rejected');
+assert.ok(migration.includes("daterange(c.start_date,c.end_date + 1,'[)')"), 'Overlapping Jaipur competition cycles must be rejected');
 assert.match(migration, /NEXORA-JPR-/);
 assert.match(migration, /salon_number bigint not null unique/);
 assert.match(migration, /unique \(cycle_id, owner_id\)/);
