@@ -910,7 +910,8 @@ begin
   into v_result
   from public.nexora_competition_reward_fulfilments f
   join public.nexora_competition_entries e on e.id=f.entry_id
-  where f.cycle_id=v_cycle.id and e.owner_id=v_user;
+  where e.owner_id=v_user
+    and (f.cycle_id=v_cycle.id or f.reward_key in ('coBrandedTshirts','ledSignBoard','achievementTrophy'));
   return v_result;
 end;
 $$;
