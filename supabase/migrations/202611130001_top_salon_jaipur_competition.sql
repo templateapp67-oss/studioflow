@@ -213,6 +213,8 @@ begin
      and o.status='captured'
      and o.verified_at is not null
      and o.currency='INR'
+     and o.verified_at >= v_start
+     and o.verified_at < v_end
     where b.status='completed'
       and b.starts_at >= v_start
       and b.starts_at < v_end
@@ -501,7 +503,9 @@ begin
     with ranked as (
       select
         e.id,e.salon_id,e.competition_id,e.profile_visibility,e.competitor_profile_enabled,
-        s.name as salon_name,s.area as salon_area,
+        s.name as salon_name,s.area as salon_area,s.logo_url as salon_logo_url,
+        s.cover_image_url as salon_cover_url,coalesce(s.description,s.about,s.tagline) as salon_description,
+        w.custom_domain as salon_custom_domain,w.slug as salon_slug,
         r.transaction_count,r.gateway_revenue_paise,r.unique_customers,r.verified_reviews,
         r.average_rating,r.competition_score,r.award_eligible,
         rank() over(order by coalesce(r.competition_score,0) desc,
@@ -511,6 +515,7 @@ begin
       from public.top_salon_competition_entries e
       join public.salons s on s.id=e.salon_id
       left join public.top_salon_competition_reports r on r.entry_id=e.id
+      left join public.salon_public_websites w on w.salon_id=s.id and w.is_published=true
       where e.cycle_id=p_cycle_id and e.status='approved'
     )
     select jsonb_agg(jsonb_build_object(
@@ -523,7 +528,11 @@ begin
       'averageRating',coalesce(average_rating,0),
       'awardEligible',coalesce(award_eligible,false),
       'salonProfile',case when competitor_profile_enabled then jsonb_build_object(
-        'area',case when coalesce((profile_visibility->>'showArea')::boolean,false) then salon_area else null end
+        'area',case when coalesce((profile_visibility->>'showArea')::boolean,false) then salon_area else null end,
+        'logoUrl',case when coalesce((profile_visibility->>'showLogo')::boolean,false) then salon_logo_url else null end,
+        'coverImageUrl',case when coalesce((profile_visibility->>'showCover')::boolean,false) then salon_cover_url else null end,
+        'description',case when coalesce((profile_visibility->>'showDescription')::boolean,false) then salon_description else null end,
+        'websiteUrl',case when coalesce((profile_visibility->>'showWebsite')::boolean,false) and salon_slug is not null then case when salon_custom_domain is not null then case when salon_custom_domain like 'http%' then salon_custom_domain else 'https://'||salon_custom_domain end else '/?site='||salon_slug end else null end
       ) else null end
     ) order by position,competition_id)
     from ranked
@@ -548,7 +557,7 @@ as $function$
     'area',case when coalesce((e.profile_visibility->>'showArea')::boolean,false) then s.area else null end,
     'address',case when coalesce((e.profile_visibility->>'showAddress')::boolean,false) then s.address else null end,
     'contact',case when coalesce((e.profile_visibility->>'showContact')::boolean,false) then coalesce(s.mobile,s.phone,s.whatsapp) else null end,
-    'websiteUrl',case when coalesce((e.profile_visibility->>'showWebsite')::boolean,false) then coalesce(w.custom_domain,'/?site='||w.slug) else null end,
+    'websiteUrl',case when coalesce((e.profile_visibility->>'showWebsite')::boolean,false) and w.slug is not null then case when w.custom_domain is not null then case when w.custom_domain like 'http%' then w.custom_domain else 'https://'||w.custom_domain end else '/?site='||w.slug end else null end,
     'services',case when coalesce((e.profile_visibility->>'showServices')::boolean,false) then (
       select coalesce(jsonb_agg(jsonb_build_object('name',ss.name,'description',ss.description,'price',ss.price,'durationMinutes',ss.duration_minutes) order by ss.display_order),'[]'::jsonb)
       from public.salon_services ss where ss.salon_id=s.id and ss.is_active=true
