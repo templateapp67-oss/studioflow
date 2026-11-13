@@ -596,6 +596,8 @@ begin
      or p_cycle_code <> to_char(p_start_date,'YYYY') || 'Q' || ceil(extract(month from p_start_date)/3)::integer::text
      or p_registration_opens_at is null or p_registration_closes_at is null
      or p_registration_opens_at >= p_registration_closes_at
+     or p_registration_closes_at <= now()
+     or p_start_date <= (now() at time zone 'Asia/Kolkata')::date
      or p_registration_closes_at >= (p_start_date::timestamp at time zone 'Asia/Kolkata')
      or p_status not in ('draft','registration_open','locked','active','completed','cancelled')
      or char_length(btrim(coalesce(p_name,''))) not between 4 and 120 then
