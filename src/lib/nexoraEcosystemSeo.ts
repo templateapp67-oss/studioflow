@@ -80,7 +80,7 @@ export const NEXORA_ECOSYSTEM_SEO: Readonly<Record<NexoraEcosystemPath, NexoraEc
     label: 'Top Salon Jaipur Awards',
     title: 'NEXORA Top Salon Jaipur Awards — 90-Day Salon Competition',
     description: 'Register for NEXORA Top Salon Jaipur Awards, a fixed 90-day salon competition with verified payment performance, participant report cards, public salon profiles by consent and quarterly recognition.',
-    ogImagePath: '/nexora-social-preview.png',
+    ogImagePath: '/nexora-homepage-og.jpg',
     ogImageAlt: 'NEXORA Top Salon Jaipur Awards 90-day competition',
     themeColor: '#28172F',
     contentMarker: 'NEXORA Top Salon Jaipur Awards',
