@@ -1,19 +1,8 @@
 import { NEXORA_PUBLIC_ORIGIN } from './publicSeo';
 
 /**
- * Public metadata for the three NEXORA SALONOS marketing routes that share the
- * `NexoraEcosystemPage` component (`/salon-onboarding`, `/salon-growth` and
- * `/growth-partner-rewards`).
- *
- * Route separation was added without giving each route its own document, so all
- * three served the homepage shell to crawlers: one title, one description and
- * one canonical for three different pages. This module is the single source of
- * truth for the head of each document. The build-time prerenderer and the
- * client renderer both read it, so the two can never drift apart.
- *
- * Only verifiable facts are described. No ranking, revenue, customer-count or
- * reward-fulfilment promise is made here; the reward milestones stay on the
- * page, which states the programme conditions itself.
+ * Public metadata for NEXORA SALONOS marketing routes. This is the single
+ * source of truth for build-time prerendering and client-side metadata.
  */
 export type NexoraEcosystemPath =
   | '/salon-onboarding'
@@ -23,21 +12,12 @@ export type NexoraEcosystemPath =
 
 export interface NexoraEcosystemSeo {
   path: NexoraEcosystemPath;
-  /** Short human label used by the breadcrumb structured data and the nav. */
   label: string;
   title: string;
   description: string;
-  /** Absolute path of the shared 1200x630 social card. */
   ogImagePath: string;
   ogImageAlt: string;
-  /** Brand surface of the page header, mirrored in the document head. */
   themeColor: string;
-  /**
-   * Sentence that must be present in the rendered copy of this route and absent
-   * from its siblings. The prerenderer fails the build when a document is
-   * produced from the wrong route, and the verification suite asserts the same
-   * thing against the emitted files.
-   */
   contentMarker: string;
 }
 
@@ -45,13 +25,13 @@ export const NEXORA_ECOSYSTEM_SEO: Readonly<Record<NexoraEcosystemPath, NexoraEc
   '/salon-onboarding': {
     path: '/salon-onboarding',
     label: 'Salon Onboarding',
-    title: 'Salon Website Onboarding | Build Your Salon Brand with NEXORA SalonOS',
+    title: 'Salon Website Builder & Onboarding for India | NEXORA SalonOS',
     description:
-      'Choose a salon website template, add your own branding, services, staff and contact details, then preview, publish and share your salon website with NEXORA SalonOS.',
+      'Create a salon website with NEXORA SalonOS. Explore salon website templates for hair salons, barber shops, beauty parlours and nail studios. Add your brand, services, team and booking details, then preview and publish.',
     ogImagePath: '/nexora-homepage-og.jpg',
-    ogImageAlt: 'NEXORA SalonOS salon website templates and branding options',
+    ogImageAlt: 'NEXORA SalonOS salon website builder, salon templates and brand setup',
     themeColor: '#312347',
-    contentMarker: 'Aapke Salon Ki Apni Digital Pehchaan.',
+    contentMarker: 'Your Salon Deserves a',
   },
   '/salon-growth': {
     path: '/salon-growth',
@@ -87,7 +67,6 @@ export const NEXORA_ECOSYSTEM_SEO: Readonly<Record<NexoraEcosystemPath, NexoraEc
   },
 };
 
-/** Stable render order, shared by the prerenderer, the sitemap and the tests. */
 export const NEXORA_ECOSYSTEM_ROUTES: readonly NexoraEcosystemPath[] = [
   '/salon-onboarding',
   '/salon-growth',
@@ -95,62 +74,44 @@ export const NEXORA_ECOSYSTEM_ROUTES: readonly NexoraEcosystemPath[] = [
   '/partner-rewards',
 ];
 
-/** Absolute canonical URL for one of the shared marketing routes. */
 export function nexoraEcosystemCanonicalUrl(path: NexoraEcosystemPath): string {
   return `${NEXORA_PUBLIC_ORIGIN}${NEXORA_ECOSYSTEM_SEO[path].path}`;
 }
 
-/**
- * Structured data for one marketing route: the page itself plus the breadcrumb
- * every one of these pages renders. No rating, review, address or offer is
- * published, because none of it is verified on these routes.
- */
+/** Structured data for the public page and its breadcrumb. */
 export function nexoraEcosystemSchema(path: NexoraEcosystemPath) {
   const seo = NEXORA_ECOSYSTEM_SEO[path];
   const url = nexoraEcosystemCanonicalUrl(path);
-  return {
-    '@context': 'https://schema.org',
-    '@graph': [
-      {
-        '@type': 'WebPage',
-        '@id': `${url}#webpage`,
-        url,
-        name: seo.title,
-        description: seo.description,
-        isPartOf: {
-          '@type': 'WebSite',
-          name: 'NEXORA SalonOS',
-          url: `${NEXORA_PUBLIC_ORIGIN}/`,
-        },
-        about: {
-          '@type': 'SoftwareApplication',
-          name: 'NEXORA SalonOS',
-          applicationCategory: 'BusinessApplication',
-          operatingSystem: 'Web',
-        },
-        primaryImageOfPage: {
-          '@type': 'ImageObject',
-          contentUrl: `${NEXORA_PUBLIC_ORIGIN}${seo.ogImagePath}`,
-        },
-      },
-      {
-        '@type': 'BreadcrumbList',
-        '@id': `${url}#breadcrumb`,
-        itemListElement: [
-          {
-            '@type': 'ListItem',
-            position: 1,
-            name: 'NEXORA SalonOS',
-            item: `${NEXORA_PUBLIC_ORIGIN}/`,
-          },
-          {
-            '@type': 'ListItem',
-            position: 2,
-            name: seo.label,
-            item: url,
-          },
-        ],
-      },
-    ],
-  };
+  const graph: Record<string, unknown>[] = [
+    {
+      '@type': 'WebPage',
+      '@id': `${url}#webpage`,
+      url,
+      name: seo.title,
+      description: seo.description,
+      isPartOf: { '@type': 'WebSite', name: 'NEXORA SalonOS', url: `${NEXORA_PUBLIC_ORIGIN}/` },
+      about: { '@type': 'SoftwareApplication', name: 'NEXORA SalonOS', applicationCategory: 'BusinessApplication', operatingSystem: 'Web' },
+      primaryImageOfPage: { '@type': 'ImageObject', contentUrl: `${NEXORA_PUBLIC_ORIGIN}${seo.ogImagePath}` },
+    },
+    {
+      '@type': 'BreadcrumbList',
+      '@id': `${url}#breadcrumb`,
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'NEXORA SalonOS', item: `${NEXORA_PUBLIC_ORIGIN}/` },
+        { '@type': 'ListItem', position: 2, name: seo.label, item: url },
+      ],
+    },
+  ];
+  if (path === '/salon-onboarding') {
+    graph.push({
+      '@type': 'FAQPage',
+      '@id': `${url}#faq`,
+      mainEntity: [
+        { '@type': 'Question', name: 'Can I create a website for my beauty parlour or salon?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. Choose a salon category and a suitable NEXORA website template, then add your salon details, services, images and contact information.' } },
+        { '@type': 'Question', name: 'Can I use this for a barber shop or nail studio?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. NEXORA includes different salon business categories and website templates, including hair salons, barber shops, beauty parlours, nail studios and other supported salon types.' } },
+        { '@type': 'Question', name: 'Can I preview my website before it goes live?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. Review your website design and content, check the desktop and mobile layouts, and make changes before you publish and share it.' } },
+      ],
+    });
+  }
+  return { '@context': 'https://schema.org', '@graph': graph };
 }
