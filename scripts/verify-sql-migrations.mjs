@@ -81,8 +81,7 @@ console.log(`PASS: all ${applied.length} backend migrations apply in dependency 
 // Follow the timestamped migration order: shared multibranch schema first,
 // then Template 12, then its dependent multibranch extension.
 await db.exec(readFileSync('supabase/migrations/202610300004_multibranch_support.sql','utf8'));
-await db.exec(readFileSync('supabase/migrations/20261113120946_template12_iron_ink.sql','utf8'));
-await db.exec(readFileSync('supabase/migrations/20261113120947_multibranch_template12_support.sql','utf8'));
+await db.exec(readFileSync('supabase/migrations/202610300005_iron_ink_social_videos.sql','utf8'));
 await db.exec(readFileSync('supabase/migrations/202611020001_ziya_promotions_and_loyalty.sql','utf8'));
 
 // Live-catalog assertions: every client-called RPC/table/bucket exists,
@@ -109,6 +108,10 @@ await db.exec(readFileSync('supabase/migrations/202611070003_nexora_salon_landin
 await db.exec(readFileSync('supabase/migrations/202611070004_nexora_demo_lead_operations.sql','utf8'));
 await db.exec(readFileSync('supabase/migrations/202611070005_nexora_demo_lead_retention_default.sql','utf8'));
 await db.exec(readFileSync('supabase/migrations/202611070006_nexora_landing_privacy_link.sql','utf8'));
+// Finish the selected pre-Template-12 migrations before the reconciled
+// Template 12 version and its branch-specific extension.
+await db.exec(readFileSync('supabase/migrations/20261113120946_template12_iron_ink.sql','utf8'));
+await db.exec(readFileSync('supabase/migrations/20261113120947_multibranch_template12_support.sql','utf8'));
 const rpcs=clientRpc(src);
 const froms=[...src.matchAll(/\.from\(\s*['"\`]([A-Za-z0-9_-]+)['"\`]/g)].map(m=>m[1]);
 const tables=froms.filter(n=>!n.includes('-'));
