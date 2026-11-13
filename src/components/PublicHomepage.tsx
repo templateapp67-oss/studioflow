@@ -42,6 +42,7 @@ export function templateSignupPath(templateId?: BusinessTypeId) {
 }
 
 const navigation = [
+  { label: 'Partner Rewards', href: '/partner-rewards' },
   { label: 'Categories', href: '#salon-categories' },
   { label: '16 Templates', href: '#nexora-template-library' },
   { label: 'How It Works', href: '#how-it-works' },
