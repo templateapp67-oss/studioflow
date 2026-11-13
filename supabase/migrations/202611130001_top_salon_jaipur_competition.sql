@@ -519,7 +519,7 @@ begin
       where e.cycle_id=p_cycle_id and e.status='approved'
     )
     select jsonb_agg(jsonb_build_object(
-      'competitionId',competition_id,'salonName',salon_name,'position',position,
+      'competitionId',competition_id,'salonName',salon_name,'position',case when c.status in ('active','verification','completed') then position else null end,
       'score',coalesce(competition_score,0),
       'transactions',coalesce(transaction_count,0),
       'gatewayRevenuePaise',coalesce(gateway_revenue_paise,0),
