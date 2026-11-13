@@ -105,6 +105,20 @@ Deno.serve(async(req:Request)=>{
           if(order)await service.rpc('studioflow_complete_refund',{p_order:order.order_id,p_refund:refund.id||null,p_ok:body.event==='refund.processed',p_error:body.event==='refund.failed'?'refund.failed':null});
         }
       }
+      if(['payment.dispute.created','payment.dispute.won','payment.dispute.lost'].includes(body.event)){
+        const dispute=body.payload?.dispute?.entity;
+        if(dispute?.id&&dispute?.payment_id){
+          const status=body.event==='payment.dispute.created'?'open':body.event==='payment.dispute.won'?'won':'lost';
+          const {error:disputeError}=await service.from('studioflow_payment_disputes').upsert({
+            dispute_id:String(dispute.id),
+            payment_id:String(dispute.payment_id),
+            amount_paise:Math.max(0,Math.trunc(Number(dispute.amount)||0)),
+            status,
+            updated_at:new Date().toISOString()
+          },{onConflict:'dispute_id'});
+          if(disputeError)return respond({error:'Could not record the payment dispute. Please retry the webhook.'},500);
+        }
+      }
       return respond({received:true});
     }
 
