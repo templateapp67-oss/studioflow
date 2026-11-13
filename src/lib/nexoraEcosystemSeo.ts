@@ -18,7 +18,8 @@ import { NEXORA_PUBLIC_ORIGIN } from './publicSeo';
 export type NexoraEcosystemPath =
   | '/salon-onboarding'
   | '/salon-growth'
-  | '/growth-partner-rewards';
+  | '/growth-partner-rewards'
+  | '/top-salon-jaipur-awards';
 
 export interface NexoraEcosystemSeo {
   path: NexoraEcosystemPath;
@@ -74,6 +75,16 @@ export const NEXORA_ECOSYSTEM_SEO: Readonly<Record<NexoraEcosystemPath, NexoraEc
     themeColor: '#312347',
     contentMarker: 'Salon Onboarding Se',
   },
+  '/top-salon-jaipur-awards': {
+    path: '/top-salon-jaipur-awards',
+    label: 'Top Salon Jaipur Awards',
+    title: 'NEXORA Top Salon Jaipur Awards — 90-Day Salon Competition',
+    description: 'Register for NEXORA Top Salon Jaipur Awards, a fixed 90-day salon competition with verified payment performance, participant report cards, public salon profiles by consent and quarterly recognition.',
+    ogImagePath: '/nexora-social-preview.png',
+    ogImageAlt: 'NEXORA Top Salon Jaipur Awards 90-day competition',
+    themeColor: '#28172F',
+    contentMarker: 'NEXORA Top Salon Jaipur Awards',
+  },
 };
 
 /** Stable render order, shared by the prerenderer, the sitemap and the tests. */
@@ -81,6 +92,7 @@ export const NEXORA_ECOSYSTEM_ROUTES: readonly NexoraEcosystemPath[] = [
   '/salon-onboarding',
   '/salon-growth',
   '/growth-partner-rewards',
+  '/top-salon-jaipur-awards',
 ];
 
 /** Absolute canonical URL for one of the shared marketing routes. */
