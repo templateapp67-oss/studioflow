@@ -78,8 +78,11 @@ assert.equal(pending.size,0,'Migrations failed to converge:\n'+[...pending].map(
 console.log(`PASS: all ${applied.length} backend migrations apply in dependency order.`);
 // Apply the additive Template 12 migration against the same stubbed Supabase
 // surface so client-table/RLS checks include the new data layer as well.
-await db.exec(readFileSync('supabase/migrations/202610300003_template12_iron_ink.sql','utf8'));
+// Follow the timestamped migration order: shared multibranch schema first,
+// then Template 12, then its dependent multibranch extension.
 await db.exec(readFileSync('supabase/migrations/202610300004_multibranch_support.sql','utf8'));
+await db.exec(readFileSync('supabase/migrations/20261113120946_template12_iron_ink.sql','utf8'));
+await db.exec(readFileSync('supabase/migrations/20261113120947_multibranch_template12_support.sql','utf8'));
 await db.exec(readFileSync('supabase/migrations/202611020001_ziya_promotions_and_loyalty.sql','utf8'));
 
 // Live-catalog assertions: every client-called RPC/table/bucket exists,
