@@ -4,9 +4,10 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
     branches: [main]
+  workflow_dispatch:
 
 concurrency:
-  group: preview-${{ github.event.pull_request.number }}
+  group: preview-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -21,7 +22,7 @@ env:
 jobs:
   preview:
     name: Deploy preview
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -29,8 +30,6 @@ jobs:
         with:
           persist-credentials: false
 
-      # Preview deployments are optional for PR validation. Missing credentials
-      # should skip only the preview deployment, never silently use a fake token.
       - name: Check optional Vercel preview credentials
         id: vercel-config
         shell: bash
@@ -46,16 +45,16 @@ jobs:
           done
 
           if (( ${#missing[@]} > 0 )); then
-            printf 'available=false\n' >> "$GITHUB_OUTPUT"
-            printf '::warning::Vercel Preview skipped. Missing repository secret(s): %s\n' "${missing[*]}"
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Vercel Preview skipped because required secret(s) are unavailable: ${missing[*]}"
             {
               echo "### Vercel Preview skipped"
-              echo "Preview deployment is optional for pull-request validation."
-              echo "Add the missing repository secret(s) to enable it: `$(IFS=', '; echo "${missing[*]}")`."
+              echo "This does not block pull-request CI."
+              echo "Unavailable secret names: ${missing[*]}"
             } >> "$GITHUB_STEP_SUMMARY"
           else
-            printf 'available=true\n' >> "$GITHUB_OUTPUT"
-            echo "All Vercel Preview credentials are configured."
+            echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "All Vercel preview credential fields are present."
           fi
 
       - uses: actions/setup-node@v5
@@ -68,15 +67,37 @@ jobs:
         if: steps.vercel-config.outputs.available == 'true'
         run: npm ci
 
-      - name: Install Vercel CLI
+      - name: Install stable Vercel CLI
         if: steps.vercel-config.outputs.available == 'true'
-        run: npm install --global vercel@latest
+        run: npm install --global vercel@65.14.0
 
       - name: Pull Vercel environment (preview)
         if: steps.vercel-config.outputs.available == 'true'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
+
+      - name: Verify linked Vercel project
+        if: steps.vercel-config.outputs.available == 'true'
+        env:
+          EXPECTED_VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          EXPECTED_VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const file = '.vercel/project.json';
+          if (!fs.existsSync(file)) {
+            console.error('Vercel pull did not create .vercel/project.json.');
+            process.exit(1);
+          }
+          const linked = JSON.parse(fs.readFileSync(file, 'utf8'));
+          if (linked.orgId !== process.env.EXPECTED_VERCEL_ORG_ID ||
+              linked.projectId !== process.env.EXPECTED_VERCEL_PROJECT_ID) {
+            console.error('Downloaded Vercel project identity does not match the configured GitHub IDs.');
+            process.exit(1);
+          }
+          console.log('Downloaded project identity matches the configured team and project IDs.');
+          NODE
 
       - name: Build preview
         if: steps.vercel-config.outputs.available == 'true'
@@ -87,47 +108,49 @@ jobs:
       - name: Deploy preview
         id: deploy
         if: steps.vercel-config.outputs.available == 'true'
+        continue-on-error: true
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          url="$(vercel deploy --prebuilt --token="$VERCEL_TOKEN")"
+          set -euo pipefail
+          url="$(vercel deploy --prebuilt --yes --token="$VERCEL_TOKEN" --project "$VERCEL_PROJECT_ID")"
           test -n "$url"
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
+      - name: Report non-blocking preview deployment failure
+        if: steps.vercel-config.outputs.available == 'true' && steps.deploy.outcome == 'failure'
+        run: |
+          echo "::warning::Vercel preview deployment failed; pull-request CI remains unblocked."
+          {
+            echo "### Vercel Preview not deployed"
+            echo "The deployment command failed. This is non-blocking for PR CI; see the Deploy preview step log for the Vercel error."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Comment preview URL on PR
-        if: steps.vercel-config.outputs.available == 'true'
+        if: steps.vercel-config.outputs.available == 'true' && steps.deploy.outcome == 'success' && github.event_name == 'pull_request'
         uses: actions/github-script@v7
         env:
           PREVIEW_URL: ${{ steps.deploy.outputs.url }}
         with:
           script: |
             const marker = '<!-- vercel-preview -->';
-            const body = `${marker} 🚀 **Preview ready:** ${process.env.PREVIEW_URL} Commit: \`${context.sha.slice(0, 7)}\``;
-
+            const body = marker + ' Preview ready: ' + process.env.PREVIEW_URL +
+              ' (commit ' + context.sha.slice(0, 7) + ')';
             const { owner, repo } = context.repo;
             const issue_number = context.issue.number;
-
             const comments = await github.paginate(
               github.rest.issues.listComments,
               { owner, repo, issue_number }
             );
-
             const existing = comments.find(
               comment => comment.body && comment.body.includes(marker)
             );
-
             if (existing) {
               await github.rest.issues.updateComment({
-                owner,
-                repo,
-                comment_id: existing.id,
-                body
+                owner, repo, comment_id: existing.id, body
               });
             } else {
               await github.rest.issues.createComment({
-                owner,
-                repo,
-                issue_number,
-                body
+                owner, repo, issue_number, body
               });
             }
