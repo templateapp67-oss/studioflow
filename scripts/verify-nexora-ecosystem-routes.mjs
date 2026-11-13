@@ -132,6 +132,20 @@ for (const path of NEXORA_ECOSYSTEM_ROUTES) {
   // from the stylesheet its component imports (growth-rewards/growthRewards.css),
   // so the guard looks for that stylesheet's hero and page background colours.
   // verify-growth-partner-rewards.mjs checks every class of the page.
+  if (path === '/partner-rewards') {
+    const stylesheetPaths = Array.from(
+      html.matchAll(/<link rel="stylesheet"[^>]*href="([^"]+\\.css)"/g),
+      (match) => `dist/${match[1].replace(/^\\//, '')}`,
+    );
+    assert.ok(stylesheetPaths.length > 0, 'Partner Rewards emits at least one stylesheet');
+    const stylesheet = stylesheetPaths.map((assetPath) => {
+      assert.ok(existsSync(assetPath), `Built stylesheet exists: ${assetPath}`);
+      return readFileSync(assetPath, 'utf8');
+    }).join('\n');
+    assert.ok(stylesheet.includes('.npa-page'), 'Partner Rewards page styles are present in the built CSS');
+    assert.ok(stylesheet.includes('.npa-hero'), 'Partner Rewards hero styles are present in the built CSS');
+    assert.ok(stylesheet.includes('.npa-my-progress'), 'Partner Rewards live progress styles are present in the built CSS');
+  }
   if (path === '/growth-partner-rewards') {
     const stylesheetPaths = Array.from(
       html.matchAll(/<link rel="stylesheet"[^>]*href="([^"]+\.css)"/g),
