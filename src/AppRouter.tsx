@@ -25,7 +25,7 @@ const APP_QUERY_KEYS = [
  * outside the owner application so the landing page can be indexed and
  * hydrated without booting the workspace bundle.
  */
-const PUBLIC_MARKETING_ROUTES = new Set(['/salon-os', '/pricing', '/privacy', '/salon-onboarding', '/salon-growth', '/growth-partner-rewards']);
+const PUBLIC_MARKETING_ROUTES = new Set(['/salon-os', '/pricing', '/privacy', '/salon-onboarding', '/salon-growth', '/growth-partner-rewards', '/top-salon-jaipur-awards']);
 
 export function requiresFullApplication(location: Pick<Location, 'pathname' | 'search' | 'hash' | 'hostname'>): boolean {
   if (resolveSiteSlug(location)) return true;
@@ -72,7 +72,7 @@ export function AppRouter() {
   if (publicPath === '/salon-os') return <NexoraSalonLandingPage />;
   if (publicPath === '/pricing') return <NexoraPricingLandingPage />;
   if (publicPath === '/privacy') return <NexoraPrivacyNoticePage />;
-  if (publicPath === '/salon-onboarding' || publicPath === '/salon-growth' || publicPath === '/growth-partner-rewards') {
+  if (publicPath === '/salon-onboarding' || publicPath === '/salon-growth' || publicPath === '/growth-partner-rewards' || publicPath === '/top-salon-jaipur-awards') {
     return <NexoraEcosystemPage path={publicPath} />;
   }
   if (publicPath === '/admin/demo-leads') return <NexoraDemoLeadsAdmin />;
