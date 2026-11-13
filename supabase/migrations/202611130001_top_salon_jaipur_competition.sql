@@ -318,7 +318,7 @@ begin
       'durationDays',90,
       'registrationOpen',c.status='registration_open'
         and v_today between c.registration_open_date and c.registration_close_date,
-      'registeredCount',(select count(*) from public.top_salon_competition_entries e where e.cycle_id=c.id and e.status in ('pending','approved'))
+      'registeredCount',(select count(*) from public.top_salon_competition_entries e where e.cycle_id=c.id and e.status='approved')
     ) order by c.start_date desc)
     from public.top_salon_competition_cycles c
     where c.status<>'draft' and c.status<>'cancelled'
@@ -536,6 +536,8 @@ begin
       ) else null end
     ) order by position,competition_id)
     from ranked
+    cross join public.top_salon_competition_cycles c
+    where c.id=p_cycle_id
   ),'[]'::jsonb);
 end
 $function$;
@@ -571,6 +573,30 @@ as $function$
   join public.salons s on s.id=e.salon_id
   left join public.salon_public_websites w on w.salon_id=s.id and w.is_published=true
   where e.cycle_id=p_cycle_id and e.status='approved' and e.public_directory_enabled=true
+$function$;
+
+create or replace function public.top_salon_competition_award_winners(p_cycle_id uuid)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = ''
+as $function$
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'awardRank',a.award_rank,
+    'awardTitle',a.award_title,
+    'competitionId',e.competition_id,
+    'salonName',s.name,
+    'area',case when e.public_directory_enabled and coalesce((e.profile_visibility->>'showArea')::boolean,false) then s.area else null end,
+    'trophyStatus',a.trophy_status,
+    'promotionStatus',a.promotion_status,
+    'certificateStatus',a.certificate_status,
+    'finalizedAt',a.finalized_at
+  ) order by a.award_rank),'[]'::jsonb)
+  from public.top_salon_competition_awards a
+  join public.top_salon_competition_entries e on e.id=a.entry_id
+  join public.salons s on s.id=e.salon_id
+  where a.cycle_id=p_cycle_id and e.public_directory_enabled=true
 $function$;
 
 create or replace function public.top_salon_competition_admin(p_action text,p_data jsonb default '{}'::jsonb)
@@ -879,6 +905,7 @@ revoke all on function public.top_salon_competition_register(uuid,uuid,boolean,b
 revoke all on function public.top_salon_competition_my_entries() from public;
 revoke all on function public.top_salon_competition_competitors(uuid) from public;
 revoke all on function public.top_salon_competition_public_directory(uuid) from public;
+revoke all on function public.top_salon_competition_award_winners(uuid) from public;
 revoke all on function public.top_salon_competition_admin(text,jsonb) from public;
 
 grant execute on function public.top_salon_competition_cycles() to anon,authenticated;
@@ -886,6 +913,7 @@ grant execute on function public.top_salon_competition_register(uuid,uuid,boolea
 grant execute on function public.top_salon_competition_my_entries() to authenticated;
 grant execute on function public.top_salon_competition_competitors(uuid) to authenticated;
 grant execute on function public.top_salon_competition_public_directory(uuid) to anon,authenticated;
+grant execute on function public.top_salon_competition_award_winners(uuid) to anon,authenticated;
 grant execute on function public.top_salon_competition_admin(text,jsonb) to authenticated;
 
 commit;
