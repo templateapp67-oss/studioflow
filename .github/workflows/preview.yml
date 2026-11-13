@@ -108,16 +108,26 @@ jobs:
       - name: Deploy preview
         id: deploy
         if: steps.vercel-config.outputs.available == 'true'
+        continue-on-error: true
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
           set -euo pipefail
-          url="$(vercel deploy --prebuilt --yes --token="$VERCEL_TOKEN" --team "$VERCEL_ORG_ID" --project "$VERCEL_PROJECT_ID")"
+          url="$(vercel deploy --prebuilt --yes --token="$VERCEL_TOKEN" --project "$VERCEL_PROJECT_ID")"
           test -n "$url"
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
+      - name: Report non-blocking preview deployment failure
+        if: steps.vercel-config.outputs.available == 'true' && steps.deploy.outcome == 'failure'
+        run: |
+          echo "::warning::Vercel preview deployment failed; pull-request CI remains unblocked."
+          {
+            echo "### Vercel Preview not deployed"
+            echo "The deployment command failed. This is non-blocking for PR CI; see the Deploy preview step log for the Vercel error."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Comment preview URL on PR
-        if: steps.vercel-config.outputs.available == 'true' && github.event_name == 'pull_request'
+        if: steps.vercel-config.outputs.available == 'true' && steps.deploy.outcome == 'success' && github.event_name == 'pull_request'
         uses: actions/github-script@v7
         env:
           PREVIEW_URL: ${{ steps.deploy.outputs.url }}
