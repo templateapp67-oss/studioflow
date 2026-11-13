@@ -24,7 +24,7 @@ await db.exec(`
 await db.query('insert into auth.users(id,email) values($1,$2)',[siteId,'owner@example.test']);
 await db.query('insert into public.studioflow_accounts(user_id) values($1)',[siteId]);
 await db.query("insert into public.studioflow_websites(owner_id,slug,content) values($1,'iron-ink-test',jsonb_build_object('profile',jsonb_build_object('businessType','tattoo_studio')))",[siteId]);
-const migration=readFileSync('supabase/migrations/202610300003_template12_iron_ink.sql','utf8');
+const migration=readFileSync('supabase/migrations/20261113120946_template12_iron_ink.sql','utf8');
 await db.exec(migration);
 await db.exec(migration); // idempotence
 await db.query("select set_config('request.jwt.claim.sub',$1,false)",[siteId]);

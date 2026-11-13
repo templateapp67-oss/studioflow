@@ -35,9 +35,8 @@ await db.exec(`
 await db.query('insert into auth.users(id,email) values($1,$2),($3,$4),($5,$6)',[siteId,'owner@example.test',customerId,'customer@example.test',staffUserId,'staff@example.test']);
 await db.query('insert into public.studioflow_accounts(user_id,draft) values($1,$2)',[siteId,JSON.stringify({profile:{businessName:'Ink Studio',businessType:'tattoo_studio'}})]);
 await db.query("insert into public.studioflow_websites(owner_id,slug,content) values($1,'iron-ink-multibranch-test',$2)",[siteId,JSON.stringify({profile:{businessType:'tattoo_studio'},services:[{id:'svc',name:'Consult',durationMinutes:60}],stylists:[{id:'staff-a',name:'Artist A',status:'Available'}]})]);
-await db.exec(readFileSync('supabase/migrations/202610300003_template12_iron_ink.sql','utf8'));
-await db.query("select set_config('request.jwt.claim.sub',$1,false)",[siteId]);
-await db.query('select public.seed_template12($1)',[siteId]);
+// The shared branch migration must apply before Template 12 exists on a
+// fresh database. Keep the helper stubs needed by its shared booking wrappers.
 await db.exec(`
  create schema if not exists studioflow_private;
  create schema if not exists studioflow_android_private;
@@ -52,6 +51,15 @@ await db.exec(`
 const migration=readFileSync('supabase/migrations/202610300004_multibranch_support.sql','utf8');
 try { await db.exec(migration); } catch (error) { console.error('multibranch migration failure:', error.message, error.position, error.where, migration.slice(Number(error.position)-200,Number(error.position)+200)); throw error; }
 try { await db.exec(migration); } catch (error) { console.error('multibranch rerun failure:', error.message); throw error; } // verify additive idempotence
+
+// Template 12 is installed only after the shared multibranch schema. Its
+// branch-specific columns, policies and RPCs live in the later dependent file.
+await db.exec(readFileSync('supabase/migrations/20261113120946_template12_iron_ink.sql','utf8'));
+await db.query("select set_config('request.jwt.claim.sub',$1,false)",[siteId]);
+await db.query('select public.seed_template12($1)',[siteId]);
+const inkBranchMigration=readFileSync('supabase/migrations/20261113120947_multibranch_template12_support.sql','utf8');
+try { await db.exec(inkBranchMigration); } catch (error) { console.error('Template 12 branch migration failure:', error.message, error.position, error.where); throw error; }
+try { await db.exec(inkBranchMigration); } catch (error) { console.error('Template 12 branch migration rerun failure:', error.message); throw error; } // verify additive idempotence
 const defaults=(await db.query('select id,name from public.branches where site_id=$1 and is_active',[siteId])).rows;
 assert.equal(defaults.length,1,'existing account receives a primary branch');
 
