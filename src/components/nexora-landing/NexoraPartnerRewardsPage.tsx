@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
-import { ArrowRight, CalendarDays, CheckCircle2, Clock3, ExternalLink, ShieldCheck, Store, Users } from 'lucide-react';
+import { ArrowRight, CalendarDays, CheckCircle2, Clock3, ExternalLink, Eye, EyeOff, ShieldCheck, Store, Users } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { NexoraEcosystemSeoHead } from './NexoraEcosystemSeoHead';
 import './nexoraPartnerRewards.css';
