@@ -131,7 +131,9 @@ export function NexoraPartnerRewardsPage() {
   try{
    const result=await supabase.rpc('nexora_competition_register',{
     p_cycle_code:cycle.cycleCode,p_salon_name:form.salonName,p_city:'Jaipur',p_area:form.area,
-    p_full_address:form.fullAddress,p_category:form.category,p_description:form.description,p_profile_visibility:form.visibility,
+    p_full_address:form.fullAddress,p_category:form.category,
+    p_competition_terms_accepted:form.terms,p_report_sharing_consent:form.terms,
+    p_description:form.description,p_profile_visibility:form.visibility,
     p_public_profile_visible:form.publicProfileVisible,p_show_logo:form.visibility.showLogo,
     p_show_cover:form.visibility.showCover,p_show_website:form.visibility.showWebsite,
    });
