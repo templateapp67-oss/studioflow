@@ -1,5 +1,6 @@
-import React, { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, CalendarDays, CheckCircle2, Clock3, ExternalLink, Eye, EyeOff, ShieldCheck, Store, Users } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { FormEvent } from 'react';
+import { ArrowRight, CalendarDays, CheckCircle2, Clock3, ExternalLink, ShieldCheck, Store, Users } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { NexoraEcosystemSeoHead } from './NexoraEcosystemSeoHead';
 import './nexoraPartnerRewards.css';
@@ -98,13 +99,16 @@ export function NexoraPartnerRewardsPage() {
 
  const countdown=useMemo(()=>{
   if(!cycle)return null;
+  const opens=new Date(cycle.registrationOpensAt).getTime();
+  const closes=new Date(cycle.registrationClosesAt).getTime();
   const start=new Date(cycle.startDate+'T00:00:00+05:30').getTime();
   const end=new Date(plusDays(cycle.endDate,1)+'T00:00:00+05:30').getTime();
-  const closes=new Date(cycle.registrationClosesAt).getTime();
-  const beforeStart=now<start;
-  const target=beforeStart?(cycle.registrationOpen?start:closes):end;
+  let target=end;
+  let label='Competition ends in';
+  if(now<opens){target=opens;label='Registration opens in';}
+  else if(now<start){target=start;label='Competition starts in';}
   const ms=Math.max(0,target-now);
-  return {days:Math.floor(ms/86400000),hours:Math.floor(ms%86400000/3600000),minutes:Math.floor(ms%3600000/60000),seconds:Math.floor(ms%60000/1000),label:beforeStart?(cycle.registrationOpen?'Competition starts in':'Registration closes in'):'Competition ends in'};
+  return {days:Math.floor(ms/86400000),hours:Math.floor(ms%86400000/3600000),minutes:Math.floor(ms%3600000/60000),seconds:Math.floor(ms%60000/1000),label};
  },[cycle,now]);
 
  const register=async(event:FormEvent)=>{
