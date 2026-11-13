@@ -90,6 +90,7 @@ create table if not exists public.nexora_competition_reward_fulfilments (
   id uuid primary key default gen_random_uuid(),
   cycle_id uuid not null references public.nexora_competition_cycles(id) on delete cascade,
   entry_id uuid not null references public.nexora_competition_entries(id) on delete cascade,
+  owner_id uuid not null references auth.users(id) on delete cascade,
   reward_key text not null check (reward_key in ('coBrandedTshirts','ledSignBoard','promotionalAdvertising','achievementTrophy')),
   status text not null default 'eligible'
     check (status in ('eligible','under_verification','approved','preparing','scheduled','dispatched','completed','not_eligible','rejected')),
@@ -108,6 +109,10 @@ create table if not exists public.nexora_competition_reward_fulfilments (
 alter table public.nexora_competition_reward_fulfilments enable row level security;
 revoke all on public.nexora_competition_reward_fulfilments from public, anon, authenticated;
 grant select,insert,update,delete on public.nexora_competition_reward_fulfilments to service_role;
+
+create unique index if not exists nexora_competition_physical_reward_once_idx
+  on public.nexora_competition_reward_fulfilments(owner_id,reward_key)
+  where reward_key in ('coBrandedTshirts','ledSignBoard','achievementTrophy');
 
 create index if not exists nexora_competition_entries_cycle_status_idx
   on public.nexora_competition_entries(cycle_id, status, registered_at);
@@ -800,7 +805,7 @@ create or replace function nexora_competition_private.sync_reward_fulfilments(p_
 returns void
 language plpgsql security definer
 set search_path = ''
-as $
+as $$
 declare
   v_card jsonb;
   v_reward_key text;
@@ -827,19 +832,43 @@ begin
         'averageRating',v_card->>'averageRating'
       );
       if v_eligible then
-        insert into public.nexora_competition_reward_fulfilments(
-          cycle_id,entry_id,reward_key,status,eligibility_snapshot
-        ) values (
-          p_cycle_id,(v_card->>'entryId')::uuid,v_reward_key,'eligible',v_snapshot
-        )
-        on conflict(entry_id,reward_key) do update set
-          eligibility_snapshot=excluded.eligibility_snapshot,
-          status=case
-            when public.nexora_competition_reward_fulfilments.status='not_eligible' then 'eligible'
-            else public.nexora_competition_reward_fulfilments.status
-          end,
-          updated_at=now()
-        where public.nexora_competition_reward_fulfilments.status in ('eligible','under_verification','not_eligible');
+        if v_reward_key in ('coBrandedTshirts','ledSignBoard','achievementTrophy') then
+          insert into public.nexora_competition_reward_fulfilments(
+            cycle_id,entry_id,owner_id,reward_key,status,eligibility_snapshot
+          ) values (
+            p_cycle_id,(v_card->>'entryId')::uuid,
+            (select e.owner_id from public.nexora_competition_entries e where e.id=(v_card->>'entryId')::uuid),
+            v_reward_key,'eligible',v_snapshot
+          )
+          on conflict (owner_id,reward_key)
+            where reward_key in ('coBrandedTshirts','ledSignBoard','achievementTrophy')
+          do update set
+            cycle_id=excluded.cycle_id,
+            entry_id=excluded.entry_id,
+            eligibility_snapshot=excluded.eligibility_snapshot,
+            status=case
+              when public.nexora_competition_reward_fulfilments.status in ('approved','preparing','scheduled','dispatched','completed')
+                then public.nexora_competition_reward_fulfilments.status
+              else 'eligible'
+            end,
+            updated_at=now();
+        else
+          insert into public.nexora_competition_reward_fulfilments(
+            cycle_id,entry_id,owner_id,reward_key,status,eligibility_snapshot
+          ) values (
+            p_cycle_id,(v_card->>'entryId')::uuid,
+            (select e.owner_id from public.nexora_competition_entries e where e.id=(v_card->>'entryId')::uuid),
+            v_reward_key,'eligible',v_snapshot
+          )
+          on conflict(entry_id,reward_key) do update set
+            eligibility_snapshot=excluded.eligibility_snapshot,
+            status=case
+              when public.nexora_competition_reward_fulfilments.status in ('approved','preparing','scheduled','dispatched','completed')
+                then public.nexora_competition_reward_fulfilments.status
+              else 'eligible'
+            end,
+            updated_at=now();
+        end if;
       else
         update public.nexora_competition_reward_fulfilments
         set status='not_eligible',updated_at=now()
@@ -851,14 +880,14 @@ begin
     end loop;
   end loop;
 end;
-$;
+$$;
 revoke all on function nexora_competition_private.sync_reward_fulfilments(uuid) from public,anon,authenticated;
 
 create or replace function public.nexora_competition_member_reward_fulfilments(p_cycle_code text default null)
 returns jsonb
 language plpgsql security definer
 set search_path = ''
-as $
+as $$
 declare v_user uuid:=auth.uid(); v_cycle public.nexora_competition_cycles; v_result jsonb;
 begin
   if v_user is null then raise exception 'Sign in required' using errcode='42501'; end if;
@@ -884,13 +913,13 @@ begin
   where f.cycle_id=v_cycle.id and e.owner_id=v_user;
   return v_result;
 end;
-$;
+$$;
 
 create or replace function public.nexora_competition_admin_list_reward_fulfilments(p_cycle_code text)
 returns jsonb
 language plpgsql security definer
 set search_path = ''
-as $
+as $$
 declare v_cycle public.nexora_competition_cycles; v_result jsonb;
 begin
   if not nexora_competition_private.is_admin() then raise exception 'NEXORA admin access required' using errcode='42501'; end if;
@@ -911,7 +940,7 @@ begin
   where f.cycle_id=v_cycle.id;
   return v_result;
 end;
-$;
+$$;
 
 create or replace function public.nexora_competition_admin_update_reward_fulfilment(
   p_entry_id uuid,
@@ -925,7 +954,7 @@ create or replace function public.nexora_competition_admin_update_reward_fulfilm
 returns jsonb
 language plpgsql security definer
 set search_path = ''
-as $
+as $$
 declare v_entry public.nexora_competition_entries; v_cycle public.nexora_competition_cycles;
         v_eligible boolean; v_fulfilment public.nexora_competition_reward_fulfilments;
 begin
@@ -964,7 +993,7 @@ begin
     'estimatedCompletionDate',v_fulfilment.estimated_completion_date,'completedAt',v_fulfilment.completed_at
   );
 end;
-$;
+$$;
 
 revoke all on function public.nexora_competition_admin_list_cycles() from public;
 revoke all on function public.nexora_competition_member_reward_fulfilments(text) from public;
