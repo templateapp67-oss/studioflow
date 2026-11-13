@@ -49,6 +49,10 @@ create table if not exists public.nexora_competition_entries (
   salon_number bigint not null,
   competition_id text not null unique,
   salon_name text not null check (char_length(btrim(salon_name)) between 2 and 120),
+  owner_name text not null default '',
+  owner_email text,
+  owner_phone text,
+  business_address text not null check (char_length(btrim(business_address)) between 5 and 300),
   city text not null check (lower(city) = 'jaipur'),
   area text not null check (char_length(btrim(area)) between 2 and 100),
   category text not null check (char_length(btrim(category)) between 2 and 80),
@@ -154,7 +158,10 @@ as $$
   ),
   entrants as (
     select e.id, e.owner_id, e.salon_number, e.competition_id,
-           e.salon_name, e.area, e.category, e.registered_at,
+           e.salon_name,
+           case when coalesce((e.profile_visibility->>'showArea')::boolean,true) then e.area end as area,
+           case when coalesce((e.profile_visibility->>'showCategory')::boolean,true) then e.category end as category,
+           e.registered_at,
            e.public_profile_visible, e.profile_visibility,
            e.logo_url, e.cover_image_url, e.description, e.salon_slug
     from public.nexora_competition_entries e
@@ -171,6 +178,7 @@ as $$
           and b.status = 'completed'
           and b.starts_at >= c.starts_at and b.starts_at < c.ends_at
           and o.status = 'captured'
+          and o.currency = 'INR'
           and o.payment_id is not null
           and o.verified_at is not null
           and o.verified_at >= c.starts_at and o.verified_at < c.ends_at
@@ -184,6 +192,7 @@ as $$
           and b.status = 'completed'
           and b.starts_at >= c.starts_at and b.starts_at < c.ends_at
           and o.status = 'captured'
+          and o.currency = 'INR'
           and o.payment_id is not null
           and o.verified_at is not null
           and o.verified_at >= c.starts_at and o.verified_at < c.ends_at
@@ -198,6 +207,7 @@ as $$
           and b.status = 'completed'
           and b.starts_at >= c.starts_at and b.starts_at < c.ends_at
           and o.status = 'captured'
+          and o.currency = 'INR'
           and o.payment_id is not null
           and o.verified_at >= c.starts_at and o.verified_at < c.ends_at
       ), 0)::bigint as unique_paying_customers,
@@ -431,6 +441,7 @@ create or replace function public.nexora_competition_register(
   p_salon_name text,
   p_city text,
   p_area text,
+  p_full_address text,
   p_category text,
   p_description text default '',
   p_profile_visibility jsonb default '{}'::jsonb,
@@ -445,12 +456,14 @@ set search_path = ''
 as $$
 declare v_user uuid:=auth.uid(); v_cycle public.nexora_competition_cycles;
         v_salon_number bigint; v_competition_id text; v_slug text;
+        v_owner_name text; v_owner_email text; v_owner_phone text;
         v_logo text; v_cover text; v_visibility jsonb; v_entry public.nexora_competition_entries;
 begin
   if v_user is null then raise exception 'Sign in to register for the competition' using errcode='42501'; end if;
   if char_length(btrim(coalesce(p_salon_name,''))) not between 2 and 120
      or lower(btrim(coalesce(p_city,''))) <> 'jaipur'
      or char_length(btrim(coalesce(p_area,''))) not between 2 and 100
+     or char_length(btrim(coalesce(p_full_address,''))) not between 5 and 300
      or char_length(btrim(coalesce(p_category,''))) not between 2 and 80
      or char_length(coalesce(p_description,'')) > 1000 then
     raise exception 'Enter the salon name, Jaipur city, area and salon category';
@@ -463,8 +476,8 @@ begin
      and (now() at time zone 'Asia/Kolkata')::date < c.start_date;
   if v_cycle.id is null then raise exception 'Competition registration is not open'; end if;
 
-  select p.logo_url, p.cover_image_url
-    into v_logo, v_cover
+  select p.full_name, p.email, coalesce(p.phone_number,p.phone,p.mobile), p.logo_url, p.cover_image_url
+    into v_owner_name, v_owner_email, v_owner_phone, v_logo, v_cover
   from public.profiles p
   where p.id=v_user or p.user_id=v_user
   limit 1;
@@ -490,19 +503,24 @@ begin
   );
 
   insert into public.nexora_competition_entries(
-    cycle_id,owner_id,salon_number,competition_id,salon_name,city,area,category,
-    description,salon_slug,logo_url,cover_image_url,profile_visibility,public_profile_visible,
+    cycle_id,owner_id,salon_number,competition_id,salon_name,owner_name,owner_email,owner_phone,
+    business_address,city,area,category,description,salon_slug,logo_url,cover_image_url,
+    profile_visibility,public_profile_visible,
     profile_consent_at,competition_terms_accepted,competition_terms_accepted_at,
     report_sharing_consent,report_sharing_consent_at,award_applied,status
   ) values (
-    v_cycle.id,v_user,v_salon_number,v_competition_id,btrim(p_salon_name),'Jaipur',btrim(p_area),
-    btrim(p_category),btrim(coalesce(p_description,'')),v_slug,v_logo,v_cover,v_visibility,
+    v_cycle.id,v_user,v_salon_number,v_competition_id,btrim(p_salon_name),
+    coalesce(nullif(btrim(v_owner_name),''),btrim(p_salon_name)),v_owner_email,v_owner_phone,
+    btrim(p_full_address),'Jaipur',btrim(p_area),btrim(p_category),
+    btrim(coalesce(p_description,'')),v_slug,v_logo,v_cover,v_visibility,
     coalesce(p_public_profile_visible,false),
     case when coalesce(p_public_profile_visible,false) then now() else null end,
     true,now(),true,now(),true,'pending'
   )
   on conflict(cycle_id,owner_id) do update set
-    salon_name=excluded.salon_name,city=excluded.city,area=excluded.area,category=excluded.category,
+    salon_name=excluded.salon_name,owner_name=excluded.owner_name,owner_email=excluded.owner_email,
+    owner_phone=excluded.owner_phone,business_address=excluded.business_address,
+    city=excluded.city,area=excluded.area,category=excluded.category,
     description=excluded.description,salon_slug=excluded.salon_slug,logo_url=excluded.logo_url,
     cover_image_url=excluded.cover_image_url,profile_visibility=excluded.profile_visibility,
     public_profile_visible=excluded.public_profile_visible,
@@ -599,6 +617,8 @@ begin
   select coalesce(jsonb_agg(jsonb_build_object(
     'entryId',e.id,'salonName',e.salon_name,'competitionId',e.competition_id,
     'area',e.area,'category',e.category,'status',e.status,'registeredAt',e.registered_at,
+    'ownerName',e.owner_name,'ownerEmail',e.owner_email,'ownerPhone',e.owner_phone,
+    'businessAddress',e.business_address,
     'publicProfileVisible',e.public_profile_visible,'profileVisibility',e.profile_visibility,
     'verificationNote',e.verification_note,'awardApplied',e.award_applied
   ) order by e.registered_at),'[]'::jsonb)
@@ -729,7 +749,7 @@ revoke all on function public.nexora_competition_get_current_cycle() from public
 revoke all on function public.nexora_competition_public_directory(text) from public;
 revoke all on function public.nexora_competition_member_leaderboard(text) from public;
 revoke all on function public.nexora_competition_get_my_entry(text) from public;
-revoke all on function public.nexora_competition_register(text,text,text,text,text,text,jsonb,boolean,boolean,boolean,boolean) from public;
+revoke all on function public.nexora_competition_register(text,text,text,text,text,text,text,jsonb,boolean,boolean,boolean,boolean) from public;
 revoke all on function public.nexora_competition_admin_save_cycle(text,text,timestamptz,timestamptz,date,date,text) from public;
 revoke all on function public.nexora_competition_admin_list_entries(text) from public;
 revoke all on function public.nexora_competition_admin_review_entry(uuid,text,text) from public;
@@ -739,7 +759,7 @@ grant execute on function public.nexora_competition_get_current_cycle() to anon,
 grant execute on function public.nexora_competition_public_directory(text) to anon, authenticated;
 grant execute on function public.nexora_competition_member_leaderboard(text) to authenticated;
 grant execute on function public.nexora_competition_get_my_entry(text) to authenticated;
-grant execute on function public.nexora_competition_register(text,text,text,text,text,text,jsonb,boolean,boolean,boolean,boolean) to authenticated;
+grant execute on function public.nexora_competition_register(text,text,text,text,text,text,text,jsonb,boolean,boolean,boolean,boolean) to authenticated;
 grant execute on function public.nexora_competition_admin_save_cycle(text,text,timestamptz,timestamptz,date,date,text) to authenticated;
 grant execute on function public.nexora_competition_admin_list_entries(text) to authenticated;
 grant execute on function public.nexora_competition_admin_review_entry(uuid,text,text) to authenticated;
