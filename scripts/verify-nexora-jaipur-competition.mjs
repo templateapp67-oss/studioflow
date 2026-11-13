@@ -26,6 +26,9 @@ const assetPaths = [
   'public/nexora-jaipur-awards/gold-growth-champion.svg',
   'public/nexora-jaipur-awards/silver-partner-spotlight.svg',
   'public/nexora-jaipur-awards/bronze-certificate.svg',
+  'public/nexora-jaipur-awards/top-gold-growth-champion-featured-advertising.svg',
+  'public/nexora-jaipur-awards/top-silver-recognition-partner-spotlight.svg',
+  'public/nexora-jaipur-awards/top-bronze-recognition-trophy-digital-certificate.svg',
 ];
 for (const path of assetPaths) {
   const svg = read(path);
