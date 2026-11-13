@@ -1,6 +1,7 @@
 import { NEXORA_PUBLIC_TEMPLATES } from '../../lib/nexoraPublicTemplates';
 import { nexoraTemplatePagePath, NEXORA_TEMPLATE_META } from '../../lib/nexoraTemplateCatalogue';
 import { NexoraEcosystemSeoHead } from './NexoraEcosystemSeoHead';
+import { NexoraEcosystemHero } from './ecosystem/NexoraEcosystemHero';
 import { NexoraGrowthPartnerRewardsPage } from './NexoraGrowthPartnerRewardsPage';
 
 const pageData = {
@@ -47,16 +48,14 @@ export function NexoraEcosystemPage({ path }: { path: keyof typeof pageData }) {
   if (isRewards) return <><NexoraEcosystemSeoHead path={path} /><NexoraGrowthPartnerRewardsPage /></>;
   return <div className="min-h-screen bg-white text-[#211B2B]">
     <NexoraEcosystemSeoHead path={path} />
-    <header className="sticky top-0 z-20 border-b border-[#eee] bg-white/95 backdrop-blur">
-      <nav className="mx-auto flex max-w-7xl flex-wrap items-center gap-5 px-5 py-4" aria-label="Main navigation">
-        <a className="mr-auto font-black tracking-[.18em] text-[#312347]" href="/">NEXORA <span className="text-xs tracking-normal">SALON OS</span></a>
-        <a href="/">Home</a><a href="/salon-onboarding">Salon Onboarding</a><a href="/salon-growth">Salon Growth</a><a href="/growth-partner-rewards">Growth Partner Rewards</a><a href="/pricing">Pricing</a><a className="rounded-lg bg-[#312347] px-4 py-2 text-white" href="/login">Owner Workspace</a>
-      </nav>
-    </header>
+    <NexoraEcosystemHero
+      path={path}
+      heading={page.heading}
+      intro={page.intro}
+      primaryLabel={isOnboarding ? 'Explore Templates' : 'Explore Salon Growth'}
+      primaryHref={isOnboarding ? '#templates' : '#growth'}
+    />
     <main>
-      <section className="bg-gradient-to-br from-[#20192d] via-[#362545] to-[#775269] px-5 py-20 text-white sm:py-28">
-        <div className="mx-auto max-w-5xl"><p className="text-sm font-bold uppercase tracking-[.2em] text-[#f0c98b]">NEXORA SALONOS</p><h1 className="mt-4 max-w-4xl text-4xl font-black leading-tight sm:text-6xl">{page.heading}</h1><p className="mt-6 max-w-3xl text-lg leading-8 text-white/85">{page.intro}</p><div className="mt-8 flex flex-wrap gap-3"><a className="rounded-xl bg-white px-5 py-3 font-bold text-[#30223b]" href={isRewards ? '/login' : isOnboarding ? '#templates' : '#growth'}>{isRewards ? 'Become a Nexora Growth Partner' : isOnboarding ? 'Explore Templates' : 'Explore Salon Onboarding'}</a><a className="rounded-xl border border-white/50 px-5 py-3 font-bold" href="/">Back to Nexora</a></div></div>
-      </section>
       {isOnboarding ? <>
         <section id="templates" className="mx-auto max-w-7xl px-5 py-14"><h2 className="text-3xl font-extrabold">Choose Your Website Template</h2><p className="mt-3 text-[#665d6c]">Explore the actual template previews and their business categories.</p><div className="mt-8 flex snap-x gap-5 overflow-x-auto pb-5" aria-label="Salon website templates">{NEXORA_PUBLIC_TEMPLATES.map((template) => { const meta = NEXORA_TEMPLATE_META.find((item) => item.templateId === template.id); return <article key={template.id} className="w-[280px] shrink-0 snap-start overflow-hidden rounded-2xl border border-[#e9e4eb] bg-white shadow-sm"><a href={nexoraTemplatePagePath(template.id)}><img className="h-44 w-full object-cover" src={template.coverImageUrl} alt={`${meta?.displayName ?? template.shortName} website preview`} loading="lazy"/><div className="p-4"><p className="text-xs font-bold uppercase tracking-wide text-[#84617a]">{meta?.categoryName}</p><h3 className="mt-1 font-bold">{meta?.displayName ?? template.shortName}</h3><span className="mt-3 inline-block text-sm font-bold text-[#65466a]">View Demo →</span></div></a></article>; })}</div><a href="/#nexora-template-library" className="mt-4 inline-block font-bold text-[#65466a]">Explore all templates →</a></section>
         <InfoSection title="Create Your Own Brand" items={['Salon name, logo and brand colours', 'Business photographs and address', 'Phone, WhatsApp and opening hours', 'Social media links']} />
