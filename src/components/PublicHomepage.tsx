@@ -53,6 +53,7 @@ const moreLinks = [
   { label: 'Salon Onboarding', href: '/salon-onboarding' },
   { label: 'Salon Growth', href: '/salon-growth' },
   { label: 'Growth Partner Rewards', href: '/growth-partner-rewards' },
+  { label: 'Top Salon Jaipur Awards', href: '/top-salon-jaipur-awards' },
 ];
 
 const steps = [
@@ -452,6 +453,17 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
             <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{[
               ['Digital salon branding', '/salon-onboarding'], ['Online booking & availability', '/salon-growth'], ['Customer management & recall', '/salon-growth'], ['Birthday and loyalty workflows', '/salon-growth'], ['Salon QR experience', '/salon-growth'], ['Customer discovery', '/salon-growth'], ['Salon business growth', '/salon-growth'], ['Growth Partner rewards', '/growth-partner-rewards'],
             ].map(([label, href]) => <a key={label} href={href} className="rounded-xl border border-[#E4DCCB] bg-white p-5 font-bold text-[#3F3550] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">{label} <span aria-hidden="true">↗</span></a>)}</div>
+            <a href="/top-salon-jaipur-awards" className="group mt-8 grid overflow-hidden rounded-3xl border border-[#4A294A] bg-[#21152F] shadow-xl transition hover:-translate-y-0.5 hover:shadow-2xl sm:grid-cols-[1.05fr_.95fr]">
+              <div className="relative min-h-[210px] overflow-hidden bg-[#21152F]">
+                <img src="/nexora-top-salon/competition-hero.svg" alt="NEXORA Top Salon Jaipur Awards — 90-day salon competition" className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.02]" loading="lazy" />
+              </div>
+              <div className="flex flex-col justify-center p-6 text-white sm:p-8">
+                <p className="text-xs font-black uppercase tracking-[.2em] text-[#F0C879]">NEXORA OFFICIAL JAIPUR COMPETITION</p>
+                <h3 className="mt-3 font-display text-2xl font-black sm:text-3xl">NEXORA Top Salon Jaipur Awards</h3>
+                <p className="mt-3 max-w-xl text-sm leading-6 text-white/80">Register your salon for the fixed 90-day competition, meet other approved salons and track verified performance and awards.</p>
+                <span className="mt-5 inline-flex items-center gap-2 self-start rounded-xl bg-[#E7BC69] px-5 py-3 text-sm font-extrabold text-[#26182F]">Explore Competition <ArrowRight size={16} aria-hidden="true" /></span>
+              </div>
+            </a>
             <div className="mt-8 rounded-2xl bg-white p-6 shadow-sm"><div className="flex flex-wrap items-center justify-between gap-4"><div><h3 className="text-xl font-extrabold text-[#1B1630]">Growth Partner Rewards</h3><p className="mt-1 text-sm text-[#5B5470]">Explore programme milestones and eligibility terms.</p></div><a href="/growth-partner-rewards" className="rounded-xl bg-[#F6F1E6] px-5 py-3 text-sm font-bold text-[#2A1E4A]">Explore Growth Partner Rewards →</a></div></div>
           </div>
         </section>
