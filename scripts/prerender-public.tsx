@@ -44,10 +44,11 @@ try {
   const privacy = await vite.ssrLoadModule('/src/components/nexora-landing/NexoraPrivacyNoticePage.tsx');
   renderedPrivacy = renderToString(React.createElement(privacy.NexoraPrivacyNoticePage));
   const ecosystem = await vite.ssrLoadModule('/src/components/nexora-landing/NexoraEcosystemPage.tsx');
+  const partnerRewards = await vite.ssrLoadModule('/src/components/nexora-landing/NexoraPartnerRewardsPage.tsx');
   for (const path of NEXORA_ECOSYSTEM_ROUTES) {
-    renderedEcosystem[path] = renderToString(
-      React.createElement(ecosystem.NexoraEcosystemPage, { path }),
-    );
+    renderedEcosystem[path] = path === '/partner-rewards'
+      ? renderToString(React.createElement(partnerRewards.NexoraPartnerRewardsPage))
+      : renderToString(React.createElement(ecosystem.NexoraEcosystemPage, { path }));
   }
 } finally {
   await vite.close();
