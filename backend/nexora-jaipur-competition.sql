@@ -567,7 +567,10 @@ as $$
 declare v_cycle public.nexora_competition_cycles;
 begin
   if not nexora_competition_private.is_admin() then raise exception 'NEXORA admin access required' using errcode='42501'; end if;
-  if p_cycle_code !~ '^[0-9]{4}Q[1-4]
+  if p_cycle_code !~ '^[0-9]{4}Q[1-4]$'
+     or p_start_date is null
+     or p_end_date <> p_start_date + 89
+     or p_cycle_code <> to_char(p_start_date,'YYYY') || 'Q' || ceil(extract(month from p_start_date)/3)::integer::text
      or p_registration_opens_at is null or p_registration_closes_at is null
      or p_registration_opens_at >= p_registration_closes_at
      or p_registration_closes_at >= (p_start_date::timestamp at time zone 'Asia/Kolkata')
