@@ -4,9 +4,10 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
     branches: [main]
+  workflow_dispatch:
 
 concurrency:
-  group: preview-${{ github.event.pull_request.number }}
+  group: preview-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -21,7 +22,7 @@ env:
 jobs:
   preview:
     name: Deploy preview
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -46,15 +47,15 @@ jobs:
           done
 
           if (( ${#missing[@]} > 0 )); then
-            printf 'available=false\n' >> "$GITHUB_OUTPUT"
-            printf '::warning::Vercel Preview skipped. Missing repository secret(s): %s\n' "${missing[*]}"
+            printf 'available=false\\n' >> "$GITHUB_OUTPUT"
+            printf '::warning::Vercel Preview skipped. Missing repository secret(s): %s\\n' "${missing[*]}"
             {
               echo "### Vercel Preview skipped"
               echo "Preview deployment is optional for pull-request validation."
               echo "Add the missing repository secret(s) to enable it: `$(IFS=', '; echo "${missing[*]}")`."
             } >> "$GITHUB_STEP_SUMMARY"
           else
-            printf 'available=true\n' >> "$GITHUB_OUTPUT"
+            printf 'available=true\\n' >> "$GITHUB_OUTPUT"
             echo "All Vercel Preview credentials are configured."
           fi
 
@@ -95,7 +96,7 @@ jobs:
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
       - name: Comment preview URL on PR
-        if: steps.vercel-config.outputs.available == 'true'
+        if: steps.vercel-config.outputs.available == 'true' && github.event_name == 'pull_request'
         uses: actions/github-script@v7
         env:
           PREVIEW_URL: ${{ steps.deploy.outputs.url }}
