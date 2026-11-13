@@ -30,108 +30,98 @@ jobs:
         with:
           persist-credentials: false
 
-      # Preview deployments are optional for PR validation. Missing credentials
-      # should skip only the preview deployment, never silently use a fake token.
-      - name: Check optional Vercel preview credentials
+      - name: Validate Vercel credentials
         id: vercel-config
         shell: bash
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
           set -euo pipefail
-          missing=()
           for name in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
             if [[ -z "${!name:-}" ]]; then
-              missing+=("$name")
+              echo "::error::Missing Vercel credential: $name"
+              exit 1
             fi
           done
-
-          if (( ${#missing[@]} > 0 )); then
-            printf 'available=false\n' >> "$GITHUB_OUTPUT"
-            printf '::warning::Vercel Preview skipped. Missing repository secret(s): %s\n' "${missing[*]}"
-            {
-              echo "### Vercel Preview skipped"
-              echo "Preview deployment is optional for pull-request validation."
-              echo "Add the missing repository secret(s) to enable it: `$(IFS=', '; echo "${missing[*]}")`."
-            } >> "$GITHUB_STEP_SUMMARY"
-          else
-            printf 'available=true\n' >> "$GITHUB_OUTPUT"
-            echo "All Vercel Preview credentials are configured."
-          fi
+          echo "All Vercel credential fields are present."
 
       - uses: actions/setup-node@v5
-        if: steps.vercel-config.outputs.available == 'true'
         with:
           node-version: 22
           cache: npm
 
       - name: Install locked dependencies
-        if: steps.vercel-config.outputs.available == 'true'
         run: npm ci
 
       - name: Install Vercel CLI
-        if: steps.vercel-config.outputs.available == 'true'
         run: npm install --global vercel@65.15.0
 
       - name: Pull Vercel environment (preview)
-        if: steps.vercel-config.outputs.available == 'true'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-        run: vercel pull --yes --environment=preview
+        run: vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
+
+      - name: Verify linked Vercel project
+        env:
+          EXPECTED_VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          EXPECTED_VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const file = '.vercel/project.json';
+          if (!fs.existsSync(file)) {
+            console.error('Vercel pull did not create .vercel/project.json.');
+            process.exit(1);
+          }
+          const linked = JSON.parse(fs.readFileSync(file, 'utf8'));
+          if (linked.orgId !== process.env.EXPECTED_VERCEL_ORG_ID ||
+              linked.projectId !== process.env.EXPECTED_VERCEL_PROJECT_ID) {
+            console.error('The project identity downloaded by Vercel does not match the configured GitHub IDs.');
+            process.exit(1);
+          }
+          console.log('Downloaded Vercel project identity matches the configured GitHub IDs.');
+          NODE
 
       - name: Build preview
-        if: steps.vercel-config.outputs.available == 'true'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-        run: vercel build
+        run: vercel build --token="$VERCEL_TOKEN"
 
       - name: Deploy preview
         id: deploy
-        if: steps.vercel-config.outputs.available == 'true'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
         run: |
-          url="$(vercel deploy --prebuilt --yes)"
+          set -euo pipefail
+          url="$(vercel deploy --prebuilt --yes --token="$VERCEL_TOKEN")"
           test -n "$url"
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
       - name: Comment preview URL on PR
-        if: steps.vercel-config.outputs.available == 'true' && github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         env:
           PREVIEW_URL: ${{ steps.deploy.outputs.url }}
         with:
           script: |
             const marker = '<!-- vercel-preview -->';
-            const body = `${marker} 🚀 **Preview ready:** ${process.env.PREVIEW_URL} Commit: \`${context.sha.slice(0, 7)}\``;
-
+            const body = marker + ' Preview ready: ' + process.env.PREVIEW_URL +
+              ' (commit ' + context.sha.slice(0, 7) + ')';
             const { owner, repo } = context.repo;
             const issue_number = context.issue.number;
-
             const comments = await github.paginate(
               github.rest.issues.listComments,
               { owner, repo, issue_number }
             );
-
             const existing = comments.find(
               comment => comment.body && comment.body.includes(marker)
             );
-
             if (existing) {
               await github.rest.issues.updateComment({
-                owner,
-                repo,
-                comment_id: existing.id,
-                body
+                owner, repo, comment_id: existing.id, body
               });
             } else {
               await github.rest.issues.createComment({
-                owner,
-                repo,
-                issue_number,
-                body
+                owner, repo, issue_number, body
               });
             }
