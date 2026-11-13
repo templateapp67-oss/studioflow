@@ -64,14 +64,18 @@ export function NexoraTopSalonJaipurPage() {
  const myCompetitor=useMemo(()=>competitors.find(c=>c.competitionId===myEntry?.competitionId)||null,[competitors,myEntry?.competitionId]);
  const endDate=useMemo(()=>{
   if(!adminStart)return '';
-  const d=new Date(adminStart+'T00:00:00+05:30');d.setDate(d.getDate()+89);
-  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const d=new Date(adminStart+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+89);
+  return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0');
  },[adminStart]);
 
  const loadPage=useCallback(async(quiet=false)=>{
   if(!quiet)setLoading(true);
   const cycleResult=await supabase.rpc('top_salon_competition_cycles');
-  if(cycleResult.error){setError('Competition schedule could not load. Apply the competition database migration before launch.');setLoading(false);return;}
+  if(cycleResult.error){
+   setError('Competition schedule could not load. Apply the competition database migration before launch.');
+   setLoading(false);
+   return;
+  }
   const rows=Array.isArray(cycleResult.data)?cycleResult.data as Cycle[]:[];
   setCycles(rows);
   const chosen=rows.find(c=>c.id===cycleId)||rows.find(c=>c.status!=='completed'&&c.status!=='cancelled')||rows[0]||null;
@@ -79,30 +83,60 @@ export function NexoraTopSalonJaipurPage() {
    setCycleId(chosen.id);
    const dir=await supabase.rpc('top_salon_competition_public_directory',{p_cycle_id:chosen.id});
    setDirectory(!dir.error&&Array.isArray(dir.data)?dir.data as DirectoryItem[]:[]);
-   if(sessionUser?.id){
-    const mine=await supabase.rpc('top_salon_competition_my_entries');
-    const mineRows=!mine.error&&Array.isArray(mine.data)?mine.data as Entry[]:[];
-    setEntries(mineRows);
-    const approved=mineRows.some(e=>e.cycleId===chosen.id&&e.status==='approved');
-    if(approved){
-     const report=await supabase.rpc('top_salon_competition_competitors',{p_cycle_id:chosen.id});
-     setCompetitors(!report.error&&Array.isArray(report.data)?report.data as Competitor[]:[]);
-    }else setCompetitors([]);
-    const owned=await supabase.from('salons').select('id,name,city,area,business_type,logo_url,cover_image_url,description,address').eq('is_active',true).is('deleted_at',null).ilike('city','%jaipur%').order('name');
-    setSalons(!owned.error&&Array.isArray(owned.data)?owned.data as Salon[]:[]);
-    const admin=await supabase.rpc('top_salon_competition_admin',{p_action:'list_cycles',p_data:{}});
-    setAdminMode(!admin.error);
-    if(!admin.error&&Array.isArray(admin.data)){
-     setAdminCycles(admin.data as AdminCycle[]);
-     setPendingCycleId(chosen.id);
-     const apps=await supabase.rpc('top_salon_competition_admin',{p_action:'applications',p_data:{cycleId:chosen.id}});
-     setApplications(!apps.error&&Array.isArray(apps.data)?apps.data as Application[]:[]);
-    }else{setAdminCycles([]);setApplications([]);}
-   }else{setEntries([]);setCompetitors([]);setSalons([]);setAdminMode(false);}
-  }else{setDirectory([]);setCompetitors([]);setEntries([]);}
-  setLoading(false);
- },[cycleId,sessionUser?.id]);
+  }else{
+   setDirectory([]);
+   setCompetitors([]);
+  }
 
+  if(sessionUser?.id){
+   const mine=await supabase.rpc('top_salon_competition_my_entries');
+   const mineRows=!mine.error&&Array.isArray(mine.data)?mine.data as Entry[]:[];
+   setEntries(mineRows);
+   const approved=Boolean(chosen)&&mineRows.some(e=>e.cycleId===chosen!.id&&e.status==='approved');
+   if(approved){
+    const report=await supabase.rpc('top_salon_competition_competitors',{p_cycle_id:chosen!.id});
+    setCompetitors(!report.error&&Array.isArray(report.data)?report.data as Competitor[]:[]);
+   }else setCompetitors([]);
+
+   const owned=await supabase.from('salons')
+    .select('id,name,city,area,business_type,logo_url,cover_image_url,description,address')
+    .eq('is_active',true).is('deleted_at',null).ilike('city','%jaipur%').order('name');
+   setSalons(!owned.error&&Array.isArray(owned.data)?owned.data as Salon[]:[]);
+
+   // Admin access is checked independently of a published cycle so a NEXORA
+   // admin can create the very first (draft) competition cycle.
+   const admin=await supabase.rpc('top_salon_competition_admin',{p_action:'list_cycles',p_data:{}});
+   setAdminMode(!admin.error);
+   if(!admin.error&&Array.isArray(admin.data)){
+    const adminRows=admin.data as AdminCycle[];
+    setAdminCycles(adminRows);
+    const currentAdminCycle=adminRows.find(item=>item.id===pendingCycleId)
+      ||adminRows.find(item=>item.id===chosen?.id)
+      ||adminRows[0];
+    if(currentAdminCycle){
+     setPendingCycleId(currentAdminCycle.id);
+     const apps=await supabase.rpc('top_salon_competition_admin',{
+      p_action:'applications',p_data:{cycleId:currentAdminCycle.id}
+     });
+     setApplications(!apps.error&&Array.isArray(apps.data)?apps.data as Application[]:[]);
+    }else{
+     setApplications([]);
+     setPendingCycleId('');
+    }
+   }else{
+    setAdminCycles([]);
+    setApplications([]);
+   }
+  }else{
+   setEntries([]);
+   setCompetitors([]);
+   setSalons([]);
+   setAdminMode(false);
+   setAdminCycles([]);
+   setApplications([]);
+  }
+  setLoading(false);
+ },[cycleId,pendingCycleId,sessionUser?.id]);
  useEffect(()=>{
   let active=true;
   void supabase.auth.getSession().then(({data})=>{if(active)setSessionUser(data.session?.user||null);});
@@ -162,7 +196,7 @@ export function NexoraTopSalonJaipurPage() {
 
   <Panel title="Registered participating salons" intro="Only NEXORA-approved registered competitors with public profile visibility enabled appear in this public directory.">
    <div id="participants" className="mb-5 flex items-center justify-between gap-3"><p className="text-sm font-bold">{directory.length} public salon profiles available</p><button onClick={()=>void refreshButton()} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold"><RefreshCw size={14}/> Refresh</button></div>
-   {loading?<p className="rounded-2xl bg-white p-8 text-center text-sm text-slate-500">Loading NEXORA competitors…</p>:directory.length?<div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">{directory.map(item=><article key={item.competitionId} className="overflow-hidden rounded-3xl border border-[#E6DDEB] bg-white shadow-sm"><div className="relative h-48 bg-[#24172F]">{item.coverImageUrl?<img src={item.coverImageUrl} alt={item.salonName+' salon'} className="h-full w-full object-cover"/>:<img src="/nexora-top-salon/competition-hero.svg" alt="NEXORA Top Salon Jaipur Awards" className="h-full w-full object-cover opacity-70/>}<div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-4 text-white"><Badge tone="green">NEXORA APPROVED COMPETITOR</Badge><h3 className="mt-2 text-xl font-black">{item.salonName}</h3><p className="text-xs text-white/75">{item.area||'Jaipur'}</p></div></div><div className="p-5"><p className="text-xs font-bold text-[#8B245B]">{item.competitionId}</p>{item.description?<p className="mt-2 line-clamp-3 text-sm text-slate-600">{item.description}</p>:null}{item.services?.length?<div className="mt-3"><p className="text-xs font-bold uppercase text-slate-500">Featured services</p><div className="mt-2 flex flex-wrap gap-2">{item.services.slice(0,4).map(service=><span key={service.name} className="rounded-full bg-[#F4EEF7] px-2.5 py-1 text-xs font-semibold">{service.name}{service.price?' · ₹'+Number(service.price).toLocaleString('en-IN'):''}</span>)}</div></div>:null}{item.gallery?.length?<div className="mt-3 grid grid-cols-3 gap-2">{item.gallery.slice(0,3).map(photo=><img key={photo.url} src={photo.url} alt={photo.alt||photo.title||item.salonName} className="h-20 w-full rounded-lg object-cover"/>)}</div>:null}{item.websiteUrl?<a href={item.websiteUrl.startsWith('http')?item.websiteUrl:window.location.origin+item.websiteUrl} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-[#8B245B]">View Salon Website <ExternalLink size={14}/></a>:null}</div></article>)}</div>:<div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center"><Store className="mx-auto text-slate-400" size={28}/><p className="mt-3 font-bold">No public salon profiles yet</p><p className="mt-1 text-sm text-slate-500">Approved competitors appear here after their owner enables public directory visibility.</p></div>}
+   {loading?<p className="rounded-2xl bg-white p-8 text-center text-sm text-slate-500">Loading NEXORA competitors…</p>:directory.length?<div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">{directory.map(item=><article key={item.competitionId} className="overflow-hidden rounded-3xl border border-[#E6DDEB] bg-white shadow-sm"><div className="relative h-48 bg-[#24172F]">{item.coverImageUrl?<img src={item.coverImageUrl} alt={item.salonName+' salon'} className="h-full w-full object-cover"/>:<img src="/nexora-top-salon/competition-hero.svg" alt="NEXORA Top Salon Jaipur Awards" className="h-full w-full object-cover opacity-70"/>}<div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-4 text-white"><Badge tone="green">NEXORA APPROVED COMPETITOR</Badge><h3 className="mt-2 text-xl font-black">{item.salonName}</h3><p className="text-xs text-white/75">{item.area||'Jaipur'}</p></div></div><div className="p-5"><p className="text-xs font-bold text-[#8B245B]">{item.competitionId}</p>{item.description?<p className="mt-2 line-clamp-3 text-sm text-slate-600">{item.description}</p>:null}{item.services?.length?<div className="mt-3"><p className="text-xs font-bold uppercase text-slate-500">Featured services</p><div className="mt-2 flex flex-wrap gap-2">{item.services.slice(0,4).map(service=><span key={service.name} className="rounded-full bg-[#F4EEF7] px-2.5 py-1 text-xs font-semibold">{service.name}{service.price?' · ₹'+Number(service.price).toLocaleString('en-IN'):''}</span>)}</div></div>:null}{item.gallery?.length?<div className="mt-3 grid grid-cols-3 gap-2">{item.gallery.slice(0,3).map(photo=><img key={photo.url} src={photo.url} alt={photo.alt||photo.title||item.salonName} className="h-20 w-full rounded-lg object-cover"/>)}</div>:null}{item.websiteUrl?<a href={item.websiteUrl.startsWith('http')?item.websiteUrl:window.location.origin+item.websiteUrl} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-[#8B245B]">View Salon Website <ExternalLink size={14}/></a>:null}</div></article>)}</div>:<div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center"><Store className="mx-auto text-slate-400" size={28}/><p className="mt-3 font-bold">No public salon profiles yet</p><p className="mt-1 text-sm text-slate-500">Approved competitors appear here after their owner enables public directory visibility.</p></div>}
   </Panel>
 
   <Panel title="Competition leaderboard & report cards" intro="Every approved competitor has a mandatory report card with salon name, Competition ID, rank and score. Full metrics are visible to approved competitors.">
