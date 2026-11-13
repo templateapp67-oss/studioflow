@@ -134,8 +134,8 @@ for (const path of NEXORA_ECOSYSTEM_ROUTES) {
   // verify-growth-partner-rewards.mjs checks every class of the page.
   if (path === '/partner-rewards') {
     const stylesheetPaths = Array.from(
-      html.matchAll(/<link rel="stylesheet"[^>]*href="([^"]+\\.css)"/g),
-      (match) => `dist/${match[1].replace(/^\\//, '')}`,
+      html.matchAll(/<link rel="stylesheet"[^>]*href="([^"]+\.css)"/g),
+      (match) => `dist/${match[1].replace(/^\//, '')}`,
     );
     assert.ok(stylesheetPaths.length > 0, 'Partner Rewards emits at least one stylesheet');
     const stylesheet = stylesheetPaths.map((assetPath) => {
