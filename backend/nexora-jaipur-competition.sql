@@ -798,7 +798,7 @@ begin
       profile_consent_at=case when coalesce(p_public_profile_visible,false) then now() else null end,
       updated_at=now()
   where e.owner_id=auth.uid()
-    and e.cycle_id=(select c.id from public.nexora_competition_cycles c where c.cycle_code=p_cycle_code);
+    and e.cycle_id=(select c.id from public.nexora_competition_cycles c where c.cycle_code=p_cycle_code)
   returning * into v_entry;
   if v_entry.id is null then raise exception 'Your competition registration was not found'; end if;
   return jsonb_build_object(
