@@ -47,15 +47,15 @@ jobs:
           done
 
           if (( ${#missing[@]} > 0 )); then
-            printf 'available=false\\n' >> "$GITHUB_OUTPUT"
-            printf '::warning::Vercel Preview skipped. Missing repository secret(s): %s\\n' "${missing[*]}"
+            printf 'available=false\n' >> "$GITHUB_OUTPUT"
+            printf '::warning::Vercel Preview skipped. Missing repository secret(s): %s\n' "${missing[*]}"
             {
               echo "### Vercel Preview skipped"
               echo "Preview deployment is optional for pull-request validation."
               echo "Add the missing repository secret(s) to enable it: `$(IFS=', '; echo "${missing[*]}")`."
             } >> "$GITHUB_STEP_SUMMARY"
           else
-            printf 'available=true\\n' >> "$GITHUB_OUTPUT"
+            printf 'available=true\n' >> "$GITHUB_OUTPUT"
             echo "All Vercel Preview credentials are configured."
           fi
 
