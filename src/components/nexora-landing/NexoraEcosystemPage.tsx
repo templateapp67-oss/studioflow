@@ -2,6 +2,7 @@ import { NEXORA_PUBLIC_TEMPLATES } from '../../lib/nexoraPublicTemplates';
 import { nexoraTemplatePagePath, NEXORA_TEMPLATE_META } from '../../lib/nexoraTemplateCatalogue';
 import { NexoraEcosystemSeoHead } from './NexoraEcosystemSeoHead';
 import { NexoraGrowthPartnerRewardsPage } from './NexoraGrowthPartnerRewardsPage';
+import { NexoraTopSalonJaipurPage } from './NexoraTopSalonJaipurPage';
 
 const pageData = {
   '/salon-onboarding': {
@@ -18,6 +19,11 @@ const pageData = {
     title: 'Nexora Growth Partner — Reward Journey.',
     heading: 'Salon Onboarding Se Achievement Tak.',
     intro: 'Growth Partner rewards are subject to current programme rules, qualifying shops, verified collections and approval. Confirm eligibility and fulfilment conditions with Nexora before relying on a reward.',
+  },
+  '/top-salon-jaipur-awards': {
+    title: 'NEXORA Top Salon Jaipur Awards — 90-Day Salon Competition',
+    heading: 'NEXORA Top Salon Jaipur Awards',
+    intro: 'Register your Jaipur salon for the fixed 90-day NEXORA competition. Track verified gateway payments, customers, reviews and your position against other approved competitors.',
   },
 } as const;
 
@@ -44,7 +50,9 @@ export function NexoraEcosystemPage({ path }: { path: keyof typeof pageData }) {
   const page = pageData[path];
   const isOnboarding = path === '/salon-onboarding';
   const isRewards = path === '/growth-partner-rewards';
+  const isTopSalonAwards = path === '/top-salon-jaipur-awards';
   if (isRewards) return <><NexoraEcosystemSeoHead path={path} /><NexoraGrowthPartnerRewardsPage /></>;
+  if (isTopSalonAwards) return <><NexoraEcosystemSeoHead path={path} /><NexoraTopSalonJaipurPage /></>;
   return <div className="min-h-screen bg-white text-[#211B2B]">
     <NexoraEcosystemSeoHead path={path} />
     <header className="sticky top-0 z-20 border-b border-[#eee] bg-white/95 backdrop-blur">
