@@ -90,6 +90,19 @@ create table if not exists public.top_salon_competition_awards (
   unique (cycle_id, entry_id)
 );
 
+create table if not exists public.studioflow_payment_disputes (
+  id uuid primary key default gen_random_uuid(),
+  dispute_id text not null unique,
+  payment_id text not null,
+  amount_paise bigint not null default 0 check (amount_paise >= 0),
+  status text not null check (status in ('open','won','lost')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists studioflow_payment_disputes_payment_idx
+  on public.studioflow_payment_disputes(payment_id,status);
+
 create table if not exists public.top_salon_competition_audit_logs (
   id bigint generated always as identity primary key,
   cycle_id uuid references public.top_salon_competition_cycles(id) on delete set null,
@@ -135,6 +148,8 @@ revoke all on public.top_salon_competition_entries from anon, authenticated;
 revoke all on public.top_salon_competition_reports from anon, authenticated;
 revoke all on public.top_salon_competition_awards from anon, authenticated;
 revoke all on public.top_salon_competition_audit_logs from anon, authenticated;
+alter table public.studioflow_payment_disputes enable row level security;
+revoke all on public.studioflow_payment_disputes from anon, authenticated;
 
 create or replace function private.top_salon_is_admin()
 returns boolean
@@ -655,6 +670,17 @@ begin
     insert into public.top_salon_competition_audit_logs(cycle_id,actor_id,action,details)
     values(v_id,v_actor,'cycle_finalized',jsonb_build_object('finalizedAt',now()));
     return jsonb_build_object('cycleId',v_id,'status','completed');
+  elsif p_action='list_cycles' then
+    return coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id',c.id,'code',c.code,'name',c.name,'status',c.status,
+        'registrationOpenDate',c.registration_open_date,'registrationCloseDate',c.registration_close_date,
+        'startDate',c.start_date,'endDate',c.end_date,
+        'registeredCount',(select count(*) from public.top_salon_competition_entries e where e.cycle_id=c.id),
+        'approvedCount',(select count(*) from public.top_salon_competition_entries e where e.cycle_id=c.id and e.status='approved')
+      ) order by c.start_date desc)
+      from public.top_salon_competition_cycles c
+    ),'[]'::jsonb);
   elsif p_action='applications' then
     v_id:=(p_data->>'cycleId')::uuid;
     return coalesce((
