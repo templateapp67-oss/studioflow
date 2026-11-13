@@ -51,8 +51,8 @@ const { NEXORA_ECOSYSTEM_ROUTES, NEXORA_ECOSYSTEM_SEO, NEXORA_PUBLIC_ORIGIN, NEX
 
 assert.deepEqual(
   [...NEXORA_ECOSYSTEM_ROUTES],
-  ['/salon-onboarding', '/salon-growth', '/growth-partner-rewards'],
-  'The three routed marketing pages are covered by the metadata source',
+  ['/salon-onboarding', '/salon-growth', '/growth-partner-rewards', '/partner-rewards'],
+  'All routed NEXORA marketing pages are covered by the metadata source',
 );
 assert.equal(new URL(NEXORA_HOME_SEO.canonicalUrl).origin, NEXORA_PUBLIC_ORIGIN);
 
