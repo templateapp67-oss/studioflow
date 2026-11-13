@@ -74,6 +74,15 @@
 .npa-award-list>div { display:flex; align-items:center; gap:14px; padding:11px; border:1px solid #ffffff22; border-radius:14px; background:#ffffff0b; }
 .npa-award-list img { width:82px; height:82px; flex:none; border-radius:10px; object-fit:cover; }
 .npa-award-list b { display:block; color:#fff; font-size:14px; }
+/* Top 5 benefits — compact gold-bulleted list inside the right-hand copy column.
+   Two columns on wide screens so the subsection stays a footnote to the awards,
+   not a second wall of copy; the rules separate the rows without a card. */
+.npa-benefits { margin-top:26px; padding-top:22px; border-top:1px solid #f2d69c33; }
+.npa-benefits-title { margin:0 0 14px; color:#fff; font-family:Manrope,"Hanken Grotesk",sans-serif; font-size:clamp(17px,1.5vw,20px); font-weight:900; letter-spacing:-.02em; line-height:1.25; }
+.npa-benefits-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:2px 22px; margin:0; padding:0; list-style:none; }
+.npa-benefit { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #ffffff12; color:#efe6ee; font-size:13px; font-weight:650; line-height:1.35; }
+.npa-benefit:nth-last-child(-n+2) { border-bottom:0; }
+.npa-benefit-dot { width:6px; height:6px; flex:none; border-radius:50%; background:linear-gradient(135deg,#ffebb8,#d8ad65); box-shadow:0 0 0 3px #d8ad6522; }
 .npa-award-list small { display:block; margin-top:3px; color:#e8d5bc; font-size:12px; }
 .npa-salon-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; max-width:1240px; margin:auto; }
 .npa-salon-card { overflow:hidden; border:1px solid var(--npa-line); border-radius:18px; background:#fff; box-shadow:0 8px 25px #26172e0c; }
@@ -210,6 +219,9 @@
  .npa-reward-copy h3 { font-size:17px; }
  .npa-reward-image { padding:7px; }
  .npa-award-list img { width:68px; height:68px; }
+ .npa-benefits-list { grid-template-columns:1fr; }
+ .npa-benefit:nth-last-child(-n+2) { border-bottom:1px solid #ffffff12; }
+ .npa-benefit:last-child { border-bottom:0; }
  .npa-competitor-card { grid-template-columns:46px minmax(0,1fr); padding:12px; gap:10px; }
  .npa-rank { width:42px; height:42px; font-size:18px; }
  .npa-competitor-top { align-items:flex-start; flex-direction:column; gap:4px; }
