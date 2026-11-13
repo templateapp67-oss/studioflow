@@ -40,13 +40,13 @@ await db.query("insert into public.studioflow_websites(owner_id,slug,content) va
 await db.exec(`
  create schema if not exists studioflow_private;
  create schema if not exists studioflow_android_private;
- create function studioflow_private.availability(text,text,date,text) returns jsonb language sql stable as $select '[]'::jsonb$;
- create function studioflow_android_private.slots(text,jsonb,date,text) returns jsonb language sql stable as $select '[]'::jsonb$;
- create function studioflow_private.book_with_addons(text,jsonb) returns jsonb language sql as $select jsonb_build_object('branchId',nullif(current_setting('studioflow.branch_id',true),''))$;
- create function studioflow_private.coupon_book(text,jsonb) returns jsonb language sql as $select jsonb_build_object('branchId',nullif(current_setting('studioflow.branch_id',true),''))$;
- create function studioflow_private.owner_walk_in(jsonb) returns jsonb language sql as $select jsonb_build_object('branchId',nullif(current_setting('studioflow.branch_id',true),''))$;
- create function studioflow_android_private.reschedule(uuid,date,text,text) returns jsonb language sql as $select jsonb_build_object('branchId',nullif(current_setting('studioflow.branch_id',true),''))$;
- create function studioflow_android_private.book(text,jsonb,date,text,text,text,text,text,uuid) returns jsonb language sql as $select jsonb_build_object('branchId',nullif(current_setting('studioflow.branch_id',true),''))$;
+ create function studioflow_private.availability(text,text,date,text) returns jsonb language sql stable as $select '[]'::jsonb$$;
+ create function studioflow_android_private.slots(text,jsonb,date,text) returns jsonb language sql stable as $select '[]'::jsonb$$;
+ create function studioflow_private.book_with_addons(text,jsonb) returns jsonb language sql as $select jsonb_build_object('branchId',nullif(current_setting('studioflow.branch_id',true),''))$$;
+ create function studioflow_private.coupon_book(text,jsonb) returns jsonb language sql as $select jsonb_build_object('branchId',nullif(current_setting('studioflow.branch_id',true),''))$$;
+ create function studioflow_private.owner_walk_in(jsonb) returns jsonb language sql as $select jsonb_build_object('branchId',nullif(current_setting('studioflow.branch_id',true),''))$$;
+ create function studioflow_android_private.reschedule(uuid,date,text,text) returns jsonb language sql as $select jsonb_build_object('branchId',nullif(current_setting('studioflow.branch_id',true),''))$$;
+ create function studioflow_android_private.book(text,jsonb,date,text,text,text,text,text,uuid) returns jsonb language sql as $select jsonb_build_object('branchId',nullif(current_setting('studioflow.branch_id',true),''))$$;
 `);
 const migration=readFileSync('supabase/migrations/202610300004_multibranch_support.sql','utf8');
 try { await db.exec(migration); } catch (error) { console.error('multibranch migration failure:', error.message, error.position, error.where, migration.slice(Number(error.position)-200,Number(error.position)+200)); throw error; }
