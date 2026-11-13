@@ -95,9 +95,51 @@ export function useNexoraTitleDemote(wordCount: number): {
   const startedRef = useRef(false);
   const [stage, setStage] = useState<NexoraHeroStage>('static');
 
-  /* Arm before the first paint, so the static hero never flashes. */
+  /**
+   * Measures the landing slot and shows the browser the inverted transform
+   * before the first paint. Box metrics are font-size driven and are read
+   * here (never gated on fonts); the per-word rise that follows is what waits
+   * for the real face. Running this in a layout effect means stage 'prep'
+   * lands in the same commit as the inflated transform, so the centred title
+   * never flashes at the box's left edge on frame 1.
+   */
   useIsomorphicLayoutEffect(() => {
     if (!motionAllowed()) return;
+
+    const hero = heroRef.current;
+    const copy = copyRef.current;
+    const title = titleRef.current;
+    if (!hero || !copy || !title) return;
+
+    const startSize = Number.parseFloat(window.getComputedStyle(title).fontSize) || 60;
+
+    const inline = title.style;
+    const saved = {
+      fontSize: inline.fontSize,
+      fontWeight: inline.fontWeight,
+      letterSpacing: inline.letterSpacing,
+    };
+    inline.fontSize = `${TAG_FONT_SIZE}px`;
+    inline.fontWeight = '800';
+    inline.letterSpacing = '-0.012em';
+
+    const tag = title.getBoundingClientRect();
+    const copyBox = copy.getBoundingClientRect();
+    const heroBox = hero.getBoundingClientRect();
+
+    inline.fontSize = saved.fontSize;
+    inline.fontWeight = saved.fontWeight;
+    inline.letterSpacing = saved.letterSpacing;
+
+    const scale = Math.max(1.05, startSize / TAG_FONT_SIZE);
+
+    const startLeft = heroBox.left + heroBox.width / 2 - (tag.width * scale) / 2;
+    const startCenterY = copyBox.top + copyBox.height / 2;
+
+    title.style.setProperty('--nxh-dx', `${startLeft - tag.left}px`);
+    title.style.setProperty('--nxh-dy', `${startCenterY - (tag.top + tag.height / 2)}px`);
+    title.style.setProperty('--nxh-k', scale.toFixed(3));
+
     setStage('prep');
   }, []);
 
@@ -114,52 +156,8 @@ export function useNexoraTitleDemote(wordCount: number): {
         }, ms),
       );
 
-    /**
-     * Measures the landing slot and shows the browser the inverted transform.
-     * Runs only once the type is settled, never against a fallback face.
-     */
-    const arm = () => {
-      const hero = heroRef.current;
-      const copy = copyRef.current;
-      const title = titleRef.current;
-      if (!hero || !copy || !title) return;
-
-      /* The hero is already painted at the centred size; read it before the
-         title is measured in its landing presentation. */
-      const startSize = Number.parseFloat(window.getComputedStyle(title).fontSize) || 60;
-
-      /* Landing metrics, taken with the tag's own type on the same element so
-         the measurement cannot be overridden by selector order or a media
-         query. Restored immediately after the read. */
-      const inline = title.style;
-      const saved = { fontSize: inline.fontSize, fontWeight: inline.fontWeight, letterSpacing: inline.letterSpacing };
-      inline.fontSize = `${TAG_FONT_SIZE}px`;
-      inline.fontWeight = '800';
-      inline.letterSpacing = '-0.012em';
-
-      const tag = title.getBoundingClientRect();
-      const copyBox = copy.getBoundingClientRect();
-      const heroBox = hero.getBoundingClientRect();
-
-      inline.fontSize = saved.fontSize;
-      inline.fontWeight = saved.fontWeight;
-      inline.letterSpacing = saved.letterSpacing;
-
-      const scale = Math.max(1.05, startSize / TAG_FONT_SIZE);
-
-      /* Centre stage: the inverted transform is about the tag's left edge, so
-         the left offset is the centred position of the *scaled* box. */
-      const startLeft = heroBox.left + heroBox.width / 2 - (tag.width * scale) / 2;
-      const startCenterY = copyBox.top + copyBox.height / 2;
-
-      title.style.setProperty('--nxh-dx', `${startLeft - tag.left}px`);
-      title.style.setProperty('--nxh-dy', `${startCenterY - (tag.top + tag.height / 2)}px`);
-      title.style.setProperty('--nxh-k', scale.toFixed(3));
-    };
-
     const begin = () => {
       if (cancelled) return;
-      arm();
       setStage('rise');
 
       const demoteAt = demoteStartAt(wordCount);
@@ -168,16 +166,12 @@ export function useNexoraTitleDemote(wordCount: number): {
       at(demoteAt + NEXORA_TITLE_MOTION.demote + NEXORA_TITLE_MOTION.settle, 'settled');
     };
 
-    /* Measure against the real face; cap the wait so a slow font never stalls
-       the hero behind an empty first screen. */
-    const fonts = (document as Document & { fonts?: FontFaceSet }).fonts?.ready;
-    const ready = Promise.race([
-      fonts ?? Promise.resolve(),
-      new Promise<void>((resolve) => {
-        timers.push(window.setTimeout(resolve, 320));
-      }),
-    ]);
-    void ready.then(begin);
+    /* Gate the per-word rise on the real face so measured metrics match the
+       rendered font; never fall back to a 320ms timer that makes frame 1
+       inconsistent. If document.fonts is unavailable, advance on the next
+       tick instead. */
+    const fontsReady = (document as Document & { fonts?: FontFaceSet }).fonts?.ready;
+    void (fontsReady ? fontsReady : Promise.resolve()).then(begin);
 
     return () => {
       cancelled = true;

@@ -295,6 +295,8 @@
   font-size: clamp(38px, 5vw, 60px);
   font-weight: 760;
   letter-spacing: -0.035em;
+  white-space: normal;
+  text-wrap: balance;
   transform: none;
 }
 
@@ -305,6 +307,8 @@
   font-size: clamp(38px, 5vw, 60px);
   font-weight: 760;
   letter-spacing: -0.035em;
+  white-space: normal;
+  text-wrap: balance;
   transform: translate(var(--nxh-dx), calc(var(--nxh-dy) + var(--nxh-lift))) scale(var(--nxh-k));
 }
 
@@ -366,6 +370,13 @@
    stays a tag rather than snapping back to the centred title. */
 .nxh-hero--settled .nxh-hero__title {
   transform: none;
+}
+
+/* Hard guard: long titles stay wrapped even once demoted to the tag, so a
+   long headline never collapses to a single clipped line at tag size. */
+.nxh-hero--fly .nxh-hero__title--keep-wrap,
+.nxh-hero--settled .nxh-hero__title--keep-wrap {
+  white-space: normal;
 }
 
 .nxh-hero__word {

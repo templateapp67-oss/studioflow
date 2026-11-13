@@ -34,7 +34,12 @@ function splitTitle(heading: string) {
   const trailing = /[.!?]$/.test(heading) ? heading.slice(-1) : '';
   const body = trailing ? heading.slice(0, -1) : heading;
   const words = body.split(/\s+/).filter(Boolean);
-  return { words, trailing };
+  /* Hard guard: keep the title wrapped even at tag size when it has more than
+     three words or a single long word (~14+ chars), so a long headline can
+     never collapse onto one clipped line once it lands as the section tag. */
+  const longest = Math.max(0, ...words.map((word) => word.length));
+  const keepWrapped = words.length > 3 || longest > 14;
+  return { words, trailing, keepWrapped };
 }
 
 export function NexoraEcosystemHeader() {
@@ -90,7 +95,7 @@ export function NexoraEcosystemHero({
   tagNumber?: string;
 }) {
   const { label } = NEXORA_ECOSYSTEM_SEO[path];
-  const { words, trailing } = splitTitle(heading);
+  const { words, trailing, keepWrapped } = splitTitle(heading);
   const { heroRef, copyRef, titleRef, stage } = useNexoraTitleDemote(words.length);
 
   return (
@@ -128,7 +133,11 @@ export function NexoraEcosystemHero({
             {label}
           </p>
 
-          <h1 className="nxh-hero__title" id="nxe-hero-title" ref={titleRef}>
+          <h1
+            className={`nxh-hero__title${keepWrapped ? ' nxh-hero__title--keep-wrap' : ''}`}
+            id="nxe-hero-title"
+            ref={titleRef}
+          >
             <span className="nxh-hero__prefix" aria-hidden="true">
               {tagNumber} /
             </span>
