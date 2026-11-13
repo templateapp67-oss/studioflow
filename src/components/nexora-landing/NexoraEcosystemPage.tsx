@@ -7,7 +7,7 @@ import { NexoraGrowthPartnerRewardsPage } from './NexoraGrowthPartnerRewardsPage
 const pageData = {
   '/salon-onboarding': {
     title: 'Create Your Own Salon Brand With Nexora.',
-    heading: 'Aapke Salon Ki Apni Digital Pehchaan.',
+    heading: 'Digital Pehchaan.',
     intro: 'Choose a website design, add your own salon branding, showcase your services and build your digital presence using Nexora SalonOS.',
   },
   '/salon-growth': {
@@ -54,6 +54,7 @@ export function NexoraEcosystemPage({ path }: { path: keyof typeof pageData }) {
       intro={page.intro}
       primaryLabel={isOnboarding ? 'Explore Templates' : 'Explore Salon Growth'}
       primaryHref={isOnboarding ? '#templates' : '#growth'}
+      tagNumber={isOnboarding ? '01' : '02'}
     />
     <main>
       {isOnboarding ? <>

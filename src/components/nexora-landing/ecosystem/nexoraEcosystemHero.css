@@ -167,13 +167,29 @@
   z-index: 2;
   display: grid;
   grid-template-columns: minmax(0, 1.02fr) minmax(0, 0.98fr);
+  align-content: center;
   align-items: center;
-  gap: 56px;
+  gap: 30px 56px;
   flex: 1;
   width: 100%;
   max-width: 1220px;
   margin: 0 auto;
-  padding: 44px 32px 104px;
+  padding: 40px 32px 96px;
+}
+
+/* Row 1 is the title's landing slot: the demoted tag lives here, and the body
+   below it starts one line lower from the very first frame, so nothing is
+   re-laid out mid-flight. */
+.nxh-hero__stage {
+  position: relative;
+  z-index: 4;
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 13px;
+  min-height: 76px;
 }
 
 @media (min-width: 1081px) {
@@ -185,14 +201,19 @@
 /* ---- Copy column --------------------------------------------------------- */
 
 .nxh-hero__copy {
+  grid-column: 1;
   max-width: 620px;
+}
+
+.nxh-hero__visual {
+  grid-column: 2;
 }
 
 .nxh-hero__eyebrow {
   display: inline-flex;
   align-items: center;
   gap: 9px;
-  margin: 0 0 22px;
+  margin: 0;
   padding: 7px 15px 7px 12px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 999px;
@@ -217,25 +238,195 @@
   color: rgba(236, 229, 248, 0.32);
 }
 
+/* ---- Title stage (title-demote-to-label) --------------------------------- */
+
 .nxh-hero__title {
+  --nxh-dx: 0px;
+  --nxh-dy: 0px;
+  --nxh-k: 1;
+  --nxh-lift: 0px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.19em;
   margin: 0;
   font-family: 'Manrope', 'Hanken Grotesk', system-ui, sans-serif;
-  font-size: clamp(2.6rem, 5vw, 4.15rem);
-  font-weight: 750;
-  line-height: 1.04;
-  letter-spacing: -0.035em;
+  font-size: 23px;
+  font-weight: 800;
+  line-height: 1.14;
+  letter-spacing: -0.012em;
+  white-space: nowrap;
   color: #fff;
-  text-wrap: balance;
-  text-shadow: 0 24px 60px rgba(8, 4, 18, 0.55);
+  transform-origin: left center;
+  will-change: transform;
+}
+
+.nxh-hero__period {
+  display: inline-block;
+  margin-left: -0.19em;
+  color: #ff5a4d;
+}
+
+/* Once the title is a tag, the eyebrow above it has done its job. */
+.nxh-hero--settled .nxh-hero__eyebrow {
+  opacity: 0;
+}
+
+/* The "01 /" prefix takes over from the left just before the tag lands. */
+.nxh-hero__prefix {
+  display: inline-block;
+  max-width: 0;
+  overflow: hidden;
+  white-space: pre;
+  vertical-align: baseline;
+  opacity: 0;
+  color: #ff5a4d;
+  transform: translateX(-4px);
+}
+
+/* Static: no flight, so the "01 /" prefix would be a stray fragment next to a
+   centred title. It belongs to the landed tag only. */
+.nxh-hero--static .nxh-hero__prefix {
+  display: none;
+}
+
+/* Static: no JavaScript, reduced motion, or the sequence already played this
+   session. The hero ships complete, with the title readable at full size. */
+.nxh-hero--static .nxh-hero__title {
+  font-size: clamp(38px, 5vw, 60px);
+  font-weight: 760;
+  letter-spacing: -0.035em;
+  transform: none;
+}
+
+
+.nxh-hero--prep .nxh-hero__title,
+.nxh-hero--rise .nxh-hero__title,
+.nxh-hero--held .nxh-hero__title {
+  font-size: clamp(38px, 5vw, 60px);
+  font-weight: 760;
+  letter-spacing: -0.035em;
+  transform: translate(var(--nxh-dx), calc(var(--nxh-dy) + var(--nxh-lift))) scale(var(--nxh-k));
+}
+
+
+.nxh-hero--prep .nxh-hero__word,
+.nxh-hero--rise .nxh-hero__word {
+  transform: translateY(104%);
+}
+
+.nxh-hero--rise .nxh-hero__word {
+  transform: translateY(0);
+  transition: transform calc(var(--nxh-rise) * 1ms) cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: calc(var(--nxh-word-delay) * 1ms);
+}
+
+.nxh-hero--prep .nxh-hero__period,
+.nxh-hero--rise .nxh-hero__period {
+  opacity: 0;
+  transform: scale(0.4);
+}
+
+.nxh-hero--held .nxh-hero__title {
+  transform: translate(var(--nxh-dx), var(--nxh-dy)) scale(calc(var(--nxh-k) * 1.015));
+  transition: transform 1200ms cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+.nxh-hero--held .nxh-hero__period {
+  opacity: 1;
+  transform: scale(1);
+  transition:
+    transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 160ms linear;
+}
+
+/* The demotion: one asymmetric in-out, no bounce. Decisive start, soft landing. */
+.nxh-hero--fly .nxh-hero__title {
+  transform: none;
+  transition: transform calc(var(--nxh-demote) * 1ms) cubic-bezier(0.6, 0, 0.18, 1);
+}
+
+.nxh-hero--fly .nxh-hero__eyebrow,
+.nxh-hero--settled .nxh-hero__eyebrow {
+  opacity: 0;
+  transition: opacity calc(var(--nxh-eyebrow) * 1ms) ease-out;
+}
+
+.nxh-hero--fly .nxh-hero__prefix {
+  max-width: 26px;
+  opacity: 1;
+  transform: none;
+  transition:
+    max-width var(--nxh-prefix-in) ease-out,
+    opacity var(--nxh-prefix-in) ease-out,
+    transform var(--nxh-prefix-in) ease-out;
+  transition-delay: calc(var(--nxh-prefix-delay) * 1ms);
+}
+
+/* Fallback if the demotion is ever replayed in place (stage resets): the tag
+   stays a tag rather than snapping back to the centred title. */
+.nxh-hero--settled .nxh-hero__title {
+  transform: none;
+}
+
+.nxh-hero__word {
+  display: inline-block;
+  vertical-align: baseline;
+}
+
+.nxh-hero__word-mask {
+  display: inline-block;
+  overflow: hidden;
+  padding-bottom: 0.12em;
+  margin-bottom: -0.12em;
+}
+
+/* ---- Reveal of the rest of the hero -------------------------------------- */
+
+.nxh-hero--prep .nxh-reveal,
+.nxh-hero--rise .nxh-reveal,
+.nxh-hero--held .nxh-reveal {
+  opacity: 0;
+  transform: translateY(30px);
+}
+
+.nxh-hero--fly .nxh-reveal {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 420ms ease-out,
+    transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: calc(var(--nxh-reveal-delay, 0) * 1ms + var(--nxh-content-start) * 1ms);
+}
+
+/* The lead is cut open from the left with its width, so the text is never
+   smeared; the delay is measured from the start of the flight. */
+.nxh-hero--prep .nxh-hero__lead,
+.nxh-hero--rise .nxh-hero__lead,
+.nxh-hero--held .nxh-hero__lead {
+  opacity: 0;
+  clip-path: inset(0 100% 0 0);
+  transform: translateY(30px);
+}
+
+.nxh-hero--fly .nxh-hero__lead {
+  opacity: 1;
+  clip-path: inset(0 0 0 0);
+  transform: none;
+  transition:
+    opacity 360ms ease-out,
+    clip-path 420ms cubic-bezier(0.33, 1, 0.68, 1),
+    transform 480ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: calc(var(--nxh-content-start) * 1ms);
 }
 
 .nxh-hero__lead {
+  margin: 0;
   max-width: 512px;
-  margin: 24px 0 0;
   font-size: 16.5px;
   line-height: 1.72;
   color: rgba(226, 219, 240, 0.68);
 }
+
 
 .nxh-hero__actions {
   display: flex;

@@ -37,6 +37,11 @@ export interface NexoraEcosystemSeo {
    * from its siblings. The prerenderer fails the build when a document is
    * produced from the wrong route, and the verification suite asserts the same
    * thing against the emitted files.
+   *
+   * The hero headline is rendered word by word (each word sits in its own mask
+   * span for the title-demote motion), so it is no longer a contiguous string
+   * in the document. Each of these markers is taken from the lead sentence,
+   * which is plain text in the same hero and still unique to its route.
    */
   contentMarker: string;
 }
@@ -51,7 +56,7 @@ export const NEXORA_ECOSYSTEM_SEO: Readonly<Record<NexoraEcosystemPath, NexoraEc
     ogImagePath: '/nexora-homepage-og.jpg',
     ogImageAlt: 'NEXORA SalonOS salon website templates and branding options',
     themeColor: '#312347',
-    contentMarker: 'Aapke Salon Ki Apni Digital Pehchaan.',
+    contentMarker: 'Choose a website design, add your own salon branding',
   },
   '/salon-growth': {
     path: '/salon-growth',
@@ -62,7 +67,7 @@ export const NEXORA_ECOSYSTEM_SEO: Readonly<Record<NexoraEcosystemPath, NexoraEc
     ogImagePath: '/nexora-homepage-og.jpg',
     ogImageAlt: 'NEXORA SalonOS salon customer and booking tools',
     themeColor: '#312347',
-    contentMarker: 'Build lasting customer relationships.',
+    contentMarker: 'Nexora helps salons organise customer relationships',
   },
   '/growth-partner-rewards': {
     path: '/growth-partner-rewards',

@@ -1,5 +1,7 @@
+import type { CSSProperties } from 'react';
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import { NEXORA_ECOSYSTEM_SEO, type NexoraEcosystemPath } from '../../../lib/nexoraEcosystemSeo';
+import { NEXORA_TITLE_MOTION, useNexoraTitleDemote } from './useNexoraTitleDemote';
 import './nexoraEcosystemHero.css';
 
 /**
@@ -7,15 +9,14 @@ import './nexoraEcosystemHero.css';
  *
  * Layout: a slim navigation bar (wordmark left, route links right) sitting on
  * the same deep purple-to-charcoal gradient as the rest of the hero, a
- * left-hand editorial column (eyebrow, headline, lead, two buttons) and a
- * floating frosted phone that renders the Ziya Women's Hair Studio template as
- * a live preview. The header is rendered inside the section so the gradient is
- * continuous from the very top of the page.
+ * left-hand editorial column (lead, two buttons) and a floating frosted phone
+ * that renders the Ziya Women's Hair Studio template as a live preview.
  *
- * Static markup only: the page is prerendered, so nothing here may depend on
- * the browser (no hooks, no window access). Every class is styled by the
- * stylesheet this module imports, which keeps the release gate that checks
- * "every class in the document has a rule" satisfied.
+ * The `<h1>` opens centred and large, holds, then demotes into the section tag
+ * the layout reserves for it in the top-left corner while the rest of the hero
+ * grows in beneath the flight (`title-demote-to-label`, variant A). See
+ * `useNexoraTitleDemote` for the timeline; the stylesheet reads the same frame
+ * values from custom properties so the two cannot drift.
  */
 
 const NAV_LINKS = [
@@ -27,6 +28,14 @@ const NAV_LINKS = [
 
 /** Sample services shown inside the phone preview (taken from template 01). */
 const PREVIEW_SERVICES = ['Layer haircut', 'Curtain bangs', 'Step cut'];
+
+/** The title is the only part of the hero that moves before the demotion. */
+function splitTitle(heading: string) {
+  const trailing = /[.!?]$/.test(heading) ? heading.slice(-1) : '';
+  const body = trailing ? heading.slice(0, -1) : heading;
+  const words = body.split(/\s+/).filter(Boolean);
+  return { words, trailing };
+}
 
 export function NexoraEcosystemHeader() {
   return (
@@ -70,17 +79,38 @@ export function NexoraEcosystemHero({
   intro,
   primaryLabel,
   primaryHref,
+  tagNumber = '01',
 }: {
   path: NexoraEcosystemPath;
   heading: string;
   intro: string;
   primaryLabel: string;
   primaryHref: string;
+  /** Section number that takes over the tag as the title lands. */
+  tagNumber?: string;
 }) {
   const { label } = NEXORA_ECOSYSTEM_SEO[path];
+  const { words, trailing } = splitTitle(heading);
+  const { heroRef, copyRef, titleRef, stage } = useNexoraTitleDemote(words.length);
 
   return (
-    <section className="nxh-hero" aria-labelledby="nxe-hero-title">
+    <section
+      ref={heroRef}
+      className={`nxh-hero nxh-hero--${stage}`}
+      aria-labelledby="nxe-hero-title"
+      /* One source for the timeline: CSS reads these, the hook schedules the
+         stage changes from the same numbers. */
+      style={
+        {
+          '--nxh-rise': NEXORA_TITLE_MOTION.rise,
+          '--nxh-demote': NEXORA_TITLE_MOTION.demote,
+          '--nxh-eyebrow': NEXORA_TITLE_MOTION.eyebrowOut,
+          '--nxh-content-start': NEXORA_TITLE_MOTION.contentStart,
+          '--nxh-prefix-delay': NEXORA_TITLE_MOTION.prefixDelay,
+          '--nxh-prefix-in': `${NEXORA_TITLE_MOTION.prefixIn}ms`,
+        } as CSSProperties
+      }
+    >
       <NexoraEcosystemHeader />
       <div className="nxh-hero__glow nxh-hero__glow--violet" aria-hidden="true" />
       <div className="nxh-hero__glow nxh-hero__glow--ember" aria-hidden="true" />
@@ -88,7 +118,7 @@ export function NexoraEcosystemHero({
       <div className="nxh-hero__grid" aria-hidden="true" />
 
       <div className="nxh-hero__inner">
-        <div className="nxh-hero__copy">
+        <div className="nxh-hero__stage">
           <p className="nxh-hero__eyebrow">
             <span className="nxh-hero__eyebrow-dot" aria-hidden="true" />
             Nexora SalonOS
@@ -98,13 +128,28 @@ export function NexoraEcosystemHero({
             {label}
           </p>
 
-          <h1 className="nxh-hero__title" id="nxe-hero-title">
-            {heading}
+          <h1 className="nxh-hero__title" id="nxe-hero-title" ref={titleRef}>
+            <span className="nxh-hero__prefix" aria-hidden="true">
+              {tagNumber} /
+            </span>
+            {words.map((word, index) => (
+              <span className="nxh-hero__word-mask" key={`${word}-${index}`}>
+                <span
+                  className="nxh-hero__word"
+                  style={{ '--nxh-word-delay': Math.round(index * NEXORA_TITLE_MOTION.wordStagger) } as CSSProperties}
+                >
+                  {word}
+                </span>
+              </span>
+            ))}
+            {trailing ? <span className="nxh-hero__period">{trailing}</span> : null}
           </h1>
+        </div>
 
+        <div className="nxh-hero__copy" ref={copyRef}>
           <p className="nxh-hero__lead">{intro}</p>
 
-          <div className="nxh-hero__actions">
+          <div className="nxh-hero__actions nxh-reveal" style={{ '--nxh-reveal-delay': 90 } as CSSProperties}>
             <a className="nxh-btn nxh-btn--primary" href={primaryHref}>
               {primaryLabel}
               <ArrowRight size={16} strokeWidth={2.2} aria-hidden="true" />
@@ -114,14 +159,17 @@ export function NexoraEcosystemHero({
             </a>
           </div>
 
-          <p className="nxh-hero__footnote">
+          <p
+            className="nxh-hero__footnote nxh-reveal"
+            style={{ '--nxh-reveal-delay': 180 } as CSSProperties}
+          >
             16 ready-made salon templates
             <span className="nxh-hero__footnote-dot" aria-hidden="true" />
             Edit, preview and publish
           </p>
         </div>
 
-        <div className="nxh-hero__visual">
+        <div className="nxh-hero__visual nxh-reveal" style={{ '--nxh-reveal-delay': 270 } as CSSProperties}>
           <div className="nxh-phone">
             <div className="nxh-phone__glare" aria-hidden="true" />
             <div className="nxh-phone__frame">
@@ -183,7 +231,7 @@ export function NexoraEcosystemHero({
             </div>
           </div>
 
-          <div className="nxh-glass-card">
+          <div className="nxh-glass-card nxh-reveal" style={{ '--nxh-reveal-delay': 360 } as CSSProperties}>
             <span className="nxh-glass-card__badge">Template 01</span>
             <p className="nxh-glass-card__name">Luxury Editorial</p>
             <p className="nxh-glass-card__meta">Ziya Women&apos;s Hair Studio</p>
