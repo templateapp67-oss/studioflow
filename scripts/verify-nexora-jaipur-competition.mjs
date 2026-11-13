@@ -51,6 +51,11 @@ assert.match(migration, /Only approved competition members can view competitor r
 assert.match(migration, /e\.status = 'approved' and e\.award_applied = true/);
 assert.match(migration, /report_sharing_consent boolean not null default false/);
 assert.match(migration, /check \(report_sharing_consent = true\)/);
+assert.match(migration, /p_competition_terms_accepted boolean/);
+assert.match(migration, /p_report_sharing_consent boolean/);
+assert.match(migration, /p_competition_terms_accepted is distinct from true or p_report_sharing_consent is distinct from true/);
+assert.match(page, /p_competition_terms_accepted:form\.terms/);
+assert.match(page, /p_report_sharing_consent:form\.terms/);
 assert.match(migration, /public_profile_visible boolean not null default false/);
 assert.match(migration, /and e\.public_profile_visible = true/, 'Only opted-in salons should enter the public salon directory');
 assert.match(migration, /'competitionId', competition_id/);
@@ -182,9 +187,16 @@ try {
   assert.equal(cycle.registrationOpen, true);
 
   const hiddenVisibility = {showCategory:false,showArea:false,showDescription:false,showLogo:true,showCover:true,showWebsite:true};
+  await assert.rejects(
+    db.query(
+      'select public.nexora_competition_register($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)',
+      [cycleCode,'Consent Test Salon','Jaipur','Vaishali Nagar','Shop 99, Test Road, Jaipur','Unisex Salon',true,false,'Consent bypass test',JSON.stringify(hiddenVisibility),false,true,true,true],
+    ),
+    /consent before registering/i,
+  );
   const registration = await db.query(
-    'select public.nexora_competition_register($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) as result',
-    [cycleCode,'NEXORA Test Salon','Jaipur','Vaishali Nagar','Shop 12, Test Market, Jaipur','Unisex Salon','PGlite integration test',JSON.stringify(hiddenVisibility),false,true,true,true],
+    'select public.nexora_competition_register($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) as result',
+    [cycleCode,'NEXORA Test Salon','Jaipur','Vaishali Nagar','Shop 12, Test Market, Jaipur','Unisex Salon',true,true,'PGlite integration test',JSON.stringify(hiddenVisibility),false,true,true,true],
   );
   const registrationResult = registration.rows[0].result;
   assert.match(registrationResult.competitionId, /^NEXORA-JPR-\d{4,}-\d{4}Q[1-4]$/);
