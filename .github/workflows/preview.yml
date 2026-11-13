@@ -75,7 +75,7 @@ jobs:
         if: steps.vercel-config.outputs.available == 'true'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: vercel pull --yes --environment=preview --token="$VERCEL_TOKEN" --team "$VERCEL_ORG_ID"
+        run: vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
 
       - name: Verify linked Vercel project
         if: steps.vercel-config.outputs.available == 'true'
@@ -103,7 +103,7 @@ jobs:
         if: steps.vercel-config.outputs.available == 'true'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: vercel build --token="$VERCEL_TOKEN" --team "$VERCEL_ORG_ID"
+        run: vercel build --token="$VERCEL_TOKEN"
 
       - name: Deploy preview
         id: deploy
@@ -112,7 +112,7 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
           set -euo pipefail
-          url="$(vercel deploy --prebuilt --yes --token="$VERCEL_TOKEN" --team "$VERCEL_ORG_ID")"
+          url="$(vercel deploy --prebuilt --yes --token="$VERCEL_TOKEN" --team "$VERCEL_ORG_ID" --project "$VERCEL_PROJECT_ID")"
           test -n "$url"
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
