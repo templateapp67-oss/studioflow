@@ -722,7 +722,7 @@ create or replace function public.nexora_competition_admin_list_cycles()
 returns jsonb
 language plpgsql stable security definer
 set search_path = ''
-as $
+as $$
 begin
   if not nexora_competition_private.is_admin() then raise exception 'NEXORA admin access required' using errcode='42501'; end if;
   return coalesce((
@@ -730,7 +730,7 @@ begin
     from public.nexora_competition_cycles c
   ),'[]'::jsonb);
 end;
-$;
+$$;
 
 create or replace function public.nexora_competition_update_visibility(
   p_cycle_code text,
@@ -740,7 +740,7 @@ create or replace function public.nexora_competition_update_visibility(
 returns jsonb
 language plpgsql security definer
 set search_path = ''
-as $
+as $$
 declare v_entry public.nexora_competition_entries;
 begin
   if auth.uid() is null then raise exception 'Sign in required' using errcode='42501'; end if;
@@ -769,7 +769,7 @@ begin
     'profileVisibility',v_entry.profile_visibility
   );
 end;
-$;
+$$;
 
 revoke all on function public.nexora_competition_admin_list_cycles() from public;
 revoke all on function public.nexora_competition_update_visibility(text,boolean,jsonb) from public;
@@ -842,147 +842,6 @@ commit;
   return nexora_competition_private.cycle_json(v_cycle);
 end;
 $$;
-
-create or replace function public.nexora_competition_admin_list_entries(p_cycle_code text)
-returns jsonb
-language plpgsql stable security definer
-set search_path = ''
-as $$
-declare v_cycle public.nexora_competition_cycles; v_result jsonb;
-begin
-  if not nexora_competition_private.is_admin() then raise exception 'NEXORA admin access required' using errcode='42501'; end if;
-  select * into v_cycle from public.nexora_competition_cycles where cycle_code=p_cycle_code;
-  if v_cycle.id is null then raise exception 'Competition cycle not found'; end if;
-  select coalesce(jsonb_agg(jsonb_build_object(
-    'entryId',e.id,'salonName',e.salon_name,'competitionId',e.competition_id,
-    'area',e.area,'category',e.category,'status',e.status,'registeredAt',e.registered_at,
-    'ownerName',e.owner_name,'ownerEmail',e.owner_email,'ownerPhone',e.owner_phone,
-    'businessAddress',e.business_address,
-    'publicProfileVisible',e.public_profile_visible,'profileVisibility',e.profile_visibility,
-    'verificationNote',e.verification_note,'awardApplied',e.award_applied
-  ) order by e.registered_at),'[]'::jsonb)
-  into v_result
-  from public.nexora_competition_entries e where e.cycle_id=v_cycle.id;
-  return jsonb_build_object('cycle',nexora_competition_private.cycle_json(v_cycle),'applications',v_result);
-end;
-$$;
-
-create or replace function public.nexora_competition_admin_review_entry(
-  p_entry_id uuid,
-  p_status text,
-  p_note text default null
-)
-returns jsonb
-language plpgsql security definer
-set search_path = ''
-as $$
-declare v_entry public.nexora_competition_entries;
-begin
-  if not nexora_competition_private.is_admin() then raise exception 'NEXORA admin access required' using errcode='42501'; end if;
-  if p_status not in ('approved','rejected') then raise exception 'Choose approved or rejected'; end if;
-  update public.nexora_competition_entries
-  set status=p_status,verification_note=left(nullif(btrim(coalesce(p_note,'')),''),1000),
-      reviewed_at=now(),reviewed_by=auth.uid(),updated_at=now()
-  where id=p_entry_id and status='pending'
-  returning * into v_entry;
-  if v_entry.id is null then raise exception 'Competition application not found'; end if;
-  return jsonb_build_object('entryId',v_entry.id,'competitionId',v_entry.competition_id,
-    'status',v_entry.status,'verificationNote',v_entry.verification_note);
-end;
-$$;
-
-create or replace function public.nexora_competition_admin_finalize_cycle(p_cycle_code text)
-returns jsonb
-language plpgsql security definer
-set search_path = ''
-as $$
-declare v_cycle public.nexora_competition_cycles; v_cards jsonb;
-begin
-  if not nexora_competition_private.is_admin() then raise exception 'NEXORA admin access required' using errcode='42501'; end if;
-  select * into v_cycle from public.nexora_competition_cycles where cycle_code=p_cycle_code for update;
-  if v_cycle.id is null then raise exception 'Competition cycle not found'; end if;
-  if v_cycle.status='completed' then raise exception 'This competition cycle has already been finalized'; end if;
-  if (now() at time zone 'Asia/Kolkata')::date <= v_cycle.end_date then
-    raise exception 'The 90-day competition has not ended yet';
-  end if;
-  v_cards:=nexora_competition_private.report_cards(v_cycle.id);
-  with ranked as (
-    select (item->>'entryId')::uuid as entry_id,
-           (item->>'currentRank')::integer as rank,
-           (item->>'score')::numeric as score
-    from jsonb_array_elements(v_cards) item
-  )
-  update public.nexora_competition_entries e
-  set final_rank=case when r.rank<=3 then r.rank else null end,
-      final_score=r.score,finalized_at=now(),updated_at=now()
-  from ranked r where e.id=r.entry_id;
-  update public.nexora_competition_cycles set status='completed',updated_at=now(),updated_by=auth.uid()
-  where id=v_cycle.id;
-  return jsonb_build_object('cycleCode',v_cycle.cycle_code,'finalizedAt',now(),'winnerCards',(
-    select coalesce(jsonb_agg(item order by (item->>'currentRank')::integer),'[]'::jsonb)
-    from jsonb_array_elements(v_cards) item where (item->>'currentRank')::integer<=3
-  ));
-end;
-$$;
-
-
-create or replace function public.nexora_competition_admin_list_cycles()
-returns jsonb
-language plpgsql stable security definer
-set search_path = ''
-as $
-begin
-  if not nexora_competition_private.is_admin() then raise exception 'NEXORA admin access required' using errcode='42501'; end if;
-  return coalesce((
-    select jsonb_agg(nexora_competition_private.cycle_json(c) order by c.start_date desc)
-    from public.nexora_competition_cycles c
-  ),'[]'::jsonb);
-end;
-$;
-
-create or replace function public.nexora_competition_update_visibility(
-  p_cycle_code text,
-  p_public_profile_visible boolean,
-  p_profile_visibility jsonb
-)
-returns jsonb
-language plpgsql security definer
-set search_path = ''
-as $
-declare v_entry public.nexora_competition_entries;
-begin
-  if auth.uid() is null then raise exception 'Sign in required' using errcode='42501'; end if;
-  if jsonb_typeof(coalesce(p_profile_visibility,'{}'::jsonb)) <> 'object' then
-    raise exception 'Invalid profile visibility settings';
-  end if;
-  update public.nexora_competition_entries e
-  set public_profile_visible=coalesce(p_public_profile_visible,false),
-      profile_visibility=jsonb_build_object(
-        'showCategory',coalesce((p_profile_visibility->>'showCategory')::boolean,true),
-        'showArea',coalesce((p_profile_visibility->>'showArea')::boolean,true),
-        'showDescription',coalesce((p_profile_visibility->>'showDescription')::boolean,true),
-        'showLogo',coalesce((p_profile_visibility->>'showLogo')::boolean,true),
-        'showCover',coalesce((p_profile_visibility->>'showCover')::boolean,true),
-        'showWebsite',coalesce((p_profile_visibility->>'showWebsite')::boolean,true)
-      ),
-      profile_consent_at=case when coalesce(p_public_profile_visible,false) then now() else null end,
-      updated_at=now()
-  where e.owner_id=auth.uid()
-    and e.cycle_id=(select c.id from public.nexora_competition_cycles c where c.cycle_code=p_cycle_code);
-  returning * into v_entry;
-  if v_entry.id is null then raise exception 'Your competition registration was not found'; end if;
-  return jsonb_build_object(
-    'competitionId',v_entry.competition_id,
-    'publicProfileVisible',v_entry.public_profile_visible,
-    'profileVisibility',v_entry.profile_visibility
-  );
-end;
-$;
-
-revoke all on function public.nexora_competition_admin_list_cycles() from public;
-revoke all on function public.nexora_competition_update_visibility(text,boolean,jsonb) from public;
-grant execute on function public.nexora_competition_admin_list_cycles() to authenticated;
-grant execute on function public.nexora_competition_update_visibility(text,boolean,jsonb) to authenticated;
 
 revoke all on function public.nexora_competition_get_current_cycle() from public;
 revoke all on function public.nexora_competition_public_directory(text) from public;
