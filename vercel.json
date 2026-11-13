@@ -34,6 +34,10 @@
       "destination": "/growth-partner-rewards/index.html"
     },
     {
+      "source": "/top-salon-jaipur-awards",
+      "destination": "/top-salon-jaipur-awards/index.html"
+    },
+    {
       "source": "/(.*\\..*)",
       "destination": "/$1"
     },
