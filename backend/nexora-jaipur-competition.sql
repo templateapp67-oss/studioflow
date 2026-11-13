@@ -875,7 +875,7 @@ begin
         where cycle_id=p_cycle_id
           and entry_id=(v_card->>'entryId')::uuid
           and reward_key=v_reward_key
-          and status in ('eligible','under_verification');
+          and status in ('eligible','under_verification','approved','preparing','scheduled');
       end if;
     end loop;
   end loop;
