@@ -559,6 +559,7 @@ declare
   v_actor uuid:=auth.uid();
   v_cycle public.top_salon_competition_cycles;
   v_entry public.top_salon_competition_entries;
+  v_award public.top_salon_competition_awards;
   v_id uuid;
   v_start date;
   v_end date;
@@ -675,8 +676,8 @@ begin
            promotion_status=coalesce(nullif(p_data->>'promotionStatus',''),promotion_status),
            certificate_status=coalesce(nullif(p_data->>'certificateStatus',''),certificate_status),
            fulfilment_note=nullif(btrim(p_data->>'note'),'')
-     where id=v_id returning * into v_cycle;
-    if v_cycle.id is null then raise exception 'Award fulfilment record not found'; end if;
+     where id=v_id returning * into v_award;
+    if v_award.id is null then raise exception 'Award fulfilment record not found'; end if;
     insert into public.top_salon_competition_audit_logs(actor_id,action,details)
     values(v_actor,'award_fulfilment_updated',jsonb_build_object('awardId',v_id,'trophyStatus',p_data->>'trophyStatus','promotionStatus',p_data->>'promotionStatus','certificateStatus',p_data->>'certificateStatus'));
     return jsonb_build_object('awardId',v_id,'updated',true);
@@ -739,7 +740,7 @@ begin
   into result
   from (
     select * from public.studioflow_reviews
-    where owner_id=salon and booking_id is not null
+    where owner_id=salon
     order by updated_at desc limit 50
   ) r;
 
@@ -830,10 +831,12 @@ begin
 end
 $function$;
 
--- Public wrappers expose no underlying payment, booking or owner PII.
-create or replace function public.top_salon_competition_admin(p_action text,p_data jsonb default '{}'::jsonb)
-returns jsonb language plpgsql security definer set search_path = ''
-as $function$ select public.top_salon_competition_admin(p_action,p_data) $function$;
+-- Public admin RPC is the guarded SECURITY DEFINER function defined above; it checks the trusted NEXORA admin roster before every action.
+
+-- Keep private helpers inaccessible to browser roles; public RPCs above are the only API surface.
+revoke all on function private.top_salon_is_admin() from public,anon,authenticated;
+revoke all on function private.top_salon_is_competitor(uuid,uuid) from public,anon,authenticated;
+revoke all on function private.top_salon_refresh_metrics(uuid) from public,anon,authenticated;
 
 -- Prevent accidental direct access to raw reports/applications.
 revoke all on function public.top_salon_competition_cycles() from public;
