@@ -5,7 +5,7 @@ import { build } from 'esbuild';
 /**
  * NEXORA marketing route wiring (release gate).
  *
- * `/salon-onboarding`, `/salon-growth` and `/growth-partner-rewards` are three
+ * `/salon-onboarding`, `/salon-growth`, `/growth-partner-rewards` and `/top-salon-jaipur-awards` are four
  * different pages rendered by one shared component. Before this suite existed
  * they were routed in `AppRouter.tsx` but had no document of their own, so every
  * URL answered with the homepage shell: one title, one description and one
@@ -51,7 +51,7 @@ const { NEXORA_ECOSYSTEM_ROUTES, NEXORA_ECOSYSTEM_SEO, NEXORA_PUBLIC_ORIGIN, NEX
 
 assert.deepEqual(
   [...NEXORA_ECOSYSTEM_ROUTES],
-  ['/salon-onboarding', '/salon-growth', '/growth-partner-rewards'],
+  ['/salon-onboarding', '/salon-growth', '/growth-partner-rewards', '/top-salon-jaipur-awards'],
   'The three routed marketing pages are covered by the metadata source',
 );
 assert.equal(new URL(NEXORA_HOME_SEO.canonicalUrl).origin, NEXORA_PUBLIC_ORIGIN);
