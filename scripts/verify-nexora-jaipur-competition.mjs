@@ -71,6 +71,11 @@ assert.match(migration, /if not nexora_competition_private\.is_admin\(\) then ra
 assert.match(migration, /'ownerEmail',e\.owner_email/);
 assert.match(migration, /'businessAddress',e\.business_address/);
 assert.match(migration, /create table if not exists public\.nexora_competition_reward_fulfilments/);
+assert.match(migration, /nexora_competition_physical_reward_once_idx/);
+assert.match(migration, /on public\.nexora_competition_reward_fulfilments\(owner_id,reward_key\)/);
+assert.ok(!migration.includes('as $\\n') && !migration.includes('\\n$;'), 'Every SQL function must use balanced dollar quotes');
+assert.match(migration, /where f\.cycle_id=v_cycle\.id or f\.reward_key in \('coBrandedTshirts','ledSignBoard','achievementTrophy'\)/);
+
 assert.match(migration, /nexora_competition_member_reward_fulfilments/);
 assert.match(migration, /nexora_competition_admin_list_reward_fulfilments/);
 assert.match(migration, /nexora_competition_admin_update_reward_fulfilment/);
