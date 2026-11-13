@@ -78,14 +78,14 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-        run: vercel pull --yes --environment=preview --scope="$VERCEL_ORG_ID"
+        run: vercel pull --yes --environment=preview
 
       - name: Build preview
         if: steps.vercel-config.outputs.available == 'true'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-        run: vercel build --scope="$VERCEL_ORG_ID"
+        run: vercel build
 
       - name: Deploy preview
         id: deploy
@@ -94,7 +94,7 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
         run: |
-          url="$(vercel deploy --prebuilt --scope="$VERCEL_ORG_ID")"
+          url="$(vercel deploy --prebuilt --yes)"
           test -n "$url"
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
