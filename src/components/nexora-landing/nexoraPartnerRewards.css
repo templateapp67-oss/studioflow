@@ -90,6 +90,26 @@
 .npa-text-link { display:inline-flex; align-items:center; gap:7px; margin-top:12px; color:#a30052; font-size:12px; font-weight:850; text-decoration:none; }
 .npa-member-area { background:#f9f6fa; }
 .npa-competitor-list { display:grid; gap:12px; max-width:1150px; margin:auto; }
+.npa-my-progress { margin-bottom:18px; padding:22px; border:1px solid #e6d5b5; border-radius:18px; background:linear-gradient(135deg,#fffdf8,#fbf5ed); }
+.npa-my-progress-heading { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; }
+.npa-my-progress-heading h3 { margin:5px 0 0; color:#2b1d34; font-size:22px; font-weight:950; }
+.npa-my-progress-heading .npa-kicker { color:#a36f36; }
+.npa-my-rank { padding:7px 11px; border:1px solid #e4c991; border-radius:999px; color:#6c491d; background:#fff5d9; font-size:11px; font-weight:900; }
+.npa-my-progress>p { margin:10px 0 16px; color:#746977; font-size:12px; }
+.npa-progress-tiers { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:13px; }
+.npa-progress-tier { padding:15px; border:1px solid #e9e0d4; border-radius:13px; background:#fff; }
+.npa-progress-tier-title { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
+.npa-progress-tier-title>b { color:#312239; font-size:13px; font-weight:900; }
+.npa-progress-tier-title>span { padding:4px 7px; border-radius:999px; font-size:9px; font-weight:900; text-transform:uppercase; }
+.npa-progress-tier-title>span.is-complete { color:#14623b; background:#ddf6e8; }
+.npa-progress-tier-title>span.is-progress { color:#80561e; background:#fff0d0; }
+.npa-progress-row { margin-top:11px; }
+.npa-progress-row>div:first-child { display:flex; align-items:center; justify-content:space-between; gap:10px; color:#726778; font-size:10px; }
+.npa-progress-row>div:first-child b { color:#312239; font-size:10px; font-weight:900; text-align:right; }
+.npa-progress-track { height:7px; overflow:hidden; margin-top:6px; border-radius:99px; background:#eee8ef; }
+.npa-progress-track i { display:block; height:100%; border-radius:99px; background:linear-gradient(90deg,#a90b5d,#d6a95d); }
+.npa-progress-row>small { display:block; margin-top:4px; color:#887b89; font-size:9px; }
+
 .npa-member-summary { display:flex; flex-wrap:wrap; justify-content:space-between; gap:10px; padding:12px 16px; border:1px solid #e9ddec; border-radius:12px; background:#fff; color:#5a4c60; font-size:12px; }
 .npa-competitor-card { display:grid; grid-template-columns:62px minmax(0,1fr); gap:15px; align-items:start; padding:18px; border:1px solid #e8deea; border-radius:16px; background:#fff; }
 .npa-competitor-card.is-own { border:2px solid #b00058; background:#fff9fc; }
@@ -179,7 +199,7 @@
  .npa-countdown { align-items:flex-start; flex-direction:column; }
  .npa-countdown-units { width:100%; justify-content:space-between; gap:5px; }
  .npa-countdown-units strong { min-width:0; font-size:22px; }
- .npa-reward-grid,.npa-salon-grid,.npa-rules-grid { grid-template-columns:1fr; }
+ .npa-reward-grid,.npa-salon-grid,.npa-rules-grid,.npa-progress-tiers { grid-template-columns:1fr; }
  .npa-reward-card { grid-template-columns:128px minmax(0,1fr); }
  .npa-reward-copy { padding:15px 12px; }
  .npa-reward-copy h3 { font-size:17px; }
