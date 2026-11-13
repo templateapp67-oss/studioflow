@@ -109,6 +109,11 @@
 .npa-progress-track { height:7px; overflow:hidden; margin-top:6px; border-radius:99px; background:#eee8ef; }
 .npa-progress-track i { display:block; height:100%; border-radius:99px; background:linear-gradient(90deg,#a90b5d,#d6a95d); }
 .npa-progress-row>small { display:block; margin-top:4px; color:#887b89; font-size:9px; }
+.npa-fulfilment-status { display:grid; gap:4px; margin-top:12px; padding:10px; border:1px solid #d9e9dd; border-radius:10px; color:#17643d; background:#f2fbf5; font-size:10px; }
+.npa-fulfilment-status b { font-size:11px; font-weight:900; text-transform:capitalize; }
+.npa-fulfilment-status small { color:#54705d; font-size:10px; }
+.npa-fulfilment-row select { max-width:190px; min-height:36px; padding:7px 9px; border:1px solid #ded2e0; border-radius:9px; color:#423449; background:#fff; font-size:11px; font-weight:800; }
+
 
 .npa-member-summary { display:flex; flex-wrap:wrap; justify-content:space-between; gap:10px; padding:12px 16px; border:1px solid #e9ddec; border-radius:12px; background:#fff; color:#5a4c60; font-size:12px; }
 .npa-competitor-card { display:grid; grid-template-columns:62px minmax(0,1fr); gap:15px; align-items:start; padding:18px; border:1px solid #e8deea; border-radius:16px; background:#fff; }
