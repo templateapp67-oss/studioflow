@@ -1082,25 +1082,7 @@ commit;
 end;
 $$;
 
-revoke all on function public.nexora_competition_get_current_cycle() from public;
-revoke all on function public.nexora_competition_public_directory(text) from public;
-revoke all on function public.nexora_competition_member_leaderboard(text) from public;
-revoke all on function public.nexora_competition_get_my_entry(text) from public;
-revoke all on function public.nexora_competition_register(text,text,text,text,text,text,boolean,boolean,text,jsonb,boolean,boolean,boolean,boolean) from public;
-revoke all on function public.nexora_competition_admin_save_cycle(text,text,timestamptz,timestamptz,date,date,text) from public;
-revoke all on function public.nexora_competition_admin_list_entries(text) from public;
-revoke all on function public.nexora_competition_admin_review_entry(uuid,text,text) from public;
-revoke all on function public.nexora_competition_admin_finalize_cycle(text) from public;
 
-grant execute on function public.nexora_competition_get_current_cycle() to anon, authenticated;
-grant execute on function public.nexora_competition_public_directory(text) to anon, authenticated;
-grant execute on function public.nexora_competition_member_leaderboard(text) to authenticated;
-grant execute on function public.nexora_competition_get_my_entry(text) to authenticated;
-grant execute on function public.nexora_competition_register(text,text,text,text,text,text,boolean,boolean,text,jsonb,boolean,boolean,boolean,boolean) to authenticated;
-grant execute on function public.nexora_competition_admin_save_cycle(text,text,timestamptz,timestamptz,date,date,text) to authenticated;
-grant execute on function public.nexora_competition_admin_list_entries(text) to authenticated;
-grant execute on function public.nexora_competition_admin_review_entry(uuid,text,text) to authenticated;
-grant execute on function public.nexora_competition_admin_finalize_cycle(text) to authenticated;
 
 notify pgrst, 'reload schema';
 commit;
