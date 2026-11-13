@@ -479,6 +479,8 @@ create or replace function public.nexora_competition_register(
   p_area text,
   p_full_address text,
   p_category text,
+  p_competition_terms_accepted boolean,
+  p_report_sharing_consent boolean,
   p_description text default '',
   p_profile_visibility jsonb default '{}'::jsonb,
   p_public_profile_visible boolean default false,
@@ -496,6 +498,9 @@ declare v_user uuid:=auth.uid(); v_cycle public.nexora_competition_cycles;
         v_logo text; v_cover text; v_visibility jsonb; v_entry public.nexora_competition_entries;
 begin
   if v_user is null then raise exception 'Sign in to register for the competition' using errcode='42501'; end if;
+  if p_competition_terms_accepted is distinct from true or p_report_sharing_consent is distinct from true then
+    raise exception 'Accept the competition rules and competitor report-card sharing consent before registering';
+  end if;
   if char_length(btrim(coalesce(p_salon_name,''))) not between 2 and 120
      or lower(btrim(coalesce(p_city,''))) <> 'jaipur'
      or char_length(btrim(coalesce(p_area,''))) not between 2 and 100
@@ -551,7 +556,7 @@ begin
     btrim(coalesce(p_description,'')),v_slug,v_logo,v_cover,v_visibility,
     coalesce(p_public_profile_visible,false),
     case when coalesce(p_public_profile_visible,false) then now() else null end,
-    true,now(),true,now(),true,'pending'
+    p_competition_terms_accepted,now(),p_report_sharing_consent,now(),true,'pending'
   )
   on conflict(cycle_id,owner_id) do update set
     salon_name=excluded.salon_name,owner_name=excluded.owner_name,owner_email=excluded.owner_email,
@@ -559,6 +564,9 @@ begin
     city=excluded.city,area=excluded.area,category=excluded.category,
     description=excluded.description,salon_slug=excluded.salon_slug,logo_url=excluded.logo_url,
     cover_image_url=excluded.cover_image_url,profile_visibility=excluded.profile_visibility,
+    competition_terms_accepted=excluded.competition_terms_accepted,
+    competition_terms_accepted_at=now(),report_sharing_consent=excluded.report_sharing_consent,
+    report_sharing_consent_at=now(),
     public_profile_visible=excluded.public_profile_visible,
     profile_consent_at=case when excluded.public_profile_visible then now() else null end,
     updated_at=now()
@@ -1011,7 +1019,7 @@ revoke all on function public.nexora_competition_get_current_cycle() from public
 revoke all on function public.nexora_competition_public_directory(text) from public;
 revoke all on function public.nexora_competition_member_leaderboard(text) from public;
 revoke all on function public.nexora_competition_get_my_entry(text) from public;
-revoke all on function public.nexora_competition_register(text,text,text,text,text,text,text,jsonb,boolean,boolean,boolean,boolean) from public;
+revoke all on function public.nexora_competition_register(text,text,text,text,text,text,boolean,boolean,text,jsonb,boolean,boolean,boolean,boolean) from public;
 revoke all on function public.nexora_competition_admin_save_cycle(text,text,timestamptz,timestamptz,date,date,text) from public;
 revoke all on function public.nexora_competition_admin_list_entries(text) from public;
 revoke all on function public.nexora_competition_admin_review_entry(uuid,text,text) from public;
@@ -1021,7 +1029,7 @@ grant execute on function public.nexora_competition_get_current_cycle() to anon,
 grant execute on function public.nexora_competition_public_directory(text) to anon, authenticated;
 grant execute on function public.nexora_competition_member_leaderboard(text) to authenticated;
 grant execute on function public.nexora_competition_get_my_entry(text) to authenticated;
-grant execute on function public.nexora_competition_register(text,text,text,text,text,text,text,jsonb,boolean,boolean,boolean,boolean) to authenticated;
+grant execute on function public.nexora_competition_register(text,text,text,text,text,text,boolean,boolean,text,jsonb,boolean,boolean,boolean,boolean) to authenticated;
 grant execute on function public.nexora_competition_admin_save_cycle(text,text,timestamptz,timestamptz,date,date,text) to authenticated;
 grant execute on function public.nexora_competition_admin_list_entries(text) to authenticated;
 grant execute on function public.nexora_competition_admin_review_entry(uuid,text,text) to authenticated;
@@ -1078,7 +1086,7 @@ revoke all on function public.nexora_competition_get_current_cycle() from public
 revoke all on function public.nexora_competition_public_directory(text) from public;
 revoke all on function public.nexora_competition_member_leaderboard(text) from public;
 revoke all on function public.nexora_competition_get_my_entry(text) from public;
-revoke all on function public.nexora_competition_register(text,text,text,text,text,text,text,jsonb,boolean,boolean,boolean,boolean) from public;
+revoke all on function public.nexora_competition_register(text,text,text,text,text,text,boolean,boolean,text,jsonb,boolean,boolean,boolean,boolean) from public;
 revoke all on function public.nexora_competition_admin_save_cycle(text,text,timestamptz,timestamptz,date,date,text) from public;
 revoke all on function public.nexora_competition_admin_list_entries(text) from public;
 revoke all on function public.nexora_competition_admin_review_entry(uuid,text,text) from public;
@@ -1088,7 +1096,7 @@ grant execute on function public.nexora_competition_get_current_cycle() to anon,
 grant execute on function public.nexora_competition_public_directory(text) to anon, authenticated;
 grant execute on function public.nexora_competition_member_leaderboard(text) to authenticated;
 grant execute on function public.nexora_competition_get_my_entry(text) to authenticated;
-grant execute on function public.nexora_competition_register(text,text,text,text,text,text,text,jsonb,boolean,boolean,boolean,boolean) to authenticated;
+grant execute on function public.nexora_competition_register(text,text,text,text,text,text,boolean,boolean,text,jsonb,boolean,boolean,boolean,boolean) to authenticated;
 grant execute on function public.nexora_competition_admin_save_cycle(text,text,timestamptz,timestamptz,date,date,text) to authenticated;
 grant execute on function public.nexora_competition_admin_list_entries(text) to authenticated;
 grant execute on function public.nexora_competition_admin_review_entry(uuid,text,text) to authenticated;
