@@ -9,7 +9,7 @@ import { existsSync, readFileSync } from 'node:fs';
  * every same-page anchor must resolve to a rendered element id.
  */
 
-const ROUTES = new Set(['/', '/pricing', '/salon-os', '/privacy', '/admin/demo-leads', '/login', '/index.html', '/salon-onboarding', '/salon-growth', '/growth-partner-rewards']);
+const ROUTES = new Set(['/', '/pricing', '/salon-os', '/privacy', '/admin/demo-leads', '/login', '/index.html', '/salon-onboarding', '/salon-growth', '/growth-partner-rewards', '/partner-rewards']);
 
 const DOCUMENTS = [
   { path: '/', file: 'dist/index.html' },
@@ -19,6 +19,7 @@ const DOCUMENTS = [
   { path: '/salon-onboarding', file: 'dist/salon-onboarding/index.html' },
   { path: '/salon-growth', file: 'dist/salon-growth/index.html' },
   { path: '/growth-partner-rewards', file: 'dist/growth-partner-rewards/index.html' },
+  { path: '/partner-rewards', file: 'dist/partner-rewards/index.html' },
 ];
 
 /** Prerendered document that owns a route, used to resolve cross-page anchors. */
