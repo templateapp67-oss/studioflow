@@ -70,6 +70,12 @@ assert.match(migration, /grant execute on function public\.nexora_competition_ad
 assert.match(migration, /if not nexora_competition_private\.is_admin\(\) then raise exception 'NEXORA admin access required'/);
 assert.match(migration, /'ownerEmail',e\.owner_email/);
 assert.match(migration, /'businessAddress',e\.business_address/);
+assert.match(migration, /create table if not exists public\.nexora_competition_reward_fulfilments/);
+assert.match(migration, /nexora_competition_member_reward_fulfilments/);
+assert.match(migration, /nexora_competition_admin_list_reward_fulfilments/);
+assert.match(migration, /nexora_competition_admin_update_reward_fulfilment/);
+assert.match(migration, /final_report_card/);
+
 
 for (const target of [
   'Co-branded T-shirts', 'LED Sign Boards', 'Promotional Advertising', 'Achievement Trophies',
@@ -79,6 +85,7 @@ for (const target of [
   'nexora_competition_public_directory', 'nexora_competition_admin_save_cycle',
   'nexora_competition_admin_review_entry', 'nexora_competition_admin_finalize_cycle',
   'My 90-Day Reward Progress', 'Competition ID', 'Complete salon address',
+  'Reward fulfilment and delivery', 'Refresh eligible rewards', 'nexora_competition_member_reward_fulfilments',
 ]) {
   assert.ok(page.includes(target) || page.includes(target.replace('90-Day Competition','90-Day Competition')), 'Page missing: ' + target);
 }
@@ -190,6 +197,27 @@ try {
     'insert into public.studioflow_reviews(id,owner_id,customer_id,rating,created_at) values ($1,$2,$3,$4,$5)',
     ['40000000-0000-4000-8000-000000000001',adminId,customerId,5,startDate+'T14:00:00+05:30'],
   );
+  for (let index = 2; index <= 50; index += 1) {
+    const serial = String(index).padStart(12,'0');
+    const booking = '30000000-0000-4000-8000-' + serial;
+    const customerSerial = String(index <= 30 ? index : ((index - 31) % 30) + 1).padStart(12,'0');
+    const customer = '20000000-0000-4000-8000-' + customerSerial;
+    const timestamp = startDate + 'T12:00:00+05:30';
+    await db.query(
+      'insert into public.studioflow_bookings(id,owner_id,customer_id,starts_at,ends_at,status) values ($1,$2,$3,$4,$5,$6)',
+      [booking,adminId,customer,timestamp,startDate+'T13:00:00+05:30','completed'],
+    );
+    await db.query(
+      'insert into public.studioflow_payment_orders(booking_id,order_id,payment_id,amount_paise,currency,status,created_at,verified_at) values ($1,$2,$3,$4,$5,$6,$7,$8)',
+      [booking,'order-test-'+index,'payment-test-'+index,10000,'INR','captured',timestamp,timestamp],
+    );
+    if (index <= 10) {
+      await db.query(
+        'insert into public.studioflow_reviews(id,owner_id,customer_id,rating,created_at) values ($1,$2,$3,$4,$5)',
+        ['40000000-0000-4000-8000-'+serial,adminId,customer,5,startDate+'T14:00:00+05:30'],
+      );
+    }
+  }
 
   await db.query('select public.nexora_competition_admin_review_entry($1,$2,$3)', [registrationResult.entryId,'approved','PGlite verified']);
   const memberReport = await db.query('select public.nexora_competition_member_leaderboard($1) as report', [cycleCode]);
@@ -198,13 +226,29 @@ try {
   assert.equal(report.competitors.length, 1);
   assert.equal(report.competitors[0].salonName, 'NEXORA Test Salon');
   assert.equal(report.competitors[0].competitionId, registrationResult.competitionId);
-  assert.equal(report.competitors[0].successfulTransactions, 1);
-  assert.equal(report.competitors[0].gatewayCollectionsPaise, 5000000);
-  assert.equal(report.competitors[0].uniquePayingCustomers, 1);
-  assert.equal(report.competitors[0].verifiedReviews, 1);
+  assert.equal(report.competitors[0].successfulTransactions, 50);
+  assert.equal(report.competitors[0].gatewayCollectionsPaise, 5490000);
+  assert.equal(report.competitors[0].uniquePayingCustomers, 30);
+  assert.equal(report.competitors[0].verifiedReviews, 10);
   assert.equal(report.competitors[0].averageRating, 5);
   assert.equal(report.competitors[0].area, null);
   assert.equal(report.competitors[0].category, null);
+
+  assert.equal(report.competitors[0].rewardEligibility.coBrandedTshirts, true);
+  const memberRewards = await db.query('select public.nexora_competition_member_reward_fulfilments($1) as rewards', [cycleCode]);
+  assert.equal(memberRewards.rows[0].rewards.length, 1);
+  assert.equal(memberRewards.rows[0].rewards[0].rewardKey, 'coBrandedTshirts');
+  assert.equal(memberRewards.rows[0].rewards[0].status, 'eligible');
+  const updatedFulfilment = await db.query(
+    'select public.nexora_competition_admin_update_reward_fulfilment($1,$2,$3,$4,$5,$6,$7) as result',
+    [registrationResult.entryId,'coBrandedTshirts','approved','verified by admin','T-shirts are being prepared','FULFILMENT-TEST-1',addDays(startDate,12)],
+  );
+  assert.equal(updatedFulfilment.rows[0].result.status, 'approved');
+  const memberRewardsAfterApproval = await db.query('select public.nexora_competition_member_reward_fulfilments($1) as rewards', [cycleCode]);
+  assert.equal(memberRewardsAfterApproval.rows[0].rewards[0].status, 'approved');
+  assert.equal(memberRewardsAfterApproval.rows[0].rewards[0].partnerNote, 'T-shirts are being prepared');
+  const adminRewardList = await db.query('select public.nexora_competition_admin_list_reward_fulfilments($1) as rewards', [cycleCode]);
+  assert.equal(adminRewardList.rows[0].rewards.length, 1);
 
   const publicBeforeOptIn = await db.query('select public.nexora_competition_public_directory($1) as directory', [cycleCode]);
   assert.equal(publicBeforeOptIn.rows[0].directory.length, 0);
@@ -230,4 +274,4 @@ try {
   await db.close();
 }
 
-console.log('PASS: NEXORA Jaipur competition migration executes in PGlite; fixed 90-day schedules, registration IDs, member-only report cards, verified payment/review totals, owner-controlled salon directory visibility and admin verification are exercised.');
+console.log('PASS: NEXORA Jaipur competition migration executes in PGlite; fixed 90-day schedules, registration IDs, member-only report cards, verified payment/review totals, owner-controlled salon directory visibility, reward eligibility and admin fulfilment tracking are exercised.');
