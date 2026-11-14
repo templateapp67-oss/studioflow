@@ -111,7 +111,7 @@ export function AuthPage({ compact = false, recovery = false, onRecovered, custo
         welcomeWhatsApp: false,
       });
       const preserveOwnerAuthEntry = !customer && !loginParams.has('app') && (location.pathname === '/login' || loginParams.has('auth'));
-      const authReturnPath = preserveOwnerAuthEntry ? location.pathname + location.search : redirectPath;
+      const authReturnPath = pricingReturnPath || (selectedTemplate ? redirectPath : preserveOwnerAuthEntry ? location.pathname + location.search : redirectPath);
       const redirectTo = location.origin + (invitationMode ? '/?app=1&tab=rewards' : authReturnPath);
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
