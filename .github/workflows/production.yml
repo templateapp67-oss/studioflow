@@ -37,6 +37,18 @@ jobs:
     environment:
       name: production-db
     steps:
+      - name: Reject conflicting release modes
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          APPLY_MIGRATIONS: ${{ inputs.apply }}
+          DEPLOY_ONLY: ${{ inputs.deploy_only }}
+        run: |
+          set -euo pipefail
+          if [[ "$APPLY_MIGRATIONS" == "true" && "$DEPLOY_ONLY" == "true" ]]; then
+            echo "::error::Choose either apply=true or deploy_only=true, not both."
+            exit 1
+          fi
+
       - uses: actions/checkout@v5
         with:
           persist-credentials: false
