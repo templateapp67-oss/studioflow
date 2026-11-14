@@ -78,6 +78,18 @@ export default function App(){
   return <AppErrorBoundary><Suspense fallback={<Loading text="Loading NEXORA…" />}><CustomerReferralBridge/><Application /></Suspense></AppErrorBoundary>;
 }
 function readRecoveryFlag(){try{return sessionStorage.getItem('studioflow_recovery')==='1';}catch{return false;}}
+
+/** Remove referral/auth entry parameters after their values have been captured.
+ * This keeps a callback URL from replaying an old referral on the next render.
+ */
+function clearReferralAuthQueryParams(){
+ if(typeof window==='undefined')return;
+ const url=new URL(window.location.href);
+ if(!url.searchParams.has('ref')&&!url.searchParams.has('auth'))return;
+ url.searchParams.delete('ref');
+ url.searchParams.delete('auth');
+ window.history.replaceState(window.history.state,'',url.pathname+url.search+url.hash);
+}
 function Application() {
  const [account,setAccount]=useState<any>(null); const [templates,setTemplates]=useState<CategoryTemplateConfig[]>([]);
  const [error,setError]=useState(''); const [retry,setRetry]=useState(0);
@@ -116,6 +128,7 @@ function Application() {
      // This Google identity already existed. Discard signup-only attribution too.
      if(intent.role==='customer')clearCustomerReferral();
      else {try{localStorage.removeItem('studioflow_pending_ref');}catch{}}
+     clearReferralAuthQueryParams();
      clearGoogleOAuthIntent();
      if(active){setGoogleOAuthStatus('idle');setGoogleOAuthMessage('');}
      return;
@@ -160,7 +173,7 @@ function Application() {
   return()=>{active=false;};
  },[session?.user?.id,authReady,googleOAuthRetry]);
  useCustomerWelcomeDelivery(session);
- useEffect(()=>{captureReferral();},[]);
+ useEffect(()=>{captureReferral();clearReferralAuthQueryParams();},[]);
  useEffect(()=>{
   if(slug||customer||customerApp||inviteEntry)return;
   applyPublicSeoMetadata(authEntry?NEXORA_LOGIN_SEO:NEXORA_HOME_SEO);
