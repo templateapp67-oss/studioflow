@@ -6,7 +6,12 @@ on:
   workflow_dispatch:
     inputs:
       apply:
-        description: Apply migrations and deploy production (default is dry-run only)
+        description: Apply production DB migrations, then deploy (use only when migrations are ready)
+        type: boolean
+        required: true
+        default: false
+      deploy_only:
+        description: Deploy current main to production after a DB migration dry-run, without applying migrations
         type: boolean
         required: true
         default: false
@@ -82,12 +87,16 @@ jobs:
   deploy:
     name: Deploy to Vercel (production)
     needs: migrate
-    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.apply == true
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && (inputs.apply == true || inputs.deploy_only == true)
     runs-on: ubuntu-latest
     timeout-minutes: 25
     environment:
       name: production
       url: ${{ steps.deploy.outputs.url }}
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
     steps:
       - uses: actions/checkout@v5
         with:
