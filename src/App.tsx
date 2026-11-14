@@ -51,6 +51,7 @@ import { CustomerBookings } from './components/CustomerBookings';
 import { useCustomerWelcomeDelivery } from './components/CustomerWelcomeDelivery';
 import { CustomerInvitePage } from './components/CustomerInvitePage';
 import { isCustomerInviteEntry } from './lib/customerReferral';
+import { clearCustomerReferral } from './lib/customerReferral';
 import { CustomerReferralBridge } from './components/CustomerReferralBridge';
 import { readGoogleOAuthIntent, clearGoogleOAuthIntent, isNewGoogleAccount } from './lib/googleOAuth';
 import { CustomerApp } from './components/CustomerApp';
@@ -113,6 +114,9 @@ function Application() {
     // Only populate profile fields when Supabase created the auth user after
     // this exact signup attempt began; otherwise this is an ordinary sign-in.
     if(!isNewGoogleAccount(intent,session.user.created_at)){
+     // This Google identity already existed. Discard signup-only attribution too.
+     if(intent.role==='customer')clearCustomerReferral();
+     else {try{localStorage.removeItem('studioflow_pending_ref');}catch{}}
      clearGoogleOAuthIntent();
      if(active){setGoogleOAuthStatus('idle');setGoogleOAuthMessage('');}
      return;
