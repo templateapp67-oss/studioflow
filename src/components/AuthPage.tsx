@@ -83,10 +83,9 @@ export function AuthPage({ compact = false, recovery = false, onRecovered, custo
           if (!data) throw new Error('Referral code is invalid or inactive. Check it or leave it empty.');
         }
         if (customer) {
-          // Clear any previously captured referral even when this form's optional
-          // code was removed, so the referral bridge cannot claim stale attribution.
+          // Keep Google signup referrals only in the short-lived OAuth intent.
+          // CustomerReferralBridge must not claim it before we know this is a new user.
           clearCustomerReferral();
-          if (ref.trim()) rememberCustomerReferral(ref);
         } else {
           localStorage.removeItem('studioflow_pending_ref');
           if (ref.trim()) localStorage.setItem('studioflow_pending_ref', ref.trim().toUpperCase());
