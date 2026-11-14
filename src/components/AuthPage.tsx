@@ -19,7 +19,8 @@ export function AuthPage({ compact = false, recovery = false, onRecovered, custo
   const pricingBilling=loginParams.get('billing_interval');
   const pricingReturnPath=isPricingPlanId(pricingPlanId)?pricingResumePath({planId:pricingPlanId,billingInterval:isBillingInterval(pricingBilling)?pricingBilling:'annual'}):'';
   const pendingCustomerRef=customer?captureCustomerReferral():'';
-  const baseRedirectPath=loginParams.has('app')?'/?app=1':customer?`/?customer=1${customerReturn?'&return='+encodeURIComponent(customerReturn):''}`:selectedTemplate?`/?template=${encodeURIComponent(selectedTemplate.id)}&create=1`:pricingReturnPath||'/';
+  const customerAppReturn=loginParams.has('app')?('/?app=1'+(loginParams.get('tab')?'&tab='+encodeURIComponent(loginParams.get('tab')!):'')+(loginParams.get('site')?'&site='+encodeURIComponent(loginParams.get('site')!):'')):'';
+  const baseRedirectPath=loginParams.has('app')?customerAppReturn:customer?`/?customer=1${customerReturn?'&return='+encodeURIComponent(customerReturn):''}`:selectedTemplate?`/?template=${encodeURIComponent(selectedTemplate.id)}&create=1`:pricingReturnPath||'/';
   const redirectPath=baseRedirectPath+(pendingCustomerRef?(baseRedirectPath.includes('?')?'&':'?')+'customer_ref='+encodeURIComponent(pendingCustomerRef):'');
   const [mode, setMode] = useState<'signin'|'signup'|'forgot'>((new URLSearchParams(location.search).get('auth') === 'forgot' ? 'forgot' : new URLSearchParams(location.search).get('auth')==='signin'?'signin':initialMode) || (new URLSearchParams(location.search).get('auth')==='signup' || (customer?pendingCustomerRef:captureReferral()) ? 'signup' : 'signin'));
   const signup = mode === 'signup';
