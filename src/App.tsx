@@ -52,7 +52,7 @@ import { useCustomerWelcomeDelivery } from './components/CustomerWelcomeDelivery
 import { CustomerInvitePage } from './components/CustomerInvitePage';
 import { isCustomerInviteEntry } from './lib/customerReferral';
 import { CustomerReferralBridge } from './components/CustomerReferralBridge';
-import { readGoogleOAuthIntent, clearGoogleOAuthIntent } from './lib/googleOAuth';
+import { readGoogleOAuthIntent, clearGoogleOAuthIntent, isNewGoogleAccount } from './lib/googleOAuth';
 import { CustomerApp } from './components/CustomerApp';
 import { supabase, captureReferral } from './lib/supabase';
 import { applySeoMetadata } from './lib/useSeoMetadata';
@@ -109,6 +109,14 @@ function Application() {
   setGoogleOAuthStatus('processing');setGoogleOAuthMessage('');
   void (async()=>{
    if(intent.mode==='signup'){
+    // OAuth may return an existing Google identity even from the Sign up tab.
+    // Only populate profile fields when Supabase created the auth user after
+    // this exact signup attempt began; otherwise this is an ordinary sign-in.
+    if(!isNewGoogleAccount(intent,session.user.created_at)){
+     clearGoogleOAuthIntent();
+     if(active){setGoogleOAuthStatus('idle');setGoogleOAuthMessage('');}
+     return;
+    }
     const fullName=intent.fullName.trim()||String(session.user.user_metadata?.full_name||session.user.user_metadata?.name||'').trim();
     if(intent.role==='customer'){
      if(!fullName||!intent.dateOfBirth||!intent.whatsappNumber)throw new Error('Google sign-up is missing required customer details. Please sign out and use Sign up to enter your name, date of birth and WhatsApp number.');
