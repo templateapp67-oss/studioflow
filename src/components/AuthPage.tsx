@@ -3,6 +3,7 @@ import {captureCustomerReferral,rememberCustomerReferral,clearCustomerReferral} 
 import {whatsappNational,validCustomerWhatsApp,customerWhatsApp} from '../lib/customerWhatsApp';
 import {customerToday,validCustomerBirthDate} from '../lib/customerBirthDate';
 import { requestedTemplate } from '../lib/templateEntry';
+import { saveGoogleOAuthIntent, clearGoogleOAuthIntent } from '../lib/googleOAuth';
 import { isBillingInterval, isPricingPlanId, pricingResumePath } from '../lib/nexoraPricing';
 import { Eye, EyeOff } from 'lucide-react';
 import { supabase, captureReferral } from '../lib/supabase';
@@ -67,6 +68,57 @@ export function AuthPage({ compact = false, recovery = false, onRecovered, custo
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Could not complete this request. Please try again.'); }
     finally { setBusy(false); }
   };
+  const signInWithGoogle = async () => {
+    setBusy(true); setMessage('');
+    try {
+      if (signup) {
+        if (!name.trim()) throw new Error('Enter your full name before continuing with Google.');
+        if (!customer && !salon.trim()) throw new Error('Enter your salon name before continuing with Google.');
+        if (customer && (!whatsapp || !validCustomerWhatsApp(whatsapp))) throw new Error('Enter a valid 10-digit WhatsApp number. +91 is already added.');
+        if (customer && (!birthDate || !validCustomerBirthDate(birthDate))) throw new Error('Enter a valid date of birth from 1900 through today.');
+        if (customer && welcomeWhatsApp) throw new Error('To request the automatic WhatsApp welcome message, use email sign-up. Turn off that option to continue with Google.');
+        if (ref.trim()) {
+          const { data, error } = await supabase.rpc(customer ? 'studioflow_customer_validate_ref' : 'studioflow_validate_ref', { p_code: ref.trim().toUpperCase() });
+          if (error) throw error;
+          if (!data) throw new Error('Referral code is invalid or inactive. Check it or leave it empty.');
+        }
+        if (customer) {
+          if (ref.trim()) rememberCustomerReferral(ref);
+        } else {
+          localStorage.removeItem('studioflow_pending_ref');
+          if (ref.trim()) localStorage.setItem('studioflow_pending_ref', ref.trim().toUpperCase());
+        }
+      }
+      if (invitationMode && signup) {
+        const current = await supabase.auth.getSession();
+        if (current.error) throw current.error;
+        if (current.data.session) {
+          const out = await supabase.auth.signOut({ scope: 'local' });
+          if (out.error) throw out.error;
+        }
+      }
+      saveGoogleOAuthIntent({
+        role: customer ? 'customer' : 'owner',
+        mode: signup ? 'signup' : 'signin',
+        fullName: signup ? name.trim() : '',
+        salonName: signup && !customer ? salon.trim() : '',
+        dateOfBirth: signup && customer ? birthDate : '',
+        whatsappNumber: signup && customer ? customerWhatsApp(whatsapp) || '' : '',
+        referralCode: signup && customer ? ref.trim().toUpperCase() : '',
+        welcomeWhatsApp: false,
+      });
+      const redirectTo = location.origin + (invitationMode ? '/?app=1&tab=rewards' : redirectPath);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo, queryParams: { prompt: 'select_account' } },
+      });
+      if (error) throw error;
+    } catch (error) {
+      clearGoogleOAuthIntent();
+      setMessage(error instanceof Error ? error.message : 'Google sign-in could not start. Please try again.');
+      setBusy(false);
+    }
+  };
   const resend = async () => {
     setBusy(true); setMessage('');
     const { error } = await supabase.auth.resend({ type: 'signup', email: email.trim(), options: { emailRedirectTo: `${location.origin}${invitationMode?'/?app=1&tab=rewards':redirectPath}` } });
@@ -81,6 +133,13 @@ export function AuthPage({ compact = false, recovery = false, onRecovered, custo
       <p className="muted mb-5">{pageDescription}</p>
       {!recovery && mode !== 'forgot' && <div className="flex gap-3 mb-5"><button disabled={busy} type="button" className={signup ? 'secondary-action' : 'primary-action'} onClick={() => { setMode('signin'); setMessage(''); }}>Sign in</button><button disabled={busy} type="button" className={signup ? 'primary-action' : 'secondary-action'} onClick={() => { setMode('signup'); setMessage(''); }}>Sign up</button></div>}
       {!recovery && new URLSearchParams(location.search).has('passwordUpdated') && <p role="status" className="mb-4 rounded-lg bg-green-50 p-3 text-green-900">Password updated successfully. Sign in with your new password.</p>}
+      {!recovery && mode !== 'forgot' && <>
+        <button type="button" disabled={busy} onClick={() => void signInWithGoogle()} className="secondary-action w-full justify-center mb-3">
+          <svg aria-hidden="true" viewBox="0 0 48 48" className="h-5 w-5"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.46 13.72 17.74 9.5 24 9.5Z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.9c-.58 2.96-2.26 5.48-4.76 7.18l7.73 6C44.38 38.05 46.98 31.95 46.98 24.55Z"/><path fill="#FBBC05" d="M10.54 28.59A14.4 14.4 0 0 1 9.75 24c0-1.59.27-3.13.75-4.59l-7.98-6.19A23.9 23.9 0 0 0 0 24c0 3.87.93 7.53 2.56 10.78l7.98-6.19Z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.9-5.8l-7.73-6c-2.14 1.44-4.88 2.3-8.17 2.3-6.26 0-11.54-4.22-13.46-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48Z"/></svg>
+          Continue with Google
+        </button>
+        <p className="text-center text-xs text-slate-500 mb-4">or use email</p>
+      </>}
       <form onSubmit={submit} className="space-y-4">
         {signup && !recovery && <><label className="block">Full name<input className="workspace-input" autoComplete="name" maxLength={150} value={name} onChange={e => setName(e.target.value)} required /></label>{!customer && <label className="block">Salon name<input className="workspace-input" maxLength={150} value={salon} onChange={e => setSalon(e.target.value)} required /></label>}</>}
         {signup&&customer&&!recovery&&<label className="block">Date of Birth<input className="workspace-input" type="date" required autoComplete="bday" min="1900-01-01" max={customerToday()} value={birthDate} onChange={e=>setBirthDate(e.target.value)}/><small>Your date of birth stays private and is not shared with your inviter.</small></label>}
