@@ -21,7 +21,7 @@ const text=(x:any):string=>Array.isArray(x)?x.map(text).join(''):typeof x==='str
 let app:any;const click=async(label:string)=>{const b=app.root.findAllByType('button').find((x:any)=>text(x.props.children).trim()===label);assert.ok(b,'Button missing: '+label);await act(async()=>{b.props.onClick();await new Promise(resolve=>setImmediate(resolve))})};
 const nav=async(i:number)=>{await act(async()=>{app.root.findByProps({'aria-label':'Customer app navigation'}).findAllByType('button').find((b:any)=>b.props['data-tab']===['home','bookings','rewards','favorites','profile'][i]).props.onClick();await new Promise(resolve=>setImmediate(resolve))})};
 const templateTiles=()=>app.root.findAll((node:any)=>typeof node.props?.className==='string'&&node.props.className.split(/\s+/).includes('cr-template-tile'));
-await act(async()=>{app=create(<CustomerApp session={user}/>);for(let attempt=0;attempt<10&&templateTiles().length<templates.length;attempt++)await new Promise(resolve=>setImmediate(resolve))});
+await act(async()=>{app=create(<CustomerApp session={user}/>);await new Promise(resolve=>setImmediate(resolve))});
 assert.ok(calls.some(x=>x.kind==='rpc'&&x.name==='studioflow_customer_catalog'),'Customer app requests the database template catalogue');
 assert.equal(templateTiles().length,templates.length,'All database template categories appear');
 await click('Explore');assert.ok(JSON.stringify(app.toJSON()).includes('Explore & Discover Salons'));assert.equal(app.root.findByProps({'aria-label':'Customer app navigation'}).findAllByType('button').length,6);
