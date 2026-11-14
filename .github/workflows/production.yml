@@ -11,7 +11,7 @@ on:
         required: true
         default: false
       deploy_only:
-        description: Deploy current main to production after a DB migration dry-run, without applying migrations
+        description: Deploy current main without running or applying DB migrations (use only for code-only releases)
         type: boolean
         required: true
         default: false
@@ -28,10 +28,53 @@ jobs:
     name: Required CI
     uses: ./.github/workflows/ci.yml
 
-  migrate:
-    name: Supabase v3 migration dry-run / approved apply
+  changes:
+    name: Detect Supabase migration changes
     needs: ci
     if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      migrations_changed: ${{ steps.detect.outputs.migrations_changed }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Detect changed migration files
+        id: detect
+        shell: bash
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$BEFORE_SHA" ]]; then
+            echo "migrations_changed=false" >> "$GITHUB_OUTPUT"
+            echo "No push comparison is available; manual release mode controls migration handling."
+            exit 0
+          fi
+          if [[ "$BEFORE_SHA" =~ ^0+$ ]]; then
+            echo "migrations_changed=true" >> "$GITHUB_OUTPUT"
+            echo "Initial push: require the Supabase migration safety job."
+            exit 0
+          fi
+          if git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA" -- supabase/migrations/ | grep -q .; then
+            echo "migrations_changed=true" >> "$GITHUB_OUTPUT"
+            echo "This push changes Supabase migration files."
+          else
+            echo "migrations_changed=false" >> "$GITHUB_OUTPUT"
+            echo "No Supabase migration files changed; this is a code-only release."
+          fi
+
+  migrate:
+    name: Supabase v3 migration dry-run / approved apply
+    needs: [ci, changes]
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (
+        (github.event_name == 'push' && needs.changes.outputs.migrations_changed == 'true') ||
+        (github.event_name == 'workflow_dispatch' && inputs.apply == true)
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment:
@@ -98,8 +141,24 @@ jobs:
 
   deploy:
     name: Deploy to Vercel (production)
-    needs: migrate
-    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && (inputs.apply == true || inputs.deploy_only == true)
+    needs: [ci, changes, migrate]
+    if: >-
+      always() &&
+      github.ref == 'refs/heads/main' &&
+      needs.ci.result == 'success' &&
+      needs.changes.result == 'success' &&
+      (
+        (github.event_name == 'push' &&
+          needs.changes.outputs.migrations_changed == 'false' &&
+          needs.migrate.result == 'skipped') ||
+        (github.event_name == 'workflow_dispatch' &&
+          inputs.apply == true &&
+          needs.migrate.result == 'success') ||
+        (github.event_name == 'workflow_dispatch' &&
+          inputs.deploy_only == true &&
+          inputs.apply != true &&
+          needs.migrate.result == 'skipped')
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 25
     environment:
