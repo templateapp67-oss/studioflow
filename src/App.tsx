@@ -85,9 +85,11 @@ function readRecoveryFlag(){try{return sessionStorage.getItem('studioflow_recove
 function clearReferralAuthQueryParams(){
  if(typeof window==='undefined')return;
  const url=new URL(window.location.href);
- if(!url.searchParams.has('ref')&&!url.searchParams.has('auth'))return;
+ const authMode=url.searchParams.get('auth');
+ const preserveAuthMode=authMode==='signin'||authMode==='signup'||authMode==='forgot';
+ if(!url.searchParams.has('ref')&&(!url.searchParams.has('auth')||preserveAuthMode))return;
  url.searchParams.delete('ref');
- url.searchParams.delete('auth');
+ if(!preserveAuthMode)url.searchParams.delete('auth');
  window.history.replaceState(window.history.state,'',url.pathname+url.search+url.hash);
 }
 function Application() {
