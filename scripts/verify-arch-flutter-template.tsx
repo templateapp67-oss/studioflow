@@ -192,7 +192,7 @@ for (const offer of demoOffers) {
   assert.ok(offer.terms.length > 20, `${offer.id} carries terms`);
   assert.match(offer.validFrom, /^\d{4}-\d{2}-\d{2}$/, 'validFrom is an ISO date');
   assert.match(offer.validTo!, /^\d{4}-\d{2}-\d{2}$/);
-  assert.ok(new Date(offer.validTo!).getTime() > now, `${offer.id} is not already expired`);
+  assert.ok(new Date(`${offer.validTo}T23:59:59.999`).getTime() > now, `${offer.id} is not already expired`);
   assert.deepEqual(offer.applicableServices.filter((id) => !ARCH_FLUTTER_TEMPLATE_SERVICES.some((service) => service.id === id)), [], `${offer.id} only references real menu services`);
 }
 assert.equal(offerSavingINR(demoOffers[0], ARCH_FLUTTER_TEMPLATE_SERVICES[0]), 500, 'welcome offer saves ₹500');
@@ -218,7 +218,7 @@ assert.equal(offerCountdownLabel({ ...demoOffers[0], validTo: '' }, now), 'No en
 assert.ok(DEEPAVALI_DATES.length >= 5, 'the festive window is derived from real Diwali dates');
 const festiveEnd = nextFestiveWeekEnd(now);
 assert.equal(demoOffers[5].validTo, festiveEnd, 'the festive offer runs till Diwali week');
-assert.ok(new Date(festiveEnd).getTime() > now, 'the festive offer never seeds expired');
+assert.ok(new Date(`${festiveEnd}T23:59:59.999`).getTime() > now, 'the festive offer never seeds expired');
 
 /* ---------- 5. Offers are ordinary editable records ---------- */
 const seeded = normalizeWorkspace({
