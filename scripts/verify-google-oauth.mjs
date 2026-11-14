@@ -8,6 +8,14 @@ const helper=readFileSync('src/lib/googleOAuth.ts','utf8');
 
 assert.match(auth,/signInWithOAuth\(\{[\s\S]*provider:\s*'google'/,'Google OAuth must use Supabase Google provider');
 assert.match(auth,/saveGoogleOAuthIntent\(/,'OAuth must persist short-lived owner/customer onboarding intent');
+assert.ok(auth.includes("!recovery && mode !== 'forgot' && !signup"),'Google sign-in must be visible in the existing sign-in mode');
+assert.ok(auth.includes("!recovery && mode !== 'forgot' && signup"),'Google sign-up must be visible in the signup mode');
+assert.match(auth,/const customerAppReturn=loginParams\.has\('app'\)/,'Customer App login must preserve its app route across OAuth');
+assert.match(auth,/const redirectTo = location\.origin \+ \(invitationMode \? '\/\?app=1&tab=rewards' : authReturnPath\)/,'Customer invitation OAuth must return to the Rewards tab');
+assert.match(customer,/<AuthPage compact customerMode/,'The Customer App login modal must use customer-mode authentication');
+assert.match(app,/if\(customerApp\)return <CustomerApp session=\{session\}\/?>/,'The app=1 OAuth callback must render the Customer App, not the owner website');
+assert.match(auth,/const authReturnPath = pricingReturnPath \|\| \(selectedTemplate \? redirectPath : preserveOwnerAuthEntry/,'Google signup must resume selected pricing/template journeys before preserving a generic auth entry');
+
 assert.match(auth,/studioflow_customer_validate_ref/,'Customer and owner signup referral codes must be validated');
 const googleSignupHandler=auth.slice(auth.indexOf('const signInWithGoogle'),auth.indexOf('const resend'));
 assert.match(googleSignupHandler,/clearCustomerReferral\(\)/,'Customer OAuth signup must clear stale referral attribution');
