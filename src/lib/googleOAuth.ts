@@ -65,3 +65,16 @@ export function clearGoogleOAuthIntent(): void {
     // Storage may be unavailable in privacy-restricted browsing modes.
   }
 }
+
+/**
+ * A Google account is new for this OAuth attempt only when Supabase created it
+ * at/after the click that wrote the short-lived intent. Existing identities
+ * must never have their NEXORA profile overwritten by a "Sign up" click.
+ */
+export function isNewGoogleAccount(
+  intent: GoogleOAuthIntent,
+  userCreatedAt: string | undefined,
+): boolean {
+  const createdAt = Date.parse(userCreatedAt || '');
+  return Number.isFinite(createdAt) && createdAt >= intent.createdAt - 30_000;
+}
