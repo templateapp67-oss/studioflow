@@ -52,6 +52,7 @@ import { useCustomerWelcomeDelivery } from './components/CustomerWelcomeDelivery
 import { CustomerInvitePage } from './components/CustomerInvitePage';
 import { isCustomerInviteEntry } from './lib/customerReferral';
 import { CustomerReferralBridge } from './components/CustomerReferralBridge';
+import { readGoogleOAuthIntent, clearGoogleOAuthIntent } from './lib/googleOAuth';
 import { CustomerApp } from './components/CustomerApp';
 import { supabase, captureReferral } from './lib/supabase';
 import { applySeoMetadata } from './lib/useSeoMetadata';
@@ -96,6 +97,57 @@ function Application() {
  const publicHomeRoute=location.pathname==='/'&&!slug&&!customer&&!customerApp&&!inviteEntry&&!recovery&&!ownerSlug&&!entryTemplate&&!createTemplate&&!authEntry;
  const onRecovery=useCallback(()=>{try{sessionStorage.setItem('studioflow_recovery','1');}catch{}setRecovery(true);},[]);
  const {session,ready:authReady,error:authError}=useAuthSession(onRecovery);
+ const [googleOAuthStatus,setGoogleOAuthStatus]=useState<'idle'|'processing'|'error'>('idle');
+ const [googleOAuthMessage,setGoogleOAuthMessage]=useState('');
+ const [googleOAuthRetry,setGoogleOAuthRetry]=useState(0);
+ useEffect(()=>{
+  if(!authReady)return;
+  if(!session){setGoogleOAuthStatus('idle');setGoogleOAuthMessage('');return;}
+  const intent=readGoogleOAuthIntent();
+  if(!intent){setGoogleOAuthStatus('idle');return;}
+  let active=true;
+  setGoogleOAuthStatus('processing');setGoogleOAuthMessage('');
+  void (async()=>{
+   if(intent.mode==='signup'){
+    const fullName=intent.fullName.trim()||String(session.user.user_metadata?.full_name||session.user.user_metadata?.name||'').trim();
+    if(intent.role==='customer'){
+     if(!fullName||!intent.dateOfBirth||!intent.whatsappNumber)throw new Error('Google sign-up is missing required customer details. Please sign out and use Sign up to enter your name, date of birth and WhatsApp number.');
+     const metadata={
+      full_name:fullName,
+      date_of_birth:intent.dateOfBirth,
+      whatsapp_number:intent.whatsappNumber,
+      customer_referral_code:intent.referralCode,
+      source:'studioflow',
+     };
+     const updated=await supabase.auth.updateUser({data:metadata});
+     if(updated.error)throw updated.error;
+     const profile=await supabase.rpc('studioflow_customer_update_details',{
+      p_name:fullName,
+      p_phone:intent.whatsappNumber,
+      p_whatsapp:intent.whatsappNumber,
+      p_birth_date:intent.dateOfBirth,
+     });
+     if(profile.error)throw profile.error;
+     if(intent.referralCode){
+      const referral=await supabase.rpc('studioflow_customer_claim_ref',{p_code:intent.referralCode});
+      if(referral.error)throw referral.error;
+     }
+    }else{
+     if(!fullName||!intent.salonName.trim())throw new Error('Google sign-up is missing your name or salon name. Please sign out and complete salon sign-up again.');
+     const updated=await supabase.auth.updateUser({data:{full_name:fullName,salon_name:intent.salonName.trim(),source:'studioflow'}});
+     if(updated.error)throw updated.error;
+     const profile=await supabase.from('profiles').update({full_name:fullName,salon_name:intent.salonName.trim()}).eq('id',session.user.id).select('id').maybeSingle();
+     if(profile.error)throw profile.error;
+     if(!profile.data)throw new Error('Your salon profile was not found. Please retry Google sign-up.');
+    }
+   }
+   clearGoogleOAuthIntent();
+   if(active){setGoogleOAuthStatus('idle');setGoogleOAuthMessage('');}
+  })().catch(error=>{
+   if(active){setGoogleOAuthStatus('error');setGoogleOAuthMessage(error instanceof Error?error.message:'Google sign-in could not finish. Please retry.');}
+  });
+  return()=>{active=false;};
+ },[session?.user?.id,authReady,googleOAuthRetry]);
  useCustomerWelcomeDelivery(session);
  useEffect(()=>{captureReferral();},[]);
  useEffect(()=>{
@@ -137,6 +189,8 @@ function Application() {
   if(active){setTemplates(catalogue.templates.some(t=>t.id==='mens_hair_studio')?catalogue.templates:[...catalogue.templates,CATEGORY_TEMPLATES.mens_hair_studio]);setAccount({...bootstrap.account,identity:identity.error?null:identity.data});try{localStorage.removeItem('studioflow_pending_ref');}catch{}}
  })().catch(e=>{if(active)setError(e.message||'Could not load your account');});return()=>{active=false;};
  },[session?.user?.id,retry,slug,customer,customerApp,recovery,skipReferral,ownerSlug,publicHomeRoute]);
+ if(googleOAuthStatus==='processing')return <Loading text="Finishing your Google sign-in…" />;
+ if(googleOAuthStatus==='error')return <main className="min-h-screen flex items-center justify-center bg-[#f9f9ff] px-4"><section className="workspace-card w-full max-w-lg"><h1 className="text-2xl font-bold mb-2">Finish Google sign-in</h1><p role="alert" className="mb-4 rounded-lg bg-amber-50 p-3 text-amber-900">{googleOAuthMessage}</p><div className="flex flex-wrap gap-3"><button className="primary-action" onClick={()=>setGoogleOAuthRetry(n=>n+1)}>Retry</button><button className="secondary-action" onClick={()=>void supabase.auth.signOut()}>Sign out</button></div></section></main>;
  if(recovery&&session)return <AuthPage recovery onRecovered={()=>{setRecovery(false);setRetry(r=>r+1);}} />;
  if(customerApp&&!authReady)return <Loading text="Opening Nexora…" />;
  if(inviteEntry&&!recovery)return <CustomerInvitePage session={session}/>;
