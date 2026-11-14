@@ -83,6 +83,9 @@ export function AuthPage({ compact = false, recovery = false, onRecovered, custo
           if (!data) throw new Error('Referral code is invalid or inactive. Check it or leave it empty.');
         }
         if (customer) {
+          // Clear any previously captured referral even when this form's optional
+          // code was removed, so the referral bridge cannot claim stale attribution.
+          clearCustomerReferral();
           if (ref.trim()) rememberCustomerReferral(ref);
         } else {
           localStorage.removeItem('studioflow_pending_ref');
@@ -107,7 +110,9 @@ export function AuthPage({ compact = false, recovery = false, onRecovered, custo
         referralCode: signup && customer ? ref.trim().toUpperCase() : '',
         welcomeWhatsApp: false,
       });
-      const redirectTo = location.origin + (invitationMode ? '/?app=1&tab=rewards' : redirectPath);
+      const preserveOwnerAuthEntry = !customer && !loginParams.has('app') && (location.pathname === '/login' || loginParams.has('auth'));
+      const authReturnPath = preserveOwnerAuthEntry ? location.pathname + location.search : redirectPath;
+      const redirectTo = location.origin + (invitationMode ? '/?app=1&tab=rewards' : authReturnPath);
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo, queryParams: { prompt: 'select_account' } },
