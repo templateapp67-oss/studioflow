@@ -142,7 +142,19 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
   const [activeCategory, setActiveCategory] = useState('all');
   const [previewId, setPreviewId] = useState<BusinessTypeId | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [footerVisible, setFooterVisible] = useState(false);
   const closePreview = useCallback(() => setPreviewId(null), []);
+
+  useEffect(() => {
+    const footer = document.querySelector('.public-homepage footer');
+    if (!footer) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setFooterVisible(Boolean(entry?.isIntersecting)),
+      { threshold: 0.08 },
+    );
+    observer.observe(footer);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -556,7 +568,7 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
         </div>
       </footer>
 
-      {!menuOpen && !previewId && (
+      {!menuOpen && !previewId && !footerVisible && (
         <a
           data-nexora-whatsapp-cta="floating"
           className="nexora-whatsapp-fab"
