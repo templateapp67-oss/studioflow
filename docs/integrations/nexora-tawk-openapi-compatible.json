@@ -261,5 +261,20 @@
         }
       }
     }
+  },
+  "security": [
+    {
+      "NexoraBearer": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "NexoraBearer": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Supabase server secret configured in the Tawk integration as Bearer <key>. Never publish this secret."
+      }
+    }
   }
 }
