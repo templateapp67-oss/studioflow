@@ -98,6 +98,19 @@ export function NexoraPrivacyNoticePage() {
                 contains one.
               </p>
 
+              <h2>Website chat and WhatsApp support</h2>
+              <p>
+                The website also offers a chat widget provided by Tawk.to. If you use the chat, the messages and
+                contact details you choose to share are handled through Tawk.to's service under its own privacy
+                policy. WhatsApp conversations are handled by WhatsApp and, when connected, the NEXORA support
+                inbox provider. Do not send passwords, one-time codes, card details or other sensitive information
+                through public chat.
+              </p>
+              <p>
+                Read the <a href="https://www.tawk.to/privacy-policy/" target="_blank" rel="noopener noreferrer">Tawk.to Privacy Policy</a>
+                and <a href="https://www.whatsapp.com/legal/" target="_blank" rel="noopener noreferrer">WhatsApp Legal Resources</a>
+                for information about those services.
+              </p>
               <h2>Why it is collected</h2>
               <p>
                 The details are used for one purpose: to answer your demo request and to plan the conversation

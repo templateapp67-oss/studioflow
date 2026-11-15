@@ -30,6 +30,7 @@ import type { BusinessTypeId } from '../types';
 import { NexoraTemplateLibrary } from './nexora/NexoraTemplateLibrary';
 import { CategoryIconTile, NexoraBrandMark } from './nexora/NexoraBrand';
 import { NEXORA_OFFICIAL_WHATSAPP_URL } from '../lib/whatsappContact';
+import { NEXORA_KNOWLEDGE_BASE_URL } from '../lib/nexoraSupport';
 import { LUXURY_EDITORIAL_IMAGES } from '../lib/luxuryEditorial';
 import './publicHomepage.css';
 
@@ -70,6 +71,7 @@ const navigation = [
   { label: 'How It Works', href: '#how-it-works' },
   { label: 'Features', href: '#features' },
   { label: 'Pricing', href: '/pricing' },
+  { label: 'Help Centre', href: NEXORA_KNOWLEDGE_BASE_URL },
 ];
 
 const moreLinks = [
@@ -165,8 +167,6 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
   const [footerVisible, setFooterVisible] = useState(false);
   const closePreview = useCallback(() => setPreviewId(null), []);
 
-  // Load the hosted human-support widget only while the NEXORA marketing homepage is mounted.
-  // The script stays cached after first load, but the widget is hidden on all other routes.
   useEffect(() => {
     const tawkWindow = window as TawkWidgetWindow;
     const tawkApi = tawkWindow.Tawk_API ?? {};

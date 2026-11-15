@@ -4,6 +4,7 @@ import { NexoraMark } from '../ui';
 import { useLandingModel } from '../LandingContentProvider';
 import type { LandingNavLink } from '../../../lib/nexoraLandingContent';
 import { useDemoDialog } from '../../nexora-pricing/DemoProvider';
+import { NEXORA_KNOWLEDGE_BASE_URL } from '../../../lib/nexoraSupport';
 
 /** Sections watched by the scroll spy, derived from the rendered navigation. */
 const spySectionIds = (links: LandingNavLink[]) =>
@@ -91,6 +92,7 @@ export function SiteHeader({
               {link.label}
             </a>
           ))}
+          <a className="sl-header__link" href={NEXORA_KNOWLEDGE_BASE_URL} target="_blank" rel="noopener noreferrer">Help Centre</a>
         </nav>
 
         <div className="sl-header__actions">
@@ -131,6 +133,7 @@ export function SiteHeader({
               {link.label}
             </a>
           ))}
+          <a className="sl-mobile-nav__link" href={NEXORA_KNOWLEDGE_BASE_URL} target="_blank" rel="noopener noreferrer" onClick={closeMenu}>Help Centre</a>
           <div className="sl-mobile-nav__actions">
             <a className="sl-btn sl-btn--secondary" href={cta.login} onClick={closeMenu}>
               Login

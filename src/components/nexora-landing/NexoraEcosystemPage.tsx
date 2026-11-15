@@ -2,6 +2,8 @@ import { NEXORA_PUBLIC_TEMPLATES } from '../../lib/nexoraPublicTemplates';
 import { nexoraTemplatePagePath, NEXORA_TEMPLATE_META } from '../../lib/nexoraTemplateCatalogue';
 import { NexoraEcosystemSeoHead } from './NexoraEcosystemSeoHead';
 import { NexoraEcosystemHero } from './ecosystem/NexoraEcosystemHero';
+import { NEXORA_KNOWLEDGE_BASE_URL } from '../../lib/nexoraSupport';
+import { NEXORA_OFFICIAL_WHATSAPP_URL } from '../../lib/whatsappContact';
 import { NexoraGrowthPartnerRewardsPage } from './NexoraGrowthPartnerRewardsPage';
 
 const pageData = {
@@ -76,7 +78,7 @@ export function NexoraEcosystemPage({ path }: { path: keyof typeof pageData }) {
         <InfoSection title="Salon business transformation" items={['Before: scattered records, manual follow-ups and disconnected operations.', 'With supported Nexora tools: organised information, digital presence, booking workflows and reporting.', 'Explore your setup options on Salon Onboarding or review the approved plans on Pricing.']} />
       </>}
     </main>
-    <footer className="border-t border-[#eee] px-5 py-8"><div className="mx-auto flex max-w-7xl flex-wrap gap-5 text-sm"><a href="/">Home</a><a href="/salon-onboarding">Salon Onboarding</a><a href="/salon-growth">Salon Growth</a><a href="/growth-partner-rewards">Growth Partner Rewards</a><a href="/pricing">Pricing</a><a href="/login">Owner Workspace</a></div></footer>
+    <footer className="border-t border-[#eee] px-5 py-8"><div className="mx-auto flex max-w-7xl flex-wrap gap-5 text-sm"><a href="/">Home</a><a href="/salon-onboarding">Salon Onboarding</a><a href="/salon-growth">Salon Growth</a><a href="/growth-partner-rewards">Growth Partner Rewards</a><a href="/pricing">Pricing</a><a href="/login">Owner Workspace</a><a href={NEXORA_KNOWLEDGE_BASE_URL} target="_blank" rel="noopener noreferrer">Help Centre</a><a href={NEXORA_OFFICIAL_WHATSAPP_URL} target="_blank" rel="noopener noreferrer">WhatsApp Support</a></div></footer>
   </div>;
 }
 

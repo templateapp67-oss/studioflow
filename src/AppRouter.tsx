@@ -1,5 +1,6 @@
 import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { PublicHomepage } from './components/PublicHomepage';
+import { NexoraTawkWidget } from './components/NexoraTawkWidget';
 import { NexoraSalonLandingPage } from './components/nexora-landing/NexoraSalonLandingPage';
 import { NexoraPricingLandingPage } from './components/nexora-landing/NexoraPricingLandingPage';
 import { NexoraPrivacyNoticePage } from './components/nexora-landing/NexoraPrivacyNoticePage';
@@ -55,6 +56,10 @@ function hasPersistedOwnerSession(): boolean {
  * signed-out visitors. Query/path-based salon sites and every auth, invite,
  * customer, and owner entry continue through the existing application unchanged.
  */
+function withNexoraPublicSupport(content: React.ReactNode) {
+  return <>{content}<NexoraTawkWidget /></>;
+}
+
 export function AppRouter() {
   const [showApplication] = useState(() =>
     typeof window !== 'undefined' && requiresFullApplication(window.location),
@@ -70,15 +75,15 @@ export function AppRouter() {
   }, []);
 
   const publicPath = typeof window !== 'undefined' ? window.location.pathname.replace(/\/$/, '') : '';
-  if (publicPath === '/salon-os') return <NexoraSalonLandingPage />;
-  if (publicPath === '/pricing') return <NexoraPricingLandingPage />;
-  if (publicPath === '/privacy') return <NexoraPrivacyNoticePage />;
-  if (publicPath === '/partner-rewards') return <NexoraPartnerRewardsPage />;
+  if (publicPath === '/salon-os') return withNexoraPublicSupport(<NexoraSalonLandingPage />);
+  if (publicPath === '/pricing') return withNexoraPublicSupport(<NexoraPricingLandingPage />);
+  if (publicPath === '/privacy') return withNexoraPublicSupport(<NexoraPrivacyNoticePage />);
+  if (publicPath === '/partner-rewards') return withNexoraPublicSupport(<NexoraPartnerRewardsPage />);
   if (publicPath === '/salon-onboarding' || publicPath === '/salon-growth' || publicPath === '/growth-partner-rewards') {
-    return <NexoraEcosystemPage path={publicPath} />;
+    return withNexoraPublicSupport(<NexoraEcosystemPage path={publicPath} />);
   }
   if (publicPath === '/admin/demo-leads') return <NexoraDemoLeadsAdmin />;
-  if (!showApplication) return <PublicHomepage authenticated={authenticated} />;
+  if (!showApplication) return withNexoraPublicSupport(<PublicHomepage authenticated={authenticated} />);
 
   return (
     <Suspense fallback={<main className="grid min-h-screen place-items-center bg-white px-6 text-center text-sm font-semibold text-slate-700" role="status">Loading NEXORA…</main>}>

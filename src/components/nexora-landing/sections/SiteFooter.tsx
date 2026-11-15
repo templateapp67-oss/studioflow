@@ -2,6 +2,8 @@ import { ArrowRight } from 'lucide-react';
 import { NexoraMark } from '../ui';
 import { useDemoDialog } from '../../nexora-pricing/DemoProvider';
 import { useLandingModel } from '../LandingContentProvider';
+import { NEXORA_KNOWLEDGE_BASE_URL } from '../../../lib/nexoraSupport';
+import { NEXORA_OFFICIAL_WHATSAPP_URL } from '../../../lib/whatsappContact';
 
 const LEGAL_LINKS = ['Privacy Policy', 'Terms and Conditions', 'Refund Policy'];
 
@@ -65,9 +67,10 @@ export function SiteFooter() {
           <div>
             <h2>Support</h2>
             <p>
-              Signed-in owners can use the support channel provided inside their Nexora account. For a walkthrough, use
-              the demo request form on this page.
+              Browse product guides in the <a href={NEXORA_KNOWLEDGE_BASE_URL} target="_blank" rel="noopener noreferrer">NEXORA Help Centre</a>,
+              or start a conversation using the chat bubble. For a walkthrough, use the demo request form on this page.
             </p>
+            <p><a href={NEXORA_OFFICIAL_WHATSAPP_URL} target="_blank" rel="noopener noreferrer">WhatsApp support · +91 7852877721</a></p>
           </div>
         </div>
 

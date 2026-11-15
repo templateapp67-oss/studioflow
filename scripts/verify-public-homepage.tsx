@@ -3,7 +3,8 @@ import { readFileSync } from 'node:fs';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AppRouter, requiresFullApplication } from '../src/AppRouter';
-import { NEXORA_TAWK_WIDGET_URL, PublicHomepage, PUBLIC_SIGNUP_PATH, templateSignupPath } from '../src/components/PublicHomepage';
+import { PublicHomepage, PUBLIC_SIGNUP_PATH, templateSignupPath } from '../src/components/PublicHomepage';
+import { NEXORA_TAWK_WIDGET_URL } from '../src/components/NexoraTawkWidget';
 import {
   buildWhatsAppClickToChatUrl,
   NEXORA_OFFICIAL_WHATSAPP_MESSAGE,
@@ -104,13 +105,18 @@ assert.equal(
 );
 assert.ok(homeHtml.includes('Questions? Chat with NEXORA on WhatsApp'), 'homepage hero provides a direct WhatsApp option');
 assert.ok(homeHtml.includes('WhatsApp Support'), 'homepage footer provides a WhatsApp contact link');
+assert.ok(homeHtml.includes('Help Centre'), 'homepage nav links to the public knowledge base');
 assert.ok(homeHtml.includes('aria-label="Chat with NEXORA on WhatsApp"'), 'icon-only WhatsApp shortcut has an accessible name');
-const homepageSource = readFileSync('src/components/PublicHomepage.tsx', 'utf8');
-assert.ok(homepageSource.includes("script.src = NEXORA_TAWK_WIDGET_URL"), 'homepage injects the hosted Live Chat script');
-assert.ok(homepageSource.includes("position: 'bl'"), 'Live Chat is positioned bottom-left on desktop and mobile');
-assert.ok(homepageSource.includes("tawkApi.hideWidget?.()"), 'Live Chat is hidden when leaving the public homepage');
-assert.ok(homepageSource.includes("script.onerror = () => script.remove()"), 'a failed widget request can be retried after route remount');
-assert.ok(homepageSource.includes("document.getElementById(NEXORA_TAWK_WIDGET_SCRIPT_ID)"), 'widget script is not injected more than once');
+const supportWidgetSource = readFileSync('src/components/NexoraTawkWidget.tsx', 'utf8');
+assert.ok(supportWidgetSource.includes("script.src = NEXORA_TAWK_WIDGET_URL"), 'public marketing pages inject the hosted Live Chat script');
+assert.ok(supportWidgetSource.includes("position: 'bl'"), 'Live Chat is positioned bottom-left on desktop and mobile');
+assert.ok(supportWidgetSource.includes("tawkApi.hideWidget?.()"), 'Live Chat is hidden when leaving public marketing pages');
+assert.ok(supportWidgetSource.includes("script.onerror = () => script.remove()"), 'a failed widget request can be retried after route remount');
+assert.ok(supportWidgetSource.includes("document.getElementById(NEXORA_TAWK_WIDGET_SCRIPT_ID)"), 'widget script is not injected more than once');
+const routerSource = readFileSync('src/AppRouter.tsx', 'utf8');
+assert.ok(routerSource.includes('withNexoraPublicSupport(<NexoraPricingLandingPage />)'), 'pricing page gets Tawk chat');
+assert.ok(routerSource.includes('withNexoraPublicSupport(<PublicHomepage authenticated={authenticated} />)'), 'homepage gets Tawk chat');
+assert.ok(!routerSource.includes('withNexoraPublicSupport(<FullApplication />)'), 'owner app is excluded from the public Tawk widget');
 assert.ok(homepageSource.includes('data-nexora-whatsapp-cta="mobile-menu"'), 'mobile navigation includes a WhatsApp contact action');
 assert.ok(homepageSource.includes('!menuOpen && !previewId && !footerVisible'), 'floating shortcut steps aside for the mobile menu, template preview and footer');
 assert.ok(homepageSource.includes("document.querySelector('.public-homepage footer')"), 'floating shortcut visibility tracks the real homepage footer');
