@@ -1,8 +1,8 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "NEXORA Salon WhatsApp Lookup API",
-    "version": "1.1.0",
+    "title": "NEXORA Multi-Tenant Salon Lookup API",
+    "version": "1.2.0",
     "description": "Read-only TEST MODE integration for NEXORA. Returns the published salon catalogue and live availability. Availability checks never reserve a slot or create an appointment. The published salon website pre-fills a visible chat message containing the exact NEXORA salon slug so the AI can select the correct tenant."
   },
   "servers": [
