@@ -99,7 +99,8 @@ assert.ok(homeHtml.includes('WhatsApp Support'), 'homepage footer provides a Wha
 assert.ok(homeHtml.includes('aria-label="Chat with NEXORA on WhatsApp"'), 'icon-only WhatsApp shortcut has an accessible name');
 const homepageSource = readFileSync('src/components/PublicHomepage.tsx', 'utf8');
 assert.ok(homepageSource.includes('data-nexora-whatsapp-cta="mobile-menu"'), 'mobile navigation includes a WhatsApp contact action');
-assert.ok(homepageSource.includes('!menuOpen && !previewId'), 'floating shortcut steps aside for the mobile menu and template preview');
+assert.ok(homepageSource.includes('!menuOpen && !previewId && !footerVisible'), 'floating shortcut steps aside for the mobile menu, template preview and footer');
+assert.ok(homepageSource.includes("document.querySelector('.public-homepage footer')"), 'floating shortcut visibility tracks the real homepage footer');
 const homepageCss = readFileSync('src/components/publicHomepage.css', 'utf8');
 assert.match(homepageCss, /\.public-homepage \.nexora-whatsapp-fab\s*\{[^}]*position:\s*fixed/s, 'floating WhatsApp shortcut is fixed to the viewport');
 assert.ok(homepageCss.includes('env(safe-area-inset-bottom'), 'floating shortcut respects mobile safe-area inset');
