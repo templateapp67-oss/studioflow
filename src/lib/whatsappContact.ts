@@ -26,7 +26,12 @@ export function buildWhatsAppClickToChatUrl({
   }
 
   const message = prefilledMessage?.trim();
-  return `https://wa.me/${digits}${message ? `?text=${encodeURIComponent(message)}` : ''}`;
+  const encodedMessage = message
+    ? encodeURIComponent(message).replace(/[!'()*]/g, (character) =>
+        `%${character.charCodeAt(0).toString(16).toUpperCase()}`,
+      )
+    : '';
+  return `https://wa.me/${digits}${encodedMessage ? `?text=${encodedMessage}` : ''}`;
 }
 
 /** NEXORA's official customer-support contact on the main marketing website. */
