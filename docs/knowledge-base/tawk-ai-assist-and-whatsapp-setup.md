@@ -16,7 +16,7 @@ The NEXORA Tawk widget is shared across published salon websites. It tags each v
 - `salon-website`: current public website URL
 - `salon-whatsapp`: the salon's public WhatsApp number, when valid
 
-The single NEXORA OpenAPI integration uses the `salon-slug` attribute to request tenant-specific data. The API looks up only the matching published website record and returns that salon's own services, prices, available specialists, branches and live availability. The owner does not need to install a separate API for every template; all template categories use this shared multi-tenant endpoint.
+The widget also pre-fills the chat composer when a visitor opens it on a published salon website. The visible, editable starter message includes the exact text `NEXORA salon slug: <slug>` and the public salon name/city. The visitor chooses whether to send that message; it is not sent automatically. This visible message is the context the AI can use to select a tenant. Tawk visitor custom attributes are stored for human-agent context and must not be treated as hidden AI prompt variables. The single NEXORA OpenAPI integration reads the slug from the latest customer message, then returns only the matching published website's services, prices, available specialists, branches and live availability.
 
 Important routing and ownership boundaries:
 
@@ -60,7 +60,7 @@ Paste the following tenant-aware instructions into the agent's Base Prompt / Ins
 
 > You are the NEXORA Salon Assistant. Reply in the visitor's language using simple Indian English, Hindi or Hinglish.
 >
-> When the current visitor is on a published salon website, use the Tawk visitor custom attribute `salon-context`. If it equals `published-salon-site`, read the exact `salon-slug` attribute and use it for every NEXORA catalogue or availability tool call. Never ask the customer to type or guess a salon slug. Never reuse a slug from another conversation.
+> On a published salon website, the widget pre-fills the visitor's first chat message with the exact phrase `NEXORA salon slug: <slug>`. Read the slug from the latest customer message and pass it to every NEXORA catalogue or availability tool call. The visitor may edit or remove the prefilled text; if the slug is missing, ask them to share the salon website link. Never guess a slug or reuse a slug from an unrelated earlier chat. Tawk custom visitor attributes are for human-agent context only; do not assume they are available to AI Assist.
 >
 > Use getSalonCatalogue to answer questions about that salon's published services, prices, duration, specialists and branches. Use only exact service IDs returned by the tool. Use checkAppointmentAvailability only after the customer chooses service(s) and a date. If the salon has multiple branches, ask the customer to choose one first. If a specialist is not chosen, use stylistId `any`.
 >
@@ -89,7 +89,7 @@ Each salon owner who wants AI replies through their own WhatsApp number needs th
 
 Use the Tawk AI preview and a test published website from more than one template category:
 
-1. Confirm the visitor attributes show the correct `salon-slug`, `salon-name` and `salon-category`.
+1. Open the Tawk widget on the test site and confirm its draft first message contains the correct `NEXORA salon slug:` value, salon name and city. Confirm the same values appear in Tawk visitor attributes for human-agent context.
 2. Ask for services and prices; verify the catalogue belongs to that website only.
 3. Ask for availability after choosing a service and date; verify times match that salon's calendar.
 4. Open another published salon website and confirm that the context changes to its slug and no earlier salon data is reused.
@@ -97,7 +97,7 @@ Use the Tawk AI preview and a test published website from more than one template
 6. Confirm missing slug or API errors cause a human handover rather than invented salon details.
 7. Confirm the AI never says it has created a real booking.
 
-The chat widget is displayed bottom-left on the shared Tawk property. The website's WhatsApp button remains separately linked to the salon owner's saved number.
+The chat widget is displayed bottom-left on the shared Tawk property. The published-site starter message contains tenant context but is not sent until the visitor chooses to send it. The website's WhatsApp button remains separately linked to the salon owner's saved number.
 
 ## Official provider guides
 
