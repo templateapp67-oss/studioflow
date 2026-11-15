@@ -552,6 +552,14 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
             <p className="mt-1 text-xs text-[#C8C0D3]">+91 7852877721</p>
           </div>
           <a
+            href={NEXORA_KNOWLEDGE_BASE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-[46px] shrink-0 items-center justify-center rounded-xl border border-white/25 px-5 text-sm font-bold text-white transition hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E9C98E]"
+          >
+            Help Centre
+          </a>
+          <a
             data-nexora-whatsapp-cta="footer"
             href={NEXORA_OFFICIAL_WHATSAPP_URL}
             target="_blank"
