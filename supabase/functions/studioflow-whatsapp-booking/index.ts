@@ -488,15 +488,36 @@ Deno.serve(async (req: Request) => {
 
   try {
     const raw = await req.text();
-    if (!raw || raw.length > 24_000) return json({ ok: false, error: 'Request body missing or too large.' }, 400);
     let body: JsonRecord;
-    try {
-      body = JSON.parse(raw);
-    } catch {
-      return json({ ok: false, error: 'Request body must be valid JSON.' }, 400);
-    }
-    if (!body || Array.isArray(body) || typeof body !== 'object') {
-      return json({ ok: false, error: 'Request body must be a JSON object.' }, 400);
+    if (raw.trim()) {
+      if (raw.length > 24_000) return json({ ok: false, error: 'Request body too large.' }, 400);
+      try {
+        body = JSON.parse(raw);
+      } catch {
+        return json({ ok: false, error: 'Request body must be valid JSON.' }, 400);
+      }
+      if (!body || Array.isArray(body) || typeof body !== 'object') {
+        return json({ ok: false, error: 'Request body must be a JSON object.' }, 400);
+      }
+    } else {
+      // tawk.to's documented OpenAPI sample sends POST inputs as query parameters.
+      // Support that format for read-only catalogue/availability calls while
+      // retaining JSON bodies for existing clients and the test-only write route.
+      const params = new URL(req.url).searchParams;
+      if (![...params.keys()].length) {
+        return json({ ok: false, error: 'Request parameters are missing.' }, 400);
+      }
+      const serviceIds = params.getAll('serviceIds')
+        .flatMap((value) => value.split(','))
+        .map((value) => value.trim())
+        .filter(Boolean);
+      body = {
+        slug: params.get('slug') || '',
+        serviceIds,
+        date: params.get('date') || '',
+        stylistId: params.get('stylistId') || 'any',
+        branchId: params.get('branchId') || undefined,
+      };
     }
 
     const db = createClient<any>(supabaseUrl, serviceKey, {
