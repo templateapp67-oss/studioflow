@@ -107,6 +107,7 @@ assert.ok(homeHtml.includes('Questions? Chat with NEXORA on WhatsApp'), 'homepag
 assert.ok(homeHtml.includes('WhatsApp Support'), 'homepage footer provides a WhatsApp contact link');
 assert.ok(homeHtml.includes('Help Centre'), 'homepage nav links to the public knowledge base');
 assert.ok(homeHtml.includes('aria-label="Chat with NEXORA on WhatsApp"'), 'icon-only WhatsApp shortcut has an accessible name');
+const homepageSource = readFileSync('src/components/PublicHomepage.tsx', 'utf8');
 const supportWidgetSource = readFileSync('src/components/NexoraTawkWidget.tsx', 'utf8');
 assert.ok(supportWidgetSource.includes("script.src = NEXORA_TAWK_WIDGET_URL"), 'public marketing pages inject the hosted Live Chat script');
 assert.ok(supportWidgetSource.includes("position: 'bl'"), 'Live Chat is positioned bottom-left on desktop and mobile');
