@@ -8,10 +8,10 @@ The central NEXORA number remains support/fallback only. It must not be used as 
 
 ## Tenant and credential boundaries
 
-- One `salon_whatsapp_connections` row per `salons.id`.
+- One `salon_whatsapp_connections` row per StudioFlow salon owner, keyed by `studioflow_accounts.user_id` and linked to that owner's published `studioflow_websites` record.
 - Unique `phone_number_id` prevents a WhatsApp sender being assigned to two salons.
 - Meta access tokens must be AES-256-GCM encrypted in a trusted Edge Function before storage. The encryption key is a Supabase Function secret, never a browser variable or database column.
-- OAuth state is random, single-use, short-lived and stored as a SHA-256 hash. Bind the callback to the initiating authenticated owner and salon membership.
+- OAuth state is random, single-use, short-lived and stored as a SHA-256 hash. Bind the callback to the initiating authenticated StudioFlow owner and their `studioflow_accounts.user_id`.
 - Browser roles cannot read or write connection tokens, OAuth state, webhook payloads, conversations or message logs. Trusted Edge Functions use the service role.
 - Inbound webhooks must verify Meta's `X-Hub-Signature-256` against the raw request body before parsing or processing.
 - Resolve tenant from the inbound `metadata.phone_number_id` and the active connection. Ignore unrecognised or disconnected numbers.
@@ -25,7 +25,7 @@ The central NEXORA number remains support/fallback only. It must not be used as 
 4. Collect customer name, phone, service, branch (when required), stylist (optional), date and time.
 5. Re-check availability on the server immediately before reservation.
 6. Present the complete booking summary and require an explicit customer confirmation.
-7. Create the appointment through the existing canonical booking/reservation service with `booking_source = 'whatsapp'`, an idempotency key and the tenant's actual owner/salon IDs.
+7. Create the appointment through the existing StudioFlow booking/reservation service with `booking_source = 'whatsapp'`, an idempotency key and the tenant's actual `owner_id`.
 8. If a slot was taken or booking save fails, do not say the booking is confirmed; offer refreshed slots.
 9. Write the booking reference to the message log and dashboard metrics.
 
@@ -54,7 +54,7 @@ Add a WhatsApp bookings and payments view:
 - Payment links sent, paid, failed and pending
 - Message delivery statuses and human handoff
 
-Metrics must be derived from booking/payment rows and message logs, not increment-only counters. Use `bookings.booking_source = 'whatsapp'` for source attribution and verified payment rows for amounts.
+Metrics must be derived from StudioFlow booking/payment rows and message logs, not increment-only counters. Use `studioflow_bookings.payload` and the canonical owner/booking records for source attribution, plus verified `studioflow_payment_orders` rows for collected amounts.
 
 ## Rollout gates
 
@@ -69,10 +69,10 @@ Metrics must be derived from booking/payment rows and message logs, not incremen
 
 ## Current implementation status
 
-The database foundation migration is applied to the NEXORA Supabase production project. The five tenant-scoped tables exist, RLS is enabled, browser-role table access is revoked, and the service role can access the records. Foreign keys resolve to the live `salons`, `bookings` and `payment_orders` tables.
+The database foundation and StudioFlow tenancy migrations are applied to the NEXORA Supabase production project. All five tenant-scoped tables exist, RLS is enabled, browser-role access is revoked, and only trusted server-side service-role functions can read or write them. Connections, OAuth states, conversations and message logs are keyed to `studioflow_accounts.user_id`. Message records reference the canonical `studioflow_bookings` and `studioflow_payment_orders` tables used by the current salon owner dashboard.
 
 This foundation does not create a live Meta connection, enable production webhooks, create real WhatsApp bookings, send WhatsApp messages or process payments. Keep production claims disabled until every rollout gate above is verified.
 
 ## Migration history recovery
 
-The live project contains historical migration versions that are not present as files in this repository. Do not mark those versions reverted or add empty placeholder migrations: either action can break a fresh preview rebuild or cause already-applied SQL to run again. Before enabling Supabase branch previews, generate and review a complete baseline from the live schema with the Supabase CLI (`supabase db pull`), verify a clean local reset against that baseline, and then reconcile migration history deliberately. The WhatsApp foundation migration is tracked using the exact version recorded by the live project.
+The live project contains historical migration versions that are not present as files in this repository. Do not mark those versions reverted or add empty placeholder migrations: either action can break a fresh preview rebuild or cause already-applied SQL to run again. Before enabling Supabase branch previews, generate and review a complete baseline from the live schema with the Supabase CLI (`supabase db pull`), verify a clean local reset against that baseline, and then reconcile migration history deliberately. The WhatsApp foundation and StudioFlow tenancy migrations are tracked using the exact versions recorded by the live project (`20261115173757` and `20261115174514`).
