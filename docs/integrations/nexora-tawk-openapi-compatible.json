@@ -3,7 +3,7 @@
   "info": {
     "title": "NEXORA Salon WhatsApp Lookup API",
     "version": "1.1.0",
-    "description": "Read-only TEST MODE integration for NEXORA. Returns the published salon catalogue and live availability. Availability checks never reserve a slot or create an appointment. Customer details and booking writes are intentionally excluded from this first AI Assist tool set."
+    "description": "Read-only TEST MODE integration for NEXORA. Returns the published salon catalogue and live availability. Availability checks never reserve a slot or create an appointment. The published salon website pre-fills a visible chat message containing the exact NEXORA salon slug so the AI can select the correct tenant."
   },
   "servers": [
     {
@@ -15,7 +15,7 @@
       "post": {
         "operationId": "getSalonCatalogue",
         "summary": "Get salon services, specialists and branches",
-        "description": "Use when a customer asks about salon services, prices, duration, available specialists or salon locations. This is read-only. On a published NEXORA salon website, use the exact salon-slug visitor attribute supplied by the widget as the slug query parameter; never ask the customer to provide the slug.",
+        "description": "Use when a customer asks about salon services, prices, duration, available specialists or salon locations. This is read-only. Find the exact value after 'NEXORA salon slug:' in the latest customer message and pass it as slug. Never guess a slug or reuse one from an earlier unrelated chat. If the message does not contain a slug, ask the visitor to share the salon website link.",
         "parameters": [
           {
             "name": "slug",
@@ -138,7 +138,7 @@
       "post": {
         "operationId": "checkAppointmentAvailability",
         "summary": "Check live appointment availability",
-        "description": "Use after the customer chooses services and an appointment date. First call getSalonCatalogue and use the exact service IDs it returns. Pass multiple service IDs as a comma-separated string. Use stylistId 'any' unless the customer selects a specialist. If the catalogue has multiple branches, ask the customer to choose one first. On a published NEXORA salon website, use the exact salon-slug visitor attribute supplied by the widget. This checks live slots only and does not reserve a time.",
+        "description": "Use after the customer chooses services and an appointment date. First call getSalonCatalogue and use the exact service IDs it returns. Pass multiple service IDs as a comma-separated string. Use stylistId 'any' unless the customer selects a specialist. If the catalogue has multiple branches, ask the customer to choose one first. Find the exact value after 'NEXORA salon slug:' in the latest customer message and pass it as slug. This checks live slots only and does not reserve a time.",
         "parameters": [
           {
             "name": "slug",
