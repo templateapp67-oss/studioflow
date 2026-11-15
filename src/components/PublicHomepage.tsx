@@ -38,26 +38,6 @@ const TemplatePreviewModal = lazy(() => import('./TemplatePreviewModal').then((m
 
 export const PUBLIC_SIGNUP_PATH = '/login?auth=signup';
 
-export const NEXORA_TAWK_WIDGET_URL = 'https://embed.tawk.to/6af928650ca0f03c41f84ba9/1k7ekbjg3';
-const NEXORA_TAWK_WIDGET_SCRIPT_ID = 'nexora-tawk-widget-script';
-
-type TawkWidgetApi = {
-  customStyle?: {
-    visibility?: {
-      desktop?: { position: 'bl'; xOffset: string; yOffset: string };
-      mobile?: { position: 'bl'; xOffset: string; yOffset: string };
-    };
-  };
-  onLoad?: () => void;
-  showWidget?: () => void;
-  hideWidget?: () => void;
-};
-
-type TawkWidgetWindow = Window & {
-  Tawk_API?: TawkWidgetApi;
-  Tawk_LoadStart?: Date;
-};
-
 export function templateSignupPath(templateId?: BusinessTypeId) {
   return templateId
     ? `${PUBLIC_SIGNUP_PATH}&template=${encodeURIComponent(templateId)}&create=1`
