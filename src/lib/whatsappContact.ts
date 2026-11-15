@@ -19,9 +19,9 @@ export function buildWhatsAppClickToChatUrl({
     throw new Error('Enter the WhatsApp number in full international format, including +country code.');
   }
 
-  let digits = input.replace(/\\D/g, '');
+  let digits = input.replace(/\D/g, '');
   if (digits.startsWith('00')) digits = digits.slice(2);
-  if (!/^[1-9]\\d{7,14}$/.test(digits)) {
+  if (!/^[1-9]\d{7,14}$/.test(digits)) {
     throw new Error('WhatsApp numbers must contain 8 to 15 international digits and cannot start with zero.');
   }
 
