@@ -37,6 +37,26 @@ const TemplatePreviewModal = lazy(() => import('./TemplatePreviewModal').then((m
 
 export const PUBLIC_SIGNUP_PATH = '/login?auth=signup';
 
+export const NEXORA_TAWK_WIDGET_URL = 'https://embed.tawk.to/6af928650ca0f03c41f84ba9/1k7ekbjg3';
+const NEXORA_TAWK_WIDGET_SCRIPT_ID = 'nexora-tawk-widget-script';
+
+type TawkWidgetApi = {
+  customStyle?: {
+    visibility?: {
+      desktop?: { position: 'bl'; xOffset: string; yOffset: string };
+      mobile?: { position: 'bl'; xOffset: string; yOffset: string };
+    };
+  };
+  onLoad?: () => void;
+  showWidget?: () => void;
+  hideWidget?: () => void;
+};
+
+type TawkWidgetWindow = Window & {
+  Tawk_API?: TawkWidgetApi;
+  Tawk_LoadStart?: Date;
+};
+
 export function templateSignupPath(templateId?: BusinessTypeId) {
   return templateId
     ? `${PUBLIC_SIGNUP_PATH}&template=${encodeURIComponent(templateId)}&create=1`
@@ -144,6 +164,50 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
   const [menuOpen, setMenuOpen] = useState(false);
   const [footerVisible, setFooterVisible] = useState(false);
   const closePreview = useCallback(() => setPreviewId(null), []);
+
+  // Load the hosted human-support widget only while the NEXORA marketing homepage is mounted.
+  // The script stays cached after first load, but the widget is hidden on all other routes.
+  useEffect(() => {
+    const tawkWindow = window as TawkWidgetWindow;
+    const tawkApi = tawkWindow.Tawk_API ?? {};
+    tawkWindow.Tawk_API = tawkApi;
+    let homepageMounted = true;
+
+    // Keep Live Chat bottom-left so the existing WhatsApp shortcut remains bottom-right.
+    // tawk.to requires this placement configuration before its embed script loads.
+    tawkApi.customStyle = {
+      visibility: {
+        desktop: { position: 'bl', xOffset: '16px', yOffset: '16px' },
+        mobile: { position: 'bl', xOffset: '12px', yOffset: '12px' },
+      },
+    };
+    tawkApi.onLoad = () => {
+      if (!homepageMounted) tawkApi.hideWidget?.();
+    };
+
+    const existingScript = document.getElementById(NEXORA_TAWK_WIDGET_SCRIPT_ID);
+    if (existingScript) {
+      tawkApi.showWidget?.();
+    } else {
+      tawkWindow.Tawk_LoadStart = new Date();
+      const script = document.createElement('script');
+      script.id = NEXORA_TAWK_WIDGET_SCRIPT_ID;
+      script.async = true;
+      script.src = NEXORA_TAWK_WIDGET_URL;
+      script.charset = 'UTF-8';
+      script.setAttribute('crossorigin', '*');
+      script.onerror = () => script.remove();
+
+      const firstScript = document.getElementsByTagName('script')[0];
+      if (firstScript?.parentNode) firstScript.parentNode.insertBefore(script, firstScript);
+      else document.head.appendChild(script);
+    }
+
+    return () => {
+      homepageMounted = false;
+      tawkApi.hideWidget?.();
+    };
+  }, []);
 
   useEffect(() => {
     const footer = document.querySelector('.public-homepage footer');
