@@ -19,6 +19,9 @@ type TawkWidgetApi = {
     mobile?: { position: 'bl'; xOffset: string; yOffset: string };
   }};
   onLoad?: () => void;
+  onChatMaximized?: () => void;
+  setChatInputMessage?: (message: string, callback?: (error?: unknown) => void) => void;
+  __nexoraPrefilledSalonSlug?: string;
   showWidget?: () => void;
   hideWidget?: () => void;
   setAttributes?: (
@@ -94,6 +97,26 @@ export function NexoraTawkWidget({
       desktop: { position: 'bl', xOffset: '16px', yOffset: '16px' },
       mobile: { position: 'bl', xOffset: '12px', yOffset: '12px' },
     }};
+    tawkApi.onChatMaximized = () => {
+      if (!pageIsActive || !tawkApi.setChatInputMessage) return;
+      if (salonSlug) {
+        if (tawkApi.__nexoraPrefilledSalonSlug === salonSlug) return;
+        const message = [
+          `Hi, I am visiting ${salonName || 'this salon'}.`,
+          `NEXORA salon slug: ${salonSlug}.`,
+          city ? `Salon city: ${city}.` : '',
+          "Please help me with this salon's services, prices, specialists and appointment availability.",
+        ].filter(Boolean).join(' ');
+        tawkApi.setChatInputMessage(message, (error) => {
+          if (!error) tawkApi.__nexoraPrefilledSalonSlug = salonSlug;
+        });
+      } else if (tawkApi.__nexoraPrefilledSalonSlug) {
+        const message = "Hi, I am visiting the NEXORA platform website, not a salon booking page. Please help me with NEXORA platform information.";
+        tawkApi.setChatInputMessage(message, (error) => {
+          if (!error) tawkApi.__nexoraPrefilledSalonSlug = '';
+        });
+      }
+    };
     tawkApi.onLoad = () => {
       applyVisitorContext();
       if (pageIsActive) tawkApi.showWidget?.();
