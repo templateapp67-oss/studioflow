@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AppRouter, requiresFullApplication } from '../src/AppRouter';
-import { PublicHomepage, PUBLIC_SIGNUP_PATH, templateSignupPath } from '../src/components/PublicHomepage';
+import { NEXORA_TAWK_WIDGET_URL, PublicHomepage, PUBLIC_SIGNUP_PATH, templateSignupPath } from '../src/components/PublicHomepage';
 import {
   buildWhatsAppClickToChatUrl,
   NEXORA_OFFICIAL_WHATSAPP_MESSAGE,
@@ -58,6 +58,14 @@ assert.equal(NEXORA_PUBLIC_ORIGIN, 'https://nexorasalon.online', 'SEO must use t
 const homeHtml = renderToStaticMarkup(<PublicHomepage />);
 const authenticatedHomeHtml = renderToStaticMarkup(<PublicHomepage authenticated />);
 
+// Live Chat is a hosted tawk.to widget on the public NEXORA homepage only.
+assert.equal(
+  NEXORA_TAWK_WIDGET_URL,
+  'https://embed.tawk.to/6af928650ca0f03c41f84ba9/1k7ekbjg3',
+  'homepage uses the exact tawk.to widget supplied for NEXORA',
+);
+assert.ok(!homeHtml.includes('embed.tawk.to'), 'the external widget is loaded client-side, not duplicated into prerendered HTML');
+
 // NEXORA support click-to-chat must use the supplied E.164 business number and
 // preserve the exact prefilled text after WhatsApp decodes its URL parameter.
 assert.equal(NEXORA_OFFICIAL_WHATSAPP_NUMBER, '+91 7852877721');
@@ -98,6 +106,11 @@ assert.ok(homeHtml.includes('Questions? Chat with NEXORA on WhatsApp'), 'homepag
 assert.ok(homeHtml.includes('WhatsApp Support'), 'homepage footer provides a WhatsApp contact link');
 assert.ok(homeHtml.includes('aria-label="Chat with NEXORA on WhatsApp"'), 'icon-only WhatsApp shortcut has an accessible name');
 const homepageSource = readFileSync('src/components/PublicHomepage.tsx', 'utf8');
+assert.ok(homepageSource.includes("script.src = NEXORA_TAWK_WIDGET_URL"), 'homepage injects the hosted Live Chat script');
+assert.ok(homepageSource.includes("position: 'bl'"), 'Live Chat is positioned bottom-left on desktop and mobile');
+assert.ok(homepageSource.includes("tawkApi.hideWidget?.()"), 'Live Chat is hidden when leaving the public homepage');
+assert.ok(homepageSource.includes("script.onerror = () => script.remove()"), 'a failed widget request can be retried after route remount');
+assert.ok(homepageSource.includes("document.getElementById(NEXORA_TAWK_WIDGET_SCRIPT_ID)"), 'widget script is not injected more than once');
 assert.ok(homepageSource.includes('data-nexora-whatsapp-cta="mobile-menu"'), 'mobile navigation includes a WhatsApp contact action');
 assert.ok(homepageSource.includes('!menuOpen && !previewId && !footerVisible'), 'floating shortcut steps aside for the mobile menu, template preview and footer');
 assert.ok(homepageSource.includes("document.querySelector('.public-homepage footer')"), 'floating shortcut visibility tracks the real homepage footer');
