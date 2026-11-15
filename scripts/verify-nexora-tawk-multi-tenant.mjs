@@ -7,7 +7,9 @@ const salonWebsite = read('src/components/CustomerSalonWebsite.tsx');
 const edgeFunction = read('supabase/functions/studioflow-whatsapp-booking/index.ts');
 const schema = JSON.parse(read('docs/integrations/nexora-tawk-openapi-compatible.json'));
 
-assert.ok(widget.includes('setAttributes'), 'Tawk widget must attach tenant visitor attributes.');
+assert.ok(widget.includes('setAttributes'), 'Tawk widget must attach tenant visitor attributes for human agents.');
+assert.ok(widget.includes('setChatInputMessage'), 'Tawk widget must prefill an AI-visible tenant context message.');
+assert.ok(widget.includes('NEXORA salon slug:'), 'The visible starter message must contain the exact tenant slug.');
 assert.ok(widget.includes("'salon-slug'"), 'Tawk widget must pass the published tenant slug.');
 assert.ok(widget.includes("'salon-name'"), 'Tawk widget must pass the public salon name.');
 assert.ok(widget.includes("'salon-category'"), 'Tawk widget must pass the template category.');
