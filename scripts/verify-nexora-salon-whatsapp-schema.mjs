@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const migration = readFileSync('supabase/migrations/20261115180000_nexora_salon_whatsapp_platform.sql', 'utf8');
+const migration = readFileSync('supabase/migrations/20261115173757_nexora_salon_whatsapp_platform.sql', 'utf8');
 const guide = readFileSync('docs/integrations/nexora-salon-owned-whatsapp-booking.md', 'utf8');
 
 for (const table of [
