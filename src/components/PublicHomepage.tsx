@@ -10,6 +10,7 @@ import {
   IndianRupee,
   LayoutTemplate,
   Menu,
+  MessageCircle,
   MonitorSmartphone,
   Rocket,
   Sparkles,
@@ -28,6 +29,7 @@ import {
 import type { BusinessTypeId } from '../types';
 import { NexoraTemplateLibrary } from './nexora/NexoraTemplateLibrary';
 import { CategoryIconTile, NexoraBrandMark } from './nexora/NexoraBrand';
+import { NEXORA_OFFICIAL_WHATSAPP_URL } from '../lib/whatsappContact';
 import { LUXURY_EDITORIAL_IMAGES } from '../lib/luxuryEditorial';
 import './publicHomepage.css';
 
@@ -197,6 +199,17 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
           </nav>
 
           <div className="ml-auto flex items-center gap-2 lg:ml-3">
+            <a
+              data-nexora-whatsapp-cta="desktop-header"
+              href={NEXORA_OFFICIAL_WHATSAPP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Chat with NEXORA on WhatsApp"
+              className="hidden min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[#D7C8A8] bg-white px-3 text-xs font-bold text-[#2A1E4A] transition hover:bg-[#F4F8F3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A4E8F] xl:inline-flex"
+            >
+              <MessageCircle size={16} aria-hidden="true" />
+              WhatsApp
+            </a>
             <a href="/login" className="hidden min-h-[44px] items-center rounded-xl px-4 text-sm font-bold text-[#2A1E4A] transition hover:bg-[#F6F1E6] focus-visible:outline-2 focus-visible:outline-[#7A4E8F] sm:inline-flex">
               {authenticated ? 'Owner Workspace' : 'Sign In'}
             </a>
@@ -226,6 +239,17 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
               ))}
               <p className="px-3 pt-3 text-xs font-extrabold tracking-[.18em] text-[#806d88]">MORE</p>
               {moreLinks.map((item) => <a key={item.href} href={item.href} onClick={() => setMenuOpen(false)} className="flex min-h-[46px] items-center justify-between rounded-xl px-3 text-sm font-bold text-[#3F3550] hover:bg-[#F6F1E6]">{item.label}<ArrowRight size={15} aria-hidden="true" /></a>)}
+              <a
+                data-nexora-whatsapp-cta="mobile-menu"
+                href={NEXORA_OFFICIAL_WHATSAPP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Chat with NEXORA on WhatsApp"
+                className="mt-2 flex min-h-[46px] items-center justify-between rounded-xl bg-[#EAF7EF] px-3 text-sm font-bold text-[#14532D] hover:bg-[#DDF2E5] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A4E8F]"
+              >
+                <span className="inline-flex items-center gap-2"><MessageCircle size={17} aria-hidden="true" /> Chat with NEXORA on WhatsApp</span>
+                <ArrowRight size={15} aria-hidden="true" />
+              </a>
               <a href="/login" className="mt-2 inline-flex min-h-[46px] items-center justify-center rounded-xl border border-[#D9CFBC] px-4 text-sm font-bold text-[#2A1E4A] hover:bg-[#FBF8F2] sm:hidden">
                 {authenticated ? 'Owner Workspace' : 'Sign In'}
               </a>
@@ -259,6 +283,16 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
                   {authenticated ? 'Open Workspace' : 'Get Started'} <Rocket size={16} aria-hidden="true" />
                 </a>
               </div>
+              <a
+                data-nexora-whatsapp-cta="hero"
+                href={NEXORA_OFFICIAL_WHATSAPP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-4 inline-flex min-h-[40px] self-start items-center gap-2 rounded-lg px-1 text-sm font-semibold text-[#623D4D] transition hover:text-[#2A1E4A] hover:underline hover:underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8C4D67] sm:mt-2"
+              >
+                <MessageCircle size={17} aria-hidden="true" />
+                Questions? Chat with NEXORA on WhatsApp
+              </a>
               <ul className="mt-7 flex flex-wrap gap-x-5 gap-y-3 text-xs font-semibold text-[#51434D]" aria-label="NEXORA product features">
                 <li className="inline-flex items-center gap-1.5">
                   <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#F1E1E4] text-[#743D55]"><Check size={12} strokeWidth={3} aria-hidden="true" /></span>
@@ -497,12 +531,45 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
               </div>
             </nav>
           </div>
-          <div className="flex flex-col gap-3 pt-7 text-xs text-[#AFA5BC] sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-8 flex flex-col gap-3 rounded-2xl border border-white/15 bg-white/5 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-extrabold uppercase tracking-[0.15em] text-[#E9C98E]">Contact NEXORA</p>
+            <p className="mt-1 text-sm font-semibold text-white">Questions about NEXORA Salon OS? Chat with our team.</p>
+            <p className="mt-1 text-xs text-[#C8C0D3]">+91 7852877721</p>
+          </div>
+          <a
+            data-nexora-whatsapp-cta="footer"
+            href={NEXORA_OFFICIAL_WHATSAPP_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-[46px] shrink-0 items-center justify-center gap-2 self-start rounded-xl bg-[#25D366] px-5 text-sm font-extrabold text-[#103B20] shadow-sm transition hover:bg-[#58E68A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E9C98E] sm:self-auto"
+          >
+            <MessageCircle size={18} aria-hidden="true" />
+            WhatsApp Support
+            <ArrowRight size={15} aria-hidden="true" />
+          </a>
+        </div>
+        <div className="flex flex-col gap-3 pt-7 text-xs text-[#AFA5BC] sm:flex-row sm:items-center sm:justify-between">
             <p>© 2026 NEXORA Salon OS. Your brand, your business.</p>
             <p>Made for salons, spas and beauty professionals.</p>
           </div>
         </div>
       </footer>
+
+      {!menuOpen && !previewId && (
+        <a
+          data-nexora-whatsapp-cta="floating"
+          className="nexora-whatsapp-fab"
+          href={NEXORA_OFFICIAL_WHATSAPP_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Chat with NEXORA on WhatsApp"
+          title="Chat with NEXORA on WhatsApp"
+        >
+          <MessageCircle size={25} strokeWidth={2.2} aria-hidden="true" />
+          <span className="sr-only">Chat with NEXORA on WhatsApp</span>
+        </a>
+      )}
 
       {previewId && (
         <Suspense fallback={<div role="status" aria-live="polite" className="sr-only">Loading interactive template preview…</div>}>
