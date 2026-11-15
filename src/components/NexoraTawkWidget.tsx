@@ -22,6 +22,7 @@ type TawkWidgetApi = {
   onChatMaximized?: () => void;
   setChatInputMessage?: (message: string, callback?: (error?: unknown) => void) => void;
   __nexoraPrefilledSalonSlug?: string;
+  isChatOngoing?: () => boolean;
   showWidget?: () => void;
   hideWidget?: () => void;
   setAttributes?: (
@@ -100,7 +101,7 @@ export function NexoraTawkWidget({
     tawkApi.onChatMaximized = () => {
       if (!pageIsActive || !tawkApi.setChatInputMessage) return;
       if (salonSlug) {
-        if (tawkApi.__nexoraPrefilledSalonSlug === salonSlug) return;
+        if (tawkApi.__nexoraPrefilledSalonSlug === salonSlug && tawkApi.isChatOngoing?.() === true) return;
         const message = [
           `Hi, I am visiting ${salonName || 'this salon'}.`,
           `NEXORA salon slug: ${salonSlug}.`,
