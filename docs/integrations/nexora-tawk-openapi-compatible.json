@@ -1,0 +1,265 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "NEXORA Salon WhatsApp Lookup API",
+    "version": "1.1.0",
+    "description": "Read-only TEST MODE integration for NEXORA. Returns the published salon catalogue and live availability. Availability checks never reserve a slot or create an appointment. Customer details and booking writes are intentionally excluded from this first AI Assist tool set."
+  },
+  "servers": [
+    {
+      "url": "https://zilwgiuiygqqardzutxi.supabase.co/functions/v1/studioflow-whatsapp-booking"
+    }
+  ],
+  "paths": {
+    "/catalogue": {
+      "post": {
+        "operationId": "getSalonCatalogue",
+        "summary": "Get salon services, specialists and branches",
+        "description": "Use when a customer asks about salon services, prices, duration, available specialists or salon locations. Send the published salon website slug as a query parameter. This operation is read-only.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "query",
+            "required": true,
+            "description": "Published salon website slug only, not the full website URL.",
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 80
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Salon catalogue returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "mode": {
+                      "type": "string"
+                    },
+                    "salon": {
+                      "type": "object",
+                      "properties": {
+                        "slug": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "city": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "services": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "category": {
+                            "type": "string"
+                          },
+                          "priceINR": {
+                            "type": "number"
+                          },
+                          "durationMinutes": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "specialists": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "role": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "branches": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "city": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "notice": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid salon slug."
+          },
+          "404": {
+            "description": "Salon not found or not published."
+          },
+          "503": {
+            "description": "Salon locations could not be loaded."
+          }
+        }
+      }
+    },
+    "/availability": {
+      "post": {
+        "operationId": "checkAppointmentAvailability",
+        "summary": "Check live appointment availability",
+        "description": "Use after the customer chooses services and an appointment date. First call getSalonCatalogue and use the exact service IDs it returns. Pass multiple service IDs as a comma-separated string. Use stylistId 'any' unless the customer selects a specialist. If the catalogue has multiple branches, ask the customer to choose one. This checks live slots only and does not reserve a time.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "query",
+            "required": true,
+            "description": "Published salon website slug.",
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 80
+            }
+          },
+          {
+            "name": "serviceIds",
+            "in": "query",
+            "required": true,
+            "description": "One or more exact service IDs from getSalonCatalogue, separated by commas.",
+            "schema": {
+              "type": "string",
+              "example": "service-id-1,service-id-2"
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": true,
+            "description": "Appointment date in YYYY-MM-DD format.",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "stylistId",
+            "in": "query",
+            "required": false,
+            "description": "Specialist ID from the catalogue, or 'any'.",
+            "schema": {
+              "type": "string",
+              "default": "any"
+            }
+          },
+          {
+            "name": "branchId",
+            "in": "query",
+            "required": false,
+            "description": "Branch UUID from the catalogue when the salon has multiple active branches.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Available slots, duration and INR price returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "mode": {
+                      "type": "string"
+                    },
+                    "salon": {
+                      "type": "string"
+                    },
+                    "date": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "durationMinutes": {
+                      "type": "integer"
+                    },
+                    "totalPriceINR": {
+                      "type": "number"
+                    },
+                    "slots": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "time": {
+                            "type": "string"
+                          },
+                          "stylistId": {
+                            "type": "string"
+                          },
+                          "stylistName": {
+                            "type": "string"
+                          },
+                          "branchId": {
+                            "type": "string"
+                          },
+                          "branchName": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "notice": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or branch selection required."
+          },
+          "409": {
+            "description": "Salon or selected service is unavailable."
+          },
+          "503": {
+            "description": "Live availability could not be checked."
+          }
+        }
+      }
+    }
+  }
+}
