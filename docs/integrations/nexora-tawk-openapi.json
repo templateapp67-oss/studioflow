@@ -1,0 +1,126 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "NEXORA Salon WhatsApp Booking Test API",
+    "version": "1.0.0",
+    "description": "TEST MODE ONLY. Reads published salon services and live availability. The test-booking endpoint writes only to an isolated test ledger; it never reserves a real calendar slot or creates a real appointment or payment."
+  },
+  "servers": [
+    {
+      "url": "https://zilwgiuiygqqardzutxi.supabase.co/functions/v1/studioflow-whatsapp-booking"
+    }
+  ],
+  "security": [
+    {
+      "NexoraBearer": []
+    }
+  ],
+  "paths": {
+    "/catalogue": {
+      "post": {
+        "operationId": "getSalonCatalogue",
+        "summary": "Get a salon's services, specialists and branches",
+        "description": "Use when a customer asks what services are available, prices, durations, specialists or salon locations. Ask for the salon website slug if it is not known. This is read-only.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["slug"],
+                "properties": {
+                  "slug": { "type": "string", "description": "Published salon website slug, not the full URL." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Salon catalogue returned." },
+          "400": { "description": "Invalid salon slug." },
+          "404": { "description": "Salon not found or not published." }
+        }
+      }
+    },
+    "/availability": {
+      "post": {
+        "operationId": "checkAppointmentAvailability",
+        "summary": "Check live appointment availability",
+        "description": "Use after the customer chooses one or more services and a date. Always use service IDs returned by getSalonCatalogue. Ask for a specialist or use stylistId 'any'. If multiple branches exist, ask the customer to choose one. This checks live slots but does not reserve a slot.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["slug", "serviceIds", "date"],
+                "properties": {
+                  "slug": { "type": "string" },
+                  "serviceIds": { "type": "array", "minItems": 1, "maxItems": 10, "items": { "type": "string" } },
+                  "date": { "type": "string", "format": "date", "description": "Appointment date in YYYY-MM-DD format." },
+                  "stylistId": { "type": "string", "default": "any", "description": "Specialist ID from catalogue, or 'any'." },
+                  "branchId": { "type": "string", "description": "Optional branch UUID from catalogue." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Available slots, duration and INR price returned." },
+          "400": { "description": "Invalid input or branch selection required." },
+          "409": { "description": "Salon or selected service is unavailable." },
+          "503": { "description": "Live availability could not be checked." }
+        }
+      }
+    },
+    "/test-booking": {
+      "post": {
+        "operationId": "saveTestBookingRequest",
+        "summary": "Save an explicitly confirmed test booking request",
+        "description": "TEST MODE ONLY. Call only after the customer has explicitly confirmed the complete service, date, time, specialist, branch, name and WhatsApp number. First check availability. Use the selected slot's stylistId and generate a new UUID requestId for each new test request. The response must be described to the customer as a test simulation, never as a real appointment. No real booking or calendar slot is created.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["slug", "serviceIds", "date", "time", "stylistId", "requestId", "customerName", "customerPhone", "customerConfirmed"],
+                "properties": {
+                  "slug": { "type": "string" },
+                  "serviceIds": { "type": "array", "minItems": 1, "maxItems": 10, "items": { "type": "string" } },
+                  "date": { "type": "string", "format": "date" },
+                  "time": { "type": "string", "pattern": "^(?:[01]\\d|2[0-3]):[0-5]\\d$" },
+                  "stylistId": { "type": "string", "description": "Selected specialist ID from the availability response." },
+                  "branchId": { "type": "string" },
+                  "requestId": { "type": "string", "format": "uuid", "description": "A newly generated UUID for this customer-confirmed test request." },
+                  "customerName": { "type": "string", "minLength": 2 },
+                  "customerPhone": { "type": "string", "description": "Customer WhatsApp number with country code." },
+                  "notes": { "type": "string" },
+                  "customerConfirmed": { "type": "boolean", "enum": [true], "description": "Must be true only after the customer explicitly confirms all details." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Test request saved to isolated test ledger. No real appointment was created." },
+          "200": { "description": "Idempotent retry of an existing test request. No real appointment was created." },
+          "400": { "description": "Invalid input or customer confirmation missing." },
+          "409": { "description": "Selected slot is no longer available or request ID conflicts." },
+          "429": { "description": "Test request rate limit reached." },
+          "503": { "description": "Test request could not be saved." }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "NexoraBearer": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "In tawk.to choose API key authentication. Header key: Authorization. Header value: Bearer followed by the NEXORA_TAWK_BOOKING_API_KEY secret. Never publish the secret."
+      }
+    }
+  }
+}
