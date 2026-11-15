@@ -4,6 +4,12 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AppRouter, requiresFullApplication } from '../src/AppRouter';
 import { PublicHomepage, PUBLIC_SIGNUP_PATH, templateSignupPath } from '../src/components/PublicHomepage';
+import {
+  buildWhatsAppClickToChatUrl,
+  NEXORA_OFFICIAL_WHATSAPP_MESSAGE,
+  NEXORA_OFFICIAL_WHATSAPP_NUMBER,
+  NEXORA_OFFICIAL_WHATSAPP_URL,
+} from '../src/lib/whatsappContact';
 import { AuthPage } from '../src/components/AuthPage';
 import { CATEGORY_TEMPLATES } from '../src/categoryTemplates';
 import { NEXORA_TEMPLATE_META } from '../src/lib/nexoraTemplateCatalogue';
@@ -51,6 +57,53 @@ assert.equal(hasAuthCallbackQuery('?ref=ABC123'), false, 'business referrals alo
 assert.equal(NEXORA_PUBLIC_ORIGIN, 'https://nexorasalon.online', 'SEO must use the production domain, never a Vercel preview host');
 const homeHtml = renderToStaticMarkup(<PublicHomepage />);
 const authenticatedHomeHtml = renderToStaticMarkup(<PublicHomepage authenticated />);
+
+// NEXORA support click-to-chat must use the supplied E.164 business number and
+// preserve the exact prefilled text after WhatsApp decodes its URL parameter.
+assert.equal(NEXORA_OFFICIAL_WHATSAPP_NUMBER, '+91 7852877721');
+assert.equal(new URL(NEXORA_OFFICIAL_WHATSAPP_URL).pathname, '/917852877721');
+assert.equal(new URL(NEXORA_OFFICIAL_WHATSAPP_URL).searchParams.get('text'), NEXORA_OFFICIAL_WHATSAPP_MESSAGE);
+assert.equal(
+  NEXORA_OFFICIAL_WHATSAPP_URL,
+  'https://wa.me/917852877721?text=Hi%2C%20I%20found%20your%20website%20and%20I%27d%20like%20more%20information%20about%20NEXORA%20Salon%20OS.',
+  'official URL uses the correct international number and encoded message',
+);
+assert.equal(
+  buildWhatsAppClickToChatUrl({ phoneNumber: '+91 7852877721' }),
+  'https://wa.me/917852877721',
+  'the reusable URL helper supports a blank optional message',
+);
+assert.equal(
+  buildWhatsAppClickToChatUrl({ phoneNumber: '+1 (415) 555-0199', prefilledMessage: '  Hello there  ' }),
+  'https://wa.me/14155550199?text=Hello%20there',
+  'the reusable URL helper trims and encodes message text',
+);
+assert.throws(
+  () => buildWhatsAppClickToChatUrl({ phoneNumber: '7852877721' }),
+  /international format/,
+  'the reusable URL helper rejects a number without a country code',
+);
+const expectedWhatsappHref = `href="${NEXORA_OFFICIAL_WHATSAPP_URL}"`;
+assert.equal(
+  homeHtml.split(expectedWhatsappHref).length - 1,
+  4,
+  'homepage renders one WhatsApp link each in desktop header, hero, footer and floating shortcut',
+);
+assert.equal(
+  (homeHtml.match(/data-nexora-whatsapp-cta="/g) || []).length,
+  4,
+  'server-rendered WhatsApp CTA placements are deliberate and non-duplicated',
+);
+assert.ok(homeHtml.includes('Questions? Chat with NEXORA on WhatsApp'), 'homepage hero provides a direct WhatsApp option');
+assert.ok(homeHtml.includes('WhatsApp Support'), 'homepage footer provides a WhatsApp contact link');
+assert.ok(homeHtml.includes('aria-label="Chat with NEXORA on WhatsApp"'), 'icon-only WhatsApp shortcut has an accessible name');
+const homepageSource = readFileSync('src/components/PublicHomepage.tsx', 'utf8');
+assert.ok(homepageSource.includes('data-nexora-whatsapp-cta="mobile-menu"'), 'mobile navigation includes a WhatsApp contact action');
+assert.ok(homepageSource.includes('!menuOpen && !previewId'), 'floating shortcut steps aside for the mobile menu and template preview');
+const homepageCss = readFileSync('src/components/publicHomepage.css', 'utf8');
+assert.match(homepageCss, /\.public-homepage \.nexora-whatsapp-fab\s*\{[^}]*position:\s*fixed/s, 'floating WhatsApp shortcut is fixed to the viewport');
+assert.ok(homepageCss.includes('env(safe-area-inset-bottom'), 'floating shortcut respects mobile safe-area inset');
+assert.ok(homepageCss.includes('z-index: 40'), 'floating shortcut stays below the sticky header and skip link');
 const renderRoutedRoot = (session: string | null) => {
   const previousWindow = (globalThis as any).window;
   try {
