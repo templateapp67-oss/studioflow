@@ -69,4 +69,10 @@ Metrics must be derived from booking/payment rows and message logs, not incremen
 
 ## Current implementation status
 
-The initial database foundation migration adds tenant-scoped connection, OAuth-state, webhook-event, conversation and message-ledger tables with browser-role access revoked. It does not create a live Meta connection, enable production webhooks, create bookings or send payment messages. Keep production claims disabled until every rollout gate is verified.
+The database foundation migration is applied to the NEXORA Supabase production project. The five tenant-scoped tables exist, RLS is enabled, browser-role table access is revoked, and the service role can access the records. Foreign keys resolve to the live `salons`, `bookings` and `payment_orders` tables.
+
+This foundation does not create a live Meta connection, enable production webhooks, create real WhatsApp bookings, send WhatsApp messages or process payments. Keep production claims disabled until every rollout gate above is verified.
+
+## Migration history recovery
+
+The live project contains historical migration versions that are not present as files in this repository. Do not mark those versions reverted or add empty placeholder migrations: either action can break a fresh preview rebuild or cause already-applied SQL to run again. Before enabling Supabase branch previews, generate and review a complete baseline from the live schema with the Supabase CLI (`supabase db pull`), verify a clean local reset against that baseline, and then reconcile migration history deliberately. The WhatsApp foundation migration is tracked using the exact version recorded by the live project.
