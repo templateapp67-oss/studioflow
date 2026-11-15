@@ -49,7 +49,7 @@ function getVisitorAttributes(
   };
   const city = salon.city?.trim();
   if (city) attributes['salon-city'] = city.slice(0, 80);
-  const whatsappDigits = (salon.whatsapp || '').replace(/\\D/g, '');
+  const whatsappDigits = (salon.whatsapp || '').replace(/\D/g, '');
   if (whatsappDigits.length >= 8 && whatsappDigits.length <= 15) {
     attributes['salon-whatsapp'] = `+${whatsappDigits}`;
   }
