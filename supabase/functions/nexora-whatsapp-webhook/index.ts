@@ -742,6 +742,37 @@ Deno.serve(async (req: Request) => {
     const bearer = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
     if (constantTimeEqual(bearer, serviceKey)) {
       const body = raw ? JSON.parse(raw) as Json : {};
+      if (body.action === 'ownerReply' && typeof body.ownerId === 'string' &&
+          typeof body.customerWaId === 'string' && typeof body.message === 'string') {
+        const ownerId = body.ownerId;
+        const recipient = digits(body.customerWaId);
+        const message = safeText(body.message, 3500);
+        if (!recipient || !message) return json({ error: 'Valid customer number and message required.' }, 400);
+        const connectionResult = await db.from('salon_whatsapp_connections')
+          .select('*')
+          .eq('owner_id', ownerId)
+          .eq('connection_status', 'connected')
+          .eq('webhook_subscribed', true)
+          .maybeSingle();
+        if (connectionResult.error || !connectionResult.data) return json({ error: 'This salon WhatsApp number is not connected.' }, 409);
+        const conversationResult = await db.from('salon_whatsapp_conversations')
+          .select('flow_state,last_inbound_at')
+          .eq('owner_id', ownerId)
+          .eq('customer_wa_id', recipient)
+          .maybeSingle();
+        if (conversationResult.error || !conversationResult.data) return json({ error: 'WhatsApp conversation not found.' }, 404);
+        if (conversationResult.data.flow_state?.optOut === true) return json({ error: 'This customer opted out. They must reply START before you can message them.' }, 409);
+        const result = await sendSalonText(
+          db,
+          connectionResult.data,
+          ownerId,
+          recipient,
+          message,
+          'human_handoff',
+        );
+        if (!result.sent) return json({ sent: false, reason: result.reason }, 409);
+        return json({ sent: true, messageId: result.messageId || null });
+      }
       if (body.action === 'paymentReceipt' && typeof body.bookingId === 'string' && typeof body.paymentId === 'string') {
         return json(await notifyPayment(db, body.bookingId, body.paymentId));
       }
