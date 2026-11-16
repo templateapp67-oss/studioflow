@@ -29,6 +29,14 @@ type WhatsAppStatus = {
     messages_inbound?: number;
     messages_outbound?: number;
   };
+  setup?: {
+    meta_app_configured?: boolean;
+    embedded_signup_configured?: boolean;
+    meta_webhook_verify_configured?: boolean;
+    token_encryption_ready?: boolean;
+    razorpay_keys_configured?: boolean;
+    razorpay_webhook_configured?: boolean;
+  };
   error?: string;
 };
 type MetaSdk = {
@@ -288,6 +296,26 @@ export const SalonWhatsAppIntegration: React.FC<Props> = ({ profile }) => {
           className="mt-4 text-xs font-bold text-slate-600 underline underline-offset-2 disabled:opacity-50">
           {loading ? 'Refreshing…' : 'Refresh WhatsApp status'}
         </button>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-5">
+        <h3 className="font-bold text-slate-900">Connection setup checks</h3>
+        <p className="mt-1 text-xs text-slate-500">Secrets ke actual values yahan kabhi show nahi hote—sirf configuration status dikhata hai.</p>
+        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {[
+            ['Meta app ID & secret', status?.setup?.meta_app_configured],
+            ['Embedded Signup v5 config', status?.setup?.embedded_signup_configured],
+            ['Meta webhook verify token', status?.setup?.meta_webhook_verify_configured],
+            ['Encrypted token key (Vault)', status?.setup?.token_encryption_ready],
+            ['Razorpay API keys', status?.setup?.razorpay_keys_configured],
+            ['Razorpay webhook secret', status?.setup?.razorpay_webhook_configured],
+          ].map(([label, ready]) => (
+            <div key={String(label)} className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-xs">
+              <span className="font-medium text-slate-700">{label}</span>
+              <span className={ready ? 'font-bold text-emerald-700' : 'font-bold text-amber-700'}>{ready ? 'Ready' : 'Needed'}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
