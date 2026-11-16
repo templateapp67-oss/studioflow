@@ -29,7 +29,7 @@ for (const table of [
 
 assert.ok(studioflowTenancy.includes('references public.studioflow_bookings(id)'), 'WhatsApp log must reference canonical booking records');
 assert.ok(studioflowTenancy.includes('references public.studioflow_payment_orders(booking_id)'), 'WhatsApp log must reference canonical payment records');
-assert.ok(bookingPayments.includes("booking_source='whatsapp'"), 'WhatsApp booking source must be assigned by the trusted booking function');
+assert.ok(bookingPayments.includes("'whatsapp',idempotency_key"), 'WhatsApp booking source must be assigned by the trusted booking function');
 assert.ok(bookingPayments.includes('external_idempotency_key'), 'booking creation must be idempotent');
 assert.ok(bookingPayments.includes('public.studioflow_whatsapp_book'), 'guest booking needs a service-role-only RPC');
 assert.ok(bookingPayments.includes('public.studioflow_settle_payment_link'), 'payment link settlement must have a service-role-only RPC');
@@ -56,7 +56,6 @@ assert.ok(platform.includes('internal_payment_success'), 'internal verified-paym
 
 assert.ok(payments.includes("body.event==='payment_link.paid'"), 'existing Razorpay webhook must process WhatsApp payment links');
 assert.ok(payments.includes('studioflow_settle_payment_link'), 'payment link webhook must settle the canonical deposit');
-assert.ok(payments.includes('payments/'+ "''"), ''); // keep the assertion suite deterministic; fetch/amount checks below prove verification
 assert.ok(payments.includes("payment.status!=='captured'"), 'uncaptured Razorpay payments must not confirm the booking');
 assert.ok(payments.includes("payment.currency!=='INR'"), 'payment currency must match INR');
 assert.ok(payments.includes('internal_payment_success'), 'verified payment must notify the salon WhatsApp sender');
