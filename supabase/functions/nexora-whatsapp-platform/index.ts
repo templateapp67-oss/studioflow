@@ -85,21 +85,27 @@ async function ownerFromRequest(req: Request, db: any): Promise<Row> {
   if (accountError || !account) throw new Error('This account does not have a NEXORA salon workspace');
   return data.user as Row;
 }
-async function encryptionKey(): Promise<CryptoKey> {
-  const encoded = env('NEXORA_WA_TOKEN_ENCRYPTION_KEY');
-  if (!encoded) throw new Error('NEXORA WhatsApp token-encryption secret is not configured');
+async function encryptionKey(db: any): Promise<CryptoKey> {
+  let encoded = env('NEXORA_WA_TOKEN_ENCRYPTION_KEY');
+  if (!encoded) {
+    const { data, error } = await db.rpc('nexora_whatsapp_token_key');
+    if (error || typeof data !== 'string' || !data) {
+      throw new Error('Vault-held WhatsApp token-encryption key could not be loaded by the trusted server');
+    }
+    encoded = data;
+  }
   const raw = fromBase64(encoded);
-  if (raw.length !== 32) throw new Error('WhatsApp token-encryption secret must be a base64-encoded 32-byte key');
+  if (raw.length !== 32) throw new Error('WhatsApp token-encryption key is not a valid 32-byte AES key');
   return crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
 }
-async function encryptToken(token: string): Promise<{ ciphertext: string; iv: string }> {
-  const key = await encryptionKey();
+async function encryptToken(db: any, token: string): Promise<{ ciphertext: string; iv: string }> {
+  const key = await encryptionKey(db);
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(token));
   return { ciphertext: base64(new Uint8Array(cipher)), iv: base64(iv) };
 }
-async function decryptToken(row: Row): Promise<string> {
-  const key = await encryptionKey();
+async function decryptToken(db: any, row: Row): Promise<string> {
+  const key = await encryptionKey(db);
   const plain = await crypto.subtle.decrypt(
     { name: 'AES-GCM', iv: fromBase64(row.access_token_iv) },
     key,
@@ -206,7 +212,7 @@ async function sendWhatsAppText(
     });
     return { sent: false, reason: 'customer_service_window_closed' };
   }
-  const token = await decryptToken(connection);
+  const token = await decryptToken(db, connection);
   const response = await metaRequest('/' + connection.phone_number_id + '/messages', token, {
     method: 'POST',
     body: JSON.stringify({
@@ -271,7 +277,7 @@ async function resolveCustomerUser(db: any, waPhone: string, displayName: string
   const d = digits(e164);
   if (!e164 || d.length < 10) throw new Error('Customer phone number could not be verified');
   const forms = Array.from(new Set([e164, d, d.slice(-10), '+91' + d.slice(-10)]));
-  const fields = ['phone_number', 'whatsapp', 'phone', 'mobile', 'whatsapp_number'];
+  const fields = ['phone_number', 'whatsapp', 'phone'];
   const filters: string[] = [];
   for (const field of fields) for (const form of forms) filters.push(field + '.eq.' + form);
   const { data: profiles } = await db.from('profiles').select('id').or(filters.join(',')).limit(5);
@@ -830,7 +836,7 @@ async function handleOwnerAction(db: any, user: Row, body: Row): Promise<Row> {
       accessToken,
       { method: 'POST', body: JSON.stringify({}) },
     );
-    const encrypted = await encryptToken(accessToken);
+    const encrypted = await encryptToken(db, accessToken);
     const isOnBizApp = Boolean(
       sessionInfo.is_on_biz_app ?? phoneDetails.is_on_biz_app ?? phone.is_on_biz_app ?? false,
     );
