@@ -948,11 +948,11 @@ Deno.serve(async (req: Request) => {
         if (sentAlready?.length) return json({ ok: true, sent: true, deduplicated: true });
         const result = await sendWhatsAppText(
           db, connection, customerPhone,
-          'Payment mil gaya hai. Aapki booking CONFIRMED hai.\\n' +
-          'Booking ID: ' + booking.id + '\\n' +
-          'Service: ' + clean(booking.payload.serviceName, 100) + '\\n' +
-          'Date & Time: ' + clean(booking.payload.date, 20) + ' ' + clean(booking.payload.time, 10) + '\\n' +
-          'Advance paid: ' + formatMoney(Number(booking.payload.amountPaid || 0)) + '\\n' +
+          'Payment mil gaya hai. Aapki booking CONFIRMED hai.\n' +
+          'Booking ID: ' + booking.id + '\n' +
+          'Service: ' + clean(booking.payload.serviceName, 100) + '\n' +
+          'Date & Time: ' + clean(booking.payload.date, 20) + ' ' + clean(booking.payload.time, 10) + '\n' +
+          'Advance paid: ' + formatMoney(Number(booking.payload.amountPaid || 0)) + '\n' +
           'Dhanyavaad — ' + clean(connection.verified_name || 'salon team', 100),
           'payment_success', booking.id,
         );
