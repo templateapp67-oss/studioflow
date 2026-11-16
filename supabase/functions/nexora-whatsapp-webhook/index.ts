@@ -184,21 +184,47 @@ async function createWhatsAppPaymentLink(bookingId: string) {
   }
   return { ok: true, ...result };
 }
+async function ensureWhatsAppCustomer(db: any, phoneDigits: string, customerName: string) {
+  const phone = '+' + phoneDigits;
+  const existing = await db.rpc('nexora_whatsapp_find_customer', { p_phone: phone });
+  if (typeof existing.data === 'string') return existing.data;
+
+  // An inbound WhatsApp message proves control of this exact phone number.
+  // Create a minimal phone-confirmed customer identity only after the user
+  // explicitly confirms the booking; no password or invented email is created.
+  const userMetadata: Json = {
+    full_name: safeText(customerName, 150),
+    signup_source: 'whatsapp_booking',
+  };
+  // Existing customer signup trigger accepts Indian WhatsApp numbers in +91 format.
+  if (/^\+91[1-9][0-9]{9}$/.test(phone)) userMetadata.whatsapp_number = phone;
+
+  const created = await db.auth.admin.createUser({
+    phone,
+    phone_confirm: true,
+    user_metadata: userMetadata,
+  });
+  if (created.error) {
+    const retry = await db.rpc('nexora_whatsapp_find_customer', { p_phone: phone });
+    if (typeof retry.data === 'string') return retry.data;
+    throw new Error(safeText(created.error.message, 250) || 'Customer account could not be created.');
+  }
+  const customerId = created.data?.user?.id;
+  if (typeof customerId !== 'string') throw new Error('Customer account was not returned by Supabase Auth.');
+  return customerId;
+}
+
 async function processBooking(db: any, connection: Json, conversation: Json, flow: Json, website: Json, sender: string) {
-  const lookup = await db.rpc('nexora_whatsapp_find_customer', { p_phone: '+' + sender });
-  const customerId = typeof lookup.data === 'string' ? lookup.data : null;
-  if (lookup.error || !customerId) {
-    const siteUrl = 'https://nexorasalon.online/?site=' + encodeURIComponent(website.slug);
-    await saveConversation(db, conversation, {
-      step: 'needs_customer_verification',
-      serviceId: flow.serviceId, date: flow.date, time: flow.time,
-      stylistId: flow.stylistId, stylistName: flow.stylistName,
-      clientName: flow.clientName, requestKey: flow.requestKey,
-    });
+  let customerId: string;
+  try {
+    customerId = await ensureWhatsAppCustomer(db, sender, safeText(flow.clientName, 150));
+  } catch (error) {
+    await saveConversation(db, conversation, { step: 'menu' });
     await sendSalonText(
       db, connection, conversation.owner_id, sender,
-      'For a safe booking, first sign in on this salon website with this same WhatsApp number: ' + siteUrl +
-      '\n\nAfter you verify your number, return here and reply YES. This links your WhatsApp booking to your customer account.',
+      'I could not set up your customer record securely: ' +
+      (error instanceof Error ? error.message : 'Please contact the salon team.') +
+      '\n\nReply 3 and the salon team can help you.',
       'conversation',
     );
     return;
@@ -455,7 +481,7 @@ async function handleInbound(db: any, connection: Json, message: Json, contact: 
       '\nSpecialist: ' + (safeText(flow.stylistName, 100) || 'Available specialist') +
       '\nCustomer: ' + name +
       '\nService price: ₹' + Number(flow.servicePrice).toLocaleString('en-IN') +
-      '\n\nReply YES to confirm this booking request, or NO to cancel.', 'conversation');
+      '\n\nBy replying YES, you approve this booking and allow this salon to save your name and WhatsApp number as a customer record. Reply YES to confirm, or NO to cancel.', 'conversation');
     return;
   }
   if ((flow.step === 'confirm_booking' || flow.step === 'needs_customer_verification') && upper === 'YES') {
