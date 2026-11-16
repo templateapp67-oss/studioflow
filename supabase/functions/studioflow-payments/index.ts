@@ -93,25 +93,50 @@ Deno.serve(async(req:Request)=>{
       if(!creds.configured||!creds.webhookSecret)return respond({error:'Webhook configuration missing'},503);
       if(!await signatureMatches(creds.webhookSecret,raw,webhookSignature))return respond({error:'Invalid webhook signature'},401);
       if(body.event==='payment_link.paid'){
-        const link=body.payload?.payment_link?.entity;
-        const p=body.payload?.payment?.entity;
-        if(link?.id&&link?.order_id&&p?.id&&link.status==='paid'&&
-          Number(link.amount_paid)>=Number(link.amount)&&Number(link.amount)>0){
+        const eventLink=body.payload?.payment_link?.entity;
+        if(eventLink?.id&&eventLink.status==='paid'){
           const {data:known}=await service.from('studioflow_payment_orders')
-            .select('booking_id,payment_link_id,amount_paise')
-            .eq('order_id',link.order_id).maybeSingle();
-          if(known&&known.payment_link_id===link.id&&Number(known.amount_paise)===Number(link.amount)){
-            const settled=await settle(link.order_id,p.id);
-            if(!settled?.refund_required){
-              await service.from('studioflow_payment_orders')
-                .update({payment_link_status:'paid'}).eq('booking_id',known.booking_id);
-              const notifyUrl=url+'/functions/v1/nexora-whatsapp-webhook';
-              await fetch(notifyUrl,{
-                method:'POST',
-                headers:{Authorization:'Bearer '+serviceKey,'Content-Type':'application/json'},
-                body:JSON.stringify({action:'paymentReceipt',bookingId:known.booking_id,paymentId:p.id}),
-                signal:AbortSignal.timeout(15000)
-              }).catch(()=>null);
+            .select('booking_id,order_id,payment_link_id,amount_paise')
+            .eq('payment_link_id',eventLink.id).maybeSingle();
+          if(known&&Number(known.amount_paise)>0){
+            // Razorpay's Payment Link entity is keyed by payment_link_id and
+            // reference_id; the create response does not require/order an order_id.
+            // Re-fetch the signed link and its captured payment before settlement.
+            const liveLink=await provider('payment_links/'+encodeURIComponent(eventLink.id));
+            const noteBooking=liveLink.notes?.studioflow_booking;
+            if(liveLink.id===known.payment_link_id&&liveLink.status==='paid'&&
+              Number(liveLink.amount)===Number(known.amount_paise)&&
+              Number(liveLink.amount_paid)>=Number(known.amount_paise)&&
+              noteBooking===known.booking_id){
+              const paymentRows=Array.isArray(liveLink.payments)?liveLink.payments:[];
+              const eventPayment=body.payload?.payment?.entity;
+              const paymentId=typeof eventPayment?.id==='string'
+                ? eventPayment.id
+                : (paymentRows.find((row:any)=>typeof row.payment_id==='string'||typeof row.id==='string')?.payment_id||
+                   paymentRows.find((row:any)=>typeof row.id==='string')?.id||'');
+              if(paymentId){
+                const payment=await provider('payments/'+encodeURIComponent(paymentId));
+                if(payment.id===paymentId&&payment.status==='captured'&&payment.currency==='INR'&&
+                  Number(payment.amount)===Number(known.amount_paise)){
+                  const settled=await service.rpc('studioflow_settle_payment',{
+                    p_order:known.order_id,p_payment:paymentId,p_amount:Number(payment.amount)
+                  });
+                  if(settled.error)throw new Error('Could not settle the verified WhatsApp payment link.');
+                  if(settled.data?.refund_required){
+                    await refundPayment(known.order_id,paymentId,Number(known.amount_paise));
+                  }else{
+                    await service.from('studioflow_payment_orders')
+                      .update({payment_link_status:'paid'}).eq('booking_id',known.booking_id);
+                    const notifyUrl=url+'/functions/v1/nexora-whatsapp-webhook';
+                    await fetch(notifyUrl,{
+                      method:'POST',
+                      headers:{Authorization:'Bearer '+serviceKey,'Content-Type':'application/json'},
+                      body:JSON.stringify({action:'paymentReceipt',bookingId:known.booking_id,paymentId}),
+                      signal:AbortSignal.timeout(15000)
+                    }).catch(()=>null);
+                  }
+                }
+              }
             }
           }
         }
@@ -210,7 +235,8 @@ Deno.serve(async(req:Request)=>{
         amount,
         currency:'INR',
         accept_partial:false,
-        reference_id:String(booking.id).slice(0,40),
+        reference_id:(crypto.randomUUID().replace(/-/g,'')+'-'+String(booking.id).slice(0,7)).slice(0,40),
+        expire_by:Math.floor(Date.now()/1000)+16*60,
         description:'25% booking advance - '+String(booking.payload?.serviceName||'Salon appointment').slice(0,150),
         customer:{
           name:String(booking.payload?.clientName||'Salon customer').slice(0,100),
@@ -224,7 +250,7 @@ Deno.serve(async(req:Request)=>{
           booking_source:'whatsapp'
         }
       })});
-      if(!created?.id||!created?.order_id||!created?.short_url||Number(created.amount)!==amount){
+      if(!created?.id||!created?.short_url||Number(created.amount)!==amount){
         return respond({error:'Razorpay did not return a valid payment link for this booking.'},502);
       }
       const {data:freshBooking}=await service.from('studioflow_bookings')
@@ -236,7 +262,7 @@ Deno.serve(async(req:Request)=>{
       }
       if(existingOrder){
         const {error:updateError}=await service.from('studioflow_payment_orders').update({
-          order_id:created.order_id,
+          order_id:created.id,
           amount_paise:amount,
           payment_link_id:created.id,
           payment_link_url:created.short_url,
@@ -248,7 +274,7 @@ Deno.serve(async(req:Request)=>{
         }
       }else{
         const registered=await service.rpc('studioflow_register_payment',{
-          p_booking:booking.id,p_order:created.order_id,p_amount:amount
+          p_booking:booking.id,p_order:created.id,p_amount:amount
         });
         if(registered.error){
           try{await provider('payment_links/'+encodeURIComponent(created.id)+'/cancel',{method:'POST',body:'{}'});}catch{/* best effort */}
@@ -265,7 +291,7 @@ Deno.serve(async(req:Request)=>{
         paymentLinkId:created.id,
         paymentLinkUrl:created.short_url,
         amountPaise:amount,
-        orderId:created.order_id,
+        orderId:created.id,
         reused:false
       },201);
     }
