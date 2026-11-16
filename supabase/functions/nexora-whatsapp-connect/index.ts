@@ -10,7 +10,7 @@ const cors = {
   'Vary': 'Origin',
 };
 const GRAPH_VERSION = (Deno.env.get('META_GRAPH_API_VERSION') || 'v27.0').trim();
-const SIGNUP_VERSION = (Deno.env.get('META_WHATSAPP_EMBEDDED_SIGNUP_VERSION') || 'v5').trim();
+const SIGNUP_VERSION = 'v5';
 const encoder = new TextEncoder();
 
 function json(body: unknown, status = 200) {
@@ -385,7 +385,7 @@ Deno.serve(async (req: Request) => {
         primary_waac_ids: primaryWaacIds,
         provider_metadata: {
           graph_version: GRAPH_VERSION,
-          embedded_signup_version: SIGNUP_VERSION,
+          embedded_signup_version: 'v5',
           token_type: typeof tokenResponse.token_type === 'string' ? tokenResponse.token_type : 'bearer',
           expires_at: expiresAt,
           waba_id: wabaId,
