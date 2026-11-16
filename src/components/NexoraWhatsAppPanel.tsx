@@ -64,6 +64,7 @@ type SignupConfig = {
   appId: string | null;
   configId: string | null;
   graphVersion: string;
+  embeddedSignupVersion?: string;
 };
 type MetaLoginResponse = {
   authResponse?: { code?: string; accessToken?: string };
@@ -310,6 +311,7 @@ export const NexoraWhatsAppPanel: React.FC<{ onBookingsChanged?: () => Promise<v
         appId: begin.data.appId,
         configId: begin.data.configId,
         graphVersion: begin.data.graphVersion || 'v27.0',
+        embeddedSignupVersion: begin.data.embeddedSignupVersion || 'v5',
       };
       const result = await runEmbeddedSignup(activeConfig, begin.data.state);
       const completed = await supabase.functions.invoke('nexora-whatsapp-connect', {
