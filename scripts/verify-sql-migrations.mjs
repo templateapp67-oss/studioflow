@@ -21,7 +21,7 @@ create function net.http_post(url text,headers jsonb default null,body jsonb def
 create publication supabase_realtime;
 create schema vault;
 create table vault.secrets(id uuid primary key default gen_random_uuid(),secret text,name text,description text);
-create view vault.decrypted_secrets as select id,secret as decrypted_secret from vault.secrets;
+create view vault.decrypted_secrets as select id,name,description,secret,secret as decrypted_secret from vault.secrets;
 create function vault.create_secret(secret text,name text,description text) returns uuid language sql as $$insert into vault.secrets(secret,name,description) values(secret,name,description) returning id$$;
 create schema cron;
 create function cron.schedule(job text,schedule text,command text) returns bigint language sql as $$select 0::bigint$$;
@@ -117,6 +117,25 @@ await db.exec(readFileSync('supabase/migrations/20261113120947_multibranch_templ
 // server-only (service_role grant only) and is not a browser-facing RPC.
 await db.exec(readFileSync('supabase/migrations/20261115132100_studioflow_whatsapp_test_booking_api.sql','utf8'));
 await db.exec(readFileSync('supabase/migrations/20261115133000_private_whatsapp_test_rate_limit.sql','utf8'));
+
+// Legacy FK targets are represented only to validate the historical WhatsApp
+// foundation. The active NEXORA tenant/booking model is StudioFlow below.
+await db.exec(`
+  create table if not exists public.salons(id uuid primary key);
+  create table if not exists public.bookings(id uuid primary key);
+  create table if not exists public.payment_orders(id uuid primary key);
+`);
+for (const migration of [
+  '20261115173757_nexora_salon_whatsapp_platform.sql',
+  '20261115174514_nexora_whatsapp_studioflow_tenancy.sql',
+  '20261116014600_nexora_whatsapp_booking_payment_engine.sql',
+  '20261116020000_nexora_whatsapp_embedded_signup_v5.sql',
+  '20261116022000_nexora_whatsapp_refund_ledger.sql',
+  '20261116030000_nexora_whatsapp_vault_key_access.sql',
+  '20261116031000_nexora_whatsapp_profile_phone_match.sql',
+]) {
+  await db.exec(readFileSync('supabase/migrations/' + migration, 'utf8'));
+}
 const rpcs=clientRpc(src);
 const froms=[...src.matchAll(/\.from\(\s*['"\`]([A-Za-z0-9_-]+)['"\`]/g)].map(m=>m[1]);
 const tables=froms.filter(n=>!n.includes('-'));
