@@ -35,9 +35,8 @@ async function sha256(value: string) {
   const digest = await crypto.subtle.digest('SHA-256', encoder.encode(value));
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
-async function encryptToken(token: string) {
-  const rawKey = env('NEXORA_WHATSAPP_TOKEN_ENCRYPTION_KEY');
-  if (!rawKey) throw new Error('WhatsApp token encryption key is not configured.');
+async function encryptToken(token: string, rawKey: string) {
+  if (!rawKey) throw new Error('WhatsApp token encryption key is not configured in Supabase Vault.');
   let keyBytes: Uint8Array;
   try { keyBytes = fromBase64(rawKey); } catch { throw new Error('WhatsApp token encryption key must be base64-encoded 32-byte data.'); }
   if (keyBytes.length !== 32) throw new Error('WhatsApp token encryption key must decode to exactly 32 bytes.');
@@ -50,11 +49,9 @@ function credentials() {
   const appId = env('META_APP_ID');
   const appSecret = env('META_APP_SECRET');
   const configId = env('META_WHATSAPP_EMBEDDED_SIGNUP_CONFIG_ID');
-  const webhookVerifyToken = env('META_WHATSAPP_WEBHOOK_VERIFY_TOKEN');
-  const encryptionKey = env('NEXORA_WHATSAPP_TOKEN_ENCRYPTION_KEY');
   return {
-    appId, appSecret, configId, webhookVerifyToken, encryptionKey,
-    configured: Boolean(appId && appSecret && configId && webhookVerifyToken && encryptionKey),
+    appId, configId,
+    configured: Boolean(appId && configId),
   };
 }
 async function graph(path: string, token: string, init: RequestInit = {}) {
@@ -156,9 +153,14 @@ Deno.serve(async (req: Request) => {
 
     if (action === 'begin') {
       if (!meta.configured) return json({
-        error: 'Meta WhatsApp setup is not configured yet. Add the Meta app ID, app secret, Embedded Signup v4 configuration ID, webhook verify token and a 32-byte token encryption key in Supabase Function Secrets.',
+        error: 'Add META_APP_ID and META_WHATSAPP_EMBEDDED_SIGNUP_CONFIG_ID to Supabase Function Secrets first.',
         setupRequired: true,
       }, 503);
+      const { data: storedAppSecret } = await admin.rpc('nexora_whatsapp_meta_secret', { p_secret_name: 'nexora_whatsapp_meta_app_secret' });
+      const { data: storedEncryptionKey } = await admin.rpc('nexora_whatsapp_token_key');
+      if (typeof storedAppSecret !== 'string' || !storedAppSecret || typeof storedEncryptionKey !== 'string' || !storedEncryptionKey) {
+        return json({ error: 'Store nexora_whatsapp_meta_app_secret and nexora_whatsapp_token_encryption_key in Supabase Vault before connecting a number.', setupRequired: true }, 503);
+      }
       const stateBytes = crypto.getRandomValues(new Uint8Array(32));
       const state = base64(stateBytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
       const stateHash = await sha256(state);
@@ -200,10 +202,13 @@ Deno.serve(async (req: Request) => {
         .select('id').maybeSingle();
       if (stateError || !stateRow) return json({ error: 'This WhatsApp connection session expired or was already used. Start again.' }, 409);
 
+      const appSecretResult = await admin.rpc('nexora_whatsapp_meta_secret', { p_secret_name: 'nexora_whatsapp_meta_app_secret' });
+      if (appSecretResult.error || typeof appSecretResult.data !== 'string' || !appSecretResult.data) {
+        return json({ error: 'Meta App Secret is missing from Supabase Vault.' }, 503);
+      }
       const tokenResponse = await graph(
-        `oauth/access_token?client_id=${encodeURIComponent(meta.appId)}&client_secret=${encodeURIComponent(meta.appSecret)}&code=${encodeURIComponent(code)}`,
+        `oauth/access_token?client_id=${encodeURIComponent(meta.appId)}&client_secret=${encodeURIComponent(appSecretResult.data)}&code=${encodeURIComponent(code)}`,
         '',
-        { headers: {} },
       );
       const accessToken = typeof tokenResponse.access_token === 'string' ? tokenResponse.access_token : '';
       if (!accessToken) return json({ error: 'Meta did not issue a WhatsApp access token. Start the connection again.' }, 502);
@@ -226,7 +231,11 @@ Deno.serve(async (req: Request) => {
       const subscribed = subscription.success === true || Array.isArray(subscription.data);
       if (!subscribed) return json({ error: 'Meta did not subscribe this WhatsApp account to webhook events.' }, 502);
 
-      const encrypted = await encryptToken(accessToken);
+      const keyResult = await admin.rpc('nexora_whatsapp_token_key');
+      if (keyResult.error || typeof keyResult.data !== 'string' || !keyResult.data) {
+        return json({ error: 'WhatsApp token encryption key is missing from Supabase Vault.' }, 503);
+      }
+      const encrypted = await encryptToken(accessToken, keyResult.data);
       const expiresIn = Number(tokenResponse.expires_in || 0);
       const expiresAt = expiresIn > 0 ? new Date(Date.now() + expiresIn * 1000).toISOString() : null;
       const { error: saveError } = await admin.from('salon_whatsapp_connections').upsert({
