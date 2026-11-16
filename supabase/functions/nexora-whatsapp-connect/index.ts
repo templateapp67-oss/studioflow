@@ -57,13 +57,26 @@ async function encryptToken(token: string, keyBytes: Uint8Array) {
 }
 function metaConfig() {
   const appId = env('META_APP_ID');
-  const appSecret = env('META_APP_SECRET');
   const configId = env('META_WHATSAPP_EMBEDDED_SIGNUP_CONFIG_ID');
-  const webhookVerifyToken = env('META_WHATSAPP_WEBHOOK_VERIFY_TOKEN');
-  return {
-    appId, appSecret, configId, webhookVerifyToken,
-    configured: Boolean(appId && appSecret && configId && webhookVerifyToken),
-  };
+  return { appId, configId, configured: Boolean(appId && configId) };
+}
+async function vaultMetaSecret(admin: ReturnType<typeof createClient>, name: string) {
+  const { data, error } = await admin.rpc('nexora_whatsapp_meta_secret', { p_secret_name: name });
+  if (error || typeof data !== 'string' || !data) return '';
+  return data;
+}
+async function signupConfigurationReady(admin: ReturnType<typeof createClient>, meta: ReturnType<typeof metaConfig>) {
+  if (!meta.configured) return false;
+  const [appSecret, verifyToken] = await Promise.all([
+    vaultMetaSecret(admin, 'nexora_whatsapp_meta_app_secret'),
+    vaultMetaSecret(admin, 'nexora_whatsapp_webhook_verify_token'),
+  ]);
+  try {
+    await tokenEncryptionKey(admin);
+  } catch {
+    return false;
+  }
+  return Boolean(appSecret && verifyToken);
 }
 async function graph(path: string, token?: string, init: RequestInit = {}) {
   const headers = new Headers(init.headers || {});
@@ -113,10 +126,8 @@ Deno.serve(async (req: Request) => {
     const meta = metaConfig();
 
     if (action === 'config') {
-      let vaultKeyReady = false;
-      try { await tokenEncryptionKey(admin); vaultKeyReady = true; } catch { /* report setup as incomplete */ }
       return json({
-        configured: meta.configured && vaultKeyReady,
+        configured: await signupConfigurationReady(admin, meta),
         appId: meta.configured ? meta.appId : null,
         configId: meta.configured ? meta.configId : null,
         graphVersion: GRAPH_VERSION,
@@ -169,14 +180,104 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    if (action === 'inbox') {
+      const [conversationResult, messageResult] = await Promise.all([
+        admin.from('salon_whatsapp_conversations')
+          .select('customer_wa_id,customer_name,conversation_status,flow_state,last_inbound_at,last_outbound_at,updated_at')
+          .eq('owner_id', ownerId)
+          .order('updated_at', { ascending: false })
+          .limit(50),
+        admin.from('salon_whatsapp_message_log')
+          .select('recipient_wa_id,direction,message_kind,delivery_status,metadata,created_at')
+          .eq('owner_id', ownerId)
+          .order('created_at', { ascending: false })
+          .limit(1000),
+      ]);
+      if (conversationResult.error || messageResult.error) {
+        return json({ error: 'Could not load WhatsApp conversations.' }, 503);
+      }
+      const messagesByRecipient = new Map<string, Array<Record<string, unknown>>>();
+      for (const message of messageResult.data || []) {
+        const recipient = String(message.recipient_wa_id || '');
+        if (!recipient) continue;
+        const rows = messagesByRecipient.get(recipient) || [];
+        if (rows.length < 30) rows.push(message as Record<string, unknown>);
+        messagesByRecipient.set(recipient, rows);
+      }
+      return json({
+        conversations: (conversationResult.data || []).map((conversation) => {
+          const messages = messagesByRecipient.get(String(conversation.customer_wa_id)) || [];
+          return {
+            ...conversation,
+            messages: messages.slice(0, 3),
+            lastMessage: messages[0] || null,
+            optedOut: conversation.flow_state?.optOut === true,
+            needsReply: conversation.conversation_status === 'handed_off',
+          };
+        }),
+      });
+    }
+
+    if (action === 'conversation') {
+      const customerWaId = typeof body.customerWaId === 'string'
+        ? body.customerWaId.replace(/[^0-9]/g, '')
+        : '';
+      if (!/^\\d{10,15}$/.test(customerWaId)) {
+        return json({ error: 'Valid customer WhatsApp number required.' }, 400);
+      }
+      const [conversationResult, messagesResult] = await Promise.all([
+        admin.from('salon_whatsapp_conversations')
+          .select('customer_wa_id,customer_name,conversation_status,flow_state,last_inbound_at,last_outbound_at,updated_at')
+          .eq('owner_id', ownerId).eq('customer_wa_id', customerWaId).maybeSingle(),
+        admin.from('salon_whatsapp_message_log')
+          .select('direction,message_kind,delivery_status,metadata,created_at')
+          .eq('owner_id', ownerId).eq('recipient_wa_id', customerWaId)
+          .order('created_at', { ascending: false }).limit(50),
+      ]);
+      if (conversationResult.error || messagesResult.error) {
+        return json({ error: 'Could not load this WhatsApp conversation.' }, 503);
+      }
+      if (!conversationResult.data) return json({ error: 'WhatsApp conversation not found.' }, 404);
+      return json({
+        conversation: {
+          ...conversationResult.data,
+          optedOut: conversationResult.data.flow_state?.optOut === true,
+          needsReply: conversationResult.data.conversation_status === 'handed_off',
+        },
+        messages: (messagesResult.data || []).reverse(),
+      });
+    }
+
+    if (action === 'sendReply') {
+      const customerWaId = typeof body.customerWaId === 'string'
+        ? body.customerWaId.replace(/[^0-9]/g, '')
+        : '';
+      const message = typeof body.message === 'string' ? body.message.trim().slice(0, 3500) : '';
+      if (!/^\\d{10,15}$/.test(customerWaId) || !message) {
+        return json({ error: 'Choose a conversation and enter a message.' }, 400);
+      }
+      const sent = await fetch(supabaseUrl + '/functions/v1/nexora-whatsapp-webhook', {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer ' + serviceKey,
+          apikey: serviceKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'ownerReply', ownerId, customerWaId, message }),
+        signal: AbortSignal.timeout(15000),
+      });
+      const result = await sent.json().catch(() => ({})) as Record<string, unknown>;
+      if (!sent.ok || result.sent !== true) {
+        return json({ error: result.error || result.reason || 'WhatsApp reply could not be sent.' }, 409);
+      }
+      return json({ sent: true, messageId: result.messageId || null });
+    }
+
     if (action === 'begin') {
-      if (!meta.configured) return json({
-        error: 'Meta setup is incomplete. Add META_APP_ID, META_APP_SECRET, META_WHATSAPP_EMBEDDED_SIGNUP_CONFIG_ID and META_WHATSAPP_WEBHOOK_VERIFY_TOKEN in Supabase Function Secrets.',
+      if (!await signupConfigurationReady(admin, meta)) return json({
+        error: 'Meta setup is incomplete. Add META_APP_ID and META_WHATSAPP_EMBEDDED_SIGNUP_CONFIG_ID in Supabase Function Secrets, and add nexora_whatsapp_meta_app_secret plus nexora_whatsapp_webhook_verify_token to Supabase Vault.',
         setupRequired: true,
       }, 503);
-      let keyReady = false;
-      try { await tokenEncryptionKey(admin); keyReady = true; } catch { /* explicit error below */ }
-      if (!keyReady) return json({ error: 'NEXORA WhatsApp token-encryption key is missing from Supabase Vault.' }, 503);
 
       const stateBytes = crypto.getRandomValues(new Uint8Array(32));
       const state = bytesToBase64(stateBytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
@@ -199,7 +300,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === 'complete') {
-      if (!meta.configured) return json({ error: 'Meta WhatsApp setup is not configured.' }, 503);
+      if (!await signupConfigurationReady(admin, meta)) return json({ error: 'Meta WhatsApp setup is incomplete. Check the Meta app settings and Vault secrets.' }, 503);
       const code = typeof body.code === 'string' ? body.code.trim() : '';
       const state = typeof body.state === 'string' ? body.state : '';
       const wabaId = isMetaId(body.wabaId) ? body.wabaId : '';
@@ -228,9 +329,11 @@ Deno.serve(async (req: Request) => {
 
       // Embedded Signup returns a short-lived exchangeable code in FB.login().
       // This OAuth endpoint is a GET and does not use a Bearer access token.
+      const appSecret = await vaultMetaSecret(admin, 'nexora_whatsapp_meta_app_secret');
+      if (!appSecret) return json({ error: 'Meta App Secret is missing from Supabase Vault.' }, 503);
       const tokenQuery = new URLSearchParams({
         client_id: meta.appId,
-        client_secret: meta.appSecret,
+        client_secret: appSecret,
         code,
       });
       const tokenResponse = await graph('oauth/access_token?' + tokenQuery.toString());
@@ -265,7 +368,7 @@ Deno.serve(async (req: Request) => {
         salon_id: null,
         waba_id: wabaId,
         phone_number_id: phoneNumberId,
-        business_id: null,
+        business_id: isMetaId(body.businessId) ? body.businessId : null,
         display_phone_number: phone.display_phone_number,
         verified_name: typeof phone.verified_name === 'string' ? phone.verified_name : null,
         connection_status: 'connected',
