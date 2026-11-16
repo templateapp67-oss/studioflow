@@ -86,6 +86,7 @@ async function graph(path: string, token: string, init: RequestInit = {}) {
 
 Deno.serve(async (req: Request) => {
   const origin = req.headers.get('origin') || '';
+  const respond = (body: unknown, status = 200) => json(body, status, origin);
   const originAllowed = !origin || ALLOWED_ORIGINS.has(origin)
     || /^https:\/\/([a-z0-9-]+\.)?vercel\.app$/.test(origin)
     || /^http:\/\/localhost(:\d+)?$/.test(origin);
@@ -93,9 +94,8 @@ Deno.serve(async (req: Request) => {
     status: originAllowed ? 204 : 403,
     headers: corsHeaders(origin),
   });
-  if (origin && !originAllowed) return respond({ error: 'Origin not allowed.' }, 403, origin);
-  if (req.method !== 'POST') return respond({ error: 'POST required.' }, 405, origin);
-  const respond = (body: unknown, status = 200) => json(body, status, origin);
+  if (origin && !originAllowed) return respond({ error: 'Origin not allowed.' }, 403);
+  if (req.method !== 'POST') return respond({ error: 'POST required.' }, 405);
 
   try {
     const supabaseUrl = env('SUPABASE_URL');
