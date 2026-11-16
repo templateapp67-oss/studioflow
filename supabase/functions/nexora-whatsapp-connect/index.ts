@@ -37,7 +37,7 @@ async function sha256(value: string) {
   const digest = await crypto.subtle.digest('SHA-256', encoder.encode(value));
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
-async function tokenEncryptionKey(admin: ReturnType<typeof createClient>) {
+async function tokenEncryptionKey(admin: any) {
   const { data, error } = await admin.rpc('nexora_whatsapp_token_key');
   if (error || typeof data !== 'string' || !data) {
     throw new Error('NEXORA WhatsApp encryption key is not available in Supabase Vault.');
@@ -60,12 +60,12 @@ function metaConfig() {
   const configId = env('META_WHATSAPP_EMBEDDED_SIGNUP_CONFIG_ID');
   return { appId, configId, configured: Boolean(appId && configId) };
 }
-async function vaultMetaSecret(admin: ReturnType<typeof createClient>, name: string) {
+async function vaultMetaSecret(admin: any, name: string) {
   const { data, error } = await admin.rpc('nexora_whatsapp_meta_secret', { p_secret_name: name });
   if (error || typeof data !== 'string' || !data) return '';
   return data;
 }
-async function signupConfigurationReady(admin: ReturnType<typeof createClient>, meta: ReturnType<typeof metaConfig>) {
+async function signupConfigurationReady(admin: any, meta: ReturnType<typeof metaConfig>) {
   if (!meta.configured) return false;
   const [appSecret, verifyToken] = await Promise.all([
     vaultMetaSecret(admin, 'nexora_whatsapp_meta_app_secret'),
