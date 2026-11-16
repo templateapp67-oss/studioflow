@@ -412,7 +412,14 @@ async function processConversationMessage(db: any, connection: Row, message: Row
       }, { onConflict: 'owner_id,customer_wa_id' });
       return;
     }
-    nextState = { step: 'date', serviceId: chosen.id, serviceName: chosen.name, servicePrice: chosen.price, durationMinutes: chosen.durationMinutes };
+    nextState = {
+      step: 'date',
+      requestId: crypto.randomUUID(),
+      serviceId: chosen.id,
+      serviceName: chosen.name,
+      servicePrice: chosen.price,
+      durationMinutes: chosen.durationMinutes,
+    };
     reply = 'Aapne ' + clean(chosen.name, 100) + ' chuna hai. Kripya booking ki date bhejein.\nFormat: YYYY-MM-DD (jaise 2026-11-20).';
   } else if (state.step === 'date') {
     const date = parseDate(text);
@@ -462,7 +469,12 @@ async function processConversationMessage(db: any, connection: Row, message: Row
       reply = 'Booking tabhi save hogi jab aap YES bhejenge. Badalne ke liye RESET bhejein.';
     } else {
       const customerId = await resolveCustomerUser(db, customerWaId, state.clientName);
-      const idempotencyKey = 'wa:' + connection.owner_id + ':' + customerWaId + ':' + clean(state.date, 10) + ':' + clean(state.time, 5) + ':' + clean(state.serviceId, 80);
+      const requestId = clean(state.requestId, 80);
+      if (!requestId) {
+        reply = 'Booking session reset ho gayi hai. Kripya HI bhejkar booking dobara shuru karein.';
+        nextState = {};
+      } else {
+        const idempotencyKey = 'wa:' + connection.owner_id + ':' + requestId;
       const bookingResult = await db.rpc('studioflow_whatsapp_book', {
         p_owner: connection.owner_id,
         p_customer: customerId,
@@ -498,6 +510,7 @@ async function processConversationMessage(db: any, connection: Row, message: Row
           flow_state: nextState, last_inbound_at: new Date().toISOString(), updated_at: new Date().toISOString(),
         }, { onConflict: 'owner_id,customer_wa_id' });
         return;
+      }
       }
     }
   } else if (state.step === 'awaiting_payment') {
