@@ -942,6 +942,10 @@ Deno.serve(async (req: Request) => {
         const connection = await getConnection(db, booking.owner_id);
         const customerPhone = clean(booking.payload.clientPhone, 30);
         if (!connection || !customerPhone) return json({ sent: false, reason: 'no_active_salon_sender' });
+        const { data: sentAlready } = await db.from('salon_whatsapp_message_log')
+          .select('id').eq('owner_id', booking.owner_id).eq('booking_id', booking.id)
+          .eq('message_kind', 'payment_success').eq('delivery_status', 'sent').limit(1);
+        if (sentAlready?.length) return json({ ok: true, sent: true, deduplicated: true });
         const result = await sendWhatsAppText(
           db, connection, customerPhone,
           'Payment mil gaya hai. Aapki booking CONFIRMED hai.\\n' +
