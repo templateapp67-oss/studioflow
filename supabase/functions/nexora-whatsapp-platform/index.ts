@@ -86,14 +86,11 @@ async function ownerFromRequest(req: Request, db: any): Promise<Row> {
   return data.user as Row;
 }
 async function encryptionKey(db: any): Promise<CryptoKey> {
-  let encoded = env('NEXORA_WA_TOKEN_ENCRYPTION_KEY');
-  if (!encoded) {
-    const { data, error } = await db.rpc('nexora_whatsapp_token_key');
-    if (error || typeof data !== 'string' || !data) {
-      throw new Error('Vault-held WhatsApp token-encryption key could not be loaded by the trusted server');
-    }
-    encoded = data;
+  const { data, error } = await db.rpc('nexora_whatsapp_token_key');
+  if (error || typeof data !== 'string' || !data) {
+    throw new Error('Vault-held WhatsApp token-encryption key could not be loaded by the trusted server');
   }
+  const encoded = data;
   const raw = fromBase64(encoded);
   if (raw.length !== 32) throw new Error('WhatsApp token-encryption key is not a valid 32-byte AES key');
   return crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
