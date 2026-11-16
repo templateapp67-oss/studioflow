@@ -771,6 +771,13 @@ Deno.serve(async (req: Request) => {
           'human_handoff',
         );
         if (!result.sent) return json({ sent: false, reason: result.reason }, 409);
+        const nextFlow = { ...(conversationResult.data.flow_state || {}) };
+        if (nextFlow.step === 'handoff') nextFlow.step = 'menu';
+        await db.from('salon_whatsapp_conversations').update({
+          conversation_status: 'active',
+          flow_state: nextFlow,
+          updated_at: new Date().toISOString(),
+        }).eq('owner_id', ownerId).eq('customer_wa_id', recipient);
         return json({ sent: true, messageId: result.messageId || null });
       }
       if (body.action === 'paymentReceipt' && typeof body.bookingId === 'string' && typeof body.paymentId === 'string') {
