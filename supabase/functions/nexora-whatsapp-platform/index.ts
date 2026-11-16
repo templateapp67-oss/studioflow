@@ -696,6 +696,16 @@ async function processRazorpayWebhook(db: any, body: Row): Promise<void> {
 }
 async function statusForOwner(db: any, ownerId: string): Promise<Row> {
   const connection = await getConnection(db, ownerId);
+  const { data: vaultKey, error: vaultKeyError } = await db.rpc('nexora_whatsapp_token_key');
+  const paymentCredentials = razorpayCredentials();
+  const setup = {
+    meta_app_configured: Boolean(env('META_APP_ID') && env('META_APP_SECRET')),
+    embedded_signup_configured: Boolean(env('META_EMBEDDED_SIGNUP_CONFIG_ID')),
+    meta_webhook_verify_configured: Boolean(env('META_WEBHOOK_VERIFY_TOKEN')),
+    token_encryption_ready: !vaultKeyError && typeof vaultKey === 'string' && vaultKey.length > 0,
+    razorpay_keys_configured: paymentCredentials.configured,
+    razorpay_webhook_configured: Boolean(env('RAZORPAY_WEBHOOK_SECRET') || env('RZP_WEBHOOK_SECRET')),
+  };
   const { data: site } = await db.from('studioflow_websites')
     .select('slug,content').eq('owner_id', ownerId).maybeSingle();
   const { count: bookingsTotal } = await db.from('studioflow_bookings')
@@ -721,6 +731,7 @@ async function statusForOwner(db: any, ownerId: string): Promise<Row> {
   const captured = paymentRows.filter((p) => p.status === 'captured');
   const paidPaise = captured.reduce((sum, p) => sum + Number(p.amount_paise || 0), 0);
   return {
+    setup,
     connection: connection ? {
       connection_status: connection.connection_status,
       display_phone_number: connection.display_phone_number,
