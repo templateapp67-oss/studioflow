@@ -215,9 +215,8 @@ Deno.serve(async(req:Request)=>{
 
     const worker=req.headers.get('x-worker-token');
     const token=req.headers.get('authorization')?.replace(/^Bearer\s+/i,'')||'';
-    const requestToken=req.headers.get('authorization')?.replace(/^Bearer\\s+/i,'')||'';
     if(body.action==='whatsappCancelPaymentLink'){
-      if(!sameSecret(requestToken,serviceKey))return respond({error:'Unauthorized'},401);
+      if(!sameSecret(token,serviceKey))return respond({error:'Unauthorized'},401);
       if(typeof body.bookingId!=='string')return respond({error:'Booking reference required'},400);
       const {data:booking,error:bookingError}=await service.from('studioflow_bookings')
         .select('id,booking_source,status').eq('id',body.bookingId).eq('booking_source','whatsapp').maybeSingle();
@@ -249,7 +248,7 @@ Deno.serve(async(req:Request)=>{
     }
 
     if(body.action==='whatsappPaymentLink'){
-      if(!sameSecret(requestToken,serviceKey))return respond({error:'Unauthorized'},401);
+      if(!sameSecret(token,serviceKey))return respond({error:'Unauthorized'},401);
       if(!creds.configured)return respond({error:'Razorpay is not configured for payment links.'},503);
       if(typeof body.bookingId!=='string')return respond({error:'Booking reference required'},400);
       const {data:booking,error:bookingError}=await service.from('studioflow_bookings')
