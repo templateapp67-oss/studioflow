@@ -25,7 +25,11 @@ assert.match(panel, /sendReply/);
 assert.match(panel, /Customer opted out/);
 assert.match(panel, /Connect with Meta/);
 assert.match(panel, /nexora-whatsapp-connect/);
-assert.match(panel, /sessionInfoVersion: '4'/);
+assert.match(panel, /extras: \{ version: 'v5' \}/);
+assert.match(panel, /messaging_account_ids/);
+assert.match(panel, /primary_waac_ids/);
+assert.match(connect, /embedded_signup_version: 'v5'/);
+assert.match(connect, /connection_mode: isOnBizApp \? 'coexistence' : 'standard'/);
 assert.match(panel, /WhatsApp bookings/);
 
 assert.match(connect, /auth\.getUser\(bearer\)/);
