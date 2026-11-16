@@ -143,6 +143,40 @@ Deno.serve(async(req:Request)=>{
     const worker=req.headers.get('x-worker-token');
     const token=req.headers.get('authorization')?.replace(/^Bearer\s+/i,'')||'';
     const requestToken=req.headers.get('authorization')?.replace(/^Bearer\s+/i,'')||'';
+    if(body.action==='whatsappCancelPaymentLink'){
+      if(!sameSecret(requestToken,serviceKey))return respond({error:'Unauthorized'},401);
+      if(typeof body.bookingId!=='string')return respond({error:'Booking reference required'},400);
+      const {data:booking,error:bookingError}=await service.from('studioflow_bookings')
+        .select('id,booking_source,status').eq('id',body.bookingId).eq('booking_source','whatsapp').maybeSingle();
+      if(bookingError||!booking)return respond({error:'WhatsApp booking not found'},404);
+      if(booking.status!=='cancelled')return respond({error:'Cancel the unpaid booking hold before cancelling its payment link.'},409);
+      const {data:order,error:orderError}=await service.from('studioflow_payment_orders')
+        .select('*').eq('booking_id',booking.id).maybeSingle();
+      if(orderError)return respond({error:'Payment record could not be loaded.'},503);
+      if(!order?.payment_link_id)return respond({cancelled:true,linkCancelled:false});
+      if(order.status==='captured'||order.payment_id)return respond({error:'This payment is already captured. It cannot be cancelled as an unpaid link.'},409);
+      if(order.payment_link_status==='cancelled'||order.payment_link_status==='expired'){
+        return respond({cancelled:true,linkCancelled:true,reused:true});
+      }
+      try{
+        await provider('payment_links/'+encodeURIComponent(order.payment_link_id)+'/cancel',{method:'POST',body:'{}'});
+      }catch(error){
+        // A concurrent capture/expiry may win the race. Never mark the booking paid
+        // from this request; the signed Razorpay webhook will reconcile it.
+        const {data:latest}=await service.from('studioflow_payment_orders')
+          .select('status,payment_link_status').eq('booking_id',booking.id).maybeSingle();
+        if(latest?.status==='captured')return respond({error:'Payment was captured before the cancellation completed. Contact the salon for a refund.'},409);
+        if(latest?.payment_link_status!=='cancelled'&&latest?.payment_link_status!=='expired'){
+          return respond({error:error instanceof Error?error.message:'Razorpay could not cancel the payment link.'},502);
+        }
+      }
+      const {error:updateError}=await service.from('studioflow_payment_orders')
+        .update({payment_link_status:'cancelled'})
+        .eq('booking_id',booking.id).eq('status','created');
+      if(updateError)return respond({error:'Payment link cancellation could not be saved. Contact support.'},503);
+      return respond({cancelled:true,linkCancelled:true});
+    }
+
     if(body.action==='whatsappPaymentLink'){
       if(!sameSecret(requestToken,serviceKey))return respond({error:'Unauthorized'},401);
       if(!creds.configured)return respond({error:'Razorpay is not configured for payment links.'},503);
