@@ -1,6 +1,7 @@
 // Secrets stay in Supabase Edge Function settings, never in the browser bundle.
 import {createClient} from 'npm:@supabase/supabase-js@2.117.3';
 import {signatureMatches,depositPaise,sameSecret} from './payment-security.ts';
+import {paymentLinkOrderKey,verifiedLinkPaymentId,verifyLinkPayment} from './payment-link-security.ts';
 
 const cors={
   'Access-Control-Allow-Origin':'*',
@@ -150,6 +151,52 @@ Deno.serve(async(req:Request)=>{
             .eq('payment_link_id',link.id).eq('status','created');
         }
       }
+      if(body.event==='payment_link.paid'){
+        const eventLink=body.payload?.payment_link?.entity;
+        if(eventLink?.id&&eventLink.status==='paid'){
+          const {data:known}=await service.from('studioflow_payment_orders')
+            .select('booking_id,order_id,payment_link_id,amount_paise')
+            .eq('payment_link_id',eventLink.id).maybeSingle();
+          if(known&&Number(known.amount_paise)>0){
+            // Fetch the authoritative Payment Link, then prove the event payment
+            // is a captured member of that exact link and matches the INR advance.
+            const liveLink=await provider('payment_links/'+encodeURIComponent(eventLink.id));
+            const eventPaymentId=typeof body.payload?.payment?.entity?.id==='string'
+              ? body.payload.payment.entity.id : undefined;
+            const paymentId=verifiedLinkPaymentId(liveLink,known,eventPaymentId);
+            const payment=await provider('payments/'+encodeURIComponent(paymentId));
+            verifyLinkPayment(payment,liveLink,known,paymentId);
+            const settled=await service.rpc('studioflow_settle_payment',{
+              p_order:known.order_id,p_payment:paymentId,p_amount:Number(payment.amount)
+            });
+            if(settled.error)throw new Error('Could not settle the verified WhatsApp payment link.');
+            if(settled.data?.refund_required){
+              await refundPayment(known.order_id,paymentId,Number(known.amount_paise));
+            }else{
+              await service.from('studioflow_payment_orders')
+                .update({payment_link_status:'paid'}).eq('booking_id',known.booking_id);
+              // Receipt endpoint rechecks the captured ledger, confirmed booking,
+              // sender ownership and customer opt-out before sending anything.
+              const receipt=await fetch(url+'/functions/v1/nexora-whatsapp-webhook',{
+                method:'POST',
+                headers:{Authorization:'Bearer '+serviceKey,'Content-Type':'application/json'},
+                body:JSON.stringify({action:'paymentReceipt',bookingId:known.booking_id,paymentId}),
+                signal:AbortSignal.timeout(15000)
+              });
+              if(!receipt.ok)throw new Error('Payment is recorded but WhatsApp receipt delivery must be retried.');
+            }
+          }
+        }
+      }
+      if(body.event==='payment_link.expired'||body.event==='payment_link.cancelled'){
+        const link=body.payload?.payment_link?.entity;
+        if(link?.id){
+          await service.from('studioflow_payment_orders')
+            .update({payment_link_status:body.event==='payment_link.expired'?'expired':'cancelled'})
+            .eq('payment_link_id',link.id).eq('status','created');
+        }
+      }
+
       if(body.event==='payment.captured'){
         const p=body.payload?.payment?.entity;
         const {data:known}=await service.from('studioflow_payment_orders').select('booking_id').eq('order_id',p?.order_id||'').maybeSingle();
@@ -285,6 +332,119 @@ Deno.serve(async(req:Request)=>{
         orderId:created.order_id,
         reused:false
       },201);
+    }
+
+    const requestToken=req.headers.get('authorization')?.replace(/^Bearer\\s+/i,'')||'';
+    if(body.action==='whatsappCancelPaymentLink'){
+      if(!sameSecret(requestToken,serviceKey))return respond({error:'Unauthorized'},401);
+      if(typeof body.bookingId!=='string')return respond({error:'Booking reference required'},400);
+      const {data:booking,error:bookingError}=await service.from('studioflow_bookings')
+        .select('id,booking_source,status').eq('id',body.bookingId).eq('booking_source','whatsapp').maybeSingle();
+      if(bookingError||!booking)return respond({error:'WhatsApp booking not found'},404);
+      if(booking.status!=='cancelled')return respond({error:'Cancel the unpaid booking hold before cancelling its payment link.'},409);
+      const {data:order,error:orderError}=await service.from('studioflow_payment_orders')
+        .select('*').eq('booking_id',booking.id).maybeSingle();
+      if(orderError)return respond({error:'Payment record could not be loaded.'},503);
+      if(!order?.payment_link_id)return respond({cancelled:true,linkCancelled:false});
+      if(order.status==='captured'||order.payment_id)return respond({error:'This payment is already captured. It cannot be cancelled as an unpaid link.'},409);
+      if(order.payment_link_status==='cancelled'||order.payment_link_status==='expired'){
+        return respond({cancelled:true,linkCancelled:true,reused:true});
+      }
+      try{
+        await provider('payment_links/'+encodeURIComponent(order.payment_link_id)+'/cancel',{method:'POST',body:'{}'});
+      }catch(error){
+        const {data:latest}=await service.from('studioflow_payment_orders')
+          .select('status,payment_link_status').eq('booking_id',booking.id).maybeSingle();
+        if(latest?.status==='captured')return respond({error:'Payment was captured before cancellation completed. Contact the salon for a refund.'},409);
+        if(latest?.payment_link_status!=='cancelled'&&latest?.payment_link_status!=='expired'){
+          return respond({error:error instanceof Error?error.message:'Razorpay could not cancel the payment link.'},502);
+        }
+      }
+      const {error:updateError}=await service.from('studioflow_payment_orders')
+        .update({payment_link_status:'cancelled'})
+        .eq('booking_id',booking.id).eq('status','created');
+      if(updateError)return respond({error:'Payment link cancellation could not be saved. Contact support.'},503);
+      return respond({cancelled:true,linkCancelled:true});
+    }
+
+    if(body.action==='whatsappPaymentLink'){
+      if(!sameSecret(requestToken,serviceKey))return respond({error:'Unauthorized'},401);
+      if(!creds.configured)return respond({error:'Razorpay is not configured for payment links.'},503);
+      if(typeof body.bookingId!=='string')return respond({error:'Booking reference required'},400);
+      const {data:booking,error:bookingError}=await service.from('studioflow_bookings')
+        .select('*').eq('id',body.bookingId).eq('booking_source','whatsapp').maybeSingle();
+      if(bookingError||!booking)return respond({error:'WhatsApp booking not found'},404);
+      if(booking.status!=='pending'||!booking.hold_expires_at||new Date(booking.hold_expires_at).getTime()<=Date.now()){
+        return respond({error:'The appointment hold expired. Please choose another slot.'},409);
+      }
+      const amount=depositPaise(Number(booking.payload?.servicePrice||0));
+      if(amount<100)return respond({error:'Service price is too low for an online advance'},400);
+      const {data:existingOrder,error:existingError}=await service.from('studioflow_payment_orders')
+        .select('*').eq('booking_id',booking.id).maybeSingle();
+      if(existingError)return respond({error:'Payment record could not be loaded.'},503);
+      if(existingOrder?.status==='captured')return respond({
+        paid:true,amountPaise:existingOrder.amount_paise,paymentId:existingOrder.payment_id
+      });
+      if(existingOrder?.payment_link_id&&existingOrder?.payment_link_url&&existingOrder.payment_link_status==='created'){
+        return respond({
+          paymentLinkId:existingOrder.payment_link_id,
+          paymentLinkUrl:existingOrder.payment_link_url,
+          amountPaise:existingOrder.amount_paise,
+          orderId:existingOrder.order_id,
+          reused:true
+        });
+      }
+      if(existingOrder&&Number(existingOrder.amount_paise)!==amount){
+        return respond({error:'The registered payment amount does not match this booking.'},409);
+      }
+      const contact=String(booking.payload?.clientPhone||'').replace(/[^0-9]/g,'');
+      const created=await provider('payment_links',{method:'POST',body:JSON.stringify({
+        amount,currency:'INR',accept_partial:false,
+        reference_id:(crypto.randomUUID().replace(/-/g,'')+'-'+String(booking.id).slice(0,7)).slice(0,40),
+        expire_by:Math.floor(Date.now()/1000)+16*60,
+        description:'25% booking advance - '+String(booking.payload?.serviceName||'Salon appointment').slice(0,150),
+        customer:{
+          name:String(booking.payload?.clientName||'Salon customer').slice(0,100),
+          contact:contact ? '+'+contact.slice(-15) : undefined
+        },
+        notify:{sms:false,email:false},reminder_enable:false,
+        notes:{studioflow_booking:String(booking.id),studioflow_owner:String(booking.owner_id),booking_source:'whatsapp'}
+      })});
+      if(!created?.id||!created?.short_url||!/^https:\/\/rzp\.io\//.test(created.short_url)||
+         Number(created.amount)!==amount||created.currency!=='INR'){
+        return respond({error:'Razorpay did not return a valid payment link for this booking.'},502);
+      }
+      const {data:freshBooking}=await service.from('studioflow_bookings')
+        .select('status,hold_expires_at').eq('id',booking.id).maybeSingle();
+      if(!freshBooking||freshBooking.status!=='pending'||!freshBooking.hold_expires_at||
+        new Date(freshBooking.hold_expires_at).getTime()<=Date.now()){
+        try{await provider('payment_links/'+encodeURIComponent(created.id)+'/cancel',{method:'POST',body:'{}'});}catch{/* best effort */}
+        return respond({error:'The appointment hold expired before the payment link could be saved.'},409);
+      }
+      const registered=await service.rpc('studioflow_whatsapp_register_payment_link',{
+        p_owner:booking.owner_id,p_booking:booking.id,
+        p_order:typeof created.order_id==='string'&&created.order_id?created.order_id:paymentLinkOrderKey(created.id),
+        p_amount:amount,p_payment_link_id:created.id,p_payment_link_url:created.short_url,
+        p_expire_by:Number(created.expire_by||0)
+      });
+      if(registered.error){
+        try{await provider('payment_links/'+encodeURIComponent(created.id)+'/cancel',{method:'POST',body:'{}'});}catch{/* best effort */}
+        throw new Error('Could not securely register the Razorpay payment link against this salon booking.');
+      }
+      if(registered.data?.already_paid){
+        try{await provider('payment_links/'+encodeURIComponent(created.id)+'/cancel',{method:'POST',body:'{}'});}catch{/* best effort */}
+        return respond({paid:true,amountPaise:registered.data.amount_paise||amount,paymentId:registered.data.payment_id||null});
+      }
+      if(registered.data?.payment_link_id!==created.id){
+        try{await provider('payment_links/'+encodeURIComponent(created.id)+'/cancel',{method:'POST',body:'{}'});}catch{/* best effort */}
+        if(!registered.data?.payment_link_id||!registered.data?.payment_link_url){
+          throw new Error('Registered payment link could not be loaded.');
+        }
+        return respond({paymentLinkId:registered.data.payment_link_id,paymentLinkUrl:registered.data.payment_link_url,
+          amountPaise:registered.data.amount_paise,orderId:registered.data.order_id,reused:true});
+      }
+      return respond({paymentLinkId:created.id,paymentLinkUrl:created.short_url,
+        amountPaise:amount,orderId:registered.data?.order_id,reused:false},201);
     }
 
     if(body.action==='refunds'){
