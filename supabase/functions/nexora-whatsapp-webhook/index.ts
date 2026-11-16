@@ -231,20 +231,19 @@ async function processBooking(db: any, connection: Json, conversation: Json, flo
   }
 
   const requestKey = typeof flow.requestKey === 'string' ? flow.requestKey : crypto.randomUUID();
-  const bookingRequest = {
-    idempotencyKey: ('whatsapp:' + conversation.owner_id + ':' + sender + ':' + requestKey).slice(0, 120),
-    serviceId: flow.serviceId,
-    stylistId: flow.stylistId,
-    clientName: safeText(flow.clientName, 150),
-    clientPhone: '+' + sender,
-    date: flow.date,
-    time: flow.time,
-  };
-  const result = await db.rpc('studioflow_whatsapp_book', {
+  const result = await db.rpc('nexora_whatsapp_book_guest', {
     p_owner: conversation.owner_id,
-    p_customer: customerId,
     p_slug: website.slug,
-    p_request: bookingRequest,
+    p_services: [String(flow.serviceId)],
+    p_date: flow.date,
+    p_time: flow.time,
+    p_stylist: flow.stylistId,
+    p_name: safeText(flow.clientName, 150),
+    p_phone: '+' + sender,
+    p_instructions: '',
+    p_request: requestKey,
+    p_customer_id: customerId,
+    p_branch: flow.branchId || null,
   });
   const booking = result.data;
   if (result.error || !booking?.id) {
@@ -267,6 +266,7 @@ async function processBooking(db: any, connection: Json, conversation: Json, flo
       db, connection, conversation.owner_id, sender,
       'Your appointment request is on hold for 15 minutes.\n\nService: ' + safeText(booking.serviceName, 120) +
       '\nDate: ' + flow.date + '\nTime: ' + flow.time +
+      (flow.branchName ? '\nLocation: ' + safeText(flow.branchName, 100) : '') +
       '\nSpecialist: ' + (safeText(flow.stylistName, 100) || 'Available specialist') +
       '\nTotal: ₹' + total.toLocaleString('en-IN') +
       '\nAdvance to confirm: ₹' + advance.toLocaleString('en-IN') +
@@ -398,16 +398,74 @@ async function handleInbound(db: any, connection: Json, message: Json, contact: 
         'Please reply with a service number from 1 to ' + services.length + '.', 'conversation');
       return;
     }
-    flow = {
-      step: 'choose_date',
+    const branchResult = await db.from('branches')
+      .select('id,name,city')
+      .eq('site_id', connection.owner_id)
+      .eq('is_active', true)
+      .order('created_at', { ascending: true });
+    if (branchResult.error || !Array.isArray(branchResult.data)) {
+      await sendSalonText(db, connection, connection.owner_id, sender,
+        'I could not load the salon locations right now. Please try again or reply 3 for help.', 'conversation');
+      return;
+    }
+    const locations = branchResult.data as Json[];
+    const chosen = {
       serviceId: String(service.id),
       serviceName: safeText(service.name, 120),
       servicePrice: Number(service.price),
+    };
+    if (locations.length > 1) {
+      flow = {
+        ...chosen,
+        step: 'choose_branch',
+        branches: locations.slice(0, 20).map((item: Json) => ({
+          id: String(item.id),
+          name: safeText(item.name, 100),
+          city: safeText(item.city, 80),
+        })),
+      };
+      await saveConversation(db, conversation, flow);
+      const options = flow.branches.map((item: Json, position: number) =>
+        String(position + 1) + '. ' + item.name + (item.city ? ' – ' + item.city : '')
+      ).join('\n');
+      await sendSalonText(db, connection, connection.owner_id, sender,
+        'You chose ' + safeText(service.name, 100) + ' (₹' + Number(service.price).toLocaleString('en-IN') +
+        ').\n\nWhich salon location would you like to visit?\n' + options + '\n\nReply with the location number.',
+        'conversation');
+      return;
+    }
+    flow = {
+      ...chosen,
+      step: 'choose_date',
+      branchId: locations[0]?.id || null,
+      branchName: safeText(locations[0]?.name, 100),
     };
     await saveConversation(db, conversation, flow);
     await sendSalonText(db, connection, connection.owner_id, sender,
       'You chose ' + safeText(service.name, 100) + ' (₹' + Number(service.price).toLocaleString('en-IN') +
       ').\n\nSend the appointment date as YYYY-MM-DD.', 'conversation');
+    return;
+  }
+  if (flow.step === 'choose_branch') {
+    const options = Array.isArray(flow.branches) ? flow.branches as Json[] : [];
+    const index = Number.parseInt(text, 10) - 1;
+    const selected = Number.isInteger(index) ? options[index] : null;
+    if (!selected) {
+      await sendSalonText(db, connection, connection.owner_id, sender,
+        'Please reply with one of the salon location numbers shown above.', 'conversation');
+      return;
+    }
+    flow = {
+      ...flow,
+      step: 'choose_date',
+      branchId: selected.id,
+      branchName: selected.name,
+      branches: undefined,
+    };
+    await saveConversation(db, conversation, flow);
+    await sendSalonText(db, connection, connection.owner_id, sender,
+      'Location selected: ' + safeText(selected.name, 100) + '.\n\nSend the appointment date as YYYY-MM-DD.',
+      'conversation');
     return;
   }
   if (flow.step === 'choose_date') {
@@ -417,12 +475,20 @@ async function handleInbound(db: any, connection: Json, message: Json, contact: 
         'Please enter a future date in YYYY-MM-DD format.', 'conversation');
       return;
     }
-    const slotsResult = await db.rpc('studioflow_available_slots', {
-      p_slug: website.slug,
-      p_service_id: flow.serviceId,
-      p_date: date,
-      p_stylist_id: 'any',
-    });
+    const slotsResult = flow.branchId
+      ? await db.rpc('studioflow_branch_android_slots', {
+          p_slug: website.slug,
+          p_services: [String(flow.serviceId)],
+          p_date: date,
+          p_stylist: 'any',
+          p_branch: flow.branchId,
+        })
+      : await db.rpc('studioflow_android_slots', {
+          p_slug: website.slug,
+          p_services: [String(flow.serviceId)],
+          p_date: date,
+          p_stylist: 'any',
+        });
     const available = Array.isArray(slotsResult.data)
       ? slotsResult.data.filter((slot: Json) => slot && slot.available === true && validTime(String(slot.time || '')))
       : [];
@@ -444,7 +510,8 @@ async function handleInbound(db: any, connection: Json, message: Json, contact: 
       String(index + 1) + '. ' + slot.time + (slot.stylistName ? ' – ' + safeText(slot.stylistName, 70) : '')
     ).join('\n');
     await sendSalonText(db, connection, connection.owner_id, sender,
-      'Available times on ' + date + ':\n' + options + '\n\nReply with a number or exact time (HH:MM).', 'conversation');
+      'Available times on ' + date + (flow.branchName ? ' at ' + flow.branchName : '') +
+      ':\n' + options + '\n\nReply with a number or exact time (HH:MM).', 'conversation');
     return;
   }
   if (flow.step === 'choose_time') {
@@ -478,6 +545,7 @@ async function handleInbound(db: any, connection: Json, message: Json, contact: 
     await sendSalonText(db, connection, connection.owner_id, sender,
       'Please check your appointment details:\n\n' + safeText(flow.serviceName, 120) +
       '\n' + flow.date + ' at ' + flow.time +
+      (flow.branchName ? '\nLocation: ' + safeText(flow.branchName, 100) : '') +
       '\nSpecialist: ' + (safeText(flow.stylistName, 100) || 'Available specialist') +
       '\nCustomer: ' + name +
       '\nService price: ₹' + Number(flow.servicePrice).toLocaleString('en-IN') +
