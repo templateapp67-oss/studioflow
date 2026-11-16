@@ -303,14 +303,16 @@ Deno.serve(async (req: Request) => {
       if (!await signupConfigurationReady(admin, meta)) return json({ error: 'Meta WhatsApp setup is incomplete. Check the Meta app settings and Vault secrets.' }, 503);
       const code = typeof body.code === 'string' ? body.code.trim() : '';
       const state = typeof body.state === 'string' ? body.state : '';
-      const wabaId = isMetaId(body.wabaId) ? body.wabaId : '';
       const phoneNumberId = isMetaId(body.phoneNumberId) ? body.phoneNumberId : '';
+      const messagingAccountIds = Array.isArray(body.messagingAccountIds)
+        ? body.messagingAccountIds.filter(isMetaId).slice(0, 20)
+        : [];
       const isOnBizApp = body.isOnBizApp === true;
       const primaryWaacIds = Array.isArray(body.primaryWaacIds)
         ? body.primaryWaacIds.filter(isMetaId).slice(0, 10)
         : [];
-      if (!code || code.length > 4096 || !state || state.length > 256 || !wabaId || !phoneNumberId) {
-        return json({ error: 'Meta did not return a valid WhatsApp account, phone number and login code.' }, 400);
+      if (!code || code.length > 4096 || !state || state.length > 256 || !phoneNumberId) {
+        return json({ error: 'Meta did not return a valid phone number and login code.' }, 400);
       }
 
       const stateHash = await sha256(state);
@@ -340,14 +342,53 @@ Deno.serve(async (req: Request) => {
       const accessToken = typeof tokenResponse.access_token === 'string' ? tokenResponse.access_token : '';
       if (!accessToken) return json({ error: 'Meta did not issue a WhatsApp access token. Start the connection again.' }, 502);
 
-      const phoneList = await graph(
-        encodeURIComponent(wabaId) + '/phone_numbers?fields=id,display_phone_number,verified_name&limit=100',
-        accessToken,
+      // In Embedded Signup v5 the finish event can return messaging_account_ids
+      // rather than a WABA ID. Resolve the actual shared WABA from Meta's
+      // verified token scopes, then prove the chosen phone_number_id belongs
+      // to that WABA before storing or subscribing anything.
+      const debugToken = await graph(
+        'debug_token?input_token=' + encodeURIComponent(accessToken),
+        meta.appId + '|' + appSecret,
       );
-      const phoneRows = Array.isArray(phoneList.data) ? phoneList.data as Array<Record<string, unknown>> : [];
-      const phone = phoneRows.find((row) => row.id === phoneNumberId);
-      if (!phone || typeof phone.display_phone_number !== 'string') {
-        return json({ error: 'The selected phone number is not linked to the WhatsApp Business account returned by Meta.' }, 403);
+      const debugData = debugToken.data as Record<string, unknown> | undefined;
+      if (!debugData || debugData.is_valid !== true || String(debugData.app_id || '') !== meta.appId) {
+        return json({ error: 'Meta did not validate the WhatsApp signup token for this NEXORA app.' }, 403);
+      }
+      const granularScopes = Array.isArray(debugData.granular_scopes)
+        ? debugData.granular_scopes as Array<Record<string, unknown>>
+        : [];
+      const grantedWabaIds = granularScopes
+        .filter((scope) => scope.scope === 'whatsapp_business_management')
+        .flatMap((scope) => Array.isArray(scope.target_ids) ? scope.target_ids : [])
+        .filter(isMetaId);
+      const candidateWabaIds = Array.from(new Set([
+        ...grantedWabaIds,
+        ...(isMetaId(body.wabaId) ? [body.wabaId] : []),
+        ...messagingAccountIds,
+      ]));
+      if (candidateWabaIds.length === 0) {
+        return json({ error: 'Meta did not return an accessible WhatsApp Business Account for this number.' }, 403);
+      }
+
+      let wabaId = '';
+      let phone: Record<string, unknown> | null = null;
+      for (const candidateWabaId of candidateWabaIds) {
+        const phoneList = await graph(
+          encodeURIComponent(candidateWabaId) + '/phone_numbers?fields=id,display_phone_number,verified_name&limit=100',
+          accessToken,
+        );
+        const phoneRows = Array.isArray(phoneList.data)
+          ? phoneList.data as Array<Record<string, unknown>>
+          : [];
+        const match = phoneRows.find((row) => row.id === phoneNumberId);
+        if (match && typeof match.display_phone_number === 'string') {
+          wabaId = candidateWabaId;
+          phone = match;
+          break;
+        }
+      }
+      if (!wabaId || !phone) {
+        return json({ error: 'The selected phone number could not be verified under an accessible WhatsApp Business Account.' }, 403);
       }
 
       const subscription = await graph(
@@ -389,7 +430,7 @@ Deno.serve(async (req: Request) => {
           token_type: typeof tokenResponse.token_type === 'string' ? tokenResponse.token_type : 'bearer',
           expires_at: expiresAt,
           waba_id: wabaId,
-          messaging_account_ids: Array.isArray(body.messagingAccountIds) ? body.messagingAccountIds.filter(isMetaId).slice(0, 10) : [wabaId],
+          messaging_account_ids: messagingAccountIds.length ? messagingAccountIds : [wabaId],
           phone_number_id: phoneNumberId,
           is_on_biz_app: isOnBizApp,
           primary_waac_ids: primaryWaacIds,
