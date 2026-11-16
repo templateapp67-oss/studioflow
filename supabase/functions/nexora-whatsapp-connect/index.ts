@@ -61,7 +61,7 @@ async function graph(path: string, token: string, init: RequestInit = {}) {
   const response = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${path}`, {
     ...init,
     headers: {
-      Authorization: `Bearer ${token}`,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       'Content-Type': 'application/json',
       ...(init.headers || {}),
     },
@@ -128,7 +128,7 @@ Deno.serve(async (req: Request) => {
           .select('direction,delivery_status,message_kind', { count: 'exact' })
           .eq('owner_id', ownerId).limit(1000),
         admin.from('studioflow_payment_orders')
-          .select('booking_id,amount_paise,status,payment_link_status,studioflow_bookings!inner(owner_id,booking_source)')
+          .select('booking_id,amount_paise,status,payment_link_id,payment_link_status,studioflow_bookings!inner(owner_id,booking_source)')
           .eq('studioflow_bookings.owner_id', ownerId)
           .eq('studioflow_bookings.booking_source', 'whatsapp').limit(1000),
       ]);
