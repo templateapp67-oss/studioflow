@@ -97,6 +97,56 @@ Deno.serve(async(req:Request)=>{
         const {data:known}=await service.from('studioflow_payment_orders').select('booking_id').eq('order_id',p?.order_id||'').maybeSingle();
         if(known&&p?.id&&p?.order_id)await settle(p.order_id,p.id);
       }
+      if(body.event==='payment_link.paid'){
+        const linkEvent=body.payload?.payment_link?.entity;
+        const linkId=typeof linkEvent?.id==='string'?linkEvent.id:'';
+        if(linkId){
+          const {data:order,error:orderError}=await service.from('studioflow_payment_orders')
+            .select('booking_id,order_id,amount_paise,payment_link_id,status')
+            .eq('payment_link_id',linkId).maybeSingle();
+          if(orderError)throw new Error('WhatsApp payment link record could not be loaded');
+          if(order){
+            const link=await provider('payment_links/'+encodeURIComponent(linkId));
+            if(link.status!=='paid'||Number(link.amount_paid)!==Number(order.amount_paise)
+              ||String(link.reference_id)!==String(order.booking_id)){
+              throw new Error('Razorpay payment link does not match the saved WhatsApp booking');
+            }
+            const payments=Array.isArray(link.payments)?link.payments:[];
+            const paymentId=typeof payments[0]?.payment_id==='string'?payments[0].payment_id:
+              typeof payments[0]?.id==='string'?payments[0].id:'';
+            if(!paymentId)throw new Error('Razorpay did not return the captured payment ID for this link');
+            const payment=await provider('payments/'+encodeURIComponent(paymentId));
+            if(payment.status!=='captured'||payment.currency!=='INR'
+              ||Number(payment.amount)!==Number(order.amount_paise)){
+              throw new Error('Razorpay payment is not captured for the exact INR booking advance');
+            }
+            const settlement=await service.rpc('studioflow_settle_payment_link',{
+              p_booking:order.booking_id,
+              p_payment_link:linkId,
+              p_payment:paymentId,
+              p_amount:Number(payment.amount)
+            });
+            if(settlement.error)throw new Error('Could not settle verified WhatsApp payment');
+            if(settlement.data?.refund_required){
+              await refundPayment(order.order_id,paymentId,Number(order.amount_paise));
+            }else{
+              const notifyUrl=url.replace(/\\/$/,'')+'/functions/v1/nexora-whatsapp-platform';
+              const notification=await fetch(notifyUrl,{
+                method:'POST',
+                headers:{
+                  Authorization:'Bearer '+serviceKey,
+                  apikey:serviceKey,
+                  'x-internal-key':serviceKey,
+                  'Content-Type':'application/json'
+                },
+                body:JSON.stringify({action:'internal_payment_success',bookingId:order.booking_id}),
+                signal:AbortSignal.timeout(12000)
+              });
+              if(!notification.ok)throw new Error('Payment is confirmed, but WhatsApp receipt notification could not be queued');
+            }
+          }
+        }
+      }
       if(body.event==='refund.processed'||body.event==='refund.failed'){
         const refund=body.payload?.refund?.entity;
         const paymentId=refund?.payment_id;
