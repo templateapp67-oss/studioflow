@@ -18,6 +18,11 @@ const lockOrder = read('supabase/migrations/20261116045536_nexora_whatsapp_cance
 assert.match(nav, /id:34,label:'WhatsApp Booking & Payments'/);
 assert.match(owner, /<NexoraWhatsAppPanel/);
 assert.match(owner, /import \{ NexoraWhatsAppPanel \}/);
+assert.match(panel, /WhatsApp conversations/);
+assert.match(panel, /Needs reply/);
+assert.match(panel, /openConversation/);
+assert.match(panel, /sendReply/);
+assert.match(panel, /Customer opted out/);
 assert.match(panel, /Connect with Meta/);
 assert.match(panel, /nexora-whatsapp-connect/);
 assert.match(panel, /sessionInfoVersion: '4'/);
@@ -53,6 +58,8 @@ assert.match(webhook, /24 \* 60 \* 60 \* 1000/);
 assert.match(webhook, /UNSUBSCRIBE/);
 assert.match(webhook, /nexora_whatsapp_cancel_pending/);
 assert.match(webhook, /whatsappCancelPaymentLink/);
+assert.match(webhook, /action === 'ownerReply'/);
+assert.match(webhook, /conversation_status: 'active'/);
 assert.match(webhook, /customer_opted_out/);
 assert.match(webhook, /flow_state\?\.optOut === true/);
 
