@@ -1,4 +1,4 @@
-// NEXORA WhatsApp owner connection — Embedded Signup v4.
+// NEXORA WhatsApp owner connection — Embedded Signup v5.
 // This endpoint is user-authenticated. Meta tokens are exchanged and encrypted
 // here; no Meta app secret or WhatsApp access token is ever returned to a client.
 import { createClient } from 'npm:@supabase/supabase-js@2.117.3';
