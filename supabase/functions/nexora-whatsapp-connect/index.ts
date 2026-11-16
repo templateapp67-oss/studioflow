@@ -3,20 +3,32 @@
 // while the exchangeable code and all Meta secrets stay server-side.
 import { createClient } from 'npm:@supabase/supabase-js@2.117.3';
 
-const cors = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, apikey, x-client-info, content-type',
+const ALLOWED_ORIGINS = new Set([
+  'https://nexorasalon.online',
+  'https://www.nexorasalon.online',
+  'http://localhost:5173',
+]);
+const CORS_BASE = {
+  'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Vary': 'Origin',
 };
+function corsHeaders(origin: string) {
+  const allowed = !origin || ALLOWED_ORIGINS.has(origin)
+    || /^https:\/\/([a-z0-9-]+\.)?vercel\.app$/.test(origin)
+    || /^http:\/\/localhost(:\d+)?$/.test(origin);
+  return allowed && origin
+    ? { ...CORS_BASE, 'Access-Control-Allow-Origin': origin }
+    : CORS_BASE;
+}
 const GRAPH_VERSION = (Deno.env.get('META_GRAPH_API_VERSION') || 'v27.0').trim();
 const SIGNUP_VERSION = 'v5';
 const encoder = new TextEncoder();
 
-function json(body: unknown, status = 200) {
+function json(body: unknown, status = 200, origin = '') {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    headers: { ...corsHeaders(origin), 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
   });
 }
 function env(name: string) { return (Deno.env.get(name) || '').trim(); }
@@ -96,37 +108,46 @@ async function graph(path: string, token?: string, init: RequestInit = {}) {
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
-  if (req.method !== 'POST') return json({ error: 'POST required.' }, 405);
+  const origin = req.headers.get('origin') || '';
+  const respond = (body: unknown, status = 200) => respond(body, status, origin);
+  const originAllowed = !origin || ALLOWED_ORIGINS.has(origin)
+    || /^https:\/\/([a-z0-9-]+\.)?vercel\.app$/.test(origin)
+    || /^http:\/\/localhost(:\d+)?$/.test(origin);
+  if (req.method === 'OPTIONS') return new Response(null, {
+    status: originAllowed ? 204 : 403,
+    headers: corsHeaders(origin),
+  });
+  if (origin && !originAllowed) return respond({ error: 'Origin not allowed.' }, 403);
+  if (req.method !== 'POST') return respond({ error: 'POST required.' }, 405);
 
   try {
     const supabaseUrl = env('SUPABASE_URL');
     const serviceKey = env('SUPABASE_SERVICE_ROLE_KEY');
-    if (!supabaseUrl || !serviceKey) return json({ error: 'WhatsApp service is missing server credentials.' }, 503);
+    if (!supabaseUrl || !serviceKey) return respond({ error: 'WhatsApp service is missing server credentials.' }, 503);
 
     const bearer = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
-    if (!bearer) return json({ error: 'Sign in to your salon owner account first.' }, 401);
+    if (!bearer) return respond({ error: 'Sign in to your salon owner account first.' }, 401);
 
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
     const { data: authData, error: authError } = await admin.auth.getUser(bearer);
     if (authError || !authData.user || authData.user.is_anonymous) {
-      return json({ error: 'Your owner login has expired. Sign in again.' }, 401);
+      return respond({ error: 'Your owner login has expired. Sign in again.' }, 401);
     }
     const ownerId = authData.user.id;
     const { data: account, error: accountError } = await admin
       .from('studioflow_accounts').select('user_id').eq('user_id', ownerId).maybeSingle();
-    if (accountError || !account) return json({ error: 'The signed-in account is not a salon owner workspace.' }, 403);
+    if (accountError || !account) return respond({ error: 'The signed-in account is not a salon owner workspace.' }, 403);
 
     const raw = await req.text();
-    if (raw.length > 12000) return json({ error: 'Request is too large.' }, 413);
+    if (raw.length > 12000) return respond({ error: 'Request is too large.' }, 413);
     const body = raw ? JSON.parse(raw) as Record<string, unknown> : {};
     const action = typeof body.action === 'string' ? body.action : '';
     const meta = metaConfig();
 
     if (action === 'config') {
-      return json({
+      return respond({
         configured: await signupConfigurationReady(admin, meta),
         appId: meta.configured ? meta.appId : null,
         configId: meta.configured ? meta.configId : null,
@@ -140,7 +161,7 @@ Deno.serve(async (req: Request) => {
         .from('salon_whatsapp_connections')
         .select('connection_status,display_phone_number,verified_name,webhook_subscribed,connected_at,disconnected_at,connection_mode,is_on_biz_app,platform_type')
         .eq('owner_id', ownerId).maybeSingle();
-      if (error) return json({ error: 'Could not load WhatsApp connection status.' }, 503);
+      if (error) return respond({ error: 'Could not load WhatsApp connection status.' }, 503);
 
       const [bookingResult, messagesResult, paymentResult] = await Promise.all([
         admin.from('studioflow_bookings')
@@ -155,12 +176,12 @@ Deno.serve(async (req: Request) => {
           .eq('studioflow_bookings.booking_source', 'whatsapp').limit(1000),
       ]);
       if (bookingResult.error || messagesResult.error || paymentResult.error) {
-        return json({ error: 'WhatsApp dashboard metrics could not be loaded.' }, 503);
+        return respond({ error: 'WhatsApp dashboard metrics could not be loaded.' }, 503);
       }
       const bookings = bookingResult.data || [];
       const messages = messagesResult.data || [];
       const payments = paymentResult.data || [];
-      return json({
+      return respond({
         configured: meta.configured,
         connection: connection || null,
         metrics: {
@@ -194,7 +215,7 @@ Deno.serve(async (req: Request) => {
           .limit(1000),
       ]);
       if (conversationResult.error || messageResult.error) {
-        return json({ error: 'Could not load WhatsApp conversations.' }, 503);
+        return respond({ error: 'Could not load WhatsApp conversations.' }, 503);
       }
       const messagesByRecipient = new Map<string, Array<Record<string, unknown>>>();
       for (const message of messageResult.data || []) {
@@ -204,7 +225,7 @@ Deno.serve(async (req: Request) => {
         if (rows.length < 30) rows.push(message as Record<string, unknown>);
         messagesByRecipient.set(recipient, rows);
       }
-      return json({
+      return respond({
         conversations: (conversationResult.data || []).map((conversation) => {
           const messages = messagesByRecipient.get(String(conversation.customer_wa_id)) || [];
           return {
@@ -223,7 +244,7 @@ Deno.serve(async (req: Request) => {
         ? body.customerWaId.replace(/[^0-9]/g, '')
         : '';
       if (!/^\\d{10,15}$/.test(customerWaId)) {
-        return json({ error: 'Valid customer WhatsApp number required.' }, 400);
+        return respond({ error: 'Valid customer WhatsApp number required.' }, 400);
       }
       const [conversationResult, messagesResult] = await Promise.all([
         admin.from('salon_whatsapp_conversations')
@@ -235,10 +256,10 @@ Deno.serve(async (req: Request) => {
           .order('created_at', { ascending: false }).limit(50),
       ]);
       if (conversationResult.error || messagesResult.error) {
-        return json({ error: 'Could not load this WhatsApp conversation.' }, 503);
+        return respond({ error: 'Could not load this WhatsApp conversation.' }, 503);
       }
-      if (!conversationResult.data) return json({ error: 'WhatsApp conversation not found.' }, 404);
-      return json({
+      if (!conversationResult.data) return respond({ error: 'WhatsApp conversation not found.' }, 404);
+      return respond({
         conversation: {
           ...conversationResult.data,
           optedOut: conversationResult.data.flow_state?.optOut === true,
@@ -254,7 +275,7 @@ Deno.serve(async (req: Request) => {
         : '';
       const message = typeof body.message === 'string' ? body.message.trim().slice(0, 3500) : '';
       if (!/^\\d{10,15}$/.test(customerWaId) || !message) {
-        return json({ error: 'Choose a conversation and enter a message.' }, 400);
+        return respond({ error: 'Choose a conversation and enter a message.' }, 400);
       }
       const sent = await fetch(supabaseUrl + '/functions/v1/nexora-whatsapp-webhook', {
         method: 'POST',
@@ -266,15 +287,15 @@ Deno.serve(async (req: Request) => {
         body: JSON.stringify({ action: 'ownerReply', ownerId, customerWaId, message }),
         signal: AbortSignal.timeout(15000),
       });
-      const result = await sent.json().catch(() => ({})) as Record<string, unknown>;
+      const result = await sent.respond().catch(() => ({})) as Record<string, unknown>;
       if (!sent.ok || result.sent !== true) {
-        return json({ error: result.error || result.reason || 'WhatsApp reply could not be sent.' }, 409);
+        return respond({ error: result.error || result.reason || 'WhatsApp reply could not be sent.' }, 409);
       }
-      return json({ sent: true, messageId: result.messageId || null });
+      return respond({ sent: true, messageId: result.messageId || null });
     }
 
     if (action === 'begin') {
-      if (!await signupConfigurationReady(admin, meta)) return json({
+      if (!await signupConfigurationReady(admin, meta)) return respond({
         error: 'Meta setup is incomplete. Add META_APP_ID and META_WHATSAPP_EMBEDDED_SIGNUP_CONFIG_ID in Supabase Function Secrets, and add nexora_whatsapp_meta_app_secret plus nexora_whatsapp_webhook_verify_token to Supabase Vault.',
         setupRequired: true,
       }, 503);
@@ -289,8 +310,8 @@ Deno.serve(async (req: Request) => {
         salon_id: null,
         expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
       });
-      if (error) return json({ error: 'Could not start a secure WhatsApp connection. Try again.' }, 503);
-      return json({
+      if (error) return respond({ error: 'Could not start a secure WhatsApp connection. Try again.' }, 503);
+      return respond({
         state,
         appId: meta.appId,
         configId: meta.configId,
@@ -300,7 +321,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === 'complete') {
-      if (!await signupConfigurationReady(admin, meta)) return json({ error: 'Meta WhatsApp setup is incomplete. Check the Meta app settings and Vault secrets.' }, 503);
+      if (!await signupConfigurationReady(admin, meta)) return respond({ error: 'Meta WhatsApp setup is incomplete. Check the Meta app settings and Vault secrets.' }, 503);
       const code = typeof body.code === 'string' ? body.code.trim() : '';
       const state = typeof body.state === 'string' ? body.state : '';
       const phoneNumberId = isMetaId(body.phoneNumberId) ? body.phoneNumberId : '';
@@ -312,7 +333,7 @@ Deno.serve(async (req: Request) => {
         ? body.primaryWaacIds.filter(isMetaId).slice(0, 10)
         : [];
       if (!code || code.length > 4096 || !state || state.length > 256 || !phoneNumberId) {
-        return json({ error: 'Meta did not return a valid phone number and login code.' }, 400);
+        return respond({ error: 'Meta did not return a valid phone number and login code.' }, 400);
       }
 
       const stateHash = await sha256(state);
@@ -326,13 +347,13 @@ Deno.serve(async (req: Request) => {
         .gt('expires_at', new Date().toISOString())
         .select('id').maybeSingle();
       if (stateError || !stateRow) {
-        return json({ error: 'This WhatsApp connection session expired or was already used. Start again.' }, 409);
+        return respond({ error: 'This WhatsApp connection session expired or was already used. Start again.' }, 409);
       }
 
       // Embedded Signup returns a short-lived exchangeable code in FB.login().
       // This OAuth endpoint is a GET and does not use a Bearer access token.
       const appSecret = await vaultMetaSecret(admin, 'nexora_whatsapp_meta_app_secret');
-      if (!appSecret) return json({ error: 'Meta App Secret is missing from Supabase Vault.' }, 503);
+      if (!appSecret) return respond({ error: 'Meta App Secret is missing from Supabase Vault.' }, 503);
       const tokenQuery = new URLSearchParams({
         client_id: meta.appId,
         client_secret: appSecret,
@@ -340,7 +361,7 @@ Deno.serve(async (req: Request) => {
       });
       const tokenResponse = await graph('oauth/access_token?' + tokenQuery.toString());
       const accessToken = typeof tokenResponse.access_token === 'string' ? tokenResponse.access_token : '';
-      if (!accessToken) return json({ error: 'Meta did not issue a WhatsApp access token. Start the connection again.' }, 502);
+      if (!accessToken) return respond({ error: 'Meta did not issue a WhatsApp access token. Start the connection again.' }, 502);
 
       // In Embedded Signup v5 the finish event can return messaging_account_ids
       // rather than a WABA ID. Resolve the actual shared WABA from Meta's
@@ -352,7 +373,7 @@ Deno.serve(async (req: Request) => {
       );
       const debugData = debugToken.data as Record<string, unknown> | undefined;
       if (!debugData || debugData.is_valid !== true || String(debugData.app_id || '') !== meta.appId) {
-        return json({ error: 'Meta did not validate the WhatsApp signup token for this NEXORA app.' }, 403);
+        return respond({ error: 'Meta did not validate the WhatsApp signup token for this NEXORA app.' }, 403);
       }
       const granularScopes = Array.isArray(debugData.granular_scopes)
         ? debugData.granular_scopes as Array<Record<string, unknown>>
@@ -367,7 +388,7 @@ Deno.serve(async (req: Request) => {
         ...messagingAccountIds,
       ]));
       if (candidateWabaIds.length === 0) {
-        return json({ error: 'Meta did not return an accessible WhatsApp Business Account for this number.' }, 403);
+        return respond({ error: 'Meta did not return an accessible WhatsApp Business Account for this number.' }, 403);
       }
 
       let wabaId = '';
@@ -388,7 +409,7 @@ Deno.serve(async (req: Request) => {
         }
       }
       if (!wabaId || !phone) {
-        return json({ error: 'The selected phone number could not be verified under an accessible WhatsApp Business Account.' }, 403);
+        return respond({ error: 'The selected phone number could not be verified under an accessible WhatsApp Business Account.' }, 403);
       }
 
       const subscription = await graph(
@@ -397,7 +418,7 @@ Deno.serve(async (req: Request) => {
         { method: 'POST', body: JSON.stringify({}) },
       );
       const subscribed = subscription.success === true || Array.isArray(subscription.data);
-      if (!subscribed) return json({ error: 'Meta did not subscribe this WhatsApp account to webhook events.' }, 502);
+      if (!subscribed) return respond({ error: 'Meta did not subscribe this WhatsApp account to webhook events.' }, 502);
 
       const keyBytes = await tokenEncryptionKey(admin);
       const encrypted = await encryptToken(accessToken, keyBytes);
@@ -437,10 +458,10 @@ Deno.serve(async (req: Request) => {
         },
       }, { onConflict: 'owner_id' });
       if (saveError) {
-        if (saveError.code === '23505') return json({ error: 'This WhatsApp phone number is already connected to another salon account.' }, 409);
-        return json({ error: 'Meta connected the number, but NEXORA could not safely save the connection. Contact support before connecting another number.' }, 503);
+        if (saveError.code === '23505') return respond({ error: 'This WhatsApp phone number is already connected to another salon account.' }, 409);
+        return respond({ error: 'Meta connected the number, but NEXORA could not safely save the connection. Contact support before connecting another number.' }, 503);
       }
-      return json({
+      return respond({
         ok: true,
         connection: {
           connection_status: 'connected',
@@ -458,12 +479,12 @@ Deno.serve(async (req: Request) => {
       const { error } = await admin.from('salon_whatsapp_connections')
         .update({ connection_status: 'disconnected', disconnected_at: new Date().toISOString(), webhook_subscribed: false })
         .eq('owner_id', ownerId);
-      if (error) return json({ error: 'Could not disconnect this WhatsApp number.' }, 503);
-      return json({ ok: true, disconnected: true });
+      if (error) return respond({ error: 'Could not disconnect this WhatsApp number.' }, 503);
+      return respond({ ok: true, disconnected: true });
     }
 
-    return json({ error: 'Unknown WhatsApp connection action.' }, 400);
+    return respond({ error: 'Unknown WhatsApp connection action.' }, 400);
   } catch (error) {
-    return json({ error: error instanceof Error ? error.message : 'WhatsApp connection could not be completed.' }, 400);
+    return respond({ error: error instanceof Error ? error.message : 'WhatsApp connection could not be completed.' }, 400);
   }
 });
