@@ -178,6 +178,90 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    if (action === 'inbox') {
+      const [conversationResult, messageResult] = await Promise.all([
+        admin.from('salon_whatsapp_conversations')
+          .select('customer_wa_id,customer_name,conversation_status,flow_state,last_inbound_at,last_outbound_at,updated_at')
+          .eq('owner_id', ownerId)
+          .order('updated_at', { ascending: false })
+          .limit(50),
+        admin.from('salon_whatsapp_message_log')
+          .select('recipient_wa_id,direction,message_kind,delivery_status,metadata,created_at')
+          .eq('owner_id', ownerId)
+          .order('created_at', { ascending: false })
+          .limit(1000),
+      ]);
+      if (conversationResult.error || messageResult.error) {
+        return json({ error: 'Could not load WhatsApp conversations.' }, 503, origin);
+      }
+      const messagesByRecipient = new Map<string, Array<Record<string, unknown>>>();
+      for (const message of messageResult.data || []) {
+        const recipient = String(message.recipient_wa_id || '');
+        if (!recipient) continue;
+        const rows = messagesByRecipient.get(recipient) || [];
+        if (rows.length < 30) rows.push(message as Record<string, unknown>);
+        messagesByRecipient.set(recipient, rows);
+      }
+      return respond({
+        conversations: (conversationResult.data || []).map((conversation) => {
+          const messages = messagesByRecipient.get(String(conversation.customer_wa_id)) || [];
+          return {
+            ...conversation,
+            messages: messages.slice(0, 3),
+            lastMessage: messages[0] || null,
+            optedOut: conversation.flow_state?.optOut === true,
+            needsReply: conversation.conversation_status === 'handed_off',
+          };
+        }),
+      });
+    }
+
+    if (action === 'conversation') {
+      const customerWaId = typeof body.customerWaId === 'string' ? body.customerWaId.replace(/[^0-9]/g, '') : '';
+      if (!/^\\d{10,15}$/.test(customerWaId)) return respond({ error: 'Valid customer WhatsApp number required.' }, 400);
+      const [conversationResult, messagesResult] = await Promise.all([
+        admin.from('salon_whatsapp_conversations')
+          .select('customer_wa_id,customer_name,conversation_status,flow_state,last_inbound_at,last_outbound_at,updated_at')
+          .eq('owner_id', ownerId).eq('customer_wa_id', customerWaId).maybeSingle(),
+        admin.from('salon_whatsapp_message_log')
+          .select('direction,message_kind,delivery_status,metadata,created_at')
+          .eq('owner_id', ownerId).eq('recipient_wa_id', customerWaId)
+          .order('created_at', { ascending: false })
+          .limit(50),
+      ]);
+      if (conversationResult.error || messagesResult.error) return respond({ error: 'Could not load this WhatsApp conversation.' }, 503);
+      if (!conversationResult.data) return respond({ error: 'WhatsApp conversation not found.' }, 404);
+      return respond({
+        conversation: {
+          ...conversationResult.data,
+          optedOut: conversationResult.data.flow_state?.optOut === true,
+          needsReply: conversationResult.data.conversation_status === 'handed_off',
+        },
+        messages: (messagesResult.data || []).reverse(),
+      });
+    }
+
+    if (action === 'sendReply') {
+      const customerWaId = typeof body.customerWaId === 'string' ? body.customerWaId.replace(/[^0-9]/g, '') : '';
+      const message = typeof body.message === 'string' ? body.message.trim().slice(0, 3500) : '';
+      if (!/^\\d{10,15}$/.test(customerWaId) || message.length < 1) {
+        return respond({ error: 'Choose a conversation and enter a message.' }, 400);
+      }
+      const sent = await fetch(supabaseUrl + '/functions/v1/nexora-whatsapp-webhook', {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer ' + serviceKey,
+          apikey: serviceKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'ownerReply', ownerId, customerWaId, message }),
+        signal: AbortSignal.timeout(15000),
+      });
+      const result = await sent.json().catch(() => ({}));
+      if (!sent.ok || !result.sent) return respond({ error: result.error || result.reason || 'WhatsApp reply could not be sent.' }, 409);
+      return respond({ sent: true, messageId: result.messageId || null });
+    }
+
     if (action === 'begin') {
       if (!meta.configured) return respond({
         error: 'Add META_APP_ID and META_WHATSAPP_EMBEDDED_SIGNUP_CONFIG_ID to Supabase Function Secrets first.',
