@@ -93,7 +93,11 @@ const clientRpc=(src)=>{
   return [...names].filter(n=>/^(studioflow_|get_my_|nexora_)/.test(n));
 };
 const walk=(dir)=>readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(dir+'/'+e.name):dir+'/'+e.name.endsWith('.tsx')||e.name.endsWith('.ts')?[dir+'/'+e.name]:[]);
-const src=['src','supabase/functions'].flatMap(d=>{try{return walk(d)}catch{return[]}}).map(f=>readFileSync(f,'utf8')).join('\n');
+// Client catalog assertions inspect browser application code only. Edge Functions
+// use service_role for internal RPCs (including tenant-private WhatsApp operations),
+// so their calls must be checked by the dedicated Edge Function security verifier
+// and WhatsApp platform contract verifier, not treated as browser-callable RPCs.
+const src=['src'].flatMap(d=>{try{return walk(d)}catch{return[]}}).map(f=>readFileSync(f,'utf8')).join('\n');
 await db.exec(readFileSync('supabase/migrations/202611030003_template15_keshkraft.sql','utf8'));
 await db.exec(readFileSync('supabase/migrations/202611050001_booking_multi_services.sql','utf8'));
 await db.exec(readFileSync('supabase/migrations/202611050001_booking_multi_services.sql','utf8'));
