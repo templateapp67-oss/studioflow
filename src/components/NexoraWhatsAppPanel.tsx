@@ -221,6 +221,7 @@ export const NexoraWhatsAppPanel: React.FC<{ onBookingsChanged?: () => Promise<v
       });
       if (completed.error || !completed.data?.ok) throw new Error(completed.data?.error || completed.error?.message || 'WhatsApp connection could not be saved.');
       setNotice({ kind: 'success', text: `WhatsApp ${completed.data.connection?.display_phone_number || ''} is connected to this salon.` });
+      await onBookingsChanged?.();
       await refresh();
     } catch (error) {
       setNotice({ kind: 'error', text: error instanceof Error ? error.message : 'WhatsApp could not be connected.' });
@@ -237,6 +238,7 @@ export const NexoraWhatsAppPanel: React.FC<{ onBookingsChanged?: () => Promise<v
       const result = await supabase.functions.invoke('nexora-whatsapp-connect', { body: { action: 'disconnect' } });
       if (result.error || !result.data?.ok) throw new Error(result.data?.error || result.error?.message || 'Could not disconnect WhatsApp.');
       setNotice({ kind: 'success', text: 'WhatsApp has been disconnected from this salon.' });
+      await onBookingsChanged?.();
       await refresh();
     } catch (error) {
       setNotice({ kind: 'error', text: error instanceof Error ? error.message : 'Could not disconnect WhatsApp.' });
