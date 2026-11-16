@@ -537,6 +537,11 @@ async function notifyPayment(db: any, bookingId: string, paymentId: string) {
     safeText(booking.payload?.date, 20) + ' at ' + safeText(booking.payload?.time, 10) +
     '\nAdvance received: ₹' + amount.toLocaleString('en-IN') +
     '\nPayment reference: ' + safeText(paymentId, 40) + '\n\nThank you for booking with ' + salonName + '!';
+  await db.from('salon_whatsapp_conversations').update({
+    conversation_status: 'booked',
+    flow_state: { step: 'booked', bookingId: booking.id },
+    updated_at: new Date().toISOString(),
+  }).eq('owner_id', booking.owner_id).eq('customer_wa_id', recipient);
   return await sendSalonText(db, connection, booking.owner_id, recipient, text, 'payment_success', booking.id);
 }
 
@@ -605,6 +610,11 @@ Deno.serve(async (req: Request) => {
           const sender = digits(message.from);
           const contact = contacts.find((item) => digits(item.wa_id) === sender) || null;
           await handleInbound(db, connection, message, contact);
+          await db.from('salon_whatsapp_webhook_events').update({
+            processing_status: 'processed',
+            processed_at: new Date().toISOString(),
+          }).eq('provider_event_id', 'message:' + safeText(message.id, 200))
+            .eq('owner_id', connection.owner_id);
           processed++;
         }
       }
