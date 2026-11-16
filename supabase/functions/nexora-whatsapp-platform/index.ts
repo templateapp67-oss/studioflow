@@ -763,9 +763,10 @@ async function handleOwnerAction(db: any, user: Row, body: Row): Promise<Row> {
   if (action === 'start_signup') {
     const appId = env('META_APP_ID');
     const configId = env('META_EMBEDDED_SIGNUP_CONFIG_ID');
-    if (!appId || !configId || !env('META_APP_SECRET') || !env('NEXORA_WA_TOKEN_ENCRYPTION_KEY')) {
-      throw new Error('Meta app ID, Embedded Signup v5 configuration, app secret aur token-encryption secret set nahi hain');
+    if (!appId || !configId || !env('META_APP_SECRET')) {
+      throw new Error('Meta app ID, Embedded Signup v5 configuration aur app secret abhi configure nahi hain');
     }
+    await encryptionKey(db);
     const stateBytes = crypto.getRandomValues(new Uint8Array(32));
     const state = base64(stateBytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
     const stateHash = await sha256(state);
@@ -784,9 +785,10 @@ async function handleOwnerAction(db: any, user: Row, body: Row): Promise<Row> {
     const code = clean(body.code, 4000);
     const sessionInfo = body.sessionInfo && typeof body.sessionInfo === 'object' ? body.sessionInfo as Row : {};
     if (!state || !code) throw new Error('Meta signup code or one-time state is missing');
-    if (!env('META_APP_SECRET') || !env('NEXORA_WA_TOKEN_ENCRYPTION_KEY')) {
-      throw new Error('Meta server secrets are not configured');
+    if (!env('META_APP_SECRET')) {
+      throw new Error('Meta app secret abhi configure nahi hai');
     }
+    await encryptionKey(db);
     const { data: stateRow, error: stateError } = await db.from('salon_whatsapp_oauth_states')
       .update({ consumed_at: new Date().toISOString() })
       .eq('state_hash', await sha256(state))
