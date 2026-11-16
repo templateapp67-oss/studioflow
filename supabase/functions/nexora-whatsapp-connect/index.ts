@@ -109,7 +109,7 @@ async function graph(path: string, token?: string, init: RequestInit = {}) {
 
 Deno.serve(async (req: Request) => {
   const origin = req.headers.get('origin') || '';
-  const respond = (body: unknown, status = 200) => respond(body, status, origin);
+  const respond = (body: unknown, status = 200) => json(body, status, origin);
   const originAllowed = !origin || ALLOWED_ORIGINS.has(origin)
     || /^https:\/\/([a-z0-9-]+\.)?vercel\.app$/.test(origin)
     || /^http:\/\/localhost(:\d+)?$/.test(origin);
@@ -287,7 +287,7 @@ Deno.serve(async (req: Request) => {
         body: JSON.stringify({ action: 'ownerReply', ownerId, customerWaId, message }),
         signal: AbortSignal.timeout(15000),
       });
-      const result = await sent.respond().catch(() => ({})) as Record<string, unknown>;
+      const result = await sent.json().catch(() => ({})) as Record<string, unknown>;
       if (!sent.ok || result.sent !== true) {
         return respond({ error: result.error || result.reason || 'WhatsApp reply could not be sent.' }, 409);
       }
