@@ -53,6 +53,8 @@ assert.match(webhook, /24 \* 60 \* 60 \* 1000/);
 assert.match(webhook, /UNSUBSCRIBE/);
 assert.match(webhook, /nexora_whatsapp_cancel_pending/);
 assert.match(webhook, /whatsappCancelPaymentLink/);
+assert.match(webhook, /customer_opted_out/);
+assert.match(webhook, /flow_state\?\.optOut === true/);
 
 assert.match(payments, /whatsappPaymentLink/);
 assert.match(payments, /whatsappCancelPaymentLink/);
