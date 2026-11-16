@@ -168,8 +168,11 @@ Deno.serve(async (req: Request) => {
       }, 503);
       const { data: storedAppSecret } = await admin.rpc('nexora_whatsapp_meta_secret', { p_secret_name: 'nexora_whatsapp_meta_app_secret' });
       const { data: storedEncryptionKey } = await admin.rpc('nexora_whatsapp_token_key');
-      if (typeof storedAppSecret !== 'string' || !storedAppSecret || typeof storedEncryptionKey !== 'string' || !storedEncryptionKey) {
-        return json({ error: 'Store nexora_whatsapp_meta_app_secret and nexora_whatsapp_token_encryption_key in Supabase Vault before connecting a number.', setupRequired: true }, 503);
+      const { data: storedVerifyToken } = await admin.rpc('nexora_whatsapp_meta_secret', { p_secret_name: 'nexora_whatsapp_webhook_verify_token' });
+      if (typeof storedAppSecret !== 'string' || !storedAppSecret ||
+          typeof storedEncryptionKey !== 'string' || !storedEncryptionKey ||
+          typeof storedVerifyToken !== 'string' || !storedVerifyToken) {
+        return json({ error: 'Store nexora_whatsapp_meta_app_secret, nexora_whatsapp_webhook_verify_token and nexora_whatsapp_token_encryption_key in Supabase Vault before connecting a number.', setupRequired: true }, 503);
       }
       const stateBytes = crypto.getRandomValues(new Uint8Array(32));
       const state = base64(stateBytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
