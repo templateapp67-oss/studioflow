@@ -43,7 +43,9 @@ assert.ok(refundLedger.includes("'refund_failed'"), 'refund-failed state missing
 assert.ok(platform.includes('x-hub-signature-256'), 'Meta raw-body signature header must be checked');
 assert.ok(platform.includes('META_APP_SECRET'), 'Meta webhook signature secret must be server-only');
 assert.ok(platform.includes('META_WEBHOOK_VERIFY_TOKEN'), 'Meta webhook GET verification is missing');
-assert.ok(platform.includes('NEXORA_WA_TOKEN_ENCRYPTION_KEY'), 'Meta tokens must be encrypted at rest');
+assert.ok(platform.includes("db.rpc('nexora_whatsapp_token_key')"), 'Meta tokens must use the Vault-held encryption key');
+assert.ok(platform.includes("await encryptionKey(db)"), 'signup must verify Vault access before connecting');
+assert.ok(read('supabase/migrations/20261116030000_nexora_whatsapp_vault_key_access.sql').includes('grant execute on function public.nexora_whatsapp_token_key() to service_role'), 'Vault key accessor must be service-role only');
 assert.ok(platform.includes("embedded_signup_version: 'v5'"), 'Embedded Signup must use v5 session metadata');
 assert.ok(platform.includes('messaging_account_ids'), 'Embedded Signup v5 Messaging Account IDs are not handled');
 assert.ok(platform.includes('FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING') || platform.includes('FINISH'), 'Embedded Signup finish event is not handled');
