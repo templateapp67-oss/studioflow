@@ -130,7 +130,7 @@ Deno.serve(async(req:Request)=>{
             if(settlement.data?.refund_required){
               await refundPayment(order.order_id,paymentId,Number(order.amount_paise));
             }else{
-              const notifyUrl=url.replace(/\\/$/,'')+'/functions/v1/nexora-whatsapp-platform';
+              const notifyUrl=(url.endsWith('/')?url.slice(0,-1):url)+'/functions/v1/nexora-whatsapp-platform';
               const notification=await fetch(notifyUrl,{
                 method:'POST',
                 headers:{
