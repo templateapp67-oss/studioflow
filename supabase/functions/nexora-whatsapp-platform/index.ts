@@ -168,6 +168,7 @@ async function sendWhatsAppText(
   text: string,
   kind = 'conversation',
   bookingId?: string,
+  allowOptOut = false,
 ): Promise<{ sent: boolean; reason?: string; messageId?: string }> {
   const recipient = digits(to);
   if (!recipient || text.length < 1 || text.length > 4096) {
@@ -175,11 +176,24 @@ async function sendWhatsAppText(
   }
   const { data: conversation } = await db
     .from('salon_whatsapp_conversations')
-    .select('last_inbound_at')
+    .select('last_inbound_at,conversation_status,flow_state')
     .eq('owner_id', connection.owner_id)
     .eq('customer_wa_id', recipient)
     .maybeSingle();
   const lastInbound = conversation?.last_inbound_at ? new Date(conversation.last_inbound_at).getTime() : 0;
+  const optedOut = conversation?.conversation_status === 'closed' || Boolean(conversation?.flow_state?.optedOutAt);
+  if (optedOut && !allowOptOut) {
+    await addMessageLog(db, {
+      owner_id: connection.owner_id,
+      recipient_wa_id: recipient,
+      direction: 'outbound',
+      message_kind: kind,
+      delivery_status: 'queued',
+      booking_id: bookingId || null,
+      metadata: { reason: 'customer_opted_out' },
+    });
+    return { sent: false, reason: 'customer_opted_out' };
+  }
   if (!lastInbound || Date.now() - lastInbound > 24 * 60 * 60 * 1000) {
     await addMessageLog(db, {
       owner_id: connection.owner_id,
@@ -355,7 +369,7 @@ async function processConversationMessage(db: any, connection: Row, message: Row
   const state: Row = oldConversation?.flow_state && typeof oldConversation.flow_state === 'object' ? oldConversation.flow_state : {};
   const upper = text.trim().toUpperCase();
   if (['STOP', 'UNSUBSCRIBE', 'CANCEL', 'RESET', 'HI', 'HELLO', 'NAMASTE', 'START'].includes(upper)
-      && (upper === 'RESET' || upper === 'HI' || upper === 'HELLO' || upper === 'NAMASTE' || upper === 'START')) {
+      && (upper === 'RESET' || upper === 'CANCEL' || upper === 'HI' || upper === 'HELLO' || upper === 'NAMASTE' || upper === 'START')) {
     const next = await sendServiceMenu(db, connection, customerWaId, services, {});
     await db.from('salon_whatsapp_conversations').upsert({
       owner_id: connection.owner_id, customer_wa_id: customerWaId,
@@ -372,7 +386,7 @@ async function processConversationMessage(db: any, connection: Row, message: Row
       conversation_status: 'closed', flow_state: { step: 'opted_out', optedOutAt: new Date().toISOString() },
       last_inbound_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     }, { onConflict: 'owner_id,customer_wa_id' });
-    await sendWhatsAppText(db, connection, customerWaId, 'Aapke WhatsApp booking messages band kar diye gaye hain. Dobara shuru karne ke liye START bhejein.');
+    await sendWhatsAppText(db, connection, customerWaId, 'Aapke WhatsApp booking messages band kar diye gaye hain. Dobara shuru karne ke liye START bhejein.', 'conversation', undefined, true);
     return;
   }
   if (state.step === 'opted_out') {
