@@ -83,7 +83,7 @@ Do not collect card details, UPI PINs or OTPs in WhatsApp. A customer text or pa
 
 ## Current rollout status
 
-The database migrations through `20261116030000` have been applied to the NEXORA Supabase project. The Vault key exists and its read function is executable by `service_role` only. The WhatsApp Edge Function, owner UI and Razorpay Payment Link webhook changes are on feature branch `feat/nexora-whatsapp-owned-channel-v5`; they must pass the repository CI and be merged/deployed before the owner panel can use them.
+The database migrations through `20261116031000` have been applied to the NEXORA Supabase project, including profile-phone identity matching and the Vault-only AES-256 key accessor. The Vault key exists and its read function is executable by `service_role` only. The WhatsApp Edge Function, owner UI and Razorpay Payment Link webhook changes are on feature branch `feat/nexora-whatsapp-owned-channel-v5`; they must pass the repository CI and be merged/deployed before the owner panel can use them.
 
 The code work does not by itself activate Meta senders. Until the Meta app secrets/permissions/webhook and Razorpay event are configured and end-to-end tests pass, no salon should be shown as connected and no production booking/payment message should be advertised as active.
 
