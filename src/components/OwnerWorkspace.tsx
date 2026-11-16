@@ -48,6 +48,7 @@ import type { CategoryTemplateConfig } from '../types';
 import { nexoraName, nexoraCategoryLabel } from './nexora/NexoraBrand';
 import { sortTemplatesByPriority, nexoraTemplateMeta } from '../lib/nexoraTemplateCatalogue';
 import { SyncIndicator } from './SyncIndicator';
+import { SalonWhatsAppIntegration } from './SalonWhatsAppIntegration';
 
 type Props = {
   profile: SalonProfile;
@@ -122,6 +123,7 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
 
 
   const renderContent = () => {
+    if (active === 34) return <SalonWhatsAppIntegration profile={profile}/>;
     if (active === 33) return profile.businessType === 'unisex_salon'
       ? <div className="stack space-y-6"><AuraContentManager profile={profile} onSaved={() => flash('Template 03 content saved to Supabase')}/><AuraPromotionsAdmin profile={profile} services={services}/></div>
       : <section className="workspace-card"><p className="eyebrow">Template 03</p><h2>Aura content management</h2><p className="muted">Choose Aura Unisex Salon & Wellness Lounge in “Choose template” to edit its 19 website sections. Other templates are unchanged.</p></section>;
