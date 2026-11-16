@@ -2,77 +2,72 @@
 
 ## Product behavior
 
-Every published salon tenant uses its own WhatsApp Business Platform sender. Template choice is only presentation; the tenant is resolved from the verified Meta `phone_number_id` on inbound webhooks, never from a customer-supplied slug alone. The same salon identity is used for customer replies, booking updates, payment links and payment receipts.
+Every published salon tenant uses its own WhatsApp Business Platform sender. Template choice is only presentation; the tenant is resolved from the verified Meta \`phone_number_id\` on inbound webhooks, never from a customer-supplied slug alone. Customer replies, booking updates, payment links and payment receipts are sent from that salon's own connected sender. The owner workspace also includes a WhatsApp conversation inbox so salon staff can read messages and reply from the connected number.
 
-The central NEXORA number remains support/fallback only. It must not be used as the sender for another salon's booking or payment messages.
+The central NEXORA support number remains support/fallback only. It is never used as the sender for another salon's customer booking or payment messages.
 
-## Tenant and credential boundaries
+## Owner onboarding and credentials
 
-- One `salon_whatsapp_connections` row per StudioFlow salon owner, keyed by `studioflow_accounts.user_id` and linked to that owner's published `studioflow_websites` record.
-- Unique `phone_number_id` prevents a WhatsApp sender being assigned to two salons.
-- Meta access tokens must be AES-256-GCM encrypted in a trusted Edge Function before storage. The encryption key is a Supabase Function secret, never a browser variable or database column.
-- OAuth state is random, single-use, short-lived and stored as a SHA-256 hash. Bind the callback to the initiating authenticated StudioFlow owner and their `studioflow_accounts.user_id`.
-- Browser roles cannot read or write connection tokens, OAuth state, webhook payloads, conversations or message logs. Trusted Edge Functions use the service role.
-- Inbound webhooks must verify Meta's `X-Hub-Signature-256` against the raw request body before parsing or processing.
-- Resolve tenant from the inbound `metadata.phone_number_id` and the active connection. Ignore unrecognised or disconnected numbers.
-- Deduplicate webhook events and outbound sends. Never let a webhook body choose an arbitrary salon or booking owner.
+- Owner connection is initiated from Business tools → WhatsApp Booking & Payments.
+- Meta Embedded Signup v5 is used (\`extras.version = "v5"\`). v5 can return \`messaging_account_ids\`, \`primary_waac_ids\`, \`is_on_biz_app\`, and the \`FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING\` event.
+- The server maps the first messaging account ID to the existing WABA field, retains all returned messaging account IDs in provider metadata, and stores Business App coexistence state and primary WAAC IDs.
+- Meta access tokens are encrypted with AES-256-GCM before storage. The encryption key is read from Supabase Vault by service-role-only RPC; it is never a browser variable or exposed to authenticated/anon roles.
+- App Secret and webhook verify token are allow-listed Vault secrets read only by service-role Edge Functions.
+- OAuth state is random, single-use, short-lived and stored as a SHA-256 hash. The callback is bound to the initiating StudioFlow owner.
+- Browser roles cannot read/write connection tokens, OAuth state, webhook payloads, conversations or message logs. Trusted Edge Functions use service_role.
+- Unique \`phone_number_id\` prevents one WhatsApp sender from being assigned to two salon owners.
+- Inbound webhooks verify Meta's \`X-Hub-Signature-256\` over the exact raw request body before parsing or processing.
+- Tenant routing uses the inbound verified \`metadata.phone_number_id\` and active connection. Unknown or disconnected senders are ignored.
 
 ## Booking conversation
 
-1. Receive a customer message on the salon's connected number.
-2. Resolve that number to one active salon connection.
-3. Read only that salon's public services, prices, staff and live availability.
-4. Collect customer name, phone, service, branch (when required), stylist (optional), date and time.
-5. Re-check availability on the server immediately before reservation.
-6. Present the complete booking summary and require an explicit customer confirmation.
-7. Create the appointment through the existing StudioFlow booking/reservation service with `booking_source = 'whatsapp'`, an idempotency key and the tenant's actual `owner_id`.
-8. If a slot was taken or booking save fails, do not say the booking is confirmed; offer refreshed slots.
-9. Write the booking reference to the message log and dashboard metrics.
-
-WhatsApp guest booking must reuse the existing booking rules and server-side availability checks. It must not insert directly into booking tables from a public webhook handler.
+1. Customer messages the salon's connected number.
+2. The webhook resolves the message to one active salon connection.
+3. The bot reads only that salon's published services, prices, staff and opening availability.
+4. The customer selects a service, salon branch (when multiple exist), date, time/stylist and gives a booking name.
+5. Before saving a reservation the bot shows the complete summary and asks for an explicit \`YES\` confirmation that also authorizes the customer's name/WhatsApp number to be saved as a StudioFlow customer record.
+6. A phone-confirmed Supabase customer identity is created or reused only after that confirmation. It is linked to the message's WhatsApp number; no password or unverified email is invented.
+7. The service-role-only guest booking adapter re-checks the published salon, branch, service, live slots, customer phone, hold overlaps and idempotency. It writes into the canonical \`studioflow_bookings\` table with \`booking_source = 'whatsapp'\`, tenant owner, branch and a WhatsApp idempotency key.
+8. A successful request creates a 15-minute pending hold. An unavailable slot, tenant mismatch or booking failure is never described as confirmed.
 
 ## Payments and WhatsApp messages
 
-- Create payment orders through the salon's already configured live payment provider and the canonical payment service.
-- Send a provider-hosted payment URL using the same salon WhatsApp sender. Never collect card data, UPI PINs or OTPs in chat.
-- Mark an order paid only after a verified provider webhook/signature confirms capture. Customer messages and screenshots are never proof of payment.
-- Send payment success/failure/receipt messages only after server-side payment status is verified.
-- Use approved WhatsApp message templates for business-initiated messages outside the customer-service window. Capture opt-in and respect opt-out.
-- Persist delivery state in `salon_whatsapp_message_log` for dashboard metrics and troubleshooting.
+- The existing StudioFlow payment engine creates a Razorpay Payment Link for the configured 25% advance on WhatsApp-originated bookings.
+- The payment-link ID is stored in the canonical \`studioflow_payment_orders\` ledger and associated with the WhatsApp booking. The customer receives the hosted payment URL from the salon's own WhatsApp sender.
+- A booking is confirmed only after the signed Razorpay \`payment_link.paid\` event is received, the live Payment Link and its captured payment are re-fetched and validated server-side, and the canonical StudioFlow settlement RPC succeeds.
+- If a payment arrives after the booking hold expires or the slot has been taken, the existing settlement path flags a refund instead of confirming an invalid appointment.
+- Customer messages/screenshots are never proof of payment.
+- Customer \`NO\`/\`CANCEL\` releases an unpaid hold and attempts to cancel the unpaid Razorpay Payment Link. A captured payment cannot be cancelled as unpaid.
+- Payment receipt messages are sent only after verified capture and are suppressed for customers who have opted out.
+- Free-form WhatsApp replies are only sent inside the 24-hour customer service window. Outside that window an approved Meta message template is required; this code does not bypass the template rule.
+- \`STOP\`/\`UNSUBSCRIBE\` opt-out is stored per conversation. A customer must send \`START\` before the bot or owner inbox can message them again.
 
-## Owner app dashboard
+## Owner dashboard
 
-Add a WhatsApp channel setup card under salon integrations:
-- Connect WhatsApp (Meta Embedded Signup)
-- Connected business display name and number
-- Connection / webhook health, last message, reconnect and disconnect
-- Explicit opt-in and notification template readiness
+The WhatsApp Booking & Payments tool is added to every salon owner workspace, across all 16 templates. It provides:
+- salon's own Meta-connected Business number, connection state, webhook state, Business App coexistence indicator and disconnect action;
+- WhatsApp-originated booking/request/confirmation/cancellation metrics and advance collected;
+- message counts, payment link count and pending/paid payment metrics;
+- tenant-scoped customer conversation inbox, handoff-needed indicator, message history, opt-out indicator and owner replies through the salon's own sender.
 
-Add a WhatsApp bookings and payments view:
-- WhatsApp enquiries, booking requests, confirmed bookings and cancellations
-- Revenue/advance collected for WhatsApp-originated bookings
-- Payment links sent, paid, failed and pending
-- Message delivery statuses and human handoff
+Dashboard numbers are derived from StudioFlow booking/payment rows and message logs, not increment-only counters.
 
-Metrics must be derived from StudioFlow booking/payment rows and message logs, not increment-only counters. Use `studioflow_bookings.payload` and the canonical owner/booking records for source attribution, plus verified `studioflow_payment_orders` rows for collected amounts.
+## Production setup still required
 
-## Rollout gates
+The code and database migrations do not create a Meta developer app or grant Meta approvals. Before actual owners can connect numbers:
+1. Verify the ROGENTARA/NEXORA business with Meta and enrol/approve the required Tech Provider/partner role.
+2. Create a Meta App and Embedded Signup v5 Login for Business configuration for WhatsApp Cloud API; request the required WhatsApp Business Management and Messaging permissions and complete App Review/Advanced Access as Meta requires.
+3. Add \`META_APP_ID\` and \`META_WHATSAPP_EMBEDDED_SIGNUP_CONFIG_ID\` to Supabase Edge Function Secrets.
+4. Store \`nexora_whatsapp_meta_app_secret\` and \`nexora_whatsapp_webhook_verify_token\` in Supabase Vault. The runtime migration provisions \`nexora_whatsapp_token_encryption_key\` only if it does not already exist.
+5. Deploy the \`nexora-whatsapp-connect\` and \`nexora-whatsapp-webhook\` Edge Functions with JWT verification disabled at the gateway (their internal owner/service-role checks handle authorization).
+6. Configure the Meta Webhooks callback URL as the deployed \`nexora-whatsapp-webhook\` endpoint, use the exact Vault verify token, subscribe the WhatsApp Business Account/app to the \`messages\` webhook field.
+7. Configure the Razorpay webhook URL to the deployed \`studioflow-payments\` Edge Function with the existing webhook signing secret and subscribe to \`payment_link.paid\`, \`payment_link.expired\` and \`payment_link.cancelled\`.
+8. Run a two-salon tenant-isolation test, one standard Cloud API number and one Business App coexistence number, plus duplicate webhook, opt-out, expired hold, payment capture, post-expiry refund, and owner-inbox reply checks.
 
-1. Meta business verification, Tech Provider / Embedded Signup access, App Review and required WhatsApp permissions.
-2. Add Supabase secrets for Meta app credentials, webhook verify token, token encryption key, and provider-specific signing secrets. Never paste secrets into chat or commit them.
-3. Implement and test Embedded Signup callback, encrypted token storage and webhook verification.
-4. Implement guest booking adapter through the canonical reservation function and prove concurrency/idempotency.
-5. Integrate the configured payment provider and verified payment webhook.
-6. Add owner dashboard setup, booking metrics and message/payment timeline.
-7. Run isolation tests across at least two salons and all 16 template renderers, including wrong-tenant, replayed webhook, expired token, duplicate booking, unavailable slot, failed payment and webhook retry cases.
-8. Enable production only after Meta approval, payment provider live configuration and end-to-end verification.
+Never paste Meta App Secret, webhook tokens, service-role keys or encryption keys into chat or commit them to GitHub.
 
-## Current implementation status
+## Current delivery status
 
-The database foundation and StudioFlow tenancy migrations are applied to the NEXORA Supabase production project. All five tenant-scoped tables exist, RLS is enabled, browser-role access is revoked, and only trusted server-side service-role functions can read or write them. Connections, OAuth states, conversations and message logs are keyed to `studioflow_accounts.user_id`. Message records reference the canonical `studioflow_bookings` and `studioflow_payment_orders` tables used by the current salon owner dashboard.
+The production Supabase database contains the owner/tenant WhatsApp tables and the support migrations for the encrypted token key, service-role-only booking adapter, customer phone lookup, payment-link ledger columns and unpaid cancellation. The database function permissions for the WhatsApp private functions are restricted to service_role.
 
-This foundation does not create a live Meta connection, enable production webhooks, create real WhatsApp bookings, send WhatsApp messages or process payments. Keep production claims disabled until every rollout gate above is verified.
-
-## Migration history recovery
-
-The live project contains historical migration versions that are not present as files in this repository. Do not mark those versions reverted or add empty placeholder migrations: either action can break a fresh preview rebuild or cause already-applied SQL to run again. Before enabling Supabase branch previews, generate and review a complete baseline from the live schema with the Supabase CLI (`supabase db pull`), verify a clean local reset against that baseline, and then reconcile migration history deliberately. The WhatsApp foundation and StudioFlow tenancy migrations are tracked using the exact versions recorded by the live project (`20261115173757` and `20261115174514`).
+The owner UI, Meta Embedded Signup v5 client/server flow, signed webhook handler, booking conversation, Razorpay Payment Link actions and owner inbox are in PR #122. The PR has not been merged or deployed as Edge Functions yet. No salon WhatsApp numbers are connected and no real customer messages or WhatsApp-originated bookings have been processed by this code. Meta app approval/configuration and Vault secrets remain external platform setup requirements; do not advertise the feature as live until those gates and end-to-end tests pass.
