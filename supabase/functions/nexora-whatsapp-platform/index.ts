@@ -928,8 +928,40 @@ Deno.serve(async (req: Request) => {
       return json({ received: true });
     }
 
-    const user = await ownerFromRequest(req, db);
     const body = raw ? JSON.parse(raw) : {};
+    const internalKey = req.headers.get('x-internal-key') || '';
+    if (constantTimeEqual(internalKey, env('SUPABASE_SERVICE_ROLE_KEY'))) {
+      if (body.action === 'internal_payment_success') {
+        const bookingId = clean(body.bookingId, 80);
+        if (!bookingId) return json({ error: 'Booking reference required' }, 400);
+        const { data: booking } = await db.from('studioflow_bookings')
+          .select('id,owner_id,status,payload').eq('id', bookingId).maybeSingle();
+        if (!booking || booking.status !== 'confirmed' || booking.payload?.paymentStatus !== 'paid_deposit') {
+          return json({ error: 'Verified paid booking was not found' }, 409);
+        }
+        const connection = await getConnection(db, booking.owner_id);
+        const customerPhone = clean(booking.payload.clientPhone, 30);
+        if (!connection || !customerPhone) return json({ sent: false, reason: 'no_active_salon_sender' });
+        const result = await sendWhatsAppText(
+          db, connection, customerPhone,
+          'Payment mil gaya hai. Aapki booking CONFIRMED hai.\\n' +
+          'Booking ID: ' + booking.id + '\\n' +
+          'Service: ' + clean(booking.payload.serviceName, 100) + '\\n' +
+          'Date & Time: ' + clean(booking.payload.date, 20) + ' ' + clean(booking.payload.time, 10) + '\\n' +
+          'Advance paid: ' + formatMoney(Number(booking.payload.amountPaid || 0)) + '\\n' +
+          'Dhanyavaad — ' + clean(connection.verified_name || 'salon team', 100),
+          'payment_success', booking.id,
+        );
+        await db.from('salon_whatsapp_conversations').update({
+          conversation_status: 'booked',
+          flow_state: { step: 'completed', bookingId: booking.id },
+          updated_at: new Date().toISOString(),
+        }).eq('owner_id', booking.owner_id).eq('customer_wa_id', digits(customerPhone));
+        return json({ ok: true, ...result });
+      }
+      return json({ error: 'Unknown internal action' }, 400);
+    }
+    const user = await ownerFromRequest(req, db);
     const result = await handleOwnerAction(db, user, body);
     return json({ ok: true, ...result });
   } catch (error) {
