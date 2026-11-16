@@ -161,7 +161,7 @@ async function runEmbeddedSignup(config: SignupConfig, state: string) {
       auth_type: 'rerequest',
       response_type: 'code',
       override_default_response_type: true,
-      extras: {},
+      extras: { version: 4, sessionInfoVersion: '4' },
     });
   }).then((result) => ({ ...result, state }));
 }
