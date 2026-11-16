@@ -240,7 +240,7 @@ Deno.serve(async(req:Request)=>{
         description:'25% booking advance - '+String(booking.payload?.serviceName||'Salon appointment').slice(0,150),
         customer:{
           name:String(booking.payload?.clientName||'Salon customer').slice(0,100),
-          contact:contact.slice(-15)
+          contact:contact ? '+'+contact.slice(-15) : undefined
         },
         notify:{sms:false,email:false,whatsapp:false},
         reminder_enable:false,
