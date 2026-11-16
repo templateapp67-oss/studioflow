@@ -343,6 +343,15 @@ async function handleInbound(db: any, connection: Json, message: Json, contact: 
   };
   conversation.customer_name = conversation.customer_name || contactName || null;
   conversation.last_inbound_at = receivedAt;
+  // Persist the inbound timestamp before sending the first reply. A fresh
+  // inbound message reopens the 24-hour customer service window even when
+  // the previous conversation had been inactive for more than a day.
+  await saveConversation(
+    db,
+    conversation,
+    conversation.flow_state && typeof conversation.flow_state === 'object' ? conversation.flow_state : {},
+    String(conversation.conversation_status || 'active'),
+  );
   const text = extractText(message);
   await logMessage(db, {
     owner_id: connection.owner_id,
