@@ -7,6 +7,8 @@ const studioflowTenancy = read('supabase/migrations/20261115174514_nexora_whatsa
 const bookingPayments = read('supabase/migrations/20261116014600_nexora_whatsapp_booking_payment_engine.sql');
 const embeddedSignup = read('supabase/migrations/20261116020000_nexora_whatsapp_embedded_signup_v5.sql');
 const refundLedger = read('supabase/migrations/20261116022000_nexora_whatsapp_refund_ledger.sql');
+const vaultAccess = read('supabase/migrations/20261116030000_nexora_whatsapp_vault_key_access.sql');
+const phoneIdentity = read('supabase/migrations/20261116031000_nexora_whatsapp_profile_phone_match.sql');
 const platform = read('supabase/functions/nexora-whatsapp-platform/index.ts');
 const payments = read('supabase/functions/studioflow-payments/index.ts');
 const ownerUi = read('src/components/SalonWhatsAppIntegration.tsx');
@@ -39,6 +41,9 @@ assert.ok(embeddedSignup.includes("connection_mode in ('standard','coexistence')
 assert.ok(refundLedger.includes('public.studioflow_complete_refund'), 'canonical refund completion RPC missing');
 assert.ok(refundLedger.includes("'refunded'"), 'refund-completed state missing');
 assert.ok(refundLedger.includes("'refund_failed'"), 'refund-failed state missing');
+assert.ok(vaultAccess.includes('vault.decrypted_secrets'), 'WhatsApp token key must be retrieved from Supabase Vault');
+assert.ok(vaultAccess.includes('grant execute on function public.nexora_whatsapp_token_key() to service_role'), 'Vault key RPC must be service-role only');
+assert.ok(phoneIdentity.includes('owner_profile.whatsapp'), 'Verified WhatsApp identity must match existing profile contact details');
 
 assert.ok(platform.includes('x-hub-signature-256'), 'Meta raw-body signature header must be checked');
 assert.ok(platform.includes('META_APP_SECRET'), 'Meta webhook signature secret must be server-only');
@@ -55,6 +60,8 @@ assert.ok(platform.includes('payment_link'), 'WhatsApp booking must issue hosted
 assert.ok(platform.includes('customer_service_window_closed'), '24-hour WhatsApp customer-service window must be enforced');
 assert.ok(platform.includes('customer_opted_out'), 'WhatsApp STOP must suppress future messages');
 assert.ok(platform.includes('internal_payment_success'), 'internal verified-payment notification action is missing');
+assert.ok(platform.includes('requestId: crypto.randomUUID()'), 'each booking request needs its own idempotency token');
+assert.ok(platform.includes('db.rpc(\'nexora_whatsapp_token_key\')'), 'Edge Function must retrieve the encryption key from Vault');
 
 assert.ok(payments.includes("body.event==='payment_link.paid'"), 'existing Razorpay webhook must process WhatsApp payment links');
 assert.ok(payments.includes('studioflow_settle_payment_link'), 'payment link webhook must settle the canonical deposit');
@@ -66,6 +73,7 @@ assert.ok(ownerUi.includes("supabase.functions.invoke(platformEndpoint"), 'owner
 assert.ok(ownerUi.includes("action: 'start_signup'"), 'owner UI must begin Meta connect');
 assert.ok(ownerUi.includes("action: 'complete_signup'"), 'owner UI must finish Meta connect');
 assert.ok(ownerUi.includes('Connect salon WhatsApp'), 'owner UI connection button missing');
+assert.ok(ownerUi.includes('Connection setup checks'), 'owner must see missing setup configuration statuses');
 assert.ok(ownerWorkspace.includes('SalonWhatsAppIntegration'), 'owner workspace panel is not wired');
 assert.ok(ownerWorkspace.includes('active === 34'), 'owner workspace navigation route missing');
 assert.ok(ownerNavigation.includes("id:34,label:'WhatsApp Booking & Payments'"), 'owner business-tools navigation item missing');
