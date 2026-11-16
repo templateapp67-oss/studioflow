@@ -24,6 +24,36 @@ type Metrics = {
   pendingPayments: number;
   whatsappAdvanceCollectedINR: number;
 };
+type ConversationPreview = {
+  customer_wa_id: string;
+  customer_name: string | null;
+  conversation_status: string;
+  optedOut: boolean;
+  needsReply: boolean;
+  updated_at: string;
+  lastMessage: {
+    direction: string;
+    metadata: Record<string, unknown>;
+    created_at: string;
+  } | null;
+};
+type ChatMessage = {
+  direction: string;
+  message_kind: string;
+  delivery_status: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+};
+type ConversationThread = {
+  conversation: {
+    customer_wa_id: string;
+    customer_name: string | null;
+    conversation_status: string;
+    optedOut: boolean;
+    needsReply: boolean;
+  };
+  messages: ChatMessage[];
+};
 type PanelStatus = {
   configured: boolean;
   connection: Connection | null;
@@ -172,17 +202,29 @@ export const NexoraWhatsAppPanel: React.FC<{ onBookingsChanged?: () => Promise<v
   const [status, setStatus] = useState<PanelStatus | null>(null);
   const [config, setConfig] = useState<SignupConfig | null>(null);
   const [notice, setNotice] = useState<{ kind: 'success' | 'error' | 'info'; text: string } | null>(null);
+  const [conversations, setConversations] = useState<ConversationPreview[]>([]);
+  const [activeWaId, setActiveWaId] = useState('');
+  const [thread, setThread] = useState<ConversationThread | null>(null);
+  const [threadLoading, setThreadLoading] = useState(false);
+  const [replyText, setReplyText] = useState('');
+  const [replyBusy, setReplyBusy] = useState(false);
   const mounted = useRef(true);
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    const [configResult, statusResult] = await Promise.all([
+    const [configResult, statusResult, inboxResult] = await Promise.all([
       supabase.functions.invoke('nexora-whatsapp-connect', { body: { action: 'config' } }),
       supabase.functions.invoke('nexora-whatsapp-connect', { body: { action: 'status' } }),
+      supabase.functions.invoke('nexora-whatsapp-connect', { body: { action: 'inbox' } }),
     ]);
     if (!mounted.current) return;
     if (configResult.data) setConfig(configResult.data as SignupConfig);
     else setConfig({ configured: false, appId: null, configId: null, graphVersion: 'v27.0' });
+    if (inboxResult.data && Array.isArray(inboxResult.data.conversations)) {
+      setConversations(inboxResult.data.conversations as ConversationPreview[]);
+    } else if (inboxResult.error) {
+      setNotice({ kind: 'error', text: inboxResult.error.message || 'WhatsApp inbox is not available yet. Deploy the inbox functions and try again.' });
+    }
     if (statusResult.data) {
       const result = statusResult.data as Partial<PanelStatus>;
       setStatus({
@@ -202,6 +244,48 @@ export const NexoraWhatsAppPanel: React.FC<{ onBookingsChanged?: () => Promise<v
     void refresh();
     return () => { mounted.current = false; };
   }, [refresh]);
+
+  const openConversation = async (customerWaId: string) => {
+    setActiveWaId(customerWaId);
+    setThreadLoading(true);
+    setThread(null);
+    try {
+      const result = await supabase.functions.invoke('nexora-whatsapp-connect', {
+        body: { action: 'conversation', customerWaId },
+      });
+      if (result.error || !result.data?.conversation) {
+        throw new Error(result.data?.error || result.error?.message || 'Could not load this conversation.');
+      }
+      setThread(result.data as ConversationThread);
+    } catch (error) {
+      setNotice({ kind: 'error', text: error instanceof Error ? error.message : 'Could not load this conversation.' });
+    } finally {
+      setThreadLoading(false);
+    }
+  };
+
+  const sendReply = async () => {
+    const message = replyText.trim();
+    if (!activeWaId || !message || thread?.conversation.optedOut) return;
+    setReplyBusy(true);
+    setNotice(null);
+    try {
+      const result = await supabase.functions.invoke('nexora-whatsapp-connect', {
+        body: { action: 'sendReply', customerWaId: activeWaId, message },
+      });
+      if (result.error || !result.data?.sent) {
+        throw new Error(result.data?.error || result.error?.message || 'WhatsApp reply could not be sent.');
+      }
+      setReplyText('');
+      await openConversation(activeWaId);
+      await refresh();
+      setNotice({ kind: 'success', text: 'Reply sent from your salon WhatsApp number.' });
+    } catch (error) {
+      setNotice({ kind: 'error', text: error instanceof Error ? error.message : 'WhatsApp reply could not be sent.' });
+    } finally {
+      setReplyBusy(false);
+    }
+  };
 
   const connect = async () => {
     setBusy(true);
@@ -319,6 +403,101 @@ export const NexoraWhatsAppPanel: React.FC<{ onBookingsChanged?: () => Promise<v
           <div className="rounded-xl bg-slate-50 p-3"><small className="block text-slate-500">Payments pending</small><strong>{metrics.pendingPayments}</strong></div>
         </div>
         <button type="button" className="secondary-action mt-4" disabled={loading || busy} onClick={() => void refresh()}>Refresh WhatsApp activity</button>
+      </section>
+
+      <section className="workspace-card">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="eyebrow">Salon customer inbox</p>
+            <h2>WhatsApp conversations</h2>
+            <p className="muted mt-1">Read customer messages and reply using your connected salon number.</p>
+          </div>
+          <button type="button" className="secondary-action" disabled={loading || busy} onClick={() => void refresh()}>
+            Refresh inbox
+          </button>
+        </div>
+        <div className="mt-4 grid min-h-[24rem] gap-4 lg:grid-cols-[minmax(15rem,0.8fr)_minmax(0,1.2fr)]">
+          <div className="max-h-[34rem] overflow-y-auto rounded-xl border border-slate-200">
+            {conversations.length === 0 ? (
+              <div className="p-5 text-center">
+                <strong className="block text-slate-900">No WhatsApp conversations yet</strong>
+                <p className="muted mt-1 text-sm">Once a customer messages your connected salon number, the chat appears here.</p>
+              </div>
+            ) : conversations.map((item) => (
+              <button
+                key={item.customer_wa_id}
+                type="button"
+                onClick={() => void openConversation(item.customer_wa_id)}
+                className={`block w-full border-b border-slate-100 p-3 text-left transition-colors ${activeWaId === item.customer_wa_id ? 'bg-pink-50' : 'bg-white hover:bg-slate-50'}`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <strong className="truncate text-sm text-slate-900">{item.customer_name || item.customer_wa_id}</strong>
+                  {item.needsReply && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">Needs reply</span>}
+                  {item.optedOut && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">STOP</span>}
+                </div>
+                <p className="mt-0.5 text-xs text-slate-500">{item.customer_wa_id}</p>
+                <p className="mt-1 truncate text-xs text-slate-600">
+                  {String(item.lastMessage?.metadata?.text || item.lastMessage?.metadata?.message || item.conversation_status.replaceAll('_', ' '))}
+                </p>
+                <p className="mt-1 text-[10px] text-slate-400">{new Date(item.updated_at).toLocaleString('en-IN')}</p>
+              </button>
+            ))}
+          </div>
+          <div className="flex min-h-[24rem] flex-col rounded-xl border border-slate-200 bg-slate-50">
+            {!activeWaId ? (
+              <div className="m-auto max-w-sm p-5 text-center">
+                <strong className="block text-slate-900">Open a conversation</strong>
+                <p className="muted mt-1 text-sm">Choose a customer from the left to read messages and reply.</p>
+              </div>
+            ) : threadLoading ? (
+              <p className="m-auto text-sm text-slate-500">Loading conversation…</p>
+            ) : thread ? (
+              <>
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-white p-3">
+                  <div>
+                    <strong className="block text-sm text-slate-900">{thread.conversation.customer_name || thread.conversation.customer_wa_id}</strong>
+                    <small className="text-slate-500">{thread.conversation.customer_wa_id}</small>
+                  </div>
+                  <span className={thread.conversation.needsReply ? 'status pending' : 'status confirmed'}>
+                    {thread.conversation.needsReply ? 'Needs reply' : thread.conversation.conversation_status.replaceAll('_', ' ')}
+                  </span>
+                </div>
+                <div className="flex-1 space-y-2 overflow-y-auto p-3">
+                  {thread.messages.length === 0 ? (
+                    <p className="text-center text-sm text-slate-500">No messages in this conversation yet.</p>
+                  ) : thread.messages.map((message, index) => (
+                    <div key={`${message.created_at}-${index}`} className={message.direction === 'outbound' ? 'flex justify-end' : 'flex justify-start'}>
+                      <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm shadow-sm ${message.direction === 'outbound' ? 'bg-emerald-100 text-slate-900' : 'bg-white text-slate-900'}`}>
+                        <p className="whitespace-pre-wrap break-words">{String(message.metadata?.text || message.metadata?.message || message.message_kind.replaceAll('_', ' '))}</p>
+                        <p className="mt-1 text-right text-[10px] text-slate-500">{new Date(message.created_at).toLocaleString('en-IN')} · {message.delivery_status}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {thread.conversation.optedOut ? (
+                  <div className="border-t border-slate-200 bg-white p-3 text-sm text-slate-600">
+                    Customer opted out. They must send START to this salon number before further messages can be sent.
+                  </div>
+                ) : (
+                  <form className="flex gap-2 border-t border-slate-200 bg-white p-3" onSubmit={(event) => { event.preventDefault(); void sendReply(); }}>
+                    <input
+                      className="min-w-0 flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                      placeholder="Write a reply…"
+                      value={replyText}
+                      onChange={(event) => setReplyText(event.target.value)}
+                      maxLength={3500}
+                    />
+                    <button type="submit" className="primary-action" disabled={replyBusy || !replyText.trim()}>
+                      {replyBusy ? 'Sending…' : 'Send'}
+                    </button>
+                  </form>
+                )}
+              </>
+            ) : (
+              <p className="m-auto p-4 text-sm text-slate-500">Conversation could not be loaded. Refresh and try again.</p>
+            )}
+          </div>
+        </div>
       </section>
 
       <section className="workspace-card">
