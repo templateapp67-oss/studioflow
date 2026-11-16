@@ -374,7 +374,7 @@ async function handleInbound(db: any, connection: Json, message: Json, contact: 
     await saveConversation(db, conversation, flow, 'closed');
     await db.from('salon_whatsapp_webhook_events').update({
       processing_status: 'processed', processed_at: new Date().toISOString(),
-    }).eq('id', event.data.id);
+    }).eq('id', eventRow.id);
     return;
   }
   if (!website) {
@@ -637,7 +637,7 @@ async function handleInbound(db: any, connection: Json, message: Json, contact: 
   await showMenu();
   await db.from('salon_whatsapp_webhook_events').update({
     processing_status: 'processed', processed_at: new Date().toISOString(),
-  }).eq('id', event.data.id);
+  }).eq('id', eventRow.id);
 }
 async function updateStatuses(db: any, connection: Json, statuses: Json[]) {
   for (const status of statuses) {
