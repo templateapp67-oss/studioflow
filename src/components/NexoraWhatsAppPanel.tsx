@@ -127,10 +127,12 @@ async function runEmbeddedSignup(config: SignupConfig, state: string) {
   const FB = await loadFacebookSdk();
   FB.init({ appId: config.appId, cookie: true, xfbml: false, version: config.graphVersion });
 
-  return new Promise<{ code: string; wabaId: string; phoneNumberId: string }>((resolve, reject) => {
+  return new Promise<{ code: string; wabaId: string; phoneNumberId: string; isOnBizApp: boolean; primaryWaacIds: string[] }>((resolve, reject) => {
     let code = '';
     let wabaId = '';
     let phoneNumberId = '';
+    let isOnBizApp = false;
+    let primaryWaacIds: string[] = [];
     let finished = false;
     let timer: number | undefined;
 
@@ -142,7 +144,7 @@ async function runEmbeddedSignup(config: SignupConfig, state: string) {
       if (finished || !code || !wabaId || !phoneNumberId) return;
       finished = true;
       cleanup();
-      resolve({ code, wabaId, phoneNumberId });
+      resolve({ code, wabaId, phoneNumberId, isOnBizApp, primaryWaacIds });
     };
     const fail = (message: string) => {
       if (finished) return;
@@ -163,8 +165,15 @@ async function runEmbeddedSignup(config: SignupConfig, state: string) {
       const eventName = String(data.event || '').toUpperCase();
       const payload = data.data && typeof data.data === 'object' ? data.data as Record<string, unknown> : {};
       if (eventName === 'FINISH' || eventName === 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING') {
-        wabaId = typeof payload.waba_id === 'string' ? payload.waba_id : '';
+        const accountIds = Array.isArray(payload.messaging_account_ids)
+          ? payload.messaging_account_ids.filter((value): value is string => typeof value === 'string')
+          : [];
+        wabaId = typeof payload.waba_id === 'string' ? payload.waba_id : accountIds[0] || '';
         phoneNumberId = typeof payload.phone_number_id === 'string' ? payload.phone_number_id : '';
+        isOnBizApp = payload.is_on_biz_app === true;
+        primaryWaacIds = Array.isArray(payload.primary_waac_ids)
+          ? payload.primary_waac_ids.filter((value): value is string => typeof value === 'string')
+          : [];
         finish();
       } else if (eventName === 'CANCEL') {
         fail('WhatsApp setup was cancelled in Meta. Your existing salon settings are unchanged.');
@@ -191,7 +200,7 @@ async function runEmbeddedSignup(config: SignupConfig, state: string) {
       auth_type: 'rerequest',
       response_type: 'code',
       override_default_response_type: true,
-      extras: { version: 4, sessionInfoVersion: '4' },
+      extras: { version: 'v5' },
     });
   }).then((result) => ({ ...result, state }));
 }
@@ -301,7 +310,15 @@ export const NexoraWhatsAppPanel: React.FC<{ onBookingsChanged?: () => Promise<v
       };
       const result = await runEmbeddedSignup(activeConfig, begin.data.state);
       const completed = await supabase.functions.invoke('nexora-whatsapp-connect', {
-        body: { action: 'complete', state: result.state, code: result.code, wabaId: result.wabaId, phoneNumberId: result.phoneNumberId },
+        body: {
+          action: 'complete',
+          state: result.state,
+          code: result.code,
+          wabaId: result.wabaId,
+          phoneNumberId: result.phoneNumberId,
+          isOnBizApp: result.isOnBizApp,
+          primaryWaacIds: result.primaryWaacIds,
+        },
       });
       if (completed.error || !completed.data?.ok) throw new Error(completed.data?.error || completed.error?.message || 'WhatsApp connection could not be saved.');
       setNotice({ kind: 'success', text: `WhatsApp ${completed.data.connection?.display_phone_number || ''} is connected to this salon.` });
@@ -372,14 +389,14 @@ export const NexoraWhatsAppPanel: React.FC<{ onBookingsChanged?: () => Promise<v
         ) : (
           <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <h3 className="font-bold text-slate-900">Connect your own number</h3>
-            <p className="muted mt-1">Meta will ask you to choose your Business Portfolio, WhatsApp Business Account and phone number. NEXORA will not use its support number for your customers.</p>
+            <p className="muted mt-1">Meta will ask you to connect your WhatsApp Business number. The latest signup flow can keep the WhatsApp Business app working alongside the salon inbox. NEXORA will not use its support number for your customers.</p>
             <button type="button" className="primary-action mt-4" disabled={busy || !config?.configured} onClick={connect}>
               {busy ? 'Connecting…' : 'Connect with Meta'}
             </button>
             {!config?.configured && (
               <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
                 <strong>Meta setup is not configured yet.</strong>
-                <p className="mt-1">The server needs your Meta App ID, App Secret, Embedded Signup v4 Configuration ID, webhook verify token and a 32-byte encryption key in Supabase Function Secrets. These are platform-level settings, not a salon owner’s WhatsApp password.</p>
+                <p className="mt-1">The server needs your Meta App ID, App Secret, Embedded Signup v5 Configuration ID, webhook verify token and a 32-byte encryption key in Supabase settings. These are platform-level settings, not a salon owner’s WhatsApp password.</p>
               </div>
             )}
           </div>
