@@ -242,7 +242,7 @@ Deno.serve(async(req:Request)=>{
           name:String(booking.payload?.clientName||'Salon customer').slice(0,100),
           contact:contact ? '+'+contact.slice(-15) : undefined
         },
-        notify:{sms:false,email:false,whatsapp:false},
+        notify:{sms:false,email:false},
         reminder_enable:false,
         notes:{
           studioflow_booking:String(booking.id),
