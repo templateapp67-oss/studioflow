@@ -117,6 +117,7 @@ Deno.serve(async(req:Request)=>{
               if(paymentId){
                 const payment=await provider('payments/'+encodeURIComponent(paymentId));
                 if(payment.id===paymentId&&payment.status==='captured'&&payment.currency==='INR'&&
+                  payment.order_id===liveLink.order_id&&liveLink.order_id===known.order_id&&
                   Number(payment.amount)===Number(known.amount_paise)){
                   const settled=await service.rpc('studioflow_settle_payment',{
                     p_order:known.order_id,p_payment:paymentId,p_amount:Number(payment.amount)
@@ -250,7 +251,7 @@ Deno.serve(async(req:Request)=>{
           booking_source:'whatsapp'
         }
       })});
-      if(!created?.id||!created?.short_url||Number(created.amount)!==amount){
+      if(!created?.id||!created?.order_id||!created?.short_url||Number(created.amount)!==amount){
         return respond({error:'Razorpay did not return a valid payment link for this booking.'},502);
       }
       const {data:freshBooking}=await service.from('studioflow_bookings')
@@ -260,38 +261,28 @@ Deno.serve(async(req:Request)=>{
         try{await provider('payment_links/'+encodeURIComponent(created.id)+'/cancel',{method:'POST',body:'{}'});}catch{/* best effort */}
         return respond({error:'The appointment hold expired before the payment link could be saved.'},409);
       }
-      if(existingOrder){
-        const {error:updateError}=await service.from('studioflow_payment_orders').update({
-          order_id:created.id,
-          amount_paise:amount,
-          payment_link_id:created.id,
-          payment_link_url:created.short_url,
-          payment_link_status:created.status||'created'
-        }).eq('booking_id',booking.id).eq('status','created');
-        if(updateError){
-          try{await provider('payment_links/'+encodeURIComponent(created.id)+'/cancel',{method:'POST',body:'{}'});}catch{/* best effort */}
-          throw new Error('Could not attach the Razorpay payment link to this booking.');
-        }
-      }else{
-        const registered=await service.rpc('studioflow_register_payment',{
-          p_booking:booking.id,p_order:created.id,p_amount:amount
-        });
-        if(registered.error){
-          try{await provider('payment_links/'+encodeURIComponent(created.id)+'/cancel',{method:'POST',body:'{}'});}catch{/* best effort */}
-          throw new Error('Could not register the payment against this booking.');
-        }
-        const {error:updateError}=await service.from('studioflow_payment_orders').update({
-          payment_link_id:created.id,
-          payment_link_url:created.short_url,
-          payment_link_status:created.status||'created'
-        }).eq('booking_id',booking.id);
-        if(updateError)throw new Error('Razorpay created the link but NEXORA could not save it. Contact support before paying.');
+      const registered=await service.rpc('studioflow_whatsapp_register_payment_link',{
+        p_owner:booking.owner_id,
+        p_booking:booking.id,
+        p_order:created.order_id,
+        p_amount:amount,
+        p_payment_link_id:created.id,
+        p_payment_link_url:created.short_url,
+        p_expire_by:Number(created.expire_by||0)
+      });
+      if(registered.error){
+        try{await provider('payment_links/'+encodeURIComponent(created.id)+'/cancel',{method:'POST',body:'{}'});}catch{/* best effort */}
+        throw new Error('Could not securely register the Razorpay payment link against this salon booking.');
+      }
+      if(registered.data?.already_paid){
+        try{await provider('payment_links/'+encodeURIComponent(created.id)+'/cancel',{method:'POST',body:'{}'});}catch{/* best effort */}
+        return respond({paid:true,amountPaise:registered.data.amount_paise||amount,paymentId:registered.data.payment_id||null});
       }
       return respond({
         paymentLinkId:created.id,
         paymentLinkUrl:created.short_url,
         amountPaise:amount,
-        orderId:created.id,
+        orderId:created.order_id,
         reused:false
       },201);
     }
