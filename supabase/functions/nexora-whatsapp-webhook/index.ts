@@ -214,6 +214,24 @@ async function ensureWhatsAppCustomer(db: any, phoneDigits: string, customerName
   return customerId;
 }
 
+async function cancelWhatsAppPaymentLink(bookingId: string) {
+  const base = env('SUPABASE_URL');
+  const serviceKey = env('SUPABASE_SERVICE_ROLE_KEY');
+  if (!base || !serviceKey) return { ok: false, reason: 'payment_service_not_configured' };
+  const response = await fetch(base + '/functions/v1/studioflow-payments', {
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer ' + serviceKey,
+      apikey: serviceKey,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ action: 'whatsappCancelPaymentLink', bookingId }),
+    signal: AbortSignal.timeout(15000),
+  });
+  const result = await response.json().catch(() => ({}));
+  return response.ok ? { ok: true, ...result } : { ok: false, reason: safeText(result.error, 300) || 'payment_link_cancel_failed' };
+}
+
 async function processBooking(db: any, connection: Json, conversation: Json, flow: Json, website: Json, sender: string) {
   let customerId: string;
   try {
@@ -370,6 +388,28 @@ async function handleInbound(db: any, connection: Json, message: Json, contact: 
     return;
   }
   if (upper === 'NO' || upper === 'CANCEL') {
+    if (flow.step === 'payment_pending' && typeof flow.bookingId === 'string') {
+      const cancelled = await db.rpc('nexora_whatsapp_cancel_pending', {
+        p_owner: connection.owner_id,
+        p_booking: flow.bookingId,
+        p_phone: '+' + sender,
+      });
+      if (cancelled.error || cancelled.data?.cancelled !== true) {
+        await sendSalonText(db, connection, connection.owner_id, sender,
+          'I could not cancel this booking request: ' +
+          (safeText(cancelled.error?.message, 220) || 'Please contact the salon team.'),
+          'conversation', flow.bookingId);
+        return;
+      }
+      const link = await cancelWhatsAppPaymentLink(flow.bookingId);
+      await saveConversation(db, conversation, { step: 'menu' }, 'active');
+      await sendSalonText(db, connection, connection.owner_id, sender,
+        link.ok
+          ? 'Your unpaid appointment request has been cancelled and the time has been released. Reply MENU to start again.'
+          : 'Your appointment request has been cancelled and the time has been released. The payment link cancellation is still being checked; please do not make another payment. Reply 3 if you need help.',
+        'conversation', flow.bookingId);
+      return;
+    }
     await saveConversation(db, conversation, { step: 'menu' });
     await sendSalonText(db, connection, connection.owner_id, sender,
       'Okay, I have not confirmed this appointment. Reply MENU to start again.', 'conversation');
