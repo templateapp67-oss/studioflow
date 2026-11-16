@@ -196,6 +196,28 @@ function Application() {
   clearOAuthIntent();
   location.replace(pricingRedirectTarget);
  },[authReady,oauthIntentPending,pricingRedirectTarget]);
+ // Login hote hi home page par redirect karo: Google OAuth ke baad user
+ // /login par wapas aata hai (callback processing ke liye). Fresh callback
+ // (code/access_token URL me) + session milte hi home `/` par bhej do.
+ // Already-logged-in owner jo plain /login se Workspace kholta hai, uspar
+ // authCallbackEntry false hota hai, isliye woh Workspace me hi rehta hai.
+ useEffect(()=>{
+  if(!authReady||!session||!isLoginRoute||!authCallbackEntry)return;
+  if(recovery||customer||customerApp||slug||inviteEntry||ownerSlug||createTemplate)return;
+  if(new URLSearchParams(location.search).has('panel'))return;
+  if(pricingRedirectTarget)return;
+  if(googleOAuthStatus!=='idle')return;
+  const intent=readOAuthIntent();
+  clearOAuthIntent();
+  let dest='/';
+  if(intent?.path){
+   try{
+    const p=new URL(intent.path,'https://nexora.invalid').pathname;
+    if(!isAuthEntryPath(p))dest=intent.path;
+   }catch{dest='/';}
+  }
+  location.replace(dest);
+ },[authReady,session?.user?.id,isLoginRoute,authCallbackEntry,recovery,customer,customerApp,slug,inviteEntry,ownerSlug,createTemplate,pricingRedirectTarget,googleOAuthStatus]);
  useEffect(()=>{
   if(!authReady||oauthIntentPending)return;
   if(!session){setGoogleOAuthStatus('idle');setGoogleOAuthMessage('');return;}

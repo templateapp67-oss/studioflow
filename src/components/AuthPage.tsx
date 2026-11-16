@@ -89,6 +89,10 @@ export function AuthPage({ compact = false, recovery = false, onRecovered, custo
       if (result.error) throw new Error(result.error.message);
       if(invitationMode&&result.data.session){clearCustomerReferral();location.assign('/?app=1&tab=rewards');return;}
       if(result.data.session&&pricingReturnPath){location.assign(pricingReturnPath);return;}
+      // Login hote hi home page par redirect karo (standard owner login: `/`).
+      // Compact modal logins parent dwara handle hote hain; owner/panel journeys
+      // App.tsx Workspace me in-place khulti hain taaki unke params preserve rahein.
+      if (result.data.session && !compact && !loginParams.has('owner') && !loginParams.has('panel')) { location.assign(redirectPath); return; }
       if (signup && !result.data.session) { setConfirmationPending(true); setMessage('Check your email to confirm your account, then sign in. If you already have an account, use Sign in or Forgot password.'); }
     } catch (error) { setMessage(error instanceof Error ? error.message : (typeof (error as { message?: unknown })?.message === 'string' && (error as { message: string }).message) || 'Could not complete this request. Please try again.'); }
     finally { setBusy(false); }
