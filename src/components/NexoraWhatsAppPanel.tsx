@@ -127,10 +127,12 @@ async function runEmbeddedSignup(config: SignupConfig, state: string) {
   const FB = await loadFacebookSdk();
   FB.init({ appId: config.appId, cookie: true, xfbml: false, version: config.graphVersion });
 
-  return new Promise<{ code: string; wabaId: string; phoneNumberId: string; isOnBizApp: boolean; primaryWaacIds: string[] }>((resolve, reject) => {
+  return new Promise<{ code: string; wabaId: string; phoneNumberId: string; businessId: string; messagingAccountIds: string[]; isOnBizApp: boolean; primaryWaacIds: string[] }>((resolve, reject) => {
     let code = '';
     let wabaId = '';
     let phoneNumberId = '';
+    let businessId = '';
+    let messagingAccountIds: string[] = [];
     let isOnBizApp = false;
     let primaryWaacIds: string[] = [];
     let finished = false;
@@ -144,7 +146,7 @@ async function runEmbeddedSignup(config: SignupConfig, state: string) {
       if (finished || !code || !wabaId || !phoneNumberId) return;
       finished = true;
       cleanup();
-      resolve({ code, wabaId, phoneNumberId, isOnBizApp, primaryWaacIds });
+      resolve({ code, wabaId, phoneNumberId, businessId, messagingAccountIds, isOnBizApp, primaryWaacIds });
     };
     const fail = (message: string) => {
       if (finished) return;
@@ -165,11 +167,12 @@ async function runEmbeddedSignup(config: SignupConfig, state: string) {
       const eventName = String(data.event || '').toUpperCase();
       const payload = data.data && typeof data.data === 'object' ? data.data as Record<string, unknown> : {};
       if (eventName === 'FINISH' || eventName === 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING') {
-        const accountIds = Array.isArray(payload.messaging_account_ids)
+        messagingAccountIds = Array.isArray(payload.messaging_account_ids)
           ? payload.messaging_account_ids.filter((value): value is string => typeof value === 'string')
           : [];
-        wabaId = typeof payload.waba_id === 'string' ? payload.waba_id : accountIds[0] || '';
+        wabaId = typeof payload.waba_id === 'string' ? payload.waba_id : messagingAccountIds[0] || '';
         phoneNumberId = typeof payload.phone_number_id === 'string' ? payload.phone_number_id : '';
+        businessId = typeof payload.business_id === 'string' ? payload.business_id : '';
         isOnBizApp = payload.is_on_biz_app === true;
         primaryWaacIds = Array.isArray(payload.primary_waac_ids)
           ? payload.primary_waac_ids.filter((value): value is string => typeof value === 'string')
@@ -316,6 +319,8 @@ export const NexoraWhatsAppPanel: React.FC<{ onBookingsChanged?: () => Promise<v
           code: result.code,
           wabaId: result.wabaId,
           phoneNumberId: result.phoneNumberId,
+          businessId: result.businessId,
+          messagingAccountIds: result.messagingAccountIds,
           isOnBizApp: result.isOnBizApp,
           primaryWaacIds: result.primaryWaacIds,
         },
@@ -382,6 +387,7 @@ export const NexoraWhatsAppPanel: React.FC<{ onBookingsChanged?: () => Promise<v
                 <p className="mt-1 text-xl font-bold text-slate-900">{connection?.verified_name || 'Salon WhatsApp'}</p>
                 <p className="text-sm text-slate-700">{connection?.display_phone_number}</p>
                 <p className="mt-1 text-xs text-slate-500">{connection?.webhook_subscribed ? 'Meta webhook subscribed' : 'Webhook subscription needs attention'}</p>
+                <p className="mt-1 text-xs text-slate-600">{connection?.is_on_biz_app ? 'WhatsApp Business app + Cloud API coexistence is enabled.' : 'Cloud API sender is active.'}</p>
               </div>
               <button type="button" className="secondary-action" disabled={busy} onClick={disconnect}>{busy ? 'Please wait…' : 'Disconnect number'}</button>
             </div>
