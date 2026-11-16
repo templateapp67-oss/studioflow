@@ -218,7 +218,7 @@ Deno.serve(async (req: Request) => {
 
     if (action === 'conversation') {
       const customerWaId = typeof body.customerWaId === 'string' ? body.customerWaId.replace(/[^0-9]/g, '') : '';
-      if (!/^\\d{10,15}$/.test(customerWaId)) return respond({ error: 'Valid customer WhatsApp number required.' }, 400);
+      if (!/^\d{10,15}$/.test(customerWaId)) return respond({ error: 'Valid customer WhatsApp number required.' }, 400);
       const [conversationResult, messagesResult] = await Promise.all([
         admin.from('salon_whatsapp_conversations')
           .select('customer_wa_id,customer_name,conversation_status,flow_state,last_inbound_at,last_outbound_at,updated_at')
@@ -244,7 +244,7 @@ Deno.serve(async (req: Request) => {
     if (action === 'sendReply') {
       const customerWaId = typeof body.customerWaId === 'string' ? body.customerWaId.replace(/[^0-9]/g, '') : '';
       const message = typeof body.message === 'string' ? body.message.trim().slice(0, 3500) : '';
-      if (!/^\\d{10,15}$/.test(customerWaId) || message.length < 1) {
+      if (!/^\d{10,15}$/.test(customerWaId) || message.length < 1) {
         return respond({ error: 'Choose a conversation and enter a message.' }, 400);
       }
       const sent = await fetch(supabaseUrl + '/functions/v1/nexora-whatsapp-webhook', {
