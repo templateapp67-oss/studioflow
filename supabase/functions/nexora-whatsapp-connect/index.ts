@@ -102,11 +102,21 @@ Deno.serve(async (req: Request) => {
     const meta = credentials();
 
     if (action === 'config') {
+      const [appSecretResult, encryptionKeyResult, verifyTokenResult] = await Promise.all([
+        admin.rpc('nexora_whatsapp_meta_secret', { p_secret_name: 'nexora_whatsapp_meta_app_secret' }),
+        admin.rpc('nexora_whatsapp_token_key'),
+        admin.rpc('nexora_whatsapp_meta_secret', { p_secret_name: 'nexora_whatsapp_webhook_verify_token' }),
+      ]);
+      const secretsConfigured =
+        typeof appSecretResult.data === 'string' && Boolean(appSecretResult.data) &&
+        typeof encryptionKeyResult.data === 'string' && Boolean(encryptionKeyResult.data) &&
+        typeof verifyTokenResult.data === 'string' && Boolean(verifyTokenResult.data);
       return json({
-        configured: meta.configured,
-        appId: meta.configured ? meta.appId : null,
-        configId: meta.configured ? meta.configId : null,
+        configured: meta.configured && secretsConfigured,
+        appId: meta.configured && secretsConfigured ? meta.appId : null,
+        configId: meta.configured && secretsConfigured ? meta.configId : null,
         graphVersion: GRAPH_VERSION,
+        setupRequired: !(meta.configured && secretsConfigured),
       });
     }
 
