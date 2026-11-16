@@ -300,6 +300,10 @@ Deno.serve(async (req: Request) => {
       const state = typeof body.state === 'string' ? body.state : '';
       const wabaId = body.wabaId;
       const phoneNumberId = body.phoneNumberId;
+      const isOnBizApp = body.isOnBizApp === true;
+      const primaryWaacIds = Array.isArray(body.primaryWaacIds)
+        ? body.primaryWaacIds.filter((value: unknown): value is string => isMetaId(value)).slice(0, 20)
+        : [];
       if (!code || code.length > 4096 || !state || state.length > 256 || !isMetaId(wabaId) || !isMetaId(phoneNumberId)) {
         return respond({ error: 'Meta did not return a valid WhatsApp account, phone number and login code.' }, 400);
       }
@@ -368,11 +372,15 @@ Deno.serve(async (req: Request) => {
         connected_by: ownerId,
         connected_at: new Date().toISOString(),
         disconnected_at: null,
-        connection_mode: 'standard',
-        is_on_biz_app: false,
+        connection_mode: isOnBizApp ? 'coexistence' : 'standard',
+        is_on_biz_app: isOnBizApp,
+        primary_waac_ids: primaryWaacIds,
         platform_type: 'cloud_api',
         provider_metadata: {
           graph_version: GRAPH_VERSION,
+          embedded_signup_version: 'v5',
+          messaging_account_id: wabaId,
+          is_on_biz_app: isOnBizApp,
           token_type: typeof tokenResponse.token_type === 'string' ? tokenResponse.token_type : 'bearer',
           expires_at: expiresAt,
           waba_id: wabaId,
@@ -390,6 +398,8 @@ Deno.serve(async (req: Request) => {
           display_phone_number: phone.display_phone_number,
           verified_name: typeof phone.verified_name === 'string' ? phone.verified_name : null,
           webhook_subscribed: true,
+          connection_mode: isOnBizApp ? 'coexistence' : 'standard',
+          is_on_biz_app: isOnBizApp,
           connected_at: new Date().toISOString(),
         },
       });
