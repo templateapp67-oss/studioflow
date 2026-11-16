@@ -123,7 +123,7 @@ function loadFacebookSdk() {
 }
 
 async function runEmbeddedSignup(config: SignupConfig, state: string) {
-  if (!config.appId || !config.configId) throw new Error('Meta Embedded Signup v4 is not configured.');
+  if (!config.appId || !config.configId) throw new Error('Meta Embedded Signup v5 is not configured.');
   const FB = await loadFacebookSdk();
   FB.init({ appId: config.appId, cookie: true, xfbml: false, version: config.graphVersion });
 
