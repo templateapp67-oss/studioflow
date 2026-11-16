@@ -30,7 +30,8 @@ assert.match(panel, /messaging_account_ids/);
 assert.match(panel, /primary_waac_ids/);
 assert.match(connect, /const SIGNUP_VERSION = 'v5'/);
 assert.match(connect, /embedded_signup_version: 'v5'/);
-assert.match(connect, /connection_mode: isOnBizApp \? 'coexistence' : 'standard'/);
+assert.match(connect, /const connectionMode = isOnBizApp \? 'coexistence' : 'standard'/);
+assert.match(connect, /connection_mode: connectionMode/);
 assert.match(panel, /WhatsApp bookings/);
 
 assert.match(connect, /auth\.getUser\(bearer\)/);
