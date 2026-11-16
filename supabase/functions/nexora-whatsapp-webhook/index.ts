@@ -677,6 +677,24 @@ async function notifyPayment(db: any, bookingId: string, paymentId: string) {
   if (!connection) return { sent: false, reason: 'salon_sender_not_connected' };
   const recipient = digits(booking.payload?.clientPhone);
   if (!recipient) return { sent: false, reason: 'customer_phone_missing' };
+  const conversation = await db.from('salon_whatsapp_conversations')
+    .select('flow_state')
+    .eq('owner_id', booking.owner_id)
+    .eq('customer_wa_id', recipient)
+    .maybeSingle();
+  if (conversation.data?.flow_state?.optOut === true) {
+    await logMessage(db, {
+      owner_id: booking.owner_id,
+      booking_id: booking.id,
+      direction: 'outbound',
+      recipient_wa_id: recipient,
+      message_kind: 'payment_success',
+      delivery_status: 'failed',
+      error_code: 'customer_opted_out',
+      metadata: { reason: 'Payment was recorded, but the customer opted out of WhatsApp messages.' },
+    });
+    return { sent: false, reason: 'customer_opted_out' };
+  }
   const amount = Number(booking.payload?.amountPaid || 0);
   const website = await getWebsite(db, booking.owner_id);
   const salonName = safeText(website?.content?.profile?.businessName, 100) || 'our salon';
