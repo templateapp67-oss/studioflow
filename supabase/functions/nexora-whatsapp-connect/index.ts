@@ -4,7 +4,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.117.3';
 
 const cors = {
-  'Access-Control-Allow-Origin': 'https://nexorasalon.online',
+  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Vary': 'Origin',
@@ -91,10 +91,6 @@ Deno.serve(async (req: Request) => {
     if (!bearer) return json({ error: 'Sign in to your salon owner account first.' }, 401);
 
     const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
-    const userClient = createClient(supabaseUrl, env('SUPABASE_ANON_KEY') || serviceKey, {
-      global: { headers: { Authorization: `Bearer ${bearer}` } },
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
     const { data: authData, error: authError } = await admin.auth.getUser(bearer);
     if (authError || !authData.user || authData.user.is_anonymous) return json({ error: 'Your owner login has expired. Sign in again.' }, 401);
     const ownerId = authData.user.id;
