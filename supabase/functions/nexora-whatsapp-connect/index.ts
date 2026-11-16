@@ -298,8 +298,12 @@ Deno.serve(async (req: Request) => {
       if (!meta.configured) return respond({ error: 'Meta WhatsApp setup is not configured.' }, 503);
       const code = typeof body.code === 'string' ? body.code.trim() : '';
       const state = typeof body.state === 'string' ? body.state : '';
-      const wabaId = body.wabaId;
+      const messagingAccountIds = Array.isArray(body.messagingAccountIds)
+        ? body.messagingAccountIds.filter((value: unknown): value is string => isMetaId(value)).slice(0, 20)
+        : [];
+      const wabaId = isMetaId(body.wabaId) ? body.wabaId : messagingAccountIds[0] || '';
       const phoneNumberId = body.phoneNumberId;
+      const businessId = isMetaId(body.businessId) ? body.businessId : null;
       const isOnBizApp = body.isOnBizApp === true;
       const primaryWaacIds = Array.isArray(body.primaryWaacIds)
         ? body.primaryWaacIds.filter((value: unknown): value is string => isMetaId(value)).slice(0, 20)
@@ -361,7 +365,7 @@ Deno.serve(async (req: Request) => {
         salon_id: null,
         waba_id: wabaId,
         phone_number_id: phoneNumberId,
-        business_id: null,
+        business_id: businessId,
         display_phone_number: phone.display_phone_number,
         verified_name: typeof phone.verified_name === 'string' ? phone.verified_name : null,
         connection_status: 'connected',
@@ -380,6 +384,8 @@ Deno.serve(async (req: Request) => {
           graph_version: GRAPH_VERSION,
           embedded_signup_version: 'v5',
           messaging_account_id: wabaId,
+          messaging_account_ids: messagingAccountIds.length ? messagingAccountIds : [wabaId],
+          business_id: businessId,
           is_on_biz_app: isOnBizApp,
           token_type: typeof tokenResponse.token_type === 'string' ? tokenResponse.token_type : 'bearer',
           expires_at: expiresAt,
