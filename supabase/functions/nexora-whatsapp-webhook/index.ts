@@ -312,10 +312,24 @@ async function handleInbound(db: any, connection: Json, message: Json, contact: 
     salon_id: null,
     event_type: 'message',
     payload: message,
-    processing_status: 'received',
+    processing_status: 'processing',
   }).select('id').maybeSingle();
-  if (event.error?.code === '23505') return;
-  if (event.error) throw new Error('Could not save inbound WhatsApp event.');
+  let eventRow = event.data;
+  if (event.error?.code === '23505') {
+    const previous = await db.from('salon_whatsapp_webhook_events')
+      .select('id,processing_status')
+      .eq('provider_event_id', providerEventId)
+      .eq('owner_id', connection.owner_id)
+      .maybeSingle();
+    if (previous.error || !previous.data) throw new Error('Could not load the existing WhatsApp event.');
+    if (previous.data.processing_status === 'processed' || previous.data.processing_status === 'ignored') return;
+    eventRow = previous.data;
+    await db.from('salon_whatsapp_webhook_events')
+      .update({ processing_status: 'processing', error_code: null })
+      .eq('id', eventRow.id);
+  } else if (event.error || !eventRow) {
+    throw new Error('Could not save inbound WhatsApp event.');
+  }
 
   const receivedAt = message.timestamp
     ? new Date(Number(message.timestamp) * 1000).toISOString()
@@ -353,7 +367,7 @@ async function handleInbound(db: any, connection: Json, message: Json, contact: 
       'conversation');
     await db.from('salon_whatsapp_webhook_events').update({
       processing_status: 'processed', processed_at: new Date().toISOString(),
-    }).eq('id', event.data.id);
+    }).eq('id', eventRow.id);
     return;
   }
   if (flow.optOut && upper !== 'START') {
