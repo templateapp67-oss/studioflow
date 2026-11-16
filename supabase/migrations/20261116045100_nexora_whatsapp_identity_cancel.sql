@@ -33,7 +33,7 @@ begin
   return v_customer_id;
 end;
 $function$
-
+;
 
 CREATE OR REPLACE FUNCTION studioflow_whatsapp_private.book_guest(p_owner uuid, p_slug text, p_services jsonb, p_date date, p_time text, p_stylist text, p_name text, p_phone text, p_instructions text, p_request uuid, p_customer_id uuid, p_branch uuid DEFAULT NULL::uuid)
  RETURNS jsonb
@@ -283,7 +283,7 @@ begin
 end;
 $function$
 
-
+;
 
 create or replace function public.nexora_whatsapp_cancel_pending(
   p_owner uuid,
