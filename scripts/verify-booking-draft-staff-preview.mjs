@@ -4,6 +4,7 @@ import { build } from 'esbuild';
 
 const source = readFileSync('src/components/BookingModal.tsx', 'utf8');
 assert.match(source, /const draftPreviewStylists=React\.useMemo/, 'Draft preview must derive staff from the owner-provided roster.');
+assert.match(source, /if\(!profile\.subdomain\?\.trim\(\)\)[\s\S]*?published:false/, 'Unslugged drafts must show owner staff without making a live specialist RPC call.');
 assert.match(source, /specialistCheck!\.published[\s\S]*?draftPreviewStylists/, 'Unpublished sites must use draft-only staff for display.');
 assert.match(source, /const canContinueToDateSlot=Boolean\(specialistsReady&&specialistCheck!\.published&&eligibleStylists\.length\)/, 'Draft staff must never enable live booking.');
 assert.match(source, /!specialistCheck\?\.published/, 'Date slots and booking submission must require a published salon.');
