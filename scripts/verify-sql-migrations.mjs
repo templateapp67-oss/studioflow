@@ -136,7 +136,7 @@ const reconcileSql=readFileSync('supabase/migrations/20261117130000_reconcile_te
 assert.equal((reconcileSql.match(/\$\$/g)||[]).length%2,0,
   'Template 15 reconciliation migration must have balanced dollar-quote delimiters');
 assert.match(reconcileSql,/returns jsonb language plpgsql stable security definer set search_path='' as \$\$/,
-  'Template 15 migration function body must start with a valid $ delimiter');
+  'Template 15 migration function body must start with a valid dollar-quote delimiter');
 await applySqlText(reconcileSql,'supabase/migrations/20261117130000_reconcile_template15_multiservice_booking.sql');
 const rpcs=clientRpc(src);
 const froms=[...src.matchAll(/\.from\(\s*['"\`]([A-Za-z0-9_-]+)['"\`]/g)].map(m=>m[1]);
