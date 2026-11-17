@@ -852,7 +852,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 {previewStylist&&<section id={`${guestFormId}-specialist-profile`} className="sf-booking-profile-preview" role="region" aria-label={`${previewStylist.name} profile`} onKeyDown={event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();setPreviewStylistId(null);dialogRef.current?.querySelector<HTMLButtonElement>('[aria-expanded="true"]')?.focus();}}}>
                   <header><h3>{previewStylist.name} · {previewStylist.role||'Specialist'}</h3><button type="button" onClick={()=>{setPreviewStylistId(null);dialogRef.current?.querySelector<HTMLButtonElement>('[aria-expanded="true"]')?.focus();}}>Back to booking</button></header>
                   <p>{previewStylist.bio||'This specialist has not added a bio yet.'}</p>
+                  {Number.isFinite(previewStylist.experienceYears)&&<p>Experience: {previewStylist.experienceYears} {previewStylist.experienceYears===1?'year':'years'}</p>}
+                  {!!previewStylist.specializedTreatments?.length&&<p>Specialised treatments: {previewStylist.specializedTreatments.join(', ')}</p>}
                   {!!previewStylist.qualifications?.length&&<p>Qualifications: {previewStylist.qualifications.join(', ')}</p>}
+                  {!!previewStylist.education&&<p>Education: {previewStylist.education}</p>}
                   {!!previewStylist.languages?.length&&<p>Languages: {previewStylist.languages.join(', ')}</p>}
                   <StaffPortfolio staff={previewStylist} services={services}/>
                 </section>}
