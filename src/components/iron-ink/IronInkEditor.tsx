@@ -1,5 +1,6 @@
 import React from "react";
 import "../ironInk.css";
+import { TemplateImageField } from "../TemplateImageField";
 import type {
   LoyaltyConfig,
   RewardThreshold,
@@ -16,7 +17,6 @@ import {
   type IronInkMediaTopic,
 } from "../../lib/ironInkMedia";
 import {
-  ironInkPosterSrc,
   ironInkSocialLink,
   ironInkVideoLink,
   type IronInkSocialPlatform,
@@ -27,6 +27,13 @@ import {
 } from "../../lib/ironInkLoyalty";
 import { socialVideoSource } from "../../lib/socialVideoSource";
 import { IronInkSocialVideosManager } from "./IronInkSocialVideosManager";
+
+const IRON_INK_TEMPLATE_IMAGE_IDENTITY = {
+  templateId: "tattoo_studio",
+  templateName: "NEXORA Iron & Ink Tattoo Studio",
+  templateNumber: "13",
+  categoryName: "Tattoo & Body Art",
+} as const;
 
 type SocialKey = "instagramHandle" | "facebookPage" | "youtubeChannel";
 const SOCIAL_FIELDS: Array<{
@@ -249,9 +256,9 @@ export function IronInkEditor({
     }));
 
   return (
-    <section className="ii-editor" aria-label="Template 12 content settings">
+    <section className="ii-editor" aria-label="Template 13 content settings">
       <div className="ii-editor-head">
-        <span className="ii-kicker">TEMPLATE 12 · IRON & INK</span>
+        <span className="ii-kicker">TEMPLATE 13 · NEXORA IRON & INK</span>
         <h2>Shape your studio site</h2>
         <p>
           All 30 tattoo and body-art categories start enabled with a starting
@@ -260,22 +267,22 @@ export function IronInkEditor({
         </p>
       </div>
       <div className="ii-editor-grid">
-        <label>
-          Hero image URL
-          <input
-            value={config.heroImage || ""}
-            placeholder={ironInkDefaults.heroImage}
-            onChange={(e) => patch({ heroImage: e.target.value })}
-          />
-        </label>
-        <label>
-          Studio interior image URL
-          <input
-            value={config.interiorImage || ""}
-            placeholder={ironInkDefaults.interiorImage}
-            onChange={(e) => patch({ interiorImage: e.target.value })}
-          />
-        </label>
+        <TemplateImageField
+          {...IRON_INK_TEMPLATE_IMAGE_IDENTITY}
+          sectionLabel="Hero image"
+          frame="hero"
+          value={config.heroImage || ""}
+          templateValue={ironInkDefaults.heroImage}
+          onChange={(url) => patch({ heroImage: url })}
+        />
+        <TemplateImageField
+          {...IRON_INK_TEMPLATE_IMAGE_IDENTITY}
+          sectionLabel="Studio interior"
+          frame="interior"
+          value={config.interiorImage || ""}
+          templateValue={ironInkDefaults.interiorImage}
+          onChange={(url) => patch({ interiorImage: url })}
+        />
         <label>
           Booking deposit (₹)
           <input
@@ -340,7 +347,6 @@ export function IronInkEditor({
       </p>
       <div className="ii-media-editor">
         {media.map((topic, index) => {
-          const posterOk = !topic.posterUrl || Boolean(ironInkPosterSrc(topic.posterUrl));
           const linkOk = !topic.href || Boolean(ironInkVideoLink(topic.href));
           return (
             <article className="ii-media-editor-card" key={topic.id}>
@@ -367,21 +373,15 @@ export function IronInkEditor({
                   onChange={(e) => updateMedia(topic.id, "caption", e.target.value)}
                 />
               </label>
-              <label>
-                Poster image URL
-                <input
-                  aria-label={`Guide ${index + 1} poster URL`}
-                  value={topic.posterUrl}
-                  placeholder={IRON_INK_MEDIA_FALLBACK_POSTER}
-                  aria-invalid={!posterOk}
-                  onChange={(e) => updateMedia(topic.id, "posterUrl", e.target.value)}
-                />
-                <span role={posterOk ? "status" : "alert"} className={posterOk ? "ii-editor-hint" : "ii-editor-error"}>
-                  {posterOk
-                    ? "Use an uploaded https image or a bundled /templates/12 path."
-                    : "Poster must be an https image URL or a local /path."}
-                </span>
-              </label>
+              <TemplateImageField
+                {...IRON_INK_TEMPLATE_IMAGE_IDENTITY}
+                sectionLabel={`Guide ${index + 1} poster`}
+                frame="guide"
+                value={topic.posterUrl || ""}
+                templateValue={IRON_INK_MEDIA_FALLBACK_POSTER}
+                compact
+                onChange={(url) => updateMedia(topic.id, "posterUrl", url)}
+              />
               <label>
                 Video or reel link (optional)
                 <input
@@ -424,7 +424,6 @@ export function IronInkEditor({
       {ownerReels.length ? (
         ownerReels.map((video, index) => {
           const linkOk = !video.youtubeUrl || Boolean(socialVideoSource(video.youtubeUrl));
-          const posterOk = !video.thumbnailUrl || Boolean(ironInkPosterSrc(video.thumbnailUrl));
           return (
             <div className="ii-media-editor-card" key={video.id}>
               <div className="ii-media-editor-head">
@@ -450,15 +449,14 @@ export function IronInkEditor({
                   onChange={(e) => updateReel(video.id, "description", e.target.value)}
                 />
               </label>
-              <label>
-                Poster image URL
-                <input
-                  aria-label={`Reel ${index + 1} poster URL`}
-                  value={video.thumbnailUrl || ""}
-                  aria-invalid={!posterOk}
-                  onChange={(e) => updateReel(video.id, "thumbnailUrl", e.target.value)}
-                />
-              </label>
+              <TemplateImageField
+                {...IRON_INK_TEMPLATE_IMAGE_IDENTITY}
+                sectionLabel={`Reel ${index + 1} poster`}
+                frame="reel"
+                value={video.thumbnailUrl || ""}
+                compact
+                onChange={(url) => updateReel(video.id, "thumbnailUrl", url)}
+              />
               <label>
                 Video link
                 <input
@@ -478,7 +476,7 @@ export function IronInkEditor({
         })
       ) : (
         <p className="ii-editor-hint">
-          No owner reels are linked yet. Template 12 shows the studio guides
+          No owner reels are linked yet. Template 13 shows the studio guides
           above until you add reels in <strong>Social &amp; videos</strong>.
         </p>
       )}
@@ -658,15 +656,14 @@ export function IronInkEditor({
                 }
               />
             </label>
-            <label>
-              Image URL
-              <input
-                value={item.image}
-                onChange={(e) =>
-                  updateCategory(item.slug, "image", e.target.value)
-                }
-              />
-            </label>
+            <TemplateImageField
+              {...IRON_INK_TEMPLATE_IMAGE_IDENTITY}
+              sectionLabel={`${item.name} category image`}
+              frame="service"
+              value={item.image || ""}
+              compact
+              onChange={(url) => updateCategory(item.slug, "image", url)}
+            />
           </article>
         ))}
       </div>
@@ -694,13 +691,13 @@ export function IronInkEditor({
             value={item.name}
             onChange={(e) => updateTestimonial(item.id, "name", e.target.value)}
           />
-          <input
-            aria-label={`Testimonial ${index + 1} client photo URL`}
+          <TemplateImageField
+            {...IRON_INK_TEMPLATE_IMAGE_IDENTITY}
+            sectionLabel={`Testimonial ${index + 1} client photo`}
+            frame="avatar"
             value={item.avatarUrl || ""}
-            placeholder="Client photo URL"
-            onChange={(e) =>
-              updateTestimonial(item.id, "avatarUrl", e.target.value)
-            }
+            compact
+            onChange={(url) => updateTestimonial(item.id, "avatarUrl", url)}
           />
           <label>
             Rating (0–5)
