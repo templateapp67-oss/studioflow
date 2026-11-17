@@ -204,11 +204,16 @@ function Application() {
   }
  },[authReady,session?.user?.id,slug,customer,customerApp,inviteEntry,ownerSlug,createTemplate,isLoginRoute,authCallbackEntry]);
  useEffect(()=>{
-  if(!authReady||oauthIntentPending||!pricingRedirectTarget)return;
+  // A Google owner sign-up must finish writing the submitted salon details
+  // before a pricing deep link can navigate away and discard its OAuth intent.
+  const awaitingGoogleSignupProfile=Boolean(
+   oauthCallbackReturn&&session&&pendingGoogleIntent?.role==='owner'&&pendingGoogleIntent?.mode==='signup'
+  );
+  if(!authReady||oauthIntentPending||!pricingRedirectTarget||awaitingGoogleSignupProfile||googleOAuthStatus==='processing'||googleOAuthStatus==='incomplete'||googleOAuthStatus==='error')return;
   clearGoogleOAuthIntent();
   clearOAuthIntent();
   location.replace(pricingRedirectTarget);
- },[authReady,oauthIntentPending,pricingRedirectTarget]);
+ },[authReady,oauthIntentPending,pricingRedirectTarget,oauthCallbackReturn,session?.user?.id,pendingGoogleIntent?.mode,pendingGoogleIntent?.role,googleOAuthStatus]);
  useEffect(()=>{
   if(!authReady||oauthIntentPending||!ownerSignInRedirectTarget)return;
   clearGoogleOAuthIntent();
