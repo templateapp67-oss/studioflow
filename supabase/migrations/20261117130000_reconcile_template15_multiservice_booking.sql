@@ -34,7 +34,7 @@ begin
   return (select coalesce(jsonb_agg(v order by v->>'time'),'[]'::jsonb) from jsonb_array_elements(coalesce(branch_result,'[]'::jsonb)) v
    where exists(select 1 from jsonb_array_elements(coalesce(d->'stylists',w.content->'stylists','[]'::jsonb)) s
     where s->>'id'=v->>'stylistId' and s->>'businessType'='mens_hair_studio' and coalesce((s->>'mensMaleOnly')::boolean,false)
-     and coalesce(s->>'role','') !~* 'women|woman|female|unisex|kids?|child|beard|shav|facial|spa\M|treatment|makeup|bridal|nail|wax')));
+     and coalesce(s->>'role','') !~* 'women|woman|female|unisex|kids?|child|beard|shav|facial|spa\M|treatment|makeup|bridal|nail|wax'));
  end if;
  select x into h from jsonb_array_elements(coalesce(c->'hours','[]')) x where x->>'day'=trim(to_char(p_date,'Day'));
  -- Missing hours fail closed for Template 15, rather than inventing a schedule.
