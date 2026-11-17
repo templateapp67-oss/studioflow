@@ -2044,5 +2044,11 @@
       "file": "20261117061129_studioflow_shared_edge_rate_limits.sql",
       "purpose": "Service-only shared booking-email rate limiter; confirmed absent in the live export."
     }
+  ],
+  "reviewed_feature_migrations": [
+    {
+      "file": "20261117130000_reconcile_template15_multiservice_booking.sql",
+      "purpose": "Reviewed Template 15 men-only booking guards and multi-service branch/unbranched booking RPC reconciliation; retained behind the protected manual production migration workflow."
+    }
   ]
 }

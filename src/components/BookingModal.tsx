@@ -268,7 +268,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     if(!isOpen)return;let active=true;setSlotsLoading(true);setSlotsError('');setBookingTime('');
     if(!bookingServiceIds.length||!specialistsReady||!eligibleStylists.length||(branchChoices.length>1&&!selectedBranchId)){setSlotsLoading(false);setAvailableSlots([]);return()=>{active=false;};}
     const slotStylist=selectedStylist.id;
-    const slotsRequest=profile.businessType==='mens_hair_studio'&&bookingServiceIds.length===1?supabase.rpc('studioflow_mens_slots',{p_slug:profile.subdomain,p_service_id:selectedService?.id,p_date:bookingDate,p_stylist_id:slotStylist}):selectedBranchId
+    const slotsRequest=profile.businessType==='mens_hair_studio'&&bookingServiceIds.length===1?supabase.rpc('studioflow_mens_slots',{p_slug:profile.subdomain,p_service_id:selectedService?.id,p_date:bookingDate,p_stylist_id:slotStylist,p_branch:selectedBranchId||null}):selectedBranchId
       ? (bookingServiceIds.length>1
         ? supabase.rpc('studioflow_branch_android_slots',{p_slug:profile.subdomain,p_services:bookingServiceIds,p_date:bookingDate,p_stylist:slotStylist,p_branch:selectedBranchId})
         : supabase.rpc('studioflow_branch_available_slots',{p_slug:profile.subdomain,p_service_id:selectedService?.id,p_date:bookingDate,p_stylist:slotStylist,p_branch:selectedBranchId}))
