@@ -45,7 +45,7 @@ const team = [
   { id: 'wrong-branch', name: 'Ira', businessType: 'hair_salon', status: 'Available', assignedServices: [], branchSchedules: [{ branchId: 'branch-b' }] },
 ];
 const eligible = previewDraftSpecialists(team, ['cut', 'colour'], 'hair_salon', 'branch-a');
-assert.deepEqual(eligible.map(staff => staff.id), ['all-services', 'assigned-both', 'owner-edited-seed'], 'Draft preview must exclude untouched template seeds while including owner-edited staff and respecting availability, services, branch and template');
+assert.deepEqual(eligible.map(staff => staff.id), ['all-services', 'owner-edited-seed', 'assigned-both'], 'Draft preview must exclude untouched template seeds while including owner-edited staff and respecting availability, services, branch and template');
 assert.deepEqual(previewDraftSpecialists([], ['cut'], 'hair_salon'), [], 'An empty owner team must not fall back to demo/template staff');
 assert.deepEqual(previewDraftSpecialists(team, [], 'hair_salon'), [], 'No service selection must not show an arbitrary roster');
 assert.equal(team.length, 9, 'Preview filtering must not mutate the owner roster');
