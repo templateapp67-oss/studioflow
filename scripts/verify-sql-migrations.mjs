@@ -54,8 +54,13 @@ const splitSql=(sql)=>{
 const applySqlText=async(sql,label='SQL file')=>{
   const stmts=splitSql(sql).filter(s=>!/^\s*(begin|commit)\s*;?\s*$/i.test(s));
   await db.exec('BEGIN');
-  try{for(const s of stmts)await db.exec(s);await db.exec('COMMIT');}
-  catch(e){try{await db.exec('ROLLBACK')}catch{}throw new Error(label+': '+(e.message||e));}
+  try{
+    for(let i=0;i<stmts.length;i++){
+      try{await db.exec(stmts[i]);}
+      catch(e){throw new Error('statement '+(i+1)+'/'+stmts.length+': '+(e.message||e)+'\n'+stmts[i].slice(0,1200));}
+    }
+    await db.exec('COMMIT');
+  }catch(e){try{await db.exec('ROLLBACK')}catch{}throw new Error(label+': '+(e.message||e));}
 };
 const applyFile=async(name)=>applySqlText(readFileSync('backend/'+name,'utf8'),'backend/'+name);
 const files=readdirSync('backend').filter(n=>n.endsWith('.sql')&&!n.includes('verification')).sort();
