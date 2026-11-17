@@ -497,6 +497,50 @@ for (const callbackUrl of [
 }
 
 // ---------------------------------------------------------------------------
+// 3c. Google owner sign-up with a pricing deep link saves the profile first
+// ---------------------------------------------------------------------------
+{
+  replacedUrls.length = 0;
+  rpcCalls.length = 0;
+  profileUpdates.length = 0;
+  mockSession = {
+    user: {
+      id: 'google-owner-pricing-signup',
+      email: 'pricing-owner@nexora.test',
+      created_at: new Date(Date.now() + 1000).toISOString(),
+      user_metadata: {},
+    },
+  };
+  saveGoogleOAuthIntent({
+    role: 'owner',
+    mode: 'signup',
+    fullName: 'Asha',
+    salonName: 'Glow Salon',
+    dateOfBirth: '',
+    whatsappNumber: '',
+    referralCode: '',
+    welcomeWhatsApp: false,
+  });
+  saveOAuthIntent({ path: '/login?pricing_plan=grow&billing_interval=annual', flow: 'owner' });
+  go('https://nexorasalon.online/login?pricing_plan=grow&billing_interval=annual&code=pkce-signup');
+  let appView: any;
+  await act(async () => { appView = create(<App />); });
+  await flushEffects();
+  assert.equal(
+    profileUpdates.some(([table, payload]) => table === 'profiles' && payload.salon_name === 'Glow Salon'),
+    true,
+    'Google owner sign-up must persist the submitted salon name before pricing navigation',
+  );
+  assert.deepEqual(
+    replacedUrls,
+    ['/pricing?resume_plan=grow&billing_interval=annual'],
+    'After the Google signup profile is saved, continue to the selected pricing plan',
+  );
+  assert.equal(readGoogleOAuthIntent(), null, 'Google signup intent is consumed after profile persistence');
+  await act(async () => appView.unmount());
+}
+
+// ---------------------------------------------------------------------------
 // 4. Signed-in owner clicking "Open Workspace" (/login, no OAuth intent) -> Workspace
 // ---------------------------------------------------------------------------
 {
