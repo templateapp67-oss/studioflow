@@ -228,6 +228,26 @@ jobs:
           SUPABASE_PROJECT_REF: ${{ steps.supabase_credentials.outputs.project_ref }}
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
 
+      - name: Preflight required private StudioFlow schemas
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ steps.supabase_credentials.outputs.project_ref }}
+        run: |
+          set -euo pipefail
+          result="$(supabase db query "select case
+            when count(*) = 2 then 'PASS: required private schemas exist'
+            else 'FAIL: one or more required private schemas are missing'
+          end as schema_preflight
+          from pg_namespace
+          where nspname in ('studioflow_private','studioflow_android_private')" \
+            --remote="$SUPABASE_PROJECT_REF" --read-only --output=csv)"
+          printf '%s\n' "$result"
+          if ! grep -Fq 'PASS: required private schemas exist' <<<"$result"; then
+            echo "::error::Required private schemas are missing; refusing migration dry-run."
+            exit 1
+          fi
+
       - name: Migration dry-run (remote production database)
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
