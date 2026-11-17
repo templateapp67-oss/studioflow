@@ -1,33 +1,7 @@
--- =============================================================================
--- NEXORA SALONOS — demo-lead operations (additive)
--- =============================================================================
--- Adds the operational columns the demo-request workflow needs, without
--- changing the public read model of the landing pages:
---
---   * `idempotency_key` — collapses a retried submission onto one lead row.
---   * `crm_delivery_state` / `crm_attempts` / `crm_last_error_code` —
---     records whether the optional CRM forward happened. A CRM failure never
---     removes a stored lead.
---   * `retention_expires_at` — the retention deadline for a lead row.
---   * `public.landing_lead_audit` — an append-only trail of status/note
---     changes made by a manager.
---
--- Safety rules kept from SUPABASE_DATABASE.md:
---   * `public.landing_leads` stays private to the public: there is still no
---     `anon` grant and no `anon` policy.
---   * Privileged helper functions live in the private `nexora_private`
---     schema, pin their search_path and are executable by `service_role` only.
---   * No permission is derived from `user_metadata`; the manager role comes
---     from the signed JWT's `app_metadata.site_role`.
--- =============================================================================
-
 create schema if not exists nexora_private;
 revoke all on schema nexora_private from public, anon, authenticated;
 grant usage on schema nexora_private to service_role;
 
--- -----------------------------------------------------------------------------
--- 1. Operational columns
--- -----------------------------------------------------------------------------
 alter table public.landing_leads
   add column if not exists idempotency_key text,
   add column if not exists crm_delivery_state text not null default 'not_attempted',
@@ -48,7 +22,6 @@ begin
 end;
 $$;
 
--- Existing rows inherit the same retention window as new ones.
 update public.landing_leads
 set retention_expires_at = created_at + interval '180 days'
 where retention_expires_at is null;
@@ -64,9 +37,6 @@ create index if not exists landing_leads_retention_idx
   on public.landing_leads (retention_expires_at)
   where retention_expires_at is not null;
 
--- -----------------------------------------------------------------------------
--- 2. Audit trail
--- -----------------------------------------------------------------------------
 create table if not exists public.landing_lead_audit (
   id uuid primary key default gen_random_uuid(),
   lead_id uuid not null references public.landing_leads (id) on delete cascade,
@@ -92,9 +62,6 @@ using ((select public.can_manage_landing_leads()));
 create index if not exists landing_lead_audit_lead_created_idx
   on public.landing_lead_audit (lead_id, created_at desc);
 
--- -----------------------------------------------------------------------------
--- 3. Audit trigger
--- -----------------------------------------------------------------------------
 create or replace function nexora_private.record_landing_lead_audit()
 returns trigger
 language plpgsql
@@ -127,11 +94,6 @@ create trigger landing_lead_audit_trigger
 after update on public.landing_leads
 for each row execute function nexora_private.record_landing_lead_audit();
 
--- -----------------------------------------------------------------------------
--- 4. Retention
--- -----------------------------------------------------------------------------
--- Rows are kept for 180 days after they were created. The purge is executed
--- by the server-side job with the service role; the browser never runs it.
 create or replace function nexora_private.purge_expired_landing_leads()
 returns integer
 language plpgsql

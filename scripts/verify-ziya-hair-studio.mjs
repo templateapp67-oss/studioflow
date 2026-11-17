@@ -92,14 +92,14 @@ assert.equal(pending.size, 0, 'Backend migrations converged');
 
 // Match timestamp order: shared multibranch support and social videos,
 // then Ziya's migration, followed by the reconciled Template 12 version.
-await db.exec(readFileSync('supabase/migrations/202610300004_multibranch_support.sql', 'utf8'));
-await db.exec(readFileSync('supabase/migrations/202610300005_iron_ink_social_videos.sql', 'utf8'));
-await db.exec(readFileSync('supabase/migrations/202611020001_ziya_promotions_and_loyalty.sql', 'utf8'));
+await db.exec(readFileSync('supabase/pending-features/202610300004_multibranch_support.sql', 'utf8'));
+await db.exec(readFileSync('supabase/pending-features/202610300005_iron_ink_social_videos.sql', 'utf8'));
+await db.exec(readFileSync('supabase/pending-features/202611020001_ziya_promotions_and_loyalty.sql', 'utf8'));
 await db.exec(readFileSync('supabase/migrations/20261113120946_template12_iron_ink.sql', 'utf8'));
-await db.exec(readFileSync('supabase/migrations/20261113120947_multibranch_template12_support.sql', 'utf8'));
+await db.exec(readFileSync('supabase/pending-features/20261113120947_multibranch_template12_support.sql', 'utf8'));
 
 // 1. Idempotency: re-applying the Ziya migration a second time must succeed cleanly
-await db.exec(readFileSync('supabase/migrations/202611020001_ziya_promotions_and_loyalty.sql', 'utf8'));
+await db.exec(readFileSync('supabase/pending-features/202611020001_ziya_promotions_and_loyalty.sql', 'utf8'));
 
 // 2. Verify RLS is enabled on all 5 Ziya tables
 const rlsRes = await db.query(`

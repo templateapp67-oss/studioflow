@@ -8,3 +8,8 @@ verify_jwt = false
 
 [functions.studioflow-payments]
 verify_jwt = false
+
+# The QA endpoint authenticates its dedicated bearer API key in the handler;
+# that key is not a Supabase JWT. Browser user credentials are not accepted.
+[functions.studioflow-whatsapp-booking]
+verify_jwt = false

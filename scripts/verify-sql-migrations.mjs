@@ -80,9 +80,9 @@ console.log(`PASS: all ${applied.length} backend migrations apply in dependency 
 // surface so client-table/RLS checks include the new data layer as well.
 // Follow the timestamped migration order: shared multibranch schema first,
 // then Template 12, then its dependent multibranch extension.
-await db.exec(readFileSync('supabase/migrations/202610300004_multibranch_support.sql','utf8'));
-await db.exec(readFileSync('supabase/migrations/202610300005_iron_ink_social_videos.sql','utf8'));
-await db.exec(readFileSync('supabase/migrations/202611020001_ziya_promotions_and_loyalty.sql','utf8'));
+await db.exec(readFileSync('supabase/pending-features/202610300004_multibranch_support.sql','utf8'));
+await db.exec(readFileSync('supabase/pending-features/202610300005_iron_ink_social_videos.sql','utf8'));
+await db.exec(readFileSync('supabase/pending-features/202611020001_ziya_promotions_and_loyalty.sql','utf8'));
 
 // Live-catalog assertions: every client-called RPC/table/bucket exists,
 // RLS is on, realtime publication is complete.
@@ -98,29 +98,29 @@ const walk=(dir)=>readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory
 // so their calls must be checked by the dedicated Edge Function security verifier
 // and WhatsApp platform contract verifier, not treated as browser-callable RPCs.
 const src=['src'].flatMap(d=>{try{return walk(d)}catch{return[]}}).map(f=>readFileSync(f,'utf8')).join('\n');
-await db.exec(readFileSync('supabase/migrations/202611030003_template15_keshkraft.sql','utf8'));
-await db.exec(readFileSync('supabase/migrations/202611050001_booking_multi_services.sql','utf8'));
-await db.exec(readFileSync('supabase/migrations/202611050001_booking_multi_services.sql','utf8'));
+await db.exec(readFileSync('supabase/pending-features/202611030003_template15_keshkraft.sql','utf8'));
+await db.exec(readFileSync('supabase/pending-features/202611050001_booking_multi_services.sql','utf8'));
+await db.exec(readFileSync('supabase/pending-features/202611050001_booking_multi_services.sql','utf8'));
 // NEXORA SALONOS landing data layer: schema, published seed content and the
 // shared lead rate-limit counters. The landing page reads these tables with
 // the publishable browser key, so their RLS state is verified here as well.
-await db.exec(readFileSync('supabase/migrations/202611070001_nexora_salon_landing_database.sql','utf8'));
-await db.exec(readFileSync('supabase/migrations/202611070002_nexora_salon_landing_seed.sql','utf8'));
-await db.exec(readFileSync('supabase/migrations/202611070003_nexora_salon_landing_rate_limits.sql','utf8'));
+await db.exec(readFileSync('supabase/migrations/20261107070508_nexora_salon_landing_database.sql','utf8'));
+await db.exec(readFileSync('supabase/pending-features/202611070002_nexora_salon_landing_seed.sql','utf8'));
+await db.exec(readFileSync('supabase/migrations/20261107071230_nexora_salon_landing_rate_limits.sql','utf8'));
 // Demo-request operations: idempotency, CRM delivery state, retention, the
 // audit trail and the published privacy notice link.
-await db.exec(readFileSync('supabase/migrations/202611070004_nexora_demo_lead_operations.sql','utf8'));
-await db.exec(readFileSync('supabase/migrations/202611070005_nexora_demo_lead_retention_default.sql','utf8'));
-await db.exec(readFileSync('supabase/migrations/202611070006_nexora_landing_privacy_link.sql','utf8'));
+await db.exec(readFileSync('supabase/migrations/20261107082654_nexora_demo_lead_operations.sql','utf8'));
+await db.exec(readFileSync('supabase/migrations/20261107082952_nexora_demo_lead_retention_default.sql','utf8'));
+await db.exec(readFileSync('supabase/migrations/20261107083327_nexora_landing_privacy_link.sql','utf8'));
 // Finish the selected pre-Template-12 migrations before the reconciled
 // Template 12 version and its branch-specific extension.
 await db.exec(readFileSync('supabase/migrations/20261113120946_template12_iron_ink.sql','utf8'));
-await db.exec(readFileSync('supabase/migrations/20261113120947_multibranch_template12_support.sql','utf8'));
+await db.exec(readFileSync('supabase/pending-features/20261113120947_multibranch_template12_support.sql','utf8'));
 // NEXORA WhatsApp test mode: apply its private QA ledger and the follow-up
 // rename migration before the live-catalog scan. The limiter is intentionally
 // server-only (service_role grant only) and is not a browser-facing RPC.
-await db.exec(readFileSync('supabase/migrations/20261115132100_studioflow_whatsapp_test_booking_api.sql','utf8'));
-await db.exec(readFileSync('supabase/migrations/20261115133000_private_whatsapp_test_rate_limit.sql','utf8'));
+await db.exec(readFileSync('supabase/migrations/20261115131821_studioflow_whatsapp_test_booking_api.sql','utf8'));
+await db.exec(readFileSync('supabase/migrations/20261115145202_private_whatsapp_test_rate_limit.sql','utf8'));
 const rpcs=clientRpc(src);
 const froms=[...src.matchAll(/\.from\(\s*['"\`]([A-Za-z0-9_-]+)['"\`]/g)].map(m=>m[1]);
 const tables=froms.filter(n=>!n.includes('-'));

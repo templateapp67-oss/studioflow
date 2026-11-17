@@ -252,7 +252,7 @@ await act(async () => button("Rewards").props.onClick());
 assert.ok(text(tree.root).includes("Points per ₹100"));
 await act(async () => tree.unmount());
 const migration = readFileSync(
-  "supabase/migrations/202611030003_template15_keshkraft.sql",
+  "supabase/pending-features/202611030003_template15_keshkraft.sql",
   "utf8",
 );
 assert.ok(migration.includes("pg_advisory_xact_lock"));

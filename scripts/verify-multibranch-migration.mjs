@@ -48,7 +48,7 @@ await db.exec(`
  create function studioflow_android_private.reschedule(uuid,date,text,text) returns jsonb language sql as $$select jsonb_build_object('branchId',nullif(current_setting('studioflow.branch_id',true),''))$$;
  create function studioflow_android_private.book(text,jsonb,date,text,text,text,text,text,uuid) returns jsonb language sql as $$select jsonb_build_object('branchId',nullif(current_setting('studioflow.branch_id',true),''))$$;
 `);
-const migration=readFileSync('supabase/migrations/202610300004_multibranch_support.sql','utf8');
+const migration=readFileSync('supabase/pending-features/202610300004_multibranch_support.sql','utf8');
 try { await db.exec(migration); } catch (error) { console.error('multibranch migration failure:', error.message, error.position, error.where, migration.slice(Number(error.position)-200,Number(error.position)+200)); throw error; }
 try { await db.exec(migration); } catch (error) { console.error('multibranch rerun failure:', error.message); throw error; } // verify additive idempotence
 
@@ -57,7 +57,7 @@ try { await db.exec(migration); } catch (error) { console.error('multibranch rer
 await db.exec(readFileSync('supabase/migrations/20261113120946_template12_iron_ink.sql','utf8'));
 await db.query("select set_config('request.jwt.claim.sub',$1,false)",[siteId]);
 await db.query('select public.seed_template12($1)',[siteId]);
-const inkBranchMigration=readFileSync('supabase/migrations/20261113120947_multibranch_template12_support.sql','utf8');
+const inkBranchMigration=readFileSync('supabase/pending-features/20261113120947_multibranch_template12_support.sql','utf8');
 try { await db.exec(inkBranchMigration); } catch (error) { console.error('Template 12 branch migration failure:', error.message, error.position, error.where); throw error; }
 try { await db.exec(inkBranchMigration); } catch (error) { console.error('Template 12 branch migration rerun failure:', error.message); throw error; } // verify additive idempotence
 const defaults=(await db.query('select id,name from public.branches where site_id=$1 and is_active',[siteId])).rows;

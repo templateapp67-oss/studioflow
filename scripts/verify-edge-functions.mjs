@@ -7,6 +7,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import assert from 'node:assert/strict';
+import { historicalEdgeReferences } from './lib/historicalEdgeReferences.mjs';
 
 const FUNCTIONS_DIR = 'supabase/functions';
 // `veda-sanjeevani/` is a separate nested application with its own
@@ -49,15 +50,24 @@ for (const name of invoked) {
 // pg_net jobs, the shared server handler and the docs call
 // /functions/v1/<name> directly, so .invoke alone would miss a broken name.
 const urlCallers = [];
+const isHistoricalReference = historicalEdgeReferences(
+  JSON.parse(readFileSync('docs/integrations/restored-supabase-history.json', 'utf8')),
+  (file) => readFileSync(file, 'utf8'),
+);
 for (const file of walk('.').filter((file) => /\.(ts|tsx|mjs|js|sql|md)$/.test(file))) {
   if (file.endsWith('verify-edge-functions.mjs')) continue;
   readFileSync(file, 'utf8').split('\n').forEach((line, index) => {
     for (const match of line.matchAll(/functions\/v1\/([a-z0-9-]+)/g)) {
-      urlCallers.push({ name: match[1], where: `${file}:${index + 1}` });
+      urlCallers.push({ name: match[1], file, where: `${file}:${index + 1}` });
     }
   });
 }
-for (const { name, where } of urlCallers) {
+let historicalDependencies = 0;
+for (const { name, file, where } of urlCallers) {
+  if (!folders.includes(name) && isHistoricalReference(file, name)) {
+    historicalDependencies++;
+    continue;
+  }
   assert.ok(
     folders.includes(name),
     `${where} calls /functions/v1/${name} but that function has no source folder`,
@@ -129,6 +139,7 @@ for (const path of entrypoints) {
 
 console.log(
   `ok edge functions: ${folders.length} deployed, ${invoked.size} invoked from the app,`
-  + ` ${urlCallers.length} raw /functions/v1 call sites resolved,`
+  + ` ${urlCallers.length - historicalDependencies} raw /functions/v1 call sites resolved,`
+  + ` ${historicalDependencies} recorded historical dependencies (deployment unverified),`
   + ` ${PUBLIC_BY_DESIGN.size} public by design`,
 );

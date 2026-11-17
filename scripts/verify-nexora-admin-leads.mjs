@@ -124,7 +124,7 @@ try {
 }
 
 /* 10. The database keeps the register private. */
-const migration = readFileSync('supabase/migrations/202611070004_nexora_demo_lead_operations.sql', 'utf8');
+const migration = readFileSync('supabase/migrations/20261107082654_nexora_demo_lead_operations.sql', 'utf8');
 assert.ok(migration.includes('revoke all on table public.landing_lead_audit from anon'), 'the audit table is revoked from anon');
 assert.ok(migration.includes('grant select on table public.landing_lead_audit to authenticated'), 'managers may read the audit trail');
 assert.ok(migration.includes('alter table public.landing_lead_audit enable row level security'), 'the audit table has RLS');

@@ -28,7 +28,7 @@ inference:
 ## 2. Pre-existing approvals (unchanged)
 
 Approved in the original product brief and seeded in
-`supabase/migrations/202611070002_nexora_salon_landing_seed.sql`:
+`supabase/pending-features/202611070002_nexora_salon_landing_seed.sql`:
 
 | Feature | Plan | State |
 |---|---|---|
