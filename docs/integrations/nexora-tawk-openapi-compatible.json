@@ -1,0 +1,280 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "NEXORA Multi-Tenant Salon Lookup API",
+    "version": "1.2.0",
+    "description": "Read-only TEST MODE integration for NEXORA. Returns the published salon catalogue and live availability. Availability checks never reserve a slot or create an appointment. The published salon website pre-fills a visible chat message containing the exact NEXORA salon slug so the AI can select the correct tenant."
+  },
+  "servers": [
+    {
+      "url": "https://zilwgiuiygqqardzutxi.supabase.co/functions/v1/studioflow-whatsapp-booking"
+    }
+  ],
+  "paths": {
+    "/catalogue": {
+      "post": {
+        "operationId": "getSalonCatalogue",
+        "summary": "Get salon services, specialists and branches",
+        "description": "Use when a customer asks about salon services, prices, duration, available specialists or salon locations. This is read-only. Find the exact value after 'NEXORA salon slug:' in the latest customer message and pass it as slug. Never guess a slug or reuse one from an earlier unrelated chat. If the message does not contain a slug, ask the visitor to share the salon website link.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "query",
+            "required": true,
+            "description": "Published salon website slug only, not the full website URL.",
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 80
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Salon catalogue returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "mode": {
+                      "type": "string"
+                    },
+                    "salon": {
+                      "type": "object",
+                      "properties": {
+                        "slug": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "city": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "services": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "category": {
+                            "type": "string"
+                          },
+                          "priceINR": {
+                            "type": "number"
+                          },
+                          "durationMinutes": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "specialists": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "role": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "branches": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "city": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "notice": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid salon slug."
+          },
+          "404": {
+            "description": "Salon not found or not published."
+          },
+          "503": {
+            "description": "Salon locations could not be loaded."
+          }
+        }
+      }
+    },
+    "/availability": {
+      "post": {
+        "operationId": "checkAppointmentAvailability",
+        "summary": "Check live appointment availability",
+        "description": "Use after the customer chooses services and an appointment date. First call getSalonCatalogue and use the exact service IDs it returns. Pass multiple service IDs as a comma-separated string. Use stylistId 'any' unless the customer selects a specialist. If the catalogue has multiple branches, ask the customer to choose one first. Find the exact value after 'NEXORA salon slug:' in the latest customer message and pass it as slug. This checks live slots only and does not reserve a time.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "query",
+            "required": true,
+            "description": "Published salon website slug.",
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 80
+            }
+          },
+          {
+            "name": "serviceIds",
+            "in": "query",
+            "required": true,
+            "description": "One or more exact service IDs from getSalonCatalogue, separated by commas.",
+            "schema": {
+              "type": "string",
+              "example": "service-id-1,service-id-2"
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": true,
+            "description": "Appointment date in YYYY-MM-DD format.",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "stylistId",
+            "in": "query",
+            "required": false,
+            "description": "Specialist ID from the catalogue, or 'any'.",
+            "schema": {
+              "type": "string",
+              "default": "any"
+            }
+          },
+          {
+            "name": "branchId",
+            "in": "query",
+            "required": false,
+            "description": "Branch UUID from the catalogue when the salon has multiple active branches.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Available slots, duration and INR price returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "mode": {
+                      "type": "string"
+                    },
+                    "salon": {
+                      "type": "string"
+                    },
+                    "date": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "durationMinutes": {
+                      "type": "integer"
+                    },
+                    "totalPriceINR": {
+                      "type": "number"
+                    },
+                    "slots": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "time": {
+                            "type": "string"
+                          },
+                          "stylistId": {
+                            "type": "string"
+                          },
+                          "stylistName": {
+                            "type": "string"
+                          },
+                          "branchId": {
+                            "type": "string"
+                          },
+                          "branchName": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "notice": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or branch selection required."
+          },
+          "409": {
+            "description": "Salon or selected service is unavailable."
+          },
+          "503": {
+            "description": "Live availability could not be checked."
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "NexoraBearer": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "NexoraBearer": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Supabase server secret configured in the Tawk integration as Bearer <key>. Never publish this secret."
+      }
+    }
+  }
+}

@@ -13,6 +13,7 @@ import {photoGallery,type PhotoCategory} from '../lib/photoGallery';
 import {GalleryPhotoImage} from './GalleryPhotoImage';
 import { AppAnnouncementStrip, AppInstallSection } from './AppInstallSection';
 import {SalonBookingsDialog} from './SalonBookingsDialog';
+import { NexoraTawkWidget } from './NexoraTawkWidget';
 import {CustomerWebsiteHeader} from './CustomerWebsiteHeader';
 import {BarberReferenceHero} from './BarberReferenceHero';
 import {
@@ -842,5 +843,14 @@ export function CustomerSalonWebsite(props:SalonWebsitePreviewProps){
  const stylists=useMemo(()=>Array.isArray(props.stylists)?props.stylists:[],[props.stylists]);
  // The profile can be briefly unavailable while the account or site is still loading.
  if(!props.profile||typeof props.profile!=='object')return <main role="status" aria-live="polite" className="min-h-screen flex items-center justify-center"><p>Loading website… The salon profile is unavailable right now; this page retries automatically.</p></main>;
- return <WebsiteLanguageProvider key={props.profile.subdomain||props.profile.businessType} defaultLanguage={props.profile.defaultWebsiteLanguage}>{props.profile.businessType==='aurelia_beauty_parlour'?<AureliaBeautyWebsite {...props} services={services} stylists={stylists}/>:props.profile.businessType==='mens_hair_studio'?<KeshKraftWebsite {...props} services={services} stylists={stylists}/>:<CustomerSalonWebsiteContent {...props} services={services} stylists={stylists}/>}</WebsiteLanguageProvider>;
+ return <>
+  <WebsiteLanguageProvider key={props.profile.subdomain||props.profile.businessType} defaultLanguage={props.profile.defaultWebsiteLanguage}>{props.profile.businessType==='aurelia_beauty_parlour'?<AureliaBeautyWebsite {...props} services={services} stylists={stylists}/>:props.profile.businessType==='mens_hair_studio'?<KeshKraftWebsite {...props} services={services} stylists={stylists}/>:<CustomerSalonWebsiteContent {...props} services={services} stylists={stylists}/>}</WebsiteLanguageProvider>
+  {props.live && props.readOnly && props.profile.subdomain?.trim() ? <NexoraTawkWidget salonContext={{
+    slug: props.profile.subdomain,
+    name: props.profile.businessName,
+    businessType: props.profile.businessType,
+    city: props.profile.city,
+    whatsapp: props.profile.whatsapp,
+  }} /> : null}
+ </>;
 }
