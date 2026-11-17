@@ -4,12 +4,12 @@ import {MENS_LOYALTY,MENS_STAFF} from './lib/keshkraft';
 import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { useAuthSession } from './lib/useAuthSession';
-import { appendAuthErrorParams, clearOAuthIntent, hasAuthCallbackFragment, hasAuthCallbackQuery, hasAuthErrorParams, readAuthUrlError, readOAuthIntent } from './lib/authEntry';
+import { appendAuthErrorParams, clearOAuthIntent, consumeOAuthCallbackForwarded, hasAuthCallbackFragment, hasAuthCallbackQuery, hasAuthErrorParams, hasOAuthExchangeParams, markOAuthCallbackForwarded, readAuthUrlError, readOAuthIntent } from './lib/authEntry';
 import { isBillingInterval, isPricingPlanId, pricingResumePath } from './lib/nexoraPricing';
 import { workspaceSnapshot, sameWorkspace, mergeWorkspace, revisionConflict, conflictMessage, type ConflictChoice } from './lib/workspaceSync';
 import { useCustomerProfile } from './components/customer/useCustomerProfile';
 import { applyWebsiteFavicon, websiteFavicon } from './lib/websiteFavicon';
-import { resolveSiteSlug } from './lib/resolveSite';
+import { hasExplicitSiteQuery, isPlatformRootHost, isStorefrontRootHost, resolveSiteSlug } from './lib/resolveSite';
 import { CATEGORY_TEMPLATES } from './categoryTemplates';
 import { nexoraName } from './components/nexora/NexoraBrand';
 import { upgradeBeautyParlourTemplate, upgradeLegacyBeautyParlourStylists } from './lib/roopMahalReference';
@@ -56,7 +56,7 @@ import { CustomerReferralBridge } from './components/CustomerReferralBridge';
 import { readGoogleOAuthIntent, clearGoogleOAuthIntent, isNewGoogleAccount, type GoogleOAuthIntent } from './lib/googleOAuth';
 import { cleanGoogleSignupValues, googleSignupWhatsApp, missingGoogleSignupFields, type GoogleSignupValues } from './lib/googleProfileCompletion';
 import { ProfileCompletionGate } from './components/ProfileCompletionGate';
-import { authModeForPath, isAuthEntryPath } from './lib/authRoutes';
+import { authModeForPath, isAuthEntryPath, isPlainOwnerAuthLocation } from './lib/authRoutes';
 import { CustomerApp } from './components/CustomerApp';
 import { supabase, captureReferral } from './lib/supabase';
 import { applySeoMetadata } from './lib/useSeoMetadata';
@@ -149,16 +149,20 @@ function Application() {
  const [inviteEntry]=useState(isCustomerInviteEntry);
  const customerApp=new URLSearchParams(location.search).has('app');
  const customer=new URLSearchParams(location.search).has('customer');
- const slug=resolveSiteSlug(typeof location==='undefined'?undefined:location);
+ // `/sign-in` and `/sign-up` are aliases of the same auth document, so all
+ // three land on `AuthPage` and keep their own mode — even on salon subdomains
+ // where `/` serves the published storefront unless `?site=` was requested explicitly.
+ const isLoginRoute=isAuthEntryPath(location.pathname);
+ const currentLocation=typeof location==='undefined'?undefined:location;
+ const slug=isLoginRoute&&!hasExplicitSiteQuery(location.search)?null:resolveSiteSlug(currentLocation);
+ const storefrontRootHost=isStorefrontRootHost(currentLocation);
  const entryTemplate=requestedTemplate(location.search);
  const createTemplate=new URLSearchParams(location.search).get('create')==='1';
  const ownerSlug=new URLSearchParams(location.search).get('owner');
- // `/sign-in` and `/sign-up` are aliases of the same auth document, so all
- // three land on `AuthPage` and keep their own mode.
- const isLoginRoute=isAuthEntryPath(location.pathname);
  // Legacy root auth/create/owner/panel links keep working; new public links use /login explicitly.
  const reservedRootEntry=customer||recovery||!!ownerSlug||!!entryTemplate||createTemplate||new URLSearchParams(location.search).has('panel');
  const [authCallbackEntry]=useState(()=>hasAuthCallbackQuery(location.search)||hasAuthCallbackFragment(location.hash));
+ const [oauthCallbackReturn]=useState(()=>hasOAuthExchangeParams(location.search,location.hash)||consumeOAuthCallbackForwarded());
  const authEntry=isLoginRoute||reservedRootEntry||authCallbackEntry||hasAuthCallbackQuery(location.search)||hasAuthCallbackFragment(location.hash);
  const publicHomeRoute=location.pathname==='/'&&!slug&&!customer&&!customerApp&&!inviteEntry&&!recovery&&!ownerSlug&&!entryTemplate&&!createTemplate&&!authEntry;
  const [oauthIntentPending,setOauthIntentPending]=useState(()=>location.pathname==='/'&&!slug&&!customer&&!customerApp&&!inviteEntry&&!ownerSlug&&!createTemplate&&authCallbackEntry&&Boolean(readOAuthIntent()));
@@ -168,6 +172,12 @@ function Application() {
  const onRecovery=useCallback(()=>{try{sessionStorage.setItem('studioflow_recovery','1');}catch{}setRecovery(true);},[]);
  const {session,ready:authReady,error:authError}=useAuthSession(onRecovery);
  const pricingRedirectTarget=session&&!recovery&&isPricingPlanId(pricingPlanId)?pricingResumePath({planId:pricingPlanId,billingInterval:isBillingInterval(pricingBilling)?pricingBilling:'annual'}):'';
+ // Google owner sign-in returning to a plain platform /login, /sign-in or /sign-up callback
+ // replaces history with `/` once the OAuth intent is consumed. Storefront subdomains (where `/`
+ // is the customer site), direct `/login` workspace entries and cross-tab auth events stay out.
+ const plainOwnerLoginEntry=!slug&&isPlatformRootHost(currentLocation)&&!storefrontRootHost&&!customer&&!customerApp&&!inviteEntry&&!recovery&&!ownerSlug&&!createTemplate&&!entryTemplate&&isPlainOwnerAuthLocation(location.pathname,location.search);
+ const pendingGoogleIntent=oauthCallbackReturn?readGoogleOAuthIntent():null;
+ const ownerSignInRedirectTarget=session&&plainOwnerLoginEntry&&!pricingRedirectTarget&&pendingGoogleIntent?.role==='owner'&&pendingGoogleIntent?.mode==='signin'?'/':'';
  const [googleOAuthStatus,setGoogleOAuthStatus]=useState<'idle'|'processing'|'incomplete'|'error'>('idle');
  const [googleOAuthMessage,setGoogleOAuthMessage]=useState('');
  const [googleOAuthRetry,setGoogleOAuthRetry]=useState(0);
@@ -181,7 +191,9 @@ function Application() {
   if(location.pathname==='/'&&!slug&&!customer&&!customerApp&&!inviteEntry&&!ownerSlug&&!createTemplate&&authCallbackEntry&&intent){
    clearOAuthIntent();
    if(intent.path!=='/'){
-    const nextTarget=!session&&hasAuthErrorParams(location.search,location.hash)?appendAuthErrorParams(intent.path,location.search,location.hash):intent.path;
+    const hasErrors=hasAuthErrorParams(location.search,location.hash);
+    if(!hasErrors&&hasOAuthExchangeParams(location.search,location.hash))markOAuthCallbackForwarded();
+    const nextTarget=!session&&hasErrors?appendAuthErrorParams(intent.path,location.search,location.hash):intent.path;
     location.replace(nextTarget);
     return;
    }
@@ -193,12 +205,30 @@ function Application() {
  },[authReady,session?.user?.id,slug,customer,customerApp,inviteEntry,ownerSlug,createTemplate,isLoginRoute,authCallbackEntry]);
  useEffect(()=>{
   if(!authReady||oauthIntentPending||!pricingRedirectTarget)return;
+  clearGoogleOAuthIntent();
   clearOAuthIntent();
   location.replace(pricingRedirectTarget);
  },[authReady,oauthIntentPending,pricingRedirectTarget]);
  useEffect(()=>{
-  if(!authReady||oauthIntentPending)return;
-  if(!session){setGoogleOAuthStatus('idle');setGoogleOAuthMessage('');return;}
+  if(!authReady||oauthIntentPending||!ownerSignInRedirectTarget)return;
+  clearGoogleOAuthIntent();
+  clearOAuthIntent();
+  location.replace(ownerSignInRedirectTarget);
+ },[authReady,oauthIntentPending,ownerSignInRedirectTarget]);
+ useEffect(()=>{
+  if(!authReady||oauthIntentPending||ownerSignInRedirectTarget)return;
+  if(!session){
+   if(!hasOAuthExchangeParams(location.search,location.hash))clearGoogleOAuthIntent();
+   setGoogleOAuthStatus('idle');
+   setGoogleOAuthMessage('');
+   return;
+  }
+  if(!oauthCallbackReturn){
+   clearGoogleOAuthIntent();
+   setGoogleOAuthStatus('idle');
+   setGoogleOAuthMessage('');
+   return;
+  }
   const intent=readGoogleOAuthIntent();
   if(!intent){setGoogleOAuthStatus('idle');return;}
   let active=true;
@@ -241,14 +271,14 @@ function Application() {
    if(active){setGoogleOAuthStatus('error');setGoogleOAuthMessage(msg);}
   });
   return()=>{active=false;};
- },[session?.user?.id,authReady,oauthIntentPending,googleOAuthRetry]);
+ },[session?.user?.id,authReady,oauthIntentPending,ownerSignInRedirectTarget,oauthCallbackReturn,googleOAuthRetry]);
  useCustomerWelcomeDelivery(session);
  useEffect(()=>{captureReferral();clearReferralAuthQueryParams();},[]);
  useEffect(()=>{
   if(slug||customer||customerApp||inviteEntry)return;
   applyPublicSeoMetadata(authEntry?NEXORA_LOGIN_SEO:NEXORA_HOME_SEO);
  },[slug,customer,customerApp,inviteEntry,authEntry]);
- useEffect(()=>{if(!session){setAccount(null);setError('');return;}if(slug||customer||customerApp||recovery||publicHomeRoute||oauthIntentPending||pricingRedirectTarget||googleOAuthStatus!=='idle')return;let active=true;setAccount(null);setError('');
+ useEffect(()=>{if(!session){setAccount(null);setError('');return;}if(slug||customer||customerApp||recovery||publicHomeRoute||oauthIntentPending||pricingRedirectTarget||ownerSignInRedirectTarget||googleOAuthStatus!=='idle')return;let active=true;setAccount(null);setError('');
  (async()=>{
   if(ownerSlug){const target=await withTimeout(supabase.from('studioflow_websites').select('slug').eq('slug',ownerSlug).eq('owner_id',session.user.id).maybeSingle(),15000,'Checking this salon website');if(target.error)throw target.error;if(!target.data)throw new Error('Sign in with the owner account for this salon to manage its website.');}
   // Bounded, self-healing bootstrap: the RPC is tried first, the already-saved
@@ -282,8 +312,8 @@ function Application() {
   ]);
   if(active){setTemplates(catalogue.templates.some(t=>t.id==='mens_hair_studio')?catalogue.templates:[...catalogue.templates,CATEGORY_TEMPLATES.mens_hair_studio]);setAccount({...bootstrap.account,identity:identity.error?null:identity.data});try{localStorage.removeItem('studioflow_pending_ref');}catch{}}
  })().catch(e=>{if(active)setError(e.message||'Could not load your account');});return()=>{active=false;};
- },[session?.user?.id,retry,slug,customer,customerApp,recovery,skipReferral,ownerSlug,publicHomeRoute,oauthIntentPending,pricingRedirectTarget,googleOAuthStatus]);
- if(oauthIntentPending||pricingRedirectTarget)return <Loading text="Continuing to your destination…" />;
+ },[session?.user?.id,retry,slug,customer,customerApp,recovery,skipReferral,ownerSlug,publicHomeRoute,oauthIntentPending,pricingRedirectTarget,ownerSignInRedirectTarget,googleOAuthStatus]);
+ if(oauthIntentPending||pricingRedirectTarget||ownerSignInRedirectTarget)return <Loading text="Continuing to your destination…" />;
  if(googleOAuthStatus==='incomplete'&&googleProfileGate){
   // The session exists but Google did not carry every mandatory detail back.
   // Finish the same sign-up instead of failing it.
@@ -362,7 +392,17 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
  const seededInitial=entry?{...baseInitial,profile:{...applyTemplateDesign(baseInitial.profile,entry),serviceCatalogueInitialized:true},services:servicesForTemplate(baseInitial.services,baseInitial.profile,entry),stylists:entry.id==='mens_hair_studio'?[...baseInitial.stylists,...MENS_STAFF.filter(s=>!baseInitial.stylists.some(x=>x.id===s.id))]:baseInitial.stylists.length?baseInitial.stylists:entry.stylists,...(entry.id==='mens_hair_studio'?{loyaltyConfig:structuredClone(MENS_LOYALTY)}:{})}:baseInitial;
  const initial=mensEntryDraft?{...seededInitial,profile:{...mensEntryDraft.profile,subdomain:''},services:[...baseInitial.services.filter(s=>s.mensTemplateId!=='mens_hair_studio'),...mensEntryDraft.services],stylists:[...baseInitial.stylists.filter(s=>s.businessType!=='mens_hair_studio'),...mensEntryDraft.stylists],loyaltyConfig:mensEntryDraft.loyaltyConfig||structuredClone(MENS_LOYALTY)}:seededInitial;
  const [currentView,setCurrentView]=useState<AppView>(entry?'wizard':new URLSearchParams(location.search).get('panel')==='demo'?'dashboard':'owner');
- useEffect(()=>{if(!entry)return;const url=new URL(location.href);url.searchParams.delete('template');url.searchParams.delete('category');url.searchParams.delete('create');history.replaceState(null,'',url);},[entry]);
+ useEffect(()=>{
+  if(typeof location==='undefined'||!location.href||typeof history==='undefined'||typeof history.replaceState!=='function')return;
+  const url=new URL(location.href);
+  let changed=false;
+  if(entry){
+   for(const key of ['template','category','create']){if(url.searchParams.has(key)){url.searchParams.delete(key);changed=true;}}
+  }
+  if(authModeForPath(url.pathname)){url.pathname='/login';changed=true;}
+  if(url.searchParams.has('auth')){url.searchParams.delete('auth');changed=true;}
+  if(changed)history.replaceState(null,'',url);
+ },[entry]);
  const [clientPreview,setClientPreview]=useState(false);
  const [clientDevice,setClientDevice]=useState<'desktop'|'tablet'|'mobile'>('desktop');
  const [dashboardTab,setDashboardTab]=useState(new URLSearchParams(location.search).get('panel')==='demo'?'demo':'overview');

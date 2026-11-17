@@ -1,12 +1,13 @@
 import React, { useState, useId } from 'react';
 import {captureCustomerReferral,rememberCustomerReferral,clearCustomerReferral} from '../lib/customerReferral';
-import { cleanCustomerAppReturnPath, clearOAuthIntent, readAuthUrlError, saveOAuthIntent } from '../lib/authEntry';
+import { cleanCustomerAppReturnPath, clearOAuthIntent, isSafeRelativePath, readAuthUrlError, saveOAuthIntent } from '../lib/authEntry';
+import { isPlatformRootHost, isStorefrontRootHost } from '../lib/resolveSite';
 import {whatsappNational,validCustomerWhatsApp,customerWhatsApp} from '../lib/customerWhatsApp';
 import {customerToday,validCustomerBirthDate} from '../lib/customerBirthDate';
 import { requestedTemplate } from '../lib/templateEntry';
 import { saveGoogleOAuthIntent, clearGoogleOAuthIntent } from '../lib/googleOAuth';
 import { isBillingInterval, isPricingPlanId, pricingResumePath } from '../lib/nexoraPricing';
-import { authCallbackPath, authModeForPath, isAuthEntryPath } from '../lib/authRoutes';
+import { authCallbackPath, authModeForPath, isAuthEntryPath, isPlainOwnerAuthLocation } from '../lib/authRoutes';
 import { Eye, EyeOff } from 'lucide-react';
 import { supabase, captureReferral } from '../lib/supabase';
 
@@ -24,12 +25,12 @@ export function AuthPage({ compact = false, recovery = false, onRecovered, custo
   const pricingBilling=loginParams.get('billing_interval');
   const pricingReturnPath=isPricingPlanId(pricingPlanId)?pricingResumePath({planId:pricingPlanId,billingInterval:isBillingInterval(pricingBilling)?pricingBilling:'annual'}):'';
   const pathname = typeof location === 'undefined' ? '' : (location.pathname || '');
-  const safePathname = pathname.startsWith('/') && !pathname.startsWith('//') ? pathname : '/login';
+  const safePathname = isSafeRelativePath(pathname) ? pathname : '/login';
   // `/sign-in` and `/sign-up` are first-class aliases of the same document;
   // their path selects the mode when no explicit `?auth=` override is present.
   const pathAuthMode = authModeForPath(safePathname);
-  const safeRedirectPathOverride = redirectPathOverride && redirectPathOverride.startsWith('/') && !redirectPathOverride.startsWith('//') ? redirectPathOverride : '';
-  const cleanCustomerReturn = customerReturn && (/^[a-z0-9-]+$/i.test(customerReturn) || (customerReturn.startsWith('/') && !customerReturn.startsWith('//'))) ? customerReturn : '';
+  const safeRedirectPathOverride = isSafeRelativePath(redirectPathOverride) ? redirectPathOverride : '';
+  const cleanCustomerReturn = customerReturn && (/^[a-z0-9-]+$/i.test(customerReturn) || isSafeRelativePath(customerReturn)) ? customerReturn : '';
   const pendingCustomerRef=customer?captureCustomerReferral():'';
   const customerAppReturn=loginParams.has('app')?cleanCustomerAppReturnPath(search,''):'';
   const baseRedirectPath=loginParams.has('app')?customerAppReturn:safeRedirectPathOverride?safeRedirectPathOverride:customer?`/?customer=1${cleanCustomerReturn?'&return='+encodeURIComponent(cleanCustomerReturn):''}`:selectedTemplate?`/?template=${encodeURIComponent(selectedTemplate.id)}&create=1`:pricingReturnPath||'/';
@@ -85,10 +86,26 @@ export function AuthPage({ compact = false, recovery = false, onRecovered, custo
         if (normalizedRef) localStorage.setItem('studioflow_pending_ref', normalizedRef);
       }
       if(invitationMode&&signup){const current=await supabase.auth.getSession();if(current.error)throw new Error(current.error.message);if(current.data.session){const out=await supabase.auth.signOut({scope:'local'});if(out.error)throw new Error(out.error.message);}}
+      clearGoogleOAuthIntent();
+      clearOAuthIntent();
       const result = signup ? await supabase.auth.signUp({ email: email.trim(), password, options: { emailRedirectTo: `${origin}${invitationMode?'/?app=1&tab=rewards':customer?baseRedirectPath+(normalizedRef?(baseRedirectPath.includes('?')?'&':'?')+'customer_ref='+encodeURIComponent(normalizedRef):''):redirectPath}`, data: { full_name: name.trim(), salon_name: salon.trim(), ...(customer?{customer_referral_code:normalizedRef,date_of_birth:birthDate||null,whatsapp_number:customerWhatsApp(whatsapp),whatsapp_welcome_opt_in:welcomeWhatsApp}:{referral_code:normalizedRef}), source: 'studioflow' } } }) : await supabase.auth.signInWithPassword({ email: email.trim(), password });
       if (result.error) throw new Error(result.error.message);
+      const replaceLocation = (target: string) => {
+        if (typeof location.replace === 'function') location.replace(target);
+        else location.assign(target);
+      };
       if(invitationMode&&result.data.session){clearCustomerReferral();location.assign('/?app=1&tab=rewards');return;}
       if(result.data.session&&pricingReturnPath){location.assign(pricingReturnPath);return;}
+      // Auto-confirmed owner sign-up with a chosen template but without ?create=1
+      // normalises onto the template creation entry so OnboardingWizard seeds it.
+      if(signup&&result.data.session&&!compact&&!customer&&!invitationMode&&selectedTemplate&&loginParams.get('create')!=='1'){replaceLocation(redirectPath);return;}
+      // Owner sign-in from the plain /login, /sign-in or /sign-up entry on a platform host
+      // replaces history with the home page (no Back-button loop). Storefront subdomains,
+      // customer, invitation, template, pricing, workspace deep-link and ?app flows keep their targets.
+      const currentLocation = typeof location === 'undefined' ? undefined : location;
+      const storefrontHost = isStorefrontRootHost(currentLocation);
+      const platformHost = isPlatformRootHost(currentLocation);
+      if(!signup&&result.data.session&&!compact&&!customer&&!invitationMode&&!selectedTemplate&&!returnSlug&&!safeRedirectPathOverride&&platformHost&&!storefrontHost&&isPlainOwnerAuthLocation(safePathname,search)){replaceLocation('/');return;}
       if (signup && !result.data.session) { setConfirmationPending(true); setMessage('Check your email to confirm your account, then sign in. If you already have an account, use Sign in or Forgot password.'); }
     } catch (error) { setMessage(error instanceof Error ? error.message : (typeof (error as { message?: unknown })?.message === 'string' && (error as { message: string }).message) || 'Could not complete this request. Please try again.'); }
     finally { setBusy(false); }

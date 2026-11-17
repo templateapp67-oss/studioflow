@@ -21,6 +21,7 @@ import {
   authCallbackPath,
   authModeForPath,
   isAuthEntryPath,
+  isPlainOwnerAuthLocation,
 } from '../src/lib/authRoutes';
 import {
   DepositGuardError,
@@ -55,6 +56,13 @@ assert.equal(authCallbackPath('/sign-in', ''), '/login?auth=signin', 'alias sign
 assert.equal(authCallbackPath('/sign-up', '?pricing_plan=grow'), '/login?pricing_plan=grow&auth=signup', 'pricing intent survives the alias');
 assert.deepEqual([...AUTH_DOCUMENT_PATHS], ['/login', '/sign-in', '/sign-up'], 'server/Vercel rewrites cover exactly the auth paths');
 assert.equal(AUTH_DOCUMENT_PATH, '/login');
+assert.equal(isPlainOwnerAuthLocation('/login', ''), true);
+assert.equal(isPlainOwnerAuthLocation('/sign-in/', '?auth=signin'), true);
+assert.equal(isPlainOwnerAuthLocation('/sign-up', '?code=oauth123&state=abc'), true);
+assert.equal(isPlainOwnerAuthLocation('/', ''), false, 'root is not an auth entry route');
+for (const query of ['?owner=glow', '?panel=demo', '?module=4', '?create=1', '?customer=1', '?app=1', '?invite=1', '?recovery=1', '?site=glow']) {
+  assert.equal(isPlainOwnerAuthLocation('/login', query), false, `${query} keeps its dedicated return target`);
+}
 
 // ------------------------------------------------------- profile completion
 assert.deepEqual(
