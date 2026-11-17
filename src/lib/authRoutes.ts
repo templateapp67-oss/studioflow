@@ -38,6 +38,37 @@ export function isAuthEntryPath(pathname: string): boolean {
 }
 
 /**
+ * Query keys on `/login`, `/sign-in` or `/sign-up` that target a specific
+ * customer, salon site, invite, recovery or workspace deep link rather than a
+ * plain owner sign-in.
+ */
+const TARGETED_AUTH_QUERY_KEYS = [
+  'site',
+  's',
+  'subdomain',
+  'app',
+  'customer',
+  'customer_ref',
+  'invite',
+  'owner',
+  'panel',
+  'module',
+  'recovery',
+] as const;
+
+/**
+ * True when `pathname` is `/login`, `/sign-in` or `/sign-up` and `search` has
+ * no customer, invite, recovery, salon-site or workspace deep-link query
+ * parameter. Callers also check resolved template/pricing/compact overrides.
+ */
+export function isPlainOwnerAuthLocation(pathname: string, search = ''): boolean {
+  if (!isAuthEntryPath(pathname)) return false;
+  const params = new URLSearchParams(search || '');
+  if (params.get('create') === '1') return false;
+  return !TARGETED_AUTH_QUERY_KEYS.some((key) => params.has(key));
+}
+
+/**
  * Path a provider should return to after Google OAuth or an email link.
  *
  * Alias visitors come back to the canonical `/login?auth=signin|signup` URL so

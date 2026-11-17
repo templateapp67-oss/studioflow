@@ -39,11 +39,40 @@ export function hasAuthCallbackFragment(hash: string): boolean {
 }
 
 const AUTH_ERROR_KEYS = ['error', 'error_description', 'error_code'] as const;
+const OAUTH_EXCHANGE_KEYS = ['code', 'access_token', 'refresh_token'] as const;
+
+/**
+ * Rejects protocol-relative (`//evil.com`), backslash (`/\evil.com`) and
+ * non-same-origin relative redirect targets.
+ */
+export function isSafeRelativePath(path: unknown): path is string {
+  if (typeof path !== 'string' || !path.startsWith('/') || path.startsWith('//') || path.includes('\\')) {
+    return false;
+  }
+  try {
+    return new URL(path, 'https://nexora.invalid').origin === 'https://nexora.invalid';
+  } catch {
+    return false;
+  }
+}
 
 export function hasAuthErrorParams(search = '', hash = ''): boolean {
   const query = new URLSearchParams(search || '');
   const fragment = new URLSearchParams((hash || '').replace(/^#/, ''));
   return AUTH_ERROR_KEYS.some((key) => query.has(key) || fragment.has(key));
+}
+
+/**
+ * True only when the URL carries an active OAuth code/token exchange (and not a
+ * password-recovery link or an OAuth error). Plain `?auth=signin|signup` mode
+ * query flags return false so non-callback tabs never consume stale OAuth state.
+ */
+export function hasOAuthExchangeParams(search = '', hash = ''): boolean {
+  if (hasAuthErrorParams(search, hash)) return false;
+  const query = new URLSearchParams(search || '');
+  const fragment = new URLSearchParams((hash || '').replace(/^#/, ''));
+  if (query.has('recovery') || fragment.get('type') === 'recovery') return false;
+  return OAUTH_EXCHANGE_KEYS.some((key) => query.has(key) || fragment.has(key));
 }
 
 export function readAuthUrlError(search = '', hash = ''): string {
@@ -60,7 +89,7 @@ export function readAuthUrlError(search = '', hash = ''): string {
 export function appendAuthErrorParams(targetPath: string, search = '', hash = ''): string {
   const query = new URLSearchParams(search || '');
   const fragment = new URLSearchParams((hash || '').replace(/^#/, ''));
-  const url = new URL(targetPath.startsWith('/') && !targetPath.startsWith('//') ? targetPath : '/', 'https://nexora.invalid');
+  const url = new URL(isSafeRelativePath(targetPath) ? targetPath : '/', 'https://nexora.invalid');
   for (const key of AUTH_ERROR_KEYS) {
     const value = fragment.get(key) || query.get(key);
     if (value && !url.searchParams.has(key)) url.searchParams.set(key, value);
@@ -105,9 +134,11 @@ export interface OAuthIntent {
 
 const OAUTH_INTENT_KEY = 'studioflow_oauth_intent';
 const OAUTH_INTENT_TTL_MS = 15 * 60 * 1000;
+const OAUTH_FORWARDED_KEY = 'studioflow_oauth_callback_forwarded';
+const OAUTH_FORWARDED_TTL_MS = 60 * 1000;
 
 export function saveOAuthIntent(intent: { path: string; flow: OAuthFlowKind }): void {
-  if (!intent.path.startsWith('/') || intent.path.startsWith('//')) return;
+  if (!isSafeRelativePath(intent.path)) return;
   try {
     if (typeof sessionStorage !== 'undefined') {
       sessionStorage.setItem(OAUTH_INTENT_KEY, JSON.stringify({ ...intent, savedAt: Date.now() }));
@@ -125,9 +156,7 @@ export function readOAuthIntent(): OAuthIntent | null {
     const parsed = JSON.parse(raw) as Partial<OAuthIntent> | null;
     if (
       !parsed ||
-      typeof parsed.path !== 'string' ||
-      !parsed.path.startsWith('/') ||
-      parsed.path.startsWith('//') ||
+      !isSafeRelativePath(parsed.path) ||
       typeof parsed.savedAt !== 'number' ||
       Date.now() - parsed.savedAt > OAUTH_INTENT_TTL_MS
     ) {
@@ -146,6 +175,34 @@ export function clearOAuthIntent(): void {
     if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(OAUTH_INTENT_KEY);
   } catch {
     // ignore
+  }
+}
+
+/**
+ * Records that root `/` just forwarded an active OAuth callback (`/?code=...`)
+ * to `intent.path` in this tab so the destination mount recognizes the callback
+ * even after `location.replace` drops the raw exchange query.
+ */
+export function markOAuthCallbackForwarded(): void {
+  try {
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem(OAUTH_FORWARDED_KEY, String(Date.now()));
+    }
+  } catch {
+    // ignore
+  }
+}
+
+export function consumeOAuthCallbackForwarded(): boolean {
+  try {
+    if (typeof sessionStorage === 'undefined') return false;
+    const raw = sessionStorage.getItem(OAUTH_FORWARDED_KEY);
+    if (!raw) return false;
+    sessionStorage.removeItem(OAUTH_FORWARDED_KEY);
+    const savedAt = Number(raw);
+    return Number.isFinite(savedAt) && Date.now() - savedAt <= OAUTH_FORWARDED_TTL_MS;
+  } catch {
+    return false;
   }
 }
 
