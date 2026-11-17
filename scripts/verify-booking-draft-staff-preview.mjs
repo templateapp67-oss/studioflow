@@ -35,6 +35,8 @@ const { previewDraftSpecialists } = await import(moduleUrl);
 
 const team = [
   { id: 'all-services', name: 'Asha', businessType: 'hair_salon', status: 'Available', assignedServices: [] },
+  { id: 'template-seed', name: 'Sample Stylist', businessType: 'hair_salon', status: 'Available', isTemplateSeed: true, assignedServices: [] },
+  { id: 'owner-edited-seed', name: 'Owner Updated Stylist', businessType: 'hair_salon', status: 'Available', isTemplateSeed: false, assignedServices: ['cut', 'colour'] },
   { id: 'assigned-both', name: 'Meera', businessType: 'hair_salon', status: 'Available', assignedServices: ['cut', 'colour'] },
   { id: 'missing-service', name: 'Riya', businessType: 'hair_salon', status: 'Available', assignedServices: ['cut'] },
   { id: 'inactive', name: 'Nina', businessType: 'hair_salon', status: 'Inactive', assignedServices: [] },
@@ -43,9 +45,9 @@ const team = [
   { id: 'wrong-branch', name: 'Ira', businessType: 'hair_salon', status: 'Available', assignedServices: [], branchSchedules: [{ branchId: 'branch-b' }] },
 ];
 const eligible = previewDraftSpecialists(team, ['cut', 'colour'], 'hair_salon', 'branch-a');
-assert.deepEqual(eligible.map(staff => staff.id), ['all-services', 'assigned-both'], 'Draft preview must respect availability, all selected services, branch and template');
+assert.deepEqual(eligible.map(staff => staff.id), ['all-services', 'assigned-both', 'owner-edited-seed'], 'Draft preview must exclude untouched template seeds while including owner-edited staff and respecting availability, services, branch and template');
 assert.deepEqual(previewDraftSpecialists([], ['cut'], 'hair_salon'), [], 'An empty owner team must not fall back to demo/template staff');
 assert.deepEqual(previewDraftSpecialists(team, [], 'hair_salon'), [], 'No service selection must not show an arbitrary roster');
-assert.equal(team.length, 7, 'Preview filtering must not mutate the owner roster');
+assert.equal(team.length, 9, 'Preview filtering must not mutate the owner roster');
 
 console.log('Booking draft staff preview verification passed.');
