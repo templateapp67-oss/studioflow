@@ -13,3 +13,12 @@ verify_jwt = false
 # that key is not a Supabase JWT. Browser user credentials are not accepted.
 [functions.studioflow-whatsapp-booking]
 verify_jwt = false
+
+# Performs its own Supabase Auth getUser() check plus an RLS-scoped booking
+# lookup and binds the recipient to the stored booking. The gateway JWT check
+# must stay disabled: the browser sends a CORS preflight (OPTIONS) and the
+# configuration probe uses GET, neither of which carries an Authorization
+# header. Omitting this block would silently deploy with the gateway default
+# (verify_jwt = true) and break both, so it is required for this function.
+[functions.studioflow-booking-emails]
+verify_jwt = false

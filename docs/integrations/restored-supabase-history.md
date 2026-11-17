@@ -88,3 +88,82 @@ Production now has a single `release_mode` dropdown instead of two booleans.
 Edge Functions, then deploys the website. `deploy_only` deploys only the website.
 The default is `dry_run`; invalid modes fail validation before a release job.
 The new selector appears on main only after this PR is merged.
+
+## Supabase target project reference
+
+Production Run #22 failed at `Validate Supabase migration credentials` with
+`SUPABASE_PROJECT_REF does not match this repository's reviewed StudioFlow project.`
+The `production-db` secret was verified (read-only, without printing its value) to
+be 21 bytes: one leading tab plus the correct 20-character reference, while
+`vars.SUPABASE_PROJECT_REF` was unset. The stored project was therefore never
+wrong; only the surrounding tab was. The failure mode is now handled explicitly:
+
+- The `migrate` job declares `REVIEWED_SUPABASE_PROJECT_REF: zilwgiuiygqqardzutxi`
+  as reviewed workflow configuration, so the public project id no longer has to
+  live in a GitHub secret.
+- The validation step reads `vars.SUPABASE_PROJECT_REF` and
+  `secrets.SUPABASE_PROJECT_REF` separately (in the `production-db` environment,
+  environment-scoped values override repository ones), trims only surrounding
+  ASCII whitespace, warns when it had to trim, and rejects whitespace-only
+  values, internal whitespace, URLs/hostnames, conflicting variable/secret
+  values, and any unexpected reference.
+- The validated reference is emitted as `steps.supabase_credentials.outputs.project_ref`
+  and that single value feeds `supabase link`, the migration dry-run, migration
+  apply and the Edge Function deployment, so a raw malformed secret can never
+  reach a hosted call.
+- The literal project guard (`$SUPABASE_PROJECT_REF" != "zilwgiuiygqqardzutxi"`)
+  remains in place, and tokens/passwords are never echoed.
+
+Verified before merge: the corrected validation script was executed unchanged in
+a temporary, read-only GitHub Actions job bound to the real `production-db`
+environment (no Supabase CLI call, no hosted operation). It emitted
+`project_ref` with length 20 equal to the reviewed reference and logged
+`::warning::Trimmed leading tab from secrets.SUPABASE_PROJECT_REF ...`.
+Diagnostic log lines deliberately avoid echoing the literal reference, because
+GitHub masks that literal inside a tab-prefixed secret and the log would read
+`***`.
+
+Cleanup: optional. Re-save the value without surrounding whitespace
+(Settings → Environments → `production-db` → Environment secrets →
+`SUPABASE_PROJECT_REF`, expected value `zilwgiuiygqqardzutxi`) to silence the
+warning. A wrong-reference error means the stored value is a different project;
+do not work around it.
+
+## Edge Function deployment gap found while verifying stages
+
+Verifying the stages after Run #22 (read-only Supabase queries, no production
+migration) showed the reviewed migration set was already complete: the remote
+`schema_migrations` table records **169** versions and the repository contains
+exactly the same 169, with no difference in either direction. Nothing was
+pending, so no migration was applied.
+
+One real gap existed in the function set. The Production workflow deploys five
+functions, but `supabase/config.toml` only declared four of them. The Supabase
+CLI falls back to the gateway default `verify_jwt = true` for any function
+without a block, which would have silently broken `studioflow-booking-emails`:
+its browser client sends a CORS preflight and its status probe uses `GET`, and
+neither carries an `Authorization` header. The handler already performs its own
+`Auth getUser()` check, an RLS-scoped booking read, and a stored-recipient
+binding, so the gateway check must stay off.
+
+- `supabase/config.toml` now declares `[functions.studioflow-booking-emails]`
+  with `verify_jwt = false`.
+- `scripts/verify-production-release-modes.mjs` now fails if the Production
+  deploy list contains a function with no `config.toml` entry, or if any of the
+  reviewed JWT settings change (the two provider endpoints and the QA booking
+  endpoint stay `false`; `nexora-whatsapp-connect` stays `true`). The guard was
+  confirmed to fail against the previous config and pass against the fix.
+
+That function was then deployed to the reviewed project as version 2 with
+`verify_jwt: false` and verified live: `GET` returns
+`{"status":"ok","service":"studioflow-booking-emails","mode":"unconfigured"}`
+without an authorization header, which is exactly the contract that the missing
+config block would have broken. `configured` is `false` because
+`RESEND_API_KEY` is not set in the project's Edge secrets, so the function
+reports "email delivery is not configured" (503) rather than pretending to send;
+no email has been delivered.
+
+Residual, unchanged by this work: the Production workflow applies Edge secrets
+nowhere. Adding `RESEND_API_KEY` and `RESEND_FROM_EMAIL` to the Supabase project
+secrets is a separate, deliberate step that must not be done with a value that
+is not already stored in a reviewed secret store.

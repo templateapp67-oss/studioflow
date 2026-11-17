@@ -90,6 +90,8 @@ jobs:
     timeout-minutes: 20
     environment:
       name: production-db
+    env:
+      REVIEWED_SUPABASE_PROJECT_REF: zilwgiuiygqqardzutxi
     steps:
       - uses: actions/checkout@v5
         with:
@@ -101,37 +103,136 @@ jobs:
           version: 3.0.0
 
       - name: Validate Supabase migration credentials
+        id: supabase_credentials
         shell: bash
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_PROJECT_REF_VAR: ${{ vars.SUPABASE_PROJECT_REF }}
+          SUPABASE_PROJECT_REF_SECRET: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: |
           set -euo pipefail
-          for name in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD SUPABASE_PROJECT_REF; do
+          # Byte-oriented character classes so only ASCII whitespace is trimmed
+          # and the project-ref comparison is never locale-dependent.
+          export LC_ALL=C
+
+          for name in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD; do
             if [[ -z "${!name:-}" ]]; then
               echo "::error::The production-db environment did not provide $name."
               exit 1
             fi
           done
+
+          describe_ws() {
+            local s="$1"
+            local parts=()
+            if [[ "$s" == *$'\t'* ]]; then parts+=("tab"); fi
+            if [[ "$s" == *$'\r'* ]]; then parts+=("CR"); fi
+            if [[ "$s" == *$'\n'* ]]; then parts+=("LF"); fi
+            if [[ "$s" == *' '* ]]; then parts+=("space"); fi
+            if (( ${#parts[@]} == 0 )) && [[ -n "$s" ]]; then
+              parts+=("whitespace")
+            fi
+            local IFS=,
+            printf '%s' "${parts[*]}"
+          }
+
+          NORMALIZED_REF=""
+          validate_ref_source() {
+            local source_name="$1"
+            local raw="$2"
+            local conflict_hint="${3:-}"
+            local leading="${raw%%[![:space:]]*}"
+            local trimmed="${raw#"$leading"}"
+            local trailing="${trimmed##*[![:space:]]}"
+            trimmed="${trimmed%"$trailing"}"
+
+            local ws_summary=""
+            if [[ -n "$leading" && -n "$trailing" ]]; then
+              ws_summary="leading $(describe_ws "$leading") and trailing $(describe_ws "$trailing")"
+            elif [[ -n "$leading" ]]; then
+              ws_summary="leading $(describe_ws "$leading")"
+            elif [[ -n "$trailing" ]]; then
+              ws_summary="trailing $(describe_ws "$trailing")"
+            fi
+
+            if [[ -z "$trimmed" ]]; then
+              echo "::error::SUPABASE_PROJECT_REF in $source_name contains only whitespace (${ws_summary:-whitespace}) and no project reference. Expected the reviewed StudioFlow project reference declared in REVIEWED_SUPABASE_PROJECT_REF.$conflict_hint"
+              exit 1
+            fi
+
+            if [[ "$trimmed" =~ [[:space:]] ]]; then
+              echo "::error::SUPABASE_PROJECT_REF in $source_name contains internal whitespace after trimming surrounding whitespace. Expected one exact single-token project reference with no spaces, tabs, CR or LF.$conflict_hint"
+              exit 1
+            fi
+
+            if [[ "$trimmed" != "zilwgiuiygqqardzutxi" ]]; then
+              local format_hint=""
+              if [[ "$trimmed" == http://* || "$trimmed" == https://* || "$trimmed" == *".supabase.co"* ]]; then
+                format_hint=" Configure only the 20-character project reference ID, not a Supabase URL or hostname."
+              fi
+              if [[ -n "$ws_summary" ]]; then
+                echo "::error::SUPABASE_PROJECT_REF in $source_name does not match this repository's reviewed StudioFlow project, even after trimming $ws_summary. Stored value is a different reference, not merely surrounding whitespace.$format_hint$conflict_hint"
+              else
+                echo "::error::SUPABASE_PROJECT_REF in $source_name does not match this repository's reviewed StudioFlow project, and no surrounding whitespace was found; the stored value is a different reference.$format_hint$conflict_hint"
+              fi
+              exit 1
+            fi
+
+            if [[ -n "$ws_summary" ]]; then
+              echo "::warning::Trimmed $ws_summary from $source_name; the normalized project reference matches the reviewed StudioFlow project. Re-save Settings -> Environments -> production-db -> Environment secrets -> SUPABASE_PROJECT_REF without surrounding whitespace to silence this warning."
+            fi
+            NORMALIZED_REF="$trimmed"
+          }
+
+          ref_source="reviewed workflow configuration (REVIEWED_SUPABASE_PROJECT_REF)"
+          SUPABASE_PROJECT_REF="${REVIEWED_SUPABASE_PROJECT_REF:-}"
+
+          if [[ -n "${SUPABASE_PROJECT_REF_VAR:-}" ]]; then
+            validate_ref_source "vars.SUPABASE_PROJECT_REF" "$SUPABASE_PROJECT_REF_VAR"
+            SUPABASE_PROJECT_REF="$NORMALIZED_REF"
+            ref_source="vars.SUPABASE_PROJECT_REF"
+          fi
+
+          if [[ -n "${SUPABASE_PROJECT_REF_SECRET:-}" ]]; then
+            conflict_note=""
+            if [[ -n "${SUPABASE_PROJECT_REF_VAR:-}" ]]; then
+              conflict_note=" vars.SUPABASE_PROJECT_REF is valid, but secrets.SUPABASE_PROJECT_REF conflicts; update or delete secrets.SUPABASE_PROJECT_REF in Settings -> Environments -> production-db (or Repository secrets)."
+            fi
+            validate_ref_source "secrets.SUPABASE_PROJECT_REF" "$SUPABASE_PROJECT_REF_SECRET" "$conflict_note"
+            SUPABASE_PROJECT_REF="$NORMALIZED_REF"
+            if [[ -n "${SUPABASE_PROJECT_REF_VAR:-}" ]]; then
+              ref_source="vars.SUPABASE_PROJECT_REF (verified consistent with secrets.SUPABASE_PROJECT_REF)"
+            else
+              ref_source="secrets.SUPABASE_PROJECT_REF"
+            fi
+          fi
+
+          if [[ -z "$SUPABASE_PROJECT_REF" || "$SUPABASE_PROJECT_REF" =~ [[:space:]] ]]; then
+            echo "::error::Resolved SUPABASE_PROJECT_REF is empty or contains whitespace."
+            exit 1
+          fi
+
           if [[ "$SUPABASE_PROJECT_REF" != "zilwgiuiygqqardzutxi" ]]; then
             echo "::error::SUPABASE_PROJECT_REF does not match this repository's reviewed StudioFlow project."
             exit 1
           fi
-          echo "All three Supabase credential fields are present."
+
+          printf 'project_ref=%s\n' "$SUPABASE_PROJECT_REF" >> "$GITHUB_OUTPUT"
+          echo "Supabase migration credentials validated and the reviewed target project was confirmed via $ref_source."
 
       - name: Link production Supabase project
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_PROJECT_REF: ${{ steps.supabase_credentials.outputs.project_ref }}
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
 
       - name: Migration dry-run (remote production database)
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_PROJECT_REF: ${{ steps.supabase_credentials.outputs.project_ref }}
         run: supabase db push --dry-run --remote="$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
 
       - name: Apply production migrations (manual apply_and_deploy only)
@@ -139,14 +240,14 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_PROJECT_REF: ${{ steps.supabase_credentials.outputs.project_ref }}
         run: supabase db push --remote="$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD" --yes
 
       - name: Deploy reviewed WhatsApp Edge Functions (manual apply_and_deploy only)
         if: github.event_name == 'workflow_dispatch' && inputs.release_mode == 'apply_and_deploy'
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_PROJECT_REF: ${{ steps.supabase_credentials.outputs.project_ref }}
         # Per-function JWT settings come from config.toml. Never globally
         # disable JWT verification or prune unrelated shared-project functions.
         run: >-
