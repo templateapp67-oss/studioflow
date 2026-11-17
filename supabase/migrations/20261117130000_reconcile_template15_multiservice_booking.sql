@@ -20,7 +20,7 @@ revoke all on function studioflow_private.mens_service(jsonb) from public,anon,a
 
 drop function if exists public.studioflow_mens_slots(text,text,date,text);
 create or replace function public.studioflow_mens_slots(p_slug text,p_service_id text,p_date date,p_stylist_id text,p_branch uuid default null)
-returns jsonb language plpgsql stable security definer set search_path='' as $
+returns jsonb language plpgsql stable security definer set search_path='' as $$
 declare w public.studioflow_websites; d jsonb; c jsonb; svc jsonb; staff jsonb; h jsonb; slot jsonb; result jsonb:='[]'; finish time; begin_time time; branch_result jsonb;
 begin
  select * into w from public.studioflow_websites where slug=p_slug;
