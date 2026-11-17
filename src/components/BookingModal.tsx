@@ -224,6 +224,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     if(!isOpen)return;let active=true;
     const empty={key:specialistKey,ids:[],stylists:[],published:true,error:''};
     setPreviewStylistId(null);
+    if(!profile.subdomain?.trim()){
+      const ids=draftPreviewStylists.map(st=>st.id);
+      setSpecialistCheck({...empty,ids,stylists:draftPreviewStylists,published:false});
+      setSelectedStylist(current=>current.id===ANY_SPECIALIST.id||ids.includes(current.id)?current:ANY_SPECIALIST);
+      return()=>{active=false;};
+    }
     if(!bookingServiceIds.length){setSpecialistCheck(empty);return;}
     if(branchChoices.length>1&&!selectedBranchId){setSpecialistCheck({...empty,error:'Choose a location first.'});return;}
     void Promise.all(bookingServiceIds.map(id=>selectedBranchId
