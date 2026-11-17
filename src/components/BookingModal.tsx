@@ -1,5 +1,5 @@
 import {StaffPortfolio} from './StaffPortfolio';
-import {localEligibleSpecialists, resolveBookingSpecialists, specialistExpertise, summarizeBookingServices, toggleBookingService} from '../lib/bookingSelection';
+import {localEligibleSpecialists, previewDraftSpecialists, resolveBookingSpecialists, specialistExpertise, summarizeBookingServices, toggleBookingService} from '../lib/bookingSelection';
 import {MensJoinWaitlist} from './keshkraft/KeshKraftInteractions';
 import type { ConsultationDetails } from "./dermacure/consultation";
 import {BookingCoupon,useBookingCoupon} from './BookingCoupon';
@@ -202,15 +202,34 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   const [specialistCheck,setSpecialistCheck]=useState<{key:string;ids:string[];stylists:Stylist[];published:boolean;error:string;fallback?:boolean}|null>(null);
   const [specialistRetry,setSpecialistRetry]=useState(0);
-  const specialistKey=JSON.stringify([profile.subdomain,bundleKey,selectedBranchId]);
+  const specialistKey=JSON.stringify([profile.subdomain,profile.businessType,bundleKey,selectedBranchId]);
   const specialistsReady=specialistCheck?.key===specialistKey&&!specialistCheck.error;
-  // Prefer current public profiles returned by the server, not a potentially stale parent list.
-  const eligibleStylists=specialistsReady?resolveBookingSpecialists(specialistCheck!.ids,specialistCheck!.stylists,stylists):[];
+  // Draft preview must use only the staff records supplied by the salon owner.
+  // Never fall back to template/demo staff when an owner has no team yet.
+  const draftRoster=inputStylists??aliasStylistsList??[];
+  const draftPreviewStylists=React.useMemo(
+    ()=>previewDraftSpecialists(draftRoster,bookingServiceIds,profile.businessType,selectedBranchId),
+    [inputStylists,aliasStylistsList,bundleKey,profile.businessType,selectedBranchId]
+  );
+  // Published booking remains server-authoritative. Unpublished drafts can show the
+  // owner's current staff profiles, but those profiles can never enable real slots.
+  const eligibleStylists=specialistsReady
+    ? specialistCheck!.published
+      ? resolveBookingSpecialists(specialistCheck!.ids,specialistCheck!.stylists,stylists)
+      : draftPreviewStylists
+    : [];
+  const canContinueToDateSlot=Boolean(specialistsReady&&specialistCheck!.published&&eligibleStylists.length);
   const previewStylist=eligibleStylists.find(st=>st.id===previewStylistId);
   useEffect(()=>{
     if(!isOpen)return;let active=true;
     const empty={key:specialistKey,ids:[],stylists:[],published:true,error:''};
     setPreviewStylistId(null);
+    if(!profile.subdomain?.trim()){
+      const ids=draftPreviewStylists.map(st=>st.id);
+      setSpecialistCheck({...empty,ids,stylists:draftPreviewStylists,published:false});
+      setSelectedStylist(current=>current.id===ANY_SPECIALIST.id||ids.includes(current.id)?current:ANY_SPECIALIST);
+      return()=>{active=false;};
+    }
     if(!bookingServiceIds.length){setSpecialistCheck(empty);return;}
     if(branchChoices.length>1&&!selectedBranchId){setSpecialistCheck({...empty,error:'Choose a location first.'});return;}
     void Promise.all(bookingServiceIds.map(id=>selectedBranchId
@@ -221,8 +240,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         for(const {data,error} of results){if(error||!data||!Array.isArray(data.specialistIds))throw new Error(error?.message||'Could not check specialists. Please retry.');}
         const ids=results[0].data.specialistIds.filter((id:string)=>results.every(({data})=>data.specialistIds.includes(id)));
         const profiles=results.flatMap(({data})=>Array.isArray(data.specialists)?data.specialists:[]);
-        setSpecialistCheck({...empty,ids,stylists:profiles,published:results.every(({data})=>data.published)});
-        setSelectedStylist(current=>current.id===ANY_SPECIALIST.id||ids.includes(current.id)?current:ANY_SPECIALIST);
+        const published=results.every(({data})=>data.published);
+        setSpecialistCheck({...empty,ids,stylists:profiles,published});
+        const selectableIds=published?ids:draftPreviewStylists.map(st=>st.id);
+        setSelectedStylist(current=>current.id===ANY_SPECIALIST.id||selectableIds.includes(current.id)?current:ANY_SPECIALIST);
       }).catch(error=>{
         if(!active)return;
         // Live check unavailable (missing function, stale PostgREST schema cache or network
@@ -242,7 +263,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         setSpecialistCheck({...empty,error:error?.message||'Could not check specialists. Please retry.'});
       });
     return()=>{active=false;};
-  },[isOpen,specialistKey,specialistRetry,branchChoices.length]);
+  },[isOpen,specialistKey,specialistRetry,branchChoices.length,draftPreviewStylists]);
   const chooseService=(service:SalonService)=>{
     if(reservedBooking.current||isSubmitting)return;
     setSelectedServiceIds(ids=>toggleBookingService(ids,service.id));
@@ -266,7 +287,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [slotRetry,setSlotRetry]=useState(0);
   useEffect(()=>{
     if(!isOpen)return;let active=true;setSlotsLoading(true);setSlotsError('');setBookingTime('');
-    if(!bookingServiceIds.length||!specialistsReady||!eligibleStylists.length||(branchChoices.length>1&&!selectedBranchId)){setSlotsLoading(false);setAvailableSlots([]);return()=>{active=false;};}
+    if(!bookingServiceIds.length||!specialistsReady||!specialistCheck?.published||!eligibleStylists.length||(branchChoices.length>1&&!selectedBranchId)){setSlotsLoading(false);setAvailableSlots([]);return()=>{active=false;};}
     const slotStylist=selectedStylist.id;
     const slotsRequest=profile.businessType==='mens_hair_studio'&&bookingServiceIds.length===1?supabase.rpc('studioflow_mens_slots',{p_slug:profile.subdomain,p_service_id:selectedService?.id,p_date:bookingDate,p_stylist_id:slotStylist}):selectedBranchId
       ? (bookingServiceIds.length>1
@@ -408,7 +429,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     const refNum = `NX-${cityCode}-${Math.floor(10000 + Math.random() * 90000)}`;
     setBookingRef(refNum);
 
-    if(!selectedServices.length||!specialistsReady||!eligibleStylists.length)throw new Error('Choose services and an available specialist first.');
+    if(!selectedServices.length||!specialistsReady||!specialistCheck?.published||!eligibleStylists.length)throw new Error('Choose services and an available specialist first.');
     if(branchChoices.length>0&&!selectedBranchId) throw new Error('Choose a location before booking.');
     const newApt: Appointment = {
       id: `apt-${Date.now()}`,
@@ -831,7 +852,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 {previewStylist&&<section id={`${guestFormId}-specialist-profile`} className="sf-booking-profile-preview" role="region" aria-label={`${previewStylist.name} profile`} onKeyDown={event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();setPreviewStylistId(null);dialogRef.current?.querySelector<HTMLButtonElement>('[aria-expanded="true"]')?.focus();}}}>
                   <header><h3>{previewStylist.name} · {previewStylist.role||'Specialist'}</h3><button type="button" onClick={()=>{setPreviewStylistId(null);dialogRef.current?.querySelector<HTMLButtonElement>('[aria-expanded="true"]')?.focus();}}>Back to booking</button></header>
                   <p>{previewStylist.bio||'This specialist has not added a bio yet.'}</p>
+                  {Number.isFinite(previewStylist.experienceYears)&&<p>Experience: {previewStylist.experienceYears} {previewStylist.experienceYears===1?'year':'years'}</p>}
+                  {!!previewStylist.specializedTreatments?.length&&<p>Specialised treatments: {previewStylist.specializedTreatments.join(', ')}</p>}
                   {!!previewStylist.qualifications?.length&&<p>Qualifications: {previewStylist.qualifications.join(', ')}</p>}
+                  {!!previewStylist.education&&<p>Education: {previewStylist.education}</p>}
                   {!!previewStylist.languages?.length&&<p>Languages: {previewStylist.languages.join(', ')}</p>}
                   <StaffPortfolio staff={previewStylist} services={services}/>
                 </section>}
@@ -839,7 +863,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 {!specialistsReady&&<p role="status" className="text-xs text-slate-700 mt-3">{specialistCheck?.key===specialistKey&&specialistCheck.error?specialistCheck.error:'Checking specialists for all selected services…'}</p>}
                 {specialistsReady&&specialistCheck?.fallback&&<p role="status" className="text-xs text-amber-800 mt-3">Live specialist check is unavailable, so this salon's listed specialists are shown instead. Availability is still verified by the salon when you pick a time.</p>}
                 {specialistCheck?.key===specialistKey&&specialistCheck.error&&<button type="button" className="text-xs underline" onClick={()=>setSpecialistRetry(n=>n+1)}>Retry specialist check</button>}
-                {specialistsReady&&!eligibleStylists.length&&<p role="status" className="text-xs text-amber-800 mt-3">{!bookingServiceIds.length?'Choose services to see specialists.':specialistCheck!.published?'No specialist can handle all selected services at this location. Adjust your selection or contact the salon.':'This salon is not published yet. The owner needs to publish it before online booking.'}</p>}
+                {specialistsReady&&!specialistCheck!.published&&eligibleStylists.length>0&&<p role="status" className="text-xs text-amber-800 mt-3">Preview team from the salon dashboard. Online booking will be available after this website is published.</p>}
+                {specialistsReady&&!eligibleStylists.length&&<p role="status" className="text-xs text-amber-800 mt-3">{!bookingServiceIds.length?'Choose services to see specialists.':specialistCheck!.published?'No specialist can handle all selected services at this location. Adjust your selection or contact the salon.':draftRoster.length?'No staff are assigned to this service yet. The owner can update the team in Team Management.':'No staff profiles have been added to this draft yet. Add staff in Team Management.'}</p>}
                 <p className="text-xs text-slate-700 mt-3">Only specialists eligible for every selected service are listed. Changing services resets to Any Available Specialist. View Profile never changes your selection.</p>
                 <p role="status" className="text-xs text-slate-700 mt-3">Selected specialist: <strong>{selectedStylist.name}</strong>. Use Continue to Date &amp; Slot below.</p>
               </div>
@@ -1360,7 +1385,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               <button
                 type="button"
                 onClick={() => setCurrentStep('datetime')}
-                disabled={!bookingServiceIds.length||!specialistsReady||!eligibleStylists.length}
+                disabled={!canContinueToDateSlot}
                 className="w-full py-3 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95 active:scale-[0.99] mt-2"
                 style={actionStyle}
               >
@@ -1380,7 +1405,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setCurrentStep('guest')}
-                  disabled={!bookingTime || slotsLoading || !specialistsReady || !eligibleStylists.length}
+                  disabled={!bookingTime || slotsLoading || !specialistsReady || !specialistCheck?.published || !eligibleStylists.length}
                   className="flex-1 py-3 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95"
                   style={actionStyle}
                 >
@@ -1412,7 +1437,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setCurrentStep('guest')}
-                  disabled={!bookingTime || slotsLoading || !specialistsReady || !eligibleStylists.length}
+                  disabled={!bookingTime || slotsLoading || !specialistsReady || !specialistCheck?.published || !eligibleStylists.length}
                   className="px-4 py-3 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-50 cursor-pointer flex items-center gap-1.5"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -1421,7 +1446,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 <button
                   type="button"
                   onClick={handleFinalSubmitBooking}
-                  disabled={!bookingServiceIds.length || !bookingTime || !specialistsReady || !eligibleStylists.length || isSubmitting || !gatewayReady || coupon.busy || (!reservedBooking.current && !!coupon.code.trim() && !coupon.quote)}
+                  disabled={!bookingServiceIds.length || !bookingTime || !specialistsReady || !specialistCheck?.published || !eligibleStylists.length || isSubmitting || !gatewayReady || coupon.busy || (!reservedBooking.current && !!coupon.code.trim() && !coupon.quote)}
                   className="flex-1 py-3.5 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95"
                   style={actionStyle}
                 >
