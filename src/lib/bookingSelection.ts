@@ -72,6 +72,6 @@ export function previewDraftSpecialists(
   branchId = '',
 ): Stylist[] {
   if (!serviceIds.length || !Array.isArray(stylists)) return [];
-  const sameTemplate = stylists.filter(staff => !staff?.businessType || staff.businessType === businessType);
+  const sameTemplate = stylists.filter(staff => staff?.isTemplateSeed !== true && (!staff?.businessType || staff.businessType === businessType));
   return localEligibleSpecialists(sameTemplate, serviceIds, branchId);
 }
