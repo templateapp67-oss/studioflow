@@ -18,9 +18,10 @@ returns boolean language sql immutable set search_path='' as $$
 $$;
 revoke all on function studioflow_private.mens_service(jsonb) from public,anon,authenticated;
 
-create or replace function public.studioflow_mens_slots(p_slug text,p_service_id text,p_date date,p_stylist_id text)
-returns jsonb language plpgsql stable security definer set search_path='' as $$
-declare w public.studioflow_websites; d jsonb; c jsonb; svc jsonb; staff jsonb; h jsonb; slot jsonb; result jsonb:='[]'; finish time; begin_time time;
+drop function if exists public.studioflow_mens_slots(text,text,date,text);
+create or replace function public.studioflow_mens_slots(p_slug text,p_service_id text,p_date date,p_stylist_id text,p_branch uuid default null)
+returns jsonb language plpgsql stable security definer set search_path='' as $
+declare w public.studioflow_websites; d jsonb; c jsonb; svc jsonb; staff jsonb; h jsonb; slot jsonb; result jsonb:='[]'; finish time; begin_time time; branch_result jsonb;
 begin
  select * into w from public.studioflow_websites where slug=p_slug;
  if w.content->'profile'->>'businessType' is distinct from 'mens_hair_studio' then return '[]'; end if;
@@ -28,6 +29,13 @@ begin
  c:=coalesce(d->'profile'->'mensStudio','{}');
  select s into svc from jsonb_array_elements(w.content->'services') s where s->>'id'=p_service_id and studioflow_private.mens_service(s);
  if svc is null or p_date is null or p_date<(now() at time zone 'Asia/Kolkata')::date or p_date>(now() at time zone 'Asia/Kolkata')::date+90 or coalesce(c->'holidays','[]') ? p_date::text then return '[]'; end if;
+ if p_branch is not null then
+  branch_result:=studioflow_private.branch_slots(p_slug,jsonb_build_array(p_service_id),p_date,p_stylist_id,p_branch);
+  return (select coalesce(jsonb_agg(v order by v->>'time'),'[]'::jsonb) from jsonb_array_elements(coalesce(branch_result,'[]'::jsonb)) v
+   where exists(select 1 from jsonb_array_elements(coalesce(d->'stylists',w.content->'stylists','[]'::jsonb)) s
+    where s->>'id'=v->>'stylistId' and s->>'businessType'='mens_hair_studio' and coalesce((s->>'mensMaleOnly')::boolean,false)
+     and coalesce(s->>'role','') !~* 'women|woman|female|unisex|kids?|child|beard|shav|facial|spa\\M|treatment|makeup|bridal|nail|wax')));
+ end if;
  select x into h from jsonb_array_elements(coalesce(c->'hours','[]')) x where x->>'day'=trim(to_char(p_date,'Day'));
  -- Missing hours fail closed for Template 15, rather than inventing a schedule.
  if h is null or not coalesce((h->>'enabled')::boolean,false) then return '[]'; end if;
@@ -47,8 +55,8 @@ begin
  end loop;
  return (select coalesce(jsonb_agg(x order by x->>'time'),'[]') from (select distinct on (v->>'time') v as x from jsonb_array_elements(result) v order by v->>'time',v->>'stylistId') q);
 end $$;
-revoke all on function public.studioflow_mens_slots(text,text,date,text) from public,anon,authenticated;
-grant execute on function public.studioflow_mens_slots(text,text,date,text) to anon,authenticated;
+revoke all on function public.studioflow_mens_slots(text,text,date,text,uuid) from public,anon,authenticated;
+grant execute on function public.studioflow_mens_slots(text,text,date,text,uuid) to anon,authenticated;
 
 create or replace function public.studioflow_mens_coupon_quote(p_slug text,p_services jsonb,p_code text)
 returns jsonb language plpgsql security definer set search_path='' as $$
@@ -291,7 +299,7 @@ begin
  if found_count<>array_length(ids,1) or p_date is null or p_date<current_date or p_date>current_date+90 then return '[]'::jsonb; end if;
  with staff as (
   select s,(select entry from jsonb_array_elements(coalesce(s->'schedule','[]'::jsonb)) entry where entry->>'day'=trim(to_char(p_date,'Day'))) as day
-  from jsonb_array_elements(coalesce(v_draft->'stylists','[]'::jsonb)) s
+  from jsonb_array_elements(coalesce(v_draft->'stylists',w.content->'stylists','[]'::jsonb)) s
   where (p_stylist in ('any','any-specialist','any_available') or s->>'id'=p_stylist)
    and coalesce(s->>'status','Available')='Available'
    and exists(select 1 from jsonb_array_elements(w.content->'stylists') published where published->>'id'=s->>'id')
@@ -483,5 +491,7 @@ begin
 end $$;
 revoke all on function public.studioflow_mens_book(text,jsonb) from public,anon,authenticated;
 grant execute on function public.studioflow_mens_book(text,jsonb) to authenticated;
+
+notify pgrst, 'reload schema';
 
 commit;
