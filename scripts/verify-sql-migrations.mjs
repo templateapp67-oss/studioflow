@@ -48,14 +48,21 @@ const splitSql=(sql)=>{
     cur+=sql[i];i++;
   }
   if(cur.trim())out.push(cur);
+  assert.equal(tag,null,'Unterminated dollar-quoted SQL body');
   return out;
 };
-const applyFile=async(name)=>{
-  const stmts=splitSql(readFileSync('backend/'+name,'utf8')).filter(s=>!/^\s*(begin|commit)\s*;?\s*$/i.test(s));
+const applySqlText=async(sql,label='SQL file')=>{
+  const stmts=splitSql(sql).filter(s=>!/^\s*(begin|commit)\s*;?\s*$/i.test(s));
   await db.exec('BEGIN');
-  try{for(const s of stmts)await db.exec(s);await db.exec('COMMIT');}
-  catch(e){try{await db.exec('ROLLBACK')}catch{}throw e;}
+  try{
+    for(let i=0;i<stmts.length;i++){
+      try{await db.exec(stmts[i]);}
+      catch(e){throw new Error('statement '+(i+1)+'/'+stmts.length+': '+(e.message||e)+'\n'+stmts[i].slice(0,1200));}
+    }
+    await db.exec('COMMIT');
+  }catch(e){try{await db.exec('ROLLBACK')}catch{}throw new Error(label+': '+(e.message||e));}
 };
+const applyFile=async(name)=>applySqlText(readFileSync('backend/'+name,'utf8'),'backend/'+name);
 const files=readdirSync('backend').filter(n=>n.endsWith('.sql')&&!n.includes('verification')).sort();
 const pending=new Map(files.map(n=>[n,'']));
 const ANCHORED=['studioflow-shared-tables.sql','studioflow-schema.sql','studioflow-android-foundation.sql','customer-portal.sql','starter-packages.sql'];
@@ -121,6 +128,21 @@ await db.exec(readFileSync('supabase/pending-features/20261113120947_multibranch
 // server-only (service_role grant only) and is not a browser-facing RPC.
 await db.exec(readFileSync('supabase/migrations/20261115131821_studioflow_whatsapp_test_booking_api.sql','utf8'));
 await db.exec(readFileSync('supabase/migrations/20261115145202_private_whatsapp_test_rate_limit.sql','utf8'));
+// Execute the production reconciliation migration in CI; this previously
+// escaped validation because only backend/ migrations were replayed.
+const reconcileSchemas=['studioflow_private','studioflow_android_private'];
+const {rows:reconcileSchemaRows}=await db.query(
+  "select nspname as schema_name from pg_namespace where nspname=any($1::text[]) order by nspname",
+  [reconcileSchemas]
+);
+assert.deepEqual(reconcileSchemaRows.map(row=>row.schema_name),[...reconcileSchemas].sort(),
+  'Template 15 reconciliation requires studioflow_private and studioflow_android_private schemas');
+const reconcileSql=readFileSync('supabase/migrations/20261117130000_reconcile_template15_multiservice_booking.sql','utf8');
+assert.equal((reconcileSql.match(/\$\$/g)||[]).length%2,0,
+  'Template 15 reconciliation migration must have balanced dollar-quote delimiters');
+assert.match(reconcileSql,/returns jsonb language plpgsql stable security definer set search_path='' as \$\$/,
+  'Template 15 migration function body must start with a valid dollar-quote delimiter');
+await applySqlText(reconcileSql,'supabase/migrations/20261117130000_reconcile_template15_multiservice_booking.sql');
 const rpcs=clientRpc(src);
 const froms=[...src.matchAll(/\.from\(\s*['"\`]([A-Za-z0-9_-]+)['"\`]/g)].map(m=>m[1]);
 const tables=froms.filter(n=>!n.includes('-'));
