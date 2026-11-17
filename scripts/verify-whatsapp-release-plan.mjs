@@ -6,9 +6,11 @@ const history=JSON.parse(readFileSync('docs/integrations/restored-supabase-histo
 const active=readdirSync('supabase/migrations').filter(name=>/^\d+_.+\.sql$/.test(name));
 const applied=new Set(history.applied_versions);
 const pending=active.filter(name=>!applied.has(name.split('_',1)[0])).sort();
-assert.deepEqual(pending,history.release_pending_migrations.map(r=>r.file).sort(),
-  'Only the explicitly reviewed additive runtime migrations may auto-deploy');
-assert.equal(pending.length,2);
+const reviewedPending=[...history.release_pending_migrations,...(history.reviewed_feature_migrations||[])].map(r=>r.file).sort();
+assert.deepEqual(pending,reviewedPending,
+  'Only explicitly reviewed runtime and feature-reconciliation migrations may be pending for protected release');
+assert.equal(history.release_pending_migrations.length,2);
+assert.equal((history.reviewed_feature_migrations||[]).length,1);
 const latest=[...applied].sort().at(-1);
 for(const file of pending){
   assert(file.split('_',1)[0]>latest,`Pending migration predates recorded live history: ${file}`);
@@ -39,4 +41,4 @@ assert(workflow.includes('$SUPABASE_PROJECT_REF" != "zilwgiuiygqqardzutxi"'));
 const config=readFileSync('supabase/config.toml','utf8');
 assert(/\[functions\.nexora-whatsapp-connect\]\s*verify_jwt\s*=\s*true/.test(config));
 assert(/\[functions\.studioflow-whatsapp-booking\]\s*verify_jwt\s*=\s*false/.test(config));
-console.log('PASS: 167 recorded applied migrations plus two reviewed additive runtime migrations; 15 unrelated feature drafts and the superseded test draft remain preserved outside automatic deployment. Live apply is not tested.');
+console.log('PASS: 167 recorded applied migrations, two reviewed WhatsApp runtime migrations, and one reviewed Template 15/multi-service reconciliation migration; 15 unrelated feature drafts and the superseded test draft remain preserved. Live apply is not tested.');
