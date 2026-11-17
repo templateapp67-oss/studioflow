@@ -10,9 +10,9 @@ assert.match(source, /const canContinueToDateSlot=Boolean\(specialistsReady&&spe
 assert.match(source, /!specialistCheck\?\.published/, 'Date slots and booking submission must require a published salon.');
 assert.match(source, /Preview team from the salon dashboard/, 'The owner must see why draft staff are shown.');
 assert.match(source, /View Profile|View full profile/, 'Staff details must remain behind an explicit profile action.');
-assert.match(source, /previewStylist\\.specializedTreatments/ , 'Expanded profiles must include the editable treatment details.');
-assert.match(source, /previewStylist\\.education/ , 'Expanded profiles must include the editable education details.');
-assert.match(source, /previewStylist\\.experienceYears/ , 'Expanded profiles must include experience details.');
+assert.ok(source.includes('previewStylist.specializedTreatments'), 'Expanded profiles must include the editable treatment details.');
+assert.ok(source.includes('previewStylist.education'), 'Expanded profiles must include the editable education details.');
+assert.ok(source.includes('previewStylist.experienceYears'), 'Expanded profiles must include experience details.');
 assert.doesNotMatch(source, /commissionRate|accessRole/, 'Private staff permissions and commission must never appear in customer profiles.');
 
 const bundle = await build({
