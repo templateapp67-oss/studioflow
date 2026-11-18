@@ -485,7 +485,7 @@ export const SocialConnectivityStep: React.FC<SocialConnectivityStepProps> = ({
             </div>
           </div>
 
-          {/* SUB-SECTION 2: SALON LIVE CHAT */}}
+          {/* SUB-SECTION 2: SALON LIVE CHAT */}
           <TawkConnectionPanel />
 
           {/* SUB-SECTION 3: SHOW YOUR WORK */}
