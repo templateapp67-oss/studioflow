@@ -1,4 +1,8 @@
 -- Store each salon's public Tawk widget separately from the Booking API property mapping.
+-- Tawk chat widget IDs are stored separately; the Booking API mapping must remain chat-independent.
+alter table studioflow_tawk_private.property_mappings
+  drop column if exists tawk_widget_id;
+
 create schema if not exists studioflow_tawk_private;
 create table if not exists studioflow_tawk_private.widget_connections (
   id uuid primary key default gen_random_uuid(),
