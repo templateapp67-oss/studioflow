@@ -234,7 +234,11 @@ await act(async () => change(root.findAll((node: any) => node.props?.id === 'soc
 const beforeCount = profile.socialVideos.length;
 await act(async () => submitForm());
 assert.equal(profile.socialVideos.length, beforeCount, 'invalid Facebook link is not saved');
-assert.ok(text(root.findAll((node: any) => node.props?.role === 'alert')[0]).includes('Facebook Video/Reel'), 'error explains the accepted Facebook formats');
+assert.ok(
+  root.findAll((node: any) => node.props?.role === 'alert')
+    .some((node: any) => text(node).includes('Facebook Video/Reel')),
+  'error explains the accepted Facebook formats'
+);
 await act(async () => button('Cancel').props.onClick());
 assert.equal(root.findAll((node: any) => node.props?.role === 'dialog').length, 0, 'Cancel closes the dialog');
 
