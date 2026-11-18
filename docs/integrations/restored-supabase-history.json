@@ -2061,7 +2061,8 @@
       "name": "nexora_whatsapp_optional_profiles",
       "observed_at": "2026-11-19",
       "evidence": "Confirmed in the remote supabase_migrations.schema_migrations history for project zilwgiuiygqqardzutxi; the corresponding local SQL source exists in main.",
-      "purpose": "Optional profile keys and service-role Vault helper grants; additive WhatsApp runtime repair."
+      "purpose": "Optional profile keys and service-role Vault helper grants; additive WhatsApp runtime repair.",
+      "git_blob_sha": "1c077c73a9888d4bf0750c4a5cd8ca917fcc06e1"
     },
     {
       "version": "20261117061129",
@@ -2069,7 +2070,8 @@
       "name": "studioflow_shared_edge_rate_limits",
       "observed_at": "2026-11-19",
       "evidence": "Confirmed in the remote supabase_migrations.schema_migrations history for project zilwgiuiygqqardzutxi; the corresponding local SQL source exists in main.",
-      "purpose": "Service-only shared booking-email rate limiter; confirmed absent in the earlier captured live export."
+      "purpose": "Service-only shared booking-email rate limiter; confirmed absent in the earlier captured live export.",
+      "git_blob_sha": "458e105c0cd8a5553ed4b62b346c92bb8dd47353"
     },
     {
       "version": "20261117130000",
@@ -2077,7 +2079,8 @@
       "name": "reconcile_template15_multiservice_booking",
       "observed_at": "2026-11-19",
       "evidence": "Confirmed in the remote supabase_migrations.schema_migrations history for project zilwgiuiygqqardzutxi; the corresponding local SQL source exists in main.",
-      "purpose": "Reviewed Template 15 men-only booking guards and multi-service branch/unbranched booking RPC reconciliation."
+      "purpose": "Reviewed Template 15 men-only booking guards and multi-service branch/unbranched booking RPC reconciliation.",
+      "git_blob_sha": "6af78dfe0cd7c25d30a095a3d7a2a55dc97ca0ea"
     },
     {
       "version": "20261118155850",
@@ -2085,7 +2088,8 @@
       "name": "add_tawk_widget_connection",
       "observed_at": "2026-11-19",
       "evidence": "Confirmed in the remote supabase_migrations.schema_migrations history for project zilwgiuiygqqardzutxi; the corresponding local SQL source exists in main.",
-      "purpose": "Historical comment-only compatibility marker for the per-salon Tawk widget migration chain."
+      "purpose": "Historical comment-only compatibility marker for the per-salon Tawk widget migration chain.",
+      "git_blob_sha": "6a096dc13b5b4ff5f49105143b7446c2214ad6de"
     },
     {
       "version": "20261118160249",
@@ -2093,7 +2097,8 @@
       "name": "separate_tawk_widget_connections",
       "observed_at": "2026-11-19",
       "evidence": "Confirmed in the remote supabase_migrations.schema_migrations history for project zilwgiuiygqqardzutxi; the corresponding local SQL source exists in main.",
-      "purpose": "Historical comment-only marker documenting the isolated widget_connections table."
+      "purpose": "Historical comment-only marker documenting the isolated widget_connections table.",
+      "git_blob_sha": "e88ba341cbfab4b91427ec909e0811264bc0c97b"
     },
     {
       "version": "20261118185200",
@@ -2101,7 +2106,8 @@
       "name": "create_tawk_api_backend",
       "observed_at": "2026-11-19",
       "evidence": "Confirmed in the remote supabase_migrations.schema_migrations history for project zilwgiuiygqqardzutxi; the corresponding local SQL source exists in main.",
-      "purpose": "Tawk read-only API private-schema, API-key and rate-limit backend migration; source restored to main."
+      "purpose": "Tawk read-only API private-schema, API-key and rate-limit backend migration; source restored to main.",
+      "git_blob_sha": "e07bedadbc631556ebba612c7130fba6b84e752b"
     },
     {
       "version": "20261118203000",
@@ -2109,7 +2115,8 @@
       "name": "add_tawk_widget_connection",
       "observed_at": "2026-11-19",
       "evidence": "Confirmed in the remote supabase_migrations.schema_migrations history for project zilwgiuiygqqardzutxi; the corresponding local SQL source exists in main.",
-      "purpose": "Reviewed per-salon Tawk.to live chat migration; isolated mappings/widget connections, private RLS and public widget ID resolution."
+      "purpose": "Reviewed per-salon Tawk.to live chat migration; isolated mappings/widget connections, private RLS and public widget ID resolution.",
+      "git_blob_sha": "29901239635b72fd43f2402dd0ffef78a4e5f56c"
     }
   ]
 }
