@@ -126,6 +126,41 @@ for (const name of PUBLIC_BY_DESIGN.keys()) {
   assert.ok(folders.includes(name), `PUBLIC_BY_DESIGN lists "${name}", which no longer exists`);
 }
 
+// --- 4c. Tawk.to owner/public tenant boundary ------------------------------
+const tawkConnectSource = readFileSync(
+  join(FUNCTIONS_DIR, 'studioflow-tawk-connect', 'index.ts'),
+  'utf8',
+);
+assert.match(tawkConnectSource, /admin\.auth\.getUser\(token\)/,
+  'Tawk owner connection validates the caller token with Supabase Auth getUser()');
+assert.match(tawkConnectSource, /auth\.user\.is_anonymous/,
+  'Tawk owner connection rejects anonymous sessions');
+assert.match(tawkConnectSource, /studioflow_accounts[\s\S]*?eq\('user_id', ownerId\)/,
+  'Tawk owner connection requires an owner workspace');
+assert.match(tawkConnectSource, /admin\.rpc\(['"]studioflow_tawk_owner_connection['"]/,
+  'Tawk owner connection uses the private service-role RPC');
+assert.match(tawkConnectSource, /SUPABASE_SERVICE_ROLE_KEY/,
+  'Tawk owner RPC is called from the server-side service-role client');
+assert.match(tawkConnectSource, /Cache-Control['"]\s*,\s*['"]no-store/i,
+  'Tawk owner responses are not cached');
+const tawkConfig = readFileSync('supabase/config.toml', 'utf8');
+assert.match(tawkConfig, /\[functions\.studioflow-tawk-connect\]\s*verify_jwt\s*=\s*false/,
+  'Tawk function uses handler-side JWT validation rather than gateway-only JWT validation');
+
+const tawkPanelSource = readFileSync('src/components/TawkConnectionPanel.tsx', 'utf8');
+assert.match(tawkPanelSource, /functions\.invoke\(['"]studioflow-tawk-connect['"]/,
+  'Tawk owner panel invokes the dedicated owner function');
+assert.doesNotMatch(tawkPanelSource, /SUPABASE_SERVICE_ROLE_KEY|sb_secret_[A-Za-z0-9_-]+|tawk_api_key/i,
+  'Tawk service-role and API secrets are not exposed to browser code');
+
+const tawkPublicSource = readFileSync('src/components/TawkPublicWidget.tsx', 'utf8');
+assert.match(tawkPublicSource, /studioflow_tawk_public_config/,
+  'Published salon widget reads its own public widget configuration');
+assert.match(tawkPublicSource, /embed\.tawk\.to\//,
+  'Published salon widget builds the Tawk embed URL from public IDs');
+assert.match(readFileSync('src/App.tsx', 'utf8'), /<TawkPublicWidget\s+slug=\{slug\}\s*\/>/,
+  'The shared published-site renderer attaches the salon-specific widget');
+
 // --- 5. each entrypoint actually starts a server --------------------------
 // `snapshot-accounts` still uses the legacy std/http `serve` helper, so accept
 // either style rather than forcing an out-of-scope rewrite of that function.
