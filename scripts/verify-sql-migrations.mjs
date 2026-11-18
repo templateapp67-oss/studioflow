@@ -143,14 +143,34 @@ assert.equal((reconcileSql.match(/\$\$/g)||[]).length%2,0,
 assert.match(reconcileSql,/returns jsonb language plpgsql stable security definer set search_path='' as \$\$/,
   'Template 15 migration function body must start with a valid dollar-quote delimiter');
 await applySqlText(reconcileSql,'supabase/migrations/20261117130000_reconcile_template15_multiservice_booking.sql');
-// Tawk.to public widget lookup and private owner-management contract.
-// This additive migration is replayed in the same offline catalog used by
-// the browser RPC audit, so new public RPC call sites cannot go unverified.
-const tawkWidgetMigration = readFileSync(
-  'supabase/migrations/20261118203000_add_tawk_widget_connection.sql',
-  'utf8',
-);
-await applySqlText(tawkWidgetMigration, 'supabase/migrations/20261118203000_add_tawk_widget_connection.sql');
+// Replay every tracked Tawk migration chronologically against the clean offline database.
+const tawkMigrationNames = readdirSync('supabase/migrations')
+  .filter(name => name.toLowerCase().includes('tawk') && name.endsWith('.sql'))
+  .sort();
+assert.ok(tawkMigrationNames.includes('20261118203000_add_tawk_widget_connection.sql'),
+  'the final Tawk widget migration is tracked');
+const tawkMigrationSql = new Map();
+for (const name of tawkMigrationNames) {
+  const file = 'supabase/migrations/' + name;
+  const sql = readFileSync(file, 'utf8');
+  tawkMigrationSql.set(name, sql);
+  await applySqlText(sql, file);
+}
+const widgetMigration = tawkMigrationSql.get('20261118203000_add_tawk_widget_connection.sql');
+assert.match(widgetMigration, /create schema if not exists studioflow_tawk_private/i,
+  'Tawk migration creates its private schema');
+assert.match(widgetMigration, /create table if not exists studioflow_tawk_private\.widget_connections/i,
+  'Tawk migration creates the private widget table');
+assert.match(widgetMigration, /check\s*\(\s*lower\(tawk_widget_id\)\s*=\s*'default'\s+or\s+tawk_widget_id\s*~/i,
+  'database widget constraint accepts default plus standard IDs');
+const sqlLower = widgetMigration.toLowerCase();
+const schemaAt = sqlLower.indexOf('create schema if not exists studioflow_tawk_private');
+const tableAt = sqlLower.indexOf('create table if not exists studioflow_tawk_private.widget_connections');
+const alterAt = sqlLower.indexOf('alter table');
+const rpcAt = sqlLower.indexOf('create or replace function');
+assert.ok(schemaAt >= 0 && tableAt > schemaAt, 'private schema precedes widget table creation');
+assert.ok(alterAt > tableAt, 'widget table exists before its first ALTER TABLE');
+assert.ok(rpcAt > alterAt, 'private schema/table setup precedes RPC creation');
 const { rows: [tawkSecurity] } = await db.query(`
   select
     has_function_privilege('anon', 'public.studioflow_tawk_public_config(text)', 'EXECUTE') as anon_public_lookup,
@@ -159,14 +179,31 @@ const { rows: [tawkSecurity] } = await db.query(`
     has_function_privilege('authenticated', 'public.studioflow_tawk_owner_connection(text,uuid,text,text,text)', 'EXECUTE') as owner_role_manage,
     has_function_privilege('service_role', 'public.studioflow_tawk_owner_connection(text,uuid,text,text,text)', 'EXECUTE') as service_role_manage,
     (select c.relrowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace
-      where n.nspname='studioflow_tawk_private' and c.relname='widget_connections') as widget_table_rls
+      where n.nspname='studioflow_tawk_private' and c.relname='widget_connections') as widget_table_rls,
+    has_schema_privilege('anon', 'studioflow_tawk_private', 'USAGE') as anon_schema_usage,
+    has_schema_privilege('authenticated', 'studioflow_tawk_private', 'USAGE') as authenticated_schema_usage,
+    has_schema_privilege('service_role', 'studioflow_tawk_private', 'USAGE') as service_role_schema_usage,
+    has_table_privilege('anon', 'studioflow_tawk_private.widget_connections', 'SELECT') as anon_table_select,
+    has_table_privilege('anon', 'studioflow_tawk_private.widget_connections', 'INSERT') as anon_table_insert,
+    has_table_privilege('authenticated', 'studioflow_tawk_private.widget_connections', 'SELECT') as authenticated_table_select,
+    has_table_privilege('authenticated', 'studioflow_tawk_private.widget_connections', 'INSERT') as authenticated_table_insert,
+    (select count(*)::int from pg_constraint where conrelid='studioflow_tawk_private.widget_connections'::regclass
+      and conname='tawk_widget_connections_widget_format') as widget_id_constraint_count
 `);
 assert.equal(tawkSecurity.anon_public_lookup, true, 'published Tawk widget lookup is public');
 assert.equal(tawkSecurity.owner_public_lookup, true, 'signed-in published Tawk widget lookup is public');
 assert.equal(tawkSecurity.anon_owner_manage, false, 'anonymous clients cannot manage Tawk connections');
-assert.equal(tawkSecurity.owner_role_manage, false, 'authenticated clients cannot call the service-role owner RPC directly');
-assert.equal(tawkSecurity.service_role_manage, true, 'the authenticated Edge Function service role can manage Tawk connections');
+assert.equal(tawkSecurity.owner_role_manage, false, 'authenticated clients cannot call owner management RPC');
+assert.equal(tawkSecurity.service_role_manage, true, 'service_role can call owner management RPC');
 assert.equal(tawkSecurity.widget_table_rls, true, 'private Tawk widget table has RLS enabled');
+assert.equal(tawkSecurity.anon_schema_usage, false, 'anon has no private Tawk schema usage');
+assert.equal(tawkSecurity.authenticated_schema_usage, false, 'authenticated has no private Tawk schema usage');
+assert.equal(tawkSecurity.service_role_schema_usage, true, 'service_role can use the private Tawk schema');
+assert.equal(tawkSecurity.anon_table_select, false, 'anon cannot read private widget rows');
+assert.equal(tawkSecurity.anon_table_insert, false, 'anon cannot insert private widget rows');
+assert.equal(tawkSecurity.authenticated_table_select, false, 'authenticated cannot read private widget rows');
+assert.equal(tawkSecurity.authenticated_table_insert, false, 'authenticated cannot insert private widget rows');
+assert.equal(tawkSecurity.widget_id_constraint_count, 1, 'widget ID check constraint exists exactly once');
 const rpcs=clientRpc(src);
 const froms=[...src.matchAll(/\.from\(\s*['"\`]([A-Za-z0-9_-]+)['"\`]/g)].map(m=>m[1]);
 const tables=froms.filter(n=>!n.includes('-'));
