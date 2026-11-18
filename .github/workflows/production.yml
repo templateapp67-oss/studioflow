@@ -85,10 +85,12 @@ jobs:
   migrate:
     name: Supabase v3 migration dry-run / approved apply
     needs: [ci, changes]
+    # Run the remote history check and dry-run on every main push. This makes
+    # drift detection continuous, including ordinary code-only releases.
     if: >-
       github.ref == 'refs/heads/main' &&
       (
-        (github.event_name == 'push' && needs.changes.outputs.migrations_changed == 'true') ||
+        github.event_name == 'push' ||
         (github.event_name == 'workflow_dispatch' &&
           (inputs.release_mode == 'dry_run' || inputs.release_mode == 'apply_and_deploy'))
       )
@@ -307,7 +309,7 @@ jobs:
       (
         (github.event_name == 'push' &&
           needs.changes.outputs.migrations_changed == 'false' &&
-          needs.migrate.result == 'skipped') ||
+          needs.migrate.result == 'success') ||
         (github.event_name == 'workflow_dispatch' &&
           inputs.release_mode == 'apply_and_deploy' &&
           needs.migrate.result == 'success') ||

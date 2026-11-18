@@ -6,12 +6,21 @@ assert(raw.trim(),'Supabase migration list output is empty; refusing to run a dr
 const output=raw.replace(/\u001b\[[0-?]*[ -/]*[@-~]/g,'');
 const localFromCli=[];
 const remoteFromCli=[];
+function migrationColumns(line){
+  const separator=line.includes('│')?'│':line.includes('|')?'|':null;
+  if(!separator) return null;
+  const cells=line.split(separator);
+  if(cells[0]?.trim()==='') cells.shift();
+  if(cells.at(-1)?.trim()==='') cells.pop();
+  return cells.map(value=>value.trim());
+}
 for(const line of output.split(/\r?\n/)){
-  if(!line.includes('│')) continue;
-  const columns=line.split('│');
-  if(columns.length<3) continue;
-  const local=columns[0].trim();
-  const remote=columns[1].trim();
+  const columns=migrationColumns(line);
+  if(!columns || columns.length<2) continue;
+  // Supabase CLI prints Local first and Remote second. Preserve empty cells:
+  // an empty Local value means remote-only; an empty Remote value means pending.
+  const local=columns[0]||'';
+  const remote=columns[1]||'';
   if(/^\d{14}$/.test(local)) localFromCli.push(local);
   if(/^\d{14}$/.test(remote)) remoteFromCli.push(remote);
 }
@@ -27,6 +36,12 @@ assert.deepEqual([...new Set(duplicates)],[],
 const uniqueSorted=values=>[...new Set(values)].sort();
 const cliLocal=uniqueSorted(localFromCli);
 const cliRemote=uniqueSorted(remoteFromCli);
+const duplicateCliLocal=localFromCli.filter((version,index)=>localFromCli.indexOf(version)!==index);
+const duplicateCliRemote=remoteFromCli.filter((version,index)=>remoteFromCli.indexOf(version)!==index);
+assert.deepEqual([...new Set(duplicateCliLocal)],[],
+  'Supabase CLI returned duplicate local migration history rows: '+[...new Set(duplicateCliLocal)].join(', '));
+assert.deepEqual([...new Set(duplicateCliRemote)],[],
+  'Supabase CLI returned duplicate remote migration history rows: '+[...new Set(duplicateCliRemote)].join(', '));
 assert(cliLocal.length>0||localVersions.length===0,
   'Could not parse local timestamps from supabase migration list --remote; output format changed.');
 assert(cliRemote.length>0||localVersions.length===0,
