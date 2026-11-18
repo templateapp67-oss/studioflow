@@ -14,7 +14,7 @@ create table if not exists studioflow_tawk_private.widget_connections (
   constraint tawk_widget_connections_slug_uidx unique (website_slug),
   constraint tawk_widget_connections_property_uidx unique (tawk_property_id),
   constraint tawk_widget_connections_property_format check (tawk_property_id ~ '^[A-Za-z0-9_-]{8,64}$'),
-  constraint tawk_widget_connections_widget_format check (lower(tawk_widget_id) = 'default' or tawk_widget_id ~ '^[A-Za-z0-9_-]{8,64}
+  constraint tawk_widget_connections_widget_format check (lower(tawk_widget_id) = 'default' or tawk_widget_id ~ '^[A-Za-z0-9_-]{8,64}$'),
 );
 alter table studioflow_tawk_private.widget_connections enable row level security;
 revoke all on studioflow_tawk_private.widget_connections from anon, authenticated;
@@ -26,7 +26,8 @@ alter table studioflow_tawk_private.widget_connections
   drop constraint if exists tawk_widget_connections_widget_format;
 alter table studioflow_tawk_private.widget_connections
   add constraint tawk_widget_connections_widget_format
-  check (lower(tawk_widget_id) = 'default' or tawk_widget_id ~ '^[A-Za-z0-9_-]{8,64}
+  check (lower(tawk_widget_id) = 'default' or tawk_widget_id ~ '^[A-Za-z0-9_-]{8,64}$');
+
 create or replace function public.studioflow_tawk_public_config(p_slug text)
 returns jsonb language sql stable security definer set search_path = ''
 as $$
