@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {chmodSync,mkdtempSync,readFileSync,rmSync,writeFileSync} from 'node:fs';
+import {chmodSync,mkdtempSync,readdirSync,readFileSync,rmSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
@@ -259,6 +259,38 @@ if(argv[0] === 'migration' && argv[1] === 'list'){
   for(const call of calls){
     assert.equal(call.envRef,EXPECTED_REF,'propagated SUPABASE_PROJECT_REF env has zero whitespace');
   }
+
+  // Exercise the production history parser against a remote-only timestamp row.
+  const localVersions=readdirSync('supabase/migrations')
+    .filter(name=>/^\\d{14}_.+\\.sql$/.test(name))
+    .map(name=>name.slice(0,14)).sort();
+  const baseMigrationList=[
+    'LOCAL | REMOTE | TIME (UTC)',
+    '------|--------|----------',
+    ...localVersions.map(version=>'`'+version+'` | `'+version+'` | `2026-11-19 00:00:00`')
+  ].join('\\n');
+  const remoteOnlyResult=spawnSync('node',['scripts/verify-supabase-migration-history.mjs'],{
+    env:{
+      ...process.env,
+      SUPABASE_MIGRATION_LIST_OUTPUT:baseMigrationList+'\\n              | `20990101000000` | `2099-01-01 00:00:00`',
+    },
+    encoding:'utf8',
+  });
+  assert.notEqual(remoteOnlyResult.status,0,'remote-only applied migration must fail closed');
+  assert((remoteOnlyResult.stderr||'').includes('20990101000000'),
+    'remote-only failure must identify the unmatched remote version');
+
+  const duplicateRemoteResult=spawnSync('node',['scripts/verify-supabase-migration-history.mjs'],{
+    env:{
+      ...process.env,
+      SUPABASE_MIGRATION_LIST_OUTPUT:baseMigrationList+'\\n              | `20261118203000` | `2026-11-18 20:30:00`',
+    },
+    encoding:'utf8',
+  });
+  assert.notEqual(duplicateRemoteResult.status,0,'duplicate remote migration history row must fail closed');
+  assert((duplicateRemoteResult.stderr||'').includes('duplicate remote migration history rows'),
+    'duplicate remote failure must explain the duplicate history row');
+
   assert.deepEqual(calls[0].argv,['link','--project-ref',EXPECTED_REF]);
   assert.deepEqual(calls[1].argv,['migration','list',`--remote=${EXPECTED_REF}`,'--password',PASS_SENTINEL]);
   assert.deepEqual(calls[2].argv,['db','push','--dry-run',`--remote=${EXPECTED_REF}`,'--password',PASS_SENTINEL]);

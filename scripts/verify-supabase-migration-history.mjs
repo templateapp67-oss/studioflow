@@ -68,7 +68,6 @@ assert(cliRemote.length>0||localVersions.length===0,
 assert.deepEqual(cliLocal,uniqueSorted(localVersions),
   'Supabase CLI local migration list does not match files checked out in supabase/migrations.');
 
-const localSet=new Set(localVersions);
 const remoteSet=new Set(cliRemote);
 const remoteOnly=cliRemote.filter(version=>!localSet.has(version));
 const localOnly=uniqueSorted(localVersions.filter(version=>!remoteSet.has(version)));
