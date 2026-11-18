@@ -262,7 +262,7 @@ if(argv[0] === 'migration' && argv[1] === 'list'){
 
   // Exercise the production history parser against a remote-only timestamp row.
   const localVersions=readdirSync('supabase/migrations')
-    .filter(name=>/^\\d{14}_.+\\.sql$/.test(name))
+    .filter(name=>/^\d{14}_.+\.sql$/.test(name))
     .map(name=>name.slice(0,14)).sort();
   const baseMigrationList=[
     'LOCAL | REMOTE | TIME (UTC)',
