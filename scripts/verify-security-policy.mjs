@@ -60,13 +60,17 @@ requires('media-src', [
 ]);
 requires('frame-src', [
   "'self'", 'https://*.razorpay.com', 'https://www.youtube.com', 'https://www.youtube-nocookie.com',
-  'https://www.facebook.com', 'https://www.instagram.com', 'https://player.vimeo.com',
+  'https://www.facebook.com', 'https://web.facebook.com', 'https://staticxx.facebook.com', 'https://www.instagram.com', 'https://player.vimeo.com',
   'https://www.google.com', 'https://maps.google.com', 'https://www.openstreetmap.org',
 ]);
 requires('worker-src', ["'self'", 'blob:']);
 requires('manifest-src', ["'self'"]);
 
 // The policy must match the actual runtime loaders, not just a wishlist.
+const whatsAppPanel = readFileSync('src/components/NexoraWhatsAppPanel.tsx', 'utf8');
+const metaSdkUrl = whatsAppPanel.match(/script\.src = '(https:\/\/connect\.facebook\.net\/[^']*sdk\.js)'/)?.[1];
+assert.ok(metaSdkUrl, 'owner signup uses the first-party Meta SDK');
+requires('script-src', [new URL(metaSdkUrl).origin]);
 const leaflet = readFileSync('src/lib/loadLeaflet.ts', 'utf8');
 assert.ok(leaflet.includes('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'));
 assert.ok(leaflet.includes('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'));

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { FunctionsHttpError } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
 type Connection = {
@@ -67,12 +68,24 @@ type SignupConfig = {
   embeddedSignupVersion?: string;
 };
 type MetaLoginResponse = {
-  authResponse?: { code?: string; accessToken?: string };
+  authResponse?: { code?: string };
   status?: string;
 };
 type MetaSdk = {
   init: (options: { appId: string; cookie: boolean; xfbml: boolean; version: string }) => void;
   login: (callback: (response: MetaLoginResponse) => void, options: Record<string, unknown>) => void;
+};
+
+type PreparedSignup = { sdk: MetaSdk; configId: string; state: string };
+type SignupResult = {
+  state: string;
+  code: string;
+  wabaId: string;
+  phoneNumberId: string;
+  businessId: string;
+  messagingAccountIds: string[];
+  isOnBizApp: boolean;
+  primaryWaacIds: string[];
 };
 
 declare global {
@@ -117,18 +130,20 @@ function loadFacebookSdk() {
     script.defer = true;
     script.crossOrigin = 'anonymous';
     script.src = 'https://connect.facebook.net/en_US/sdk.js';
-    script.onload = () => window.FB ? resolve(window.FB) : reject(new Error('Meta login did not initialise.'));
-    script.onerror = () => reject(new Error('Meta login could not load. Check your internet connection and try again.'));
+    const fail = (message: string) => {
+      script.remove();
+      reject(new Error(message));
+    };
+    script.onload = () => window.FB ? resolve(window.FB) : fail('Meta login did not initialise.');
+    script.onerror = () => fail('Meta login could not load. Check your internet connection and try again.');
     document.head.appendChild(script);
   });
 }
 
-async function runEmbeddedSignup(config: SignupConfig, state: string) {
-  if (!config.appId || !config.configId) throw new Error('Meta Embedded Signup v5 is not configured.');
-  const FB = await loadFacebookSdk();
-  FB.init({ appId: config.appId, cookie: true, xfbml: false, version: config.graphVersion });
-
-  return new Promise<{ code: string; wabaId: string; phoneNumberId: string; businessId: string; messagingAccountIds: string[]; isOnBizApp: boolean; primaryWaacIds: string[] }>((resolve, reject) => {
+// The caller prepares the SDK and the server-side state on the previous step.
+// FB.login must run synchronously on the owner's click to open its popup.
+function runEmbeddedSignup({ sdk: FB, configId, state }: PreparedSignup) {
+  return new Promise<SignupResult>((resolve, reject) => {
     let code = '';
     let wabaId = '';
     let phoneNumberId = '';
@@ -144,10 +159,10 @@ async function runEmbeddedSignup(config: SignupConfig, state: string) {
       if (timer) window.clearTimeout(timer);
     };
     const finish = () => {
-      if (finished || !code || !wabaId || !phoneNumberId) return;
+      if (finished || !code || !phoneNumberId) return;
       finished = true;
       cleanup();
-      resolve({ code, wabaId, phoneNumberId, businessId, messagingAccountIds, isOnBizApp, primaryWaacIds });
+      resolve({ state, code, wabaId, phoneNumberId, businessId, messagingAccountIds, isOnBizApp, primaryWaacIds });
     };
     const fail = (message: string) => {
       if (finished) return;
@@ -171,47 +186,65 @@ async function runEmbeddedSignup(config: SignupConfig, state: string) {
         messagingAccountIds = Array.isArray(payload.messaging_account_ids)
           ? payload.messaging_account_ids.filter((value): value is string => typeof value === 'string')
           : [];
-        wabaId = typeof payload.waba_id === 'string' ? payload.waba_id : messagingAccountIds[0] || '';
-        phoneNumberId = typeof payload.phone_number_id === 'string' ? payload.phone_number_id : '';
+        wabaId = typeof payload.waba_id === 'string' ? payload.waba_id : '';
+        if (typeof payload.phone_number_id !== 'string' || !/^\d{5,40}$/.test(payload.phone_number_id)) {
+          fail('Meta did not share a business phone number. Start again and select a number, not an account-only connection.');
+          return;
+        }
+        phoneNumberId = payload.phone_number_id;
         businessId = typeof payload.business_id === 'string' ? payload.business_id : '';
-        isOnBizApp = payload.is_on_biz_app === true;
+        isOnBizApp = eventName === 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING' || payload.is_on_biz_app === true;
         primaryWaacIds = Array.isArray(payload.primary_waac_ids)
           ? payload.primary_waac_ids.filter((value): value is string => typeof value === 'string')
           : [];
         finish();
+      } else if (eventName === 'FINISH_ONLY_WABA') {
+        fail('Meta shared an account without a business phone number. Start again and select a number.');
       } else if (eventName === 'CANCEL') {
         fail('WhatsApp setup was cancelled in Meta. Your existing salon settings are unchanged.');
       } else if (eventName === 'ERROR') {
-        fail(typeof payload.error_message === 'string' ? payload.error_message : 'Meta reported a WhatsApp setup error.');
+        const code = typeof payload.error_code === 'number' && Number.isInteger(payload.error_code) ? ` (code ${payload.error_code})` : '';
+        fail(`Meta reported a WhatsApp setup error${code}. Review the settings in Meta and try again.`);
       }
     };
 
     window.addEventListener('message', onMessage);
     timer = window.setTimeout(() => fail('Meta setup did not finish. Please try connecting again.'), 180000);
 
-    FB.login((response) => {
-      const returnedCode = response.authResponse?.code;
-      if (typeof returnedCode === 'string' && returnedCode) {
-        code = returnedCode;
-        finish();
-      } else if (response.status === 'unknown' || !response.authResponse) {
-        fail('Meta login was closed before the WhatsApp number was connected.');
-      } else {
-        fail('Meta did not return a short-lived connection code. Please start again.');
-      }
-    }, {
-      config_id: config.configId,
-      auth_type: 'rerequest',
-      response_type: 'code',
-      override_default_response_type: true,
-      extras: { version: 'v5' },
-    });
-  }).then((result) => ({ ...result, state }));
+    try {
+      FB.login((response) => {
+        const returnedCode = response?.authResponse?.code;
+        if (typeof returnedCode === 'string' && returnedCode) {
+          code = returnedCode;
+          finish();
+        } else if (!response?.authResponse) {
+          fail('Meta login was closed before the WhatsApp number was connected.');
+        } else {
+          fail('Meta did not return a short-lived connection code. Please start again.');
+        }
+      }, {
+        config_id: configId,
+        auth_type: 'rerequest',
+        response_type: 'code',
+        override_default_response_type: true,
+        extras: { version: 'v5' },
+      });
+    } catch {
+      fail('Meta login could not open. Allow pop-ups and try again.');
+    }
+  });
+}
+
+async function functionError(error: unknown, fallback: string) {
+  const body = error instanceof FunctionsHttpError ? await error.context.json().catch(() => null) : null;
+  return new Error(typeof body?.error === 'string' ? body.error : fallback);
 }
 
 export const NexoraWhatsAppPanel: React.FC<{ onBookingsChanged?: () => Promise<void> | void }> = ({ onBookingsChanged }) => {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [preparedSignup, setPreparedSignup] = useState<PreparedSignup | null>(null);
+  const [registrationPin, setRegistrationPin] = useState('');
   const [status, setStatus] = useState<PanelStatus | null>(null);
   const [config, setConfig] = useState<SignupConfig | null>(null);
   const [notice, setNotice] = useState<{ kind: 'success' | 'error' | 'info'; text: string } | null>(null);
@@ -287,7 +320,7 @@ export const NexoraWhatsAppPanel: React.FC<{ onBookingsChanged?: () => Promise<v
         body: { action: 'sendReply', customerWaId: activeWaId, message },
       });
       if (result.error || !result.data?.sent) {
-        throw new Error(result.data?.error || result.error?.message || 'WhatsApp reply could not be sent.');
+        throw await functionError(result.error, 'WhatsApp reply could not be sent.');
       }
       setReplyText('');
       await openConversation(activeWaId);
@@ -300,37 +333,44 @@ export const NexoraWhatsAppPanel: React.FC<{ onBookingsChanged?: () => Promise<v
     }
   };
 
+  const saveSignup = async (result: SignupResult, pin = '') => {
+    const completed = await supabase.functions.invoke('nexora-whatsapp-connect', {
+      body: { action: 'complete', ...result, ...(pin ? { registrationPin: pin } : {}) },
+    });
+    if (completed.error || !completed.data?.ok) {
+      throw await functionError(completed.error, 'WhatsApp connection could not be saved. Start setup again.');
+    }
+    setNotice({ kind: 'info', text: `WhatsApp ${completed.data.connection?.display_phone_number || ''} is linked. Send HI from another phone to verify messages before accepting bookings.` });
+    await onBookingsChanged?.();
+    await refresh();
+  };
+
   const connect = async () => {
+    if (busy) return;
     setBusy(true);
     setNotice(null);
     try {
-      const begin = await supabase.functions.invoke('nexora-whatsapp-connect', { body: { action: 'begin' } });
-      if (begin.error || !begin.data?.state) throw new Error(begin.data?.error || begin.error?.message || 'Could not begin WhatsApp setup.');
-      const activeConfig: SignupConfig = {
-        configured: true,
-        appId: begin.data.appId,
-        configId: begin.data.configId,
-        graphVersion: begin.data.graphVersion || 'v27.0',
-        embeddedSignupVersion: begin.data.embeddedSignupVersion || 'v5',
-      };
-      const result = await runEmbeddedSignup(activeConfig, begin.data.state);
-      const completed = await supabase.functions.invoke('nexora-whatsapp-connect', {
-        body: {
-          action: 'complete',
-          state: result.state,
-          code: result.code,
-          wabaId: result.wabaId,
-          phoneNumberId: result.phoneNumberId,
-          businessId: result.businessId,
-          messagingAccountIds: result.messagingAccountIds,
-          isOnBizApp: result.isOnBizApp,
-          primaryWaacIds: result.primaryWaacIds,
-        },
-      });
-      if (completed.error || !completed.data?.ok) throw new Error(completed.data?.error || completed.error?.message || 'WhatsApp connection could not be saved.');
-      setNotice({ kind: 'info', text: `WhatsApp ${completed.data.connection?.display_phone_number || ''} is linked. Send HI from another phone to verify messages before accepting bookings.` });
-      await onBookingsChanged?.();
-      await refresh();
+      if (preparedSignup) {
+        const pin = registrationPin;
+        if (pin && !/^\d{6}$/.test(pin)) throw new Error('Enter a six-digit Cloud API registration PIN.');
+        setPreparedSignup(null);
+        setRegistrationPin('');
+        const result = await runEmbeddedSignup(preparedSignup);
+        if (!mounted.current) return;
+        // The Meta code is short-lived. Finish immediately after the login
+        // callback and session event; do not wait for any more owner input.
+        await saveSignup(result, result.isOnBizApp ? '' : pin);
+      } else {
+        const sdk = await loadFacebookSdk();
+        if (!mounted.current) return;
+        const begin = await supabase.functions.invoke('nexora-whatsapp-connect', { body: { action: 'begin' } });
+        if (begin.error || !begin.data?.state || !begin.data.appId || !begin.data.configId) {
+          throw await functionError(begin.error, 'Could not begin WhatsApp setup.');
+        }
+        if (!mounted.current) return;
+        sdk.init({ appId: begin.data.appId, cookie: true, xfbml: false, version: begin.data.graphVersion || 'v27.0' });
+        setPreparedSignup({ sdk, configId: begin.data.configId, state: begin.data.state });
+      }
     } catch (error) {
       setNotice({ kind: 'error', text: error instanceof Error ? error.message : 'WhatsApp could not be connected.' });
     } finally {
@@ -406,10 +446,24 @@ export const NexoraWhatsAppPanel: React.FC<{ onBookingsChanged?: () => Promise<v
         ) : (
           <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <h3 className="font-bold text-slate-900">Connect your own number</h3>
-            <p className="muted mt-1">Meta will ask you to connect your WhatsApp Business number. The latest signup flow can keep the WhatsApp Business app working alongside the salon inbox. NEXORA will not use its support number for your customers.</p>
-            <button type="button" className="primary-action mt-4" disabled={busy || !config?.configured} onClick={connect}>
-              {busy ? 'Connecting…' : 'Connect with Meta'}
-            </button>
+            <p className="muted mt-1">Meta will ask you to connect your WhatsApp Business number. Eligible numbers can keep the WhatsApp Business app working alongside the salon inbox. Choose a number that is not linked to another provider; this setup does not migrate numbers.</p>
+            {preparedSignup ? (
+              <form className="mt-4 space-y-2" onSubmit={(event) => { event.preventDefault(); void connect(); }}>
+                <label className="block text-sm font-semibold" htmlFor="whatsapp-registration-pin">Two-step PIN (new Cloud API numbers only)</label>
+                <p className="muted text-sm" id="whatsapp-registration-pin-help">
+                  To register a new Cloud API number, enter its six-digit two-step verification PIN, or choose one if none is set. This is not the SMS code. Leave this blank if the number is already on Cloud API or you are keeping it in the WhatsApp Business app.
+                </p>
+                <input id="whatsapp-registration-pin" aria-describedby="whatsapp-registration-pin-help" type="password" inputMode="numeric" autoComplete="off" maxLength={6} pattern="[0-9]{6}" value={registrationPin} onChange={(event) => setRegistrationPin(event.target.value)} />
+                <div className="flex flex-wrap gap-2">
+                  <button type="submit" className="primary-action" disabled={busy || !config?.configured}>Continue in Meta</button>
+                  <button type="button" className="secondary-action" onClick={() => { setPreparedSignup(null); setRegistrationPin(''); }}>Cancel setup</button>
+                </div>
+              </form>
+            ) : (
+              <button type="button" className="primary-action mt-4" disabled={busy || !config?.configured} onClick={connect}>
+                {busy ? 'Connecting…' : 'Connect with Meta'}
+              </button>
+            )}
             {!config?.configured && (
               <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
                 <strong>Meta setup is not configured yet.</strong>
