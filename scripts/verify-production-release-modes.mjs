@@ -214,7 +214,7 @@ if(argv[0] === 'migration' && argv[1] === 'list'){
   const rows = [
     'LOCAL | REMOTE | TIME (UTC)',
     '------|--------|----------',
-    ...versions.map(version => '`'+version+'` | `'+version+'` | `2026-11-19 00:00:00`')
+    ...versions.map(version => { const tick = String.fromCharCode(96); return tick+version+tick+' | '+tick+version+tick+' | '+tick+'2026-11-19 00:00:00'+tick; })
   ];
   process.stdout.write(rows.join('\\n')+'\\n');
 }
