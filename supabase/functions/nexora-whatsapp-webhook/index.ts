@@ -47,7 +47,7 @@ async function vaultSecret(db: any, name: string) {
 async function decryptConnectionToken(db: any, connection: Json) {
   const keyResult = await db.rpc('nexora_whatsapp_token_key');
   if (keyResult.error || typeof keyResult.data !== 'string' || !keyResult.data) throw new Error('WhatsApp token encryption key is unavailable.');
-  const keyBytes = decodeBase64(keyResult.data);
+  const keyBytes = decodeBase64(keyResult.data.replace(/-/g, '+').replace(/_/g, '/'));
   if (keyBytes.length !== 32) throw new Error('WhatsApp token encryption key must decode to 32 bytes.');
   const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'AES-GCM' }, false, ['decrypt']);
   const plaintext = await crypto.subtle.decrypt(
@@ -71,7 +71,12 @@ async function graphSend(phoneNumberId: string, token: string, recipient: string
     signal: AbortSignal.timeout(15000),
   });
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(safeText(payload?.error?.message, 300) || 'WhatsApp message could not be sent.');
+  if (!response.ok) {
+    const error = payload?.error;
+    const code = Number.isInteger(error?.code) ? ', code ' + error.code : '';
+    const subcode = Number.isInteger(error?.error_subcode) ? ', subcode ' + error.error_subcode : '';
+    throw new Error('Meta Graph API rejected the WhatsApp message (HTTP ' + response.status + code + subcode + ').');
+  }
   return payload as Json;
 }
 async function getConnection(db: any, phoneNumberId: string) {
@@ -682,9 +687,11 @@ async function updateStatuses(db: any, connection: Json, statuses: Json[]) {
     });
     if (inserted.error?.code === '23505') continue;
     if (inserted.error) throw new Error('Could not record WhatsApp delivery status.');
+    const providerCode = status.errors?.[0]?.code;
+    const errorCode = Number.isInteger(providerCode) ? String(providerCode) : safeText(providerCode, 50);
     await db.from('salon_whatsapp_message_log').update({
       delivery_status: delivery,
-      error_code: delivery === 'failed' ? safeText(status.errors?.[0]?.code, 50) : null,
+      error_code: delivery === 'failed' ? errorCode || null : null,
       updated_at: new Date().toISOString(),
     }).eq('provider_message_id', messageId).eq('owner_id', connection.owner_id);
   }
