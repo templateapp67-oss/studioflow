@@ -49,51 +49,32 @@ Deno.serve(async (req: Request) => {
     const action = typeof body.action === 'string' ? body.action : '';
 
     if (action === 'status') {
-      const { data: websites, error } = await admin.from('studioflow_websites')
-        .select('slug,published_at').eq('owner_id', ownerId).not('published_at', 'is', null)
-        .order('published_at', { ascending: false }).limit(30);
-      if (error) return response({ error: 'Could not load your published salon websites.' }, 503, origin);
-      const slugs = (websites || []).map((w: any) => w.slug).filter((s: unknown) => typeof s === 'string');
-      const { data: mappings, error: mappingError } = slugs.length
-        ? await admin.schema('studioflow_tawk_private').from('property_mappings')
-            .select('website_slug,tawk_property_id,tawk_widget_id,status').eq('owner_id', ownerId).in('website_slug', slugs)
-        : { data: [], error: null };
-      if (mappingError) return response({ error: 'Could not load your Tawk connection.' }, 503, origin);
-      return response({ websites: websites || [], connections: mappings || [] }, 200, origin);
+      const { data, error } = await admin.rpc('studioflow_tawk_owner_connection', {
+        p_action: 'status', p_owner_id: ownerId, p_slug: null, p_property_id: null, p_widget_id: null,
+      });
+      if (error) return response({ error: 'Could not load your Tawk connection.' }, 503, origin);
+      return response(data || { websites: [], connections: [] }, 200, origin);
     }
 
     const slug = typeof body.slug === 'string' ? body.slug.trim().toLowerCase() : '';
     if (!/^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/.test(slug)) return response({ error: 'Choose a valid published website.' }, 400, origin);
-    const { data: website, error: websiteError } = await admin.from('studioflow_websites')
-      .select('slug').eq('owner_id', ownerId).eq('slug', slug).not('published_at', 'is', null).maybeSingle();
-    if (websiteError || !website) return response({ error: 'This published website does not belong to your owner account.' }, 403, origin);
-
-    if (action === 'disconnect') {
-      const { error } = await admin.schema('studioflow_tawk_private').from('property_mappings')
-        .update({ status: 'inactive', tawk_widget_id: null, updated_at: new Date().toISOString() })
-        .eq('owner_id', ownerId).eq('website_slug', slug);
-      if (error) return response({ error: 'Could not disconnect this Tawk widget.' }, 503, origin);
-      return response({ disconnected: true }, 200, origin);
-    }
-
-    if (action === 'connect') {
-      const propertyId = typeof body.propertyId === 'string' ? body.propertyId.trim() : '';
-      const widgetId = typeof body.widgetId === 'string' ? body.widgetId.trim() : '';
-      if (!/^[A-Za-z0-9_-]{8,64}$/.test(propertyId) || !/^[A-Za-z0-9_-]{8,64}$/.test(widgetId)) {
+    if (action === 'connect' || action === 'disconnect') {
+      const propertyId = typeof body.propertyId === 'string' ? body.propertyId.trim() : null;
+      const widgetId = typeof body.widgetId === 'string' ? body.widgetId.trim() : null;
+      if (action === 'connect' && (!propertyId || !widgetId
+        || !/^[A-Za-z0-9_-]{8,64}$/.test(propertyId) || !/^[A-Za-z0-9_-]{8,64}$/.test(widgetId))) {
         return response({ error: 'Enter the Tawk.to Property ID and Widget ID exactly as shown in your Tawk dashboard.' }, 400, origin);
       }
-      const { data: existing, error: existingError } = await admin.schema('studioflow_tawk_private').from('property_mappings')
-        .select('property_id,tawk_property_id').eq('owner_id', ownerId).eq('website_slug', slug).maybeSingle();
-      if (existingError) return response({ error: 'Could not check the current Tawk connection.' }, 503, origin);
-      const values = { tawk_property_id: propertyId, tawk_widget_id: widgetId, owner_id: ownerId, website_slug: slug, status: 'active', updated_at: new Date().toISOString() };
-      const saved = existing
-        ? await admin.schema('studioflow_tawk_private').from('property_mappings').update(values).eq('property_id', existing.property_id)
-        : await admin.schema('studioflow_tawk_private').from('property_mappings').insert({ ...values, property_id: crypto.randomUUID(), branch_id: null });
-      if (saved.error) {
-        if (saved.error.code === '23505') return response({ error: 'This Tawk Property ID is already connected to another salon website.' }, 409, origin);
-        return response({ error: 'Could not save this Tawk connection. Check the IDs and try again.' }, 503, origin);
+      const { data, error } = await admin.rpc('studioflow_tawk_owner_connection', {
+        p_action: action, p_owner_id: ownerId, p_slug: slug, p_property_id: propertyId, p_widget_id: widgetId,
+      });
+      if (error) {
+        if (error.code === '23505') return response({ error: 'This Tawk Property ID is already connected to another salon website.' }, 409, origin);
+        if (error.code === '42501') return response({ error: 'This published website does not belong to your owner account.' }, 403, origin);
+        if (error.code === '22023') return response({ error: 'The Tawk IDs are invalid.' }, 400, origin);
+        return response({ error: 'Could not save your Tawk connection.' }, 503, origin);
       }
-      return response({ connected: true, websiteSlug: slug }, 200, origin);
+      return response(data || { connected: action === 'connect' }, 200, origin);
     }
     return response({ error: 'Unknown Tawk connection action.' }, 400, origin);
   } catch {
