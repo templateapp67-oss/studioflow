@@ -143,6 +143,30 @@ assert.equal((reconcileSql.match(/\$\$/g)||[]).length%2,0,
 assert.match(reconcileSql,/returns jsonb language plpgsql stable security definer set search_path='' as \$\$/,
   'Template 15 migration function body must start with a valid dollar-quote delimiter');
 await applySqlText(reconcileSql,'supabase/migrations/20261117130000_reconcile_template15_multiservice_booking.sql');
+// Tawk.to public widget lookup and private owner-management contract.
+// This additive migration is replayed in the same offline catalog used by
+// the browser RPC audit, so new public RPC call sites cannot go unverified.
+const tawkWidgetMigration = readFileSync(
+  'supabase/migrations/20261118203000_add_tawk_widget_connection.sql',
+  'utf8',
+);
+await applySqlText(tawkWidgetMigration, 'supabase/migrations/20261118203000_add_tawk_widget_connection.sql');
+const { rows: [tawkSecurity] } = await db.query(`
+  select
+    has_function_privilege('anon', 'public.studioflow_tawk_public_config(text)', 'EXECUTE') as anon_public_lookup,
+    has_function_privilege('authenticated', 'public.studioflow_tawk_public_config(text)', 'EXECUTE') as owner_public_lookup,
+    has_function_privilege('anon', 'public.studioflow_tawk_owner_connection(text,uuid,text,text,text)', 'EXECUTE') as anon_owner_manage,
+    has_function_privilege('authenticated', 'public.studioflow_tawk_owner_connection(text,uuid,text,text,text)', 'EXECUTE') as owner_role_manage,
+    has_function_privilege('service_role', 'public.studioflow_tawk_owner_connection(text,uuid,text,text,text)', 'EXECUTE') as service_role_manage,
+    (select c.relrowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace
+      where n.nspname='studioflow_tawk_private' and c.relname='widget_connections') as widget_table_rls
+`);
+assert.equal(tawkSecurity.anon_public_lookup, true, 'published Tawk widget lookup is public');
+assert.equal(tawkSecurity.owner_public_lookup, true, 'signed-in published Tawk widget lookup is public');
+assert.equal(tawkSecurity.anon_owner_manage, false, 'anonymous clients cannot manage Tawk connections');
+assert.equal(tawkSecurity.owner_role_manage, false, 'authenticated clients cannot call the service-role owner RPC directly');
+assert.equal(tawkSecurity.service_role_manage, true, 'the authenticated Edge Function service role can manage Tawk connections');
+assert.equal(tawkSecurity.widget_table_rls, true, 'private Tawk widget table has RLS enabled');
 const rpcs=clientRpc(src);
 const froms=[...src.matchAll(/\.from\(\s*['"\`]([A-Za-z0-9_-]+)['"\`]/g)].map(m=>m[1]);
 const tables=froms.filter(n=>!n.includes('-'));
