@@ -133,6 +133,30 @@ const tawkConnectSource = readFileSync(
 );
 assert.match(tawkConnectSource, /admin\.auth\.getUser\(token\)/,
   'Tawk owner connection validates the caller token with Supabase Auth getUser()');
+
+assert.match(tawkConnectSource, /const PUBLISHED_WEBSITE_SLUG = \/\^\[a-z0-9\]\[a-z0-9-\]\{2,62\}\$\//,
+  'Tawk slug validation matches studioflow_publish: 3–63 lowercase letters, digits or hyphens');
+assert.match(tawkConnectSource, /PUBLISHED_WEBSITE_SLUG\.test\(slug\)/,
+  'Tawk connect and disconnect use the published website slug rule');
+const publishedWebsiteSlugRule = /^[a-z0-9][a-z0-9-]{2,62}$/;
+assert.equal(publishedWebsiteSlugRule.test('salon-'), true,
+  'a valid published website slug ending in a hyphen remains connectable');
+assert.equal(publishedWebsiteSlugRule.test('-salon'), false,
+  'published website slugs still cannot start with a hyphen');
+assert.equal(publishedWebsiteSlugRule.test('ab'), false,
+  'published website slugs must remain at least three characters');
+
+assert.match(tawkConnectSource, /const TAWK_PROPERTY_ID = \/\^\[A-Za-z0-9_-\]\{8,64\}\$\//,
+  'Tawk Property ID keeps its existing 8–64 character format');
+assert.match(tawkConnectSource, /const TAWK_WIDGET_ID = \/\^\(\?:default\|\[A-Za-z0-9_-\]\{8,64\}\)\$\/i/,
+  'Tawk Widget ID accepts standard IDs and the special default value case-insensitively');
+assert.match(tawkConnectSource, /TAWK_WIDGET_ID\.test\(widgetId\)/,
+  'Tawk connect uses the Widget ID validator');
+const tawkWidgetIdRule = /^(?:default|[A-Za-z0-9_-]{8,64})$/i;
+assert.equal(tawkWidgetIdRule.test('default'), true, 'Tawk accepts its standard default widget ID');
+assert.equal(tawkWidgetIdRule.test('DEFAULT'), true, 'Tawk accepts default case-insensitively');
+assert.equal(tawkWidgetIdRule.test('widget123'), true, 'Tawk accepts regular widget IDs');
+assert.equal(tawkWidgetIdRule.test('bad'), false, 'Tawk rejects malformed non-default widget IDs');
 assert.match(tawkConnectSource, /auth\.user\.is_anonymous/,
   'Tawk owner connection rejects anonymous sessions');
 assert.match(tawkConnectSource, /studioflow_accounts[\s\S]*?eq\('user_id', ownerId\)/,
