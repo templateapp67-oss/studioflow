@@ -37,6 +37,12 @@ assert(run('deploy','workflow_dispatch','deploy_only',false,'skipped'));
 assert(!run('migrate','workflow_dispatch','invalid',false));
 assert(!run('deploy','workflow_dispatch','invalid',false,'skipped'));
 assert(run('migrate','push',undefined,true));
+assert(run('migrate','push',undefined,false,'success','failure'),
+  'remote migration preflight must still run when application CI fails');
+assert(run('migrate','workflow_dispatch','dry_run',false,'success','failure'),
+  'manual read-only dry-run must still run when application CI fails');
+assert(!run('migrate','push',undefined,false,'success','success','failure'),
+  'migration preflight must stop when the independent change-detection job fails');
 assert(!run('deploy','push',undefined,true,'success'));
 assert(run('migrate','push',undefined,false));
 assert(run('deploy','push',undefined,false,'success'));
@@ -46,6 +52,12 @@ for(const label of ['Apply production migrations','Deploy reviewed WhatsApp Edge
   const step=workflow.split('- name: '+label)[1].split('\n      - ')[0].split('\n  deploy:')[0];
   assert(step.includes("if: github.event_name == 'workflow_dispatch' && inputs.release_mode == 'apply_and_deploy'"));
 }
+const ciGate=workflow.split('- name: Require CI success before production apply')[1]?.split('\n      - ')[0];
+assert(ciGate && ciGate.includes("needs.ci.result != 'success'"),
+  'manual production apply must be blocked when required CI has not passed');
+assert(ciGate.indexOf('echo "::error::')>=0 && ciGate.includes('exit 1'),
+  'blocked apply must report a clear error and stop the job');
+
 const validation=workflow.split('- name: Validate manual release mode')[1].split('\n      - ')[0];
 const shell=validation.split('        run: |\n')[1].split('\n').map(line=>line.replace(/^          /,'')).join('\n');
 for(const mode of [...options,'invalid','true','']){
@@ -200,11 +212,9 @@ if(argv[0] === 'migration' && argv[1] === 'list'){
     .map(name => name.slice(0,14))
     .sort();
   const rows = [
-    '┌──────────────┬──────────────┬────────────┐',
-    '│ Local        │ Remote       │ Time (UTC) │',
-    '├──────────────┼──────────────┼────────────┤',
-    ...versions.map(version => '│ '+version+' │ '+version+' │ 2026-11-19 │'),
-    '└──────────────┴──────────────┴────────────┘'
+    'LOCAL | REMOTE | TIME (UTC)',
+    '------|--------|----------',
+    ...versions.map(version => '`'+version+'` | `'+version+'` | `2026-11-19 00:00:00`')
   ];
   process.stdout.write(rows.join('\\n')+'\\n');
 }

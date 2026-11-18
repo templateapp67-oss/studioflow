@@ -2,10 +2,29 @@ import assert from 'node:assert/strict';
 import {readFileSync,readdirSync} from 'node:fs';
 
 const raw=process.env.SUPABASE_MIGRATION_LIST_OUTPUT||'';
+const localFiles=readdirSync('supabase/migrations')
+  .filter(name=>/^\d{14}_.+\.sql$/.test(name))
+  .sort();
+const localVersions=localFiles.map(name=>name.slice(0,14));
+const localSet=new Set(localVersions);
+assert.equal(localSet.size,localVersions.length,'Duplicate local migration timestamps found.');
+
+const history=JSON.parse(readFileSync('docs/integrations/restored-supabase-history.json','utf8'));
+const appliedVersions=new Set([
+  ...history.applied_versions,
+  ...(history.post_export_applied_versions||[]).map(record=>record.version)
+]);
+const approvedPending=(history.release_pending_migrations||[])
+  .map(record=>record.file.split('_',1)[0]).sort();
+const localNotApplied=[...localSet].filter(version=>!appliedVersions.has(version)).sort();
+const appliedWithoutSource=[...appliedVersions].filter(version=>!localSet.has(version)).sort();
+assert.deepEqual(localNotApplied,approvedPending,
+  'Local migration files differ from the reviewed applied/pending migration ledger.');
+assert.deepEqual(appliedWithoutSource,[],
+  'Migration ledger contains applied versions without local SQL source.');
+
 if(!raw.trim()){
-  // The regular offline verification suite has no production database access.
-  // The production workflow supplies this value after a remote CLI query.
-  console.log('SKIP: remote migration history preflight is run by the protected production workflow.');
+  console.log('PASS: '+localSet.size+' local migration sources match the reviewed history ledger; remote history check runs in the protected production workflow.');
   process.exit(0);
 }
 const output=raw.replace(/\u001b\[[0-?]*[ -/]*[@-~]/g,'');
@@ -15,9 +34,12 @@ function migrationColumns(line){
   const separator=line.includes('│')?'│':line.includes('|')?'|':null;
   if(!separator) return null;
   const cells=line.split(separator);
-  if(cells[0]?.trim()==='') cells.shift();
-  if(cells.at(-1)?.trim()==='') cells.pop();
-  return cells.map(value=>value.trim());
+  // Strip framing separators only when they are literally the first/last
+  // characters. Leading spaces before a separator represent an empty Local
+  // cell and must be preserved for remote-only history rows.
+  if(line.startsWith(separator)) cells.shift();
+  if(line.trimEnd().endsWith(separator)) cells.pop();
+  return cells.map(value=>value.trim().replace(/^\x60([^\x60]*)\x60$/,'$1').trim());
 }
 for(const line of output.split(/\r?\n/)){
   const columns=migrationColumns(line);
@@ -29,14 +51,6 @@ for(const line of output.split(/\r?\n/)){
   if(/^\d{14}$/.test(local)) localFromCli.push(local);
   if(/^\d{14}$/.test(remote)) remoteFromCli.push(remote);
 }
-
-const localFiles=readdirSync('supabase/migrations')
-  .filter(name=>/^\d{14}_.+\.sql$/.test(name))
-  .sort();
-const localVersions=localFiles.map(name=>name.slice(0,14));
-const duplicates=localVersions.filter((version,index)=>localVersions.indexOf(version)!==index);
-assert.deepEqual([...new Set(duplicates)],[],
-  'Duplicate local migration timestamps found: '+[...new Set(duplicates)].join(', '));
 
 const uniqueSorted=values=>[...new Set(values)].sort();
 const cliLocal=uniqueSorted(localFromCli);
@@ -59,9 +73,6 @@ const remoteSet=new Set(cliRemote);
 const remoteOnly=cliRemote.filter(version=>!localSet.has(version));
 const localOnly=uniqueSorted(localVersions.filter(version=>!remoteSet.has(version)));
 
-const history=JSON.parse(readFileSync('docs/integrations/restored-supabase-history.json','utf8'));
-const approvedPending=(history.release_pending_migrations||[])
-  .map(record=>record.file.split('_',1)[0]).sort();
 assert.deepEqual(localOnly,approvedPending,
   [
     'Local/remote migration history is not aligned with the reviewed release plan.',

@@ -29,7 +29,6 @@ jobs:
 
   changes:
     name: Detect Supabase migration changes
-    needs: ci
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     outputs:
@@ -88,6 +87,8 @@ jobs:
     # Run the remote history check and dry-run on every main push. This makes
     # drift detection continuous, including ordinary code-only releases.
     if: >-
+      always() &&
+      needs.changes.result == 'success' &&
       github.ref == 'refs/heads/main' &&
       (
         github.event_name == 'push' ||
@@ -276,6 +277,15 @@ jobs:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           SUPABASE_PROJECT_REF: ${{ steps.supabase_credentials.outputs.project_ref }}
         run: supabase db push --dry-run --remote="$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+
+      # Read-only validation may run even if app CI failed. Never mutate the
+      # production database unless the full required CI job passed.
+      - name: Require CI success before production apply
+        if: github.event_name == 'workflow_dispatch' && inputs.release_mode == 'apply_and_deploy' && needs.ci.result != 'success'
+        shell: bash
+        run: |
+          echo "::error::Required CI did not pass; the migration dry-run completed but production apply is blocked."
+          exit 1
 
       - name: Apply production migrations (manual apply_and_deploy only)
         if: github.event_name == 'workflow_dispatch' && inputs.release_mode == 'apply_and_deploy'
