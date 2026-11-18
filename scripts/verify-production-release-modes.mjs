@@ -37,9 +37,10 @@ assert(run('deploy','workflow_dispatch','deploy_only',false,'skipped'));
 assert(!run('migrate','workflow_dispatch','invalid',false));
 assert(!run('deploy','workflow_dispatch','invalid',false,'skipped'));
 assert(run('migrate','push',undefined,true));
-assert(!run('deploy','push',undefined,true));
-assert(!run('migrate','push',undefined,false));
-assert(run('deploy','push',undefined,false,'skipped'));
+assert(!run('deploy','push',undefined,true,'success'));
+assert(run('migrate','push',undefined,false));
+assert(run('deploy','push',undefined,false,'success'));
+assert(!run('deploy','push',undefined,false,'failure'));
 
 for(const label of ['Apply production migrations','Deploy reviewed WhatsApp Edge Functions']){
   const step=workflow.split('- name: '+label)[1].split('\n      - ')[0].split('\n  deploy:')[0];
@@ -74,6 +75,7 @@ const credShell=credStep.split('        run: |\n')[1].split('\n').map(line=>line
 
 const hostedSteps=[
   'Link production Supabase project',
+  'Verify local and remote Supabase migration history',
   'Migration dry-run (remote production database)',
   'Apply production migrations (manual apply_and_deploy only)',
   'Deploy reviewed WhatsApp Edge Functions (manual apply_and_deploy only)',
@@ -187,10 +189,25 @@ try {
   const mockSupabase=join(binDir,'supabase');
   writeFileSync(mockSupabase,`#!/usr/bin/env node
 const fs = require('node:fs');
+const argv = process.argv.slice(2);
 fs.appendFileSync(process.env.MOCK_SUPABASE_LOG, JSON.stringify({
-  argv: process.argv.slice(2),
+  argv,
   envRef: process.env.SUPABASE_PROJECT_REF,
 }) + '\\n');
+if(argv[0] === 'migration' && argv[1] === 'list'){
+  const versions = fs.readdirSync('supabase/migrations')
+    .filter(name => /^\\d{14}_.+\\.sql$/.test(name))
+    .map(name => name.slice(0,14))
+    .sort();
+  const rows = [
+    '┌──────────────┬──────────────┬────────────┐',
+    '│ Local        │ Remote       │ Time (UTC) │',
+    '├──────────────┼──────────────┼────────────┤',
+    ...versions.map(version => `│ ${version} │ ${version} │ 2026-11-19 │`),
+    '└──────────────┴──────────────┴────────────┘'
+  ];
+  process.stdout.write(rows.join('\\n')+'\\n');
+}
 `,'utf8');
   chmodSync(mockSupabase,0o755);
   writeFileSync(callsFile,'','utf8');
@@ -204,6 +221,9 @@ fs.appendFileSync(process.env.MOCK_SUPABASE_LOG, JSON.stringify({
     const block=getMigrateStep(stepName);
     if(block.includes('        run: >-\n')){
       return block.split('        run: >-\n')[1].trim().split('\n').map(l=>l.trim()).join(' ');
+    }
+    if(block.includes('        run: |\n')){
+      return block.split('        run: |\n')[1].split('\n').map(l=>l.replace(/^          /,'')).join('\n').trim();
     }
     return block.split('        run: ')[1].split('\n')[0].trim();
   };
@@ -225,14 +245,15 @@ fs.appendFileSync(process.env.MOCK_SUPABASE_LOG, JSON.stringify({
   }
 
   const calls=readFileSync(callsFile,'utf8').trim().split('\n').map(line=>JSON.parse(line));
-  assert.equal(calls.length,4);
+  assert.equal(calls.length,5);
   for(const call of calls){
     assert.equal(call.envRef,EXPECTED_REF,'propagated SUPABASE_PROJECT_REF env has zero whitespace');
   }
   assert.deepEqual(calls[0].argv,['link','--project-ref',EXPECTED_REF]);
-  assert.deepEqual(calls[1].argv,['db','push','--dry-run',`--remote=${EXPECTED_REF}`,'--password',PASS_SENTINEL]);
-  assert.deepEqual(calls[2].argv,['db','push',`--remote=${EXPECTED_REF}`,'--password',PASS_SENTINEL,'--yes']);
-  assert.deepEqual(calls[3].argv,[
+  assert.deepEqual(calls[1].argv,['migration','list',`--remote=${EXPECTED_REF}`,'--password',PASS_SENTINEL]);
+  assert.deepEqual(calls[2].argv,['db','push','--dry-run',`--remote=${EXPECTED_REF}`,'--password',PASS_SENTINEL]);
+  assert.deepEqual(calls[3].argv,['db','push',`--remote=${EXPECTED_REF}`,'--password',PASS_SENTINEL,'--yes']);
+  assert.deepEqual(calls[4].argv,[
     'functions','deploy',
     'nexora-whatsapp-connect','nexora-whatsapp-webhook',
     'studioflow-payments','studioflow-whatsapp-booking','studioflow-booking-emails',
@@ -242,7 +263,7 @@ fs.appendFileSync(process.env.MOCK_SUPABASE_LOG, JSON.stringify({
   rmSync(tempRoot,{recursive:true,force:true});
 }
 
-console.log('PASS: one release dropdown; dry-run cannot apply/deploy, approved apply releases only after successful migration/CI, website-only skips DB, invalid modes fail, push behavior is preserved, and Supabase project-reference validation trims surrounding whitespace, rejects internal whitespace or wrong projects without leaking secrets, and propagates the validated ref to all hosted CLI steps.');
+console.log('PASS: one release dropdown; all main pushes run remote migration-history validation and a read-only dry-run; only the approved apply_and_deploy mode applies migrations and deploys functions; deploy_only skips database changes; CI and migration failure block deployment; validated Supabase project references propagate to all hosted CLI steps.');
 
 // --- Edge Function deployment contract -----------------------------------
 // Every function the Production workflow deploys must have an explicit
