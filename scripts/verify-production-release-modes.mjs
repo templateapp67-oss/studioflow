@@ -268,28 +268,30 @@ if(argv[0] === 'migration' && argv[1] === 'list'){
     'LOCAL | REMOTE | TIME (UTC)',
     '------|--------|----------',
     ...localVersions.map(version=>'`'+version+'` | `'+version+'` | `2026-11-19 00:00:00`')
-  ].join('\\n');
+  ].join('\n');
   const remoteOnlyResult=spawnSync('node',['scripts/verify-supabase-migration-history.mjs'],{
     env:{
       ...process.env,
-      SUPABASE_MIGRATION_LIST_OUTPUT:baseMigrationList+'\\n              | `20990101000000` | `2099-01-01 00:00:00`',
+      SUPABASE_MIGRATION_LIST_OUTPUT:baseMigrationList+'\n              | `20990101000000` | `2099-01-01 00:00:00`',
     },
     encoding:'utf8',
   });
   assert.notEqual(remoteOnlyResult.status,0,'remote-only applied migration must fail closed');
-  assert((remoteOnlyResult.stderr||'').includes('20990101000000'),
-    'remote-only failure must identify the unmatched remote version');
+  const remoteOnlyOutput=(remoteOnlyResult.stdout||'')+'\\n'+(remoteOnlyResult.stderr||'');
+  assert(remoteOnlyOutput.includes('20990101000000'),
+    'remote-only failure must identify the unmatched remote version: '+remoteOnlyOutput);
 
   const duplicateRemoteResult=spawnSync('node',['scripts/verify-supabase-migration-history.mjs'],{
     env:{
       ...process.env,
-      SUPABASE_MIGRATION_LIST_OUTPUT:baseMigrationList+'\\n              | `20261118203000` | `2026-11-18 20:30:00`',
+      SUPABASE_MIGRATION_LIST_OUTPUT:baseMigrationList+'\n              | `20261118203000` | `2026-11-18 20:30:00`',
     },
     encoding:'utf8',
   });
   assert.notEqual(duplicateRemoteResult.status,0,'duplicate remote migration history row must fail closed');
-  assert((duplicateRemoteResult.stderr||'').includes('duplicate remote migration history rows'),
-    'duplicate remote failure must explain the duplicate history row');
+  const duplicateRemoteOutput=(duplicateRemoteResult.stdout||'')+'\\n'+(duplicateRemoteResult.stderr||'');
+  assert(duplicateRemoteOutput.includes('duplicate remote migration history rows'),
+    'duplicate remote failure must explain the duplicate history row: '+duplicateRemoteOutput);
 
   assert.deepEqual(calls[0].argv,['link','--project-ref',EXPECTED_REF]);
   assert.deepEqual(calls[1].argv,['migration','list',`--remote=${EXPECTED_REF}`,'--password',PASS_SENTINEL]);
