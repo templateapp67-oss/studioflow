@@ -3,8 +3,8 @@ create schema if not exists studioflow_tawk_private;
 revoke all on schema studioflow_tawk_private from public, anon, authenticated;
 grant usage on schema studioflow_tawk_private to service_role;
 
--- Preserve the existing Tawk Booking API property mapping as a tracked
--- prerequisite as well. Salon chat widget IDs remain isolated in widget_connections.
+-- Preserve the Tawk Booking API mapping as a tracked prerequisite.
+-- Chat widget identifiers remain isolated in widget_connections below.
 create table if not exists studioflow_tawk_private.property_mappings (
   property_id uuid primary key default gen_random_uuid(),
   tawk_property_id text not null,
