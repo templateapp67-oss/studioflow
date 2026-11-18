@@ -1,5 +1,9 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.117.3';
 
+const PUBLISHED_WEBSITE_SLUG = /^[a-z0-9][a-z0-9-]{2,62}$/;
+const TAWK_PROPERTY_ID = /^[A-Za-z0-9_-]{8,64}$/;
+const TAWK_WIDGET_ID = /^(?:default|[A-Za-z0-9_-]{8,64})$/i;
+
 const allowedOrigin = (origin: string) => !origin
   || origin === 'https://nexorasalon.online'
   || origin === 'https://www.nexorasalon.online'
@@ -57,12 +61,12 @@ Deno.serve(async (req: Request) => {
     }
 
     const slug = typeof body.slug === 'string' ? body.slug.trim().toLowerCase() : '';
-    if (!/^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/.test(slug)) return response({ error: 'Choose a valid published website.' }, 400, origin);
+    if (!PUBLISHED_WEBSITE_SLUG.test(slug)) return response({ error: 'Choose a valid published website.' }, 400, origin);
     if (action === 'connect' || action === 'disconnect') {
       const propertyId = typeof body.propertyId === 'string' ? body.propertyId.trim() : null;
       const widgetId = typeof body.widgetId === 'string' ? body.widgetId.trim() : null;
       if (action === 'connect' && (!propertyId || !widgetId
-        || !/^[A-Za-z0-9_-]{8,64}$/.test(propertyId) || !/^[A-Za-z0-9_-]{8,64}$/.test(widgetId))) {
+        || !TAWK_PROPERTY_ID.test(propertyId) || !TAWK_WIDGET_ID.test(widgetId))) {
         return response({ error: 'Enter the Tawk.to Property ID and Widget ID exactly as shown in your Tawk dashboard.' }, 400, origin);
       }
       const { data, error } = await admin.rpc('studioflow_tawk_owner_connection', {
