@@ -2062,5 +2062,14 @@
       "file": "20261118203000_add_tawk_widget_connection.sql",
       "purpose": "Reviewed per-salon Tawk.to live chat feature: creates private property_mappings and widget_connections prerequisites before ALTER/RPC DDL, enforces private RLS/service-role-only access, exposes only public widget IDs for published sites, and accepts the standard default widget ID. Retain behind the protected manual production migration workflow."
     }
+  ],
+  "post_export_applied_versions": [
+    {
+      "version": "20261118185200",
+      "file": "20261118185200_create_tawk_api_backend.sql",
+      "name": "create_tawk_api_backend",
+      "observed_at": "2026-11-18",
+      "evidence": "Present in the read-only Supabase migration history for project zilwgiuiygqqardzutxi; source migration restored to main."
+    }
   ]
 }

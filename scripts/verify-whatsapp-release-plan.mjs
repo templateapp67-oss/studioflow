@@ -4,14 +4,28 @@ import {readFileSync,readdirSync,existsSync} from 'node:fs';
 
 const history=JSON.parse(readFileSync('docs/integrations/restored-supabase-history.json','utf8'));
 const active=readdirSync('supabase/migrations').filter(name=>/^\d+_.+\.sql$/.test(name));
-const applied=new Set(history.applied_versions);
+const historicalApplied=new Set(history.applied_versions);
+const postExportApplied=history.post_export_applied_versions||[];
+const applied=new Set([...historicalApplied,...postExportApplied.map(record=>record.version)]);
+assert.equal(history.applied_versions.length,history.applied_versions_in_export,
+  'The exported migration baseline must remain an exact historical snapshot');
+assert.equal(new Set(history.applied_versions).size,history.applied_versions.length,
+  'The exported migration baseline must not contain duplicate versions');
+for(const record of postExportApplied){
+  assert(!historicalApplied.has(record.version),`Post-export migration already exists in export baseline: ${record.version}`);
+  assert(active.includes(record.file),`Post-export applied migration source is missing: ${record.file}`);
+  assert.equal(record.file.split('_',1)[0],record.version,`Post-export migration filename/version mismatch: ${record.file}`);
+}
 const pending=active.filter(name=>!applied.has(name.split('_',1)[0])).sort();
 const reviewedPending=[...history.release_pending_migrations,...(history.reviewed_feature_migrations||[])].map(r=>r.file).sort();
 assert.deepEqual(pending,reviewedPending,
   'Only explicitly reviewed runtime and feature-reconciliation migrations may be pending for protected release');
 assert.equal(history.release_pending_migrations.length,2);
 assert.equal((history.reviewed_feature_migrations||[]).length,4);
-const latest=[...applied].sort().at(-1);
+// Keep the ordering guard anchored to the captured export baseline. A later
+// migration can be applied remotely while older reviewed migrations remain
+// intentionally pending; post-export evidence must not move this baseline.
+const latest=[...historicalApplied].sort().at(-1);
 for(const file of pending){
   assert(file.split('_',1)[0]>latest,`Pending migration predates recorded live history: ${file}`);
   const sql=readFileSync('supabase/migrations/'+file,'utf8');
@@ -29,7 +43,8 @@ for(const record of history.retimestamped_unapplied_migrations){
 }
 assert.equal(history.deferred_feature_migrations.length,15);
 assert.equal(history.superseded_unapplied_migrations.length,1);
-assert.equal(history.live_catalog_evidence.applied_versions,applied.size);
+assert.equal(history.live_catalog_evidence.applied_versions,history.applied_versions_in_export,
+  'The catalog evidence count must match its own captured export, not later migration observations');
 assert(history.live_catalog_evidence.captured_at);
 const workflow=readFileSync('.github/workflows/production.yml','utf8');
 const edgeStep=workflow.split('- name: Deploy reviewed WhatsApp Edge Functions')[1]?.split('\n  deploy:')[0];
