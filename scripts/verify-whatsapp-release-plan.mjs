@@ -17,7 +17,7 @@ for(const record of postExportApplied){
   assert.equal(record.file.split('_',1)[0],record.version,`Post-export migration filename/version mismatch: ${record.file}`);
   const sql=readFileSync('supabase/migrations/'+record.file);
   const gitBlobSha=createHash('sha1')
-    .update(Buffer.concat([Buffer.from('blob '+sql.length+'\\0'),sql]))
+    .update(Buffer.concat([Buffer.from('blob '+sql.length),Buffer.from([0]),sql]))
     .digest('hex');
   assert.equal(gitBlobSha,record.git_blob_sha,
     `Post-export migration source checksum changed: ${record.file}`);
