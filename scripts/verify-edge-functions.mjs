@@ -141,7 +141,7 @@ assert.match(tawkConnectSource, /admin\.rpc\(['"]studioflow_tawk_owner_connectio
   'Tawk owner connection uses the private service-role RPC');
 assert.match(tawkConnectSource, /SUPABASE_SERVICE_ROLE_KEY/,
   'Tawk owner RPC is called from the server-side service-role client');
-assert.match(tawkConnectSource, /Cache-Control['"]\s*,\s*['"]no-store/i,
+assert.match(tawkConnectSource, /['"]Cache-Control['"]\s*:\s*['"]no-store/i,
   'Tawk owner responses are not cached');
 const tawkConfig = readFileSync('supabase/config.toml', 'utf8');
 assert.match(tawkConfig, /\[functions\.studioflow-tawk-connect\]\s*verify_jwt\s*=\s*false/,
