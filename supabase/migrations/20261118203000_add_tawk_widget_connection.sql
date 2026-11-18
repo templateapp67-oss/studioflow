@@ -1,9 +1,9 @@
--- Store each salon's public Tawk widget separately from the Booking API property mapping.
+-- Per-salon Tawk.to configuration and the private Booking API property mapping.
+-- Both private tables are prerequisites: create them before any ALTER or RPC statement.
 create schema if not exists studioflow_tawk_private;
 revoke all on schema studioflow_tawk_private from public, anon, authenticated;
 grant usage on schema studioflow_tawk_private to service_role;
--- Preserve the Tawk Booking API mapping as a tracked prerequisite.
--- Chat widget identifiers remain isolated in widget_connections below.
+
 create table if not exists studioflow_tawk_private.property_mappings (
   property_id uuid primary key default gen_random_uuid(),
   tawk_property_id text not null,
@@ -18,21 +18,7 @@ create table if not exists studioflow_tawk_private.property_mappings (
   constraint property_mappings_website_slug_format
     check (website_slug ~ '^[a-z0-9][a-z0-9-]{2,62}$')
 );
-create unique index if not exists property_mappings_tawk_property_id_uidx
-  on studioflow_tawk_private.property_mappings(tawk_property_id);
-create index if not exists property_mappings_branch_id_idx
-  on studioflow_tawk_private.property_mappings(branch_id)
-  where branch_id is not null;
-create index if not exists property_mappings_created_at_idx
-  on studioflow_tawk_private.property_mappings(created_at desc);
-create index if not exists property_mappings_owner_slug_idx
-  on studioflow_tawk_private.property_mappings(owner_id, website_slug);
-alter table studioflow_tawk_private.property_mappings enable row level security;
-revoke all on studioflow_tawk_private.property_mappings from anon, authenticated;
-grant all on studioflow_tawk_private.property_mappings to service_role;
 
-
--- The private schema and table are explicit prerequisites for every ALTER and RPC below.
 create table if not exists studioflow_tawk_private.widget_connections (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references auth.users(id) on delete cascade,
@@ -50,6 +36,21 @@ create table if not exists studioflow_tawk_private.widget_connections (
     or tawk_widget_id ~ '^[A-Za-z0-9_-]{8,64}$'
   )
 );
+
+-- Indexes and access controls are installed only after both table prerequisites exist.
+create unique index if not exists property_mappings_tawk_property_id_uidx
+  on studioflow_tawk_private.property_mappings(tawk_property_id);
+create index if not exists property_mappings_branch_id_idx
+  on studioflow_tawk_private.property_mappings(branch_id)
+  where branch_id is not null;
+create index if not exists property_mappings_created_at_idx
+  on studioflow_tawk_private.property_mappings(created_at desc);
+create index if not exists property_mappings_owner_slug_idx
+  on studioflow_tawk_private.property_mappings(owner_id, website_slug);
+
+alter table studioflow_tawk_private.property_mappings enable row level security;
+revoke all on studioflow_tawk_private.property_mappings from anon, authenticated;
+grant all on studioflow_tawk_private.property_mappings to service_role;
 
 alter table studioflow_tawk_private.widget_connections enable row level security;
 revoke all on studioflow_tawk_private.widget_connections from anon, authenticated;
