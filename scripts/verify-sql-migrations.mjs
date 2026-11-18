@@ -163,6 +163,8 @@ assert.match(widgetMigration, /create table if not exists studioflow_tawk_privat
   'Tawk migration creates the private widget table');
 assert.match(widgetMigration, /check\s*\(\s*lower\(tawk_widget_id\)\s*=\s*'default'\s+or\s+tawk_widget_id\s*~/i,
   'database widget constraint accepts default plus standard IDs');
+assert.match(widgetMigration, /not\s*\(\s*lower\(p_widget_id\)\s*=\s*'default'/i,
+  'service-role owner RPC accepts default widget IDs as well as standard IDs');
 const sqlLower = widgetMigration.toLowerCase();
 const schemaAt = sqlLower.indexOf('create schema if not exists studioflow_tawk_private');
 const tableAt = sqlLower.indexOf('create table if not exists studioflow_tawk_private.widget_connections');
