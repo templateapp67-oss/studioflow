@@ -17,15 +17,15 @@ for(const record of postExportApplied){
   assert.equal(record.file.split('_',1)[0],record.version,`Post-export migration filename/version mismatch: ${record.file}`);
 }
 const pending=active.filter(name=>!applied.has(name.split('_',1)[0])).sort();
-const reviewedPending=[...history.release_pending_migrations,...(history.reviewed_feature_migrations||[])].map(r=>r.file).sort();
+const reviewedPending=history.release_pending_migrations.map(r=>r.file).sort();
 assert.deepEqual(pending,reviewedPending,
-  'Only explicitly reviewed runtime and feature-reconciliation migrations may be pending for protected release');
-assert.equal(history.release_pending_migrations.length,2);
+  'Only explicitly listed release-pending migrations may be absent from the remote applied history');
 assert.equal((history.reviewed_feature_migrations||[]).length,4);
-// Keep the ordering guard anchored to the captured export baseline. A later
-// migration can be applied remotely while older reviewed migrations remain
-// intentionally pending; post-export evidence must not move this baseline.
-const latest=[...historicalApplied].sort().at(-1);
+for(const record of history.reviewed_feature_migrations||[]){
+  assert(active.includes(record.file),`Reviewed feature migration source is missing: ${record.file}`);
+}
+// New pending migrations must be newer than every migration already recorded as applied.
+const latest=[...applied].sort().at(-1);
 for(const file of pending){
   assert(file.split('_',1)[0]>latest,`Pending migration predates recorded live history: ${file}`);
   const sql=readFileSync('supabase/migrations/'+file,'utf8');
@@ -44,7 +44,7 @@ for(const record of history.retimestamped_unapplied_migrations){
 assert.equal(history.deferred_feature_migrations.length,15);
 assert.equal(history.superseded_unapplied_migrations.length,1);
 assert.equal(history.live_catalog_evidence.applied_versions,history.applied_versions_in_export,
-  'The catalog evidence count must match its own captured export, not later migration observations');
+  'The catalog evidence count must remain tied to its original export date');
 assert(history.live_catalog_evidence.captured_at);
 const workflow=readFileSync('.github/workflows/production.yml','utf8');
 const edgeStep=workflow.split('- name: Deploy reviewed WhatsApp Edge Functions')[1]?.split('\n  deploy:')[0];
@@ -56,4 +56,4 @@ assert(workflow.includes('$SUPABASE_PROJECT_REF" != "zilwgiuiygqqardzutxi"'));
 const config=readFileSync('supabase/config.toml','utf8');
 assert(/\[functions\.nexora-whatsapp-connect\]\s*verify_jwt\s*=\s*true/.test(config));
 assert(/\[functions\.studioflow-whatsapp-booking\]\s*verify_jwt\s*=\s*false/.test(config));
-console.log('PASS: 167 recorded applied migrations, two reviewed WhatsApp runtime migrations, and four reviewed feature migrations (Template 15/multi-service plus three Tawk migration records); 15 unrelated feature drafts and the superseded test draft remain preserved. Live apply is not tested.');
+console.log(`PASS: ${applied.size} applied migration versions (captured export plus ${postExportApplied.length} post-export records), ${pending.length} explicitly approved pending migrations, four reviewed feature records; 15 deferred feature drafts and the superseded test draft remain preserved. Live apply is not tested.`);

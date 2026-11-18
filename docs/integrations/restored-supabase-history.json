@@ -2035,16 +2035,7 @@
     "relations": 273,
     "assessment": "Read-only owner-supplied live catalog; not a live migration dry-run or deployment."
   },
-  "release_pending_migrations": [
-    {
-      "file": "20261116100000_nexora_whatsapp_optional_profiles.sql",
-      "purpose": "Optional profile keys and service-role Vault helper grants; additive WhatsApp runtime repair."
-    },
-    {
-      "file": "20261117061129_studioflow_shared_edge_rate_limits.sql",
-      "purpose": "Service-only shared booking-email rate limiter; confirmed absent in the live export."
-    }
-  ],
+  "release_pending_migrations": [],
   "reviewed_feature_migrations": [
     {
       "file": "20261117130000_reconcile_template15_multiservice_booking.sql",
@@ -2065,11 +2056,60 @@
   ],
   "post_export_applied_versions": [
     {
+      "version": "20261116100000",
+      "file": "20261116100000_nexora_whatsapp_optional_profiles.sql",
+      "name": "nexora_whatsapp_optional_profiles",
+      "observed_at": "2026-11-19",
+      "evidence": "Confirmed in the remote supabase_migrations.schema_migrations history for project zilwgiuiygqqardzutxi; the corresponding local SQL source exists in main.",
+      "purpose": "Optional profile keys and service-role Vault helper grants; additive WhatsApp runtime repair."
+    },
+    {
+      "version": "20261117061129",
+      "file": "20261117061129_studioflow_shared_edge_rate_limits.sql",
+      "name": "studioflow_shared_edge_rate_limits",
+      "observed_at": "2026-11-19",
+      "evidence": "Confirmed in the remote supabase_migrations.schema_migrations history for project zilwgiuiygqqardzutxi; the corresponding local SQL source exists in main.",
+      "purpose": "Service-only shared booking-email rate limiter; confirmed absent in the earlier captured live export."
+    },
+    {
+      "version": "20261117130000",
+      "file": "20261117130000_reconcile_template15_multiservice_booking.sql",
+      "name": "reconcile_template15_multiservice_booking",
+      "observed_at": "2026-11-19",
+      "evidence": "Confirmed in the remote supabase_migrations.schema_migrations history for project zilwgiuiygqqardzutxi; the corresponding local SQL source exists in main.",
+      "purpose": "Reviewed Template 15 men-only booking guards and multi-service branch/unbranched booking RPC reconciliation."
+    },
+    {
+      "version": "20261118155850",
+      "file": "20261118155850_add_tawk_widget_connection.sql",
+      "name": "add_tawk_widget_connection",
+      "observed_at": "2026-11-19",
+      "evidence": "Confirmed in the remote supabase_migrations.schema_migrations history for project zilwgiuiygqqardzutxi; the corresponding local SQL source exists in main.",
+      "purpose": "Historical comment-only compatibility marker for the per-salon Tawk widget migration chain."
+    },
+    {
+      "version": "20261118160249",
+      "file": "20261118160249_separate_tawk_widget_connections.sql",
+      "name": "separate_tawk_widget_connections",
+      "observed_at": "2026-11-19",
+      "evidence": "Confirmed in the remote supabase_migrations.schema_migrations history for project zilwgiuiygqqardzutxi; the corresponding local SQL source exists in main.",
+      "purpose": "Historical comment-only marker documenting the isolated widget_connections table."
+    },
+    {
       "version": "20261118185200",
       "file": "20261118185200_create_tawk_api_backend.sql",
       "name": "create_tawk_api_backend",
-      "observed_at": "2026-11-18",
-      "evidence": "Present in the read-only Supabase migration history for project zilwgiuiygqqardzutxi; source migration restored to main."
+      "observed_at": "2026-11-19",
+      "evidence": "Confirmed in the remote supabase_migrations.schema_migrations history for project zilwgiuiygqqardzutxi; the corresponding local SQL source exists in main.",
+      "purpose": "Tawk read-only API private-schema, API-key and rate-limit backend migration; source restored to main."
+    },
+    {
+      "version": "20261118203000",
+      "file": "20261118203000_add_tawk_widget_connection.sql",
+      "name": "add_tawk_widget_connection",
+      "observed_at": "2026-11-19",
+      "evidence": "Confirmed in the remote supabase_migrations.schema_migrations history for project zilwgiuiygqqardzutxi; the corresponding local SQL source exists in main.",
+      "purpose": "Reviewed per-salon Tawk.to live chat migration; isolated mappings/widget connections, private RLS and public widget ID resolution."
     }
   ]
 }
