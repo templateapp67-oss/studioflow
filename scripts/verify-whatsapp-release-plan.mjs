@@ -11,6 +11,15 @@ assert.equal(history.applied_versions.length,history.applied_versions_in_export,
   'The exported migration baseline must remain an exact historical snapshot');
 assert.equal(new Set(history.applied_versions).size,history.applied_versions.length,
   'The exported migration baseline must not contain duplicate versions');
+for(const record of history.restored){
+  const file=record.version+'_'+record.name+'.sql';
+  assert(active.includes(file),`Restored applied migration source is missing: ${file}`);
+  assert.equal(
+    createHash('sha256').update(readFileSync('supabase/migrations/'+file)).digest('hex'),
+    record.file_sha256,
+    `Restored migration source checksum changed: ${file}`
+  );
+}
 for(const record of postExportApplied){
   assert(!historicalApplied.has(record.version),`Post-export migration already exists in export baseline: ${record.version}`);
   assert(active.includes(record.file),`Post-export applied migration source is missing: ${record.file}`);
