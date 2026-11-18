@@ -95,7 +95,7 @@ await db.exec(readFileSync('supabase/pending-features/202611020001_ziya_promotio
 // RLS is on, realtime publication is complete.
 const clientRpc=(src)=>{
   const names=new Set();
-  for(const m of src.matchAll(/\.rpc\(\s*['"\`]([A-Za-z0-9_]+)['"\`]/g))names.add(m[1]);
+  for(const m of src.matchAll(/\.rpc\(\s*['"`]([A-Za-z0-9_]+)['"`]/g))names.add(m[1]);
   for(const n of ['studioflow_book','studioflow_validate_ref'])if(src.includes(`'${n}'`))names.add(n);
   return [...names].filter(n=>/^(studioflow_|get_my_|nexora_)/.test(n));
 };
@@ -181,7 +181,7 @@ assert.ok(firstAlterAt > propertyTableAt && firstAlterAt > widgetTableAt,
 assert.ok(firstRpcAt > firstAlterAt,
   'both private tables are ready before public Tawk RPC creation');
 
-const { rows: [tawkSecurity] } = await db.query(\`
+const { rows: [tawkSecurity] } = await db.query(`
   select
     has_function_privilege('anon', 'public.studioflow_tawk_public_config(text)', 'EXECUTE') as anon_public_lookup,
     has_function_privilege('authenticated', 'public.studioflow_tawk_public_config(text)', 'EXECUTE') as owner_public_lookup,
@@ -209,7 +209,7 @@ const { rows: [tawkSecurity] } = await db.query(\`
     has_table_privilege('service_role', 'studioflow_tawk_private.widget_connections', 'INSERT') as service_role_widget_insert,
     (select count(*)::int from pg_constraint where conrelid='studioflow_tawk_private.widget_connections'::regclass
       and conname='tawk_widget_connections_widget_format') as widget_id_constraint_count
-\`);
+`);
 assert.equal(tawkSecurity.anon_public_lookup, true, 'published Tawk widget lookup is public');
 assert.equal(tawkSecurity.owner_public_lookup, true, 'signed-in published Tawk widget lookup is public');
 assert.equal(tawkSecurity.anon_owner_manage, false, 'anonymous clients cannot manage Tawk connections');
@@ -234,7 +234,7 @@ assert.equal(tawkSecurity.service_role_widget_select, true, 'service_role can re
 assert.equal(tawkSecurity.service_role_widget_insert, true, 'service_role can insert private widget rows');
 assert.equal(tawkSecurity.widget_id_constraint_count, 1, 'widget ID check constraint exists exactly once');
 const rpcs=clientRpc(src);
-const froms=[...src.matchAll(/\.from\(\s*['"\`]([A-Za-z0-9_-]+)['"\`]/g)].map(m=>m[1]);
+const froms=[...src.matchAll(/\.from\(\s*['"`]([A-Za-z0-9_-]+)['"`]/g)].map(m=>m[1]);
 const tables=froms.filter(n=>!n.includes('-'));
 const bucketsUsed=[...new Set(froms.filter(n=>n.includes('-')))];
 const missingRpc=[];
