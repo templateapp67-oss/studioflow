@@ -203,7 +203,7 @@ if(argv[0] === 'migration' && argv[1] === 'list'){
     '┌──────────────┬──────────────┬────────────┐',
     '│ Local        │ Remote       │ Time (UTC) │',
     '├──────────────┼──────────────┼────────────┤',
-    ...versions.map(version => `│ ${version} │ ${version} │ 2026-11-19 │`),
+    ...versions.map(version => '│ '+version+' │ '+version+' │ 2026-11-19 │'),
     '└──────────────┴──────────────┴────────────┘'
   ];
   process.stdout.write(rows.join('\\n')+'\\n');
