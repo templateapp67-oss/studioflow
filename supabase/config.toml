@@ -22,3 +22,7 @@ verify_jwt = false
 # (verify_jwt = true) and break both, so it is required for this function.
 [functions.studioflow-booking-emails]
 verify_jwt = false
+
+# Tawk owner connection validates the Supabase user with Auth getUser() in the handler.
+[functions.studioflow-tawk-connect]
+verify_jwt = false

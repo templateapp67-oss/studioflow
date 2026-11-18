@@ -2049,6 +2049,18 @@
     {
       "file": "20261117130000_reconcile_template15_multiservice_booking.sql",
       "purpose": "Reviewed Template 15 men-only booking guards and multi-service branch/unbranched booking RPC reconciliation; retained behind the protected manual production migration workflow."
+    },
+    {
+      "file": "20261118155850_add_tawk_widget_connection.sql",
+      "purpose": "Historical, comment-only compatibility marker for the per-salon Tawk widget migration chain; no DDL is applied by this file."
+    },
+    {
+      "file": "20261118160249_separate_tawk_widget_connections.sql",
+      "purpose": "Historical, comment-only marker documenting the isolated widget_connections table; final DDL is consolidated in the reviewed 20261118203000 migration."
+    },
+    {
+      "file": "20261118203000_add_tawk_widget_connection.sql",
+      "purpose": "Reviewed per-salon Tawk.to live chat feature: creates private property_mappings and widget_connections prerequisites before ALTER/RPC DDL, enforces private RLS/service-role-only access, exposes only public widget IDs for published sites, and accepts the standard default widget ID. Retain behind the protected manual production migration workflow."
     }
   ]
 }

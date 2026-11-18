@@ -126,6 +126,65 @@ for (const name of PUBLIC_BY_DESIGN.keys()) {
   assert.ok(folders.includes(name), `PUBLIC_BY_DESIGN lists "${name}", which no longer exists`);
 }
 
+// --- 4c. Tawk.to owner/public tenant boundary ------------------------------
+const tawkConnectSource = readFileSync(
+  join(FUNCTIONS_DIR, 'studioflow-tawk-connect', 'index.ts'),
+  'utf8',
+);
+assert.match(tawkConnectSource, /admin\.auth\.getUser\(token\)/,
+  'Tawk owner connection validates the caller token with Supabase Auth getUser()');
+
+assert.match(tawkConnectSource, /const PUBLISHED_WEBSITE_SLUG = \/\^\[a-z0-9\]\[a-z0-9-\]\{2,62\}\$\//,
+  'Tawk slug validation matches studioflow_publish: 3–63 lowercase letters, digits or hyphens');
+assert.match(tawkConnectSource, /PUBLISHED_WEBSITE_SLUG\.test\(slug\)/,
+  'Tawk connect and disconnect use the published website slug rule');
+const publishedWebsiteSlugRule = /^[a-z0-9][a-z0-9-]{2,62}$/;
+assert.equal(publishedWebsiteSlugRule.test('salon-'), true,
+  'a valid published website slug ending in a hyphen remains connectable');
+assert.equal(publishedWebsiteSlugRule.test('-salon'), false,
+  'published website slugs still cannot start with a hyphen');
+assert.equal(publishedWebsiteSlugRule.test('ab'), false,
+  'published website slugs must remain at least three characters');
+
+assert.match(tawkConnectSource, /const TAWK_PROPERTY_ID = \/\^\[A-Za-z0-9_-\]\{8,64\}\$\//,
+  'Tawk Property ID keeps its existing 8–64 character format');
+assert.match(tawkConnectSource, /const TAWK_WIDGET_ID = \/\^\(\?:default\|\[A-Za-z0-9_-\]\{8,64\}\)\$\/i/,
+  'Tawk Widget ID accepts standard IDs and the special default value case-insensitively');
+assert.match(tawkConnectSource, /TAWK_WIDGET_ID\.test\(widgetId\)/,
+  'Tawk connect uses the Widget ID validator');
+const tawkWidgetIdRule = /^(?:default|[A-Za-z0-9_-]{8,64})$/i;
+assert.equal(tawkWidgetIdRule.test('default'), true, 'Tawk accepts its standard default widget ID');
+assert.equal(tawkWidgetIdRule.test('DEFAULT'), true, 'Tawk accepts default case-insensitively');
+assert.equal(tawkWidgetIdRule.test('widget123'), true, 'Tawk accepts regular widget IDs');
+assert.equal(tawkWidgetIdRule.test('bad'), false, 'Tawk rejects malformed non-default widget IDs');
+assert.match(tawkConnectSource, /auth\.user\.is_anonymous/,
+  'Tawk owner connection rejects anonymous sessions');
+assert.match(tawkConnectSource, /studioflow_accounts[\s\S]*?eq\('user_id', ownerId\)/,
+  'Tawk owner connection requires an owner workspace');
+assert.match(tawkConnectSource, /admin\.rpc\(['"]studioflow_tawk_owner_connection['"]/,
+  'Tawk owner connection uses the private service-role RPC');
+assert.match(tawkConnectSource, /SUPABASE_SERVICE_ROLE_KEY/,
+  'Tawk owner RPC is called from the server-side service-role client');
+assert.match(tawkConnectSource, /['"]Cache-Control['"]\s*:\s*['"]no-store/i,
+  'Tawk owner responses are not cached');
+const tawkConfig = readFileSync('supabase/config.toml', 'utf8');
+assert.match(tawkConfig, /\[functions\.studioflow-tawk-connect\]\s*verify_jwt\s*=\s*false/,
+  'Tawk function uses handler-side JWT validation rather than gateway-only JWT validation');
+
+const tawkPanelSource = readFileSync('src/components/TawkConnectionPanel.tsx', 'utf8');
+assert.match(tawkPanelSource, /functions\.invoke\(['"]studioflow-tawk-connect['"]/,
+  'Tawk owner panel invokes the dedicated owner function');
+assert.doesNotMatch(tawkPanelSource, /SUPABASE_SERVICE_ROLE_KEY|sb_secret_[A-Za-z0-9_-]+|tawk_api_key/i,
+  'Tawk service-role and API secrets are not exposed to browser code');
+
+const tawkPublicSource = readFileSync('src/components/TawkPublicWidget.tsx', 'utf8');
+assert.match(tawkPublicSource, /studioflow_tawk_public_config/,
+  'Published salon widget reads its own public widget configuration');
+assert.match(tawkPublicSource, /embed\.tawk\.to\//,
+  'Published salon widget builds the Tawk embed URL from public IDs');
+assert.match(readFileSync('src/App.tsx', 'utf8'), /<TawkPublicWidget\s+slug=\{slug\}\s*\/>/,
+  'The shared published-site renderer attaches the salon-specific widget');
+
 // --- 5. each entrypoint actually starts a server --------------------------
 // `snapshot-accounts` still uses the legacy std/http `serve` helper, so accept
 // either style rather than forcing an out-of-scope rewrite of that function.
