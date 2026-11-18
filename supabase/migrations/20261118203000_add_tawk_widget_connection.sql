@@ -1,4 +1,5 @@
 -- Store each salon's public Tawk widget separately from the Booking API property mapping.
+create schema if not exists studioflow_tawk_private;
 create table if not exists studioflow_tawk_private.widget_connections (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references auth.users(id) on delete cascade,
