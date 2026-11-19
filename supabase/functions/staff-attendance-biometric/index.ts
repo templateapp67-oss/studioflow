@@ -502,14 +502,8 @@ async function devicePunch(req: Request, body: Record<string, unknown>) {
   const { data: device, error } = await admin.from('salon_staff_attendance_devices')
     .select('id,owner_id,active').eq('api_key_hash', await sha256(token)).maybeSingle();
   if (error || !device || !device.active) throw new Error('Device API key is invalid or revoked.');
-  const since = new Date(Date.now() - 60_000).toISOString();
-  const { count: recentCount, error: rateError } = await admin
-    .from('salon_staff_attendance_device_events')
-    .select('id', { count: 'exact', head: true })
-    .eq('device_id', device.id)
-    .gte('received_at', since);
-  if (rateError) throw new Error('Attendance device rate limit could not be checked.');
-  if ((recentCount || 0) >= 60) throw new Error('Attendance device rate limit exceeded. Retry after one minute.');
+  // The transactional DB function enforces 60 distinct events/minute while
+  // holding the device row lock; identical event retries remain idempotent.
 
   const employeeCode = cleanText(body.employeeCode, 40).toUpperCase();
   const eventType = cleanText(body.eventType, 30);
