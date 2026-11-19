@@ -216,7 +216,6 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
     const syncRoster = async () => {
       const current = (stylists || []).filter((staff) => staff?.id && staff?.name?.trim())
         .map((staff) => ({ id: String(staff.id), name: staff.name.trim(), role: staff.role || 'Staff' }));
-      if (!current.length) return;
       const { error: syncError } = await supabase.rpc('salon_staff_attendance_sync_roster', { p_roster: current });
       if (syncError && mounted) setError(syncError.message || 'Staff roster could not be synced.');
       if (mounted) await load(true);
