@@ -367,12 +367,17 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
       setError('Enter a short reason for the missed check-out correction.');
       return;
     }
+    const parsedCheckout = new Date(resolveCheckoutAt);
+    if (!resolveCheckoutAt || Number.isNaN(parsedCheckout.getTime())) {
+      setError('Choose a valid check-out date and time.');
+      return;
+    }
     setBusy(true); setError(''); setNotice('');
     try {
       const result = await invoke('resolveOpenShift', {
         staffKey,
         attendanceDate: registerDate,
-        checkOutAt: resolveCheckoutAt,
+        checkOutAt: parsedCheckout.toISOString(),
         notes: resolveNotes.trim(),
       });
       setNotice((result?.staffName || 'Staff member') + ' — old open shift closed. The correction is recorded in activity history.');
