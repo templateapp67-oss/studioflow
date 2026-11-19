@@ -726,7 +726,7 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
                     </div>
                   ))}
                 </div>
-                <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-700"><strong className="block mb-1">Device push API format</strong><p>POST to the function URL shown when the device is registered, with <code>Authorization: Bearer DEVICE_API_KEY</code> and JSON: <code>{'{ "action":"devicePunch", "employeeCode":"EMP-001", "eventType":"check_in", "eventId":"unique-event-id", "occurredAt":"2026-11-19T09:00:00+05:30" }'}</code>.</p></div>
+                <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-700"><strong className="block mb-1">Device push API format</strong><p>POST to the function URL shown when the device is registered. Send <code>Authorization: Bearer DEVICE_API_KEY</code>, <code>apikey: SUPABASE_PUBLISHABLE_KEY</code>, and the event JSON: <code>{'{ "action":"devicePunch", "employeeCode":"EMP-001", "eventType":"check_in", "eventId":"unique-event-id", "occurredAt":"2026-11-19T09:00:00+05:30" }'}</code>. Limit: 60 requests per device per rolling minute.</p></div>
               </section>
             </div>
           )}
