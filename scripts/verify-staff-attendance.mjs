@@ -75,6 +75,9 @@ assert.equal((edge.match(/requireUserVerification: true/g) || []).length, 2);
 assert.ok(edge.includes("authenticatorAttachment: 'platform'"));
 assert.ok(edge.includes('await admin.auth.getUser(token)'));
 assert.ok(edge.includes('devicePunch'));
+assert.ok(edge.includes('payload_digest'));
+assert.ok(edge.includes('processing_status'));
+assert.ok(edge.includes('event ID with different attendance data'));
 assert.ok(edge.includes('api_key_hash'));
 assert.ok(edge.includes('salon_staff_attendance_service_punch'));
 
