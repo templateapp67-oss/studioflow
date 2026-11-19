@@ -56,6 +56,10 @@ for (const table of [
   'salon_staff_attendance_device_events',
 ]) assert.ok(sensitiveBlock.includes("'" + table + "'"), 'Missing service-only table registration: ' + table);
 assert.ok(migration.includes('salon_staff_attendance_sync_roster'));
+assert.ok(migration.includes('grant select, insert, update on public.salon_staff_attendance_profiles to authenticated'));
+assert.ok(!migration.includes('grant select, insert, update, delete on public.salon_staff_attendance_profiles to authenticated'));
+assert.ok(migration.includes('salon_staff_attendance_shift_nonzero'));
+assert.ok(migration.includes('salon_staff_leave_period_limit'));
 assert.ok(migration.includes('jsonb_array_length(p_roster) > 200'));
 assert.ok(migration.includes('late_minutes integer not null default 0'));
 assert.ok(migration.includes('grant all on public.salon_staff_attendance_events to service_role'));
