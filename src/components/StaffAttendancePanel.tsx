@@ -51,6 +51,17 @@ function hoursLabel(minutes?: number) {
   const value = Math.max(0, Number(minutes) || 0);
   return Math.floor(value / 60) + 'h ' + (value % 60).toString().padStart(2, '0') + 'm';
 }
+
+function liveWorkedMinutes(row: AttendanceRow) {
+  if (!row.check_in) return Number(row.worked_minutes || 0);
+  const start = new Date(row.check_in).getTime();
+  const end = row.check_out ? new Date(row.check_out).getTime() : Date.now();
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return Number(row.worked_minutes || 0);
+  const activeBreak = row.active_break_started_at
+    ? Math.max(0, Math.floor((Date.now() - new Date(row.active_break_started_at).getTime()) / 60_000))
+    : 0;
+  return Math.max(0, Math.floor((end - start) / 60_000) - Number(row.break_minutes || 0) - activeBreak);
+}
 function csvValue(value: unknown) {
   let text = value === null || value === undefined ? '' : String(value);
   if (/^[\s]*[=+\-@\t\r]/.test(text)) text = "'" + text;
@@ -533,7 +544,7 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
                         </td>
                         <td className="py-3 pr-3"><span className={'rounded-full px-2 py-1 text-[10px] font-bold ' + (row?.status==='late'?'bg-amber-100 text-amber-800':row?.status==='present'?'bg-emerald-100 text-emerald-800':row?.status==='absent'||row?.status==='on_leave'?'bg-rose-100 text-rose-800':'bg-slate-100 text-slate-600')}>{row ? (STATUS_LABEL[row.status] || row.status) : 'Not marked'}</span><small className="block mt-1 text-slate-400">{row?.method || '—'}</small></td>
                         <td className="py-3 pr-3 whitespace-nowrap">{timeLabel(row?.check_in)} / {timeLabel(row?.check_out)}</td>
-                        <td className="py-3 pr-3 whitespace-nowrap">{row ? hoursLabel(row.worked_minutes) : '—'}<small className="block text-slate-400">{row?.late_minutes ? row.late_minutes + ' min delay' : ''}{row?.overtime_minutes ? ' · ' + hoursLabel(row.overtime_minutes) + ' OT' : ''}</small></td>
+                        <td className="py-3 pr-3 whitespace-nowrap">{row ? hoursLabel(liveWorkedMinutes(row)) : '—'}<small className="block text-slate-400">{row?.late_minutes ? row.late_minutes + ' min delay' : ''}{row?.overtime_minutes ? ' · ' + hoursLabel(row.overtime_minutes) + ' OT' : ''}</small></td>
                         <td className="py-3"><div className="flex flex-wrap gap-1.5 min-w-[210px]">
                           {!row?.check_in && <button type="button" className="primary-action" disabled={busy} onClick={() => void punch(staff.staff_key,'check_in')}>Check in</button>}
                           {activeBreak && !row?.active_break_started_at && <button type="button" className="secondary-action" disabled={busy} onClick={() => void punch(staff.staff_key,'break_start')}>Break start</button>}
