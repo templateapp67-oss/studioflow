@@ -312,7 +312,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                   </div>
 
                   <div>
-                    <label className="font-bold text-gray-700">WhatsApp / Booking Line</label>
+                    <label className="font-bold text-gray-700">Your Salon WhatsApp Number (customers will book here)</label>
                     <input
                       type="text"
                       value={profile.whatsapp}
@@ -322,6 +322,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                       }}
                       className="w-full mt-1 p-2.5 rounded-lg border border-gray-300 bg-gray-50 text-gray-900"
                     />
+                    <p className="mt-1 text-xs text-gray-500">Customers will contact your salon directly on this number. NEXORA will not receive these chats.</p>
                   </div>
 
                   <div>

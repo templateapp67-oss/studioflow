@@ -56,6 +56,7 @@ import {
  roopMahalContactSummary,
 } from '../lib/roopMahalReference';
 import {ServicePhoto} from './ServicePhoto';
+import { salonWhatsAppUrl } from '../lib/customerWhatsApp';
 import {ServiceMerchTags, ServiceTerms} from './ServiceMerchandising';
 import {BARBER_REFERENCE_IMAGES} from '../lib/barberReference';
 import {SALON_IMAGES} from '../assets/images';
@@ -83,7 +84,19 @@ import {VedaSanjeevaniWebsite} from './veda-sanjeevani/VedaSanjeevaniWebsite';
 import {LuxuryEditorialWebsite} from './LuxuryEditorialWebsite';
 import {AuraUnisexWebsite} from './AuraUnisexWebsite';
 
-const money=(value:number)=>`₹${Number(value||0).toLocaleString('en-IN')}`;
+const money=(value:number)=>\`₹\${Number(value||0).toLocaleString('en-IN')}\`;
+
+function SalonWhatsAppFloatingButton({profile}:{profile:SalonWebsitePreviewProps['profile']}) {
+ const href=salonWhatsAppUrl(
+  profile.whatsapp,
+  \`Hello \${profile.businessName||'the salon'}, I would like to book an appointment. Please share your available slots.\`,
+ );
+ if(!href)return null;
+ return <a data-salon-whatsapp-booking href={href} target="_blank" rel="noopener noreferrer" aria-label={\`Book an appointment with \${profile.businessName||'the salon'} on WhatsApp\`} className="fixed bottom-5 right-5 z-[96] inline-flex min-h-14 items-center gap-2 rounded-full bg-[#25D366] px-5 py-3 text-sm font-bold text-white shadow-xl transition hover:scale-105 hover:bg-[#1fbd5b] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-700">
+  <MessageCircle size={20} aria-hidden="true"/>
+  <span>WhatsApp Booking</span>
+ </a>;
+}
 function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGallery=[],policies,branding,loyaltyConfig,onManageDashboard,onCustomerAccount,customerSignedIn,customerName,customerPhotoUrl,onAddAppointment,readOnly,live}:SalonWebsitePreviewProps){
  useSeoMetadata(profile);
  const {t}=useWebsiteLanguage();
@@ -172,8 +185,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
   ?(roopGalleryCategories.includes(galleryCategory as PhotoCategory)?galleryCategory:'All')
   :galleryCategory;
 
- const whatsapp=profile.whatsapp?.replace(/[^0-9]/g,'');
- const wa=whatsapp?`https://wa.me/${whatsapp}?text=${encodeURIComponent(`Hello ${profile.businessName}, I would like to enquire about an appointment.`)}`:'';
+ const wa=salonWhatsAppUrl(profile.whatsapp,`Hello ${profile.businessName||'the salon'}, I would like to enquire about an appointment.`);
  const pinkyBookingFlowAvailable=Boolean(
   typeof onAddAppointment==='function'&&
   pinkyExt.bookingEnabled!==false&&
@@ -842,5 +854,5 @@ export function CustomerSalonWebsite(props:SalonWebsitePreviewProps){
  const stylists=useMemo(()=>Array.isArray(props.stylists)?props.stylists:[],[props.stylists]);
  // The profile can be briefly unavailable while the account or site is still loading.
  if(!props.profile||typeof props.profile!=='object')return <main role="status" aria-live="polite" className="min-h-screen flex items-center justify-center"><p>Loading website… The salon profile is unavailable right now; this page retries automatically.</p></main>;
- return <WebsiteLanguageProvider key={props.profile.subdomain||props.profile.businessType} defaultLanguage={props.profile.defaultWebsiteLanguage}>{props.profile.businessType==='aurelia_beauty_parlour'?<AureliaBeautyWebsite {...props} services={services} stylists={stylists}/>:props.profile.businessType==='mens_hair_studio'?<KeshKraftWebsite {...props} services={services} stylists={stylists}/>:<CustomerSalonWebsiteContent {...props} services={services} stylists={stylists}/>}</WebsiteLanguageProvider>;
+ return <WebsiteLanguageProvider key={props.profile.subdomain||props.profile.businessType} defaultLanguage={props.profile.defaultWebsiteLanguage}><div className="contents" data-salon-whatsapp-site>{props.profile.businessType==='aurelia_beauty_parlour'?<AureliaBeautyWebsite {...props} services={services} stylists={stylists}/>:props.profile.businessType==='mens_hair_studio'?<KeshKraftWebsite {...props} services={services} stylists={stylists}/>:<CustomerSalonWebsiteContent {...props} services={services} stylists={stylists}/>}<SalonWhatsAppFloatingButton profile={props.profile}/></div></WebsiteLanguageProvider>;
 }
