@@ -99,7 +99,7 @@ create table if not exists public.salon_staff_attendance_events (
   event_type text not null check (event_type in (
     'check_in','check_out','break_start','break_end','status_set',
     'biometric_enrolled','biometric_revoked','staff_deactivated','staff_reactivated',
-    'device_punch','leave_created','leave_reviewed'
+    'device_punch','leave_created','leave_reviewed','shift_force_closed'
   )),
   method text not null check (method in ('manual','biometric','device','system')),
   occurred_at timestamptz not null default now(),
@@ -619,6 +619,105 @@ begin
   return jsonb_build_object('ok',true,'attendance',to_jsonb(v_record));
 end;
 $function$;
+
+
+-- Owners can close an unfinished shift from a previous date after confirming
+-- the actual check-out time. The 48-hour cap prevents fabricated multi-day work.
+create or replace function public.salon_staff_attendance_service_resolve_open_shift(
+  p_owner_id uuid,
+  p_staff_key text,
+  p_attendance_date date,
+  p_check_out timestamptz,
+  p_notes text default ''
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path to ''
+as $function$
+declare
+  v_record public.salon_staff_attendance_records;
+  v_active_break integer := 0;
+  v_total_break integer := 0;
+  v_worked integer := 0;
+  v_overtime integer := 0;
+  v_status text := 'present';
+  v_event_id uuid;
+begin
+  if p_owner_id is null or not exists (
+    select 1 from public.studioflow_accounts a where a.user_id = p_owner_id
+  ) then
+    raise exception 'Salon owner account not found' using errcode = '42501';
+  end if;
+  if p_staff_key is null or char_length(btrim(p_staff_key)) not between 1 and 120
+     or p_attendance_date is null or p_check_out is null
+     or char_length(coalesce(p_notes,'')) not between 3 and 1000
+     or p_check_out > now() + interval '5 minutes'
+     or p_check_out < now() - interval '90 days' then
+    raise exception 'A valid staff, date, check-out time and owner note are required' using errcode = '22023';
+  end if;
+
+  select * into v_record
+  from public.salon_staff_attendance_records r
+  where r.owner_id = p_owner_id
+    and r.staff_key = p_staff_key
+    and r.attendance_date = p_attendance_date
+  for update;
+  if v_record.id is null or v_record.check_in is null or v_record.check_out is not null then
+    raise exception 'No unfinished attendance shift exists for that staff member and date' using errcode = 'P0002';
+  end if;
+  if p_check_out < v_record.check_in then
+    raise exception 'Check-out time cannot be before check-in' using errcode = '22023';
+  end if;
+  if p_check_out - v_record.check_in > interval '48 hours' then
+    raise exception 'This unfinished shift is older than 48 hours. Contact support before correcting payroll time.' using errcode = '22023';
+  end if;
+
+  if v_record.active_break_started_at is not null then
+    if p_check_out < v_record.active_break_started_at then
+      raise exception 'Check-out time cannot be before the active break start' using errcode = '22023';
+    end if;
+    v_active_break := greatest(0, floor(extract(epoch from (p_check_out - v_record.active_break_started_at)) / 60)::integer);
+  end if;
+  v_total_break := least(1440, v_record.break_minutes + v_active_break);
+  v_worked := greatest(0, floor(extract(epoch from (p_check_out - v_record.check_in)) / 60)::integer - v_total_break);
+  v_overtime := greatest(0, v_worked - v_record.expected_minutes - coalesce((
+    select s.overtime_after_minutes from public.salon_staff_attendance_settings s where s.owner_id = p_owner_id
+  ),0));
+  v_status := case
+    when v_record.status = 'late' and (v_record.expected_minutes = 0 or v_worked >= v_record.expected_minutes / 2) then 'late'
+    when v_record.expected_minutes > 0 and v_worked < v_record.expected_minutes / 2 then 'half_day'
+    else 'present'
+  end;
+
+  update public.salon_staff_attendance_records
+  set check_out = p_check_out,
+      active_break_started_at = null,
+      break_minutes = v_total_break,
+      worked_minutes = v_worked,
+      overtime_minutes = v_overtime,
+      status = v_status,
+      method = 'manual',
+      notes = concat_ws(E'\\n', nullif(notes,''), 'Owner closed unfinished shift: ' || btrim(p_notes)),
+      recorded_by = p_owner_id,
+      updated_at = now()
+  where id = v_record.id
+  returning * into v_record;
+
+  insert into public.salon_staff_attendance_events(
+    owner_id,staff_key,attendance_id,event_type,method,occurred_at,actor_id,notes,
+    metadata
+  ) values (
+    p_owner_id,p_staff_key,v_record.id,'shift_force_closed','manual',p_check_out,p_owner_id,btrim(p_notes),
+    jsonb_build_object('resolvedAt',now(),'attendanceDate',p_attendance_date,'workedMinutes',v_worked,'breakMinutes',v_total_break)
+  ) returning id into v_event_id;
+
+  return jsonb_build_object('ok',true,'attendance',to_jsonb(v_record),'eventId',v_event_id);
+end;
+$function$;
+
+revoke all on function public.salon_staff_attendance_service_resolve_open_shift(uuid,text,date,timestamptz,text) from public, anon, authenticated;
+grant execute on function public.salon_staff_attendance_service_resolve_open_shift(uuid,text,date,timestamptz,text) to service_role;
 
 revoke all on function public.salon_staff_attendance_service_punch(uuid,text,text,text,text,numeric,numeric,numeric,uuid,text,timestamptz) from public, anon, authenticated;
 revoke all on function public.salon_staff_attendance_service_mark_status(uuid,text,date,text,text) from public, anon, authenticated;
