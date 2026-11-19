@@ -157,10 +157,10 @@ begin
     select 1
     from jsonb_array_elements(studioflow_android_private.owner_contacts()) c(value)
     where case
-      when char_length(regexp_replace(coalesce(c.value->>'whatsapp','','[^0-9]','','g')))=12
-        and left(regexp_replace(coalesce(c.value->>'whatsapp','','[^0-9]','','g'),2)='91'
-      then right(regexp_replace(coalesce(c.value->>'whatsapp','','[^0-9]','','g'),10)
-      else regexp_replace(coalesce(c.value->>'whatsapp','','[^0-9]','','g')
+      when char_length(regexp_replace(coalesce(c.value->>'whatsapp',''),'[^0-9]','','g'))=12
+        and left(regexp_replace(coalesce(c.value->>'whatsapp',''),'[^0-9]','','g'),2)='91'
+      then right(regexp_replace(coalesce(c.value->>'whatsapp',''),'[^0-9]','','g'),10)
+      else regexp_replace(coalesce(c.value->>'whatsapp',''),'[^0-9]','','g')
     end=normalized
   ) then
     raise exception 'A customer with this WhatsApp number already exists. Select the existing customer instead.' using errcode='23505';
