@@ -409,11 +409,71 @@ try {
     'The same device event ID with changed data must be rejected.',
   );
 
+  // Close the first test punch so subsequent rate-limit fixtures start cleanly.
+  const closeEventAt = testDate + ' 13:00:00+05:30';
+  const closeDigest = 'c'.repeat(64);
+  const closeResult = await one(
+    `select public.salon_staff_attendance_service_device_punch(
+      $1::uuid,$2::uuid,'staff-device','provider-event-1-close','check_out',
+      $3::timestamptz,'device test checkout',$4
+    ) as result`,
+    [ownerA, device.id, closeEventAt, closeDigest],
+  );
+  assert.equal(closeResult.result.accepted, true);
+
+  // Per-device limit is 60 distinct events in a rolling minute. The first
+  // accepted event and checkout above account for 2; add 29 completed pairs.
+  for (let day = 2; day <= 30; day += 1) {
+    const date = dateOffset(-day);
+    const inAt = date + ' 09:00:00+05:30';
+    const outAt = date + ' 18:00:00+05:30';
+    const inEvent = 'provider-pair-' + day + '-in';
+    const outEvent = 'provider-pair-' + day + '-out';
+    const inDigest = createHash('sha256').update(inEvent + inAt).digest('hex');
+    const outDigest = createHash('sha256').update(outEvent + outAt).digest('hex');
+    await one(
+      `select public.salon_staff_attendance_service_device_punch(
+        $1::uuid,$2::uuid,'staff-half',$3,'check_in',$4::timestamptz,'rate-limit test',$5
+      ) as result`,
+      [ownerA, device.id, inEvent, inAt, inDigest],
+    );
+    await one(
+      `select public.salon_staff_attendance_service_device_punch(
+        $1::uuid,$2::uuid,'staff-half',$3,'check_out',$4::timestamptz,'rate-limit test',$5
+      ) as result`,
+      [ownerA, device.id, outEvent, outAt, outDigest],
+    );
+  }
+
+  const allowedAt = dateOffset(-31) + ' 09:00:00+05:30';
+  const allowedEventId = 'provider-rate-limit-60';
+  const allowedDigest = createHash('sha256').update(allowedEventId + allowedAt).digest('hex');
+  const allowedLast = await one(
+    `select public.salon_staff_attendance_service_device_punch(
+      $1::uuid,$2::uuid,'staff-half',$3,'check_in',$4::timestamptz,'rate-limit test',$5
+    ) as result`,
+    [ownerA, device.id, allowedEventId, allowedAt, allowedDigest],
+  );
+  assert.equal(allowedLast.result.accepted, true);
+
+  const blockedAt = dateOffset(-32) + ' 09:00:00+05:30';
+  const blockedEventId = 'provider-rate-limit-61';
+  const blockedDigest = createHash('sha256').update(blockedEventId + blockedAt).digest('hex');
+  await expectSqlError(
+    () => one(
+      `select public.salon_staff_attendance_service_device_punch(
+        $1::uuid,$2::uuid,'staff-half',$3,'check_in',$4::timestamptz,'rate-limit test',$5
+      )`,
+      [ownerA, device.id, blockedEventId, blockedAt, blockedDigest],
+    ),
+    'The 61st distinct device event in one minute must be rejected.',
+  );
+
   const deviceEventCount = await one(
     "select count(*)::int as count from public.salon_staff_attendance_device_events where device_id=$1",
     [device.id],
   );
-  assert.equal(deviceEventCount.count, 1);
+  assert.equal(deviceEventCount.count, 60, 'Rejected device events must roll back their receipt row.');
 
   // Empty roster sync deactivates profiles but never deletes attendance history.
   await useRole('authenticated');
