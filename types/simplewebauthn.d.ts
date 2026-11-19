@@ -1,4 +1,4 @@
-declare module 'npm:@simplewebauthn/server@14.1.0' {
+declare module '@simplewebauthn/server' {
   export function generateRegistrationOptions(options: any): Promise<any>;
   export function verifyRegistrationResponse(options: any): Promise<any>;
   export function generateAuthenticationOptions(options: any): Promise<any>;
