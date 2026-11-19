@@ -42,7 +42,7 @@ Example request:
 
 The endpoint authenticates the device key, maps the employee code to an active staff profile, rejects unknown event types, and calls one transactional database operation for the device receipt and punch. Duplicate provider event IDs with identical payloads are idempotently acknowledged; reusing an ID with different data is rejected.
 
-This generic push contract is not a universal driver for every attendance machine. Devices that only support a proprietary SDK, local desktop software, or a vendor-specific protocol need a small adapter/bridge for their exact make and model. Do not advertise any particular hardware brand as compatible until that adapter has been tested.
+This generic push contract is not a universal driver for every attendance machine. The machine or a trusted vendor bridge must perform the fingerprint/face match locally and send only the verified employee code and check-in/out event; never send raw fingerprint templates or face images to NEXORA. The device API key must be kept on the trusted machine/bridge. Devices that only support a proprietary SDK, local desktop software, or a vendor-specific protocol need a small adapter/bridge for their exact make and model. Do not advertise any particular hardware brand as compatible until that adapter has been tested.
 
 ## Database and security
 
