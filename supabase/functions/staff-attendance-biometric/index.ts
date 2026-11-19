@@ -407,7 +407,7 @@ async function ownerAction(ownerId: string, body: Record<string, unknown>, origi
   throw new Error('Unknown staff attendance action.');
 }
 
-async function devicePunch(body: Record<string, unknown>) {
+async function devicePunch(req: Request, body: Record<string, unknown>) {
   const token = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '').trim();
   if (!token) throw new Error('Device API key required.');
   const { data: device, error } = await admin.from('salon_staff_attendance_devices')
@@ -458,7 +458,7 @@ Deno.serve(async (req: Request) => {
     if (!body || typeof body !== 'object' || Array.isArray(body)) return json({ error: 'Request body must be a JSON object.' }, 400, origin);
 
     if (body.action === 'devicePunch') {
-      const result = await devicePunch(body);
+      const result = await devicePunch(req, body);
       return json(result, 200, origin);
     }
 
