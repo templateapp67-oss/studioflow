@@ -208,6 +208,7 @@ create table if not exists public.salon_staff_attendance_device_events (
   occurred_at timestamptz not null,
   attendance_event_id uuid,
   payload_digest text not null,
+  processing_status text not null default 'pending' check (processing_status in ('pending','completed')),
   received_at timestamptz not null default now(),
   constraint salon_staff_attendance_device_event_unique unique(device_id, provider_event_id),
   constraint salon_staff_attendance_device_event_staff_fk
