@@ -152,6 +152,7 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
   const [notice, setNotice] = useState('');
   const [captureLocation, setCaptureLocation] = useState(false);
   const [staffCodes, setStaffCodes] = useState<Record<string, string>>({});
+  const [deactivateCandidate, setDeactivateCandidate] = useState<string | null>(null);
   const [shiftDay, setShiftDay] = useState('1');
   const [shiftStart, setShiftStart] = useState('10:00');
   const [shiftEnd, setShiftEnd] = useState('19:00');
@@ -221,8 +222,8 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
         setGraceMinutes(Number(settingsResult.data.grace_minutes ?? 10));
         setOvertimeAfter(Number(settingsResult.data.overtime_after_minutes ?? 0));
       }
-      setSelectedStaff((current) => current && (rosterResult.data || []).some((row: any) => row.staff_key === current)
-        ? current : (rosterResult.data || [])[0]?.staff_key || '');
+      setSelectedStaff((current) => current && (rosterResult.data || []).some((row: any) => row.staff_key === current && row.active)
+        ? current : (rosterResult.data || []).find((row: any) => row.active)?.staff_key || '');
       setStaffCodes((current) => {
         const next = { ...current };
         for (const row of (rosterResult.data || []) as RosterRow[]) next[row.staff_key] = row.staff_code || '';
@@ -329,6 +330,18 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
       await load(true);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Attendance status could not be updated.');
+    } finally { setBusy(false); }
+  };
+
+  const deactivateStaff = async (staffKey: string) => {
+    setBusy(true); setError(''); setNotice('');
+    try {
+      const result = await invoke('deactivateStaff', { staffKey });
+      setDeactivateCandidate(null);
+      setNotice((result?.staffName || 'Staff member') + ' deactivated. Their attendance history is retained.');
+      await load(true);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Staff profile could not be deactivated.');
     } finally { setBusy(false); }
   };
 
@@ -599,6 +612,9 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
                       return <tr key={staff.staff_key} className="border-b border-slate-100 align-top">
                         <td className="py-3 pr-3"><strong className="block text-slate-900">{staff.staff_name}</strong><span className="text-slate-500">{staff.staff_role}</span>
                           <div className="flex items-center gap-1 mt-1"><input className="workspace-input max-w-28 py-1 text-[11px]" placeholder="Device code" value={staffCodes[staff.staff_key] || ''} onChange={(event) => setStaffCodes((old) => ({...old,[staff.staff_key]:event.target.value}))}/><button type="button" className="text-violet-700 underline" onClick={() => void saveStaffCode(staff.staff_key)} disabled={busy}>Save code</button></div>
+                          {deactivateCandidate === staff.staff_key
+                            ? <div className="flex items-center gap-2 mt-2"><button type="button" className="text-rose-700 underline font-semibold" onClick={() => void deactivateStaff(staff.staff_key)} disabled={busy}>Confirm deactivate</button><button type="button" className="text-slate-500 underline" onClick={() => setDeactivateCandidate(null)} disabled={busy}>Cancel</button></div>
+                            : <button type="button" className="mt-2 text-rose-700 underline text-[11px]" onClick={() => setDeactivateCandidate(staff.staff_key)} disabled={busy}>Deactivate staff</button>}
                         </td>
                         <td className="py-3 pr-3"><span className={'rounded-full px-2 py-1 text-[10px] font-bold ' + (row?.status==='late'?'bg-amber-100 text-amber-800':row?.status==='present'?'bg-emerald-100 text-emerald-800':row?.status==='absent'||row?.status==='on_leave'?'bg-rose-100 text-rose-800':'bg-slate-100 text-slate-600')}>{row ? (STATUS_LABEL[row.status] || row.status) : 'Not marked'}</span><small className="block mt-1 text-slate-400">{row?.method || '—'}</small></td>
                         <td className="py-3 pr-3 whitespace-nowrap">{timeLabel(row?.check_in)} / {timeLabel(row?.check_out)}</td>
