@@ -299,15 +299,15 @@ try {
   );
   assert.equal(overlapStatus.status, 'absent');
 
-  // Owner can mark historical status; device credentials remain hidden from browser roles.
+  // Owner can mark historical status through the service-only status RPC.
+  await useRole('service_role');
   await one(
     `select public.salon_staff_attendance_service_mark_status(
       $1::uuid,'staff-device',$2::date,'absent','manual absence'
     )`,
-    [ownerA, testDate],
+    [ownerA, dateOffset(-3)],
   );
 
-  await useRole('service_role');
   const device = await one(
     `insert into public.salon_staff_attendance_devices(
       owner_id,device_name,vendor,model,protocol,api_key_hash
