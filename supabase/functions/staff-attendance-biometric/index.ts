@@ -234,7 +234,7 @@ async function ownerAction(ownerId: string, body: Record<string, unknown>, origi
     });
     if (auditError) {
       await admin.from('salon_staff_attendance_profiles')
-        .update({ active: true, updated_at: new Date().toISOString() })
+        .update({ active: true, manually_deactivated_at: null, updated_at: new Date().toISOString() })
         .eq('owner_id', ownerId).eq('staff_key', staffKey);
       throw new Error('Deactivation was rolled back because its audit event could not be saved.');
     }
