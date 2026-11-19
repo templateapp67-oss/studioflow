@@ -67,7 +67,7 @@ create table if not exists public.salon_staff_attendance_records (
   worked_minutes integer not null default 0 check (worked_minutes between 0 and 2880),
   expected_minutes integer not null default 0 check (expected_minutes between 0 and 1440),
   late_minutes integer not null default 0 check (late_minutes between 0 and 1440),
-  overtime_minutes integer not null default 0 check (overtime_minutes between 0 and 1440),
+  overtime_minutes integer not null default 0 check (overtime_minutes between 0 and 2880),
   method text not null default 'manual' check (method in ('manual','biometric','device','import')),
   notes text not null default '',
   check_in_lat numeric(9,6),
