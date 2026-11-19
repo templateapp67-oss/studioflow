@@ -54,6 +54,7 @@ for (const table of [
 ]) assert.ok(sensitiveBlock.includes("'" + table + "'"), 'Missing service-only table registration: ' + table);
 assert.ok(migration.includes('salon_staff_attendance_sync_roster'));
 assert.ok(migration.includes('jsonb_array_length(p_roster) > 200'));
+assert.ok(migration.includes('late_minutes integer not null default 0'));
 assert.ok(migration.includes('salon_staff_attendance_service_punch'));
 assert.ok(migration.includes('salon_staff_attendance_service_mark_status'));
 assert.ok(migration.includes('grant execute on function public.salon_staff_attendance_service_punch'));
@@ -83,6 +84,8 @@ assert.ok(panel.includes('navigator.credentials.create'));
 assert.ok(panel.includes('navigator.credentials.get'));
 assert.ok(panel.includes('A shared kiosk with one common device PIN/biometric profile cannot prove which employee is present.'));
 assert.ok(panel.includes('todayRecords'));
+assert.ok(panel.includes('liveWorkedMinutes'));
+assert.ok(panel.includes('Late minutes'));
 assert.ok(panel.includes('registerVerify'));
 assert.ok(panel.includes('authenticationVerify'));
 assert.ok(panel.includes('break_start'));
