@@ -320,6 +320,10 @@ begin
      or p_event_at < now() - interval '90 days' then
     raise exception 'Attendance event time is outside the allowed range' using errcode = '22023';
   end if;
+  if p_staff_key is null or char_length(btrim(p_staff_key)) not between 1 and 120
+     or char_length(coalesce(p_notes,'')) > 1000 then
+    raise exception 'Invalid staff key or attendance note' using errcode = '22023';
+  end if;
   if (p_lat is not null and (p_lat < -90 or p_lat > 90))
      or (p_lng is not null and (p_lng < -180 or p_lng > 180))
      or (p_accuracy_m is not null and (p_accuracy_m < 0 or p_accuracy_m > 100000)) then
@@ -341,6 +345,38 @@ begin
   v_overtime_after := coalesce(v_settings.overtime_after_minutes, 0);
   v_local_date := (p_event_at at time zone v_timezone)::date;
 
+  -- Find today's record first. Overnight shifts keep their attendance_date
+  -- anchored to check-in day; allow their checkout/break-end after midnight.
+  select * into v_record
+  from public.salon_staff_attendance_records r
+  where r.owner_id = p_owner_id and r.staff_key = p_staff_key and r.attendance_date = v_local_date
+  for update;
+
+  if p_action in ('check_out','break_end') and (v_record.id is null or v_record.check_in is null) then
+    select * into v_record
+    from public.salon_staff_attendance_records r
+    where r.owner_id = p_owner_id
+      and r.staff_key = p_staff_key
+      and r.attendance_date < v_local_date
+      and r.check_in is not null
+      and r.check_out is null
+    order by r.attendance_date desc
+    limit 1
+    for update;
+    if v_record.id is not null then
+      v_local_date := v_record.attendance_date;
+    end if;
+  end if;
+
+  if p_action = 'check_in' and exists (
+    select 1 from public.salon_staff_attendance_records r
+    where r.owner_id = p_owner_id and r.staff_key = p_staff_key
+      and r.attendance_date < v_local_date
+      and r.check_in is not null and r.check_out is null
+  ) then
+    raise exception 'Finish the previous shift before starting a new one' using errcode = '22023';
+  end if;
+
   select * into v_shift
   from public.salon_staff_attendance_shifts s
   where s.owner_id = p_owner_id
@@ -358,11 +394,6 @@ begin
     if v_shift_span <= interval '0' then v_shift_span := v_shift_span + interval '24 hours'; end if;
     v_expected := greatest(0, floor(extract(epoch from (v_shift_span - make_interval(mins => v_shift_break))) / 60)::integer);
   end if;
-
-  select * into v_record
-  from public.salon_staff_attendance_records r
-  where r.owner_id = p_owner_id and r.staff_key = p_staff_key and r.attendance_date = v_local_date
-  for update;
 
   if p_action = 'check_in' then
     if v_record.id is not null and (v_record.check_in is not null or v_record.status in ('absent','on_leave','holiday','weekly_off')) then
@@ -402,6 +433,9 @@ begin
     if v_record.id is null or v_record.check_in is null or v_record.check_out is not null then
       raise exception 'Staff must check in before starting a break' using errcode = '22023';
     end if;
+    if p_event_at < v_record.check_in then
+      raise exception 'Break start cannot be before check-in' using errcode = '22023';
+    end if;
     if v_record.active_break_started_at is not null then
       raise exception 'A break is already running' using errcode = '23505';
     end if;
@@ -411,6 +445,9 @@ begin
   elsif p_action = 'break_end' then
     if v_record.id is null or v_record.active_break_started_at is null then
       raise exception 'There is no active break to finish' using errcode = '22023';
+    end if;
+    if p_event_at < v_record.active_break_started_at then
+      raise exception 'Break end cannot be before break start' using errcode = '22023';
     end if;
     v_break := greatest(0, floor(extract(epoch from (p_event_at - v_record.active_break_started_at)) / 60)::integer);
     update public.salon_staff_attendance_records
@@ -425,6 +462,9 @@ begin
     end if;
     if v_record.check_out is not null then
       raise exception 'Attendance is already checked out' using errcode = '23505';
+    end if;
+    if p_event_at < v_record.check_in then
+      raise exception 'Check-out cannot be before check-in' using errcode = '22023';
     end if;
     if v_record.active_break_started_at is not null then
       raise exception 'Finish the active break before checking out' using errcode = '22023';
@@ -488,7 +528,8 @@ begin
   ) then
     raise exception 'Salon owner account not found' using errcode = '42501';
   end if;
-  if p_status not in ('absent','on_leave','holiday','weekly_off','half_day','present') then
+  if p_status is null or p_attendance_date is null or char_length(coalesce(p_notes,'')) > 1000
+     or p_status not in ('absent','on_leave','holiday','weekly_off','half_day','present') then
     raise exception 'Invalid attendance status' using errcode = '22023';
   end if;
   if not exists (
