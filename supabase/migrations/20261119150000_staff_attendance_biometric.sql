@@ -546,8 +546,8 @@ begin
   ) then
     raise exception 'Salon owner access required' using errcode = '42501';
   end if;
-  if jsonb_typeof(p_roster) <> 'array' or jsonb_array_length(p_roster) = 0
-     or jsonb_array_length(p_roster) > 200 then
+  if p_roster is null or jsonb_typeof(p_roster) is distinct from 'array'
+     or jsonb_array_length(p_roster) = 0 or jsonb_array_length(p_roster) > 200 then
     raise exception 'A non-empty staff roster (maximum 200) is required' using errcode = '22023';
   end if;
   if exists (
@@ -556,6 +556,10 @@ begin
        or char_length(btrim(coalesce(x.name,''))) not between 2 and 120
   ) then
     raise exception 'Staff roster contains an invalid ID or name' using errcode = '22023';
+  end if;
+  if (select count(*) from jsonb_to_recordset(p_roster) as x(id text, name text, role text))
+     <> (select count(distinct x.id) from jsonb_to_recordset(p_roster) as x(id text, name text, role text)) then
+    raise exception 'Staff roster contains duplicate staff IDs' using errcode = '22023';
   end if;
 
   insert into public.salon_staff_attendance_profiles(
@@ -590,13 +594,19 @@ grant execute on function public.salon_staff_attendance_sync_roster(jsonb) to au
 create or replace function public.salon_staff_attendance_apply_leave()
 returns trigger
 language plpgsql
-security invoker
+security definer
 set search_path to ''
 as $function$
 declare
   leave_day date;
 begin
+  if auth.uid() is null or new.owner_id is distinct from auth.uid() then
+    raise exception 'Salon owner access required for leave updates' using errcode = '42501';
+  end if;
   if tg_op = 'UPDATE' then
+    if old.owner_id is distinct from auth.uid() then
+      raise exception 'Salon owner access required for leave updates' using errcode = '42501';
+    end if;
     if old.status = 'approved'
        and (new.status <> 'approved' or new.start_date <> old.start_date or new.end_date <> old.end_date) then
       update public.salon_staff_attendance_records r
@@ -643,3 +653,4 @@ create trigger salon_staff_attendance_apply_leave_trigger
 after insert or update of status, start_date, end_date
 on public.salon_staff_leave_requests
 for each row execute function public.salon_staff_attendance_apply_leave();
+revoke all on function public.salon_staff_attendance_apply_leave() from public, anon, authenticated;
