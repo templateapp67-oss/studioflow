@@ -63,6 +63,7 @@ create table if not exists public.salon_staff_attendance_records (
   break_minutes integer not null default 0 check (break_minutes between 0 and 1440),
   worked_minutes integer not null default 0 check (worked_minutes between 0 and 2880),
   expected_minutes integer not null default 0 check (expected_minutes between 0 and 1440),
+  late_minutes integer not null default 0 check (late_minutes between 0 and 1440),
   overtime_minutes integer not null default 0 check (overtime_minutes between 0 and 1440),
   method text not null default 'manual' check (method in ('manual','biometric','device','import')),
   notes text not null default '',
@@ -425,22 +426,22 @@ begin
     if v_shift_start is not null then
       v_late := greatest(0, floor(extract(epoch from (
         p_event_at - ((v_local_date + v_shift_start) at time zone v_timezone)
-        - make_interval(mins => v_grace)
       )) / 60)::integer);
     end if;
-    v_status := case when v_late > 0 then 'late' else 'present' end;
+    v_status := case when v_late > v_grace then 'late' else 'present' end;
 
     insert into public.salon_staff_attendance_records(
-      owner_id, staff_key, attendance_date, status, check_in, expected_minutes,
+      owner_id, staff_key, attendance_date, status, check_in, expected_minutes, late_minutes,
       method, notes, check_in_lat, check_in_lng, check_in_accuracy_m, recorded_by
     ) values (
-      p_owner_id, p_staff_key, v_local_date, v_status, p_event_at, v_expected,
+      p_owner_id, p_staff_key, v_local_date, v_status, p_event_at, v_expected, v_late,
       p_method, coalesce(p_notes,''), p_lat, p_lng, p_accuracy_m, p_owner_id
     )
     on conflict(owner_id, staff_key, attendance_date) do update
       set status = excluded.status,
           check_in = excluded.check_in,
           expected_minutes = excluded.expected_minutes,
+          late_minutes = excluded.late_minutes,
           method = excluded.method,
           notes = case when excluded.notes = '' then public.salon_staff_attendance_records.notes else excluded.notes end,
           check_in_lat = excluded.check_in_lat,
