@@ -73,6 +73,18 @@ try {
     ])],
   );
 
+  // A temporary partial team hydration updates supplied rows but must not
+  // deactivate staff that are merely absent from this partial payload.
+  await one(
+    'select public.salon_staff_attendance_sync_roster($1::jsonb)',
+    [JSON.stringify([{ id: 'staff-day', name: 'Day Shift Staff Updated', role: 'Stylist' }])],
+  );
+  const partialSyncActive = await one(
+    "select count(*)::int as count from public.salon_staff_attendance_profiles where owner_id=$1 and active=true",
+    [ownerA],
+  );
+  assert.equal(partialSyncActive.count, 6, 'Partial roster hydration must not deactivate omitted staff.');
+
   // A second salon receives its own roster. Owner A must not see it.
   await setOwner(ownerB);
   await one(
