@@ -236,6 +236,8 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
     const syncRoster = async () => {
       const current = (stylists || []).filter((staff) => staff?.id && staff?.name?.trim())
         .map((staff) => ({ id: String(staff.id), name: staff.name.trim(), role: staff.role || 'Staff' }));
+      // An empty list may mean the owner workspace is still hydrating; require an explicit action to deactivate everyone.
+      if (!current.length) return;
       const { error: syncError } = await supabase.rpc('salon_staff_attendance_sync_roster', { p_roster: current });
       if (syncError && mounted) setError(syncError.message || 'Staff roster could not be synced.');
       if (mounted) await loadRef.current(true);
@@ -295,6 +297,18 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
       await load(true);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Attendance could not be saved.');
+    } finally { setBusy(false); }
+  };
+
+  const deactivateEmptyRoster = async () => {
+    setBusy(true); setError(''); setNotice('');
+    try {
+      const { error: syncError } = await supabase.rpc('salon_staff_attendance_sync_roster', { p_roster: [] });
+      if (syncError) throw syncError;
+      setNotice('All staff profiles were deactivated in the attendance roster. Historical attendance records are kept.');
+      await load(true);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Attendance roster could not be updated.');
     } finally { setBusy(false); }
   };
 
@@ -552,6 +566,13 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
                 <label className="text-xs font-semibold">Register date<input className="workspace-input mt-1" type="date" value={registerDate} min={daysAgoDate(90)} max={indiaDate()} onChange={(event) => setRegisterDate(event.target.value)}/></label>
                 <label className="flex items-center gap-2 text-xs text-slate-600"><input type="checkbox" checked={captureLocation} onChange={(event) => setCaptureLocation(event.target.checked)}/> Capture location when available</label>
               </div>
+              {(!stylists || stylists.length === 0) && activeRoster.length > 0 && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                  <strong className="block">The Team & Specialists list is empty.</strong>
+                  <p className="mt-1">Attendance profiles are kept while the owner workspace loads or until you explicitly deactivate them. Historical attendance will not be deleted.</p>
+                  <button type="button" className="secondary-action mt-2" disabled={busy} onClick={() => void deactivateEmptyRoster()}>Deactivate all attendance profiles</button>
+                </div>
+              )}
               {activeRoster.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center">
                   <strong className="block text-slate-900">No staff profiles found</strong>
