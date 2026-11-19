@@ -23,17 +23,35 @@ const tables = [
 ];
 for (const table of tables) {
   assert.ok(migration.includes('create table if not exists public.' + table), 'Missing table: ' + table);
-  assert.ok(migration.includes('alter table public.' + table + ' enable row level security'), 'RLS missing: ' + table);
 }
+const rlsStart = migration.indexOf('-- Owner-facing operational tables are protected by strict salon ownership RLS.');
+const rlsEnd = migration.indexOf('-- One audited punch engine', rlsStart);
+const rlsBlock = migration.slice(rlsStart, rlsEnd);
+assert.ok(rlsBlock.includes("execute format('alter table public.%I enable row level security', t)"));
+for (const table of [
+  'salon_staff_attendance_settings',
+  'salon_staff_attendance_profiles',
+  'salon_staff_attendance_shifts',
+  'salon_staff_attendance_records',
+  'salon_staff_attendance_events',
+  'salon_staff_leave_requests',
+  'salon_staff_attendance_biometrics',
+  'salon_staff_attendance_webauthn_challenges',
+  'salon_staff_attendance_devices',
+  'salon_staff_attendance_device_events',
+]) assert.ok(rlsBlock.includes("'" + table + "'"), 'Missing RLS table registration: ' + table);
+
+const sensitiveStart = migration.indexOf('-- Sensitive service-managed tables are inaccessible to browser roles.');
+const sensitiveEnd = migration.indexOf('grant select, insert, update, delete on public.salon_staff_attendance_settings', sensitiveStart);
+const sensitiveBlock = migration.slice(sensitiveStart, sensitiveEnd);
+assert.ok(sensitiveBlock.includes("execute format('revoke all on table public.%I from public, anon, authenticated', t)"));
+assert.ok(sensitiveBlock.includes("execute format('grant all on table public.%I to service_role', t)"));
 for (const table of [
   'salon_staff_attendance_biometrics',
   'salon_staff_attendance_webauthn_challenges',
   'salon_staff_attendance_devices',
   'salon_staff_attendance_device_events',
-]) {
-  assert.ok(migration.includes('revoke all on table public.' + table + ' from public, anon, authenticated'));
-  assert.ok(migration.includes('grant all on table public.' + table + ' to service_role'));
-}
+]) assert.ok(sensitiveBlock.includes("'" + table + "'"), 'Missing service-only table registration: ' + table);
 assert.ok(migration.includes('salon_staff_attendance_sync_roster'));
 assert.ok(migration.includes('jsonb_array_length(p_roster) > 200'));
 assert.ok(migration.includes('salon_staff_attendance_service_punch'));
