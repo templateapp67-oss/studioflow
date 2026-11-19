@@ -278,6 +278,7 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
   const todayRows = todayRecords;
   const todayMap = useMemo(() => new Map(todayRows.map((row) => [row.staff_key, row])), [todayRows]);
   const activeRoster = roster.filter((row) => row.active);
+  const inactiveRoster = roster.filter((row) => !row.active);
   const presentCount = todayRows.filter((row) => ['present','late','half_day'].includes(row.status)).length;
   const lateCount = todayRows.filter((row) => row.status === 'late').length;
   const absentCount = todayRows.filter((row) => ['absent','on_leave'].includes(row.status)).length;
@@ -342,6 +343,17 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
       await load(true);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Staff profile could not be deactivated.');
+    } finally { setBusy(false); }
+  };
+
+  const reactivateStaff = async (staffKey: string) => {
+    setBusy(true); setError(''); setNotice('');
+    try {
+      const result = await invoke('reactivateStaff', { staffKey });
+      setNotice((result?.staffName || 'Staff member') + ' reactivated.');
+      await load(true);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Staff profile could not be reactivated.');
     } finally { setBusy(false); }
   };
 
@@ -595,6 +607,17 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
                   <strong className="block">The Team & Specialists list is empty.</strong>
                   <p className="mt-1">Attendance profiles are kept while the owner workspace loads or until you explicitly deactivate them. Historical attendance will not be deleted.</p>
                   <button type="button" className="secondary-action mt-2" disabled={busy} onClick={() => void deactivateEmptyRoster()}>Deactivate all attendance profiles</button>
+                </div>
+              )}
+              {inactiveRoster.length > 0 && (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2">
+                  <div><strong className="text-sm text-slate-900">Inactive staff</strong><p className="muted text-xs">History is retained. Reactivate a staff profile to allow new attendance punches.</p></div>
+                  <div className="flex flex-wrap gap-2">{inactiveRoster.map((staff) => (
+                    <div key={staff.staff_key} className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
+                      <span className="text-xs font-semibold">{staff.staff_name}</span>
+                      <button type="button" className="text-xs text-emerald-700 underline font-semibold" onClick={() => void reactivateStaff(staff.staff_key)} disabled={busy}>Reactivate</button>
+                    </div>
+                  ))}</div>
                 </div>
               )}
               {activeRoster.length === 0 ? (
