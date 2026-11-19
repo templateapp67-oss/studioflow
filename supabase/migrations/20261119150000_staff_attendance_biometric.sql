@@ -672,14 +672,14 @@ begin
         updated_at = now();
   get diagnostics affected = row_count;
 
-  update public.salon_staff_attendance_profiles p
-  set active = false, updated_at = now()
-  where p.owner_id = actor
-    and p.active = true
-    and not exists (
-      select 1 from jsonb_to_recordset(p_roster) as x(id text, name text, role text)
-      where x.id = p.staff_key
-    );
+  -- A non-empty roster may be temporarily partial while the owner workspace
+  -- hydrates. Never deactivate omitted staff on ordinary sync; only an
+  -- explicit empty-roster action from the owner UI deactivates the directory.
+  if jsonb_array_length(p_roster) = 0 then
+    update public.salon_staff_attendance_profiles p
+    set active = false, updated_at = now()
+    where p.owner_id = actor and p.active = true;
+  end if;
 
   return affected;
 end;
