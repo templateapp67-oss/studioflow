@@ -3,6 +3,7 @@ import {AcademyEnquiriesPanel} from './vogue-noir/AcademyEnquiriesPanel';
 import {clinicPriceIsVerified,clinicPublicServices} from '../lib/dermacureContent';
 import {OwnerCustomerContacts} from './OwnerCustomerContacts';
 import { SalonCRM } from './SalonCRM';
+import { StaffAttendancePanel } from './StaffAttendancePanel';
 import {OwnerDemoBookings} from './OwnerDemoBookings';
 import { WebsiteContentManager } from './WebsiteContentManager';
 import { uploadSalonImage, websiteLink } from '../lib/supabase';
@@ -52,7 +53,7 @@ interface SaaSDashboardProps {
   onCustomizeTemplate?:(id:BusinessTypeId)=>void;
 }
 
-type TabType = 'ziya_studio' | 'aura_offers' | 'iron_ink' | 'contacts' | 'demo' | 'website_sections' | 'overview' | 'calendar' | 'services' | 'team' | 'clients' | 'loyalty' | 'marketing' | 'social_connectivity' | 'seo' | 'appearance' | 'website' | 'colour_studio' | 'templates';
+type TabType = 'attendance' | 'ziya_studio' | 'aura_offers' | 'iron_ink' | 'contacts' | 'demo' | 'website_sections' | 'overview' | 'calendar' | 'services' | 'team' | 'clients' | 'loyalty' | 'marketing' | 'social_connectivity' | 'seo' | 'appearance' | 'website' | 'colour_studio' | 'templates';
 
 export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
   profile,
@@ -255,6 +256,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
             { id: 'demo', label: '₹0 Demo Bookings', icon: 'science' },
             { id: 'services', label: 'Business Services & Custom Offerings', icon: 'spa' },
             { id: 'team', label: 'Team Management', icon: 'badge' },
+            { id: 'attendance', label: 'Attendance & Biometric', icon: 'fingerprint' },
             { id: 'clients', label: 'Customer CRM', icon: 'group' },
             { id:'contacts',label:'Customers & WhatsApp',icon:'contacts' },
             { id: 'loyalty', label: 'Loyalty & Rewards', icon: 'military_tech' },
@@ -530,6 +532,8 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
         )}
 
         {/* TAB CONTENT: TEAM MANAGEMENT */}
+        {activeTab === 'attendance' && <StaffAttendancePanel profile={profile} stylists={stylists}/>}
+
         {activeTab === 'team' && (
           <TeamManagement setServices={setServices}
             businessType={profile.businessType}
