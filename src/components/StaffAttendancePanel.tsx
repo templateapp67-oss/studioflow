@@ -237,6 +237,21 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
 
   useEffect(() => { void load(); }, [load]);
 
+  useEffect(() => {
+    const matchingShift = shifts.find((shift) => shift.staff_key === selectedStaff && String(shift.weekday) === shiftDay);
+    if (matchingShift) {
+      setShiftStart(matchingShift.shift_start.slice(0, 5));
+      setShiftEnd(matchingShift.shift_end.slice(0, 5));
+      setShiftBreak(matchingShift.break_minutes);
+      setWeeklyOff(matchingShift.is_weekly_off);
+    } else {
+      setShiftStart(defaultStart);
+      setShiftEnd(defaultEnd);
+      setShiftBreak(defaultBreak);
+      setWeeklyOff(false);
+    }
+  }, [selectedStaff, shiftDay, shifts, defaultStart, defaultEnd, defaultBreak]);
+
   const today = indiaDate();
   const todayRows = todayRecords;
   const todayMap = useMemo(() => new Map(todayRows.map((row) => [row.staff_key, row])), [todayRows]);
