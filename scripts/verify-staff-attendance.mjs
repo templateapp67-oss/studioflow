@@ -58,6 +58,8 @@ assert.ok(migration.includes('jsonb_array_length(p_roster) > 200'));
 assert.ok(migration.includes('late_minutes integer not null default 0'));
 assert.ok(migration.includes('salon_staff_attendance_service_punch'));
 assert.ok(migration.includes('salon_staff_attendance_service_mark_status'));
+assert.ok(migration.includes('salon_staff_attendance_service_device_punch'));
+assert.ok(migration.includes('grant execute on function public.salon_staff_attendance_service_device_punch'));
 assert.ok(migration.includes('grant execute on function public.salon_staff_attendance_service_punch'));
 assert.ok(migration.includes('to service_role'));
 assert.ok(migration.includes('salon_staff_attendance_apply_leave_trigger'));
