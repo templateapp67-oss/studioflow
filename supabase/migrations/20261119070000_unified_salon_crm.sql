@@ -644,6 +644,41 @@ $function$;
 
 -- Public wrappers follow the existing StudioFlow pattern. The data and
 -- privileged mutations stay in the non-exposed private schema.
+create or replace function public.studioflow_owner_crm_create_contact(
+  p_full_name text,
+  p_phone text,
+  p_email text,
+  p_source text,
+  p_date_of_birth date
+)
+returns uuid
+language sql
+set search_path to ''
+as $function$
+  select studioflow_android_private.crm_create_contact(
+    p_full_name,p_phone,p_email,p_source,p_date_of_birth
+  )
+$function$;
+
+create or replace function public.studioflow_owner_crm_update_contact(
+  p_customer uuid,
+  p_full_name text,
+  p_phone text,
+  p_email text,
+  p_date_of_birth date,
+  p_tags text,
+  p_notes text,
+  p_blocked boolean
+)
+returns void
+language sql
+set search_path to ''
+as $function$
+  select studioflow_android_private.crm_update_contact(
+    p_customer,p_full_name,p_phone,p_email,p_date_of_birth,p_tags,p_notes,p_blocked
+  )
+$function$;
+
 create or replace function public.studioflow_owner_crm_dashboard()
 returns jsonb
 language sql
@@ -696,6 +731,16 @@ set search_path to ''
 as $function$
   select studioflow_android_private.crm_update_task(p_task, p_status)
 $function$;
+
+revoke all on function studioflow_android_private.crm_create_contact(text,text,text,text,date) from public, anon;
+revoke all on function studioflow_android_private.crm_update_contact(uuid,text,text,text,date,text,text,boolean) from public, anon;
+grant execute on function studioflow_android_private.crm_create_contact(text,text,text,text,date) to authenticated;
+grant execute on function studioflow_android_private.crm_update_contact(uuid,text,text,text,date,text,text,boolean) to authenticated;
+
+revoke all on function public.studioflow_owner_crm_create_contact(text,text,text,text,date) from public, anon;
+revoke all on function public.studioflow_owner_crm_update_contact(uuid,text,text,text,date,text,text,boolean) from public, anon;
+grant execute on function public.studioflow_owner_crm_create_contact(text,text,text,text,date) to authenticated;
+grant execute on function public.studioflow_owner_crm_update_contact(uuid,text,text,text,date,text,text,boolean) to authenticated;
 
 -- Do not leave new RPCs executable by anon/PUBLIC.
 revoke all on function studioflow_android_private.crm_dashboard() from public, anon;
