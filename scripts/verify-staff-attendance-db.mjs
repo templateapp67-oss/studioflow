@@ -422,8 +422,8 @@ try {
   assert.equal(closeResult.result.accepted, true);
 
   // Per-device limit is 60 distinct events in a rolling minute. The first
-  // accepted event and checkout above account for 2; add 29 completed pairs.
-  for (let day = 2; day <= 30; day += 1) {
+  // accepted event and checkout above account for 2; add 28 completed pairs.
+  for (let day = 2; day <= 29; day += 1) {
     const date = dateOffset(-day);
     const inAt = date + ' 09:00:00+05:30';
     const outAt = date + ' 18:00:00+05:30';
@@ -445,7 +445,7 @@ try {
     );
   }
 
-  const allowedAt = dateOffset(-31) + ' 09:00:00+05:30';
+  const allowedAt = dateOffset(-30) + ' 09:00:00+05:30';
   const allowedEventId = 'provider-rate-limit-60';
   const allowedDigest = createHash('sha256').update(allowedEventId + allowedAt).digest('hex');
   const allowedLast = await one(
@@ -456,7 +456,7 @@ try {
   );
   assert.equal(allowedLast.result.accepted, true);
 
-  const blockedAt = dateOffset(-32) + ' 09:00:00+05:30';
+  const blockedAt = dateOffset(-31) + ' 09:00:00+05:30';
   const blockedEventId = 'provider-rate-limit-61';
   const blockedDigest = createHash('sha256').update(blockedEventId + blockedAt).digest('hex');
   await expectSqlError(
