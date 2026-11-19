@@ -705,6 +705,25 @@ begin
     end if;
   end if;
 
+  if tg_op = 'INSERT' then
+    insert into public.salon_staff_attendance_events(
+      owner_id,staff_key,event_type,method,actor_id,notes,metadata
+    ) values (
+      new.owner_id,new.staff_key,'leave_created','system',auth.uid(),coalesce(new.reason,''),
+      jsonb_build_object('leaveRequestId',new.id,'status',new.status,'startDate',new.start_date,'endDate',new.end_date,'leaveType',new.leave_type)
+    );
+  elsif tg_op = 'UPDATE'
+     and (new.status is distinct from old.status
+       or new.start_date is distinct from old.start_date
+       or new.end_date is distinct from old.end_date) then
+    insert into public.salon_staff_attendance_events(
+      owner_id,staff_key,event_type,method,actor_id,notes,metadata
+    ) values (
+      new.owner_id,new.staff_key,'leave_reviewed','system',coalesce(new.reviewed_by,auth.uid()),coalesce(new.reason,''),
+      jsonb_build_object('leaveRequestId',new.id,'status',new.status,'startDate',new.start_date,'endDate',new.end_date,'leaveType',new.leave_type)
+    );
+  end if;
+
   if new.status = 'approved' then
     for leave_day in
       select generate_series(new.start_date, new.end_date, interval '1 day')::date
