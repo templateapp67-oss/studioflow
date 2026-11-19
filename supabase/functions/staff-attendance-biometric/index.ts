@@ -257,7 +257,7 @@ async function ownerAction(ownerId: string, body: Record<string, unknown>, origi
     const info = verification.registrationInfo;
     const credential = info.credential;
     const friendlyName = cleanText(body.friendlyName, 120) || 'Staff biometric device';
-    const { error } = await admin.from('salon_staff_attendance_biometrics').insert({
+    const { data: saved, error } = await admin.from('salon_staff_attendance_biometrics').insert({
       owner_id: ownerId,
       staff_key: staffKey,
       credential_id: credential.id,
@@ -267,8 +267,23 @@ async function ownerAction(ownerId: string, body: Record<string, unknown>, origi
       device_type: info.credentialDeviceType,
       backed_up: info.credentialBackedUp,
       friendly_name: friendlyName,
+    }).select('id').single();
+    if (error || !saved) throw new Error('Biometric credential could not be saved. It may already be enrolled.');
+    const { error: auditError } = await admin.from('salon_staff_attendance_events').insert({
+      owner_id: ownerId,
+      staff_key: staffKey,
+      event_type: 'biometric_enrolled',
+      method: 'biometric',
+      actor_id: ownerId,
+      notes: 'Staff biometric credential enrolled',
+      metadata: { credentialRecordId: saved.id, friendlyName, credentialDeviceType: info.credentialDeviceType, credentialBackedUp: info.credentialBackedUp },
     });
-    if (error) throw new Error('Biometric credential could not be saved. It may already be enrolled.');
+    if (auditError) {
+      await admin.from('salon_staff_attendance_biometrics')
+        .update({ revoked_at: new Date().toISOString() })
+        .eq('id', saved.id).eq('owner_id', ownerId);
+      throw new Error('The biometric credential was not activated because its audit event could not be saved.');
+    }
     return { verified: true, staffKey, friendlyName };
   }
 
@@ -318,12 +333,13 @@ async function ownerAction(ownerId: string, body: Record<string, unknown>, origi
       requireUserVerification: true,
     });
     if (!verification.verified) throw new Error('Biometric verification failed.');
-    const { error: updateError } = await admin.from('salon_staff_attendance_biometrics')
+    const { data: updatedCredential, error: updateError } = await admin.from('salon_staff_attendance_biometrics')
       .update({
         sign_count: verification.authenticationInfo.newCounter,
         last_used_at: new Date().toISOString(),
-      }).eq('id', stored.id).eq('owner_id', ownerId);
-    if (updateError) throw new Error('Biometric verification passed but the credential counter could not be updated.');
+      }).eq('id', stored.id).eq('owner_id', ownerId).eq('sign_count', Number(stored.sign_count))
+      .select('id').maybeSingle();
+    if (updateError || !updatedCredential) throw new Error('This biometric credential was used by another request. Retry attendance verification.');
     const punchAction = cleanText(body.punchAction, 30);
     const result = await servicePunch(ownerId, staffKey, punchAction, 'biometric', body);
     return { verified: true, result };
@@ -337,6 +353,21 @@ async function ownerAction(ownerId: string, body: Record<string, unknown>, origi
       .eq('owner_id', ownerId).eq('staff_key', staffKey).eq('id', credentialId).is('revoked_at', null)
       .select('id').maybeSingle();
     if (error || !data) throw new Error('Biometric registration could not be revoked.');
+    const { error: auditError } = await admin.from('salon_staff_attendance_events').insert({
+      owner_id: ownerId,
+      staff_key: staffKey,
+      event_type: 'biometric_revoked',
+      method: 'biometric',
+      actor_id: ownerId,
+      notes: 'Staff biometric credential revoked',
+      metadata: { credentialRecordId: data.id },
+    });
+    if (auditError) {
+      await admin.from('salon_staff_attendance_biometrics')
+        .update({ revoked_at: null })
+        .eq('id', data.id).eq('owner_id', ownerId);
+      throw new Error('Biometric revocation was rolled back because its audit event could not be saved.');
+    }
     return { revoked: true };
   }
 
