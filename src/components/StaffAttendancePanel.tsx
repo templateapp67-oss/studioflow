@@ -38,6 +38,9 @@ function indiaDate(now = new Date()) {
   return get('year') + '-' + get('month') + '-' + get('day');
 }
 
+function localDateTimeValue(value = new Date()) {
+  return new Date(value.getTime() - value.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+}
 function monthStart(month: string) { return month + '-01'; }
 function daysAgoDate(days: number) {
   const today = indiaDate();
@@ -153,6 +156,8 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
   const [captureLocation, setCaptureLocation] = useState(false);
   const [staffCodes, setStaffCodes] = useState<Record<string, string>>({});
   const [deactivateCandidate, setDeactivateCandidate] = useState<string | null>(null);
+  const [resolveCheckoutAt, setResolveCheckoutAt] = useState(() => localDateTimeValue());
+  const [resolveNotes, setResolveNotes] = useState('Missed check-out corrected by salon owner');
   const [shiftDay, setShiftDay] = useState('1');
   const [shiftStart, setShiftStart] = useState('10:00');
   const [shiftEnd, setShiftEnd] = useState('19:00');
@@ -354,6 +359,26 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
       await load(true);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Staff profile could not be reactivated.');
+    } finally { setBusy(false); }
+  };
+
+  const resolveOpenShift = async (staffKey: string) => {
+    if (resolveNotes.trim().length < 3) {
+      setError('Enter a short reason for the missed check-out correction.');
+      return;
+    }
+    setBusy(true); setError(''); setNotice('');
+    try {
+      const result = await invoke('resolveOpenShift', {
+        staffKey,
+        attendanceDate: registerDate,
+        checkOutAt: resolveCheckoutAt,
+        notes: resolveNotes.trim(),
+      });
+      setNotice((result?.staffName || 'Staff member') + ' — old open shift closed. The correction is recorded in activity history.');
+      await load(true);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'The unfinished shift could not be resolved.');
     } finally { setBusy(false); }
   };
 
@@ -648,7 +673,20 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
                           {isCurrentDay && row?.active_break_started_at && <button type="button" className="secondary-action" disabled={busy} onClick={() => void punch(staff.staff_key,'break_end')}>Break end</button>}
                           {isCurrentDay && row?.check_in && !row?.check_out && <button type="button" className="primary-action" disabled={busy} onClick={() => void punch(staff.staff_key,'check_out')}>Check out</button>}
                           {!row?.check_in && <select className="workspace-input max-w-36 py-1" defaultValue="" onChange={(event) => { if (event.target.value) void markStatus(staff.staff_key,event.target.value); event.target.value=''; }} disabled={busy}><option value="">Set manual status…</option><option value="present">Present</option><option value="half_day">Half day</option><option value="absent">Absent</option><option value="on_leave">On leave</option><option value="holiday">Holiday</option><option value="weekly_off">Weekly off</option></select>}
-                          {!isCurrentDay && <small className="text-slate-500">Past date: manual status only</small>}
+                          {!isCurrentDay && row?.check_in && !row?.check_out && (
+                            <div className="min-w-[240px] rounded-lg border border-amber-200 bg-amber-50 p-2 space-y-2">
+                              <strong className="block text-[11px] text-amber-900">Unfinished past shift</strong>
+                              <label className="block text-[11px] font-semibold text-amber-900">Actual check-out time
+                                <input className="workspace-input mt-1 w-full py-1" type="datetime-local" value={resolveCheckoutAt} onChange={(event) => setResolveCheckoutAt(event.target.value)}/>
+                              </label>
+                              <label className="block text-[11px] font-semibold text-amber-900">Reason
+                                <input className="workspace-input mt-1 w-full py-1" maxLength={1000} value={resolveNotes} onChange={(event) => setResolveNotes(event.target.value)}/>
+                              </label>
+                              <button type="button" className="secondary-action" disabled={busy} onClick={() => void resolveOpenShift(staff.staff_key)}>Close old shift</button>
+                              <small className="block text-amber-800">Allowed up to 48 hours after check-in. Actual time and reason are saved to the audit log.</small>
+                            </div>
+                          )}
+                          {!isCurrentDay && !row?.check_in && <small className="text-slate-500">Past date: manual status only</small>}
                         </div></td>
                       </tr>;
                     })}</tbody>
