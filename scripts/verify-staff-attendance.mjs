@@ -98,6 +98,8 @@ assert.ok(edge.includes('notes: deviceNotes'));
 assert.ok(edge.includes('processing_status'));
 assert.ok(edge.includes('event ID with different attendance data'));
 assert.ok(edge.includes('api_key_hash'));
+assert.ok(edge.includes('toUpperCase()'));
+assert.ok(edge.includes('A-Z0-9._/-'));
 assert.ok(edge.includes('salon_staff_attendance_service_punch'));
 
 assert.ok(panel.includes("supabase.rpc('salon_staff_attendance_sync_roster'"));
