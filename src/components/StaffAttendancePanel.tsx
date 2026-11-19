@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { SalonProfile, Stylist } from '../types';
 
@@ -226,6 +226,9 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
     }
   }, [invoke, month, registerDate]);
 
+  const loadRef = useRef(load);
+  useEffect(() => { loadRef.current = load; }, [load]);
+
   // The live owner workspace is the source of truth for current staff profiles.
   // Sync creates/updates records but never deletes historic attendance rows.
   useEffect(() => {
@@ -235,11 +238,11 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
         .map((staff) => ({ id: String(staff.id), name: staff.name.trim(), role: staff.role || 'Staff' }));
       const { error: syncError } = await supabase.rpc('salon_staff_attendance_sync_roster', { p_roster: current });
       if (syncError && mounted) setError(syncError.message || 'Staff roster could not be synced.');
-      if (mounted) await load(true);
+      if (mounted) await loadRef.current(true);
     };
     void syncRoster();
     return () => { mounted = false; };
-  }, [stylists, load]);
+  }, [stylists]);
 
   useEffect(() => { void load(); }, [load]);
 
