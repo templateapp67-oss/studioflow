@@ -215,10 +215,11 @@ async function ownerAction(ownerId: string, body: Record<string, unknown>, origi
     const { data: existing, error } = await admin.from('salon_staff_attendance_biometrics')
       .select('credential_id,transports').eq('owner_id', ownerId).eq('staff_key', staffKey).is('revoked_at', null);
     if (error) throw new Error('Could not load existing biometric registrations.');
+    const webAuthnUserIdDigest = await crypto.subtle.digest('SHA-256', encoder.encode(ownerId + ':' + staffKey));
     const options = await generateRegistrationOptions({
       rpName: RP_NAME,
       rpID,
-      userID: encoder.encode(ownerId + ':' + staffKey),
+      userID: new Uint8Array(webAuthnUserIdDigest),
       userName: staff.staff_code || staff.staff_key,
       userDisplayName: staff.staff_name,
       attestationType: 'none',
