@@ -506,6 +506,15 @@ try {
   );
   assert.equal(allowedSecond.result.accepted, true);
 
+  const duplicateAtLimit = await one(
+    `select public.salon_staff_attendance_service_device_punch(
+      $1::uuid,$2::uuid,'staff-device','provider-event-1','check_in',
+      $3::timestamptz,'device test',$4
+    ) as result`,
+    [ownerA, device.id, eventAt, digest],
+  );
+  assert.equal(duplicateAtLimit.result.duplicate, true, 'Identical event retries remain idempotent at the rate limit.');
+
   const blockedAt = dateOffset(-32) + ' 09:00:00+05:30';
   const blockedEventId = 'provider-rate-limit-61';
   const blockedDigest = createHash('sha256').update(blockedEventId + blockedAt).digest('hex');
