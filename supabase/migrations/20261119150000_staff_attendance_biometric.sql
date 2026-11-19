@@ -22,6 +22,7 @@ create table if not exists public.salon_staff_attendance_profiles (
   staff_name text not null,
   staff_role text not null default 'Staff',
   active boolean not null default true,
+  manually_deactivated_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint salon_staff_attendance_profile_key_unique unique (owner_id, staff_key),
@@ -669,7 +670,7 @@ begin
   on conflict(owner_id, staff_key) do update
     set staff_name = excluded.staff_name,
         staff_role = excluded.staff_role,
-        active = true,
+        active = public.salon_staff_attendance_profiles.manually_deactivated_at is null,
         updated_at = now();
   get diagnostics affected = row_count;
 
@@ -678,7 +679,9 @@ begin
   -- explicit empty-roster action from the owner UI deactivates the directory.
   if jsonb_array_length(p_roster) = 0 then
     update public.salon_staff_attendance_profiles p
-    set active = false, updated_at = now()
+    set active = false,
+        manually_deactivated_at = coalesce(p.manually_deactivated_at, now()),
+        updated_at = now()
     where p.owner_id = actor and p.active = true;
   end if;
 
