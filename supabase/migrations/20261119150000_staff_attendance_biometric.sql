@@ -612,9 +612,11 @@ begin
   ) then
     raise exception 'Salon owner access required' using errcode = '42501';
   end if;
-  if p_roster is null or jsonb_typeof(p_roster) is distinct from 'array'
-     or jsonb_array_length(p_roster) > 200 then
-    raise exception 'A non-empty staff roster (maximum 200) is required' using errcode = '22023';
+  if p_roster is null or jsonb_typeof(p_roster) is distinct from 'array' then
+    raise exception 'A JSON array of staff profiles is required' using errcode = '22023';
+  end if;
+  if jsonb_array_length(p_roster) > 200 then
+    raise exception 'A maximum of 200 staff profiles can be synced at once' using errcode = '22023';
   end if;
   if exists (
     select 1 from jsonb_to_recordset(p_roster) as x(id text, name text, role text)
