@@ -486,6 +486,11 @@ Deno.serve(async (req: Request) => {
     return json(result, 200, origin);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Attendance request failed.';
-    return json({ error: message }, 400, origin);
+    const lower = message.toLowerCase();
+    const status = lower.includes('rate limit') ? 429
+      : lower.includes('not a salon owner workspace') || lower.includes('owner access required') || lower.includes('origin is not allowed') ? 403
+      : lower.includes('sign-in is required') || lower.includes('session has expired') || lower.includes('device api key required') || lower.includes('device api key is invalid') ? 401
+      : 400;
+    return json({ error: message }, status, origin);
   }
 });
