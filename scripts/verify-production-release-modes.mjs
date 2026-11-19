@@ -211,10 +211,16 @@ if(argv[0] === 'migration' && argv[1] === 'list'){
     .filter(name => /^\\d{14}_.+\\.sql$/.test(name))
     .map(name => name.slice(0,14))
     .sort();
+  const pendingVersions = new Set(JSON.parse(fs.readFileSync('docs/integrations/restored-supabase-history.json','utf8'))
+    .release_pending_migrations.map(record => record.file.split('_',1)[0]));
   const rows = [
     'LOCAL | REMOTE | TIME (UTC)',
     '------|--------|----------',
-    ...versions.map(version => { const tick = String.fromCharCode(96); return tick+version+tick+' | '+tick+version+tick+' | '+tick+'2026-11-19 00:00:00'+tick; })
+    ...versions.map(version => {
+      const tick = String.fromCharCode(96);
+      const remote = pendingVersions.has(version) ? '' : tick+version+tick;
+      return tick+version+tick+' | '+remote+' | '+tick+'2026-11-19 00:00:00'+tick;
+    })
   ];
   process.stdout.write(rows.join('\\n')+'\\n');
 }
