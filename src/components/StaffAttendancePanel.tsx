@@ -183,7 +183,7 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
         supabase.from('salon_staff_attendance_profiles').select('staff_key,staff_code,staff_name,staff_role,active').eq('owner_id', ownerId).order('staff_name'),
         supabase.from('salon_staff_attendance_shifts').select('id,staff_key,weekday,shift_start,shift_end,break_minutes,is_weekly_off').eq('owner_id', ownerId),
         supabase.from('salon_staff_attendance_records').select('id,staff_key,attendance_date,status,check_in,check_out,active_break_started_at,break_minutes,worked_minutes,expected_minutes,late_minutes,overtime_minutes,method,notes').eq('owner_id', ownerId).gte('attendance_date', monthStart(month)).lte('attendance_date', monthEnd(month)).order('attendance_date', { ascending: false }),
-        supabase.from('salon_staff_attendance_records').select('id,staff_key,attendance_date,status,check_in,check_out,active_break_started_at,break_minutes,worked_minutes,expected_minutes,overtime_minutes,method,notes').eq('owner_id', ownerId).eq('attendance_date', indiaDate()),
+        supabase.from('salon_staff_attendance_records').select('id,staff_key,attendance_date,status,check_in,check_out,active_break_started_at,break_minutes,worked_minutes,expected_minutes,late_minutes,overtime_minutes,method,notes').eq('owner_id', ownerId).eq('attendance_date', indiaDate()),
         supabase.from('salon_staff_leave_requests').select('id,staff_key,start_date,end_date,leave_type,reason,status,created_at').eq('owner_id', ownerId).gte('end_date', monthStart(month)).lte('start_date', monthEnd(month)).order('created_at', { ascending: false }),
         supabase.from('salon_staff_attendance_settings').select('*').eq('owner_id', ownerId).maybeSingle(),
         invoke('listBiometrics'),
@@ -238,7 +238,7 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
   useEffect(() => { void load(); }, [load]);
 
   const today = indiaDate();
-  const todayRows = useMemo(() => records.filter((row) => row.attendance_date === today), [records, today]);
+  const todayRows = todayRecords;
   const todayMap = useMemo(() => new Map(todayRows.map((row) => [row.staff_key, row])), [todayRows]);
   const activeRoster = roster.filter((row) => row.active);
   const presentCount = todayRows.filter((row) => ['present','late','half_day'].includes(row.status)).length;
