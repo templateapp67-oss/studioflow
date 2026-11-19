@@ -560,6 +560,10 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-3"><small className="text-slate-500">Attendance entries</small><strong className="block text-xl">{records.length}</strong></div>
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3"><small className="text-slate-500">Present</small><strong className="block text-xl">{records.filter((row) => ['present','late'].includes(row.status)).length}</strong></div>
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3"><small className="text-slate-500">Late</small><strong className="block text-xl">{records.filter((row) => row.status === 'late').length}</strong></div>
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3"><small className="text-slate-500">Half days</small><strong className="block text-xl">{records.filter((row) => row.status === 'half_day').length}</strong></div>
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3"><small className="text-slate-500">Absent / leave</small><strong className="block text-xl">{records.filter((row) => ['absent','on_leave'].includes(row.status)).length}</strong></div>
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-3"><small className="text-slate-500">Total work time</small><strong className="block text-xl">{hoursLabel(monthlyWorked)}</strong></div>
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-3"><small className="text-slate-500">Overtime</small><strong className="block text-xl">{hoursLabel(monthlyOvertime)}</strong></div>
               </div>
