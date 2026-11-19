@@ -97,7 +97,8 @@ create table if not exists public.salon_staff_attendance_events (
   attendance_id uuid references public.salon_staff_attendance_records(id) on delete set null,
   event_type text not null check (event_type in (
     'check_in','check_out','break_start','break_end','status_set',
-    'biometric_enrolled','biometric_revoked','device_punch','leave_created','leave_reviewed'
+    'biometric_enrolled','biometric_revoked','staff_deactivated','staff_reactivated',
+    'device_punch','leave_created','leave_reviewed'
   )),
   method text not null check (method in ('manual','biometric','device','system')),
   occurred_at timestamptz not null default now(),
