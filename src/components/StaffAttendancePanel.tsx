@@ -37,6 +37,11 @@ function indiaDate(now = new Date()) {
 }
 
 function monthStart(month: string) { return month + '-01'; }
+function daysAgoDate(days: number) {
+  const today = indiaDate();
+  const [year, month, day] = today.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day - days)).toISOString().slice(0, 10);
+}
 function monthEnd(month: string) {
   const [year, value] = month.split('-').map(Number);
   return new Date(Date.UTC(year, value, 0)).toISOString().slice(0, 10);
@@ -127,6 +132,7 @@ function serialiseAuthentication(credential: PublicKeyCredential) {
 export function StaffAttendancePanel({ profile, stylists }: Props) {
   const [tab, setTab] = useState<Tab>('today');
   const [month, setMonth] = useState(() => indiaDate().slice(0, 7));
+  const [registerDate, setRegisterDate] = useState(() => indiaDate());
   const [selectedStaff, setSelectedStaff] = useState('');
   const [roster, setRoster] = useState<RosterRow[]>([]);
   const [shifts, setShifts] = useState<ShiftRow[]>([]);
@@ -183,7 +189,7 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
         supabase.from('salon_staff_attendance_profiles').select('staff_key,staff_code,staff_name,staff_role,active').eq('owner_id', ownerId).order('staff_name'),
         supabase.from('salon_staff_attendance_shifts').select('id,staff_key,weekday,shift_start,shift_end,break_minutes,is_weekly_off').eq('owner_id', ownerId),
         supabase.from('salon_staff_attendance_records').select('id,staff_key,attendance_date,status,check_in,check_out,active_break_started_at,break_minutes,worked_minutes,expected_minutes,late_minutes,overtime_minutes,method,notes').eq('owner_id', ownerId).gte('attendance_date', monthStart(month)).lte('attendance_date', monthEnd(month)).order('attendance_date', { ascending: false }),
-        supabase.from('salon_staff_attendance_records').select('id,staff_key,attendance_date,status,check_in,check_out,active_break_started_at,break_minutes,worked_minutes,expected_minutes,late_minutes,overtime_minutes,method,notes').eq('owner_id', ownerId).eq('attendance_date', indiaDate()),
+        supabase.from('salon_staff_attendance_records').select('id,staff_key,attendance_date,status,check_in,check_out,active_break_started_at,break_minutes,worked_minutes,expected_minutes,late_minutes,overtime_minutes,method,notes').eq('owner_id', ownerId).eq('attendance_date', registerDate),
         supabase.from('salon_staff_leave_requests').select('id,staff_key,start_date,end_date,leave_type,reason,status,created_at').eq('owner_id', ownerId).gte('end_date', monthStart(month)).lte('start_date', monthEnd(month)).order('created_at', { ascending: false }),
         supabase.from('salon_staff_attendance_settings').select('*').eq('owner_id', ownerId).maybeSingle(),
         invoke('listBiometrics'),
@@ -218,7 +224,7 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [invoke, month]);
+  }, [invoke, month, registerDate]);
 
   // The live owner workspace is the source of truth for current staff profiles.
   // Sync creates/updates records but never deletes historic attendance rows.
@@ -252,7 +258,8 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
     }
   }, [selectedStaff, shiftDay, shifts, defaultStart, defaultEnd, defaultBreak]);
 
-  const today = indiaDate();
+  const today = registerDate;
+  const isCurrentDay = registerDate === indiaDate();
   const todayRows = todayRecords;
   const todayMap = useMemo(() => new Map(todayRows.map((row) => [row.staff_key, row])), [todayRows]);
   const activeRoster = roster.filter((row) => row.active);
@@ -538,7 +545,8 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
           {tab === 'today' && (
             <section className="workspace-card space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div><h3 className="font-bold text-slate-900">Today's attendance</h3><p className="muted text-xs">{today} · {activeRoster.length} active staff records synced from Team & Specialists</p></div>
+                <div><h3 className="font-bold text-slate-900">Daily attendance register</h3><p className="muted text-xs">{today} · {activeRoster.length} active staff records synced from Team & Specialists</p></div>
+                <label className="text-xs font-semibold">Register date<input className="workspace-input mt-1" type="date" value={registerDate} min={daysAgoDate(90)} max={indiaDate()} onChange={(event) => setRegisterDate(event.target.value)}/></label>
                 <label className="flex items-center gap-2 text-xs text-slate-600"><input type="checkbox" checked={captureLocation} onChange={(event) => setCaptureLocation(event.target.checked)}/> Capture location when available</label>
               </div>
               {activeRoster.length === 0 ? (
@@ -561,11 +569,12 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
                         <td className="py-3 pr-3 whitespace-nowrap">{timeLabel(row?.check_in)} / {timeLabel(row?.check_out)}</td>
                         <td className="py-3 pr-3 whitespace-nowrap">{row ? hoursLabel(liveWorkedMinutes(row)) : '—'}<small className="block text-slate-400">{row?.late_minutes ? row.late_minutes + ' min delay' : ''}{row?.overtime_minutes ? ' · ' + hoursLabel(row.overtime_minutes) + ' OT' : ''}</small></td>
                         <td className="py-3"><div className="flex flex-wrap gap-1.5 min-w-[210px]">
-                          {!row?.check_in && <button type="button" className="primary-action" disabled={busy} onClick={() => void punch(staff.staff_key,'check_in')}>Check in</button>}
-                          {activeBreak && !row?.active_break_started_at && <button type="button" className="secondary-action" disabled={busy} onClick={() => void punch(staff.staff_key,'break_start')}>Break start</button>}
-                          {row?.active_break_started_at && <button type="button" className="secondary-action" disabled={busy} onClick={() => void punch(staff.staff_key,'break_end')}>Break end</button>}
-                          {row?.check_in && !row?.check_out && <button type="button" className="primary-action" disabled={busy} onClick={() => void punch(staff.staff_key,'check_out')}>Check out</button>}
-                          {!row && <select className="workspace-input max-w-28 py-1" defaultValue="" onChange={(event) => { if (event.target.value) void markStatus(staff.staff_key,event.target.value); event.target.value=''; }} disabled={busy}><option value="">Mark status…</option><option value="absent">Absent</option><option value="on_leave">On leave</option><option value="holiday">Holiday</option><option value="weekly_off">Weekly off</option></select>}
+                          {isCurrentDay && !row?.check_in && <button type="button" className="primary-action" disabled={busy} onClick={() => void punch(staff.staff_key,'check_in')}>Check in</button>}
+                          {isCurrentDay && activeBreak && !row?.active_break_started_at && <button type="button" className="secondary-action" disabled={busy} onClick={() => void punch(staff.staff_key,'break_start')}>Break start</button>}
+                          {isCurrentDay && row?.active_break_started_at && <button type="button" className="secondary-action" disabled={busy} onClick={() => void punch(staff.staff_key,'break_end')}>Break end</button>}
+                          {isCurrentDay && row?.check_in && !row?.check_out && <button type="button" className="primary-action" disabled={busy} onClick={() => void punch(staff.staff_key,'check_out')}>Check out</button>}
+                          {!row?.check_in && <select className="workspace-input max-w-36 py-1" defaultValue="" onChange={(event) => { if (event.target.value) void markStatus(staff.staff_key,event.target.value); event.target.value=''; }} disabled={busy}><option value="">Set manual status…</option><option value="present">Present</option><option value="half_day">Half day</option><option value="absent">Absent</option><option value="on_leave">On leave</option><option value="holiday">Holiday</option><option value="weekly_off">Weekly off</option></select>}
+                          {!isCurrentDay && <small className="text-slate-500">Past date: manual status only</small>}
                         </div></td>
                       </tr>;
                     })}</tbody>
