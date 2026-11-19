@@ -593,7 +593,7 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
                         <td className="py-3 pr-3 whitespace-nowrap">{timeLabel(row?.check_in)} / {timeLabel(row?.check_out)}</td>
                         <td className="py-3 pr-3 whitespace-nowrap">{row ? hoursLabel(liveWorkedMinutes(row)) : '—'}<small className="block text-slate-400">{row?.late_minutes ? row.late_minutes + ' min delay' : ''}{row?.overtime_minutes ? ' · ' + hoursLabel(row.overtime_minutes) + ' OT' : ''}</small></td>
                         <td className="py-3"><div className="flex flex-wrap gap-1.5 min-w-[210px]">
-                          {isCurrentDay && !row?.check_in && <button type="button" className="primary-action" disabled={busy} onClick={() => void punch(staff.staff_key,'check_in')}>Check in</button>}
+                          {isCurrentDay && !row?.check_in && !['absent','on_leave','holiday','weekly_off'].includes(row?.status || '') && <button type="button" className="primary-action" disabled={busy} onClick={() => void punch(staff.staff_key,'check_in')}>Check in</button>}
                           {isCurrentDay && activeBreak && !row?.active_break_started_at && <button type="button" className="secondary-action" disabled={busy} onClick={() => void punch(staff.staff_key,'break_start')}>Break start</button>}
                           {isCurrentDay && row?.active_break_started_at && <button type="button" className="secondary-action" disabled={busy} onClick={() => void punch(staff.staff_key,'break_end')}>Break end</button>}
                           {isCurrentDay && row?.check_in && !row?.check_out && <button type="button" className="primary-action" disabled={busy} onClick={() => void punch(staff.staff_key,'check_out')}>Check out</button>}
