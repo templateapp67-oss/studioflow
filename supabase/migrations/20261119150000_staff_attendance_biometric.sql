@@ -219,6 +219,22 @@ create table if not exists public.salon_staff_attendance_device_events (
     on delete set null
 );
 
+
+do $block$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'salon_staff_attendance_events_device_fk'
+      and conrelid = 'public.salon_staff_attendance_events'::regclass
+  ) then
+    alter table public.salon_staff_attendance_events
+      add constraint salon_staff_attendance_events_device_fk
+      foreign key (device_id) references public.salon_staff_attendance_devices(id)
+      on delete set null;
+  end if;
+end
+$block$;
+
 -- Owner-facing operational tables are protected by strict salon ownership RLS.
 do $block$
 declare
@@ -356,7 +372,7 @@ begin
   where r.owner_id = p_owner_id and r.staff_key = p_staff_key and r.attendance_date = v_local_date
   for update;
 
-  if p_action in ('check_out','break_end') and (v_record.id is null or v_record.check_in is null) then
+  if p_action in ('check_out','break_start','break_end') and (v_record.id is null or v_record.check_in is null) then
     select * into v_record
     from public.salon_staff_attendance_records r
     where r.owner_id = p_owner_id
