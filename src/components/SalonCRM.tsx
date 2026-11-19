@@ -53,6 +53,8 @@ type CRMCustomer = {
   bookingHistory: CRMBooking[];
   activities: CRMActivity[];
   openTaskCount: number;
+  isManual?: boolean;
+  customerSource?: string;
 };
 
 type CRMTask = {
@@ -126,6 +128,16 @@ export function SalonCRM({ profile }: { profile: SalonProfile }) {
   const [draftTags, setDraftTags] = useState('');
   const [draftNotes, setDraftNotes] = useState('');
   const [draftBlocked, setDraftBlocked] = useState(false);
+  const [draftName, setDraftName] = useState('');
+  const [draftPhone, setDraftPhone] = useState('');
+  const [draftEmail, setDraftEmail] = useState('');
+  const [draftDob, setDraftDob] = useState('');
+  const [showNewContactForm, setShowNewContactForm] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newPhone, setNewPhone] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [newSource, setNewSource] = useState('walk_in');
+  const [newDob, setNewDob] = useState('');
   const [showActivityForm, setShowActivityForm] = useState(false);
   const [activityType, setActivityType] = useState('note');
   const [activityChannel, setActivityChannel] = useState('internal');
@@ -176,6 +188,10 @@ export function SalonCRM({ profile }: { profile: SalonProfile }) {
     setDraftTags(selected.tags || '');
     setDraftNotes(selected.notes || '');
     setDraftBlocked(Boolean(selected.blocked));
+    setDraftName(selected.name || '');
+    setDraftPhone(selected.whatsapp || '');
+    setDraftEmail(selected.email || '');
+    setDraftDob(selected.dateOfBirth || '');
     setShowActivityForm(false);
     setShowTaskForm(false);
   }, [selectedId, selected?.id]);
@@ -244,17 +260,68 @@ export function SalonCRM({ profile }: { profile: SalonProfile }) {
     setError('');
     setNotice('');
     try {
-      const { error: rpcError } = await supabase.rpc('studioflow_owner_save_contact', {
-        p_customer: selected.id,
-        p_tags: draftTags.trim(),
-        p_notes: draftNotes.trim(),
-        p_blocked: draftBlocked,
-      });
+      const rpcName = selected.isManual
+        ? 'studioflow_owner_crm_update_contact'
+        : 'studioflow_owner_save_contact';
+      const args = selected.isManual
+        ? {
+            p_customer: selected.id,
+            p_full_name: draftName.trim(),
+            p_phone: draftPhone.trim(),
+            p_email: draftEmail.trim() || null,
+            p_date_of_birth: draftDob || null,
+            p_tags: draftTags.trim(),
+            p_notes: draftNotes.trim(),
+            p_blocked: draftBlocked,
+          }
+        : {
+            p_customer: selected.id,
+            p_tags: draftTags.trim(),
+            p_notes: draftNotes.trim(),
+            p_blocked: draftBlocked,
+          };
+      const { error: rpcError } = await supabase.rpc(rpcName, args);
       if (rpcError) throw rpcError;
       setNotice('Customer profile saved.');
       await loadCRM(true);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Customer details could not be saved.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const createManualCustomer = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (newName.trim().length < 2 || !phoneDigits(newPhone)) {
+      setError('Enter a customer name and a valid 10–15 digit WhatsApp number.');
+      return;
+    }
+    setSaving(true);
+    setError('');
+    setNotice('');
+    try {
+      const { data: createdId, error: rpcError } = await supabase.rpc('studioflow_owner_crm_create_contact', {
+        p_full_name: newName.trim(),
+        p_phone: newPhone.trim(),
+        p_email: newEmail.trim() || null,
+        p_source: newSource,
+        p_date_of_birth: newDob || null,
+      });
+      if (rpcError) throw rpcError;
+      if (typeof createdId !== 'string' || !createdId) throw new Error('The new contact was not returned by the CRM.');
+      setShowNewContactForm(false);
+      setNewName('');
+      setNewPhone('');
+      setNewEmail('');
+      setNewDob('');
+      setNewSource('walk_in');
+      await loadCRM(true);
+      setSelectedId(createdId);
+      setView('customers');
+      setNotice('Customer added. WhatsApp marketing remains off until the customer gives permission.');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Customer could not be added.');
     } finally {
       setSaving(false);
     }
@@ -375,10 +442,10 @@ export function SalonCRM({ profile }: { profile: SalonProfile }) {
   };
 
   const metrics = [
-    { label: 'Customers', value: data.customers.length, note: 'Customers with a booking or saved preference' },
+    { label: 'Customers', value: data.customers.length, note: 'Booked customers and manual contacts' },
     { label: 'Returning', value: returningCount, note: 'More than one booking' },
     { label: 'Upcoming bookings', value: upcomingCount, note: 'Future non-cancelled bookings' },
-    { label: 'Follow-ups due', value: dueTasks.length, note: marketingCount + ' opted-in marketing contacts' },
+    { label: 'Follow-ups due', value: dueTasks.length, note: openTasks.length + ' open tasks · ' + marketingCount + ' marketing opt-ins' },
   ];
 
   const activityForSelected = selected
@@ -416,6 +483,9 @@ export function SalonCRM({ profile }: { profile: SalonProfile }) {
             <button type="button" className="secondary-action" disabled={!filtered.length || loading} onClick={exportCustomers}>
               Export customer CSV
             </button>
+            <button type="button" className="primary-action" disabled={saving} onClick={() => setShowNewContactForm((open) => !open)}>
+              {showNewContactForm ? 'Close add form' : 'Add customer'}
+            </button>
           </div>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-5">
@@ -428,6 +498,36 @@ export function SalonCRM({ profile }: { profile: SalonProfile }) {
           ))}
         </div>
       </section>
+
+      {showNewContactForm && (
+        <form className="workspace-card grid grid-cols-1 md:grid-cols-2 gap-3" onSubmit={createManualCustomer}>
+          <div className="md:col-span-2">
+            <h3 className="font-bold text-slate-900">Add salon customer</h3>
+            <p className="text-xs text-slate-500 mt-1">For walk-ins and customers who contacted the salon directly. This does not turn on marketing permission.</p>
+          </div>
+          <label className="text-xs font-semibold">Customer name
+            <input className="workspace-input mt-1" value={newName} onChange={(event) => setNewName(event.target.value)} maxLength={120} required/>
+          </label>
+          <label className="text-xs font-semibold">WhatsApp / mobile number
+            <input className="workspace-input mt-1" type="tel" value={newPhone} onChange={(event) => setNewPhone(event.target.value)} maxLength={24} required/>
+          </label>
+          <label className="text-xs font-semibold">Email (optional)
+            <input className="workspace-input mt-1" type="email" value={newEmail} onChange={(event) => setNewEmail(event.target.value)} maxLength={254}/>
+          </label>
+          <label className="text-xs font-semibold">Customer source
+            <select className="workspace-input mt-1" value={newSource} onChange={(event) => setNewSource(event.target.value)}>
+              <option value="walk_in">Walk-in</option><option value="phone">Phone enquiry</option><option value="referral">Referral</option><option value="social">Social media</option><option value="other">Other</option>
+            </select>
+          </label>
+          <label className="text-xs font-semibold">Date of birth (optional)
+            <input className="workspace-input mt-1" type="date" value={newDob} onChange={(event) => setNewDob(event.target.value)}/>
+          </label>
+          <div className="md:col-span-2 flex flex-wrap gap-2">
+            <button className="primary-action" type="submit" disabled={saving || !newName.trim() || !phoneDigits(newPhone)}>{saving ? 'Saving…' : 'Save customer'}</button>
+            <button className="secondary-action" type="button" onClick={() => setShowNewContactForm(false)}>Cancel</button>
+          </div>
+        </form>
+      )}
 
       {error && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{error}</p>}
       {notice && <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</p>}
@@ -541,6 +641,23 @@ export function SalonCRM({ profile }: { profile: SalonProfile }) {
               </div>
 
               <div className="border-t border-slate-200 pt-4">
+                {selected.isManual && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                    <label className="text-xs font-semibold">Customer name
+                      <input className="workspace-input mt-1" maxLength={120} value={draftName} onChange={(event) => setDraftName(event.target.value)}/>
+                    </label>
+                    <label className="text-xs font-semibold">WhatsApp / mobile
+                      <input className="workspace-input mt-1" type="tel" maxLength={24} value={draftPhone} onChange={(event) => setDraftPhone(event.target.value)}/>
+                    </label>
+                    <label className="text-xs font-semibold">Email
+                      <input className="workspace-input mt-1" type="email" maxLength={254} value={draftEmail} onChange={(event) => setDraftEmail(event.target.value)}/>
+                    </label>
+                    <label className="text-xs font-semibold">Date of birth
+                      <input className="workspace-input mt-1" type="date" value={draftDob} onChange={(event) => setDraftDob(event.target.value)}/>
+                    </label>
+                    <p className="md:col-span-2 text-xs text-slate-500">Source: {selected.customerSource || 'Manual entry'} · Marketing consent is off by default.</p>
+                  </div>
+                )}
                 <div className="flex items-center justify-between gap-3 mb-3">
                   <h4 className="font-bold text-slate-900">Customer preferences & private notes</h4>
                   <button type="button" className="primary-action" disabled={saving} onClick={() => void saveContact()}>{saving ? 'Saving…' : 'Save profile'}</button>
