@@ -20,8 +20,13 @@ assert.match(migration, /studioflow_owner_crm_update_contact/);
 assert.match(migration, /studioflow_owner_crm_add_activity/);
 assert.match(migration, /studioflow_owner_crm_create_task/);
 assert.match(migration, /studioflow_owner_crm_update_task/);
-assert.match(migration, /'optIn',false/);
+assert.match(migration, /'optIn',\s*false/);
 assert.match(migration, /from public, anon/);
+assert.match(migration, /revoke all on function public\.studioflow_owner_crm_create_contact/);
+assert.match(migration, /revoke all on function public\.studioflow_owner_crm_update_contact/);
+assert.match(migration, /grant execute on function public\.studioflow_owner_crm_create_contact/);
+assert.match(migration, /grant execute on function public\.studioflow_owner_crm_update_contact/);
+assert.match(migration, /crm_contacts_owner_access/);
 assert.match(migration, /m\.owner_id=actor/);
 
 assert.match(crm, /studioflow_owner_crm_dashboard/);
