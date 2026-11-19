@@ -394,47 +394,20 @@ async function devicePunch(req: Request, body: Record<string, unknown>) {
     .select('staff_key,staff_name').eq('owner_id', device.owner_id).eq('staff_code', employeeCode).eq('active', true).maybeSingle();
   if (profileError || !profile) throw new Error('Employee code is not mapped to an active staff member.');
   const digest = await sha256(JSON.stringify({ employeeCode, eventType, providerEventId, occurredAt: eventAt.toISOString() }));
-  const { error: receiptError } = await admin.from('salon_staff_attendance_device_events').insert({
-    owner_id: device.owner_id,
-    device_id: device.id,
-    provider_event_id: providerEventId,
-    staff_key: profile.staff_key,
-    event_type: eventType,
-    occurred_at: eventAt.toISOString(),
-    attendance_event_id: null,
-    payload_digest: digest,
-    processing_status: 'pending',
+  const { data: result, error: punchError } = await admin.rpc('salon_staff_attendance_service_device_punch', {
+    p_owner_id: device.owner_id,
+    p_device_id: device.id,
+    p_staff_key: profile.staff_key,
+    p_provider_event_id: providerEventId,
+    p_event_type: eventType,
+    p_event_at: eventAt.toISOString(),
+    p_notes: cleanText(body.notes, 500),
+    p_payload_digest: digest,
   });
-  if (receiptError?.code === '23505') {
-    const { data: existing, error: existingError } = await admin.from('salon_staff_attendance_device_events')
-      .select('payload_digest,processing_status')
-      .eq('device_id', device.id).eq('provider_event_id', providerEventId).maybeSingle();
-    if (existingError || !existing) throw new Error('This device event already exists but could not be verified. Retry safely.');
-    if (existing.payload_digest !== digest) throw new Error('The device reused an event ID with different attendance data.');
-    if (existing.processing_status === 'completed') return { accepted: true, duplicate: true };
-    throw new Error('This device event is still being processed. Retry with the same event ID.');
+  if (punchError || !result?.accepted) {
+    throw new Error(punchError?.message || 'Attendance device event was not accepted.');
   }
-  if (receiptError) throw new Error('Device event could not be registered. Attendance was not written.');
-
-  let result: any;
-  try {
-    result = await servicePunch(device.owner_id, profile.staff_key, eventType, 'device', {
-      notes: cleanText(body.notes, 500),
-      occurredAt: eventAt.toISOString(),
-    }, device.id, providerEventId);
-  } catch (error) {
-    await admin.from('salon_staff_attendance_device_events')
-      .delete().eq('device_id', device.id).eq('provider_event_id', providerEventId);
-    throw error;
-  }
-
-  const { error: receiptUpdateError } = await admin.from('salon_staff_attendance_device_events')
-    .update({ attendance_event_id: result?.eventId || null, processing_status: 'completed' })
-    .eq('device_id', device.id).eq('provider_event_id', providerEventId);
-  if (receiptUpdateError) throw new Error('Attendance was recorded, but the device event receipt needs reconciliation.');
-  await admin.from('salon_staff_attendance_devices')
-    .update({ last_seen_at: new Date().toISOString() }).eq('id', device.id);
-  return { accepted: true, duplicate: false, staffName: profile.staff_name, result };
+  return { ...result, staffName: result.staffName || profile.staff_name };
 }
 
 Deno.serve(async (req: Request) => {
