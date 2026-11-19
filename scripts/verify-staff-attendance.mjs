@@ -57,6 +57,9 @@ for (const table of [
   'salon_staff_attendance_device_events',
 ]) assert.ok(sensitiveBlock.includes("'" + table + "'"), 'Missing service-only table registration: ' + table);
 assert.ok(migration.includes('salon_staff_attendance_sync_roster'));
+assert.ok(migration.includes('manually_deactivated_at timestamptz'), 'Manual staff deactivation is durable in the schema.');
+assert.ok(migration.includes("'staff_deactivated','staff_reactivated'"), 'Staff lifecycle events are valid audit types.');
+
 assert.ok(migration.includes('if jsonb_array_length(p_roster) = 0 then'), 'Staff are deactivated only when the owner explicitly syncs an empty roster.');
 assert.ok(migration.includes('grant select, insert, update on public.salon_staff_attendance_profiles to authenticated'));
 assert.ok(!migration.includes('grant select, insert, update, delete on public.salon_staff_attendance_profiles to authenticated'));
@@ -112,6 +115,10 @@ assert.ok(edge.includes('api_key_hash'));
 assert.ok(edge.includes('toUpperCase()'));
 assert.ok(edge.includes('A-Z0-9._/-'));
 assert.ok(edge.includes('salon_staff_attendance_service_punch'));
+assert.ok(edge.includes("action === 'deactivateStaff'") && edge.includes("action === 'reactivateStaff'"), 'Owner can deactivate and reactivate attendance profiles.');
+assert.ok(edge.includes("event_type: 'staff_deactivated'") && edge.includes("event_type: 'staff_reactivated'"), 'Staff lifecycle changes are audited.');
+assert.ok(edge.includes("manually_deactivated_at: null"), 'Deactivation rollback clears its durable marker.');
+
 
 assert.ok(panel.includes("supabase.rpc('salon_staff_attendance_sync_roster'"));
 assert.ok(panel.includes("supabase.functions.invoke('staff-attendance-biometric'"));
@@ -129,6 +136,9 @@ assert.ok(panel.includes('break_end'));
 assert.ok(panel.includes('salon_staff_attendance_shifts'));
 assert.ok(panel.includes('salon_staff_leave_requests'));
 assert.ok(panel.includes('Export CSV'));
+assert.ok(panel.includes("invoke('deactivateStaff'") && panel.includes("invoke('reactivateStaff'"), 'Owner UI can deactivate and reactivate individual staff.');
+assert.ok(panel.includes('Inactive staff'), 'The owner can see and manage inactive attendance profiles.');
+
 assert.ok(panel.includes("['history','Activity history']"), 'The attendance audit log must be visible in the owner UI.');
 assert.ok(panel.includes("invoke('listDeviceEvents')"), 'The owner UI must load biometric machine receipts.');
 assert.ok(panel.includes('Recent machine sync events'));
