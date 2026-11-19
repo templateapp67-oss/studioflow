@@ -10,7 +10,8 @@ create table if not exists public.salon_staff_attendance_settings (
   default_shift_start time not null default '10:00',
   default_shift_end time not null default '19:00',
   default_break_minutes integer not null default 60 check (default_break_minutes between 0 and 240),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  constraint salon_staff_attendance_default_shift_nonzero check (default_shift_end <> default_shift_start)
 );
 
 create table if not exists public.salon_staff_attendance_profiles (
@@ -47,7 +48,8 @@ create table if not exists public.salon_staff_attendance_shifts (
     foreign key (owner_id, staff_key)
     references public.salon_staff_attendance_profiles(owner_id, staff_key)
     on delete cascade,
-  constraint salon_staff_attendance_shift_day_unique unique(owner_id, staff_key, weekday)
+  constraint salon_staff_attendance_shift_day_unique unique(owner_id, staff_key, weekday),
+  constraint salon_staff_attendance_shift_nonzero check (shift_end <> shift_start)
 );
 
 create table if not exists public.salon_staff_attendance_records (
@@ -132,6 +134,7 @@ create table if not exists public.salon_staff_leave_requests (
     references public.salon_staff_attendance_profiles(owner_id, staff_key)
     on delete cascade,
   constraint salon_staff_leave_date_order check (end_date >= start_date),
+  constraint salon_staff_leave_period_limit check (end_date <= start_date + 365),
   constraint salon_staff_leave_reason_length check (char_length(reason) <= 1000)
 );
 create index if not exists salon_staff_leave_owner_dates_idx
