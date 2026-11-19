@@ -209,6 +209,15 @@ try {
     'An unfinished shift from earlier than yesterday must block a new check-in.',
   );
 
+  // Close the deliberately stale fixture after asserting the guard, so later
+  // independent device-sync tests do not inherit an open shift.
+  await db.query(
+    `update public.salon_staff_attendance_records
+     set check_out = check_in + interval '8 hours', worked_minutes = 480
+     where owner_id=$1 and staff_key='staff-device' and attendance_date=$2::date`,
+    [ownerA, dateOffset(-5)],
+  );
+
   // Manual status edits cannot silently erase a real check-in.
   await expectSqlError(
     () => one(
