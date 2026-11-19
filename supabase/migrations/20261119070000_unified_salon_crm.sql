@@ -458,6 +458,63 @@ begin
     limit 300
   ) t;
 
+  customer_rows := customer_rows || coalesce((
+    select jsonb_agg(jsonb_build_object(
+      'id', m.id::text,
+      'name', m.full_name,
+      'whatsapp', m.phone,
+      'email', m.email,
+      'dateOfBirth', m.date_of_birth,
+      'birthdayShared', false,
+      'optIn', false,
+      'consentUpdated', null,
+      'blocked', m.do_not_contact,
+      'tags', m.tags,
+      'notes', m.notes,
+      'isManual', true,
+      'customerSource', m.source,
+      'bookingCount', 0,
+      'completedBookingCount', 0,
+      'upcomingBookingCount', 0,
+      'totalValue', 0,
+      'totalPaid', 0,
+      'firstBookingAt', m.created_at,
+      'lastVisit', null,
+      'nextAppointment', null,
+      'lastBookingAt', m.created_at,
+      'bookingHistory', '[]'::jsonb,
+      'activities', coalesce(ac.items, '[]'::jsonb),
+      'openTaskCount', coalesce(tc.open_count, 0)
+    ) order by m.created_at desc)
+    from studioflow_android_private.crm_contacts m
+    left join lateral (
+      select coalesce(jsonb_agg(jsonb_build_object(
+        'id', a.id,
+        'type', a.activity_type,
+        'channel', a.channel,
+        'direction', a.direction,
+        'summary', a.summary,
+        'details', a.details,
+        'createdAt', a.created_at,
+        'relatedBookingId', a.related_booking_id,
+        'relatedTaskId', a.related_task_id
+      ) order by a.created_at desc), '[]'::jsonb) as items
+      from (
+        select a.*
+        from studioflow_android_private.crm_activities a
+        where a.owner_id = actor and a.customer_id = m.id
+        order by a.created_at desc
+        limit 40
+      ) a
+    ) ac on true
+    left join lateral (
+      select count(*)::integer as open_count
+      from studioflow_android_private.crm_tasks t
+      where t.owner_id = actor and t.customer_id = m.id and t.status = 'open'
+    ) tc on true
+    where m.owner_id = actor
+  ), '[]'::jsonb);
+
   return jsonb_build_object(
     'customers', customer_rows,
     'tasks', task_rows,
