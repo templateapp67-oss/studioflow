@@ -25,6 +25,7 @@ function allowedOrigin(origin: string) {
   if (!origin) return true;
   return origin === 'https://nexorasalon.online'
     || origin === 'https://www.nexorasalon.online'
+    || /^https:\/\/[a-z0-9-]+\.nexorasalon\.online$/.test(origin)
     || origin === 'http://localhost:5173'
     || /^https:\/\/([a-z0-9-]+\.)?vercel\.app$/.test(origin);
 }
@@ -77,6 +78,7 @@ function webAuthnOrigin(origin: string) {
   const host = url.hostname.toLowerCase();
   const rpID = host === 'www.nexorasalon.online' ? 'nexorasalon.online'
     : host === 'nexorasalon.online' ? 'nexorasalon.online'
+    : host.endsWith('.nexorasalon.online') ? 'nexorasalon.online'
     : host === 'localhost' ? 'localhost'
     : host.endsWith('.vercel.app') ? host
     : '';
