@@ -363,7 +363,8 @@ begin
 
   select * into v_profile
   from public.salon_staff_attendance_profiles p
-  where p.owner_id = p_owner_id and p.staff_key = p_staff_key and p.active = true;
+  where p.owner_id = p_owner_id and p.staff_key = p_staff_key and p.active = true
+  for update;
   if v_profile.id is null then
     raise exception 'Active staff member not found in attendance register' using errcode = 'P0002';
   end if;
@@ -552,6 +553,7 @@ set search_path to ''
 as $function$
 declare
   v_record public.salon_staff_attendance_records;
+  v_profile public.salon_staff_attendance_profiles;
   v_id uuid;
 begin
   if p_owner_id is null or not exists (
@@ -566,10 +568,11 @@ begin
      or p_status not in ('absent','on_leave','holiday','weekly_off','half_day','present') then
     raise exception 'Invalid attendance status' using errcode = '22023';
   end if;
-  if not exists (
-    select 1 from public.salon_staff_attendance_profiles p
-    where p.owner_id = p_owner_id and p.staff_key = p_staff_key
-  ) then
+  select * into v_profile
+  from public.salon_staff_attendance_profiles p
+  where p.owner_id = p_owner_id and p.staff_key = p_staff_key
+  for update;
+  if v_profile.id is null then
     raise exception 'Staff member not found' using errcode = 'P0002';
   end if;
 
