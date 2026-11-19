@@ -403,8 +403,17 @@ async function devicePunch(req: Request, body: Record<string, unknown>) {
     occurred_at: eventAt.toISOString(),
     attendance_event_id: null,
     payload_digest: digest,
+    processing_status: 'pending',
   });
-  if (receiptError?.code === '23505') return { accepted: true, duplicate: true };
+  if (receiptError?.code === '23505') {
+    const { data: existing, error: existingError } = await admin.from('salon_staff_attendance_device_events')
+      .select('payload_digest,processing_status')
+      .eq('device_id', device.id).eq('provider_event_id', providerEventId).maybeSingle();
+    if (existingError || !existing) throw new Error('This device event already exists but could not be verified. Retry safely.');
+    if (existing.payload_digest !== digest) throw new Error('The device reused an event ID with different attendance data.');
+    if (existing.processing_status === 'completed') return { accepted: true, duplicate: true };
+    throw new Error('This device event is still being processed. Retry with the same event ID.');
+  }
   if (receiptError) throw new Error('Device event could not be registered. Attendance was not written.');
 
   let result: any;
@@ -420,7 +429,7 @@ async function devicePunch(req: Request, body: Record<string, unknown>) {
   }
 
   const { error: receiptUpdateError } = await admin.from('salon_staff_attendance_device_events')
-    .update({ attendance_event_id: result?.eventId || null })
+    .update({ attendance_event_id: result?.eventId || null, processing_status: 'completed' })
     .eq('device_id', device.id).eq('provider_event_id', providerEventId);
   if (receiptUpdateError) throw new Error('Attendance was recorded, but the device event receipt needs reconciliation.');
   await admin.from('salon_staff_attendance_devices')
