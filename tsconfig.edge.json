@@ -18,6 +18,7 @@
   },
   "include": [
     "supabase/functions/**/*.ts",
-    "types/edge-runtime.d.ts"
+    "types/edge-runtime.d.ts",
+    "types/simplewebauthn.d.ts"
   ]
 }

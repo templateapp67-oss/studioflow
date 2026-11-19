@@ -26,3 +26,7 @@ verify_jwt = false
 # Tawk owner connection validates the Supabase user with Auth getUser() in the handler.
 [functions.studioflow-tawk-connect]
 verify_jwt = false
+
+# Validates the salon owner JWT in the handler and also accepts device-key authenticated machine push events.
+[functions.staff-attendance-biometric]
+verify_jwt = false

@@ -157,6 +157,20 @@ for (const name of tawkMigrationNames) {
   await applySqlText(sql, file);
 }
 
+// Replay the unified CRM migration too: its public owner RPCs and RLS
+// tables are part of the live browser client contract, so omitting it makes
+// this offline catalog validator report false "missing RPC" failures.
+const crmMigrationPath = 'supabase/migrations/20261119070000_unified_salon_crm.sql';
+const crmMigrationSql = readFileSync(crmMigrationPath, 'utf8');
+await applySqlText(crmMigrationSql, crmMigrationPath);
+
+// Replay the new staff attendance/biometric migration against the same clean
+// PGlite database so all ten new tables, RLS policies and private RPC grants
+// are validated before the browser catalog assertion runs.
+const attendanceMigrationPath = 'supabase/migrations/20261119150000_staff_attendance_biometric.sql';
+const attendanceMigrationSql = readFileSync(attendanceMigrationPath, 'utf8');
+await applySqlText(attendanceMigrationSql, attendanceMigrationPath);
+
 const tawkMigration = tawkMigrationSql.get('20261118203000_add_tawk_widget_connection.sql');
 const tawkLower = tawkMigration.toLowerCase();
 assert.match(tawkMigration, /create schema if not exists studioflow_tawk_private/i,
