@@ -588,7 +588,7 @@ begin
     raise exception 'Salon owner access required' using errcode = '42501';
   end if;
   if p_roster is null or jsonb_typeof(p_roster) is distinct from 'array'
-     or jsonb_array_length(p_roster) = 0 or jsonb_array_length(p_roster) > 200 then
+     or jsonb_array_length(p_roster) > 200 then
     raise exception 'A non-empty staff roster (maximum 200) is required' using errcode = '22023';
   end if;
   if exists (
