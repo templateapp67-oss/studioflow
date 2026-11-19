@@ -9,7 +9,7 @@ type ShiftRow = { id: string; staff_key: string; weekday: number; shift_start: s
 type AttendanceRow = {
   id: string; staff_key: string; attendance_date: string; status: string; check_in: string | null;
   check_out: string | null; active_break_started_at: string | null; break_minutes: number; worked_minutes: number; expected_minutes: number;
-  overtime_minutes: number; method: string; notes: string;
+  late_minutes: number; overtime_minutes: number; method: string; notes: string;
 };
 type LeaveRow = {
   id: string; staff_key: string; start_date: string; end_date: string; leave_type: string;
@@ -171,7 +171,7 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
       const [rosterResult, shiftResult, recordResult, todayRecordResult, leaveResult, settingsResult, bioResult, deviceResult] = await Promise.all([
         supabase.from('salon_staff_attendance_profiles').select('staff_key,staff_code,staff_name,staff_role,active').eq('owner_id', ownerId).order('staff_name'),
         supabase.from('salon_staff_attendance_shifts').select('id,staff_key,weekday,shift_start,shift_end,break_minutes,is_weekly_off').eq('owner_id', ownerId),
-        supabase.from('salon_staff_attendance_records').select('id,staff_key,attendance_date,status,check_in,check_out,active_break_started_at,break_minutes,worked_minutes,expected_minutes,overtime_minutes,method,notes').eq('owner_id', ownerId).gte('attendance_date', monthStart(month)).lte('attendance_date', monthEnd(month)).order('attendance_date', { ascending: false }),
+        supabase.from('salon_staff_attendance_records').select('id,staff_key,attendance_date,status,check_in,check_out,active_break_started_at,break_minutes,worked_minutes,expected_minutes,late_minutes,overtime_minutes,method,notes').eq('owner_id', ownerId).gte('attendance_date', monthStart(month)).lte('attendance_date', monthEnd(month)).order('attendance_date', { ascending: false }),
         supabase.from('salon_staff_attendance_records').select('id,staff_key,attendance_date,status,check_in,check_out,active_break_started_at,break_minutes,worked_minutes,expected_minutes,overtime_minutes,method,notes').eq('owner_id', ownerId).eq('attendance_date', indiaDate()),
         supabase.from('salon_staff_leave_requests').select('id,staff_key,start_date,end_date,leave_type,reason,status,created_at').eq('owner_id', ownerId).gte('end_date', monthStart(month)).lte('start_date', monthEnd(month)).order('created_at', { ascending: false }),
         supabase.from('salon_staff_attendance_settings').select('*').eq('owner_id', ownerId).maybeSingle(),
@@ -461,9 +461,9 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
     const rows = records.map((row) => [
       roster.find((staff) => staff.staff_key === row.staff_key)?.staff_name || row.staff_key,
       row.attendance_date, STATUS_LABEL[row.status] || row.status, row.check_in, row.check_out,
-      row.break_minutes, row.worked_minutes, row.overtime_minutes, row.method, row.notes,
+      row.break_minutes, row.worked_minutes, row.late_minutes, row.overtime_minutes, row.method, row.notes,
     ]);
-    const columns = ['Staff','Date','Status','Check in','Check out','Break minutes','Worked minutes','Overtime minutes','Source','Notes'];
+    const columns = ['Staff','Date','Status','Check in','Check out','Break minutes','Worked minutes','Late minutes','Overtime minutes','Source','Notes'];
     const csv = '\ufeff' + [columns, ...rows].map((line) => line.map(csvValue).join(',')).join('\r\n');
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
     const link = document.createElement('a'); link.href = url; link.download = 'nexora-attendance-' + month + '.csv'; link.click();
@@ -533,7 +533,7 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
                         </td>
                         <td className="py-3 pr-3"><span className={'rounded-full px-2 py-1 text-[10px] font-bold ' + (row?.status==='late'?'bg-amber-100 text-amber-800':row?.status==='present'?'bg-emerald-100 text-emerald-800':row?.status==='absent'||row?.status==='on_leave'?'bg-rose-100 text-rose-800':'bg-slate-100 text-slate-600')}>{row ? (STATUS_LABEL[row.status] || row.status) : 'Not marked'}</span><small className="block mt-1 text-slate-400">{row?.method || '—'}</small></td>
                         <td className="py-3 pr-3 whitespace-nowrap">{timeLabel(row?.check_in)} / {timeLabel(row?.check_out)}</td>
-                        <td className="py-3 pr-3 whitespace-nowrap">{row ? hoursLabel(row.worked_minutes) : '—'}<small className="block text-slate-400">{row?.overtime_minutes ? hoursLabel(row.overtime_minutes) + ' OT' : ''}</small></td>
+                        <td className="py-3 pr-3 whitespace-nowrap">{row ? hoursLabel(row.worked_minutes) : '—'}<small className="block text-slate-400">{row?.late_minutes ? row.late_minutes + ' min delay' : ''}{row?.overtime_minutes ? ' · ' + hoursLabel(row.overtime_minutes) + ' OT' : ''}</small></td>
                         <td className="py-3"><div className="flex flex-wrap gap-1.5 min-w-[210px]">
                           {!row?.check_in && <button type="button" className="primary-action" disabled={busy} onClick={() => void punch(staff.staff_key,'check_in')}>Check in</button>}
                           {activeBreak && !row?.active_break_started_at && <button type="button" className="secondary-action" disabled={busy} onClick={() => void punch(staff.staff_key,'break_start')}>Break start</button>}
