@@ -11,6 +11,7 @@ This module is attached to the shared owner workspace, so the same owner tool is
 - Late status uses the salon's grace period; exact arrival-delay minutes are stored for reports. Half-day status is calculated when the completed work duration is below half of the scheduled duration. Open shifts show live worked time and subtract active breaks.
 - Approved leave automatically creates an on-leave attendance entry. Actual punches are never overwritten.
 - Monthly reports can be exported as CSV. The owner can inspect recent audit events and device-push receipts from the activity-history and biometric-device tabs.
+- If a staff member forgets to check out on an earlier date, the owner can select that date, enter the actual check-out time and a reason, and close the open shift. This correction is audited and limited to shifts no older than 48 hours; older cases are blocked for review rather than guessing payroll time.
 - A new check-in is blocked while any of the previous 90 days contains an unfinished shift. Owners cannot mark a day with a recorded check-in as absent, leave or holiday.
 
 ## Biometric attendance
