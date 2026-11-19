@@ -481,7 +481,7 @@ export function SalonCRM({ profile }: { profile: SalonProfile }) {
               {refreshing ? 'Refreshing…' : 'Refresh CRM'}
             </button>
             <button type="button" className="secondary-action" disabled={!filtered.length || loading} onClick={exportCustomers}>
-              Export customer CSV
+              Export Clients CSV
             </button>
             <button type="button" className="primary-action" disabled={saving} onClick={() => setShowNewContactForm((open) => !open)}>
               {showNewContactForm ? 'Close add form' : 'Add customer'}
