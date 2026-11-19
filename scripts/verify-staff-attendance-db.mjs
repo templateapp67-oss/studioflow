@@ -495,7 +495,18 @@ try {
   );
   assert.equal(allowedLast.result.accepted, true);
 
-  const blockedAt = dateOffset(-31) + ' 09:00:00+05:30';
+  const allowedSecondAt = dateOffset(-31) + ' 09:00:00+05:30';
+  const allowedSecondEventId = 'provider-rate-limit-60b';
+  const allowedSecondDigest = createHash('sha256').update(allowedSecondEventId + allowedSecondAt).digest('hex');
+  const allowedSecond = await one(
+    `select public.salon_staff_attendance_service_device_punch(
+      $1::uuid,$2::uuid,'staff-half',$3,'check_in',$4::timestamptz,'rate-limit test',$5
+    ) as result`,
+    [ownerA, device.id, allowedSecondEventId, allowedSecondAt, allowedSecondDigest],
+  );
+  assert.equal(allowedSecond.result.accepted, true);
+
+  const blockedAt = dateOffset(-32) + ' 09:00:00+05:30';
   const blockedEventId = 'provider-rate-limit-61';
   const blockedDigest = createHash('sha256').update(blockedEventId + blockedAt).digest('hex');
   await expectSqlError(
