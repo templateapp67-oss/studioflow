@@ -747,3 +747,113 @@ after insert or update of status, start_date, end_date
 on public.salon_staff_leave_requests
 for each row execute function public.salon_staff_attendance_apply_leave();
 revoke all on function public.salon_staff_attendance_apply_leave() from public, anon, authenticated;
+
+
+-- Device receipt and attendance punch are committed in one DB transaction.
+-- Concurrent retries cannot create a second punch for the same provider event.
+create or replace function public.salon_staff_attendance_service_device_punch(
+  p_owner_id uuid,
+  p_device_id uuid,
+  p_staff_key text,
+  p_provider_event_id text,
+  p_event_type text,
+  p_event_at timestamptz,
+  p_notes text,
+  p_payload_digest text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path to ''
+as $function$
+declare
+  v_device public.salon_staff_attendance_devices;
+  v_profile public.salon_staff_attendance_profiles;
+  v_receipt_id uuid;
+  v_existing public.salon_staff_attendance_device_events;
+  v_punch jsonb;
+  v_attendance_event_id uuid;
+begin
+  if p_owner_id is null or not exists (
+    select 1 from public.studioflow_accounts a where a.user_id = p_owner_id
+  ) then
+    raise exception 'Salon owner account not found' using errcode = '42501';
+  end if;
+  if p_device_id is null or p_staff_key is null
+     or char_length(btrim(p_staff_key)) not between 1 and 120
+     or p_provider_event_id is null
+     or char_length(btrim(p_provider_event_id)) not between 1 and 120
+     or p_event_type is null or p_event_type not in ('check_in','check_out')
+     or p_payload_digest is null or p_payload_digest !~ '^[0-9a-f]{64}$'
+     or char_length(coalesce(p_notes,'')) > 500 then
+    raise exception 'Invalid attendance device event' using errcode = '22023';
+  end if;
+
+  select * into v_device
+  from public.salon_staff_attendance_devices d
+  where d.id = p_device_id and d.owner_id = p_owner_id and d.active = true
+  for update;
+  if v_device.id is null then
+    raise exception 'Attendance device is invalid or revoked' using errcode = '42501';
+  end if;
+
+  select * into v_profile
+  from public.salon_staff_attendance_profiles p
+  where p.owner_id = p_owner_id and p.staff_key = p_staff_key and p.active = true;
+  if v_profile.id is null then
+    raise exception 'Active staff member not found for device event' using errcode = 'P0002';
+  end if;
+
+  insert into public.salon_staff_attendance_device_events(
+    owner_id,device_id,provider_event_id,staff_key,event_type,occurred_at,
+    attendance_event_id,payload_digest,processing_status
+  ) values (
+    p_owner_id,p_device_id,p_provider_event_id,p_staff_key,p_event_type,p_event_at,
+    null,p_payload_digest,'pending'
+  )
+  on conflict(device_id,provider_event_id) do nothing
+  returning id into v_receipt_id;
+
+  if v_receipt_id is null then
+    select * into v_existing
+    from public.salon_staff_attendance_device_events e
+    where e.device_id = p_device_id and e.provider_event_id = p_provider_event_id
+    for update;
+    if v_existing.id is null then
+      raise exception 'Device event receipt could not be loaded' using errcode = '40001';
+    end if;
+    if v_existing.payload_digest <> p_payload_digest then
+      raise exception 'The device reused an event ID with different attendance data' using errcode = '22023';
+    end if;
+    if v_existing.processing_status = 'completed' then
+      return jsonb_build_object('accepted',true,'duplicate',true);
+    end if;
+    raise exception 'Device event is still being processed. Retry with the same event ID.' using errcode = '40001';
+  end if;
+
+  v_punch := public.salon_staff_attendance_service_punch(
+    p_owner_id,p_staff_key,p_event_type,'device',coalesce(p_notes,''),
+    null,null,null,p_device_id,p_provider_event_id,p_event_at
+  );
+  v_attendance_event_id := nullif(v_punch->>'eventId','')::uuid;
+
+  update public.salon_staff_attendance_device_events
+  set attendance_event_id = v_attendance_event_id,
+      processing_status = 'completed'
+  where id = v_receipt_id;
+
+  update public.salon_staff_attendance_devices
+  set last_seen_at = now(), updated_at = now()
+  where id = p_device_id and owner_id = p_owner_id;
+
+  return jsonb_build_object(
+    'accepted',true,
+    'duplicate',false,
+    'staffName',v_profile.staff_name,
+    'result',v_punch
+  );
+end;
+$function$;
+
+revoke all on function public.salon_staff_attendance_service_device_punch(uuid,uuid,text,text,text,timestamptz,text,text) from public, anon, authenticated;
+grant execute on function public.salon_staff_attendance_service_device_punch(uuid,uuid,text,text,text,timestamptz,text,text) to service_role;
