@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import type { SalonProfile, Stylist } from '../types';
 
 type Props = { profile: SalonProfile; stylists: Stylist[] };
-type Tab = 'today' | 'reports' | 'shifts' | 'leave' | 'biometric';
+type Tab = 'today' | 'reports' | 'shifts' | 'leave' | 'biometric' | 'history';
 type RosterRow = { staff_key: string; staff_code: string | null; staff_name: string; staff_role: string; active: boolean };
 type ShiftRow = { id: string; staff_key: string; weekday: number; shift_start: string; shift_end: string; break_minutes: number; is_weekly_off: boolean };
 type AttendanceRow = {
@@ -21,6 +21,8 @@ type SettingsRow = {
 };
 type BiometricRow = { id: string; staff_key: string; friendly_name: string; device_type: string; backed_up: boolean; last_used_at: string | null; created_at: string };
 type DeviceRow = { id: string; device_name: string; vendor: string; model: string; protocol: string; active: boolean; last_seen_at: string | null; created_at: string };
+type AuditEventRow = { id: string; staff_key: string; attendance_id: string | null; event_type: string; method: string; occurred_at: string; actor_id: string | null; device_id: string | null; provider_event_id: string | null; notes: string; metadata: Record<string, unknown> };
+type DeviceEventRow = { id: string; device_id: string; provider_event_id: string; staff_key: string; event_type: string; occurred_at: string; processing_status: string; received_at: string };
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const STATUS_LABEL: Record<string, string> = {
@@ -142,6 +144,8 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
   const [settings, setSettings] = useState<SettingsRow | null>(null);
   const [biometrics, setBiometrics] = useState<BiometricRow[]>([]);
   const [devices, setDevices] = useState<DeviceRow[]>([]);
+  const [auditEvents, setAuditEvents] = useState<AuditEventRow[]>([]);
+  const [deviceEvents, setDeviceEvents] = useState<DeviceEventRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -186,7 +190,7 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
       const { data: authData, error: authError } = await supabase.auth.getUser();
       if (authError || !authData.user) throw new Error('Please sign in to your salon owner account.');
       const ownerId = authData.user.id;
-      const [rosterResult, shiftResult, recordResult, todayRecordResult, leaveResult, settingsResult, bioResult, deviceResult] = await Promise.all([
+      const [rosterResult, shiftResult, recordResult, todayRecordResult, leaveResult, settingsResult, bioResult, deviceResult, auditResult, deviceEventResult] = await Promise.all([
         supabase.from('salon_staff_attendance_profiles').select('staff_key,staff_code,staff_name,staff_role,active').eq('owner_id', ownerId).order('staff_name'),
         supabase.from('salon_staff_attendance_shifts').select('id,staff_key,weekday,shift_start,shift_end,break_minutes,is_weekly_off').eq('owner_id', ownerId),
         supabase.from('salon_staff_attendance_records').select('id,staff_key,attendance_date,status,check_in,check_out,active_break_started_at,break_minutes,worked_minutes,expected_minutes,late_minutes,overtime_minutes,method,notes').eq('owner_id', ownerId).gte('attendance_date', monthStart(month)).lte('attendance_date', monthEnd(month)).order('attendance_date', { ascending: false }),
@@ -195,8 +199,10 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
         supabase.from('salon_staff_attendance_settings').select('*').eq('owner_id', ownerId).maybeSingle(),
         invoke('listBiometrics'),
         invoke('listDevices'),
+        supabase.from('salon_staff_attendance_events').select('id,staff_key,attendance_id,event_type,method,occurred_at,actor_id,device_id,provider_event_id,notes,metadata').eq('owner_id', ownerId).order('occurred_at', { ascending: false }).limit(250),
+        invoke('listDeviceEvents'),
       ]);
-      const firstError = [rosterResult.error, shiftResult.error, recordResult.error, todayRecordResult.error, leaveResult.error, settingsResult.error].find(Boolean);
+      const firstError = [rosterResult.error, shiftResult.error, recordResult.error, todayRecordResult.error, leaveResult.error, settingsResult.error, auditResult.error].find(Boolean);
       if (firstError) throw new Error(firstError.message);
       setRoster((rosterResult.data || []) as RosterRow[]);
       setShifts((shiftResult.data || []) as ShiftRow[]);
@@ -206,6 +212,8 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
       setSettings((settingsResult.data || null) as SettingsRow | null);
       setBiometrics((bioResult?.credentials || []) as BiometricRow[]);
       setDevices((deviceResult?.devices || []) as DeviceRow[]);
+      setAuditEvents((auditResult.data || []) as AuditEventRow[]);
+      setDeviceEvents((deviceEventResult?.events || []) as DeviceEventRow[]);
       if (settingsResult.data) {
         setDefaultStart(settingsResult.data.default_shift_start?.slice(0, 5) || '10:00');
         setDefaultEnd(settingsResult.data.default_shift_end?.slice(0, 5) || '19:00');
@@ -551,7 +559,7 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
         </div>
         <div className="flex flex-wrap gap-2 mt-4 border-t border-slate-100 pt-4">
           {([
-            ['today','Today'],['reports','Reports'],['shifts','Shifts & settings'],['leave','Leave'],['biometric','Biometric devices'],
+            ['today','Today'],['reports','Reports'],['shifts','Shifts & settings'],['leave','Leave'],['biometric','Biometric devices'],['history','Activity history'],
           ] as Array<[Tab,string]>).map(([id,label]) => <button key={id} type="button" className={tab===id?'primary-action':'secondary-action'} onClick={() => setTab(id)}>{label}</button>)}
         </div>
       </section>
@@ -610,6 +618,18 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
               <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
                 Manual check-in/out and break actions are recorded with a timestamp and audit event. Biometric verification can be enabled per staff member in the Biometric devices tab.
               </div>
+            </section>
+          )}
+
+          {tab === 'history' && (
+            <section className="workspace-card space-y-4">
+              <div><h3 className="font-bold text-slate-900">Attendance activity history</h3><p className="muted text-xs">Recent manual, biometric, device and leave actions. Entries are audit records and are not editable here.</p></div>
+              {auditEvents.length === 0 ? <p className="muted text-sm">No attendance activity has been recorded yet.</p> : (
+                <div className="overflow-x-auto"><table className="w-full text-left text-xs">
+                  <thead><tr className="border-b border-slate-200 text-slate-500"><th className="py-2 pr-3">Date / time</th><th className="py-2 pr-3">Staff</th><th className="py-2 pr-3">Action</th><th className="py-2 pr-3">Source</th><th className="py-2 pr-3">Device event</th><th className="py-2">Notes</th></tr></thead>
+                  <tbody>{auditEvents.map((event) => <tr key={event.id} className="border-b border-slate-100"><td className="py-2 pr-3 whitespace-nowrap">{event.occurred_at ? new Intl.DateTimeFormat('en-IN',{timeZone:'Asia/Kolkata',dateStyle:'medium',timeStyle:'short'}).format(new Date(event.occurred_at)) : '—'}</td><td className="py-2 pr-3">{roster.find((staff)=>staff.staff_key===event.staff_key)?.staff_name || event.staff_key}</td><td className="py-2 pr-3">{event.event_type.replaceAll('_',' ')}</td><td className="py-2 pr-3">{event.method}</td><td className="py-2 pr-3">{event.provider_event_id || '—'}</td><td className="py-2">{event.notes || '—'}</td></tr>)}</tbody>
+                </table></div>
+              )}
             </section>
           )}
 
@@ -695,6 +715,16 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
                 </form>
                 {newDeviceKey && <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3"><strong className="text-sm text-emerald-900">Copy these device details now</strong><small className="block mt-2 text-emerald-900">Attendance endpoint</small><code className="block mt-1 break-all rounded-lg bg-white p-2 text-xs">{newDeviceEndpoint}</code><button type="button" className="secondary-action mt-1" onClick={()=>void navigator.clipboard.writeText(newDeviceEndpoint)}>Copy endpoint</button><small className="mt-3 block text-emerald-900">Device API key (shown once)</small><code className="block mt-1 break-all rounded-lg bg-white p-2 text-xs">{newDeviceKey}</code><button type="button" className="secondary-action mt-2" onClick={()=>void navigator.clipboard.writeText(newDeviceKey)}>Copy key</button></div>}
                 <div className="space-y-2">{devices.map((device)=><div key={device.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 p-3"><div><strong className="block text-sm">{device.device_name}</strong><span className="text-xs text-slate-500">{device.vendor} {device.model} · {device.active?'Active':'Revoked'} · Last sync {device.last_seen_at ? timeLabel(device.last_seen_at) : 'Never'}</span></div>{device.active&&<button type="button" className="secondary-action" disabled={busy} onClick={()=>void revokeDevice(device)}>Revoke key</button>}</div>)}</div>
+
+                <div className="border-t border-slate-100 pt-3 space-y-2">
+                  <h4 className="font-semibold text-sm text-slate-900">Recent machine sync events</h4>
+                  {deviceEvents.length === 0 ? <p className="muted text-xs">No machine events received yet.</p> : deviceEvents.slice(0,20).map((event) => (
+                    <div key={event.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-50 p-2 text-xs">
+                      <span>{roster.find((staff)=>staff.staff_key===event.staff_key)?.staff_name || event.staff_key} · {event.event_type.replaceAll('_',' ')}</span>
+                      <span className="text-slate-500">{timeLabel(event.occurred_at)} · {event.processing_status} · {event.provider_event_id}</span>
+                    </div>
+                  ))}
+                </div>
                 <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-700"><strong className="block mb-1">Device push API format</strong><p>POST to the function URL shown when the device is registered, with <code>Authorization: Bearer DEVICE_API_KEY</code> and JSON: <code>{'{ "action":"devicePunch", "employeeCode":"EMP-001", "eventType":"check_in", "eventId":"unique-event-id", "occurredAt":"2026-11-19T09:00:00+05:30" }'}</code>.</p></div>
               </section>
             </div>
