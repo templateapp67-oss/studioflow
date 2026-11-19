@@ -665,6 +665,7 @@ set search_path to ''
 as $function$
 declare
   leave_day date;
+  v_attendance_id uuid;
 begin
   if auth.uid() is null or new.owner_id is distinct from auth.uid() then
     raise exception 'Salon owner access required for leave updates' using errcode = '42501';
@@ -697,25 +698,43 @@ begin
     for leave_day in
       select generate_series(new.start_date, new.end_date, interval '1 day')::date
     loop
-      insert into public.salon_staff_attendance_records(
-        owner_id, staff_key, attendance_date, status, method, notes, recorded_by
-      ) values (
-        new.owner_id, new.staff_key, leave_day, 'on_leave', 'manual',
-        coalesce(nullif(new.reason,''),'Approved leave'), coalesce(new.reviewed_by, auth.uid())
-      )
-      on conflict(owner_id, staff_key, attendance_date) do update
-        set status = case
-              when public.salon_staff_attendance_records.check_in is null
-               and public.salon_staff_attendance_records.status in ('on_leave','absent')
-              then 'on_leave'
-              else public.salon_staff_attendance_records.status
-            end,
-            notes = case
-              when public.salon_staff_attendance_records.check_in is null
-              then coalesce(nullif(new.reason,''),'Approved leave')
-              else public.salon_staff_attendance_records.notes
-            end,
-            updated_at = now();
+      -- Weekly-off days are not counted as leave days.
+      if not exists (
+        select 1 from public.salon_staff_attendance_shifts s
+        where s.owner_id = new.owner_id
+          and s.staff_key = new.staff_key
+          and s.weekday = extract(dow from leave_day)::smallint
+          and s.is_weekly_off = true
+      ) then
+        insert into public.salon_staff_attendance_records(
+          owner_id, staff_key, attendance_date, status, method, notes, recorded_by
+        ) values (
+          new.owner_id, new.staff_key, leave_day, 'on_leave', 'manual',
+          coalesce(nullif(new.reason,''),'Approved leave'), coalesce(new.reviewed_by, auth.uid())
+        )
+        on conflict(owner_id, staff_key, attendance_date) do update
+          set status = case
+                when public.salon_staff_attendance_records.check_in is null
+                 and public.salon_staff_attendance_records.status in ('on_leave','absent')
+                then 'on_leave'
+                else public.salon_staff_attendance_records.status
+              end,
+              notes = case
+                when public.salon_staff_attendance_records.check_in is null
+                then coalesce(nullif(new.reason,''),'Approved leave')
+                else public.salon_staff_attendance_records.notes
+              end,
+              updated_at = now()
+        returning id into v_attendance_id;
+
+        insert into public.salon_staff_attendance_events(
+          owner_id,staff_key,attendance_id,event_type,method,actor_id,notes,metadata
+        ) values (
+          new.owner_id,new.staff_key,v_attendance_id,'leave_reviewed','system',
+          coalesce(new.reviewed_by,auth.uid()),coalesce(new.reason,''),
+          jsonb_build_object('leaveRequestId',new.id,'status','approved','date',leave_day,'leaveType',new.leave_type)
+        );
+      end if;
     end loop;
   end if;
   return new;
