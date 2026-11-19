@@ -379,6 +379,16 @@ async function ownerAction(ownerId: string, body: Record<string, unknown>, origi
     return { devices: data || [] };
   }
 
+  if (action === 'listDeviceEvents') {
+    const { data, error } = await admin.from('salon_staff_attendance_device_events')
+      .select('id,device_id,provider_event_id,staff_key,event_type,occurred_at,processing_status,received_at')
+      .eq('owner_id', ownerId)
+      .order('received_at', { ascending: false })
+      .limit(100);
+    if (error) throw new Error('Could not load attendance device history.');
+    return { events: data || [] };
+  }
+
   if (action === 'createDevice') {
     const name = cleanText(body.deviceName, 100);
     if (name.length < 2) throw new Error('Enter a device name.');
@@ -413,6 +423,15 @@ async function devicePunch(req: Request, body: Record<string, unknown>) {
   const { data: device, error } = await admin.from('salon_staff_attendance_devices')
     .select('id,owner_id,active').eq('api_key_hash', await sha256(token)).maybeSingle();
   if (error || !device || !device.active) throw new Error('Device API key is invalid or revoked.');
+  const since = new Date(Date.now() - 60_000).toISOString();
+  const { count: recentCount, error: rateError } = await admin
+    .from('salon_staff_attendance_device_events')
+    .select('id', { count: 'exact', head: true })
+    .eq('device_id', device.id)
+    .gte('received_at', since);
+  if (rateError) throw new Error('Attendance device rate limit could not be checked.');
+  if ((recentCount || 0) >= 60) throw new Error('Attendance device rate limit exceeded. Retry after one minute.');
+
   const employeeCode = cleanText(body.employeeCode, 40).toUpperCase();
   const eventType = cleanText(body.eventType, 30);
   const providerEventId = cleanText(body.eventId, 120);
