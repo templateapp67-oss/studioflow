@@ -10,47 +10,51 @@ const dashboard = read('src/components/SaaSDashboard.tsx');
 const navigation = read('src/lib/ownerNavigation.ts');
 
 for (const table of ['crm_contacts', 'crm_tasks', 'crm_activities']) {
-  assert.match(migration, new RegExp('create table if not exists studioflow_android_private\\\\.' + table));
-  assert.match(migration, new RegExp('alter table studioflow_android_private\\\\.' + table + ' enable row level security'));
+  assert.ok(migration.includes('create table if not exists studioflow_android_private.' + table));
+  assert.ok(migration.includes('alter table studioflow_android_private.' + table + ' enable row level security'));
 }
-assert.match(migration, /owner_id = \\(select auth\\.uid\\(\\)\\)/);
-assert.match(migration, /crm_dashboard\\(\\)/);
-assert.match(migration, /studioflow_owner_crm_dashboard/);
-assert.match(migration, /studioflow_owner_crm_create_contact/);
-assert.match(migration, /studioflow_owner_crm_update_contact/);
-assert.match(migration, /studioflow_owner_crm_add_activity/);
-assert.match(migration, /studioflow_owner_crm_create_task/);
-assert.match(migration, /studioflow_owner_crm_update_task/);
-assert.match(migration, /'optIn',\\s*false/);
-assert.match(migration, /from public, anon/);
-assert.match(migration, /revoke all on function public\\.studioflow_owner_crm_create_contact/);
-assert.match(migration, /revoke all on function public\\.studioflow_owner_crm_update_contact/);
-assert.match(migration, /grant execute on function public\\.studioflow_owner_crm_create_contact/);
-assert.match(migration, /grant execute on function public\\.studioflow_owner_crm_update_contact/);
-assert.match(migration, /crm_contacts_owner_access/);
-assert.match(migration, /m\\.owner_id=actor/);
+for (const contract of [
+  'owner_id = (select auth.uid())',
+  'crm_dashboard()',
+  'studioflow_owner_crm_dashboard',
+  'studioflow_owner_crm_create_contact',
+  'studioflow_owner_crm_update_contact',
+  'studioflow_owner_crm_add_activity',
+  'studioflow_owner_crm_create_task',
+  'studioflow_owner_crm_update_task',
+  "'optIn', false",
+  'from public, anon',
+  'revoke all on function public.studioflow_owner_crm_create_contact',
+  'revoke all on function public.studioflow_owner_crm_update_contact',
+  'grant execute on function public.studioflow_owner_crm_create_contact',
+  'grant execute on function public.studioflow_owner_crm_update_contact',
+  'crm_contacts_owner_access',
+  'm.owner_id=actor',
+]) assert.ok(migration.includes(contract), 'Missing migration contract: ' + contract);
 
 // Manual contacts must be valid CRM customers for both activity logging and follow-up tasks.
-assert.equal((manualContactFix.match(/m\\.id = p_customer and m\\.owner_id = actor/g) || []).length, 2);
-assert.equal((manualContactFix.match(/jsonb_array_elements\\(studioflow_android_private\\.owner_contacts\\(\\)\\)/g) || []).length, 2);
-assert.match(manualContactFix, /revoke all on function studioflow_android_private\\.crm_add_activity/);
-assert.match(manualContactFix, /revoke all on function studioflow_android_private\\.crm_create_task/);
+assert.equal(manualContactFix.split('m.id = p_customer and m.owner_id = actor').length - 1, 2);
+assert.equal(manualContactFix.split('jsonb_array_elements(studioflow_android_private.owner_contacts())').length - 1, 2);
+assert.ok(manualContactFix.includes('revoke all on function studioflow_android_private.crm_add_activity'));
+assert.ok(manualContactFix.includes('revoke all on function studioflow_android_private.crm_create_task'));
 
-assert.match(crm, /studioflow_owner_crm_dashboard/);
-assert.match(crm, /studioflow_owner_crm_create_contact/);
-assert.match(crm, /studioflow_owner_crm_update_contact/);
-assert.match(crm, /studioflow_owner_crm_add_activity/);
-assert.match(crm, /studioflow_owner_crm_create_task/);
-assert.match(crm, /studioflow_owner_crm_update_task/);
-assert.match(crm, /customer\\.blocked \\|\\| !customer\\.optIn/);
-assert.match(crm, /Marketing consent is off by default/);
-assert.match(crm, /bookingHistory/);
-assert.match(crm, /Follow-up tasks/);
+for (const contract of [
+  'studioflow_owner_crm_dashboard',
+  'studioflow_owner_crm_create_contact',
+  'studioflow_owner_crm_update_contact',
+  'studioflow_owner_crm_add_activity',
+  'studioflow_owner_crm_create_task',
+  'studioflow_owner_crm_update_task',
+  'customer.blocked || !customer.optIn',
+  'Marketing consent is off by default',
+  'bookingHistory',
+  'Follow-up tasks',
+]) assert.ok(crm.includes(contract), 'Missing CRM UI contract: ' + contract);
 
-assert.match(owner, /<SalonCRM profile=\\{profile\\}\\/\\s*>/);
-assert.match(dashboard, /<SalonCRM profile=\\{profile\\} \\/>/);
-assert.match(navigation, /label:'Customer CRM'/);
-assert.match(dashboard, /label: 'Customer CRM'/);
+assert.ok(owner.includes('<SalonCRM profile={profile}/>'));
+assert.ok(dashboard.includes('<SalonCRM profile={profile} />'));
+assert.ok(navigation.includes("label:'Customer CRM'"));
+assert.ok(dashboard.includes("label: 'Customer CRM'"));
 assert.doesNotMatch(crm, /SUPABASE_SERVICE_ROLE_KEY|service_role/i);
 
 console.log('PASS unified salon CRM static integration contract (shared owner/dashboard module and manual-contact actions).');
