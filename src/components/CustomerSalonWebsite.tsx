@@ -84,15 +84,16 @@ import {VedaSanjeevaniWebsite} from './veda-sanjeevani/VedaSanjeevaniWebsite';
 import {LuxuryEditorialWebsite} from './LuxuryEditorialWebsite';
 import {AuraUnisexWebsite} from './AuraUnisexWebsite';
 
-const money=(value:number)=>\`₹\${Number(value||0).toLocaleString('en-IN')}\`;
+const money=(value:number)=>'₹'+Number(value||0).toLocaleString('en-IN');
 
 function SalonWhatsAppFloatingButton({profile}:{profile:SalonWebsitePreviewProps['profile']}) {
+ const salonName=profile.businessName||'the salon';
  const href=salonWhatsAppUrl(
   profile.whatsapp,
-  \`Hello \${profile.businessName||'the salon'}, I would like to book an appointment. Please share your available slots.\`,
+  'Hello '+salonName+', I would like to book an appointment. Please share your available slots.',
  );
  if(!href)return null;
- return <a data-salon-whatsapp-booking href={href} target="_blank" rel="noopener noreferrer" aria-label={\`Book an appointment with \${profile.businessName||'the salon'} on WhatsApp\`} className="fixed bottom-5 right-5 z-[96] inline-flex min-h-14 items-center gap-2 rounded-full bg-[#25D366] px-5 py-3 text-sm font-bold text-white shadow-xl transition hover:scale-105 hover:bg-[#1fbd5b] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-700">
+ return <a data-salon-whatsapp-booking href={href} target="_blank" rel="noopener noreferrer" aria-label={'Book an appointment with '+salonName+' on WhatsApp'} className="fixed bottom-5 right-5 z-[96] inline-flex min-h-14 items-center gap-2 rounded-full bg-[#25D366] px-5 py-3 text-sm font-bold text-white shadow-xl transition hover:scale-105 hover:bg-[#1fbd5b] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-700">
   <MessageCircle size={20} aria-hidden="true"/>
   <span>WhatsApp Booking</span>
  </a>;

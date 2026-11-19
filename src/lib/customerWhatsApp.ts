@@ -15,7 +15,7 @@ export function salonWhatsAppDigits(value: string | null | undefined): string {
     : rawDigits;
   const nationalDigits = withoutInternationalPrefix.replace(/^0(?=\d{10}$)/, '');
   const internationalDigits = nationalDigits.length === 10
-    ? \`91\${nationalDigits}\`
+    ? '91' + nationalDigits
     : nationalDigits;
   return /^\d{8,15}$/.test(internationalDigits) ? internationalDigits : '';
 }
@@ -23,6 +23,6 @@ export function salonWhatsAppDigits(value: string | null | undefined): string {
 export function salonWhatsAppUrl(value: string | null | undefined, message: string): string {
   const digits = salonWhatsAppDigits(value);
   return digits
-    ? \`https://wa.me/\${digits}?text=\${encodeURIComponent(String(message || '').trim().slice(0, 1500))}\`
+    ? 'https://wa.me/' + digits + '?text=' + encodeURIComponent(String(message || '').trim().slice(0, 1500))
     : '';
 }
