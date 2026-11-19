@@ -596,15 +596,17 @@ as $function$
 declare
   leave_day date;
 begin
-  if tg_op = 'UPDATE' and old.status = 'approved'
-     and (new.status <> 'approved' or new.start_date <> old.start_date or new.end_date <> old.end_date) then
-    update public.salon_staff_attendance_records r
-    set status = 'absent', updated_at = now()
-    where r.owner_id = old.owner_id
-      and r.staff_key = old.staff_key
-      and r.attendance_date between old.start_date and old.end_date
-      and r.status = 'on_leave'
-      and r.check_in is null;
+  if tg_op = 'UPDATE' then
+    if old.status = 'approved'
+       and (new.status <> 'approved' or new.start_date <> old.start_date or new.end_date <> old.end_date) then
+      update public.salon_staff_attendance_records r
+      set status = 'absent', updated_at = now()
+      where r.owner_id = old.owner_id
+        and r.staff_key = old.staff_key
+        and r.attendance_date between old.start_date and old.end_date
+        and r.status = 'on_leave'
+        and r.check_in is null;
+    end if;
   end if;
 
   if new.status = 'approved' then
