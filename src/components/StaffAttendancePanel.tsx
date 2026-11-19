@@ -549,12 +549,13 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
             <button type="button" className="secondary-action" onClick={exportCsv} disabled={!records.length}>Export CSV</button>
           </div>
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3 mt-5">
           {[
             ['Active staff', activeRoster.length],
-            ['Present today', presentCount],
-            ['Late today', lateCount],
+            ['Present · selected date', presentCount],
+            ['Late · selected date', lateCount],
             ['Absent / leave', absentCount],
+            ['Overtime entries', overtimeCount],
           ].map(([label,value]) => <div key={String(label)} className="rounded-xl border border-slate-200 bg-slate-50 p-3"><p className="text-xs font-semibold text-slate-500">{label}</p><p className="mt-1 text-2xl font-extrabold text-slate-900">{value}</p></div>)}
         </div>
         <div className="flex flex-wrap gap-2 mt-4 border-t border-slate-100 pt-4">
