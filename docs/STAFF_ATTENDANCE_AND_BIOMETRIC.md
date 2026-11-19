@@ -8,7 +8,7 @@ This module is attached to the shared owner workspace, so the same owner tool is
 - Each staff member can have a weekly shift, weekly off, shift start/end, and break allowance.
 - The owner can record check-in, check-out, break start/end, and manual daily status.
 - The database records timestamps, source, notes, optional location coordinates, worked minutes, overtime, and an audit event.
-- Late status uses the salon's grace period; half-day status is calculated when the completed work duration is below half of the scheduled duration.
+- Late status uses the salon's grace period; exact arrival-delay minutes are stored for reports. Half-day status is calculated when the completed work duration is below half of the scheduled duration. Open shifts show live worked time and subtract active breaks.
 - Approved leave automatically creates an on-leave attendance entry. Actual punches are never overwritten.
 - Monthly reports can be exported as CSV.
 
