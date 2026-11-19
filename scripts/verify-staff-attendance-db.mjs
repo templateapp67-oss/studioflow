@@ -419,7 +419,7 @@ try {
   await useRole('authenticated');
   await setOwner(ownerA);
   await one('select public.salon_staff_attendance_sync_roster($1::jsonb)', ['[]']);
-  const activeProfiles = await one(
+  let activeProfiles = await one(
     "select count(*)::int as count from public.salon_staff_attendance_profiles where active=true",
   );
   const retainedHistory = await one(
@@ -427,6 +427,21 @@ try {
   );
   assert.equal(activeProfiles.count, 0);
   assert.ok(retainedHistory.count >= 5, 'Deactivating the roster must preserve attendance history.');
+
+  // A later team refresh must not silently reactivate a profile disabled by owner action.
+  await one(
+    'select public.salon_staff_attendance_sync_roster($1::jsonb)',
+    [JSON.stringify([{ id: 'staff-day', name: 'Day Shift Staff Updated Again', role: 'Stylist' }])],
+  );
+  activeProfiles = await one(
+    "select count(*)::int as count from public.salon_staff_attendance_profiles where active=true",
+  );
+  assert.equal(activeProfiles.count, 0, 'A later roster refresh must preserve explicit owner deactivation.');
+  const manualDeactivationMarker = await one(
+    "select manually_deactivated_at is not null as marked from public.salon_staff_attendance_profiles where owner_id=$1 and staff_key='staff-day'",
+    [ownerA],
+  );
+  assert.equal(manualDeactivationMarker.marked, true, 'Owner deactivation must be durable in the attendance profile.');
 
   await db.close();
   console.log('PASS staff attendance PostgreSQL migration + RLS + manual punches + overnight shifts + leave + device idempotency.');
