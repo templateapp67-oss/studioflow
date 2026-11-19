@@ -166,6 +166,7 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
   const [deviceVendor, setDeviceVendor] = useState('Generic');
   const [deviceModel, setDeviceModel] = useState('');
   const [newDeviceKey, setNewDeviceKey] = useState('');
+  const [newDeviceEndpoint, setNewDeviceEndpoint] = useState('');
 
   const invoke = useCallback(async (action: string, payload: Record<string, unknown> = {}) => {
     const { data, error: invokeError } = await supabase.functions.invoke('staff-attendance-biometric', {
@@ -484,10 +485,11 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
 
   const createDevice = async (event: React.FormEvent) => {
     event.preventDefault();
-    setBusy(true); setError(''); setNotice(''); setNewDeviceKey('');
+    setBusy(true); setError(''); setNotice(''); setNewDeviceKey(''); setNewDeviceEndpoint('');
     try {
       const result = await invoke('createDevice', { deviceName, vendor: deviceVendor, model: deviceModel });
       setNewDeviceKey(result.apiKey || '');
+      setNewDeviceEndpoint(result.endpoint || '');
       setDeviceName(''); setDeviceModel('');
       setNotice('Attendance device registered. Copy the API key now; it will not be shown again.');
       await load(true);
@@ -691,7 +693,7 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
                   <label className="text-xs font-semibold">Model<input className="workspace-input mt-1" value={deviceModel} onChange={(event)=>setDeviceModel(event.target.value)} maxLength={100} placeholder="Model number"/></label>
                   <div className="sm:col-span-3"><button className="primary-action" type="submit" disabled={busy || !deviceName.trim()}>Register push device</button></div>
                 </form>
-                {newDeviceKey && <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3"><strong className="text-sm text-emerald-900">Copy this device API key now</strong><code className="block mt-2 break-all rounded-lg bg-white p-2 text-xs">{newDeviceKey}</code><button type="button" className="secondary-action mt-2" onClick={()=>void navigator.clipboard.writeText(newDeviceKey)}>Copy key</button></div>}
+                {newDeviceKey && <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3"><strong className="text-sm text-emerald-900">Copy these device details now</strong><small className="block mt-2 text-emerald-900">Attendance endpoint</small><code className="block mt-1 break-all rounded-lg bg-white p-2 text-xs">{newDeviceEndpoint}</code><button type="button" className="secondary-action mt-1" onClick={()=>void navigator.clipboard.writeText(newDeviceEndpoint)}>Copy endpoint</button><small className="mt-3 block text-emerald-900">Device API key (shown once)</small><code className="block mt-1 break-all rounded-lg bg-white p-2 text-xs">{newDeviceKey}</code><button type="button" className="secondary-action mt-2" onClick={()=>void navigator.clipboard.writeText(newDeviceKey)}>Copy key</button></div>}
                 <div className="space-y-2">{devices.map((device)=><div key={device.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 p-3"><div><strong className="block text-sm">{device.device_name}</strong><span className="text-xs text-slate-500">{device.vendor} {device.model} · {device.active?'Active':'Revoked'} · Last sync {device.last_seen_at ? timeLabel(device.last_seen_at) : 'Never'}</span></div>{device.active&&<button type="button" className="secondary-action" disabled={busy} onClick={()=>void revokeDevice(device)}>Revoke key</button>}</div>)}</div>
                 <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-700"><strong className="block mb-1">Device push API format</strong><p>POST to the function URL shown when the device is registered, with <code>Authorization: Bearer DEVICE_API_KEY</code> and JSON: <code>{'{ "action":"devicePunch", "employeeCode":"EMP-001", "eventType":"check_in", "eventId":"unique-event-id", "occurredAt":"2026-11-19T09:00:00+05:30" }'}</code>.</p></div>
               </section>
