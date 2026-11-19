@@ -393,25 +393,36 @@ async function devicePunch(req: Request, body: Record<string, unknown>) {
   const { data: profile, error: profileError } = await admin.from('salon_staff_attendance_profiles')
     .select('staff_key,staff_name').eq('owner_id', device.owner_id).eq('staff_code', employeeCode).eq('active', true).maybeSingle();
   if (profileError || !profile) throw new Error('Employee code is not mapped to an active staff member.');
-  const { data: seen } = await admin.from('salon_staff_attendance_device_events')
-    .select('id').eq('device_id', device.id).eq('provider_event_id', providerEventId).maybeSingle();
-  if (seen) return { accepted: true, duplicate: true };
-  const result = await servicePunch(device.owner_id, profile.staff_key, eventType, 'device', {
-    notes: cleanText(body.notes, 500),
-    occurredAt: eventAt.toISOString(),
-  }, device.id, providerEventId);
   const digest = await sha256(JSON.stringify({ employeeCode, eventType, providerEventId, occurredAt: eventAt.toISOString() }));
-  const { error: insertError } = await admin.from('salon_staff_attendance_device_events').insert({
+  const { error: receiptError } = await admin.from('salon_staff_attendance_device_events').insert({
     owner_id: device.owner_id,
     device_id: device.id,
     provider_event_id: providerEventId,
     staff_key: profile.staff_key,
     event_type: eventType,
     occurred_at: eventAt.toISOString(),
-    attendance_event_id: result?.eventId || null,
+    attendance_event_id: null,
     payload_digest: digest,
   });
-  if (insertError && insertError.code !== '23505') throw new Error('Attendance was accepted but device event receipt could not be saved.');
+  if (receiptError?.code === '23505') return { accepted: true, duplicate: true };
+  if (receiptError) throw new Error('Device event could not be registered. Attendance was not written.');
+
+  let result: any;
+  try {
+    result = await servicePunch(device.owner_id, profile.staff_key, eventType, 'device', {
+      notes: cleanText(body.notes, 500),
+      occurredAt: eventAt.toISOString(),
+    }, device.id, providerEventId);
+  } catch (error) {
+    await admin.from('salon_staff_attendance_device_events')
+      .delete().eq('device_id', device.id).eq('provider_event_id', providerEventId);
+    throw error;
+  }
+
+  const { error: receiptUpdateError } = await admin.from('salon_staff_attendance_device_events')
+    .update({ attendance_event_id: result?.eventId || null })
+    .eq('device_id', device.id).eq('provider_event_id', providerEventId);
+  if (receiptUpdateError) throw new Error('Attendance was recorded, but the device event receipt needs reconciliation.');
   await admin.from('salon_staff_attendance_devices')
     .update({ last_seen_at: new Date().toISOString() }).eq('id', device.id);
   return { accepted: true, duplicate: false, staffName: profile.staff_name, result };
