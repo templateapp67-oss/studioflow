@@ -372,6 +372,36 @@ try {
     [ownerA, dateOffset(-3)],
   );
 
+  // The owner can resolve a missed check-out on an older date with the
+  // actual time and a reason; the row and audit history are updated together.
+  await one(
+    `select public.salon_staff_attendance_service_punch(
+      $1::uuid,'staff-device','check_in','manual','',null,null,null,null,null,$2::timestamptz
+    )`,
+    [ownerA, dateOffset(-4) + ' 10:00:00+05:30'],
+  );
+  await one(
+    `select public.salon_staff_attendance_service_resolve_open_shift(
+      $1::uuid,'staff-device',$2::date,$3::timestamptz,'Owner corrected a missed check-out'
+    )`,
+    [ownerA, dateOffset(-4), dateOffset(-4) + ' 18:00:00+05:30'],
+  );
+  const resolvedShift = await one(
+    `select check_out is not null as closed,worked_minutes,method
+     from public.salon_staff_attendance_records
+     where owner_id=$1 and staff_key='staff-device' and attendance_date=$2::date`,
+    [ownerA, dateOffset(-4)],
+  );
+  assert.equal(resolvedShift.closed, true);
+  assert.equal(resolvedShift.worked_minutes, 480);
+  assert.equal(resolvedShift.method, 'manual');
+  const resolvedAudit = await one(
+    `select count(*)::int as count from public.salon_staff_attendance_events
+     where owner_id=$1 and staff_key='staff-device' and event_type='shift_force_closed'`,
+    [ownerA],
+  );
+  assert.equal(resolvedAudit.count, 1);
+
   const device = await one(
     `insert into public.salon_staff_attendance_devices(
       owner_id,device_name,vendor,model,protocol,api_key_hash
