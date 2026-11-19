@@ -19,7 +19,7 @@ Biometric punches use WebAuthn platform credentials. Each staff member should en
 
 NEXORA stores a WebAuthn credential ID and public key only. It does not collect fingerprint images, face scans, or biometric templates. A passkey may use a synced authenticator; the UI must not promise that every credential is physically bound to only one device.
 
-Biometric enrolment requires a supported browser, HTTPS, and a platform authenticator. Do not enroll every staff member against the same common kiosk authenticator if individual identity is required. Browser/device compatibility must be verified on the actual staff devices before production use.
+Biometric enrolment requires a supported browser, HTTPS, and a platform authenticator. The Edge Function allows the NEXORA root domain and one-level `*.nexorasalon.online` salon subdomains; unrelated custom domains need their own reviewed origin/RP-ID configuration before use. Do not enroll every staff member against the same common kiosk authenticator if individual identity is required. Browser/device compatibility must be verified on the actual staff devices before production use.
 
 ## External fingerprint / face attendance machines
 
