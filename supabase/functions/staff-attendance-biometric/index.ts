@@ -200,6 +200,47 @@ async function ownerAction(ownerId: string, body: Record<string, unknown>, origi
     return { result: data };
   }
 
+  if (action === 'deactivateStaff') {
+    const staff = await getStaff(ownerId, staffKey);
+    const { data: openShift, error: openShiftError } = await admin
+      .from('salon_staff_attendance_records')
+      .select('id')
+      .eq('owner_id', ownerId)
+      .eq('staff_key', staffKey)
+      .not('check_in', 'is', null)
+      .is('check_out', null)
+      .limit(1)
+      .maybeSingle();
+    if (openShiftError) throw new Error('Could not verify the staff member’s open shift.');
+    if (openShift) throw new Error('Complete this staff member’s check-out before deactivating the profile.');
+
+    const { data: deactivated, error: deactivateError } = await admin
+      .from('salon_staff_attendance_profiles')
+      .update({ active: false, updated_at: new Date().toISOString() })
+      .eq('owner_id', ownerId)
+      .eq('staff_key', staffKey)
+      .eq('active', true)
+      .select('staff_key')
+      .maybeSingle();
+    if (deactivateError || !deactivated) throw new Error('Staff profile could not be deactivated.');
+
+    const { error: auditError } = await admin.from('salon_staff_attendance_events').insert({
+      owner_id: ownerId,
+      staff_key: staffKey,
+      event_type: 'staff_deactivated',
+      method: 'system',
+      actor_id: ownerId,
+      notes: 'Staff attendance profile deactivated by salon owner',
+    });
+    if (auditError) {
+      await admin.from('salon_staff_attendance_profiles')
+        .update({ active: true, updated_at: new Date().toISOString() })
+        .eq('owner_id', ownerId).eq('staff_key', staffKey);
+      throw new Error('Deactivation was rolled back because its audit event could not be saved.');
+    }
+    return { deactivated: true, staffName: staff.staff_name };
+  }
+
   if (action === 'listBiometrics') {
     if (staffKey) await getStaff(ownerId, staffKey);
     let query = admin.from('salon_staff_attendance_biometrics')
