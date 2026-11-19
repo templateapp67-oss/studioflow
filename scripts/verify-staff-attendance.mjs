@@ -35,6 +35,7 @@ for (const table of [
   assert.ok(migration.includes('grant all on table public.' + table + ' to service_role'));
 }
 assert.ok(migration.includes('salon_staff_attendance_sync_roster'));
+assert.ok(migration.includes('jsonb_array_length(p_roster) > 200'));
 assert.ok(migration.includes('salon_staff_attendance_service_punch'));
 assert.ok(migration.includes('salon_staff_attendance_service_mark_status'));
 assert.ok(migration.includes('grant execute on function public.salon_staff_attendance_service_punch'));
@@ -59,6 +60,8 @@ assert.ok(panel.includes("supabase.rpc('salon_staff_attendance_sync_roster'"));
 assert.ok(panel.includes("supabase.functions.invoke('staff-attendance-biometric'"));
 assert.ok(panel.includes('navigator.credentials.create'));
 assert.ok(panel.includes('navigator.credentials.get'));
+assert.ok(panel.includes('A shared kiosk with one common device PIN/biometric profile cannot prove which employee is present.'));
+assert.ok(panel.includes('todayRecords'));
 assert.ok(panel.includes('registerVerify'));
 assert.ok(panel.includes('authenticationVerify'));
 assert.ok(panel.includes('break_start'));
