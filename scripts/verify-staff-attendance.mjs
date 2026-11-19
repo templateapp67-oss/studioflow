@@ -42,7 +42,7 @@ assert.ok(migration.includes('grant execute on function public.salon_staff_atten
 assert.ok(migration.includes('to service_role'));
 assert.ok(migration.includes('salon_staff_attendance_apply_leave_trigger'));
 assert.ok(migration.includes("new.status = 'approved'"));
-assert.ok(migration.includes("when v_shift_span <= interval '0' then"));
+assert.ok(migration.includes("if v_shift_span <= interval '0' then"));
 
 assert.ok(edge.includes('@simplewebauthn/server@14.1.0'));
 assert.ok(edge.includes('generateRegistrationOptions'));
