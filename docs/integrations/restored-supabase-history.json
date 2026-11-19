@@ -2035,7 +2035,12 @@
     "relations": 273,
     "assessment": "Read-only owner-supplied live catalog; not a live migration dry-run or deployment."
   },
-  "release_pending_migrations": [],
+  "release_pending_migrations": [
+    {
+      "file": "20261119150000_staff_attendance_biometric.sql",
+      "purpose": "Feature-branch-only NEXORA staff attendance and biometric module. Offline PGlite validation passed, but this migration has NOT been applied to production. Apply only after explicit owner release approval."
+    }
+  ],
   "reviewed_feature_migrations": [
     {
       "file": "20261117130000_reconcile_template15_multiservice_booking.sql",
@@ -2117,6 +2122,15 @@
       "evidence": "Confirmed in the remote supabase_migrations.schema_migrations history for project zilwgiuiygqqardzutxi; the corresponding local SQL source exists in main.",
       "purpose": "Reviewed per-salon Tawk.to live chat migration; isolated mappings/widget connections, private RLS and public widget ID resolution.",
       "git_blob_sha": "29901239635b72fd43f2402dd0ffef78a4e5f56c"
+    },
+    {
+      "version": "20261119070000",
+      "file": "20261119070000_unified_salon_crm.sql",
+      "name": "unified_salon_crm",
+      "observed_at": "2026-11-19",
+      "evidence": "Confirmed in the live Supabase migration history for project zilwgiuiygqqardzutxi by list_migrations on 2026-11-19.",
+      "purpose": "Unified salon CRM tables, owner RLS, dashboard and customer interaction/follow-up RPCs.",
+      "git_blob_sha": "7534812d812d8f127bd84dbd7a604546c3128e6f"
     }
   ]
 }
