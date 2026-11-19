@@ -84,6 +84,7 @@ assert.ok(panel.includes('navigator.credentials.create'));
 assert.ok(panel.includes('navigator.credentials.get'));
 assert.ok(panel.includes('A shared kiosk with one common device PIN/biometric profile cannot prove which employee is present.'));
 assert.ok(panel.includes('todayRecords'));
+assert.ok(panel.includes('const todayRows = todayRecords;'), 'Today register must use its independent query.');
 assert.ok(panel.includes('liveWorkedMinutes'));
 assert.ok(panel.includes('Late minutes'));
 assert.ok(panel.includes('registerVerify'));
