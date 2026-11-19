@@ -413,10 +413,10 @@ async function devicePunch(body: Record<string, unknown>) {
   const { data: device, error } = await admin.from('salon_staff_attendance_devices')
     .select('id,owner_id,active').eq('api_key_hash', await sha256(token)).maybeSingle();
   if (error || !device || !device.active) throw new Error('Device API key is invalid or revoked.');
-  const employeeCode = cleanText(body.employeeCode, 40);
+  const employeeCode = cleanText(body.employeeCode, 40).toUpperCase();
   const eventType = cleanText(body.eventType, 30);
   const providerEventId = cleanText(body.eventId, 120);
-  if (!employeeCode || !providerEventId || !['check_in','check_out'].includes(eventType)) {
+  if (!/^[A-Z0-9][A-Z0-9._/-]{0,39}$/.test(employeeCode) || !providerEventId || !['check_in','check_out'].includes(eventType)) {
     throw new Error('Device event needs employeeCode, eventId and check_in/check_out eventType.');
   }
   const eventAt = typeof body.occurredAt === 'string' ? new Date(body.occurredAt) : new Date();
