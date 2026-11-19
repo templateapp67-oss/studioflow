@@ -84,6 +84,8 @@ try {
     'select count(*)::int as count from public.salon_staff_attendance_profiles',
   );
   assert.equal(visibleProfiles.count, 6, 'RLS must hide another salon owner\'s staff.');
+  const profileDelete = await one("select has_table_privilege('authenticated', 'public.salon_staff_attendance_profiles', 'delete') as allowed");
+  assert.equal(profileDelete.allowed, false, 'Browser roles must not physically delete staff profiles and cascade attendance history.');
 
   // Validate the owner-only table model: browser roles cannot read biometric secrets.
   const sensitiveAccess = await one(
