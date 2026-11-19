@@ -698,7 +698,7 @@ begin
       overtime_minutes = v_overtime,
       status = v_status,
       method = 'manual',
-      notes = concat_ws(E'\\n', nullif(notes,''), 'Owner closed unfinished shift: ' || btrim(p_notes)),
+      notes = concat_ws(chr(10), nullif(notes,''), 'Owner closed unfinished shift: ' || btrim(p_notes)),
       recorded_by = p_owner_id,
       updated_at = now()
   where id = v_record.id
