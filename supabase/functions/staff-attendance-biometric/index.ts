@@ -200,6 +200,29 @@ async function ownerAction(ownerId: string, body: Record<string, unknown>, origi
     return { result: data };
   }
 
+  if (action === 'resolveOpenShift') {
+    const attendanceDate = cleanText(body.attendanceDate, 10);
+    const checkOutAt = cleanText(body.checkOutAt, 40);
+    const notes = cleanText(body.notes, 1000);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(attendanceDate)) throw new Error('Choose the original attendance date.');
+    if (!notes || notes.length < 3) throw new Error('Enter a reason for correcting this attendance record.');
+    const { data: staff, error: staffError } = await admin.from('salon_staff_attendance_profiles')
+      .select('staff_key,staff_name')
+      .eq('owner_id', ownerId).eq('staff_key', staffKey).maybeSingle();
+    if (staffError || !staff) throw new Error('Staff attendance profile not found.');
+    const closeDate = new Date(checkOutAt);
+    if (!checkOutAt || Number.isNaN(closeDate.getTime())) throw new Error('Choose a valid check-out date and time.');
+    const { data, error } = await admin.rpc('salon_staff_attendance_service_resolve_open_shift', {
+      p_owner_id: ownerId,
+      p_staff_key: staffKey,
+      p_attendance_date: attendanceDate,
+      p_check_out: closeDate.toISOString(),
+      p_notes: notes,
+    });
+    if (error) throw new Error(error.message || 'The unfinished shift could not be resolved.');
+    return { result: data, staffName: staff.staff_name };
+  }
+
   if (action === 'deactivateStaff') {
     const staff = await getStaff(ownerId, staffKey);
     const { data: openShift, error: openShiftError } = await admin
