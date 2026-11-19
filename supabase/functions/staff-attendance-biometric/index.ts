@@ -216,7 +216,7 @@ async function ownerAction(ownerId: string, body: Record<string, unknown>, origi
 
     const { data: deactivated, error: deactivateError } = await admin
       .from('salon_staff_attendance_profiles')
-      .update({ active: false, updated_at: new Date().toISOString() })
+      .update({ active: false, manually_deactivated_at: new Date().toISOString(), updated_at: new Date().toISOString() })
       .eq('owner_id', ownerId)
       .eq('staff_key', staffKey)
       .eq('active', true)
@@ -239,6 +239,42 @@ async function ownerAction(ownerId: string, body: Record<string, unknown>, origi
       throw new Error('Deactivation was rolled back because its audit event could not be saved.');
     }
     return { deactivated: true, staffName: staff.staff_name };
+  }
+
+  if (action === 'reactivateStaff') {
+    const { data: staff, error: staffError } = await admin.from('salon_staff_attendance_profiles')
+      .select('staff_key,staff_name,active')
+      .eq('owner_id', ownerId)
+      .eq('staff_key', staffKey)
+      .eq('active', false)
+      .not('manually_deactivated_at', 'is', null)
+      .maybeSingle();
+    if (staffError || !staff) throw new Error('Inactive staff profile not found.');
+    const { data: reactivated, error: reactivateError } = await admin
+      .from('salon_staff_attendance_profiles')
+      .update({ active: true, manually_deactivated_at: null, updated_at: new Date().toISOString() })
+      .eq('owner_id', ownerId)
+      .eq('staff_key', staffKey)
+      .eq('active', false)
+      .select('staff_key')
+      .maybeSingle();
+    if (reactivateError || !reactivated) throw new Error('Staff profile could not be reactivated.');
+
+    const { error: auditError } = await admin.from('salon_staff_attendance_events').insert({
+      owner_id: ownerId,
+      staff_key: staffKey,
+      event_type: 'staff_reactivated',
+      method: 'system',
+      actor_id: ownerId,
+      notes: 'Staff attendance profile reactivated by salon owner',
+    });
+    if (auditError) {
+      await admin.from('salon_staff_attendance_profiles')
+        .update({ active: false, manually_deactivated_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+        .eq('owner_id', ownerId).eq('staff_key', staffKey);
+      throw new Error('Reactivation was rolled back because its audit event could not be saved.');
+    }
+    return { reactivated: true, staffName: staff.staff_name };
   }
 
   if (action === 'listBiometrics') {
