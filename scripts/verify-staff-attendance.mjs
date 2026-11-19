@@ -132,6 +132,7 @@ assert.ok(edge.includes("manually_deactivated_at: null"), 'Deactivation rollback
 
 
 assert.ok(panel.includes("supabase.rpc('salon_staff_attendance_sync_roster'"));
+assert.ok(panel.includes("attendanceDate: registerDate, status, notes: 'Marked by salon owner'"), 'Manual status must use the date selected in the register.');
 assert.ok(panel.includes("supabase.functions.invoke('staff-attendance-biometric'"));
 assert.ok(panel.includes('navigator.credentials.create'));
 assert.ok(panel.includes('navigator.credentials.get'));
