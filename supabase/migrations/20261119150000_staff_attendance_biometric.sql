@@ -828,6 +828,7 @@ declare
   v_existing public.salon_staff_attendance_device_events;
   v_punch jsonb;
   v_attendance_event_id uuid;
+  v_recent_event_count integer := 0;
 begin
   if p_owner_id is null or not exists (
     select 1 from public.studioflow_accounts a where a.user_id = p_owner_id
@@ -884,6 +885,18 @@ begin
       return jsonb_build_object('accepted',true,'duplicate',true);
     end if;
     raise exception 'Device event is still being processed. Retry with the same event ID.' using errcode = '40001';
+  end if;
+
+  -- The device row is locked above, so this count is atomic per device. The
+  -- just-inserted receipt is included; a rejected 61st event rolls back with
+  -- the transaction. Duplicate event retries return before this limit check.
+  select count(*)::integer into v_recent_event_count
+  from public.salon_staff_attendance_device_events e
+  where e.device_id = p_device_id
+    and e.received_at >= now() - interval '1 minute';
+  if v_recent_event_count > 60 then
+    raise exception 'Attendance device rate limit exceeded. Retry after one minute.'
+      using errcode = '22023';
   end if;
 
   v_punch := public.salon_staff_attendance_service_punch(
