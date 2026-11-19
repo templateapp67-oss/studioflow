@@ -6,6 +6,7 @@ const migration = read('supabase/migrations/20261119150000_staff_attendance_biom
 const panel = read('src/components/StaffAttendancePanel.tsx');
 const edge = read('supabase/functions/staff-attendance-biometric/index.ts');
 const owner = read('src/components/OwnerWorkspace.tsx');
+const dashboard = read('src/components/SaaSDashboard.tsx');
 const navigation = read('src/lib/ownerNavigation.ts');
 const config = read('supabase/config.toml');
 
@@ -101,6 +102,8 @@ assert.doesNotMatch(panel, /SUPABASE_SERVICE_ROLE_KEY|service_role/i);
 
 assert.ok(owner.includes("import { StaffAttendancePanel } from './StaffAttendancePanel';"));
 assert.ok(owner.includes('<StaffAttendancePanel profile={profile} stylists={stylists}/>'));
+assert.ok(dashboard.includes("import { StaffAttendancePanel } from './StaffAttendancePanel';"));
+assert.ok(dashboard.includes("activeTab === 'attendance'"));
 assert.ok(navigation.includes("{id:35,label:'Attendance & Biometric',icon:'fingerprint'}"));
 assert.ok(config.includes('[functions.staff-attendance-biometric]'));
 assert.ok(config.includes('verify_jwt = false'));
