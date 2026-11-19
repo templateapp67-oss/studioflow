@@ -225,6 +225,9 @@ create table if not exists public.salon_staff_attendance_device_events (
 );
 
 
+create index if not exists salon_staff_attendance_device_events_device_time_idx
+  on public.salon_staff_attendance_device_events(device_id, received_at desc);
+
 do $block$
 begin
   if not exists (
@@ -406,7 +409,8 @@ begin
   if p_action = 'check_in' and exists (
     select 1 from public.salon_staff_attendance_records r
     where r.owner_id = p_owner_id and r.staff_key = p_staff_key
-      and r.attendance_date between v_local_date - 1 and v_local_date - 1
+      and r.attendance_date < v_local_date
+      and r.attendance_date >= v_local_date - 90
       and r.check_in is not null and r.check_out is null
   ) then
     raise exception 'Finish the previous shift before starting a new one' using errcode = '22023';
@@ -577,6 +581,17 @@ begin
   for update;
   if v_profile.id is null then
     raise exception 'Staff member not found' using errcode = 'P0002';
+  end if;
+
+  select * into v_record
+  from public.salon_staff_attendance_records r
+  where r.owner_id = p_owner_id
+    and r.staff_key = p_staff_key
+    and r.attendance_date = p_attendance_date
+  for update;
+  if v_record.check_in is not null
+     and p_status in ('absent','on_leave','holiday','weekly_off') then
+    raise exception 'A day with recorded check-in cannot be changed to absent, leave or holiday' using errcode = '22023';
   end if;
 
   insert into public.salon_staff_attendance_records(
