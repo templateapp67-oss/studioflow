@@ -296,6 +296,7 @@ declare
   v_grace integer;
   v_overtime_after integer;
   v_expected integer := 0;
+  v_shift_span interval;
   v_late integer := 0;
   v_worked integer := 0;
   v_break integer := 0;
@@ -309,10 +310,10 @@ begin
     raise exception 'Salon owner account not found' using errcode = '42501';
   end if;
 
-  if p_action not in ('check_in','check_out','break_start','break_end') then
+  if p_action is null or p_action not in ('check_in','check_out','break_start','break_end') then
     raise exception 'Unsupported attendance action' using errcode = '22023';
   end if;
-  if p_method not in ('manual','biometric','device') then
+  if p_method is null or p_method not in ('manual','biometric','device') then
     raise exception 'Unsupported attendance method' using errcode = '22023';
   end if;
   if p_event_at is null or p_event_at > now() + interval '5 minutes'
@@ -353,10 +354,9 @@ begin
     v_status := 'weekly_off';
   end if;
   if v_shift_start is not null and v_shift_end is not null then
-    v_expected := greatest(0, floor(extract(epoch from (
-      (case when v_shift_end <= v_shift_start then v_shift_end + interval '24 hours' else v_shift_end end)
-      - v_shift_start - make_interval(mins => v_shift_break)
-    )) / 60)::integer);
+    v_shift_span := v_shift_end - v_shift_start;
+    if v_shift_span <= interval '0' then v_shift_span := v_shift_span + interval '24 hours'; end if;
+    v_expected := greatest(0, floor(extract(epoch from (v_shift_span - make_interval(mins => v_shift_break))) / 60)::integer);
   end if;
 
   select * into v_record
@@ -529,3 +529,115 @@ grant execute on function public.salon_staff_attendance_service_mark_status(uuid
 
 -- No raw biometric templates or fingerprints are stored in this database.
 -- Only WebAuthn public keys (no private key / fingerprint image) are persisted.
+
+-- Keep the attendance directory aligned with the active shared salon team.
+create or replace function public.salon_staff_attendance_sync_roster(p_roster jsonb)
+returns integer
+language plpgsql
+security invoker
+set search_path to ''
+as $function$
+declare
+  actor uuid := auth.uid();
+  affected integer := 0;
+begin
+  if actor is null or not exists (
+    select 1 from public.studioflow_accounts a where a.user_id = actor
+  ) then
+    raise exception 'Salon owner access required' using errcode = '42501';
+  end if;
+  if jsonb_typeof(p_roster) <> 'array' or jsonb_array_length(p_roster) = 0
+     or jsonb_array_length(p_roster) > 200 then
+    raise exception 'A non-empty staff roster (maximum 200) is required' using errcode = '22023';
+  end if;
+  if exists (
+    select 1 from jsonb_to_recordset(p_roster) as x(id text, name text, role text)
+    where coalesce(btrim(x.id),'') = '' or char_length(x.id) > 120
+       or char_length(btrim(coalesce(x.name,''))) not between 2 and 120
+  ) then
+    raise exception 'Staff roster contains an invalid ID or name' using errcode = '22023';
+  end if;
+
+  insert into public.salon_staff_attendance_profiles(
+    owner_id, staff_key, staff_name, staff_role, active
+  )
+  select actor, x.id, btrim(x.name), coalesce(nullif(btrim(x.role),''),'Staff'), true
+  from jsonb_to_recordset(p_roster) as x(id text, name text, role text)
+  on conflict(owner_id, staff_key) do update
+    set staff_name = excluded.staff_name,
+        staff_role = excluded.staff_role,
+        active = true,
+        updated_at = now();
+  get diagnostics affected = row_count;
+
+  update public.salon_staff_attendance_profiles p
+  set active = false, updated_at = now()
+  where p.owner_id = actor
+    and p.active = true
+    and not exists (
+      select 1 from jsonb_to_recordset(p_roster) as x(id text, name text, role text)
+      where x.id = p.staff_key
+    );
+
+  return affected;
+end;
+$function$;
+revoke all on function public.salon_staff_attendance_sync_roster(jsonb) from public, anon;
+grant execute on function public.salon_staff_attendance_sync_roster(jsonb) to authenticated;
+
+-- Approved leave automatically appears in the attendance calendar. Actual
+-- punches are never overwritten by an approved leave request.
+create or replace function public.salon_staff_attendance_apply_leave()
+returns trigger
+language plpgsql
+security invoker
+set search_path to ''
+as $function$
+declare
+  leave_day date;
+begin
+  if tg_op = 'UPDATE' and old.status = 'approved'
+     and (new.status <> 'approved' or new.start_date <> old.start_date or new.end_date <> old.end_date) then
+    update public.salon_staff_attendance_records r
+    set status = 'absent', updated_at = now()
+    where r.owner_id = old.owner_id
+      and r.staff_key = old.staff_key
+      and r.attendance_date between old.start_date and old.end_date
+      and r.status = 'on_leave'
+      and r.check_in is null;
+  end if;
+
+  if new.status = 'approved' then
+    for leave_day in
+      select generate_series(new.start_date, new.end_date, interval '1 day')::date
+    loop
+      insert into public.salon_staff_attendance_records(
+        owner_id, staff_key, attendance_date, status, method, notes, recorded_by
+      ) values (
+        new.owner_id, new.staff_key, leave_day, 'on_leave', 'manual',
+        coalesce(nullif(new.reason,''),'Approved leave'), coalesce(new.reviewed_by, auth.uid())
+      )
+      on conflict(owner_id, staff_key, attendance_date) do update
+        set status = case
+              when public.salon_staff_attendance_records.check_in is null
+               and public.salon_staff_attendance_records.status in ('on_leave','absent')
+              then 'on_leave'
+              else public.salon_staff_attendance_records.status
+            end,
+            notes = case
+              when public.salon_staff_attendance_records.check_in is null
+              then coalesce(nullif(new.reason,''),'Approved leave')
+              else public.salon_staff_attendance_records.notes
+            end,
+            updated_at = now();
+    end loop;
+  end if;
+  return new;
+end;
+$function$;
+
+drop trigger if exists salon_staff_attendance_apply_leave_trigger on public.salon_staff_leave_requests;
+create trigger salon_staff_attendance_apply_leave_trigger
+after insert or update of status, start_date, end_date
+on public.salon_staff_leave_requests
+for each row execute function public.salon_staff_attendance_apply_leave();
