@@ -58,6 +58,8 @@ for (const table of [
 assert.ok(migration.includes('salon_staff_attendance_sync_roster'));
 assert.ok(migration.includes('jsonb_array_length(p_roster) > 200'));
 assert.ok(migration.includes('late_minutes integer not null default 0'));
+assert.ok(migration.includes('grant all on public.salon_staff_attendance_events to service_role'));
+assert.ok(migration.includes('grant all on public.salon_staff_attendance_profiles to service_role'));
 assert.ok(migration.includes('salon_staff_attendance_service_punch'));
 assert.ok(migration.includes('salon_staff_attendance_service_mark_status'));
 assert.ok(migration.includes('salon_staff_attendance_service_device_punch'));
@@ -81,6 +83,9 @@ assert.ok(edge.includes('verifyAuthenticationResponse'));
 assert.equal((edge.match(/requireUserVerification: true/g) || []).length, 2);
 assert.ok(edge.includes("authenticatorAttachment: 'platform'"));
 assert.ok(edge.includes('await admin.auth.getUser(token)'));
+assert.ok(edge.includes("event_type: 'biometric_enrolled'"));
+assert.ok(edge.includes("event_type: 'biometric_revoked'"));
+assert.ok(edge.includes("eq('sign_count', Number(stored.sign_count))"));
 assert.ok(edge.includes('devicePunch'));
 assert.ok(edge.includes('payload_digest'));
 assert.ok(edge.includes('notes: deviceNotes'));
