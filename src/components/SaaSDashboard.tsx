@@ -255,7 +255,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
             { id: 'demo', label: '₹0 Demo Bookings', icon: 'science' },
             { id: 'services', label: 'Business Services & Custom Offerings', icon: 'spa' },
             { id: 'team', label: 'Team Management', icon: 'badge' },
-            { id: 'clients', label: 'Clients CRM', icon: 'group' },
+            { id: 'clients', label: 'Customer CRM', icon: 'group' },
             { id:'contacts',label:'Customers & WhatsApp',icon:'contacts' },
             { id: 'loyalty', label: 'Loyalty & Rewards', icon: 'military_tech' },
             { id: 'marketing', label: 'Promo Image & Social', icon: 'photo_camera_back' },
