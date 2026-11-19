@@ -9,6 +9,8 @@ const owner = read('src/components/OwnerWorkspace.tsx');
 const dashboard = read('src/components/SaaSDashboard.tsx');
 const navigation = read('src/lib/ownerNavigation.ts');
 const config = read('supabase/config.toml');
+const denoConfig = JSON.parse(read('supabase/functions/staff-attendance-biometric/deno.json'));
+const databaseTest = read('scripts/verify-staff-attendance-db.mjs');
 
 const tables = [
   'salon_staff_attendance_settings',
@@ -69,7 +71,9 @@ assert.ok(migration.includes('salon_staff_attendance_device_event_receipt_fk'));
 assert.ok(migration.includes("new.status = 'approved'"));
 assert.ok(migration.includes("if v_shift_span <= interval '0' then"));
 
-assert.ok(edge.includes('@simplewebauthn/server@14.1.0'));
+assert.ok(edge.includes("from '@simplewebauthn/server'"));
+assert.equal(denoConfig.imports['@simplewebauthn/server'], 'npm:@simplewebauthn/server@14.1.0');
+assert.equal(denoConfig.imports['@supabase/supabase-js'], 'npm:@supabase/supabase-js@2.117.3');
 assert.ok(edge.includes('generateRegistrationOptions'));
 assert.ok(edge.includes('verifyRegistrationResponse'));
 assert.ok(edge.includes('generateAuthenticationOptions'));
@@ -109,6 +113,12 @@ assert.ok(dashboard.includes("activeTab === 'attendance'"));
 assert.ok(navigation.includes("{id:35,label:'Attendance & Biometric',icon:'fingerprint'}"));
 assert.ok(config.includes('[functions.staff-attendance-biometric]'));
 assert.ok(config.includes('verify_jwt = false'));
+
+assert.ok(databaseTest.includes('new PGlite()'));
+assert.ok(databaseTest.includes('half_day'));
+assert.ok(databaseTest.includes('service_device_punch'));
+assert.ok(databaseTest.includes('weekly_off_leave'));
+assert.ok(databaseTest.includes('RLS must hide another salon owner'));
 
 console.log('PASS staff attendance + biometric static contract (shared workspace, RLS, WebAuthn, device API and attendance actions).');
 console.log('Note: static checks do not replace TypeScript, Postgres migration, WebAuthn device, or browser E2E verification.');
