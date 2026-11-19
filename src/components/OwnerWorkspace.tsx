@@ -20,6 +20,7 @@ import type {CampaignAd} from '../lib/campaignBanner';
 import {PhotoGalleryManager} from './PhotoGalleryManager';
 import {OwnerCustomerContacts} from './OwnerCustomerContacts';
 import { SalonCRM } from './SalonCRM';
+import { StaffAttendancePanel } from './StaffAttendancePanel';
 import { HeroBannerEditor } from './HeroBannerEditor';
 import {BrandImageField} from './BrandImageField';
 import { WebsiteContentManager } from './WebsiteContentManager';
@@ -125,6 +126,7 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
 
   const renderContent = () => {
     if (active === 34) return <NexoraWhatsAppPanel onBookingsChanged={onRefreshBookings}/>;
+    if (active === 35) return <StaffAttendancePanel profile={profile} stylists={stylists}/>;
     if (active === 33) return profile.businessType === 'unisex_salon'
       ? <div className="stack space-y-6"><AuraContentManager profile={profile} onSaved={() => flash('Template 03 content saved to Supabase')}/><AuraPromotionsAdmin profile={profile} services={services}/></div>
       : <section className="workspace-card"><p className="eyebrow">Template 03</p><h2>Aura content management</h2><p className="muted">Choose Aura Unisex Salon & Wellness Lounge in “Choose template” to edit its 19 website sections. Other templates are unchanged.</p></section>;

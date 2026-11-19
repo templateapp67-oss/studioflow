@@ -31,6 +31,7 @@ export const OWNER_BUSINESS_TOOLS = [
  {id:32,label:'Branches & inventory',icon:'storefront'},
  {id:33,label:'Template 03 Content Management',icon:'edit_note'},
  {id:34,label:'WhatsApp Booking & Payments',icon:'chat'},
+ {id:35,label:'Attendance & Biometric',icon:'fingerprint'},
 ] as const;
 export function ownerModule(raw:string|null){
  const n=Number(raw);const canonical=({14:13,15:6,17:4,19:16} as Record<number,number>)[n]||n;
