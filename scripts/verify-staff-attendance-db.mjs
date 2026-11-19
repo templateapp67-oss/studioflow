@@ -167,6 +167,34 @@ try {
     'A duplicate check-in must be rejected.',
   );
 
+  // A stale unfinished shift from several days earlier must not be forgotten.
+  await db.query(
+    `insert into public.salon_staff_attendance_records(
+      owner_id,staff_key,attendance_date,status,check_in,method
+    ) values ($1,'staff-device',$2::date,'present',$3::timestamptz,'manual')`,
+    [ownerA, dateOffset(-5), dateOffset(-5) + ' 09:00:00+05:30'],
+  );
+  await expectSqlError(
+    () => one(
+      `select public.salon_staff_attendance_service_punch(
+        $1::uuid,'staff-device','check_in','manual','',null,null,null,null,null,$2::timestamptz
+      )`,
+      [ownerA, testDate + ' 09:00:00+05:30'],
+    ),
+    'An unfinished shift from earlier than yesterday must block a new check-in.',
+  );
+
+  // Manual status edits cannot silently erase a real check-in.
+  await expectSqlError(
+    () => one(
+      `select public.salon_staff_attendance_service_mark_status(
+        $1::uuid,'staff-day',$2::date,'absent','incorrect override'
+      )`,
+      [ownerA, testDate],
+    ),
+    'A checked-in day cannot be changed to absent.',
+  );
+
   // A half-day is calculated when completed work is below half the expected shift.
   await db.query(
     `insert into public.salon_staff_attendance_shifts(
