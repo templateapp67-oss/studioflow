@@ -19,6 +19,7 @@ import {brandIdentityContext} from '../lib/brandIdentityPrompt';
 import type {CampaignAd} from '../lib/campaignBanner';
 import {PhotoGalleryManager} from './PhotoGalleryManager';
 import {OwnerCustomerContacts} from './OwnerCustomerContacts';
+import { SalonCRM } from './SalonCRM';
 import { HeroBannerEditor } from './HeroBannerEditor';
 import {BrandImageField} from './BrandImageField';
 import { WebsiteContentManager } from './WebsiteContentManager';
@@ -140,7 +141,7 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
     if (active === 29) return profile.businessType==='hair_salon'?<div className="stack space-y-6"><ZiyaAdminPanel profile={profile} services={services} initialSubTab="loyalty"/></div>:<LoyaltyManagement clients={clients} setClients={setClients} loyaltyConfig={loyaltyConfig} setLoyaltyConfig={setLoyaltyConfig} profile={profile} primaryAccentColor={accent} onNavigateToPreview={onOpenPreview}/>;
     if (active === 16) return <WebsiteContentManager services={services} showAbout={false} showGallery={false} profile={profile} setProfile={setProfile} gallery={extras.gallery} setGallery={gallery=>setExtras(prev=>({...prev,gallery}))}/>;
     if (active === 31) return <SeoSettingsManager profile={profile} setProfile={setProfile}/>;
-    if(active===26)return <OwnerCustomerContacts profile={profile} ad={campaignAd}/>;
+    if(active===26)return <SalonCRM profile={profile}/>;
     if (active === 22) return <div className="stack"><PromoStudio profile={profile} setProfile={setProfile} services={services} onAdReady={setCampaignAd}/><OwnerCustomerContacts profile={profile} ad={campaignAd}/></div>;
     if (active === 1) return <section className="workspace-card"><p className="eyebrow">Secure owner access</p><h2>Signed in</h2><p className="muted">{sessionEmail}</p><p>Your profile and dashboard are saved to your Supabase account.</p></section>;
     if (active === 2) return <section className="workspace-card"><p className="eyebrow">Website editor</p><h2>Business details</h2><div className="form-grid"><Field label="Website address (3–63 lowercase letters, numbers or hyphens)" value={profile.subdomain} onChange={(v) => patchProfile('subdomain', v.toLowerCase().replace(/[^a-z0-9-]/g, ''))} /><Field label="Business name" value={profile.businessName} onChange={(v) => patchProfile('businessName', v)} /><Field label="Owner name" value={profile.ownerName} onChange={(v) => patchProfile('ownerName', v)} /><Field label="Business email" value={profile.email} onChange={(v) => patchProfile('email', v)} /><Field label="Phone" value={profile.phone} onChange={(v) => patchProfile('phone', v)} /><Field label="Tagline" value={profile.tagline} onChange={(v) => patchProfile('tagline', v)} /></div><p className="muted mt-4">Salon ki story aur owner photo ke liye next steps mein About our studio kholein.</p></section>;
