@@ -2,13 +2,13 @@
 // Owner actions are authorized with a real Supabase user JWT.
 // Biometric punches require a verified WebAuthn assertion.
 // External attendance machines may push signed-by-device-key events to this endpoint.
-import { createClient } from 'npm:@supabase/supabase-js@2.117.3';
+import { createClient } from '@supabase/supabase-js';
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
   generateAuthenticationOptions,
   verifyAuthenticationResponse,
-} from 'npm:@simplewebauthn/server@14.1.0';
+} from '@simplewebauthn/server';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
