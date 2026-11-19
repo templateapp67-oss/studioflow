@@ -120,6 +120,7 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
   const [roster, setRoster] = useState<RosterRow[]>([]);
   const [shifts, setShifts] = useState<ShiftRow[]>([]);
   const [records, setRecords] = useState<AttendanceRow[]>([]);
+  const [todayRecords, setTodayRecords] = useState<AttendanceRow[]>([]);
   const [leaves, setLeaves] = useState<LeaveRow[]>([]);
   const [settings, setSettings] = useState<SettingsRow | null>(null);
   const [biometrics, setBiometrics] = useState<BiometricRow[]>([]);
@@ -167,20 +168,22 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
       const { data: authData, error: authError } = await supabase.auth.getUser();
       if (authError || !authData.user) throw new Error('Please sign in to your salon owner account.');
       const ownerId = authData.user.id;
-      const [rosterResult, shiftResult, recordResult, leaveResult, settingsResult, bioResult, deviceResult] = await Promise.all([
+      const [rosterResult, shiftResult, recordResult, todayRecordResult, leaveResult, settingsResult, bioResult, deviceResult] = await Promise.all([
         supabase.from('salon_staff_attendance_profiles').select('staff_key,staff_code,staff_name,staff_role,active').eq('owner_id', ownerId).order('staff_name'),
         supabase.from('salon_staff_attendance_shifts').select('id,staff_key,weekday,shift_start,shift_end,break_minutes,is_weekly_off').eq('owner_id', ownerId),
         supabase.from('salon_staff_attendance_records').select('id,staff_key,attendance_date,status,check_in,check_out,active_break_started_at,break_minutes,worked_minutes,expected_minutes,overtime_minutes,method,notes').eq('owner_id', ownerId).gte('attendance_date', monthStart(month)).lte('attendance_date', monthEnd(month)).order('attendance_date', { ascending: false }),
+        supabase.from('salon_staff_attendance_records').select('id,staff_key,attendance_date,status,check_in,check_out,active_break_started_at,break_minutes,worked_minutes,expected_minutes,overtime_minutes,method,notes').eq('owner_id', ownerId).eq('attendance_date', indiaDate()),
         supabase.from('salon_staff_leave_requests').select('id,staff_key,start_date,end_date,leave_type,reason,status,created_at').eq('owner_id', ownerId).gte('end_date', monthStart(month)).lte('start_date', monthEnd(month)).order('created_at', { ascending: false }),
         supabase.from('salon_staff_attendance_settings').select('*').eq('owner_id', ownerId).maybeSingle(),
         invoke('listBiometrics'),
         invoke('listDevices'),
       ]);
-      const firstError = [rosterResult.error, shiftResult.error, recordResult.error, leaveResult.error, settingsResult.error].find(Boolean);
+      const firstError = [rosterResult.error, shiftResult.error, recordResult.error, todayRecordResult.error, leaveResult.error, settingsResult.error].find(Boolean);
       if (firstError) throw new Error(firstError.message);
       setRoster((rosterResult.data || []) as RosterRow[]);
       setShifts((shiftResult.data || []) as ShiftRow[]);
       setRecords((recordResult.data || []) as AttendanceRow[]);
+      setTodayRecords((todayRecordResult.data || []) as AttendanceRow[]);
       setLeaves((leaveResult.data || []) as LeaveRow[]);
       setSettings((settingsResult.data || null) as SettingsRow | null);
       setBiometrics((bioResult?.credentials || []) as BiometricRow[]);
