@@ -61,7 +61,7 @@ assert.ok(migration.includes('to service_role'));
 assert.ok(migration.includes('salon_staff_attendance_apply_leave_trigger'));
 assert.ok(migration.includes('other_leave.id <> new.id'), 'Overlapping approved leave must be preserved.');
 assert.ok(migration.includes('salon_staff_attendance_events_device_fk'));
-assert.ok(migration.includes('salon_staff_attendance_device_event_receipt_fk');
+assert.ok(migration.includes('salon_staff_attendance_device_event_receipt_fk'));
 assert.ok(migration.includes("new.status = 'approved'"));
 assert.ok(migration.includes("if v_shift_span <= interval '0' then"));
 
