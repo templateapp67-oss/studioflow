@@ -121,7 +121,7 @@ assert.ok(!edge.includes('recentCount || 0'), 'Do not enforce rate limits with a
 assert.ok(edge.includes('payload_digest'));
 assert.ok(edge.includes('notes: deviceNotes'));
 assert.ok(edge.includes('processing_status'));
-assert.ok(edge.includes('event ID with different attendance data'));
+assert.ok(migration.includes('event ID with different attendance data'), 'Changed payloads cannot reuse a device event ID.');
 assert.ok(edge.includes('api_key_hash'));
 assert.ok(edge.includes('toUpperCase()'));
 assert.ok(edge.includes('A-Z0-9._/-'));
