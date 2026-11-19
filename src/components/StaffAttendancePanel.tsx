@@ -329,7 +329,7 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
     try {
       const { data: authData } = await supabase.auth.getUser();
       if (!authData.user) throw new Error('Please sign in again.');
-      const code = (staffCodes[staffKey] || '').trim();
+      const code = (staffCodes[staffKey] || '').trim().toUpperCase();
       const { error: updateError } = await supabase.from('salon_staff_attendance_profiles')
         .update({ staff_code: code || null, updated_at: new Date().toISOString() })
         .eq('owner_id', authData.user.id).eq('staff_key', staffKey);
