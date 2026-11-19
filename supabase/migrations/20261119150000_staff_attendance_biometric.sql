@@ -278,9 +278,9 @@ begin
 end
 $block$;
 
-grant select, insert, update, delete on public.salon_staff_attendance_settings to authenticated;
-grant select, insert, update, delete on public.salon_staff_attendance_profiles to authenticated;
-grant select, insert, update, delete on public.salon_staff_attendance_shifts to authenticated;
+grant select, insert, update on public.salon_staff_attendance_settings to authenticated;
+grant select, insert, update on public.salon_staff_attendance_profiles to authenticated;
+grant select, insert, update on public.salon_staff_attendance_shifts to authenticated;
 grant select on public.salon_staff_attendance_records to authenticated;
 grant select on public.salon_staff_attendance_events to authenticated;
 grant select, insert, update on public.salon_staff_leave_requests to authenticated;
