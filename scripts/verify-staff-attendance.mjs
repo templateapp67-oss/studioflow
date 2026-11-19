@@ -10,6 +10,7 @@ const dashboard = read('src/components/SaaSDashboard.tsx');
 const navigation = read('src/lib/ownerNavigation.ts');
 const config = read('supabase/config.toml');
 const denoConfig = JSON.parse(read('supabase/functions/staff-attendance-biometric/deno.json'));
+const doc = read('docs/STAFF_ATTENDANCE_AND_BIOMETRIC.md');
 const databaseTest = read('scripts/verify-staff-attendance-db.mjs');
 
 const tables = [
