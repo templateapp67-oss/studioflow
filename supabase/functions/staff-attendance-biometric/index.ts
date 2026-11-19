@@ -2,7 +2,7 @@
 // Owner actions are authorized with a real Supabase user JWT.
 // Biometric punches require a verified WebAuthn assertion.
 // External attendance machines may push signed-by-device-key events to this endpoint.
-import { createClient } from 'npm:@supabase/supabase-js@2.118.0';
+import { createClient } from 'npm:@supabase/supabase-js@2.117.3';
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
