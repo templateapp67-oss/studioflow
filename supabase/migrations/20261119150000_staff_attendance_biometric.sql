@@ -212,7 +212,11 @@ create table if not exists public.salon_staff_attendance_device_events (
   constraint salon_staff_attendance_device_event_staff_fk
     foreign key (owner_id, staff_key)
     references public.salon_staff_attendance_profiles(owner_id, staff_key)
-    on delete cascade
+    on delete cascade,
+  constraint salon_staff_attendance_device_event_receipt_fk
+    foreign key (attendance_event_id)
+    references public.salon_staff_attendance_events(id)
+    on delete set null
 );
 
 -- Owner-facing operational tables are protected by strict salon ownership RLS.
@@ -357,7 +361,7 @@ begin
     from public.salon_staff_attendance_records r
     where r.owner_id = p_owner_id
       and r.staff_key = p_staff_key
-      and r.attendance_date < v_local_date
+      and r.attendance_date = v_local_date - 1
       and r.check_in is not null
       and r.check_out is null
     order by r.attendance_date desc
@@ -371,7 +375,7 @@ begin
   if p_action = 'check_in' and exists (
     select 1 from public.salon_staff_attendance_records r
     where r.owner_id = p_owner_id and r.staff_key = p_staff_key
-      and r.attendance_date < v_local_date
+      and r.attendance_date between v_local_date - 1 and v_local_date - 1
       and r.check_in is not null and r.check_out is null
   ) then
     raise exception 'Finish the previous shift before starting a new one' using errcode = '22023';
@@ -528,7 +532,10 @@ begin
   ) then
     raise exception 'Salon owner account not found' using errcode = '42501';
   end if;
-  if p_status is null or p_attendance_date is null or char_length(coalesce(p_notes,'')) > 1000
+  if p_status is null or p_attendance_date is null
+     or p_attendance_date > (now() at time zone 'Asia/Kolkata')::date + 365
+     or p_attendance_date < (now() at time zone 'Asia/Kolkata')::date - 90
+     or char_length(coalesce(p_notes,'')) > 1000
      or p_status not in ('absent','on_leave','holiday','weekly_off','half_day','present') then
     raise exception 'Invalid attendance status' using errcode = '22023';
   end if;
@@ -656,7 +663,15 @@ begin
         and r.staff_key = old.staff_key
         and r.attendance_date between old.start_date and old.end_date
         and r.status = 'on_leave'
-        and r.check_in is null;
+        and r.check_in is null
+        and not exists (
+          select 1 from public.salon_staff_leave_requests other_leave
+          where other_leave.owner_id = old.owner_id
+            and other_leave.staff_key = old.staff_key
+            and other_leave.id <> new.id
+            and other_leave.status = 'approved'
+            and r.attendance_date between other_leave.start_date and other_leave.end_date
+        );
     end if;
   end if;
 
