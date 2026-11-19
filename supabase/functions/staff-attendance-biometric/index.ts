@@ -393,7 +393,8 @@ async function devicePunch(body: Record<string, unknown>) {
   const { data: profile, error: profileError } = await admin.from('salon_staff_attendance_profiles')
     .select('staff_key,staff_name').eq('owner_id', device.owner_id).eq('staff_code', employeeCode).eq('active', true).maybeSingle();
   if (profileError || !profile) throw new Error('Employee code is not mapped to an active staff member.');
-  const digest = await sha256(JSON.stringify({ employeeCode, eventType, providerEventId, occurredAt: eventAt.toISOString() }));
+  const deviceNotes = cleanText(body.notes, 500);
+  const digest = await sha256(JSON.stringify({ employeeCode, eventType, providerEventId, occurredAt: eventAt.toISOString(), notes: deviceNotes }));
   const { data: result, error: punchError } = await admin.rpc('salon_staff_attendance_service_device_punch', {
     p_owner_id: device.owner_id,
     p_device_id: device.id,
@@ -401,7 +402,7 @@ async function devicePunch(body: Record<string, unknown>) {
     p_provider_event_id: providerEventId,
     p_event_type: eventType,
     p_event_at: eventAt.toISOString(),
-    p_notes: cleanText(body.notes, 500),
+    p_notes: deviceNotes,
     p_payload_digest: digest,
   });
   if (punchError || !result?.accepted) {
