@@ -118,6 +118,15 @@ try {
   );
   assert.equal(servicePunchServiceAccess.allowed, true, 'Only the trusted Edge Function service role executes the punch RPC.');
 
+  const resolveRpcAuthAccess = await one(
+    "select has_function_privilege('authenticated', 'public.salon_staff_attendance_service_resolve_open_shift(uuid,text,date,timestamptz,text)', 'execute') as allowed",
+  );
+  assert.equal(resolveRpcAuthAccess.allowed, false, 'Authenticated clients cannot execute missed-checkout correction directly.');
+  const resolveRpcServiceAccess = await one(
+    "select has_function_privilege('service_role', 'public.salon_staff_attendance_service_resolve_open_shift(uuid,text,date,timestamptz,text)', 'execute') as allowed",
+  );
+  assert.equal(resolveRpcServiceAccess.allowed, true, 'Only the trusted Edge Function can execute missed-checkout correction.');
+
   const localToday = (await one("select (now() at time zone 'Asia/Kolkata')::date::text as day")).day;
   const dateOffset = (days) => {
     const [year, month, day] = localToday.split('-').map(Number);
