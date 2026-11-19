@@ -23,7 +23,6 @@ type BiometricRow = { id: string; staff_key: string; friendly_name: string; devi
 type DeviceRow = { id: string; device_name: string; vendor: string; model: string; protocol: string; active: boolean; last_seen_at: string | null; created_at: string };
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const DAY_STATUS = ['absent', 'on_leave', 'holiday', 'weekly_off', 'half_day', 'present'];
 const STATUS_LABEL: Record<string, string> = {
   present: 'Present', late: 'Late', half_day: 'Half day', absent: 'Absent',
   on_leave: 'On leave', holiday: 'Holiday', weekly_off: 'Weekly off',
@@ -233,7 +232,6 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
   const lateCount = todayRows.filter((row) => row.status === 'late').length;
   const absentCount = todayRows.filter((row) => ['absent','on_leave'].includes(row.status)).length;
   const overtimeCount = todayRows.filter((row) => row.overtime_minutes > 0).length;
-  const selectedProfile = roster.find((row) => row.staff_key === selectedStaff) || null;
 
   const withLocation = async () => {
     if (!captureLocation || !navigator.geolocation) return {};
@@ -250,7 +248,7 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
     });
   };
 
-  const punch = async (staffKey: string, punchAction: 'check_in' | 'check_out' | 'break_start' | 'break_end', method: 'manual' | 'biometric' = 'manual') => {
+  const punch = async (staffKey: string, punchAction: 'check_in' | 'check_out' | 'break_start' | 'break_end') => {
     setBusy(true); setError(''); setNotice('');
     try {
       const location = await withLocation();
