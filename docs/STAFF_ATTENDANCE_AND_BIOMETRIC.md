@@ -14,11 +14,11 @@ This module is attached to the shared owner workspace, so the same owner tool is
 
 ## Biometric attendance
 
-Biometric punches use WebAuthn platform credentials. Each staff member enrolls a phone/tablet's own platform authenticator. The authenticator asks for the local security verification (fingerprint, face, or device PIN). The server verifies the signed assertion and only then records a biometric check-in/out.
+Biometric punches use WebAuthn platform credentials. Each staff member should enroll on their own phone/tablet (or a separate OS user profile) with its platform authenticator. The authenticator asks for local user verification (fingerprint, face, or device PIN fallback). The server verifies the signed assertion and only then records a biometric check-in/out. A shared kiosk using one common OS biometric/PIN profile cannot prove which employee is present, because WebAuthn does not disclose a fingerprint identity to the website.
 
 NEXORA stores a WebAuthn credential ID and public key only. It does not collect fingerprint images, face scans, or biometric templates. A passkey may use a synced authenticator; the UI must not promise that every credential is physically bound to only one device.
 
-Biometric enrolment requires a supported browser, HTTPS, and a platform authenticator. Browser/device compatibility must be verified on the actual staff devices before production use.
+Biometric enrolment requires a supported browser, HTTPS, and a platform authenticator. Do not enroll every staff member against the same common kiosk authenticator if individual identity is required. Browser/device compatibility must be verified on the actual staff devices before production use.
 
 ## External fingerprint / face attendance machines
 
