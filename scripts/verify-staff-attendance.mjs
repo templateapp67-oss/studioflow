@@ -72,6 +72,11 @@ assert.ok(migration.includes('grant all on public.salon_staff_attendance_profile
 assert.ok(migration.includes('for update'), 'Punch and manual-status paths must lock the staff profile row.');
 assert.ok(migration.includes('salon_staff_attendance_service_punch'));
 assert.ok(migration.includes('salon_staff_attendance_service_mark_status'));
+assert.ok(migration.includes('salon_staff_attendance_service_resolve_open_shift'), 'Owners can resolve a missed check-out on a prior date.');
+assert.ok(migration.includes('interval \'48 hours\''), 'Missed check-out correction has a 48-hour safety cap.');
+assert.ok(migration.includes("'shift_force_closed'"), 'Missed check-out corrections are an auditable event type.');
+assert.ok(migration.includes('grant execute on function public.salon_staff_attendance_service_resolve_open_shift'), 'Only the server-side Edge Function can execute the correction RPC.');
+
 assert.ok(migration.includes('salon_staff_attendance_service_device_punch'));
 assert.ok(migration.includes("and r.attendance_date >= v_local_date - 90"), 'A forgotten check-out from any of the previous 90 days must block a new shift.');
 assert.ok(migration.includes("p_status in ('absent','on_leave','holiday','weekly_off')"), 'A checked-in day cannot be overwritten as absent or leave.');
@@ -105,6 +110,9 @@ assert.ok(edge.includes("eq('sign_count', Number(stored.sign_count))"));
 assert.ok(edge.includes('devicePunch'));
 assert.ok(edge.includes('async function devicePunch(req: Request, body: Record<string, unknown>)'), 'Device bearer key authentication must read the incoming request headers.');
 assert.ok(edge.includes('devicePunch(req, body)'), 'Device push dispatch must pass the HTTP request to the authentication handler.');
+assert.ok(edge.includes("action === 'resolveOpenShift'"), 'The owner can resolve a missed check-out with a reason.');
+assert.ok(edge.includes('salon_staff_attendance_service_resolve_open_shift'), 'The Edge Function calls the protected correction RPC.');
+
 assert.ok(edge.includes('listDeviceEvents'), 'The owner can view recent biometric device receipts.');
 assert.ok(migration.includes("v_recent_event_count > 60"), 'Device event rate limit must be enforced in the atomic database transaction.');
 assert.ok(migration.includes("e.received_at >= now() - interval '1 minute'"), 'Device rate limit uses a rolling one-minute window.');
@@ -145,6 +153,9 @@ assert.ok(panel.includes('Inactive staff'), 'The owner can see and manage inacti
 assert.ok(panel.includes("['history','Activity history']"), 'The attendance audit log must be visible in the owner UI.');
 assert.ok(panel.includes("invoke('listDeviceEvents')"), 'The owner UI must load biometric machine receipts.');
 assert.ok(panel.includes('Recent machine sync events'));
+assert.ok(panel.includes("invoke('resolveOpenShift'"), 'The owner UI provides a historical missed-checkout action.');
+assert.ok(panel.includes('Actual check-out time') && panel.includes('Close old shift'), 'The owner must confirm the actual check-out time for historical corrections.');
+
 assert.doesNotMatch(panel, /SUPABASE_SERVICE_ROLE_KEY|service_role/i);
 
 assert.ok(owner.includes("import { StaffAttendancePanel } from './StaffAttendancePanel';"));
