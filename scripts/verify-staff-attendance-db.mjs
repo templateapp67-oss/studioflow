@@ -282,13 +282,13 @@ try {
     `select public.salon_staff_attendance_service_punch(
       $1::uuid,'staff-night','break_start','manual','',null,null,null,null,null,$2::timestamptz
     )`,
-    [ownerA, overnightDate + ' 23:00:00+05:30'],
+    [ownerA, overnightDate + ' 23:45:00+05:30'],
   );
   await one(
     `select public.salon_staff_attendance_service_punch(
       $1::uuid,'staff-night','break_end','manual','',null,null,null,null,null,$2::timestamptz
     )`,
-    [ownerA, dateOffset(-1) + ' 00:30:00+05:30'],
+    [ownerA, dateOffset(-1) + ' 00:15:00+05:30'],
   );
   await one(
     `select public.salon_staff_attendance_service_punch(
