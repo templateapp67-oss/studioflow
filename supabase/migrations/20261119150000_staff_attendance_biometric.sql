@@ -285,6 +285,15 @@ grant select on public.salon_staff_attendance_records to authenticated;
 grant select on public.salon_staff_attendance_events to authenticated;
 grant select, insert, update on public.salon_staff_leave_requests to authenticated;
 
+-- The Edge Function uses the service role only after validating the owner JWT,
+-- verifying a WebAuthn assertion, or validating an individual device API key.
+grant all on public.salon_staff_attendance_settings to service_role;
+grant all on public.salon_staff_attendance_profiles to service_role;
+grant all on public.salon_staff_attendance_shifts to service_role;
+grant all on public.salon_staff_attendance_records to service_role;
+grant all on public.salon_staff_attendance_events to service_role;
+grant all on public.salon_staff_leave_requests to service_role;
+
 -- One audited punch engine is shared by manual owner actions, verified
 -- WebAuthn requests, and device-webhook events. It is callable only by service_role.
 create or replace function public.salon_staff_attendance_service_punch(
