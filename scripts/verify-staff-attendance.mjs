@@ -1,0 +1,176 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+
+const read = (path) => readFileSync(path, 'utf8');
+const migration = read('supabase/migrations/20261119150000_staff_attendance_biometric.sql');
+const panel = read('src/components/StaffAttendancePanel.tsx');
+const edge = read('supabase/functions/staff-attendance-biometric/index.ts');
+const owner = read('src/components/OwnerWorkspace.tsx');
+const dashboard = read('src/components/SaaSDashboard.tsx');
+const navigation = read('src/lib/ownerNavigation.ts');
+const config = read('supabase/config.toml');
+const denoConfig = JSON.parse(read('supabase/functions/staff-attendance-biometric/deno.json'));
+const doc = read('docs/STAFF_ATTENDANCE_AND_BIOMETRIC.md');
+const databaseTest = read('scripts/verify-staff-attendance-db.mjs');
+
+const tables = [
+  'salon_staff_attendance_settings',
+  'salon_staff_attendance_profiles',
+  'salon_staff_attendance_shifts',
+  'salon_staff_attendance_records',
+  'salon_staff_attendance_events',
+  'salon_staff_leave_requests',
+  'salon_staff_attendance_biometrics',
+  'salon_staff_attendance_webauthn_challenges',
+  'salon_staff_attendance_devices',
+  'salon_staff_attendance_device_events',
+];
+for (const table of tables) {
+  assert.ok(migration.includes('create table if not exists public.' + table), 'Missing table: ' + table);
+}
+const rlsStart = migration.indexOf('-- Owner-facing operational tables are protected by strict salon ownership RLS.');
+const rlsEnd = migration.indexOf('-- One audited punch engine', rlsStart);
+const rlsBlock = migration.slice(rlsStart, rlsEnd);
+assert.ok(rlsBlock.includes("execute format('alter table public.%I enable row level security', t)"));
+for (const table of [
+  'salon_staff_attendance_settings',
+  'salon_staff_attendance_profiles',
+  'salon_staff_attendance_shifts',
+  'salon_staff_attendance_records',
+  'salon_staff_attendance_events',
+  'salon_staff_leave_requests',
+  'salon_staff_attendance_biometrics',
+  'salon_staff_attendance_webauthn_challenges',
+  'salon_staff_attendance_devices',
+  'salon_staff_attendance_device_events',
+]) assert.ok(rlsBlock.includes("'" + table + "'"), 'Missing RLS table registration: ' + table);
+
+const sensitiveStart = migration.indexOf('-- Sensitive service-managed tables are inaccessible to browser roles.');
+const sensitiveEnd = migration.indexOf('grant select, insert, update on public.salon_staff_attendance_settings', sensitiveStart);
+const sensitiveBlock = migration.slice(sensitiveStart, sensitiveEnd);
+assert.ok(sensitiveBlock.includes("execute format('revoke all on table public.%I from public, anon, authenticated', t)"));
+assert.ok(sensitiveBlock.includes("execute format('grant all on table public.%I to service_role', t)"));
+for (const table of [
+  'salon_staff_attendance_biometrics',
+  'salon_staff_attendance_webauthn_challenges',
+  'salon_staff_attendance_devices',
+  'salon_staff_attendance_device_events',
+]) assert.ok(sensitiveBlock.includes("'" + table + "'"), 'Missing service-only table registration: ' + table);
+assert.ok(migration.includes('salon_staff_attendance_sync_roster'));
+assert.ok(migration.includes('manually_deactivated_at timestamptz'), 'Manual staff deactivation is durable in the schema.');
+assert.ok(migration.includes("'staff_deactivated','staff_reactivated'"), 'Staff lifecycle events are valid audit types.');
+
+assert.ok(migration.includes('if jsonb_array_length(p_roster) = 0 then'), 'Staff are deactivated only when the owner explicitly syncs an empty roster.');
+assert.ok(migration.includes('grant select, insert, update on public.salon_staff_attendance_profiles to authenticated'));
+assert.ok(!migration.includes('grant select, insert, update, delete on public.salon_staff_attendance_profiles to authenticated'));
+assert.ok(migration.includes('salon_staff_attendance_shift_nonzero'));
+assert.ok(migration.includes('salon_staff_leave_period_limit'));
+assert.ok(migration.includes('jsonb_array_length(p_roster) > 200'));
+assert.ok(migration.includes('late_minutes integer not null default 0'));
+assert.ok(migration.includes('grant all on public.salon_staff_attendance_events to service_role'));
+assert.ok(migration.includes('grant all on public.salon_staff_attendance_profiles to service_role'));
+assert.ok(migration.includes('for update'), 'Punch and manual-status paths must lock the staff profile row.');
+assert.ok(migration.includes('salon_staff_attendance_service_punch'));
+assert.ok(migration.includes('salon_staff_attendance_service_mark_status'));
+assert.ok(migration.includes('salon_staff_attendance_service_resolve_open_shift'), 'Owners can resolve a missed check-out on a prior date.');
+assert.ok(migration.includes('interval \'48 hours\''), 'Missed check-out correction has a 48-hour safety cap.');
+assert.ok(migration.includes("'shift_force_closed'"), 'Missed check-out corrections are an auditable event type.');
+assert.ok(migration.includes('grant execute on function public.salon_staff_attendance_service_resolve_open_shift'), 'Only the server-side Edge Function can execute the correction RPC.');
+
+assert.ok(migration.includes('salon_staff_attendance_service_device_punch'));
+assert.ok(migration.includes("and r.attendance_date >= v_local_date - 90"), 'A forgotten check-out from any of the previous 90 days must block a new shift.');
+assert.ok(migration.includes("p_status in ('absent','on_leave','holiday','weekly_off')"), 'A checked-in day cannot be overwritten as absent or leave.');
+assert.ok(migration.includes('salon_staff_attendance_device_events_device_time_idx'));
+assert.ok(migration.includes('grant execute on function public.salon_staff_attendance_service_device_punch'));
+assert.ok(migration.includes('grant execute on function public.salon_staff_attendance_service_punch'));
+assert.ok(migration.includes('to service_role'));
+assert.ok(migration.includes('salon_staff_attendance_apply_leave_trigger'));
+assert.ok(migration.includes('other_leave.id <> new.id'), 'Overlapping approved leave must be preserved.');
+assert.ok(migration.includes('salon_staff_attendance_events_device_fk'));
+assert.ok(migration.includes('salon_staff_attendance_device_event_receipt_fk'));
+assert.ok(migration.includes("new.status = 'approved'"));
+assert.ok(migration.includes("if v_shift_span <= interval '0' then"));
+
+assert.ok(edge.includes("from '@simplewebauthn/server'"));
+assert.equal(denoConfig.imports['@simplewebauthn/server'], 'npm:@simplewebauthn/server@14.1.0');
+assert.equal(denoConfig.imports['@supabase/supabase-js'], 'npm:@supabase/supabase-js@2.117.3');
+assert.ok(edge.includes('generateRegistrationOptions'));
+assert.ok(edge.includes('verifyRegistrationResponse'));
+assert.ok(edge.includes('generateAuthenticationOptions'));
+assert.ok(edge.includes('verifyAuthenticationResponse'));
+assert.equal((edge.match(/requireUserVerification: true/g) || []).length, 2);
+assert.ok(edge.includes("authenticatorAttachment: 'platform'"));
+assert.ok(edge.includes('await admin.auth.getUser(token)'));
+assert.ok(edge.includes("host.endsWith('.nexorasalon.online')"), 'Biometric RP ID must cover NEXORA salon subdomains.');
+assert.ok(edge.includes("/^https:\\/\\/[a-z0-9-]+\\.nexorasalon\\.online$/"), 'CORS must allow published NEXORA salon subdomains.');
+assert.ok(edge.includes("event_type: 'biometric_enrolled'"));
+assert.ok(edge.includes("event_type: 'biometric_revoked'"));
+assert.ok(edge.includes("event_type: 'biometric_enrolled'"));
+assert.ok(edge.includes("eq('sign_count', Number(stored.sign_count))"));
+assert.ok(edge.includes('devicePunch'));
+assert.ok(edge.includes('async function devicePunch(req: Request, body: Record<string, unknown>)'), 'Device bearer key authentication must read the incoming request headers.');
+assert.ok(edge.includes('devicePunch(req, body)'), 'Device push dispatch must pass the HTTP request to the authentication handler.');
+assert.ok(edge.includes("action === 'resolveOpenShift'"), 'The owner can resolve a missed check-out with a reason.');
+assert.ok(edge.includes('salon_staff_attendance_service_resolve_open_shift'), 'The Edge Function calls the protected correction RPC.');
+
+assert.ok(edge.includes('listDeviceEvents'), 'The owner can view recent biometric device receipts.');
+assert.ok(migration.includes("v_recent_event_count > 60"), 'Device event rate limit must be enforced in the atomic database transaction.');
+assert.ok(migration.includes("e.received_at >= now() - interval '1 minute'"), 'Device rate limit uses a rolling one-minute window.');
+assert.ok(migration.includes('for update'), 'The device row lock serializes concurrent push requests.');
+assert.ok(!edge.includes('recentCount || 0'), 'Do not enforce rate limits with a racy client-side count.');
+assert.ok(edge.includes('payload_digest'));
+assert.ok(edge.includes('notes: deviceNotes'));
+assert.ok(edge.includes('processing_status'));
+assert.ok(edge.includes('event ID with different attendance data'));
+assert.ok(edge.includes('api_key_hash'));
+assert.ok(edge.includes('toUpperCase()'));
+assert.ok(edge.includes('A-Z0-9._/-'));
+assert.ok(edge.includes('salon_staff_attendance_service_punch'));
+assert.ok(edge.includes("action === 'deactivateStaff'") && edge.includes("action === 'reactivateStaff'"), 'Owner can deactivate and reactivate attendance profiles.');
+assert.ok(edge.includes("event_type: 'staff_deactivated'") && edge.includes("event_type: 'staff_reactivated'"), 'Staff lifecycle changes are audited.');
+assert.ok(edge.includes("manually_deactivated_at: null"), 'Deactivation rollback clears its durable marker.');
+
+
+assert.ok(panel.includes("supabase.rpc('salon_staff_attendance_sync_roster'"));
+assert.ok(panel.includes("supabase.functions.invoke('staff-attendance-biometric'"));
+assert.ok(panel.includes('navigator.credentials.create'));
+assert.ok(panel.includes('navigator.credentials.get'));
+assert.ok(panel.includes('A shared kiosk with one common device PIN/biometric profile cannot prove which employee is present.'));
+assert.ok(panel.includes('todayRecords'));
+assert.ok(panel.includes('const todayRows = todayRecords;'), 'Today register must use its independent query.');
+assert.ok(panel.includes('liveWorkedMinutes'));
+assert.ok(panel.includes('Late minutes'));
+assert.ok(panel.includes('registerVerify'));
+assert.ok(panel.includes('authenticationVerify'));
+assert.ok(panel.includes('break_start'));
+assert.ok(panel.includes('break_end'));
+assert.ok(panel.includes('salon_staff_attendance_shifts'));
+assert.ok(panel.includes('salon_staff_leave_requests'));
+assert.ok(panel.includes('Export CSV'));
+assert.ok(panel.includes("invoke('deactivateStaff'") && panel.includes("invoke('reactivateStaff'"), 'Owner UI can deactivate and reactivate individual staff.');
+assert.ok(panel.includes('Inactive staff'), 'The owner can see and manage inactive attendance profiles.');
+
+assert.ok(panel.includes("['history','Activity history']"), 'The attendance audit log must be visible in the owner UI.');
+assert.ok(panel.includes("invoke('listDeviceEvents')"), 'The owner UI must load biometric machine receipts.');
+assert.ok(panel.includes('Recent machine sync events'));
+assert.ok(panel.includes("invoke('resolveOpenShift'"), 'The owner UI provides a historical missed-checkout action.');
+assert.ok(panel.includes('Actual check-out time') && panel.includes('Close old shift'), 'The owner must confirm the actual check-out time for historical corrections.');
+
+assert.doesNotMatch(panel, /SUPABASE_SERVICE_ROLE_KEY|service_role/i);
+
+assert.ok(owner.includes("import { StaffAttendancePanel } from './StaffAttendancePanel';"));
+assert.ok(owner.includes('<StaffAttendancePanel profile={profile} stylists={stylists}/>'));
+assert.ok(dashboard.includes("import { StaffAttendancePanel } from './StaffAttendancePanel';"));
+assert.ok(dashboard.includes("activeTab === 'attendance'"));
+assert.ok(navigation.includes("{id:35,label:'Attendance & Biometric',icon:'fingerprint'}"));
+assert.ok(config.includes('[functions.staff-attendance-biometric]'));
+assert.ok(config.includes('verify_jwt = false'));
+
+assert.ok(databaseTest.includes('new PGlite()'));
+assert.ok(databaseTest.includes('half_day'));
+assert.ok(databaseTest.includes('service_device_punch'));
+assert.ok(databaseTest.includes('weekly_off_leave'));
+assert.ok(databaseTest.includes('RLS must hide another salon owner'));
+
+console.log('PASS staff attendance + biometric static contract (shared workspace, RLS, WebAuthn, device API and attendance actions).');
+console.log('Note: static checks do not replace TypeScript, Postgres migration, WebAuthn device, or browser E2E verification.');
