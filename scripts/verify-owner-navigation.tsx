@@ -19,7 +19,7 @@ assert.equal(title(),'Business details');const nav=ui.root.findByProps({'aria-la
 assert.equal(byText('← Previous step').props.disabled,true);
 await act(async()=>byText('Next: Choose template →').props.onClick());assert.equal(title(),'Choose template');assert.equal(new URL(location.href).searchParams.get('module'),'9');assert.equal(new URL(location.href).searchParams.get('keep'),'value');
 await act(async()=>byText('← Previous step').props.onClick());assert.equal(title(),'Business details');
-const select=ui.root.findByType('select');await act(async()=>select.props.onChange({target:{value:'27'}}));assert.equal(title(),'About our studio');assert.equal(ui.root.findAllByProps({'aria-label':'Edit About our studio'}).length,1);
+const select=ui.root.findByProps({'aria-label':'Choose a section'});await act(async()=>select.props.onChange({target:{value:'27'}}));assert.equal(title(),'About our studio');assert.equal(ui.root.findAllByProps({'aria-label':'Edit About our studio'}).length,1);
 await act(async()=>select.props.onChange({target:{value:'11'}}));await act(async()=>byText('Edit About').props.onClick());assert.equal(title(),'About our studio');
 location.search='?module=12';await act(async()=>listeners.get('popstate')());assert.equal(title(),'Preview website');await act(async()=>byText('Open interactive preview').props.onClick());assert.equal(preview,1);
 await act(async()=>select.props.onChange({target:{value:'14'}}));assert.equal(title(),'Publish & live website');assert.equal(ui.root.findAllByProps({'aria-label':'Publish and share website'}).length,1);assert.equal(byText('Back to step 1').props.disabled,undefined);

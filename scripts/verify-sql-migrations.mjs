@@ -123,6 +123,37 @@ await db.exec(readFileSync('supabase/migrations/20261107083327_nexora_landing_pr
 // Template 12 version and its branch-specific extension.
 await db.exec(readFileSync('supabase/migrations/20261113120946_template12_iron_ink.sql','utf8'));
 await db.exec(readFileSync('supabase/pending-features/20261113120947_multibranch_template12_support.sql','utf8'));
+// Unified salon CRM + role-level permission matrix: the browser calls these
+// RPCs (`src/components/SalonCRM.tsx`) and resolves staff roles through them,
+// so their sources must be replayed before the live-catalog scan.
+await applySqlText(readFileSync('supabase/migrations/20261119070000_unified_salon_crm.sql','utf8'),'supabase/migrations/20261119070000_unified_salon_crm.sql');
+const staffRoleSql=readFileSync('supabase/migrations/20261119080000_staff_role_permissions.sql','utf8');
+assert.match(staffRoleSql,/create or replace function public\.studioflow_normalize_staff_access_role\(p_role text\)/,
+  'staff access-role normalizer is defined');
+assert.match(staffRoleSql,/'Manager \(Full Access\)' then array\[/,
+  'manager permission set is the largest set');
+assert.doesNotMatch(staffRoleSql,/grant execute on function public\.studioflow_my_branch_role\(uuid\) to (anon|public)/,
+  'the caller branch-role helper is never exposed to anonymous clients');
+await applySqlText(staffRoleSql,'supabase/migrations/20261119080000_staff_role_permissions.sql');
+const {rows:[roleMatrix]}=await db.query(`
+  select
+    public.studioflow_normalize_staff_access_role('superadmin') as unknown_role,
+    public.studioflow_normalize_staff_access_role(null) as null_role,
+    public.studioflow_normalize_staff_access_role('receptionist') as legacy_receptionist,
+    array_length(public.studioflow_staff_role_permissions('Manager (Full Access)'),1) as manager_perms,
+    array_length(public.studioflow_staff_role_permissions('Receptionist (Frontdesk)'),1) as receptionist_perms,
+    array_length(public.studioflow_staff_role_permissions('Service Provider (Assigned)'),1) as provider_perms,
+    public.studioflow_staff_has_permission('Receptionist (Frontdesk)','manage_team') as receptionist_manages_team,
+    public.studioflow_staff_has_permission('Service Provider (Assigned)','process_pos_payments') as provider_pos
+`);
+assert.equal(roleMatrix.unknown_role,'Service Provider (Assigned)','unknown roles fail closed to least privilege');
+assert.equal(roleMatrix.null_role,'Service Provider (Assigned)','missing roles fail closed to least privilege');
+assert.equal(roleMatrix.legacy_receptionist,'Receptionist (Frontdesk)','legacy role aliases normalize');
+assert.ok(roleMatrix.manager_perms>roleMatrix.receptionist_perms&&roleMatrix.receptionist_perms>roleMatrix.provider_perms,
+  'roles are strictly nested in privilege order');
+assert.equal(roleMatrix.receptionist_manages_team,false,'receptionists cannot manage the team');
+assert.equal(roleMatrix.provider_pos,false,'service providers cannot run POS payments');
+
 // NEXORA WhatsApp test mode: apply its private QA ledger and the follow-up
 // rename migration before the live-catalog scan. The limiter is intentionally
 // server-only (service_role grant only) and is not a browser-facing RPC.

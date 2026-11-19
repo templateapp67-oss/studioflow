@@ -18,6 +18,7 @@ import { isLegacyBridalStockUrl, upgradeLegacyBridalStylists } from './shringaar
 import { isLegacyLashStockTagline, isLegacyLashStockUrl, upgradeLegacyLashBrowStylists } from './archFlutter';
 import { seedSalonOffers } from './salonOffers';
 import type { SalonProfile, SalonService, Stylist, ClientRecord } from '../types';
+import { normalizeAccessRole } from './staffPermissions';
 const record=(value:any):Record<string,any>=>value&&typeof value==='object'&&!Array.isArray(value)?value:{};
 export function isRecord(value: unknown): value is Record<string, any> {
   return !!value && typeof value === 'object' && !Array.isArray(value);
@@ -79,7 +80,7 @@ export function normalizeWorkspace(value:unknown, identity:Record<string,any>={}
  profile.demoGalleryInitialized=true;profile.demoGalleryType=profile.businessType;
  profile.headerNavigation=headerSettings(profile as SalonProfile);
  profile.serviceCatalogueInitialized=raw.serviceCatalogueInitialized===true||list(normalizeServices(draft.services,'saved workspace services')).length>0;
- const normalizedStylists=list(draft.stylists).map(s=>({...s,name:typeof s.name==='string'?s.name:'',role:typeof s.role==='string'?s.role:'',avatarUrl:typeof s.avatarUrl==='string'?s.avatarUrl:'',specialties:Array.isArray(s.specialties)?s.specialties.filter(x=>typeof x==='string'):[],rating:Number.isFinite(s.rating)?s.rating:0})) as Stylist[];
+ const normalizedStylists=list(draft.stylists).map(s=>({...s,name:typeof s.name==='string'?s.name:'',role:typeof s.role==='string'?s.role:'',avatarUrl:typeof s.avatarUrl==='string'?s.avatarUrl:'',specialties:Array.isArray(s.specialties)?s.specialties.filter(x=>typeof x==='string'):[],rating:Number.isFinite(s.rating)?s.rating:0,accessRole:normalizeAccessRole(s.accessRole)})) as Stylist[];
  return {...draft,profile:profile as SalonProfile,
   services:list(normalizeServices(draft.services,'saved workspace services')).map(s=>({...s,origin:serviceOrigin(s as SalonService),name:typeof s.name==='string'?s.name:'',description:typeof s.description==='string'?s.description:'',category:typeof s.category==='string'?s.category:'',price:Number.isFinite(s.price)?s.price:(s.price===null||profile.businessType==='skincare_clinic'?null:0),durationMinutes:Number.isFinite(s.durationMinutes)?s.durationMinutes:30})) as SalonService[],
   stylists:upgradeLegacyLashBrowStylists(upgradeLegacyHairColoringStylists(upgradeLegacyMassageWellnessStylists(upgradeLegacyMakeupStudioStylists(upgradeLegacyBeautyParlourStylists(normalizedStylists,profile.businessType),profile.businessType),profile.businessType),profile.businessType),profile.businessType),
