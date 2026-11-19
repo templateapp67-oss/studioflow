@@ -8,7 +8,7 @@ type RosterRow = { staff_key: string; staff_code: string | null; staff_name: str
 type ShiftRow = { id: string; staff_key: string; weekday: number; shift_start: string; shift_end: string; break_minutes: number; is_weekly_off: boolean };
 type AttendanceRow = {
   id: string; staff_key: string; attendance_date: string; status: string; check_in: string | null;
-  check_out: string | null; break_minutes: number; worked_minutes: number; expected_minutes: number;
+  check_out: string | null; active_break_started_at: string | null; break_minutes: number; worked_minutes: number; expected_minutes: number;
   overtime_minutes: number; method: string; notes: string;
 };
 type LeaveRow = {
@@ -170,7 +170,7 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
       const [rosterResult, shiftResult, recordResult, leaveResult, settingsResult, bioResult, deviceResult] = await Promise.all([
         supabase.from('salon_staff_attendance_profiles').select('staff_key,staff_code,staff_name,staff_role,active').eq('owner_id', ownerId).order('staff_name'),
         supabase.from('salon_staff_attendance_shifts').select('id,staff_key,weekday,shift_start,shift_end,break_minutes,is_weekly_off').eq('owner_id', ownerId),
-        supabase.from('salon_staff_attendance_records').select('id,staff_key,attendance_date,status,check_in,check_out,break_minutes,worked_minutes,expected_minutes,overtime_minutes,method,notes').eq('owner_id', ownerId).gte('attendance_date', monthStart(month)).lte('attendance_date', monthEnd(month)).order('attendance_date', { ascending: false }),
+        supabase.from('salon_staff_attendance_records').select('id,staff_key,attendance_date,status,check_in,check_out,active_break_started_at,break_minutes,worked_minutes,expected_minutes,overtime_minutes,method,notes').eq('owner_id', ownerId).gte('attendance_date', monthStart(month)).lte('attendance_date', monthEnd(month)).order('attendance_date', { ascending: false }),
         supabase.from('salon_staff_leave_requests').select('id,staff_key,start_date,end_date,leave_type,reason,status,created_at').eq('owner_id', ownerId).gte('end_date', monthStart(month)).lte('start_date', monthEnd(month)).order('created_at', { ascending: false }),
         supabase.from('salon_staff_attendance_settings').select('*').eq('owner_id', ownerId).maybeSingle(),
         invoke('listBiometrics'),
