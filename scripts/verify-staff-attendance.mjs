@@ -93,6 +93,8 @@ assert.ok(edge.includes('verifyAuthenticationResponse'));
 assert.equal((edge.match(/requireUserVerification: true/g) || []).length, 2);
 assert.ok(edge.includes("authenticatorAttachment: 'platform'"));
 assert.ok(edge.includes('await admin.auth.getUser(token)'));
+assert.ok(edge.includes("host.endsWith('.nexorasalon.online')"), 'Biometric RP ID must cover NEXORA salon subdomains.');
+assert.ok(edge.includes("/^https:\\/\\/[a-z0-9-]+\\.nexorasalon\\.online$/"), 'CORS must allow published NEXORA salon subdomains.');
 assert.ok(edge.includes("event_type: 'biometric_enrolled'"));
 assert.ok(edge.includes("event_type: 'biometric_revoked'"));
 assert.ok(edge.includes("event_type: 'biometric_enrolled'"));
