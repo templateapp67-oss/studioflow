@@ -93,6 +93,19 @@ try {
   );
   assert.equal(sensitiveAccess.allowed, false, 'Biometric keys must not be readable by authenticated clients.');
 
+  const deviceReceiptAccess = await one(
+    "select has_table_privilege('authenticated', 'public.salon_staff_attendance_device_events', 'select') as allowed",
+  );
+  assert.equal(deviceReceiptAccess.allowed, false, 'Device receipt data must remain service-role-only.');
+  const servicePunchAccess = await one(
+    "select has_function_privilege('authenticated', 'public.salon_staff_attendance_service_punch(uuid,text,text,text,text,numeric,numeric,numeric,uuid,text,timestamptz)', 'execute') as allowed",
+  );
+  assert.equal(servicePunchAccess.allowed, false, 'Authenticated clients must not execute the privileged punch RPC directly.');
+  const servicePunchServiceAccess = await one(
+    "select has_function_privilege('service_role', 'public.salon_staff_attendance_service_punch(uuid,text,text,text,text,numeric,numeric,numeric,uuid,text,timestamptz)', 'execute') as allowed",
+  );
+  assert.equal(servicePunchServiceAccess.allowed, true, 'Only the trusted Edge Function service role executes the punch RPC.');
+
   const localToday = (await one("select (now() at time zone 'Asia/Kolkata')::date::text as day")).day;
   const dateOffset = (days) => {
     const [year, month, day] = localToday.split('-').map(Number);
