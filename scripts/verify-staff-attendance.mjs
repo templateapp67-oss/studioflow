@@ -45,7 +45,7 @@ for (const table of [
 ]) assert.ok(rlsBlock.includes("'" + table + "'"), 'Missing RLS table registration: ' + table);
 
 const sensitiveStart = migration.indexOf('-- Sensitive service-managed tables are inaccessible to browser roles.');
-const sensitiveEnd = migration.indexOf('grant select, insert, update, delete on public.salon_staff_attendance_settings', sensitiveStart);
+const sensitiveEnd = migration.indexOf('grant select, insert, update on public.salon_staff_attendance_settings', sensitiveStart);
 const sensitiveBlock = migration.slice(sensitiveStart, sensitiveEnd);
 assert.ok(sensitiveBlock.includes("execute format('revoke all on table public.%I from public, anon, authenticated', t)"));
 assert.ok(sensitiveBlock.includes("execute format('grant all on table public.%I to service_role', t)"));
@@ -64,6 +64,7 @@ assert.ok(migration.includes('jsonb_array_length(p_roster) > 200'));
 assert.ok(migration.includes('late_minutes integer not null default 0'));
 assert.ok(migration.includes('grant all on public.salon_staff_attendance_events to service_role'));
 assert.ok(migration.includes('grant all on public.salon_staff_attendance_profiles to service_role'));
+assert.ok(migration.includes('for update'), 'Punch and manual-status paths must lock the staff profile row.');
 assert.ok(migration.includes('salon_staff_attendance_service_punch'));
 assert.ok(migration.includes('salon_staff_attendance_service_mark_status'));
 assert.ok(migration.includes('salon_staff_attendance_service_device_punch'));
@@ -89,6 +90,7 @@ assert.ok(edge.includes("authenticatorAttachment: 'platform'"));
 assert.ok(edge.includes('await admin.auth.getUser(token)'));
 assert.ok(edge.includes("event_type: 'biometric_enrolled'"));
 assert.ok(edge.includes("event_type: 'biometric_revoked'"));
+assert.ok(edge.includes("event_type: 'biometric_enrolled'"));
 assert.ok(edge.includes("eq('sign_count', Number(stored.sign_count))"));
 assert.ok(edge.includes('devicePunch'));
 assert.ok(edge.includes('payload_digest'));
