@@ -331,7 +331,7 @@ export function StaffAttendancePanel({ profile, stylists }: Props) {
   const markStatus = async (staffKey: string, status: string) => {
     setBusy(true); setError(''); setNotice('');
     try {
-      await invoke('manualStatus', { staffKey, attendanceDate: today, status, notes: 'Marked by salon owner' });
+      await invoke('manualStatus', { staffKey, attendanceDate: registerDate, status, notes: 'Marked by salon owner' });
       setNotice('Attendance status updated.');
       await load(true);
     } catch (cause) {
