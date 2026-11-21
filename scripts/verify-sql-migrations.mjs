@@ -359,6 +359,70 @@ assert.equal(columnPrivacy.anon_price,true,'anon keeps service prices');
 assert.equal(columnPrivacy.auth_owner_id,true,'signed-in sessions keep owner_id for the owner workspace');
 assert.equal(columnPrivacy.public_rows_policy,1,'column grants do not replace the row filter');
 
+// Storefront privacy: owner_id must not reach anonymous readers of the
+// published-site catalogue. Measured behaviourally in
+// verify-storefront-privacy.mjs; replayed here so the grants cannot rot.
+const storefrontViewFile='supabase/migrations/20261121130001_public_storefront_view.sql';
+const storefrontViewSql=readFileSync(storefrontViewFile,'utf8');
+assert.match(storefrontViewSql,/create or replace view public\.public_salon_websites/i,
+  'the public storefront view is created');
+assert.match(storefrontViewSql,/revoke select on public\.studioflow_websites from anon/i,
+  'anonymous direct reads of the base table are withdrawn');
+assert.match(storefrontViewSql,/grant select on public\.public_salon_websites to anon, authenticated/i,
+  'the projection view is granted to anon so the storefront still renders');
+// The view must be SECURITY DEFINER: a security_invoker view would run with the
+// caller's rights and every anonymous render would fail on the revoked grant.
+assert.doesNotMatch(storefrontViewSql.split('revoke select on public.studioflow_websites')[0].replace(/--[^\n]*/g,''),
+  /security_invoker\s*=\s*true/i,
+  'the shipped view is not security_invoker (that combination denies every anon read)');
+assert.doesNotMatch(storefrontViewSql,/\bowner_id\b[^\n]*from public\.public_salon_websites/i,
+  'no read path selects owner_id out of the public projection');
+
+// The fixture tables this migration touches are Nexora-era tables created
+// outside the replayed chain, so declare them as the live schema has them.
+await db.exec(`
+create schema if not exists studioflow_private;
+create table if not exists public.studioflow_websites (
+  owner_id uuid primary key,
+  slug text not null unique,
+  content jsonb not null default '{}'::jsonb,
+  published_at timestamptz
+);
+alter table public.studioflow_websites enable row level security;
+-- The replayed chain may already have installed this policy.
+do $$ begin
+  if not exists (select 1 from pg_policies where schemaname='public' and tablename='studioflow_websites' and policyname='studioflow_websites_read') then
+    create policy studioflow_websites_read on public.studioflow_websites for select to anon, authenticated using(true);
+  end if;
+end $$;
+grant select on public.studioflow_websites to anon, authenticated;
+create table if not exists public.studioflow_demo_bookings (
+  id uuid primary key default gen_random_uuid(), customer_id uuid, owner_id uuid,
+  request_id uuid, status text not null default 'confirmed', payload jsonb,
+  created_at timestamptz not null default now()
+);
+alter table public.studioflow_demo_bookings enable row level security;
+grant select, insert, update on public.studioflow_bookings, public.studioflow_demo_bookings to authenticated;
+`);
+await applySqlText(storefrontViewSql,storefrontViewFile);
+
+const {rows:[storefrontPrivacy]}=await db.query(`
+  select
+    has_table_privilege('anon','public.studioflow_websites','SELECT') as anon_base_read,
+    has_table_privilege('authenticated','public.studioflow_websites','SELECT') as auth_base_read,
+    (select count(*)::int from information_schema.columns
+       where table_schema='public' and table_name='public_salon_websites' and column_name='owner_id') as view_owner_id_columns,
+    (select count(*)::int from pg_trigger
+       where tgrelid='public.studioflow_bookings'::regclass and tgname='studioflow_stamp_booking_salon_slug') as bookings_slug_trigger,
+    (select count(*)::int from pg_trigger
+       where tgrelid='public.studioflow_demo_bookings'::regclass and tgname='studioflow_stamp_demo_booking_salon_slug') as demo_slug_trigger
+`);
+assert.equal(storefrontPrivacy.anon_base_read,false,'anon can no longer read public.studioflow_websites directly');
+assert.equal(storefrontPrivacy.auth_base_read,true,'authenticated keeps its direct table read for owner screens');
+assert.equal(storefrontPrivacy.view_owner_id_columns,0,'the public projection has no owner_id column');
+assert.equal(storefrontPrivacy.bookings_slug_trigger,1,'bookings stamp the public salon slug on write');
+assert.equal(storefrontPrivacy.demo_slug_trigger,1,'demo bookings stamp the public salon slug on write');
+
 // NEXORA WhatsApp test mode: apply its private QA ledger and the follow-up
 // rename migration before the live-catalog scan. The limiter is intentionally
 // server-only (service_role grant only) and is not a browser-facing RPC.
@@ -479,13 +543,35 @@ for(const r of rpcs){
   if(!hit.rows.length)missingRpc.push(r);
 }
 assert.deepEqual(missingRpc,[],'Client RPCs missing from live catalog');
+// Every client-referenced relation must exist and be closed by default.
+// A VIEW cannot carry RLS at all, so for views the equivalent guarantee is
+// asserted instead: it is a view, it is explicitly granted to the intended
+// role(s), and it is not a `select *` passthrough of a table that holds
+// private columns. Anything that is not a table or a view fails outright.
 const missingTables=[];
+const clientViews=[];
 for(const t of new Set(tables)){
-  const hit=await db.query(`select relrowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname=$1`,[t]);
-  if(!hit.rows.length)missingTables.push(t+' (absent)');
-  else if(!hit.rows[0].relrowsecurity)missingTables.push(t+' (RLS off)');
+  const hit=await db.query(`select c.relrowsecurity, c.relkind from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname=$1`,[t]);
+  if(!hit.rows.length){missingTables.push(t+' (absent)');continue;}
+  const {relrowsecurity,relkind}=hit.rows[0];
+  if(relkind==='v'){clientViews.push(t);continue;}
+  if(!relrowsecurity)missingTables.push(t+' (RLS off)');
 }
 assert.deepEqual(missingTables,[],'Client tables missing or without RLS');
+for(const v of clientViews){
+  const {rows:[view]}=await db.query(
+    `select has_table_privilege('anon',$1,'SELECT') as anon_read,
+            has_table_privilege('authenticated',$1,'SELECT') as auth_read,
+            (select count(*)::int from information_schema.columns
+               where table_schema='public' and table_name=$1 and column_name in ('owner_id','organization_id')) as private_columns
+     from pg_class c join pg_namespace n on n.oid=c.relnamespace
+     where n.nspname='public' and c.relname=$1`,[v]);
+  assert.ok(view,'client-referenced view exists: '+v);
+  assert.ok(view.anon_read||view.auth_read,'client view is granted to a browser role: '+v);
+  assert.equal(view.private_columns,0,'client view projects no owner-identifying columns: '+v);
+}
+assert.deepEqual(clientViews,['public_salon_websites'],
+  'the only RLS-exempt client relation is the audited storefront projection view');
 const buckets=await db.query(`select id from storage.buckets where id in ('studioflow-media','nexora-customer-private','ink-logos','ink-gallery','ink-artists','ink-references','ink-blog','nexora-public-assets')`);
 assert.equal(buckets.rows.length,8,'StudioFlow, Template 12 and the NEXORA landing asset bucket exist');
 for(const b of bucketsUsed){assert.ok(['studioflow-media','nexora-customer-private','ink-logos','ink-gallery','ink-artists','ink-references','ink-blog','nexora-public-assets'].includes(b),'Unknown bucket reference: '+b);}

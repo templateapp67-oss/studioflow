@@ -9,13 +9,24 @@ import type {Session} from '@supabase/supabase-js';
 import {ArrowLeft,Camera,ChevronRight,CalendarDays,MapPin,Heart,Sparkles,Gift,Settings,ShieldCheck,HelpCircle,FileText,LogOut,Pencil,Phone,Navigation,Trash2,Plus,Mail,Sun,Moon,ExternalLink} from 'lucide-react';
 import {supabase} from '../../lib/supabase';
 import {useCustomerProfile} from './useCustomerProfile';
-import {Salon,Booking,message} from './model';
+import {Salon,Booking,message,findSalonForBooking} from './model';
 import {CustomerAvatar,Notice,Empty} from './Parts';
 type Address={id:string;label:string;address_line:string;city:string;postal_code:string};
 type ProfileAccount=ReturnType<typeof useCustomerProfile>;
 type Page='menu'|'edit'|'addresses'|'settings'|'support'|'privacy';
 export function CustomerProfilePage({session,account,points,salons,bookings=[],navigate,signIn,chooseAddress,install}:{key?:React.Key;session:Session|null;account:ProfileAccount;points:number;salons:Salon[];bookings?:Booking[];navigate:(tab:'bookings'|'favorites'|'rewards')=>void;signIn:()=>void;chooseAddress:(city:string)=>void;install:React.ReactNode}){
- const [page,setPage]=useState<Page>('menu'),[notice,setNotice]=useState('');const input=useRef<HTMLInputElement>(null);const name=account.profile.full_name||(typeof session?.user.user_metadata?.full_name==='string'?session.user.user_metadata.full_name:'')||'Guest User';
+ const [page,setPage]=useState<Page>('menu'),[notice,setNotice]=useState('');
+ // Ownership is resolved for the signed-in user only. The public catalogue no
+ // longer carries owner_id, and `authenticated` keeps its direct table read,
+ // so this check works without republishing anyone's UUID to anon readers.
+ const [ownsSalon,setOwnsSalon]=useState(false);
+ useEffect(()=>{
+  let active=true;
+  if(!session?.user.id){setOwnsSalon(false);return;}
+  void supabase.from('studioflow_websites').select('slug').eq('owner_id',session.user.id).limit(1)
+   .then(({data,error})=>{if(active&&!error)setOwnsSalon(Array.isArray(data)&&data.length>0)});
+  return()=>{active=false};
+ },[session?.user.id]);const input=useRef<HTMLInputElement>(null);const name=account.profile.full_name||(typeof session?.user.user_metadata?.full_name==='string'?session.user.user_metadata.full_name:'')||'Guest User';
  useEffect(()=>{setPage('menu');setNotice('')},[session?.user.id]);
  const titles:Record<Page,string>={menu:'My Profile',edit:'Edit Profile',addresses:'Saved Addresses',settings:'Preferences & Settings',support:'Help & Support',privacy:'Privacy & Booking Policies'};
  const open=(p:Page)=>{setNotice('');if((p==='edit'||p==='addresses')&&!session){signIn();return;}setPage(p);window.scrollTo(0,0)};
@@ -39,7 +50,7 @@ export function CustomerProfilePage({session,account,points,salons,bookings=[],n
    <button className="cr-outline cr-tiny" style={{background:'rgba(255,255,255,0.2)',color:'#fff',borderColor:'rgba(255,255,255,0.4)',border:'1px solid rgba(255,255,255,0.4)',borderRadius:'8px',padding:'6px 12px',cursor:'pointer'}} onClick={()=>navigate('rewards')}>View Rewards & Redeem →</button>
  </div>
  {row('Booking History',CalendarDays,()=>navigate('bookings'),'cr-purple')}{row('Saved Addresses',MapPin,()=>open('addresses'),'cr-purple')}{row('Favourite Salons',Heart,()=>navigate('favorites'),'cr-red')}{row(`Loyalty & Points (${points} pts)`,Sparkles,()=>navigate('rewards'),'cr-orange')}{row('Refer & Earn',Gift,()=>navigate('rewards'),'cr-teal')}</section>
- <section className="cr-profile-group cr-reference-profile-payments"><h2>PAYMENT & RECEIPTS HISTORY</h2>{!session?<p className="cr-muted">Sign in to see your appointment receipts.</p>:!bookings.length?<p className="cr-muted">Your booking receipts will appear here.</p>:bookings.slice(0,5).map(b=>{const salon=salons.find(s=>s.owner_id===b.owner_id);return <article key={b.id}><div><h3>{salon?.content?.profile?.businessName||'Salon appointment'}</h3><p>{b.payload?.date} · {b.payload?.demo?'₹0 demo':`Recorded paid: ₹${Number(b.payload?.amountPaid||0).toFixed(2)}`}</p><small>{b.id.slice(0,8).toUpperCase()} · {b.status}</small></div><button className="cr-outline cr-tiny" onClick={()=>downloadBookingFile(bookingReceipt(b,salon),'nexora-'+b.id.slice(0,8)+'-receipt.txt','text/plain;charset=utf-8')}>Download Receipt</button></article>})}</section><section className="cr-profile-group"><h2>PREFERENCES & CONTROLS</h2>{row('Notifications, Language & Settings',Settings,()=>open('settings'))}{salons.some(s=>s.owner_id===session?.user.id)&&<a className="cr-profile-menu-row cr-owner-workspace" href="/"><ShieldCheck size={16}/><span>My Salon Dashboard & Monitoring</span><ExternalLink size={14}/></a>}</section>
+ <section className="cr-profile-group cr-reference-profile-payments"><h2>PAYMENT & RECEIPTS HISTORY</h2>{!session?<p className="cr-muted">Sign in to see your appointment receipts.</p>:!bookings.length?<p className="cr-muted">Your booking receipts will appear here.</p>:bookings.slice(0,5).map(b=>{const salon=findSalonForBooking(salons,b);return <article key={b.id}><div><h3>{salon?.content?.profile?.businessName||'Salon appointment'}</h3><p>{b.payload?.date} · {b.payload?.demo?'₹0 demo':`Recorded paid: ₹${Number(b.payload?.amountPaid||0).toFixed(2)}`}</p><small>{b.id.slice(0,8).toUpperCase()} · {b.status}</small></div><button className="cr-outline cr-tiny" onClick={()=>downloadBookingFile(bookingReceipt(b,salon),'nexora-'+b.id.slice(0,8)+'-receipt.txt','text/plain;charset=utf-8')}>Download Receipt</button></article>})}</section><section className="cr-profile-group"><h2>PREFERENCES & CONTROLS</h2>{row('Notifications, Language & Settings',Settings,()=>open('settings'))}{ownsSalon&&<a className="cr-profile-menu-row cr-owner-workspace" href="/"><ShieldCheck size={16}/><span>My Salon Dashboard & Monitoring</span><ExternalLink size={14}/></a>}</section>
  {session&&<CustomerMarketingPreferences key={session.user.id} uid={session.user.id}/>}
  <section className="cr-profile-group"><h2>SUPPORT & LEGAL</h2>{row('Help & Support',HelpCircle,()=>open('support'))}{row('Terms of Service & Privacy',FileText,()=>open('privacy'))}</section>
  <div className="cr-profile-install">{install}</div>{session&&<button className="cr-profile-logout" disabled={account.busy} onClick={()=>void supabase.auth.signOut().then(({error})=>{if(error)setNotice(message(error))})}><LogOut size={15}/>Log Out</button>}<p className="cr-profile-version">Nexora · Customer App v1.1</p></>:

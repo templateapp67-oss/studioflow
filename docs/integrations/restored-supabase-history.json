@@ -2072,6 +2072,10 @@
     {
       "file": "20261121130000_hide_owner_id_on_public_services.sql",
       "purpose": "Column privacy for the public service catalogue: the table-wide SELECT grant to anon on public.services is replaced by explicit column grants that exclude owner_id, so a signed-out visitor can no longer read a salon's owner UUID. Row visibility still comes from services_public_read. The proposed security_invoker view was rejected because it depends on the very grant it revokes and therefore denies every anonymous read."
+    },
+    {
+      "file": "20261121130001_public_storefront_view.sql",
+      "purpose": "Storefront column privacy for the published-site catalogue: public_salon_websites projects only slug/content/published_at (never owner_id, the base table's primary key), anon loses its direct read of studioflow_websites, and studioflow_customer_catalog() is rewritten to project the view instead of embedding owner_id. Also stamps the public salon slug onto booking payloads via trigger + backfill so the customer app joins on slug rather than owner_id. The view is deliberately SECURITY DEFINER, the opposite of the public.services fix, because it exists to be readable by a role that cannot read the base table."
     }
   ],
   "post_export_applied_versions": [
@@ -2191,6 +2195,15 @@
       "evidence": "Applied to project zilwgiuiygqqardzutxi on 2026-11-21. Verified live: has_column_privilege('anon','public.services','owner_id','SELECT') is false while name/price stay readable, anon holds 19 of 20 columns, authenticated keeps owner_id, and services_public_read is still installed.",
       "purpose": "Remove owner_id from anonymous reads of the public service catalogue; behaviour measured by scripts/verify-service-column-privacy.mjs.",
       "git_blob_sha": "b0711a0d641379b8daed7fa95c447a8620d1a148"
+    },
+    {
+      "version": "20261121130001",
+      "file": "20261121130001_public_storefront_view.sql",
+      "name": "public_storefront_view",
+      "observed_at": "2026-11-21",
+      "evidence": "Applied to project zilwgiuiygqqardzutxi on 2026-11-21. Verified live: anon has no SELECT on public.studioflow_websites, public_salon_websites exposes no owner_id column, studioflow_customer_catalog() returns salons without owner_id, and booking payloads carry salonSlug.",
+      "purpose": "Anonymous storefront reads no longer carry a salon's owner UUID; bookings join on the public slug instead.",
+      "git_blob_sha": "8389139eee2c78041896bb0cfaa9e930b8cbc2e4"
     }
   ]
 }
