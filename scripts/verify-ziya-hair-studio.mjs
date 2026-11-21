@@ -470,7 +470,9 @@ const enqRes = await asUser(null, 'anon', async () => {
       p_email => 'ananya@example.com',
       p_service_name => 'Butterfly Haircut',
       p_message => 'My hair is waist-length wavy — looking for face-framing butterfly layers.',
-      p_preferred_date => '2026-11-20'::date
+      -- Relative, not pinned: the RPC only accepts today..today+120, so a
+      -- hard-coded date turns this suite red once that day passes.
+      p_preferred_date => (current_date + 3)::date
     ) as enquiry`,
   );
   return res.rows[0].enquiry;

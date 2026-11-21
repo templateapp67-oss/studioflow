@@ -2145,7 +2145,7 @@
       "observed_at": "2026-11-19",
       "evidence": "Applied to project zilwgiuiygqqardzutxi on 2026-11-19 (role matrix functions, permission check helper, branch role constraint) and recorded in the remote supabase_migrations.schema_migrations history.",
       "purpose": "Role-level permissions: canonical staff access-role normalizer, server-side permission matrix mirroring src/lib/staffPermissions.ts, caller branch-role helper, and a pinned branch role CHECK constraint with legacy value normalization. Additive and read-only; no RLS policy is widened.",
-      "git_blob_sha": ""
+      "git_blob_sha": "d1fc8a79337e024878c082a59e75149221db6135"
     },
     {
       "version": "20261119070000",
@@ -2154,7 +2154,7 @@
       "observed_at": "2026-11-19",
       "evidence": "Confirmed against the live supabase_migrations.schema_migrations history (top of list) for project zilwgiuiygqqardzutxi; local SQL source already exists in the repo.",
       "purpose": "Additive unified salon CRM tables (crm_tasks, crm_contacts, crm_activities) in studioflow_android_private, owner-only RLS, with the owner CRM RPCs consumed by src.",
-      "git_blob_sha": ""
+      "git_blob_sha": "7534812d812d8f127bd84dbd7a604546c3128e6f"
     },
     {
       "version": "20261119120000",
@@ -2163,7 +2163,7 @@
       "observed_at": "2026-11-19",
       "evidence": "Applied to project zilwgiuiygqqardzutxi on 2026-11-19: staff_invites + staff_members tables, invite lifecycle RPCs, role/branch-filtered staff workspace projection and an additive branch-scoped staff booking read policy. Verified live that anon can execute only the token lookup, every other RPC is authenticated-only, and the owner ledger exposes no token hash.",
       "purpose": "Staff invite + separate staff login layer: hashed invite tokens, one identity per staff record, role/branch scope enforced in SQL, and additive RLS for staff booking visibility. No existing owner policy is dropped or widened.",
-      "git_blob_sha": ""
+      "git_blob_sha": "70f83746c8822524525c0ef161f483fecab2e4ab"
     },
     {
       "version": "20261119140000",
@@ -2172,7 +2172,7 @@
       "observed_at": "2026-11-19",
       "evidence": "Applied to project zilwgiuiygqqardzutxi on 2026-11-19: all_branches columns, SECURITY DEFINER helpers (studioflow_is_salon_owner / active_branch_ids / staff_scope / staff_scope_view / current_staff_can / current_staff_id / is_assigned_branch), rewritten branch-scoped staff booking policy, fail-closed invite create/accept/lookup/workspace/context, owner-only studioflow_staff_member_update_access, and the superseded 6-argument invite creator dropped so anon retains exactly one executable function (the token lookup).",
       "purpose": "Fail-closed multi-branch scope and token hardening for staff access.",
-      "git_blob_sha": ""
+      "git_blob_sha": "2eab19923e14c4ec2cd0d4c78bed3dbda4e7cb98"
     },
     {
       "version": "20261121120000",
@@ -2181,7 +2181,7 @@
       "observed_at": "2026-11-21",
       "evidence": "Applied to project zilwgiuiygqqardzutxi on 2026-11-21. Replaces the wide services_public_read policy with a bookable + published-salon predicate, adds staff branch-scoped reads on branches and studioflow_services, and adds staff booking write policies scoped by studioflow_is_assigned_branch and studioflow_current_staff_can.",
       "purpose": "Domain-table RLS hardening for branches, services and bookings; behaviour is measured by scripts/verify-domain-rls.mjs.",
-      "git_blob_sha": ""
+      "git_blob_sha": "ca160b7cd8dca5a84228d1066b7d2f40c21eb382"
     },
     {
       "version": "20261121130000",
@@ -2190,7 +2190,7 @@
       "observed_at": "2026-11-21",
       "evidence": "Applied to project zilwgiuiygqqardzutxi on 2026-11-21. Verified live: has_column_privilege('anon','public.services','owner_id','SELECT') is false while name/price stay readable, anon holds 19 of 20 columns, authenticated keeps owner_id, and services_public_read is still installed.",
       "purpose": "Remove owner_id from anonymous reads of the public service catalogue; behaviour measured by scripts/verify-service-column-privacy.mjs.",
-      "git_blob_sha": ""
+      "git_blob_sha": "b0711a0d641379b8daed7fa95c447a8620d1a148"
     }
   ]
 }
