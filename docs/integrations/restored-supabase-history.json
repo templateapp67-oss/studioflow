@@ -2068,6 +2068,10 @@
     {
       "file": "20261121120000_domain_tables_fail_closed_rls.sql",
       "purpose": "Fail-closed owner + branch-scoped staff RLS for branches, services and bookings, adapted to the real schema (branches.site_id, studioflow_services, studioflow_bookings): staff reads are scoped through studioflow_is_assigned_branch so a stranger or a branch-less login sees nothing, staff create/update bookings only inside their own branch and role (service providers read-only), and public catalogue reads are narrowed from a blanket is_active rule to bookable + published-salon rows. Customer CRM tables stay owner-only."
+    },
+    {
+      "file": "20261121130000_hide_owner_id_on_public_services.sql",
+      "purpose": "Column privacy for the public service catalogue: the table-wide SELECT grant to anon on public.services is replaced by explicit column grants that exclude owner_id, so a signed-out visitor can no longer read a salon's owner UUID. Row visibility still comes from services_public_read. The proposed security_invoker view was rejected because it depends on the very grant it revokes and therefore denies every anonymous read."
     }
   ],
   "post_export_applied_versions": [
@@ -2177,6 +2181,15 @@
       "observed_at": "2026-11-21",
       "evidence": "Applied to project zilwgiuiygqqardzutxi on 2026-11-21. Replaces the wide services_public_read policy with a bookable + published-salon predicate, adds staff branch-scoped reads on branches and studioflow_services, and adds staff booking write policies scoped by studioflow_is_assigned_branch and studioflow_current_staff_can.",
       "purpose": "Domain-table RLS hardening for branches, services and bookings; behaviour is measured by scripts/verify-domain-rls.mjs.",
+      "git_blob_sha": ""
+    },
+    {
+      "version": "20261121130000",
+      "file": "20261121130000_hide_owner_id_on_public_services.sql",
+      "name": "hide_owner_id_on_public_services",
+      "observed_at": "2026-11-21",
+      "evidence": "Applied to project zilwgiuiygqqardzutxi on 2026-11-21. Verified live: has_column_privilege('anon','public.services','owner_id','SELECT') is false while name/price stay readable, anon holds 19 of 20 columns, authenticated keeps owner_id, and services_public_read is still installed.",
+      "purpose": "Remove owner_id from anonymous reads of the public service catalogue; behaviour measured by scripts/verify-service-column-privacy.mjs.",
       "git_blob_sha": ""
     }
   ]

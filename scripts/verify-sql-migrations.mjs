@@ -288,12 +288,23 @@ assert.match(domainRlsSql, /coalesce\(is_bookable_online, true\) is true/,
 await db.exec(`
 create table if not exists public.salons (id uuid primary key, is_active boolean not null default true, deleted_at timestamptz);
 create table if not exists public.services (
-  id uuid primary key default gen_random_uuid(), salon_id uuid, owner_id uuid,
-  name text not null default 'Service', is_active boolean not null default true, is_bookable_online boolean
+  id uuid primary key default gen_random_uuid(), owner_id uuid,
+  name text not null default 'Service', category text not null default 'Hair',
+  description text not null default '', icon text not null default 'spa',
+  price numeric(12,2) not null default 0, duration_minutes integer not null default 30,
+  popular boolean not null default false, show_duration boolean not null default true,
+  sort_order integer, created_at timestamptz not null default now(), updated_at timestamptz,
+  salon_id uuid, price_paise bigint, is_active boolean not null default true,
+  is_bookable_online boolean, is_featured boolean, display_order integer, image_url text
 );
 create table if not exists public.branches (
   id uuid primary key default gen_random_uuid(), site_id uuid not null, name text not null default 'Branch', is_active boolean not null default true
 );
+-- The fixture tables are created after the shared role setup, so the read
+-- grants the live project already has are declared here (matching acl:
+-- anon=r on both, authenticated=arwd on services).
+grant select on public.services, public.branches, public.salons to anon, authenticated;
+grant select on public.services to authenticated;
 `);
 await applySqlText(domainRlsSql, domainRlsFile);
 
@@ -315,6 +326,38 @@ assert.ok(publicServices,'the public services policy exists');
 assert.match(publicServices.body,/is_bookable_online/,'public services are not the old blanket is_active rule');
 assert.equal(domainPolicies.filter(row=>row.policyname==='services_public_read').length,1,
   'exactly one public services policy remains (policies are OR\'d, so a leftover would widen it)');
+
+// Column privacy on the public catalogue: anonymous reads must not carry the
+// salon owner's UUID. Row policies cannot express this, so the grant is narrowed
+// to explicit columns and the row policy stays installed.
+const columnPrivacyFile = 'supabase/migrations/20261121130000_hide_owner_id_on_public_services.sql';
+const columnPrivacySql = readFileSync(columnPrivacyFile, 'utf8');
+assert.match(columnPrivacySql, /revoke select on table public\.services from anon/,
+  'the table-wide anonymous grant is withdrawn before column grants');
+assert.doesNotMatch(columnPrivacySql, /grant select \([^)]*owner_id/i,
+  'owner_id is never granted back to anon');
+// Comments are stripped first: the header explains the rejected
+// `security_invoker` approach as prose.
+const columnPrivacyCode = columnPrivacySql
+  .replace(/\/\*[\s\S]*?\*\//g, ' ')
+  .replace(/--[^\n]*/g, ' ');
+assert.doesNotMatch(columnPrivacyCode, /security_invoker/i,
+  'no security_invoker view is shipped: it would need the very grant the migration revokes');
+await applySqlText(columnPrivacySql, columnPrivacyFile);
+
+const {rows:[columnPrivacy]}=await db.query(`
+  select
+    has_column_privilege('anon','public.services','owner_id','SELECT') as anon_owner_id,
+    has_column_privilege('anon','public.services','name','SELECT') as anon_name,
+    has_column_privilege('anon','public.services','price','SELECT') as anon_price,
+    has_column_privilege('authenticated','public.services','owner_id','SELECT') as auth_owner_id,
+    (select count(*)::int from pg_policies where schemaname='public' and tablename='services' and policyname='services_public_read') as public_rows_policy
+`);
+assert.equal(columnPrivacy.anon_owner_id,false,'anon cannot read public.services.owner_id');
+assert.equal(columnPrivacy.anon_name,true,'anon keeps the catalogue columns a storefront renders');
+assert.equal(columnPrivacy.anon_price,true,'anon keeps service prices');
+assert.equal(columnPrivacy.auth_owner_id,true,'signed-in sessions keep owner_id for the owner workspace');
+assert.equal(columnPrivacy.public_rows_policy,1,'column grants do not replace the row filter');
 
 // NEXORA WhatsApp test mode: apply its private QA ledger and the follow-up
 // rename migration before the live-catalog scan. The limiter is intentionally
