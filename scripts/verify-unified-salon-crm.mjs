@@ -27,7 +27,8 @@ assert.match(migration, /revoke all on function public\.studioflow_owner_crm_upd
 assert.match(migration, /grant execute on function public\.studioflow_owner_crm_create_contact/);
 assert.match(migration, /grant execute on function public\.studioflow_owner_crm_update_contact/);
 assert.match(migration, /crm_contacts_owner_access/);
-assert.match(migration, /m\.owner_id=actor/);
+// Whitespace-insensitive: the dashboard join is written `m.owner_id = actor`.
+assert.match(migration, /m\.owner_id\s*=\s*actor/);
 
 assert.match(crm, /studioflow_owner_crm_dashboard/);
 assert.match(crm, /studioflow_owner_crm_create_contact/);

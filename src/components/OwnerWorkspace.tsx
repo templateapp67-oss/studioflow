@@ -12,6 +12,8 @@ import {AddOnEditor,ComparisonEditor} from './ConversionEditors';
 import {LoyaltyManagement} from './LoyaltyManagement';
 import type {ClientRecord,LoyaltyConfig} from '../types';
 import {WEBSITE_EDIT_STEPS,OWNER_BUSINESS_TOOLS,ownerModule,adjacentOwnerStep} from '../lib/ownerNavigation';
+import {canAccessModule,can,ROLE_SHORT_LABELS,normalizeAccessRole,STAFF_ACCESS_ROLES,ROLE_PREVIEW_KEY,defaultModuleFor} from '../lib/staffPermissions';
+import type {StaffAccessRole} from '../types';
 import {ContentReviewGuide} from './ContentReviewGuide';
 import {AboutStudioEditor} from './AboutStudioEditor';
 import {BrandIdentityPrompt} from './BrandIdentityPrompt';
@@ -20,6 +22,7 @@ import type {CampaignAd} from '../lib/campaignBanner';
 import {PhotoGalleryManager} from './PhotoGalleryManager';
 import {OwnerCustomerContacts} from './OwnerCustomerContacts';
 import { SalonCRM } from './SalonCRM';
+import { StaffAccessPanel } from './staff/StaffAccessPanel';
 import { HeroBannerEditor } from './HeroBannerEditor';
 import {BrandImageField} from './BrandImageField';
 import { WebsiteContentManager } from './WebsiteContentManager';
@@ -75,6 +78,12 @@ type Props = {
   onRefreshBookings?: () => Promise<void>|void;
   sync: string;
   syncError: string;
+  /**
+   * Who is using this workspace. The salon owner (`'owner'`, the default)
+   * always has full access. A staff `StaffAccessRole` only sees the
+   * modules its permissions allow (see `src/lib/staffPermissions.ts`).
+   */
+  accessRole?: StaffAccessRole | 'owner';
 };
 
 const Field = ({ label, value, onChange, type = 'text' }: { label: string; value: string | number; onChange: (value: string) => void; type?: string }) => <label className="block"><span className="field-label">{label}</span><input type={type} value={value} onChange={(e) => onChange(e.target.value)} className="workspace-input" /></label>;
@@ -106,13 +115,42 @@ const Nav = ({id,label,icon,active,onClick,number}:{key?:React.Key;id:number;lab
 
 const ActionPage = ({ eyebrow, title, text, icon, action, onAction, secondary, onSecondary }: { eyebrow: string; title: string; text: string; icon: string; action: string; onAction: () => void; secondary?: string; onSecondary?: () => void }) => <section className="workspace-card action-page"><div className="action-icon"><span className="material-symbols-outlined">{icon}</span></div><p className="eyebrow">{eyebrow}</p><h2>{title}</h2><p className="muted">{text}</p><div className="action-buttons"><button className="primary-action" onClick={onAction}>{action}</button>{secondary && <button className="secondary-action" onClick={onSecondary}>{secondary}</button>}</div></section>;
 
-export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services, setServices, stylists, setStylists, appointments, clients, setClients, loyaltyConfig, setLoyaltyConfig, extras, setExtras, published, onPublish, sessionEmail, templates, onOpenPreview, onOpenDashboard, onOpenWizard, onRefreshBookings, sync, syncError }) => {
-  const [active, setActive] = useState(() => ownerModule(new URLSearchParams(location.search).get('module')));
+export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services, setServices, stylists, setStylists, appointments, clients, setClients, loyaltyConfig, setLoyaltyConfig, extras, setExtras, published, onPublish, sessionEmail, templates, onOpenPreview, onOpenDashboard, onOpenWizard, onRefreshBookings, sync, syncError, accessRole = 'owner' }) => {
+  const [active, setActive] = useState(() => {
+    const requested = new URLSearchParams(location.search).get('module');
+    // No explicit ?module: staff land on their own operational home instead
+    // of opening the website editor they may not have permission for.
+    if (requested === null && accessRole !== 'owner') return defaultModuleFor(accessRole);
+    return ownerModule(requested);
+  });
   const headingRef=useRef<HTMLHeadingElement>(null);
   const navigate=(id:number)=>{const next=ownerModule(String(id));setActive(next);const url=new URL(location.href);url.searchParams.set('module',String(next));history.pushState(null,'',url);};
   useEffect(()=>{const back=()=>setActive(ownerModule(new URLSearchParams(location.search).get('module')));window.addEventListener('popstate',back);return()=>window.removeEventListener('popstate',back);},[]);
   useEffect(()=>{headingRef.current?.focus({preventScroll:true});headingRef.current?.scrollIntoView({block:'start'});},[active]);
   const [notice, setNotice] = useState('');
+  // "View as role" lets the salon owner audit exactly what each App Access
+  // Role can reach. Real staff sessions pass their role in through the
+  // `accessRole` prop instead and cannot change it here.
+  const [previewRole, setPreviewRole] = useState<StaffAccessRole | 'owner'>(() => {
+    if (accessRole !== 'owner') return accessRole;
+    const fromUrl = new URLSearchParams(location.search).get('asRole');
+    if (fromUrl && (STAFF_ACCESS_ROLES as readonly string[]).includes(fromUrl)) return fromUrl as StaffAccessRole;
+    try {
+      const stored = localStorage.getItem(ROLE_PREVIEW_KEY);
+      if (stored && (STAFF_ACCESS_ROLES as readonly string[]).includes(stored)) return stored as StaffAccessRole;
+    } catch { /* private mode — ignore */ }
+    return 'owner';
+  });
+  const actorRole: StaffAccessRole | 'owner' = accessRole === 'owner' ? previewRole : accessRole;
+  const switchRole = (next: StaffAccessRole | 'owner') => {
+    if (accessRole !== 'owner') return;
+    setPreviewRole(next);
+    try {
+      if (next === 'owner') localStorage.removeItem(ROLE_PREVIEW_KEY);
+      else localStorage.setItem(ROLE_PREVIEW_KEY, next);
+    } catch { /* private mode — ignore */ }
+    if (!canAccessModule(next, active)) navigate(defaultModuleFor(next));
+  };
   const [campaignAd,setCampaignAd]=useState<CampaignAd|null>(null);
   const accent = profile.customAccentColor || '#a21caf';
   const revenue = appointments.reduce((sum, item) => sum + item.amountPaid, 0);
@@ -146,7 +184,7 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
     if (active === 1) return <section className="workspace-card"><p className="eyebrow">Secure owner access</p><h2>Signed in</h2><p className="muted">{sessionEmail}</p><p>Your profile and dashboard are saved to your Supabase account.</p></section>;
     if (active === 2) return <section className="workspace-card"><p className="eyebrow">Website editor</p><h2>Business details</h2><div className="form-grid"><Field label="Website address (3–63 lowercase letters, numbers or hyphens)" value={profile.subdomain} onChange={(v) => patchProfile('subdomain', v.toLowerCase().replace(/[^a-z0-9-]/g, ''))} /><Field label="Business name" value={profile.businessName} onChange={(v) => patchProfile('businessName', v)} /><Field label="Owner name" value={profile.ownerName} onChange={(v) => patchProfile('ownerName', v)} /><Field label="Business email" value={profile.email} onChange={(v) => patchProfile('email', v)} /><Field label="Phone" value={profile.phone} onChange={(v) => patchProfile('phone', v)} /><Field label="Tagline" value={profile.tagline} onChange={(v) => patchProfile('tagline', v)} /></div><p className="muted mt-4">Salon ki story aur owner photo ke liye next steps mein About our studio kholein.</p></section>;
     if (active === 3) return <div className="stack"><AddOnEditor profile={profile} setProfile={setProfile} services={services}/><ServiceManagement services={services} setServices={setServices} primaryAccentColor={accent} profile={profile} onNavigateToPreview={onOpenPreview} /></div>;
-    if (active === 4) return <div className="stack"><TeamManagement setServices={setServices} businessType={profile.businessType} stylists={stylists} setStylists={setStylists} services={services} primaryAccentColor={accent} onNavigateToPreview={onOpenPreview} /><BranchStaffScheduleEditor branches={profile.branches || []} stylists={stylists} setStylists={setStylists}/></div>;
+    if (active === 4) return <div className="stack"><TeamManagement setServices={setServices} businessType={profile.businessType} stylists={stylists} setStylists={setStylists} services={services} primaryAccentColor={accent} onNavigateToPreview={onOpenPreview} /><StaffAccessPanel stylists={stylists} profile={profile} ownerEmail={sessionEmail} /><BranchStaffScheduleEditor branches={profile.branches || []} stylists={stylists} setStylists={setStylists}/></div>;
     if (active === 5) return <section className="workspace-card"><PhotoGalleryManager profile={profile} setProfile={setProfile} gallery={extras.gallery} setGallery={gallery=>setExtras(prev=>({...prev,gallery}))}/><ComparisonEditor profile={profile} setProfile={setProfile}/></section>;
     if (active === 6) return <SocialConnectivityStep profile={profile} setProfile={setProfile} onContinue={onOpenPreview}/>;
     if (active === 7) return <div className="stack"><InteractiveMapSetup profile={profile} setProfile={setProfile} themePrimaryColor={accent} /><section className="workspace-card"><h2>Operating hours</h2><div className="form-grid three"><Field label="Mon–Fri (except Tuesday)" value={profile.workingHoursMonFri || '10:00 AM – 8:00 PM'} onChange={(v) => patchProfile('workingHoursMonFri', v)} /><Field label="Tuesday" value={profile.workingHoursTue || ''} onChange={(v) => patchProfile('workingHoursTue', v)} /><Field label="Sunday" value={profile.workingHoursSun || '11:00 AM – 6:00 PM'} onChange={(v) => patchProfile('workingHoursSun', v)} /></div></section><BranchLocationsEditor profile={profile} setProfile={setProfile}/></div>;
@@ -168,10 +206,25 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
 
   const stepIndex=WEBSITE_EDIT_STEPS.findIndex(step=>step.id===active);
   const currentStep=WEBSITE_EDIT_STEPS[stepIndex];
-  const visibleBusinessTools=OWNER_BUSINESS_TOOLS.filter(tool=>tool.id!==33||profile.businessType==='unisex_salon');
+  // Role-level gating: staff roles only see modules their permissions allow.
+  // The owner ('owner') sees everything, exactly as before.
+  const visibleSteps=WEBSITE_EDIT_STEPS.filter(step=>canAccessModule(actorRole,step.id));
+  const visibleBusinessTools=OWNER_BUSINESS_TOOLS.filter(tool=>(tool.id!==33||profile.businessType==='unisex_salon')&&canAccessModule(actorRole,tool.id));
+  const activeAllowed=canAccessModule(actorRole,active);
+
   const currentLabel=currentStep?.label||OWNER_BUSINESS_TOOLS.find(tool=>tool.id===active)?.label||'Owner workspace';
-  const previous=adjacentOwnerStep(active,-1),next=adjacentOwnerStep(active,1);
-  const stepControls=<div className="flex items-center gap-3"><button type="button" className="px-4 py-2 text-xs font-bold bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 rounded-xl transition-all cursor-pointer disabled:opacity-40" disabled={previous===null} onClick={()=>previous!==null&&navigate(previous)}>← Previous step</button>{next!==null?<button type="button" className="px-4 py-2 text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white rounded-xl shadow-xs transition-all cursor-pointer" onClick={()=>navigate(next)}>Next: {WEBSITE_EDIT_STEPS[stepIndex+1].label} →</button>:<button type="button" className="px-4 py-2 text-xs font-bold bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 rounded-xl transition-all cursor-pointer" onClick={()=>navigate(2)}>Back to step 1</button>}</div>;
+  // A blocked module must not leak its name in the header either.
+  const headerLabel=activeAllowed?currentLabel:'Permission required';
+  // Previous/next walk only the steps this role may open, so a restricted
+  // role is never pushed onto a module it has no permission for.
+  const visibleStepIndex=visibleSteps.findIndex(step=>step.id===active);
+  const previous=visibleStepIndex>0?visibleSteps[visibleStepIndex-1].id:null;
+  const next=visibleStepIndex>=0&&visibleStepIndex<visibleSteps.length-1?visibleSteps[visibleStepIndex+1].id:null;
+  const stepControls=<div className="flex items-center gap-3"><button type="button" className="px-4 py-2 text-xs font-bold bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 rounded-xl transition-all cursor-pointer disabled:opacity-40" disabled={previous===null} onClick={()=>previous!==null&&navigate(previous)}>← Previous step</button>{next!==null?<button type="button" className="px-4 py-2 text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white rounded-xl shadow-xs transition-all cursor-pointer" onClick={()=>navigate(next)}>Next: {visibleSteps[visibleStepIndex+1].label} →</button>:<button type="button" className="px-4 py-2 text-xs font-bold bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 rounded-xl transition-all cursor-pointer" onClick={()=>navigate(visibleSteps[0]?.id??active)}>Back to step 1</button>}</div>;
+  const stepCountLabel=visibleStepIndex>=0?`Step ${visibleStepIndex+1} / ${visibleSteps.length}`:'Business tools';
+  const firstAllowedModule=defaultModuleFor(actorRole);
+  // Publishing the live website is a Manager-level action.
+  const canPublish=can(actorRole==='owner'?'Manager (Full Access)':actorRole,'publish_website');
 
   return <>
   <main className="min-h-screen bg-slate-50 text-slate-900 flex flex-col antialiased">
@@ -182,7 +235,7 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <strong className="text-slate-900 font-extrabold text-sm sm:text-base flex items-center gap-1.5 mr-2">
             <span className="material-symbols-outlined text-base text-pink-600">tune</span>
-            <span>{currentLabel}</span>
+            <span>{headerLabel}</span>
           </strong>
           <span className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider ${
             published ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-amber-100 text-amber-800 border border-amber-200'
@@ -192,16 +245,37 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
           <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 font-semibold border border-slate-200/60 font-mono text-[11px]">
             {sync}
           </span>
+          {actorRole !== 'owner' ? (
+            <span className="px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 font-semibold border border-purple-200 text-[11px]" title="Your App Access Role controls which sections you can open">
+              Role: {ROLE_SHORT_LABELS[normalizeAccessRole(actorRole)]}
+            </span>
+          ) : null}
+          {accessRole === 'owner' && (
+            <label className="flex items-center gap-1.5 px-1 text-[11px] font-semibold text-slate-500">
+              <span>View as</span>
+              <select
+                aria-label="Preview the workspace as a staff role"
+                value={previewRole}
+                onChange={(e) => switchRole(e.target.value === 'owner' ? 'owner' : normalizeAccessRole(e.target.value))}
+                className="px-2 py-1 rounded-lg border border-slate-300 bg-white text-[11px] font-semibold text-slate-800 cursor-pointer"
+              >
+                <option value="owner">Owner (full access)</option>
+                {STAFF_ACCESS_ROLES.map(role => <option key={role} value={role}>{ROLE_SHORT_LABELS[role]}</option>)}
+              </select>
+            </label>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer active:scale-95"
-            onClick={onPublish}
-          >
-            Publish Website
-          </button>
+          {canPublish && (
+            <button
+              type="button"
+              className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer active:scale-95"
+              onClick={onPublish}
+            >
+              Publish Website
+            </button>
+          )}
           <button
             type="button"
             className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-semibold transition-all cursor-pointer active:scale-95"
@@ -225,11 +299,11 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
         <aside className="sticky top-36 overflow-y-auto p-4 bg-slate-900 text-slate-100 border border-slate-800 rounded-2xl hidden lg:block no-scrollbar shadow-sm">
           <div className="p-3 mb-4 rounded-xl bg-slate-800/40 border border-slate-800 text-xs text-slate-300 leading-relaxed">
             <strong className="block text-slate-100 font-bold mb-1">Edit your website</strong>
-            <p>1 se {WEBSITE_EDIT_STEPS.length} tak ek-ek step edit karein. Kisi bhi step par seedha ja sakte hain.</p>
+            <p>1 se {visibleSteps.length} tak ek-ek step edit karein. Kisi bhi step par seedha ja sakte hain.</p>
           </div>
 
           <nav aria-label="Website editing steps" className="space-y-0.5">
-            <ol>{WEBSITE_EDIT_STEPS.map((step,index)=><li key={step.id}><Nav {...step} number={index+1} active={active} onClick={navigate}/></li>)}</ol>
+            <ol>{visibleSteps.map((step,index)=><li key={step.id}><Nav {...step} number={index+1} active={active} onClick={navigate}/></li>)}</ol>
           </nav>
 
           <details className="mt-6 pt-4 border-t border-slate-800 group" open={stepIndex<0||undefined}>
@@ -247,11 +321,12 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
         <div className="lg:hidden p-4 bg-slate-900 text-white rounded-2xl border border-slate-800">
           <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Choose a section</label>
           <select 
+            aria-label="Choose a section"
             value={active} 
             onChange={e=>navigate(Number(e.target.value))}
             className="w-full bg-slate-800 text-white border border-slate-700 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-pink-500"
           >
-            <optgroup label="Edit website — in order">{WEBSITE_EDIT_STEPS.map((step,index)=><option key={step.id} value={step.id}>{index+1}. {step.label}</option>)}</optgroup>
+            <optgroup label="Edit website — in order">{visibleSteps.map((step,index)=><option key={step.id} value={step.id}>{index+1}. {step.label}</option>)}</optgroup>
             <optgroup label="Business tools">{visibleBusinessTools.map(tool=><option key={tool.id} value={tool.id}>{tool.label}</option>)}</optgroup>
           </select>
         </div>
@@ -267,13 +342,13 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
 
           <section className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs" aria-label="Current editing step">
             <span className="text-[11px] font-mono font-bold text-pink-600 uppercase tracking-wider block mb-1">
-              {currentStep ? `Step ${stepIndex+1} / ${WEBSITE_EDIT_STEPS.length}` : 'Business tools'}
+              {currentStep ? stepCountLabel : 'Business tools'}
             </span>
             <h1 ref={headingRef} tabIndex={-1} className="text-2xl font-extrabold text-slate-900 tracking-tight outline-none">
-              {currentLabel}
+              {headerLabel}
             </h1>
             <p className="text-sm text-slate-600 mt-1.5 leading-relaxed">
-              {currentStep?.hint || 'Roz ke salon operations yahan manage karein. Website edit karne ke liye numbered steps use karein.'}
+              {activeAllowed ? (currentStep?.hint || 'Roz ke salon operations yahan manage karein. Website edit karne ke liye numbered steps use karein.') : 'Your App Access Role does not include this section. Choose another section from the menu, or ask the salon owner to update your role.'}
             </p>
             {currentStep ? (
               <p className="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-100 font-medium">
@@ -283,19 +358,31 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
               <button 
                 type="button" 
                 className="mt-4 px-4 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl border border-slate-200 transition-all cursor-pointer" 
-                onClick={()=>navigate(2)}
+                onClick={()=>navigate(visibleSteps[0]?.id??active)}
               >
                 Start website editing · Step 1
               </button>
             )}
           </section>
 
-          <div key={active} className="min-w-0">{renderContent()}</div>
+          {activeAllowed ? (
+            <div key={active} className="min-w-0">{renderContent()}</div>
+          ) : (
+            <section className="workspace-card" role="alert">
+              <p className="eyebrow">Permission required</p>
+              <h2>You don't have access to this section</h2>
+              <p className="muted">
+                Your App Access Role ({ROLE_SHORT_LABELS[normalizeAccessRole(actorRole)]}) does not include this area.
+                Ask the salon owner to change your role if you need it.
+              </p>
+              <button type="button" className="primary-action" onClick={()=>navigate(firstAllowedModule)}>Go to my workspace</button>
+            </section>
+          )}
 
           {currentStep && (
             <footer className="pt-6 border-t border-slate-200 mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
               <p className="text-xs font-semibold text-slate-500">
-                Step {stepIndex+1} / {WEBSITE_EDIT_STEPS.length} · {currentLabel}
+                {stepCountLabel} · {headerLabel}
               </p>
               {stepControls}
             </footer>

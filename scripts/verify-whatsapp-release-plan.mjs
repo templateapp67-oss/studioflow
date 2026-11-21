@@ -35,9 +35,16 @@ const pending=active.filter(name=>!applied.has(name.split('_',1)[0])).sort();
 const reviewedPending=history.release_pending_migrations.map(r=>r.file).sort();
 assert.deepEqual(pending,reviewedPending,
   'Only explicitly listed release-pending migrations may be absent from the remote applied history');
-assert.equal((history.reviewed_feature_migrations||[]).length,4);
+// Reviewed feature migrations are the ones a human signed off before deploy.
+// Assert the invariant (each is a distinct, still-present, applied source)
+// rather than a fixed count, which only records how many existed at one time.
+const reviewedFiles=new Set();
 for(const record of history.reviewed_feature_migrations||[]){
   assert(active.includes(record.file),`Reviewed feature migration source is missing: ${record.file}`);
+  assert(!reviewedFiles.has(record.file),`Reviewed feature migration listed twice: ${record.file}`);
+  reviewedFiles.add(record.file);
+  assert(applied.has(record.file.split('_',1)[0]),
+    `Reviewed feature migration was never recorded as applied or pending: ${record.file}`);
 }
 // New pending migrations must be newer than every migration already recorded as applied.
 const latest=[...applied].sort().at(-1);
@@ -71,4 +78,4 @@ assert(workflow.includes('$SUPABASE_PROJECT_REF" != "zilwgiuiygqqardzutxi"'));
 const config=readFileSync('supabase/config.toml','utf8');
 assert(/\[functions\.nexora-whatsapp-connect\]\s*verify_jwt\s*=\s*true/.test(config));
 assert(/\[functions\.studioflow-whatsapp-booking\]\s*verify_jwt\s*=\s*false/.test(config));
-console.log(`PASS: ${applied.size} applied migration versions (captured export plus ${postExportApplied.length} post-export records), ${pending.length} explicitly approved pending migrations, four reviewed feature records; 15 deferred feature drafts and the superseded test draft remain preserved. Live apply is not tested.`);
+console.log(`PASS: ${applied.size} applied migration versions (captured export plus ${postExportApplied.length} post-export records), ${pending.length} explicitly approved pending migrations, ${reviewedFiles.size} reviewed feature records; 15 deferred feature drafts and the superseded test draft remain preserved. Live apply is not tested.`);

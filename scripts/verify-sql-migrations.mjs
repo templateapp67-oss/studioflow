@@ -123,6 +123,306 @@ await db.exec(readFileSync('supabase/migrations/20261107083327_nexora_landing_pr
 // Template 12 version and its branch-specific extension.
 await db.exec(readFileSync('supabase/migrations/20261113120946_template12_iron_ink.sql','utf8'));
 await db.exec(readFileSync('supabase/pending-features/20261113120947_multibranch_template12_support.sql','utf8'));
+// Unified salon CRM + role-level permission matrix: the browser calls these
+// RPCs (`src/components/SalonCRM.tsx`) and resolves staff roles through them,
+// so their sources must be replayed before the live-catalog scan.
+await applySqlText(readFileSync('supabase/migrations/20261119070000_unified_salon_crm.sql','utf8'),'supabase/migrations/20261119070000_unified_salon_crm.sql');
+const staffRoleSql=readFileSync('supabase/migrations/20261119080000_staff_role_permissions.sql','utf8');
+assert.match(staffRoleSql,/create or replace function public\.studioflow_normalize_staff_access_role\(p_role text\)/,
+  'staff access-role normalizer is defined');
+assert.match(staffRoleSql,/'Manager \(Full Access\)' then array\[/,
+  'manager permission set is the largest set');
+assert.doesNotMatch(staffRoleSql,/grant execute on function public\.studioflow_my_branch_role\(uuid\) to (anon|public)/,
+  'the caller branch-role helper is never exposed to anonymous clients');
+await applySqlText(staffRoleSql,'supabase/migrations/20261119080000_staff_role_permissions.sql');
+const {rows:[roleMatrix]}=await db.query(`
+  select
+    public.studioflow_normalize_staff_access_role('superadmin') as unknown_role,
+    public.studioflow_normalize_staff_access_role(null) as null_role,
+    public.studioflow_normalize_staff_access_role('receptionist') as legacy_receptionist,
+    array_length(public.studioflow_staff_role_permissions('Manager (Full Access)'),1) as manager_perms,
+    array_length(public.studioflow_staff_role_permissions('Receptionist (Frontdesk)'),1) as receptionist_perms,
+    array_length(public.studioflow_staff_role_permissions('Service Provider (Assigned)'),1) as provider_perms,
+    public.studioflow_staff_has_permission('Receptionist (Frontdesk)','manage_team') as receptionist_manages_team,
+    public.studioflow_staff_has_permission('Service Provider (Assigned)','process_pos_payments') as provider_pos
+`);
+assert.equal(roleMatrix.unknown_role,'Service Provider (Assigned)','unknown roles fail closed to least privilege');
+assert.equal(roleMatrix.null_role,'Service Provider (Assigned)','missing roles fail closed to least privilege');
+assert.equal(roleMatrix.legacy_receptionist,'Receptionist (Frontdesk)','legacy role aliases normalize');
+assert.ok(roleMatrix.manager_perms>roleMatrix.receptionist_perms&&roleMatrix.receptionist_perms>roleMatrix.provider_perms,
+  'roles are strictly nested in privilege order');
+assert.equal(roleMatrix.receptionist_manages_team,false,'receptionists cannot manage the team');
+assert.equal(roleMatrix.provider_pos,false,'service providers cannot run POS payments');
+
+// Staff invites + separate staff login: tables, hashed-token lifecycle RPCs,
+// role/branch-filtered staff workspace and the additive staff booking policy.
+const staffInviteSql=readFileSync('supabase/migrations/20261119120000_staff_invites_and_staff_login.sql','utf8');
+assert.match(staffInviteSql,/create table if not exists public\.studioflow_staff_invites/,'invite ledger exists');
+assert.match(staffInviteSql,/token_hash text not null unique/,'invite tokens are stored hashed');
+assert.doesNotMatch(staffInviteSql,/token text not null/,'no plaintext invite token column');
+assert.match(staffInviteSql,/create policy studioflow_staff_invites_owner_manage[\s\S]*?owner_id = \(select auth\.uid\(\)\)/,'invite RLS is owner-scoped');
+assert.match(staffInviteSql,/create policy studioflow_bookings_staff_read/,'staff booking policy is additive');
+assert.doesNotMatch(staffInviteSql,/drop policy if exists studioflow_bookings_read/,'the owner booking policy is never dropped');
+await applySqlText(staffInviteSql,'supabase/migrations/20261119120000_staff_invites_and_staff_login.sql');
+const {rows:[staffSecurity]}=await db.query(`
+  select
+    has_function_privilege('anon','public.studioflow_staff_invite_lookup(text)','EXECUTE') as anon_lookup,
+    has_function_privilege('anon','public.studioflow_staff_invite_accept(text)','EXECUTE') as anon_accept,
+    has_function_privilege('anon','public.studioflow_staff_workspace()','EXECUTE') as anon_workspace,
+    has_function_privilege('anon','public.studioflow_staff_invite_create(text,text,text[],text,text,integer)','EXECUTE') as anon_create,
+    has_function_privilege('authenticated','public.studioflow_staff_invite_accept(text)','EXECUTE') as auth_accept,
+    has_function_privilege('authenticated','public.studioflow_staff_workspace()','EXECUTE') as auth_workspace,
+    has_table_privilege('anon','public.studioflow_staff_invites','SELECT') as anon_invite_select,
+    has_table_privilege('anon','public.studioflow_staff_members','SELECT') as anon_member_select,
+    (select c.relrowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname='studioflow_staff_invites') as invite_rls,
+    (select c.relrowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname='studioflow_staff_members') as member_rls
+`);
+assert.equal(staffSecurity.anon_lookup,true,'signed-out visitors can look up an invite token');
+assert.equal(staffSecurity.anon_accept,false,'anonymous clients cannot accept an invite');
+assert.equal(staffSecurity.anon_workspace,false,'anonymous clients cannot read a staff workspace');
+assert.equal(staffSecurity.anon_create,false,'anonymous clients cannot mint invites');
+assert.equal(staffSecurity.auth_accept,true,'signed-in staff can accept an invite');
+assert.equal(staffSecurity.auth_workspace,true,'signed-in staff can read their projection');
+assert.equal(staffSecurity.anon_invite_select,false,'anon cannot read the invite ledger');
+assert.equal(staffSecurity.anon_member_select,false,'anon cannot read staff memberships');
+assert.equal(staffSecurity.invite_rls,true,'invite ledger has RLS enabled');
+assert.equal(staffSecurity.member_rls,true,'staff memberships have RLS enabled');
+
+// Malformed and unknown tokens resolve to 'invalid' and never throw.
+const {rows:[lookupBad]}=await db.query(`select
+  public.studioflow_staff_invite_lookup('') as empty,
+  public.studioflow_staff_invite_lookup('short') as short,
+  public.studioflow_staff_invite_lookup(repeat('a',64)) as unknown`);
+assert.equal(lookupBad.empty.status,'invalid','empty token is invalid');
+assert.equal(lookupBad.short.status,'invalid','short token is invalid');
+assert.equal(lookupBad.unknown.status,'invalid','unknown token is invalid');
+
+// Staff access hardening: empty branch scope fails closed, stale branches are
+// filtered, acceptance is atomic, and no policy recurse into its own table.
+const hardeningFile='supabase/migrations/20261119140000_staff_access_hardening.sql';
+const hardeningSql=readFileSync(hardeningFile,'utf8');
+assert.match(hardeningSql,/all_branches boolean not null default false/,'explicit all-branches flag exists');
+assert.match(hardeningSql,/security definer/g,'authorization helpers are SECURITY DEFINER');
+assert.match(hardeningSql,/studioflow_staff_member_update_access/,'owner can edit a live login\'s access');
+// The old "empty array means every branch" behaviour must be gone.
+assert.doesNotMatch(hardeningSql,/coalesce\(cardinality\(sm\.branch_ids\), 0\) = 0[\s\S]{0,80}then null/,
+  'empty branch scope is never treated as all branches');
+await applySqlText(hardeningSql,hardeningFile);
+
+const {rows:[hardeningGrants]}=await db.query(`
+  select
+    has_function_privilege('anon','public.studioflow_is_salon_owner(uuid)','EXECUTE') as anon_is_owner,
+    has_function_privilege('anon','public.studioflow_staff_scope(uuid)','EXECUTE') as anon_scope,
+    has_function_privilege('anon','public.studioflow_current_staff_can(uuid,text)','EXECUTE') as anon_can,
+    has_function_privilege('anon','public.studioflow_is_assigned_branch(uuid,text)','EXECUTE') as anon_branch,
+    has_function_privilege('anon','public.studioflow_staff_invite_lookup(text)','EXECUTE') as anon_lookup,
+    has_function_privilege('anon','public.studioflow_staff_member_update_access(uuid,text,text[],boolean)','EXECUTE') as anon_update_access,
+    has_function_privilege('anon','public.studioflow_staff_invite_create(text,text,text[],text,text,integer,boolean)','EXECUTE') as anon_create_new,
+    to_regprocedure('public.studioflow_staff_invite_create(text,text,text[],text,text,integer)') is null as old_create_dropped,
+    has_function_privilege('authenticated','public.studioflow_staff_member_update_access(uuid,text,text[],boolean)','EXECUTE') as auth_update_access,
+    has_function_privilege('authenticated','public.studioflow_staff_scope_view(uuid)','EXECUTE') as auth_scope_view,
+    has_function_privilege('anon','public.studioflow_staff_scope_view(uuid)','EXECUTE') as anon_scope_view
+`);
+assert.equal(hardeningGrants.anon_is_owner,false,'anon cannot probe owner identity');
+assert.equal(hardeningGrants.anon_scope,false,'anon cannot read a branch scope');
+assert.equal(hardeningGrants.anon_can,false,'anon cannot evaluate permissions');
+assert.equal(hardeningGrants.anon_branch,false,'anon cannot test branch assignment');
+assert.equal(hardeningGrants.anon_lookup,true,'the invite lookup stays the only anonymous function');
+assert.equal(hardeningGrants.anon_update_access,false,'anon cannot rewrite staff access');
+assert.equal(hardeningGrants.auth_update_access,true,'the owner can rewrite staff access while signed in');
+assert.equal(hardeningGrants.auth_scope_view,true,'signed-in staff can read their scope summary');
+assert.equal(hardeningGrants.anon_scope_view,false,'the scope summary is not anonymous');
+assert.equal(hardeningGrants.anon_create_new,false,'anon cannot mint invites with the new signature either');
+assert.equal(hardeningGrants.old_create_dropped,true,'the superseded invite creator cannot be called by signed-out visitors');
+
+// An empty scope (no grant, no branch) must never match a branch.
+const {rows:[failClosed]}=await db.query(`
+  select
+    public.studioflow_is_assigned_branch(gen_random_uuid(),'any-branch') as unknown_owner_branch,
+    public.studioflow_is_assigned_branch(null,'any-branch') as null_owner_branch,
+    public.studioflow_staff_scope(gen_random_uuid()) is null as scope_reads_null,
+    public.studioflow_current_staff_id(gen_random_uuid()) is null as stranger_has_no_membership
+`);
+assert.equal(failClosed.unknown_owner_branch,false,'an unknown owner never grants a branch');
+assert.equal(failClosed.null_owner_branch,false,'a null owner never grants a branch');
+// A stranger has no membership, so scope returns no row (null). That is the
+// same value an explicit all-branches grant produces, which is why every
+// branch check pairs it with a membership test.
+assert.equal(failClosed.stranger_has_no_membership,true,'a stranger is not an active staff member');
+assert.equal(failClosed.scope_reads_null,true,'a stranger scope is "no row", never a branch list');
+
+// The rewritten staff booking policy must use the helpers, not inline joins.
+const {rows:staffPolicyRows}=await db.query(
+  "select qual from pg_policies where schemaname='public' and tablename='studioflow_bookings' and policyname='studioflow_bookings_staff_read'"
+);
+assert.equal(staffPolicyRows.length,1,'the staff booking policy exists');
+assert.match(staffPolicyRows[0].qual,/studioflow_is_assigned_branch/,'the staff policy enforces branch scope');
+assert.match(staffPolicyRows[0].qual,/studioflow_current_staff_can/,'the staff policy enforces the role permission');
+
+// Domain-table RLS: branch scope for branches, the public catalogue replacement
+// and the staff booking write policies. Behaviour is measured in
+// verify-domain-rls.mjs; here the migration is replayed so it cannot rot.
+const domainRlsFile = 'supabase/migrations/20261121120000_domain_tables_fail_closed_rls.sql';
+const domainRlsSql = readFileSync(domainRlsFile, 'utf8');
+// The proposal's placeholder helpers must never appear in executable SQL; only
+// the real `studioflow_`-prefixed functions may be called by a policy. Comments
+// are stripped first, because the header documents the proposal's names as prose.
+const domainRlsCode = domainRlsSql
+  .replace(/\/\*[\s\S]*?\*\//g, ' ')
+  .replace(/--[^\n]*/g, ' ');
+assert.doesNotMatch(domainRlsCode, /(?<!studioflow_)\bhas_staff_role\(/,
+  'the domain migration does not call a non-existent has_staff_role()');
+assert.doesNotMatch(domainRlsCode, /(?<!studioflow_)\bcan_access_branch\(/,
+  'the domain migration does not call a non-existent can_access_branch()');
+assert.doesNotMatch(domainRlsCode, /(?<!studioflow_)\bis_salon_owner\(/,
+  'the domain migration does not call a non-existent is_salon_owner()');
+assert.match(domainRlsSql, /studioflow_is_assigned_branch\(branches\.site_id, branches\.id::text\)/,
+  'staff branch reads are scoped through the fail-closed helper');
+assert.match(domainRlsSql, /drop policy if exists services_public_read on public\.services/,
+  'the wide public services policy is replaced, not stacked on');
+assert.match(domainRlsSql, /coalesce\(is_bookable_online, true\) is true/,
+  'the public catalogue keeps only services a storefront would show');
+// The Nexora-era domain tables are not part of the converging chain replayed
+// above, so their columns are declared here (matching the live schema) to prove
+// the migration applies against them.
+await db.exec(`
+create table if not exists public.salons (id uuid primary key, is_active boolean not null default true, deleted_at timestamptz);
+create table if not exists public.services (
+  id uuid primary key default gen_random_uuid(), owner_id uuid,
+  name text not null default 'Service', category text not null default 'Hair',
+  description text not null default '', icon text not null default 'spa',
+  price numeric(12,2) not null default 0, duration_minutes integer not null default 30,
+  popular boolean not null default false, show_duration boolean not null default true,
+  sort_order integer, created_at timestamptz not null default now(), updated_at timestamptz,
+  salon_id uuid, price_paise bigint, is_active boolean not null default true,
+  is_bookable_online boolean, is_featured boolean, display_order integer, image_url text
+);
+create table if not exists public.branches (
+  id uuid primary key default gen_random_uuid(), site_id uuid not null, name text not null default 'Branch', is_active boolean not null default true
+);
+-- The fixture tables are created after the shared role setup, so the read
+-- grants the live project already has are declared here (matching acl:
+-- anon=r on both, authenticated=arwd on services).
+grant select on public.services, public.branches, public.salons to anon, authenticated;
+grant select on public.services to authenticated;
+`);
+await applySqlText(domainRlsSql, domainRlsFile);
+
+const {rows:domainPolicies}=await db.query(`
+  select tablename, policyname, cmd, coalesce(qual,'') || ' ' || coalesce(with_check,'') as body
+  from pg_policies
+  where schemaname='public'
+    and tablename in ('branches','services','studioflow_services','studioflow_bookings')
+  order by tablename, policyname
+`);
+const policyNames = domainPolicies.map(row=>row.policyname);
+assert.ok(policyNames.includes('branches_select_owner_or_assigned_staff'),'staff can read their branches');
+assert.ok(policyNames.includes('studioflow_services_staff_read'),'staff can read their salon catalogue');
+assert.ok(policyNames.includes('studioflow_bookings_staff_write'),'staff can move a booking through its lifecycle');
+assert.ok(policyNames.includes('studioflow_bookings_staff_insert'),'front desk can create a booking in scope');
+// The public catalogue policy must not have been left permissive.
+const publicServices = domainPolicies.find(row=>row.policyname==='services_public_read');
+assert.ok(publicServices,'the public services policy exists');
+assert.match(publicServices.body,/is_bookable_online/,'public services are not the old blanket is_active rule');
+assert.equal(domainPolicies.filter(row=>row.policyname==='services_public_read').length,1,
+  'exactly one public services policy remains (policies are OR\'d, so a leftover would widen it)');
+
+// Column privacy on the public catalogue: anonymous reads must not carry the
+// salon owner's UUID. Row policies cannot express this, so the grant is narrowed
+// to explicit columns and the row policy stays installed.
+const columnPrivacyFile = 'supabase/migrations/20261121130000_hide_owner_id_on_public_services.sql';
+const columnPrivacySql = readFileSync(columnPrivacyFile, 'utf8');
+assert.match(columnPrivacySql, /revoke select on table public\.services from anon/,
+  'the table-wide anonymous grant is withdrawn before column grants');
+assert.doesNotMatch(columnPrivacySql, /grant select \([^)]*owner_id/i,
+  'owner_id is never granted back to anon');
+// Comments are stripped first: the header explains the rejected
+// `security_invoker` approach as prose.
+const columnPrivacyCode = columnPrivacySql
+  .replace(/\/\*[\s\S]*?\*\//g, ' ')
+  .replace(/--[^\n]*/g, ' ');
+assert.doesNotMatch(columnPrivacyCode, /security_invoker/i,
+  'no security_invoker view is shipped: it would need the very grant the migration revokes');
+await applySqlText(columnPrivacySql, columnPrivacyFile);
+
+const {rows:[columnPrivacy]}=await db.query(`
+  select
+    has_column_privilege('anon','public.services','owner_id','SELECT') as anon_owner_id,
+    has_column_privilege('anon','public.services','name','SELECT') as anon_name,
+    has_column_privilege('anon','public.services','price','SELECT') as anon_price,
+    has_column_privilege('authenticated','public.services','owner_id','SELECT') as auth_owner_id,
+    (select count(*)::int from pg_policies where schemaname='public' and tablename='services' and policyname='services_public_read') as public_rows_policy
+`);
+assert.equal(columnPrivacy.anon_owner_id,false,'anon cannot read public.services.owner_id');
+assert.equal(columnPrivacy.anon_name,true,'anon keeps the catalogue columns a storefront renders');
+assert.equal(columnPrivacy.anon_price,true,'anon keeps service prices');
+assert.equal(columnPrivacy.auth_owner_id,true,'signed-in sessions keep owner_id for the owner workspace');
+assert.equal(columnPrivacy.public_rows_policy,1,'column grants do not replace the row filter');
+
+// Storefront privacy: owner_id must not reach anonymous readers of the
+// published-site catalogue. Measured behaviourally in
+// verify-storefront-privacy.mjs; replayed here so the grants cannot rot.
+const storefrontViewFile='supabase/migrations/20261121130001_public_storefront_view.sql';
+const storefrontViewSql=readFileSync(storefrontViewFile,'utf8');
+assert.match(storefrontViewSql,/create or replace view public\.public_salon_websites/i,
+  'the public storefront view is created');
+assert.match(storefrontViewSql,/revoke select on public\.studioflow_websites from anon/i,
+  'anonymous direct reads of the base table are withdrawn');
+assert.match(storefrontViewSql,/grant select on public\.public_salon_websites to anon, authenticated/i,
+  'the projection view is granted to anon so the storefront still renders');
+// The view must be SECURITY DEFINER: a security_invoker view would run with the
+// caller's rights and every anonymous render would fail on the revoked grant.
+assert.doesNotMatch(storefrontViewSql.split('revoke select on public.studioflow_websites')[0].replace(/--[^\n]*/g,''),
+  /security_invoker\s*=\s*true/i,
+  'the shipped view is not security_invoker (that combination denies every anon read)');
+assert.doesNotMatch(storefrontViewSql,/\bowner_id\b[^\n]*from public\.public_salon_websites/i,
+  'no read path selects owner_id out of the public projection');
+
+// The fixture tables this migration touches are Nexora-era tables created
+// outside the replayed chain, so declare them as the live schema has them.
+await db.exec(`
+create schema if not exists studioflow_private;
+create table if not exists public.studioflow_websites (
+  owner_id uuid primary key,
+  slug text not null unique,
+  content jsonb not null default '{}'::jsonb,
+  published_at timestamptz
+);
+alter table public.studioflow_websites enable row level security;
+-- The replayed chain may already have installed this policy.
+do $$ begin
+  if not exists (select 1 from pg_policies where schemaname='public' and tablename='studioflow_websites' and policyname='studioflow_websites_read') then
+    create policy studioflow_websites_read on public.studioflow_websites for select to anon, authenticated using(true);
+  end if;
+end $$;
+grant select on public.studioflow_websites to anon, authenticated;
+create table if not exists public.studioflow_demo_bookings (
+  id uuid primary key default gen_random_uuid(), customer_id uuid, owner_id uuid,
+  request_id uuid, status text not null default 'confirmed', payload jsonb,
+  created_at timestamptz not null default now()
+);
+alter table public.studioflow_demo_bookings enable row level security;
+grant select, insert, update on public.studioflow_bookings, public.studioflow_demo_bookings to authenticated;
+`);
+await applySqlText(storefrontViewSql,storefrontViewFile);
+
+const {rows:[storefrontPrivacy]}=await db.query(`
+  select
+    has_table_privilege('anon','public.studioflow_websites','SELECT') as anon_base_read,
+    has_table_privilege('authenticated','public.studioflow_websites','SELECT') as auth_base_read,
+    (select count(*)::int from information_schema.columns
+       where table_schema='public' and table_name='public_salon_websites' and column_name='owner_id') as view_owner_id_columns,
+    (select count(*)::int from pg_trigger
+       where tgrelid='public.studioflow_bookings'::regclass and tgname='studioflow_stamp_booking_salon_slug') as bookings_slug_trigger,
+    (select count(*)::int from pg_trigger
+       where tgrelid='public.studioflow_demo_bookings'::regclass and tgname='studioflow_stamp_demo_booking_salon_slug') as demo_slug_trigger
+`);
+assert.equal(storefrontPrivacy.anon_base_read,false,'anon can no longer read public.studioflow_websites directly');
+assert.equal(storefrontPrivacy.auth_base_read,true,'authenticated keeps its direct table read for owner screens');
+assert.equal(storefrontPrivacy.view_owner_id_columns,0,'the public projection has no owner_id column');
+assert.equal(storefrontPrivacy.bookings_slug_trigger,1,'bookings stamp the public salon slug on write');
+assert.equal(storefrontPrivacy.demo_slug_trigger,1,'demo bookings stamp the public salon slug on write');
+
 // NEXORA WhatsApp test mode: apply its private QA ledger and the follow-up
 // rename migration before the live-catalog scan. The limiter is intentionally
 // server-only (service_role grant only) and is not a browser-facing RPC.
@@ -243,13 +543,35 @@ for(const r of rpcs){
   if(!hit.rows.length)missingRpc.push(r);
 }
 assert.deepEqual(missingRpc,[],'Client RPCs missing from live catalog');
+// Every client-referenced relation must exist and be closed by default.
+// A VIEW cannot carry RLS at all, so for views the equivalent guarantee is
+// asserted instead: it is a view, it is explicitly granted to the intended
+// role(s), and it is not a `select *` passthrough of a table that holds
+// private columns. Anything that is not a table or a view fails outright.
 const missingTables=[];
+const clientViews=[];
 for(const t of new Set(tables)){
-  const hit=await db.query(`select relrowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname=$1`,[t]);
-  if(!hit.rows.length)missingTables.push(t+' (absent)');
-  else if(!hit.rows[0].relrowsecurity)missingTables.push(t+' (RLS off)');
+  const hit=await db.query(`select c.relrowsecurity, c.relkind from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname=$1`,[t]);
+  if(!hit.rows.length){missingTables.push(t+' (absent)');continue;}
+  const {relrowsecurity,relkind}=hit.rows[0];
+  if(relkind==='v'){clientViews.push(t);continue;}
+  if(!relrowsecurity)missingTables.push(t+' (RLS off)');
 }
 assert.deepEqual(missingTables,[],'Client tables missing or without RLS');
+for(const v of clientViews){
+  const {rows:[view]}=await db.query(
+    `select has_table_privilege('anon',$1,'SELECT') as anon_read,
+            has_table_privilege('authenticated',$1,'SELECT') as auth_read,
+            (select count(*)::int from information_schema.columns
+               where table_schema='public' and table_name=$1 and column_name in ('owner_id','organization_id')) as private_columns
+     from pg_class c join pg_namespace n on n.oid=c.relnamespace
+     where n.nspname='public' and c.relname=$1`,[v]);
+  assert.ok(view,'client-referenced view exists: '+v);
+  assert.ok(view.anon_read||view.auth_read,'client view is granted to a browser role: '+v);
+  assert.equal(view.private_columns,0,'client view projects no owner-identifying columns: '+v);
+}
+assert.deepEqual(clientViews,['public_salon_websites'],
+  'the only RLS-exempt client relation is the audited storefront projection view');
 const buckets=await db.query(`select id from storage.buckets where id in ('studioflow-media','nexora-customer-private','ink-logos','ink-gallery','ink-artists','ink-references','ink-blog','nexora-public-assets')`);
 assert.equal(buckets.rows.length,8,'StudioFlow, Template 12 and the NEXORA landing asset bucket exist');
 for(const b of bucketsUsed){assert.ok(['studioflow-media','nexora-customer-private','ink-logos','ink-gallery','ink-artists','ink-references','ink-blog','nexora-public-assets'].includes(b),'Unknown bucket reference: '+b);}

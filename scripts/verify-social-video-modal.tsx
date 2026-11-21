@@ -208,7 +208,13 @@ assert.equal(byLabel('Cover image URL'), undefined, 'URL input hidden in upload 
 
 const fileInput = byLabel('Choose cover image file');
 await act(async () => fileInput.props.onChange({ target: { value: '', files: [new File(['note'], 'cover.txt', { type: 'text/plain' })] } }));
-assert.ok(text(root.findAll((node: any) => node.props?.role === 'alert')[0]).includes('JPG, PNG or WebP'), 'non-image files are rejected with a clear message');
+// Match the message, not alert[0]: unrelated alerts (e.g. the offline harness's
+// failed Edge Function request) can precede the validation message.
+assert.ok(
+  root.findAll((node: any) => node.props?.role === 'alert')
+    .some((node: any) => text(node).includes('JPG, PNG or WebP')),
+  'non-image files are rejected with a clear message'
+);
 assert.equal(root.findAll((node: any) => node.props?.alt === 'Cover image preview').length, 0, 'no preview for a rejected file');
 
 const pngFile = new File([new Uint8Array(2048)], 'cover.png', { type: 'image/png' });

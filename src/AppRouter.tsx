@@ -11,6 +11,10 @@ import { loadScreen } from './lib/loadScreen';
 import { capturePublicReferral } from './lib/publicReferral';
 import { AUTH_CALLBACK_QUERY_KEYS, hasAuthCallbackFragment } from './lib/authEntry';
 import { isAuthEntryPath } from './lib/authRoutes';
+import { inviteTokenFrom, isStaffRoute } from './lib/staffRoutes';
+import { StaffInviteAcceptPage } from './components/staff/StaffInviteAcceptPage';
+import { StaffLoginPage } from './components/staff/StaffLoginPage';
+import { StaffWorkspacePage } from './components/staff/StaffWorkspacePage';
 import { resolveSiteSlug } from './lib/resolveSite';
 
 const FullApplication = lazy(() =>
@@ -31,6 +35,9 @@ const APP_QUERY_KEYS = [
 const PUBLIC_MARKETING_ROUTES = new Set(['/salon-os', '/pricing', '/privacy', '/salon-onboarding', '/salon-growth', '/growth-partner-rewards', '/partner-rewards']);
 
 export function requiresFullApplication(location: Pick<Location, 'pathname' | 'search' | 'hash' | 'hostname'>): boolean {
+  // Staff routes own their own screens: /staff/accept works signed out (invite
+  // validation only), /staff/login and /staff need a session.
+  if (isStaffRoute(location.pathname)) return true;
   if (resolveSiteSlug(location)) return true;
 
   // `/login`, `/sign-in` and `/sign-up` must always boot the auth bundle even
@@ -80,6 +87,15 @@ export function AppRouter() {
   }, []);
 
   const publicPath = typeof window !== 'undefined' ? window.location.pathname.replace(/\/$/, '') : '';
+
+  // Staff entry points are rendered here, read-only and independent from the
+  // owner bootstrap: no account load, no workspace fetch, no draft save.
+  if (publicPath === '/staff/accept') {
+    return <StaffInviteAcceptPage token={inviteTokenFrom(window.location.search)} />;
+  }
+  if (publicPath === '/staff/login') return <StaffLoginPage />;
+  if (publicPath === '/staff') return <StaffWorkspacePage />;
+
   if (publicPath === '/salon-os') return withNexoraPublicSupport(<NexoraSalonLandingPage />);
   if (publicPath === '/pricing') return withNexoraPublicSupport(<NexoraPricingLandingPage />);
   if (publicPath === '/privacy') return withNexoraPublicSupport(<NexoraPrivacyNoticePage />);

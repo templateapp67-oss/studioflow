@@ -30,6 +30,18 @@
       "destination": "/login.html"
     },
     {
+      "source": "/staff",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/staff/login",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/staff/accept",
+      "destination": "/index.html"
+    },
+    {
       "source": "/sitemap.xml",
       "destination": "/api/sitemap"
     },

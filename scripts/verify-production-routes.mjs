@@ -52,6 +52,24 @@ try {
     assert.equal(route.status, 200);
     assert.ok(route.body.includes('<div id="root">'));
   }
+  // Staff entry points must be served by the app shell, not 404 and not the
+  // homepage document: the client router owns `/staff/accept?token=...`.
+  for (const path of ['/staff', '/staff/login', '/staff/accept?token=' + 'a'.repeat(64)]) {
+    route = await get(path);
+    assert.equal(route.status, 200, `${path} is served`);
+    assert.ok(route.body.includes('<div id="root">'), `${path} boots the application shell`);
+  }
+  route = await get('/api/staff-invite-status');
+  assert.equal(route.status, 200);
+  assert.equal(JSON.parse(route.body).configured, false);
+  const staffInvite = await fetch(base + '/api/send-staff-invite', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ inviteId: '11111111-1111-4111-8111-111111111111', token: 'a'.repeat(64) }),
+  });
+  assert.equal(staffInvite.status, 401, 'invite email needs a signed-in owner');
+  assert.equal((await staffInvite.json()).success, false);
+
   route = await get('/api/health');
   assert.equal(route.status, 200);
   assert.equal(JSON.parse(route.body).status, 'ok');

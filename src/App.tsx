@@ -702,7 +702,9 @@ function PublishedWebsite({slug,session}:{key?:React.Key;slug:string;session:Ses
    // A stalled read used to leave the published site on "Loading salon
    // website…" forever. Every read now has a deadline and surfaces the retry UI.
    let loadedRow:{data:any;error:any};
-   try{loadedRow=await withTimeout(supabase.from('studioflow_websites').select('content').eq('slug',slug).maybeSingle(),15000,'Loading this salon website');}
+   // Public storefront read: the projection view omits owner_id, so an
+   // anonymous visitor never receives a salon's owner UUID.
+   try{loadedRow=await withTimeout(supabase.from('public_salon_websites').select('content').eq('slug',slug).maybeSingle(),15000,'Loading this salon website');}
    catch(deadline){loadedRow={data:null,error:{message:messageOf(deadline,'This salon website took too long to respond. Retrying will try again.')}};}
    const {data,error}=loadedRow;if(!active||request!==ticket)return;
    if(error){if(!loaded){setDevFallbackTemplate(null);setError(error.message||'Could not load this salon website.');}return;}
