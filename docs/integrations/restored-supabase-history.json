@@ -2056,6 +2056,10 @@
     {
       "file": "20261119080000_staff_role_permissions.sql",
       "purpose": "Role-level permissions: canonical staff access-role normalizer, server-side permission matrix mirroring src/lib/staffPermissions.ts, caller branch-role helper, and a pinned branch role CHECK constraint with legacy value normalization. Additive and read-only; no RLS policy is widened."
+    },
+    {
+      "file": "20261119120000_staff_invites_and_staff_login.sql",
+      "purpose": "Staff invites, staff memberships and separate staff sign-in with hashed tokens and fail-closed grants."
     }
   ],
   "post_export_applied_versions": [
@@ -2138,6 +2142,15 @@
       "observed_at": "2026-11-19",
       "evidence": "Confirmed against the live supabase_migrations.schema_migrations history (top of list) for project zilwgiuiygqqardzutxi; local SQL source already exists in the repo.",
       "purpose": "Additive unified salon CRM tables (crm_tasks, crm_contacts, crm_activities) in studioflow_android_private, owner-only RLS, with the owner CRM RPCs consumed by src.",
+      "git_blob_sha": ""
+    },
+    {
+      "version": "20261119120000",
+      "file": "20261119120000_staff_invites_and_staff_login.sql",
+      "name": "staff_invites_and_staff_login",
+      "observed_at": "2026-11-19",
+      "evidence": "Applied to project zilwgiuiygqqardzutxi on 2026-11-19: staff_invites + staff_members tables, invite lifecycle RPCs, role/branch-filtered staff workspace projection and an additive branch-scoped staff booking read policy. Verified live that anon can execute only the token lookup, every other RPC is authenticated-only, and the owner ledger exposes no token hash.",
+      "purpose": "Staff invite + separate staff login layer: hashed invite tokens, one identity per staff record, role/branch scope enforced in SQL, and additive RLS for staff booking visibility. No existing owner policy is dropped or widened.",
       "git_blob_sha": ""
     }
   ]

@@ -96,6 +96,11 @@ assert.deepEqual(config.rewrites.map((entry) => [entry.source, entry.destination
   // canonical, `noindex` login head is what those URLs receive.
   ['/sign-in', '/login.html'],
   ['/sign-up', '/login.html'],
+  // Staff entry points are app-shell routes: the invite token and the staff
+  // session are resolved by the client router, never by a rewrite.
+  ['/staff', '/index.html'],
+  ['/staff/login', '/index.html'],
+  ['/staff/accept', '/index.html'],
   ['/sitemap.xml', '/api/sitemap'],
   ['/salon-os', '/salon-os/index.html'],
   ['/pricing', '/pricing/index.html'],

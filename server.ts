@@ -1,6 +1,7 @@
 import "dotenv/config";
 import {sitemapHandler} from "./server/sitemap";
 import {bookingEmailHandler,emailStatusHandler} from "./server/bookingEmail";
+import {staffInviteEmailHandler,staffInviteStatus} from "./server/staffInviteEmail";
 import express from "express";
 import { createServer } from "node:http";
 import path from "path";
@@ -548,6 +549,15 @@ Return strictly valid JSON in this format:
   // Email Service Status Endpoint (legacy path preserved)
   app.get("/api/email-service-status", emailStatusHandler);
 
+  // Staff invite delivery (Resend). The invite itself is created in Postgres by
+  // `studioflow_staff_invite_create`; this route only mails the link for that
+  // stored invite, after re-verifying the caller through RLS. Without
+  // RESEND_API_KEY it answers 503 and returns the copyable link instead of
+  // pretending the email went out.
+  const staffInviteLimiter = rateLimit({ name: 'staff-invite-email', windowMs: 10 * 60 * 1000, max: 20 });
+  app.get("/api/staff-invite-status", staffInviteStatus);
+  app.post("/api/send-staff-invite", staffInviteLimiter, staffInviteEmailHandler);
+
   // Automated Booking Email Endpoint (Resend integration). The shared handler
   // authenticates the caller, uses booking RLS and binds the recipient to the
   // stored booking before delivery.
@@ -610,6 +620,13 @@ Return strictly valid JSON in this format:
       req.url = '/login.html' + query;
       next();
     });
+    // Staff entry points are client routes; they must never be answered with a
+    // 404 before the SPA router (which understands `/staff/accept`) runs.
+    app.get(/^\/staff(?:\/(?:accept|login))?\/?$/, (req, _res, next) => {
+      const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+      req.url = '/index.html' + query;
+      next();
+    });
     app.all("/api/*", (_req, res) => {
       res.status(404).json({error:'Unknown API endpoint'});
     });
@@ -626,6 +643,11 @@ Return strictly valid JSON in this format:
     });
     app.get(/^\/(?:login|sign-in|sign-up)\/?$/, (_req, res) => {
       res.sendFile(path.join(distPath, "login.html"));
+    });
+    // `/staff/accept`, `/staff/login` and `/staff` are app-shell routes: the
+    // invite token is read by the client router, never by this server.
+    app.get(/^\/staff(?:\/(?:accept|login))?\/?$/, (_req, res) => {
+      res.sendFile(path.join(distPath, "index.html"));
     });
     // The SalonOS landing page ships as its own prerendered document.
     app.get(/^\/salon-os\/?$/, (_req, res) => {

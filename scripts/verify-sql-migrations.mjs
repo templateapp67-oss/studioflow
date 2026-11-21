@@ -154,6 +154,49 @@ assert.ok(roleMatrix.manager_perms>roleMatrix.receptionist_perms&&roleMatrix.rec
 assert.equal(roleMatrix.receptionist_manages_team,false,'receptionists cannot manage the team');
 assert.equal(roleMatrix.provider_pos,false,'service providers cannot run POS payments');
 
+// Staff invites + separate staff login: tables, hashed-token lifecycle RPCs,
+// role/branch-filtered staff workspace and the additive staff booking policy.
+const staffInviteSql=readFileSync('supabase/migrations/20261119120000_staff_invites_and_staff_login.sql','utf8');
+assert.match(staffInviteSql,/create table if not exists public\.studioflow_staff_invites/,'invite ledger exists');
+assert.match(staffInviteSql,/token_hash text not null unique/,'invite tokens are stored hashed');
+assert.doesNotMatch(staffInviteSql,/token text not null/,'no plaintext invite token column');
+assert.match(staffInviteSql,/create policy studioflow_staff_invites_owner_manage[\s\S]*?owner_id = \(select auth\.uid\(\)\)/,'invite RLS is owner-scoped');
+assert.match(staffInviteSql,/create policy studioflow_bookings_staff_read/,'staff booking policy is additive');
+assert.doesNotMatch(staffInviteSql,/drop policy if exists studioflow_bookings_read/,'the owner booking policy is never dropped');
+await applySqlText(staffInviteSql,'supabase/migrations/20261119120000_staff_invites_and_staff_login.sql');
+const {rows:[staffSecurity]}=await db.query(`
+  select
+    has_function_privilege('anon','public.studioflow_staff_invite_lookup(text)','EXECUTE') as anon_lookup,
+    has_function_privilege('anon','public.studioflow_staff_invite_accept(text)','EXECUTE') as anon_accept,
+    has_function_privilege('anon','public.studioflow_staff_workspace()','EXECUTE') as anon_workspace,
+    has_function_privilege('anon','public.studioflow_staff_invite_create(text,text,text[],text,text,integer)','EXECUTE') as anon_create,
+    has_function_privilege('authenticated','public.studioflow_staff_invite_accept(text)','EXECUTE') as auth_accept,
+    has_function_privilege('authenticated','public.studioflow_staff_workspace()','EXECUTE') as auth_workspace,
+    has_table_privilege('anon','public.studioflow_staff_invites','SELECT') as anon_invite_select,
+    has_table_privilege('anon','public.studioflow_staff_members','SELECT') as anon_member_select,
+    (select c.relrowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname='studioflow_staff_invites') as invite_rls,
+    (select c.relrowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname='studioflow_staff_members') as member_rls
+`);
+assert.equal(staffSecurity.anon_lookup,true,'signed-out visitors can look up an invite token');
+assert.equal(staffSecurity.anon_accept,false,'anonymous clients cannot accept an invite');
+assert.equal(staffSecurity.anon_workspace,false,'anonymous clients cannot read a staff workspace');
+assert.equal(staffSecurity.anon_create,false,'anonymous clients cannot mint invites');
+assert.equal(staffSecurity.auth_accept,true,'signed-in staff can accept an invite');
+assert.equal(staffSecurity.auth_workspace,true,'signed-in staff can read their projection');
+assert.equal(staffSecurity.anon_invite_select,false,'anon cannot read the invite ledger');
+assert.equal(staffSecurity.anon_member_select,false,'anon cannot read staff memberships');
+assert.equal(staffSecurity.invite_rls,true,'invite ledger has RLS enabled');
+assert.equal(staffSecurity.member_rls,true,'staff memberships have RLS enabled');
+
+// Malformed and unknown tokens resolve to 'invalid' and never throw.
+const {rows:[lookupBad]}=await db.query(`select
+  public.studioflow_staff_invite_lookup('') as empty,
+  public.studioflow_staff_invite_lookup('short') as short,
+  public.studioflow_staff_invite_lookup(repeat('a',64)) as unknown`);
+assert.equal(lookupBad.empty.status,'invalid','empty token is invalid');
+assert.equal(lookupBad.short.status,'invalid','short token is invalid');
+assert.equal(lookupBad.unknown.status,'invalid','unknown token is invalid');
+
 // NEXORA WhatsApp test mode: apply its private QA ledger and the follow-up
 // rename migration before the live-catalog scan. The limiter is intentionally
 // server-only (service_role grant only) and is not a browser-facing RPC.
