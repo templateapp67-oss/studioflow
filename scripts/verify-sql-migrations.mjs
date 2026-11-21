@@ -259,6 +259,63 @@ assert.equal(staffPolicyRows.length,1,'the staff booking policy exists');
 assert.match(staffPolicyRows[0].qual,/studioflow_is_assigned_branch/,'the staff policy enforces branch scope');
 assert.match(staffPolicyRows[0].qual,/studioflow_current_staff_can/,'the staff policy enforces the role permission');
 
+// Domain-table RLS: branch scope for branches, the public catalogue replacement
+// and the staff booking write policies. Behaviour is measured in
+// verify-domain-rls.mjs; here the migration is replayed so it cannot rot.
+const domainRlsFile = 'supabase/migrations/20261121120000_domain_tables_fail_closed_rls.sql';
+const domainRlsSql = readFileSync(domainRlsFile, 'utf8');
+// The proposal's placeholder helpers must never appear in executable SQL; only
+// the real `studioflow_`-prefixed functions may be called by a policy. Comments
+// are stripped first, because the header documents the proposal's names as prose.
+const domainRlsCode = domainRlsSql
+  .replace(/\/\*[\s\S]*?\*\//g, ' ')
+  .replace(/--[^\n]*/g, ' ');
+assert.doesNotMatch(domainRlsCode, /(?<!studioflow_)\bhas_staff_role\(/,
+  'the domain migration does not call a non-existent has_staff_role()');
+assert.doesNotMatch(domainRlsCode, /(?<!studioflow_)\bcan_access_branch\(/,
+  'the domain migration does not call a non-existent can_access_branch()');
+assert.doesNotMatch(domainRlsCode, /(?<!studioflow_)\bis_salon_owner\(/,
+  'the domain migration does not call a non-existent is_salon_owner()');
+assert.match(domainRlsSql, /studioflow_is_assigned_branch\(branches\.site_id, branches\.id::text\)/,
+  'staff branch reads are scoped through the fail-closed helper');
+assert.match(domainRlsSql, /drop policy if exists services_public_read on public\.services/,
+  'the wide public services policy is replaced, not stacked on');
+assert.match(domainRlsSql, /coalesce\(is_bookable_online, true\) is true/,
+  'the public catalogue keeps only services a storefront would show');
+// The Nexora-era domain tables are not part of the converging chain replayed
+// above, so their columns are declared here (matching the live schema) to prove
+// the migration applies against them.
+await db.exec(`
+create table if not exists public.salons (id uuid primary key, is_active boolean not null default true, deleted_at timestamptz);
+create table if not exists public.services (
+  id uuid primary key default gen_random_uuid(), salon_id uuid, owner_id uuid,
+  name text not null default 'Service', is_active boolean not null default true, is_bookable_online boolean
+);
+create table if not exists public.branches (
+  id uuid primary key default gen_random_uuid(), site_id uuid not null, name text not null default 'Branch', is_active boolean not null default true
+);
+`);
+await applySqlText(domainRlsSql, domainRlsFile);
+
+const {rows:domainPolicies}=await db.query(`
+  select tablename, policyname, cmd, coalesce(qual,'') || ' ' || coalesce(with_check,'') as body
+  from pg_policies
+  where schemaname='public'
+    and tablename in ('branches','services','studioflow_services','studioflow_bookings')
+  order by tablename, policyname
+`);
+const policyNames = domainPolicies.map(row=>row.policyname);
+assert.ok(policyNames.includes('branches_select_owner_or_assigned_staff'),'staff can read their branches');
+assert.ok(policyNames.includes('studioflow_services_staff_read'),'staff can read their salon catalogue');
+assert.ok(policyNames.includes('studioflow_bookings_staff_write'),'staff can move a booking through its lifecycle');
+assert.ok(policyNames.includes('studioflow_bookings_staff_insert'),'front desk can create a booking in scope');
+// The public catalogue policy must not have been left permissive.
+const publicServices = domainPolicies.find(row=>row.policyname==='services_public_read');
+assert.ok(publicServices,'the public services policy exists');
+assert.match(publicServices.body,/is_bookable_online/,'public services are not the old blanket is_active rule');
+assert.equal(domainPolicies.filter(row=>row.policyname==='services_public_read').length,1,
+  'exactly one public services policy remains (policies are OR\'d, so a leftover would widen it)');
+
 // NEXORA WhatsApp test mode: apply its private QA ledger and the follow-up
 // rename migration before the live-catalog scan. The limiter is intentionally
 // server-only (service_role grant only) and is not a browser-facing RPC.
