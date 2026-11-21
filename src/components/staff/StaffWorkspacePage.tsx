@@ -1,10 +1,12 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuthSession } from '../../lib/useAuthSession';
 import {
   loadMyStaffContext,
   loadStaffWorkspace,
   STAFF_LOGIN_PATH,
+  signOutLocal,
+  watchStaffAccess,
   type StaffContext,
 } from '../../lib/staffInvites';
 import {
@@ -76,6 +78,8 @@ export function StaffWorkspacePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activePanel, setActivePanel] = useState<string>('');
+  // Set when the owner changed this login's role/branch while the tab was open.
+  const [accessChanged, setAccessChanged] = useState(false);
 
   const load = useCallback(async () => {
     setError('');
@@ -125,7 +129,31 @@ export function StaffWorkspacePage() {
     void load();
   }, [ready, session, load]);
 
+  // Live permission refresh: a role/branch edit by the owner bumps
+  // `accessVersion`; the open tab notices, reloads its projection and tells the
+  // person instead of running on stale cached permissions.
+  const contextRef = useRef<StaffContext | null>(null);
+  contextRef.current = context;
+  useEffect(() => {
+    if (!ready || !session) return;
+    return watchStaffAccess((next) => {
+      const previous = contextRef.current;
+      if (!next) {
+        setContext(null);
+        setWorkspace(null);
+        setBookings([]);
+        return;
+      }
+      if (previous && previous.accessVersion !== next.accessVersion) setAccessChanged(true);
+      setContext(next);
+      void loadStaffWorkspace().then(setWorkspace).catch(() => undefined);
+    });
+  }, [ready, session?.user?.id]);
+
   const role = context ? normalizeAccessRole(context.role) : null;
+  // No branch and no explicit "all branches" grant: the database returns no
+  // branch data, so the screen says so plainly instead of looking broken.
+  const branchless = Boolean(context && !context.allBranches && !context.branchIds.length);
   const permittedPanels = useMemo(
     () => PANELS.filter((panel) => (role ? can(role, panel.permission) : false)),
     [role],
@@ -315,7 +343,12 @@ export function StaffWorkspacePage() {
             <h1 className="truncate text-lg font-extrabold text-slate-900">{workspace?.profile?.businessName || context.salonName || 'Salon workspace'}</h1>
             <p className="mt-0.5 text-xs text-slate-600">
               {context.staffName || 'Team member'} · <strong className="font-bold text-purple-700">{ROLE_SHORT_LABELS[role]}</strong>
-              {context.branchIds.length ? ` · ${branches.map((b: any) => b.name).filter(Boolean).join(', ') || `${context.branchIds.length} branch`}` : ' · all branches'}
+              {' · '}
+              {context.allBranches
+                ? 'All branches'
+                : context.branchIds.length
+                  ? branches.map((b: any) => b.name).filter(Boolean).join(', ') || `${context.branchIds.length} branch${context.branchIds.length === 1 ? '' : 'es'}`
+                  : 'No branch assigned'}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -325,7 +358,7 @@ export function StaffWorkspacePage() {
             <button type="button" onClick={() => void load()} className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700">Refresh</button>
             <button
               type="button"
-              onClick={async () => { await supabase.auth.signOut(); location.assign(STAFF_LOGIN_PATH); }}
+              onClick={async () => { await signOutLocal(); location.assign(STAFF_LOGIN_PATH); }}
               className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold text-white"
             >
               Sign out
@@ -336,6 +369,19 @@ export function StaffWorkspacePage() {
 
       <div className="mx-auto max-w-5xl px-4 py-5">
         {error ? <p role="alert" className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm font-semibold text-rose-900">{error}</p> : null}
+        {accessChanged ? (
+          <p role="status" className="mb-4 rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm font-semibold text-sky-900">
+            The salon owner updated your access. This screen has been refreshed — your role is now{' '}
+            {ROLE_SHORT_LABELS[role]}.{' '}
+            <button type="button" className="font-bold underline" onClick={() => setAccessChanged(false)}>Dismiss</button>
+          </p>
+        ) : null}
+        {branchless ? (
+          <p role="alert" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900">
+            No branch is assigned to your login, so bookings, clients and revenue stay empty by design.
+            Ask the salon owner to assign a branch, or to grant the all-branches scope, in Team → Staff access.
+          </p>
+        ) : null}
 
         <nav aria-label="Staff sections" className="mb-4 flex gap-2 overflow-x-auto pb-1">
           {permittedPanels.map((panel) => (

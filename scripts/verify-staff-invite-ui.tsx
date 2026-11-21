@@ -116,6 +116,72 @@ ui = await render(<StaffInviteAcceptPage token={TOKEN} />);
 assert.ok(hasText(ui, 'This invite was already used'), 'accepted invite points at sign-in');
 await act(async () => ui.unmount());
 
+// 6. Owner signed in on the same browser: the invite is never accepted into
+//    the owner's auth.uid(), and the choice is handed back to the person.
+stubState.session = { user: { id: '22222222-2222-4222-8222-222222222222', email: 'owner@example.com' }, access_token: 'token' };
+stubState.ownerAccount = { user_id: '22222222-2222-4222-8222-222222222222' };
+for (const key of Object.keys(rpcResponses)) delete rpcResponses[key];
+Object.assign(rpcResponses, {
+  studioflow_staff_invite_lookup: {
+    data: {
+      status: 'pending', salonName: 'Luxury Salon', staffName: 'Sunita',
+      role: 'Receptionist (Frontdesk)', permissions: ['view_own_bookings'],
+      branchIds: ['br-1'], allBranches: false, branchMissing: false,
+      email: 'sunita@example.com', expiresAt: new Date(Date.now() + 3 * 864e5).toISOString(),
+    },
+    error: null,
+  },
+  studioflow_my_staff_context: { data: null, error: null },
+});
+const acceptCallsBefore = rpcCalls.filter((call) => call.name === 'studioflow_staff_invite_accept').length;
+ui = await render(<StaffInviteAcceptPage token={TOKEN} />);
+assert.ok(hasText(ui, 'Aap abhi Owner account se logged in hain'), 'owner session on the accept page is called out');
+assert.ok(hasText(ui, 'Pehle sign out karein'), 'the copy tells the owner to sign out first');
+assert.ok(hasText(ui, 'Sign out & continue as staff'), 'the owner gets an explicit way to continue as staff');
+assert.ok(!hasText(ui, 'Accept invite & create login'), 'no staff accept form while the owner session is open');
+assert.equal(rpcCalls.filter((call) => call.name === 'studioflow_staff_invite_accept').length, acceptCallsBefore,
+  'the invite is never accepted into the owner auth.uid()');
+await act(async () => ui.unmount());
+stubState.ownerAccount = null;
+
+// 7. Branch closed between invite and accept: refuse instead of granting an
+//    empty-access login.
+stubState.session = null;
+for (const key of Object.keys(rpcResponses)) delete rpcResponses[key];
+Object.assign(rpcResponses, {
+  studioflow_staff_invite_lookup: {
+    data: {
+      status: 'pending', salonName: 'Luxury Salon', staffName: 'Sunita',
+      role: 'Receptionist (Frontdesk)', permissions: ['view_own_bookings'],
+      branchIds: [], allBranches: false, branchMissing: true,
+      email: null, expiresAt: new Date(Date.now() + 3 * 864e5).toISOString(),
+    },
+    error: null,
+  },
+});
+ui = await render(<StaffInviteAcceptPage token={TOKEN} />);
+assert.ok(hasText(ui, 'This invite points to a closed branch'), 'a branch-less invite fails closed');
+assert.ok(!hasText(ui, 'Accept invite & create login'), 'no accept form when the only branch is gone');
+await act(async () => ui.unmount());
+
+// 8. Explicit "All branches" grant is stated on the accept page.
+stubState.session = null;
+for (const key of Object.keys(rpcResponses)) delete rpcResponses[key];
+Object.assign(rpcResponses, {
+  studioflow_staff_invite_lookup: {
+    data: {
+      status: 'pending', salonName: 'Luxury Salon', staffName: 'Sunita',
+      role: 'Manager (Full Access)', permissions: ['manage_team'],
+      branchIds: [], allBranches: true, branchMissing: false,
+      email: null, expiresAt: new Date(Date.now() + 3 * 864e5).toISOString(),
+    },
+    error: null,
+  },
+});
+ui = await render(<StaffInviteAcceptPage token={TOKEN} />);
+assert.ok(hasText(ui, 'Branch access: All branches'), 'explicit all-branches scope is shown');
+await act(async () => ui.unmount());
+
 console.log('\nStaff login page');
 for (const key of Object.keys(rpcResponses)) delete rpcResponses[key];
 stubState.session = null;
@@ -175,6 +241,51 @@ assert.ok(!hasText(ui, 'Revenue snapshot'), 'service providers get no revenue pa
 assert.ok(!hasText(ui, 'Team & roles'), 'service providers cannot manage the team');
 assert.ok(!hasText(ui, 'Services & pricing'), 'service providers cannot edit pricing');
 assert.ok(!hasText(ui, 'Salon settings'), 'settings link is hidden without manage_settings');
+await act(async () => ui.unmount());
+
+// Service provider with no branch and no "all branches": the screen says the
+// data is empty by design instead of looking broken.
+Object.assign(rpcResponses, {
+  studioflow_my_staff_context: {
+    data: {
+      memberId: 'm-3', ownerId: '22222222-2222-4222-8222-222222222222', staffId: 'staff-3',
+      role: 'Service Provider (Assigned)', branchIds: [], allBranches: false,
+      accessVersion: 1,
+      permissions: ['view_own_bookings'],
+      salonName: 'Luxury Salon', salonSlug: 'luxury', staffName: 'Sunita', acceptedAt: '',
+    },
+    error: null,
+  },
+  studioflow_staff_workspace: {
+    data: { member: { role: 'Service Provider (Assigned)' }, profile: { businessName: 'Luxury Salon', branches: [] }, services: [], stylists: [], clients: null, loyaltyConfig: null, revenue: null },
+    error: null,
+  },
+});
+ui = await render(<StaffWorkspacePage />);
+assert.ok(hasText(ui, 'No branch is assigned to your login'), 'a branch-less login is told why its data is empty');
+assert.ok(hasText(ui, 'No branch assigned'), 'the header shows the empty scope honestly');
+assert.ok(!hasText(ui, 'All branches'), 'an empty scope is never labelled as all branches');
+await act(async () => ui.unmount());
+
+// Explicit all-branches login is labelled as such.
+Object.assign(rpcResponses, {
+  studioflow_my_staff_context: {
+    data: {
+      memberId: 'm-4', ownerId: '22222222-2222-4222-8222-222222222222', staffId: 'staff-4',
+      role: 'Manager (Full Access)', branchIds: [], allBranches: true, accessVersion: 1,
+      permissions: ['view_own_bookings','book_for_all_staff','manage_team'],
+      salonName: 'Luxury Salon', salonSlug: 'luxury', staffName: 'Rahul', acceptedAt: '',
+    },
+    error: null,
+  },
+  studioflow_staff_workspace: {
+    data: { member: { role: 'Manager (Full Access)' }, profile: { businessName: 'Luxury Salon', branches: [{ id: 'br-1', name: 'Main Branch' }] }, services: [], stylists: [], clients: [], loyaltyConfig: {}, revenue: { enabled: true } },
+    error: null,
+  },
+});
+ui = await render(<StaffWorkspacePage />);
+assert.ok(hasText(ui, 'All branches'), 'explicit all-branches access is labelled');
+assert.ok(!hasText(ui, 'No branch is assigned'), 'all-branches is not treated as branch-less');
 await act(async () => ui.unmount());
 
 // Manager: every permitted panel, still no owner-only publishing.
@@ -257,6 +368,54 @@ await act(async () => { form.props.onSubmit({ preventDefault() {} }); await new 
 assert.equal(rpcCalls.filter((call) => call.name === 'studioflow_staff_invite_create').length, 0,
   'no invite RPC runs when no team member/channel was chosen');
 assert.ok(hasText(ui, 'Choose a team member') || hasText(ui, 'Add an email'), 'the refusal explains what is missing');
+await act(async () => ui.unmount());
+
+// Selecting a member and a channel but no branch must be refused client-side:
+// an empty selection is not an implicit "all branches" any more.
+ui = await render(<StaffAccessPanel stylists={stylists} profile={profile} ownerEmail="owner@example.com" />);
+const selects = ui.root.findAll((node: any) => node.type === 'select');
+const memberSelect = selects[0];
+await act(async () => { memberSelect.props.onChange({ target: { value: 'staff-1' } }); });
+const emailInput = ui.root.findAll((node: any) => node.type === 'input' && node.props['aria-label'] === 'Invite email')[0];
+await act(async () => { emailInput.props.onChange({ target: { value: 'sunita@example.com' } }); });
+const createCallsBefore = rpcCalls.filter((call) => call.name === 'studioflow_staff_invite_create').length;
+const formAgain = ui.root.findAll((node: any) => node.type === 'form')[0];
+await act(async () => { formAgain.props.onSubmit({ preventDefault() {} }); await new Promise((resolve) => setTimeout(resolve, 0)); });
+assert.equal(rpcCalls.filter((call) => call.name === 'studioflow_staff_invite_create').length, createCallsBefore,
+  'no invite is created with an empty branch scope');
+assert.ok(hasText(ui, 'Choose at least one branch'), 'the owner is told to choose a branch or All branches');
+
+// Ticking "All branches" is the explicit opt-in.
+const allBranchesToggle = ui.root.findAll((node: any) => node.type === 'input' && node.props['aria-label'] === 'All branches')[0];
+await act(async () => { allBranchesToggle.props.onChange({ target: { checked: true } }); });
+Object.assign(rpcResponses, {
+  studioflow_staff_invite_create: {
+    data: {
+      inviteId: 'inv-2', token: 'b'.repeat(64), staffId: 'staff-1', staffName: 'Sunita',
+      role: 'Receptionist (Frontdesk)', branchIds: [], allBranches: true,
+      email: 'sunita@example.com', phone: null,
+      expiresAt: new Date(Date.now() + 7 * 864e5).toISOString(),
+    },
+    error: null,
+  },
+});
+await act(async () => { formAgain.props.onSubmit({ preventDefault() {} }); await new Promise((resolve) => setTimeout(resolve, 0)); });
+const createCall = rpcCalls.filter((call) => call.name === 'studioflow_staff_invite_create').pop();
+assert.equal(createCall?.args?.p_all_branches, true, 'the all-branches opt-in is sent explicitly');
+assert.equal(createCall?.args?.p_branch_ids?.length, 0, 'no branch ids are sent with an all-branches grant');
+assert.ok(hasText(ui, 'All branches'), 'the created invite states its scope');
+
+// Editing a live login's access calls the owner-only RPC.
+const editButton = ui.root.findAll((node: any) => node.type === 'button' && JSON.stringify(node.children || '').includes('Edit access'))[0];
+assert.ok(editButton, 'an active login exposes an Edit access action');
+await act(async () => { editButton.props.onClick(); await new Promise((resolve) => setTimeout(resolve, 0)); });
+const saveButton = ui.root.findAll((node: any) => node.type === 'button' && JSON.stringify(node.children || '').includes('Save access'))[0];
+assert.ok(saveButton, 'the inline access editor can be saved');
+Object.assign(rpcResponses, {
+  studioflow_staff_member_update_access: { data: { memberId: 'm-9', role: 'Receptionist (Frontdesk)', branchIds: ['br-1'], allBranches: false, accessVersion: 5 }, error: null },
+});
+await act(async () => { saveButton.props.onClick(); await new Promise((resolve) => setTimeout(resolve, 0)); });
+assert.ok(rpcCalls.some((call) => call.name === 'studioflow_staff_member_update_access'), 'owner edits go through the scoped RPC');
 await act(async () => ui.unmount());
 
 console.log('\nPASS: invite accept states, separate staff login, role-scoped staff workspace (no owner chrome, no cross-role panels) and owner invite panel guards.');

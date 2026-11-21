@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { SalonProfile, Stylist } from '../../types';
 import {
   createStaffInvite,
+  updateStaffMemberAccess,
   deactivateStaffMember,
   loadStaffAccounts,
   loadStaffInvites,
@@ -76,19 +77,30 @@ export function StaffAccessPanel({ stylists, profile, ownerEmail = '' }: Props) 
   const [selected, setSelected] = useState('');
   const [role, setRole] = useState<StaffAccessRole>(DEFAULT_ACCESS_ROLE);
   const [branchIds, setBranchIds] = useState<string[]>([]);
+  // Explicit opt-in. An empty selection is NOT "all branches" any more — a
+  // staff login with no branch simply sees no branch data (fail closed).
+  const [allBranches, setAllBranches] = useState(false);
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   // The plaintext token lives only in memory for the current session; it is
   // never stored, so a reload cannot re-issue someone else's invite link.
   const [lastInvite, setLastInvite] = useState<{
     inviteId: string; staffId: string; staffName: string; token: string; role: string;
-    branchIds: string[]; email: string | null; phone: string | null; expiresAt: string;
+    branchIds: string[]; allBranches: boolean; email: string | null; phone: string | null; expiresAt: string;
   } | null>(null);
+  // Inline role/branch edit for an existing login — the owner's way to turn a
+  // Manager into a Receptionist without revoking the person's login.
+  const [editing, setEditing] = useState<string>('');
+  const [editRole, setEditRole] = useState<StaffAccessRole>(DEFAULT_ACCESS_ROLE);
+  const [editBranchIds, setEditBranchIds] = useState<string[]>([]);
+  const [editAllBranches, setEditAllBranches] = useState(false);
   const [copied, setCopied] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const branches = (profile.branches || []).filter((branch) => branch.isActive);
-  const activeStylists = stylists.filter((stylist) => stylist.status !== 'Inactive');
+  const branches = useMemo(() => (profile.branches || []).filter((branch) => branch.isActive), [profile.branches]);
+  // Derived arrays must be stable, otherwise the prefill effect below runs on
+  // every render and wipes what the owner is typing.
+  const activeStylists = useMemo(() => stylists.filter((stylist) => stylist.status !== 'Inactive'), [stylists]);
 
   const reload = useCallback(async () => {
     setError('');
@@ -114,14 +126,19 @@ export function StaffAccessPanel({ stylists, profile, ownerEmail = '' }: Props) 
     return () => { active = false; };
   }, []);
 
-  // Prefill from the selected staff record so the owner types as little as possible.
+  // Prefill from the selected staff record. Keyed on the selected id only, so
+  // typing an email or ticking a branch is never overwritten mid-form.
   useEffect(() => {
-    const stylist = activeStylists.find((candidate) => candidate.id === selected);
+    if (!selected) return;
+    const stylist = stylists.find((candidate) => candidate.id === selected);
     if (!stylist) return;
     setRole(normalizeAccessRole(stylist.accessRole));
     setPhone(stylist.phone ? stylist.phone.replace(/\D/g, '').slice(-10) : '');
     setEmail('');
-  }, [selected, activeStylists]);
+    setBranchIds([]);
+    setAllBranches(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected]);
 
   const inviteByStaff = useMemo(() => {
     const map = new Map<string, StaffInviteRecord>();
@@ -153,14 +170,60 @@ export function StaffAccessPanel({ stylists, profile, ownerEmail = '' }: Props) 
     window.setTimeout(() => setNotice(''), 4000);
   };
 
-  const createInvite = async (staffId: string, staffRole: StaffAccessRole, staffEmail: string, staffPhone: string, staffBranchIds: string[]) => {
+  const createInvite = async (
+    staffId: string,
+    staffRole: StaffAccessRole,
+    staffEmail: string,
+    staffPhone: string,
+    staffBranchIds: string[],
+    staffAllBranches = false,
+  ) => {
     return createStaffInvite({
       staffId,
       role: staffRole,
-      branchIds: staffBranchIds,
+      branchIds: staffAllBranches ? [] : staffBranchIds,
+      allBranches: staffAllBranches,
       email: staffEmail.trim() || null,
       phone: staffPhone.trim() || null,
     });
+  };
+
+  /** "All branches" / two named branches / nothing — the three real states. */
+  const scopeLabel = (ids: string[] | undefined, all: boolean | undefined) => {
+    if (all) return 'All branches';
+    const names = (ids || [])
+      .map((id) => branches.find((branch) => branch.id === id)?.name)
+      .filter((name): name is string => Boolean(name));
+    if (!names.length) return 'No branch';
+    return names.join(', ');
+  };
+
+  const startEdit = (account: StaffAccount) => {
+    setEditing(account.memberId);
+    setEditRole(normalizeAccessRole(account.role));
+    setEditBranchIds(account.branchIds || []);
+    setEditAllBranches(account.allBranches === true);
+    setError('');
+  };
+
+  const saveEdit = async (account: StaffAccount) => {
+    setError('');
+    setBusyKey('edit-' + account.staffId);
+    try {
+      await updateStaffMemberAccess({
+        memberId: account.memberId,
+        role: editRole,
+        branchIds: editAllBranches ? [] : editBranchIds,
+        allBranches: editAllBranches,
+      });
+      setEditing('');
+      await reload();
+      flash('Access updated. The change applies on their next screen load or refresh.');
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Access could not be updated.');
+    } finally {
+      setBusyKey('');
+    }
   };
 
   const handleInvite = async (event: React.FormEvent) => {
@@ -168,12 +231,14 @@ export function StaffAccessPanel({ stylists, profile, ownerEmail = '' }: Props) 
     setError('');
     if (!selected) return setError('Choose a team member first.');
     if (!email.trim() && !phone.trim()) return setError('Add an email or a WhatsApp number so the invite can reach them.');
+    if (!allBranches && !branchIds.length) return setError('Choose at least one branch, or tick "All branches". A login with no branch cannot see any data.');
     setBusyKey('create');
     try {
-      const invite = await createInvite(selected, role, email, phone, branchIds);
+      const invite = await createInvite(selected, role, email, phone, branchIds, allBranches);
       setLastInvite({
         inviteId: invite.inviteId, staffId: invite.staffId, staffName: invite.staffName, token: invite.token,
-        role: invite.role, branchIds: invite.branchIds, email: invite.email, phone: invite.phone, expiresAt: invite.expiresAt,
+        role: invite.role, branchIds: invite.branchIds, allBranches: invite.allBranches === true,
+        email: invite.email, phone: invite.phone, expiresAt: invite.expiresAt,
       });
       setCopied(false);
       await reload();
@@ -190,10 +255,11 @@ export function StaffAccessPanel({ stylists, profile, ownerEmail = '' }: Props) 
     setError('');
     setBusyKey('resend-' + invite.staffId);
     try {
-      const fresh = await createInvite(invite.staffId, invite.role, invite.email || '', invite.phone || '', invite.branchIds);
+      const fresh = await createInvite(invite.staffId, invite.role, invite.email || '', invite.phone || '', invite.branchIds, invite.allBranches === true);
       setLastInvite({
         inviteId: fresh.inviteId, staffId: fresh.staffId, staffName: fresh.staffName, token: fresh.token,
-        role: fresh.role, branchIds: fresh.branchIds, email: fresh.email, phone: fresh.phone, expiresAt: fresh.expiresAt,
+        role: fresh.role, branchIds: fresh.branchIds, allBranches: fresh.allBranches === true,
+        email: fresh.email, phone: fresh.phone, expiresAt: fresh.expiresAt,
       });
       setCopied(false);
       await reload();
@@ -226,6 +292,7 @@ export function StaffAccessPanel({ stylists, profile, ownerEmail = '' }: Props) 
           staffName: lastInvite.staffName,
           role: normalizeAccessRole(lastInvite.role),
           branchIds: lastInvite.branchIds,
+          allBranches: lastInvite.allBranches,
           email: lastInvite.email,
           phone: lastInvite.phone,
           status: 'pending',
@@ -403,7 +470,21 @@ export function StaffAccessPanel({ stylists, profile, ownerEmail = '' }: Props) 
                 );
               })}
             </div>
-            <p className="mt-1 text-[11px] text-slate-500">Leave empty for all branches. Branch scope also filters the bookings a staff login can see.</p>
+            <label className="mt-2 flex items-center gap-2 text-xs font-bold text-slate-700">
+              <input
+                type="checkbox"
+                aria-label="All branches"
+                checked={allBranches}
+                onChange={(event) => {
+                  setAllBranches(event.target.checked);
+                  if (event.target.checked) setBranchIds([]);
+                }}
+              />
+              All branches (explicit)
+            </label>
+            <p className="mt-1 text-[11px] text-slate-500">
+              Pick the branches this person works in, or tick All branches on purpose. Nothing selected means no branch data — the booking list stays empty.
+            </p>
           </fieldset>
         ) : null}
 
@@ -422,7 +503,7 @@ export function StaffAccessPanel({ stylists, profile, ownerEmail = '' }: Props) 
         <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-sm font-bold text-slate-900">Invite ready · {lastInvite.staffName || 'Team member'}</p>
           <p className="mt-1 text-xs text-slate-600">
-            {ROLE_SHORT_LABELS[normalizeAccessRole(lastInvite.role)]} · expires {fmt(lastInvite.expiresAt)} · works once.
+            {ROLE_SHORT_LABELS[normalizeAccessRole(lastInvite.role)]} · {scopeLabel(lastInvite.branchIds, lastInvite.allBranches)} · expires {fmt(lastInvite.expiresAt)} · works once.
           </p>
           <div className="mt-2 rounded-lg bg-slate-50 p-2">
             <p className="break-all font-mono text-[11px] text-slate-700">{inviteUrl}</p>
@@ -470,6 +551,9 @@ export function StaffAccessPanel({ stylists, profile, ownerEmail = '' }: Props) 
                       {stylist.role || 'Team member'} · {ROLE_SHORT_LABELS[normalizeAccessRole(stylist.accessRole)]}
                       {account?.email ? ` · ${account.email}` : invite?.email ? ` · ${invite.email}` : ''}
                     </p>
+                    <p className="mt-0.5 text-[11px] text-slate-500">
+                      Branches: {account ? scopeLabel(account.branchIds, account.allBranches) : invite ? scopeLabel(invite.branchIds, invite.allBranches) : '—'}
+                    </p>
                     {invite ? (
                       <p className="mt-0.5 text-[11px] text-slate-500">
                         Invite expires {fmt(invite.expiresAt)} · sent {invite.sendCount}× {invite.lastSentAt ? `(last ${fmt(invite.lastSentAt)})` : ''}
@@ -511,6 +595,15 @@ export function StaffAccessPanel({ stylists, profile, ownerEmail = '' }: Props) 
                   {account?.isActive ? (
                     <button
                       type="button"
+                      onClick={() => startEdit(account)}
+                      className="rounded-lg border border-slate-300 px-3 py-1.5 text-[11px] font-bold text-slate-800"
+                    >
+                      Edit access
+                    </button>
+                  ) : null}
+                  {account?.isActive ? (
+                    <button
+                      type="button"
                       onClick={() => void handleDeactivate(account)}
                       disabled={busyKey === 'deactivate-' + stylist.id}
                       className="rounded-lg border border-rose-200 px-3 py-1.5 text-[11px] font-bold text-rose-700 disabled:opacity-60"
@@ -519,6 +612,57 @@ export function StaffAccessPanel({ stylists, profile, ownerEmail = '' }: Props) 
                     </button>
                   ) : null}
                 </div>
+                {account?.isActive && editing === account.memberId ? (
+                  <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <label className="block text-xs font-bold text-slate-700">
+                        Access role
+                        <select
+                          aria-label="Edit access role"
+                          value={editRole}
+                          onChange={(event) => setEditRole(normalizeAccessRole(event.target.value))}
+                          className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-sm font-normal text-slate-900"
+                        >
+                          {STAFF_ACCESS_ROLES.map((option) => <option key={option} value={option}>{option}</option>)}
+                        </select>
+                      </label>
+                      <div className="text-[11px] leading-relaxed text-slate-600">{ROLE_DESCRIPTIONS[editRole]}</div>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {branches.map((branch) => {
+                        const checked = editBranchIds.includes(branch.id);
+                        return (
+                          <label key={branch.id} className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs ${checked ? 'border-[#900c3f] bg-white font-bold text-[#900c3f]' : 'border-slate-300 bg-white text-slate-700'}`}>
+                            <input
+                              type="checkbox"
+                              disabled={editAllBranches}
+                              checked={checked && !editAllBranches}
+                              onChange={() => setEditBranchIds((prev) => checked ? prev.filter((id) => id !== branch.id) : [...prev, branch.id])}
+                            />
+                            {branch.name}
+                          </label>
+                        );
+                      })}
+                      <label className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-700">
+                        <input type="checkbox" aria-label="Edit all branches" checked={editAllBranches} onChange={(event) => setEditAllBranches(event.target.checked)} />
+                        All branches
+                      </label>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void saveEdit(account)}
+                        disabled={busyKey === 'edit-' + account.staffId}
+                        className="rounded-lg bg-slate-900 px-3 py-1.5 text-[11px] font-bold text-white disabled:opacity-60"
+                      >
+                        {busyKey === 'edit-' + account.staffId ? 'Saving…' : 'Save access'}
+                      </button>
+                      <button type="button" onClick={() => setEditing('')} className="rounded-lg border border-slate-300 px-3 py-1.5 text-[11px] font-bold text-slate-800">
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
               </li>
             );
           })}

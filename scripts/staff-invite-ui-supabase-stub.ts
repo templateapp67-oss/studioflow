@@ -6,13 +6,20 @@
 type RpcResult = { data: unknown; error: { message: string } | null };
 export const rpcCalls: { name: string; args: any }[] = [];
 export const rpcResponses: Record<string, RpcResult> = {};
-export const state: { session: any } = { session: null };
+/**
+ * `ownerAccount` is what a `studioflow_accounts` read returns for the signed-in
+ * user. When it is set, the session belongs to a salon owner — the case the
+ * accept page must refuse to bind to a staff record.
+ */
+export const state: { session: any; ownerAccount: any } = { session: null, ownerAccount: null };
 
 const queryBuilder: any = {
   select: () => queryBuilder,
   eq: () => queryBuilder,
   order: () => queryBuilder,
   limit: () => Promise.resolve({ data: [], error: null }),
+  maybeSingle: () => Promise.resolve({ data: state.ownerAccount, error: null }),
+  single: () => Promise.resolve({ data: state.ownerAccount, error: null }),
   then: (resolve: any) => Promise.resolve({ data: [], error: null }).then(resolve),
 };
 
@@ -28,7 +35,10 @@ export const supabase = {
     onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
     signInWithPassword: async () => ({ error: null }),
     signUp: async () => ({ data: { session: null }, error: null }),
-    signOut: async () => ({ error: null }),
+    signOut: async () => {
+      state.session = null;
+      return { error: null };
+    },
     signInWithOAuth: async () => ({ data: { url: 'https://accounts.google.com/x' }, error: null }),
     resetPasswordForEmail: async () => ({ error: null }),
     updateUser: async () => ({ error: null }),

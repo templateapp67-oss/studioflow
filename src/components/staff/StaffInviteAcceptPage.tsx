@@ -4,13 +4,16 @@ import { useAuthSession } from '../../lib/useAuthSession';
 import { saveOAuthIntent } from '../../lib/authEntry';
 import {
   acceptStaffInvite,
+  detectSessionConflict,
   isValidInviteToken,
   lookupStaffInvite,
   safeStaffRedirect,
+  signOutLocal,
   STAFF_LOGIN_PATH,
   STAFF_WORKSPACE_PATH,
   staffAcceptUrl,
   type InviteLookup,
+  type SessionConflict,
 } from '../../lib/staffInvites';
 import { ROLE_SHORT_LABELS, normalizeAccessRole, PERMISSION_LABELS, type StaffPermission } from '../../lib/staffPermissions';
 
@@ -68,6 +71,7 @@ export function StaffInviteAcceptPage({ token }: { token: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
+  const [conflict, setConflict] = useState<SessionConflict | null>(null);
   const acceptLock = useRef(false);
 
   const valid = isValidInviteToken(token);
@@ -76,7 +80,18 @@ export function StaffInviteAcceptPage({ token }: { token: string }) {
     let active = true;
     if (!valid) {
       setLoading(false);
-      setLookup({ status: 'invalid', salonName: '', staffName: '', role: 'Service Provider (Assigned)', permissions: [], branchIds: [], email: null, expiresAt: null });
+      setLookup({
+        status: 'invalid',
+        salonName: '',
+        staffName: '',
+        role: 'Service Provider (Assigned)',
+        permissions: [],
+        branchIds: [],
+        allBranches: false,
+        branchMissing: false,
+        email: null,
+        expiresAt: null,
+      });
       return;
     }
     void lookupStaffInvite(token)
@@ -96,15 +111,26 @@ export function StaffInviteAcceptPage({ token }: { token: string }) {
   }, [token, valid]);
 
   const canAccept = lookup?.status === 'pending';
+  const branchMissing = lookup?.branchMissing === true;
 
   // A signed-in visitor is accepted straight away — no extra click, no
   // re-entering details. Fails closed: role/branches come from the invite row.
+  //
+  // Owner sessions are the one exception. An owner who opens this link while
+  // signed in must never have their `auth.uid()` bound to a staff record, so
+  // we detect it first and hand the decision back to them.
   useEffect(() => {
-    if (!ready || !session || !canAccept || acceptLock.current || done) return;
+    if (!ready || !session || !canAccept || branchMissing || acceptLock.current || done) return;
     acceptLock.current = true;
     setBusy(true);
-    void acceptStaffInvite(token)
-      .then((result) => {
+    void detectSessionConflict()
+      .then(async (found) => {
+        if (found.isSalonOwner) {
+          acceptLock.current = false;
+          setConflict(found);
+          return;
+        }
+        const result = await acceptStaffInvite(token);
         setDone(true);
         location.replace(safeStaffRedirect(result.redirectTo));
       })
@@ -113,7 +139,15 @@ export function StaffInviteAcceptPage({ token }: { token: string }) {
         setError(caught instanceof Error ? caught.message : 'This invite could not be accepted.');
       })
       .finally(() => setBusy(false));
-  }, [ready, session, canAccept, token, done]);
+  }, [ready, session, canAccept, branchMissing, token, done]);
+
+  const continueAsStaff = async () => {
+    setBusy(true);
+    setError('');
+    await signOutLocal();
+    setConflict(null);
+    acceptLock.current = false;
+  };
 
   const continueUrl = useMemo(() => staffAcceptUrl(token, location.origin), [token]);
 
@@ -203,6 +237,51 @@ export function StaffInviteAcceptPage({ token }: { token: string }) {
     );
   }
 
+  if (branchMissing) {
+    // Every branch on the invite was deleted or deactivated after it was sent.
+    // Accepting would grant a login with no data reach, so we stop here.
+    return (
+      <Shell salonName={lookup.salonName}>
+        <h1 className="text-xl font-extrabold text-slate-900">This invite points to a closed branch</h1>
+        <p className="mt-2 text-sm leading-relaxed text-slate-600">
+          {lookup.salonName || 'The salon'} removed the branch this invite was created for. For safety your login is
+          not created with empty access — ask the owner to send a fresh invite with a current branch.
+        </p>
+        <a className="mt-5 inline-block rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white" href={STAFF_LOGIN_PATH}>
+          Go to staff sign-in
+        </a>
+      </Shell>
+    );
+  }
+
+  if (conflict?.isSalonOwner) {
+    return (
+      <Shell salonName={lookup.salonName}>
+        <h1 className="text-xl font-extrabold text-slate-900">Aap abhi Owner account se logged in hain</h1>
+        <p className="mt-2 text-sm leading-relaxed text-slate-600">
+          This browser is signed in as <strong className="font-semibold text-slate-800">{conflict.email || 'an owner account'}</strong>.
+          Staff access must use the invited person's own login, so we have not accepted this invite.
+        </p>
+        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-xs font-semibold leading-relaxed text-amber-900">
+          Owner account se staff invite accept nahi hota. Pehle sign out karein — ya staff account se continue karein.
+          Aapka salon data safe rahega.
+        </div>
+        <button
+          type="button"
+          onClick={continueAsStaff}
+          disabled={busy}
+          className="mt-4 w-full rounded-xl bg-[#900c3f] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#7a0a36] disabled:opacity-60"
+        >
+          {busy ? 'Signing out…' : 'Sign out & continue as staff'}
+        </button>
+        <a className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-center text-sm font-bold text-slate-800" href="/owner">
+          Back to my salon workspace
+        </a>
+        {error ? <p role="alert" className="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-800">{error}</p> : null}
+      </Shell>
+    );
+  }
+
   if (!canAccept) {
     const expired = lookup.status === 'expired';
     return (
@@ -233,6 +312,9 @@ export function StaffInviteAcceptPage({ token }: { token: string }) {
         Create your own login — you will only see the screens your role allows.
       </p>
       <RoleCard lookup={lookup} />
+      {lookup.allBranches ? (
+        <p className="mt-2 text-[11px] font-semibold text-slate-600">Branch access: All branches</p>
+      ) : null}
 
       <div className="mt-5 flex gap-2 rounded-xl bg-slate-100 p-1" role="tablist" aria-label="Invite action">
         {(['signup', 'signin'] as const).map((option) => (
@@ -313,6 +395,11 @@ export function StaffInviteAcceptPage({ token }: { token: string }) {
         <span aria-hidden="true" className="text-base font-black text-[#4285f4]">G</span>
         Continue with Google
       </button>
+      {lookup.email ? (
+        <p className="mt-1.5 text-[11px] font-semibold text-amber-800">
+          Use {lookup.email} for Google too. A different Google account is refused — the invite is bound to this email.
+        </p>
+      ) : null}
 
       <p className="mt-4 text-[11px] leading-relaxed text-slate-500">
         Invite expires {lookup.expiresAt ? new Date(lookup.expiresAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'soon'} and works once.

@@ -197,6 +197,68 @@ assert.equal(lookupBad.empty.status,'invalid','empty token is invalid');
 assert.equal(lookupBad.short.status,'invalid','short token is invalid');
 assert.equal(lookupBad.unknown.status,'invalid','unknown token is invalid');
 
+// Staff access hardening: empty branch scope fails closed, stale branches are
+// filtered, acceptance is atomic, and no policy recurse into its own table.
+const hardeningFile='supabase/migrations/20261119140000_staff_access_hardening.sql';
+const hardeningSql=readFileSync(hardeningFile,'utf8');
+assert.match(hardeningSql,/all_branches boolean not null default false/,'explicit all-branches flag exists');
+assert.match(hardeningSql,/security definer/g,'authorization helpers are SECURITY DEFINER');
+assert.match(hardeningSql,/studioflow_staff_member_update_access/,'owner can edit a live login\'s access');
+// The old "empty array means every branch" behaviour must be gone.
+assert.doesNotMatch(hardeningSql,/coalesce\(cardinality\(sm\.branch_ids\), 0\) = 0[\s\S]{0,80}then null/,
+  'empty branch scope is never treated as all branches');
+await applySqlText(hardeningSql,hardeningFile);
+
+const {rows:[hardeningGrants]}=await db.query(`
+  select
+    has_function_privilege('anon','public.studioflow_is_salon_owner(uuid)','EXECUTE') as anon_is_owner,
+    has_function_privilege('anon','public.studioflow_staff_scope(uuid)','EXECUTE') as anon_scope,
+    has_function_privilege('anon','public.studioflow_current_staff_can(uuid,text)','EXECUTE') as anon_can,
+    has_function_privilege('anon','public.studioflow_is_assigned_branch(uuid,text)','EXECUTE') as anon_branch,
+    has_function_privilege('anon','public.studioflow_staff_invite_lookup(text)','EXECUTE') as anon_lookup,
+    has_function_privilege('anon','public.studioflow_staff_member_update_access(uuid,text,text[],boolean)','EXECUTE') as anon_update_access,
+    has_function_privilege('anon','public.studioflow_staff_invite_create(text,text,text[],text,text,integer,boolean)','EXECUTE') as anon_create_new,
+    to_regprocedure('public.studioflow_staff_invite_create(text,text,text[],text,text,integer)') is null as old_create_dropped,
+    has_function_privilege('authenticated','public.studioflow_staff_member_update_access(uuid,text,text[],boolean)','EXECUTE') as auth_update_access,
+    has_function_privilege('authenticated','public.studioflow_staff_scope_view(uuid)','EXECUTE') as auth_scope_view,
+    has_function_privilege('anon','public.studioflow_staff_scope_view(uuid)','EXECUTE') as anon_scope_view
+`);
+assert.equal(hardeningGrants.anon_is_owner,false,'anon cannot probe owner identity');
+assert.equal(hardeningGrants.anon_scope,false,'anon cannot read a branch scope');
+assert.equal(hardeningGrants.anon_can,false,'anon cannot evaluate permissions');
+assert.equal(hardeningGrants.anon_branch,false,'anon cannot test branch assignment');
+assert.equal(hardeningGrants.anon_lookup,true,'the invite lookup stays the only anonymous function');
+assert.equal(hardeningGrants.anon_update_access,false,'anon cannot rewrite staff access');
+assert.equal(hardeningGrants.auth_update_access,true,'the owner can rewrite staff access while signed in');
+assert.equal(hardeningGrants.auth_scope_view,true,'signed-in staff can read their scope summary');
+assert.equal(hardeningGrants.anon_scope_view,false,'the scope summary is not anonymous');
+assert.equal(hardeningGrants.anon_create_new,false,'anon cannot mint invites with the new signature either');
+assert.equal(hardeningGrants.old_create_dropped,true,'the superseded invite creator cannot be called by signed-out visitors');
+
+// An empty scope (no grant, no branch) must never match a branch.
+const {rows:[failClosed]}=await db.query(`
+  select
+    public.studioflow_is_assigned_branch(gen_random_uuid(),'any-branch') as unknown_owner_branch,
+    public.studioflow_is_assigned_branch(null,'any-branch') as null_owner_branch,
+    public.studioflow_staff_scope(gen_random_uuid()) is null as scope_reads_null,
+    public.studioflow_current_staff_id(gen_random_uuid()) is null as stranger_has_no_membership
+`);
+assert.equal(failClosed.unknown_owner_branch,false,'an unknown owner never grants a branch');
+assert.equal(failClosed.null_owner_branch,false,'a null owner never grants a branch');
+// A stranger has no membership, so scope returns no row (null). That is the
+// same value an explicit all-branches grant produces, which is why every
+// branch check pairs it with a membership test.
+assert.equal(failClosed.stranger_has_no_membership,true,'a stranger is not an active staff member');
+assert.equal(failClosed.scope_reads_null,true,'a stranger scope is "no row", never a branch list');
+
+// The rewritten staff booking policy must use the helpers, not inline joins.
+const {rows:staffPolicyRows}=await db.query(
+  "select qual from pg_policies where schemaname='public' and tablename='studioflow_bookings' and policyname='studioflow_bookings_staff_read'"
+);
+assert.equal(staffPolicyRows.length,1,'the staff booking policy exists');
+assert.match(staffPolicyRows[0].qual,/studioflow_is_assigned_branch/,'the staff policy enforces branch scope');
+assert.match(staffPolicyRows[0].qual,/studioflow_current_staff_can/,'the staff policy enforces the role permission');
+
 // NEXORA WhatsApp test mode: apply its private QA ledger and the follow-up
 // rename migration before the live-catalog scan. The limiter is intentionally
 // server-only (service_role grant only) and is not a browser-facing RPC.

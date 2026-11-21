@@ -28,6 +28,7 @@ export interface StaffInvite {
   staffName: string;
   role: StaffAccessRole;
   branchIds: string[];
+  allBranches?: boolean;
   email: string | null;
   phone: string | null;
   status: StaffInviteStatus;
@@ -42,6 +43,7 @@ export interface StaffInviteRecord {
   phone: string | null;
   role: StaffAccessRole;
   branchIds: string[];
+  allBranches: boolean;
   status: StaffInviteStatus;
   expiresAt: string;
   createdAt: string;
@@ -57,6 +59,7 @@ export interface StaffAccount {
   staffId: string;
   role: StaffAccessRole;
   branchIds: string[];
+  allBranches: boolean;
   isActive: boolean;
   acceptedAt: string;
   email: string | null;
@@ -68,6 +71,10 @@ export interface StaffContext {
   staffId: string;
   role: StaffAccessRole;
   branchIds: string[];
+  /** Explicit "all branches" grant; an empty scope without it means no branch. */
+  allBranches: boolean;
+  /** Changes whenever the owner edits role/branch/active state. */
+  accessVersion: number;
   permissions: string[];
   salonName: string;
   salonSlug: string;
@@ -146,6 +153,7 @@ export async function createStaffInvite(input: {
   staffId: string;
   role: StaffAccessRole | string;
   branchIds?: string[];
+  allBranches?: boolean;
   email?: string | null;
   phone?: string | null;
   expiresInDays?: number;
@@ -154,6 +162,7 @@ export async function createStaffInvite(input: {
     p_staff_id: input.staffId,
     p_role: normalizeAccessRole(input.role),
     p_branch_ids: input.branchIds || [],
+    p_all_branches: input.allBranches === true,
     p_email: input.email?.trim() || null,
     p_phone: input.phone?.trim() || null,
     p_expires_days: input.expiresInDays ?? 7,
@@ -168,6 +177,7 @@ export async function createStaffInvite(input: {
     staffName: row.staffName || '',
     role: normalizeAccessRole(row.role),
     branchIds: Array.isArray(row.branchIds) ? row.branchIds : [],
+    allBranches: row.allBranches === true,
     email: row.email ?? null,
     phone: row.phone ?? null,
     status: 'pending',
@@ -270,6 +280,7 @@ export async function loadStaffInvites(): Promise<StaffInviteRecord[]> {
     phone: row.phone ?? null,
     role: normalizeAccessRole(row.role),
     branchIds: Array.isArray(row.branchIds) ? row.branchIds : [],
+    allBranches: row.allBranches === true,
     status: (row.status || 'pending') as StaffInviteStatus,
     expiresAt: row.expiresAt,
     createdAt: row.createdAt,
@@ -290,6 +301,7 @@ export async function loadStaffAccounts(): Promise<StaffAccount[]> {
     staffId: row.staffId,
     role: normalizeAccessRole(row.role),
     branchIds: Array.isArray(row.branchIds) ? row.branchIds : [],
+    allBranches: row.allBranches === true,
     isActive: row.isActive === true,
     acceptedAt: row.acceptedAt,
     email: row.email ?? null,
@@ -303,6 +315,9 @@ export interface InviteLookup {
   role: StaffAccessRole;
   permissions: string[];
   branchIds: string[];
+  allBranches: boolean;
+  /** Every branch on the invite is gone/inactive — accepting must be refused. */
+  branchMissing: boolean;
   email: string | null;
   expiresAt: string | null;
 }
@@ -319,6 +334,8 @@ export async function lookupStaffInvite(token: string): Promise<InviteLookup> {
     role: normalizeAccessRole(row.role),
     permissions: Array.isArray(row.permissions) ? row.permissions : [],
     branchIds: Array.isArray(row.branchIds) ? row.branchIds : [],
+    allBranches: row.allBranches === true,
+    branchMissing: row.branchMissing === true,
     email: row.email || null,
     expiresAt: row.expiresAt || null,
   };
@@ -343,6 +360,8 @@ export async function loadMyStaffContext(): Promise<StaffContext | null> {
     staffId: row.staffId,
     role: normalizeAccessRole(row.role),
     branchIds: Array.isArray(row.branchIds) ? row.branchIds : [],
+    allBranches: row.allBranches === true,
+    accessVersion: Number(row.accessVersion || 0),
     permissions: Array.isArray(row.permissions) ? row.permissions : [],
     salonName: row.salonName || '',
     salonSlug: row.salonSlug || '',
@@ -360,6 +379,109 @@ export async function loadStaffWorkspace(): Promise<any | null> {
   const { data, error } = await supabase.rpc('studioflow_staff_workspace');
   if (error) throw new Error(error.message);
   return data ?? null;
+}
+
+/* ------------------------------------------------------------------ */
+/* Session hygiene                                                     */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Why a session conflict matters
+ * ------------------------------
+ * Owner and staff sessions share one `localStorage` bucket (one Supabase auth
+ * key). If the owner opens a staff invite link while still signed in, an
+ * accept would bind the OWNER's `auth.uid()` to a staff record — the exact
+ * mistake the URL is supposed to make impossible. So the accept page never
+ * accepts for a signed-in visitor who already owns a salon, and instead asks
+ * them to choose explicitly.
+ */
+export interface SessionConflict {
+  /** The signed-in account already runs a salon workspace. */
+  isSalonOwner: boolean;
+  email: string;
+  /** The signed-in account already has active staff access somewhere. */
+  isStaff: boolean;
+}
+
+/**
+ * Detects whether the current session is an owner account. Uses the same
+ * `studioflow_accounts` row the workspace bootstrap uses, read through RLS, so
+ * a staff session can never be misclassified as the owner of someone's salon.
+ */
+export async function detectSessionConflict(): Promise<SessionConflict> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const user = sessionData.session?.user;
+  if (!user) return { isSalonOwner: false, email: '', isStaff: false };
+  const email = user.email || '';
+  const [accountResult, staff] = await Promise.all([
+    supabase.from('studioflow_accounts').select('user_id').eq('user_id', user.id).maybeSingle(),
+    loadMyStaffContext().catch(() => null),
+  ]);
+  return {
+    isSalonOwner: Boolean(accountResult.data?.user_id),
+    email,
+    isStaff: Boolean(staff),
+  };
+}
+
+/** Signs out only this device, leaving any other tab/session untouched. */
+export async function signOutLocal(): Promise<void> {
+  await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined);
+}
+
+/** Owner control: change role/branch scope of an existing staff login. */
+export async function updateStaffMemberAccess(input: {
+  memberId: string;
+  role: StaffAccessRole | string;
+  branchIds?: string[];
+  allBranches?: boolean;
+}): Promise<{ role: StaffAccessRole; branchIds: string[]; allBranches: boolean; accessVersion: number }> {
+  const { data, error } = await supabase.rpc('studioflow_staff_member_update_access', {
+    p_member_id: input.memberId,
+    p_role: normalizeAccessRole(input.role),
+    p_branch_ids: input.branchIds || [],
+    p_all_branches: input.allBranches === true,
+  });
+  if (error) throw new Error(error.message);
+  const row = (data || {}) as any;
+  return {
+    role: normalizeAccessRole(row.role),
+    branchIds: Array.isArray(row.branchIds) ? row.branchIds : [],
+    allBranches: row.allBranches === true,
+    accessVersion: Number(row.accessVersion || 0),
+  };
+}
+
+/**
+ * Polls the caller's access version so an open staff tab notices a role or
+ * branch change instead of running on cached permissions. Returns a cleanup
+ * function. Deliberately cheap: a single indexed row read per `intervalMs`.
+ */
+export function watchStaffAccess(
+  onChange: (context: StaffContext | null) => void,
+  intervalMs = 45_000,
+): () => void {
+  let active = true;
+  let lastVersion = -1;
+  const tick = async () => {
+    if (!active) return;
+    const context = await loadMyStaffContext().catch(() => null);
+    const version = context ? context.accessVersion : -2;
+    if (version !== lastVersion) {
+      lastVersion = version;
+      if (active) onChange(context);
+    }
+  };
+  void tick();
+  const timer = setInterval(() => void tick(), Math.max(10_000, intervalMs));
+  const hasDocument = typeof document !== 'undefined';
+  const onVisible = () => { if (document.visibilityState === 'visible') void tick(); };
+  if (hasDocument) document.addEventListener('visibilitychange', onVisible);
+  return () => {
+    active = false;
+    clearInterval(timer);
+    if (hasDocument) document.removeEventListener('visibilitychange', onVisible);
+  };
 }
 
 /** Fails closed: only a value the login page produced is used as a redirect. */

@@ -2060,6 +2060,10 @@
     {
       "file": "20261119120000_staff_invites_and_staff_login.sql",
       "purpose": "Staff invites, staff memberships and separate staff sign-in with hashed tokens and fail-closed grants."
+    },
+    {
+      "file": "20261119140000_staff_access_hardening.sql",
+      "purpose": "Staff access hardening: explicit all_branches grant (empty branch scope now means no branch data), stale branch filtering on every read, atomic invite acceptance, reusable SECURITY DEFINER authorization helpers so RLS cannot recurse, and an owner-only RPC to change a live login's role/branch scope."
     }
   ],
   "post_export_applied_versions": [
@@ -2151,6 +2155,15 @@
       "observed_at": "2026-11-19",
       "evidence": "Applied to project zilwgiuiygqqardzutxi on 2026-11-19: staff_invites + staff_members tables, invite lifecycle RPCs, role/branch-filtered staff workspace projection and an additive branch-scoped staff booking read policy. Verified live that anon can execute only the token lookup, every other RPC is authenticated-only, and the owner ledger exposes no token hash.",
       "purpose": "Staff invite + separate staff login layer: hashed invite tokens, one identity per staff record, role/branch scope enforced in SQL, and additive RLS for staff booking visibility. No existing owner policy is dropped or widened.",
+      "git_blob_sha": ""
+    },
+    {
+      "version": "20261119140000",
+      "file": "20261119140000_staff_access_hardening.sql",
+      "name": "staff_access_hardening",
+      "observed_at": "2026-11-19",
+      "evidence": "Applied to project zilwgiuiygqqardzutxi on 2026-11-19: all_branches columns, SECURITY DEFINER helpers (studioflow_is_salon_owner / active_branch_ids / staff_scope / staff_scope_view / current_staff_can / current_staff_id / is_assigned_branch), rewritten branch-scoped staff booking policy, fail-closed invite create/accept/lookup/workspace/context, owner-only studioflow_staff_member_update_access, and the superseded 6-argument invite creator dropped so anon retains exactly one executable function (the token lookup).",
+      "purpose": "Fail-closed multi-branch scope and token hardening for staff access.",
       "git_blob_sha": ""
     }
   ]

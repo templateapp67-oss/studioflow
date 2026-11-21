@@ -2,8 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuthSession } from '../../lib/useAuthSession';
 import {
+  detectSessionConflict,
   loadMyStaffContext,
   safeStaffRedirect,
+  signOutLocal,
   STAFF_WORKSPACE_PATH,
   type StaffContext,
 } from '../../lib/staffInvites';
@@ -28,14 +30,22 @@ export function StaffLoginPage() {
   const [notice, setNotice] = useState('');
   const [context, setContext] = useState<StaffContext | null>(null);
   const [checking, setChecking] = useState(false);
+  // An owner signed in on this browser must be told, not silently swapped.
+  const [ownerSession, setOwnerSession] = useState('');
 
   useEffect(() => {
     if (!ready) return;
-    if (!session) { setContext(null); return; }
+    if (!session) { setContext(null); setOwnerSession(''); return; }
     let active = true;
     setChecking(true);
     void loadMyStaffContext()
-      .then((row) => { if (active) setContext(row); })
+      .then(async (row) => {
+        if (!active) return;
+        setContext(row);
+        if (row) { setOwnerSession(''); return; }
+        const conflict = await detectSessionConflict().catch(() => null);
+        if (active) setOwnerSession(conflict?.isSalonOwner ? conflict.email : '');
+      })
       .finally(() => { if (active) setChecking(false); });
     return () => { active = false; };
   }, [ready, session]);
@@ -47,6 +57,13 @@ export function StaffLoginPage() {
     if (!email.trim() || !password) return setError('Enter your work email and password.');
     setBusy(true);
     try {
+      // One browser, one Supabase session. Signing a staff account in here
+      // replaces whatever session was open (owner included) — say so first so
+      // the owner is never silently logged out of their salon.
+      const signedInEmail = session?.user?.email || '';
+      if (signedInEmail && signedInEmail.toLowerCase() !== email.trim().toLowerCase()) {
+        await signOutLocal();
+      }
       const { error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
       if (signInError) throw new Error(signInError.message);
       const row = await loadMyStaffContext();
@@ -88,7 +105,11 @@ export function StaffLoginPage() {
           </p>
           <p className="mt-1 text-xs font-semibold text-slate-500">
             Role: {ROLE_SHORT_LABELS[normalizeAccessRole(context.role)]}
-            {context.branchIds.length ? ` · ${context.branchIds.length} branch${context.branchIds.length === 1 ? '' : 'es'}` : ' · all branches'}
+            {context.allBranches
+              ? ' · all branches'
+              : context.branchIds.length
+                ? ` · ${context.branchIds.length} branch${context.branchIds.length === 1 ? '' : 'es'}`
+                : ' · no branch assigned'}
           </p>
           <a className="mt-5 block rounded-xl bg-[#900c3f] px-4 py-3 text-center text-sm font-bold text-white" href={STAFF_WORKSPACE_PATH}>
             Open my workspace
@@ -96,7 +117,7 @@ export function StaffLoginPage() {
           <button
             type="button"
             className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-700"
-            onClick={async () => { await supabase.auth.signOut(); setContext(null); }}
+            onClick={async () => { await signOutLocal(); setContext(null); }}
           >
             Sign out
           </button>
@@ -121,9 +142,25 @@ export function StaffLoginPage() {
           {checking ? <p role="status" className="mt-3 text-xs font-semibold text-slate-500">Checking your staff access…</p> : null}
 
           {session && !context && !checking ? (
-            <p role="alert" className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-900">
-              You are signed in, but this account has no active staff membership for any salon. Ask the owner for an invite, or sign out and use the invite link.
-            </p>
+            ownerSession ? (
+              <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                <p role="alert" className="text-xs font-semibold leading-relaxed text-amber-900">
+                  Aap abhi Owner account se logged in hain ({ownerSession}). Staff login alag account se hota hai —
+                  pehle sign out karein, warna aapka owner session band ho jayega.
+                </p>
+                <button
+                  type="button"
+                  onClick={async () => { await signOutLocal(); setOwnerSession(''); setError(''); }}
+                  className="mt-2 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-[11px] font-bold text-amber-900"
+                >
+                  Sign out of the owner account
+                </button>
+              </div>
+            ) : (
+              <p role="alert" className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-900">
+                You are signed in, but this account has no active staff membership for any salon. Ask the owner for an invite, or sign out and use the invite link.
+              </p>
+            )
           ) : null}
 
           <form className="mt-5 space-y-3" onSubmit={submit} noValidate>
