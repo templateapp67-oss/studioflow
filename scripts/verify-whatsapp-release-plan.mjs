@@ -24,7 +24,7 @@ for(const record of postExportApplied){
   assert(!historicalApplied.has(record.version),`Post-export migration already exists in export baseline: ${record.version}`);
   assert(active.includes(record.file),`Post-export applied migration source is missing: ${record.file}`);
   assert.equal(record.file.split('_',1)[0],record.version,`Post-export local filename/version mismatch: ${record.file}`);
-  assert(/^\\d{14}$/.test(record.remote_version||record.version),`Invalid remote migration version for ${record.file}`);
+  assert(/^\d{14}$/.test(record.remote_version||record.version),`Invalid remote migration version for ${record.file}`);
   const sql=readFileSync('supabase/migrations/'+record.file);
   const gitBlobSha=createHash('sha1')
     .update(Buffer.concat([Buffer.from('blob '+sql.length),Buffer.from([0]),sql]))
