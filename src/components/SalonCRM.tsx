@@ -293,6 +293,7 @@ export function SalonCRM({ profile }: { profile: SalonProfile }) {
             p_tags: draftTags.trim(),
             p_notes: draftNotes.trim(),
             p_blocked: draftBlocked,
+            p_branch_id: draftBranchId || null,
           }
         : {
             p_customer: selected.id,
@@ -327,6 +328,7 @@ export function SalonCRM({ profile }: { profile: SalonProfile }) {
         p_email: newEmail.trim() || null,
         p_source: newSource,
         p_date_of_birth: newDob || null,
+        p_branch_id: newBranchId || null,
       });
       if (rpcError) throw rpcError;
       if (typeof createdId !== 'string' || !createdId) throw new Error('The new contact was not returned by the CRM.');
@@ -335,6 +337,7 @@ export function SalonCRM({ profile }: { profile: SalonProfile }) {
       setNewPhone('');
       setNewEmail('');
       setNewDob('');
+      setNewBranchId(branchContext.isOwner?'':(branchOptions[0]?.id||''));
       setNewSource('walk_in');
       await loadCRM(true);
       setSelectedId(createdId);
