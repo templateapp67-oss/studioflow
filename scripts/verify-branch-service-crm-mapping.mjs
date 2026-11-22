@@ -7,7 +7,7 @@ const gitBlob=(path)=>{
   // Recreate the Git blob bytes: Git stores these SQL files with LF even if
   // Windows core.autocrlf checks them out with CRLF line endings.
   const body=Buffer.from(readFileSync(path,'utf8').replace(/\r\n/g,'\n'),'utf8');
-  return createHash('sha1').update(`blob ${body.length}\\0`).update(body).digest('hex');
+  return createHash('sha1').update(`blob ${body.length}\0`).update(body).digest('hex');
 };
 
 const serviceSql=read('supabase/migrations/20261122060000_branch_service_catalogue_scope.sql');
