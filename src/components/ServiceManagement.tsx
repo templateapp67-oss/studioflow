@@ -46,25 +46,25 @@ export function ServiceManagement({services,setServices,primaryAccentColor,profi
  const activeTemplateId=profile?.businessType||'hair_salon';
  const [branchOptions,setBranchOptions]=useState<Array<{id:string;name:string;city?:string}>>([]);
  const [branchMap,setBranchMap]=useState<Record<string,string[]>>({});
+ // This owner-side editor must work before storefront publication. The public
+ // branch listing is intentionally hidden until a website is published, so
+ // populate the private selector from the saved workspace branch draft instead.
  useEffect(()=>{
-  if(!profile?.subdomain)return;
+  const branches=Array.isArray(profile?.branches)?profile.branches:[];
+  setBranchOptions(branches
+   .filter(item=>item&&typeof item.id==='string'&&typeof item.name==='string'&&item.isActive!==false)
+   .map(item=>({id:item.id,name:item.name,city:typeof item.city==='string'?item.city:''})));
+ },[profile?.branches]);
+ useEffect(()=>{
   let active=true;
-  void Promise.all([
-   supabase.rpc('studioflow_public_branches',{p_slug:profile.subdomain}),
-   supabase.rpc('studioflow_owner_service_branch_map')
-  ]).then(([branchesResult,mapResult])=>{
-   if(!active)return;
-   if(!branchesResult.error&&Array.isArray(branchesResult.data)){
-    setBranchOptions(branchesResult.data.filter((item:any)=>item&&typeof item.id==='string'&&typeof item.name==='string'&&item.isActive!==false).map((item:any)=>({id:item.id,name:item.name,city:typeof item.city==='string'?item.city:''})));
-   }
-   if(!mapResult.error&&Array.isArray(mapResult.data)){
-    const next:Record<string,string[]>={};
-    for(const item of mapResult.data as any[])if(item&&typeof item.serviceId==='string'&&Array.isArray(item.branchIds))next[item.serviceId]=item.branchIds.filter((id:any)=>typeof id==='string');
-    setBranchMap(next);
-   }
+  void supabase.rpc('studioflow_owner_service_branch_map').then(({data,error})=>{
+   if(!active||error||!Array.isArray(data))return;
+   const next:Record<string,string[]>={};
+   for(const item of data as any[])if(item&&typeof item.serviceId==='string'&&Array.isArray(item.branchIds))next[item.serviceId]=item.branchIds.filter((id:any)=>typeof id==='string');
+   setBranchMap(next);
   }).catch(()=>{});
   return()=>{active=false};
- },[profile?.subdomain]);
+ },[]);
  useEffect(()=>{
   if(!Object.keys(branchMap).length)return;
   setServices(previous=>{
