@@ -219,7 +219,7 @@ Deno.serve(async(req:Request)=>{
     // prefix before making any provider request.
     const requireNexoraE2eTestMode=()=>{
       if(!serviceKey||!sameSecret(token,serviceKey))throw new Error('Unauthorized');
-      if(!creds.configured||creds.keyMode!=='test')throw new Error('NEXORA E2E blocked: Razorpay backend keyMode is not test.');
+      if(!creds.configured||creds.keyMode!=='test')throw new Error('NEXORA_E2E_MODE_CHANGED: server no longer proves configured rzp_test_ credentials.');
     };
     const validNexoraE2eRun=(value:unknown):value is string=>
       typeof value==='string'&&/^NEXORA-E2E-[a-f0-9]{32}$/.test(value);
