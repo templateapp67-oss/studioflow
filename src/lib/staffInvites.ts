@@ -349,6 +349,35 @@ export async function acceptStaffInvite(token: string): Promise<{ redirectTo: st
   return { redirectTo: row.redirectTo || STAFF_WORKSPACE_PATH };
 }
 
+export interface StaffMembershipChoice {
+  memberId: string;
+  ownerId: string;
+  staffId: string;
+  role: StaffAccessRole;
+  branchIds: string[];
+  salonName: string;
+}
+
+export async function loadMyStaffMemberships(): Promise<StaffMembershipChoice[]> {
+  const { data, error } = await supabase.rpc('studioflow_my_staff_memberships');
+  if (error) throw new Error(error.message);
+  const rows = Array.isArray(data) ? data : [];
+  return rows.map((row: any) => ({
+    memberId: String(row.memberId || ''),
+    ownerId: String(row.ownerId || ''),
+    staffId: String(row.staffId || ''),
+    role: normalizeAccessRole(row.role),
+    branchIds: Array.isArray(row.branchIds) ? row.branchIds.map(String) : [],
+    salonName: String(row.salonName || ''),
+  })).filter((row: StaffMembershipChoice) => row.memberId && row.ownerId);
+}
+
+export async function selectStaffSalon(ownerId: string): Promise<void> {
+  if (!ownerId) throw new Error('Choose a salon first.');
+  const { error } = await supabase.rpc('studioflow_set_active_staff_salon', { p_owner: ownerId });
+  if (error) throw new Error(error.message);
+}
+
 export async function loadMyStaffContext(): Promise<StaffContext | null> {
   const { data, error } = await supabase.rpc('studioflow_my_staff_context');
   if (error) return null;

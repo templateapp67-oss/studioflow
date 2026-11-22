@@ -34,11 +34,17 @@ create or replace function extensions.digest(data text,algo text) returns bytea 
 
 // Dollar-quote-aware splitter: naive ';' splitting breaks plpgsql bodies.
 const splitSql=(sql)=>{
-  const out=[];let cur='',i=0,tag=null,quote=false,line=false;
+  const out=[];let cur='',i=0,tag=null,quote=false,line=false,blockDepth=0;
   while(i<sql.length){
     const two=sql.slice(i,i+2);
+    if(blockDepth>0){
+      if(two==='/*'){blockDepth++;cur+='  ';i+=2;continue;}
+      if(two==='*/'){blockDepth--;cur+='  ';i+=2;continue;}
+      cur+=sql[i]==='\n'?'\n':' ';i++;continue;
+    }
     if(line){cur+=sql[i];if(sql[i]==='\n')line=false;i++;continue;}
     if(two==='--'&&!quote&&!tag){line=true;cur+=two;i+=2;continue;}
+    if(two==='/*'&&!quote&&!tag){blockDepth=1;cur+='  ';i+=2;continue;}
     if(sql[i]==="'"&&!tag){if(sql[i+1]==="'"){cur+="''";i+=2;continue;}quote=!quote;cur+=sql[i];i++;continue;}
     if(sql[i]==='$'&&!quote){
       const m=sql.slice(i).match(/^\$[A-Za-z_0-9]*\$/);
@@ -49,6 +55,7 @@ const splitSql=(sql)=>{
   }
   if(cur.trim())out.push(cur);
   assert.equal(tag,null,'Unterminated dollar-quoted SQL body');
+  assert.equal(blockDepth,0,'Unterminated block comment in SQL body');
   return out;
 };
 const applySqlText=async(sql,label='SQL file')=>{
@@ -533,6 +540,82 @@ assert.equal(tawkSecurity.authenticated_widget_insert, false, 'authenticated can
 assert.equal(tawkSecurity.service_role_widget_select, true, 'service_role can read private widget rows');
 assert.equal(tawkSecurity.service_role_widget_insert, true, 'service_role can insert private widget rows');
 assert.equal(tawkSecurity.widget_id_constraint_count, 1, 'widget ID check constraint exists exactly once');
+// Audit migrations added by PR #141 and its follow-up implementation.
+// Replay them in the exact applied order before scanning browser-called RPCs,
+// so every client call must resolve against the same final SQL catalogue.
+// The legacy backend replay exposes this wrapper as RETURNS jsonb. The
+// timestamped Supabase migration supersedes it with the typed table return
+// consumed by the Edge Function, so remove only the offline fixture version.
+await db.exec('drop function if exists public.studioflow_claim_refunds(integer)');
+// The older backend replay declares this public browser wrapper with DEFAULT
+// parameters. The applied timestamped branch migration replaces it with the
+// non-defaulted signature that exists in Supabase. Drop only the offline
+// fixture before replaying that replacement; production is not affected.
+await db.exec('drop function if exists public.studioflow_android_book(text,jsonb,date,text,text,text,text,text,uuid)');
+
+for (const name of [
+  '20261122043650_staff_crm_branch_scope.sql',
+  '20261122045445_studioflow_refund_queue_rpc.sql',
+  '20261122052119_staff_salon_context_and_booking_completion.sql',
+  '20261122052400_staff_inventory_membership_access.sql',
+  '20261122060000_branch_service_catalogue_scope.sql',
+  '20261122060500_branch_scoped_manual_crm_contacts.sql',
+  '20261122061000_branch_assignment_read_models.sql',
+  '20261122064000_branch_crm_contact_update_duplicate_fix.sql',
+  '20261122065000_branch_service_android_wrapper_grants.sql',
+  '20261122066000_branch_scope_private_booking_guards.sql',
+  '20261122067000_branch_manual_crm_email_read_projection.sql',
+  '20261122068000_branch_mapping_redundant_index_cleanup.sql',
+  '20261122069000_public_branch_list_published_guard.sql',
+  '20261122072341_harden_active_branch_ids_acl.sql',
+]) {
+  const file = 'supabase/migrations/' + name;
+  await applySqlText(readFileSync(file, 'utf8'), file);
+}
+
+
+const {rows: [activeBranchHelperAcl]} = await db.query(`
+  select p.prosecdef as security_definer,
+         has_function_privilege('anon',p.oid,'EXECUTE') as anon_execute,
+         has_function_privilege('authenticated',p.oid,'EXECUTE') as authenticated_execute,
+         has_function_privilege('service_role',p.oid,'EXECUTE') as service_role_execute,
+         has_function_privilege('postgres',p.oid,'EXECUTE') as postgres_execute
+  from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+  where n.nspname='public' and p.proname='studioflow_active_branch_ids'
+`);
+assert.ok(activeBranchHelperAcl, 'active branch helper must exist after SQL migrations');
+assert.equal(activeBranchHelperAcl.security_definer, false,
+  'active branch helper must not execute with definer privileges');
+assert.equal(activeBranchHelperAcl.anon_execute, false,
+  'anon must not call the internal active branch helper');
+assert.equal(activeBranchHelperAcl.authenticated_execute, false,
+  'authenticated users must use validated owner/staff RPCs, not call the helper directly');
+assert.equal(activeBranchHelperAcl.service_role_execute, true,
+  'trusted service role retains server-only helper access');
+assert.equal(activeBranchHelperAcl.postgres_execute, true,
+  'postgres-owned SECURITY DEFINER entry points must retain helper access');
+
+const {rows: activeBranchCallers} = await db.query(`
+  select p.proname, p.prosecdef as security_definer,
+         pg_get_userbyid(p.proowner) as owner
+  from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+  where n.nspname='public'
+    and p.proname = any($1::text[])
+`, [[
+  'studioflow_staff_invite_accept',
+  'studioflow_staff_invite_create',
+  'studioflow_staff_invite_lookup',
+  'studioflow_staff_member_update_access',
+  'studioflow_staff_scope'
+]]);
+assert.equal(activeBranchCallers.length, 5,
+  'all five validated invite/staff call paths must remain defined');
+for (const caller of activeBranchCallers) {
+  assert.equal(caller.security_definer, true, caller.proname + ' stays a validated SECURITY DEFINER entry point');
+  assert.equal(caller.owner, 'postgres', caller.proname + ' runs as postgres when it invokes the helper');
+}
+console.log('PASS active branch helper privileges and all five validated caller paths');
+
 const rpcs=clientRpc(src);
 const froms=[...src.matchAll(/\.from\(\s*['"`]([A-Za-z0-9_-]+)['"`]/g)].map(m=>m[1]);
 const tables=froms.filter(n=>!n.includes('-'));

@@ -6,7 +6,7 @@ const history=JSON.parse(readFileSync('docs/integrations/restored-supabase-histo
 const active=readdirSync('supabase/migrations').filter(name=>/^\d+_.+\.sql$/.test(name));
 const historicalApplied=new Set(history.applied_versions);
 const postExportApplied=history.post_export_applied_versions||[];
-const applied=new Set([...historicalApplied,...postExportApplied.map(record=>record.version)]);
+const applied=new Set([...historicalApplied,...postExportApplied.map(record=>record.file.split('_',1)[0])]);
 assert.equal(history.applied_versions.length,history.applied_versions_in_export,
   'The exported migration baseline must remain an exact historical snapshot');
 assert.equal(new Set(history.applied_versions).size,history.applied_versions.length,
@@ -23,7 +23,8 @@ for(const record of history.restored){
 for(const record of postExportApplied){
   assert(!historicalApplied.has(record.version),`Post-export migration already exists in export baseline: ${record.version}`);
   assert(active.includes(record.file),`Post-export applied migration source is missing: ${record.file}`);
-  assert.equal(record.file.split('_',1)[0],record.version,`Post-export migration filename/version mismatch: ${record.file}`);
+  assert.equal(record.file.split('_',1)[0],record.version,`Post-export local filename/version mismatch: ${record.file}`);
+  assert(/^\\d{14}$/.test(record.remote_version||record.version),`Invalid remote migration version for ${record.file}`);
   const sql=readFileSync('supabase/migrations/'+record.file);
   const gitBlobSha=createHash('sha1')
     .update(Buffer.concat([Buffer.from('blob '+sql.length),Buffer.from([0]),sql]))

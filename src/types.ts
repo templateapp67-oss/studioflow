@@ -365,6 +365,8 @@ export interface SalonService {
   clinicFeeVerifiedAt?: string;
   imageUrl?:string;
   imagePath?:string;
+  /** Explicit branch assignment; empty/omitted keeps the legacy salon-wide menu. */
+  branchIds?:string[];
   origin?:'custom'|'template';
   id: string;
   name: string;

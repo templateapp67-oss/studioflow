@@ -207,14 +207,16 @@ fs.appendFileSync(process.env.MOCK_SUPABASE_LOG, JSON.stringify({
   envRef: process.env.SUPABASE_PROJECT_REF,
 }) + '\\n');
 if(argv[0] === 'migration' && argv[1] === 'list'){
-  const versions = fs.readdirSync('supabase/migrations')
-    .filter(name => /^\\d{14}_.+\\.sql$/.test(name))
-    .map(name => name.slice(0,14))
-    .sort();
+  const files = fs.readdirSync('supabase/migrations')
+    .filter(name => /^\\d{14}_.+\\.sql$/.test(name));
+  const aliases = JSON.parse(fs.readFileSync('docs/integrations/restored-supabase-history.json','utf8'))
+    .post_export_applied_versions || [];
+  const remoteByLocal = new Map(aliases.map(record => [record.file.split('_',1)[0],record.remote_version || record.version]));
+  const versions = files.map(name => name.slice(0,14)).sort();
   const rows = [
     'LOCAL | REMOTE | TIME (UTC)',
     '------|--------|----------',
-    ...versions.map(version => { const tick = String.fromCharCode(96); return tick+version+tick+' | '+tick+version+tick+' | '+tick+'2026-11-19 00:00:00'+tick; })
+    ...versions.map(version => { const tick = String.fromCharCode(96); const remote=remoteByLocal.get(version)||version; return tick+version+tick+' | '+tick+remote+tick+' | '+tick+'2026-11-19 00:00:00'+tick; })
   ];
   process.stdout.write(rows.join('\\n')+'\\n');
 }
@@ -264,10 +266,12 @@ if(argv[0] === 'migration' && argv[1] === 'list'){
   const localVersions=readdirSync('supabase/migrations')
     .filter(name=>/^\d{14}_.+\.sql$/.test(name))
     .map(name=>name.slice(0,14)).sort();
+  const aliasRecords=JSON.parse(readFileSync('docs/integrations/restored-supabase-history.json','utf8')).post_export_applied_versions||[];
+  const remoteByLocal=new Map(aliasRecords.map(record=>[record.file.split('_',1)[0],record.remote_version||record.version]));
   const baseMigrationList=[
     'LOCAL | REMOTE | TIME (UTC)',
     '------|--------|----------',
-    ...localVersions.map(version=>'`'+version+'` | `'+version+'` | `2026-11-19 00:00:00`')
+    ...localVersions.map(version=>'`'+version+'` | `'+(remoteByLocal.get(version)||version)+'` | `2026-11-19 00:00:00`')
   ].join('\n');
   const remoteOnlyResult=spawnSync('node',['scripts/verify-supabase-migration-history.mjs'],{
     env:{
