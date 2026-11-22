@@ -26,7 +26,8 @@ PowerShell 5.1+; no extra modules required.
 
 [CmdletBinding()]
 param(
-  [switch]$SkipEnvFiles
+  [switch]$SkipEnvFiles,
+  [switch]$AllowRazorpayTestCapture
 )
 
 Set-StrictMode -Version Latest
@@ -46,23 +47,34 @@ $script:StaffEmail = $null
 $script:StaffUserId = $null
 $script:InventoryId = $null
 $script:InventorySku = $null
+$script:RazorpayKeyModeReported = $null
+$script:RazorpayQaRun = $null
+$script:RazorpayOrderId = $null
+$script:RazorpayPaymentId = $null
+$script:RazorpayCheckoutKey = $null
+$script:RazorpayCheckoutSignature = $null
+$script:RazorpayRefundStatus = $null
+$script:StaffPassword = $null
+$script:StaffAccessToken = $null
+$script:PreviewProjectRef = $null
 $script:Stage = 'initial'
 $script:ProjectRoot = (Get-Location).Path
 
 function Write-Check {
   param(
     [Parameter(Mandatory=$true)][string]$Name,
-    [Parameter(Mandatory=$true)][ValidateSet('PASS','FAIL','SKIPPED','BLOCKED')][string]$Status,
+    [Parameter(Mandatory=$true)][ValidateSet('PASS','FAIL','SKIPPED','BLOCKED','BLOCKED_LIVE_MODE','SKIPPED_UNPROVEN_MODE','SKIPPED_NOT_OPTED_IN','SKIPPED_STATUS_UNREACHABLE','ABORTED_MODE_CHANGED','EXECUTED_TEST_MODE')][string]$Status,
     [Parameter(Mandatory=$true)][string]$Detail
   )
-  $script:Results[$Name] = [ordered]@{ status = $Status; detail = $Detail }
+  $safeDetail = Protect-E2EText -Text $Detail
+  $script:Results[$Name] = [ordered]@{ status = $Status; reason = $safeDetail }
   $colour = switch ($Status) {
     'PASS' { 'Green' }
     'FAIL' { 'Red' }
     'SKIPPED' { 'Yellow' }
     default { 'DarkYellow' }
   }
-  Write-Host ("[{0}] {1}: {2}" -f $Status, $Name, $Detail) -ForegroundColor $colour
+  Write-Host ("[{0}] {1}: {2}" -f $Status, $Name, $safeDetail) -ForegroundColor $colour
 }
 
 function Import-DotEnvFile {
