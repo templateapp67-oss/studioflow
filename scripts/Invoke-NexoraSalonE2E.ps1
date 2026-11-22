@@ -249,7 +249,7 @@ function Invoke-RazorpayTestE2E {
     return
   }
   if ($script:RazorpayKeyModeReported -ne 'test' -or -not $initial.configured) {
-    Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'SKIPPED_UNPROVEN_MODE' -Detail 'The server did not prove configured rzp_test_ credentials through keyMode=test. No payment action was sent.'
+    Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'SKIPPED_UNPROVEN_MODE' -Detail 'The server did not explicitly classify configured Razorpay credentials as test. No payment action was sent.'
     return
   }
   if (-not $AllowRazorpayTestCapture) {
