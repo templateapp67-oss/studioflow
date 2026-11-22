@@ -211,10 +211,18 @@ if(argv[0] === 'migration' && argv[1] === 'list'){
     .filter(name => /^\\d{14}_.+\\.sql$/.test(name))
     .map(name => name.slice(0,14))
     .sort();
+  const history = JSON.parse(fs.readFileSync('docs/integrations/restored-supabase-history.json', 'utf8'));
+  const pending = new Set((history.release_pending_migrations || []).map(record => record.file.split('_', 1)[0]));
   const rows = [
     'LOCAL | REMOTE | TIME (UTC)',
     '------|--------|----------',
-    ...versions.map(version => { const tick = String.fromCharCode(96); return tick+version+tick+' | '+tick+version+tick+' | '+tick+'2026-11-19 00:00:00'+tick; })
+    ...versions.map(version => {
+      const tick = String.fromCharCode(96);
+      const migration = tick + version + tick;
+      const remote = pending.has(version) ? '' : migration;
+      const appliedAt = pending.has(version) ? '' : tick + '2026-11-19 00:00:00' + tick;
+      return migration + ' | ' + remote + ' | ' + appliedAt;
+    })
   ];
   process.stdout.write(rows.join('\\n')+'\\n');
 }
@@ -264,10 +272,17 @@ if(argv[0] === 'migration' && argv[1] === 'list'){
   const localVersions=readdirSync('supabase/migrations')
     .filter(name=>/^\d{14}_.+\.sql$/.test(name))
     .map(name=>name.slice(0,14)).sort();
+  const history=JSON.parse(readFileSync('docs/integrations/restored-supabase-history.json','utf8'));
+  const pendingVersions=new Set((history.release_pending_migrations||[]).map(record=>record.file.split('_',1)[0]));
   const baseMigrationList=[
     'LOCAL | REMOTE | TIME (UTC)',
     '------|--------|----------',
-    ...localVersions.map(version=>'`'+version+'` | `'+version+'` | `2026-11-19 00:00:00`')
+    ...localVersions.map(version=>{
+      const migration='`'+version+'`';
+      const remote=pendingVersions.has(version)?'':migration;
+      const appliedAt=pendingVersions.has(version)?'':'`2026-11-19 00:00:00`';
+      return migration+' | '+remote+' | '+appliedAt;
+    })
   ].join('\n');
   const remoteOnlyResult=spawnSync('node',['scripts/verify-supabase-migration-history.mjs'],{
     env:{
