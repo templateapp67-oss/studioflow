@@ -533,6 +533,19 @@ assert.equal(tawkSecurity.authenticated_widget_insert, false, 'authenticated can
 assert.equal(tawkSecurity.service_role_widget_select, true, 'service_role can read private widget rows');
 assert.equal(tawkSecurity.service_role_widget_insert, true, 'service_role can insert private widget rows');
 assert.equal(tawkSecurity.widget_id_constraint_count, 1, 'widget ID check constraint exists exactly once');
+// Audit migrations added by PR #141 and its follow-up implementation.
+// Replay them in the exact applied order before scanning browser-called RPCs,
+// so every client call must resolve against the same final SQL catalogue.
+for (const name of [
+  '20261122043650_staff_crm_branch_scope.sql',
+  '20261122045445_studioflow_refund_queue_rpc.sql',
+  '20261122052119_staff_salon_context_and_booking_completion.sql',
+  '20261122052400_staff_inventory_membership_access.sql',
+]) {
+  const file = 'supabase/migrations/' + name;
+  await applySqlText(readFileSync(file, 'utf8'), file);
+}
+
 const rpcs=clientRpc(src);
 const froms=[...src.matchAll(/\.from\(\s*['"`]([A-Za-z0-9_-]+)['"`]/g)].map(m=>m[1]);
 const tables=froms.filter(n=>!n.includes('-'));
