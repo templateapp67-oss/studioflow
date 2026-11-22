@@ -568,7 +568,6 @@ for (const name of [
   '20261122060500_branch_scoped_manual_crm_contacts.sql',
   '20261122061000_branch_assignment_read_models.sql',
   '20261122064000_branch_crm_contact_update_duplicate_fix.sql',
-  '20261122065000_branch_service_android_wrapper_grants.sql',
   '20261122066000_branch_scope_private_booking_guards.sql',
   '20261122067000_branch_manual_crm_email_read_projection.sql',
   '20261122068000_branch_mapping_redundant_index_cleanup.sql',
@@ -576,6 +575,7 @@ for (const name of [
   '20261122072341_harden_active_branch_ids_acl.sql',
   '20261122072714_android_request_insert_explicit_columns.sql',
   '20261122072823_correct_android_request_fingerprint_builder.sql',
+  '20261122072900_branch_service_android_wrapper_grants.sql',
 ]) {
   const file = 'supabase/migrations/' + name;
   await applySqlText(readFileSync(file, 'utf8'), file);
