@@ -909,7 +909,7 @@ assert.equal(/^[a-z]+\s*\{/m.test(customizerCss), false, 'no bare element select
 assert.ok(customizerCss.includes('@supports not ((backdrop-filter: blur(4px))'), 'glass falls back where backdrop-filter is missing');
 assert.ok(customizerCss.includes('@media (prefers-reduced-motion: reduce)'), 'motion is disabled for owners who ask for it');
 const cssImporters = readdirSync('src/components', { recursive: true })
-  .map((name) => String(name))
+  .map((name) => String(name).replace(/\\/g, '/'))
   .filter((name) => name.endsWith('.tsx') || name.endsWith('.ts'))
   .filter((name) => read(`src/components/${name}`).includes("customizer.css"));
 assert.deepEqual(cssImporters.sort(), ['arch-flutter-customizer/ArchFlutterCustomizer.tsx'], 'only the drawer imports the customizer stylesheet');
