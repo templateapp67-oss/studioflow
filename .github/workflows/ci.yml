@@ -30,6 +30,33 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Test Razorpay server-side key-mode classification
+        run: deno test supabase/functions/studioflow-payments/key-mode_test.ts
+
+      - name: Parse and analyze the PowerShell E2E harness
+        shell: pwsh
+        run: |
+          $path = 'scripts/Invoke-NexoraSalonE2E.ps1'
+          $tokens = $null
+          $parseErrors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile($path, [ref]$tokens, [ref]$parseErrors)
+          if ($parseErrors.Count -gt 0) {
+            $parseErrors | Format-List | Out-String | Write-Error
+            exit 1
+          }
+          Install-Module PSScriptAnalyzer -Scope CurrentUser -Force -AllowClobber -ErrorAction Stop
+          Import-Module PSScriptAnalyzer
+          $issues = @(Invoke-ScriptAnalyzer -Path $path -Severity Error)
+          if ($issues.Count -gt 0) {
+            $issues | Format-Table -AutoSize | Out-String | Write-Error
+            exit 1
+          }
+          Write-Host 'PASS: PowerShell parser and PSScriptAnalyzer completed.'
+
       # package.json's mandatory "test" script runs lint, edge type checks,
       # the Vite/server build, and the complete project verification suite.
       - name: Run required tests, type checks and build
