@@ -2035,7 +2035,12 @@
     "relations": 273,
     "assessment": "Read-only owner-supplied live catalog; not a live migration dry-run or deployment."
   },
-  "release_pending_migrations": [],
+  "release_pending_migrations": [
+    {
+      "file": "20261122065000_branch_service_android_wrapper_grants.sql",
+      "purpose": "Restrict the Android booking wrapper to authenticated and service_role after the branch guard. Added on main after the captured applied-history baseline; remains pending for the protected manual release workflow."
+    }
+  ],
   "reviewed_feature_migrations": [
     {
       "file": "20261117130000_reconcile_template15_multiservice_booking.sql",
@@ -2280,16 +2285,6 @@
       "purpose": "Allow a mapped manual contact to retain its existing phone number when edited while continuing to reject duplicates belonging to other booking customers or CRM contacts.",
       "git_blob_sha": "5fbc05c54a663fb4a9988b91af51a40d449c51dd",
       "remote_version": "20261122064427"
-    },
-    {
-      "version": "20261122065000",
-      "file": "20261122065000_branch_service_android_wrapper_grants.sql",
-      "name": "branch_service_android_wrapper_grants",
-      "observed_at": "2026-11-22",
-      "evidence": "Applied to Supabase project zilwgiuiygqqardzutxi on 2026-11-22 and confirmed in remote migration history. Reasserts the established Android booking wrapper execute boundary: authenticated and service_role only; anon and PUBLIC revoked.",
-      "purpose": "Keep the branch-aware Android booking wrapper's client/server permissions explicit and stable across clean installations.",
-      "git_blob_sha": "19e0025eb6201a157aa0dd554259436dae4a839d",
-      "remote_version": "20261122064912"
     },
     {
       "version": "20261122066000",
