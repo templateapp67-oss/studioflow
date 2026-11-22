@@ -5,6 +5,8 @@ import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
 
 const EXPECTED_REF='zilwgiuiygqqardzutxi';
+const TOKEN_SENTINEL='sbp_secret_access_token_sentinel_do_not_print';
+const PASS_SENTINEL='db_secret_password_sentinel_do_not_print';
 const isWindows=process.platform==='win32';
 const bashCommand=process.env.BASH || 'bash';
 const bashProbe=isWindows ? null : spawnSync(bashCommand,['--version'],{encoding:'utf8',stdio:'ignore'});
@@ -131,8 +133,6 @@ const tempRoot=mkdtempSync(join(tmpdir(),'studioflow-prod-ref-'));
 let calls=[];
 try {
   if(bashAvailable){
-  const TOKEN_SENTINEL='sbp_secret_access_token_sentinel_do_not_print';
-  const PASS_SENTINEL='db_secret_password_sentinel_do_not_print';
   const WRONG_SECRET_SENTINEL='gsahfgwhhpjwtpmhozkm';
 
   const runCredValidation=(overrides={})=>{
