@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { SalonProfile } from '../types';
 import { BranchLocationsEditor } from './BranchLocationsEditor';
-import { STAFF_ACCESS_ROLES, ROLE_SHORT_LABELS, ROLE_PERMISSIONS, PERMISSION_LABELS, normalizeAccessRole, can, DEFAULT_ACCESS_ROLE } from '../lib/staffPermissions';
+import { STAFF_ACCESS_ROLES, ROLE_SHORT_LABELS, ROLE_PERMISSIONS, PERMISSION_LABELS, normalizeAccessRole, DEFAULT_ACCESS_ROLE } from '../lib/staffPermissions';
 import type { StaffAccessRole } from '../types';
 
 type InventoryItem = { id: string; branch_id: string; name: string; sku: string; quantity: number; unit: string; reorder_level: number; is_active: boolean };
