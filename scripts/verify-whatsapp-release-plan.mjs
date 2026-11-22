@@ -32,11 +32,8 @@ for(const record of postExportApplied){
   assert(active.includes(record.file),`Post-export applied migration source is missing: ${record.file}`);
   assert.equal(record.file.split('_',1)[0],record.version,`Post-export local filename/version mismatch: ${record.file}`);
   assert(/^\d{14}$/.test(record.remote_version||record.version),`Invalid remote migration version for ${record.file}`);
-  const sql=readFileSync('supabase/migrations/'+record.file);
-  const gitBlobSha=createHash('sha1')
-    .update(Buffer.concat([Buffer.from('blob '+sql.length),Buffer.from([0]),sql]))
-    .digest('hex');
-  assert.equal(recordedBlobSha,record.git_blob_sha,
+  const gitBlobSha=gitBlobSha('supabase/migrations/'+record.file);
+  assert.equal(gitBlobSha,record.git_blob_sha,
     `Post-export migration source checksum changed: ${record.file}`);
 }
 const pending=active.filter(name=>!applied.has(name.split('_',1)[0])).sort();
