@@ -78,7 +78,7 @@ export function ServiceManagement({services,setServices,primaryAccentColor,profi
    });
    return changed?next:previous;
   });
- },[branchMap,setServices]);
+ },[branchMap,services,setServices]);
 
  const EMPTY_SETUP:ServiceSetupValues={badges:[],offerType:'none',offerDetails:'',terms:'',tags:[]};
  const [setupValues,setSetupValues]=useState<ServiceSetupValues>(EMPTY_SETUP);
