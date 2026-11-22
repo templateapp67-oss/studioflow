@@ -2248,7 +2248,7 @@
       "observed_at": "2026-11-22",
       "evidence": "Applied to Supabase project zilwgiuiygqqardzutxi on 2026-11-22 and confirmed in remote migration history. Adds nullable branch_ids to the relational service catalogue; NULL/empty retains existing salon-wide behaviour. Adds owner/Manager assignment and branch-aware slot/booking guards without changing any studioflow_bookings RLS policy.",
       "purpose": "Backwards-compatible branch-level service availability and branch-scoped staff reads, with legacy services remaining globally available until explicitly mapped.",
-      "git_blob_sha": "da1669fa43423a224852d1d08389619aec491124",
+      "git_blob_sha": "97b7a3aace2447702c655809400ec567291532ea",
       "remote_version": "20261122063603"
     },
     {
