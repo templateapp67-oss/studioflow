@@ -34,11 +34,17 @@ create or replace function extensions.digest(data text,algo text) returns bytea 
 
 // Dollar-quote-aware splitter: naive ';' splitting breaks plpgsql bodies.
 const splitSql=(sql)=>{
-  const out=[];let cur='',i=0,tag=null,quote=false,line=false;
+  const out=[];let cur='',i=0,tag=null,quote=false,line=false,blockDepth=0;
   while(i<sql.length){
     const two=sql.slice(i,i+2);
+    if(blockDepth>0){
+      if(two==='/*'){blockDepth++;cur+='  ';i+=2;continue;}
+      if(two==='*/'){blockDepth--;cur+='  ';i+=2;continue;}
+      cur+=sql[i];i++;continue;
+    }
     if(line){cur+=sql[i];if(sql[i]==='\n')line=false;i++;continue;}
     if(two==='--'&&!quote&&!tag){line=true;cur+=two;i+=2;continue;}
+    if(two==='/*'&&!quote&&!tag){blockDepth=1;cur+='  ';i+=2;continue;}
     if(sql[i]==="'"&&!tag){if(sql[i+1]==="'"){cur+="''";i+=2;continue;}quote=!quote;cur+=sql[i];i++;continue;}
     if(sql[i]==='$'&&!quote){
       const m=sql.slice(i).match(/^\$[A-Za-z_0-9]*\$/);
@@ -49,6 +55,7 @@ const splitSql=(sql)=>{
   }
   if(cur.trim())out.push(cur);
   assert.equal(tag,null,'Unterminated dollar-quoted SQL body');
+  assert.equal(blockDepth,0,'Unterminated block comment in SQL body');
   return out;
 };
 const applySqlText=async(sql,label='SQL file')=>{
