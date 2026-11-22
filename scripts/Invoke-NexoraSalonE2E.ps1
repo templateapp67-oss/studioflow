@@ -858,7 +858,14 @@ try {
     $inventoryStatus = if ($script:Stage -eq 'inventory') { 'FAIL' } else { 'BLOCKED' }
     Write-Check -Name 'Authenticated branch inventory write/read-back' -Status $inventoryStatus -Detail ('Not completed: ' + $failure)
   }
-  Write-Host ('E2E execution error: ' + (Protect-E2EText -Text $failure)) -ForegroundColor Red
+  if (-not $script:Results.Contains('Razorpay test capture + Edge refund')) {
+    if ($AllowRazorpayTestCapture) {
+      Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'SKIPPED_UNPROVEN_MODE' -Detail 'A preceding Auth or inventory prerequisite failed. Razorpay mode was not probed and no provider request was made.'
+    } else {
+      Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'SKIPPED_NOT_OPTED_IN' -Detail 'A preceding Auth or inventory prerequisite failed and -AllowRazorpayTestCapture was not supplied. No provider request was made.'
+    }
+  }
+    Write-Host ('E2E execution error: ' + (Protect-E2EText -Text $failure)) -ForegroundColor Red
 } finally {
   # The cleanup manifest is persisted before the first test user is created.
   # This finally block runs for ordinary PowerShell exceptions/early exits.
