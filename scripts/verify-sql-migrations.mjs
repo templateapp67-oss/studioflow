@@ -543,6 +543,12 @@ assert.equal(tawkSecurity.widget_id_constraint_count, 1, 'widget ID check constr
 // Audit migrations added by PR #141 and its follow-up implementation.
 // Replay them in the exact applied order before scanning browser-called RPCs,
 // so every client call must resolve against the same final SQL catalogue.
+// The restored live Supabase table includes a request fingerprint column
+// that predates this PR but is absent from the compact backend foundation
+// fixture. Add it to the offline schema so the branch-aware booking replay
+// exercises the same four-column idempotency contract as production.
+await db.exec('alter table public.studioflow_android_requests add column if not exists fingerprint text');
+
 // The legacy backend replay exposes this wrapper as RETURNS jsonb. The
 // timestamped Supabase migration supersedes it with the typed table return
 // consumed by the Edge Function, so remove only the offline fixture version.
