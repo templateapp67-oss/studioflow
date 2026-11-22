@@ -2300,6 +2300,16 @@
       "purpose": "Preserve the private execution boundary for service-to-branch checks while consistently enforcing branch-scoped Android slots, booking, coupon and reschedule paths.",
       "git_blob_sha": "75c3c5b228412300d798a268987572e51040e2f6",
       "remote_version": "20261122065342"
+    },
+    {
+      "version": "20261122067000",
+      "remote_version": "20261122065816",
+      "file": "20261122067000_branch_manual_crm_email_read_projection.sql",
+      "name": "branch_manual_crm_email_read_projection",
+      "observed_at": "2026-11-22",
+      "evidence": "Applied to Supabase project zilwgiuiygqqardzutxi on 2026-11-22 and confirmed in remote migration history (remote version 20261122065816). Extends the branch-scoped manual contact read model to include the stored email for Managers and preserves it in the CRM dashboard projection; no data was backfilled or edited.",
+      "purpose": "Keep all CRM fields for branch-mapped manual contacts consistent across the owner_contacts and crm_dashboard read paths.",
+      "git_blob_sha": "4f5e6f58983bdf966c427b2434d4d8f546267c1c"
     }
   ]
 }
