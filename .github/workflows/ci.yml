@@ -35,7 +35,7 @@ jobs:
           deno-version: v2.x
 
       - name: Lint Razorpay key-mode helpers and tests
-        run: deno lint supabase/functions/studioflow-payments/key-mode_test.ts
+        run: deno lint supabase/functions/studioflow-payments/payment-security.ts supabase/functions/studioflow-payments/key-mode_test.ts
 
       - name: Test Razorpay server-side key-mode classification
         run: deno test supabase/functions/studioflow-payments/key-mode_test.ts
