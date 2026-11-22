@@ -2213,6 +2213,15 @@
       "evidence": "Applied to project zilwgiuiygqqardzutxi on 2026-11-22 and confirmed in the remote supabase_migrations.schema_migrations history. This CRM-only migration replaces private RPC functions and adds private authorization helpers; no tables, RLS policies, booking records, Android branch RPCs, or earlier applied migrations were changed.",
       "purpose": "Server-side branch-scoped CRM access: Service Provider denied; Receptionist contact-only read; Manager CRM read/write restricted to customers whose booking history is entirely within assigned active branches. Unmapped manual contacts remain owner-only.",
       "git_blob_sha": "8af5a41a95365c28a704fa0892ad236a35a1dc6f"
+    },
+    {
+      "version": "20261122045445",
+      "file": "20261122045445_studioflow_refund_queue_rpc.sql",
+      "name": "studioflow_refund_queue_rpc",
+      "observed_at": "2026-11-22",
+      "evidence": "Applied to Supabase project zilwgiuiygqqardzutxi on 2026-11-22 and confirmed in remote supabase_migrations.schema_migrations. The function-only migration restores studioflow_expire_unpaid_holds and studioflow_claim_refunds used by the studioflow-payments Edge Function. Both RPCs reject non-service_role callers; no booking/payment rows were changed by applying this migration.",
+      "purpose": "Service-only expiration of pending unpaid holds after their hold deadline, plus atomic bounded SKIP LOCKED refund claims for captured INR payments in refund_required state.",
+      "git_blob_sha": "21af5bf08f7d609013113a48fa2a0402b08424f9"
     }
   ]
 }
