@@ -31,6 +31,6 @@ export function historicalEdgeReferences(history, readSource) {
   }
   // Scanner paths come from node:path.join(), which uses backslashes on
   // Windows. The inventory stores repository paths with forward slashes.
-  const repositoryPath = (file) => file.replace(/\\\\/g, '/');
+  const repositoryPath = (file) => file.replace(/\\/g, '/');
   return (file, name) => allowed.get(repositoryPath(file))?.has(name) ?? false;
 }
