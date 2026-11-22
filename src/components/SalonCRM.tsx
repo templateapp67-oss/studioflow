@@ -55,6 +55,7 @@ type CRMCustomer = {
   openTaskCount: number;
   isManual?: boolean;
   customerSource?: string;
+  branchId?: string | null;
 };
 
 type CRMTask = {
@@ -132,12 +133,17 @@ export function SalonCRM({ profile }: { profile: SalonProfile }) {
   const [draftPhone, setDraftPhone] = useState('');
   const [draftEmail, setDraftEmail] = useState('');
   const [draftDob, setDraftDob] = useState('');
+  const [draftBranchId, setDraftBranchId] = useState('');
+  const [branchOptions, setBranchOptions] = useState<Array<{id:string;name:string;city?:string}>>([]);
+  const [branchContext, setBranchContext] = useState({isOwner:false,canManage:false});
+
   const [showNewContactForm, setShowNewContactForm] = useState(false);
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newSource, setNewSource] = useState('walk_in');
   const [newDob, setNewDob] = useState('');
+  const [newBranchId, setNewBranchId] = useState('');
   const [showActivityForm, setShowActivityForm] = useState(false);
   const [activityType, setActivityType] = useState('note');
   const [activityChannel, setActivityChannel] = useState('internal');
@@ -182,6 +188,19 @@ export function SalonCRM({ profile }: { profile: SalonProfile }) {
   useEffect(() => {
     void loadCRM();
   }, [loadCRM]);
+  useEffect(() => {
+    let active=true;
+    void supabase.rpc('studioflow_owner_crm_branch_options').then(({data,error})=>{
+      if(!active||error||!data||typeof data!=='object')return;
+      const payload=data as any;
+      const branches=Array.isArray(payload.branches)?payload.branches.filter((item:any)=>item&&typeof item.id==='string'&&typeof item.name==='string').map((item:any)=>({id:item.id,name:item.name,city:typeof item.city==='string'?item.city:''})):[];
+      setBranchOptions(branches);
+      setBranchContext({isOwner:payload.isOwner===true,canManage:payload.canManage===true});
+      if(payload.isOwner!==true&&branches.length)setNewBranchId(current=>current||branches[0].id);
+    });
+    return()=>{active=false};
+  }, []);
+
 
   useEffect(() => {
     if (!selected) return;
@@ -192,9 +211,10 @@ export function SalonCRM({ profile }: { profile: SalonProfile }) {
     setDraftPhone(selected.whatsapp || '');
     setDraftEmail(selected.email || '');
     setDraftDob(selected.dateOfBirth || '');
+    setDraftBranchId(selected.branchId || (!branchContext.isOwner ? branchOptions[0]?.id || '' : ''));
     setShowActivityForm(false);
     setShowTaskForm(false);
-  }, [selectedId, selected?.id]);
+  }, [selectedId, selected?.id, branchContext.isOwner, branchOptions]);
 
   useEffect(() => {
     let active = true;
@@ -483,9 +503,9 @@ export function SalonCRM({ profile }: { profile: SalonProfile }) {
             <button type="button" className="secondary-action" disabled={!filtered.length || loading} onClick={exportCustomers}>
               Export customer CSV
             </button>
-            <button type="button" className="primary-action" disabled={saving} onClick={() => setShowNewContactForm((open) => !open)}>
+            {branchContext.canManage&&<button type="button" className="primary-action" disabled={saving} onClick={() => setShowNewContactForm((open) => !open)}>
               {showNewContactForm ? 'Close add form' : 'Add customer'}
-            </button>
+            </button>}
           </div>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-5">
@@ -499,7 +519,7 @@ export function SalonCRM({ profile }: { profile: SalonProfile }) {
         </div>
       </section>
 
-      {showNewContactForm && (
+      {showNewContactForm && branchContext.canManage && (
         <form className="workspace-card grid grid-cols-1 md:grid-cols-2 gap-3" onSubmit={createManualCustomer}>
           <div className="md:col-span-2">
             <h3 className="font-bold text-slate-900">Add salon customer</h3>
@@ -521,6 +541,13 @@ export function SalonCRM({ profile }: { profile: SalonProfile }) {
           </label>
           <label className="text-xs font-semibold">Date of birth (optional)
             <input className="workspace-input mt-1" type="date" value={newDob} onChange={(event) => setNewDob(event.target.value)}/>
+          </label>
+          {branchOptions.length>0&&<label className="text-xs font-semibold">Assign to branch
+            <select className="workspace-input mt-1" value={newBranchId} onChange={event=>setNewBranchId(event.target.value)}>
+              {branchContext.isOwner&&<option value="">All salon branches · owner only</option>}
+              {branchOptions.map(item=><option key={item.id} value={item.id}>{item.name}{item.city?' · '+item.city:''}</option>)}
+            </select>
+            <small className="block text-[11px] text-slate-500 mt-1">Unassigned manual contacts stay private to the salon owner. Staff can access contacts only for assigned branches.</small>
           </label>
           <div className="md:col-span-2 flex flex-wrap gap-2">
             <button className="primary-action" type="submit" disabled={saving || !newName.trim() || !phoneDigits(newPhone)}>{saving ? 'Saving…' : 'Save customer'}</button>
@@ -614,8 +641,8 @@ export function SalonCRM({ profile }: { profile: SalonProfile }) {
                       WhatsApp message unavailable: check number, consent or contact block
                     </span>
                   )}
-                  <button type="button" className="secondary-action" onClick={() => setShowActivityForm((open) => !open)}>Log interaction</button>
-                  <button type="button" className="secondary-action" onClick={() => setShowTaskForm((open) => !open)}>Add follow-up</button>
+                  {branchContext.canManage&&<button type="button" className="secondary-action" onClick={() => setShowActivityForm((open) => !open)}>Log interaction</button>}
+                  {branchContext.canManage&&<button type="button" className="secondary-action" onClick={() => setShowTaskForm((open) => !open)}>Add follow-up</button>}
                 </div>
               </div>
 
@@ -641,7 +668,7 @@ export function SalonCRM({ profile }: { profile: SalonProfile }) {
               </div>
 
               <div className="border-t border-slate-200 pt-4">
-                {selected.isManual && (
+                {selected.isManual && branchContext.canManage && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                     <label className="text-xs font-semibold">Customer name
                       <input className="workspace-input mt-1" maxLength={120} value={draftName} onChange={(event) => setDraftName(event.target.value)}/>
@@ -655,21 +682,27 @@ export function SalonCRM({ profile }: { profile: SalonProfile }) {
                     <label className="text-xs font-semibold">Date of birth
                       <input className="workspace-input mt-1" type="date" value={draftDob} onChange={(event) => setDraftDob(event.target.value)}/>
                     </label>
+                    <label className="text-xs font-semibold">Assigned branch
+                      <select className="workspace-input mt-1" value={draftBranchId} disabled={!branchContext.canManage||saving} onChange={event=>setDraftBranchId(event.target.value)}>
+                        {branchContext.isOwner&&<option value="">All salon branches · owner only</option>}
+                        {branchOptions.map(item=><option key={item.id} value={item.id}>{item.name}{item.city?' · '+item.city:''}</option>)}
+                      </select>
+                    </label>
                     <p className="md:col-span-2 text-xs text-slate-500">Source: {selected.customerSource || 'Manual entry'} · Marketing consent is off by default.</p>
                   </div>
                 )}
                 <div className="flex items-center justify-between gap-3 mb-3">
                   <h4 className="font-bold text-slate-900">Customer preferences & private notes</h4>
-                  <button type="button" className="primary-action" disabled={saving} onClick={() => void saveContact()}>{saving ? 'Saving…' : 'Save profile'}</button>
+                  {branchContext.canManage&&<button type="button" className="primary-action" disabled={saving} onClick={() => void saveContact()}>{saving ? 'Saving…' : 'Save profile'}</button>}
                 </div>
                 <ContactTagNotesFields
                   tags={draftTags}
                   notes={draftNotes}
-                  disabled={saving}
+                  disabled={!branchContext.canManage||saving}
                   onChange={(next) => { setDraftTags(next.tags); setDraftNotes(next.notes); }}
                 />
                 <label className="mt-4 flex items-start gap-2 text-sm text-slate-700">
-                  <input type="checkbox" checked={draftBlocked} disabled={saving} onChange={(event) => setDraftBlocked(event.target.checked)} className="mt-1"/>
+                  <input type="checkbox" checked={draftBlocked} disabled={!branchContext.canManage||saving} onChange={(event) => setDraftBlocked(event.target.checked)} className="mt-1"/>
                   <span><strong>Do not contact</strong><small className="block text-xs text-slate-500">Prevents this contact from being selected in marketing campaigns.</small></span>
                 </label>
                 <div className="mt-3 flex flex-wrap gap-2 text-xs">
@@ -681,7 +714,7 @@ export function SalonCRM({ profile }: { profile: SalonProfile }) {
                 </div>
               </div>
 
-              {showActivityForm && (
+              {showActivityForm && branchContext.canManage && (
                 <form className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3" onSubmit={addActivity}>
                   <div className="flex items-center justify-between gap-2"><h4 className="font-bold">Log customer interaction</h4><button type="button" className="text-xs underline" onClick={() => setShowActivityForm(false)}>Close</button></div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -707,7 +740,7 @@ export function SalonCRM({ profile }: { profile: SalonProfile }) {
                 </form>
               )}
 
-              {showTaskForm && (
+              {showTaskForm && branchContext.canManage && (
                 <form className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3" onSubmit={createTask}>
                   <div className="flex items-center justify-between gap-2"><h4 className="font-bold">Schedule a follow-up</h4><button type="button" className="text-xs underline" onClick={() => setShowTaskForm(false)}>Close</button></div>
                   <input className="workspace-input" value={taskTitle} onChange={(event) => setTaskTitle(event.target.value)} maxLength={160} required placeholder="e.g. Call to confirm next appointment"/>
