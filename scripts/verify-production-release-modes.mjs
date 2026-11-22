@@ -5,7 +5,7 @@ import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
 
 const EXPECTED_REF='zilwgiuiygqqardzutxi';
-const workflow=readFileSync('.github/workflows/production.yml','utf8');
+const workflow=readFileSync('.github/workflows/production.yml','utf8').replace(/\r\n/g,'\n');
 const dispatch=workflow.split('  workflow_dispatch:\n')[1].split('\nconcurrency:')[0];
 assert(dispatch.includes('type: choice') && dispatch.includes('default: dry_run'));
 assert(!dispatch.includes('type: boolean'),'release operations must be mutually exclusive in the UI');
