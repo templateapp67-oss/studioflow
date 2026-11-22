@@ -10,6 +10,7 @@ const gitBlob=(path)=>{
 const serviceSql=read('supabase/migrations/20261122060000_branch_service_catalogue_scope.sql');
 const crmSql=read('supabase/migrations/20261122060500_branch_scoped_manual_crm_contacts.sql');
 const readModelsSql=read('supabase/migrations/20261122061000_branch_assignment_read_models.sql');
+const bookingGuardsSql=read('supabase/migrations/20261122066000_branch_scope_private_booking_guards.sql');
 const contactUpdateFixSql=read('supabase/migrations/20261122064000_branch_crm_contact_update_duplicate_fix.sql');
 const androidGrantSql=read('supabase/migrations/20261122065000_branch_service_android_wrapper_grants.sql');
 const serviceUi=read('src/components/ServiceManagement.tsx');
@@ -83,5 +84,11 @@ assert.match(contactUpdateFixSql,/coalesce\(c\.value->>'id',''\)<>p_customer::te
   'CRM update must exclude the contact being edited from duplicate-phone checks');
 assert.match(androidGrantSql,/revoke all on function public\.studioflow_android_book[\s\S]*?from public, anon, authenticated/i);
 assert.match(androidGrantSql,/grant execute on function public\.studioflow_android_book[\s\S]*?to authenticated, service_role/i);
+assert.match(bookingGuardsSql,/studioflow_private\.service_catalogue_available_at_branch\(target_owner,p_services,null\)/i,
+  'Unbranched Android slots must reject services with branch-only assignment');
+assert.match(bookingGuardsSql,/studioflow_private\.service_catalogue_available_at_branch\(\s*w\.owner_id,p_services,selected_branch::uuid\s*\)/i,
+  'Android booking must check the selected branch in the private booking RPC');
+assert.match(bookingGuardsSql,/set_config\('studioflow\.branch_id',b\.branch_id::text,true\)/i,
+  'Reschedule must restore the original booking branch before checking slots');
 
 console.log('PASS: branch-level services and manual CRM contacts are mapped, scoped, backwards-compatible, and protected migrations/policies remain untouched.');
