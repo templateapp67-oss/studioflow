@@ -49,17 +49,62 @@ Deno.serve(async(req:Request)=>{
       return data;
     };
     const refundPayment=async(orderId:string,paymentId:string,amount:number)=>{
+      const requeueForReconciliation=async(reason:string)=>{
+        const {error}=await service.from('studioflow_payment_orders')
+          .update({
+            status:'refund_required',
+            refund_status:'required',
+            refund_error:('Refund reconciliation pending: '+reason).slice(0,300)
+          })
+          .eq('order_id',orderId)
+          .in('status',['refunding','refund_required']);
+        return !error;
+      };
       try{
         const refund=await provider(`payments/${encodeURIComponent(paymentId)}/refunds`,{method:'POST',body:JSON.stringify({amount,speed:'optimum',notes:{studioflow_order:orderId}})});
-        await service.rpc('studioflow_complete_refund',{p_order:orderId,p_refund:refund.id||refund.entity?.id||paymentId,p_ok:true,p_error:null});
-        return {refunded:true,refundId:refund.id};
+        const {error:ledgerError}=await service.rpc('studioflow_complete_refund',{
+          p_order:orderId,p_refund:refund.id||refund.entity?.id||paymentId,p_ok:true,p_error:null
+        });
+        if(ledgerError){
+          const queued=await requeueForReconciliation(ledgerError.message||'Refund was accepted by Razorpay but the local ledger update failed.');
+          return {
+            refunded:false,
+            ledgerPending:true,
+            retryQueued:queued,
+            refundId:refund.id||refund.entity?.id||paymentId,
+            error:'Razorpay accepted the refund, but the booking refund record could not be updated. Reconciliation is required.'
+          };
+        }
+        return {refunded:true,refundId:refund.id||refund.entity?.id||paymentId};
       }catch(error){
         const message=error instanceof Error?error.message:'Refund failed';
         if(/already refunded|fully refunded/i.test(message)){
-          await service.rpc('studioflow_complete_refund',{p_order:orderId,p_refund:paymentId,p_ok:true,p_error:null});
+          const {error:ledgerError}=await service.rpc('studioflow_complete_refund',{
+            p_order:orderId,p_refund:paymentId,p_ok:true,p_error:null
+          });
+          if(ledgerError){
+            const queued=await requeueForReconciliation(ledgerError.message||message);
+            return {
+              refunded:false,
+              ledgerPending:true,
+              retryQueued:queued,
+              error:'The provider reports this payment as refunded, but the local refund ledger still needs reconciliation.'
+            };
+          }
           return {refunded:true,refundId:paymentId};
         }
-        await service.rpc('studioflow_complete_refund',{p_order:orderId,p_refund:null,p_ok:false,p_error:message});
+        const {error:ledgerError}=await service.rpc('studioflow_complete_refund',{
+          p_order:orderId,p_refund:null,p_ok:false,p_error:message
+        });
+        if(ledgerError){
+          const queued=await requeueForReconciliation(ledgerError.message||message);
+          return {
+            refunded:false,
+            ledgerPending:true,
+            retryQueued:queued,
+            error:'Refund failed and its failure state could not be saved. The item was queued for reconciliation.'
+          };
+        }
         return {refunded:false,error:message};
       }
     };
