@@ -5,10 +5,11 @@ import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
 
 const EXPECTED_REF='zilwgiuiygqqardzutxi';
+const isWindows=process.platform==='win32';
 const bashCommand=process.env.BASH || 'bash';
-const bashProbe=spawnSync(bashCommand,['--version'],{encoding:'utf8',stdio:'ignore'});
-const bashAvailable=!bashProbe.error && bashProbe.status===0;
-if(!bashAvailable && process.platform!=='win32'){
+const bashProbe=isWindows ? null : spawnSync(bashCommand,['--version'],{encoding:'utf8',stdio:'ignore'});
+const bashAvailable=!isWindows && !bashProbe.error && bashProbe.status===0;
+if(!bashAvailable && !isWindows){
   assert.fail('Bash is required to execute the production release workflow contract tests.');
 }
 const workflow=readFileSync('.github/workflows/production.yml','utf8').replace(/\r\n/g,'\n');
@@ -73,7 +74,7 @@ if(bashAvailable){
     assert.equal(result.status===0,options.includes(mode),`Release validation mismatch for ${JSON.stringify(mode)}`);
   }
 }else{
-  console.warn('SKIP: Bash shell execution checks are unavailable on this Windows machine; GitHub Linux CI runs these checks.');
+  console.warn('SKIP: Windows shell execution is skipped because these workflow fragments require POSIX Bash process and PATH semantics; GitHub Linux CI runs the complete checks.');
 }
 
 // --- Supabase project-reference validation, whitespace normalization, and propagation ---
@@ -277,7 +278,7 @@ if(argv[0] === 'migration' && argv[1] === 'list'){
   }
 
   }else{
-    console.warn('SKIP: Supabase shell-command execution/credential-propagation tests are unavailable because Bash is not installed or on PATH. The corresponding complete tests run in Linux CI.');
+    console.warn('SKIP: Supabase shell-command execution/credential-propagation tests require POSIX Bash process and PATH semantics. GitHub Linux CI runs the complete tests.');
   }
 
   // Exercise the production history parser against a remote-only timestamp row.
