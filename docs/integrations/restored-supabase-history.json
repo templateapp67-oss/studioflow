@@ -2240,6 +2240,33 @@
       "evidence": "Applied to Supabase project zilwgiuiygqqardzutxi and confirmed in remote migration history. Adds one idempotent staff inventory policy using the canonical manage_inventory permission and assigned active branches. Existing owner and legacy branch-staff policies remain installed.",
       "purpose": "Allows Managers with active branch membership to manage only inventory for their assigned active branches.",
       "git_blob_sha": "21839dad562a9c6b4e0992c8a3daeb90da405c84"
+    },
+    {
+      "version": "20261122060000",
+      "file": "20261122060000_branch_service_catalogue_scope.sql",
+      "name": "branch_service_catalogue_scope",
+      "observed_at": "2026-11-22",
+      "evidence": "Applied to Supabase project zilwgiuiygqqardzutxi on 2026-11-22 and confirmed in remote migration history. Adds nullable branch_ids to the relational service catalogue; NULL/empty retains existing salon-wide behaviour. Adds owner/Manager assignment and branch-aware slot/booking guards without changing any studioflow_bookings RLS policy.",
+      "purpose": "Backwards-compatible branch-level service availability and branch-scoped staff reads, with legacy services remaining globally available until explicitly mapped.",
+      "git_blob_sha": "97b7a3aace2447702c655809400ec567291532ea"
+    },
+    {
+      "version": "20261122060500",
+      "file": "20261122060500_branch_scoped_manual_crm_contacts.sql",
+      "name": "branch_scoped_manual_crm_contacts",
+      "observed_at": "2026-11-22",
+      "evidence": "Applied to Supabase project zilwgiuiygqqardzutxi on 2026-11-22 and confirmed in remote migration history. Adds nullable branch_id plus an owner/branch composite foreign key and updates private CRM branch scope/read/write RPCs. No manual CRM contacts were backfilled or created.",
+      "purpose": "Explicit branch assignment for manual CRM contacts; unmapped legacy contacts remain owner-only and staff read/write access requires an assigned active branch.",
+      "git_blob_sha": "5781720ae96086ca24c983ca59488a5ad3b771f4"
+    },
+    {
+      "version": "20261122061000",
+      "file": "20261122061000_branch_assignment_read_models.sql",
+      "name": "branch_assignment_read_models",
+      "observed_at": "2026-11-22",
+      "evidence": "Applied to Supabase project zilwgiuiygqqardzutxi on 2026-11-22 and confirmed in remote migration history. Adds authenticated read models for owner service mappings and CRM branch options; staff options are reduced to currently assigned active branches.",
+      "purpose": "Authenticated branch selectors for service and manual CRM management without exposing unassigned branch mapping details.",
+      "git_blob_sha": "a1360a5f2d67295082bc38516bb4adfd8a224218"
     }
   ]
 }
