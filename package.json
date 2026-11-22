@@ -11,7 +11,7 @@
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
     "lint:edge": "tsc -p tsconfig.edge.json --noEmit",
-    "test": "npm run lint && npm run lint:edge && npm run build && node scripts/run-all-verifications.mjs",
+    "test": "npm run lint && npm run lint:edge && npm run build && node scripts/run-all-verifications.mjs && node scripts/verify-staff-crm-branch-scope.mjs",
     "test:address": "node scripts/verify-address-stability.mjs",
     "test:wiring": "node scripts/verify-website-wiring.mjs",
     "test:unified": "node scripts/verify-unified-wiring.mjs",
