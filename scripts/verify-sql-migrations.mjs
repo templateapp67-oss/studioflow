@@ -562,6 +562,7 @@ for (const name of [
   '20261122060500_branch_scoped_manual_crm_contacts.sql',
   '20261122061000_branch_assignment_read_models.sql',
   '20261122064000_branch_crm_contact_update_duplicate_fix.sql',
+  '20261122065000_branch_service_android_wrapper_grants.sql',
 ]) {
   const file = 'supabase/migrations/' + name;
   await applySqlText(readFileSync(file, 'utf8'), file);
