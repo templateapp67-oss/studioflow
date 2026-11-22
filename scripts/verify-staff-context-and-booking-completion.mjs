@@ -35,6 +35,8 @@ assert.match(staffWorkspace, /studioflow_update_booking/);
 assert.match(branchPanel, /from\('studioflow_staff_members'\)/);
 assert.doesNotMatch(branchPanel, /from\('studioflow_branch_staff_members'\)/);
 assert.match(branchPanel, /branch_ids/);
+assert.match(branchPanel, /updateStaffMemberAccess/);
+assert.doesNotMatch(branchPanel, /from\('studioflow_staff_members'\)\s*\.update/);
 
 assert.match(paymentFunction, /requeueForReconciliation/);
 assert.match(paymentFunction, /ledgerPending/);
