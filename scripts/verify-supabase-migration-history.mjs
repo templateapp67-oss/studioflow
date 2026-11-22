@@ -12,7 +12,7 @@ assert.equal(localSet.size,localVersions.length,'Duplicate local migration times
 const history=JSON.parse(readFileSync('docs/integrations/restored-supabase-history.json','utf8'));
 const appliedVersions=new Set([
   ...history.applied_versions,
-  ...(history.post_export_applied_versions||[]).map(record=>record.version)
+  ...(history.post_export_applied_versions||[]).map(record=>record.file.split('_',1)[0])
 ]);
 const approvedPending=(history.release_pending_migrations||[])
   .map(record=>record.file.split('_',1)[0]).sort();
@@ -69,8 +69,14 @@ assert.deepEqual(cliLocal,uniqueSorted(localVersions),
   'Supabase CLI local migration list does not match files checked out in supabase/migrations.');
 
 const remoteSet=new Set(cliRemote);
-const remoteOnly=cliRemote.filter(version=>!localSet.has(version));
-const localOnly=uniqueSorted(localVersions.filter(version=>!remoteSet.has(version)));
+const remoteToLocal=new Map();
+for(const version of history.applied_versions) remoteToLocal.set(version,version);
+for(const record of history.post_export_applied_versions||[]) {
+  remoteToLocal.set(record.remote_version||record.version,record.file.split('_',1)[0]);
+}
+const remoteOnly=cliRemote.filter(version=>!remoteToLocal.has(version));
+const matchedLocal=new Set(cliRemote.map(version=>remoteToLocal.get(version)).filter(Boolean));
+const localOnly=uniqueSorted(localVersions.filter(version=>!matchedLocal.has(version)));
 
 assert.deepEqual(localOnly,approvedPending,
   [
@@ -89,9 +95,9 @@ assert.deepEqual(remoteOnly,[],
 
 const postExport=history.post_export_applied_versions||[];
 for(const record of postExport){
-  assert(remoteSet.has(record.version),
-    'Post-export version is recorded as applied in the ledger but missing from remote history: '+record.version);
-  assert(localSet.has(record.version),
+  assert(remoteSet.has(record.remote_version||record.version),
+    'Post-export remote version is recorded as applied in the ledger but missing from remote history: '+(record.remote_version||record.version));
+  assert(localSet.has(record.file.split('_',1)[0]),
     'Post-export version is recorded as applied but its SQL source is missing locally: '+record.file);
 }
 
