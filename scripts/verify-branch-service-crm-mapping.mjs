@@ -12,6 +12,7 @@ const crmSql=read('supabase/migrations/20261122060500_branch_scoped_manual_crm_c
 const readModelsSql=read('supabase/migrations/20261122061000_branch_assignment_read_models.sql');
 const bookingGuardsSql=read('supabase/migrations/20261122066000_branch_scope_private_booking_guards.sql');
 const crmEmailSql=read('supabase/migrations/20261122067000_branch_manual_crm_email_read_projection.sql');
+const cleanupSql=read('supabase/migrations/20261122068000_branch_mapping_redundant_index_cleanup.sql');
 const contactUpdateFixSql=read('supabase/migrations/20261122064000_branch_crm_contact_update_duplicate_fix.sql');
 const androidGrantSql=read('supabase/migrations/20261122065000_branch_service_android_wrapper_grants.sql');
 const serviceUi=read('src/components/ServiceManagement.tsx');
@@ -95,5 +96,8 @@ assert.match(crmEmailSql,/nullif\(m\.email,''\)/i,
   'Manager contact list must include email on mapped manual CRM contacts');
 assert.match(crmEmailSql,/nullif\(c\.value->>'email',''\)/i,
   'CRM dashboard must preserve email from the manual contact read model');
+assert.match(cleanupSql,/drop index if exists public\.branches_site_id_id_scope_uk/i,
+  'Redundant index cleanup must retain the original branches unique constraint');
+assert.doesNotMatch(cleanupSql,/drop constraint|drop policy|studioflow_bookings/i);
 
 console.log('PASS: branch-level services and manual CRM contacts are mapped, scoped, backwards-compatible, and protected migrations/policies remain untouched.');
