@@ -37,6 +37,10 @@ assert.match(claimBody, /set status = 'refunding'/);
 
 assert.match(edge, /rpc\('studioflow_expire_unpaid_holds'\)/);
 assert.match(edge, /rpc\('studioflow_claim_refunds'/);
+assert.match(edge, /error:ledgerError/);
+assert.match(edge, /requeueForReconciliation/);
+assert.match(edge, /retryQueued:queued/);
+
 
 // This patch is additive and must not rewrite previous booking/Domain RLS policy.
 assert.doesNotMatch(lower, /\bcreate\s+table\b|\balter\s+table\b|\b(drop|create)\s+policy\b/);
