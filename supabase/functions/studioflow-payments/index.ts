@@ -252,13 +252,16 @@ Deno.serve(async(req:Request)=>{
       const payment=await getQaPayment(orderId,paymentId,qaRun);
       if(payment.status!=='captured')throw new Error('Only a captured NEXORA E2E test payment can be refunded');
       const existing=await getQaRefunds(paymentId,qaRun);
-      const completed=existing.find((item:any)=>item.status==='processed'||item.status==='pending');
-      if(completed){
-        return {refunded:true,refundStatus:completed.status,alreadyRefunded:true};
+      const validRefunds=existing.filter((item:any)=>item.status==='processed'||item.status==='pending');
+      const alreadyRefundedAmount=validRefunds.reduce((total:number,item:any)=>total+Number(item.amount||0),0);
+      if(alreadyRefundedAmount>=100){
+        const latest=validRefunds[validRefunds.length-1];
+        return {refunded:true,refundStatus:latest.status,alreadyRefunded:true};
       }
+      const remainingAmount=100-alreadyRefundedAmount;
       const refund=await provider('payments/'+encodeURIComponent(paymentId)+'/refund',{
         method:'POST',
-        body:JSON.stringify({amount:100,speed:'optimum',notes:{qa:'NEXORA-E2E',qa_run:qaRun}})
+        body:JSON.stringify({amount:remainingAmount,speed:'optimum',notes:{qa:'NEXORA-E2E',qa_run:qaRun}})
       });
       if(!refund?.id||!['processed','pending'].includes(refund.status)){
         throw new Error('Razorpay did not confirm the NEXORA E2E test refund');
