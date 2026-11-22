@@ -689,6 +689,7 @@ function Test-BranchOwnerPair {
 if (Test-Path -LiteralPath (Join-Path $PSScriptRoot '..\package.json')) {
   $script:ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 }
+$script:StatePath = Join-Path ([System.IO.Path]::GetTempPath()) 'nexora-salon-e2e-state.json'
 if (-not $SkipEnvFiles) {
   Import-DotEnvFile -Path (Join-Path $script:ProjectRoot '.env')
   Import-DotEnvFile -Path (Join-Path $script:ProjectRoot '.env.local')
@@ -715,9 +716,15 @@ if ($missing.Count -gt 0) {
   Write-Check -Name 'HTTP Supabase Auth staff sign-in' -Status 'BLOCKED' -Detail $why
   Write-Check -Name 'Authenticated branch inventory write/read' -Status 'BLOCKED' -Detail $why
   Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'SKIPPED_STATUS_UNREACHABLE' -Detail 'The isolated preview environment is not configured, so the Edge status endpoint cannot be queried. No payment request was sent.'
-  Write-Check -Name 'Cleanup' -Status 'PASS' -Detail 'No test artifacts were created because required configuration was missing.'
+  if (Test-Path -LiteralPath $script:StatePath) {
+    Write-Check -Name 'Prior-run cleanup recovery' -Status 'BLOCKED' -Detail ('A prior recovery manifest exists at ' + $script:StatePath + '; preview credentials are missing, so no cleanup request can safely be sent.')
+    Write-Check -Name 'Automatic cleanup' -Status 'BLOCKED' -Detail 'A prior run may have left temporary artifacts. Restore the same isolated preview credentials to resume cleanup.'
+    $global:LASTEXITCODE = 3
+  } else {
+    Write-Check -Name 'Automatic cleanup' -Status 'PASS' -Detail 'No recovery manifest exists and no test artifacts were created because required preview configuration was missing.'
+    $global:LASTEXITCODE = 2
+  }
   Write-E2EReport
-  $global:LASTEXITCODE = 2
   return
 }
 
@@ -735,8 +742,6 @@ try {
   $global:LASTEXITCODE = 2
   return
 }
-
-$script:StatePath = Join-Path ([System.IO.Path]::GetTempPath()) 'nexora-salon-e2e-state.json'
 
 # Recover an interrupted prior run before taking the new baseline.
 if (Test-Path -LiteralPath $script:StatePath) {
