@@ -77,6 +77,246 @@ function Write-Check {
   Write-Host ("[{0}] {1}: {2}" -f $Status, $Name, $safeDetail) -ForegroundColor $colour
 }
 
+
+function Protect-E2EText {
+  param([string]$Text)
+  if ([string]::IsNullOrWhiteSpace($Text)) { return '' }
+  $safe = [string]$Text
+  foreach ($secret in @($script:PublishableKey,$script:ServiceRoleKey,$script:RazorpayCheckoutKey,$script:RazorpayCheckoutSignature,$script:StaffPassword,$script:StaffAccessToken)) {
+    if (-not [string]::IsNullOrEmpty([string]$secret)) { $safe = $safe.Replace([string]$secret,'[REDACTED]') }
+  }
+  $safe = $safe -replace '(?i)authorization\s*[:=]\s*[^\s,;]+','Authorization=[REDACTED]'
+  $safe = $safe -replace '(?i)apikey\s*[:=]\s*[^\s,;]+','apikey=[REDACTED]'
+  $safe = $safe -replace '(?i)\bBearer\s+[A-Za-z0-9._~+/-]+=*','Bearer [REDACTED]'
+  $safe = $safe -replace '(?i)\brzp_(test|live)_[A-Za-z0-9_-]+','[RAZORPAY_KEY_REDACTED]'
+  $safe = $safe -replace '\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9._-]+\.[A-Za-z0-9._-]+\b','[TOKEN_REDACTED]'
+  $safe = $safe -replace '\b(order|pay|rfnd)_[A-Za-z0-9]+\b','[$1-REFERENCE-REDACTED]'
+  return $safe
+}
+
+function Write-E2EReport {
+  $checks = New-Object System.Collections.Generic.List[object]
+  foreach ($name in $script:Results.Keys) {
+    $entry = [ordered]@{
+      check = [string]$name
+      status = [string]$script:Results[$name].status
+      reason = Protect-E2EText -Text ([string]$script:Results[$name].reason)
+    }
+    if ($name -eq 'Razorpay test capture + Edge refund') {
+      $entry.keyModeReported = [string]$script:RazorpayKeyModeReported
+    }
+    $checks.Add([pscustomobject]$entry)
+  }
+  # Only allowlisted status/reason fields and the non-secret keyMode label are serialized.
+  $report = [ordered]@{ checks = @($checks.ToArray()) }
+  $reportPath = Join-Path $script:ProjectRoot 'NEXORA-E2E-report.json'
+  $report | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $reportPath -Encoding UTF8
+  Write-Host ("Report: {0}" -f $reportPath)
+}
+
+function Get-RazorpayEdgeStatus {
+  return Invoke-SupabaseRest -Method GET -Path 'functions/v1/studioflow-payments' -KeyKind PUBLIC
+}
+
+function Invoke-RazorpayEdgeQA {
+  param([Parameter(Mandatory=$true)][string]$Action, [hashtable]$Body = @{})
+  $payload = @{ action = $Action }
+  foreach ($key in $Body.Keys) { $payload[$key] = $Body[$key] }
+  return Invoke-JsonHttp -Method POST -Url ($script:SupabaseUrl + '/functions/v1/studioflow-payments') -ApiKey $script:PublishableKey -BearerToken $script:ServiceRoleKey -Body $payload
+}
+
+function Start-RazorpayTestCheckout {
+  param(
+    [Parameter(Mandatory=$true)][string]$KeyId,
+    [Parameter(Mandatory=$true)][string]$OrderId
+  )
+  $probe = New-Object System.Net.Sockets.TcpListener([System.Net.IPAddress]::Loopback,0)
+  try { $probe.Start(); $port = ([System.Net.IPEndPoint]$probe.LocalEndpoint).Port }
+  finally { $probe.Stop() }
+
+  $keyJson = ConvertTo-Json -InputObject $KeyId -Compress
+  $orderJson = ConvertTo-Json -InputObject $OrderId -Compress
+  $html = @'
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NEXORA Sandbox Checkout</title></head>
+<body style="font-family:Arial,sans-serif;padding:28px;max-width:600px;margin:auto">
+<h2>NEXORA Razorpay TEST checkout</h2>
+<p>Use only Razorpay's documented test card or test UPI details. Do not enter real payment credentials.</p>
+<p id="state">Loading Razorpay Checkout…</p>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+const options = {
+  key: __KEY__, order_id: __ORDER__, amount: 100, currency: "INR",
+  name: "NEXORA SalonOS QA", description: "NEXORA E2E sandbox verification",
+  handler: async function (response) {
+    document.getElementById("state").textContent = "Test response received; returning to PowerShell.";
+    await fetch("/result", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(response) });
+  },
+  modal: { ondismiss: async function () {
+    document.getElementById("state").textContent = "Checkout dismissed.";
+    try { await fetch("/cancel", { method: "POST" }); } catch (_) {}
+  }}
+};
+if (typeof Razorpay !== "function") {
+  document.getElementById("state").textContent = "Razorpay Checkout could not load.";
+} else {
+  const checkout = new Razorpay(options);
+  checkout.on("payment.failed", async function () {
+    document.getElementById("state").textContent = "Sandbox payment failed.";
+    try { await fetch("/failure", { method: "POST" }); } catch (_) {}
+  });
+  checkout.open();
+}
+</script></body></html>
+'@
+  $html = $html.Replace('__KEY__',$keyJson).Replace('__ORDER__',$orderJson)
+
+  $listener = New-Object System.Net.HttpListener
+  $listener.Prefixes.Add(("http://127.0.0.1:{0}/" -f $port))
+  $listener.Start()
+  $responseData = $null
+  $failure = $null
+  $cancelled = $false
+  $deadline = (Get-Date).AddMinutes(8)
+  try {
+    Start-Process -FilePath ("http://127.0.0.1:{0}/" -f $port)
+    $pending = $listener.BeginGetContext($null,$null)
+    while ((Get-Date) -lt $deadline -and $null -eq $responseData -and -not $failure -and -not $cancelled) {
+      if (-not $pending.AsyncWaitHandle.WaitOne(1000)) { continue }
+      $context = $listener.EndGetContext($pending)
+      $path = $context.Request.Url.AbsolutePath
+      if ($path -eq '/' -and $context.Request.HttpMethod -eq 'GET') {
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($html)
+        $context.Response.StatusCode = 200
+        $context.Response.ContentType = 'text/html; charset=utf-8'
+        $context.Response.ContentLength64 = $bytes.Length
+        $context.Response.OutputStream.Write($bytes,0,$bytes.Length)
+        $context.Response.Close()
+      } elseif ($path -eq '/result' -and $context.Request.HttpMethod -eq 'POST') {
+        $reader = New-Object System.IO.StreamReader($context.Request.InputStream)
+        $raw = $reader.ReadToEnd()
+        $reader.Dispose()
+        try { $responseData = $raw | ConvertFrom-Json } catch { $failure = 'Checkout response could not be parsed.' }
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes('Response received. You may close this window.')
+        $context.Response.StatusCode = 200
+        $context.Response.ContentType = 'text/plain; charset=utf-8'
+        $context.Response.ContentLength64 = $bytes.Length
+        $context.Response.OutputStream.Write($bytes,0,$bytes.Length)
+        $context.Response.Close()
+      } elseif ($path -eq '/cancel') {
+        $cancelled = $true
+        $context.Response.StatusCode = 200
+        $context.Response.Close()
+      } elseif ($path -eq '/failure') {
+        $failure = 'Razorpay test checkout reported a payment failure.'
+        $context.Response.StatusCode = 200
+        $context.Response.Close()
+      } else {
+        $context.Response.StatusCode = 404
+        $context.Response.Close()
+      }
+      if ($null -eq $responseData -and -not $failure -and -not $cancelled) {
+        $pending = $listener.BeginGetContext($null,$null)
+      }
+    }
+  } finally {
+    try { $listener.Stop() } catch {}
+    try { $listener.Close() } catch {}
+  }
+  if ($failure) { throw $failure }
+  if ($cancelled) { throw 'Razorpay test checkout was dismissed.' }
+  if ($null -eq $responseData) { throw 'Razorpay test checkout timed out.' }
+  if ([string]$responseData.razorpay_order_id -ne $OrderId -or [string]::IsNullOrWhiteSpace([string]$responseData.razorpay_payment_id) -or [string]::IsNullOrWhiteSpace([string]$responseData.razorpay_signature)) {
+    throw 'Razorpay Checkout response did not match the temporary QA order.'
+  }
+  return $responseData
+}
+
+function Invoke-RazorpayTestE2E {
+  try { $initial = Get-RazorpayEdgeStatus }
+  catch {
+    $script:RazorpayKeyModeReported = 'unreachable'
+    Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'SKIPPED_STATUS_UNREACHABLE' -Detail 'The read-only payments Edge status GET was unreachable. No Razorpay provider request was sent.'
+    return
+  }
+
+  $script:RazorpayKeyModeReported = [string]$initial.keyMode
+  if ($script:RazorpayKeyModeReported -eq 'live') {
+    Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'BLOCKED_LIVE_MODE' -Detail 'The server reports keyMode=live. Live capture/refund is prohibited; no payment action was sent.'
+    return
+  }
+  if ($script:RazorpayKeyModeReported -ne 'test' -or -not $initial.configured) {
+    Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'SKIPPED_UNPROVEN_MODE' -Detail 'The server did not prove configured rzp_test_ credentials through keyMode=test. No payment action was sent.'
+    return
+  }
+  if (-not $AllowRazorpayTestCapture) {
+    Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'SKIPPED_NOT_OPTED_IN' -Detail 'Test mode was proven but -AllowRazorpayTestCapture was not supplied. No payment action was sent.'
+    return
+  }
+
+  $script:RazorpayQaRun = 'NEXORA-E2E-' + [guid]::NewGuid().ToString('N')
+  $script:State.razorpayQaRun = $script:RazorpayQaRun
+  $script:State.razorpayOrderId = ''
+  Save-State
+
+  # Mandatory immediate pre-order recheck; Edge independently re-checks before provider POST.
+  try { $second = Get-RazorpayEdgeStatus }
+  catch {
+    Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'ABORTED_MODE_CHANGED' -Detail 'The second read-only mode check was unreachable immediately before order creation. No order was requested.'
+    return
+  }
+  $script:RazorpayKeyModeReported = [string]$second.keyMode
+  if ($script:RazorpayKeyModeReported -ne 'test' -or -not $second.configured) {
+    Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'ABORTED_MODE_CHANGED' -Detail 'The second mode check did not prove configured keyMode=test. Aborted before order creation.'
+    return
+  }
+
+  try {
+    $created = Invoke-RazorpayEdgeQA -Action 'nexoraE2eCreateTestOrder' -Body @{ qaRun = $script:RazorpayQaRun }
+    if ([string]$created.keyId -notmatch '^rzp_test_' -or [string]::IsNullOrWhiteSpace([string]$created.orderId) -or [int]$created.amount -ne 100) {
+      throw 'The server did not return the expected test-only ₹1 QA order.'
+    }
+    $script:RazorpayOrderId = [string]$created.orderId
+    $script:State.razorpayOrderId = $script:RazorpayOrderId
+    $script:RazorpayCheckoutKey = [string]$created.keyId
+    Save-State
+
+    $checkout = Start-RazorpayTestCheckout -KeyId $script:RazorpayCheckoutKey -OrderId $script:RazorpayOrderId
+    $script:RazorpayPaymentId = [string]$checkout.razorpay_payment_id
+    $script:RazorpayCheckoutSignature = [string]$checkout.razorpay_signature
+    $verified = Invoke-RazorpayEdgeQA -Action 'nexoraE2eVerifyTestPayment' -Body @{
+      qaRun = $script:RazorpayQaRun
+      orderId = $script:RazorpayOrderId
+      paymentId = $script:RazorpayPaymentId
+      signature = $script:RazorpayCheckoutSignature
+    }
+    if (-not $verified.verified) { throw 'The Edge Function did not verify the Checkout signature.' }
+
+    if ([string]$verified.paymentStatus -eq 'authorized') {
+      $captured = Invoke-RazorpayEdgeQA -Action 'nexoraE2eCaptureTestPayment' -Body @{
+        qaRun = $script:RazorpayQaRun
+        orderId = $script:RazorpayOrderId
+        paymentId = $script:RazorpayPaymentId
+      }
+      if (-not $captured.captured) { throw 'The Edge Function did not confirm test payment capture.' }
+    } elseif ([string]$verified.paymentStatus -ne 'captured') {
+      throw 'Razorpay test payment was neither authorized nor captured.'
+    }
+
+    $refunded = Invoke-RazorpayEdgeQA -Action 'nexoraE2eRefundTestPayment' -Body @{
+      qaRun = $script:RazorpayQaRun
+      orderId = $script:RazorpayOrderId
+      paymentId = $script:RazorpayPaymentId
+    }
+    if (-not $refunded.refunded -or [string]$refunded.refundStatus -notin @('processed','pending')) {
+      throw 'The Edge Function did not confirm a sandbox refund.'
+    }
+    $script:RazorpayRefundStatus = [string]$refunded.refundStatus
+    Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'EXECUTED_TEST_MODE' -Detail ('The server twice confirmed keyMode=test; the ₹1 sandbox payment was verified, captured/confirmed and refunded through studioflow-payments. Refund state: ' + $script:RazorpayRefundStatus + '. Provider order is QA-tagged.')
+  } catch {
+    Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'FAIL' -Detail 'The Razorpay sandbox sequence failed. The finally block will run Edge cleanup for the QA marker; QA routes independently refuse any non-test key mode.'
+  }
+}
+
 function Import-DotEnvFile {
   param([string]$Path)
   if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return }
