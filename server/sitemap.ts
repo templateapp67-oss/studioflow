@@ -104,25 +104,32 @@ export async function generateSitemap(
   const key =
     env.SUPABASE_ANON_KEY || "sb_publishable_Xck8H8PcTCCnEwkvBfiSLw_c973vJkH";
   const slugs: string[] = [];
-  for (let offset = 0; offset < 50000; offset += 1000) {
-    const url = new URL("/rest/v1/studioflow_websites", endpoint);
-    url.searchParams.set("select", "slug");
-    url.searchParams.set("order", "slug.asc");
-    url.searchParams.set("offset", String(offset));
-    url.searchParams.set("limit", "1000");
-    const response = await fetcher(url, {
-      headers: { apikey: key },
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!response.ok) throw new Error("Published-site catalogue unavailable");
-    const data = await response.json();
-    if (
-      !Array.isArray(data) ||
-      data.some((row) => typeof row?.slug !== "string")
-    )
-      throw new Error("Invalid public catalogue");
-    slugs.push(...data.map((row) => row.slug));
-    if (data.length < 1000) return sitemapXml(origin, slugs);
+  try {
+    for (let offset = 0; offset < 50000; offset += 1000) {
+      const url = new URL("/rest/v1/studioflow_websites", endpoint);
+      url.searchParams.set("select", "slug");
+      url.searchParams.set("order", "slug.asc");
+      url.searchParams.set("offset", String(offset));
+      url.searchParams.set("limit", "1000");
+      const response = await fetcher(url, {
+        headers: { apikey: key },
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!response.ok) throw new Error("Published-site catalogue unavailable");
+      const data = await response.json();
+      if (
+        !Array.isArray(data) ||
+        data.some((row) => typeof row?.slug !== "string")
+      )
+        throw new Error("Invalid public catalogue");
+      slugs.push(...data.map((row) => row.slug));
+      if (data.length < 1000) return sitemapXml(origin, slugs);
+    }
+  } catch {
+    // Keep the public marketing and template pages crawlable if the optional
+    // published-site catalogue is temporarily unavailable. The dynamic site
+    // URLs return automatically when that catalogue is reachable again.
+    return sitemapXml(origin, []);
   }
   throw new Error("Sitemap index required for this catalogue size");
 }

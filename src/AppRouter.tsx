@@ -76,12 +76,14 @@ export function AppRouter() {
   const [showApplication] = useState(() =>
     typeof window !== 'undefined' && requiresFullApplication(window.location),
   );
-  const [authenticated, setAuthenticated] = useState(() =>
-    typeof window !== 'undefined' && hasPersistedOwnerSession(),
-  );
+  // Keep the first client render identical to the prerendered public homepage.
+  // A stored owner session is reflected immediately after hydration, not during
+  // hydrateRoot, so the owner-specific CTA cannot cause a server/client mismatch.
+  const [authenticated, setAuthenticated] = useState(false);
 
   useEffect(() => {
     const refreshAuthentication = () => setAuthenticated(hasPersistedOwnerSession());
+    refreshAuthentication();
     window.addEventListener('storage', refreshAuthentication);
     return () => window.removeEventListener('storage', refreshAuthentication);
   }, []);

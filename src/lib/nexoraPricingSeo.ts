@@ -1,4 +1,5 @@
 import { PRICING_FAQS, PRICING_PLANS } from './nexoraPricing';
+import { NEXORA_BREADCRUMB_TRAILS, nexoraBreadcrumbListSchema } from './nexoraBreadcrumbs';
 
 /**
  * Public metadata for the complete NEXORA SALONOS landing page published at
@@ -48,6 +49,11 @@ export function nexoraPricingSchema(origin: string) {
           acceptedAnswer: { '@type': 'Answer', text: answer },
         })),
       },
+      nexoraBreadcrumbListSchema(
+        origin,
+        NEXORA_PRICING_SEO.canonicalPath,
+        NEXORA_BREADCRUMB_TRAILS[NEXORA_PRICING_SEO.canonicalPath],
+      ),
     ],
   };
 }

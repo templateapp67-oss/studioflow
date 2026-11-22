@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { parseDocument } from 'htmlparser2';
 import { AppRouter, requiresFullApplication } from '../src/AppRouter';
 import { PublicHomepage, PUBLIC_SIGNUP_PATH, templateSignupPath } from '../src/components/PublicHomepage';
 import { NEXORA_TAWK_WIDGET_URL } from '../src/components/NexoraTawkWidget';
@@ -13,7 +14,8 @@ import {
 } from '../src/lib/whatsappContact';
 import { AuthPage } from '../src/components/AuthPage';
 import { CATEGORY_TEMPLATES } from '../src/categoryTemplates';
-import { NEXORA_TEMPLATE_META } from '../src/lib/nexoraTemplateCatalogue';
+import { NEXORA_TEMPLATE_META, nexoraTemplatePagePath } from '../src/lib/nexoraTemplateCatalogue';
+import { NEXORA_ECOSYSTEM_ROUTES } from '../src/lib/nexoraEcosystemSeo';
 import { nexoraPreviewImage } from '../src/lib/nexoraPreviewImages';
 import { resolveSiteSlug } from '../src/lib/resolveSite';
 import { generateSitemap, isEphemeralOrigin, sitemapOrigin } from '../server/sitemap';
@@ -58,6 +60,22 @@ assert.equal(hasAuthCallbackQuery('?ref=ABC123'), false, 'business referrals alo
 assert.equal(NEXORA_PUBLIC_ORIGIN, 'https://nexorasalon.online', 'SEO must use the production domain, never a Vercel preview host');
 const homeHtml = renderToStaticMarkup(<PublicHomepage />);
 const authenticatedHomeHtml = renderToStaticMarkup(<PublicHomepage authenticated />);
+const whatsappLinks: any[] = [];
+const collectWhatsappLinks = (node: any) => {
+  if (node.type === 'tag' && node.name === 'a' && node.attribs?.['data-nexora-whatsapp-cta']) whatsappLinks.push(node.attribs);
+  for (const child of node.children ?? []) collectWhatsappLinks(child);
+};
+collectWhatsappLinks(parseDocument(homeHtml, { decodeEntities: true }));
+assert.deepEqual(
+  whatsappLinks.map((link) => link['data-nexora-whatsapp-cta']),
+  ['desktop-header', 'hero', 'footer', 'floating'],
+  'homepage renders one tracked WhatsApp link at each approved desktop and page placement',
+);
+for (const link of whatsappLinks) {
+  assert.equal(link.href, NEXORA_OFFICIAL_WHATSAPP_URL, 'every tracked WhatsApp action uses the official click-to-chat destination');
+  assert.equal(link.target, '_blank', 'every WhatsApp action opens a new tab');
+  assert.ok(link.rel.includes('noopener') && link.rel.includes('noreferrer'), 'every new-tab WhatsApp link is isolated from its opener');
+}
 
 // Live Chat is a hosted tawk.to widget on the public NEXORA homepage only.
 assert.equal(
@@ -108,6 +126,9 @@ assert.ok(homeHtml.includes('WhatsApp Support'), 'homepage footer provides a Wha
 assert.ok(homeHtml.includes('Help Centre'), 'homepage nav links to the public knowledge base');
 assert.ok(homeHtml.includes('aria-label="Chat with NEXORA on WhatsApp"'), 'icon-only WhatsApp shortcut has an accessible name');
 const homepageSource = readFileSync('src/components/PublicHomepage.tsx', 'utf8');
+const siteHeaderSource = readFileSync('src/components/nexora-landing/sections/SiteHeader.tsx', 'utf8');
+const mainSource = readFileSync('src/main.tsx', 'utf8');
+assert.ok(mainSource.includes('<AppUpdateManagerAfterHydration />') && mainSource.includes('useEffect(() => setReady(true), [])'), 'app-update polling mounts after the hydration-safe first commit, including public pages');
 const supportWidgetSource = readFileSync('src/components/NexoraTawkWidget.tsx', 'utf8');
 assert.ok(supportWidgetSource.includes("script.src = NEXORA_TAWK_WIDGET_URL"), 'public marketing pages inject the hosted Live Chat script');
 assert.ok(supportWidgetSource.includes("position: 'bl'"), 'Live Chat is positioned bottom-left on desktop and mobile');
@@ -118,7 +139,8 @@ const routerSource = readFileSync('src/AppRouter.tsx', 'utf8');
 assert.ok(routerSource.includes('withNexoraPublicSupport(<NexoraPricingLandingPage />)'), 'pricing page gets Tawk chat');
 assert.ok(routerSource.includes('withNexoraPublicSupport(<PublicHomepage authenticated={authenticated} />)'), 'homepage gets Tawk chat');
 assert.ok(!routerSource.includes('withNexoraPublicSupport(<FullApplication />)'), 'owner app is excluded from the public Tawk widget');
-assert.ok(homepageSource.includes('data-nexora-whatsapp-cta="mobile-menu"'), 'mobile navigation includes a WhatsApp contact action');
+assert.ok(homepageSource.includes("name: 'data-nexora-whatsapp-cta'") && homepageSource.includes("compactValue: 'mobile-menu'"), 'homepage configures a tracked WhatsApp action for the compact navigation');
+assert.ok(siteHeaderSource.includes('secondaryAction.dataAttribute.compactValue') && siteHeaderSource.includes('{...secondaryActionAttributes}'), 'shared header applies the compact tracking value to its action link');
 assert.ok(homepageSource.includes('!menuOpen && !previewId && !footerVisible'), 'floating shortcut steps aside for the mobile menu, template preview and footer');
 assert.ok(homepageSource.includes("document.querySelector('.public-homepage footer')"), 'floating shortcut visibility tracks the real homepage footer');
 const homepageCss = readFileSync('src/components/publicHomepage.css', 'utf8');
@@ -143,11 +165,13 @@ const renderRoutedRoot = (session: string | null) => {
 const signedInRootHtml = renderRoutedRoot('persisted-session');
 const signedOutRootHtml = renderRoutedRoot(null);
 assert.ok(signedInRootHtml.includes('public-home-title'), 'authenticated visitors stay on the public root');
-assert.ok(signedInRootHtml.includes('Owner Workspace'), 'the routed homepage detects a persisted owner session');
+assert.ok(!signedInRootHtml.includes('Owner Workspace'), 'SSR does not read browser-only owner state before hydration');
+assert.ok(signedInRootHtml.includes('Sign In'), 'SSR matches the signed-out prerender until the owner CTA updates after hydration');
 assert.ok(signedOutRootHtml.includes('public-home-title'), 'signed-out visitors stay on the public root');
 assert.ok(signedOutRootHtml.includes('Sign In'), 'the routed homepage offers sign-in when no session exists');
 assert.equal((homeHtml.match(/<h1\b/g) || []).length, 1, 'homepage has exactly one H1');
 assert.ok(homeHtml.includes('<h1 id="public-home-title"'), 'homepage H1 is the marketing headline');
+assert.match(homeHtml, /<nav class="nx-breadcrumbs" aria-label="Breadcrumb">[\s\S]*?aria-current="page"[\s\S]*?<\/nav>/, 'homepage exposes its current breadcrumb as a labeled navigation landmark');
 assert.ok(homeHtml.includes('A beautiful salon website, made for your brand'), 'premium hero headline renders');
 assert.ok(authenticatedHomeHtml.includes('Owner Workspace'), 'signed-in owners receive a workspace action');
 assert.ok(authenticatedHomeHtml.includes('Open Workspace'), 'signed-in owners can open the full workspace');
@@ -221,12 +245,13 @@ const documentHarness = {
 const value = (attribute: 'name' | 'property', key: string) => documentHarness.querySelector(`meta[${attribute}="${key}"]`)?.getAttribute('content');
 
 applyPublicSeoMetadata(NEXORA_HOME_SEO);
-assert.equal(documentHarness.title, 'NEXORA Salon OS – Launch Your NEXORA Salon Website in 30 Minutes');
+assert.equal(documentHarness.title, 'NEXORA SalonOS – Salon Website Builder & Management Software');
+assert.equal(value('name', 'description'), 'Create a salon website with NEXORA SalonOS, choose from 16 templates, and manage appointments, customers, billing, staff, inventory and marketing.');
 assert.equal(value('name', 'description'), NEXORA_HOME_SEO.description);
 assert.equal(value('property', 'og:title'), NEXORA_HOME_SEO.ogTitle);
 assert.equal(value('property', 'og:description'), NEXORA_HOME_SEO.ogDescription);
 assert.equal(value('name', 'twitter:title'), NEXORA_HOME_SEO.twitterTitle);
-assert.equal(value('name', 'twitter:description'), 'Create your salon website with 16 ready-made templates. Customise and launch easily with NEXORA Salon OS.');
+assert.equal(value('name', 'twitter:description'), NEXORA_HOME_SEO.twitterDescription);
 assert.equal(value('name', 'twitter:card'), 'summary_large_image');
 assert.equal(value('property', 'og:image'), NEXORA_HOME_OG_IMAGE);
 assert.equal(value('name', 'twitter:image'), NEXORA_HOME_OG_IMAGE);
@@ -243,16 +268,29 @@ assert.equal(value('name', 'twitter:description'), NEXORA_LOGIN_SEO.twitterDescr
 assert.equal(documentHarness.querySelector('link[rel="canonical"]')?.getAttribute('href'), `${NEXORA_PUBLIC_ORIGIN}/login`);
 
 const indexHtml = readFileSync('index.html', 'utf8');
-assert.ok(indexHtml.includes(`<title>${NEXORA_HOME_SEO.title}</title>`));
+assert.ok(indexHtml.includes(`<title>${esc(NEXORA_HOME_SEO.title)}</title>`));
+assert.equal((indexHtml.match(/<title>/g) || []).length, 1, 'homepage document has exactly one title');
 assert.ok(indexHtml.includes(NEXORA_HOME_SEO.description));
+assert.equal((indexHtml.match(/<meta name="description"/g) || []).length, 1, 'homepage document has exactly one meta description');
 assert.ok(indexHtml.includes(NEXORA_HOME_SEO.twitterDescription));
 assert.ok(indexHtml.includes(NEXORA_HOME_OG_IMAGE));
 assert.ok(indexHtml.includes(`<link rel="canonical" href="${NEXORA_PUBLIC_ORIGIN}/" />`));
 assert.ok(indexHtml.includes('type="application/ld+json"'), 'homepage exposes static structured data');
 const jsonLdMatch = indexHtml.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
 assert.ok(jsonLdMatch, 'homepage JSON-LD script is present');
-const homepageSchema = JSON.parse(jsonLdMatch[1]) as { url?: string };
-assert.equal(homepageSchema.url, `${NEXORA_PUBLIC_ORIGIN}/`, 'homepage structured data uses the production origin');
+const homepageSchema = JSON.parse(jsonLdMatch[1]) as {
+  '@graph'?: Array<Record<string, unknown>>;
+  '@type'?: string;
+  url?: string;
+};
+const homepageGraph = homepageSchema['@graph'] ?? [homepageSchema];
+const homepageApplication = homepageGraph.find((node) => node['@type'] === 'SoftwareApplication');
+const homepageBreadcrumb = homepageGraph.find((node) => node['@type'] === 'BreadcrumbList');
+assert.equal(homepageApplication?.url, `${NEXORA_PUBLIC_ORIGIN}/`, 'homepage structured data uses the production origin');
+assert.ok(homepageBreadcrumb, 'the homepage retains its existing structured-data publishing and adds the root breadcrumb');
+assert.deepEqual(homepageBreadcrumb.itemListElement, [
+  { '@type': 'ListItem', position: 1, name: 'Home', item: `${NEXORA_PUBLIC_ORIGIN}/` },
+]);
 assert.ok(indexHtml.includes('/fonts/hanken-grotesk-latin-wght-normal.woff2'), 'homepage preloads its local font');
 assert.ok(!indexHtml.includes('window.fetch'), 'fetch is not monkey-patched');
 assert.ok(!indexHtml.includes('fonts.googleapis.com/css'), 'marketing HTML has no render-blocking third-party font stylesheet');
@@ -275,6 +313,25 @@ const generatedSitemap = await generateSitemap({
 }, async () => new Response('[]', { status: 200 }));
 assert.ok(generatedSitemap.includes(`<loc>${NEXORA_PUBLIC_ORIGIN}/</loc>`), 'generated sitemap uses the production origin');
 assert.ok(!generatedSitemap.includes('vercel.app'), 'generated sitemap ignores preview-host environment overrides');
+const fallbackSitemap = await generateSitemap({
+  SITE_URL: NEXORA_PUBLIC_ORIGIN,
+  SUPABASE_URL: 'https://supabase.example',
+  SUPABASE_ANON_KEY: 'test-key',
+}, async () => { throw new Error('catalogue offline'); });
+assert.ok(fallbackSitemap.startsWith('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'));
+assert.ok(fallbackSitemap.endsWith('</urlset>'), 'catalogue outage still returns valid sitemap XML');
+const fallbackLocations = [...fallbackSitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]);
+const expectedPublicLocations = [
+  `${NEXORA_PUBLIC_ORIGIN}/`,
+  `${NEXORA_PUBLIC_ORIGIN}/salon-os`,
+  `${NEXORA_PUBLIC_ORIGIN}/pricing`,
+  `${NEXORA_PUBLIC_ORIGIN}/privacy`,
+  ...NEXORA_ECOSYSTEM_ROUTES.map((path) => `${NEXORA_PUBLIC_ORIGIN}${path}`),
+  ...NEXORA_TEMPLATE_META.map((meta) => `${NEXORA_PUBLIC_ORIGIN}${nexoraTemplatePagePath(meta.templateId)}`),
+];
+assert.deepEqual(fallbackLocations, expectedPublicLocations, 'fallback lists every public marketing/template page exactly once');
+assert.equal(new Set(fallbackLocations).size, fallbackLocations.length, 'sitemap contains no duplicate public page URLs');
+assert.ok(fallbackLocations.every((location) => new URL(location).protocol === 'https:'), 'every sitemap location is an absolute HTTPS URL');
 // Both halves of the sitemap origin contract must hold at once: preview hosts are
 // rejected, but a real custom domain is still honoured (verify-gap-completion asserts
 // the custom-domain half, so hardcoding the canonical here regresses that suite).

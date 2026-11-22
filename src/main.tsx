@@ -1,4 +1,4 @@
-import React, { StrictMode, Suspense, lazy } from 'react';
+import React, { StrictMode, Suspense, lazy, useEffect, useState } from 'react';
 import { createRoot, hydrateRoot } from 'react-dom/client';
 import { AppRouter, requiresFullApplication } from './AppRouter';
 import { DebugBoundary } from './components/DebugBoundary';
@@ -10,27 +10,39 @@ const AppUpdateManager = lazy(() =>
   import('./components/AppUpdateManager').then((module) => ({ default: module.AppUpdateManager })),
 );
 
+/** Mount client-only update polling after hydration, without dropping it on public routes. */
+function AppUpdateManagerAfterHydration() {
+  const [ready, setReady] = useState(false);
+  useEffect(() => setReady(true), []);
+
+  return ready ? (
+    <Suspense fallback={null}>
+      <AppUpdateManager />
+    </Suspense>
+  ) : null;
+}
+
 installScreenRecovery();
 registerCustomerPwa();
 
 const rootElement = document.getElementById('root');
 if (rootElement) {
+  // Public marketing documents are server-rendered; delay client-only update
+  // polling until after the first commit so its lazy boundary cannot mismatch
+  // the static HTML during hydration.
+  const canHydrate = rootElement.hasChildNodes()
+    && !requiresFullApplication(window.location);
+
   const content = (
     <StrictMode>
       <DebugBoundary>
         <AppRouter />
       </DebugBoundary>
-      <Suspense fallback={null}>
-        <AppUpdateManager />
-      </Suspense>
+      <AppUpdateManagerAfterHydration />
     </StrictMode>
   );
 
-  // The production homepage is server-rendered. Hydrate it only on the matching
-  // public route; published sites and auth routes keep their existing client app.
-  const canHydrate = rootElement.hasChildNodes()
-    && !requiresFullApplication(window.location);
-
+  // Published sites and auth routes keep their existing client app.
   if (canHydrate) {
     hydrateRoot(rootElement, content);
   } else {

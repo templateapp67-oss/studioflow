@@ -40,6 +40,7 @@ const seo = await loadModule({
     contents: [
       "export * from './src/lib/nexoraEcosystemSeo.ts';",
       "export { NEXORA_PUBLIC_ORIGIN, NEXORA_HOME_SEO } from './src/lib/publicSeo.ts';",
+      "export { NEXORA_BREADCRUMB_TRAILS } from './src/lib/nexoraBreadcrumbs.ts';",
     ].join('\n'),
     resolveDir: process.cwd(),
     loader: 'ts',
@@ -47,7 +48,13 @@ const seo = await loadModule({
 });
 const { sitemapXml } = await loadModule({ entryPoints: ['server/sitemap.ts'] });
 
-const { NEXORA_ECOSYSTEM_ROUTES, NEXORA_ECOSYSTEM_SEO, NEXORA_PUBLIC_ORIGIN, NEXORA_HOME_SEO } = seo;
+const {
+  NEXORA_ECOSYSTEM_ROUTES,
+  NEXORA_ECOSYSTEM_SEO,
+  NEXORA_PUBLIC_ORIGIN,
+  NEXORA_HOME_SEO,
+  NEXORA_BREADCRUMB_TRAILS,
+} = seo;
 
 assert.deepEqual(
   [...NEXORA_ECOSYSTEM_ROUTES],
@@ -97,7 +104,13 @@ for (const path of NEXORA_ECOSYSTEM_ROUTES) {
   assert.notEqual(titleOf(html), NEXORA_HOME_SEO.title, `${path} must not inherit the homepage title`);
   assert.notEqual(canonicalOf(html), NEXORA_HOME_SEO.canonicalUrl, `${path} must not canonicalise to the homepage`);
 
-  /* 2. The document really is this route's page, and only this route's page. */
+  /* 2. Keyboard users can bypass the shared header and land at route content. */
+  const skipLink = html.match(/<a class="(?:ngr-skip|nexora-site-skip)" href="([^"]+)">([^<]+)<\/a>/);
+  assert.ok(skipLink, `${path} provides a visible-on-focus skip link`);
+  const skipTarget = decode(skipLink[1]);
+  assert.ok(skipTarget.startsWith('#') && html.includes(`id="${skipTarget.slice(1)}"`), `${path} skip link resolves to an existing content target`);
+
+  /* 3. The document really is this route's page, and only this route's page. */
   assert.ok(html.includes(meta.contentMarker), `${path} document contains its own hero copy`);
   for (const sibling of NEXORA_ECOSYSTEM_ROUTES.filter((entry) => entry !== path)) {
     assert.ok(
@@ -117,11 +130,26 @@ for (const path of NEXORA_ECOSYSTEM_ROUTES) {
   assert.equal(page.url, `${NEXORA_PUBLIC_ORIGIN}${path}`, `${path} WebPage url matches the canonical`);
   assert.equal(page.name, meta.title, `${path} WebPage name matches the title`);
   assert.ok(breadcrumb, `${path} declares a breadcrumb`);
-  const home = breadcrumb.itemListElement.find((item) => item.position === 1);
-  const self = breadcrumb.itemListElement.find((item) => item.position === 2);
-  assert.equal(home.item, `${NEXORA_PUBLIC_ORIGIN}/`, `${path} breadcrumb starts at the homepage`);
-  assert.equal(self.item, `${NEXORA_PUBLIC_ORIGIN}${path}`, `${path} breadcrumb ends on itself`);
-  assert.equal(self.name, meta.label, `${path} breadcrumb label matches the shared label`);
+  const expectedTrail = NEXORA_BREADCRUMB_TRAILS[path];
+  assert.deepEqual(
+    breadcrumb.itemListElement.map(({ position, name, item }) => ({ position, name, item })),
+    expectedTrail.map((crumb, index) => ({
+      position: index + 1,
+      name: crumb.label,
+      item: crumb.href ? new URL(crumb.href, `${NEXORA_PUBLIC_ORIGIN}/`).toString() : `${NEXORA_PUBLIC_ORIGIN}${path}`,
+    })),
+    `${path} structured breadcrumb follows the authored route hierarchy`,
+  );
+  assert.equal(expectedTrail.at(-1)?.label, meta.label, `${path} breadcrumb label matches the shared route label`);
+
+  const breadcrumbMarkup = html.match(/<nav class="nx-breadcrumbs" aria-label="Breadcrumb">([\s\S]*?)<\/nav>/)?.[0];
+  assert.ok(breadcrumbMarkup, `${path} renders the accessible breadcrumb navigation`);
+  const breadcrumbItems = Array.from(breadcrumbMarkup.matchAll(/<li class="nx-breadcrumbs__item[^\"]*">([\s\S]*?)<\/li>/g));
+  assert.equal(breadcrumbItems.length, expectedTrail.length, `${path} renders every authored breadcrumb item`);
+  assert.equal((breadcrumbMarkup.match(/<a\b/g) ?? []).length, expectedTrail.length - 1, `${path} links every ancestor and no current page`);
+  assert.match(breadcrumbItems.at(-1)?.[1] ?? '', /aria-current="page"/, `${path} marks its current breadcrumb`);
+  assert.doesNotMatch(breadcrumbItems.at(-1)?.[1] ?? '', /<a\b/, `${path} keeps the current breadcrumb as plain text`);
+  assert.match(breadcrumbMarkup, /aria-hidden="true">›<\/span>/, `${path} hides separators from assistive technology`);
 
   /* The prerendered shell must still boot the app so the page hydrates. */
   assert.match(html, /<script type="module"[^>]*src="\/assets\/[^"]+\.js"/, `${path} loads the built entry script`);
