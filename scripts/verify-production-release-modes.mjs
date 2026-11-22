@@ -128,6 +128,7 @@ for(const line of echoLines){
 assert(credShell.includes(`"$SUPABASE_PROJECT_REF" != "${EXPECTED_REF}"`),'target-project guard must stay literal');
 
 const tempRoot=mkdtempSync(join(tmpdir(),'studioflow-prod-ref-'));
+let calls=[];
 try {
   if(bashAvailable){
   const TOKEN_SENTINEL='sbp_secret_access_token_sentinel_do_not_print';
@@ -279,7 +280,7 @@ if(argv[0] === 'migration' && argv[1] === 'list'){
     assert.equal(stepRes.status,0,`${stepName} command failed under mock CLI: ${stepRes.stderr}`);
   }
 
-  const calls=readFileSync(callsFile,'utf8').trim().split('\n').map(line=>JSON.parse(line));
+  calls=readFileSync(callsFile,'utf8').trim().split('\n').map(line=>JSON.parse(line));
   assert.equal(calls.length,5);
   for(const call of calls){
     assert.equal(call.envRef,EXPECTED_REF,'propagated SUPABASE_PROJECT_REF env has zero whitespace');
