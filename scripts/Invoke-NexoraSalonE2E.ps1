@@ -99,20 +99,19 @@ function Protect-E2EText {
 }
 
 function Write-E2EReport {
-  $checks = New-Object System.Collections.Generic.List[object]
+  $checks = [ordered]@{}
   foreach ($name in $script:Results.Keys) {
     $entry = [ordered]@{
-      check = [string]$name
       status = [string]$script:Results[$name].status
       reason = Protect-E2EText -Text ([string]$script:Results[$name].reason)
     }
     if ($name -eq 'Razorpay test capture + Edge refund') {
       $entry.keyModeReported = [string]$script:RazorpayKeyModeReported
     }
-    $checks.Add([pscustomobject]$entry)
+    $checks[[string]$name] = $entry
   }
-  # Only allowlisted status/reason fields and the non-secret keyMode label are serialized.
-  $report = [ordered]@{ checks = @($checks.ToArray()) }
+  # Report fields are limited to status/reason, plus non-secret keyModeReported.
+  $report = [ordered]@{ checks = $checks }
   $reportPath = Join-Path $script:ProjectRoot 'NEXORA-E2E-report.json'
   $report | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $reportPath -Encoding UTF8
   Write-Host ("Report: {0}" -f $reportPath)
@@ -243,7 +242,7 @@ function Invoke-RazorpayTestE2E {
     return
   }
 
-  $script:RazorpayKeyModeReported = [string]$initial.keyMode
+  $script:RazorpayKeyModeReported = if ([string]$initial.keyMode -in @('test','live','unknown')) { [string]$initial.keyMode } else { 'unknown' }
   if ($script:RazorpayKeyModeReported -eq 'live') {
     Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'BLOCKED_LIVE_MODE' -Detail 'The server reports keyMode=live. Live capture/refund is prohibited; no payment action was sent.'
     return
@@ -269,7 +268,7 @@ function Invoke-RazorpayTestE2E {
     Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'ABORTED_MODE_CHANGED' -Detail 'The second read-only mode check was unreachable immediately before order creation. No order was requested.'
     return
   }
-  $script:RazorpayKeyModeReported = [string]$second.keyMode
+  $script:RazorpayKeyModeReported = if ([string]$second.keyMode -in @('test','live','unknown')) { [string]$second.keyMode } else { 'unknown' }
   if ($script:RazorpayKeyModeReported -ne 'test' -or -not $second.configured) {
     Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'ABORTED_MODE_CHANGED' -Detail 'The second mode check did not prove configured keyMode=test. Aborted before order creation.'
     return
