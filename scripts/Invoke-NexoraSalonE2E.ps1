@@ -145,7 +145,7 @@ function Start-RazorpayTestCheckout {
 <body style="font-family:Arial,sans-serif;padding:28px;max-width:600px;margin:auto">
 <h2>NEXORA Razorpay TEST checkout</h2>
 <p>Use only Razorpay's documented test card or test UPI details. Do not enter real payment credentials.</p>
-<p id="state">Loading Razorpay Checkout…</p>
+<p id="state">Loading Razorpay Checkout...</p>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
 const options = {
@@ -285,7 +285,7 @@ function Invoke-RazorpayTestE2E {
     Save-State
     $created = Invoke-RazorpayEdgeQA -Action 'nexoraE2eCreateTestOrder' -Body @{ qaRun = $script:RazorpayQaRun }
     if ([string]$created.keyId -notmatch '^rzp_test_' -or [string]::IsNullOrWhiteSpace([string]$created.orderId) -or [int]$created.amount -ne 100) {
-      throw 'The server did not return the expected test-only ₹1 QA order.'
+      throw 'The server did not return the expected test-only INR 1 QA order.'
     }
     $script:RazorpayOrderId = [string]$created.orderId
     $script:State.razorpayOrderId = $script:RazorpayOrderId
@@ -323,7 +323,7 @@ function Invoke-RazorpayTestE2E {
       throw 'The Edge Function did not confirm a sandbox refund.'
     }
     $script:RazorpayRefundStatus = [string]$refunded.refundStatus
-    Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'EXECUTED_TEST_MODE' -Detail ('The server twice confirmed keyMode=test; the ₹1 sandbox payment was verified, captured/confirmed and refunded through studioflow-payments. Refund state: ' + $script:RazorpayRefundStatus + '. Provider order is QA-tagged.')
+    Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'EXECUTED_TEST_MODE' -Detail ('The server twice confirmed keyMode=test; the INR 1 sandbox payment was verified, captured/confirmed and refunded through studioflow-payments. Refund state: ' + $script:RazorpayRefundStatus + '. Provider order is QA-tagged.')
   } catch {
     $qaError = Get-HttpErrorInfo $_
     if ([string]$qaError.body -match 'NEXORA_E2E_MODE_CHANGED') {
