@@ -5,6 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 /**
  * Environment validation and secret-hygiene checks.
@@ -23,7 +24,7 @@ const bundle = await build({
 const directory = mkdtempSync(join(tmpdir(), 'nexora-env-'));
 const modulePath = join(directory, 'nexoraEnv.mjs');
 writeFileSync(modulePath, bundle.outputFiles[0].text);
-const env = await import(modulePath);
+const env = await import(pathToFileURL(modulePath).href);
 
 const FALLBACK_URL = 'https://zilwgiuiygqqardzutxi.supabase.co';
 const FALLBACK_KEY = 'sb_publishable_test_key';
@@ -123,7 +124,7 @@ const serverBundle = await build({
 });
 const serverPath = join(directory, 'serverEnv.mjs');
 writeFileSync(serverPath, serverBundle.outputFiles[0].text);
-const serverEnv = await import(serverPath);
+const serverEnv = await import(pathToFileURL(serverPath).href);
 
 const report = serverEnv.readServerEnvironment(
   { SUPABASE_URL: 'https://zilwgiuiygqqardzutxi.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'secret-value' },
