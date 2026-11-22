@@ -2242,7 +2242,7 @@
       "git_blob_sha": "21839dad562a9c6b4e0992c8a3daeb90da405c84"
     },
     {
-      "version": "20261122060000",
+      "version": "20261122063603",
       "file": "20261122060000_branch_service_catalogue_scope.sql",
       "name": "branch_service_catalogue_scope",
       "observed_at": "2026-11-22",
@@ -2251,7 +2251,7 @@
       "git_blob_sha": "97b7a3aace2447702c655809400ec567291532ea"
     },
     {
-      "version": "20261122060500",
+      "version": "20261122063610",
       "file": "20261122060500_branch_scoped_manual_crm_contacts.sql",
       "name": "branch_scoped_manual_crm_contacts",
       "observed_at": "2026-11-22",
@@ -2260,13 +2260,22 @@
       "git_blob_sha": "5781720ae96086ca24c983ca59488a5ad3b771f4"
     },
     {
-      "version": "20261122061000",
+      "version": "20261122063834",
       "file": "20261122061000_branch_assignment_read_models.sql",
       "name": "branch_assignment_read_models",
       "observed_at": "2026-11-22",
       "evidence": "Applied to Supabase project zilwgiuiygqqardzutxi on 2026-11-22 and confirmed in remote migration history. Adds authenticated read models for owner service mappings and CRM branch options; staff options are reduced to currently assigned active branches.",
       "purpose": "Authenticated branch selectors for service and manual CRM management without exposing unassigned branch mapping details.",
       "git_blob_sha": "a1360a5f2d67295082bc38516bb4adfd8a224218"
+    },
+    {
+      "version": "20261122064427",
+      "file": "20261122064000_branch_crm_contact_update_duplicate_fix.sql",
+      "name": "branch_crm_contact_update_duplicate_fix",
+      "observed_at": "2026-11-22",
+      "evidence": "Applied to Supabase project zilwgiuiygqqardzutxi on 2026-11-22 and confirmed in remote migration history. Fixes the duplicate-phone test in the branch-aware manual CRM update RPC so it excludes the contact currently being edited; no user data is backfilled or changed.",
+      "purpose": "Allow a mapped manual contact to retain its existing phone number when edited while continuing to reject duplicates belonging to other booking customers or CRM contacts.",
+      "git_blob_sha": "5fbc05c54a663fb4a9988b91af51a40d449c51dd"
     }
   ]
 }
