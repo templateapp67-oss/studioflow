@@ -11,6 +11,7 @@ const serviceSql=read('supabase/migrations/20261122060000_branch_service_catalog
 const crmSql=read('supabase/migrations/20261122060500_branch_scoped_manual_crm_contacts.sql');
 const readModelsSql=read('supabase/migrations/20261122061000_branch_assignment_read_models.sql');
 const bookingGuardsSql=read('supabase/migrations/20261122066000_branch_scope_private_booking_guards.sql');
+const crmEmailSql=read('supabase/migrations/20261122067000_branch_manual_crm_email_read_projection.sql');
 const contactUpdateFixSql=read('supabase/migrations/20261122064000_branch_crm_contact_update_duplicate_fix.sql');
 const androidGrantSql=read('supabase/migrations/20261122065000_branch_service_android_wrapper_grants.sql');
 const serviceUi=read('src/components/ServiceManagement.tsx');
@@ -90,5 +91,9 @@ assert.match(bookingGuardsSql,/studioflow_private\.service_catalogue_available_a
   'Android booking must check the selected branch in the private booking RPC');
 assert.match(bookingGuardsSql,/set_config\('studioflow\.branch_id',b\.branch_id::text,true\)/i,
   'Reschedule must restore the original booking branch before checking slots');
+assert.match(crmEmailSql,/nullif\(m\.email,''\)/i,
+  'Manager contact list must include email on mapped manual CRM contacts');
+assert.match(crmEmailSql,/nullif\(c\.value->>'email',''\)/i,
+  'CRM dashboard must preserve email from the manual contact read model');
 
 console.log('PASS: branch-level services and manual CRM contacts are mapped, scoped, backwards-compatible, and protected migrations/policies remain untouched.');
