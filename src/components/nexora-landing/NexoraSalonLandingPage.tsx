@@ -94,7 +94,7 @@ function LandingDocument() {
       <a className="sl-skip" href="#sl-main">
         Skip to main content
       </a>
-      <SiteHeader />
+      <SiteHeader currentPath="/salon-os" />
       <main id="sl-main">
         <HeroSection />
         <BusinessTypesSection aliasId="salon-categories" />

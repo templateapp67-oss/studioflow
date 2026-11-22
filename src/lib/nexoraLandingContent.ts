@@ -1,5 +1,6 @@
 import { FEATURE_CATEGORIES, PRICING_PLANS, type FeatureItem } from './nexoraPricing';
 import { NEXORA_TEMPLATE_META } from './nexoraTemplateCatalogue';
+import { nexoraBreadcrumbListSchema, nexoraBreadcrumbsForPath } from './nexoraBreadcrumbs';
 
 /**
  * Business content for the NEXORA SALONOS landing page.
@@ -553,6 +554,7 @@ export function nexoraSalonLandingSchema(
   const faqs = options?.faqs?.length ? options.faqs : NEXORA_LANDING_FAQS;
   const canonicalPath = options?.canonicalPath ?? NEXORA_LANDING_SEO.canonicalPath;
   const description = options?.description ?? NEXORA_LANDING_SEO.description;
+  const breadcrumbs = nexoraBreadcrumbsForPath(canonicalPath);
   return {
     '@context': 'https://schema.org',
     '@graph': [
@@ -579,6 +581,7 @@ export function nexoraSalonLandingSchema(
           acceptedAnswer: { '@type': 'Answer', text: entry.answer },
         })),
       },
+      ...(breadcrumbs ? [nexoraBreadcrumbListSchema(origin, canonicalPath, breadcrumbs)] : []),
     ],
   };
 }

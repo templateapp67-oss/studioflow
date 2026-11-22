@@ -9,7 +9,6 @@ import {
   Images,
   IndianRupee,
   LayoutTemplate,
-  Menu,
   MessageCircle,
   MonitorSmartphone,
   Rocket,
@@ -17,7 +16,6 @@ import {
   Star,
   UsersRound,
   WandSparkles,
-  X,
 } from 'lucide-react';
 import { NEXORA_PUBLIC_TEMPLATES, NEXORA_PUBLIC_TEMPLATES_BY_ID } from '../lib/nexoraPublicTemplates';
 import {
@@ -29,6 +27,9 @@ import {
 import type { BusinessTypeId } from '../types';
 import { NexoraTemplateLibrary } from './nexora/NexoraTemplateLibrary';
 import { CategoryIconTile, NexoraBrandMark } from './nexora/NexoraBrand';
+import { SiteHeader } from './nexora-landing/sections/SiteHeader';
+import { NexoraBreadcrumbs } from './nexora-landing/sections/NexoraBreadcrumbs';
+import { HoverCard } from './nexora-pricing/table/FeatureInfoTooltip';
 import { NEXORA_OFFICIAL_WHATSAPP_URL } from '../lib/whatsappContact';
 import { NEXORA_KNOWLEDGE_BASE_URL } from '../lib/nexoraSupport';
 import { LUXURY_EDITORIAL_IMAGES } from '../lib/luxuryEditorial';
@@ -60,6 +61,22 @@ const moreLinks = [
   { label: 'Growth Partner Rewards', href: '/growth-partner-rewards' },
   { label: 'Partner Rewards & Recognition', href: '/partner-rewards' },
 ];
+
+const homepageWhatsAppAction = {
+  label: 'WhatsApp',
+  compactLabel: 'Chat with NEXORA on WhatsApp',
+  className: 'nexora-site-header__secondary--whatsapp',
+  href: NEXORA_OFFICIAL_WHATSAPP_URL,
+  ariaLabel: 'Chat with NEXORA on WhatsApp',
+  target: '_blank',
+  rel: 'noopener noreferrer',
+  icon: <MessageCircle size={16} aria-hidden="true" />,
+  dataAttribute: {
+    name: 'data-nexora-whatsapp-cta',
+    desktopValue: 'desktop-header',
+    compactValue: 'mobile-menu',
+  },
+};
 
 const steps = [
   {
@@ -172,15 +189,6 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
     document.body.appendChild(script);
   }, []);
 
-  useEffect(() => {
-    if (!menuOpen) return;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setMenuOpen(false);
-    };
-    window.addEventListener('keydown', closeOnEscape);
-    return () => window.removeEventListener('keydown', closeOnEscape);
-  }, [menuOpen]);
-
   const scrollToLibrary = useCallback(() => {
     const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     document.getElementById('nexora-template-library')?.scrollIntoView({
@@ -208,83 +216,26 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
   return (
     <div className="public-homepage min-h-screen bg-surface font-body-md text-on-surface antialiased">
       <a className="public-skip-link" href="#public-main-content">Skip to main content</a>
-      <header className="sticky top-0 z-50 border-b border-[#E4DCCB]/80 bg-white/95 backdrop-blur-xl">
-        <div className="mx-auto flex min-h-[76px] max-w-[1440px] items-center gap-4 px-4 py-3 sm:px-6 lg:px-10">
-          <a href="/" aria-label="NEXORA Salon OS home" className="shrink-0 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#7A4E8F]">
-            <PublicBrand />
-          </a>
-
-          <nav aria-label="Main navigation" className="ml-auto hidden items-center gap-1 lg:flex">
-            {navigation.map((item) => (
-              <a key={item.href} href={item.href} className="rounded-lg px-3 py-2.5 text-sm font-semibold text-[#4A4058] transition hover:bg-[#F6F1E6] hover:text-[#2A1E4A] focus-visible:outline-2 focus-visible:outline-[#7A4E8F]">
-                {item.label}
-              </a>
-            ))}
-            <details className="relative">
-              <summary className="cursor-pointer list-none rounded-lg px-3 py-2.5 text-sm font-semibold text-[#4A4058] hover:bg-[#F6F1E6] focus-visible:outline-2 focus-visible:outline-[#7A4E8F]">MORE</summary>
-              <div className="absolute right-0 top-full z-30 mt-2 w-56 rounded-xl border border-[#E4DCCB] bg-white p-2 shadow-xl">{moreLinks.map((item) => <a key={item.href} href={item.href} className="block rounded-lg px-3 py-2.5 text-sm font-semibold text-[#4A4058] hover:bg-[#F6F1E6]">{item.label}</a>)}</div>
-            </details>
-          </nav>
-
-          <div className="ml-auto flex items-center gap-2 lg:ml-3">
-            <a
-              data-nexora-whatsapp-cta="desktop-header"
-              href={NEXORA_OFFICIAL_WHATSAPP_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Chat with NEXORA on WhatsApp"
-              className="hidden min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[#D7C8A8] bg-white px-3 text-xs font-bold text-[#2A1E4A] transition hover:bg-[#F4F8F3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A4E8F] xl:inline-flex"
-            >
-              <MessageCircle size={16} aria-hidden="true" />
-              WhatsApp
-            </a>
-            <a href="/login" className="hidden min-h-[44px] items-center rounded-xl px-4 text-sm font-bold text-[#2A1E4A] transition hover:bg-[#F6F1E6] focus-visible:outline-2 focus-visible:outline-[#7A4E8F] sm:inline-flex">
-              {authenticated ? 'Owner Workspace' : 'Sign In'}
-            </a>
-            <a href={authenticated ? '/login' : PUBLIC_SIGNUP_PATH} className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl bg-primary px-4 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition hover:bg-primary-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:px-5">
-              {authenticated ? 'Open Workspace' : 'Get Started'} <ArrowRight size={15} aria-hidden="true" />
-            </a>
-            <button
-              type="button"
-              aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
-              aria-expanded={menuOpen}
-              aria-controls="public-mobile-navigation"
-              onClick={() => setMenuOpen((open) => !open)}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#E4DCCB] bg-white text-[#2A1E4A] transition hover:bg-[#FBF8F2] focus-visible:outline-2 focus-visible:outline-[#7A4E8F] lg:hidden"
-            >
-              {menuOpen ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
-            </button>
-          </div>
-        </div>
-
-        {menuOpen && (
-          <nav id="public-mobile-navigation" aria-label="Mobile navigation" className="border-t border-[#E4DCCB] bg-white px-4 py-4 shadow-xl lg:hidden">
-            <div className="mx-auto grid max-w-[1440px] gap-1">
-              {navigation.map((item) => (
-                <a key={item.href} href={item.href} onClick={() => setMenuOpen(false)} className="flex min-h-[46px] items-center justify-between rounded-xl px-3 text-sm font-bold text-[#3F3550] hover:bg-[#F6F1E6]">
-                  {item.label} <ArrowRight size={15} aria-hidden="true" />
-                </a>
-              ))}
-              <p className="px-3 pt-3 text-xs font-extrabold tracking-[.18em] text-[#806d88]">MORE</p>
-              {moreLinks.map((item) => <a key={item.href} href={item.href} onClick={() => setMenuOpen(false)} className="flex min-h-[46px] items-center justify-between rounded-xl px-3 text-sm font-bold text-[#3F3550] hover:bg-[#F6F1E6]">{item.label}<ArrowRight size={15} aria-hidden="true" /></a>)}
-              <a
-                data-nexora-whatsapp-cta="mobile-menu"
-                href={NEXORA_OFFICIAL_WHATSAPP_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Chat with NEXORA on WhatsApp"
-                className="mt-2 flex min-h-[46px] items-center justify-between rounded-xl bg-[#EAF7EF] px-3 text-sm font-bold text-[#14532D] hover:bg-[#DDF2E5] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A4E8F]"
-              >
-                <span className="inline-flex items-center gap-2"><MessageCircle size={17} aria-hidden="true" /> Chat with NEXORA on WhatsApp</span>
-                <ArrowRight size={15} aria-hidden="true" />
-              </a>
-              <a href="/login" className="mt-2 inline-flex min-h-[46px] items-center justify-center rounded-xl border border-[#D9CFBC] px-4 text-sm font-bold text-[#2A1E4A] hover:bg-[#FBF8F2] sm:hidden">
-                {authenticated ? 'Owner Workspace' : 'Sign In'}
-              </a>
-            </div>
-          </nav>
-        )}
-      </header>
+      <SiteHeader
+        appearance="homepage"
+        brand={<PublicBrand />}
+        links={navigation}
+        mobileLinks={navigation}
+        overflowLinks={moreLinks}
+        overflowLabel="MORE"
+        secondaryAction={homepageWhatsAppAction}
+        currentPath="/"
+        primaryAction={{
+          label: authenticated ? 'Open Workspace' : 'Get Started',
+          href: authenticated ? '/login' : PUBLIC_SIGNUP_PATH,
+        }}
+        showLogin
+        loginHref="/login"
+        loginLabel={authenticated ? 'Owner Workspace' : 'Sign In'}
+        authenticated={authenticated}
+        menuOpen={menuOpen}
+        onMenuOpenChange={setMenuOpen}
+      />
 
       <main id="public-main-content">
         {/* 1 · Premium hero — keeps the real NEXORA template and signup flows */}
@@ -297,6 +248,7 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
                 <Sparkles size={14} aria-hidden="true" className="text-[#9C566F]" />
                 Your salon. Your website. Your brand.
               </div>
+              <NexoraBreadcrumbs path="/" />
               <h1 id="public-home-title" className="max-w-[680px] font-display text-[2.35rem] font-extrabold leading-[1.08] tracking-[-0.035em] text-[#251A24] sm:text-5xl lg:text-[3.3rem] xl:text-[3.7rem]" style={{ textWrap: 'balance' }}>
                 A beautiful salon website, made for your brand
               </h1>
@@ -304,9 +256,28 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
                 Choose a ready-made NEXORA design, add your services and business details, and give customers a simple way to explore your salon and book appointments.
               </p>
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                <a href="#nexora-template-library" className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-[#302033] px-6 text-sm font-bold text-white shadow-lg shadow-[#302033]/15 transition hover:-translate-y-0.5 hover:bg-[#48304A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8C4D67]">
-                  Explore 16 Templates <ArrowRight size={17} aria-hidden="true" />
-                </a>
+                <HoverCard
+                  label="NEXORA Template Library link preview"
+                  className="public-homepage__template-preview"
+                  trigger={(
+                    <a href="#nexora-template-library" className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-[#302033] px-6 text-sm font-bold text-white shadow-lg shadow-[#302033]/15 transition hover:-translate-y-0.5 hover:bg-[#48304A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8C4D67]">
+                      Explore 16 Templates <ArrowRight size={17} aria-hidden="true" />
+                    </a>
+                  )}
+                >
+                  <div className="public-homepage__template-preview-card">
+                    <span className="nx-hover-card__eyebrow">This page · section preview</span>
+                    <h2 className="nx-hover-card__title">NEXORA Template Library</h2>
+                    <p className="nx-hover-card__summary">Browse salon, spa and beauty-business website designs before choosing a template.</p>
+                    <div className="nx-hover-card__meta" aria-label="Library contents">
+                      <span>16 templates</span>
+                      <span>15 categories</span>
+                    </div>
+                    <a className="nx-hover-card__action" href="#nexora-template-library">
+                      Browse the library <ArrowRight size={14} aria-hidden="true" />
+                    </a>
+                  </div>
+                </HoverCard>
                 <a href={authenticated ? '/login' : PUBLIC_SIGNUP_PATH} className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl border border-[#A96A7E] bg-white px-6 text-sm font-bold text-[#39263A] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#FFF9F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8C4D67]">
                   {authenticated ? 'Open Workspace' : 'Get Started'} <Rocket size={16} aria-hidden="true" />
                 </a>

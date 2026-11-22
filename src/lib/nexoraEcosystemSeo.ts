@@ -1,4 +1,5 @@
 import { NEXORA_PUBLIC_ORIGIN } from './publicSeo';
+import { NEXORA_BREADCRUMB_TRAILS, nexoraBreadcrumbListSchema } from './nexoraBreadcrumbs';
 
 /**
  * Public metadata for the three NEXORA SALONOS marketing routes that share the
@@ -138,24 +139,7 @@ export function nexoraEcosystemSchema(path: NexoraEcosystemPath) {
           contentUrl: `${NEXORA_PUBLIC_ORIGIN}${seo.ogImagePath}`,
         },
       },
-      {
-        '@type': 'BreadcrumbList',
-        '@id': `${url}#breadcrumb`,
-        itemListElement: [
-          {
-            '@type': 'ListItem',
-            position: 1,
-            name: 'NEXORA SalonOS',
-            item: `${NEXORA_PUBLIC_ORIGIN}/`,
-          },
-          {
-            '@type': 'ListItem',
-            position: 2,
-            name: seo.label,
-            item: url,
-          },
-        ],
-      },
+      nexoraBreadcrumbListSchema(NEXORA_PUBLIC_ORIGIN, path, NEXORA_BREADCRUMB_TRAILS[path]),
     ],
   };
 }

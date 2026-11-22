@@ -2,13 +2,16 @@
 export const NEXORA_PUBLIC_ORIGIN = 'https://nexorasalon.online';
 export const NEXORA_HOME_OG_IMAGE = `${NEXORA_PUBLIC_ORIGIN}/nexora-homepage-og.jpg`;
 
+const NEXORA_HOME_TITLE = 'NEXORA SalonOS – Salon Website Builder & Management Software';
+const NEXORA_HOME_DESCRIPTION = 'Create a salon website with NEXORA SalonOS, choose from 16 templates, and manage appointments, customers, billing, staff, inventory and marketing.';
+
 export const NEXORA_HOME_SEO = {
-  title: 'NEXORA Salon OS – Launch Your NEXORA Salon Website in 30 Minutes',
-  description: 'Create your salon website in 30 minutes with NEXORA Salon OS. Choose from 16 salon templates, customise your design and launch your professional salon website easily.',
-  ogTitle: 'NEXORA Salon OS – Launch Your NEXORA Salon Website in 30 Minutes',
-  ogDescription: 'Create your salon website in 30 minutes with NEXORA Salon OS. Choose from 16 salon templates, customise your design and launch your professional salon website easily.',
-  twitterTitle: 'NEXORA Salon OS – Launch Your NEXORA Salon Website in 30 Minutes',
-  twitterDescription: 'Create your salon website with 16 ready-made templates. Customise and launch easily with NEXORA Salon OS.',
+  title: NEXORA_HOME_TITLE,
+  description: NEXORA_HOME_DESCRIPTION,
+  ogTitle: NEXORA_HOME_TITLE,
+  ogDescription: NEXORA_HOME_DESCRIPTION,
+  twitterTitle: NEXORA_HOME_TITLE,
+  twitterDescription: NEXORA_HOME_DESCRIPTION,
   canonicalUrl: `${NEXORA_PUBLIC_ORIGIN}/`,
   robots: 'index,follow',
 } as const;

@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react';
 import { ArrowRight, Crown } from 'lucide-react';
 import { REWARD_MILESTONES, REWARD_TARGET_UNIT, REWARDS_JOURNEY_ID, REWARDS_PARTNER_HREF } from './content';
 import { RewardImage } from './RewardImage';
+import { NexoraBreadcrumbs } from '../sections/NexoraBreadcrumbs';
 import { CLIMB_VIEW, ClimbChart, HeroEdge, type ClimbPoint } from './RewardsArtwork';
 
 /**
@@ -85,6 +86,7 @@ export function RewardsHero() {
     <section className="ngr-hero ngr-dark" aria-labelledby="ngr-hero-title">
       <div className="ngr-container ngr-hero__grid">
         <div className="ngr-hero__copy">
+          <NexoraBreadcrumbs path="/growth-partner-rewards" />
           <h1 id="ngr-hero-title" className="ngr-hero__title">
             Salon Onboarding Se <span className="ngr-accent">Achievement Tak.</span>
           </h1>

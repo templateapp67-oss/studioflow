@@ -96,3 +96,8 @@ export function useLandingContent(): LandingContentValue {
 export function useLandingModel(): LandingModel {
   return useLandingContent().model;
 }
+
+/** Optional variant for shared shell components that also render outside the landing providers. */
+export function useOptionalLandingModel(): LandingModel | null {
+  return useContext(LandingContentContext)?.model ?? null;
+}

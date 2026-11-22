@@ -24,6 +24,7 @@ import {
 } from '../../lib/nexoraLandingContent';
 import { LandingContentProvider, useLandingModel } from './LandingContentProvider';
 import { SiteHeader } from './sections/SiteHeader';
+import { NexoraBreadcrumbs } from './sections/NexoraBreadcrumbs';
 import { BusinessTypesSection } from './sections/BusinessTypesSection';
 import { ProblemSolutionSection } from './sections/ProblemSolutionSection';
 import { PlatformOverviewSection } from './sections/PlatformOverviewSection';
@@ -174,10 +175,11 @@ function PricingLandingDocument({
       <a className="sl-skip" href="#sl-main">
         Skip to main content
       </a>
-      <SiteHeader links={PRICING_NAV} mobileLinks={PRICING_NAV} demoLabel="Request a Demo" />
+      <SiteHeader links={PRICING_NAV} mobileLinks={PRICING_NAV} demoLabel="Request a Demo" currentPath="/pricing" />
       <main id="sl-main">
         <section className="sl-section" aria-labelledby="sl-hero-title">
           <div className="sl-container">
+            <NexoraBreadcrumbs path="/pricing" />
             <p className="sl-eyebrow">NEXORA SALONOS · SUBSCRIPTION PRICING</p>
             <h1 id="sl-hero-title">Choose the right plan for your salon.</h1>
             <p>Review subscription prices, billing terms and included features for Lite, Grow, Standard and Premium.</p>
