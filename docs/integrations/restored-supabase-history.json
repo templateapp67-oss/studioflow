@@ -2143,15 +2143,6 @@
       "git_blob_sha": "29901239635b72fd43f2402dd0ffef78a4e5f56c"
     },
     {
-      "version": "20261119080000",
-      "file": "20261119080000_staff_role_permissions.sql",
-      "name": "staff_role_permissions",
-      "observed_at": "2026-11-19",
-      "evidence": "Applied to project zilwgiuiygqqardzutxi on 2026-11-19 (role matrix functions, permission check helper, branch role constraint) and recorded in the remote supabase_migrations.schema_migrations history.",
-      "purpose": "Role-level permissions: canonical staff access-role normalizer, server-side permission matrix mirroring src/lib/staffPermissions.ts, caller branch-role helper, and a pinned branch role CHECK constraint with legacy value normalization. Additive and read-only; no RLS policy is widened.",
-      "git_blob_sha": "d1fc8a79337e024878c082a59e75149221db6135"
-    },
-    {
       "version": "20261119070000",
       "file": "20261119070000_unified_salon_crm.sql",
       "name": "unified_salon_crm",
@@ -2159,6 +2150,15 @@
       "evidence": "Confirmed against the live supabase_migrations.schema_migrations history (top of list) for project zilwgiuiygqqardzutxi; local SQL source already exists in the repo.",
       "purpose": "Additive unified salon CRM tables (crm_tasks, crm_contacts, crm_activities) in studioflow_android_private, owner-only RLS, with the owner CRM RPCs consumed by src.",
       "git_blob_sha": "7534812d812d8f127bd84dbd7a604546c3128e6f"
+    },
+    {
+      "version": "20261119080000",
+      "file": "20261119080000_staff_role_permissions.sql",
+      "name": "staff_role_permissions",
+      "observed_at": "2026-11-19",
+      "evidence": "Applied to project zilwgiuiygqqardzutxi on 2026-11-19 (role matrix functions, permission check helper, branch role constraint) and recorded in the remote supabase_migrations.schema_migrations history.",
+      "purpose": "Role-level permissions: canonical staff access-role normalizer, server-side permission matrix mirroring src/lib/staffPermissions.ts, caller branch-role helper, and a pinned branch role CHECK constraint with legacy value normalization. Additive and read-only; no RLS policy is widened.",
+      "git_blob_sha": "d1fc8a79337e024878c082a59e75149221db6135"
     },
     {
       "version": "20261119120000",
@@ -2204,6 +2204,15 @@
       "evidence": "Applied to project zilwgiuiygqqardzutxi on 2026-11-21. Verified live: anon has no SELECT on public.studioflow_websites, public_salon_websites exposes no owner_id column, studioflow_customer_catalog() returns salons without owner_id, and booking payloads carry salonSlug.",
       "purpose": "Anonymous storefront reads no longer carry a salon's owner UUID; bookings join on the public slug instead.",
       "git_blob_sha": "8389139eee2c78041896bb0cfaa9e930b8cbc2e4"
+    },
+    {
+      "version": "20261122043650",
+      "file": "20261122043650_staff_crm_branch_scope.sql",
+      "name": "staff_crm_branch_scope",
+      "observed_at": "2026-11-22",
+      "evidence": "Applied to project zilwgiuiygqqardzutxi on 2026-11-22 and confirmed in the remote supabase_migrations.schema_migrations history. This CRM-only migration replaces private RPC functions and adds private authorization helpers; no tables, RLS policies, booking records, Android branch RPCs, or earlier applied migrations were changed.",
+      "purpose": "Server-side branch-scoped CRM access: Service Provider denied; Receptionist contact-only read; Manager CRM read/write restricted to customers whose booking history is entirely within assigned active branches. Unmapped manual contacts remain owner-only.",
+      "git_blob_sha": "8af5a41a95365c28a704fa0892ad236a35a1dc6f"
     }
   ]
 }
