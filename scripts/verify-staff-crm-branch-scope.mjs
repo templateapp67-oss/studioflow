@@ -63,7 +63,7 @@ console.log('PASS function-only migration: no tables, policies, bookings, or And
 
 const helperAclPath = 'supabase/migrations/20261122072341_harden_active_branch_ids_acl.sql';
 const helperAclMigration = readFileSync(helperAclPath, 'utf8').toLowerCase();
-assert.ok(helperAclMigration.includes('alter function public.studioflow_active_branch_ids(uuid, text[]) security invoker'),
+assert.match(helperAclMigration, /alter function public\.studioflow_active_branch_ids\(uuid, text\[\]\)\s+security invoker/i,
   'active branch helper must run as invoker, not as a privileged definer');
 assert.ok(helperAclMigration.includes('revoke all on function public.studioflow_active_branch_ids(uuid, text[]) from public, anon, authenticated'),
   'browser roles must not execute the internal branch helper directly');
