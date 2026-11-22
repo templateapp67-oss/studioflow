@@ -543,6 +543,11 @@ assert.equal(tawkSecurity.widget_id_constraint_count, 1, 'widget ID check constr
 // Audit migrations added by PR #141 and its follow-up implementation.
 // Replay them in the exact applied order before scanning browser-called RPCs,
 // so every client call must resolve against the same final SQL catalogue.
+// The legacy backend replay exposes this wrapper as RETURNS jsonb. The
+// timestamped Supabase migration supersedes it with the typed table return
+// consumed by the Edge Function, so remove only the offline fixture version.
+await db.exec('drop function if exists public.studioflow_claim_refunds(integer)');
+
 for (const name of [
   '20261122043650_staff_crm_branch_scope.sql',
   '20261122045445_studioflow_refund_queue_rpc.sql',
