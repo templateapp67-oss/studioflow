@@ -72,8 +72,8 @@ assert.doesNotMatch(serviceSql+crmSql+readModelsSql,/public\.customers\b/i,
 
 assert.match(typeSource,/branchIds\?:\s*string\[\]/,
   'SalonService must carry optional branch mappings');
-assert.match(serviceUi,/profile\?\.branches/,
-  'Owner service editor must load saved branches even when the storefront is unpublished');
+assert.match(serviceUi,/studioflow_owner_crm_branch_options/,
+  'Owner service editor must read active branches through an authenticated owner RPC');
 assert.doesNotMatch(serviceUi,/studioflow_public_branches/,
   'Owner service editor must not depend on the public publication-gated branch listing');
 assert.match(serviceUi,/studioflow_owner_service_branch_map/);
