@@ -252,10 +252,11 @@ Deno.serve(async(req:Request)=>{
       const payment=await getQaPayment(orderId,paymentId,qaRun);
       if(payment.status!=='captured')throw new Error('Only a captured NEXORA E2E test payment can be refunded');
       const existing=await getQaRefunds(paymentId,qaRun);
-      if(existing.some((item:any)=>item.status==='processed'||item.status==='pending')){
-        return {refunded:true,refundStatus:existing[0].status,alreadyRefunded:true};
+      const completed=existing.find((item:any)=>item.status==='processed'||item.status==='pending');
+      if(completed){
+        return {refunded:true,refundStatus:completed.status,alreadyRefunded:true};
       }
-      const refund=await provider('payments/'+encodeURIComponent(paymentId)+'/refunds',{
+      const refund=await provider('payments/'+encodeURIComponent(paymentId)+'/refund',{
         method:'POST',
         body:JSON.stringify({amount:100,speed:'optimum',notes:{qa:'NEXORA-E2E',qa_run:qaRun}})
       });
