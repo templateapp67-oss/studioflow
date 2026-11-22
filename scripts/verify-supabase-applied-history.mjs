@@ -27,7 +27,7 @@ for (const record of manifest.restored) {
   const expectedName = `${record.version}_${record.name}.sql`;
   assert.equal(byVersion.get(record.version), expectedName);
   const content = readFileSync(`${directory}/${expectedName}`);
-  assert.equal(createHash('sha256').update(content).digest('hex'), record.file_sha256,
+  assert.equal(createHash('sha256').update(content.toString('utf8').replace(/\r\n/g, '\n')).digest('hex'), record.file_sha256,
     `Recorded applied SQL changed: ${expectedName}; use a new additive migration`);
 }
 console.log(`PASS: all ${manifest.applied_versions.length} recorded applied versions exist once; ${manifest.restored.length} restored SQL files match their recorded hashes. Live migration execution is not tested.`);
