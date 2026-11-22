@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const migrationPath = 'supabase/migrations/20261122050000_studioflow_refund_queue_rpc.sql';
+const migrationPath = 'supabase/migrations/20261122045445_studioflow_refund_queue_rpc.sql';
 const migration = readFileSync(migrationPath, 'utf8');
 const edge = readFileSync('supabase/functions/studioflow-payments/index.ts', 'utf8');
 const lower = migration.toLowerCase();
