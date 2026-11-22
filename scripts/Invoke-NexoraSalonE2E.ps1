@@ -244,6 +244,7 @@ function Invoke-RazorpayTestE2E {
   }
 
   $script:RazorpayKeyModeReported = if ([string]$initial.keyMode -in @('test','live','unknown')) { [string]$initial.keyMode } else { 'unknown' }
+  Write-Host ("Razorpay status: keyMode={0}; configured={1}" -f $script:RazorpayKeyModeReported,[bool]$initial.configured)
   if ($script:RazorpayKeyModeReported -eq 'live') {
     Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'BLOCKED_LIVE_MODE' -Detail 'The server reports keyMode=live. Live capture/refund is prohibited; no payment action was sent.'
     return
@@ -266,10 +267,12 @@ function Invoke-RazorpayTestE2E {
   # Mandatory immediate pre-order recheck; Edge independently re-checks before provider POST.
   try { $second = Get-RazorpayEdgeStatus }
   catch {
+    $script:RazorpayKeyModeReported = $null
     Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'ABORTED_MODE_CHANGED' -Detail 'The second read-only mode check was unreachable immediately before order creation. No order was requested.'
     return
   }
   $script:RazorpayKeyModeReported = if ([string]$second.keyMode -in @('test','live','unknown')) { [string]$second.keyMode } else { 'unknown' }
+  Write-Host ("Razorpay pre-order status: keyMode={0}; configured={1}" -f $script:RazorpayKeyModeReported,[bool]$second.configured)
   if ($script:RazorpayKeyModeReported -ne 'test' -or -not $second.configured) {
     Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'ABORTED_MODE_CHANGED' -Detail 'The second mode check did not prove configured keyMode=test. Aborted before order creation.'
     return
