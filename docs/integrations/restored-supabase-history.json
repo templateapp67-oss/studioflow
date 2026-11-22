@@ -2320,6 +2320,16 @@
       "evidence": "Applied to Supabase project zilwgiuiygqqardzutxi on 2026-11-22 and confirmed in remote migration history (remote version 20261122070326). Removes the redundant duplicate index branches_site_id_id_scope_uk; the CRM owner/branch FK continues to reference the pre-existing branches_site_id_id_key unique constraint.",
       "purpose": "Remove avoidable duplicate index storage and write overhead without weakening the crm_contacts owner/branch foreign key.",
       "git_blob_sha": "2750f63284d9ec0b341c817671271d9a3b386d1d"
+    },
+    {
+      "version": "20261122069000",
+      "remote_version": "20261122070445",
+      "file": "20261122069000_public_branch_list_published_guard.sql",
+      "name": "public_branch_list_published_guard",
+      "observed_at": "2026-11-22",
+      "evidence": "Applied to Supabase project zilwgiuiygqqardzutxi on 2026-11-22 and confirmed in remote migration history (remote version 20261122070445). Tightens the anonymous customer branch-list RPC to require the website's published_at timestamp to be <= now(), matching the public storefront view. Preserves the existing branch payload and serviceIds response.",
+      "purpose": "Prevent branch contact/address details from being returned for unpublished or future-published salon websites.",
+      "git_blob_sha": "95e60ca5c23f4ac39a78c814dff775fd1c802258"
     }
   ]
 }
