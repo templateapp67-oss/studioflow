@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 
 const read=(path)=>readFileSync(path,'utf8');
 const gitBlob=(path)=>{
-  const body=readFileSync(path);
+  // Git stores these tracked SQL files with LF even when Windows checks them\n  // out as CRLF (core.autocrlf=true). Recreate the canonical blob bytes.\n  const body=Buffer.from(readFileSync(path,'utf8').replace(/\\r\\n/g,'\\n'),'utf8');
   return createHash('sha1').update(`blob ${body.length}\0`).update(body).digest('hex');
 };
 const serviceSql=read('supabase/migrations/20261122060000_branch_service_catalogue_scope.sql');
