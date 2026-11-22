@@ -568,6 +568,7 @@ for (const name of [
   '20261122068000_branch_mapping_redundant_index_cleanup.sql',
   '20261122069000_public_branch_list_published_guard.sql',
   '20261122072341_harden_active_branch_ids_acl.sql',
+  '20261122072714_android_request_insert_explicit_columns.sql',
 ]) {
   const file = 'supabase/migrations/' + name;
   await applySqlText(readFileSync(file, 'utf8'), file);
@@ -615,6 +616,22 @@ for (const caller of activeBranchCallers) {
   assert.equal(caller.owner, 'postgres', caller.proname + ' runs as postgres when it invokes the helper');
 }
 console.log('PASS active branch helper privileges and all five validated caller paths');
+
+
+const {rows: [androidBookContract]} = await db.query(`
+  select p.prosecdef as security_definer, pg_get_functiondef(p.oid) as definition
+  from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+  where n.nspname='studioflow_android_private' and p.proname='book'
+  order by p.oid desc
+  limit 1
+`);
+assert.ok(androidBookContract, 'Android booking RPC must exist after branch migrations');
+assert.equal(androidBookContract.security_definer, true,
+  'Android booking RPC must retain its established SECURITY DEFINER execution boundary');
+assert.match(androidBookContract.definition,
+  /insert into public\\.studioflow_android_requests\\s*\\(\\s*customer_id\\s*,\\s*request_id\\s*,\\s*fingerprint\\s*,\\s*booking_id\\s*\\)\\s*values/i,
+  'Android booking idempotency insert must name its columns and not depend on physical table order');
+console.log('PASS Android booking idempotency insert uses an explicit column list');
 
 const rpcs=clientRpc(src);
 const froms=[...src.matchAll(/\.from\(\s*['"`]([A-Za-z0-9_-]+)['"`]/g)].map(m=>m[1]);
