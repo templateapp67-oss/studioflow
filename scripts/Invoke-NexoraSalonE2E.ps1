@@ -9,7 +9,10 @@ Safety design:
 - Always attempts cleanup in finally; a recovery manifest is retained in %TEMP%
   if cleanup cannot be verified, so the next run retries cleanup before creating
   anything else.
-- Does NOT create a Razorpay order or payment. See the Razorpay safety gate below.
+- Razorpay requests require -AllowRazorpayTestCapture, server keyMode=test,
+  and a second immediate pre-order re-check. QA Edge routes are test-only.
+- Only isolated non-production Supabase preview projects are allowed; production
+  project zilwgiuiygqqardzutxi is hard-blocked.
 
 Run from the studioflow repo root:
   $env:NEXORA_E2E_OWNER_ID = '<salon owner UUID>'
@@ -17,9 +20,10 @@ Run from the studioflow repo root:
   .\scripts\Invoke-NexoraSalonE2E.ps1
 
 Required environment (read from process env or .env/.env.local):
-  SUPABASE_URL (or VITE_SUPABASE_URL)
-  SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SECRET_KEY)
-  SUPABASE_PUBLISHABLE_KEY / SUPABASE_ANON_KEY (or VITE_* aliases)
+  NEXORA_E2E_PREVIEW_PROJECT_REF (must not be the production project ref)
+  NEXORA_E2E_SUPABASE_URL
+  NEXORA_E2E_SUPABASE_PUBLISHABLE_KEY
+  NEXORA_E2E_SUPABASE_SERVICE_ROLE_KEY
 
 PowerShell 5.1+; no extra modules required.
 #>
@@ -366,7 +370,7 @@ function Get-HttpErrorInfo {
       } catch { }
     }
   } catch { }
-  return [pscustomobject]@{ status = $status; body = $body }
+  return [pscustomobject]@{ status = $status; body = (Protect-E2EText -Text ([string]$body)) }
 }
 
 function Invoke-JsonHttp {
@@ -524,6 +528,26 @@ function Invoke-CleanupState {
     }
   }
 
+  # Refund/flag every provider order for this QA run. Razorpay does not support
+  # deleting orders; the Edge cleanup action searches notes.qa + notes.qa_run,
+  # refunds any authorised/captured sandbox payment, and reports the order flag.
+  if ($script:State.razorpayQaRun) {
+    try {
+      $cleanupBody = @{ qaRun = [string]$script:State.razorpayQaRun }
+      if (-not [string]::IsNullOrWhiteSpace([string]$script:State.razorpayOrderId)) {
+        $cleanupBody.orderId = [string]$script:State.razorpayOrderId
+      }
+      $providerCleanup = Invoke-RazorpayEdgeQA -Action 'nexoraE2eCleanupTestOrder' -Body $cleanupBody
+      if (-not $providerCleanup.cleanupComplete) {
+        $script:CleanupErrors.Add('Razorpay sandbox order cleanup was not confirmed by the Edge Function.')
+      } elseif ([int]$providerCleanup.providerOrderCount -gt 0) {
+        Write-Host 'Provider-side Razorpay sandbox order remains flagged as NEXORA-E2E; captured/authorized test payments are refunded.' -ForegroundColor Yellow
+      }
+    } catch {
+      $script:CleanupErrors.Add('Razorpay QA cleanup could not be confirmed; no live-mode provider operation was attempted.')
+    }
+  }
+
   # Verify each expected test object is absent. Keep the manifest if any read
   # fails or any record remains; a subsequent invocation will retry cleanup.
   try {
@@ -578,6 +602,7 @@ function Get-BaselineSnapshot {
   $snapshot.paymentOrders = Get-ExactRestCount 'studioflow_payment_orders?select=booking_id'
   $snapshot.createdPaymentOrders = Get-ExactRestCount 'studioflow_payment_orders?select=booking_id&status=eq.created'
   $snapshot.nonCreatedPaymentOrders = Get-ExactRestCount 'studioflow_payment_orders?select=booking_id&status=neq.created'
+  $snapshot.capturedPaymentIds = Get-ExactRestCount 'studioflow_payment_orders?select=booking_id&payment_id=not.is.null'
   return $snapshot
 }
 
@@ -589,7 +614,8 @@ function Test-BaselineSnapshot {
     $Snapshot.branches -eq 21 -and
     $Snapshot.paymentOrders -eq 13 -and
     $Snapshot.createdPaymentOrders -eq 13 -and
-    $Snapshot.nonCreatedPaymentOrders -eq 0
+    $Snapshot.nonCreatedPaymentOrders -eq 0 -and
+    $Snapshot.capturedPaymentIds -eq 0
   )
 }
 
@@ -609,17 +635,19 @@ if (-not $SkipEnvFiles) {
   Import-DotEnvFile -Path (Join-Path $script:ProjectRoot '.env.local')
 }
 
-$script:SupabaseUrl = (Get-FirstEnv @('SUPABASE_URL','VITE_SUPABASE_URL'))
+$script:PreviewProjectRef = Get-FirstEnv @('NEXORA_E2E_PREVIEW_PROJECT_REF')
+$script:SupabaseUrl = Get-FirstEnv @('NEXORA_E2E_SUPABASE_URL')
 if ($script:SupabaseUrl) { $script:SupabaseUrl = $script:SupabaseUrl.TrimEnd('/') }
-$script:PublishableKey = Get-FirstEnv @('SUPABASE_PUBLISHABLE_KEY','SUPABASE_ANON_KEY','VITE_SUPABASE_PUBLISHABLE_KEY','VITE_SUPABASE_ANON_KEY')
-$script:ServiceRoleKey = Get-FirstEnv @('SUPABASE_SERVICE_ROLE_KEY','SUPABASE_SECRET_KEY')
+$script:PublishableKey = Get-FirstEnv @('NEXORA_E2E_SUPABASE_PUBLISHABLE_KEY')
+$script:ServiceRoleKey = Get-FirstEnv @('NEXORA_E2E_SUPABASE_SERVICE_ROLE_KEY')
 $script:OwnerId = Get-FirstEnv @('NEXORA_E2E_OWNER_ID')
 $script:BranchId = Get-FirstEnv @('NEXORA_E2E_BRANCH_ID')
 
 $missing = New-Object System.Collections.Generic.List[string]
-if (-not $script:SupabaseUrl) { $missing.Add('SUPABASE_URL or VITE_SUPABASE_URL') }
-if (-not $script:PublishableKey) { $missing.Add('SUPABASE_PUBLISHABLE_KEY / SUPABASE_ANON_KEY or VITE_* public key') }
-if (-not $script:ServiceRoleKey) { $missing.Add('SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SECRET_KEY') }
+if (-not $script:PreviewProjectRef) { $missing.Add('NEXORA_E2E_PREVIEW_PROJECT_REF') }
+if (-not $script:SupabaseUrl) { $missing.Add('NEXORA_E2E_SUPABASE_URL') }
+if (-not $script:PublishableKey) { $missing.Add('NEXORA_E2E_SUPABASE_PUBLISHABLE_KEY') }
+if (-not $script:ServiceRoleKey) { $missing.Add('NEXORA_E2E_SUPABASE_SERVICE_ROLE_KEY') }
 if (-not $script:OwnerId) { $missing.Add('NEXORA_E2E_OWNER_ID') }
 if (-not $script:BranchId) { $missing.Add('NEXORA_E2E_BRANCH_ID') }
 
@@ -629,10 +657,7 @@ if ($missing.Count -gt 0) {
   Write-Check -Name 'Authenticated branch inventory write/read' -Status 'BLOCKED' -Detail $why
   Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'SKIPPED' -Detail 'No payment request is sent by this harness; the safe read-only mode probe cannot prove an exact rzp_test_ key ID and zero provider artifacts cannot be guaranteed.'
   Write-Check -Name 'Cleanup' -Status 'PASS' -Detail 'No test artifacts were created because required configuration was missing.'
-  $report = [ordered]@{ createdAt=(Get-Date).ToString('o'); results=$script:Results; cleanupErrors=@(); note='No tests were run.' }
-  $reportPath = Join-Path $script:ProjectRoot 'NEXORA-E2E-report.json'
-  $report | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $reportPath -Encoding UTF8
-  Write-Host ("Report: {0}" -f $reportPath)
+  Write-E2EReport
   $global:LASTEXITCODE = 2
   return
 }
@@ -642,8 +667,9 @@ if ($script:OwnerId -notmatch '^[0-9a-fA-F-]{36}$' -or $script:BranchId -notmatc
 }
 try {
   $supabaseUri = [uri]$script:SupabaseUrl
-  if ($supabaseUri.Scheme -ne 'https' -or $supabaseUri.Host -ne 'zilwgiuiygqqardzutxi.supabase.co') {
-    throw 'SUPABASE_URL must point to the approved NEXORA project host zilwgiuiygqqardzutxi.supabase.co over HTTPS. No test records were created.'
+  $expectedHost = ([string]$script:PreviewProjectRef).Trim().ToLowerInvariant() + '.supabase.co'
+  if ($supabaseUri.Scheme -ne 'https' -or $supabaseUri.Host -ne $expectedHost -or $script:PreviewProjectRef -eq 'zilwgiuiygqqardzutxi') {
+    throw 'Only an isolated, non-production Supabase preview project is permitted. The production project zilwgiuiygqqardzutxi is explicitly blocked. No tests were run.'
   }
 } catch {
   Write-Check -Name 'Supabase project safety guard' -Status 'BLOCKED' -Detail $_.Exception.Message
@@ -697,6 +723,8 @@ try {
     marker = $script:Marker
     email = $script:StaffEmail
     userId = ''
+    razorpayQaRun = ''
+    razorpayOrderId = ''
     ownerId = $script:OwnerId
     branchId = $script:BranchId
     createdAt = (Get-Date).ToString('o')
@@ -707,6 +735,7 @@ try {
   # Create an ephemeral staff identity via Supabase Auth Admin API.
   $script:Stage = 'authSetup'
   $staffPassword = 'NxE2E!' + [guid]::NewGuid().ToString('N') + 'Aa9#'
+  $script:StaffPassword = $staffPassword
   $createdUser = Invoke-SupabaseAdmin -Method POST -Path 'auth/v1/admin/users' -Body @{
     email = $script:StaffEmail
     password = $staffPassword
@@ -749,6 +778,7 @@ try {
     throw 'HTTP password sign-in did not return the expected staff user and access token.'
   }
   $staffAccessToken = [string]$authResponse.access_token
+  $script:StaffAccessToken = $staffAccessToken
 
   $context = Invoke-SupabaseRest -Method POST -Path 'rest/v1/rpc/studioflow_my_staff_context' -KeyKind PUBLIC -BearerToken $staffAccessToken -Body @{}
   $contextOwner = [string]$context.ownerId
@@ -816,6 +846,8 @@ try {
     }
   }
 
+  Invoke-RazorpayTestE2E
+
 } catch {
   $failure = $_.Exception.Message
   if (-not $script:Results.Contains('HTTP Supabase Auth staff sign-in')) {
@@ -846,22 +878,6 @@ try {
     Write-Check -Name 'Automatic cleanup' -Status 'PASS' -Detail $cleanupDetail
   } else {
     Write-Check -Name 'Automatic cleanup' -Status 'FAIL' -Detail (($script:CleanupErrors -join '; ') + '. Recovery manifest retained at ' + $script:StatePath)
-  }
-
-  # Read-only Razorpay probe. It never sends a POST or creates an order.
-  try {
-    $edgeStatus = Invoke-SupabaseRest -Method GET -Path 'functions/v1/studioflow-payments' -KeyKind PUBLIC
-    if (-not $edgeStatus.configured) {
-      Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'SKIPPED' -Detail 'The deployed studioflow-payments function reports Razorpay credentials are not configured. No payment/order/refund request was sent.'
-    } elseif ([string]$edgeStatus.mode -eq 'live') {
-      Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'SKIPPED' -Detail 'The deployed Edge Function reports LIVE mode. Live capture/refund is prohibited; no POST was sent.'
-    } elseif ([string]$edgeStatus.mode -eq 'test') {
-      Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'SKIPPED' -Detail 'Edge GET reports mode=test, but it returns no key ID; the deployed source labels every non-rzp_live_ key as test, so exact rzp_test_ prefix is not proven. Proving the returned key ID requires creating an order, and Razorpay sandbox payment/order/refund audit entities cannot be removed by this zero-artifact harness. No payment POST was sent.'
-    } else {
-      Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'BLOCKED' -Detail 'The Edge Function returned an unrecognized mode. No payment POST was sent.'
-    }
-  } catch {
-    Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'BLOCKED' -Detail ('Could not read the deployed Edge Function mode safely: ' + $_.Exception.Message + '. No payment POST was sent.')
   }
 
   # Verify the production baseline is exactly unchanged after cleanup.
@@ -903,21 +919,7 @@ try {
     Write-Check -Name 'Zero leftover QA records' -Status 'FAIL' -Detail ('Could not verify marker cleanup: ' + $_.Exception.Message)
   }
 
-  $report = [ordered]@{
-    createdAt = (Get-Date).ToString('o')
-    ownerId = $script:OwnerId
-    branchId = $script:BranchId
-    marker = $script:Marker
-    baselineBefore = $baselineBefore
-    baselineAfter = $baselineAfter
-    results = $script:Results
-    cleanupErrors = @($script:CleanupErrors.ToArray())
-    razorpayNote = 'No Razorpay payment/order/refund POST was issued; only a read-only Edge Function mode GET was attempted.'
-    prMergeAction = 'None; PR #141 was not merged or modified by this script.'
-  }
-  $reportPath = Join-Path $script:ProjectRoot 'NEXORA-E2E-report.json'
-  $report | ConvertTo-Json -Depth 30 | Set-Content -LiteralPath $reportPath -Encoding UTF8
-  Write-Host ("Report: {0}" -f $reportPath)
+  Write-E2EReport
 }
 
 if ($script:Results['HTTP Supabase Auth staff sign-in'].status -ne 'PASS' -or
@@ -929,10 +931,12 @@ if ($script:Results['HTTP Supabase Auth staff sign-in'].status -ne 'PASS' -or
   $global:LASTEXITCODE = 1
   return
 }
-if ($script:Results['Razorpay test capture + Edge refund'].status -ne 'PASS') {
-  Write-Host 'Core Auth/inventory checks and cleanup passed; Razorpay live-provider E2E remains skipped/blocked by the safety gate.' -ForegroundColor Yellow
-  $global:LASTEXITCODE = 0
+if ($script:Results['Razorpay test capture + Edge refund'].status -eq 'FAIL') {
+  $global:LASTEXITCODE = 1
   return
+}
+if ($script:Results['Razorpay test capture + Edge refund'].status -ne 'EXECUTED_TEST_MODE') {
+  Write-Host 'Core Auth/inventory checks and cleanup completed. Razorpay outcome is explicitly recorded above; no non-test provider request was made.' -ForegroundColor Yellow
 }
 $global:LASTEXITCODE = 0
 return
