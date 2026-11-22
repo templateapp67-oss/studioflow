@@ -10,6 +10,8 @@ const gitBlob=(path)=>{
 const serviceSql=read('supabase/migrations/20261122060000_branch_service_catalogue_scope.sql');
 const crmSql=read('supabase/migrations/20261122060500_branch_scoped_manual_crm_contacts.sql');
 const readModelsSql=read('supabase/migrations/20261122061000_branch_assignment_read_models.sql');
+const contactUpdateFixSql=read('supabase/migrations/20261122064000_branch_crm_contact_update_duplicate_fix.sql');
+const androidGrantSql=read('supabase/migrations/20261122065000_branch_service_android_wrapper_grants.sql');
 const serviceUi=read('src/components/ServiceManagement.tsx');
 const bookingUi=read('src/components/customer/BookingFlow.tsx');
 const crmUi=read('src/components/SalonCRM.tsx');
@@ -77,5 +79,9 @@ assert.match(crmUi,/studioflow_owner_crm_branch_options/);
 assert.match(crmUi,/p_branch_id: draftBranchId \|\| null/);
 assert.match(crmUi,/p_branch_id: newBranchId \|\| null/);
 assert.match(crmUi,/Assigned branch/);
+assert.match(contactUpdateFixSql,/coalesce\(c\.value->>'id',''\)<>p_customer::text/i,
+  'CRM update must exclude the contact being edited from duplicate-phone checks');
+assert.match(androidGrantSql,/revoke all on function public\.studioflow_android_book[\s\S]*?from public, anon, authenticated/i);
+assert.match(androidGrantSql,/grant execute on function public\.studioflow_android_book[\s\S]*?to authenticated, service_role/i);
 
 console.log('PASS: branch-level services and manual CRM contacts are mapped, scoped, backwards-compatible, and protected migrations/policies remain untouched.');
