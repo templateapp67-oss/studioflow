@@ -40,7 +40,7 @@ const splitSql=(sql)=>{
     if(blockDepth>0){
       if(two==='/*'){blockDepth++;cur+='  ';i+=2;continue;}
       if(two==='*/'){blockDepth--;cur+='  ';i+=2;continue;}
-      cur+=sql[i];i++;continue;
+      cur+=sql[i]==='\n'?'\n':' ';i++;continue;
     }
     if(line){cur+=sql[i];if(sql[i]==='\n')line=false;i++;continue;}
     if(two==='--'&&!quote&&!tag){line=true;cur+=two;i+=2;continue;}
