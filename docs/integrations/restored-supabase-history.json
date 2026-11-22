@@ -2285,6 +2285,15 @@
       "evidence": "Applied to Supabase project zilwgiuiygqqardzutxi on 2026-11-22 and confirmed in remote migration history. Reasserts the established Android booking wrapper execute boundary: authenticated and service_role only; anon and PUBLIC revoked.",
       "purpose": "Keep the branch-aware Android booking wrapper's client/server permissions explicit and stable across clean installations.",
       "git_blob_sha": "abb0e07a1e7a92489c14800925e4c65466ef6503"
+    },
+    {
+      "version": "20261122065342",
+      "file": "20261122066000_branch_scope_private_booking_guards.sql",
+      "name": "branch_scope_private_booking_guards",
+      "observed_at": "2026-11-22",
+      "evidence": "Applied to Supabase project zilwgiuiygqqardzutxi on 2026-11-22 and confirmed in remote migration history. Branch-service eligibility now executes inside SECURITY DEFINER private slot/booking functions; public invoker wrappers do not call the private checker directly. Branch rescheduling restores the booking's stored branch_id before checking slot availability.",
+      "purpose": "Preserve the private execution boundary for service-to-branch checks while consistently enforcing branch-scoped Android slots, booking, coupon and reschedule paths.",
+      "git_blob_sha": "75c3c5b228412300d798a268987572e51040e2f6"
     }
   ]
 }
