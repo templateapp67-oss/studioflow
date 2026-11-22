@@ -51,10 +51,11 @@ jobs:
             $parseErrors | Format-List | Out-String | Write-Error
             exit 1
           }
-          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
-          Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -ErrorAction Stop | Out-Null
-          Install-Module PSScriptAnalyzer -Scope CurrentUser -Force -AllowClobber -Confirm:$false -ErrorAction Stop
-          Import-Module PSScriptAnalyzer
+          if (-not (Get-Command Install-PSResource -ErrorAction SilentlyContinue)) {
+            throw 'PSResourceGet is required to install PSScriptAnalyzer without the legacy NuGet provider bootstrap.'
+          }
+          Install-PSResource -Name PSScriptAnalyzer -Repository PSGallery -Scope CurrentUser -TrustRepository -Quiet
+          Import-Module PSScriptAnalyzer -ErrorAction Stop
           $issues = @(Invoke-ScriptAnalyzer -Path $path -Severity Error)
           if ($issues.Count -gt 0) {
             $issues | Format-Table -AutoSize | Out-String | Write-Error
