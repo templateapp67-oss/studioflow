@@ -2310,6 +2310,16 @@
       "evidence": "Applied to Supabase project zilwgiuiygqqardzutxi on 2026-11-22 and confirmed in remote migration history (remote version 20261122065816). Extends the branch-scoped manual contact read model to include the stored email for Managers and preserves it in the CRM dashboard projection; no data was backfilled or edited.",
       "purpose": "Keep all CRM fields for branch-mapped manual contacts consistent across the owner_contacts and crm_dashboard read paths.",
       "git_blob_sha": "4f5e6f58983bdf966c427b2434d4d8f546267c1c"
+    },
+    {
+      "version": "20261122068000",
+      "remote_version": "20261122070326",
+      "file": "20261122068000_branch_mapping_redundant_index_cleanup.sql",
+      "name": "branch_mapping_redundant_index_cleanup",
+      "observed_at": "2026-11-22",
+      "evidence": "Applied to Supabase project zilwgiuiygqqardzutxi on 2026-11-22 and confirmed in remote migration history (remote version 20261122070326). Removes the redundant duplicate index branches_site_id_id_scope_uk; the CRM owner/branch FK continues to reference the pre-existing branches_site_id_id_key unique constraint.",
+      "purpose": "Remove avoidable duplicate index storage and write overhead without weakening the crm_contacts owner/branch foreign key.",
+      "git_blob_sha": "2750f63284d9ec0b341c817671271d9a3b386d1d"
     }
   ]
 }
