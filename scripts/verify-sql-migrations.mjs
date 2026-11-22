@@ -547,6 +547,11 @@ assert.equal(tawkSecurity.widget_id_constraint_count, 1, 'widget ID check constr
 // timestamped Supabase migration supersedes it with the typed table return
 // consumed by the Edge Function, so remove only the offline fixture version.
 await db.exec('drop function if exists public.studioflow_claim_refunds(integer)');
+// The older backend replay declares this public browser wrapper with DEFAULT
+// parameters. The applied timestamped branch migration replaces it with the
+// non-defaulted signature that exists in Supabase. Drop only the offline
+// fixture before replaying that replacement; production is not affected.
+await db.exec('drop function if exists public.studioflow_android_book(text,jsonb,date,text,text,text,text,text,uuid)');
 
 for (const name of [
   '20261122043650_staff_crm_branch_scope.sql',
@@ -556,6 +561,7 @@ for (const name of [
   '20261122060000_branch_service_catalogue_scope.sql',
   '20261122060500_branch_scoped_manual_crm_contacts.sql',
   '20261122061000_branch_assignment_read_models.sql',
+  '20261122064000_branch_crm_contact_update_duplicate_fix.sql',
 ]) {
   const file = 'supabase/migrations/' + name;
   await applySqlText(readFileSync(file, 'utf8'), file);
