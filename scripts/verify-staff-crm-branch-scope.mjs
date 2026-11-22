@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const migrationPath = 'supabase/migrations/20261122100000_staff_crm_branch_scope.sql';
+const migrationPath = 'supabase/migrations/20261122043650_staff_crm_branch_scope.sql';
 const migration = readFileSync(migrationPath, 'utf8');
 const lower = migration.toLowerCase();
 
