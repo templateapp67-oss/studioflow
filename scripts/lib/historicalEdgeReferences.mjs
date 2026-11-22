@@ -16,7 +16,7 @@ export function historicalEdgeReferences(history, readSource) {
     assert(!allowed.has(entry.path), `Duplicate historical Edge inventory: ${entry.path}`);
     assert(entry.reason?.trim(), `Missing historical dependency explanation: ${entry.path}`);
     const source = readSource(entry.path);
-    assert.equal(createHash('sha256').update(source).digest('hex'), record.file_sha256,
+    // Windows checkouts may convert Git's LF blob to CRLF. Hash the canonical\n    // repository text representation so the historical byte contract is stable.\n    const canonicalSource = source.replace(/\\r\\n/g, '\\n');\n    assert.equal(createHash('sha256').update(canonicalSource).digest('hex'), record.file_sha256,
       `Historical migration changed: ${entry.path}; new calls require local source`);
     const actual = new Set([...source.matchAll(/functions\/v1\/([a-z0-9-]+)/g)].map(match => match[1]));
     assert(entry.functions.length > 0, `Empty historical Edge inventory: ${entry.path}`);
