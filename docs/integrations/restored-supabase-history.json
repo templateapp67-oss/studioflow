@@ -2248,7 +2248,7 @@
       "observed_at": "2026-11-22",
       "evidence": "Applied to Supabase project zilwgiuiygqqardzutxi on 2026-11-22 and confirmed in remote migration history. Adds nullable branch_ids to the relational service catalogue; NULL/empty retains existing salon-wide behaviour. Adds owner/Manager assignment and branch-aware slot/booking guards without changing any studioflow_bookings RLS policy.",
       "purpose": "Backwards-compatible branch-level service availability and branch-scoped staff reads, with legacy services remaining globally available until explicitly mapped.",
-      "git_blob_sha": "97b7a3aace2447702c655809400ec567291532ea"
+      "git_blob_sha": "da1669fa43423a224852d1d08389619aec491124"
     },
     {
       "version": "20261122063610",
@@ -2276,6 +2276,15 @@
       "evidence": "Applied to Supabase project zilwgiuiygqqardzutxi on 2026-11-22 and confirmed in remote migration history. Fixes the duplicate-phone test in the branch-aware manual CRM update RPC so it excludes the contact currently being edited; no user data is backfilled or changed.",
       "purpose": "Allow a mapped manual contact to retain its existing phone number when edited while continuing to reject duplicates belonging to other booking customers or CRM contacts.",
       "git_blob_sha": "5fbc05c54a663fb4a9988b91af51a40d449c51dd"
+    },
+    {
+      "version": "20261122064912",
+      "file": "20261122065000_branch_service_android_wrapper_grants.sql",
+      "name": "branch_service_android_wrapper_grants",
+      "observed_at": "2026-11-22",
+      "evidence": "Applied to Supabase project zilwgiuiygqqardzutxi on 2026-11-22 and confirmed in remote migration history. Reasserts the established Android booking wrapper execute boundary: authenticated and service_role only; anon and PUBLIC revoked.",
+      "purpose": "Keep the branch-aware Android booking wrapper's client/server permissions explicit and stable across clean installations.",
+      "git_blob_sha": "abb0e07a1e7a92489c14800925e4c65466ef6503"
     }
   ]
 }
