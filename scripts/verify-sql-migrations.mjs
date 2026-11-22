@@ -553,6 +553,9 @@ for (const name of [
   '20261122045445_studioflow_refund_queue_rpc.sql',
   '20261122052119_staff_salon_context_and_booking_completion.sql',
   '20261122052400_staff_inventory_membership_access.sql',
+  '20261122060000_branch_service_catalogue_scope.sql',
+  '20261122060500_branch_scoped_manual_crm_contacts.sql',
+  '20261122061000_branch_assignment_read_models.sql',
 ]) {
   const file = 'supabase/migrations/' + name;
   await applySqlText(readFileSync(file, 'utf8'), file);
