@@ -548,7 +548,7 @@ export function SalonCRM({ profile }: { profile: SalonProfile }) {
               {branchOptions.map(item=><option key={item.id} value={item.id}>{item.name}{item.city?' · '+item.city:''}</option>)}
             </select>
             <small className="block text-[11px] text-slate-500 mt-1">Unassigned manual contacts stay private to the salon owner. Staff can access contacts only for assigned branches.</small>
-          </label>
+          </label>}
           <div className="md:col-span-2 flex flex-wrap gap-2">
             <button className="primary-action" type="submit" disabled={saving || !newName.trim() || !phoneDigits(newPhone)}>{saving ? 'Saving…' : 'Save customer'}</button>
             <button className="secondary-action" type="button" onClick={() => setShowNewContactForm(false)}>Cancel</button>
