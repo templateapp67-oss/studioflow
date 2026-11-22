@@ -3,10 +3,11 @@ import assert from 'node:assert/strict';
 import { build } from 'esbuild';
 import { spawnSync } from 'node:child_process';
 
-const auth = readFileSync('src/components/AuthPage.tsx', 'utf8');
-const app = readFileSync('src/App.tsx', 'utf8');
-const customer = readFileSync('src/components/CustomerApp.tsx', 'utf8');
-const helper = readFileSync('src/lib/googleOAuth.ts', 'utf8');
+const readSource = (path) => readFileSync(path, 'utf8').replace(/\r\n/g, '\n');
+const auth = readSource('src/components/AuthPage.tsx');
+const app = readSource('src/App.tsx');
+const customer = readSource('src/components/CustomerApp.tsx');
+const helper = readSource('src/lib/googleOAuth.ts');
 
 assert.match(auth, /signInWithOAuth\(\{[\s\S]*provider:\s*'google'/, 'Google OAuth must use Supabase Google provider');
 assert.match(auth, /saveGoogleOAuthIntent\(/, 'OAuth must persist short-lived owner/customer onboarding intent');
