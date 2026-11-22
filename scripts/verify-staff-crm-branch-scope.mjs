@@ -65,8 +65,8 @@ const helperAclPath = 'supabase/migrations/20261122072341_harden_active_branch_i
 const helperAclMigration = readFileSync(helperAclPath, 'utf8').toLowerCase();
 assert.match(helperAclMigration, /alter function public\.studioflow_active_branch_ids\(uuid, text\[\]\)\s+security invoker/i,
   'active branch helper must run as invoker, not as a privileged definer');
-assert.match(helperAclMigration, /revoke all on function public\\.studioflow_active_branch_ids\\(uuid, text\\[\\]\\)\\s+from public, anon, authenticated/i,
+assert.match(helperAclMigration, /revoke all on function public\.studioflow_active_branch_ids\(uuid, text\[\]\)\s+from public, anon, authenticated/i,
   'browser roles must not execute the internal branch helper directly');
-assert.match(helperAclMigration, /grant execute on function public\\.studioflow_active_branch_ids\\(uuid, text\\[\\]\\)\\s+to postgres, service_role/i,
+assert.match(helperAclMigration, /grant execute on function public\.studioflow_active_branch_ids\(uuid, text\[\]\)\s+to postgres, service_role/i,
   'only trusted server-side roles may execute the internal branch helper');
 console.log('PASS internal active-branch helper is SECURITY INVOKER and not browser-callable');
