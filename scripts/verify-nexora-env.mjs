@@ -97,10 +97,10 @@ const browserSources = [
   'src/lib/nexoraLandingData.ts',
   'src/lib/nexoraLeadSubmission.ts',
 ]
-  .map((file) => readFileSync(file, 'utf8'))
+  .map((file) => readFileSync(file, 'utf8').replace(/\r\n/g, '\n'))
   .join('\n');
 assert.ok(!/SUPABASE_SERVICE_ROLE_KEY/.test(browserSources), 'the browser sources never read a service-role variable');
-const envGuard = readFileSync('src/lib/nexoraEnv.ts', 'utf8');
+const envGuard = readFileSync('src/lib/nexoraEnv.ts', 'utf8').replace(/\r\n/g, '\n');
 const otherBrowserSources = [
   'src/lib/supabase.ts',
   'src/lib/nexoraLandingData.ts',
@@ -150,7 +150,7 @@ assert.equal(crm.crmConfigured, false, 'an insecure CRM endpoint is not usable')
 assert.equal(crm.crmEndpointInvalid, true, 'an invalid CRM endpoint is reported');
 
 /* 9. The documented environment file names match the code. */
-const envExample = readFileSync('.env.example', 'utf8');
+const envExample = readFileSync('.env.example', 'utf8').replace(/\r\n/g, '\n');
 for (const name of [
   'SUPABASE_URL',
   'SUPABASE_SERVICE_ROLE_KEY',
