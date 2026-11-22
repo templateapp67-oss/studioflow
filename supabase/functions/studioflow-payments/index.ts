@@ -270,7 +270,7 @@ Deno.serve(async(req:Request)=>{
       if(!validNexoraE2eRun(body.qaRun))return respond({error:'Invalid NEXORA E2E run marker'},400);
       // Fixed ₹1.00 test order; caller-supplied amounts are never accepted.
       const created=await provider('orders',{method:'POST',body:JSON.stringify({
-        amount:100,currency:'INR',receipt:qaReceipt(body.qaRun),payment_capture:1,
+        amount:100,currency:'INR',receipt:qaReceipt(body.qaRun),
         notes:{qa:'NEXORA-E2E',qa_run:body.qaRun}
       })});
       if(!created?.id||Number(created.amount)!==100||created.currency!=='INR'||
@@ -337,7 +337,7 @@ Deno.serve(async(req:Request)=>{
       }
       const results=[];
       for(const orderId of orderIds){
-        const order=await getQaOrder(orderId,body.qaRun);
+        await getQaOrder(orderId,body.qaRun);
         const paymentResponse=await provider('orders/'+encodeURIComponent(orderId)+'/payments');
         const payments=Array.isArray(paymentResponse.items)?paymentResponse.items:[];
         const captured=payments.find((item:any)=>item.status==='captured');
