@@ -36,8 +36,16 @@ Deno.test('read-only status preserves legacy fields and never returns key materi
     const response = razorpayStatusResponse(sample.keyId, keySecret, webhookSecret);
     assertEquals(response.keyMode, sample.keyMode, 'server status keyMode');
     const serialized = JSON.stringify(response);
-    for (const forbidden of [sample.keyId, keySecret, webhookSecret].filter(Boolean)) {
-      if (serialized.includes(forbidden)) throw new Error('status response leaked key material');
+    const credentials = [sample.keyId, keySecret, webhookSecret].filter(Boolean);
+    const forbiddenFragments = credentials.flatMap((value) => [
+      value,
+      value.slice(0, Math.min(8, value.length)),
+      value.slice(-Math.min(6, value.length)),
+    ]);
+    for (const forbidden of forbiddenFragments) {
+      if (forbidden && serialized.includes(forbidden)) {
+        throw new Error('status response leaked key material or a key fragment');
+      }
     }
     for (const forbiddenName of ['key', 'keyId', 'keySecret', 'webhookSecret']) {
       if (Object.prototype.hasOwnProperty.call(response, forbiddenName)) {
