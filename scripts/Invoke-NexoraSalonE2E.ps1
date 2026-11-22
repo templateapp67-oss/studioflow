@@ -260,6 +260,7 @@ function Invoke-RazorpayTestE2E {
   $script:RazorpayQaRun = 'NEXORA-E2E-' + [guid]::NewGuid().ToString('N')
   $script:State.razorpayQaRun = $script:RazorpayQaRun
   $script:State.razorpayOrderId = ''
+  $script:State.razorpayOrderAttempted = $false
   Save-State
 
   # Mandatory immediate pre-order recheck; Edge independently re-checks before provider POST.
@@ -275,6 +276,10 @@ function Invoke-RazorpayTestE2E {
   }
 
   try {
+    # Save this marker before the POST so a dropped response is recovered
+    # by querying Razorpay with the unique receipt in the mandatory finally.
+    $script:State.razorpayOrderAttempted = $true
+    Save-State
     $created = Invoke-RazorpayEdgeQA -Action 'nexoraE2eCreateTestOrder' -Body @{ qaRun = $script:RazorpayQaRun }
     if ([string]$created.keyId -notmatch '^rzp_test_' -or [string]::IsNullOrWhiteSpace([string]$created.orderId) -or [int]$created.amount -ne 100) {
       throw 'The server did not return the expected test-only ₹1 QA order.'
@@ -483,7 +488,7 @@ function Invoke-CleanupState {
   param([switch]$RecoveryRun)
   if ($null -eq $script:State) { return $true }
   if ([string]::IsNullOrWhiteSpace($script:ServiceRoleKey) -or [string]::IsNullOrWhiteSpace($script:SupabaseUrl)) {
-    $script:CleanupErrors.Add('Cleanup needs SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY/SUPABASE_SECRET_KEY.')
+    $script:CleanupErrors.Add('Cleanup needs the configured preview URL and preview service-role key.')
     return $false
   }
 
@@ -531,7 +536,7 @@ function Invoke-CleanupState {
   # Refund/flag every provider order for this QA run. Razorpay does not support
   # deleting orders; the Edge cleanup action searches notes.qa + notes.qa_run,
   # refunds any authorised/captured sandbox payment, and reports the order flag.
-  if ($script:State.razorpayQaRun) {
+  if ($script:State.razorpayQaRun -and $script:State.razorpayOrderAttempted -eq $true) {
     try {
       $cleanupBody = @{ qaRun = [string]$script:State.razorpayQaRun }
       if (-not [string]::IsNullOrWhiteSpace([string]$script:State.razorpayOrderId)) {
@@ -683,6 +688,11 @@ $script:StatePath = Join-Path ([System.IO.Path]::GetTempPath()) 'nexora-salon-e2
 if (Test-Path -LiteralPath $script:StatePath) {
   try {
     $script:State = Get-Content -LiteralPath $script:StatePath -Raw | ConvertFrom-Json
+    if ([string]$script:State.supabaseProjectRef -ne [string]$script:PreviewProjectRef) {
+      Write-Check -Name 'Prior-run cleanup recovery' -Status 'BLOCKED' -Detail 'A recovery manifest belongs to a different Supabase project. Refusing to run cleanup against the currently selected preview. Preserve the manifest and restore its original preview settings.'
+      $global:LASTEXITCODE = 3
+      return
+    }
     $script:CleanupErrors.Clear()
     $recovered = Invoke-CleanupState -RecoveryRun
     if (-not $recovered) {
@@ -725,6 +735,8 @@ try {
     userId = ''
     razorpayQaRun = ''
     razorpayOrderId = ''
+    razorpayOrderAttempted = $false
+    supabaseProjectRef = $script:PreviewProjectRef
     ownerId = $script:OwnerId
     branchId = $script:BranchId
     createdAt = (Get-Date).ToString('o')
@@ -881,13 +893,13 @@ try {
     }
   }
   if ($cleanupOk) {
-    $cleanupDetail = if (-not $hadTestState) { 'No temporary resources were created; nothing required deletion.' } else { 'Temporary inventory row, both staff memberships, and temporary Auth user were deleted and absence was verified.' }
+    $cleanupDetail = if (-not $hadTestState) { 'No temporary resources were created; nothing required deletion.' } else { 'Temporary inventory row, both staff memberships, temporary Auth user, and any attempted Razorpay QA order cleanup were verified.' }
     Write-Check -Name 'Automatic cleanup' -Status 'PASS' -Detail $cleanupDetail
   } else {
     Write-Check -Name 'Automatic cleanup' -Status 'FAIL' -Detail (($script:CleanupErrors -join '; ') + '. Recovery manifest retained at ' + $script:StatePath)
   }
 
-  # Verify the production baseline is exactly unchanged after cleanup.
+  # Verify the isolated preview baseline is exactly unchanged after cleanup.
   try {
     $baselineAfter = Get-BaselineSnapshot
     $baselineOk = Test-BaselineSnapshot -Snapshot $baselineAfter
