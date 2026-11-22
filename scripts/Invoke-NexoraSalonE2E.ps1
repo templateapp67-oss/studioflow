@@ -238,7 +238,7 @@ if (typeof Razorpay !== "function") {
 function Invoke-RazorpayTestE2E {
   try { $initial = Get-RazorpayEdgeStatus }
   catch {
-    $script:RazorpayKeyModeReported = 'unreachable'
+    $script:RazorpayKeyModeReported = $null
     Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'SKIPPED_STATUS_UNREACHABLE' -Detail 'The read-only payments Edge status GET was unreachable. No Razorpay provider request was sent.'
     return
   }
@@ -655,7 +655,7 @@ if ($missing.Count -gt 0) {
   $why = 'Missing required environment: ' + ($missing -join ', ')
   Write-Check -Name 'HTTP Supabase Auth staff sign-in' -Status 'BLOCKED' -Detail $why
   Write-Check -Name 'Authenticated branch inventory write/read' -Status 'BLOCKED' -Detail $why
-  Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'SKIPPED' -Detail 'No payment request is sent by this harness; the safe read-only mode probe cannot prove an exact rzp_test_ key ID and zero provider artifacts cannot be guaranteed.'
+  Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'SKIPPED_STATUS_UNREACHABLE' -Detail 'The isolated preview environment is not configured, so the Edge status endpoint cannot be queried. No payment request was sent.'
   Write-Check -Name 'Cleanup' -Status 'PASS' -Detail 'No test artifacts were created because required configuration was missing.'
   Write-E2EReport
   $global:LASTEXITCODE = 2
@@ -858,7 +858,7 @@ try {
     $inventoryStatus = if ($script:Stage -eq 'inventory') { 'FAIL' } else { 'BLOCKED' }
     Write-Check -Name 'Authenticated branch inventory write/read-back' -Status $inventoryStatus -Detail ('Not completed: ' + $failure)
   }
-  Write-Host ('E2E execution error: ' + $failure) -ForegroundColor Red
+  Write-Host ('E2E execution error: ' + (Protect-E2EText -Text $failure)) -ForegroundColor Red
 } finally {
   # The cleanup manifest is persisted before the first test user is created.
   # This finally block runs for ordinary PowerShell exceptions/early exits.
