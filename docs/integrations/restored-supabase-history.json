@@ -2242,58 +2242,64 @@
       "git_blob_sha": "21839dad562a9c6b4e0992c8a3daeb90da405c84"
     },
     {
-      "version": "20261122063603",
+      "version": "20261122060000",
       "file": "20261122060000_branch_service_catalogue_scope.sql",
       "name": "branch_service_catalogue_scope",
       "observed_at": "2026-11-22",
       "evidence": "Applied to Supabase project zilwgiuiygqqardzutxi on 2026-11-22 and confirmed in remote migration history. Adds nullable branch_ids to the relational service catalogue; NULL/empty retains existing salon-wide behaviour. Adds owner/Manager assignment and branch-aware slot/booking guards without changing any studioflow_bookings RLS policy.",
       "purpose": "Backwards-compatible branch-level service availability and branch-scoped staff reads, with legacy services remaining globally available until explicitly mapped.",
-      "git_blob_sha": "da1669fa43423a224852d1d08389619aec491124"
+      "git_blob_sha": "da1669fa43423a224852d1d08389619aec491124",
+      "remote_version": "20261122063603"
     },
     {
-      "version": "20261122063610",
+      "version": "20261122060500",
       "file": "20261122060500_branch_scoped_manual_crm_contacts.sql",
       "name": "branch_scoped_manual_crm_contacts",
       "observed_at": "2026-11-22",
       "evidence": "Applied to Supabase project zilwgiuiygqqardzutxi on 2026-11-22 and confirmed in remote migration history. Adds nullable branch_id plus an owner/branch composite foreign key and updates private CRM branch scope/read/write RPCs. No manual CRM contacts were backfilled or created.",
       "purpose": "Explicit branch assignment for manual CRM contacts; unmapped legacy contacts remain owner-only and staff read/write access requires an assigned active branch.",
-      "git_blob_sha": "5781720ae96086ca24c983ca59488a5ad3b771f4"
+      "git_blob_sha": "5781720ae96086ca24c983ca59488a5ad3b771f4",
+      "remote_version": "20261122063610"
     },
     {
-      "version": "20261122063834",
+      "version": "20261122061000",
       "file": "20261122061000_branch_assignment_read_models.sql",
       "name": "branch_assignment_read_models",
       "observed_at": "2026-11-22",
       "evidence": "Applied to Supabase project zilwgiuiygqqardzutxi on 2026-11-22 and confirmed in remote migration history. Adds authenticated read models for owner service mappings and CRM branch options; staff options are reduced to currently assigned active branches.",
       "purpose": "Authenticated branch selectors for service and manual CRM management without exposing unassigned branch mapping details.",
-      "git_blob_sha": "a1360a5f2d67295082bc38516bb4adfd8a224218"
+      "git_blob_sha": "a1360a5f2d67295082bc38516bb4adfd8a224218",
+      "remote_version": "20261122063834"
     },
     {
-      "version": "20261122064427",
+      "version": "20261122064000",
       "file": "20261122064000_branch_crm_contact_update_duplicate_fix.sql",
       "name": "branch_crm_contact_update_duplicate_fix",
       "observed_at": "2026-11-22",
       "evidence": "Applied to Supabase project zilwgiuiygqqardzutxi on 2026-11-22 and confirmed in remote migration history. Fixes the duplicate-phone test in the branch-aware manual CRM update RPC so it excludes the contact currently being edited; no user data is backfilled or changed.",
       "purpose": "Allow a mapped manual contact to retain its existing phone number when edited while continuing to reject duplicates belonging to other booking customers or CRM contacts.",
-      "git_blob_sha": "5fbc05c54a663fb4a9988b91af51a40d449c51dd"
+      "git_blob_sha": "5fbc05c54a663fb4a9988b91af51a40d449c51dd",
+      "remote_version": "20261122064427"
     },
     {
-      "version": "20261122064912",
+      "version": "20261122065000",
       "file": "20261122065000_branch_service_android_wrapper_grants.sql",
       "name": "branch_service_android_wrapper_grants",
       "observed_at": "2026-11-22",
       "evidence": "Applied to Supabase project zilwgiuiygqqardzutxi on 2026-11-22 and confirmed in remote migration history. Reasserts the established Android booking wrapper execute boundary: authenticated and service_role only; anon and PUBLIC revoked.",
       "purpose": "Keep the branch-aware Android booking wrapper's client/server permissions explicit and stable across clean installations.",
-      "git_blob_sha": "abb0e07a1e7a92489c14800925e4c65466ef6503"
+      "git_blob_sha": "abb0e07a1e7a92489c14800925e4c65466ef6503",
+      "remote_version": "20261122064912"
     },
     {
-      "version": "20261122065342",
+      "version": "20261122066000",
       "file": "20261122066000_branch_scope_private_booking_guards.sql",
       "name": "branch_scope_private_booking_guards",
       "observed_at": "2026-11-22",
       "evidence": "Applied to Supabase project zilwgiuiygqqardzutxi on 2026-11-22 and confirmed in remote migration history. Branch-service eligibility now executes inside SECURITY DEFINER private slot/booking functions; public invoker wrappers do not call the private checker directly. Branch rescheduling restores the booking's stored branch_id before checking slot availability.",
       "purpose": "Preserve the private execution boundary for service-to-branch checks while consistently enforcing branch-scoped Android slots, booking, coupon and reschedule paths.",
-      "git_blob_sha": "75c3c5b228412300d798a268987572e51040e2f6"
+      "git_blob_sha": "75c3c5b228412300d798a268987572e51040e2f6",
+      "remote_version": "20261122065342"
     }
   ]
 }
