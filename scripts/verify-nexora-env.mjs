@@ -106,7 +106,7 @@ const otherBrowserSources = [
   'src/lib/nexoraLandingData.ts',
   'src/lib/nexoraLeadSubmission.ts',
 ]
-  .map((file) => readFileSync(file, 'utf8'))
+  .map((file) => readFileSync(file, 'utf8').replace(/\r\n/g, '\n'))
   .join('\n');
 assert.ok(!/sb_secret_/.test(otherBrowserSources), 'no browser source contains a secret key');
 assert.ok(!/service_role/.test(otherBrowserSources), 'no browser source contains a service-role claim');
