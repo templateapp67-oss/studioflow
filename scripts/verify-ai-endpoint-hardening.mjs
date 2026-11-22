@@ -267,7 +267,7 @@ const waitForChildExit = (child, timeoutMs) => new Promise((resolve) => {
   // Close the race where the process exits between the first state check and
   // registering the listener.
   if (child.exitCode !== null || child.signalCode !== null) finish(true);
-};
+});
 
 const stop = async (child) => {
   if (!child || child.exitCode !== null || child.signalCode !== null) return;
