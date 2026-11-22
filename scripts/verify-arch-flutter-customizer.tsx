@@ -860,7 +860,7 @@ console.log('PASS 7 · Drawer: 13 tabs, sticky Save/Discard/Undo/Redo/Reset/devi
 /* ================================================================== *
  * 8 · Wiring + isolation from every other template
  * ================================================================== */
-const read = (path: string) => readFileSync(path, 'utf8');
+const read = (path: string) => readFileSync(path, 'utf8').replace(/\r\n/g, '\n');
 const cards = read('src/components/TemplatePreviewModal.tsx');
 const landing = read('src/components/LandingPage.tsx');
 const app = read('src/App.tsx');
