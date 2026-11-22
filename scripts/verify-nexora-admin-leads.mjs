@@ -124,7 +124,8 @@ try {
 }
 
 /* 10. The database keeps the register private. */
-const migration = readFileSync('supabase/migrations/20261107082654_nexora_demo_lead_operations.sql', 'utf8');
+const readCanonical = (path) => readFileSync(path, 'utf8').replace(/\r\n/g, '\n');
+const migration = readCanonical('supabase/migrations/20261107082654_nexora_demo_lead_operations.sql');
 assert.ok(migration.includes('revoke all on table public.landing_lead_audit from anon'), 'the audit table is revoked from anon');
 assert.ok(migration.includes('grant select on table public.landing_lead_audit to authenticated'), 'managers may read the audit trail');
 assert.ok(migration.includes('alter table public.landing_lead_audit enable row level security'), 'the audit table has RLS');
@@ -134,7 +135,7 @@ assert.ok(migration.includes('grant execute on function nexora_private.purge_exp
 assert.ok(migration.includes('create trigger landing_lead_audit_trigger'), 'status changes are audited');
 
 /* 11. The manager page is routed and uses the policies for reading. */
-const admin = readFileSync('src/components/nexora-landing/admin/NexoraDemoLeadsAdmin.tsx', 'utf8');
+const admin = readCanonical('src/components/nexora-landing/admin/NexoraDemoLeadsAdmin.tsx');
 assert.ok(admin.includes("from('landing_leads')"), 'the manager page reads the register through the row policies');
 assert.ok(admin.includes("from('landing_lead_audit')"), 'the manager page reads the audit trail');
 assert.ok(admin.includes("update({ status, admin_notes"), 'the manager page updates the workflow columns');
@@ -142,7 +143,7 @@ assert.ok(admin.includes("action: 'export'"), 'the manager page exports through 
 assert.ok(admin.includes("action: 'erase'"), 'the manager page erases through the server route');
 assert.ok(!admin.includes('SUPABASE_SERVICE_ROLE_KEY'), 'the manager page never uses a privileged key');
 
-const router = readFileSync('src/AppRouter.tsx', 'utf8');
+const router = readCanonical('src/AppRouter.tsx');
 assert.ok(router.includes("'/admin/demo-leads'"), 'the manager page is routed');
 
 console.log(
