@@ -3,7 +3,10 @@ import { supabase } from '../../lib/supabase';
 import { useAuthSession } from '../../lib/useAuthSession';
 import {
   loadMyStaffContext,
+  loadMyStaffMemberships,
+  selectStaffSalon,
   loadStaffWorkspace,
+  type StaffMembershipChoice,
   STAFF_LOGIN_PATH,
   signOutLocal,
   watchStaffAccess,
@@ -33,6 +36,7 @@ type Booking = {
   amountPaid: number;
   servicePrice: number;
   branchId: string;
+  endsAt: string;
 };
 
 /** Panels are derived from the shared permission matrix, never from the route. */
@@ -73,6 +77,9 @@ function statusTone(status: string) {
 export function StaffWorkspacePage() {
   const { session, ready } = useAuthSession();
   const [context, setContext] = useState<StaffContext | null>(null);
+  const [memberships, setMemberships] = useState<StaffMembershipChoice[]>([]);
+  const [selectingSalon, setSelectingSalon] = useState(false);
+  const [updatingBookingId, setUpdatingBookingId] = useState('');
   const [workspace, setWorkspace] = useState<any>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,6 +92,8 @@ export function StaffWorkspacePage() {
     setError('');
     setLoading(true);
     try {
+      const availableMemberships = await loadMyStaffMemberships();
+      setMemberships(availableMemberships);
       const ctx = await loadMyStaffContext();
       setContext(ctx);
       if (!ctx) { setWorkspace(null); setBookings([]); return; }
@@ -92,7 +101,7 @@ export function StaffWorkspacePage() {
       setWorkspace(projection);
       const { data, error: bookingError } = await supabase
         .from('studioflow_bookings')
-        .select('id,stylist_id,status,payload')
+        .select('id,stylist_id,status,payload,ends_at,branch_id')
         .eq('owner_id', ctx.ownerId)
         .order('starts_at', { ascending: false })
         .limit(200);
@@ -112,7 +121,8 @@ export function StaffWorkspacePage() {
           paymentStatus: payload.paymentStatus || '',
           amountPaid: Number(payload.amountPaid || 0),
           servicePrice: Number(payload.servicePrice || 0),
-          branchId: payload.branchId || '',
+          branchId: row.branch_id || payload.branchId || '',
+          endsAt: row.ends_at || '',
         } as Booking;
       });
       setBookings(rows);
@@ -150,6 +160,23 @@ export function StaffWorkspacePage() {
     });
   }, [ready, session?.user?.id]);
 
+  const completeOwnBooking = async (booking: Booking) => {
+    setError('');
+    setUpdatingBookingId(booking.id);
+    try {
+      const { error: updateError } = await supabase.rpc('studioflow_update_booking', {
+        p_id: booking.id,
+        p_status: 'completed',
+      });
+      if (updateError) throw new Error(updateError.message);
+      await load();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'The appointment could not be completed.');
+    } finally {
+      setUpdatingBookingId('');
+    }
+  };
+
   const role = context ? normalizeAccessRole(context.role) : null;
   // No branch and no explicit "all branches" grant: the database returns no
   // branch data, so the screen says so plainly instead of looking broken.
@@ -164,6 +191,19 @@ export function StaffWorkspacePage() {
     if (!permittedPanels.some((panel) => panel.title === activePanel)) setActivePanel(permittedPanels[0].title);
   }, [permittedPanels, activePanel]);
 
+  const chooseSalon = async (ownerId: string) => {
+    setError('');
+    setSelectingSalon(true);
+    try {
+      await selectStaffSalon(ownerId);
+      await load();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'The salon could not be selected.');
+    } finally {
+      setSelectingSalon(false);
+    }
+  };
+
   if (!ready || (session && loading && !context && !error)) {
     return <main className="grid min-h-screen place-items-center bg-slate-50 px-4"><p role="status" className="text-sm font-semibold text-slate-600">Opening your workspace…</p></main>;
   }
@@ -175,6 +215,26 @@ export function StaffWorkspacePage() {
           <h1 className="text-lg font-extrabold text-slate-900">Staff sign-in required</h1>
           <p className="mt-2 text-sm text-slate-600">Sign in with the account that accepted your salon invite.</p>
           <a className="mt-5 inline-block rounded-xl bg-[#900c3f] px-4 py-2.5 text-sm font-bold text-white" href={STAFF_LOGIN_PATH}>Open staff sign-in</a>
+        </div>
+      </main>
+    );
+  }
+
+  if (!context && memberships.length > 1) {
+    return (
+      <main className="min-h-screen bg-slate-50 px-4 py-12">
+        <div className="mx-auto max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h1 className="text-lg font-extrabold text-slate-900">Choose your salon</h1>
+          <p className="mt-2 text-sm text-slate-600">This staff login has access to more than one salon. Select the workspace you want to open.</p>
+          <div className="mt-4 space-y-2">
+            {memberships.map((membership) => (
+              <button key={membership.memberId} type="button" disabled={selectingSalon} onClick={() => void chooseSalon(membership.ownerId)} className="flex w-full items-center justify-between rounded-xl border border-slate-200 p-3 text-left hover:border-[#900c3f] disabled:opacity-60">
+                <span><strong className="block text-sm text-slate-900">{membership.salonName || 'Salon workspace'}</strong><span className="mt-0.5 block text-xs text-slate-500">{ROLE_SHORT_LABELS[normalizeAccessRole(membership.role)]}</span></span>
+                <span className="text-xs font-bold text-[#900c3f]">{selectingSalon ? 'Opening…' : 'Open salon'}</span>
+              </button>
+            ))}
+          </div>
+          <button type="button" onClick={async () => { await signOutLocal(); location.assign(STAFF_LOGIN_PATH); }} className="mt-4 rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold text-slate-700">Sign out</button>
         </div>
       </main>
     );
@@ -226,7 +286,7 @@ export function StaffWorkspacePage() {
           <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
-                <tr><th className="p-2.5">Client</th><th className="p-2.5">Service</th><th className="p-2.5">When</th><th className="p-2.5">Specialist</th><th className="p-2.5">Status</th></tr>
+                <tr><th className="p-2.5">Client</th><th className="p-2.5">Service</th><th className="p-2.5">When</th><th className="p-2.5">Specialist</th><th className="p-2.5">Status</th><th className="p-2.5">Action</th></tr>
               </thead>
               <tbody>
                 {myBookings.slice(0, 50).map((booking) => (
@@ -239,9 +299,10 @@ export function StaffWorkspacePage() {
                     <td className="p-2.5 text-slate-700">{booking.date}{booking.time ? <span className="block text-xs text-slate-500">{booking.time}</span> : null}</td>
                     <td className="p-2.5 text-slate-700">{booking.stylistName || '—'}</td>
                     <td className="p-2.5"><span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${statusTone(booking.status)}`}>{booking.status}</span></td>
+                    <td className="p-2.5">{can(role, 'complete_own_bookings') && booking.stylistId === context.staffId && booking.status === 'confirmed' && booking.endsAt && new Date(booking.endsAt).getTime() <= Date.now() ? <button type="button" disabled={updatingBookingId === booking.id} onClick={() => void completeOwnBooking(booking)} className="rounded-lg bg-[#900c3f] px-2.5 py-1.5 text-[11px] font-bold text-white disabled:opacity-60">{updatingBookingId === booking.id ? 'Saving…' : 'Mark complete'}</button> : <span className="text-xs text-slate-400">—</span>}</td>
                   </tr>
                 ))}
-                {!myBookings.length ? <tr><td colSpan={5} className="p-6 text-center text-sm text-slate-500">No bookings yet. New appointments appear here automatically.</td></tr> : null}
+                {!myBookings.length ? <tr><td colSpan={6} className="p-6 text-center text-sm text-slate-500">No bookings yet. New appointments appear here automatically.</td></tr> : null}
               </tbody>
             </table>
           </div>
@@ -350,6 +411,14 @@ export function StaffWorkspacePage() {
                   ? branches.map((b: any) => b.name).filter(Boolean).join(', ') || `${context.branchIds.length} branch${context.branchIds.length === 1 ? '' : 'es'}`
                   : 'No branch assigned'}
             </p>
+            {memberships.length > 1 ? (
+              <label className="mt-2 flex items-center gap-2 text-xs font-semibold text-slate-600">
+                Salon workspace
+                <select aria-label="Select salon workspace" value={context.ownerId} disabled={selectingSalon} onChange={(event) => void chooseSalon(event.target.value)} className="max-w-[220px] rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs">
+                  {memberships.map((membership) => <option key={membership.memberId} value={membership.ownerId}>{membership.salonName || 'Salon workspace'}</option>)}
+                </select>
+              </label>
+            ) : null}
           </div>
           <div className="flex items-center gap-2">
             {can(role, 'manage_settings') && canAccessModule(role, 2) ? (
