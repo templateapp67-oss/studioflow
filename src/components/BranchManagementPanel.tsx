@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import type { SalonProfile } from '../types';
 import { BranchLocationsEditor } from './BranchLocationsEditor';
 import { STAFF_ACCESS_ROLES, ROLE_SHORT_LABELS, ROLE_PERMISSIONS, PERMISSION_LABELS, normalizeAccessRole, DEFAULT_ACCESS_ROLE } from '../lib/staffPermissions';
+import { updateStaffMemberAccess } from '../lib/staffInvites';
 import type { StaffAccessRole } from '../types';
 
 type InventoryItem = { id: string; branch_id: string; name: string; sku: string; quantity: number; unit: string; reorder_level: number; is_active: boolean };
@@ -69,10 +70,17 @@ export const BranchManagementPanel: React.FC<Props> = ({ profile, setProfile }) 
     const membership = data[0] as any;
     const branchIds = Array.isArray(membership.branch_ids) ? membership.branch_ids.map(String) : [];
     const nextBranchIds = membership.all_branches ? branchIds : Array.from(new Set([...branchIds, branchId]));
-    const result = await supabase.from('studioflow_staff_members')
-      .update({ role: memberRole, branch_ids: nextBranchIds })
-      .eq('id', membership.id).eq('owner_id', ownerId);
-    if (result.error) { setError(result.error.message); return; }
+    try {
+      await updateStaffMemberAccess({
+        memberId: membership.id,
+        role: memberRole,
+        branchIds: nextBranchIds,
+        allBranches: membership.all_branches === true,
+      });
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Staff access could not be updated.');
+      return;
+    }
     setStaffUserId('');
     setNotice(membership.all_branches ? 'Staff role updated. This login already has access to all branches.' : 'Staff role and branch access saved.');
     await reload();
@@ -84,10 +92,17 @@ export const BranchManagementPanel: React.FC<Props> = ({ profile, setProfile }) 
       return;
     }
     const nextBranchIds = (member.branch_ids || []).filter(id => id !== branchId);
-    const result = await supabase.from('studioflow_staff_members')
-      .update({ branch_ids: nextBranchIds })
-      .eq('id', member.id).eq('owner_id', ownerId);
-    if (result.error) setError(result.error.message); else await reload();
+    try {
+      await updateStaffMemberAccess({
+        memberId: member.id,
+        role: normalizeAccessRole(member.role),
+        branchIds: nextBranchIds,
+        allBranches: false,
+      });
+      await reload();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Branch access could not be updated.');
+    }
   };
 
   return <div className="space-y-6">
