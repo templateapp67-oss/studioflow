@@ -321,7 +321,12 @@ function Invoke-RazorpayTestE2E {
     $script:RazorpayRefundStatus = [string]$refunded.refundStatus
     Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'EXECUTED_TEST_MODE' -Detail ('The server twice confirmed keyMode=test; the ₹1 sandbox payment was verified, captured/confirmed and refunded through studioflow-payments. Refund state: ' + $script:RazorpayRefundStatus + '. Provider order is QA-tagged.')
   } catch {
-    Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'FAIL' -Detail 'The Razorpay sandbox sequence failed. The finally block will run Edge cleanup for the QA marker; QA routes independently refuse any non-test key mode.'
+    $qaError = Get-HttpErrorInfo $_
+    if ([string]$qaError.body -match 'NEXORA_E2E_MODE_CHANGED') {
+      Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'ABORTED_MODE_CHANGED' -Detail 'The Edge Function rejected the QA action because the configured keyMode was no longer test. No live operation was sent; the finally block will attempt test-only cleanup and retain recovery state if the server is not back in test mode.'
+    } else {
+      Write-Check -Name 'Razorpay test capture + Edge refund' -Status 'FAIL' -Detail 'The Razorpay sandbox sequence failed. The finally block will run Edge cleanup for the QA marker; QA routes independently refuse any non-test key mode.'
+    }
   }
 }
 
