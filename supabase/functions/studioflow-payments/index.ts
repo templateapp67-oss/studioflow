@@ -1,6 +1,6 @@
 // Secrets stay in Supabase Edge Function settings, never in the browser bundle.
 import {createClient} from 'npm:@supabase/supabase-js@2.117.3';
-import {signatureMatches,depositPaise,sameSecret} from './payment-security.ts';
+import {signatureMatches,depositPaise,sameSecret,razorpayKeyMode,razorpayStatusResponse} from './payment-security.ts';
 import {paymentLinkOrderKey,verifiedLinkPaymentId,verifyLinkPayment} from './payment-link-security.ts';
 
 const cors={
@@ -17,14 +17,14 @@ function razorpayCredentials(){
   const key=env('RAZORPAY_KEY_ID')||env('RZP_KEY_ID')||env('RAZORPAY_KEY');
   const secret=env('RAZORPAY_KEY_SECRET')||env('RZP_KEY_SECRET')||env('RAZORPAY_SECRET');
   const webhookSecret=env('RAZORPAY_WEBHOOK_SECRET')||env('RZP_WEBHOOK_SECRET');
-  return {key,secret,webhookSecret,configured:!!key&&!!secret,mode:key.startsWith('rzp_live_')?'live':'test'};
+  return {key,secret,webhookSecret,configured:!!key&&!!secret,mode:key.startsWith('rzp_live_')?'live':'test',keyMode:razorpayKeyMode(key)};
 }
 
 Deno.serve(async(req:Request)=>{
   const respond=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{...cors,'Content-Type':'application/json'}});
   if(req.method==='OPTIONS')return new Response('ok',{headers:cors});
   const creds=razorpayCredentials();
-  if(req.method==='GET')return respond({configured:creds.configured,webhookConfigured:!!creds.webhookSecret,mode:creds.mode});
+  if(req.method==='GET')return respond(razorpayStatusResponse(creds.key,creds.secret,creds.webhookSecret));
   if(req.method!=='POST')return respond({error:'POST required'},405);
   try {
     const url=env('SUPABASE_URL')||Deno.env.get('SUPABASE_URL')||'';
@@ -213,6 +213,152 @@ Deno.serve(async(req:Request)=>{
 
     const worker=req.headers.get('x-worker-token');
     const token=req.headers.get('authorization')?.replace(/^Bearer\s+/i,'')||'';
+
+    // NEXORA QA actions are isolated from the application payment ledger. Each
+    // call independently proves the service-role bearer and exact test key
+    // prefix before making any provider request.
+    const requireNexoraE2eTestMode=()=>{
+      if(!serviceKey||!sameSecret(token,serviceKey))throw new Error('Unauthorized');
+      if(!creds.configured||creds.keyMode!=='test')throw new Error('NEXORA E2E blocked: Razorpay backend keyMode is not test.');
+    };
+    const validNexoraE2eRun=(value:unknown):value is string=>
+      typeof value==='string'&&/^NEXORA-E2E-[a-f0-9]{32}$/.test(value);
+    const qaReceipt=(qaRun:string)=>'nx-e2e-'+qaRun.slice(-27);
+    const getQaOrder=async(orderId:string,qaRun:string)=>{
+      if(!/^order_[A-Za-z0-9]+$/.test(orderId)||!validNexoraE2eRun(qaRun))throw new Error('Invalid NEXORA E2E order reference');
+      const order=await provider('orders/'+encodeURIComponent(orderId));
+      if(order.id!==orderId||order.notes?.qa!=='NEXORA-E2E'||order.notes?.qa_run!==qaRun||
+         Number(order.amount)!==100||order.currency!=='INR'){
+        throw new Error('Razorpay order is not the expected NEXORA E2E test order');
+      }
+      return order;
+    };
+    const getQaPayment=async(orderId:string,paymentId:string,qaRun:string)=>{
+      const order=await getQaOrder(orderId,qaRun);
+      if(!/^pay_[A-Za-z0-9]+$/.test(paymentId))throw new Error('Invalid NEXORA E2E payment reference');
+      const payment=await provider('payments/'+encodeURIComponent(paymentId));
+      if(payment.id!==paymentId||payment.order_id!==order.id||
+         Number(payment.amount)!==100||payment.currency!=='INR'){
+        throw new Error('Payment does not match the NEXORA E2E test order');
+      }
+      return payment;
+    };
+    const getQaRefunds=async(paymentId:string,qaRun:string)=>{
+      const response=await provider('payments/'+encodeURIComponent(paymentId)+'/refunds');
+      const items=Array.isArray(response.items)?response.items:[];
+      return items.filter((item:any)=>item.notes?.qa==='NEXORA-E2E'&&item.notes?.qa_run===qaRun);
+    };
+    const refundQaPayment=async(orderId:string,paymentId:string,qaRun:string)=>{
+      const payment=await getQaPayment(orderId,paymentId,qaRun);
+      if(payment.status!=='captured')throw new Error('Only a captured NEXORA E2E test payment can be refunded');
+      const existing=await getQaRefunds(paymentId,qaRun);
+      if(existing.some((item:any)=>item.status==='processed'||item.status==='pending')){
+        return {refunded:true,refundStatus:existing[0].status,alreadyRefunded:true};
+      }
+      const refund=await provider('payments/'+encodeURIComponent(paymentId)+'/refunds',{
+        method:'POST',
+        body:JSON.stringify({amount:100,speed:'optimum',notes:{qa:'NEXORA-E2E',qa_run:qaRun}})
+      });
+      if(!refund?.id||!['processed','pending'].includes(refund.status)){
+        throw new Error('Razorpay did not confirm the NEXORA E2E test refund');
+      }
+      return {refunded:true,refundStatus:refund.status};
+    };
+
+    if(body.action==='nexoraE2eCreateTestOrder'){
+      requireNexoraE2eTestMode();
+      if(!validNexoraE2eRun(body.qaRun))return respond({error:'Invalid NEXORA E2E run marker'},400);
+      // Fixed ₹1.00 test order; caller-supplied amounts are never accepted.
+      const created=await provider('orders',{method:'POST',body:JSON.stringify({
+        amount:100,currency:'INR',receipt:qaReceipt(body.qaRun),payment_capture:1,
+        notes:{qa:'NEXORA-E2E',qa_run:body.qaRun}
+      })});
+      if(!created?.id||Number(created.amount)!==100||created.currency!=='INR'||
+         created.notes?.qa!=='NEXORA-E2E'||created.notes?.qa_run!==body.qaRun){
+        return respond({error:'Razorpay did not return the expected QA-marked test order'},502);
+      }
+      return respond({orderId:created.id,keyId:creds.key,amount:100,currency:'INR'},201);
+    }
+
+    if(body.action==='nexoraE2eVerifyTestPayment'){
+      requireNexoraE2eTestMode();
+      if(typeof body.orderId!=='string'||typeof body.paymentId!=='string'||
+         typeof body.signature!=='string'||!validNexoraE2eRun(body.qaRun)){
+        return respond({error:'Invalid NEXORA E2E payment verification request'},400);
+      }
+      if(!await signatureMatches(creds.secret,body.orderId+'|'+body.paymentId,body.signature)){
+        return respond({error:'Invalid Razorpay test payment signature'},400);
+      }
+      const payment=await getQaPayment(body.orderId,body.paymentId,body.qaRun);
+      if(!['authorized','captured'].includes(payment.status)){
+        return respond({error:'Razorpay test payment is not authorized or captured'},409);
+      }
+      return respond({verified:true,paymentStatus:payment.status});
+    }
+
+    if(body.action==='nexoraE2eCaptureTestPayment'){
+      requireNexoraE2eTestMode();
+      if(typeof body.orderId!=='string'||typeof body.paymentId!=='string'||!validNexoraE2eRun(body.qaRun)){
+        return respond({error:'Invalid NEXORA E2E capture request'},400);
+      }
+      const payment=await getQaPayment(body.orderId,body.paymentId,body.qaRun);
+      if(payment.status==='captured')return respond({captured:true,paymentStatus:'captured',alreadyCaptured:true});
+      if(payment.status!=='authorized')return respond({error:'Only an authorized NEXORA test payment can be captured'},409);
+      const captured=await provider('payments/'+encodeURIComponent(body.paymentId)+'/capture',{
+        method:'POST',body:JSON.stringify({amount:100,currency:'INR'})
+      });
+      if(captured.id!==body.paymentId||captured.status!=='captured'||
+         Number(captured.amount)!==100||captured.currency!=='INR'){
+        return respond({error:'Razorpay test payment capture could not be confirmed'},502);
+      }
+      return respond({captured:true,paymentStatus:captured.status});
+    }
+
+    if(body.action==='nexoraE2eRefundTestPayment'){
+      requireNexoraE2eTestMode();
+      if(typeof body.orderId!=='string'||typeof body.paymentId!=='string'||!validNexoraE2eRun(body.qaRun)){
+        return respond({error:'Invalid NEXORA E2E refund request'},400);
+      }
+      return respond(await refundQaPayment(body.orderId,body.paymentId,body.qaRun));
+    }
+
+    if(body.action==='nexoraE2eCleanupTestOrder'){
+      requireNexoraE2eTestMode();
+      if(!validNexoraE2eRun(body.qaRun))return respond({error:'Invalid NEXORA E2E cleanup marker'},400);
+      let orderIds:string[]=[];
+      if(typeof body.orderId==='string'&&body.orderId.length>0){
+        orderIds=[body.orderId];
+      }else{
+        // Recover an order created immediately before the client lost its response.
+        const lookup=await provider('orders?receipt='+encodeURIComponent(qaReceipt(body.qaRun)));
+        const found=Array.isArray(lookup.items)?lookup.items:[];
+        orderIds=found.filter((item:any)=>item.notes?.qa==='NEXORA-E2E'&&item.notes?.qa_run===body.qaRun)
+          .map((item:any)=>String(item.id));
+      }
+      const results=[];
+      for(const orderId of orderIds){
+        const order=await getQaOrder(orderId,body.qaRun);
+        const paymentResponse=await provider('orders/'+encodeURIComponent(orderId)+'/payments');
+        const payments=Array.isArray(paymentResponse.items)?paymentResponse.items:[];
+        const captured=payments.find((item:any)=>item.status==='captured');
+        const authorized=payments.find((item:any)=>item.status==='authorized');
+        let cleanupStatus='unpaid_flagged';
+        if(captured){
+          const refund=await refundQaPayment(orderId,captured.id,body.qaRun);
+          cleanupStatus='refunded_'+refund.refundStatus;
+        }else if(authorized){
+          const capture=await provider('payments/'+encodeURIComponent(authorized.id)+'/capture',{
+            method:'POST',body:JSON.stringify({amount:100,currency:'INR'})
+          });
+          if(capture.status!=='captured')throw new Error('Could not capture the authorized sandbox payment for refund cleanup');
+          const refund=await refundQaPayment(orderId,authorized.id,body.qaRun);
+          cleanupStatus='refunded_'+refund.refundStatus;
+        }
+        results.push({providerOrderFlagged:true,cleanupStatus});
+      }
+      return respond({cleanupComplete:true,providerOrderCount:results.length,results});
+    }
+
     if(body.action==='whatsappCancelPaymentLink'){
       if(!sameSecret(token,serviceKey))return respond({error:'Unauthorized'},401);
       if(typeof body.bookingId!=='string')return respond({error:'Booking reference required'},400);
@@ -338,7 +484,7 @@ Deno.serve(async(req:Request)=>{
 
     if(!token)return respond({error:'Sign in before checkout'},401);
     const auth=await service.auth.getUser(token);if(auth.error||!auth.data.user)return respond({error:'Your session expired. Sign in again.'},401);
-    if(body.action==='status')return respond({configured:creds.configured,webhookConfigured:!!creds.webhookSecret,mode:creds.mode});
+    if(body.action==='status')return respond(razorpayStatusResponse(creds.key,creds.secret,creds.webhookSecret));
     if(!creds.configured)return respond({error:'Platform payment gateway is not configured. The platform owner must add Razorpay credentials.'},503);
 
     if(body.action==='refundBooking'){
