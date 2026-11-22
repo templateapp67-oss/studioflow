@@ -2222,6 +2222,24 @@
       "evidence": "Applied to Supabase project zilwgiuiygqqardzutxi on 2026-11-22 and confirmed in remote supabase_migrations.schema_migrations. The function-only migration restores studioflow_expire_unpaid_holds and studioflow_claim_refunds used by the studioflow-payments Edge Function. Both RPCs reject non-service_role callers; no booking/payment rows were changed by applying this migration.",
       "purpose": "Service-only expiration of pending unpaid holds after their hold deadline, plus atomic bounded SKIP LOCKED refund claims for captured INR payments in refund_required state.",
       "git_blob_sha": "21af5bf08f7d609013113a48fa2a0402b08424f9"
+    },
+    {
+      "version": "20261122052119",
+      "file": "20261122052119_staff_salon_context_and_booking_completion.sql",
+      "name": "staff_salon_context_and_booking_completion",
+      "observed_at": "2026-11-22",
+      "evidence": "Applied to Supabase project zilwgiuiygqqardzutxi and confirmed in remote migration history. Adds a private active-salon selection for multi-salon staff, updates the staff context/workspace and CRM owner selection to use the explicit choice, and permits only own assigned staff to complete a confirmed past booking. No booking RLS policy was changed.",
+      "purpose": "Explicit multi-salon staff context and server-enforced own-booking completion; single-membership users continue to resolve automatically.",
+      "git_blob_sha": "7337acd54e07719447639b6916e35a4c2cd266b2"
+    },
+    {
+      "version": "20261122052400",
+      "file": "20261122052400_staff_inventory_membership_access.sql",
+      "name": "staff_inventory_membership_access",
+      "observed_at": "2026-11-22",
+      "evidence": "Applied to Supabase project zilwgiuiygqqardzutxi and confirmed in remote migration history. Adds one idempotent staff inventory policy using the canonical manage_inventory permission and assigned active branches. Existing owner and legacy branch-staff policies remain installed.",
+      "purpose": "Allows Managers with active branch membership to manage only inventory for their assigned active branches.",
+      "git_blob_sha": "21839dad562a9c6b4e0992c8a3daeb90da405c84"
     }
   ]
 }
