@@ -1,10 +1,16 @@
 import assert from 'node:assert/strict';
-import {chmodSync,mkdtempSync,readdirSync,readFileSync,rmSync,writeFileSync} from 'node:fs';
+import {chmodSync,mkdirSync,mkdtempSync,readdirSync,readFileSync,rmSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
 
 const EXPECTED_REF='zilwgiuiygqqardzutxi';
+const bashCommand=process.env.BASH || 'bash';
+const bashProbe=spawnSync(bashCommand,['--version'],{encoding:'utf8',stdio:'ignore'});
+const bashAvailable=!bashProbe.error && bashProbe.status===0;
+if(!bashAvailable && process.platform!=='win32'){
+  assert.fail('Bash is required to execute the production release workflow contract tests.');
+}
 const workflow=readFileSync('.github/workflows/production.yml','utf8').replace(/\r\n/g,'\n');
 const dispatch=workflow.split('  workflow_dispatch:\n')[1].split('\nconcurrency:')[0];
 assert(dispatch.includes('type: choice') && dispatch.includes('default: dry_run'));
@@ -60,9 +66,14 @@ assert(ciGate.indexOf('echo "::error::')>=0 && ciGate.includes('exit 1'),
 
 const validation=workflow.split('- name: Validate manual release mode')[1].split('\n      - ')[0];
 const shell=validation.split('        run: |\n')[1].split('\n').map(line=>line.replace(/^          /,'')).join('\n');
-for(const mode of [...options,'invalid','true','']){
-  const result=spawnSync('bash',['-eu','-c',shell],{env:{...process.env,RELEASE_MODE:mode},encoding:'utf8'});
-  assert.equal(result.status===0,options.includes(mode),`Release validation mismatch for ${JSON.stringify(mode)}`);
+if(bashAvailable){
+  for(const mode of [...options,'invalid','true','']){
+    const result=spawnSync(bashCommand,['-eu','-c',shell],{env:{...process.env,RELEASE_MODE:mode},encoding:'utf8'});
+    assert(!result.error,`Could not execute Bash release-mode validation: ${result.error?.message}`);
+    assert.equal(result.status===0,options.includes(mode),`Release validation mismatch for ${JSON.stringify(mode)}`);
+  }
+}else{
+  console.warn('SKIP: Bash shell execution checks are unavailable on this Windows machine; GitHub Linux CI runs these checks.');
 }
 
 // --- Supabase project-reference validation, whitespace normalization, and propagation ---
@@ -117,6 +128,7 @@ assert(credShell.includes(`"$SUPABASE_PROJECT_REF" != "${EXPECTED_REF}"`),'targe
 
 const tempRoot=mkdtempSync(join(tmpdir(),'studioflow-prod-ref-'));
 try {
+  if(bashAvailable){
   const TOKEN_SENTINEL='sbp_secret_access_token_sentinel_do_not_print';
   const PASS_SENTINEL='db_secret_password_sentinel_do_not_print';
   const WRONG_SECRET_SENTINEL='gsahfgwhhpjwtpmhozkm';
@@ -135,7 +147,8 @@ try {
       SUPABASE_PROJECT_REF_SECRET:'',
       ...overrides,
     };
-    const res=spawnSync('bash',['-c',credShell],{env,encoding:'utf8'});
+    const res=spawnSync(bashCommand,['-c',credShell],{env,encoding:'utf8'});
+    assert(!res.error,`Could not execute Bash credential validation: ${res.error?.message}`);
     const combined=`${res.stdout??''}\n${res.stderr??''}`;
     assert(!combined.includes(TOKEN_SENTINEL),'must never print SUPABASE_ACCESS_TOKEN');
     assert(!combined.includes(PASS_SENTINEL),'must never print SUPABASE_DB_PASSWORD');
@@ -197,7 +210,7 @@ try {
   // 3. End-to-end propagation: normalize "\tzilwgiuiygqqardzutxi\r\n" once and execute every hosted step's shell command against a mock supabase CLI.
   const binDir=join(tempRoot,'bin');
   const callsFile=join(tempRoot,'supabase-calls.jsonl');
-  spawnSync('mkdir',['-p',binDir]);
+  mkdirSync(binDir,{recursive:true});
   const mockSupabase=join(binDir,'supabase');
   writeFileSync(mockSupabase,`#!/usr/bin/env node
 const fs = require('node:fs');
@@ -242,7 +255,7 @@ if(argv[0] === 'migration' && argv[1] === 'list'){
 
   for(const stepName of hostedSteps){
     const cmd=extractStepCommand(stepName);
-    const stepRes=spawnSync('bash',['-euo','pipefail','-c',cmd],{
+    const stepRes=spawnSync(bashCommand,['-euo','pipefail','-c',cmd],{
       env:{
         ...process.env,
         PATH:`${binDir}:${process.env.PATH}`,
@@ -253,6 +266,7 @@ if(argv[0] === 'migration' && argv[1] === 'list'){
       },
       encoding:'utf8',
     });
+    assert(!stepRes.error,`${stepName} could not execute Bash: ${stepRes.error?.message}`);
     assert.equal(stepRes.status,0,`${stepName} command failed under mock CLI: ${stepRes.stderr}`);
   }
 
@@ -260,6 +274,10 @@ if(argv[0] === 'migration' && argv[1] === 'list'){
   assert.equal(calls.length,5);
   for(const call of calls){
     assert.equal(call.envRef,EXPECTED_REF,'propagated SUPABASE_PROJECT_REF env has zero whitespace');
+  }
+
+  }else{
+    console.warn('SKIP: Supabase shell-command execution/credential-propagation tests are unavailable because Bash is not installed or on PATH. The corresponding complete tests run in Linux CI.');
   }
 
   // Exercise the production history parser against a remote-only timestamp row.
@@ -273,7 +291,7 @@ if(argv[0] === 'migration' && argv[1] === 'list'){
     '------|--------|----------',
     ...localVersions.map(version=>'`'+version+'` | `'+(remoteByLocal.get(version)||version)+'` | `2026-11-19 00:00:00`')
   ].join('\n');
-  const remoteOnlyResult=spawnSync('node',['scripts/verify-supabase-migration-history.mjs'],{
+  const remoteOnlyResult=spawnSync(process.execPath,['scripts/verify-supabase-migration-history.mjs'],{
     env:{
       ...process.env,
       SUPABASE_MIGRATION_LIST_OUTPUT:baseMigrationList+'\n              | `20990101000000` | `2099-01-01 00:00:00`',
@@ -285,7 +303,7 @@ if(argv[0] === 'migration' && argv[1] === 'list'){
   assert(remoteOnlyOutput.includes('20990101000000'),
     'remote-only failure must identify the unmatched remote version: '+remoteOnlyOutput);
 
-  const duplicateRemoteResult=spawnSync('node',['scripts/verify-supabase-migration-history.mjs'],{
+  const duplicateRemoteResult=spawnSync(process.execPath,['scripts/verify-supabase-migration-history.mjs'],{
     env:{
       ...process.env,
       SUPABASE_MIGRATION_LIST_OUTPUT:baseMigrationList+'\n              | `20261118203000` | `2026-11-18 20:30:00`',
@@ -297,6 +315,7 @@ if(argv[0] === 'migration' && argv[1] === 'list'){
   assert(duplicateRemoteOutput.includes('duplicate remote migration history rows'),
     'duplicate remote failure must explain the duplicate history row: '+duplicateRemoteOutput);
 
+  if(bashAvailable){
   assert.deepEqual(calls[0].argv,['link','--project-ref',EXPECTED_REF]);
   assert.deepEqual(calls[1].argv,['migration','list',`--remote=${EXPECTED_REF}`,'--password',PASS_SENTINEL]);
   assert.deepEqual(calls[2].argv,['db','push','--dry-run',`--remote=${EXPECTED_REF}`,'--password',PASS_SENTINEL]);
@@ -307,6 +326,7 @@ if(argv[0] === 'migration' && argv[1] === 'list'){
     'studioflow-payments','studioflow-whatsapp-booking','studioflow-booking-emails',
     `--remote=${EXPECTED_REF}`,'--use-api',
   ]);
+  }
 } finally {
   rmSync(tempRoot,{recursive:true,force:true});
 }
