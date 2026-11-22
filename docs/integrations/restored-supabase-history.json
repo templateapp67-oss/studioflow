@@ -2350,6 +2350,16 @@
       "evidence": "Applied to Supabase project zilwgiuiygqqardzutxi and confirmed in remote migration history. Replaces the branch-aware Android book RPC with the same authorization, availability and booking logic, but uses an explicit customer_id/request_id/fingerprint/booking_id insert column list. No bookings, requests or service rows were created or modified by the migration.",
       "purpose": "Make Android booking idempotency persistence independent of physical table column order across live and restored schemas.",
       "git_blob_sha": "54af4d08aff68e622d1b423c564a09d83ffe2a48"
+    },
+    {
+      "version": "20261122072823",
+      "remote_version": "20261122072823",
+      "file": "20261122072823_correct_android_request_fingerprint_builder.sql",
+      "name": "correct_android_request_fingerprint_builder",
+      "observed_at": "2026-11-22",
+      "evidence": "Applied to Supabase project zilwgiuiygqqardzutxi and confirmed in remote migration history. Restores md5(jsonb_build_array(...)) while preserving the explicit customer_id/request_id/fingerprint/booking_id insert column list. Existing booking and request data remains untouched.",
+      "purpose": "Keep Android booking idempotency fingerprint generation valid on PostgreSQL and make request persistence independent of physical column order.",
+      "git_blob_sha": "b026808d9651b74361d4a50b154fb6f75eabedcb"
     }
   ]
 }

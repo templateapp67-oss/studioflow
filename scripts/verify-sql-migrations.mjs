@@ -569,6 +569,7 @@ for (const name of [
   '20261122069000_public_branch_list_published_guard.sql',
   '20261122072341_harden_active_branch_ids_acl.sql',
   '20261122072714_android_request_insert_explicit_columns.sql',
+  '20261122072823_correct_android_request_fingerprint_builder.sql',
 ]) {
   const file = 'supabase/migrations/' + name;
   await applySqlText(readFileSync(file, 'utf8'), file);
@@ -629,9 +630,12 @@ assert.ok(androidBookContract, 'Android booking RPC must exist after branch migr
 assert.equal(androidBookContract.security_definer, true,
   'Android booking RPC must retain its established SECURITY DEFINER execution boundary');
 assert.match(androidBookContract.definition,
-  /insert into public\\.studioflow_android_requests\\s*\\(\\s*customer_id\\s*,\\s*request_id\\s*,\\s*fingerprint\\s*,\\s*booking_id\\s*\\)\\s*values/i,
+  /insert into public\.studioflow_android_requests\s*\(\s*customer_id\s*,\s*request_id\s*,\s*fingerprint\s*,\s*booking_id\s*\)\s*values/i,
   'Android booking idempotency insert must name its columns and not depend on physical table order');
-console.log('PASS Android booking idempotency insert uses an explicit column list');
+assert.match(androidBookContract.definition,
+  /finger\s*:=\s*md5\(jsonb_build_array\(/i,
+  'Android booking request fingerprint must use PostgreSQL jsonb_build_array');
+console.log('PASS Android booking idempotency insert uses explicit columns and valid fingerprint expression');
 
 const rpcs=clientRpc(src);
 const froms=[...src.matchAll(/\.from\(\s*['"`]([A-Za-z0-9_-]+)['"`]/g)].map(m=>m[1]);
