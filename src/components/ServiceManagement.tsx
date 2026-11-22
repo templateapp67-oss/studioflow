@@ -46,22 +46,26 @@ export function ServiceManagement({services,setServices,primaryAccentColor,profi
  const activeTemplateId=profile?.businessType||'hair_salon';
  const [branchOptions,setBranchOptions]=useState<Array<{id:string;name:string;city?:string}>>([]);
  const [branchMap,setBranchMap]=useState<Record<string,string[]>>({});
- // This owner-side editor must work before storefront publication. The public
- // branch listing is intentionally hidden until a website is published, so
- // populate the private selector from the saved workspace branch draft instead.
- useEffect(()=>{
-  const branches=Array.isArray(profile?.branches)?profile.branches:[];
-  setBranchOptions(branches
-   .filter(item=>item&&typeof item.id==='string'&&typeof item.name==='string'&&item.isActive!==false)
-   .map(item=>({id:item.id,name:item.name,city:typeof item.city==='string'?item.city:''})));
- },[profile?.branches]);
+ // Use the authenticated owner read model rather than the public branch
+ // listing: owners must be able to configure branches before publication.
  useEffect(()=>{
   let active=true;
-  void supabase.rpc('studioflow_owner_service_branch_map').then(({data,error})=>{
-   if(!active||error||!Array.isArray(data))return;
-   const next:Record<string,string[]>={};
-   for(const item of data as any[])if(item&&typeof item.serviceId==='string'&&Array.isArray(item.branchIds))next[item.serviceId]=item.branchIds.filter((id:any)=>typeof id==='string');
-   setBranchMap(next);
+  void Promise.all([
+   supabase.rpc('studioflow_owner_crm_branch_options'),
+   supabase.rpc('studioflow_owner_service_branch_map')
+  ]).then(([branchesResult,mapResult])=>{
+   if(!active)return;
+   const branchPayload=branchesResult.data as any;
+   if(!branchesResult.error&&branchPayload?.isOwner===true&&Array.isArray(branchPayload.branches)){
+    setBranchOptions(branchPayload.branches
+     .filter((item:any)=>item&&typeof item.id==='string'&&typeof item.name==='string')
+     .map((item:any)=>({id:item.id,name:item.name,city:typeof item.city==='string'?item.city:''})));
+   }
+   if(!mapResult.error&&Array.isArray(mapResult.data)){
+    const next:Record<string,string[]>={};
+    for(const item of mapResult.data as any[])if(item&&typeof item.serviceId==='string'&&Array.isArray(item.branchIds))next[item.serviceId]=item.branchIds.filter((id:any)=>typeof id==='string');
+    setBranchMap(next);
+   }
   }).catch(()=>{});
   return()=>{active=false};
  },[]);
