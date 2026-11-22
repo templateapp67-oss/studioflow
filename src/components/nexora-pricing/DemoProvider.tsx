@@ -19,6 +19,11 @@ export function useDemoDialog() {
   return context;
 }
 
+/** Optional accessor for shared marketing UI that is also used without a demo provider. */
+export function useOptionalDemoDialog(): (() => void) | null {
+  return useContext(DemoContext)?.openDemo ?? null;
+}
+
 export function DemoProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [lead, setLead] = useState(initialLead);

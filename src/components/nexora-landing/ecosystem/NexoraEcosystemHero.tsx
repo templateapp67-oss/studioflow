@@ -1,6 +1,8 @@
 import type { CSSProperties } from 'react';
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import { NEXORA_ECOSYSTEM_SEO, type NexoraEcosystemPath } from '../../../lib/nexoraEcosystemSeo';
+import { SiteHeader } from '../sections/SiteHeader';
+import { NexoraBreadcrumbs } from '../sections/NexoraBreadcrumbs';
 import { NEXORA_TITLE_MOTION, useNexoraTitleDemote } from './useNexoraTitleDemote';
 import './nexoraEcosystemHero.css';
 
@@ -42,11 +44,26 @@ function splitTitle(heading: string) {
   return { words, trailing, keepWrapped };
 }
 
-export function NexoraEcosystemHeader() {
+export function NexoraEcosystemHeader({ currentPath }: { currentPath?: NexoraEcosystemPath } = {}) {
+  const resolvedCurrentPath = currentPath
+    ?? (typeof window !== 'undefined' ? window.location.pathname as NexoraEcosystemPath : '/salon-onboarding');
+
   return (
-    <header className="nxh-nav">
-      <div className="nxh-nav__inner">
-        <a className="nxh-nav__brand" href="/" aria-label="NEXORA SALON OS home">
+    <SiteHeader
+      currentPath={resolvedCurrentPath}
+      links={NAV_LINKS}
+      mobileLinks={NAV_LINKS}
+      primaryAction={{
+        label: 'Owner Workspace',
+        href: '/login',
+        icon: <ArrowUpRight size={14} strokeWidth={2.2} aria-hidden="true" />,
+      }}
+      showLogin={false}
+      showHelpCentre={false}
+      sticky={false}
+      appearance="ecosystem"
+      brand={(
+        <span className="nxh-nav__brand">
           <span className="nxh-nav__mark" aria-hidden="true">
             <svg width="15" height="15" viewBox="0 0 32 32" focusable="false">
               <path
@@ -62,19 +79,9 @@ export function NexoraEcosystemHeader() {
           <span className="nxh-nav__wordmark">
             NEXORA<span className="nxh-nav__wordmark-suffix">SALON OS</span>
           </span>
-        </a>
-        <nav className="nxh-nav__links" aria-label="Main navigation">
-          {NAV_LINKS.map((link) => (
-            <a key={link.href} className="nxh-nav__link" href={link.href}>
-              {link.label}
-            </a>
-          ))}
-        </nav>
-        <a className="nxh-nav__cta" href="/login">
-          Owner Workspace <ArrowUpRight size={14} strokeWidth={2.2} aria-hidden="true" />
-        </a>
-      </div>
-    </header>
+        </span>
+      )}
+    />
   );
 }
 
@@ -116,7 +123,7 @@ export function NexoraEcosystemHero({
         } as CSSProperties
       }
     >
-      <NexoraEcosystemHeader />
+      <NexoraEcosystemHeader currentPath={path} />
       <div className="nxh-hero__glow nxh-hero__glow--violet" aria-hidden="true" />
       <div className="nxh-hero__glow nxh-hero__glow--ember" aria-hidden="true" />
       <div className="nxh-hero__glow nxh-hero__glow--halo" aria-hidden="true" />
@@ -124,6 +131,7 @@ export function NexoraEcosystemHero({
 
       <div className="nxh-hero__inner">
         <div className="nxh-hero__stage">
+          <NexoraBreadcrumbs path={path} />
           <p className="nxh-hero__eyebrow">
             <span className="nxh-hero__eyebrow-dot" aria-hidden="true" />
             Nexora SalonOS
@@ -136,6 +144,7 @@ export function NexoraEcosystemHero({
           <h1
             className={`nxh-hero__title${keepWrapped ? ' nxh-hero__title--keep-wrap' : ''}`}
             id="nxe-hero-title"
+            tabIndex={-1}
             ref={titleRef}
           >
             <span className="nxh-hero__prefix" aria-hidden="true">

@@ -50,6 +50,7 @@ export function NexoraEcosystemPage({ path }: { path: keyof typeof pageData }) {
   if (isRewards) return <><NexoraEcosystemSeoHead path={path} /><NexoraGrowthPartnerRewardsPage /></>;
   return <div className="min-h-screen bg-white text-[#211B2B]">
     <NexoraEcosystemSeoHead path={path} />
+    <a className="nexora-site-skip" href="#nxe-hero-title">Skip to main content</a>
     <NexoraEcosystemHero
       path={path}
       heading={page.heading}

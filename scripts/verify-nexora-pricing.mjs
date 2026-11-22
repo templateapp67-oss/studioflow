@@ -96,7 +96,7 @@ const sectionSequence = ['<PriceHeader/>', '<Hero ', '<PricingGrid ', '<FeatureM
 const sectionPositions = sectionSequence.map(section => page.indexOf(section));
 assert.ok(sectionPositions.every(position => position >= 0) && sectionPositions.every((position, index) => index === 0 || position > sectionPositions[index - 1]), 'The ten pricing landing-page sections render in the documented order');
 assert.ok(appRouter.includes("publicPath === '/salon-os'") && landingPage.includes('<HeroSection />') && landingPage.includes('<FeatureSections aliasId="platform" />'), 'The SalonOS companion route stays an additive public route');
-const landingSequence = ['<SiteHeader />', '<HeroSection />', '<BusinessTypesSection aliasId="salon-categories" />', '<ProblemSolutionSection />', '<FeatureSections aliasId="platform" />', '<HowItWorksSection />', '<PricingSection aliasId="plans" />', '<PricingDetailPointer />', '<OperationsSection />', '<BenefitsSection />', '<TestimonialSection />', '<FaqSection />', '<FinalCtaSection />', '<SiteFooter />'];
+const landingSequence = ['<SiteHeader', '<HeroSection />', '<BusinessTypesSection aliasId="salon-categories" />', '<ProblemSolutionSection />', '<FeatureSections aliasId="platform" />', '<HowItWorksSection />', '<PricingSection aliasId="plans" />', '<PricingDetailPointer />', '<OperationsSection />', '<BenefitsSection />', '<TestimonialSection />', '<FaqSection />', '<FinalCtaSection />', '<SiteFooter />'];
 const landingPositions = landingSequence.map(section => landingPage.indexOf(section));
 assert.ok(landingPositions.every(position => position >= 0) && landingPositions.every((position, index) => index === 0 || position > landingPositions[index - 1]), 'The complete landing page composes the documented sections in order');
 assert.ok(landingContent.includes('NEXORA_TEMPLATE_META.length'), 'Landing content is derived from the verifiable template catalogue');
@@ -120,9 +120,21 @@ for (const [token, value] of [
 assert.ok(featureStatus.includes('CircleCheck') && featureStatus.includes('CircleX'), 'Status rendering uses the outlined circular check and cross');
 assert.ok(!featureStatus.includes('CircleHelp') && !featureStatus.includes('HelpCircle'), 'No question-mark status icon exists');
 assert.ok(featureStatus.includes('Included in') && featureStatus.includes('Not included in'), 'Statuses expose "Included in <plan>" / "Not included in <plan>" labels');
+const hoverCardStyles = readFileSync('src/components/nexora-pricing/table/hoverCard.css', 'utf8');
 assert.ok(
-  featureInfoTooltip.includes('role="tooltip"') && featureInfoTooltip.includes("event.key === 'Escape'"),
-  'Feature descriptions open in a real, dismissible tooltip',
+  featureInfoTooltip.includes('export function HoverCard')
+    && featureInfoTooltip.includes('ArrowDown')
+    && featureInfoTooltip.includes("event.key !== 'Escape'")
+    && featureInfoTooltip.includes("window.addEventListener('scroll', onScroll, true)")
+    && featureInfoTooltip.includes("'aria-expanded': open")
+    && !featureInfoTooltip.includes('aria-describedby'),
+  'Hover cards expose expansion, support keyboard entry, dismiss on Escape/scroll, and do not flatten rich content into aria-describedby',
+);
+assert.ok(
+  hoverCardStyles.includes('@media (prefers-reduced-motion: reduce)')
+    && hoverCardStyles.includes("data-appearance='dark'")
+    && hoverCardStyles.includes('calc(100vw - 24px)'),
+  'Hover cards respect reduced motion, dark appearance and viewport-constrained sizing',
 );
 assert.ok(
   comparisonTable.includes('NEXORA_COMPARISON_MATRIX') && comparisonTable.includes('data-feature-id'),

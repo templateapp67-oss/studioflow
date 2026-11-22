@@ -2035,7 +2035,12 @@
     "relations": 273,
     "assessment": "Read-only owner-supplied live catalog; not a live migration dry-run or deployment."
   },
-  "release_pending_migrations": [],
+  "release_pending_migrations": [
+    {
+      "file": "20261122065000_branch_service_android_wrapper_grants.sql",
+      "purpose": "Restrict the Android booking wrapper to authenticated and service_role after the branch guard. Added on main after the captured applied-history baseline; remains pending for the protected manual release workflow."
+    }
+  ],
   "reviewed_feature_migrations": [
     {
       "file": "20261117130000_reconcile_template15_multiservice_booking.sql",
