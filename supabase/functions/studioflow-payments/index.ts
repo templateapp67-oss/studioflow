@@ -50,15 +50,19 @@ Deno.serve(async(req:Request)=>{
     };
     const refundPayment=async(orderId:string,paymentId:string,amount:number)=>{
       const requeueForReconciliation=async(reason:string)=>{
-        const {error}=await service.from('studioflow_payment_orders')
-          .update({
-            status:'refund_required',
-            refund_status:'required',
-            refund_error:('Refund reconciliation pending: '+reason).slice(0,300)
-          })
-          .eq('order_id',orderId)
-          .in('status',['refunding','refund_required']);
-        return !error;
+        try{
+          const {error}=await service.from('studioflow_payment_orders')
+            .update({
+              status:'refund_required',
+              refund_status:'required',
+              refund_error:('Refund reconciliation pending: '+reason).slice(0,300)
+            })
+            .eq('order_id',orderId)
+            .in('status',['refunding','refund_required']);
+          return !error;
+        }catch{
+          return false;
+        }
       };
       try{
         const refund=await provider(`payments/${encodeURIComponent(paymentId)}/refunds`,{method:'POST',body:JSON.stringify({amount,speed:'optimum',notes:{studioflow_order:orderId}})});
