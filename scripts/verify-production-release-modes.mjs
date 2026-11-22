@@ -226,11 +226,19 @@ if(argv[0] === 'migration' && argv[1] === 'list'){
   const aliases = JSON.parse(fs.readFileSync('docs/integrations/restored-supabase-history.json','utf8'))
     .post_export_applied_versions || [];
   const remoteByLocal = new Map(aliases.map(record => [record.file.split('_',1)[0],record.remote_version || record.version]));
+  const history = JSON.parse(fs.readFileSync('docs/integrations/restored-supabase-history.json', 'utf8'));
+  const pending = new Set((history.release_pending_migrations || []).map(record => record.file.split('_', 1)[0]));
   const versions = files.map(name => name.slice(0,14)).sort();
   const rows = [
     'LOCAL | REMOTE | TIME (UTC)',
     '------|--------|----------',
-    ...versions.map(version => { const tick = String.fromCharCode(96); const remote=remoteByLocal.get(version)||version; return tick+version+tick+' | '+tick+remote+tick+' | '+tick+'2026-11-19 00:00:00'+tick; })
+    ...versions.map(version => {
+      const tick = String.fromCharCode(96);
+      const migration = tick + version + tick;
+      const remote = pending.has(version) ? '' : tick + (remoteByLocal.get(version) || version) + tick;
+      const appliedAt = pending.has(version) ? '' : tick + '2026-11-19 00:00:00' + tick;
+      return migration + ' | ' + remote + ' | ' + appliedAt;
+    })
   ];
   process.stdout.write(rows.join('\\n')+'\\n');
 }
@@ -285,12 +293,20 @@ if(argv[0] === 'migration' && argv[1] === 'list'){
   const localVersions=readdirSync('supabase/migrations')
     .filter(name=>/^\d{14}_.+\.sql$/.test(name))
     .map(name=>name.slice(0,14)).sort();
-  const aliasRecords=JSON.parse(readFileSync('docs/integrations/restored-supabase-history.json','utf8')).post_export_applied_versions||[];
+  const history=JSON.parse(readFileSync('docs/integrations/restored-supabase-history.json','utf8'));
+  const aliasRecords=history.post_export_applied_versions||[];
   const remoteByLocal=new Map(aliasRecords.map(record=>[record.file.split('_',1)[0],record.remote_version||record.version]));
+  const pendingVersions=new Set((history.release_pending_migrations||[]).map(record=>record.file.split('_',1)[0]));
   const baseMigrationList=[
     'LOCAL | REMOTE | TIME (UTC)',
     '------|--------|----------',
-    ...localVersions.map(version=>'`'+version+'` | `'+(remoteByLocal.get(version)||version)+'` | `2026-11-19 00:00:00`')
+    ...localVersions.map(version=>{
+      const tick=String.fromCharCode(96);
+      const migration=tick+version+tick;
+      const remote=pendingVersions.has(version)?'':tick+(remoteByLocal.get(version)||version)+tick;
+      const appliedAt=pendingVersions.has(version)?'':tick+'2026-11-19 00:00:00'+tick;
+      return migration+' | '+remote+' | '+appliedAt;
+    })
   ].join('\n');
   const remoteOnlyResult=spawnSync(process.execPath,['scripts/verify-supabase-migration-history.mjs'],{
     env:{
