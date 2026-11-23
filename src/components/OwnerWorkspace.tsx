@@ -53,6 +53,7 @@ import { nexoraName, nexoraCategoryLabel } from './nexora/NexoraBrand';
 import { sortTemplatesByPriority, nexoraTemplateMeta } from '../lib/nexoraTemplateCatalogue';
 import { SyncIndicator } from './SyncIndicator';
 import { NexoraWhatsAppPanel } from './NexoraWhatsAppPanel';
+import { formatPublishingError } from '../lib/publishing';
 
 type Props = {
   profile: SalonProfile;
@@ -271,7 +272,7 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
             <button
               type="button"
               className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer active:scale-95"
-              onClick={onPublish}
+              onClick={()=>void onPublish().then(()=>flash('Website published successfully.')).catch(error=>{console.error('[StudioFlow] Header publish action failed',error);flash(formatPublishingError(error));})}
             >
               Publish Website
             </button>
