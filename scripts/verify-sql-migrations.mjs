@@ -576,7 +576,7 @@ for (const name of [
   '20261122072714_android_request_insert_explicit_columns.sql',
   '20261122072823_correct_android_request_fingerprint_builder.sql',
   '20261122072900_branch_service_android_wrapper_grants.sql',
-  '20261123110000_public_storefront_invoker_view.sql',
+  '20261123065338_public_storefront_invoker_view.sql',
 ]) {
   const file = 'supabase/migrations/' + name;
   await applySqlText(readFileSync(file, 'utf8'), file);
