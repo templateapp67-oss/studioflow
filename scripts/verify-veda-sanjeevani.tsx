@@ -611,7 +611,7 @@ assert.ok(parts.includes("whileInView=\"visible\""), 'entrances trigger on scrol
 assert.ok(parts.includes('viewport={revealViewport}'), 'entrances fire once, at 20% visibility');
 assert.ok(/reduce \|\| !canObserveViewport/.test(parts), 'reveals render instantly without IntersectionObserver or with reduced motion');
 
-const sections = readFileSync('src/components/veda-sanjeevani/VedaSections.tsx', 'utf8');
+const sections = readFileSync('src/components/veda-sanjeevani/VedaSections.tsx', 'utf8').replace(/\r\n/g, '\n');
 assert.ok((sections.match(/variant="glass"/g) || []).length >= 6, 'therapy, package, expert, offer and quote grids all stagger glass cards');
 assert.ok((sections.match(/<VedaPageHead/g) || []).length >= 5, 'every inner page uses the animated header');
 assert.ok(sections.includes('<VedaPageHead\n        crumb="Therapies"'), 'the therapies page header animates');

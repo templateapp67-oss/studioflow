@@ -860,7 +860,7 @@ console.log('PASS 7 · Drawer: 13 tabs, sticky Save/Discard/Undo/Redo/Reset/devi
 /* ================================================================== *
  * 8 · Wiring + isolation from every other template
  * ================================================================== */
-const read = (path: string) => readFileSync(path, 'utf8');
+const read = (path: string) => readFileSync(path, 'utf8').replace(/\r\n/g, '\n');
 const cards = read('src/components/TemplatePreviewModal.tsx');
 const landing = read('src/components/LandingPage.tsx');
 const app = read('src/App.tsx');
@@ -909,7 +909,7 @@ assert.equal(/^[a-z]+\s*\{/m.test(customizerCss), false, 'no bare element select
 assert.ok(customizerCss.includes('@supports not ((backdrop-filter: blur(4px))'), 'glass falls back where backdrop-filter is missing');
 assert.ok(customizerCss.includes('@media (prefers-reduced-motion: reduce)'), 'motion is disabled for owners who ask for it');
 const cssImporters = readdirSync('src/components', { recursive: true })
-  .map((name) => String(name))
+  .map((name) => String(name).replace(/\\/g, '/'))
   .filter((name) => name.endsWith('.tsx') || name.endsWith('.ts'))
   .filter((name) => read(`src/components/${name}`).includes("customizer.css"));
 assert.deepEqual(cssImporters.sort(), ['arch-flutter-customizer/ArchFlutterCustomizer.tsx'], 'only the drawer imports the customizer stylesheet');

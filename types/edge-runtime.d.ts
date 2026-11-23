@@ -1,5 +1,5 @@
 // Minimal local type declarations for the deployed Deno Edge runtime.
-declare const Deno:{env:{get(name:string):string|undefined};serve(handler:(request:Request)=>Response|Promise<Response>):void};
+declare const Deno:{env:{get(name:string):string|undefined};serve(handler:(request:Request)=>Response|Promise<Response>):void;test(name:string,fn:()=>void|Promise<void>):void};
 
 // Remote Deno imports are resolved by the deployed edge runtime, not by Node's
 // module resolution, so the local type check needs their public surface only.

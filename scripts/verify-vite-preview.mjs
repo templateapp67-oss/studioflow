@@ -9,9 +9,42 @@ await new Promise((resolve, reject) => probe.once('error', reject).listen(0, '12
 const port = probe.address().port;
 await new Promise(resolve => probe.close(resolve));
 const child = spawn(process.execPath, ['--import', 'tsx', 'server.ts', '--port', String(port)], {
-  env: { ...process.env, NODE_ENV: 'development' }, detached: true, stdio: ['ignore', 'pipe', 'pipe'],
+  env: { ...process.env, NODE_ENV: 'development' }, detached: process.platform !== 'win32', stdio: ['ignore', 'pipe', 'pipe'],
 });
 let output = '';
+const waitForChildExit = (processChild, timeoutMs) => new Promise(resolve => {
+  if (processChild.exitCode !== null || processChild.signalCode !== null) {
+    resolve(true);
+    return;
+  }
+  let settled = false;
+  const finish = exited => {
+    if (settled) return;
+    settled = true;
+    clearTimeout(timer);
+    processChild.removeListener('exit', onExit);
+    resolve(exited);
+  };
+  const onExit = () => finish(true);
+  const timer = setTimeout(() => finish(false), timeoutMs);
+  processChild.once('exit', onExit);
+  if (processChild.exitCode !== null || processChild.signalCode !== null) finish(true);
+});
+
+const stopServer = async processChild => {
+  if (!processChild || processChild.exitCode !== null || processChild.signalCode !== null) return;
+  try {
+    if (process.platform === 'win32') processChild.kill('SIGTERM');
+    else process.kill(-processChild.pid, 'SIGTERM');
+  } catch { /* already exited */ }
+  if (await waitForChildExit(processChild, 5000)) return;
+  try {
+    if (process.platform === 'win32') processChild.kill('SIGKILL');
+    else process.kill(-processChild.pid, 'SIGKILL');
+  } catch { /* already exited */ }
+  await waitForChildExit(processChild, 2000);
+};
+
 child.stdout.on('data', chunk => { output += chunk; });
 child.stderr.on('data', chunk => { output += chunk; });
 try {
@@ -41,5 +74,5 @@ try {
   });
   console.log('PASS: affected imports transform and HMR connects on the HTTP preview port.');
 } finally {
-  try { process.kill(-child.pid, 'SIGTERM'); } catch { /* already exited */ }
+  await stopServer(child);
 }

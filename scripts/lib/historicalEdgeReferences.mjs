@@ -16,8 +16,12 @@ export function historicalEdgeReferences(history, readSource) {
     assert(!allowed.has(entry.path), `Duplicate historical Edge inventory: ${entry.path}`);
     assert(entry.reason?.trim(), `Missing historical dependency explanation: ${entry.path}`);
     const source = readSource(entry.path);
-    assert.equal(createHash('sha256').update(source).digest('hex'), record.file_sha256,
+    // Windows checkouts may convert the repository's LF SQL files to CRLF.
+    // Hash canonical LF text so this historical-source guard is platform neutral.
+    const canonicalSource = source.replace(/\r\n/g, '\n');
+    assert.equal(createHash('sha256').update(canonicalSource).digest('hex'), record.file_sha256,
       `Historical migration changed: ${entry.path}; new calls require local source`);
+
     const actual = new Set([...source.matchAll(/functions\/v1\/([a-z0-9-]+)/g)].map(match => match[1]));
     assert(entry.functions.length > 0, `Empty historical Edge inventory: ${entry.path}`);
     for (const name of entry.functions) {
@@ -25,5 +29,8 @@ export function historicalEdgeReferences(history, readSource) {
     }
     allowed.set(entry.path, new Set(entry.functions));
   }
-  return (file, name) => allowed.get(file)?.has(name) ?? false;
+  // Scanner paths come from node:path.join(), which uses backslashes on
+  // Windows. The inventory stores repository paths with forward slashes.
+  const repositoryPath = (file) => file.replace(/\\/g, '/');
+  return (file, name) => allowed.get(repositoryPath(file))?.has(name) ?? false;
 }

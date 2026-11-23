@@ -34,11 +34,17 @@ create or replace function extensions.digest(data text,algo text) returns bytea 
 
 // Dollar-quote-aware splitter: naive ';' splitting breaks plpgsql bodies.
 const splitSql=(sql)=>{
-  const out=[];let cur='',i=0,tag=null,quote=false,line=false;
+  const out=[];let cur='',i=0,tag=null,quote=false,line=false,blockDepth=0;
   while(i<sql.length){
     const two=sql.slice(i,i+2);
+    if(blockDepth>0){
+      if(two==='/*'){blockDepth++;cur+='  ';i+=2;continue;}
+      if(two==='*/'){blockDepth--;cur+='  ';i+=2;continue;}
+      cur+=sql[i]==='\n'?'\n':' ';i++;continue;
+    }
     if(line){cur+=sql[i];if(sql[i]==='\n')line=false;i++;continue;}
     if(two==='--'&&!quote&&!tag){line=true;cur+=two;i+=2;continue;}
+    if(two==='/*'&&!quote&&!tag){blockDepth=1;cur+='  ';i+=2;continue;}
     if(sql[i]==="'"&&!tag){if(sql[i+1]==="'"){cur+="''";i+=2;continue;}quote=!quote;cur+=sql[i];i++;continue;}
     if(sql[i]==='$'&&!quote){
       const m=sql.slice(i).match(/^\$[A-Za-z_0-9]*\$/);
@@ -49,6 +55,7 @@ const splitSql=(sql)=>{
   }
   if(cur.trim())out.push(cur);
   assert.equal(tag,null,'Unterminated dollar-quoted SQL body');
+  assert.equal(blockDepth,0,'Unterminated block comment in SQL body');
   return out;
 };
 const applySqlText=async(sql,label='SQL file')=>{
@@ -533,6 +540,193 @@ assert.equal(tawkSecurity.authenticated_widget_insert, false, 'authenticated can
 assert.equal(tawkSecurity.service_role_widget_select, true, 'service_role can read private widget rows');
 assert.equal(tawkSecurity.service_role_widget_insert, true, 'service_role can insert private widget rows');
 assert.equal(tawkSecurity.widget_id_constraint_count, 1, 'widget ID check constraint exists exactly once');
+// Audit migrations added by PR #141 and its follow-up implementation.
+// Replay them in the exact applied order before scanning browser-called RPCs,
+// so every client call must resolve against the same final SQL catalogue.
+// The restored live Supabase table includes a request fingerprint column
+// that predates this PR but is absent from the compact backend foundation
+// fixture. Add it to the offline schema so the branch-aware booking replay
+// exercises the same four-column idempotency contract as production.
+await db.exec('alter table public.studioflow_android_requests add column if not exists fingerprint text');
+
+// The legacy backend replay exposes this wrapper as RETURNS jsonb. The
+// timestamped Supabase migration supersedes it with the typed table return
+// consumed by the Edge Function, so remove only the offline fixture version.
+await db.exec('drop function if exists public.studioflow_claim_refunds(integer)');
+// The older backend replay declares this public browser wrapper with DEFAULT
+// parameters. The applied timestamped branch migration replaces it with the
+// non-defaulted signature that exists in Supabase. Drop only the offline
+// fixture before replaying that replacement; production is not affected.
+await db.exec('drop function if exists public.studioflow_android_book(text,jsonb,date,text,text,text,text,text,uuid)');
+
+// These legacy trigger functions predate the compact offline fixture. Create
+// minimal trigger-only stubs when absent so the additive ACL migration can be
+// replayed and its permission/search_path contract asserted deterministically.
+await db.exec(`
+do $bootstrap$
+begin
+  if to_regprocedure('public.sync_owner_template_catalogue()') is null then
+    execute $create$
+      create function public.sync_owner_template_catalogue()
+      returns trigger language plpgsql security definer
+      set search_path to pg_catalog, public, pg_temp
+      as $body$ begin return new; end $body$
+    $create$;
+  end if;
+  if to_regprocedure('public.check_max_salon_social_videos()') is null then
+    execute $create$
+      create function public.check_max_salon_social_videos()
+      returns trigger language plpgsql
+      as $body$ begin return new; end $body$
+    $create$;
+  end if;
+end
+$bootstrap$;
+`);
+
+for (const name of [
+  '20261122043650_staff_crm_branch_scope.sql',
+  '20261122045445_studioflow_refund_queue_rpc.sql',
+  '20261122052119_staff_salon_context_and_booking_completion.sql',
+  '20261122052400_staff_inventory_membership_access.sql',
+  '20261122060000_branch_service_catalogue_scope.sql',
+  '20261122060500_branch_scoped_manual_crm_contacts.sql',
+  '20261122061000_branch_assignment_read_models.sql',
+  '20261122064000_branch_crm_contact_update_duplicate_fix.sql',
+  '20261122066000_branch_scope_private_booking_guards.sql',
+  '20261122067000_branch_manual_crm_email_read_projection.sql',
+  '20261122068000_branch_mapping_redundant_index_cleanup.sql',
+  '20261122069000_public_branch_list_published_guard.sql',
+  '20261122072341_harden_active_branch_ids_acl.sql',
+  '20261122072714_android_request_insert_explicit_columns.sql',
+  '20261122072823_correct_android_request_fingerprint_builder.sql',
+  '20261122072900_branch_service_android_wrapper_grants.sql',
+  '20261123065338_public_storefront_invoker_view.sql',
+  '20261123065640_harden_public_trigger_function_acls.sql',
+]) {
+  const file = 'supabase/migrations/' + name;
+  await applySqlText(readFileSync(file, 'utf8'), file);
+}
+
+const {rows: [triggerFunctionAcl]} = await db.query(`
+  select
+    has_function_privilege('anon','public.sync_owner_template_catalogue()','EXECUTE') as anon_sync_execute,
+    has_function_privilege('authenticated','public.sync_owner_template_catalogue()','EXECUTE') as auth_sync_execute,
+    has_function_privilege('service_role','public.sync_owner_template_catalogue()','EXECUTE') as service_sync_execute,
+    (select proconfig from pg_proc where oid='public.check_max_salon_social_videos()'::regprocedure) as social_video_search_path
+`);
+assert.equal(triggerFunctionAcl.anon_sync_execute, false,
+  'anon cannot directly execute the owner catalogue trigger function');
+assert.equal(triggerFunctionAcl.auth_sync_execute, true,
+  'authenticated grant on the owner catalogue trigger function is retained');
+assert.equal(triggerFunctionAcl.service_sync_execute, true,
+  'service_role grant on the owner catalogue trigger function is retained');
+assert.ok(triggerFunctionAcl.social_video_search_path?.includes('search_path=""'),
+  'social-video trigger function pins an empty search_path');
+console.log('PASS: trigger-only function ACL and search_path hardening');
+
+const {rows: [storefrontSecurity]} = await db.query(`
+  select
+    c.reloptions,
+    has_column_privilege('anon','public.studioflow_websites','slug','SELECT') as anon_slug_select,
+    has_column_privilege('anon','public.studioflow_websites','content','SELECT') as anon_content_select,
+    has_column_privilege('anon','public.studioflow_websites','published_at','SELECT') as anon_published_at_select,
+    has_column_privilege('anon','public.studioflow_websites','owner_id','SELECT') as anon_owner_id_select,
+    has_table_privilege('anon','public.studioflow_websites','SELECT') as anon_table_select,
+    has_table_privilege('anon','public.public_salon_websites','SELECT') as anon_view_select,
+    has_table_privilege('authenticated','public.studioflow_websites','SELECT') as authenticated_table_select,
+    has_table_privilege('authenticated','public.public_salon_websites','SELECT') as authenticated_view_select,
+    exists (
+      select 1 from pg_policies
+      where schemaname='public' and tablename='studioflow_websites'
+        and policyname='studioflow_websites_published_public_read'
+        and 'anon'=any(roles) and cmd='SELECT'
+        and qual ilike '%published_at%'
+    ) as anon_published_policy,
+    exists (
+      select 1 from pg_policies
+      where schemaname='public' and tablename='studioflow_websites'
+        and policyname='studioflow_websites_authenticated_read'
+        and 'authenticated'=any(roles) and cmd='SELECT' and qual='true'
+    ) as authenticated_read_policy
+  from pg_class c
+  where c.oid='public.public_salon_websites'::regclass
+`);
+assert.ok(storefrontSecurity.reloptions?.includes('security_invoker=true'),
+  'public storefront view must execute with invoker privileges');
+assert.equal(storefrontSecurity.anon_slug_select, true, 'anon can read the public storefront slug only');
+assert.equal(storefrontSecurity.anon_content_select, true, 'anon can read published storefront content');
+assert.equal(storefrontSecurity.anon_published_at_select, true, 'anon can read the publication timestamp');
+assert.equal(storefrontSecurity.anon_owner_id_select, false, 'anon cannot read salon owner IDs');
+assert.equal(storefrontSecurity.anon_table_select, false, 'anon has no table-wide website SELECT grant');
+assert.equal(storefrontSecurity.anon_view_select, true, 'anon can read the public storefront view');
+assert.equal(storefrontSecurity.authenticated_table_select, true, 'authenticated website reads retain their previous table grant');
+assert.equal(storefrontSecurity.authenticated_view_select, true, 'authenticated clients can read the storefront projection');
+assert.equal(storefrontSecurity.anon_published_policy, true, 'anonymous base-table reads are limited to published rows');
+assert.equal(storefrontSecurity.authenticated_read_policy, true, 'authenticated direct website reads keep their existing visibility policy');
+console.log('PASS: public storefront uses SECURITY INVOKER with column-limited anonymous access and published-row RLS');
+
+const {rows: [activeBranchHelperAcl]} = await db.query(`
+  select p.prosecdef as security_definer,
+         has_function_privilege('anon',p.oid,'EXECUTE') as anon_execute,
+         has_function_privilege('authenticated',p.oid,'EXECUTE') as authenticated_execute,
+         has_function_privilege('service_role',p.oid,'EXECUTE') as service_role_execute,
+         has_function_privilege('postgres',p.oid,'EXECUTE') as postgres_execute
+  from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+  where n.nspname='public' and p.proname='studioflow_active_branch_ids'
+`);
+assert.ok(activeBranchHelperAcl, 'active branch helper must exist after SQL migrations');
+assert.equal(activeBranchHelperAcl.security_definer, false,
+  'active branch helper must not execute with definer privileges');
+assert.equal(activeBranchHelperAcl.anon_execute, false,
+  'anon must not call the internal active branch helper');
+assert.equal(activeBranchHelperAcl.authenticated_execute, false,
+  'authenticated users must use validated owner/staff RPCs, not call the helper directly');
+assert.equal(activeBranchHelperAcl.service_role_execute, true,
+  'trusted service role retains server-only helper access');
+assert.equal(activeBranchHelperAcl.postgres_execute, true,
+  'postgres-owned SECURITY DEFINER entry points must retain helper access');
+
+const {rows: activeBranchCallers} = await db.query(`
+  select p.proname, p.prosecdef as security_definer,
+         pg_get_userbyid(p.proowner) as owner
+  from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+  where n.nspname='public'
+    and p.proname = any($1::text[])
+`, [[
+  'studioflow_staff_invite_accept',
+  'studioflow_staff_invite_create',
+  'studioflow_staff_invite_lookup',
+  'studioflow_staff_member_update_access',
+  'studioflow_staff_scope'
+]]);
+assert.equal(activeBranchCallers.length, 5,
+  'all five validated invite/staff call paths must remain defined');
+for (const caller of activeBranchCallers) {
+  assert.equal(caller.security_definer, true, caller.proname + ' stays a validated SECURITY DEFINER entry point');
+  assert.equal(caller.owner, 'postgres', caller.proname + ' runs as postgres when it invokes the helper');
+}
+console.log('PASS active branch helper privileges and all five validated caller paths');
+
+
+const {rows: [androidBookContract]} = await db.query(`
+  select p.prosecdef as security_definer, pg_get_functiondef(p.oid) as definition
+  from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+  where n.nspname='studioflow_android_private' and p.proname='book'
+  order by p.oid desc
+  limit 1
+`);
+assert.ok(androidBookContract, 'Android booking RPC must exist after branch migrations');
+assert.equal(androidBookContract.security_definer, true,
+  'Android booking RPC must retain its established SECURITY DEFINER execution boundary');
+assert.match(androidBookContract.definition,
+  /insert into public\.studioflow_android_requests\s*\(\s*customer_id\s*,\s*request_id\s*,\s*fingerprint\s*,\s*booking_id\s*\)\s*values/i,
+  'Android booking idempotency insert must name its columns and not depend on physical table order');
+assert.match(androidBookContract.definition,
+  /finger\s*:=\s*md5\(jsonb_build_array\(/i,
+  'Android booking request fingerprint must use PostgreSQL jsonb_build_array');
+console.log('PASS Android booking idempotency insert uses explicit columns and valid fingerprint expression');
+
 const rpcs=clientRpc(src);
 const froms=[...src.matchAll(/\.from\(\s*['"`]([A-Za-z0-9_-]+)['"`]/g)].map(m=>m[1]);
 const tables=froms.filter(n=>!n.includes('-'));

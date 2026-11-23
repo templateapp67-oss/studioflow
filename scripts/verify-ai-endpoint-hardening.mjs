@@ -225,7 +225,8 @@ async function startServer(extraEnv = {}) {
   const child = spawn(process.execPath, ['dist/server.cjs', '--port', String(port)], {
     env: { ...process.env, NODE_ENV: 'production', GEMINI_API_KEY: '', ...extraEnv },
     stdio: ['ignore', 'pipe', 'pipe'],
-    detached: true,
+    // Negative-PID process-group signalling is POSIX-only; on Windows we stop the direct child.
+    detached: process.platform !== 'win32',
   });
   let output = '';
   child.stdout.on('data', (chunk) => { output += chunk; });
@@ -247,8 +248,43 @@ async function startServer(extraEnv = {}) {
   return { child, ready, log: () => output };
 }
 
-const stop = (child) => {
-  try { process.kill(-child.pid, 'SIGTERM'); } catch { /* already exited */ }
+const waitForChildExit = (child, timeoutMs) => new Promise((resolve) => {
+  if (child.exitCode !== null || child.signalCode !== null) {
+    resolve(true);
+    return;
+  }
+  let settled = false;
+  const finish = (exited) => {
+    if (settled) return;
+    settled = true;
+    clearTimeout(timer);
+    child.removeListener('exit', onExit);
+    resolve(exited);
+  };
+  const onExit = () => finish(true);
+  const timer = setTimeout(() => finish(false), timeoutMs);
+  child.once('exit', onExit);
+  // Close the race where the process exits between the first state check and
+  // registering the listener.
+  if (child.exitCode !== null || child.signalCode !== null) finish(true);
+});
+
+const stop = async (child) => {
+  if (!child || child.exitCode !== null || child.signalCode !== null) return;
+
+  try {
+    if (process.platform === 'win32') child.kill('SIGTERM');
+    else process.kill(-child.pid, 'SIGTERM');
+  } catch { /* already exited */ }
+
+  if (await waitForChildExit(child, 5000)) return;
+
+  // Do not leave a test server running if graceful shutdown did not complete.
+  try {
+    if (process.platform === 'win32') child.kill('SIGKILL');
+    else process.kill(-child.pid, 'SIGKILL');
+  } catch { /* already exited */ }
+  await waitForChildExit(child, 2000);
 };
 
 const post = (path, body, headers = {}) =>
@@ -315,7 +351,7 @@ const alive = async () => (await fetch(`http://127.0.0.1:${port}/api/health`)).o
     assert.equal((await limited.json()).code, 'rate_limited', 'a 429 carries a machine-readable code');
     assert.ok(await alive(), 'rate limiting does not disturb other routes');
   } finally {
-    stop(server.child);
+    await stop(server.child);
   }
 }
 
@@ -350,7 +386,7 @@ const alive = async () => (await fetch(`http://127.0.0.1:${port}/api/health`)).o
     const unverified = await post('/api/generate-bio', { businessName: 'Test' }, headers);
     assert.equal(unverified.headers.get('x-ai-auth'), 'unverified', 'an unverifiable token is reported in the header');
   } finally {
-    stop(server.child);
+    await stop(server.child);
   }
 }
 

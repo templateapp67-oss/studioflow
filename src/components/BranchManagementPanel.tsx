@@ -2,11 +2,12 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { SalonProfile } from '../types';
 import { BranchLocationsEditor } from './BranchLocationsEditor';
-import { STAFF_ACCESS_ROLES, ROLE_SHORT_LABELS, ROLE_PERMISSIONS, PERMISSION_LABELS, normalizeAccessRole, accessRoleToBranchRole, branchRoleToAccessRole, can, DEFAULT_ACCESS_ROLE } from '../lib/staffPermissions';
+import { STAFF_ACCESS_ROLES, ROLE_SHORT_LABELS, ROLE_PERMISSIONS, PERMISSION_LABELS, normalizeAccessRole, DEFAULT_ACCESS_ROLE } from '../lib/staffPermissions';
+import { updateStaffMemberAccess } from '../lib/staffInvites';
 import type { StaffAccessRole } from '../types';
 
 type InventoryItem = { id: string; branch_id: string; name: string; sku: string; quantity: number; unit: string; reorder_level: number; is_active: boolean };
-type BranchMember = { id: string; branch_id: string; user_id: string; role: string; can_manage_inventory: boolean; is_active: boolean };
+type BranchMember = { id: string; owner_id: string; user_id: string; staff_id: string; branch_ids: string[]; all_branches: boolean; role: string; is_active: boolean };
 interface Props { profile: SalonProfile; setProfile: React.Dispatch<React.SetStateAction<SalonProfile>>; }
 
 export const BranchManagementPanel: React.FC<Props> = ({ profile, setProfile }) => {
@@ -19,7 +20,7 @@ export const BranchManagementPanel: React.FC<Props> = ({ profile, setProfile }) 
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [name, setName] = useState(''); const [sku, setSku] = useState(''); const [quantity, setQuantity] = useState('0'); const [unit, setUnit] = useState('unit'); const [reorder, setReorder] = useState('0');
-  const [staffUserId, setStaffUserId] = useState(''); const [memberRole, setMemberRole] = useState<StaffAccessRole>(DEFAULT_ACCESS_ROLE); const [inventoryAccess, setInventoryAccess] = useState(false);
+  const [staffUserId, setStaffUserId] = useState(''); const [memberRole, setMemberRole] = useState<StaffAccessRole>(DEFAULT_ACCESS_ROLE);
   useEffect(() => { if (!branches.some(branch => branch.id === branchId)) setBranchId(branches[0]?.id || ''); }, [branches, branchId]);
   useEffect(() => { supabase.auth.getUser().then(({ data }) => setOwnerId(data.user?.id || '')); }, []);
 
@@ -28,10 +29,12 @@ export const BranchManagementPanel: React.FC<Props> = ({ profile, setProfile }) 
     setLoading(true); setError('');
     const [inventoryResult, membersResult] = await Promise.all([
       supabase.from('studioflow_branch_inventory').select('id,branch_id,name,sku,quantity,unit,reorder_level,is_active').eq('site_id', ownerId).eq('branch_id', branchId).eq('is_active', true).order('name'),
-      supabase.from('studioflow_branch_staff_members').select('id,branch_id,user_id,role,can_manage_inventory,is_active').eq('site_id', ownerId).eq('branch_id', branchId).eq('is_active', true).order('created_at'),
+      supabase.from('studioflow_staff_members').select('id,owner_id,user_id,staff_id,branch_ids,all_branches,role,is_active').eq('owner_id', ownerId).eq('is_active', true).order('created_at'),
     ]);
     if (inventoryResult.error || membersResult.error) setError(inventoryResult.error?.message || membersResult.error?.message || 'Branch data could not be loaded.');
-    setItems((inventoryResult.data || []) as InventoryItem[]); setMembers((membersResult.data || []) as BranchMember[]); setLoading(false);
+    setItems((inventoryResult.data || []) as InventoryItem[]);
+    setMembers(((membersResult.data || []) as BranchMember[]).filter(member => member.all_branches || (member.branch_ids || []).includes(branchId)));
+    setLoading(false);
   }, [ownerId, branchId]);
   useEffect(() => { void reload(); }, [reload]);
 
@@ -54,18 +57,52 @@ export const BranchManagementPanel: React.FC<Props> = ({ profile, setProfile }) 
   };
   const addMember = async (event: React.FormEvent) => {
     event.preventDefault(); setError(''); setNotice('');
-    if (!ownerId || !branchId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(staffUserId.trim())) { setError('Enter the staff member’s authenticated user ID (UUID).'); return; }
-    // The three app access roles map onto the two branch roles the database
-    // enforces: Manager -> 'manager', everything else -> 'staff'. Inventory
-    // access is granted by the Manager role or the explicit checkbox.
-    const grantInventory = can(memberRole, 'manage_inventory') || inventoryAccess;
-    const result = await supabase.from('studioflow_branch_staff_members').upsert({ site_id: ownerId, branch_id: branchId, user_id: staffUserId.trim(), role: accessRoleToBranchRole(memberRole), can_manage_inventory: grantInventory, is_active: true }, { onConflict: 'site_id,branch_id,user_id' });
-    if (result.error) { setError(result.error.message); return; }
-    setStaffUserId(''); setNotice('Branch access saved.'); await reload();
+    if (!ownerId || !branchId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(staffUserId.trim())) {
+      setError('Enter the staff member’s authenticated user ID (UUID).'); return;
+    }
+    const { data, error: lookupError } = await supabase.from('studioflow_staff_members')
+      .select('id,branch_ids,all_branches,role,is_active')
+      .eq('owner_id', ownerId).eq('user_id', staffUserId.trim()).eq('is_active', true).limit(2);
+    if (lookupError) { setError(lookupError.message); return; }
+    if (!data?.length) { setError('This person has not accepted a staff invite for this salon yet. Create and accept the invite first.'); return; }
+    if (data.length !== 1) { setError('This login has more than one staff profile in this salon. Ask the owner to resolve the duplicate before assigning a branch.'); return; }
+
+    const membership = data[0] as any;
+    const branchIds = Array.isArray(membership.branch_ids) ? membership.branch_ids.map(String) : [];
+    const nextBranchIds = membership.all_branches ? branchIds : Array.from(new Set([...branchIds, branchId]));
+    try {
+      await updateStaffMemberAccess({
+        memberId: membership.id,
+        role: memberRole,
+        branchIds: nextBranchIds,
+        allBranches: membership.all_branches === true,
+      });
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Staff access could not be updated.');
+      return;
+    }
+    setStaffUserId('');
+    setNotice(membership.all_branches ? 'Staff role updated. This login already has access to all branches.' : 'Staff role and branch access saved.');
+    await reload();
   };
+
   const removeMember = async (member: BranchMember) => {
-    const result = await supabase.from('studioflow_branch_staff_members').update({ is_active: false }).eq('id', member.id).eq('site_id', ownerId).eq('branch_id', branchId);
-    if (result.error) setError(result.error.message); else await reload();
+    if (member.all_branches) {
+      setError('This login has all-branches access. Change its all-branches setting in Team → Staff access.');
+      return;
+    }
+    const nextBranchIds = (member.branch_ids || []).filter(id => id !== branchId);
+    try {
+      await updateStaffMemberAccess({
+        memberId: member.id,
+        role: normalizeAccessRole(member.role),
+        branchIds: nextBranchIds,
+        allBranches: false,
+      });
+      await reload();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Branch access could not be updated.');
+    }
   };
 
   return <div className="space-y-6">
@@ -88,12 +125,12 @@ export const BranchManagementPanel: React.FC<Props> = ({ profile, setProfile }) 
         {items.length > 0 && <div className="mt-4 overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr className="border-b text-xs uppercase text-gray-500"><th className="p-2">Product</th><th className="p-2">SKU</th><th className="p-2">Quantity</th><th className="p-2">Reorder level</th><th className="p-2">Action</th></tr></thead><tbody>{items.map(item => <tr key={item.id} className="border-b"><td className="p-2 font-medium">{item.name}<span className="ml-1 text-gray-500">({item.unit})</span></td><td className="p-2">{item.sku || '—'}</td><td className="p-2"><input aria-label={`${item.name} quantity`} type="number" min="0" step="0.01" defaultValue={item.quantity} onBlur={event => updateQuantity(item,event.target.value)} className="w-24 rounded border p-1" />{item.quantity <= item.reorder_level && <span className="ml-2 text-xs font-bold text-amber-700">Low stock</span>}</td><td className="p-2">{item.reorder_level}</td><td className="p-2"><button type="button" onClick={() => void deactivateItem(item)} className="font-semibold text-red-700">Archive</button></td></tr>)}</tbody></table></div>}
         <form onSubmit={addMember} className="mt-6 rounded-xl border border-dashed border-gray-300 p-4">
           <h4 className="font-bold">Assign staff to this branch</h4><p className="mb-3 text-xs text-gray-600">Use the staff member’s authenticated Supabase user ID; never use an owner/service key in the browser.</p>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><label className="text-xs font-bold sm:col-span-2">Staff user ID<input value={staffUserId} onChange={event => setStaffUserId(event.target.value)} placeholder="UUID" className="mt-1 w-full rounded border p-2 text-sm" /></label><label className="text-xs font-bold">App access role<select value={memberRole} onChange={event => setMemberRole(normalizeAccessRole(event.target.value))} className="mt-1 w-full rounded border p-2 text-sm">{STAFF_ACCESS_ROLES.map(accessRole => <option key={accessRole} value={accessRole}>{accessRole}</option>)}</select></label><label className="flex items-center gap-2 self-end text-sm"><input type="checkbox" checked={inventoryAccess} onChange={event => setInventoryAccess(event.target.checked)} />Can manage inventory</label></div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"><label className="text-xs font-bold sm:col-span-2">Staff user ID<input value={staffUserId} onChange={event => setStaffUserId(event.target.value)} placeholder="UUID" className="mt-1 w-full rounded border p-2 text-sm" /></label><label className="text-xs font-bold">App access role<select value={memberRole} onChange={event => setMemberRole(normalizeAccessRole(event.target.value))} className="mt-1 w-full rounded border p-2 text-sm">{STAFF_ACCESS_ROLES.map(accessRole => <option key={accessRole} value={accessRole}>{accessRole}</option>)}</select></label></div>
           <ul className="mt-2 grid gap-1 sm:grid-cols-2" aria-label={`Permissions for ${memberRole}`}>{ROLE_PERMISSIONS[memberRole].map(permission => <li key={permission} className="text-xs text-gray-600">✓ {PERMISSION_LABELS[permission]}</li>)}</ul>
-          <p className="mt-2 text-xs text-gray-600">Current branch role stored for this member: <strong>{accessRoleToBranchRole(memberRole)}</strong>. Manager maps to branch manager; the others map to branch staff.</p>
+          <p className="mt-2 text-xs text-gray-600">This updates an existing accepted staff login in the salon’s current membership record. Inventory changes require the Manager role.</p>
           <button className="mt-3 rounded-lg border border-gray-300 px-4 py-2 text-sm font-bold">Save branch access</button>
         </form>
-        {members.length>0 && <ul className="mt-3 space-y-2">{members.map(member => <li key={member.id} className="flex flex-wrap items-center justify-between rounded-lg bg-gray-50 p-3 text-sm"><span>{member.user_id} · {ROLE_SHORT_LABELS[branchRoleToAccessRole(member.role === 'manager' ? 'manager' : 'staff')]}{member.can_manage_inventory?' · inventory manager':''}</span><button type="button" onClick={() => void removeMember(member)} className="text-red-700">Remove access</button></li>)}</ul>}
+        {members.length>0 && <ul className="mt-3 space-y-2">{members.map(member => <li key={member.id} className="flex flex-wrap items-center justify-between rounded-lg bg-gray-50 p-3 text-sm"><span>{member.staff_id} · {ROLE_SHORT_LABELS[normalizeAccessRole(member.role)]}{member.all_branches ? ' · all branches' : ''}</span>{member.all_branches ? <span className="text-xs text-gray-500">Manage in Team</span> : <button type="button" onClick={() => void removeMember(member)} className="text-red-700">Remove this branch</button>}</li>)}</ul>}
       </>}
       {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}{notice && <p role="status" className="mt-3 text-sm text-green-700">{notice}</p>}
     </section>

@@ -20,3 +20,28 @@ export function sameSecret(given:string,expected:string){
  let diff=0;for(let i=0;i<given.length;i++)diff|=given.charCodeAt(i)^expected.charCodeAt(i);
  return diff===0;
 }
+
+
+export type RazorpayKeyMode = 'test' | 'live' | 'unknown';
+
+/** Classify the configured server-side key without returning key material. */
+export function razorpayKeyMode(keyId: string | null | undefined): RazorpayKeyMode {
+  if (typeof keyId !== 'string' || keyId.length === 0) return 'unknown';
+  if (keyId.startsWith('rzp_test_')) return 'test';
+  if (keyId.startsWith('rzp_live_')) return 'live';
+  return 'unknown';
+}
+
+/** Backwards-compatible status fields plus a non-secret mode classification. */
+export function razorpayStatusResponse(
+  keyId: string,
+  keySecret: string,
+  webhookSecret: string,
+) {
+  return {
+    configured: Boolean(keyId && keySecret),
+    webhookConfigured: Boolean(webhookSecret),
+    mode: keyId.startsWith('rzp_live_') ? 'live' : 'test',
+    keyMode: razorpayKeyMode(keyId),
+  };
+}

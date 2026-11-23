@@ -5,6 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 /**
  * Environment validation and secret-hygiene checks.
@@ -23,7 +24,7 @@ const bundle = await build({
 const directory = mkdtempSync(join(tmpdir(), 'nexora-env-'));
 const modulePath = join(directory, 'nexoraEnv.mjs');
 writeFileSync(modulePath, bundle.outputFiles[0].text);
-const env = await import(modulePath);
+const env = await import(pathToFileURL(modulePath).href);
 
 const FALLBACK_URL = 'https://zilwgiuiygqqardzutxi.supabase.co';
 const FALLBACK_KEY = 'sb_publishable_test_key';
@@ -97,16 +98,16 @@ const browserSources = [
   'src/lib/nexoraLandingData.ts',
   'src/lib/nexoraLeadSubmission.ts',
 ]
-  .map((file) => readFileSync(file, 'utf8'))
+  .map((file) => readFileSync(file, 'utf8').replace(/\r\n/g, '\n'))
   .join('\n');
 assert.ok(!/SUPABASE_SERVICE_ROLE_KEY/.test(browserSources), 'the browser sources never read a service-role variable');
-const envGuard = readFileSync('src/lib/nexoraEnv.ts', 'utf8');
+const envGuard = readFileSync('src/lib/nexoraEnv.ts', 'utf8').replace(/\r\n/g, '\n');
 const otherBrowserSources = [
   'src/lib/supabase.ts',
   'src/lib/nexoraLandingData.ts',
   'src/lib/nexoraLeadSubmission.ts',
 ]
-  .map((file) => readFileSync(file, 'utf8'))
+  .map((file) => readFileSync(file, 'utf8').replace(/\r\n/g, '\n'))
   .join('\n');
 assert.ok(!/sb_secret_/.test(otherBrowserSources), 'no browser source contains a secret key');
 assert.ok(!/service_role/.test(otherBrowserSources), 'no browser source contains a service-role claim');
@@ -123,7 +124,7 @@ const serverBundle = await build({
 });
 const serverPath = join(directory, 'serverEnv.mjs');
 writeFileSync(serverPath, serverBundle.outputFiles[0].text);
-const serverEnv = await import(serverPath);
+const serverEnv = await import(pathToFileURL(serverPath).href);
 
 const report = serverEnv.readServerEnvironment(
   { SUPABASE_URL: 'https://zilwgiuiygqqardzutxi.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'secret-value' },
@@ -150,7 +151,7 @@ assert.equal(crm.crmConfigured, false, 'an insecure CRM endpoint is not usable')
 assert.equal(crm.crmEndpointInvalid, true, 'an invalid CRM endpoint is reported');
 
 /* 9. The documented environment file names match the code. */
-const envExample = readFileSync('.env.example', 'utf8');
+const envExample = readFileSync('.env.example', 'utf8').replace(/\r\n/g, '\n');
 for (const name of [
   'SUPABASE_URL',
   'SUPABASE_SERVICE_ROLE_KEY',
