@@ -9,6 +9,7 @@ import { spawnSync } from 'node:child_process';
 const SKIP = new Set(['verify-supabase.mjs']);
 const OPTIONAL_ENV = new Map([
   ['verify-nexora-responsive-browser.mjs', ['BROWSER_TOOLS_ROOT', 'PREVIEW_URL']],
+  ['verify-preview-browser-e2e.mjs', ['BROWSER_TOOLS_ROOT', 'PREVIEW_URL']],
 ]);
 const suites = readdirSync('scripts')
   .filter((name) => name.startsWith('verify-') && name.endsWith('.mjs') && !SKIP.has(name))

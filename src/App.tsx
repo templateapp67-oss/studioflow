@@ -545,7 +545,7 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
     const {data,error}=await supabase.rpc('studioflow_publish');
     if(error)throw error;
     const publishedSlug=typeof data?.slug==='string'?data.slug.trim():'';
-    const publishedAt=typeof data?.published_at==='string'?data.published_at:'';
+    const publishedAt=data?.published_at instanceof Date?data.published_at.toISOString():typeof data?.published_at==='string'?data.published_at:'';
     if(!publishedSlug||!publishedAt)throw new Error('Supabase did not return the published website address and publish time. The publish status could not be confirmed.');
     publishedGeneration.current+=1;
     setPublished({...data,slug:publishedSlug,published_at:publishedAt});

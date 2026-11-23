@@ -523,10 +523,65 @@ assert.ok(reloadedWorkspace.root.findAllByProps({href:'https://studioflow.exampl
   'Reloaded Workspace retains live public URL in WebsitePublishPanel');
 await act(async()=>reloadedWorkspace.unmount());
 
+// CustomerBookings UI cancellation -> studioflow_update_booking -> slot reopens in studioflow_available_slots.
+const {CustomerBookings}=await import('../src/components/CustomerBookings');
+(supabase as any).from=(table:string)=>{
+  if(table==='studioflow_bookings'){
+    return {
+      select:()=>({
+        eq:(col:string,uid:string)=>({
+          order:async()=>{
+            const sql=col==='customer_id'
+              ? `select id,status,payload,owner_id,null::uuid as branch_id,hold_expires_at::text as hold_expires_at from public.studioflow_bookings where customer_id=$1 order by starts_at desc`
+              : `select id,status,payload,owner_id,null::uuid as branch_id,hold_expires_at::text as hold_expires_at from public.studioflow_bookings where owner_id=$1 order by starts_at desc`;
+            const {rows}=await asRole('authenticated',uid,()=>db.query(sql,[uid]));
+            return {data:rows,error:null};
+          },
+        }),
+      }),
+    };
+  }
+  return origFrom(table);
+};
+(supabase as any).rpc=async(fn:string,args?:any)=>{
+  try{
+    if(fn==='studioflow_update_booking'){
+      const {rows:[row]}=await asRole('authenticated',customerC,()=>db.query(
+        `select public.studioflow_update_booking($1::uuid,$2) as res`,
+        [args.p_id,args.p_status]
+      ));
+      return {data:row.res,error:null};
+    }
+    return {data:null,error:null};
+  }catch(err:any){
+    return {data:null,error:{message:err?.message||String(err),code:err?.code}};
+  }
+};
+const customerSessionStub={user:{id:customerC,email:'customer-c@example.com',user_metadata:{full_name:'Customer C'}}} as any;
+let customerBookingsTree:any;
+await act(async()=>{
+  customerBookingsTree=create(<CustomerBookings session={customerSessionStub}/>);
+});
+await act(async()=>{await new Promise(r=>setTimeout(r,60));});
+const cancelBtn=customerBookingsTree.root.findAllByType('button').find((b:any)=>b.children.includes('Cancel appointment'));
+assert.ok(cancelBtn,'CustomerBookings renders Cancel appointment button for pending booking');
+await act(async()=>{cancelBtn.props.onClick();});
+await act(async()=>{await new Promise(r=>setTimeout(r,60));});
+assert.ok(JSON.stringify(customerBookingsTree.toJSON()).includes('cancelled'),
+  'CustomerBookings shows cancelled status after cancelling booking');
+await act(async()=>customerBookingsTree.unmount());
+
+const {rows:[reopenedSlotsRow]}=await asRole('anon',null,()=>db.query(
+  `select public.studioflow_available_slots($1,$2,$3::date,$4) as slots`,
+  ['glow-shine-salon','svc-1',bookingDate,'any_available']
+));
+assert.ok(Array.isArray(reopenedSlotsRow.slots)&&reopenedSlotsRow.slots.some((s:any)=>s.available&&s.time==='11:00'),
+  'Cancelled slot becomes available again in studioflow_available_slots');
+
 (supabase as any).from=origFrom;
 (supabase as any).rpc=origRpc;
 (supabase as any).channel=origChannel;
 (supabase as any).removeChannel=origRemoveChannel;
 (supabase as any).auth.getSession=origGetSession;
 
-console.log('PASS: studioflow publish website E2E (SQL, booking + RLS, storefront privacy, slug casing/collision, checklist, header error alert, Workspace reload hydration, and public render).');
+console.log('PASS: studioflow publish website E2E (SQL, booking + RLS, storefront privacy, slug casing/collision, checklist, header error alert, Workspace reload hydration, public render, and customer cancellation + slot reopening).');
