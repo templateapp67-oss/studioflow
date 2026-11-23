@@ -7,6 +7,7 @@ import { useAuthSession } from './lib/useAuthSession';
 import { appendAuthErrorParams, clearOAuthIntent, consumeOAuthCallbackForwarded, hasAuthCallbackFragment, hasAuthCallbackQuery, hasAuthErrorParams, hasOAuthExchangeParams, markOAuthCallbackForwarded, readAuthUrlError, readOAuthIntent } from './lib/authEntry';
 import { isBillingInterval, isPricingPlanId, pricingResumePath } from './lib/nexoraPricing';
 import { workspaceSnapshot, sameWorkspace, mergeWorkspace, revisionConflict, conflictMessage, type ConflictChoice } from './lib/workspaceSync';
+import { formatPublishingError } from './lib/publishing';
 import { useCustomerProfile } from './components/customer/useCustomerProfile';
 import { applyWebsiteFavicon, websiteFavicon } from './lib/websiteFavicon';
 import { hasExplicitSiteQuery, isPlatformRootHost, isStorefrontRootHost, resolveSiteSlug } from './lib/resolveSite';
@@ -518,7 +519,24 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
  const customizeTemplate=(id:BusinessTypeId,config?:ArchFlutterCustomizerConfig,workspace?:MensWorkspace)=>{pendingCustomizerConfig.current=config??null;pendingVedaWorkspace.current=workspace??null;chooseTemplate(id);};
  useEffect(()=>{const workspace=pendingVedaWorkspace.current;if(!workspace||!isVedaTemplate(profile.businessType)&&profile.businessType!=='mens_hair_studio')return;pendingVedaWorkspace.current=null;setProfile(workspace.profile);setServiceState(workspace.services);setStylists(workspace.stylists);if(workspace.loyaltyConfig)setLoyaltyConfig(workspace.loyaltyConfig);void flush().catch(()=>{});},[profile,services,stylists,flush]);
  useEffect(()=>{const config=pendingCustomizerConfig.current;if(!config||!isArchFlutterTemplate(profile.businessType))return;pendingCustomizerConfig.current=null;applyCustomizerWorkspace(applyCustomizerConfig(config,{profile,services,stylists,extras}));},[profile,services,stylists,extras,applyCustomizerWorkspace]);
- const publish=async()=>{await flush();const {data,error}=await supabase.rpc('studioflow_publish');if(error)throw error;setPublished(data);};
+ const publish=async()=>{
+  try{
+    const authResult=await supabase.auth.getSession();
+    if(authResult.error)throw authResult.error;
+    if(authResult.data.session?.user?.id!==session.user.id)throw new Error('Your sign-in session has expired. Sign in again before publishing.');
+    await flush();
+    const {data,error}=await supabase.rpc('studioflow_publish');
+    if(error)throw error;
+    const publishedSlug=typeof data?.slug==='string'?data.slug.trim():'';
+    const publishedAt=typeof data?.published_at==='string'?data.published_at:'';
+    if(!publishedSlug||!publishedAt)throw new Error('Supabase did not return the published website address and publish time. The publish status could not be confirmed.');
+    setPublished({...data,slug:publishedSlug,published_at:publishedAt});
+    setProfile(current=>current.subdomain===publishedSlug?current:{...current,subdomain:publishedSlug});
+  }catch(error){
+    console.error('[StudioFlow] Publish website failed',error);
+    throw new Error(formatPublishingError(error));
+  }
+};
  const book=async(apt:Appointment)=>{await flush();if(!published)throw new Error('Publish your salon website before accepting bookings.');const isAura=profile.businessType==='unisex_salon';const isMens=profile.businessType==='mens_hair_studio';const rpc=isMens?'studioflow_mens_book':apt.branchId?(apt.couponCode?'studioflow_branch_coupon_book':'studioflow_branch_book'):(apt.couponCode?(isAura?'studioflow_aura_coupon_book':'studioflow_coupon_book'):'studioflow_book');const {data,error}=await supabase.rpc(rpc,{p_slug:published.slug,p_request:apt});if(error)throw error;await refreshBookings();return (data?.payload||data) as Appointment;};
  const updateAppointments:React.Dispatch<React.SetStateAction<Appointment[]>>=next=>{
   const updated=typeof next==='function'?next(appointments):next;
