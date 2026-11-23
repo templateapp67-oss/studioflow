@@ -1,6 +1,9 @@
 name: Vercel Preview
 
 on:
+  push:
+    branches:
+      - 'arena/**'
   pull_request:
     types: [opened, synchronize, reopened]
     branches: [main]
@@ -17,6 +20,7 @@ concurrency:
 
 permissions:
   contents: read
+  checks: write
   issues: write
   pull-requests: write
 
@@ -224,3 +228,37 @@ jobs:
           path: test-results/preview-browser-e2e
           retention-days: 14
           if-no-files-found: warn
+
+      - name: Publish Browser E2E Check Run summary
+        uses: actions/github-script@v7
+        if: always()
+        continue-on-error: true
+        with:
+          script: |
+            const fs = require('node:fs');
+            const summaryPath = 'test-results/preview-browser-e2e/summary.md';
+            const reportPath = 'test-results/preview-browser-e2e/report.json';
+            const summary = fs.existsSync(summaryPath)
+              ? fs.readFileSync(summaryPath, 'utf8').slice(0, 60000)
+              : 'No summary.md generated.';
+            const reportRaw = fs.existsSync(reportPath)
+              ? fs.readFileSync(reportPath, 'utf8').slice(0, 60000)
+              : '{}';
+            let status = 'UNKNOWN';
+            try {
+              status = JSON.parse(reportRaw).overallStatus || 'UNKNOWN';
+            } catch {}
+            const headSha = context.payload.pull_request?.head?.sha || context.sha;
+            await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'Preview Browser E2E Report',
+              head_sha: headSha,
+              status: 'completed',
+              conclusion: status === 'PASS' ? 'success' : 'failure',
+              output: {
+                title: `Preview Browser E2E: ${status}`,
+                summary,
+                text: '```json\n' + reportRaw + '\n```',
+              },
+            });

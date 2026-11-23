@@ -72,6 +72,8 @@ const writeReportAndSummary = (overallStatus, blocker = '') => {
   }
   if (pageErrors.length || consoleErrors.length) {
     lines.push('', '### Browser Diagnostics', `- Page errors: ${pageErrors.length}`, `- Console errors: ${consoleErrors.length}`);
+    for (const err of pageErrors.slice(0, 10)) lines.push(`  - pageerror: \`${err.replace(/`/g, "'")}\``);
+    for (const err of consoleErrors.slice(0, 10)) lines.push(`  - console.error: \`${err.replace(/`/g, "'")}\``);
   }
   const summary = lines.join('\n') + '\n';
   writeFileSync(join(artifactsDir, 'summary.md'), summary);
@@ -536,8 +538,16 @@ try {
   }
 } catch (err) {
   overallStatus = 'FAIL';
-  blockerReason = blockerReason || (err instanceof Error ? err.message : String(err));
-  console.error('Browser E2E failed:', scrubSecrets(blockerReason));
+  blockerReason = scrubSecrets(blockerReason || (err instanceof Error ? err.message : String(err)));
+  if (!steps.some((s) => s.status === 'FAIL')) {
+    recordStep('err', 'Unexpected E2E failure', 'FAIL', blockerReason);
+  }
+  for (const { label, ctx } of contexts) {
+    for (const [idx, p] of ctx.pages().entries()) {
+      await safeShot(p, `99-failure-${label}-${idx}`);
+    }
+  }
+  console.error('Browser E2E failed:', blockerReason);
 } finally {
   for (const { label, ctx } of contexts) {
     try {
