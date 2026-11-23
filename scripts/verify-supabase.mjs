@@ -1,12 +1,12 @@
 import {createClient} from '@supabase/supabase-js';
 import {randomUUID} from 'node:crypto';
 import {writeFileSync} from 'node:fs';
-const url='https://zilwgiuiygqqardzutxi.supabase.co';const key='sb_publishable_Xck8H8PcTCCnEwkvBfiSLw_c973vJkH';
+const url=process.env.SUPABASE_URL||process.env.VITE_SUPABASE_URL||'https://zilwgiuiygqqardzutxi.supabase.co';const key=process.env.SUPABASE_PUBLISHABLE_KEY||process.env.VITE_SUPABASE_ANON_KEY||'sb_publishable_Xck8H8PcTCCnEwkvBfiSLw_c973vJkH';
 const client=()=>createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
 const a=client(),b=client();const ids=[];const run=randomUUID().slice(0,8);const password=`Qa!${randomUUID()}9`;const results=[];let photoPath;
 const assert=(condition,label)=>{if(!condition)throw new Error(label);results.push(label);};
 const ok=async p=>{const r=await p;if(r.error)throw r.error;return r.data;};
-const draft=(name,slug)=>({profile:{businessType:'hair_salon',businessName:name,ownerName:name,phone:'+919876543210',whatsapp:'+919876543210',city:'Mumbai',postalCode:'400001',subdomain:slug,requireDeposit:true,depositPercentage:25},services:[{id:'qa-service',name:'QA Haircut',price:800,durationMinutes:30,category:'Hair',description:'QA',icon:'content_cut'}],stylists:[{id:'qa-stylist',name:'QA Stylist',role:'Stylist',avatarUrl:'',specialties:['Hair'],rating:0,status:'Available',schedule:[]}],clients:[],extras:{gallery:[],bookingLeadHours:0},loyaltyConfig:{},onboardingComplete:true});
+const draft=(name,slug)=>({profile:{businessType:'hair_salon',serviceCatalogueInitialized:true,businessName:name,ownerName:name,phone:'+919876543210',whatsapp:'+919876543210',city:'Mumbai',postalCode:'400001',subdomain:slug,requireDeposit:true,depositPercentage:25},services:[{id:'qa-service',name:'QA Haircut',price:800,durationMinutes:30,category:'Hair',description:'QA',icon:'content_cut'}],stylists:[{id:'qa-stylist',name:'QA Stylist',role:'Stylist',avatarUrl:'',specialties:['Hair'],rating:0,status:'Available',schedule:[]}],clients:[],extras:{gallery:[],bookingLeadHours:0},loyaltyConfig:{},onboardingComplete:true});
 try{
  const settings=await fetch(url+'/auth/v1/settings',{headers:{apikey:key}}).then(r=>r.json());if(!settings.mailer_autoconfirm)throw new Error('QA signup skipped: email confirmation would send a message.');
  const emailA=`studioflow-qa-${run}-a@example.com`,emailB=`studioflow-qa-${run}-b@example.com`;

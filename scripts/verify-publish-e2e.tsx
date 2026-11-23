@@ -80,9 +80,15 @@ for(const file of [
   'supabase/migrations/20261121130001_public_storefront_view.sql',
   'supabase/migrations/20261123082445_studioflow_robust_website_publish.sql',
   'supabase/migrations/20261123093000_studioflow_publish_slug_case_and_compat.sql',
+  'supabase/migrations/20261123100000_studioflow_bookings_hold_expires_at_compat.sql',
 ]){
   await applySql(file);
 }
+const {rows:[holdCol]}=await db.query(`
+  select data_type from information_schema.columns
+  where table_schema='public' and table_name='studioflow_bookings' and column_name='hold_expires_at'
+`);
+assert.equal(holdCol?.data_type,'timestamp with time zone','studioflow_bookings.hold_expires_at exists after compat migration');
 
 const ownerA='11111111-1111-4111-8111-111111111111';
 const ownerB='22222222-2222-4222-8222-222222222222';

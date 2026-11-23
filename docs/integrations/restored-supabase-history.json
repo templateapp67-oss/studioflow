@@ -2044,6 +2044,10 @@
     {
       "file": "20261123093000_studioflow_publish_slug_case_and_compat.sql",
       "purpose": "Fix studioflow_private.publish() slug lowercasing order (lower before regexp_replace), stamp resolved slug into content.profile.subdomain on insert/upsert, and preserve backward compatibility for existing drafts that specify businessType and services without serviceCatalogueInitialized. Pending protected manual production release."
+    },
+    {
+      "file": "20261123100000_studioflow_bookings_hold_expires_at_compat.sql",
+      "purpose": "Idempotently ensure public.studioflow_bookings.hold_expires_at (timestamptz) exists in QA and fresh environments whose availability and booking RPCs reference it. Pending protected manual production release (no-op on zilwgiuiygqqardzutxi where column already exists)."
     }
   ],
   "reviewed_feature_migrations": [

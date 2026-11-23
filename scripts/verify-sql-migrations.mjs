@@ -423,11 +423,18 @@ assert.equal(storefrontPrivacy.view_owner_id_columns,0,'the public projection ha
 assert.equal(storefrontPrivacy.bookings_slug_trigger,1,'bookings stamp the public salon slug on write');
 assert.equal(storefrontPrivacy.demo_slug_trigger,1,'demo bookings stamp the public salon slug on write');
 
-// Website publish hardening + follow-up slug-casing/subdomain/compat fix.
+// Website publish hardening + follow-up slug-casing/subdomain/compat fix + hold_expires_at compat.
 const robustPublishFile='supabase/migrations/20261123082445_studioflow_robust_website_publish.sql';
 const publishCaseCompatFile='supabase/migrations/20261123093000_studioflow_publish_slug_case_and_compat.sql';
+const holdExpiresCompatFile='supabase/migrations/20261123100000_studioflow_bookings_hold_expires_at_compat.sql';
 await applySqlText(readFileSync(robustPublishFile,'utf8'),robustPublishFile);
 await applySqlText(readFileSync(publishCaseCompatFile,'utf8'),publishCaseCompatFile);
+await applySqlText(readFileSync(holdExpiresCompatFile,'utf8'),holdExpiresCompatFile);
+const {rows:[holdExpiresCol]}=await db.query(`
+  select data_type from information_schema.columns
+  where table_schema='public' and table_name='studioflow_bookings' and column_name='hold_expires_at'
+`);
+assert.equal(holdExpiresCol?.data_type,'timestamp with time zone','studioflow_bookings.hold_expires_at exists as timestamptz');
 const {rows:[publishGrants]}=await db.query(`
   select
     has_function_privilege('anon','public.studioflow_publish()','EXECUTE') as anon_publish,
