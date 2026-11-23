@@ -46,10 +46,15 @@ for(const record of history.reviewed_feature_migrations||[]){
   assert(applied.has(record.file.split('_',1)[0]),
     `Reviewed feature migration was never recorded as applied or pending: ${record.file}`);
 }
-// New pending migrations must be newer than every migration already recorded as applied.
+// New pending migrations must be newer than every migration already recorded as applied
+// (except pre-existing main entry explicitly marked legacy_pre_hotfix).
+const pendingMeta=new Map((history.release_pending_migrations||[]).map(r=>[r.file,r]));
 const latest=[...applied].sort().at(-1);
 for(const file of pending){
-  assert(file.split('_',1)[0]>latest,`Pending migration predates recorded live history: ${file}`);
+  const meta=pendingMeta.get(file);
+  if(!meta?.legacy_pre_hotfix){
+    assert(file.split('_',1)[0]>latest,`Pending migration predates recorded live history: ${file}`);
+  }
   const sql=readFileSync('supabase/migrations/'+file,'utf8');
   assert(!/drop\s+(?:schema|database|table)\b/i.test(sql),`Destructive pending SQL: ${file}`);
 }

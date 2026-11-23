@@ -423,6 +423,23 @@ assert.equal(storefrontPrivacy.view_owner_id_columns,0,'the public projection ha
 assert.equal(storefrontPrivacy.bookings_slug_trigger,1,'bookings stamp the public salon slug on write');
 assert.equal(storefrontPrivacy.demo_slug_trigger,1,'demo bookings stamp the public salon slug on write');
 
+// Website publish hardening + follow-up slug-casing/subdomain/compat fix.
+const robustPublishFile='supabase/migrations/20261123082445_studioflow_robust_website_publish.sql';
+const publishCaseCompatFile='supabase/migrations/20261123093000_studioflow_publish_slug_case_and_compat.sql';
+await applySqlText(readFileSync(robustPublishFile,'utf8'),robustPublishFile);
+await applySqlText(readFileSync(publishCaseCompatFile,'utf8'),publishCaseCompatFile);
+const {rows:[publishGrants]}=await db.query(`
+  select
+    has_function_privilege('anon','public.studioflow_publish()','EXECUTE') as anon_publish,
+    has_function_privilege('authenticated','public.studioflow_publish()','EXECUTE') as auth_publish,
+    has_function_privilege('anon','studioflow_private.publish()','EXECUTE') as anon_private_publish,
+    has_function_privilege('authenticated','studioflow_private.publish()','EXECUTE') as auth_private_publish
+`);
+assert.equal(publishGrants.anon_publish,false,'anon cannot execute public.studioflow_publish()');
+assert.equal(publishGrants.auth_publish,true,'authenticated can execute public.studioflow_publish()');
+assert.equal(publishGrants.anon_private_publish,false,'anon cannot execute studioflow_private.publish()');
+assert.equal(publishGrants.auth_private_publish,true,'authenticated can execute studioflow_private.publish() via SECURITY INVOKER wrapper');
+
 // NEXORA WhatsApp test mode: apply its private QA ledger and the follow-up
 // rename migration before the live-catalog scan. The limiter is intentionally
 // server-only (service_role grant only) and is not a browser-facing RPC.

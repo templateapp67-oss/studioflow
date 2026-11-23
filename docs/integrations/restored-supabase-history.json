@@ -2038,11 +2038,12 @@
   "release_pending_migrations": [
     {
       "file": "20261122065000_branch_service_android_wrapper_grants.sql",
-      "purpose": "Restrict the Android booking wrapper to authenticated and service_role after the branch guard. Added on main after the captured applied-history baseline; remains pending for the protected manual release workflow."
+      "legacy_pre_hotfix": true,
+      "purpose": "Restrict the Android booking wrapper to authenticated and service_role after the branch guard. Added on main after the captured applied-history baseline (idempotent with hotfix 20261122064912 on zilwgiuiygqqardzutxi); remains pending for the protected manual release workflow."
     },
     {
-      "file": "20261123082445_studioflow_robust_website_publish.sql",
-      "purpose": "Harden the authenticated StudioFlow website publish RPC: enforce the visible publishing checklist, generate collision-safe slugs, persist the published website, and keep optional referral onboarding from rolling back publication. Added on the PR branch; pending protected manual production release."
+      "file": "20261123093000_studioflow_publish_slug_case_and_compat.sql",
+      "purpose": "Fix studioflow_private.publish() slug lowercasing order (lower before regexp_replace), stamp resolved slug into content.profile.subdomain on insert/upsert, and preserve backward compatibility for existing drafts that specify businessType and services without serviceCatalogueInitialized. Pending protected manual production release."
     }
   ],
   "reviewed_feature_migrations": [
@@ -2213,6 +2214,15 @@
       "evidence": "Applied to project zilwgiuiygqqardzutxi on 2026-11-21. Verified live: anon has no SELECT on public.studioflow_websites, public_salon_websites exposes no owner_id column, studioflow_customer_catalog() returns salons without owner_id, and booking payloads carry salonSlug.",
       "purpose": "Anonymous storefront reads no longer carry a salon's owner UUID; bookings join on the public slug instead.",
       "git_blob_sha": "8389139eee2c78041896bb0cfaa9e930b8cbc2e4"
+    },
+    {
+      "version": "20261123082445",
+      "file": "20261123082445_studioflow_robust_website_publish.sql",
+      "name": "studioflow_robust_website_publish",
+      "observed_at": "2026-11-23",
+      "evidence": "Confirmed in supabase_migrations.schema_migrations on project zilwgiuiygqqardzutxi on 2026-11-23.",
+      "purpose": "Hardens studioflow_private.publish() checklist validation, collision-safe slug locking, and non-blocking partner_referrals/growth_onboarding updates.",
+      "git_blob_sha": "681fd451d9fb67eb24b3b531f304edcc27ffef57"
     }
   ]
 }

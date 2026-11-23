@@ -22,7 +22,7 @@ export function WebsitePublishPanel({ published, onPublish, onPublished, profile
   // that omit profile/services (e.g. the publish-link contract) still get a
   // working button, so a click never silently does nothing.
   const readinessChecked = Boolean(profile && services);
-  const isReady = !readinessChecked || Boolean(profile!.businessName && services!.length > 0 && profile!.serviceCatalogueInitialized);
+  const isReady = !readinessChecked || Boolean(profile!.businessName?.trim() && services!.length > 0 && profile!.serviceCatalogueInitialized);
 
   async function publish() {
     if (!onPublish || busy.current || !isReady) return;

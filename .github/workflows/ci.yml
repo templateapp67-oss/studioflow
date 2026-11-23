@@ -56,8 +56,12 @@ jobs:
         run: npm ci
 
       # Free Plan has no GitHub PR preview database. Validate the same
-      # migration and Edge Function contracts offline with PGlite; this job
-      # never creates a Supabase branch or connects to production.
+      # migration, release-ledger, publish E2E, and Edge Function contracts
+      # offline with PGlite; this job never creates a Supabase branch or
+      # connects to production.
+      - name: Verify migration ledger alignment
+        run: node scripts/verify-supabase-migration-history.mjs && node scripts/verify-whatsapp-release-plan.mjs
+
       - name: Verify WhatsApp test-mode contract
         run: node scripts/verify-whatsapp-booking-api.mjs
 
@@ -66,3 +70,6 @@ jobs:
 
       - name: Apply and verify SQL migrations offline
         run: node scripts/verify-sql-migrations.mjs
+
+      - name: Verify StudioFlow publish website E2E (PGlite + UI)
+        run: node scripts/verify-publish-e2e.mjs

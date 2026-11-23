@@ -129,6 +129,9 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
   useEffect(()=>{const back=()=>setActive(ownerModule(new URLSearchParams(location.search).get('module')));window.addEventListener('popstate',back);return()=>window.removeEventListener('popstate',back);},[]);
   useEffect(()=>{headingRef.current?.focus({preventScroll:true});headingRef.current?.scrollIntoView({block:'start'});},[active]);
   const [notice, setNotice] = useState('');
+  const [headerPublishing, setHeaderPublishing] = useState(false);
+  const [headerPublishError, setHeaderPublishError] = useState('');
+  const headerPublishBusy = useRef(false);
   // "View as role" lets the salon owner audit exactly what each App Access
   // Role can reach. Real staff sessions pass their role in through the
   // `accessRole` prop instead and cannot change it here.
@@ -157,6 +160,22 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
   const revenue = appointments.reduce((sum, item) => sum + item.amountPaid, 0);
   const completion = useMemo(() => Math.round(([profile.businessName, profile.phone, profile.email, profile.address, profile.coverImageUrl, services.length, stylists.length].filter(Boolean).length / 7) * 100), [profile, services.length, stylists.length]);
   const flash = (message: string) => { setNotice(message); window.setTimeout(() => setNotice(''), 2600); };
+  const handleHeaderPublish = async () => {
+    if (headerPublishBusy.current) return;
+    headerPublishBusy.current = true;
+    setHeaderPublishing(true);
+    setHeaderPublishError('');
+    try {
+      await onPublish();
+      flash('Website published successfully.');
+    } catch (error) {
+      console.error('[StudioFlow] Header publish action failed', error);
+      setHeaderPublishError(formatPublishingError(error));
+    } finally {
+      headerPublishBusy.current = false;
+      setHeaderPublishing(false);
+    }
+  };
   const saveExtras = (next: Extras) => setExtras(next);
   const patchProfile = (key: keyof SalonProfile, value: unknown) => setProfile((prev) => ({ ...prev, [key]: value }));
   const chooseTemplate = (id: BusinessTypeId) => { const template = templates.find(t => t.id === id) || CATEGORY_TEMPLATES[id]; if (!template) return; setServices(servicesForTemplate(services,profile,template)); setProfile((prev) => ({...applyTemplateDesign(prev, template),serviceCatalogueInitialized:true})); if(!stylists.length)setStylists(template.stylists); else if(id==='beauty_parlour')setStylists(prev=>upgradeLegacyBeautyParlourStylists(prev,'beauty_parlour')); else if(id==='makeup_studio')setStylists(prev=>upgradeLegacyMakeupStudioStylists(prev,'makeup_studio')); flash(`${template.shortName} template applied`); };
@@ -271,10 +290,11 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
           {canPublish && (
             <button
               type="button"
-              className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer active:scale-95"
-              onClick={()=>void onPublish().then(()=>flash('Website published successfully.')).catch(error=>{console.error('[StudioFlow] Header publish action failed',error);flash(formatPublishingError(error));})}
+              disabled={headerPublishing}
+              className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer active:scale-95"
+              onClick={() => void handleHeaderPublish()}
             >
-              Publish Website
+              {headerPublishing ? 'Publishing…' : 'Publish Website'}
             </button>
           )}
           <button
@@ -338,6 +358,18 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
             <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-xs font-semibold flex items-center gap-2 shadow-xs" role="status">
               <span className="material-symbols-outlined text-base text-emerald-600">check_circle</span>
               <span>{notice}</span>
+            </div>
+          )}
+          {headerPublishError && (
+            <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-900 text-xs font-semibold flex items-center justify-between gap-3 shadow-xs" role="alert">
+              <span>{headerPublishError}</span>
+              <button
+                type="button"
+                className="text-red-700 hover:text-red-950 font-bold underline shrink-0 cursor-pointer"
+                onClick={() => setHeaderPublishError('')}
+              >
+                Dismiss
+              </button>
             </div>
           )}
 

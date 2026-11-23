@@ -425,6 +425,23 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
  const restoreTemplate12Draft=useCallback((draft:Template12WorkspaceDraft)=>{setProfile(draft.profile);setServiceState(draft.services||[]);setStylists(draft.stylists||[]);setExtras(prev=>({...prev,gallery:draft.galleryUrls||[]}));setOnboardingComplete(true);},[]);
  const template12Sync=useTemplate12Sync<Template12WorkspaceDraft>(session.user.id,{onRestore:restoreTemplate12Draft,enabled:profile.businessType==='tattoo_studio'});
  const [appointments,setAppointments]=useState<Appointment[]>([]);const [published,setPublished]=useState<any>(null);
+ const publishedGeneration=useRef(0);
+ useEffect(()=>{
+  let active=true;
+  const gen=publishedGeneration.current;
+  void (async()=>{
+   try{
+    const {data,error:siteError}=await supabase.from('studioflow_websites').select('slug,published_at').eq('owner_id',session.user.id).maybeSingle();
+    if(!active||siteError||publishedGeneration.current!==gen)return;
+    const slugValue=typeof data?.slug==='string'?data.slug.trim():'';
+    const publishedAt=typeof data?.published_at==='string'?data.published_at:'';
+    if(slugValue&&publishedAt)setPublished({slug:slugValue,published_at:publishedAt});
+   }catch{
+    // Best-effort hydration on mount; explicit Publish or Refresh still surfaces errors.
+   }
+  })();
+  return()=>{active=false;};
+ },[session.user.id]);
  const [sync,setSync]=useState('Saved to Supabase');const [syncError,setSyncError]=useState('');const [saveConflicts,setSaveConflicts]=useState<string[]>([]);
  const workspaceActive=useRef(true);useEffect(()=>{workspaceActive.current=true;return()=>{workspaceActive.current=false}},[]);
  const revision=useRef(account.revision);const queue=useRef(Promise.resolve());const lastSaved=useRef(JSON.stringify(workspaceSnapshot(cloudDraft)));
@@ -530,6 +547,7 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
     const publishedSlug=typeof data?.slug==='string'?data.slug.trim():'';
     const publishedAt=typeof data?.published_at==='string'?data.published_at:'';
     if(!publishedSlug||!publishedAt)throw new Error('Supabase did not return the published website address and publish time. The publish status could not be confirmed.');
+    publishedGeneration.current+=1;
     setPublished({...data,slug:publishedSlug,published_at:publishedAt});
     setProfile(current=>current.subdomain===publishedSlug?current:{...current,subdomain:publishedSlug});
   }catch(error){

@@ -4,7 +4,7 @@ import { CheckCircle, XCircle } from 'lucide-react';
 
 export function PublishingStatusIndicator({ profile, services }: { profile: SalonProfile; services: SalonService[] }) {
   const requirements = [
-    { label: 'Business name added', met: !!profile.businessName },
+    { label: 'Business name added', met: Boolean(profile.businessName?.trim()) },
     { label: 'At least one service added', met: services.length > 0 },
     { label: 'Salon template selected', met: !!profile.serviceCatalogueInitialized },
   ];
