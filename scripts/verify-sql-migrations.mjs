@@ -576,11 +576,52 @@ for (const name of [
   '20261122072714_android_request_insert_explicit_columns.sql',
   '20261122072823_correct_android_request_fingerprint_builder.sql',
   '20261122072900_branch_service_android_wrapper_grants.sql',
+  '20261123110000_public_storefront_invoker_view.sql',
 ]) {
   const file = 'supabase/migrations/' + name;
   await applySqlText(readFileSync(file, 'utf8'), file);
 }
 
+const {rows: [storefrontSecurity]} = await db.query(`
+  select
+    c.reloptions,
+    has_column_privilege('anon','public.studioflow_websites','slug','SELECT') as anon_slug_select,
+    has_column_privilege('anon','public.studioflow_websites','content','SELECT') as anon_content_select,
+    has_column_privilege('anon','public.studioflow_websites','published_at','SELECT') as anon_published_at_select,
+    has_column_privilege('anon','public.studioflow_websites','owner_id','SELECT') as anon_owner_id_select,
+    has_table_privilege('anon','public.studioflow_websites','SELECT') as anon_table_select,
+    has_table_privilege('anon','public.public_salon_websites','SELECT') as anon_view_select,
+    has_table_privilege('authenticated','public.studioflow_websites','SELECT') as authenticated_table_select,
+    has_table_privilege('authenticated','public.public_salon_websites','SELECT') as authenticated_view_select,
+    exists (
+      select 1 from pg_policies
+      where schemaname='public' and tablename='studioflow_websites'
+        and policyname='studioflow_websites_published_public_read'
+        and 'anon'=any(roles) and cmd='SELECT'
+        and qual ilike '%published_at%'
+    ) as anon_published_policy,
+    exists (
+      select 1 from pg_policies
+      where schemaname='public' and tablename='studioflow_websites'
+        and policyname='studioflow_websites_authenticated_read'
+        and 'authenticated'=any(roles) and cmd='SELECT' and qual='true'
+    ) as authenticated_read_policy
+  from pg_class c
+  where c.oid='public.public_salon_websites'::regclass
+`);
+assert.ok(storefrontSecurity.reloptions?.includes('security_invoker=true'),
+  'public storefront view must execute with invoker privileges');
+assert.equal(storefrontSecurity.anon_slug_select, true, 'anon can read the public storefront slug only');
+assert.equal(storefrontSecurity.anon_content_select, true, 'anon can read published storefront content');
+assert.equal(storefrontSecurity.anon_published_at_select, true, 'anon can read the publication timestamp');
+assert.equal(storefrontSecurity.anon_owner_id_select, false, 'anon cannot read salon owner IDs');
+assert.equal(storefrontSecurity.anon_table_select, false, 'anon has no table-wide website SELECT grant');
+assert.equal(storefrontSecurity.anon_view_select, true, 'anon can read the public storefront view');
+assert.equal(storefrontSecurity.authenticated_table_select, true, 'authenticated website reads retain their previous table grant');
+assert.equal(storefrontSecurity.authenticated_view_select, true, 'authenticated clients can read the storefront projection');
+assert.equal(storefrontSecurity.anon_published_policy, true, 'anonymous base-table reads are limited to published rows');
+assert.equal(storefrontSecurity.authenticated_read_policy, true, 'authenticated direct website reads keep their existing visibility policy');
+console.log('PASS: public storefront uses SECURITY INVOKER with column-limited anonymous access and published-row RLS');
 
 const {rows: [activeBranchHelperAcl]} = await db.query(`
   select p.prosecdef as security_definer,
