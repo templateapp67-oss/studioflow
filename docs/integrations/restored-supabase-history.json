@@ -2035,12 +2035,7 @@
     "relations": 273,
     "assessment": "Read-only owner-supplied live catalog; not a live migration dry-run or deployment."
   },
-  "release_pending_migrations": [
-    {
-      "file": "20261122072900_branch_service_android_wrapper_grants.sql",
-      "purpose": "Restrict the Android booking wrapper to authenticated and service_role after the branch guard. Added on main after the captured applied-history baseline; remains pending for the protected manual release workflow."
-    }
-  ],
+  "release_pending_migrations": [],
   "reviewed_feature_migrations": [
     {
       "file": "20261117130000_reconcile_template15_multiservice_booking.sql",
@@ -2355,6 +2350,16 @@
       "evidence": "Applied to Supabase project zilwgiuiygqqardzutxi and confirmed in remote migration history. Restores md5(jsonb_build_array(...)) while preserving the explicit customer_id/request_id/fingerprint/booking_id insert column list. Existing booking and request data remains untouched.",
       "purpose": "Keep Android booking idempotency fingerprint generation valid on PostgreSQL and make request persistence independent of physical column order.",
       "git_blob_sha": "b026808d9651b74361d4a50b154fb6f75eabedcb"
+    },
+    {
+      "version": "20261122072900",
+      "file": "20261122072900_branch_service_android_wrapper_grants.sql",
+      "name": "branch_service_android_wrapper_grants",
+      "observed_at": "2026-11-23",
+      "evidence": "Read-only Production migration history records the same migration name at remote version 20261122064912. A live privilege check on public.studioflow_android_book(text,jsonb,date,text,text,text,text,text,uuid) confirms the intended contract: anon EXECUTE=false, authenticated EXECUTE=true, service_role EXECUTE=true. QA records the current source file at local version 20261122072900. This maps the branch source to the already-applied Production history without running SQL or changing Production.",
+      "purpose": "Keep the Android booking wrapper restricted to authenticated and service_role after the private branch booking guard.",
+      "git_blob_sha": "19e0025eb6201a157aa0dd554259436dae4a839d",
+      "remote_version": "20261122064912"
     }
   ]
 }
