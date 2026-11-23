@@ -93,9 +93,10 @@ async function loadPlaywright() {
   const pwRoot = process.env.PLAYWRIGHT_PACKAGE_ROOT || process.env.BROWSER_TOOLS_ROOT || '';
   if (pwRoot) {
     const pkgPath = join(pwRoot, 'package.json');
-    const req = createRequire(pkgPath);
-    const pkgJson = JSON.parse(readFileSync(pkgPath, 'utf8'));
-    if (pkgJson.dependencies?.playwright || pkgJson.devDependencies?.playwright || existsSync(join(pwRoot, 'node_modules/playwright'))) {
+    const anchorPath = existsSync(pkgPath) ? pkgPath : join(pwRoot, 'node_modules', '_anchor.js');
+    const req = createRequire(anchorPath);
+    const pkgJson = existsSync(pkgPath) ? JSON.parse(readFileSync(pkgPath, 'utf8')) : {};
+    if (pkgJson.dependencies?.playwright || pkgJson.devDependencies?.playwright || existsSync(join(pwRoot, 'node_modules/playwright/package.json'))) {
       const pw = req('playwright');
       const pwPkg = JSON.parse(readFileSync(join(pwRoot, 'node_modules/playwright/package.json'), 'utf8'));
       return { chromium: pw.chromium, version: pwPkg.version, mode: 'playwright' };
@@ -127,16 +128,6 @@ async function loadPlaywright() {
   const pwPkg = req('playwright/package.json');
   return { chromium: pw.chromium, version: pwPkg.version, mode: 'playwright' };
 }
-
-const runtime = await loadPlaywright();
-playwrightVersion = runtime.version;
-
-const browser = await runtime.chromium.launch({
-  headless: true,
-  ...(runtime.launchOptions || {}),
-});
-chromiumVersion = browser.version();
-console.log(`Launched Chromium ${chromiumVersion} via Playwright ${playwrightVersion} (${runtime.mode})`);
 
 const runId = randomUUID().slice(0, 8);
 const ownerEmail = `qa-owner-${runId}@example.com`;
@@ -201,6 +192,7 @@ const safeShot = async (page, name) => {
 
 let overallStatus = 'FAIL';
 let blockerReason = '';
+let browser = null;
 
 const contexts = [];
 const makeContext = async (label, viewport = { width: 1440, height: 960 }) => {
@@ -211,6 +203,16 @@ const makeContext = async (label, viewport = { width: 1440, height: 960 }) => {
 };
 
 try {
+  const runtime = await loadPlaywright();
+  playwrightVersion = runtime.version;
+
+  browser = await runtime.chromium.launch({
+    headless: true,
+    ...(runtime.launchOptions || {}),
+  });
+  chromiumVersion = browser.version();
+  console.log(`Launched Chromium ${chromiumVersion} via Playwright ${playwrightVersion} (${runtime.mode})`);
+
   // =========================================================================
   // STEP 0: PRE-MUTATION QA SUPABASE SAFETY CHECK
   // =========================================================================
@@ -557,7 +559,9 @@ try {
       await ctx.close();
     } catch { /* ignore close failures */ }
   }
-  await browser.close();
+  if (browser) {
+    await browser.close();
+  }
 }
 
 const finalReport = writeReportAndSummary(overallStatus, blockerReason);
