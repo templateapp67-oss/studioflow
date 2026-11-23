@@ -7,6 +7,8 @@ import {PublishingStatusIndicator} from '../src/components/PublishingStatusIndic
 import {WebsitePublishPanel} from '../src/components/WebsitePublishPanel';
 import {OwnerWorkspace} from '../src/components/OwnerWorkspace';
 import {SalonWebsitePreview} from '../src/components/SalonWebsitePreview';
+import {supabase} from '../src/lib/supabase';
+import {CATEGORY_TEMPLATES} from '../src/categoryTemplates';
 import {INITIAL_SALON_PROFILE} from '../src/mockData';
 
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;
@@ -56,6 +58,9 @@ for(const file of [
   'backend/studioflow-shared-tables.sql',
   'backend/studioflow-schema.sql',
   'backend/studioflow-template-catalog.sql',
+  'backend/studioflow-storage-and-booking-status.sql',
+  'backend/studioflow-availability.sql',
+  'backend/studioflow-book-available-slot.sql',
   'backend/studioflow-dashboard-wiring.sql',
   'backend/studioflow-service-catalogue.sql',
   'backend/studioflow-service-images.sql',
@@ -81,9 +86,10 @@ for(const file of [
 
 const ownerA='11111111-1111-4111-8111-111111111111';
 const ownerB='22222222-2222-4222-8222-222222222222';
+const customerC='33333333-3333-4333-8333-333333333333';
 const serviceImagePath=`${ownerA}/services/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.jpg`;
 const serviceImageUrl=`https://zilwgiuiygqqardzutxi.supabase.co/storage/v1/object/public/studioflow-media/${serviceImagePath}`;
-await db.query(`insert into auth.users(id,email) values($1,'owner-a@example.com'),($2,'owner-b@example.com')`,[ownerA,ownerB]);
+await db.query(`insert into auth.users(id,email) values($1,'owner-a@example.com'),($2,'owner-b@example.com'),($3,'customer-c@example.com')`,[ownerA,ownerB,customerC]);
 await db.query(
   `insert into storage.objects(bucket_id,name,owner,metadata) values('studioflow-media',$1,$2,'{"mimetype":"image/jpeg"}'::jsonb)`,
   [serviceImagePath,ownerA]
@@ -248,6 +254,55 @@ await assert.rejects(
   /already in use/i
 );
 
+// Customer signup/login -> availability -> booking -> RLS isolation on published site.
+const bookingDate=new Date(Date.now()+3*86400000).toISOString().slice(0,10);
+const {rows:[slotsRow]}=await asRole('anon',null,()=>db.query(
+  `select public.studioflow_available_slots($1,$2,$3::date,$4) as slots`,
+  ['glow-shine-salon','svc-1',bookingDate,'any_available']
+));
+assert.ok(Array.isArray(slotsRow.slots)&&slotsRow.slots.some((s:any)=>s.available&&s.time==='11:00'),
+  'Published site serves available slots anonymously');
+
+const {rows:[bookingRow]}=await asRole('authenticated',customerC,()=>db.query(
+  `select public.studioflow_book($1,$2::jsonb) as booking`,
+  ['glow-shine-salon',JSON.stringify({
+    serviceId:'svc-1',
+    stylistId:'any_available',
+    clientName:'Customer C',
+    clientPhone:'+919876543210',
+    date:bookingDate,
+    time:'11:00',
+    servicePrice:1,
+    amountPaid:1499,
+  })]
+));
+assert.equal(bookingRow.booking.servicePrice,1499,'Server enforces canonical service price');
+assert.equal(bookingRow.booking.amountPaid,0,'Server enforces unpaid initial deposit');
+assert.equal(bookingRow.booking.status,'pending','Server enforces pending status when deposit is required');
+
+await assert.rejects(
+  ()=>asRole('authenticated',customerC,()=>db.query(
+    `select public.studioflow_book($1,$2::jsonb) as booking`,
+    ['glow-shine-salon',JSON.stringify({
+      serviceId:'svc-1',
+      stylistId:'any_available',
+      clientName:'Customer C2',
+      clientPhone:'+919876543211',
+      date:bookingDate,
+      time:'11:00',
+    })]
+  )),
+  /booked|slot|unavailable/i,
+  'Double booking the same slot is rejected'
+);
+
+const {rows:[ownerBookingCount]}=await asRole('authenticated',ownerA,()=>db.query(`select count(*)::int as count from public.studioflow_bookings`));
+const {rows:[customerBookingCount]}=await asRole('authenticated',customerC,()=>db.query(`select count(*)::int as count from public.studioflow_bookings`));
+const {rows:[strangerBookingCount]}=await asRole('authenticated',ownerB,()=>db.query(`select count(*)::int as count from public.studioflow_bookings`));
+assert.equal(ownerBookingCount.count,1,'Owner sees customer booking');
+assert.equal(customerBookingCount.count,1,'Customer sees own booking');
+assert.equal(strangerBookingCount.count,0,'Unrelated owner sees 0 bookings via RLS');
+
 // 2. React UI E2E: checklist whitespace guard, header error alert, and public storefront render.
 Object.defineProperty(globalThis,'window',{configurable:true,value:{
   location:mockLocation,
@@ -362,9 +417,110 @@ assert.ok(previewText.includes('Bridal Blowout'),'Public view renders published 
 assert.ok(previewText.includes(serviceImageUrl),'Public view renders published service image');
 await act(async()=>previewTree.unmount());
 
-// Confirm src/App.tsx includes studioflow_websites hydration guard on mount.
-const appSrc=readFileSync('src/App.tsx','utf8');
-assert.match(appSrc,/from\('studioflow_websites'\)\.select\('slug,published_at'\)\.eq\('owner_id',session\.user\.id\)\.maybeSingle\(\)/,
-  'src/App.tsx hydrates published website state from studioflow_websites on mount');
+// Confirm real Workspace component hydrates published state from studioflow_websites after reload.
+const {Workspace}=await import('../src/App');
+(globalThis as any).window.matchMedia=(globalThis as any).window.matchMedia||(()=>({matches:false,addEventListener:()=>{},removeEventListener:()=>{}}));
+const origFrom=supabase.from.bind(supabase);
+const origRpc=supabase.rpc.bind(supabase);
+const origChannel=supabase.channel.bind(supabase);
+const origRemoveChannel=supabase.removeChannel.bind(supabase);
+const origGetSession=supabase.auth.getSession.bind(supabase.auth);
+const stubStorage=new Map<string,string>();
+Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{
+  getItem:(k:string)=>stubStorage.get(k)??null,
+  setItem:(k:string,v:string)=>{stubStorage.set(k,v);},
+  removeItem:(k:string)=>{stubStorage.delete(k);},
+}});
+(supabase as any).auth.getSession=async()=>({data:{session:{user:{id:ownerA,email:'owner-a@example.com',user_metadata:{full_name:'Owner A',salon_name:'Glow & Shine Salon'}}}},error:null});
+(supabase as any).channel=()=>{const ch:any={on:()=>ch,subscribe:()=>ch};return ch;};
+(supabase as any).removeChannel=async()=>{};
+(supabase as any).from=(table:string)=>{
+  if(table==='studioflow_websites'){
+    return {
+      select:()=>({
+        eq:(_col:string,uid:string)=>({
+          maybeSingle:async()=>{
+            const {rows:[row]}=await asRole('authenticated',uid,()=>db.query(
+              `select slug, published_at::text as published_at from public.studioflow_websites where owner_id=$1`,
+              [uid]
+            ));
+            return {data:row??null,error:null};
+          },
+        }),
+      }),
+    };
+  }
+  if(table==='studioflow_bookings'){
+    return {select:()=>({eq:()=>({order:async()=>({data:[],error:null})})})};
+  }
+  return origFrom(table);
+};
+(supabase as any).rpc=async(fn:string,args?:any)=>{
+  try{
+    if(fn==='studioflow_save_workspace'){
+      const {rows:[row]}=await asRole('authenticated',ownerA,()=>db.query(
+        `select public.studioflow_save_workspace($1::jsonb,$2) as res`,
+        [JSON.stringify(args.p_draft),args.p_revision]
+      ));
+      return {data:row.res,error:null};
+    }
+    if(fn==='studioflow_publish'){
+      const {rows:[row]}=await asRole('authenticated',ownerA,()=>db.query(`select public.studioflow_publish() as res`));
+      return {data:row.res,error:null};
+    }
+    return {data:null,error:null};
+  }catch(err:any){
+    return {data:null,error:{message:err?.message||String(err),code:err?.code}};
+  }
+};
+// Reset ownerA's studioflow_websites row before testing Workspace unpublished -> publish -> refresh hydration.
+await db.query(`delete from public.studioflow_websites where owner_id=$1`,[ownerA]);
+const {rows:[latestAccount]}=await db.query(`select draft, revision from public.studioflow_accounts where user_id=$1`,[ownerA]);
 
-console.log('PASS: studioflow publish website E2E (SQL, RLS, storefront privacy, slug casing/collision, checklist, header error alert, hydration, and public render).');
+const sessionStub={user:{id:ownerA,email:'owner-a@example.com',user_metadata:{full_name:'Owner A',salon_name:'Glow & Shine Salon'}}} as any;
+const accountStub={user_id:ownerA,revision:latestAccount.revision,draft:latestAccount.draft,identity:{full_name:'Owner A',salon_name:'Glow & Shine Salon'}};
+const templatesStub=Object.values(CATEGORY_TEMPLATES);
+
+let mountedWorkspace:any;
+await act(async()=>{
+  mountedWorkspace=create(<Workspace key="first" session={sessionStub} account={accountStub} templates={templatesStub}/>);
+});
+await act(async()=>{await new Promise(r=>setTimeout(r,30));});
+assert.ok(mountedWorkspace.root.findAllByType('span').some((s:any)=>s.children.includes('Draft')),
+  'Unpublished Workspace starts with Draft badge');
+const firstPublishBtn=mountedWorkspace.root.findAllByType('button').find((b:any)=>b.children.includes('Publish Website'));
+assert.ok(firstPublishBtn,'Workspace shows Publish Website before publishing');
+await act(async()=>{firstPublishBtn.props.onClick();});
+await act(async()=>{await new Promise(r=>setTimeout(r,30));});
+assert.ok(mountedWorkspace.root.findAllByType('span').some((s:any)=>s.children.includes('Published')),
+  'Publishing inside Workspace switches badge to Published');
+const openPreviewBtn=mountedWorkspace.root.findAllByType('button').find((b:any)=>b.children.includes('Preview Site'));
+assert.ok(openPreviewBtn,'Preview Site button exists');
+await act(async()=>{openPreviewBtn.props.onClick();});
+await act(async()=>{await new Promise(r=>setTimeout(r,30));});
+assert.ok(mountedWorkspace.root.findAllByProps({href:'https://studioflow.example/?site=glow-shine-salon'}).length>=1,
+  'Publishing inside Workspace reveals live public URL in WebsitePublishPanel');
+await act(async()=>mountedWorkspace.unmount());
+
+// Simulate browser refresh: remount fresh Workspace with storedWebsite in PGlite.
+let reloadedWorkspace:any;
+await act(async()=>{
+  reloadedWorkspace=create(<Workspace key="reloaded" session={sessionStub} account={accountStub} templates={templatesStub}/>);
+});
+await act(async()=>{await new Promise(r=>setTimeout(r,100));});
+assert.ok(reloadedWorkspace.root.findAllByType('span').some((s:any)=>s.children.includes('Published')),
+  'Reloaded Workspace hydrates published state from studioflow_websites and shows Published badge');
+const reloadPreviewBtn=reloadedWorkspace.root.findAllByType('button').find((b:any)=>b.children.includes('Preview Site'));
+await act(async()=>{reloadPreviewBtn.props.onClick();});
+await act(async()=>{await new Promise(r=>setTimeout(r,30));});
+assert.ok(reloadedWorkspace.root.findAllByProps({href:'https://studioflow.example/?site=glow-shine-salon'}).length>=1,
+  'Reloaded Workspace retains live public URL in WebsitePublishPanel');
+await act(async()=>reloadedWorkspace.unmount());
+
+(supabase as any).from=origFrom;
+(supabase as any).rpc=origRpc;
+(supabase as any).channel=origChannel;
+(supabase as any).removeChannel=origRemoveChannel;
+(supabase as any).auth.getSession=origGetSession;
+
+console.log('PASS: studioflow publish website E2E (SQL, booking + RLS, storefront privacy, slug casing/collision, checklist, header error alert, Workspace reload hydration, and public render).');

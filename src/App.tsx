@@ -434,7 +434,7 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
     const {data,error:siteError}=await supabase.from('studioflow_websites').select('slug,published_at').eq('owner_id',session.user.id).maybeSingle();
     if(!active||siteError||publishedGeneration.current!==gen)return;
     const slugValue=typeof data?.slug==='string'?data.slug.trim():'';
-    const publishedAt=typeof data?.published_at==='string'?data.published_at:'';
+    const publishedAt=data?.published_at instanceof Date?data.published_at.toISOString():typeof data?.published_at==='string'?data.published_at:'';
     if(slugValue&&publishedAt)setPublished({slug:slugValue,published_at:publishedAt});
    }catch{
     // Best-effort hydration on mount; explicit Publish or Refresh still surfaces errors.
