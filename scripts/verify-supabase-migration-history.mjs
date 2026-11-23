@@ -70,9 +70,19 @@ assert.deepEqual(cliLocal,uniqueSorted(localVersions),
 
 const remoteSet=new Set(cliRemote);
 const remoteToLocal=new Map();
-for(const version of history.applied_versions) remoteToLocal.set(version,version);
+const registerMigrationVersion=(version,localVersion)=>{
+  const existing=remoteToLocal.get(version);
+  assert(!existing||existing===localVersion,
+    'Conflicting migration history alias '+version+': '+existing+' vs '+localVersion);
+  remoteToLocal.set(version,localVersion);
+};
+for(const version of history.applied_versions) registerMigrationVersion(version,version);
 for(const record of history.post_export_applied_versions||[]) {
-  remoteToLocal.set(record.remote_version||record.version,record.file.split('_',1)[0]);
+  const localVersion=record.file.split('_',1)[0];
+  // QA records the source filename timestamp; Production can retain the
+  // original applied timestamp. Both must resolve to the same local SQL file.
+  registerMigrationVersion(localVersion,localVersion);
+  registerMigrationVersion(record.remote_version||record.version,localVersion);
 }
 const remoteOnly=cliRemote.filter(version=>!remoteToLocal.has(version));
 const matchedLocal=new Set(cliRemote.map(version=>remoteToLocal.get(version)).filter(Boolean));
