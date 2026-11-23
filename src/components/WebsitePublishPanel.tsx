@@ -48,12 +48,12 @@ export function WebsitePublishPanel({ published, onPublish, onPublished, profile
     <p className="eyebrow">{published ? 'Published website' : 'Publish your salon'}</p>
     <h2>{published ? 'Your salon is live' : 'Ready to go live?'}</h2>
     <p className="muted">{published ? 'Saved edits update this same live address. Open it to check the customer experience.' : 'Finish editing, then publish to create your customer-facing website link.'}</p>
-    {url && <a className="block break-all my-4 underline" href={url} target="_blank" rel="noopener noreferrer">{url}</a>}
+    {url && <a data-testid="published-live-url" className="block break-all my-4 underline" href={url} target="_blank" rel="noopener noreferrer">{url}</a>}
     <div className="action-buttons flex flex-wrap gap-3 mt-4">
       {url && <><a className="primary-action" href={url} target="_blank" rel="noopener noreferrer">Open live website</a><button className="secondary-action" onClick={()=>void copy()}>Copy live link</button></>}
-      {onPublish && <button className={url ? 'secondary-action' : 'primary-action'} disabled={publishing || (onPublish && !isReady)} onClick={()=>void publish()}>{publishing ? 'Publishing…' : url ? 'Publish latest changes' : 'Publish website'}</button>}
+      {onPublish && <button data-testid="publish-panel-btn" className={url ? 'secondary-action' : 'primary-action'} disabled={publishing || (onPublish && !isReady)} onClick={()=>void publish()}>{publishing ? 'Publishing…' : url ? 'Publish latest changes' : 'Publish website'}</button>}
     </div>
-    {status && <p role="status" className="mt-3 text-sm text-emerald-700">{status}</p>}
-    {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
+    {status && <p data-testid="publish-panel-status" role="status" className="mt-3 text-sm text-emerald-700">{status}</p>}
+    {error && <p data-testid="publish-panel-error" role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
   </section>;
 }

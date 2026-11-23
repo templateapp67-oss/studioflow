@@ -173,6 +173,8 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                     <button
                       type="button"
                       key={bt.id}
+                      data-template-id={bt.id}
+                      data-testid={`wizard-template-${bt.id}`}
                       aria-pressed={isSelected}
                       onClick={() => handleBusinessTypeSelect(bt.id)}
                       className={`text-left p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 relative ${
@@ -276,6 +278,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                     <label className="font-bold text-gray-700">Salon Name</label>
                     <input
                       type="text"
+                      data-testid="wizard-salon-name"
                       value={profile?.businessName || ''}
                       onChange={(e) => {
                         const val = e.target.value;
@@ -490,6 +493,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                   <div className="flex items-center gap-2">
                     <input
                       type="text"
+                      data-testid="wizard-subdomain"
                       value={profile.subdomain}
                       onChange={(e) => {
                         const val = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
@@ -612,6 +616,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
               <div className="flex items-center gap-3">
                 <button
                   type="button"
+                  data-testid="wizard-continue"
                   onClick={nextStep}
                   className="bg-[#b0004a] hover:bg-[#d81b60] text-white text-xs font-bold px-7 py-3 rounded-lg shadow-md shadow-[#b0004a]/20 hover:shadow-lg flex items-center gap-1.5 transition-all cursor-pointer"
                 >

@@ -566,7 +566,7 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
    }await refreshBookings();})().catch(error=>setSyncError(error.message));
  };
 
- return <div data-workspace-sync={!syncError&&!recoveryNotice&&sameWorkspace(latest.current,JSON.parse(lastSaved.current))?'saved':'pending'} className="min-h-screen bg-slate-50 text-slate-900">
+ return <div data-testid="owner-workspace-shell" data-workspace-sync={!syncError&&!recoveryNotice&&sameWorkspace(latest.current,JSON.parse(lastSaved.current))?'saved':'pending'} className="min-h-screen bg-slate-50 text-slate-900">
   {recoveryNotice && (
     <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 text-xs sm:text-sm text-amber-900 font-medium flex items-center justify-between gap-3 flex-wrap shadow-2xs" role="status">
       <div className="flex items-center gap-2">
@@ -620,6 +620,7 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
     </div>
     <button
       type="button"
+      data-testid="workspace-save-now"
       className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-semibold shadow-xs transition-all cursor-pointer active:scale-95"
       onClick={() => void flush().catch(() => {})}
     >

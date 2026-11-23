@@ -5,6 +5,11 @@ on:
     types: [opened, synchronize, reopened]
     branches: [main]
   workflow_dispatch:
+    inputs:
+      preview_url:
+        description: Optional existing Vercel Preview URL (leave blank to build and deploy from this branch)
+        required: false
+        type: string
 
 concurrency:
   group: preview-${{ github.event.pull_request.number || github.ref }}
@@ -25,6 +30,10 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    outputs:
+      preview_url: ${{ steps.deploy.outputs.url }}
+      deploy_outcome: ${{ steps.deploy.outcome }}
+      vercel_available: ${{ steps.vercel-config.outputs.available }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -154,3 +163,64 @@ jobs:
                 owner, repo, issue_number, body
               });
             }
+
+  browser-e2e:
+    name: Preview Browser E2E (Playwright)
+    needs: preview
+    if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked npm dependencies
+        run: npm ci
+
+      - name: Install pinned Playwright and Chromium
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/pw-runner
+          npm install --prefix /tmp/pw-runner --no-save --no-audit --no-fund playwright@1.65.1
+          /tmp/pw-runner/node_modules/.bin/playwright install chromium --with-deps
+          /tmp/pw-runner/node_modules/.bin/playwright --version
+
+      - name: Resolve Preview URL
+        id: resolve-preview
+        shell: bash
+        env:
+          DEPLOYED_PREVIEW_URL: ${{ needs.preview.outputs.preview_url }}
+          MANUAL_PREVIEW_URL: ${{ inputs.preview_url }}
+        run: |
+          set -euo pipefail
+          url="${DEPLOYED_PREVIEW_URL:-${MANUAL_PREVIEW_URL:-}}"
+          echo "url=${url}" >> "$GITHUB_OUTPUT"
+          if [[ -z "$url" ]]; then
+            echo "::error::BLOCKED: Missing Vercel Preview URL (deploy outcome: ${{ needs.preview.outputs.deploy_outcome || 'unknown' }})."
+          else
+            echo "Resolved Preview URL: $url"
+          fi
+
+      - name: Run Playwright E2E against Preview + QA Supabase
+        env:
+          PREVIEW_URL: ${{ steps.resolve-preview.outputs.url }}
+          PLAYWRIGHT_PACKAGE_ROOT: /tmp/pw-runner
+          EXPECTED_SUPABASE_REF: ckgrgnokgxgjxzfeoigg
+          FORBIDDEN_SUPABASE_REF: zilwgiuiygqqardzutxi
+          E2E_ARTIFACTS_DIR: test-results/preview-browser-e2e
+        run: node scripts/verify-preview-browser-e2e.mjs
+
+      - name: Upload Playwright report, screenshots and traces
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: preview-browser-e2e-${{ github.run_id }}
+          path: test-results/preview-browser-e2e
+          retention-days: 14
+          if-no-files-found: warn

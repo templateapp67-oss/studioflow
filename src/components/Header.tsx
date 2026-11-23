@@ -61,6 +61,7 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 key={tab.id}
                 type="button"
+                data-testid={`header-nav-${tab.id}`}
                 onClick={() => {
                   if (tab.id === 'landing') {
                     window.location.assign('/');
