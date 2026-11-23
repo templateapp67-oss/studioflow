@@ -15,6 +15,8 @@ import { join, resolve } from 'node:path';
 const previewUrl = (process.env.PREVIEW_URL || '').trim().replace(/\/+$/, '');
 const expectedSupabaseRef = (process.env.EXPECTED_SUPABASE_REF || 'ckgrgnokgxgjxzfeoigg').trim();
 const forbiddenSupabaseRef = (process.env.FORBIDDEN_SUPABASE_REF || 'zilwgiuiygqqardzutxi').trim();
+const vercelBypassSecret = (process.env.VERCEL_AUTOMATION_BYPASS_SECRET || '').trim();
+const configuredPreviewRef = (process.env.PREVIEW_SUPABASE_REF || '').trim();
 const artifactsDir = resolve(process.env.E2E_ARTIFACTS_DIR || 'test-results/preview-browser-e2e');
 const screenshotsDir = join(artifactsDir, 'screenshots');
 const tracesDir = join(artifactsDir, 'traces');
@@ -41,6 +43,8 @@ const writeReportAndSummary = (overallStatus, blocker = '') => {
     overallStatus,
     blocker,
     previewUrl: previewUrl || null,
+    configuredPreviewSupabaseRef: configuredPreviewRef || null,
+    vercelBypassConfigured: Boolean(vercelBypassSecret),
     expectedSupabaseRef,
     observedSupabaseRefs: [...observedSupabaseRefs],
     playwrightVersion,
@@ -59,6 +63,8 @@ const writeReportAndSummary = (overallStatus, blocker = '') => {
     `- **Preview URL:** ${previewUrl || 'MISSING'}`,
     `- **Playwright version:** ${playwrightVersion}`,
     `- **Chromium version:** ${chromiumVersion}`,
+    `- **Configured Vercel Preview Supabase ref:** ${configuredPreviewRef ? `\`${configuredPreviewRef}\`` : 'unset/default'}`,
+    `- **Vercel Protection Bypass configured:** ${vercelBypassSecret ? 'yes' : 'no'}`,
     `- **Expected QA Supabase ref:** \`${expectedSupabaseRef}\``,
     `- **Observed runtime Supabase refs:** ${observedSupabaseRefs.size ? [...observedSupabaseRefs].map((r) => `\`${r}\``).join(', ') : 'none'}`,
     `- **Payment gateway status (\`studioflow-payments\`):** ${paymentStatusPayload ? JSON.stringify(paymentStatusPayload) : 'not checked'}`,
@@ -194,9 +200,21 @@ let overallStatus = 'FAIL';
 let blockerReason = '';
 let browser = null;
 
+const previewOrigin = new URL(previewUrl).origin;
 const contexts = [];
 const makeContext = async (label, viewport = { width: 1440, height: 960 }) => {
   const ctx = await browser.newContext({ viewport });
+  if (vercelBypassSecret) {
+    await ctx.route(`${previewOrigin}/**`, (route) => {
+      route.continue({
+        headers: {
+          ...route.request().headers(),
+          'x-vercel-protection-bypass': vercelBypassSecret,
+          'x-vercel-set-bypass-cookie': 'true',
+        },
+      });
+    });
+  }
   await ctx.tracing.start({ screenshots: true, snapshots: true, sources: true });
   contexts.push({ label, ctx });
   return ctx;
@@ -213,6 +231,11 @@ try {
   chromiumVersion = browser.version();
   console.log(`Launched Chromium ${chromiumVersion} via Playwright ${playwrightVersion} (${runtime.mode})`);
 
+  if (configuredPreviewRef === forbiddenSupabaseRef) {
+    recordStep('0', 'Verify preview connects only to QA Supabase', 'FAIL', `ABORTED: Vercel Preview environment VITE_SUPABASE_URL points to Production Supabase ref ${forbiddenSupabaseRef}.`);
+    throw new Error(`Safety abort: Vercel Preview build environment points to Production Supabase (${forbiddenSupabaseRef}).`);
+  }
+
   // =========================================================================
   // STEP 0: PRE-MUTATION QA SUPABASE SAFETY CHECK
   // =========================================================================
@@ -220,16 +243,30 @@ try {
   const probePage = await probeCtx.newPage();
   attachInstrumentation(probePage, 'probe');
 
-  await probePage.goto(`${previewUrl}/?site=__qa_supabase_probe__`, { waitUntil: 'networkidle', timeout: 45000 });
+  const probeResponse = await probePage.goto(`${previewUrl}/?site=__qa_supabase_probe__`, { waitUntil: 'networkidle', timeout: 45000 });
   await probePage.waitForTimeout(1000);
   await safeShot(probePage, '00-supabase-probe');
+  const probeStatus = probeResponse ? probeResponse.status() : 0;
+  const probeTitle = await probePage.title().catch(() => '');
+  const probeFinalUrl = probePage.url();
 
   if (observedSupabaseRefs.has(forbiddenSupabaseRef)) {
     recordStep('0', 'Verify preview connects only to QA Supabase', 'FAIL', `ABORTED: Preview attempted to connect to Production Supabase ref ${forbiddenSupabaseRef}.`);
     throw new Error(`Safety abort: Preview points to Production Supabase (${forbiddenSupabaseRef}).`);
   }
   if (!observedSupabaseRefs.has(expectedSupabaseRef)) {
-    recordStep('0', 'Verify preview connects only to QA Supabase', 'FAIL', `Expected ${expectedSupabaseRef}, observed: ${[...observedSupabaseRefs].join(', ') || 'none'}`);
+    const isVercelProtected =
+      probeStatus === 401 ||
+      probeStatus === 403 ||
+      probeFinalUrl.includes('vercel.com') ||
+      /authentication|vercel|login/i.test(probeTitle);
+    if (isVercelProtected && observedSupabaseRefs.size === 0) {
+      blockerReason = `Vercel Deployment Protection blocked unauthenticated access to ${previewUrl} (HTTP ${probeStatus}, title="${probeTitle}", url="${probeFinalUrl}"). ${vercelBypassSecret ? 'Provided VERCEL_AUTOMATION_BYPASS_SECRET did not unlock preview.' : 'VERCEL_AUTOMATION_BYPASS_SECRET is not configured in GitHub/Vercel.'}`;
+      recordStep('0', 'Verify preview connects only to QA Supabase', 'BLOCKED', blockerReason);
+      overallStatus = 'BLOCKED';
+      throw new Error(blockerReason);
+    }
+    recordStep('0', 'Verify preview connects only to QA Supabase', 'FAIL', `Expected ${expectedSupabaseRef}, observed: ${[...observedSupabaseRefs].join(', ') || 'none'} (HTTP ${probeStatus}, title="${probeTitle}")`);
     throw new Error(`Safety abort: Could not confirm QA Supabase ref ${expectedSupabaseRef} (observed: ${[...observedSupabaseRefs].join(', ') || 'none'}).`);
   }
   recordStep('0', 'Verify preview connects only to QA Supabase', 'PASS', `Confirmed runtime Supabase ref ${expectedSupabaseRef}; Production ref ${forbiddenSupabaseRef} absent.`);
@@ -539,9 +576,10 @@ try {
     overallStatus = 'PASS';
   }
 } catch (err) {
-  overallStatus = 'FAIL';
+  const hasBlockedOnly = steps.some((s) => s.status === 'BLOCKED') && !steps.some((s) => s.status === 'FAIL');
+  overallStatus = hasBlockedOnly ? 'BLOCKED' : 'FAIL';
   blockerReason = scrubSecrets(blockerReason || (err instanceof Error ? err.message : String(err)));
-  if (!steps.some((s) => s.status === 'FAIL')) {
+  if (!hasBlockedOnly && !steps.some((s) => s.status === 'FAIL')) {
     recordStep('err', 'Unexpected E2E failure', 'FAIL', blockerReason);
   }
   for (const { label, ctx } of contexts) {

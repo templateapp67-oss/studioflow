@@ -38,6 +38,7 @@ jobs:
       preview_url: ${{ steps.deploy.outputs.url }}
       deploy_outcome: ${{ steps.deploy.outcome }}
       vercel_available: ${{ steps.vercel-config.outputs.available }}
+      preview_supabase_ref: ${{ steps.verify-project.outputs.supabase_ref }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -91,6 +92,7 @@ jobs:
         run: vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
 
       - name: Verify linked Vercel project
+        id: verify-project
         if: steps.vercel-config.outputs.available == 'true'
         env:
           EXPECTED_VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -110,6 +112,24 @@ jobs:
             process.exit(1);
           }
           console.log('Downloaded project identity matches the configured team and project IDs.');
+
+          let supabaseRef = 'unset';
+          const envFile = '.vercel/.env.preview.local';
+          if (fs.existsSync(envFile)) {
+            const raw = fs.readFileSync(envFile, 'utf8');
+            const m = raw.match(/^VITE_SUPABASE_URL\s*=\s*["']?([^"'\r\n]+)["']?/m);
+            if (m && m[1]) {
+              try {
+                supabaseRef = new URL(m[1].trim()).hostname.split('.')[0] || 'invalid';
+              } catch {
+                supabaseRef = 'invalid';
+              }
+            }
+          }
+          console.log('Preview VITE_SUPABASE_URL ref:', supabaseRef);
+          if (process.env.GITHUB_OUTPUT) {
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `supabase_ref=${supabaseRef}\n`);
+          }
           NODE
 
       - name: Build preview
@@ -202,6 +222,8 @@ jobs:
         env:
           DEPLOYED_PREVIEW_URL: ${{ needs.preview.outputs.preview_url }}
           MANUAL_PREVIEW_URL: ${{ inputs.preview_url }}
+          SECRET_BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
           set -euo pipefail
           url="${DEPLOYED_PREVIEW_URL:-${MANUAL_PREVIEW_URL:-}}"
@@ -212,9 +234,43 @@ jobs:
             echo "Resolved Preview URL: $url"
           fi
 
+          node <<'NODE'
+          const fs = require('node:fs');
+          async function main() {
+            let bypass = (process.env.SECRET_BYPASS || '').trim();
+            if (!bypass && process.env.VERCEL_TOKEN && process.env.VERCEL_PROJECT_ID) {
+              const qs = process.env.VERCEL_ORG_ID ? `?teamId=${encodeURIComponent(process.env.VERCEL_ORG_ID)}` : '';
+              const res = await fetch(`https://api.vercel.com/v9/projects/${encodeURIComponent(process.env.VERCEL_PROJECT_ID)}${qs}`, {
+                headers: { Authorization: `Bearer ${process.env.VERCEL_TOKEN}` },
+              });
+              if (res.ok) {
+                const proj = await res.json();
+                const map = proj && typeof proj.protectionBypass === 'object' ? proj.protectionBypass : null;
+                if (map) {
+                  const keys = Object.keys(map).filter((k) => map[k]?.scope === 'automation-bypass' || !map[k]?.scope);
+                  if (keys.length > 0) bypass = keys[0];
+                }
+              }
+            }
+            if (bypass) {
+              console.log(`::add-mask::${bypass}`);
+              if (process.env.GITHUB_ENV) {
+                fs.appendFileSync(process.env.GITHUB_ENV, `VERCEL_AUTOMATION_BYPASS_SECRET=${bypass}\n`);
+              }
+              console.log('Vercel automation bypass secret is available (masked).');
+            } else {
+              console.log('No Vercel automation bypass secret found.');
+            }
+          }
+          main().catch((err) => {
+            console.log('Bypass lookup skipped:', err?.message || String(err));
+          });
+          NODE
+
       - name: Run Playwright E2E against Preview + QA Supabase
         env:
           PREVIEW_URL: ${{ steps.resolve-preview.outputs.url }}
+          PREVIEW_SUPABASE_REF: ${{ needs.preview.outputs.preview_supabase_ref }}
           PLAYWRIGHT_PACKAGE_ROOT: /tmp/pw-runner
           EXPECTED_SUPABASE_REF: ckgrgnokgxgjxzfeoigg
           FORBIDDEN_SUPABASE_REF: zilwgiuiygqqardzutxi
