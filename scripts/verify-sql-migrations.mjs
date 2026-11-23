@@ -559,6 +559,31 @@ await db.exec('drop function if exists public.studioflow_claim_refunds(integer)'
 // fixture before replaying that replacement; production is not affected.
 await db.exec('drop function if exists public.studioflow_android_book(text,jsonb,date,text,text,text,text,text,uuid)');
 
+// These legacy trigger functions predate the compact offline fixture. Create
+// minimal trigger-only stubs when absent so the additive ACL migration can be
+// replayed and its permission/search_path contract asserted deterministically.
+await db.exec(`
+do $bootstrap$
+begin
+  if to_regprocedure('public.sync_owner_template_catalogue()') is null then
+    execute $create$
+      create function public.sync_owner_template_catalogue()
+      returns trigger language plpgsql security definer
+      set search_path to pg_catalog, public, pg_temp
+      as $body$ begin return new; end $body$
+    $create$;
+  end if;
+  if to_regprocedure('public.check_max_salon_social_videos()') is null then
+    execute $create$
+      create function public.check_max_salon_social_videos()
+      returns trigger language plpgsql
+      as $body$ begin return new; end $body$
+    $create$;
+  end if;
+end
+$bootstrap$;
+`);
+
 for (const name of [
   '20261122043650_staff_crm_branch_scope.sql',
   '20261122045445_studioflow_refund_queue_rpc.sql',
@@ -577,10 +602,28 @@ for (const name of [
   '20261122072823_correct_android_request_fingerprint_builder.sql',
   '20261122072900_branch_service_android_wrapper_grants.sql',
   '20261123065338_public_storefront_invoker_view.sql',
+  '20261123065640_harden_public_trigger_function_acls.sql',
 ]) {
   const file = 'supabase/migrations/' + name;
   await applySqlText(readFileSync(file, 'utf8'), file);
 }
+
+const {rows: [triggerFunctionAcl]} = await db.query(`
+  select
+    has_function_privilege('anon','public.sync_owner_template_catalogue()','EXECUTE') as anon_sync_execute,
+    has_function_privilege('authenticated','public.sync_owner_template_catalogue()','EXECUTE') as auth_sync_execute,
+    has_function_privilege('service_role','public.sync_owner_template_catalogue()','EXECUTE') as service_sync_execute,
+    (select proconfig from pg_proc where oid='public.check_max_salon_social_videos()'::regprocedure) as social_video_search_path
+`);
+assert.equal(triggerFunctionAcl.anon_sync_execute, false,
+  'anon cannot directly execute the owner catalogue trigger function');
+assert.equal(triggerFunctionAcl.auth_sync_execute, true,
+  'authenticated grant on the owner catalogue trigger function is retained');
+assert.equal(triggerFunctionAcl.service_sync_execute, true,
+  'service_role grant on the owner catalogue trigger function is retained');
+assert.ok(triggerFunctionAcl.social_video_search_path?.includes('search_path=""'),
+  'social-video trigger function pins an empty search_path');
+console.log('PASS: trigger-only function ACL and search_path hardening');
 
 const {rows: [storefrontSecurity]} = await db.query(`
   select
