@@ -2037,7 +2037,7 @@
   },
   "release_pending_migrations": [
     {
-      "file": "20261123110000_public_storefront_invoker_view.sql",
+      "file": "20261123065338_public_storefront_invoker_view.sql",
       "purpose": "Replace the SECURITY DEFINER public storefront view with a SECURITY INVOKER projection. Anonymous SELECT is limited to slug/content/published_at and only currently published rows; authenticated base-table reads retain their prior policy."
     }
   ],
