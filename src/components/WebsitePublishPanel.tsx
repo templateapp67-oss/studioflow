@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { websiteLink } from '../lib/supabase';
+import { formatPublishingError } from '../lib/publishing';
 import { SalonProfile, SalonService } from '../types';
 import { PublishingStatusIndicator } from './PublishingStatusIndicator';
 
@@ -32,7 +33,8 @@ export function WebsitePublishPanel({ published, onPublish, onPublished, profile
       setStatus('Website published. Your live link is ready to share.');
       onPublished?.();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Publishing failed. Please try again.');
+      console.error('[StudioFlow] Website publish action failed', e);
+      setError(formatPublishingError(e));
     } finally {
       busy.current = false; setPublishing(false);
     }
