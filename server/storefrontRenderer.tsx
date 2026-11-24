@@ -76,39 +76,37 @@ export function renderPublishedSalonHtml(rawContent: unknown, slug: string): Pub
   // Keep this fragment in the same order as PublishedWebsite in App.tsx. The
   // browser hydrates this markup instead of discarding it and showing a loader.
   const html = renderToString(
-    // Match the client App's Suspense boundary. SalonWebsitePreview is lazy
-    // loaded in the browser route, so omitting this boundary makes React see a
-    // different hydration tree even though the visible HTML looks identical.
-    <React.Suspense fallback={<main className="grid min-h-screen place-items-center bg-white px-6 text-center text-sm font-semibold text-slate-700" role="status">Loading NEXORA…</main>}>
-      <>
-        <div className="bg-white border-b px-4 py-2 flex justify-between gap-3 text-xs">
-          <a className="text-violet-600 font-semibold" href={'/?app=1&site=' + encodeURIComponent(slug)}>
-            Open this salon in Nexora App ↗
-          </a>
-          <a className="text-violet-600" href="/?app=1&tab=bookings">My Bookings</a>
-        </div>
-        <React.Suspense fallback={<main role="status">Loading salon website…</main>}>
-          <SalonWebsitePreview
-            key={slug}
-            readOnly
-            live
-            profile={hydrationProfile}
-            services={hydrationSite.services}
-            stylists={hydrationSite.stylists}
-            gallery={hydrationSite.gallery}
-            policies={hydrationSite.policies}
-            branding={hydrationSite.branding as { platformName: string; poweredBy: boolean; supportEmail: string }}
-            loyaltyConfig={hydrationSite.loyaltyConfig}
-            customerSignedIn={false}
-            customerName="My account"
-            customerPhotoUrl=""
-            onCustomerAccount={() => undefined}
-            onAddAppointment={async (appointment: Appointment) => appointment}
-          />
-        </React.Suspense>
-        <TawkPublicWidget slug={slug} />
-      </>
-    </React.Suspense>,
+    // Match PublishedWebsite's client tree exactly: a fragment containing the
+    // app links, one Suspense boundary around the lazy preview, then the widget.
+    // An extra outer Suspense boundary creates unmatched hydration markers.
+    <>
+      <div className="bg-white border-b px-4 py-2 flex justify-between gap-3 text-xs">
+        <a className="text-violet-600 font-semibold" href={'/?app=1&site=' + encodeURIComponent(slug)}>
+          Open this salon in Nexora App ↗
+        </a>
+        <a className="text-violet-600" href="/?app=1&tab=bookings">My Bookings</a>
+      </div>
+      <React.Suspense fallback={<main role="status">Loading salon website…</main>}>
+        <SalonWebsitePreview
+          key={slug}
+          readOnly
+          live
+          profile={hydrationProfile}
+          services={hydrationSite.services}
+          stylists={hydrationSite.stylists}
+          gallery={hydrationSite.gallery}
+          policies={hydrationSite.policies}
+          branding={hydrationSite.branding as { platformName: string; poweredBy: boolean; supportEmail: string }}
+          loyaltyConfig={hydrationSite.loyaltyConfig}
+          customerSignedIn={false}
+          customerName="My account"
+          customerPhotoUrl=""
+          onCustomerAccount={() => undefined}
+          onAddAppointment={async (appointment: Appointment) => appointment}
+        />
+      </React.Suspense>
+      <TawkPublicWidget slug={slug} />
+    </>,
   );
 
   // React 19 emits image/font resource hints from renderToString. These are
