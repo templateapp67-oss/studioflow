@@ -101,8 +101,9 @@ function SalonWhatsAppFloatingButton({profile}:{profile:SalonWebsitePreviewProps
 function storefrontCanonicalUrl(profile:SalonProfile):string|undefined{
  const configured=profile.seo?.canonicalUrl?.trim();
  if(configured)return configured;
- if(typeof window==='undefined')return undefined;
- const current=new URL(window.location.href);
+ if(typeof window==='undefined'||typeof window.location?.href!=='string'||!window.location.href)return undefined;
+ let current:URL;
+ try{current=new URL(window.location.href);}catch{return undefined;}
  const selector=current.searchParams.get('site')||current.searchParams.get('s')||current.searchParams.get('subdomain');
  return selector?current.origin+'/?site='+encodeURIComponent(selector):current.origin+current.pathname;
 }
