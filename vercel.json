@@ -78,6 +78,111 @@
       "destination": "/partner-rewards/index.html"
     },
     {
+      "source": "/",
+      "has": [
+        {
+          "type": "query",
+          "key": "app"
+        }
+      ],
+      "destination": "/index.html"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "query",
+          "key": "customer"
+        }
+      ],
+      "destination": "/index.html"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "query",
+          "key": "customer_ref"
+        }
+      ],
+      "destination": "/index.html"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "query",
+          "key": "site",
+          "value": "(?<salonSlug>[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)"
+        }
+      ],
+      "missing": [
+        {
+          "type": "query",
+          "key": "app"
+        },
+        {
+          "type": "query",
+          "key": "customer"
+        },
+        {
+          "type": "query",
+          "key": "customer_ref"
+        }
+      ],
+      "destination": "/api/storefront?path=/&site=:salonSlug"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "query",
+          "key": "s",
+          "value": "(?<salonSlug>[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)"
+        }
+      ],
+      "missing": [
+        {
+          "type": "query",
+          "key": "app"
+        },
+        {
+          "type": "query",
+          "key": "customer"
+        },
+        {
+          "type": "query",
+          "key": "customer_ref"
+        }
+      ],
+      "destination": "/api/storefront?path=/&site=:salonSlug"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "query",
+          "key": "subdomain",
+          "value": "(?<salonSlug>[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)"
+        }
+      ],
+      "missing": [
+        {
+          "type": "query",
+          "key": "app"
+        },
+        {
+          "type": "query",
+          "key": "customer"
+        },
+        {
+          "type": "query",
+          "key": "customer_ref"
+        }
+      ],
+      "destination": "/api/storefront?path=/&site=:salonSlug"
+    },
+    {
       "source": "/(.*)",
       "destination": "/api/storefront?path=/$1"
     }
