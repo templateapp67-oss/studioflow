@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { createRequire } from 'node:module';
 import { generateSeoDefaults } from '../src/lib/useSeoMetadata';
 import { websiteFavicon } from '../src/lib/websiteFavicon';
 
@@ -49,6 +50,9 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
 });
 
+// Vercel's TypeScript function executes as ESM; createRequire loads the
+// single-file CommonJS bundle produced by scripts/build-storefront-ssr.mjs.
+const require = createRequire(import.meta.url);
 const renderer = require('../dist/storefront-renderer.cjs') as Renderer;
 const RESERVED_PATHS = new Set([
   'admin', 'api', 'app', 'assets', 'fonts', 'growth-partner-rewards', 'index.html',
