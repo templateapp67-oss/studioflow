@@ -178,6 +178,7 @@ try {
       await summary.click();
       await page.waitForFunction(() => document.querySelector('.nexora-site-header__overflow-disclosure')?.open === true);
       assert.equal(await more.locator('a[href="/salon-growth"]').isVisible(), true, 'the native More disclosure exposes its grouped route links');
+      await summary.focus();
       await page.keyboard.press('Escape');
       await page.waitForFunction(() => document.querySelector('.nexora-site-header__overflow-disclosure')?.open === false);
       await page.waitForFunction(() => document.activeElement === document.querySelector('.nexora-site-header__overflow-toggle'));
