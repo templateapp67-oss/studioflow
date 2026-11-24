@@ -91,6 +91,19 @@ assert.throws(
   'a Supabase service_role JWT with iss=supabase is rejected',
 );
 
+/* 4b. Vercel CLI `vercel pull` "[SENSITIVE]" placeholders fall back safely. */
+config = env.resolveSupabaseConfig(
+  {
+    VITE_SUPABASE_URL: '[SENSITIVE]',
+    VITE_SUPABASE_PUBLISHABLE_KEY: '[SENSITIVE]',
+    VITE_SUPABASE_ANON_KEY: '[SENSITIVE]',
+  },
+  FALLBACK_URL,
+  FALLBACK_KEY,
+);
+assert.equal(config.url, FALLBACK_URL, 'Vercel [SENSITIVE] URL placeholder falls back to bundled public project URL');
+assert.equal(config.publishableKey, FALLBACK_KEY, 'Vercel [SENSITIVE] key placeholder falls back to bundled publishable key');
+
 /* 5. A different project is reported by host, never by key. */
 const warnings = [];
 const originalWarn = console.warn;

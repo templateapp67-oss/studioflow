@@ -62,6 +62,15 @@ export class SupabaseConfigError extends Error {
   }
 }
 
+const cleanBrowserEnv = (value?: string): string => {
+  const trimmed = (value || '').trim().replace(/^['"]|['"]$/g, '').trim();
+  // `vercel pull` writes the literal placeholder "[SENSITIVE]" for Vercel
+  // Sensitive environment variables during prebuilt CI builds; treat it as
+  // unset so browser builds fall back to the bundled public project config
+  // instead of crashing prerendering or shipping "[SENSITIVE]" to browsers.
+  return trimmed === '[SENSITIVE]' ? '' : trimmed;
+};
+
 /**
  * Resolves and validates the browser configuration.
  *
@@ -74,9 +83,9 @@ export function resolveSupabaseConfig(
   fallbackUrl: string,
   fallbackKey: string,
 ): ResolvedSupabaseConfig {
-  const rawUrl = (env.VITE_SUPABASE_URL || '').trim();
+  const rawUrl = cleanBrowserEnv(env.VITE_SUPABASE_URL);
   const rawKey =
-    (env.VITE_SUPABASE_PUBLISHABLE_KEY || '').trim() || (env.VITE_SUPABASE_ANON_KEY || '').trim();
+    cleanBrowserEnv(env.VITE_SUPABASE_PUBLISHABLE_KEY) || cleanBrowserEnv(env.VITE_SUPABASE_ANON_KEY);
 
   if (rawKey && looksPrivileged(rawKey)) {
     throw new SupabaseConfigError(
