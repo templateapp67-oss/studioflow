@@ -90,14 +90,10 @@ for (const match of prerender.matchAll(/<script([^>]*)>/g)) {
 }
 
 // Deployment must keep auth, sitemap, static assets and legacy Node APIs intact.
-assert.deepEqual(config.rewrites.map((entry) => [entry.source, entry.destination]), [
+const requiredRewrites = [
   ['/login', '/login.html'],
-  // `/sign-in` and `/sign-up` are aliases of the same login document, so the
-  // canonical, `noindex` login head is what those URLs receive.
   ['/sign-in', '/login.html'],
   ['/sign-up', '/login.html'],
-  // Staff entry points are app-shell routes: the invite token and the staff
-  // session are resolved by the client router, never by a rewrite.
   ['/staff', '/index.html'],
   ['/staff/login', '/index.html'],
   ['/staff/accept', '/index.html'],
@@ -108,10 +104,49 @@ assert.deepEqual(config.rewrites.map((entry) => [entry.source, entry.destination
   ['/salon-onboarding', '/salon-onboarding/index.html'],
   ['/salon-growth', '/salon-growth/index.html'],
   ['/growth-partner-rewards', '/growth-partner-rewards/index.html'],
-  ['/(.*\\..*)', '/$1'],
+  ['/(.*\\\\..*)', '/$1'],
   ['/partner-rewards', '/partner-rewards/index.html'],
-  ['/(.*)', '/index.html'],
-]);
+];
+for (const [source, destination] of requiredRewrites) {
+  assert.ok(
+    config.rewrites.some((entry) => entry.source === source && entry.destination === destination),
+    `required route rewrite must remain: ${source} -> ${destination}`,
+  );
+}
+const storefrontFallback = config.rewrites.find((entry) => entry.source === '/(.*)');
+assert.ok(storefrontFallback, 'non-file salon paths must be handled by the storefront SSR function');
+assert.equal(storefrontFallback.destination, '/api/storefront?path=/$1');
+assert.equal(config.rewrites.at(-1), storefrontFallback, 'the storefront fallback must remain last');
+for (const key of ['app', 'customer', 'customer_ref']) {
+  assert.ok(
+    config.rewrites.some((entry) => entry.source === '/' && entry.destination === '/index.html' &&
+      (entry.has || []).some((condition) => condition.type === 'query' && condition.key === key)),
+    `root ${key} entry must keep serving the normal application shell`,
+  );
+}
+assert.ok(
+  !config.rewrites.some((entry) => entry.source === '/' &&
+    (entry.has || []).some((condition) => condition.type === 'query' && ['site', 's', 'subdomain'].includes(condition.key))),
+  'published salon root query URLs must be intercepted before the root index.html filesystem match',
+);
+
+// Exercise the actual Vercel Routing Middleware contract without a network call.
+const { default: routeStorefrontRequest } = await import('../middleware.js');
+const queryResponse = routeStorefrontRequest(new Request('https://preview.example/?site=Salon-Preview-01'));
+const rewriteTarget = queryResponse.headers.get('x-middleware-rewrite');
+assert.ok(rewriteTarget, 'a published salon root URL must rewrite to the SSR function');
+const rewriteUrl = new URL(rewriteTarget);
+assert.equal(rewriteUrl.pathname, '/api/storefront');
+assert.equal(rewriteUrl.searchParams.get('path'), '/');
+assert.equal(rewriteUrl.searchParams.get('site'), 'salon-preview-01');
+
+for (const query of ['?app=1&site=salon-preview-01', '?customer=1&site=salon-preview-01', '?customer_ref=abc&site=salon-preview-01']) {
+  const response = routeStorefrontRequest(new Request(`https://preview.example/${query}`));
+  assert.equal(response.headers.get('x-middleware-next'), '1', `customer/app route must not be intercepted: ${query}`);
+}
+const invalidSlugResponse = routeStorefrontRequest(new Request('https://preview.example/?site=bad%2Fslug'));
+assert.equal(invalidSlugResponse.headers.get('x-middleware-next'), '1', 'invalid selectors must not reach the SSR function');
+
 // `www` must 308 to the canonical origin instead of serving a duplicate host.
 const wwwRedirect = (config.redirects || []).find((entry) =>
   (entry.has || []).some((condition) => condition.type === 'host' && condition.value === 'www.nexorasalon.online'));
@@ -136,4 +171,4 @@ for (const route of [
 assert.ok(server.includes('app.get("/sitemap.xml", sitemapHandler)'));
 assert.ok(server.includes('app.all("/api/*"'), 'unknown API paths must stay JSON 404s, not SPA HTML');
 
-console.log('PASS: enforcing CSP matches runtime integrations; login/sitemap/static/SPA rewrites and legacy API registrations are preserved. Browser/provider smoke tests remain required.');
+console.log('PASS: enforcing CSP matches runtime integrations; legacy routes remain intact; root salon selectors reach SSR before index.html while app/customer routes stay on the SPA shell.');
