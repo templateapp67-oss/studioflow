@@ -24,6 +24,7 @@ type Renderer = {
     site: Record<string, any>;
   };
   getStorefrontAssetTags(): string;
+  getStorefrontShellHtml(): string;
 };
 
 // This is deliberately a public-key read. The database view exposes only
@@ -136,10 +137,9 @@ function safeJson(value: unknown): string {
     .replace(/\u2029/g, '\\u2029');
 }
 
-async function sendPlatformShell(origin: string, res: ResponseLike, method: string): Promise<void> {
-  const response = await fetch(new URL('/index.html', origin));
-  const html = await response.text();
-  res.status(response.status);
+function sendPlatformShell(res: ResponseLike, method: string): void {
+  const html = getRenderer().getStorefrontShellHtml();
+  res.status(200);
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
   if (method === 'HEAD') return res.end();
@@ -246,7 +246,7 @@ export default async function storefrontHandler(req: RequestLike, res: ResponseL
   }
 
   const slug = resolveStorefrontSlug(pageUrl, hostname);
-  if (!slug) return sendPlatformShell(origin, res, method);
+  if (!slug) return sendPlatformShell(res, method);
 
   const { data, error } = await supabase
     .from('public_salon_websites')
