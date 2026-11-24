@@ -13,6 +13,7 @@ type ResponseLike = {
 type Renderer = {
   renderPublishedSalonHtml(content: unknown, slug: string): {
     html: string;
+    preloadTags: string[];
     profile: Record<string, any>;
     normalizedContent: Record<string, any>;
     site: Record<string, any>;
@@ -386,7 +387,7 @@ export default async function storefrontHandler(req: RequestLike, res: ResponseL
     head = renderHead(rendered.profile, rendered.site, canonical, {
       generateSeoDefaults: generateStorefrontSeoDefaults,
       websiteFavicon: storefrontFavicon,
-    }) + '\n' + assetTags;
+    }) + '\n' + assetTags + '\n' + rendered.preloadTags.join('\n');
   } catch (headError) {
     console.error('[storefront-ssr] SEO/asset module initialization failed', headError);
     res.status(503);
