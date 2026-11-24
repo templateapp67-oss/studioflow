@@ -809,6 +809,21 @@ function PublishedWebsite({slug,session}:{key?:React.Key;slug:string;session:Ses
  if(error)return <main className="p-10"><h1 className="text-2xl font-bold">Website unavailable</h1><p>{error.includes('not published') ? 'The salon owner has not published this website yet.' : error}</p><p className="text-sm text-slate-500 mt-2">Retrying automatically in {countdown} seconds...</p><div className="mt-4 flex flex-col gap-3"><div className="flex gap-3"><button className="primary-action" onClick={()=>{setError('');setSite(null);setRetry(r=>r+1);}}>Try again</button><a className="secondary-action" href="/">Open NEXORA</a></div><details className="mt-4 p-4 border rounded-xl"><summary className="font-semibold cursor-pointer">Need help publishing?</summary><p className="mt-2 text-sm text-slate-600">If you are the salon owner, please sign in to your Salon Workspace, complete the setup, and click the 'Publish' button in the dashboard to make your website live.</p></details></div></main>;
  if(!site)return <Loading text="Loading salon website…" />;
  const book=async(apt:Appointment)=>{if(!session){setAuthMode('signin');throw new Error('Please log in or create a customer account to continue your booking.');}const isAura=site?.profile?.businessType==='unisex_salon';const isMens=site?.profile?.businessType==='mens_hair_studio';const rpc=isMens?'studioflow_mens_book':apt.branchId?(apt.couponCode?'studioflow_branch_coupon_book':'studioflow_branch_book'):(apt.couponCode?(isAura?'studioflow_aura_coupon_book':'studioflow_coupon_book'):'studioflow_book');const {data,error}=await supabase.rpc(rpc,{p_slug:slug,p_request:apt});if(error)throw error;return data?.payload||data;};
- const content=normalizeWorkspace({...site,extras:{gallery:site.gallery,policies:site.policies,whiteLabel:site.branding}});
+ // The SSR payload is already normalized by renderPublishedSalonHtml.
+ // Re-normalizing it before hydration can mutate demo flags, reviews, gallery
+ // and catalogue defaults, so the first browser tree no longer matches HTML.
+ // Use the exact serialized fields for hydration; later live refreshes return
+ // the raw public view row and continue through normalizeWorkspace below.
+ const content=hasServerRenderedSite&&site?{
+  profile:site.profile,
+  services:Array.isArray(site.services)?site.services:[],
+  stylists:Array.isArray(site.stylists)?site.stylists:[],
+  loyaltyConfig:site.loyaltyConfig,
+  extras:{
+   gallery:Array.isArray(site.gallery)?site.gallery:[],
+   policies:site.policies&&typeof site.policies==='object'?site.policies:{},
+   whiteLabel:site.branding&&typeof site.branding==='object'?site.branding:{},
+  },
+ }:normalizeWorkspace({...site,extras:{gallery:site.gallery,policies:site.policies,whiteLabel:site.branding}});
  return <><div className="bg-white border-b px-4 py-2 flex justify-between gap-3 text-xs"><a className="text-violet-600 font-semibold" href={'/?app=1&site='+encodeURIComponent(slug)}>Open this salon in Nexora App ↗</a><a className="text-violet-600" href="/?app=1&tab=bookings">My Bookings</a></div>{showBookings&&<SalonBookingsDialog profile={{...content.profile,subdomain:slug}} onClose={()=>setShowBookings(false)}/>} {authMode&&<div className="fixed inset-0 z-[100] bg-black/50 p-4 flex items-center justify-center" onClick={()=>setAuthMode(null)}><section role="dialog" aria-modal="true" aria-label="Customer account" className="bg-white text-slate-900 rounded-2xl w-full max-w-lg max-h-[90dvh] overflow-y-auto p-4" onClick={e=>e.stopPropagation()}><button className="secondary-action mb-3" onClick={()=>setAuthMode(null)}>Close</button>{session?<Suspense fallback={<p role="status">Loading account settings…</p>}><WebsiteCustomerAccount session={session} account={customerAccount}/></Suspense>:<AuthPage key={authMode} compact customerMode initialMode={authMode} returnSlug={slug} redirectPathOverride={stayOnSitePath}/>}</section></div>}<SalonWebsitePreview key={slug} customerSignedIn={!!session} customerName={customerAccount.profile.full_name||session?.user.user_metadata?.full_name||'My account'} customerPhotoUrl={customerAccount.photoUrl} onCustomerAccount={mode=>setAuthMode(mode||'signin')} profile={{...content.profile,subdomain:slug}} services={normalizeServices<SalonService>(content.services,'published site services')} stylists={content.stylists} gallery={content.extras.gallery} policies={site.policies} branding={site.branding} loyaltyConfig={site.loyaltyConfig} onAddAppointment={book} readOnly live /><TawkPublicWidget slug={slug} /></>;
 }
