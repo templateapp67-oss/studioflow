@@ -202,7 +202,7 @@ try {
         slug: probeResponse.headers()['x-nexora-ssr-slug'] || '',
       };
       assert.equal(probeResponse.status(), 404, `SSR probe should return the not-published 404, got ${probeResponse.status()}; headers=${JSON.stringify(probeHeaders)}; body=${probeBody.slice(0, 1200)}`);
-      assert.match(probeBody, /<title>Salon website not found<\\/title>/i, 'SSR route did not return its server-rendered not-found document');
+      assert.match(probeBody, /<title>Salon website not found<\/title>/i, 'SSR route did not return its server-rendered not-found document');
       assert.match(probeBody, /<meta name="robots" content="noindex">/i, 'Unpublished salon response must not be indexed');
       assert.match(probeBody, /This salon website is not published/i);
       report.storefrontSsrProbe = { status: probeResponse.status(), title: 'Salon website not found', robots: 'noindex' };
