@@ -70,7 +70,13 @@ try {
     const context = await browser.newContext({ viewport, serviceWorkers: 'block' });
     // A saved language preference must be applied after hydration, not while
     // React is producing the first client tree.
-    await context.addInitScript(() => localStorage.setItem('nexora-website-language', 'hi'));
+    await context.addInitScript(() => {
+      // Playwright creates an initial about:blank page with an opaque origin;
+      // localStorage access there throws SecurityError. Seed only real web origins.
+      if (window.location.protocol === 'https:' || window.location.protocol === 'http:') {
+        try { window.localStorage.setItem('nexora-website-language', 'hi'); } catch { /* storage may be disabled */ }
+      }
+    });
     await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
     const page = await context.newPage();
     page.on('console', (msg) => { if (msg.type() === 'error') report.consoleErrors.push(msg.text()); });
