@@ -109,7 +109,6 @@ const requiredRewrites = [
   ['/salon-onboarding', '/salon-onboarding/index.html'],
   ['/salon-growth', '/salon-growth/index.html'],
   ['/growth-partner-rewards', '/growth-partner-rewards/index.html'],
-  ['/(.*\\\\..*)', '/$1'],
   ['/partner-rewards', '/partner-rewards/index.html'],
 ];
 for (const [source, destination] of requiredRewrites) {
@@ -118,6 +117,10 @@ for (const [source, destination] of requiredRewrites) {
     `required route rewrite must remain: ${source} -> ${destination}`,
   );
 }
+
+const assetPassthrough = config.rewrites.find((entry) => entry.destination === '/$1' && entry.source.includes('..'));
+assert.ok(assetPassthrough, 'static file asset passthrough rewrite must remain');
+assert.equal(assetPassthrough.source, '/(.*\\..*)', 'asset passthrough must match dotted file paths only');
 const storefrontRootFallback = config.rewrites.find((entry) => entry.source === '/' && entry.destination === '/api/storefront?path=/');
 assert.ok(storefrontRootFallback, 'the bare platform root must route to the storefront shell handler');
 const storefrontFallback = config.rewrites.find((entry) => entry.source === '^/([^a].*|a[^p].*|ap[^i].*|api[^/].*|ap)$');
