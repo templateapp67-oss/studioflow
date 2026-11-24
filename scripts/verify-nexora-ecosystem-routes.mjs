@@ -201,18 +201,20 @@ for (const path of NEXORA_ECOSYSTEM_ROUTES) {
   }
 }
 
-/* 4. Every route is rewritten to its own document, ahead of the SPA fallback. */
+/* 4. Every marketing route is served before the final dynamic salon fallback. */
 const vercel = JSON.parse(readFileSync('vercel.json', 'utf8'));
 const rewrites = vercel.rewrites.map((entry) => [entry.source, entry.destination]);
-const fallbackIndex = rewrites.findIndex(([source]) => source === '/(.*)');
-assert.ok(fallbackIndex > 0, 'The SPA fallback rewrite must stay the last rewrite');
+const storefrontFallbackSource = '^/([^a].*|a[^p].*|ap[^i].*|api[^/].*|ap)$';
+const fallbackIndex = rewrites.findIndex(([source]) => source === storefrontFallbackSource);
+assert.ok(fallbackIndex >= 0, 'The dynamic storefront fallback must exist');
+assert.equal(fallbackIndex, rewrites.length - 1, 'The dynamic storefront fallback must stay the last rewrite');
+assert.ok(!rewrites.some(([source]) => source === '/(.*)'), 'A broad SPA catch-all must not shadow dynamic salon storefront URLs');
 for (const path of NEXORA_ECOSYSTEM_ROUTES) {
   const index = rewrites.findIndex(([source]) => source === path);
   assert.ok(index >= 0, `${path} must be served by its own rewrite`);
   assert.equal(rewrites[index][1], `${path}/index.html`, `${path} rewrites to its document`);
-  assert.ok(index < fallbackIndex, `${path} must be resolved before the SPA fallback`);
+  assert.ok(index < fallbackIndex, `${path} must be resolved before the dynamic storefront fallback`);
 }
-assert.equal(rewrites.filter(([source]) => source === '/(.*)').length, 1, 'Only one SPA fallback exists');
 
 /* 5. The sitemap lists each route once, without dropping the existing ones. */
 const sitemap = sitemapXml(NEXORA_PUBLIC_ORIGIN, []);
