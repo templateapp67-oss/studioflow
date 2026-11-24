@@ -86,23 +86,25 @@ export function renderPublishedSalonHtml(rawContent: unknown, slug: string): Pub
           </a>
           <a className="text-violet-600" href="/?app=1&tab=bookings">My Bookings</a>
         </div>
-        <SalonWebsitePreview
-          key={slug}
-          readOnly
-          live
-          profile={hydrationProfile}
-          services={hydrationSite.services}
-          stylists={hydrationSite.stylists}
-          gallery={hydrationSite.gallery}
-          policies={hydrationSite.policies}
-          branding={hydrationSite.branding}
-          loyaltyConfig={hydrationSite.loyaltyConfig}
-          customerSignedIn={false}
-          customerName="My account"
-          customerPhotoUrl=""
-          onCustomerAccount={() => undefined}
-          onAddAppointment={async (appointment: Appointment) => appointment}
-        />
+        <React.Suspense fallback={<main role="status">Loading salon website…</main>}>
+          <SalonWebsitePreview
+            key={slug}
+            readOnly
+            live
+            profile={hydrationProfile}
+            services={hydrationSite.services}
+            stylists={hydrationSite.stylists}
+            gallery={hydrationSite.gallery}
+            policies={hydrationSite.policies}
+            branding={hydrationSite.branding}
+            loyaltyConfig={hydrationSite.loyaltyConfig}
+            customerSignedIn={false}
+            customerName="My account"
+            customerPhotoUrl=""
+            onCustomerAccount={() => undefined}
+            onAddAppointment={async (appointment: Appointment) => appointment}
+          />
+        </React.Suspense>
         <TawkPublicWidget slug={slug} />
       </>
     </React.Suspense>,
