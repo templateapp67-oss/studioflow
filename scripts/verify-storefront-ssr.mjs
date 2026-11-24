@@ -33,6 +33,10 @@ assert.match(assetTags, /<script type="module"/, 'embedded assets contain the Vi
 assert.match(assetTags, /rel="stylesheet"/, 'embedded assets contain the built stylesheet');
 assert.match(result.html, /NEXORA SSR Test Salon/, 'server HTML contains the salon name');
 assert.match(result.html, /data-salon-whatsapp-site/, 'server HTML contains the real customer salon template');
+assert.ok(Array.isArray(result.preloadTags), 'React resource hints are returned separately for document head placement');
+assert.ok(result.preloadTags.length > 0, 'server-rendered image resource hints are preserved');
+assert.ok(result.preloadTags.every((tag) => /<link\b[^>]*\brel="preload"/i.test(tag)), 'only preload link hints are moved');
+assert.doesNotMatch(result.html, /<link\b[^>]*\brel="preload"/i, 'the hydrated root must not contain resource-hint siblings');
 assert.match(result.html, /Signature Haircut/, 'server HTML contains the saved salon service');
 assert.equal(result.profile.subdomain, 'nexora-ssr-test');
 assert.equal(result.normalizedContent.profile.businessName, 'NEXORA SSR Test Salon');
