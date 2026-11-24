@@ -219,7 +219,7 @@ function renderHead(profile: Record<string, any>, site: Record<string, any>, can
     '<meta name="twitter:title" content="' + escapeHtml(ogTitle) + '">',
     '<meta name="twitter:description" content="' + escapeHtml(ogDescription) + '">',
     '<meta name="twitter:image" content="' + escapeHtml(image) + '">',
-    '<script type="application/ld+json">' + safeJson(schema) + '</script>',
+    '<script id="studioflow-seo-jsonld" type="application/ld+json">' + safeJson(schema) + '</script>',
   ].join('\n');
 }
 
