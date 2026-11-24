@@ -116,7 +116,7 @@ try {
       const publishedResponse = await page.goto(publishedUrl, { waitUntil: 'networkidle', timeout: 60000 });
       assert.equal(publishedResponse?.status(), 200, `Published salon SSR should return 200, got ${publishedResponse?.status() ?? 'no response'}`);
       const publishedHtml = await publishedResponse.text();
-      const payloadMatch = publishedHtml.match(/<script id="nexora-published-site-data" type="application\\/json">([([\\s\\S]*?)S]*?)<\\/script>/);
+      const payloadMatch = publishedHtml.match(/<script id="nexora-published-site-data" type="application\/json">([\s\S]*?)<\/script>/);
       assert.ok(payloadMatch, 'Published salon response must contain the server-rendered hydration payload');
       const publishedPayload = JSON.parse(payloadMatch[1]);
       assert.equal(publishedPayload.slug, publishedSlug, 'SSR hydration payload must belong to the requested published salon');
@@ -125,12 +125,12 @@ try {
       assert.ok(publishedHtml.includes(businessName), 'Raw HTTP HTML must contain the published salon business name before client JavaScript');
       assert.match(publishedHtml, /<meta name="robots" content="index,follow">/, 'Published salon HTML must be indexable');
       assert.match(publishedHtml, /<link rel="canonical" href="/, 'Published salon HTML must contain a canonical URL');
-      assert.match(publishedHtml, /application\\/ld\\+json/, 'Published salon HTML must contain structured data');
+      assert.match(publishedHtml, /application\/ld\+json/, 'Published salon HTML must contain structured data');
       report.storefrontPublishedProbe = {
         status: publishedResponse.status(),
         slug: publishedSlug,
         businessName,
-        title: (publishedHtml.match(/<title>([([\\s\\S]*?)S]*?)<\\/title>/i) || [])[1] || '',
+        title: (publishedHtml.match(/<title>([\s\S]*?)<\/title>/i) || [])[1] || '',
         robots: 'index,follow',
         serverRendered: true,
       };
