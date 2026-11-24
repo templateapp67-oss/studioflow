@@ -23,6 +23,7 @@ type Renderer = {
     normalizedContent: Record<string, any>;
     site: Record<string, any>;
   };
+  getStorefrontAssetTags(): string;
 };
 
 // This is deliberately a public-key read. The database view exposes only
@@ -133,19 +134,6 @@ function safeJson(value: unknown): string {
     .replace(/&/g, '\\u0026')
     .replace(/\u2028/g, '\\u2028')
     .replace(/\u2029/g, '\\u2029');
-}
-
-let cachedAssetTags: string | null = null;
-async function getBuiltAssetTags(origin: string): Promise<string> {
-  if (cachedAssetTags) return cachedAssetTags;
-  const response = await fetch(new URL('/index.html', origin));
-  if (!response.ok) throw new Error('The built application shell could not be loaded.');
-  const html = await response.text();
-  const links = html.match(/<link\b[^>]*\brel="(?:modulepreload|stylesheet)"[^>]*>/g) || [];
-  const scripts = html.match(/<script\b[^>]*type="module"[^>]*src="[^"]+"[^>]*><\/script>/g) || [];
-  if (scripts.length === 0) throw new Error('The built application script was not found.');
-  cachedAssetTags = [...links, ...scripts].join('\n');
-  return cachedAssetTags;
 }
 
 async function sendPlatformShell(origin: string, res: ResponseLike, method: string): Promise<void> {
@@ -284,7 +272,7 @@ export default async function storefrontHandler(req: RequestLike, res: ResponseL
   const rendered = getRenderer().renderPublishedSalonHtml(data.content, slug);
   const viaQuery = pageUrl.searchParams.has('site') || pageUrl.searchParams.has('s') || pageUrl.searchParams.has('subdomain');
   const canonical = canonicalForRequest(rendered.profile, origin, pageUrl.pathname, slug, viaQuery);
-  const assetTags = await getBuiltAssetTags(origin);
+  const assetTags = getRenderer().getStorefrontAssetTags();
   const initialPayload = safeJson({ slug, site: rendered.site });
   const head = renderHead(rendered.profile, rendered.site, canonical) + '\n' + assetTags;
 
