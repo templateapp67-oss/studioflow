@@ -477,7 +477,9 @@ try {
   assert.equal(await page.locator('.nexora-site-header').count(), 0, '/login does not inherit the public marketing header');
   assert.equal(await page.locator('.nx-breadcrumbs').count(), 0, '/login does not inherit public marketing breadcrumbs');
 
-  activeRoute = '/?site=owner-isolation-audit';
+  // Force the client application shell for this deliberately unpublished slug.
+  // Without app=1, SSR correctly returns a 404 for an unpublished salon site.
+  activeRoute = '/?site=owner-isolation-audit&app=1';
   const storefrontResponse = await page.goto(new URL(activeRoute, origin).toString(), { waitUntil: 'domcontentloaded' });
   assert.equal(storefrontResponse?.status(), 200, 'the explicit salon-site query stays on the owner/storefront application route');
   await page.waitForFunction(() => document.querySelector('.public-homepage') === null
