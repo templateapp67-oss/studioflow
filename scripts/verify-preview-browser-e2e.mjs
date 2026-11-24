@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import { join, resolve } from 'node:path';
 
 const previewUrl = (process.env.PREVIEW_URL || '').trim().replace(/\/+$/, '');
+const vercelBypassSecret = (process.env.VERCEL_AUTOMATION_BYPASS_SECRET || '').trim();
 const artifactsDir = resolve(process.env.E2E_ARTIFACTS_DIR || 'test-results/preview-browser-e2e');
 const screenshotsDir = join(artifactsDir, 'screenshots');
 const tracesDir = join(artifactsDir, 'traces');
@@ -56,6 +57,7 @@ const require = createRequire(join(pwRoot, 'package.json'));
 const { chromium } = require('playwright');
 const browser = await chromium.launch({ headless: true });
 const safeEndpoint = (raw) => { try { const url = new URL(raw); return url.origin + url.pathname; } catch { return 'invalid-url'; } };
+const previewOrigin = previewUrl ? new URL(previewUrl).origin : '';
 try {
   for (const viewport of [{ width: 1440, height: 960 }, { width: 390, height: 844 }]) {
     const context = await browser.newContext({ viewport });
@@ -72,7 +74,12 @@ try {
         await route.abort('blockedbyclient');
         return;
       }
-      await route.continue();
+      const headers = { ...req.headers() };
+      if (vercelBypassSecret && new URL(req.url()).origin === previewOrigin) {
+        headers['x-vercel-protection-bypass'] = vercelBypassSecret;
+        headers['x-vercel-set-bypass-cookie'] = 'true';
+      }
+      await route.continue({ headers });
     });
     const response = await page.goto(previewUrl, { waitUntil: 'networkidle', timeout: 60000 });
     assert.ok(response && response.ok(), `Preview returned ${response?.status() ?? 'no response'} at ${viewport.width}px`);
