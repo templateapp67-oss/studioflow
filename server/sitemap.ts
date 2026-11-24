@@ -1,8 +1,8 @@
-import { NEXORA_PUBLIC_ORIGIN } from "../src/lib/publicSeo";
-import { NEXORA_ECOSYSTEM_ROUTES } from "../src/lib/nexoraEcosystemSeo";
-import { NEXORA_TEMPLATE_META, nexoraTemplatePagePath } from "../src/lib/nexoraTemplateCatalogue";
-import { CANONICAL_ALIAS_HOSTS } from "./canonicalHost";
-import { robotsTagForRequest } from "./robotsHeaders";
+import { NEXORA_PUBLIC_ORIGIN } from "../src/lib/publicSeo.js";
+import { NEXORA_ECOSYSTEM_ROUTES } from "../src/lib/nexoraEcosystemSeo.js";
+import { NEXORA_TEMPLATE_META, nexoraTemplatePagePath } from "../src/lib/nexoraTemplateCatalogue.js";
+import { CANONICAL_ALIAS_HOSTS } from "./canonicalHost.js";
+import { robotsTagForRequest } from "./robotsHeaders.js";
 
 const CANONICAL_ALIAS_HOST_SET = new Set(
   CANONICAL_ALIAS_HOSTS.map((host) => host.toLowerCase()),

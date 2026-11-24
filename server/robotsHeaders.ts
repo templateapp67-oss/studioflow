@@ -19,7 +19,7 @@ import {
   hasNoIndexQueryParams,
   NOINDEX_PATH_PREFIXES,
   NOINDEX_QUERY_KEYS,
-} from '../src/lib/publicSeo';
+} from '../src/lib/publicSeo.js';
 
 export const NOINDEX_NOFOLLOW = 'noindex, nofollow';
 export const NOINDEX_FOLLOW = 'noindex, follow';
