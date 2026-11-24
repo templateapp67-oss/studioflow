@@ -108,7 +108,11 @@
       "destination": "/index.html"
     },
     {
-      "source": "^/(|[^a].*|a[^p].*|ap[^i].*|ap)$",
+      "source": "/",
+      "destination": "/api/storefront?path=/"
+    },
+    {
+      "source": "^/([^a].*|a[^p].*|ap[^i].*|api[^/].*|ap)$",
       "destination": "/api/storefront?path=/$1"
     }
   ],
