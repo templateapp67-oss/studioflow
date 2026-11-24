@@ -116,8 +116,12 @@ for (const [source, destination] of requiredRewrites) {
 const storefrontFallback = config.rewrites.find((entry) => entry.source === '^/(?!api(?:/|$))(.*)
 assert.ok(storefrontFallback, 'non-file salon paths must be handled by the storefront SSR function');
 assert.equal(storefrontFallback.destination, '/api/storefront?path=/$1');
-assert.ok(!new RegExp(storefrontFallback.source).test('/api/storefront'), 'SSR fallback must not rewrite its own API function path');
-assert.ok(new RegExp(storefrontFallback.source).test('/vijaysalojaipur'), 'SSR fallback must still route published salon path URLs');
+const storefrontPathPattern = new RegExp(storefrontFallback.source);
+assert.ok(!storefrontPathPattern.test('/api/storefront'), 'SSR fallback must not rewrite its own API function path');
+assert.ok(!storefrontPathPattern.test('/api/sitemap'), 'SSR fallback must not rewrite other API function paths');
+assert.ok(storefrontPathPattern.test('/'), 'platform root must keep its storefront shell fallback');
+assert.ok(storefrontPathPattern.test('/vijaysalojaipur'), 'SSR fallback must still route published salon path URLs');
+assert.ok(storefrontPathPattern.test('/aurelia-beauty-parlour'), 'SSR fallback must allow salon slugs that begin with the letter a except the reserved api prefix');
 assert.equal(config.rewrites.at(-1), storefrontFallback, 'the storefront fallback must remain last');
 for (const key of ['app', 'customer', 'customer_ref']) {
   assert.ok(
