@@ -322,8 +322,8 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
                   <img
                     src="/templates/luxury-editorial/hero-fallback.jpg"
                     alt={LUXURY_EDITORIAL_IMAGES.hero.alt}
-                    width={360}
-                    height={450}
+                    width={288}
+                    height={360}
                     loading="eager"
                     fetchPriority="high"
                     decoding="async"
