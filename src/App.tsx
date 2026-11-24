@@ -721,10 +721,19 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
   </AppErrorBoundary>
  </div>;
 }
+function readInitialPublishedSite(slug:string){
+ if(typeof document==='undefined')return null;
+ const element=document.getElementById('nexora-published-site-data');
+ if(!element?.textContent)return null;
+ try{
+  const payload=JSON.parse(element.textContent);
+  return payload?.slug===slug&&payload?.site&&typeof payload.site==='object'?payload.site:null;
+ }catch{return null;}
+}
 function PublishedWebsite({slug,session}:{key?:React.Key;slug:string;session:Session|null}){
  const customerAccount=useCustomerProfile(session,0);
  const [showBookings,setShowBookings]=useState(false);
- const [site,setSite]=useState<any>(null);const [error,setError]=useState('');const [retry,setRetry]=useState(0);const [countdown, setCountdown] = useState(0);
+ const [site,setSite]=useState<any>(()=>readInitialPublishedSite(slug));const hasServerRenderedSite=useRef(Boolean(readInitialPublishedSite(slug))).current;const [error,setError]=useState('');const [retry,setRetry]=useState(0);const [countdown, setCountdown] = useState(0);
  const [devFallbackTemplate,setDevFallbackTemplate]=useState<BusinessTypeId|null>(null);
  const [authMode,setAuthMode]=useState<'signin'|'signup'|null>(()=>!session&&hasAuthErrorParams(location.search||'',location.hash||'')?'signin':null);
  const siteQueryParams=new URLSearchParams(location.search||'');
@@ -750,7 +759,7 @@ function PublishedWebsite({slug,session}:{key?:React.Key;slug:string;session:Ses
 
  useEffect(()=>{if(!authMode)return;const previous=document.activeElement as HTMLElement|null;const dialog=document.querySelector<HTMLElement>('[role=dialog][aria-label="Customer account"]');dialog?.querySelector<HTMLElement>('input,button')?.focus();const keyboard=(event:KeyboardEvent)=>{if(event.key==='Escape')setAuthMode(null);if(event.key==='Tab'&&dialog){const items=Array.from(dialog.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),a[href]'));const first=items[0],last=items.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}}};document.addEventListener('keydown',keyboard);return()=>{document.removeEventListener('keydown',keyboard);previous?.focus();};},[authMode]);
  useEffect(()=>{if(session)setAuthMode(null);},[session?.user?.id]);
- useEffect(()=>{let active=true,loaded=false,ticket=0;
+ useEffect(()=>{let active=true,loaded=hasServerRenderedSite,ticket=0;
    const refresh=async()=>{if(document.hidden)return;const request=++ticket;
    // A stalled read used to leave the published site on "Loading salon
    // website…" forever. Every read now has a deadline and surfaces the retry UI.
@@ -779,7 +788,12 @@ function PublishedWebsite({slug,session}:{key?:React.Key;slug:string;session:Ses
  },[slug,retry]);
   useEffect(()=>{
     if(!site?.profile)return;
-    const cleanupSeo = applySeoMetadata(site.profile);
+    const currentUrl=new URL(window.location.href);
+    const selector=currentUrl.searchParams.get('site')||currentUrl.searchParams.get('s')||currentUrl.searchParams.get('subdomain');
+    const canonical=site.profile.seo?.canonicalUrl||(
+      selector?currentUrl.origin+'/?site='+encodeURIComponent(selector):currentUrl.origin+currentUrl.pathname
+    );
+    const cleanupSeo = applySeoMetadata(site.profile,canonical);
     const restoreIcon = applyWebsiteFavicon(document, websiteFavicon(site.branding, site.profile));
     return () => {
       cleanupSeo();
