@@ -568,13 +568,31 @@ try {
           visibleLinks,
           viewportWidth: window.innerWidth,
           documentWidth: document.documentElement.scrollWidth,
+          bodyWidth: document.body.scrollWidth,
+          overflowingElements: [...document.body.querySelectorAll('*')].map((node) => {
+            const rect = node.getBoundingClientRect();
+            const style = window.getComputedStyle(node);
+            return {
+              tag: node.tagName.toLowerCase(),
+              id: node.id || '',
+              className: typeof node.className === 'string' ? node.className.slice(0, 180) : '',
+              left: Math.round(rect.left * 10) / 10,
+              right: Math.round(rect.right * 10) / 10,
+              width: Math.round(rect.width * 10) / 10,
+              position: style.position,
+              transform: style.transform,
+              overflowX: style.overflowX,
+            };
+          }).filter((item) => item.right > window.innerWidth + 1 || item.left < -1)
+            .sort((a, b) => b.right - a.right)
+            .slice(0, 16),
         };
       });
       assert.equal(fallback.measured, false, `${routePath} no-script header retains its server-rendered fallback`);
       assert.ok(fallback.innerScrollWidth <= fallback.innerWidth + 1, `${routePath} no-script header has no internal overflow at ${width}px`);
       assert.ok(fallback.menuScrollWidth <= fallback.menuWidth + 1, `${routePath} no-script menu content fits at ${width}px`);
       assert.ok(fallback.visibleLinks > 0, `${routePath} no-script header navigation remains visible at ${width}px`);
-      assert.ok(fallback.documentWidth <= fallback.viewportWidth + 1, `${routePath} no-script document has no horizontal overflow at ${width}px`);
+      assert.ok(fallback.documentWidth <= fallback.viewportWidth + 1, `${routePath} no-script document has no horizontal overflow at ${width}px: ${JSON.stringify(fallback)}`);
 
       if (routePath === '/' && width === 390) {
         const disclosure = noScriptPage.locator('.nexora-site-header__overflow-disclosure');
