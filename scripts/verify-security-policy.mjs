@@ -185,4 +185,10 @@ const sitemapFunction = readFileSync('api/sitemap.ts', 'utf8');
 assert.ok(sitemapFunction.includes("sitemapHandler"), 'Vercel sitemap route must reuse the shared sitemap handler');
 assert.ok(sitemapFunction.includes("export { sitemapHandler as default }"), 'Vercel sitemap route must expose the shared handler as its default function');
 
+const storefrontSource = readFileSync('api/storefront.ts', 'utf8');
+assert.ok(storefrontSource.includes('id="studioflow-seo-jsonld"'), 'SSR JSON-LD must reuse the client SEO updater node');
+const seoUpdater = readFileSync('src/lib/useSeoMetadata.ts', 'utf8');
+assert.ok(seoUpdater.includes('let existingSchema:'), 'client SEO updater must parse the existing server schema');
+assert.ok(seoUpdater.includes('...existingSchema'), 'client SEO updater must preserve SSR business subtype and offers');
+
 console.log('PASS: enforcing CSP matches runtime integrations; legacy routes remain intact; root salon selectors reach SSR before index.html while app/customer routes stay on the SPA shell.');
