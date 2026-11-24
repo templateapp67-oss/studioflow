@@ -262,6 +262,12 @@ jobs:
           E2E_ARTIFACTS_DIR: test-results/preview-browser-e2e
         run: node scripts/verify-preview-browser-e2e.mjs
 
+      - name: Run NEXORA responsive marketing and owner-route browser audit
+        env:
+          PREVIEW_URL: ${{ steps.resolve-preview.outputs.url }}
+          BROWSER_TOOLS_ROOT: /tmp/pw-runner
+        run: node scripts/verify-nexora-responsive-browser.mjs
+
       - name: Upload Playwright report, screenshots and traces
         uses: actions/upload-artifact@v4
         if: always()
