@@ -79,7 +79,7 @@
     },
     {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "destination": "/api/storefront?path=/$1"
     }
   ],
   "headers": [
@@ -122,5 +122,10 @@
         }
       ]
     }
-  ]
+  ],
+  "functions": {
+    "api/storefront.ts": {
+      "includeFiles": "dist/storefront-renderer.cjs"
+    }
+  }
 }
