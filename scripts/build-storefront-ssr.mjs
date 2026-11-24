@@ -9,7 +9,9 @@ await build({
   platform: 'node',
   format: 'cjs',
   target: 'node22',
-  packages: 'external',
+  // Bundle the React/template runtime into the included CJS file. The
+  // storefront function loads this file dynamically at runtime, so leaving
+  // npm packages external can make Vercel's file tracer omit those modules.
   treeShaking: true,
   legalComments: 'none',
   sourcemap: true,
