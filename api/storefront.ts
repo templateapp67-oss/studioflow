@@ -26,15 +26,24 @@ type Renderer = {
 // This is deliberately a public-key read. The database view exposes only
 // published slug/content/timestamp columns and has its own anonymous RLS grant.
 // Never use a service-role or Supabase secret key for storefront rendering.
+const EXPECTED_SUPABASE_HOST = 'zilwgiuiygqqardzutxi.supabase.co';
+// Match the browser's public Vite configuration. Do not prefer an unrelated
+// server-only SUPABASE_URL variable that could silently point at the QA project.
 const SUPABASE_URL =
-  process.env.SUPABASE_URL ||
   process.env.VITE_SUPABASE_URL ||
   'https://zilwgiuiygqqardzutxi.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY =
-  process.env.SUPABASE_PUBLISHABLE_KEY ||
   process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
   process.env.VITE_SUPABASE_ANON_KEY ||
   'sb_publishable_Xck8H8PcTCCnEwkvBfiSLw_c973vJkH';
+
+const supabaseUrl = new URL(SUPABASE_URL);
+if (supabaseUrl.protocol !== 'https:' || supabaseUrl.hostname !== EXPECTED_SUPABASE_HOST) {
+  throw new Error('Published salon SSR must use the reviewed NEXORA production Supabase project.');
+}
+if (!SUPABASE_PUBLISHABLE_KEY || SUPABASE_PUBLISHABLE_KEY.startsWith('sb_secret_')) {
+  throw new Error('Published salon SSR requires a public Supabase publishable key.');
+}
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
