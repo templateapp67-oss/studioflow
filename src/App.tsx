@@ -843,8 +843,6 @@ export function PublishedSalonHydrationApp(){
  const [recovery,setRecovery]=useState(()=>readRecoveryFlag()||new URLSearchParams(location.search).has('recovery')||new URLSearchParams(location.hash.slice(1)).get('type')==='recovery');
  const onRecovery=useCallback(()=>{try{sessionStorage.setItem('studioflow_recovery','1');}catch{}setRecovery(true);},[]);
  const {session}=useAuthSession(onRecovery);
- const [referralBridgeReady,setReferralBridgeReady]=useState(false);
- useEffect(()=>setReferralBridgeReady(true),[]);
  let slug='';
  try{
   const payloadElement=document.getElementById('nexora-published-site-data');
@@ -855,5 +853,5 @@ export function PublishedSalonHydrationApp(){
  }
  if(!slug)return null;
  if(recovery&&session)return <AuthPage recovery onRecovered={()=>{try{sessionStorage.removeItem('studioflow_recovery');}catch{}setRecovery(false);}}/>;
- return <><PublishedSalonReferralBridgeAfterHydration/>{referralBridgeReady?<CustomerReferralBridge/>:null}<PublishedWebsite key={slug} slug={slug} session={session}/></>;
+ return <><PublishedSalonReferralBridgeAfterHydration/><PublishedWebsite key={slug} slug={slug} session={session}/></>;
 }
