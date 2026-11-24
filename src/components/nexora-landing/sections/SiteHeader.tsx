@@ -364,6 +364,7 @@ export function SiteHeader({
           if (event.key !== 'Escape' || !event.currentTarget.open) return;
           event.preventDefault();
           event.stopPropagation();
+          event.currentTarget.open = false;
           setMoreOpen(false);
           moreTriggerRef.current?.focus();
         }}
