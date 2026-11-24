@@ -237,7 +237,17 @@ try {
       assert.ok(publishedHtml.includes(businessName), 'Raw HTTP HTML must contain the published salon business name before client JavaScript');
       assert.match(publishedHtml, /<meta name="robots" content="index,follow">/, 'Published salon HTML must be indexable');
       assert.match(publishedHtml, /<link rel="canonical" href="/, 'Published salon HTML must contain a canonical URL');
+      const hydratedJsonLd = page.locator('script#studioflow-seo-jsonld[type="application/ld+json"]');
+      await hydratedJsonLd.waitFor({ state: 'attached', timeout: 10000 });
+      const hydratedJsonLdCount = await hydratedJsonLd.count();
+      assert.equal(hydratedJsonLdCount, 1, 'Hydration must reuse the server JSON-LD node instead of adding a duplicate');
+      const hydratedSchema = JSON.parse((await hydratedJsonLd.first().textContent()) || '{}');
+      assert.equal(hydratedSchema.name, businessName, 'Hydrated JSON-LD must retain the published salon name');
+      assert.equal(hydratedSchema['@context'], 'https://schema.org', 'Hydrated JSON-LD must retain its Schema.org context');
+      assert.ok(typeof hydratedSchema['@type'] === 'string' && hydratedSchema['@type'].length > 0, 'Hydrated JSON-LD must preserve the salon business subtype');
       assert.match(publishedHtml, /application\/ld\+json/, 'Published salon HTML must contain structured data');
+      const serverJsonLdScriptCount = (publishedHtml.match(/<script\b[^>]*\bid="studioflow-seo-jsonld"[^>]*>/gi) || []).length;
+      assert.equal(serverJsonLdScriptCount, 1, 'Published salon HTML must contain exactly one identified business JSON-LD script');
       report.storefrontPublishedProbe = {
         status: publishedResponse.status(),
         slug: publishedSlug,
@@ -245,6 +255,8 @@ try {
         title: (publishedHtml.match(/<title>([\s\S]*?)<\/title>/i) || [])[1] || '',
         robots: 'index,follow',
         serverRendered: true,
+        serverJsonLdScriptCount,
+        hydratedJsonLdCount,
       };
     }
 

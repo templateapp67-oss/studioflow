@@ -827,3 +827,33 @@ function PublishedWebsite({slug,session}:{key?:React.Key;slug:string;session:Ses
  }:normalizeWorkspace({...site,extras:{gallery:site.gallery,policies:site.policies,whiteLabel:site.branding}});
  return <><div className="bg-white border-b px-4 py-2 flex justify-between gap-3 text-xs"><a className="text-violet-600 font-semibold" href={'/?app=1&site='+encodeURIComponent(slug)}>Open this salon in Nexora App ↗</a><a className="text-violet-600" href="/?app=1&tab=bookings">My Bookings</a></div>{showBookings&&<SalonBookingsDialog profile={{...content.profile,subdomain:slug}} onClose={()=>setShowBookings(false)}/>} {authMode&&<div className="fixed inset-0 z-[100] bg-black/50 p-4 flex items-center justify-center" onClick={()=>setAuthMode(null)}><section role="dialog" aria-modal="true" aria-label="Customer account" className="bg-white text-slate-900 rounded-2xl w-full max-w-lg max-h-[90dvh] overflow-y-auto p-4" onClick={e=>e.stopPropagation()}><button className="secondary-action mb-3" onClick={()=>setAuthMode(null)}>Close</button>{session?<Suspense fallback={<p role="status">Loading account settings…</p>}><WebsiteCustomerAccount session={session} account={customerAccount}/></Suspense>:<AuthPage key={authMode} compact customerMode initialMode={authMode} returnSlug={slug} redirectPathOverride={stayOnSitePath}/>}</section></div>}<Suspense fallback={<Loading text="Loading salon website…" />}><SalonWebsitePreview key={slug} customerSignedIn={!!session} customerName={customerAccount.profile.full_name||session?.user.user_metadata?.full_name||'My account'} customerPhotoUrl={customerAccount.photoUrl} onCustomerAccount={mode=>setAuthMode(mode||'signin')} profile={{...content.profile,subdomain:slug}} services={normalizeServices<SalonService>(content.services,'published site services')} stylists={content.stylists} gallery={content.extras.gallery} policies={site.policies} branding={site.branding} loyaltyConfig={site.loyaltyConfig} onAddAppointment={book} readOnly live /></Suspense><TawkPublicWidget slug={slug} /></>;
 }
+
+/**
+ * Hydrate the exact public-storefront tree emitted by server/storefrontRenderer.
+ * The default App intentionally has application-wide Suspense and referral
+ * wrappers; those are not part of the SSR document and must not wrap hydration.
+ */
+function PublishedSalonReferralBridgeAfterHydration(){
+ const [ready,setReady]=useState(false);
+ useEffect(()=>setReady(true),[]);
+ return ready?<CustomerReferralBridge/>:null;
+}
+
+export function PublishedSalonHydrationApp(){
+ const [recovery,setRecovery]=useState(()=>readRecoveryFlag()||new URLSearchParams(location.search).has('recovery')||new URLSearchParams(location.hash.slice(1)).get('type')==='recovery');
+ const onRecovery=useCallback(()=>{try{sessionStorage.setItem('studioflow_recovery','1');}catch{}setRecovery(true);},[]);
+ const {session}=useAuthSession(onRecovery);
+ const [referralBridgeReady,setReferralBridgeReady]=useState(false);
+ useEffect(()=>setReferralBridgeReady(true),[]);
+ let slug='';
+ try{
+  const payloadElement=document.getElementById('nexora-published-site-data');
+  const payload=JSON.parse(payloadElement?.textContent||'null');
+  slug=typeof payload?.slug==='string'&&/^[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/.test(payload.slug)?payload.slug:'';
+ }catch{
+  // The normal application fallback handles a missing or malformed SSR payload.
+ }
+ if(!slug)return null;
+ if(recovery&&session)return <AuthPage recovery onRecovered={()=>{try{sessionStorage.removeItem('studioflow_recovery');}catch{}setRecovery(false);}}/>;
+ return <><PublishedSalonReferralBridgeAfterHydration/>{referralBridgeReady?<CustomerReferralBridge/>:null}<PublishedWebsite key={slug} slug={slug} session={session}/></>;
+}

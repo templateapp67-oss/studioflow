@@ -41,18 +41,17 @@ if (rootElement) {
   );
 
   if (hasPublishedSalonSsr) {
-    // The server rendered PublishedWebsite's storefront subtree. Hydrating
-    // AppRouter first would hit its lazy FullApplication boundary and replace
-    // that HTML with the Suspense loader on a cold load. Load App directly,
-    // then hydrate the matching PublishedWebsite tree without clearing SSR.
+    // Hydrate only the storefront component tree emitted by the server.
+    // The default App adds global Suspense/referral wrappers that do not exist
+    // in the SSR document and cause React to recover from a root mismatch.
     void import('./App')
-      .then(({ default: PublishedSalonApp }) => {
+      .then(({ PublishedSalonHydrationApp }) => {
         if (!rootElement.isConnected || document.getElementById('root') !== rootElement) return;
         hydrateRoot(
           rootElement,
           <StrictMode>
             <DebugBoundary>
-              <PublishedSalonApp />
+              <PublishedSalonHydrationApp />
             </DebugBoundary>
             <AppUpdateManagerAfterHydration />
           </StrictMode>,
