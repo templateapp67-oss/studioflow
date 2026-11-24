@@ -30,8 +30,9 @@ if (rootElement) {
   // Public marketing documents are server-rendered; delay client-only update
   // polling until after the first commit so its lazy boundary cannot mismatch
   // the static HTML during hydration.
+  const hasPublishedSalonSsr = Boolean(document.getElementById('nexora-published-site-data'));
   const canHydrate = rootElement.hasChildNodes()
-    && !requiresFullApplication(window.location);
+    && (!requiresFullApplication(window.location) || hasPublishedSalonSsr);
 
   const content = (
     <StrictMode>
