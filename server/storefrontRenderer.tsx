@@ -22,6 +22,7 @@ export function getStorefrontAssetTags(): string {
 
 export interface PublishedSalonRenderResult {
   html: string;
+  preloadTags: string[];
   profile: SalonProfile;
   normalizedContent: Record<string, any>;
   site: Record<string, any>;
