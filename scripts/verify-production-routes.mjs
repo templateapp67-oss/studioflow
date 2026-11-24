@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { request as httpRequest } from 'node:http';
 import { createServer } from 'node:net';
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 
 assert.ok(existsSync('dist/server.cjs'), 'Run npm run build before verify-production-routes.mjs');
 const probe = createServer();
@@ -171,7 +171,26 @@ try {
   route = await get('/assets/' + asset);
   assert.equal(route.status, 200);
   assert.ok(route.type.includes('javascript'));
-  console.log('PASS: local production routes — prerendered root, login/template handoff, legacy query roots, health/email APIs, JSON API 404 and hashed assets. No deployment or live provider calls.');
+
+  // Vercel Node 22 ESM ("type": "module") requires explicit .js extensions on
+  // relative value imports across api/*.ts and their shared server modules.
+  const esmFiles = [
+    ...readdirSync('api').filter(f => f.endsWith('.ts')).map(f => `api/${f}`),
+    ...readdirSync('server').filter(f => f.endsWith('.ts')).map(f => `server/${f}`),
+    'src/lib/nexoraEcosystemSeo.ts',
+  ];
+  for (const file of esmFiles) {
+    const src = readFileSync(file, 'utf8');
+    for (const match of src.matchAll(/(?:import|export)\s+(?!type\b)[\s\S]*?\bfrom\s+['"](\.[^'"]+)['"]/g)) {
+      const specifier = match[1];
+      assert.ok(
+        specifier.endsWith('.js') || specifier.endsWith('.json'),
+        `${file} uses extensionless relative ESM import "${specifier}" (breaks Vercel Node 22 runtime)`,
+      );
+    }
+  }
+
+  console.log('PASS: local production routes — prerendered root, login/template handoff, legacy query roots, health/email APIs, JSON API 404, hashed assets and Vercel Node ESM import extensions. No deployment or live provider calls.');
 } finally {
   try {
     if (process.platform === 'win32') child.kill('SIGTERM');

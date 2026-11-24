@@ -35,7 +35,7 @@ for (const suite of allSuites) {
   const missing = (OPTIONAL_ENV.get(suite) ?? []).filter((name) => !process.env[name]);
   if (missing.length) {
     skipped.push(suite);
-    console.log(`skip ${suite} (set ${missing.join(' and ')} to run the browser audit)`);
+    console.log(`skip ${suite} (set ${missing.join(' and ')} to run this optional audit)`);
     continue;
   }
   runnable.push(suite);
