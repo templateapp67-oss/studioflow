@@ -75,8 +75,9 @@ await writeFile(indexPath, indexHtml.replace(rootMarker, `<div id="root">${rende
 // The SalonOS landing page is prerendered into its own document so crawlers
 // receive the full page content instead of an empty client-only shell.
 const moduleScript = indexHtml.match(/<script type="module"[^>]*><\/script>/)?.[0] ?? '';
+const clarityScript = indexHtml.match(/<script async src="\/clarity\.js"><\/script>/)?.[0] ?? '';
 const stylesheet = indexHtml.match(/<link rel="stylesheet"[^>]*>/)?.[0] ?? '';
-if (!moduleScript || !stylesheet) throw new Error('Expected the built entry script and stylesheet in dist/index.html.');
+if (!moduleScript || !clarityScript || !stylesheet) throw new Error('Expected the built entry script, async Clarity loader and stylesheet in dist/index.html.');
 const landingCanonical = `${NEXORA_PUBLIC_ORIGIN}${NEXORA_LANDING_SEO.canonicalPath}`;
 const landingHtml = `<!doctype html>
 <html lang="en">
@@ -108,6 +109,7 @@ const landingHtml = `<!doctype html>
 <meta name="twitter:description" content="${escapeHtml(NEXORA_LANDING_SEO.description)}" />
 <meta name="twitter:image" content="${escapeHtml(`${NEXORA_PUBLIC_ORIGIN}${NEXORA_LANDING_SEO.ogImagePath}`)}" />
 <script type="application/ld+json">${safeJson(nexoraSalonLandingSchema(NEXORA_PUBLIC_ORIGIN))}</script>
+${clarityScript}
 ${moduleScript}
 ${stylesheet}
 </head>
@@ -152,6 +154,7 @@ const pricingHtml = `<!doctype html>
 <meta name="twitter:description" content="${escapeHtml(NEXORA_PRICING_SEO.description)}" />
 <meta name="twitter:image" content="${escapeHtml(`${NEXORA_PUBLIC_ORIGIN}${NEXORA_PRICING_SEO.ogImagePath}`)}" />
 <script type="application/ld+json">${safeJson(nexoraPricingSchema(NEXORA_PUBLIC_ORIGIN))}</script>
+${clarityScript}
 ${moduleScript}
 ${stylesheet}
 </head>
@@ -194,6 +197,7 @@ const privacyHtml = `<!doctype html>
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="${escapeHtml(privacyTitle)}" />
 <meta name="twitter:description" content="${escapeHtml(privacyDescription)}" />
+${clarityScript}
 ${moduleScript}
 ${stylesheet}
 </head>
@@ -247,6 +251,7 @@ for (const path of NEXORA_ECOSYSTEM_ROUTES) {
 <meta name="twitter:image" content="${escapeHtml(ogImage)}" />
 <meta name="twitter:image:alt" content="${escapeHtml(seo.ogImageAlt)}" />
 <script type="application/ld+json">${safeJson(nexoraEcosystemSchema(path))}</script>
+${clarityScript}
 ${moduleScript}
 ${stylesheet}
 </head>
@@ -308,6 +313,7 @@ for (const meta of NEXORA_TEMPLATE_META) {
 <meta name="twitter:description" content="${escapeHtml(description)}">
 <meta name="twitter:image" content="${escapeHtml(`${NEXORA_PUBLIC_ORIGIN}${image}`)}">
 <script type="application/ld+json">${safeJson(schema)}</script>
+${clarityScript}
 </head>
 <body>
 <a class="skip-link" href="#main-content">Skip to main content</a>
