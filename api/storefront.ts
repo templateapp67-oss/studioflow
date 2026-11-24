@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
-import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { generateSeoDefaults } from '../src/lib/useSeoMetadata';
 import { websiteFavicon } from '../src/lib/websiteFavicon';
 
@@ -48,19 +48,18 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
 });
 
-// Vercel's TypeScript function executes as ESM; createRequire loads the
-// single-file CommonJS bundle produced by scripts/build-storefront-ssr.mjs.
-const require = createRequire(import.meta.url);
 let renderer: Renderer | null = null;
 
-function getRenderer(): Renderer {
+async function getRenderer(): Promise<Renderer> {
   if (renderer) return renderer;
-  // A missing or malformed renderer bundle must not break the 404 response
-  // for an unpublished slug. Load it only after a published row is found.
-  // The actual published-site browser probe verifies this lazy load path.
-  renderer = require(resolve(process.cwd(), 'dist/storefront-renderer.cjs')) as Renderer;
+  // Load the generated renderer only when a page needs it. A file URL avoids
+  // depending on the function bundler preserving module-local import metadata.
+  const rendererUrl = pathToFileURL(resolve(process.cwd(), 'dist/storefront-renderer.cjs')).href;
+  const loaded = await import(rendererUrl);
+  renderer = (loaded.default || loaded) as Renderer;
   return renderer;
 }
+
 const RESERVED_PATHS = new Set([
   'admin', 'api', 'app', 'assets', 'fonts', 'growth-partner-rewards', 'index.html',
   'invite', 'login', 'partner-rewards', 'pricing', 'privacy', 'salon-growth',
@@ -135,8 +134,8 @@ function safeJson(value: unknown): string {
     .replace(/\u2029/g, '\\u2029');
 }
 
-function sendPlatformShell(res: ResponseLike, method: string): void {
-  const html = getRenderer().getStorefrontShellHtml();
+async function sendPlatformShell(res: ResponseLike, method: string): Promise<void> {
+  const html = (await getRenderer()).getStorefrontShellHtml();
   res.status(200);
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
@@ -249,7 +248,7 @@ export default async function storefrontHandler(req: RequestLike, res: ResponseL
   if (!slug) {
     res.setHeader('X-NEXORA-SSR-Stage', 'platform-shell');
     try {
-      return sendPlatformShell(res, method);
+      return await sendPlatformShell(res, method);
     } catch (error) {
       console.error('[storefront-ssr] platform shell render failed', error);
       res.status(503);
@@ -287,7 +286,7 @@ export default async function storefrontHandler(req: RequestLike, res: ResponseL
   res.setHeader('X-NEXORA-SSR-Stage', 'published-render');
   let rendered: ReturnType<Renderer['renderPublishedSalonHtml']>;
   try {
-    rendered = getRenderer().renderPublishedSalonHtml(data.content, slug);
+    rendered = (await getRenderer()).renderPublishedSalonHtml(data.content, slug);
   } catch (error) {
     console.error('[storefront-ssr] published salon renderer failed', error);
     res.status(503);
@@ -298,7 +297,7 @@ export default async function storefrontHandler(req: RequestLike, res: ResponseL
   }
   const viaQuery = pageUrl.searchParams.has('site') || pageUrl.searchParams.has('s') || pageUrl.searchParams.has('subdomain');
   const canonical = canonicalForRequest(rendered.profile, origin, pageUrl.pathname, slug, viaQuery);
-  const assetTags = getRenderer().getStorefrontAssetTags();
+  const assetTags = (await getRenderer()).getStorefrontAssetTags();
   const initialPayload = safeJson({ slug, site: rendered.site });
   const head = renderHead(rendered.profile, rendered.site, canonical) + '\n' + assetTags;
 
