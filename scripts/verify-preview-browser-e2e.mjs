@@ -167,8 +167,15 @@ try {
       // The probe is a read-only lookup for a deliberately unpublished slug.
       const directApiSlug = 'nexora-ssr-direct-api-probe-not-published';
       const directApiUrl = new URL('/api/storefront?path=%2F&site=' + encodeURIComponent(directApiSlug), previewUrl).toString();
-      const directApiResponse = await page.goto(directApiUrl, { waitUntil: 'networkidle', timeout: 60000 });
-      const directApiBody = directApiResponse ? await directApiResponse.text() : '';
+      const bypassHeaders = vercelBypassSecret ? {
+        'x-vercel-protection-bypass': vercelBypassSecret,
+        'x-vercel-set-bypass-cookie': 'true',
+      } : {};
+      const directApiResponse = await context.request.get(directApiUrl, {
+        timeout: 60000,
+        headers: bypassHeaders,
+      });
+      const directApiBody = await directApiResponse.text();
       const directApiHeaders = directApiResponse ? {
         handler: directApiResponse.headers()['x-nexora-ssr-handler'] || '',
         stage: directApiResponse.headers()['x-nexora-ssr-stage'] || '',
@@ -181,21 +188,24 @@ try {
       report.storefrontDirectApiProbe = { status: directApiResponse.status(), ...directApiHeaders };
 
       const probeUrl = new URL('/?site=nexora-ssr-preview-probe-not-published', previewUrl).toString();
-      const probeResponse = await page.goto(probeUrl, { waitUntil: 'networkidle', timeout: 60000 });
-      const probeBody = probeResponse ? await probeResponse.text() : '';
-      const probeHeaders = probeResponse ? {
+      const probeResponse = await context.request.get(probeUrl, {
+        timeout: 60000,
+        headers: bypassHeaders,
+      });
+      const probeBody = await probeResponse.text();
+      const probeHeaders = {
         contentType: probeResponse.headers()['content-type'] || '',
         requestId: probeResponse.headers()['x-vercel-id'] || '',
         middleware: probeResponse.headers()['x-nexora-ssr-middleware'] || '',
         handler: probeResponse.headers()['x-nexora-ssr-handler'] || '',
         stage: probeResponse.headers()['x-nexora-ssr-stage'] || '',
         slug: probeResponse.headers()['x-nexora-ssr-slug'] || '',
-      } : {};
-      assert.equal(probeResponse?.status(), 404, `SSR probe should return the not-published 404, got ${probeResponse?.status() ?? 'no response'}; headers=${JSON.stringify(probeHeaders)}; body=${probeBody.slice(0, 1200)}`);
-      assert.match(await page.title(), /salon website not found/i, 'SSR route did not return its server-rendered not-found document');
-      assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'), 'noindex', 'Unpublished salon response must not be indexed');
-      assert.match(await page.locator('body').innerText(), /This salon website is not published/i);
-      report.storefrontSsrProbe = { status: probeResponse.status(), title: await page.title(), robots: 'noindex' };
+      };
+      assert.equal(probeResponse.status(), 404, `SSR probe should return the not-published 404, got ${probeResponse.status()}; headers=${JSON.stringify(probeHeaders)}; body=${probeBody.slice(0, 1200)}`);
+      assert.match(probeBody, /<title>Salon website not found<\\/title>/i, 'SSR route did not return its server-rendered not-found document');
+      assert.match(probeBody, /<meta name="robots" content="noindex">/i, 'Unpublished salon response must not be indexed');
+      assert.match(probeBody, /This salon website is not published/i);
+      report.storefrontSsrProbe = { status: probeResponse.status(), title: 'Salon website not found', robots: 'noindex' };
 
       // Prove the positive path too: read one already-published public salon
       // from the production App database. This is GET-only and does not edit
