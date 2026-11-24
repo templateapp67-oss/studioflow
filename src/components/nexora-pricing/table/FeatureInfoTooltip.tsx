@@ -264,27 +264,32 @@ export function HoverCard({
   const getFocusableElements = () => [...(panelRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR) ?? [])]
     .filter((element) => element.getClientRects().length > 0 && !element.hasAttribute('disabled'));
 
-  // Wait for the floating panel to be positioned and visible before moving
-  // keyboard focus into it. On the first frame after opening, CSS keeps the
-  // portal hidden from view while its viewport position is being measured.
-  useEffect(() => {
-    if (!open || !position || !pendingArrowFocusRef.current) return;
-    pendingArrowFocusRef.current = false;
-    const firstFocusable = getFocusableElements()[0];
-    if (firstFocusable) firstFocusable.focus();
-    else panelRef.current?.focus();
-  }, [open, position]);
-
+  // The portal is rendered before its position is measured. Keep trying on
+  // animation frames until React has applied the measured position and the
+  // first action is laid out; focusing earlier can leave focus on the trigger.
   const onTriggerKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (event.key !== 'ArrowDown' || !openRef.current) return;
     event.preventDefault();
     pendingArrowFocusRef.current = true;
-    if (position) {
-      pendingArrowFocusRef.current = false;
+    let attempts = 0;
+    const focusWhenReady = () => {
+      if (!pendingArrowFocusRef.current || !openRef.current) return;
+      const floating = floatingRef.current;
       const firstFocusable = getFocusableElements()[0];
-      if (firstFocusable) firstFocusable.focus();
-      else panelRef.current?.focus();
-    }
+      if (floating?.dataset.positioned === 'true' && firstFocusable) {
+        pendingArrowFocusRef.current = false;
+        firstFocusable.focus();
+        return;
+      }
+      attempts += 1;
+      if (attempts < 30) {
+        window.requestAnimationFrame(focusWhenReady);
+      } else {
+        pendingArrowFocusRef.current = false;
+        panelRef.current?.focus();
+      }
+    };
+    window.requestAnimationFrame(focusWhenReady);
   };
   const onPanelKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== 'Tab') return;
