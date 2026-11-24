@@ -75,6 +75,7 @@ export function HoverCard({
   const pointerOnPanelRef = useRef(false);
   const focusInsideRef = useRef(false);
   const dismissedUntilLeaveRef = useRef(false);
+  const pendingArrowFocusRef = useRef(false);
 
   const clearOpenTimer = useCallback(() => {
     if (openTimerRef.current) window.clearTimeout(openTimerRef.current);
@@ -262,12 +263,28 @@ export function HoverCard({
   };
   const getFocusableElements = () => [...(panelRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR) ?? [])]
     .filter((element) => element.getClientRects().length > 0 && !element.hasAttribute('disabled'));
-  const onTriggerKeyDown = (event: KeyboardEvent<HTMLElement>) => {
-    if (event.key !== 'ArrowDown' || !openRef.current) return;
-    event.preventDefault();
+
+  // Wait for the floating panel to be positioned and visible before moving
+  // keyboard focus into it. On the first frame after opening, CSS keeps the
+  // portal hidden from view while its viewport position is being measured.
+  useEffect(() => {
+    if (!open || !position || !pendingArrowFocusRef.current) return;
+    pendingArrowFocusRef.current = false;
     const firstFocusable = getFocusableElements()[0];
     if (firstFocusable) firstFocusable.focus();
     else panelRef.current?.focus();
+  }, [open, position]);
+
+  const onTriggerKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.key !== 'ArrowDown' || !openRef.current) return;
+    event.preventDefault();
+    pendingArrowFocusRef.current = true;
+    if (position) {
+      pendingArrowFocusRef.current = false;
+      const firstFocusable = getFocusableElements()[0];
+      if (firstFocusable) firstFocusable.focus();
+      else panelRef.current?.focus();
+    }
   };
   const onPanelKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== 'Tab') return;
