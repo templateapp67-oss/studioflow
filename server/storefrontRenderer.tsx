@@ -1,6 +1,7 @@
 import React from 'react';
 import { renderToString } from 'react-dom/server';
 import { SalonWebsitePreview } from '../src/components/SalonWebsitePreview';
+import { TawkPublicWidget } from '../src/components/TawkPublicWidget';
 import { normalizeWorkspace, isRecord } from '../src/lib/normalizeWorkspace';
 import type { Appointment, SalonProfile } from '../src/types';
 
@@ -8,6 +9,7 @@ export interface PublishedSalonRenderResult {
   html: string;
   profile: SalonProfile;
   normalizedContent: Record<string, any>;
+  site: Record<string, any>;
 }
 
 /**
@@ -37,9 +39,19 @@ export function renderPublishedSalonHtml(rawContent: unknown, slug: string): Pub
     },
   });
   const profile = { ...normalized.profile, subdomain: slug } as SalonProfile;
+  const publicSite = {
+    ...site,
+    profile,
+    services: normalized.services,
+    stylists: normalized.stylists,
+    loyaltyConfig: normalized.loyaltyConfig,
+    gallery: normalized.extras.gallery,
+  };
 
+  // Keep this fragment in the same order as PublishedWebsite in App.tsx. The
+  // browser hydrates this markup instead of discarding it and showing a loader.
   const html = renderToString(
-    <div className="published-salon-ssr">
+    <>
       <div className="bg-white border-b px-4 py-2 flex justify-between gap-3 text-xs">
         <a className="text-violet-600 font-semibold" href={'/?app=1&site=' + encodeURIComponent(slug)}>
           Open this salon in Nexora App ↗
@@ -47,6 +59,7 @@ export function renderPublishedSalonHtml(rawContent: unknown, slug: string): Pub
         <a className="text-violet-600" href="/?app=1&tab=bookings">My Bookings</a>
       </div>
       <SalonWebsitePreview
+        key={slug}
         readOnly
         live
         profile={profile}
@@ -62,8 +75,9 @@ export function renderPublishedSalonHtml(rawContent: unknown, slug: string): Pub
         onCustomerAccount={() => undefined}
         onAddAppointment={async (appointment: Appointment) => appointment}
       />
-    </div>,
+      <TawkPublicWidget slug={slug} />
+    </>,
   );
 
-  return { html, profile, normalizedContent: normalized };
+  return { html, profile, normalizedContent: normalized, site: publicSite };
 }
