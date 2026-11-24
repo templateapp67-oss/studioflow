@@ -31,13 +31,10 @@ type Renderer = {
 const EXPECTED_SUPABASE_HOST = 'zilwgiuiygqqardzutxi.supabase.co';
 // Match the browser's public Vite configuration. Do not prefer an unrelated
 // server-only SUPABASE_URL variable that could silently point at the QA project.
-const SUPABASE_URL =
-  process.env.VITE_SUPABASE_URL ||
-  'https://zilwgiuiygqqardzutxi.supabase.co';
-const SUPABASE_PUBLISHABLE_KEY =
-  process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-  process.env.VITE_SUPABASE_ANON_KEY ||
-  'sb_publishable_Xck8H8PcTCCnEwkvBfiSLw_c973vJkH';
+// The SSR endpoint must always read the same production App database as the
+// published-site catalogue. Do not inherit a stale Preview/QA VITE override.
+const SUPABASE_URL = 'https://zilwgiuiygqqardzutxi.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_Xck8H8PcTCCnEwkvBfiSLw_c973vJkH';
 
 const supabaseUrl = new URL(SUPABASE_URL);
 if (supabaseUrl.protocol !== 'https:' || supabaseUrl.hostname !== EXPECTED_SUPABASE_HOST) {
@@ -54,9 +51,16 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
 // Vercel's TypeScript function executes as ESM; createRequire loads the
 // single-file CommonJS bundle produced by scripts/build-storefront-ssr.mjs.
 const require = createRequire(import.meta.url);
-// Vercel places includeFiles at the function's deployment root. process.cwd()
-// resolves there in the Node.js function runtime.
-const renderer = require(resolve(process.cwd(), 'dist/storefront-renderer.cjs')) as Renderer;
+let renderer: Renderer | null = null;
+
+function getRenderer(): Renderer {
+  if (renderer) return renderer;
+  // A missing or malformed renderer bundle must not break the 404 response
+  // for an unpublished slug. Load it only after a published row is found.
+  // The actual published-site browser probe verifies this lazy load path.
+  renderer = require(resolve(process.cwd(), 'dist/storefront-renderer.cjs')) as Renderer;
+  return renderer;
+}
 const RESERVED_PATHS = new Set([
   'admin', 'api', 'app', 'assets', 'fonts', 'growth-partner-rewards', 'index.html',
   'invite', 'login', 'partner-rewards', 'pricing', 'privacy', 'salon-growth',
@@ -277,7 +281,7 @@ export default async function storefrontHandler(req: RequestLike, res: ResponseL
     return res.send('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Salon website not found</title></head><body><main><h1>This salon website is not published.</h1><p>Check the website address or contact the salon.</p><a href="https://nexorasalon.online/">Open NEXORA</a></main></body></html>');
   }
 
-  const rendered = renderer.renderPublishedSalonHtml(data.content, slug);
+  const rendered = getRenderer().renderPublishedSalonHtml(data.content, slug);
   const viaQuery = pageUrl.searchParams.has('site') || pageUrl.searchParams.has('s') || pageUrl.searchParams.has('subdomain');
   const canonical = canonicalForRequest(rendered.profile, origin, pageUrl.pathname, slug, viaQuery);
   const assetTags = await getBuiltAssetTags(origin);
