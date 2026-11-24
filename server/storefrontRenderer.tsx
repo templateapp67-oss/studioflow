@@ -5,6 +5,17 @@ import { TawkPublicWidget } from '../src/components/TawkPublicWidget';
 import { normalizeWorkspace, isRecord } from '../src/lib/normalizeWorkspace';
 import type { Appointment, SalonProfile } from '../src/types';
 
+declare const __NEXORA_STOREFRONT_ASSET_HTML__: string;
+
+/** Static hashed Vite assets are embedded during the build; no self-fetch is needed at runtime. */
+export function getStorefrontAssetTags(): string {
+  const html = __NEXORA_STOREFRONT_ASSET_HTML__;
+  const links = html.match(/<link\\b[^>]*\\brel="(?:modulepreload|stylesheet)"[^>]*>/g) || [];
+  const scripts = html.match(/<script\\b[^>]*type="module"[^>]*src="[^"]+"[^>]*><\\/script>/g) || [];
+  if (scripts.length === 0) throw new Error('The built application script was not found in the SSR bundle.');
+  return [...links, ...scripts].join('\\n');
+}
+
 export interface PublishedSalonRenderResult {
   html: string;
   profile: SalonProfile;
