@@ -200,7 +200,7 @@ function storefrontFavicon(branding: any, profile: any): string {
   const validImage = (value: unknown): string | undefined => {
     if (typeof value !== 'string') return;
     const url = value.trim();
-    if (/^https:\\/\\//i.test(url) || /^\\/(?:template-assets|templates|assets)\\//.test(url)) return url;
+    if (/^https:/i.test(url) || url.startsWith('/template-assets/') || url.startsWith('/templates/') || url.startsWith('/assets/')) return url;
   };
   return validImage(branding?.faviconUrl)
     || validImage(profile?.logoUrl)
