@@ -15,7 +15,12 @@ import {
   type BillingInterval,
   type PricingPlan,
 } from '../../lib/nexoraPricing';
-import { NEXORA_PUBLIC_ORIGIN } from '../../lib/publicSeo';
+import {
+  clearRouteJsonLd,
+  NEXORA_PUBLIC_ORIGIN,
+  setCanonicalLink,
+  setRobotsMeta,
+} from '../../lib/publicSeo';
 import { NEXORA_PRICING_SEO, nexoraPricingSchema } from '../../lib/nexoraPricingSeo';
 import {
   NEXORA_LANDING_COMPARISON_GROUPS,
@@ -136,7 +141,7 @@ function PricingLandingDocument({
       node.setAttribute('content', content);
     };
     upsertMeta('name', 'description', NEXORA_PRICING_SEO.description);
-    upsertMeta('name', 'robots', 'index,follow');
+    setRobotsMeta('index,follow');
     upsertMeta('property', 'og:type', 'website');
     upsertMeta('property', 'og:site_name', 'NEXORA SALONOS');
     upsertMeta('property', 'og:title', NEXORA_PRICING_SEO.title);
@@ -151,15 +156,10 @@ function PricingLandingDocument({
     upsertMeta('name', 'twitter:description', NEXORA_PRICING_SEO.description);
     upsertMeta('name', 'twitter:image', ogImage);
 
-    let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
-    if (!canonical) {
-      canonical = document.createElement('link');
-      canonical.rel = 'canonical';
-      document.head.appendChild(canonical);
-    }
-    canonical.href = canonicalUrl;
+    setCanonicalLink(canonicalUrl);
 
     const schema = nexoraPricingSchema(NEXORA_PUBLIC_ORIGIN);
+    clearRouteJsonLd('nexora-pricing-faq-jsonld');
     let script = document.getElementById('nexora-pricing-faq-jsonld') as HTMLScriptElement | null;
     if (!script) {
       script = document.createElement('script');

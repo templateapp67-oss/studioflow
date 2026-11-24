@@ -29,6 +29,7 @@ import {
 } from "./server/httpSafety";
 import { rateLimit } from "./server/rateLimit";
 import { canonicalHostRedirect } from "./server/canonicalHost";
+import { robotsHeaderMiddleware } from "./server/robotsHeaders";
 import { bookingDepositHandler } from "./server/bookingDeposit";
 import { optionalVerifiedUser, requireVerifiedUser } from "./server/supabaseAuth";
 
@@ -106,6 +107,7 @@ async function startServer() {
   // path, matching the `redirects` rule in vercel.json. Preview/ephemeral hosts
   // (`.vercel.app`, `.e2b.app`, localhost, IPs) are never redirected.
   app.use(canonicalHostRedirect());
+  app.use(robotsHeaderMiddleware());
 
   // Defence in depth behind asyncHandler: a stray rejection is logged instead of
   // taking the API down. See server/httpSafety.ts for the full rationale.
@@ -669,6 +671,9 @@ Return strictly valid JSON in this format:
     });
     app.get(/^\/growth-partner-rewards\/?$/, (_req, res) => {
       res.sendFile(path.join(distPath, "growth-partner-rewards", "index.html"));
+    });
+    app.get(/^\/partner-rewards\/?$/, (_req, res) => {
+      res.sendFile(path.join(distPath, "partner-rewards", "index.html"));
     });
     app.get("*", (_req, res) => {
       res.sendFile(path.join(distPath, "index.html"));

@@ -73,9 +73,7 @@ function withNexoraPublicSupport(content: React.ReactNode) {
 }
 
 export function AppRouter() {
-  const [showApplication] = useState(() =>
-    typeof window !== 'undefined' && requiresFullApplication(window.location),
-  );
+  const [, setLocationTick] = useState(0);
   // Keep the first client render identical to the prerendered public homepage.
   // A stored owner session is reflected immediately after hydration, not during
   // hydrateRoot, so the owner-specific CTA cannot cause a server/client mismatch.
@@ -83,12 +81,18 @@ export function AppRouter() {
 
   useEffect(() => {
     const refreshAuthentication = () => setAuthenticated(hasPersistedOwnerSession());
+    const handlePopState = () => setLocationTick((tick) => tick + 1);
     refreshAuthentication();
     window.addEventListener('storage', refreshAuthentication);
-    return () => window.removeEventListener('storage', refreshAuthentication);
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('storage', refreshAuthentication);
+      window.removeEventListener('popstate', handlePopState);
+    };
   }, []);
 
-  const publicPath = typeof window !== 'undefined' ? window.location.pathname.replace(/\/$/, '') : '';
+  const showApplication = typeof window !== 'undefined' && requiresFullApplication(window.location);
+  const publicPath = typeof window !== 'undefined' ? window.location.pathname.replace(/\/+$/, '') : '';
 
   // Staff entry points are rendered here, read-only and independent from the
   // owner bootstrap: no account load, no workspace fetch, no draft save.

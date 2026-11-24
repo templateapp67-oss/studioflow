@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
-import { readServerEnvironment } from './nexoraEnv';
+import { readServerEnvironment } from './nexoraEnv.js';
 
 /**
  * Supabase access-token verification for the AI routes.

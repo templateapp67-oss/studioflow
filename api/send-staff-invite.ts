@@ -1,1 +1,1 @@
-export { staffInviteEmailHandler as default } from '../server/staffInviteEmail';
+export { staffInviteEmailHandler as default } from '../server/staffInviteEmail.js';

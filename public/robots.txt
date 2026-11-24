@@ -1,6 +1,11 @@
 User-agent: *
 Allow: /
-Disallow: /login
+
+# Keep JSON/server API endpoints out of crawl budget.
+# Auth, admin, owner, staff and query-string app/session routes remain crawlable
+# so search engines can read their HTTP X-Robots-Tag and meta robots noindex
+# directives and remove them from search results instead of indexing them as
+# "blocked by robots.txt".
 Disallow: /api/
 
 Sitemap: https://nexorasalon.online/sitemap.xml

@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 const previewUrl = (process.env.PREVIEW_URL || '').trim().replace(/\/+$/, '');
 const vercelBypassSecret = (process.env.VERCEL_AUTOMATION_BYPASS_SECRET || '').trim();
+const offlineOriginOnly = process.env.E2E_OFFLINE_ORIGIN_ONLY === '1';
 const artifactsDir = resolve(process.env.E2E_ARTIFACTS_DIR || 'test-results/preview-browser-e2e');
 const screenshotsDir = join(artifactsDir, 'screenshots');
 const tracesDir = join(artifactsDir, 'traces');
@@ -12,10 +14,11 @@ mkdirSync(screenshotsDir, { recursive: true });
 mkdirSync(tracesDir, { recursive: true });
 const report = {
   overallStatus: 'FAIL',
-  testMode: 'read-only-preview-smoke',
+  testMode: offlineOriginOnly ? 'read-only-preview-smoke (offline-origin-only)' : 'read-only-preview-smoke',
   backendIntegration: 'not tested against hosted Supabase; publishing contract is covered separately by isolated PGlite tests',
   previewUrl: previewUrl || null,
   blockedWriteRequests: [],
+  stubbedExternalRequests: [],
   failedRequests: [],
   consoleErrors: [],
   pageErrors: [],
@@ -55,7 +58,33 @@ if (!pwRoot || !existsSync(join(pwRoot, 'node_modules/playwright/package.json'))
 }
 const require = createRequire(join(pwRoot, 'package.json'));
 const { chromium } = require('playwright');
-const browser = await chromium.launch({ headless: true });
+let sparticuzPackage = null;
+try {
+  sparticuzPackage = require('@sparticuz/chromium');
+} catch {
+  // Optional: standard Playwright-managed Chromium is used in CI.
+}
+const sparticuzChromium = sparticuzPackage?.default ?? sparticuzPackage;
+const libraryArchive = join(pwRoot, 'node_modules/@sparticuz/chromium/bin/al2023.tar.br');
+const libraryDirectory = join(tmpdir(), 'al2023', 'lib');
+if (sparticuzPackage?.inflate && existsSync(libraryArchive) && !existsSync(join(libraryDirectory, 'libnspr4.so'))) {
+  await sparticuzPackage.inflate(libraryArchive);
+}
+if (sparticuzPackage && existsSync(join(libraryDirectory, 'libnspr4.so'))) {
+  process.env.LD_LIBRARY_PATH = [libraryDirectory, process.env.LD_LIBRARY_PATH]
+    .filter(Boolean)
+    .join(':');
+}
+const launchOptions = { headless: true };
+if (sparticuzChromium) {
+  // Drop --single-process so sequential browser contexts across viewports
+  // do not terminate the shared Chromium headless shell.
+  launchOptions.args = sparticuzChromium.args.filter((arg) => arg !== '--single-process');
+  launchOptions.executablePath = process.env.CHROMIUM_EXECUTABLE ?? await sparticuzChromium.executablePath();
+} else if (process.env.CHROMIUM_EXECUTABLE) {
+  launchOptions.executablePath = process.env.CHROMIUM_EXECUTABLE;
+}
+const browser = await chromium.launch(launchOptions);
 const safeEndpoint = (raw) => { try { const url = new URL(raw); return url.origin + url.pathname; } catch { return 'invalid-url'; } };
 const previewOrigin = previewUrl ? new URL(previewUrl).origin : '';
 try {
@@ -76,8 +105,14 @@ try {
         await route.abort('blockedbyclient');
         return;
       }
+      const reqOrigin = new URL(req.url()).origin;
+      if (offlineOriginOnly && reqOrigin !== previewOrigin) {
+        report.stubbedExternalRequests.push(safeEndpoint(req.url()));
+        await route.fulfill({ status: 200, contentType: 'text/css; charset=utf-8', body: '' });
+        return;
+      }
       const headers = { ...req.headers() };
-      if (vercelBypassSecret && new URL(req.url()).origin === previewOrigin) {
+      if (vercelBypassSecret && reqOrigin === previewOrigin) {
         headers['x-vercel-protection-bypass'] = vercelBypassSecret;
         headers['x-vercel-set-bypass-cookie'] = 'true';
       }

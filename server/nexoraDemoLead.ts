@@ -17,7 +17,7 @@
  *     data and never a credential.
  */
 
-import { readServerEnvironment } from './nexoraEnv';
+import { readServerEnvironment } from './nexoraEnv.js';
 
 const PRIVACY_NOTICE_VERSION = '2026-11';
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;

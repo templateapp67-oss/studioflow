@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { parseDocument } from 'htmlparser2';
@@ -18,16 +18,22 @@ import { NEXORA_TEMPLATE_META, nexoraTemplatePagePath } from '../src/lib/nexoraT
 import { NEXORA_ECOSYSTEM_ROUTES } from '../src/lib/nexoraEcosystemSeo';
 import { nexoraPreviewImage } from '../src/lib/nexoraPreviewImages';
 import { resolveSiteSlug } from '../src/lib/resolveSite';
-import { generateSitemap, isEphemeralOrigin, sitemapOrigin } from '../server/sitemap';
+import { generateSitemap, isEphemeralOrigin, sitemapOrigin, sitemapXml } from '../server/sitemap';
+import { robotsTagForRequest } from '../server/robotsHeaders';
 import { AUTH_CALLBACK_FRAGMENT_KEYS, AUTH_CALLBACK_QUERY_KEYS, hasAuthCallbackFragment, hasAuthCallbackQuery } from '../src/lib/authEntry';
-import type { BusinessTypeId } from '../src/types';
+import type { BusinessTypeId, SalonProfile } from '../types';
 import {
+  applyNoIndexMetadata,
   applyPublicSeoMetadata,
+  hasNoIndexPathPrefix,
   NEXORA_HOME_OG_IMAGE,
   NEXORA_HOME_SEO,
   NEXORA_LOGIN_SEO,
   NEXORA_PUBLIC_ORIGIN,
+  NOINDEX_QUERY_KEYS,
+  NOINDEX_ROBOTS,
 } from '../src/lib/publicSeo';
+import { applySeoMetadata } from '../src/lib/useSeoMetadata';
 
 const esc = (value: string) => value.replaceAll('&', '&amp;').replaceAll("'", '&#x27;').replaceAll('"', '&quot;');
 assert.equal(requiresFullApplication({ pathname: '/', search: '', hash: '', hostname: 'www.nexora.app' }), false, 'public root stays lightweight');
@@ -221,17 +227,38 @@ assert.ok(!loginHtml.includes('Launch Your NEXORA Salon Website in 30 Minutes'),
 const passwordUpdatedHtml = renderToStaticMarkup(<AuthPage />);
 assert.ok(passwordUpdatedHtml.includes('Password updated successfully. Sign in with your new password.'), 'legacy post-recovery redirect keeps its success state');
 
-// Lightweight DOM harness verifies route-owned metadata and preview-host-independent canonicals.
+// Lightweight DOM harness verifies route-owned metadata, SPA transitions,
+// deduplication and preview-host-independent canonicals.
 class MetaElement {
   attributes = new Map<string, string>();
+  id = '';
+  type = '';
+  textContent = '';
   constructor(public tagName: string) {}
-  setAttribute(key: string, value: string) { this.attributes.set(key, value); }
+  setAttribute(key: string, value: string) {
+    this.attributes.set(key, value);
+    if (key === 'id') this.id = value;
+  }
   getAttribute(key: string) { return this.attributes.get(key) || null; }
+  remove() {
+    const idx = headChildren.indexOf(this);
+    if (idx >= 0) headChildren.splice(idx, 1);
+  }
 }
 const headChildren: MetaElement[] = [];
 const documentHarness = {
   title: '',
-  head: { appendChild: (element: MetaElement) => { headChildren.push(element); } },
+  head: {
+    appendChild: (element: MetaElement) => { headChildren.push(element); },
+    querySelectorAll: (selector: string) => {
+      if (selector === 'script[type="application/ld+json"]') {
+        return headChildren.filter(
+          (element) => element.tagName === 'script' && (element.type === 'application/ld+json' || element.getAttribute('type') === 'application/ld+json'),
+        );
+      }
+      return [];
+    },
+  },
   createElement: (tag: string) => new MetaElement(tag),
   querySelector: (selector: string) => {
     const meta = selector.match(/^meta\[(name|property)="([^"]+)"\]$/);
@@ -239,10 +266,17 @@ const documentHarness = {
     if (selector === 'link[rel="canonical"]') return headChildren.find(element => element.tagName === 'link' && element.getAttribute('rel') === 'canonical') || null;
     return null;
   },
-  getElementById: () => null,
+  querySelectorAll: (selector: string) => {
+    if (selector === 'meta[name]') return headChildren.filter(element => element.tagName === 'meta' && element.getAttribute('name') !== null);
+    if (selector === 'link[rel]') return headChildren.filter(element => element.tagName === 'link' && element.getAttribute('rel') !== null);
+    return [];
+  },
+  getElementById: (id: string) => headChildren.find(element => element.id === id) || null,
 };
 (globalThis as any).document = documentHarness;
 const value = (attribute: 'name' | 'property', key: string) => documentHarness.querySelector(`meta[${attribute}="${key}"]`)?.getAttribute('content');
+const robotsTags = () => headChildren.filter(element => element.tagName === 'meta' && element.getAttribute('name')?.toLowerCase() === 'robots');
+const canonicalTags = () => headChildren.filter(element => element.tagName === 'link' && element.getAttribute('rel')?.toLowerCase() === 'canonical');
 
 applyPublicSeoMetadata(NEXORA_HOME_SEO);
 assert.equal(documentHarness.title, 'NEXORA SalonOS – Salon Website Builder & Management Software');
@@ -266,6 +300,141 @@ assert.equal(value('property', 'og:description'), NEXORA_LOGIN_SEO.ogDescription
 assert.equal(value('name', 'twitter:title'), NEXORA_LOGIN_SEO.twitterTitle);
 assert.equal(value('name', 'twitter:description'), NEXORA_LOGIN_SEO.twitterDescription);
 assert.equal(documentHarness.querySelector('link[rel="canonical"]')?.getAttribute('href'), `${NEXORA_PUBLIC_ORIGIN}/login`);
+
+// Simulate stale duplicate robots, canonical and un-ID'd prerendered JSON-LD tags before navigating into an app view.
+const extraRobots = documentHarness.createElement('meta');
+extraRobots.setAttribute('name', 'ROBOTS');
+extraRobots.setAttribute('content', 'index,follow');
+documentHarness.head.appendChild(extraRobots);
+const extraCanonical = documentHarness.createElement('link');
+extraCanonical.setAttribute('rel', 'canonical');
+extraCanonical.setAttribute('href', `${NEXORA_PUBLIC_ORIGIN}/stale`);
+documentHarness.head.appendChild(extraCanonical);
+const staticJsonLd = documentHarness.createElement('script');
+staticJsonLd.type = 'application/ld+json';
+staticJsonLd.textContent = '{"@context":"https://schema.org"}';
+documentHarness.head.appendChild(staticJsonLd);
+
+applyNoIndexMetadata('Owner Workspace — NEXORA Salon OS');
+assert.equal(documentHarness.title, 'Owner Workspace — NEXORA Salon OS');
+assert.equal(robotsTags().length, 1, 'applyNoIndexMetadata collapses duplicate robots tags into one');
+assert.equal(robotsTags()[0].getAttribute('content'), NOINDEX_ROBOTS, 'private/app routes mark robots as noindex, nofollow');
+assert.equal(canonicalTags().length, 0, 'noindex app routes strip all public canonical links');
+assert.equal(documentHarness.getElementById('studioflow-seo-jsonld'), null, 'noindex app routes strip storefront JSON-LD');
+assert.equal(documentHarness.head.querySelectorAll('script[type="application/ld+json"]').length, 0, 'noindex app routes strip un-IDd prerendered head JSON-LD');
+
+// Private path prefixes (/owner, /admin, /staff, /api) enforce noindex on client too.
+assert.equal(hasNoIndexPathPrefix('/owner'), true);
+assert.equal(hasNoIndexPathPrefix('/ADMIN/demo-leads/'), true);
+assert.equal(hasNoIndexPathPrefix('/partner-rewards'), false);
+for (const privatePath of ['/owner', '/admin']) {
+  (globalThis as any).window = {
+    location: { origin: NEXORA_PUBLIC_ORIGIN, pathname: privatePath, search: '', href: `${NEXORA_PUBLIC_ORIGIN}${privatePath}` },
+  };
+  applySeoMetadata({ businessName: 'Leaked', businessType: 'unisex_salon', seo: {} } as SalonProfile);
+  assert.equal(robotsTags().length, 1);
+  assert.equal(robotsTags()[0].getAttribute('content'), NOINDEX_ROBOTS, `${privatePath} enforces client noindex, nofollow`);
+  assert.equal(canonicalTags().length, 0, `${privatePath} strips canonical link`);
+}
+
+// SPA transition: NoIndex app view -> published ?site=glow storefront restores robots, canonical & JSON-LD.
+(globalThis as any).window = {
+  location: { origin: NEXORA_PUBLIC_ORIGIN, pathname: '/', search: '?site=glow', href: `${NEXORA_PUBLIC_ORIGIN}/?site=glow` },
+};
+const sampleSalonProfile = {
+  businessName: 'Glow Studio',
+  businessType: 'unisex_salon',
+  city: 'Jaipur',
+  subdomain: 'glow',
+  tagline: 'Modern hair and skin studio in Jaipur',
+  phone: '+91 98765 43210',
+  address: 'MI Road, Jaipur',
+  seo: {},
+} as SalonProfile;
+applySeoMetadata(sampleSalonProfile);
+assert.equal(robotsTags().length, 1, 'published storefront keeps exactly one robots meta tag');
+assert.equal(robotsTags()[0].getAttribute('content'), 'index,follow', 'navigating from app view to ?site= storefront restores index,follow');
+assert.equal(canonicalTags().length, 1, 'published storefront restores a single canonical link');
+assert.equal(canonicalTags()[0].getAttribute('href'), `${NEXORA_PUBLIC_ORIGIN}/?site=glow`, 'published ?site= storefront canonicalises to its own ?site= URL');
+assert.ok(documentHarness.getElementById('studioflow-seo-jsonld')?.textContent.includes('Glow Studio'), 'published storefront restores #studioflow-seo-jsonld');
+
+// Combined ?site=<slug> + any app/session query key must enforce noindex on the client too.
+for (const key of [...NOINDEX_QUERY_KEYS, 'APP']) {
+  (globalThis as any).window = {
+    location: { origin: NEXORA_PUBLIC_ORIGIN, pathname: '/', search: `?site=glow&${key}=1`, href: `${NEXORA_PUBLIC_ORIGIN}/?site=glow&${key}=1` },
+  };
+  applySeoMetadata(sampleSalonProfile);
+  assert.equal(robotsTags().length, 1, `?site=glow&${key}=1 keeps a single robots tag`);
+  assert.equal(robotsTags()[0].getAttribute('content'), NOINDEX_ROBOTS, `?site=glow&${key}=1 forces noindex, nofollow`);
+  assert.equal(canonicalTags().length, 0, `?site=glow&${key}=1 clears canonical link`);
+  assert.equal(documentHarness.getElementById('studioflow-seo-jsonld'), null, `?site=glow&${key}=1 clears storefront JSON-LD`);
+}
+
+// SPA transition: NoIndex app view -> Public homepage restores index,follow, canonical, strips storefront JSON-LD and restores homepage JSON-LD.
+applyPublicSeoMetadata(NEXORA_HOME_SEO);
+assert.equal(robotsTags().length, 1, 'returning to public homepage keeps exactly one robots tag');
+assert.equal(value('name', 'robots'), 'index,follow', 'returning to a public route restores index,follow');
+assert.equal(canonicalTags().length, 1, 'returning to public homepage restores a single canonical link');
+assert.equal(documentHarness.querySelector('link[rel="canonical"]')?.getAttribute('href'), `${NEXORA_PUBLIC_ORIGIN}/`, 'returning to a public route restores its canonical link');
+assert.equal(documentHarness.getElementById('studioflow-seo-jsonld'), null, 'returning to public homepage removes storefront JSON-LD');
+assert.equal(documentHarness.head.querySelectorAll('script[type="application/ld+json"]').length, 1, 'returning to public homepage maintains exactly one homepage JSON-LD block');
+assert.ok(documentHarness.getElementById('nexora-home-jsonld')?.textContent.includes('SoftwareApplication'), 'homepage JSON-LD schema is restored');
+
+for (const [reqPath, reqSearch, expected] of [
+  ['/api', '', 'noindex, nofollow'],
+  ['/api/health', '', 'noindex, nofollow'],
+  ['/API/health', '', 'noindex, nofollow'],
+  ['/admin', '', 'noindex, nofollow'],
+  ['/admin/', '', 'noindex, nofollow'],
+  ['/ADMIN', '', 'noindex, nofollow'],
+  ['/admin/demo-leads', '', 'noindex, nofollow'],
+  ['/Admin/Demo-Leads/', '', 'noindex, nofollow'],
+  ['/owner', '', 'noindex, nofollow'],
+  ['/owner/', '', 'noindex, nofollow'],
+  ['//owner//settings/', '', 'noindex, nofollow'],
+  ['/staff', '', 'noindex, nofollow'],
+  ['/staff/', '', 'noindex, nofollow'],
+  ['/staff/login', '', 'noindex, nofollow'],
+  ['/Staff/Login/', '', 'noindex, nofollow'],
+  ['/staff/accept', '?token=abc', 'noindex, nofollow'],
+  ['/', '?app=1', 'noindex, nofollow'],
+  ['/', '?APP=1', 'noindex, nofollow'],
+  ['/', '?app=1&site=glow', 'noindex, nofollow'],
+  ['/', '?site=glow&app=1', 'noindex, nofollow'],
+  ['/', '?site=glow&customer=1', 'noindex, nofollow'],
+  ['/', '?site=glow&owner=glow', 'noindex, nofollow'],
+  ['/', '?Site=glow&Owner=glow', 'noindex, nofollow'],
+  ['/', '?site=glow&panel=demo', 'noindex, nofollow'],
+  ['/', '?site=glow&create=1', 'noindex, nofollow'],
+  ['/', '?site=glow&module=4', 'noindex, nofollow'],
+  ['/', '?site=glow&invite=1', 'noindex, nofollow'],
+  ['/', '?site=glow&recovery=1', 'noindex, nofollow'],
+  ['/login', '?app=1', 'noindex, nofollow'],
+  ['/login', '?auth=signup&template=hair_salon&create=1', 'noindex, nofollow'],
+  ['/login', '', 'noindex, follow'],
+  ['/login/', '', 'noindex, follow'],
+  ['/LOGIN/', '', 'noindex, follow'],
+  ['/login.html', '', 'noindex, follow'],
+  ['/login', '?auth=signup', 'noindex, follow'],
+  ['/sign-in', '', 'noindex, follow'],
+  ['/sign-in/', '', 'noindex, follow'],
+  ['/sign-up', '', 'noindex, follow'],
+  ['/sign-up/', '', 'noindex, follow'],
+  ['/', '', null],
+  ['/pricing', '', null],
+  ['/salon-os', '', null],
+  ['/privacy', '', null],
+  ['/salon-onboarding', '', null],
+  ['/salon-growth', '', null],
+  ['/growth-partner-rewards', '', null],
+  ['/partner-rewards', '', null],
+  ['/partner-rewards/', '', null],
+  ['/template-pages/hair-salon.html', '', null],
+  ['/sitemap.xml', '', null],
+  ['/', '?site=glow', null],
+] as const) {
+  assert.equal(robotsTagForRequest(reqPath, reqSearch), expected, `X-Robots-Tag for ${reqPath}${reqSearch}`);
+}
 
 const indexHtml = readFileSync('index.html', 'utf8');
 assert.ok(indexHtml.includes(`<title>${esc(NEXORA_HOME_SEO.title)}</title>`));
@@ -305,7 +474,13 @@ assert.ok(loginDocument.includes(`<meta name="twitter:title" content="${NEXORA_L
 assert.ok(!loginDocument.includes(NEXORA_HOME_SEO.description), 'login never reuses homepage metadata');
 assert.ok(readFileSync('server/sitemap.ts', 'utf8').includes('origin + "/",'), 'public root is included in sitemap');
 const robotsTxt = readFileSync('public/robots.txt', 'utf8');
-assert.ok(robotsTxt.includes(`Sitemap: ${NEXORA_PUBLIC_ORIGIN}/sitemap.xml`), 'robots.txt sitemap URL uses the production origin');
+const robotsLines = robotsTxt.split(/\r?\n/).map((line) => line.trim()).filter((line) => line && !line.startsWith('#'));
+const disallowRules = robotsLines.filter((line) => line.startsWith('Disallow:')).map((line) => line.slice('Disallow:'.length).trim());
+assert.ok(robotsLines.includes('User-agent: *'), 'robots.txt applies to all crawlers');
+assert.ok(robotsLines.includes('Allow: /'), 'robots.txt allows public routes');
+assert.deepEqual(disallowRules, ['/api/'], 'robots.txt disallows only /api/ so crawlers can fetch noindex HTML/app routes to read X-Robots-Tag/meta noindex and crawl published ?site= storefronts');
+assert.ok(robotsLines.includes(`Sitemap: ${NEXORA_PUBLIC_ORIGIN}/sitemap.xml`), 'robots.txt sitemap URL uses the canonical production origin');
+assert.ok(!robotsTxt.includes('www.nexorasalon.online'), 'robots.txt avoids redirecting www host in Sitemap');
 const generatedSitemap = await generateSitemap({
   SITE_URL: 'https://studioflow-ashen-pi.vercel.app',
   SUPABASE_URL: 'https://supabase.example',
@@ -335,10 +510,35 @@ assert.ok(fallbackLocations.every((location) => new URL(location).protocol === '
 // Both halves of the sitemap origin contract must hold at once: preview hosts are
 // rejected, but a real custom domain is still honoured (verify-gap-completion asserts
 // the custom-domain half, so hardcoding the canonical here regresses that suite).
-for (const preview of ['https://studioflow-ashen-pi.vercel.app', 'https://x.preview.vercel.app', 'https://site.netlify.app', 'https://site.pages.dev', 'http://localhost:3000']) {
+for (const preview of ['https://studioflow-ashen-pi.vercel.app', 'https://x.preview.vercel.app', 'https://3000-sandbox.e2b.app', 'https://site.netlify.app', 'https://site.pages.dev', 'http://localhost:3000']) {
   if (preview.startsWith('http://')) continue; // canonicalOrigin already rejects non-HTTPS
   assert.equal(isEphemeralOrigin(preview), true, `preview host must be rejected: ${preview}`);
   assert.equal(sitemapOrigin({ SITE_URL: preview }), NEXORA_PUBLIC_ORIGIN, `preview host must fall back to the canonical: ${preview}`);
+}
+assert.equal(sitemapOrigin({ SITE_URL: 'https://www.nexorasalon.online' }), NEXORA_PUBLIC_ORIGIN, 'www redirect alias normalises to non-www canonical');
+assert.equal(sitemapOrigin({ VITE_SITE_URL: 'https://www.nexorasalon.online/' }), NEXORA_PUBLIC_ORIGIN, 'Vite www redirect alias normalises to non-www canonical');
+const filteredSitemap = sitemapXml('https://www.nexorasalon.online', [
+  'glow-studio',
+  'studioflow-qa-12345',
+  'admin',
+  'owner',
+  'staff',
+  'login',
+  'sign-in',
+  'sign-up',
+  'api',
+]);
+assert.ok(!filteredSitemap.includes('www.nexorasalon.online'), 'sitemapXml never emits redirecting www URLs');
+assert.ok(filteredSitemap.includes(`<loc>${NEXORA_PUBLIC_ORIGIN}/partner-rewards</loc>`), 'sitemap includes /partner-rewards');
+assert.ok(filteredSitemap.includes(`<loc>${NEXORA_PUBLIC_ORIGIN}/?site=glow-studio</loc>`), 'sitemap includes published salon ?site= URLs');
+for (const excluded of ['studioflow-qa-12345', '?site=admin', '?site=owner', '?site=staff', '?site=login', '?site=sign-in', '?site=sign-up', '?site=api']) {
+  assert.ok(!filteredSitemap.includes(excluded), `sitemap excludes QA/reserved slug: ${excluded}`);
+}
+const filteredLocations = [...filteredSitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]);
+for (const loc of filteredLocations) {
+  const parsed = new URL(loc);
+  assert.equal(robotsTagForRequest(parsed.pathname, parsed.search), null, `every sitemap URL must stay indexable: ${loc}`);
+  assert.ok(!parsed.pathname.startsWith('/api/'), `sitemap must never emit /api/ paths: ${loc}`);
 }
 assert.equal(isEphemeralOrigin('https://nexorasalon.online'), false);
 assert.equal(isEphemeralOrigin('https://clinic.example'), false);
@@ -354,6 +554,12 @@ const customDomainSitemap = await generateSitemap({
 }, async () => new Response('[{"slug":"real-clinic"}]', { status: 200 }));
 assert.ok(customDomainSitemap.includes('<loc>https://clinic.example/?site=real-clinic</loc>'), 'published salons keep their own domain in the sitemap');
 assert.ok(!customDomainSitemap.includes(NEXORA_PUBLIC_ORIGIN), 'a custom-domain sitemap does not mix in the platform canonical');
-assert.ok(![indexHtml, loginDocument, robotsTxt].some(source => source.includes('studioflow-ashen-pi.vercel.app')), 'static SEO files contain no preview-domain URLs');
+const llmsTxt = readFileSync('public/llms.txt', 'utf8');
+assert.ok(llmsTxt.includes(`${NEXORA_PUBLIC_ORIGIN}/`), 'llms.txt uses the canonical production origin');
+assert.ok(!/https?:\/\/[^\s)]+\.vercel\.app/i.test(llmsTxt), 'llms.txt contains zero vercel.app URLs');
+assert.ok(!/https?:\/\/[^\s)]*\/(?:login|sign-in|sign-up|admin|owner|staff|api)(?:[/?#)\s]|$)/i.test(llmsTxt), 'llms.txt links no private/auth/admin/staff/api URLs');
+assert.ok(!/[?&]app=/i.test(llmsTxt), 'llms.txt contains no ?app= session links');
+assert.equal(existsSync('public/sitemap.xml'), false, 'no static public/sitemap.xml overrides the dynamic /api/sitemap rewrite');
+assert.ok(![indexHtml, loginDocument, robotsTxt, llmsTxt].some(source => source.includes('studioflow-ashen-pi.vercel.app')), 'static SEO files contain no preview-domain URLs');
 
 console.log('PASS: public homepage hierarchy/content, 16 templates/15 categories, signup template handoff, exact login H1, distinct home/login SEO, social images, canonical URLs and sitemap.');

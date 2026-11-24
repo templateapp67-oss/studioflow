@@ -99,7 +99,7 @@ function SalonWhatsAppFloatingButton({profile}:{profile:SalonWebsitePreviewProps
  </a>;
 }
 function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGallery=[],policies,branding,loyaltyConfig,onManageDashboard,onCustomerAccount,customerSignedIn,customerName,customerPhotoUrl,onAddAppointment,readOnly,live}:SalonWebsitePreviewProps){
- useSeoMetadata(profile);
+ useSeoMetadata(profile,undefined,Boolean(live));
  const {t}=useWebsiteLanguage();
  const [consultation,setConsultation]=useState<ConsultationDetails|undefined>();
  const [directSlot,setDirectSlot]=useState<DirectBookingSlot|undefined>();
