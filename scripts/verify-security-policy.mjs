@@ -113,7 +113,68 @@ for (const [source, destination] of requiredRewrites) {
     `required route rewrite must remain: ${source} -> ${destination}`,
   );
 }
-const storefrontFallback = config.rewrites.find((entry) => entry.source === '/(.*)');
+const storefrontFallback = config.rewrites.find((entry) => entry.source === '^/(?!api(?:/|$))(.*)
+assert.ok(storefrontFallback, 'non-file salon paths must be handled by the storefront SSR function');
+assert.equal(storefrontFallback.destination, '/api/storefront?path=/$1');
+assert.ok(!new RegExp(storefrontFallback.source).test('/api/storefront'), 'SSR fallback must not rewrite its own API function path');
+assert.ok(new RegExp(storefrontFallback.source).test('/vijaysalojaipur'), 'SSR fallback must still route published salon path URLs');
+assert.equal(config.rewrites.at(-1), storefrontFallback, 'the storefront fallback must remain last');
+for (const key of ['app', 'customer', 'customer_ref']) {
+  assert.ok(
+    config.rewrites.some((entry) => entry.source === '/' && entry.destination === '/index.html' &&
+      (entry.has || []).some((condition) => condition.type === 'query' && condition.key === key)),
+    `root ${key} entry must keep serving the normal application shell`,
+  );
+}
+assert.ok(
+  !config.rewrites.some((entry) => entry.source === '/' &&
+    (entry.has || []).some((condition) => condition.type === 'query' && ['site', 's', 'subdomain'].includes(condition.key))),
+  'published salon root query URLs must be intercepted before the root index.html filesystem match',
+);
+
+// Exercise the actual Vercel Routing Middleware contract without a network call.
+const { default: routeStorefrontRequest } = await import('../middleware.js');
+const queryResponse = routeStorefrontRequest(new Request('https://preview.example/?site=Salon-Preview-01'));
+const rewriteTarget = queryResponse.headers.get('x-middleware-rewrite');
+assert.ok(rewriteTarget, 'a published salon root URL must rewrite to the SSR function');
+const rewriteUrl = new URL(rewriteTarget);
+assert.equal(rewriteUrl.pathname, '/api/storefront');
+assert.equal(rewriteUrl.searchParams.get('path'), '/');
+assert.equal(rewriteUrl.searchParams.get('site'), 'salon-preview-01');
+
+for (const query of ['?app=1&site=salon-preview-01', '?customer=1&site=salon-preview-01', '?customer_ref=abc&site=salon-preview-01']) {
+  const response = routeStorefrontRequest(new Request(`https://preview.example/${query}`));
+  assert.equal(response.headers.get('x-middleware-next'), '1', `customer/app route must not be intercepted: ${query}`);
+}
+const invalidSlugResponse = routeStorefrontRequest(new Request('https://preview.example/?site=bad%2Fslug'));
+assert.equal(invalidSlugResponse.headers.get('x-middleware-next'), '1', 'invalid selectors must not reach the SSR function');
+
+// `www` must 308 to the canonical origin instead of serving a duplicate host.
+const wwwRedirect = (config.redirects || []).find((entry) =>
+  (entry.has || []).some((condition) => condition.type === 'host' && condition.value === 'www.nexorasalon.online'));
+assert.ok(wwwRedirect, 'the www host must redirect to the canonical origin');
+assert.equal(wwwRedirect.permanent, true, 'the canonical redirect must be permanent (308)');
+assert.equal(wwwRedirect.destination, 'https://nexorasalon.online/$1', 'the canonical redirect must preserve the path');
+
+// Every prerendered marketing document must also be routed to by a rewrite,
+// otherwise the SPA shell answers the URL and the per-route head is never sent.
+for (const route of ['/salon-os', '/pricing', '/privacy', '/salon-onboarding', '/salon-growth', '/growth-partner-rewards', '/partner-rewards']) {
+  assert.ok(
+    config.rewrites.some((entry) => entry.source === route && entry.destination === `${route}/index.html`),
+    `the ${route} document must be served by its own rewrite, not the SPA shell`,
+  );
+}
+const server = readFileSync('server.ts', 'utf8');
+for (const route of [
+  '/api/health', '/api/generate-bio', '/api/generate-promo-image', '/api/generate-promo-copy',
+  '/api/veda-website-content', '/api/ai-recommendations', '/api/email-service-status', '/api/send-booking-email',
+  '/api/booking-deposit',
+]) assert.ok(server.includes(`"${route}"`), `legacy API route must remain registered: ${route}`);
+assert.ok(server.includes('app.get("/sitemap.xml", sitemapHandler)'));
+assert.ok(server.includes('app.all("/api/*"'), 'unknown API paths must stay JSON 404s, not SPA HTML');
+
+console.log('PASS: enforcing CSP matches runtime integrations; legacy routes remain intact; root salon selectors reach SSR before index.html while app/customer routes stay on the SPA shell.');
+);
 assert.ok(storefrontFallback, 'non-file salon paths must be handled by the storefront SSR function');
 assert.equal(storefrontFallback.destination, '/api/storefront?path=/$1');
 assert.equal(config.rewrites.at(-1), storefrontFallback, 'the storefront fallback must remain last');
