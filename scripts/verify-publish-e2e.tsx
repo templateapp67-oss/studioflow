@@ -139,9 +139,9 @@ alter table public.studioflow_demo_bookings enable row level security;
 for(const file of [
   'supabase/migrations/20261121130001_public_storefront_view.sql',
   'supabase/migrations/20261123082445_studioflow_robust_website_publish.sql',
-  'supabase/migrations/20261123100000_studioflow_bookings_hold_expires_at_compat.sql',
-  'supabase/migrations/20261124062248_studioflow_publish_optional_tracking_isolation.sql',
-  'supabase/migrations/20261124080000_public_storefront_security_invoker.sql',
+  'supabase/migrations/20261124095101_studioflow_bookings_hold_expires_at_compat.sql',
+  'supabase/migrations/20261124095131_studioflow_publish_optional_tracking_isolation.sql',
+  'supabase/migrations/20261124095142_public_storefront_security_invoker.sql',
 ]){
   await applySql(file);
 }

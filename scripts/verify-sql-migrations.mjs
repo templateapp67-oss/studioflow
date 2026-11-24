@@ -406,7 +406,7 @@ grant select, insert, update on public.studioflow_bookings, public.studioflow_de
 `);
 await applySqlText(storefrontViewSql,storefrontViewFile);
 
-const storefrontSecurityFile='supabase/migrations/20261124080000_public_storefront_security_invoker.sql';
+const storefrontSecurityFile='supabase/migrations/20261124095142_public_storefront_security_invoker.sql';
 const storefrontSecuritySql=readFileSync(storefrontSecurityFile,'utf8');
 assert.match(storefrontSecuritySql,/with\s*\(security_invoker\s*=\s*true\)/i,
   'the follow-up view runs with caller privileges');
@@ -441,13 +441,13 @@ assert.equal(storefrontPrivacy.demo_slug_trigger,1,'demo bookings stamp the publ
 
 // Website publish hardening + follow-up slug-casing/subdomain/compat fix + hold_expires_at compat.
 const robustPublishFile='supabase/migrations/20261123082445_studioflow_robust_website_publish.sql';
-const holdExpiresCompatFile='supabase/migrations/20261123100000_studioflow_bookings_hold_expires_at_compat.sql';
+const holdExpiresCompatFile='supabase/migrations/20261124095101_studioflow_bookings_hold_expires_at_compat.sql';
 await applySqlText(readFileSync(robustPublishFile,'utf8'),robustPublishFile);
 // The slug-case fix from 20261123093000 is included in the later tracking
 // isolation migration; the archived source is intentionally not replayed as a
 // second live migration.
 await applySqlText(readFileSync(holdExpiresCompatFile,'utf8'),holdExpiresCompatFile);
-const publishTrackingFile='supabase/migrations/20261124062248_studioflow_publish_optional_tracking_isolation.sql';
+const publishTrackingFile='supabase/migrations/20261124095131_studioflow_publish_optional_tracking_isolation.sql';
 await applySqlText(readFileSync(publishTrackingFile,'utf8'),publishTrackingFile);
 await applySqlText(storefrontSecuritySql,storefrontSecurityFile);
 const {rows:[holdExpiresCol]}=await db.query(`

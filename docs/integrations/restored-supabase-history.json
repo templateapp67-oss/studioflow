@@ -1214,9 +1214,9 @@
       "path": "supabase/superseded-migrations/20261123093000_studioflow_publish_slug_case_and_compat.sql",
       "sha256": "009c9c9269b6aa814b4f29164215abd1594eea49d72489a48be84dbdbb106135",
       "canonical_files": [
-        "20261124062248_studioflow_publish_optional_tracking_isolation.sql"
+        "20261124095131_studioflow_publish_optional_tracking_isolation.sql"
       ],
-      "reason": "Not present in remote migration history. Its slug case/compatibility changes are included in the later optional-tracking isolation migration, so retain the source for audit but do not schedule it separately."
+      "reason": "Not present in remote migration history. Its slug normalization and compatibility changes are included in the applied optional-tracking isolation migration; original source retained for audit and not scheduled separately."
     }
   ],
   "deferred_feature_migrations": [
@@ -2052,20 +2052,7 @@
     "relations": 273,
     "assessment": "Read-only owner-supplied live catalog; not a live migration dry-run or deployment."
   },
-  "release_pending_migrations": [
-    {
-      "file": "20261123100000_studioflow_bookings_hold_expires_at_compat.sql",
-      "purpose": "Idempotently ensure public.studioflow_bookings.hold_expires_at (timestamptz) exists; live column already exists, so applying is a no-op on schema and does not rewrite customer data."
-    },
-    {
-      "file": "20261124062248_studioflow_publish_optional_tracking_isolation.sql",
-      "purpose": "Separate optional referral/onboarding tracking from core publishing, retaining slug-case compatibility improvements. Fixes the verified live publish transaction defect."
-    },
-    {
-      "file": "20261124080000_public_storefront_security_invoker.sql",
-      "purpose": "Replace the SECURITY DEFINER public storefront view with a SECURITY INVOKER view, narrow anon to projected columns, and apply published-only RLS. Preserves public storefront visibility without changing booking/public API permissions."
-    }
-  ],
+  "release_pending_migrations": [],
   "reviewed_feature_migrations": [
     {
       "file": "20261117130000_reconcile_template15_multiservice_booking.sql",
@@ -2396,6 +2383,53 @@
       "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
       "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
       "git_blob_sha": "317d7f62df064326806f3500f5fde587547d7867"
+    },
+    {
+      "version": "20261124095101",
+      "file": "20261124095101_studioflow_bookings_hold_expires_at_compat.sql",
+      "name": "studioflow_bookings_hold_expires_at_compat",
+      "observed_at": "2026-11-24",
+      "evidence": "Applied to App project zilwgiuiygqqardzutxi on 2026-11-24 and verified in remote migration history; the column already existed.",
+      "purpose": "Idempotent compatibility migration. hold_expires_at already existed on production, so application made no table or customer-data change.",
+      "git_blob_sha": "2276b7624b64cf44aa3e4205441f7ab78e63b970"
+    },
+    {
+      "version": "20261124095131",
+      "file": "20261124095131_studioflow_publish_optional_tracking_isolation.sql",
+      "name": "studioflow_publish_optional_tracking_isolation",
+      "observed_at": "2026-11-24",
+      "evidence": "Applied to App project zilwgiuiygqqardzutxi on 2026-11-24 and verified live: core publish no longer invokes optional tracking; separately authorized tracking RPC exists.",
+      "purpose": "Separates optional referral/onboarding tracking from core website publishing while preserving checklist validation, normalized/collision-safe slugs, and persisted website response.",
+      "git_blob_sha": "f4df53b9411e6e5429d80acd7621d3e354fb03fa"
+    },
+    {
+      "version": "20261124095142",
+      "file": "20261124095142_public_storefront_security_invoker.sql",
+      "name": "public_storefront_security_invoker",
+      "observed_at": "2026-11-24",
+      "evidence": "Applied to App project zilwgiuiygqqardzutxi on 2026-11-24 and verified live: view is security_invoker, anon lacks table-wide/owner_id access, and published-only RLS remains.",
+      "purpose": "Switches public_salon_websites to SECURITY INVOKER, grants anon only projected columns, and restricts anon rows to published sites without exposing owner_id.",
+      "git_blob_sha": "1a0a038ccf2f67f61ab267be33efe7be9732e5b3"
+    }
+  ],
+  "retimestamped_applied_migrations": [
+    {
+      "old_file": "20261123100000_studioflow_bookings_hold_expires_at_compat.sql",
+      "archived_file": "supabase/reconciled-migrations/20261123100000_studioflow_bookings_hold_expires_at_compat.sql",
+      "applied_file": "20261124095101_studioflow_bookings_hold_expires_at_compat.sql",
+      "reason": "Supabase MCP assigned this actual version when the SQL was applied. The former local filename is retained outside supabase/migrations to prevent duplicate pending execution."
+    },
+    {
+      "old_file": "20261124062248_studioflow_publish_optional_tracking_isolation.sql",
+      "archived_file": "supabase/reconciled-migrations/20261124062248_studioflow_publish_optional_tracking_isolation.sql",
+      "applied_file": "20261124095131_studioflow_publish_optional_tracking_isolation.sql",
+      "reason": "Supabase MCP assigned this actual version when the SQL was applied. The former local filename is retained outside supabase/migrations to prevent duplicate pending execution."
+    },
+    {
+      "old_file": "20261124080000_public_storefront_security_invoker.sql",
+      "archived_file": "supabase/reconciled-migrations/20261124080000_public_storefront_security_invoker.sql",
+      "applied_file": "20261124095142_public_storefront_security_invoker.sql",
+      "reason": "Supabase MCP assigned this actual version when the SQL was applied. The former local filename is retained outside supabase/migrations to prevent duplicate pending execution."
     }
   ]
 }

@@ -25,7 +25,7 @@ import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 
 const LEGACY = 'supabase/migrations/20261121130001_public_storefront_view.sql';
-const MIGRATION = 'supabase/migrations/20261124080000_public_storefront_security_invoker.sql';
+const MIGRATION = 'supabase/migrations/20261124095142_public_storefront_security_invoker.sql';
 const PREVIOUS = 'supabase/migrations/20261121130000_hide_owner_id_on_public_services.sql';
 
 const OWNER_A = '11111111-1111-4111-8111-111111111111';

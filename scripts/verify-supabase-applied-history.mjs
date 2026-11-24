@@ -17,6 +17,11 @@ assert.equal(new Set(manifest.applied_versions).size, manifest.applied_versions_
 for (const version of manifest.applied_versions) {
   assert(byVersion.has(version), `Missing recorded applied migration: ${version}`);
 }
+for (const record of manifest.post_export_applied_versions ?? []) {
+  const expectedName = `${record.version}_${record.name}.sql`;
+  assert.equal(byVersion.get(record.version), expectedName,
+    `Missing recorded post-export applied migration: ${expectedName}`);
+}
 for (const alias of manifest.reconciled_aliases ?? []) {
   assert(!files.includes(alias.removed_file), `Duplicate historical alias reintroduced: ${alias.removed_file}`);
   assert(files.includes(alias.canonical_file), `Missing canonical alias target: ${alias.canonical_file}`);
