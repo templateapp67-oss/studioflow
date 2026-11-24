@@ -94,5 +94,8 @@ try {
   assert.ok(route.type.includes('javascript'));
   console.log('PASS: local production routes — prerendered root, login/template handoff, legacy query roots, health/email APIs, JSON API 404 and hashed assets. No deployment or live provider calls.');
 } finally {
-  try { process.kill(-child.pid, 'SIGTERM'); } catch { /* already exited */ }
+  try {
+    if (process.platform === 'win32') child.kill('SIGTERM');
+    else process.kill(-child.pid, 'SIGTERM');
+  } catch { /* already exited */ }
 }

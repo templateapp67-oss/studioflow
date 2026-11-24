@@ -26,7 +26,9 @@ for (const alias of manifest.reconciled_aliases ?? []) {
 for (const record of manifest.restored) {
   const expectedName = `${record.version}_${record.name}.sql`;
   assert.equal(byVersion.get(record.version), expectedName);
-  const content = readFileSync(`${directory}/${expectedName}`);
+  // Git stores these tracked SQL sources with LF. Normalize Windows checkout
+  // CRLFs before comparing against the owner's exported source hash.
+  const content = readFileSync(`${directory}/${expectedName}`, 'utf8').replace(/\r\n?/g, '\n');
   assert.equal(createHash('sha256').update(content).digest('hex'), record.file_sha256,
     `Recorded applied SQL changed: ${expectedName}; use a new additive migration`);
 }

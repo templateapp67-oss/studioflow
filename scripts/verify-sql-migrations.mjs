@@ -430,6 +430,8 @@ const holdExpiresCompatFile='supabase/migrations/20261123100000_studioflow_booki
 await applySqlText(readFileSync(robustPublishFile,'utf8'),robustPublishFile);
 await applySqlText(readFileSync(publishCaseCompatFile,'utf8'),publishCaseCompatFile);
 await applySqlText(readFileSync(holdExpiresCompatFile,'utf8'),holdExpiresCompatFile);
+const publishTrackingFile='supabase/migrations/20261124062248_studioflow_publish_optional_tracking_isolation.sql';
+await applySqlText(readFileSync(publishTrackingFile,'utf8'),publishTrackingFile);
 const {rows:[holdExpiresCol]}=await db.query(`
   select data_type from information_schema.columns
   where table_schema='public' and table_name='studioflow_bookings' and column_name='hold_expires_at'

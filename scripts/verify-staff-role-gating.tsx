@@ -11,7 +11,7 @@ const listeners=new Map();
 (globalThis as any).history={pushState:(_a:any,_b:any,url:URL)=>{location.href=url.href;location.search=url.search;}};
 (globalThis as any).window={addEventListener:(n:string,f:any)=>listeners.set(n,f),removeEventListener:(n:string)=>listeners.delete(n),setTimeout};
 const noop=()=>{};
-const baseProps:any={profile:INITIAL_SALON_PROFILE,setProfile:noop,services:[],setServices:noop,stylists:[],setStylists:noop,appointments:[],clients:[],setClients:noop,loyaltyConfig:DEFAULT_LOYALTY_CONFIG,setLoyaltyConfig:noop,extras:DEFAULT_EXTRAS,setExtras:noop,published:null,onPublish:async()=>{},sessionEmail:'owner@example.com',templates:[],onOpenPreview:noop,onOpenDashboard:noop,onOpenWizard:noop};
+const baseProps:any={profile:{...INITIAL_SALON_PROFILE,businessName:'Test Salon',businessType:'hair_salon',serviceCatalogueInitialized:true},setProfile:noop,services:[{id:'test-service',name:'Cut',price:500,durationMinutes:30,category:'Hair',description:'Cut',icon:'content_cut'}],setServices:noop,stylists:[],setStylists:noop,appointments:[],clients:[],setClients:noop,loyaltyConfig:DEFAULT_LOYALTY_CONFIG,setLoyaltyConfig:noop,extras:DEFAULT_EXTRAS,setExtras:noop,published:null,onPublish:async()=>{},sessionEmail:'owner@example.com',templates:[],onOpenPreview:noop,onOpenDashboard:noop,onOpenWizard:noop};
 const stepIds=WEBSITE_EDIT_STEPS.map(s=>s.id);
 const render=async(props:any)=>{let ui:any;await act(async()=>{ui=create(<OwnerWorkspace {...baseProps} {...props}/>,{createNodeMock:()=>({focus(){},scrollIntoView(){}})});});return ui;};
 const title=(ui:any)=>ui.root.findByType('h1').children.join('');

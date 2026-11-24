@@ -2048,6 +2048,10 @@
     {
       "file": "20261123100000_studioflow_bookings_hold_expires_at_compat.sql",
       "purpose": "Idempotently ensure public.studioflow_bookings.hold_expires_at (timestamptz) exists in QA and fresh environments whose availability and booking RPCs reference it. Pending protected manual production release (no-op on zilwgiuiygqqardzutxi where column already exists)."
+    },
+    {
+      "file": "20261124062248_studioflow_publish_optional_tracking_isolation.sql",
+      "purpose": "Keep studioflow_publish() focused on the persisted website write and run referral/onboarding tracking through a separately authorized RPC with per-tracker exception isolation. Pending protected manual production release; the existing verified publish transaction remains unchanged until this migration is applied."
     }
   ],
   "reviewed_feature_migrations": [

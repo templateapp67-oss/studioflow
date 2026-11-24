@@ -7,7 +7,7 @@ import { useAuthSession } from './lib/useAuthSession';
 import { appendAuthErrorParams, clearOAuthIntent, consumeOAuthCallbackForwarded, hasAuthCallbackFragment, hasAuthCallbackQuery, hasAuthErrorParams, hasOAuthExchangeParams, markOAuthCallbackForwarded, readAuthUrlError, readOAuthIntent } from './lib/authEntry';
 import { isBillingInterval, isPricingPlanId, pricingResumePath } from './lib/nexoraPricing';
 import { workspaceSnapshot, sameWorkspace, mergeWorkspace, revisionConflict, conflictMessage, type ConflictChoice } from './lib/workspaceSync';
-import { formatPublishingError } from './lib/publishing';
+import { parsePublishedWebsite, publishSalonWebsite, publishingErrorDiagnostics, runOptionalPublishTracking } from './lib/publishing';
 import { useCustomerProfile } from './components/customer/useCustomerProfile';
 import { applyWebsiteFavicon, websiteFavicon } from './lib/websiteFavicon';
 import { hasExplicitSiteQuery, isPlatformRootHost, isStorefrontRootHost, resolveSiteSlug } from './lib/resolveSite';
@@ -538,21 +538,37 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
  useEffect(()=>{const config=pendingCustomizerConfig.current;if(!config||!isArchFlutterTemplate(profile.businessType))return;pendingCustomizerConfig.current=null;applyCustomizerWorkspace(applyCustomizerConfig(config,{profile,services,stylists,extras}));},[profile,services,stylists,extras,applyCustomizerWorkspace]);
  const publish=async()=>{
   try{
-    const authResult=await supabase.auth.getSession();
-    if(authResult.error)throw authResult.error;
-    if(authResult.data.session?.user?.id!==session.user.id)throw new Error('Your sign-in session has expired. Sign in again before publishing.');
-    await flush();
-    const {data,error}=await supabase.rpc('studioflow_publish');
-    if(error)throw error;
-    const publishedSlug=typeof data?.slug==='string'?data.slug.trim():'';
-    const publishedAt=data?.published_at instanceof Date?data.published_at.toISOString():typeof data?.published_at==='string'?data.published_at:'';
-    if(!publishedSlug||!publishedAt)throw new Error('Supabase did not return the published website address and publish time. The publish status could not be confirmed.');
+    const persisted=await publishSalonWebsite({
+      expectedWorkspaceOwnerId:account.user_id,
+      profile,
+      services,
+      getLatestWorkspace:()=>({profile:latest.current.profile,services:latest.current.services}),
+      getUser:async()=>{
+        const {data,error}=await supabase.auth.getUser();
+        if(error)throw error;
+        return data.user?{id:data.user.id}:null;
+      },
+      getWorkspaceOwnerId:async(workspaceId)=>{
+        const {data,error}=await supabase.from('studioflow_accounts').select('user_id').eq('user_id',workspaceId).maybeSingle();
+        if(error)throw error;
+        return data?.user_id??null;
+      },
+      flush,
+      publishRpc:async()=>await supabase.rpc('studioflow_publish'),
+    });
+    // Re-parse at the state boundary so only confirmed database fields can
+    // update the customer-visible published status and URL.
+    const publishedWebsite=parsePublishedWebsite(persisted);
     publishedGeneration.current+=1;
-    setPublished({...data,slug:publishedSlug,published_at:publishedAt});
-    setProfile(current=>current.subdomain===publishedSlug?current:{...current,subdomain:publishedSlug});
+    setPublished(publishedWebsite);
+    setProfile(current=>current.subdomain===publishedWebsite.slug?current:{...current,subdomain:publishedWebsite.slug});
+    await runOptionalPublishTracking(async()=>{
+      const {error}=await supabase.rpc('studioflow_track_publish');
+      if(error)throw error;
+    },diagnostics=>console.warn('[StudioFlow] Optional publish referral/onboarding tracking failed',diagnostics));
   }catch(error){
-    console.error('[StudioFlow] Publish website failed',error);
-    throw new Error(formatPublishingError(error));
+    console.error('[StudioFlow] Publish website failed',publishingErrorDiagnostics(error));
+    throw error;
   }
 };
  const book=async(apt:Appointment)=>{await flush();if(!published)throw new Error('Publish your salon website before accepting bookings.');const isAura=profile.businessType==='unisex_salon';const isMens=profile.businessType==='mens_hair_studio';const rpc=isMens?'studioflow_mens_book':apt.branchId?(apt.couponCode?'studioflow_branch_coupon_book':'studioflow_branch_book'):(apt.couponCode?(isAura?'studioflow_aura_coupon_book':'studioflow_coupon_book'):'studioflow_book');const {data,error}=await supabase.rpc(rpc,{p_slug:published.slug,p_request:apt});if(error)throw error;await refreshBookings();return (data?.payload||data) as Appointment;};

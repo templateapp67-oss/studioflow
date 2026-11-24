@@ -53,7 +53,7 @@ import { nexoraName, nexoraCategoryLabel } from './nexora/NexoraBrand';
 import { sortTemplatesByPriority, nexoraTemplateMeta } from '../lib/nexoraTemplateCatalogue';
 import { SyncIndicator } from './SyncIndicator';
 import { NexoraWhatsAppPanel } from './NexoraWhatsAppPanel';
-import { formatPublishingError } from '../lib/publishing';
+import { formatPublishingError, isPublishingReady, normalizeWebsiteSlug } from '../lib/publishing';
 
 type Props = {
   profile: SalonProfile;
@@ -161,7 +161,7 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
   const completion = useMemo(() => Math.round(([profile.businessName, profile.phone, profile.email, profile.address, profile.coverImageUrl, services.length, stylists.length].filter(Boolean).length / 7) * 100), [profile, services.length, stylists.length]);
   const flash = (message: string) => { setNotice(message); window.setTimeout(() => setNotice(''), 2600); };
   const handleHeaderPublish = async () => {
-    if (headerPublishBusy.current) return;
+    if (headerPublishBusy.current || !isPublishingReady(profile, services)) return;
     headerPublishBusy.current = true;
     setHeaderPublishing(true);
     setHeaderPublishError('');
@@ -202,7 +202,7 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
     if(active===26)return <SalonCRM profile={profile}/>;
     if (active === 22) return <div className="stack"><PromoStudio profile={profile} setProfile={setProfile} services={services} onAdReady={setCampaignAd}/><OwnerCustomerContacts profile={profile} ad={campaignAd}/></div>;
     if (active === 1) return <section className="workspace-card"><p className="eyebrow">Secure owner access</p><h2>Signed in</h2><p className="muted">{sessionEmail}</p><p>Your profile and dashboard are saved to your Supabase account.</p></section>;
-    if (active === 2) return <section className="workspace-card"><p className="eyebrow">Website editor</p><h2>Business details</h2><div className="form-grid"><Field label="Website address (3–63 lowercase letters, numbers or hyphens)" value={profile.subdomain} onChange={(v) => patchProfile('subdomain', v.toLowerCase().replace(/[^a-z0-9-]/g, ''))} /><Field label="Business name" value={profile.businessName} onChange={(v) => patchProfile('businessName', v)} /><Field label="Owner name" value={profile.ownerName} onChange={(v) => patchProfile('ownerName', v)} /><Field label="Business email" value={profile.email} onChange={(v) => patchProfile('email', v)} /><Field label="Phone" value={profile.phone} onChange={(v) => patchProfile('phone', v)} /><Field label="Tagline" value={profile.tagline} onChange={(v) => patchProfile('tagline', v)} /></div><p className="muted mt-4">Salon ki story aur owner photo ke liye next steps mein About our studio kholein.</p></section>;
+    if (active === 2) return <section className="workspace-card"><p className="eyebrow">Website editor</p><h2>Business details</h2><div className="form-grid"><Field label="Website address (3–63 lowercase letters, numbers or hyphens)" value={profile.subdomain} onChange={(v) => patchProfile('subdomain', normalizeWebsiteSlug(v))} /><Field label="Business name" value={profile.businessName} onChange={(v) => patchProfile('businessName', v)} /><Field label="Owner name" value={profile.ownerName} onChange={(v) => patchProfile('ownerName', v)} /><Field label="Business email" value={profile.email} onChange={(v) => patchProfile('email', v)} /><Field label="Phone" value={profile.phone} onChange={(v) => patchProfile('phone', v)} /><Field label="Tagline" value={profile.tagline} onChange={(v) => patchProfile('tagline', v)} /></div><p className="muted mt-4">Salon ki story aur owner photo ke liye next steps mein About our studio kholein.</p></section>;
     if (active === 3) return <div className="stack"><AddOnEditor profile={profile} setProfile={setProfile} services={services}/><ServiceManagement services={services} setServices={setServices} primaryAccentColor={accent} profile={profile} onNavigateToPreview={onOpenPreview} /></div>;
     if (active === 4) return <div className="stack"><TeamManagement setServices={setServices} businessType={profile.businessType} stylists={stylists} setStylists={setStylists} services={services} primaryAccentColor={accent} onNavigateToPreview={onOpenPreview} /><StaffAccessPanel stylists={stylists} profile={profile} ownerEmail={sessionEmail} /><BranchStaffScheduleEditor branches={profile.branches || []} stylists={stylists} setStylists={setStylists}/></div>;
     if (active === 5) return <section className="workspace-card"><PhotoGalleryManager profile={profile} setProfile={setProfile} gallery={extras.gallery} setGallery={gallery=>setExtras(prev=>({...prev,gallery}))}/><ComparisonEditor profile={profile} setProfile={setProfile}/></section>;
@@ -244,7 +244,7 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
   const stepCountLabel=visibleStepIndex>=0?`Step ${visibleStepIndex+1} / ${visibleSteps.length}`:'Business tools';
   const firstAllowedModule=defaultModuleFor(actorRole);
   // Publishing the live website is a Manager-level action.
-  const canPublish=can(actorRole==='owner'?'Manager (Full Access)':actorRole,'publish_website');
+  const canPublish=can(actorRole==='owner'?'Manager (Full Access)':actorRole,'publish_website') && isPublishingReady(profile, services);
 
   return <>
   <main className="min-h-screen bg-slate-50 text-slate-900 flex flex-col antialiased">
