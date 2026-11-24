@@ -70,9 +70,39 @@ assert.throws(
   'a service-role JWT in a browser variable is rejected',
 );
 
-/* 4. A publishable key is accepted. */
+/* 4. A publishable key or legacy public Supabase anon JWT is accepted. */
 config = env.resolveSupabaseConfig({ VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_abc' }, FALLBACK_URL, FALLBACK_KEY);
 assert.equal(config.publishableKey, 'sb_publishable_abc', 'a publishable key is accepted');
+const legacyAnonJwt = [
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9',
+  Buffer.from(JSON.stringify({ iss: 'supabase', ref: 'zilwgiuiygqqardzutxi', role: 'anon' })).toString('base64url'),
+  'signature',
+].join('.');
+config = env.resolveSupabaseConfig({ VITE_SUPABASE_ANON_KEY: legacyAnonJwt }, FALLBACK_URL, FALLBACK_KEY);
+assert.equal(config.publishableKey, legacyAnonJwt, 'a legacy public Supabase anon JWT is accepted');
+const privilegedSupabaseJwt = [
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9',
+  Buffer.from(JSON.stringify({ iss: 'supabase', ref: 'zilwgiuiygqqardzutxi', role: 'service_role' })).toString('base64url'),
+  'signature',
+].join('.');
+assert.throws(
+  () => env.resolveSupabaseConfig({ VITE_SUPABASE_ANON_KEY: privilegedSupabaseJwt }, FALLBACK_URL, FALLBACK_KEY),
+  /privileged Supabase key/,
+  'a Supabase service_role JWT with iss=supabase is rejected',
+);
+
+/* 4b. Vercel CLI `vercel pull` "[SENSITIVE]" placeholders fall back safely. */
+config = env.resolveSupabaseConfig(
+  {
+    VITE_SUPABASE_URL: '[SENSITIVE]',
+    VITE_SUPABASE_PUBLISHABLE_KEY: '[SENSITIVE]',
+    VITE_SUPABASE_ANON_KEY: '[SENSITIVE]',
+  },
+  FALLBACK_URL,
+  FALLBACK_KEY,
+);
+assert.equal(config.url, FALLBACK_URL, 'Vercel [SENSITIVE] URL placeholder falls back to bundled public project URL');
+assert.equal(config.publishableKey, FALLBACK_KEY, 'Vercel [SENSITIVE] key placeholder falls back to bundled publishable key');
 
 /* 5. A different project is reported by host, never by key. */
 const warnings = [];

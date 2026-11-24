@@ -45,9 +45,11 @@ export const looksPrivileged = (key: string): boolean => {
   if (value.startsWith('sb_secret_')) return true;
   if (!value.startsWith('eyJ')) return false;
   try {
-    const payload = JSON.parse(atob(value.split('.')[1] ?? ''));
+    const segment = (value.split('.')[1] ?? '').replace(/-/g, '+').replace(/_/g, '/');
+    const padded = segment.padEnd(Math.ceil(segment.length / 4) * 4, '=');
+    const payload = JSON.parse(atob(padded));
     const role = payload?.role;
-    return role === 'service_role' || payload?.iss === 'supabase';
+    return role === 'service_role' || (payload?.iss === 'supabase' && role !== 'anon');
   } catch {
     return false;
   }
@@ -59,6 +61,15 @@ export class SupabaseConfigError extends Error {
     this.name = 'SupabaseConfigError';
   }
 }
+
+const cleanBrowserEnv = (value?: string): string => {
+  const trimmed = (value || '').trim().replace(/^['"]|['"]$/g, '').trim();
+  // `vercel pull` writes the literal placeholder "[SENSITIVE]" for Vercel
+  // Sensitive environment variables during prebuilt CI builds; treat it as
+  // unset so browser builds fall back to the bundled public project config
+  // instead of crashing prerendering or shipping "[SENSITIVE]" to browsers.
+  return trimmed === '[SENSITIVE]' ? '' : trimmed;
+};
 
 /**
  * Resolves and validates the browser configuration.
@@ -72,9 +83,9 @@ export function resolveSupabaseConfig(
   fallbackUrl: string,
   fallbackKey: string,
 ): ResolvedSupabaseConfig {
-  const rawUrl = (env.VITE_SUPABASE_URL || '').trim();
+  const rawUrl = cleanBrowserEnv(env.VITE_SUPABASE_URL);
   const rawKey =
-    (env.VITE_SUPABASE_PUBLISHABLE_KEY || '').trim() || (env.VITE_SUPABASE_ANON_KEY || '').trim();
+    cleanBrowserEnv(env.VITE_SUPABASE_PUBLISHABLE_KEY) || cleanBrowserEnv(env.VITE_SUPABASE_ANON_KEY);
 
   if (rawKey && looksPrivileged(rawKey)) {
     throw new SupabaseConfigError(
