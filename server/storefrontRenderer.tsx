@@ -39,13 +39,16 @@ export function renderPublishedSalonHtml(rawContent: unknown, slug: string): Pub
     },
   });
   const profile = { ...normalized.profile, subdomain: slug } as SalonProfile;
+  // Only storefront fields are serialized into the browser hydration payload.
+  // Owner/customer records and unrelated draft metadata are intentionally omitted.
   const publicSite = {
-    ...site,
     profile,
     services: normalized.services,
     stylists: normalized.stylists,
     loyaltyConfig: normalized.loyaltyConfig,
     gallery: normalized.extras.gallery,
+    policies: isRecord(site.policies) ? site.policies : {},
+    branding: isRecord(site.branding) ? site.branding : {},
   };
 
   // Keep this fragment in the same order as PublishedWebsite in App.tsx. The
