@@ -71,10 +71,26 @@ try {
     const page = await context.newPage();
     page.on('console', (msg) => { if (msg.type() === 'error') report.consoleErrors.push(msg.text()); });
     page.on('pageerror', (err) => report.pageErrors.push(err.message));
-    page.on('requestfailed', (req) => report.failedRequests.push({ endpoint: safeEndpoint(req.url()), error: req.failure()?.errorText || 'request failed' }));
+    page.on('requestfailed', (req) => {
+      const host = (() => { try { return new URL(req.url()).hostname.toLowerCase(); } catch { return ''; } })();
+      // Clarity analytics is intentionally blocked in this read-only browser
+      // test; its client-aborted telemetry is not an application network error.
+      if (host === 'clarity.ms' || host.endsWith('.clarity.ms') || host === 'c.bing.com') return;
+      report.failedRequests.push({ endpoint: safeEndpoint(req.url()), error: req.failure()?.errorText || 'request failed' });
+    }));
     await page.route('**/*', async (route) => {
       const req = route.request();
       const method = req.method().toUpperCase();
+      const requestUrl = new URL(req.url());
+      const isClarityTelemetry = method === 'POST'
+        && (requestUrl.hostname === 'clarity.ms' || requestUrl.hostname.endsWith('.clarity.ms'))
+        && requestUrl.pathname === '/collect';
+      if (isClarityTelemetry) {
+        // The test is read-only: block external analytics beacons silently,
+        // without treating them as backend data mutations.
+        await route.abort('blockedbyclient');
+        return;
+      }
       if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
         report.blockedWriteRequests.push({ method, endpoint: safeEndpoint(req.url()) });
         await route.abort('blockedbyclient');
@@ -154,8 +170,19 @@ try {
       assert.match(publishedSlug, /^[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/, 'SSR published test slug must be a valid public slug');
       const publishedUrl = new URL('/?site=' + encodeURIComponent(publishedSlug), previewUrl).toString();
       const publishedResponse = await page.goto(publishedUrl, { waitUntil: 'networkidle', timeout: 60000 });
-      assert.equal(publishedResponse?.status(), 200, `Published salon SSR should return 200, got ${publishedResponse?.status() ?? 'no response'}`);
-      const publishedHtml = await publishedResponse.text();
+      const publishedHtml = publishedResponse ? await publishedResponse.text() : '';
+      const publishedHeaders = publishedResponse ? {
+        handler: publishedResponse.headers()['x-nexora-ssr-handler'] || '',
+        stage: publishedResponse.headers()['x-nexora-ssr-stage'] || '',
+        slug: publishedResponse.headers()['x-nexora-ssr-slug'] || '',
+        requestId: publishedResponse.headers()['x-vercel-id'] || '',
+      } : {};
+      report.storefrontPublishedProbe = {
+        status: publishedResponse?.status() ?? 0,
+        ...publishedHeaders,
+        responseSample: publishedHtml.slice(0, 1200),
+      };
+      assert.equal(publishedResponse?.status(), 200, `Published salon SSR should return 200, got ${publishedResponse?.status() ?? 'no response'}; headers=${JSON.stringify(publishedHeaders)}; body=${publishedHtml.slice(0, 1200)}`);
       const payloadMatch = publishedHtml.match(/<script id="nexora-published-site-data" type="application\/json">([\s\S]*?)<\/script>/);
       assert.ok(payloadMatch, 'Published salon response must contain the server-rendered hydration payload');
       const publishedPayload = JSON.parse(payloadMatch[1]);
