@@ -83,10 +83,13 @@ assert.ok(fonts.includes('https://fonts.gstatic.com'));
 
 // Prerendered SEO data blocks are allowed; executable inline scripts are not.
 const prerender = readFileSync('scripts/prerender-public.tsx', 'utf8');
-for (const match of prerender.matchAll(/<script([^>]*)>/g)) {
-  // The entry-script matcher is source code, not an inline script.
-  if (match[1].includes('type="module"')) continue;
-  assert.ok(match[1].includes('type="application/ld+json"'), 'prerendered pages may only inline JSON-LD data blocks');
+for (const match of prerender.matchAll(/<script\\b([^>]*)>([\\s\\S]*?)<\\/script>/gi)) {
+  const attributes = match[1];
+  // External scripts are controlled by script-src in the enforcing CSP.
+  // Only inline executable content needs to be rejected here.
+  if (/\\bsrc\\s*=/i.test(attributes)) continue;
+  const isJsonLd = /\\btype\\s*=\\s*["']application\\/ld\\+json["']/i.test(attributes);
+  assert.ok(isJsonLd, 'prerendered pages may only inline JSON-LD data blocks');
 }
 
 // Deployment must keep auth, sitemap, static assets and legacy Node APIs intact.
