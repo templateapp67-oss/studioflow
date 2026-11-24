@@ -22,6 +22,7 @@ const fixture = {
   policies: {},
   branding: {},
   loyaltyConfig: {},
+  clients: [{ full_name: 'Private Customer Fixture', email: 'private-fixture@example.invalid' }],
 };
 
 const result = renderPublishedSalonHtml(fixture, 'nexora-ssr-test');
@@ -30,5 +31,7 @@ assert.match(result.html, /data-salon-whatsapp-site/, 'server HTML contains the 
 assert.match(result.html, /Signature Haircut/, 'server HTML contains the saved salon service');
 assert.equal(result.profile.subdomain, 'nexora-ssr-test');
 assert.equal(result.normalizedContent.profile.businessName, 'NEXORA SSR Test Salon');
+assert.equal(result.site.clients, undefined, 'private customer records are omitted from the browser payload');
+assert.doesNotMatch(JSON.stringify(result.site), /Private Customer Fixture|private-fixture@example\\.invalid/);
 
 console.log('PASS: published salon HTML is rendered server-side with its own profile and services.');
