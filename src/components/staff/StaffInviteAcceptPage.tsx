@@ -16,6 +16,7 @@ import {
   type SessionConflict,
 } from '../../lib/staffInvites';
 import { ROLE_SHORT_LABELS, normalizeAccessRole, PERMISSION_LABELS, type StaffPermission } from '../../lib/staffPermissions';
+import { applyNoIndexMetadata } from '../../lib/publicSeo';
 
 type Mode = 'signup' | 'signin';
 
@@ -75,6 +76,10 @@ export function StaffInviteAcceptPage({ token }: { token: string }) {
   const acceptLock = useRef(false);
 
   const valid = isValidInviteToken(token);
+
+  useEffect(() => {
+    applyNoIndexMetadata('Accept staff invitation — NEXORA SalonOS');
+  }, []);
 
   useEffect(() => {
     let active = true;

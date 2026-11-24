@@ -32,7 +32,9 @@ const origin = new URL(process.env.PREVIEW_URL ?? 'http://127.0.0.1:4174').origi
 const vercelBypassSecret = (process.env.VERCEL_AUTOMATION_BYPASS_SECRET ?? '').trim();
 const launchOptions = { headless: true };
 if (chromium) {
-  launchOptions.args = chromium.args;
+  launchOptions.args = chromium.args.filter(
+    (arg) => arg !== '--single-process' && arg !== '--disable-web-security',
+  );
   launchOptions.executablePath = process.env.CHROMIUM_EXECUTABLE ?? await chromium.executablePath();
 } else if (process.env.CHROMIUM_EXECUTABLE) {
   launchOptions.executablePath = process.env.CHROMIUM_EXECUTABLE;
@@ -604,9 +606,190 @@ try {
   }
   await noScriptPage.close();
 
+  activeRoute = 'SPA SEO meta & JSON-LD navigation audit';
+  const seoPage = await browser.newPage({
+    viewport: { width: 1280, height: 900 },
+    reducedMotion: 'reduce',
+  });
+  seoPage.on('pageerror', (error) => pageErrors.push(`${activeRoute}: ${error.message}`));
+  const auditSalonPayload = {
+    content: {
+      profile: {
+        businessName: 'SEO Audit Glow Studio',
+        businessType: 'unisex_salon',
+        city: 'Jaipur',
+        subdomain: 'seo-spa-audit-salon',
+        tagline: 'Modern hair and skin studio in Jaipur',
+        phone: '+91 98765 43210',
+        address: 'MI Road, Jaipur',
+        seo: {},
+      },
+      services: [],
+      stylists: [],
+      gallery: [],
+      policies: [],
+    },
+  };
+  await seoPage.route('**/*', async (route) => {
+    const req = route.request();
+    try {
+      const reqUrl = new URL(req.url());
+      if (
+        reqUrl.pathname.endsWith('/rest/v1/public_salon_websites')
+        && reqUrl.search.includes('seo-spa-audit-salon')
+      ) {
+        const corsHeaders = {
+          'access-control-allow-origin': origin,
+          'access-control-allow-methods': 'GET, OPTIONS',
+          'access-control-allow-headers': req.headers()['access-control-request-headers'] || '*',
+        };
+        if (req.method().toUpperCase() === 'OPTIONS') {
+          return route.fulfill({ status: 204, headers: corsHeaders, body: '' });
+        }
+        if (req.method().toUpperCase() === 'GET') {
+          return route.fulfill({
+            status: 200,
+            headers: corsHeaders,
+            contentType: 'application/vnd.pgrst.object+json; charset=utf-8',
+            body: JSON.stringify(auditSalonPayload),
+          });
+        }
+      }
+    } catch {
+      // Fall through to standard preview routing.
+    }
+    return routeToPreview(route);
+  });
+
+  const readSeoHead = () => seoPage.evaluate(() => ({
+    robots: [...document.querySelectorAll('meta[name]')]
+      .filter((node) => node.getAttribute('name')?.toLowerCase() === 'robots')
+      .map((node) => node.getAttribute('content')),
+    canonicals: [...document.querySelectorAll('link[rel]')]
+      .filter((node) => node.getAttribute('rel')?.toLowerCase() === 'canonical')
+      .map((node) => node.getAttribute('href')),
+    storefrontJsonLd: document.getElementById('studioflow-seo-jsonld')?.textContent ?? null,
+    headJsonLdIds: [...document.head.querySelectorAll('script[type="application/ld+json"]')]
+      .map((node) => node.id || ''),
+  }));
+
+  const waitForSeoHead = async (label, expected) => {
+    await seoPage.waitForFunction((exp) => {
+      const robots = [...document.querySelectorAll('meta[name]')]
+        .filter((node) => node.getAttribute('name')?.toLowerCase() === 'robots')
+        .map((node) => node.getAttribute('content'));
+      const canonicals = [...document.querySelectorAll('link[rel]')]
+        .filter((node) => node.getAttribute('rel')?.toLowerCase() === 'canonical')
+        .map((node) => node.getAttribute('href'));
+      const storefrontJsonLd = document.getElementById('studioflow-seo-jsonld')?.textContent ?? null;
+      const headJsonLdIds = [...document.head.querySelectorAll('script[type="application/ld+json"]')]
+        .map((node) => node.id || '');
+      const eq = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
+      if (!eq(robots, exp.robots)) return false;
+      if (!eq(canonicals, exp.canonicals)) return false;
+      if (!eq(headJsonLdIds, exp.headJsonLdIds)) return false;
+      if (exp.storefrontIncludes) {
+        if (!storefrontJsonLd || !storefrontJsonLd.includes(exp.storefrontIncludes)) return false;
+      } else if (storefrontJsonLd !== null) {
+        return false;
+      }
+      return true;
+    }, expected, { timeout: 15000 }).catch(async () => {
+      const actual = await readSeoHead();
+      assert.deepEqual(actual, expected, `${label}: DOM SEO head mismatch`);
+    });
+  };
+
+  const spaNavigate = async (nextPath) => {
+    activeRoute = `SPA -> ${nextPath}`;
+    await seoPage.evaluate((target) => {
+      history.pushState({}, '', target);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }, nextPath);
+  };
+
+  const seoHomeResponse = await seoPage.goto(new URL('/', origin).toString(), { waitUntil: 'domcontentloaded' });
+  assert.equal(seoHomeResponse?.status(), 200);
+  await waitForSeoHead('initial /', {
+    robots: ['index,follow'],
+    canonicals: ['https://nexorasalon.online/'],
+    headJsonLdIds: ['nexora-home-jsonld'],
+  });
+
+  await spaNavigate('/pricing');
+  await waitForSeoHead('SPA /pricing', {
+    robots: ['index,follow'],
+    canonicals: ['https://nexorasalon.online/pricing'],
+    headJsonLdIds: ['nexora-pricing-faq-jsonld'],
+  });
+
+  await spaNavigate('/partner-rewards');
+  await waitForSeoHead('SPA /partner-rewards', {
+    robots: ['index,follow'],
+    canonicals: ['https://nexorasalon.online/partner-rewards'],
+    headJsonLdIds: ['nexora-ecosystem-jsonld'],
+  });
+
+  await spaNavigate('/login');
+  await waitForSeoHead('SPA /login', {
+    robots: ['noindex,follow'],
+    canonicals: ['https://nexorasalon.online/login'],
+    headJsonLdIds: [],
+  });
+
+  for (const privateRoute of ['/admin/demo-leads', '/owner', '/staff/login', '/?app=1']) {
+    await spaNavigate(privateRoute);
+    await waitForSeoHead(`SPA ${privateRoute}`, {
+      robots: ['noindex, nofollow'],
+      canonicals: [],
+      headJsonLdIds: [],
+    });
+  }
+
+  await spaNavigate('/?site=seo-spa-audit-salon');
+  await waitForSeoHead('SPA ?site=seo-spa-audit-salon', {
+    robots: ['index,follow'],
+    canonicals: [`${origin}/?site=seo-spa-audit-salon`],
+    headJsonLdIds: ['studioflow-seo-jsonld'],
+    storefrontIncludes: 'SEO Audit Glow Studio',
+  });
+
+  for (const key of ['app', 'customer', 'owner', 'panel', 'create', 'module', 'invite', 'recovery']) {
+    await spaNavigate(`/?site=seo-spa-audit-salon&${key}=1`);
+    await waitForSeoHead(`SPA ?site=seo-spa-audit-salon&${key}=1`, {
+      robots: ['noindex, nofollow'],
+      canonicals: [],
+      headJsonLdIds: [],
+    });
+  }
+
+  await spaNavigate('/?site=seo-spa-audit-salon');
+  await waitForSeoHead('SPA return to ?site=seo-spa-audit-salon', {
+    robots: ['index,follow'],
+    canonicals: [`${origin}/?site=seo-spa-audit-salon`],
+    headJsonLdIds: ['studioflow-seo-jsonld'],
+    storefrontIncludes: 'SEO Audit Glow Studio',
+  });
+
+  await spaNavigate('/');
+  await waitForSeoHead('SPA return to /', {
+    robots: ['index,follow'],
+    canonicals: ['https://nexorasalon.online/'],
+    headJsonLdIds: ['nexora-home-jsonld'],
+  });
+
+  await spaNavigate('/partner-rewards');
+  await waitForSeoHead('SPA return to /partner-rewards', {
+    robots: ['index,follow'],
+    canonicals: ['https://nexorasalon.online/partner-rewards'],
+    headJsonLdIds: ['nexora-ecosystem-jsonld'],
+  });
+
+  await seoPage.close();
+
   assert.deepEqual(hydrationErrors, [], 'public routes hydrate without React hydration mismatch warnings or errors');
   assert.deepEqual(pageErrors, [], 'public route interaction produces no uncaught browser errors');
-  console.log(`PASS: headless preview — ${marketingRoutes.length} public marketing routes, responsive header/breadcrumb bounds and contrast, keyboard skip links, hover-card delay/bridge/Escape/scroll/focus behavior, touch suppression, phone/tablet/desktop viewport fit and dark appearance, direct-hash current-state hydration, signed-in hydration and update polling, owner/storefront isolation, mobile-menu accessibility/behavior, WhatsApp safety/tracking, native disclosure and script-free fallback.`);
+  console.log(`PASS: headless preview — ${marketingRoutes.length} public marketing routes, responsive header/breadcrumb bounds and contrast, keyboard skip links, hover-card delay/bridge/Escape/scroll/focus behavior, touch suppression, phone/tablet/desktop viewport fit and dark appearance, direct-hash current-state hydration, signed-in hydration and update polling, owner/storefront isolation, mobile-menu accessibility/behavior, WhatsApp safety/tracking, native disclosure, script-free fallback and real-browser SPA SEO meta/canonical/JSON-LD hygiene.`);
 } finally {
   await browser.close();
 }

@@ -262,6 +262,40 @@ jobs:
           E2E_ARTIFACTS_DIR: test-results/preview-browser-e2e
         run: node scripts/verify-preview-browser-e2e.mjs
 
+      - name: Verify Preview HTTP SEO headers, robots.txt, llms.txt, /partner-rewards and /sitemap.xml
+        env:
+          LIVE_SEO_URL: ${{ steps.resolve-preview.outputs.url }}
+          SEO_REPORT_PATH: test-results/preview-live-seo-report.json
+          SEO_WAIT_RETRY_ATTEMPTS: "3"
+        run: node scripts/verify-live-seo-http.mjs
+
+      - name: Publish Preview Live SEO Check Run summary
+        uses: actions/github-script@v7
+        if: always()
+        continue-on-error: true
+        with:
+          script: |
+            const fs = require('node:fs');
+            const reportPath = 'test-results/preview-live-seo-report.json';
+            if (!fs.existsSync(reportPath)) return;
+            const reportRaw = fs.readFileSync(reportPath, 'utf8').slice(0, 60000);
+            let status = 'UNKNOWN';
+            try { status = JSON.parse(reportRaw).overallStatus || 'UNKNOWN'; } catch {}
+            const headSha = context.payload.pull_request?.head?.sha || context.sha;
+            await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'Preview Live SEO Verification',
+              head_sha: headSha,
+              status: 'completed',
+              conclusion: status === 'PASS' ? 'success' : 'failure',
+              output: {
+                title: `Preview Live SEO Verification: ${status}`,
+                summary: `Preview SEO HTTP check status: **${status}**`,
+                text: '```json\n' + reportRaw + '\n```',
+              },
+            });
+
       - name: Run NEXORA responsive marketing and owner-route browser audit
         env:
           PREVIEW_URL: ${{ steps.resolve-preview.outputs.url }}

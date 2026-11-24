@@ -62,7 +62,7 @@ import { authModeForPath, isAuthEntryPath, isPlainOwnerAuthLocation } from './li
 import { CustomerApp } from './components/CustomerApp';
 import { supabase, captureReferral } from './lib/supabase';
 import { applySeoMetadata } from './lib/useSeoMetadata';
-import { applyPublicSeoMetadata, NEXORA_HOME_SEO, NEXORA_LOGIN_SEO } from './lib/publicSeo';
+import { applyNoIndexMetadata, applyPublicSeoMetadata, hasNoIndexPathPrefix, hasNoIndexQueryParams, NEXORA_HOME_SEO, NEXORA_LOGIN_SEO } from './lib/publicSeo';
 import { loadApplicationFonts } from './lib/loadApplicationFonts';
 
 type Template12WorkspaceDraft = { profile: SalonProfile; services: SalonService[]; stylists: Stylist[]; galleryUrls: string[] };
@@ -144,6 +144,12 @@ function clearReferralAuthQueryParams(){
  window.history.replaceState(window.history.state,'',url.pathname+url.search+url.hash);
 }
 function Application() {
+ const [,setLocationTick]=useState(0);
+ useEffect(()=>{
+  const onPopState=()=>setLocationTick(tick=>tick+1);
+  window.addEventListener('popstate',onPopState);
+  return()=>window.removeEventListener('popstate',onPopState);
+ },[]);
  const [account,setAccount]=useState<any>(null); const [templates,setTemplates]=useState<CategoryTemplateConfig[]>([]);
  const [error,setError]=useState(''); const [retry,setRetry]=useState(0);
  const [skipReferral,setSkipReferral]=useState(false);
@@ -281,10 +287,28 @@ function Application() {
  },[session?.user?.id,authReady,oauthIntentPending,ownerSignInRedirectTarget,oauthCallbackReturn,googleOAuthRetry]);
  useCustomerWelcomeDelivery(session);
  useEffect(()=>{captureReferral();clearReferralAuthQueryParams();},[]);
+ const hasNoIndexQuery=hasNoIndexQueryParams(location.search);
+ const hasNoIndexPath=hasNoIndexPathPrefix(location.pathname);
  useEffect(()=>{
-  if(slug||customer||customerApp||inviteEntry)return;
-  applyPublicSeoMetadata(authEntry?NEXORA_LOGIN_SEO:NEXORA_HOME_SEO);
- },[slug,customer,customerApp,inviteEntry,authEntry]);
+  if(customerApp||customer||inviteEntry||recovery||hasNoIndexQuery||hasNoIndexPath){
+   applyNoIndexMetadata();
+   return;
+  }
+  if(slug)return;
+  if(session&&!publicHomeRoute){
+   applyNoIndexMetadata('Owner Workspace — NEXORA Salon OS');
+   return;
+  }
+  if(isLoginRoute){
+   applyPublicSeoMetadata(NEXORA_LOGIN_SEO);
+   return;
+  }
+  if(authEntry){
+   applyNoIndexMetadata();
+   return;
+  }
+  applyPublicSeoMetadata(NEXORA_HOME_SEO);
+ },[slug,customer,customerApp,inviteEntry,recovery,hasNoIndexQuery,hasNoIndexPath,session,publicHomeRoute,isLoginRoute,authEntry]);
  useEffect(()=>{if(!session){setAccount(null);setError('');return;}if(slug||customer||customerApp||recovery||publicHomeRoute||oauthIntentPending||pricingRedirectTarget||ownerSignInRedirectTarget||googleOAuthStatus!=='idle')return;let active=true;setAccount(null);setError('');
  (async()=>{
   if(ownerSlug){const target=await withTimeout(supabase.from('studioflow_websites').select('slug').eq('slug',ownerSlug).eq('owner_id',session.user.id).maybeSingle(),15000,'Checking this salon website');if(target.error)throw target.error;if(!target.data)throw new Error('Sign in with the owner account for this salon to manage its website.');}
@@ -777,6 +801,7 @@ function PublishedWebsite({slug,session}:{key?:React.Key;slug:string;session:Ses
    loaded=true;setError('');setSite((prev:any)=>JSON.stringify(prev)===JSON.stringify(parsedContent)?prev:parsedContent);};
   void refresh();const channel=supabase.channel(`public-site-${slug}`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'studioflow_websites',filter:`slug=eq.${slug}`},()=>void refresh()).subscribe();const interval=setInterval(()=>void refresh(),15000);window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',refresh);return()=>{active=false;void supabase.removeChannel(channel);clearInterval(interval);window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',refresh);};
  },[slug,retry]);
+  const locationKey = typeof window !== 'undefined' ? `${window.location.pathname}|${window.location.search}` : '';
   useEffect(()=>{
     if(!site?.profile)return;
     const cleanupSeo = applySeoMetadata(site.profile);
@@ -785,7 +810,7 @@ function PublishedWebsite({slug,session}:{key?:React.Key;slug:string;session:Ses
       cleanupSeo();
       restoreIcon();
     };
-  },[site?.profile]);
+  },[site?.profile, locationKey]);
  if(devFallbackTemplate)return <TemplateEntry templateId={devFallbackTemplate}/>;
  if(error)return <main className="p-10"><h1 className="text-2xl font-bold">Website unavailable</h1><p>{error.includes('not published') ? 'The salon owner has not published this website yet.' : error}</p><p className="text-sm text-slate-500 mt-2">Retrying automatically in {countdown} seconds...</p><div className="mt-4 flex flex-col gap-3"><div className="flex gap-3"><button className="primary-action" onClick={()=>{setError('');setSite(null);setRetry(r=>r+1);}}>Try again</button><a className="secondary-action" href="/">Open NEXORA</a></div><details className="mt-4 p-4 border rounded-xl"><summary className="font-semibold cursor-pointer">Need help publishing?</summary><p className="mt-2 text-sm text-slate-600">If you are the salon owner, please sign in to your Salon Workspace, complete the setup, and click the 'Publish' button in the dashboard to make your website live.</p></details></div></main>;
  if(!site)return <Loading text="Loading salon website…" />;

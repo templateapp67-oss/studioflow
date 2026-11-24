@@ -18,6 +18,7 @@ import {
   PERMISSION_LABELS,
   type StaffPermission,
 } from '../../lib/staffPermissions';
+import { applyNoIndexMetadata } from '../../lib/publicSeo';
 
 type Booking = {
   id: string;
@@ -72,6 +73,10 @@ function statusTone(status: string) {
  */
 export function StaffWorkspacePage() {
   const { session, ready } = useAuthSession();
+
+  useEffect(() => {
+    applyNoIndexMetadata('Staff workspace — NEXORA SalonOS');
+  }, []);
   const [context, setContext] = useState<StaffContext | null>(null);
   const [workspace, setWorkspace] = useState<any>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);

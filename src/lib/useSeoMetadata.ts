@@ -1,5 +1,13 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { SalonProfile } from '../types';
+import {
+  applyNoIndexMetadata,
+  clearRouteJsonLd,
+  hasNoIndexPathPrefix,
+  hasNoIndexQueryParams,
+  setCanonicalLink,
+  setRobotsMeta,
+} from './publicSeo';
 
 export function generateSeoDefaults(profile: Partial<SalonProfile>) {
   const rawName = String(profile.businessName || '').trim();
@@ -67,10 +75,34 @@ export function applySeoMetadata(profile: SalonProfile, canonicalUrlOverride?: s
     typeof window !== 'undefined' && window.location && typeof window.location === 'object' ? window.location : null;
   const hostOrigin = browserLocation?.origin || 'https://studioflow.app';
   const pagePath = browserLocation?.pathname || '';
-  const canonicalUrl = canonicalUrlOverride || seo.canonicalUrl || `${hostOrigin}${pagePath}`;
+  const search = browserLocation?.search || '';
 
   const prevTitle = document.title;
   document.title = metaTitle;
+
+  // When an app/session query key (?app=, ?owner=, ?panel=, ?create=, ...)
+  // accompanies ?site=<slug>, or on a private path prefix, noindex always takes
+  // precedence over storefront SEO.
+  if (hasNoIndexPathPrefix(pagePath) || hasNoIndexQueryParams(search)) {
+    applyNoIndexMetadata(metaTitle);
+    return () => {
+      document.title = prevTitle;
+    };
+  }
+
+  let defaultCanonicalUrl = `${hostOrigin}${pagePath}`;
+  if ((!pagePath || pagePath === '/') && search) {
+    try {
+      const params = new URLSearchParams(search);
+      const siteSlug = (params.get('site') || params.get('s') || params.get('subdomain') || '').trim().toLowerCase();
+      if (siteSlug) {
+        defaultCanonicalUrl = `${hostOrigin}/?site=${encodeURIComponent(siteSlug)}`;
+      }
+    } catch {
+      // ignore malformed query string
+    }
+  }
+  const canonicalUrl = canonicalUrlOverride || seo.canonicalUrl || defaultCanonicalUrl;
 
   const setMeta = (nameAttr: 'name' | 'property', nameValue: string, contentValue: string) => {
     let el = document.querySelector(`meta[${nameAttr}="${nameValue}"]`);
@@ -82,22 +114,13 @@ export function applySeoMetadata(profile: SalonProfile, canonicalUrlOverride?: s
     el.setAttribute('content', contentValue);
   };
 
-  const setLink = (rel: string, href: string) => {
-    let el = document.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement | null;
-    if (!el) {
-      el = document.createElement('link');
-      el.setAttribute('rel', rel);
-      document.head.appendChild(el);
-    }
-    el.setAttribute('href', href);
-  };
-
-  // Standard Meta Tags
+  // Standard Meta Tags — always restore single index,follow & canonical after SPA navigation.
+  setRobotsMeta('index,follow');
   setMeta('name', 'description', metaDescription);
   if (keywords) {
     setMeta('name', 'keywords', keywords);
   }
-  setLink('canonical', canonicalUrl);
+  setCanonicalLink(canonicalUrl);
 
   // OpenGraph Social Share Meta
   setMeta('property', 'og:type', 'website');
@@ -118,6 +141,7 @@ export function applySeoMetadata(profile: SalonProfile, canonicalUrlOverride?: s
   }
 
   // Schema.org Structured Data (JSON-LD)
+  clearRouteJsonLd('studioflow-seo-jsonld');
   let scriptEl = document.getElementById('studioflow-seo-jsonld') as HTMLScriptElement | null;
   if (!scriptEl) {
     scriptEl = document.createElement('script');
@@ -151,9 +175,25 @@ export function applySeoMetadata(profile: SalonProfile, canonicalUrlOverride?: s
   };
 }
 
-export function useSeoMetadata(profile: SalonProfile, canonicalUrlOverride?: string) {
+export function useSeoMetadata(profile: SalonProfile, canonicalUrlOverride?: string, enabled = true) {
+  const [locationKey, setLocationKey] = useState(() =>
+    typeof window !== 'undefined' && window.location
+      ? `${window.location.pathname || ''}|${window.location.search || ''}`
+      : '',
+  );
+
   useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return;
+    const syncLocation = () => {
+      setLocationKey(`${window.location.pathname || ''}|${window.location.search || ''}`);
+    };
+    window.addEventListener('popstate', syncLocation);
+    return () => window.removeEventListener('popstate', syncLocation);
+  }, []);
+
+  useEffect(() => {
+    if (!enabled) return;
     const cleanup = applySeoMetadata(profile, canonicalUrlOverride);
     return cleanup;
-  }, [profile, canonicalUrlOverride]);
+  }, [profile, canonicalUrlOverride, enabled, locationKey]);
 }

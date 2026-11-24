@@ -1,6 +1,51 @@
 import { NEXORA_PUBLIC_ORIGIN } from "../src/lib/publicSeo";
 import { NEXORA_ECOSYSTEM_ROUTES } from "../src/lib/nexoraEcosystemSeo";
 import { NEXORA_TEMPLATE_META, nexoraTemplatePagePath } from "../src/lib/nexoraTemplateCatalogue";
+import { CANONICAL_ALIAS_HOSTS } from "./canonicalHost";
+import { robotsTagForRequest } from "./robotsHeaders";
+
+const CANONICAL_ALIAS_HOST_SET = new Set(
+  CANONICAL_ALIAS_HOSTS.map((host) => host.toLowerCase()),
+);
+
+const RESERVED_SITEMAP_SLUGS = new Set([
+  "api",
+  "admin",
+  "owner",
+  "staff",
+  "login",
+  "sign-in",
+  "sign-up",
+  "app",
+  "customer",
+  "pricing",
+  "privacy",
+  "salon-os",
+  "partner-rewards",
+  "salon-onboarding",
+  "salon-growth",
+  "growth-partner-rewards",
+]);
+
+function normaliseCanonicalAliasOrigin(origin: string): string {
+  const cleaned = origin.replace(/\/+$/, "");
+  try {
+    const host = new URL(cleaned).hostname.toLowerCase();
+    if (CANONICAL_ALIAS_HOST_SET.has(host)) {
+      return canonicalOrigin(NEXORA_PUBLIC_ORIGIN);
+    }
+  } catch {
+    // Non-URL inputs fall through to the caller's validation.
+  }
+  return cleaned;
+}
+
+export function isPublicSitemapSlug(slug: string): boolean {
+  if (!/^[a-z0-9][a-z0-9-]{2,62}$/.test(slug)) return false;
+  if (slug.startsWith("studioflow-qa-")) return false;
+  if (RESERVED_SITEMAP_SLUGS.has(slug)) return false;
+  return true;
+}
 
 export function canonicalOrigin(value: string | undefined): string {
   if (!value) throw new Error("SITE_URL must be configured");
@@ -28,9 +73,10 @@ const xml = (value: string) =>
         "'": "&apos;",
       })[c]!,
   );
-export function sitemapXml(origin: string, slugs: string[]) {
-  // Public marketing and template pages are crawlable; app/auth routes are not.
-  const urls = [
+export function sitemapXml(rawOrigin: string, slugs: string[]) {
+  const origin = normaliseCanonicalAliasOrigin(rawOrigin);
+  // Public marketing and template pages are crawlable; app/auth/private routes are not.
+  const candidates = [
     origin + "/",
     origin + "/salon-os",
     origin + "/pricing",
@@ -39,10 +85,21 @@ export function sitemapXml(origin: string, slugs: string[]) {
     ...NEXORA_TEMPLATE_META.map((meta) => origin + nexoraTemplatePagePath(meta.templateId)),
     ...new Set(
       slugs
-        .filter((s) => /^[a-z0-9][a-z0-9-]{2,62}$/.test(s))
+        .filter(isPublicSitemapSlug)
         .map((s) => origin + "/?site=" + encodeURIComponent(s)),
     ),
   ];
+  const urls = candidates.filter((candidate) => {
+    try {
+      const parsed = new URL(candidate);
+      return (
+        parsed.protocol === "https:" &&
+        robotsTagForRequest(parsed.pathname, parsed.search) === null
+      );
+    } catch {
+      return false;
+    }
+  });
   if (urls.length > 50000)
     throw new Error("Sitemap index required for this catalogue size");
   return (
@@ -61,6 +118,7 @@ const EPHEMERAL_HOST_SUFFIXES = [
   "netlify.app",
   "pages.dev",
   "github.io",
+  "e2b.app",
   "localhost",
   "127.0.0.1",
   "nip.io",
@@ -81,15 +139,15 @@ export function isEphemeralOrigin(origin: string): boolean {
  * A real custom domain configured through SITE_URL / VITE_SITE_URL is honoured —
  * published salon sites are served on their own domains, so the sitemap has to
  * be able to describe them. Preview and local hosts are rejected and fall back
- * to the production canonical, so a Vercel preview build can never publish
- * `*.vercel.app` URLs. A malformed value still throws, exactly as before, and
- * surfaces as the handler's 503 instead of a silently wrong sitemap.
+ * to the production canonical, and canonical redirect aliases such as
+ * `www.nexorasalon.online` normalize to the non-www apex origin, so a Vercel
+ * preview or misconfigured `www` override can never pollute `/sitemap.xml`.
  */
 export function sitemapOrigin(env: NodeJS.ProcessEnv = process.env): string {
   for (const candidate of [env.SITE_URL, env.VITE_SITE_URL]) {
     if (!candidate) continue;
     const origin = canonicalOrigin(candidate);
-    if (!isEphemeralOrigin(origin)) return origin;
+    if (!isEphemeralOrigin(origin)) return normaliseCanonicalAliasOrigin(origin);
   }
   return canonicalOrigin(NEXORA_PUBLIC_ORIGIN);
 }
