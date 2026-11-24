@@ -160,7 +160,7 @@ export function applySeoMetadata(profile: SalonProfile, canonicalUrlOverride?: s
       addressCountry: existingAddress.addressCountry || 'IN',
     },
     priceRange: existingSchema.priceRange || '₹₹',
-  };;
+  };
 
   scriptEl.textContent = JSON.stringify(jsonLdData, null, 2);
 
