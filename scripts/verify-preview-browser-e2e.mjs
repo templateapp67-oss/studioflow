@@ -77,7 +77,7 @@ try {
       // test; its client-aborted telemetry is not an application network error.
       if (host === 'clarity.ms' || host.endsWith('.clarity.ms') || host === 'c.bing.com') return;
       report.failedRequests.push({ endpoint: safeEndpoint(req.url()), error: req.failure()?.errorText || 'request failed' });
-    }));
+    });
     await page.route('**/*', async (route) => {
       const req = route.request();
       const method = req.method().toUpperCase();
