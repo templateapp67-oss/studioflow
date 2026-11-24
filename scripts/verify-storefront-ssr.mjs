@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { renderPublishedSalonHtml } = require('../dist/storefront-renderer.cjs');
+const { renderPublishedSalonHtml, getStorefrontAssetTags, getStorefrontShellHtml } = require('../dist/storefront-renderer.cjs');
 
 const fixture = {
   profile: {
@@ -26,6 +26,11 @@ const fixture = {
 };
 
 const result = renderPublishedSalonHtml(fixture, 'nexora-ssr-test');
+const shellHtml = getStorefrontShellHtml();
+const assetTags = getStorefrontAssetTags();
+assert.match(shellHtml, /<div id="root">/, 'embedded Vite shell is available to the Vercel function');
+assert.match(assetTags, /<script type="module"/, 'embedded assets contain the Vite module entry');
+assert.match(assetTags, /rel="stylesheet"/, 'embedded assets contain the built stylesheet');
 assert.match(result.html, /NEXORA SSR Test Salon/, 'server HTML contains the salon name');
 assert.match(result.html, /data-salon-whatsapp-site/, 'server HTML contains the real customer salon template');
 assert.match(result.html, /Signature Haircut/, 'server HTML contains the saved salon service');
