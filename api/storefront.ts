@@ -233,6 +233,7 @@ export default async function storefrontHandler(req: RequestLike, res: ResponseL
     return res.send('Method not allowed');
   }
 
+  res.setHeader('X-NEXORA-SSR-Handler', 'entered');
   const { origin, hostname } = getRequestOrigin(req);
   const requestUrl = new URL(req.url || '/', origin);
   const originalPath = requestUrl.searchParams.get('path') || requestUrl.pathname || '/';
@@ -244,7 +245,20 @@ export default async function storefrontHandler(req: RequestLike, res: ResponseL
   }
 
   const slug = resolveStorefrontSlug(pageUrl, hostname);
-  if (!slug) return sendPlatformShell(res, method);
+  res.setHeader('X-NEXORA-SSR-Slug', slug || 'none');
+  if (!slug) {
+    res.setHeader('X-NEXORA-SSR-Stage', 'platform-shell');
+    try {
+      return sendPlatformShell(res, method);
+    } catch (error) {
+      console.error('[storefront-ssr] platform shell render failed', error);
+      res.status(503);
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-store');
+      return method === 'HEAD' ? res.end() : res.send('<!doctype html><html><head><meta name="robots" content="noindex"><title>NEXORA temporarily unavailable</title></head><body><h1>NEXORA is temporarily unavailable.</h1></body></html>');
+    }
+  }
+  res.setHeader('X-NEXORA-SSR-Stage', 'public-database-lookup');
 
   const { data, error } = await supabase
     .from('public_salon_websites')
@@ -253,6 +267,8 @@ export default async function storefrontHandler(req: RequestLike, res: ResponseL
     .maybeSingle();
 
   if (error) {
+    res.setHeader('X-NEXORA-SSR-Stage', 'public-database-error');
+    console.error('[storefront-ssr] public salon lookup failed', error);
     res.status(503);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
@@ -260,6 +276,7 @@ export default async function storefrontHandler(req: RequestLike, res: ResponseL
     return res.send('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Salon temporarily unavailable</title></head><body><main><h1>Salon temporarily unavailable</h1><p>Please refresh this page in a moment.</p></main></body></html>');
   }
   if (!data || !data.content) {
+    res.setHeader('X-NEXORA-SSR-Stage', 'unpublished');
     res.status(404);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
@@ -267,7 +284,18 @@ export default async function storefrontHandler(req: RequestLike, res: ResponseL
     return res.send('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Salon website not found</title></head><body><main><h1>This salon website is not published.</h1><p>Check the website address or contact the salon.</p><a href="https://nexorasalon.online/">Open NEXORA</a></main></body></html>');
   }
 
-  const rendered = getRenderer().renderPublishedSalonHtml(data.content, slug);
+  res.setHeader('X-NEXORA-SSR-Stage', 'published-render');
+  let rendered: ReturnType<Renderer['renderPublishedSalonHtml']>;
+  try {
+    rendered = getRenderer().renderPublishedSalonHtml(data.content, slug);
+  } catch (error) {
+    console.error('[storefront-ssr] published salon renderer failed', error);
+    res.status(503);
+    res.setHeader('X-NEXORA-SSR-Stage', 'renderer-error');
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store');
+    return method === 'HEAD' ? res.end() : res.send('<!doctype html><html><head><meta name="robots" content="noindex"><title>Salon temporarily unavailable</title></head><body><h1>Salon temporarily unavailable</h1><p>Please refresh this page in a moment.</p></body></html>');
+  }
   const viaQuery = pageUrl.searchParams.has('site') || pageUrl.searchParams.has('s') || pageUrl.searchParams.has('subdomain');
   const canonical = canonicalForRequest(rendered.profile, origin, pageUrl.pathname, slug, viaQuery);
   const assetTags = getRenderer().getStorefrontAssetTags();
