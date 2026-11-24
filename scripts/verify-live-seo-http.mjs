@@ -153,7 +153,17 @@ async function runVerification() {
       assert.equal(tag, null, `${routePath} must not send X-Robots-Tag on canonical host (got ${JSON.stringify(tag)})`);
     };
 
-    for (const publicPath of ['/', '/salon-os', '/pricing', '/privacy', '/partner-rewards', '/?site=artbyuma']) {
+    for (const publicPath of [
+      '/',
+      '/salon-os',
+      '/pricing',
+      '/privacy',
+      '/salon-onboarding',
+      '/salon-growth',
+      '/growth-partner-rewards',
+      '/partner-rewards',
+      '/?site=artbyuma',
+    ]) {
       const res = await get(publicPath);
       report.publicHeaders.push({ path: publicPath, status: res.status, xRobotsTag: res.robots });
       assert.equal(res.status, 200, `${publicPath} returns HTTP 200`);
@@ -166,6 +176,7 @@ async function runVerification() {
       const hasPartnerRewardsTitle = res.body.includes('Partner Rewards &amp; Recognition');
       const hasCanonical = res.body.includes('<link rel="canonical" href="https://nexorasalon.online/partner-rewards"');
       const hasHomepageShell = res.body.includes('public-home-title');
+      const hasVercelAppRef = /\.vercel\.app/i.test(res.body);
       report.partnerRewards.push({
         path: routePath,
         status: res.status,
@@ -173,12 +184,14 @@ async function runVerification() {
         hasPartnerRewardsTitle,
         hasCanonical,
         hasHomepageShell,
+        hasVercelAppRef,
       });
       assert.equal(res.status, 200, `${routePath} returns HTTP 200`);
       assertPublicRobots(routePath, res.robots);
       assert.ok(hasPartnerRewardsTitle, `${routePath} serves prerendered Partner Rewards content`);
       assert.ok(hasCanonical, `${routePath} declares canonical https://nexorasalon.online/partner-rewards`);
       assert.ok(!hasHomepageShell, `${routePath} must not serve the generic homepage shell`);
+      assert.ok(!hasVercelAppRef, `${routePath} contains zero *.vercel.app URLs`);
     }
 
     // 3. Auth routes -> X-Robots-Tag: noindex, follow.
@@ -282,7 +295,9 @@ async function runVerification() {
     assertPublicRobots('/sitemap.xml', sitemap.robots);
     assert.ok(sitemap.contentType.includes('xml'), `/sitemap.xml serves XML (got ${sitemap.contentType})`);
     assert.ok(locs.includes('https://nexorasalon.online/'), '/sitemap.xml includes apex homepage');
-    assert.ok(locs.includes('https://nexorasalon.online/partner-rewards'), '/sitemap.xml includes /partner-rewards');
+    for (const ecoPath of ['/salon-onboarding', '/salon-growth', '/growth-partner-rewards', '/partner-rewards']) {
+      assert.ok(locs.includes(`https://nexorasalon.online${ecoPath}`), `/sitemap.xml includes ${ecoPath}`);
+    }
     assert.equal(new Set(locs).size, locs.length, '/sitemap.xml contains no duplicate <loc> entries');
     for (const loc of locs) {
       const parsed = new URL(loc);
