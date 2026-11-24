@@ -142,6 +142,7 @@ for(const file of [
   'supabase/migrations/20261123093000_studioflow_publish_slug_case_and_compat.sql',
   'supabase/migrations/20261123100000_studioflow_bookings_hold_expires_at_compat.sql',
   'supabase/migrations/20261124062248_studioflow_publish_optional_tracking_isolation.sql',
+  'supabase/migrations/20261124063000_studioflow_public_salon_websites_security_invoker.sql',
 ]){
   await applySql(file);
 }

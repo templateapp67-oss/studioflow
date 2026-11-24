@@ -2037,11 +2037,6 @@
   },
   "release_pending_migrations": [
     {
-      "file": "20261122065000_branch_service_android_wrapper_grants.sql",
-      "legacy_pre_hotfix": true,
-      "purpose": "Restrict the Android booking wrapper to authenticated and service_role after the branch guard. Added on main after the captured applied-history baseline (idempotent with hotfix 20261122064912 on zilwgiuiygqqardzutxi); remains pending for the protected manual release workflow."
-    },
-    {
       "file": "20261123093000_studioflow_publish_slug_case_and_compat.sql",
       "purpose": "Fix studioflow_private.publish() slug lowercasing order (lower before regexp_replace), stamp resolved slug into content.profile.subdomain on insert/upsert, and preserve backward compatibility for existing drafts that specify businessType and services without serviceCatalogueInitialized. Pending protected manual production release."
     },
@@ -2052,6 +2047,10 @@
     {
       "file": "20261124062248_studioflow_publish_optional_tracking_isolation.sql",
       "purpose": "Keep studioflow_publish() focused on the persisted website write and run referral/onboarding tracking through a separately authorized RPC with per-tracker exception isolation. Pending protected manual production release; the existing verified publish transaction remains unchanged until this migration is applied."
+    },
+    {
+      "file": "20261124063000_studioflow_public_salon_websites_security_invoker.sql",
+      "purpose": "Resolve Supabase Security Advisor security_definer_view ERROR on public.public_salon_websites by granting anon column-level SELECT (slug, content, published_at) and published-only RLS on public.studioflow_websites and switching public_salon_websites to security_invoker = true without exposing owner_id."
     }
   ],
   "reviewed_feature_migrations": [
@@ -2224,6 +2223,159 @@
       "git_blob_sha": "8389139eee2c78041896bb0cfaa9e930b8cbc2e4"
     },
     {
+      "version": "20261122043650",
+      "file": "20261122043650_staff_crm_branch_scope.sql",
+      "name": "staff_crm_branch_scope",
+      "observed_at": "2026-11-23",
+      "evidence": "Retrieved verbatim from supabase_migrations.schema_migrations on project zilwgiuiygqqardzutxi.",
+      "purpose": "Staff CRM branch-scope hardening (crm_effective_owner, crm_customer_in_branch_scope, owner_contacts, crm_dashboard, and branch-scoped CRM activity/task/note RPCs).",
+      "git_blob_sha": "8af5a41a95365c28a704fa0892ad236a35a1dc6f"
+    },
+    {
+      "version": "20261122045445",
+      "file": "20261122045445_studioflow_refund_queue_rpc.sql",
+      "name": "studioflow_refund_queue_rpc",
+      "observed_at": "2026-11-23",
+      "evidence": "Retrieved verbatim from supabase_migrations.schema_migrations on project zilwgiuiygqqardzutxi.",
+      "purpose": "Service-role-only refund queue RPCs (studioflow_expire_unpaid_holds, studioflow_claim_refunds) consumed by studioflow-payments.",
+      "git_blob_sha": "21af5bf08f7d609013113a48fa2a0402b08424f9"
+    },
+    {
+      "version": "20261122052119",
+      "file": "20261122052119_staff_salon_context_and_booking_completion.sql",
+      "name": "staff_salon_context_and_booking_completion",
+      "observed_at": "2026-11-23",
+      "evidence": "Retrieved verbatim from supabase_migrations.schema_migrations on project zilwgiuiygqqardzutxi.",
+      "purpose": "Multi-salon active staff context table/RPCs and staff own-booking completion support.",
+      "git_blob_sha": "58270016f35a16bc2a427659130b64603d5a4217"
+    },
+    {
+      "version": "20261122052400",
+      "file": "20261122052400_staff_inventory_membership_access.sql",
+      "name": "staff_inventory_membership_access",
+      "observed_at": "2026-11-23",
+      "evidence": "Retrieved verbatim from supabase_migrations.schema_migrations on project zilwgiuiygqqardzutxi.",
+      "purpose": "Add Manager inventory RLS policy using the canonical staff-membership model.",
+      "git_blob_sha": "21839dad562a9c6b4e0992c8a3daeb90da405c84"
+    },
+    {
+      "version": "20261122063603",
+      "file": "20261122063603_branch_service_catalogue_scope.sql",
+      "name": "branch_service_catalogue_scope",
+      "observed_at": "2026-11-23",
+      "evidence": "Retrieved verbatim from supabase_migrations.schema_migrations on project zilwgiuiygqqardzutxi.",
+      "purpose": "Branch-level service catalogue scoping (branch_ids column, validation, staff scope guard, and branch availability checks).",
+      "git_blob_sha": "97b7a3aace2447702c655809400ec567291532ea"
+    },
+    {
+      "version": "20261122063610",
+      "file": "20261122063610_branch_scoped_manual_crm_contacts.sql",
+      "name": "branch_scoped_manual_crm_contacts",
+      "observed_at": "2026-11-23",
+      "evidence": "Retrieved verbatim from supabase_migrations.schema_migrations on project zilwgiuiygqqardzutxi.",
+      "purpose": "Branch mapping for manual CRM contacts (crm_contacts.branch_id FK, Manager branch-scoped create/update overloads).",
+      "git_blob_sha": "5781720ae96086ca24c983ca59488a5ad3b771f4"
+    },
+    {
+      "version": "20261122063834",
+      "file": "20261122063834_branch_assignment_read_models.sql",
+      "name": "branch_assignment_read_models",
+      "observed_at": "2026-11-23",
+      "evidence": "Retrieved verbatim from supabase_migrations.schema_migrations on project zilwgiuiygqqardzutxi.",
+      "purpose": "Scoped read models for service branch map and CRM branch options.",
+      "git_blob_sha": "a1360a5f2d67295082bc38516bb4adfd8a224218"
+    },
+    {
+      "version": "20261122064427",
+      "file": "20261122064427_branch_crm_contact_update_duplicate_fix.sql",
+      "name": "branch_crm_contact_update_duplicate_fix",
+      "observed_at": "2026-11-23",
+      "evidence": "Retrieved verbatim from supabase_migrations.schema_migrations on project zilwgiuiygqqardzutxi.",
+      "purpose": "Exclude the contact being edited from the booking-contact duplicate phone check.",
+      "git_blob_sha": "5fbc05c54a663fb4a9988b91af51a40d449c51dd"
+    },
+    {
+      "version": "20261122064912",
+      "file": "20261122064912_branch_service_android_wrapper_grants.sql",
+      "name": "branch_service_android_wrapper_grants",
+      "observed_at": "2026-11-23",
+      "evidence": "Retrieved verbatim from supabase_migrations.schema_migrations on project zilwgiuiygqqardzutxi.",
+      "purpose": "Restrict public.studioflow_android_book execute grants to authenticated and service_role.",
+      "git_blob_sha": "abb0e07a1e7a92489c14800925e4c65466ef6503"
+    },
+    {
+      "version": "20261122065342",
+      "file": "20261122065342_branch_scope_private_booking_guards.sql",
+      "name": "branch_scope_private_booking_guards",
+      "observed_at": "2026-11-23",
+      "evidence": "Retrieved verbatim from supabase_migrations.schema_migrations on project zilwgiuiygqqardzutxi.",
+      "purpose": "Execute branch-catalogue checks inside private SECURITY DEFINER RPCs rather than browser-facing invoker wrappers.",
+      "git_blob_sha": "75c3c5b228412300d798a268987572e51040e2f6"
+    },
+    {
+      "version": "20261122065816",
+      "file": "20261122065816_branch_manual_crm_email_read_projection.sql",
+      "name": "branch_manual_crm_email_read_projection",
+      "observed_at": "2026-11-23",
+      "evidence": "Retrieved verbatim from supabase_migrations.schema_migrations on project zilwgiuiygqqardzutxi.",
+      "purpose": "Preserve manual CRM contact email in Manager CRM read projections.",
+      "git_blob_sha": "4f5e6f58983bdf966c427b2434d4d8f546267c1c"
+    },
+    {
+      "version": "20261122070326",
+      "file": "20261122070326_branch_mapping_redundant_index_cleanup.sql",
+      "name": "branch_mapping_redundant_index_cleanup",
+      "observed_at": "2026-11-23",
+      "evidence": "Retrieved verbatim from supabase_migrations.schema_migrations on project zilwgiuiygqqardzutxi.",
+      "purpose": "Drop redundant branches_site_id_id_scope_uk unique index covered by branches_site_id_id_key.",
+      "git_blob_sha": "2750f63284d9ec0b341c817671271d9a3b386d1d"
+    },
+    {
+      "version": "20261122070445",
+      "file": "20261122070445_public_branch_list_published_guard.sql",
+      "name": "public_branch_list_published_guard",
+      "observed_at": "2026-11-23",
+      "evidence": "Retrieved verbatim from supabase_migrations.schema_migrations on project zilwgiuiygqqardzutxi.",
+      "purpose": "Guard studioflow_public_branches() with published_at <= now().",
+      "git_blob_sha": "95e60ca5c23f4ac39a78c814dff775fd1c802258"
+    },
+    {
+      "version": "20261122072341",
+      "file": "20261122072341_harden_active_branch_ids_acl.sql",
+      "name": "harden_active_branch_ids_acl",
+      "observed_at": "2026-11-23",
+      "evidence": "Retrieved verbatim from supabase_migrations.schema_migrations on project zilwgiuiygqqardzutxi.",
+      "purpose": "Switch studioflow_active_branch_ids(uuid, text[]) to SECURITY INVOKER and restrict execute to postgres and service_role.",
+      "git_blob_sha": "1eb12972fbfa0d823ca3129b5dcb157244af229e"
+    },
+    {
+      "version": "20261122072714",
+      "file": "20261122072714_android_request_insert_explicit_columns.sql",
+      "name": "android_request_insert_explicit_columns",
+      "observed_at": "2026-11-23",
+      "evidence": "Retrieved verbatim from supabase_migrations.schema_migrations on project zilwgiuiygqqardzutxi.",
+      "purpose": "Use explicit column names when inserting into studioflow_android_requests.",
+      "git_blob_sha": "50964b53711ce012d266fd68d06c1f7d99371bc8"
+    },
+    {
+      "version": "20261122072823",
+      "file": "20261122072823_correct_android_request_fingerprint_builder.sql",
+      "name": "correct_android_request_fingerprint_builder",
+      "observed_at": "2026-11-23",
+      "evidence": "Retrieved verbatim from supabase_migrations.schema_migrations on project zilwgiuiygqqardzutxi.",
+      "purpose": "Preserve established jsonb_build_array fingerprint payload in studioflow_android_private.book.",
+      "git_blob_sha": "d38d3ebaa5188f13361dfa494ff9ba9dc8bc1e27"
+    },
+    {
+      "version": "20261123081235",
+      "file": "20261123081235_studioflow_branch_name_collision_canonical_ids.sql",
+      "name": "studioflow_branch_name_collision_canonical_ids",
+      "observed_at": "2026-11-23",
+      "evidence": "Retrieved verbatim from supabase_migrations.schema_migrations on project zilwgiuiygqqardzutxi.",
+      "purpose": "Reuse existing canonical branch UUIDs on workspace branch-name collisions and remap staff branch schedules.",
+      "git_blob_sha": "a8cf5cf0ce8bee002f36fbbd95ee2142094243a0"
+    },
+    {
       "version": "20261123082445",
       "file": "20261123082445_studioflow_robust_website_publish.sql",
       "name": "studioflow_robust_website_publish",
@@ -2231,6 +2383,15 @@
       "evidence": "Confirmed in supabase_migrations.schema_migrations on project zilwgiuiygqqardzutxi on 2026-11-23.",
       "purpose": "Hardens studioflow_private.publish() checklist validation, collision-safe slug locking, and non-blocking partner_referrals/growth_onboarding updates.",
       "git_blob_sha": "681fd451d9fb67eb24b3b531f304edcc27ffef57"
+    }
+  ],
+  "duplicate_local_migrations_removed": [
+    {
+      "removed_file": "20261122065000_branch_service_android_wrapper_grants.sql",
+      "canonical_file": "20261122064912_branch_service_android_wrapper_grants.sql",
+      "removed_file_sha256": "b15467fb5415ad8a14da6adec44cfe3409d28df2eaacf20e7491cc08cb045b5b",
+      "equivalent_statement_count": 2,
+      "verification": "Identical REVOKE ALL / GRANT EXECUTE statements for public.studioflow_android_book(text,jsonb,date,text,text,text,text,text,uuid); canonical hotfix 20261122064912 is already applied on zilwgiuiygqqardzutxi."
     }
   ]
 }

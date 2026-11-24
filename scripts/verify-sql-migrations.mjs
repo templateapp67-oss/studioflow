@@ -432,6 +432,26 @@ await applySqlText(readFileSync(publishCaseCompatFile,'utf8'),publishCaseCompatF
 await applySqlText(readFileSync(holdExpiresCompatFile,'utf8'),holdExpiresCompatFile);
 const publishTrackingFile='supabase/migrations/20261124062248_studioflow_publish_optional_tracking_isolation.sql';
 await applySqlText(readFileSync(publishTrackingFile,'utf8'),publishTrackingFile);
+const publicViewInvokerFile='supabase/migrations/20261124063000_studioflow_public_salon_websites_security_invoker.sql';
+await applySqlText(readFileSync(publicViewInvokerFile,'utf8'),publicViewInvokerFile);
+await applySqlText(readFileSync(publicViewInvokerFile,'utf8'),publicViewInvokerFile+' (idempotent re-run)');
+const {rows:[publicViewSecurity]}=await db.query(`
+  select
+    has_column_privilege('anon','public.studioflow_websites','owner_id','SELECT') as anon_owner_id,
+    has_column_privilege('anon','public.studioflow_websites','slug','SELECT') as anon_slug,
+    has_column_privilege('anon','public.studioflow_websites','content','SELECT') as anon_content,
+    has_column_privilege('anon','public.studioflow_websites','published_at','SELECT') as anon_published_at,
+    has_column_privilege('authenticated','public.studioflow_websites','owner_id','SELECT') as auth_owner_id,
+    coalesce((select c.reloptions @> array['security_invoker=true']
+      from pg_class c join pg_namespace n on n.oid=c.relnamespace
+      where n.nspname='public' and c.relname='public_salon_websites'),false) as view_security_invoker
+`);
+assert.equal(publicViewSecurity.anon_owner_id,false,'anon cannot read studioflow_websites.owner_id');
+assert.equal(publicViewSecurity.anon_slug,true,'anon keeps slug column grant for security_invoker view');
+assert.equal(publicViewSecurity.anon_content,true,'anon keeps content column grant for security_invoker view');
+assert.equal(publicViewSecurity.anon_published_at,true,'anon keeps published_at column grant for security_invoker view');
+assert.equal(publicViewSecurity.auth_owner_id,true,'authenticated keeps studioflow_websites.owner_id');
+assert.equal(publicViewSecurity.view_security_invoker,true,'public_salon_websites uses security_invoker=true');
 const {rows:[holdExpiresCol]}=await db.query(`
   select data_type from information_schema.columns
   where table_schema='public' and table_name='studioflow_bookings' and column_name='hold_expires_at'
