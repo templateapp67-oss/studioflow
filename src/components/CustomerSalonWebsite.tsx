@@ -65,7 +65,7 @@ import {clientExperiences} from '../lib/demoWebsiteContent';
 import React,{useEffect,useMemo,useState} from 'react';
 import {CalendarCheck,MapPin,MessageCircle,ShieldCheck,Clock,ArrowUpRight,Check,ChevronLeft,ChevronRight,X} from 'lucide-react';
 import type {SalonWebsitePreviewProps} from './SalonWebsitePreview';
-import type {SalonService,Stylist} from '../types';
+import type {SalonProfile,SalonService,Stylist} from '../types';
 import {CATEGORY_TEMPLATES} from '../categoryTemplates';
 import {ACCENT_PALETTES,DEFAULT_CATEGORY_ACCENTS,AccentPaletteKey,getContrastTextColor} from '../themeAccents';
 import {websiteSections} from '../lib/websiteContent';
