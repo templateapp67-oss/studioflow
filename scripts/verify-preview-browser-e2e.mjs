@@ -119,11 +119,18 @@ try {
       // Keep the legacy sitemap endpoint as a diagnostic only. It predates
       // this SSR function and must not prevent the storefront-specific probes
       // from running when another deployment route is unhealthy.
-      const existingApiResponse = await page.goto(new URL('/api/sitemap', previewUrl).toString(), { waitUntil: 'networkidle', timeout: 60000 });
-      const existingApiBody = existingApiResponse ? await existingApiResponse.text() : '';
+      const sitemapUrl = new URL('/api/sitemap', previewUrl).toString();
+      const existingApiResponse = await context.request.get(sitemapUrl, {
+        timeout: 60000,
+        headers: vercelBypassSecret ? {
+          'x-vercel-protection-bypass': vercelBypassSecret,
+          'x-vercel-set-bypass-cookie': 'true',
+        } : {},
+      });
+      const existingApiBody = await existingApiResponse.text();
       report.existingApiProbe = {
-        status: existingApiResponse?.status() ?? 0,
-        contentType: existingApiResponse?.headers()['content-type'] || '',
+        status: existingApiResponse.status(),
+        contentType: existingApiResponse.headers()['content-type'] || '',
         responseLooksLikeSitemap: /<\\?xml|<urlset/.test(existingApiBody),
       };
 
