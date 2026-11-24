@@ -212,7 +212,7 @@ const auth = await loadModule('server/supabaseAuth.ts');
 }
 
 /* --------------------------------------------------- end-to-end: P0 + P1 */
-const port = await new Promise((resolve, reject) => {
+const reservePort = () => new Promise((resolve, reject) => {
   const probe = createServer();
   probe.once('error', reject);
   probe.listen(0, '127.0.0.1', () => {
@@ -220,31 +220,42 @@ const port = await new Promise((resolve, reject) => {
     probe.close(() => resolve(free));
   });
 });
+let port = await reservePort();
 
 async function startServer(extraEnv = {}) {
-  const child = spawn(process.execPath, ['dist/server.cjs', '--port', String(port)], {
-    env: { ...process.env, NODE_ENV: 'production', GEMINI_API_KEY: '', ...extraEnv },
-    stdio: ['ignore', 'pipe', 'pipe'],
-    detached: true,
-  });
-  let output = '';
-  child.stdout.on('data', (chunk) => { output += chunk; });
-  child.stderr.on('data', (chunk) => { output += chunk; });
-  const ready = new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error(`Server did not start: ${output}`)), 15_000);
-    const check = () => {
-      if (output.includes('StudioFlow Salon OS running')) {
-        clearTimeout(timeout);
-        resolve();
-      }
-    };
-    child.stdout.on('data', check);
-    child.once('exit', (code) => {
-      clearTimeout(timeout);
-      reject(new Error(`Server exited ${code}: ${output}`));
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const child = spawn(process.execPath, ['dist/server.cjs', '--port', String(port)], {
+      env: { ...process.env, NODE_ENV: 'production', GEMINI_API_KEY: '', ...extraEnv },
+      stdio: ['ignore', 'pipe', 'pipe'],
+      detached: true,
     });
-  });
-  return { child, ready, log: () => output };
+    let output = '';
+    child.stdout.on('data', (chunk) => { output += chunk; });
+    child.stderr.on('data', (chunk) => { output += chunk; });
+    const ready = new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error(`Server did not start: ${output}`)), 15_000);
+      const check = () => {
+        if (output.includes('StudioFlow Salon OS running')) {
+          clearTimeout(timeout);
+          resolve();
+        }
+      };
+      child.stdout.on('data', check);
+      child.once('exit', (code) => {
+        clearTimeout(timeout);
+        reject(new Error(`Server exited ${code}: ${output}`));
+      });
+    });
+    try {
+      await ready;
+      return { child, ready: Promise.resolve(), log: () => output };
+    } catch (error) {
+      stop(child);
+      if (attempt === 3 || !String(error).includes('EADDRINUSE')) throw error;
+      port = await reservePort();
+    }
+  }
+  throw new Error('Could not start the test server after reserving fresh local ports.');
 }
 
 const stop = (child) => {

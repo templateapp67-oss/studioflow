@@ -22,7 +22,6 @@ permissions:
   contents: read
   checks: write
   issues: write
-  pull-requests: write
 
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -38,7 +37,6 @@ jobs:
       preview_url: ${{ steps.deploy.outputs.url }}
       deploy_outcome: ${{ steps.deploy.outcome }}
       vercel_available: ${{ steps.vercel-config.outputs.available }}
-      preview_supabase_ref: ${{ steps.verify-project.outputs.supabase_ref }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -92,7 +90,6 @@ jobs:
         run: vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
 
       - name: Verify linked Vercel project
-        id: verify-project
         if: steps.vercel-config.outputs.available == 'true'
         env:
           EXPECTED_VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -113,23 +110,6 @@ jobs:
           }
           console.log('Downloaded project identity matches the configured team and project IDs.');
 
-          let supabaseRef = 'unset';
-          const envFile = '.vercel/.env.preview.local';
-          if (fs.existsSync(envFile)) {
-            const raw = fs.readFileSync(envFile, 'utf8');
-            const m = raw.match(/^VITE_SUPABASE_URL\s*=\s*["']?([^"'\r\n]+)["']?/m);
-            if (m && m[1]) {
-              try {
-                supabaseRef = new URL(m[1].trim()).hostname.split('.')[0] || 'invalid';
-              } catch {
-                supabaseRef = 'invalid';
-              }
-            }
-          }
-          console.log('Preview VITE_SUPABASE_URL ref:', supabaseRef);
-          if (process.env.GITHUB_OUTPUT) {
-            fs.appendFileSync(process.env.GITHUB_OUTPUT, `supabase_ref=${supabaseRef}\n`);
-          }
           NODE
 
       - name: Build preview
@@ -267,13 +247,10 @@ jobs:
           });
           NODE
 
-      - name: Run Playwright E2E against Preview + QA Supabase
+      - name: Run read-only Playwright E2E against Preview
         env:
           PREVIEW_URL: ${{ steps.resolve-preview.outputs.url }}
-          PREVIEW_SUPABASE_REF: ${{ needs.preview.outputs.preview_supabase_ref }}
           PLAYWRIGHT_PACKAGE_ROOT: /tmp/pw-runner
-          EXPECTED_SUPABASE_REF: ckgrgnokgxgjxzfeoigg
-          FORBIDDEN_SUPABASE_REF: zilwgiuiygqqardzutxi
           E2E_ARTIFACTS_DIR: test-results/preview-browser-e2e
         run: node scripts/verify-preview-browser-e2e.mjs
 

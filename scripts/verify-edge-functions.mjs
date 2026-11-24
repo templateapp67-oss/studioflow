@@ -64,7 +64,7 @@ for (const file of walk('.').filter((file) => /\.(ts|tsx|mjs|js|sql|md)$/.test(f
 }
 let historicalDependencies = 0;
 for (const { name, file, where } of urlCallers) {
-  if (!folders.includes(name) && isHistoricalReference(file, name)) {
+  if (!folders.includes(name) && isHistoricalReference(file.replaceAll('\\', '/'), name)) {
     historicalDependencies++;
     continue;
   }

@@ -36,7 +36,7 @@ try {
   };
   invokeCalls = [];
   result = await sendBookingEmail(params);
-  assert.equal(result.delivered, true);
+  assert.equal(result.delivered, true, 'successful proxy response is delivered');
   assert.equal(authorization, 'Bearer token-1');
   assert.equal(invokeCalls.length, 0, 'successful proxy must not double-send through Edge');
 
@@ -44,7 +44,7 @@ try {
   invokeImpl = async () => ({ data: { success: true, delivered: true }, error: null });
   invokeCalls = [];
   result = await sendBookingEmail(params);
-  assert.equal(result.delivered, true);
+  assert.equal(result.delivered, true, 'static HTML proxy response falls back to Edge delivery');
   assert.equal(invokeCalls.length, 1, 'static HTML proxy response must fall back once');
 
   fetchImpl = async () => new Response(JSON.stringify({ success: false, error: 'Recipient mismatch' }), { status: 403, headers: { 'content-type': 'application/json' } });
@@ -58,7 +58,7 @@ try {
   invokeImpl = async () => ({ data: { success: true, delivered: true }, error: null });
   invokeCalls = [];
   result = await sendBookingEmail(params);
-  assert.equal(result.delivered, true);
+  assert.equal(result.delivered, true, 'unconfigured proxy falls back to Edge delivery');
   assert.equal(invokeCalls.length, 1, 'unconfigured proxy may fall back to configured Edge');
 
   fetchImpl = async () => { throw new Error('network'); };
