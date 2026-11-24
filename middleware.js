@@ -11,13 +11,19 @@
 
 function continueRequest() {
   return new Response(null, {
-    headers: { 'x-middleware-next': '1' },
+    headers: {
+      'x-middleware-next': '1',
+      'x-nexora-ssr-middleware': 'continue',
+    },
   });
 }
 
 function rewriteRequest(destination) {
   return new Response(null, {
-    headers: { 'x-middleware-rewrite': destination.toString() },
+    headers: {
+      'x-middleware-rewrite': destination.toString(),
+      'x-nexora-ssr-middleware': 'rewrite-root-site-query',
+    },
   });
 }
 
