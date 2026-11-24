@@ -10,10 +10,70 @@ import {SalonWebsitePreview} from '../src/components/SalonWebsitePreview';
 import {supabase} from '../src/lib/supabase';
 import {CATEGORY_TEMPLATES} from '../src/categoryTemplates';
 import {INITIAL_SALON_PROFILE} from '../src/mockData';
+import {formatPublishingError,isPublishingReady,normalizeWebsiteSlug,parsePublishedWebsite,publishSalonWebsite,runOptionalPublishTracking} from '../src/lib/publishing';
 
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;
 const mockLocation={origin:'https://studioflow.example',search:'',pathname:'/'};
 (globalThis as any).location=mockLocation;
+
+// Frontend publishing contract tests (real pure helpers with mocked Supabase boundaries).
+const readyProfile={...INITIAL_SALON_PROFILE,businessName:'Glow & Shine Salon',businessType:'hair_salon' as any,serviceCatalogueInitialized:true,phone:''};
+const readyServices=[{id:'publish-service',name:'Cut',price:500,durationMinutes:30,category:'Hair',description:'',icon:'content_cut'}];
+const autoSlugResponse={slug:'glow-shine-salon-11111111',published:true,published_at:'2026-11-24T10:00:00.000Z'};
+const publishOwnerId='11111111-1111-4111-8111-111111111111';
+const makePublishDeps=(overrides:Record<string,unknown>={})=>({
+  expectedWorkspaceOwnerId:publishOwnerId,
+  profile:readyProfile,
+  services:readyServices,
+  getUser:async()=>({id:publishOwnerId}),
+  getWorkspaceOwnerId:async()=>publishOwnerId,
+  flush:async()=>{},
+  publishRpc:async()=>({data:autoSlugResponse,error:null}),
+  ...overrides,
+} as any);
+assert.equal(isPublishingReady(readyProfile,readyServices),true,'Checklist requires name, service, and template only; phone is not required');
+assert.equal(isPublishingReady({...readyProfile,businessName:' '},readyServices),false,'Missing business name blocks publish');
+assert.equal(isPublishingReady(readyProfile,[]),false,'No services blocks publish');
+assert.equal(isPublishingReady({...readyProfile,serviceCatalogueInitialized:false},readyServices),false,'No selected template blocks publish');
+assert.equal(normalizeWebsiteSlug('  Glow &  Shine / Salon !!! '),'glow-shine-salon','Website slug normalization lowercases and collapses invalid/duplicate separators');
+assert.equal(normalizeWebsiteSlug('!!!'),'','Invalid-character business names normalize to empty for database fallback/validation');
+let frontendFlushCalls=0,frontendRpcCalls=0;
+const successDeps=makePublishDeps({flush:async()=>{frontendFlushCalls++;},publishRpc:async()=>{frontendRpcCalls++;return {data:autoSlugResponse,error:null};}});
+const successfulWebsite=await publishSalonWebsite(successDeps);
+assert.deepEqual(successfulWebsite,autoSlugResponse,'Successful publish returns actual persisted website record');
+assert.equal(frontendFlushCalls,1);assert.equal(frontendRpcCalls,1);
+await assert.rejects(()=>publishSalonWebsite(makePublishDeps({getUser:async()=>null})),/session has expired/i,'Missing authenticated user is blocked');
+await assert.rejects(()=>publishSalonWebsite(makePublishDeps({expectedWorkspaceOwnerId:'22222222-2222-4222-8222-222222222222'})),/not the owner/i,'Different authenticated user is blocked');
+await assert.rejects(()=>publishSalonWebsite(makePublishDeps({getWorkspaceOwnerId:async()=>'22222222-2222-4222-8222-222222222222'})),/could not be verified/i,'Workspace ownership relationship is verified');
+await assert.rejects(()=>publishSalonWebsite(makePublishDeps({profile:{...readyProfile,businessName:''}})),/business name/i,'Actual publish validation blocks missing business name');
+await assert.rejects(()=>publishSalonWebsite(makePublishDeps({services:[]})),/at least one service/i,'Actual publish validation blocks missing services');
+await assert.rejects(()=>publishSalonWebsite(makePublishDeps({profile:{...readyProfile,serviceCatalogueInitialized:false}})),/template/i,'Actual publish validation blocks missing template');
+let staleRpcCalls=0;
+await assert.rejects(()=>publishSalonWebsite(makePublishDeps({getLatestWorkspace:()=>({profile:{...readyProfile,businessName:''},services:readyServices}),publishRpc:async()=>{staleRpcCalls++;return {data:autoSlugResponse,error:null};}})),/latest workspace changes/i,'Stale workspace readiness is rechecked after saving');
+assert.equal(staleRpcCalls,0,'Stale invalid workspace never reaches publish RPC');
+let collisionRpcCalls=0;
+const collidedSlug=await publishSalonWebsite(makePublishDeps({publishRpc:async()=>{collisionRpcCalls++;return {data:autoSlugResponse,error:null};}}));
+assert.equal(collidedSlug.slug,'glow-shine-salon-11111111','Auto-generated collision uses persisted database-resolved slug');
+assert.equal(collisionRpcCalls,1);
+const duplicateAddressError={message:'This website address is already in use.',details:'Key (slug) already exists.',hint:'Choose another website address.',code:'23505'};
+await assert.rejects(()=>publishSalonWebsite(makePublishDeps({publishRpc:async()=>({data:null,error:duplicateAddressError})})),e=>e===duplicateAddressError,'Manually selected duplicate slug preserves Supabase error object');
+const diagnosticError=Object.assign(new Error('publish rejected'),{details:'row conflict',hint:'pick another slug',code:'23505'});
+const errorText=formatPublishingError(diagnosticError);
+for(const diagnostic of ['publish rejected','Details: row conflict','Hint: pick another slug','Code: 23505'])assert.ok(errorText.includes(diagnostic),`Error instance preserves ${diagnostic}`);
+const plainErrorText=formatPublishingError(duplicateAddressError);
+for(const diagnostic of ['This website address is already in use.','Details: Key (slug) already exists.','Hint: Choose another website address.','Code: 23505'])assert.ok(plainErrorText.includes(diagnostic),`Plain PostgREST error preserves ${diagnostic}`);
+assert.ok(!formatPublishingError({message:'password=abc access_token=xyz'}).includes('abc'),'Customer error redacts secrets');
+for(const malformed of [null,undefined,{},[],{slug:'glow-shine-salon',published_at:autoSlugResponse.published_at},{slug:'glow-shine-salon',published:true},{slug:'glow-shine-salon',published:false,published_at:autoSlugResponse.published_at}]){
+  await assert.rejects(()=>publishSalonWebsite(makePublishDeps({publishRpc:async()=>({data:malformed,error:null})})),/could not be confirmed/i,'Malformed/empty/unpublished RPC response never claims success');
+}
+assert.equal(parsePublishedWebsite(autoSlugResponse).slug,autoSlugResponse.slug,'Persisted slug is used');
+assert.equal(parsePublishedWebsite(autoSlugResponse).published,true,'Persisted published flag is confirmed');
+assert.equal(parsePublishedWebsite(autoSlugResponse).published_at,autoSlugResponse.published_at,'Persisted published timestamp is used');
+let trackingLogged=false,publishStillSucceeded=false;
+publishStillSucceeded=true;
+await runOptionalPublishTracking(async()=>{throw {message:'tracking unavailable',code:'XX000'};},diagnostics=>{trackingLogged=diagnostics.code==='XX000';});
+assert.equal(publishStillSucceeded,true,'Optional tracking failure does not affect successful publish state');
+assert.equal(trackingLogged,true,'Optional tracking failure is separately logged');
 
 // 1. Offline PostgreSQL / PGlite E2E: schema, storefront view, and publish migrations.
 const db=new PGlite();
@@ -79,8 +139,9 @@ alter table public.studioflow_demo_bookings enable row level security;
 for(const file of [
   'supabase/migrations/20261121130001_public_storefront_view.sql',
   'supabase/migrations/20261123082445_studioflow_robust_website_publish.sql',
-  'supabase/migrations/20261123093000_studioflow_publish_slug_case_and_compat.sql',
-  'supabase/migrations/20261123100000_studioflow_bookings_hold_expires_at_compat.sql',
+  'supabase/migrations/20261124095101_studioflow_bookings_hold_expires_at_compat.sql',
+  'supabase/migrations/20261124095131_studioflow_publish_optional_tracking_isolation.sql',
+  'supabase/migrations/20261124095142_public_storefront_security_invoker.sql',
 ]){
   await applySql(file);
 }
@@ -93,9 +154,21 @@ assert.equal(holdCol?.data_type,'timestamp with time zone','studioflow_bookings.
 const ownerA='11111111-1111-4111-8111-111111111111';
 const ownerB='22222222-2222-4222-8222-222222222222';
 const customerC='33333333-3333-4333-8333-333333333333';
+const ownerD='44444444-4444-4444-8444-444444444444';
 const serviceImagePath=`${ownerA}/services/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.jpg`;
 const serviceImageUrl=`https://zilwgiuiygqqardzutxi.supabase.co/storage/v1/object/public/studioflow-media/${serviceImagePath}`;
-await db.query(`insert into auth.users(id,email) values($1,'owner-a@example.com'),($2,'owner-b@example.com'),($3,'customer-c@example.com')`,[ownerA,ownerB,customerC]);
+await db.query(`insert into auth.users(id,email) values($1,'owner-a@example.com'),($2,'owner-b@example.com'),($3,'customer-c@example.com'),($4,'owner-d@example.com')`,[ownerA,ownerB,customerC,ownerD]);
+await db.exec(`
+insert into public.growth_partners(user_id,referral_code) values('${ownerB}','TESTREFERRAL') on conflict do nothing;
+insert into public.partner_referrals(partner_id,referred_user_id,referral_code,status,registered_at,source,referred_email)
+select id,'${ownerA}',referral_code,'registered',now(),'test','owner-a@example.com'
+from public.growth_partners where user_id='${ownerB}' on conflict do nothing;
+create function public.test_fail_optional_referral_tracking() returns trigger language plpgsql as $$
+begin raise exception 'injected optional referral tracking failure'; end
+$$;
+create trigger fail_optional_referral_tracking before update on public.partner_referrals
+for each row execute function public.test_fail_optional_referral_tracking();
+`);
 await db.query(
   `insert into storage.objects(bucket_id,name,owner,metadata) values('studioflow-media',$1,$2,'{"mimetype":"image/jpeg"}'::jsonb)`,
   [serviceImagePath,ownerA]
@@ -131,6 +204,7 @@ await assert.rejects(
 // Bootstrap Owner A and Owner B workspaces.
 await asRole('authenticated',ownerA,()=>db.query(`select public.studioflow_ensure_account(null)`));
 await asRole('authenticated',ownerB,()=>db.query(`select public.studioflow_ensure_account(null)`));
+await asRole('authenticated',ownerD,()=>db.query(`select public.studioflow_ensure_account(null)`));
 
 // Whitespace businessName must be rejected with 22023.
 await asRole('authenticated',ownerA,()=>db.query(
@@ -212,6 +286,22 @@ assert.equal(pubA.res.slug,'glow-shine-salon','Mixed-case businessName produces 
 assert.equal(pubA.res.published,true);
 assert.ok(pubA.res.published_at,'published_at returned');
 assert.equal(pubA.res.content.profile.subdomain,'glow-shine-salon','content.profile.subdomain synced with resolved slug');
+await asRole('authenticated',ownerA,()=>db.query(`select public.studioflow_publish()`));
+const {rows:[retryCount]}=await db.query(`select count(*)::int as count from public.studioflow_websites where owner_id=$1`,[ownerA]);
+assert.equal(retryCount.count,1,'Retrying publish updates the owner row instead of creating duplicate records');
+const {rows:[trackingResult]}=await asRole('authenticated',ownerA,()=>db.query(`select public.studioflow_track_publish() as res`));
+assert.equal(trackingResult.res.tracked,true,'Optional publish tracking failure is isolated and reported without aborting');
+const {rows:[stillPublished]}=await db.query(`select slug,published_at from public.studioflow_websites where owner_id=$1`,[ownerA]);
+assert.equal(stillPublished.slug,'glow-shine-salon','Optional referral failure does not roll back published website');
+assert.ok(stillPublished.published_at,'Published timestamp survives optional referral failure');
+
+// A non-empty business name made only from invalid slug characters gets a safe valid fallback.
+await asRole('authenticated',ownerD,()=>db.query(
+  `select public.studioflow_save_workspace($1::jsonb,0)`,
+  [JSON.stringify({profile:{businessName:'!!!',businessType:'hair_salon',serviceCatalogueInitialized:true},services:[{id:'svc-d',name:'Cut',price:500,durationMinutes:30,category:'Hair',description:'Cut',icon:'content_cut'}],stylists:[],clients:[],extras:{gallery:[]},loyaltyConfig:{},onboardingComplete:true})]
+));
+const {rows:[invalidNamePublish]}=await asRole('authenticated',ownerD,()=>db.query(`select public.studioflow_publish() as res`));
+assert.match(invalidNamePublish.res.slug,/^salon-44444444$/,'Invalid characters in business name resolve to a valid safe fallback slug');
 
 // Anonymous public read via public_salon_websites returns full storefront without owner PII;
 // direct studioflow_websites read is blocked for anon.
@@ -431,6 +521,7 @@ const origRpc=supabase.rpc.bind(supabase);
 const origChannel=supabase.channel.bind(supabase);
 const origRemoveChannel=supabase.removeChannel.bind(supabase);
 const origGetSession=supabase.auth.getSession.bind(supabase.auth);
+const origGetUser=supabase.auth.getUser.bind(supabase.auth);
 const stubStorage=new Map<string,string>();
 Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{
   getItem:(k:string)=>stubStorage.get(k)??null,
@@ -438,9 +529,13 @@ Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{
   removeItem:(k:string)=>{stubStorage.delete(k);},
 }});
 (supabase as any).auth.getSession=async()=>({data:{session:{user:{id:ownerA,email:'owner-a@example.com',user_metadata:{full_name:'Owner A',salon_name:'Glow & Shine Salon'}}}},error:null});
+(supabase as any).auth.getUser=async()=>({data:{user:{id:ownerA,email:'owner-a@example.com'}},error:null});
 (supabase as any).channel=()=>{const ch:any={on:()=>ch,subscribe:()=>ch};return ch;};
 (supabase as any).removeChannel=async()=>{};
 (supabase as any).from=(table:string)=>{
+  if(table==='studioflow_accounts'){
+    return {select:()=>( {eq:(_col:string,uid:string)=>({maybeSingle:async()=>({data:uid===ownerA?{user_id:uid}:null,error:null})})} )};
+  }
   if(table==='studioflow_websites'){
     return {
       select:()=>({
@@ -472,6 +567,10 @@ Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{
     }
     if(fn==='studioflow_publish'){
       const {rows:[row]}=await asRole('authenticated',ownerA,()=>db.query(`select public.studioflow_publish() as res`));
+      return {data:row.res,error:null};
+    }
+    if(fn==='studioflow_track_publish'){
+      const {rows:[row]}=await asRole('authenticated',ownerA,()=>db.query(`select public.studioflow_track_publish() as res`));
       return {data:row.res,error:null};
     }
     return {data:null,error:null};
@@ -583,5 +682,6 @@ assert.ok(Array.isArray(reopenedSlotsRow.slots)&&reopenedSlotsRow.slots.some((s:
 (supabase as any).channel=origChannel;
 (supabase as any).removeChannel=origRemoveChannel;
 (supabase as any).auth.getSession=origGetSession;
+(supabase as any).auth.getUser=origGetUser;
 
 console.log('PASS: studioflow publish website E2E (SQL, booking + RLS, storefront privacy, slug casing/collision, checklist, header error alert, Workspace reload hydration, public render, and customer cancellation + slot reopening).');

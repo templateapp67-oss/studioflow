@@ -259,7 +259,10 @@ async function startServer(extraEnv = {}) {
 }
 
 const stop = (child) => {
-  try { process.kill(-child.pid, 'SIGTERM'); } catch { /* already exited */ }
+  try {
+    if (process.platform === 'win32') child.kill('SIGTERM');
+    else process.kill(-child.pid, 'SIGTERM');
+  } catch { /* already exited */ }
 };
 
 const post = (path, body, headers = {}) =>

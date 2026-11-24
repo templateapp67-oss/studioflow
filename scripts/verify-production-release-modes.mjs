@@ -1,10 +1,14 @@
 import assert from 'node:assert/strict';
-import {chmodSync,mkdtempSync,readdirSync,readFileSync,rmSync,writeFileSync} from 'node:fs';
+import {chmodSync,existsSync,mkdirSync,mkdtempSync,readdirSync,readFileSync,rmSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {join} from 'node:path';
+import {dirname,join} from 'node:path';
 import {spawnSync} from 'node:child_process';
 
 const EXPECTED_REF='zilwgiuiygqqardzutxi';
+const bash=process.platform==='win32'
+  ? [join(process.env.ProgramFiles||'C:\\Program Files','Git','bin','bash.exe'),join(process.env['ProgramFiles(x86)']||'C:\\Program Files (x86)','Git','bin','bash.exe')].find(existsSync)||'bash'
+  : 'bash';
+const shellPath=(path)=>process.platform==='win32'?path.replace(/^([A-Za-z]):[\\/]/,(_,drive)=>`/${drive.toLowerCase()}/`).replace(/\\/g,'/'):path;
 const workflow=readFileSync('.github/workflows/production.yml','utf8').replace(/\r\n?/g,'\n');
 const dispatch=workflow.split('  workflow_dispatch:\n')[1].split('\nconcurrency:')[0];
 assert(dispatch.includes('type: choice') && dispatch.includes('default: dry_run'));
@@ -61,7 +65,7 @@ assert(ciGate.indexOf('echo "::error::')>=0 && ciGate.includes('exit 1'),
 const validation=workflow.split('- name: Validate manual release mode')[1].split('\n      - ')[0];
 const shell=validation.split('        run: |\n')[1].split('\n').map(line=>line.replace(/^          /,'')).join('\n');
 for(const mode of [...options,'invalid','true','']){
-  const result=spawnSync('bash',['-eu','-c',shell],{env:{...process.env,RELEASE_MODE:mode},encoding:'utf8'});
+  const result=spawnSync(bash,['-eu','-c',shell],{env:{...process.env,RELEASE_MODE:mode},encoding:'utf8'});
   assert.equal(result.status===0,options.includes(mode),`Release validation mismatch for ${JSON.stringify(mode)}`);
 }
 
@@ -135,7 +139,7 @@ try {
       SUPABASE_PROJECT_REF_SECRET:'',
       ...overrides,
     };
-    const res=spawnSync('bash',['-c',credShell],{env,encoding:'utf8'});
+    const res=spawnSync(bash,['-c',credShell],{env,encoding:'utf8'});
     const combined=`${res.stdout??''}\n${res.stderr??''}`;
     assert(!combined.includes(TOKEN_SENTINEL),'must never print SUPABASE_ACCESS_TOKEN');
     assert(!combined.includes(PASS_SENTINEL),'must never print SUPABASE_DB_PASSWORD');
@@ -197,7 +201,7 @@ try {
   // 3. End-to-end propagation: normalize "\tzilwgiuiygqqardzutxi\r\n" once and execute every hosted step's shell command against a mock supabase CLI.
   const binDir=join(tempRoot,'bin');
   const callsFile=join(tempRoot,'supabase-calls.jsonl');
-  spawnSync('mkdir',['-p',binDir]);
+  mkdirSync(binDir,{recursive:true});
   const mockSupabase=join(binDir,'supabase');
   writeFileSync(mockSupabase,`#!/usr/bin/env node
 const fs = require('node:fs');
@@ -248,10 +252,12 @@ if(argv[0] === 'migration' && argv[1] === 'list'){
 
   for(const stepName of hostedSteps){
     const cmd=extractStepCommand(stepName);
-    const stepRes=spawnSync('bash',['-euo','pipefail','-c',cmd],{
+    const stepRes=spawnSync(bash,['-euo','pipefail','-c',cmd],{
       env:{
         ...process.env,
-        PATH:`${binDir}:${process.env.PATH}`,
+        PATH:process.platform==='win32'
+          ? `${shellPath(binDir)}:${shellPath(dirname(process.execPath))}:/usr/bin:/bin`
+          : `${binDir}:${process.env.PATH}`,
         MOCK_SUPABASE_LOG:callsFile,
         SUPABASE_ACCESS_TOKEN:TOKEN_SENTINEL,
         SUPABASE_DB_PASSWORD:PASS_SENTINEL,

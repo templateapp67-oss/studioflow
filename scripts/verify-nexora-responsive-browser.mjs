@@ -5,39 +5,68 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 const toolsRoot = process.env.BROWSER_TOOLS_ROOT;
-if (!toolsRoot) throw new Error('Set BROWSER_TOOLS_ROOT to a directory containing playwright-core and @sparticuz/chromium.');
+if (!toolsRoot) throw new Error('Set BROWSER_TOOLS_ROOT to a directory containing playwright-core.');
 const require = createRequire(join(toolsRoot, 'package.json'));
-const chromiumPackage = require('@sparticuz/chromium');
-const chromium = chromiumPackage.default ?? chromiumPackage;
+const { chromium: playwrightChromium } = require('playwright-core');
+
+// Prefer the project's existing serverless Chromium bundle when present.
+// GitHub Actions can instead use the Chromium binary installed by Playwright.
+let chromiumPackage = null;
+try {
+  chromiumPackage = require('@sparticuz/chromium');
+} catch {
+  // Optional: standard Playwright-managed Chromium is supported below.
+}
+const chromium = chromiumPackage?.default ?? chromiumPackage;
 const libraryArchive = join(toolsRoot, 'node_modules/@sparticuz/chromium/bin/al2023.tar.br');
 const libraryDirectory = join(tmpdir(), 'al2023', 'lib');
-if (existsSync(libraryArchive) && !existsSync(join(libraryDirectory, 'libnspr4.so'))) {
+if (chromiumPackage?.inflate && existsSync(libraryArchive) && !existsSync(join(libraryDirectory, 'libnspr4.so'))) {
   await chromiumPackage.inflate(libraryArchive);
 }
-if (existsSync(join(libraryDirectory, 'libnspr4.so'))) {
+if (chromiumPackage && existsSync(join(libraryDirectory, 'libnspr4.so'))) {
   process.env.LD_LIBRARY_PATH = [libraryDirectory, process.env.LD_LIBRARY_PATH]
     .filter(Boolean)
     .join(':');
 }
-const { chromium: playwrightChromium } = require('playwright-core');
-const origin = process.env.PREVIEW_URL ?? 'http://127.0.0.1:4174';
-const browser = await playwrightChromium.launch({
-  args: chromium.args,
-  executablePath: process.env.CHROMIUM_EXECUTABLE ?? await chromium.executablePath(),
-  headless: true,
-});
+const origin = new URL(process.env.PREVIEW_URL ?? 'http://127.0.0.1:4174').origin;
+const vercelBypassSecret = (process.env.VERCEL_AUTOMATION_BYPASS_SECRET ?? '').trim();
+const launchOptions = { headless: true };
+if (chromium) {
+  launchOptions.args = chromium.args;
+  launchOptions.executablePath = process.env.CHROMIUM_EXECUTABLE ?? await chromium.executablePath();
+} else if (process.env.CHROMIUM_EXECUTABLE) {
+  launchOptions.executablePath = process.env.CHROMIUM_EXECUTABLE;
+}
+const browser = await playwrightChromium.launch(launchOptions);
+
+async function routeToPreview(route) {
+  let requestOrigin;
+  try {
+    requestOrigin = new URL(route.request().url()).origin;
+  } catch {
+    return route.abort();
+  }
+  if (requestOrigin !== origin) return route.abort();
+  const headers = { ...route.request().headers() };
+  if (vercelBypassSecret) {
+    headers['x-vercel-protection-bypass'] = vercelBypassSecret;
+    headers['x-vercel-set-bypass-cookie'] = 'true';
+  }
+  return route.continue({ headers });
+}
 const pageErrors = [];
 const hydrationErrors = [];
 let activeRoute = '';
 
-function headerMeasurementMatchesLayout() {
+function headerMeasurementDetails(waitForMatch = false) {
   const header = document.querySelector('.nexora-site-header');
   const inner = header?.querySelector('.nexora-site-header__inner');
   const brand = header?.querySelector('.nexora-site-header__brand');
   const measuredRow = header?.querySelector('.nexora-site-header__measure');
   const compactAction = header?.querySelector('.nexora-site-header__compact-primary');
   const toggle = header?.querySelector('.nexora-site-header__toggle');
-  if (!header || !inner || !brand || !measuredRow || !compactAction || !toggle) return false;
+  if (!header || !inner || !brand || !measuredRow || !compactAction || !toggle
+    || !header.classList.contains('has-measured-layout') || inner.clientWidth <= 0) return null;
 
   const style = window.getComputedStyle(inner);
   const rowGap = Number.parseFloat(style.getPropertyValue('--nsh-row-gap'))
@@ -45,13 +74,32 @@ function headerMeasurementMatchesLayout() {
     || 0;
   const compactGap = Number.parseFloat(style.getPropertyValue('--nsh-compact-gap')) || rowGap;
   const brandWidth = brand.getBoundingClientRect().width;
-  const shouldBeCompact = brandWidth + measuredRow.getBoundingClientRect().width + rowGap > inner.clientWidth + 0.5;
+  const measuredRowWidth = measuredRow.getBoundingClientRect().width;
+  const compactActionWidth = compactAction.getBoundingClientRect().width;
   const toggleWidth = Number.parseFloat(window.getComputedStyle(toggle).width) || toggle.getBoundingClientRect().width;
+  const shouldBeCompact = brandWidth + measuredRowWidth + rowGap > inner.clientWidth + 0.5;
   const shouldShowCompactAction = shouldBeCompact
     && Boolean(header.querySelector('.nexora-site-header__measure-actions .nexora-site-header__primary'))
-    && brandWidth + compactAction.getBoundingClientRect().width + toggleWidth + (2 * compactGap) <= inner.clientWidth + 0.5;
-  return header.classList.contains('nexora-site-header--compact') === shouldBeCompact
-    && header.classList.contains('has-compact-action') === shouldShowCompactAction;
+    && brandWidth + compactActionWidth + toggleWidth + (2 * compactGap) <= inner.clientWidth + 0.5;
+  const details = {
+    viewportWidth: window.innerWidth,
+    innerWidth: inner.clientWidth,
+    brandWidth,
+    measuredRowWidth,
+    compactActionWidth,
+    toggleWidth,
+    rowGap,
+    compactGap,
+    actualCompact: header.classList.contains('nexora-site-header--compact'),
+    expectedCompact: shouldBeCompact,
+    actualCompactAction: header.classList.contains('has-compact-action'),
+    expectedCompactAction: shouldShowCompactAction,
+  };
+  if (waitForMatch && (
+    details.actualCompact !== details.expectedCompact
+    || details.actualCompactAction !== details.expectedCompactAction
+  )) return null;
+  return details;
 }
 
 try {
@@ -59,10 +107,7 @@ try {
     viewport: { width: 1440, height: 1000 },
     reducedMotion: 'reduce',
   });
-  await page.route('**/*', (route) => {
-    if (new URL(route.request().url()).origin === origin) return route.continue();
-    return route.abort();
-  });
+  await page.route('**/*', routeToPreview);
   page.on('pageerror', (error) => pageErrors.push(`${activeRoute}: ${error.message}`));
   page.on('console', (message) => {
     const text = message.text();
@@ -138,6 +183,7 @@ try {
       await summary.click();
       await page.waitForFunction(() => document.querySelector('.nexora-site-header__overflow-disclosure')?.open === true);
       assert.equal(await more.locator('a[href="/salon-growth"]').isVisible(), true, 'the native More disclosure exposes its grouped route links');
+      await summary.focus();
       await page.keyboard.press('Escape');
       await page.waitForFunction(() => document.querySelector('.nexora-site-header__overflow-disclosure')?.open === false);
       await page.waitForFunction(() => document.activeElement === document.querySelector('.nexora-site-header__overflow-toggle'));
@@ -145,7 +191,12 @@ try {
     }
 
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.waitForFunction(headerMeasurementMatchesLayout);
+    const layoutHandle = await page.waitForFunction(headerMeasurementDetails, true, { timeout: 10000 });
+    const headerLayout = await layoutHandle.jsonValue();
+    assert.equal(headerLayout.actualCompact, headerLayout.expectedCompact,
+      `${routePath} measured responsive collapse: ${JSON.stringify(headerLayout)}`);
+    assert.equal(headerLayout.actualCompactAction, headerLayout.expectedCompactAction,
+      `${routePath} measured compact action: ${JSON.stringify(headerLayout)}`);
     const expectedCompactAt390 = await page.evaluate(() => {
       const header = document.querySelector('.nexora-site-header');
       const inner = header?.querySelector('.nexora-site-header__inner');
@@ -231,7 +282,7 @@ try {
     // A narrow phone width exercises the compact navigation on every route,
     // including pages whose intentionally shorter header still fits at 390px.
     await page.setViewportSize({ width: 320, height: 740 });
-    await page.waitForFunction(headerMeasurementMatchesLayout);
+    await page.waitForFunction(headerMeasurementDetails, true, { timeout: 10000 });
     assert.ok(await page.locator('.nexora-site-header').evaluate((header) => header.classList.contains('nexora-site-header--compact')), `${routePath} collapses the navigation at 320px`);
     const narrow = await page.evaluate(() => {
       const header = document.querySelector('.nexora-site-header');
@@ -492,10 +543,7 @@ try {
     javaScriptEnabled: false,
     reducedMotion: 'reduce',
   });
-  await noScriptPage.route('**/*', (route) => {
-    if (new URL(route.request().url()).origin === origin) return route.continue();
-    return route.abort();
-  });
+  await noScriptPage.route('**/*', routeToPreview);
   for (const routePath of marketingRoutes) {
     for (const width of [390, 320]) {
       await noScriptPage.setViewportSize({ width, height: 844 });
@@ -520,13 +568,31 @@ try {
           visibleLinks,
           viewportWidth: window.innerWidth,
           documentWidth: document.documentElement.scrollWidth,
+          bodyWidth: document.body.scrollWidth,
+          overflowingElements: [...document.body.querySelectorAll('*')].map((node) => {
+            const rect = node.getBoundingClientRect();
+            const style = window.getComputedStyle(node);
+            return {
+              tag: node.tagName.toLowerCase(),
+              id: node.id || '',
+              className: typeof node.className === 'string' ? node.className.slice(0, 180) : '',
+              left: Math.round(rect.left * 10) / 10,
+              right: Math.round(rect.right * 10) / 10,
+              width: Math.round(rect.width * 10) / 10,
+              position: style.position,
+              transform: style.transform,
+              overflowX: style.overflowX,
+            };
+          }).filter((item) => item.right > window.innerWidth + 1 || item.left < -1)
+            .sort((a, b) => b.right - a.right)
+            .slice(0, 16),
         };
       });
       assert.equal(fallback.measured, false, `${routePath} no-script header retains its server-rendered fallback`);
       assert.ok(fallback.innerScrollWidth <= fallback.innerWidth + 1, `${routePath} no-script header has no internal overflow at ${width}px`);
       assert.ok(fallback.menuScrollWidth <= fallback.menuWidth + 1, `${routePath} no-script menu content fits at ${width}px`);
       assert.ok(fallback.visibleLinks > 0, `${routePath} no-script header navigation remains visible at ${width}px`);
-      assert.ok(fallback.documentWidth <= fallback.viewportWidth + 1, `${routePath} no-script document has no horizontal overflow at ${width}px`);
+      assert.ok(fallback.documentWidth <= fallback.viewportWidth + 1, `${routePath} no-script document has no horizontal overflow at ${width}px: ${JSON.stringify(fallback)}`);
 
       if (routePath === '/' && width === 390) {
         const disclosure = noScriptPage.locator('.nexora-site-header__overflow-disclosure');

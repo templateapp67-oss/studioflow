@@ -5,6 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 /**
  * Access-control regression tests for the demo-request register.
@@ -26,7 +27,7 @@ const bundle = await build({
 const directory = mkdtempSync(join(tmpdir(), 'nexora-admin-'));
 const modulePath = join(directory, 'nexoraDemoLeads.mjs');
 writeFileSync(modulePath, bundle.outputFiles[0].text);
-const { nexoraDemoLeadsAdminHandler } = await import(modulePath);
+const { nexoraDemoLeadsAdminHandler } = await import(pathToFileURL(modulePath).href);
 
 const captured = [];
 const respond = () => ({

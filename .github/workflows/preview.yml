@@ -141,6 +141,7 @@ jobs:
 
       - name: Comment preview URL on PR
         if: steps.vercel-config.outputs.available == 'true' && steps.deploy.outcome == 'success' && github.event_name == 'pull_request'
+        continue-on-error: true
         uses: actions/github-script@v7
         env:
           PREVIEW_URL: ${{ steps.deploy.outputs.url }}
@@ -167,6 +168,13 @@ jobs:
                 owner, repo, issue_number, body
               });
             }
+
+      - name: Report preview URL in workflow summary
+        if: steps.vercel-config.outputs.available == 'true' && steps.deploy.outcome == 'success'
+        env:
+          PREVIEW_URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          echo "Preview ready: ${PREVIEW_URL}" >> "$GITHUB_STEP_SUMMARY"
 
   browser-e2e:
     name: Preview Browser E2E (Playwright)
@@ -253,6 +261,12 @@ jobs:
           PLAYWRIGHT_PACKAGE_ROOT: /tmp/pw-runner
           E2E_ARTIFACTS_DIR: test-results/preview-browser-e2e
         run: node scripts/verify-preview-browser-e2e.mjs
+
+      - name: Run NEXORA responsive marketing and owner-route browser audit
+        env:
+          PREVIEW_URL: ${{ steps.resolve-preview.outputs.url }}
+          BROWSER_TOOLS_ROOT: /tmp/pw-runner
+        run: node scripts/verify-nexora-responsive-browser.mjs
 
       - name: Upload Playwright report, screenshots and traces
         uses: actions/upload-artifact@v4

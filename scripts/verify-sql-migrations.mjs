@@ -370,11 +370,11 @@ assert.match(storefrontViewSql,/revoke select on public\.studioflow_websites fro
   'anonymous direct reads of the base table are withdrawn');
 assert.match(storefrontViewSql,/grant select on public\.public_salon_websites to anon, authenticated/i,
   'the projection view is granted to anon so the storefront still renders');
-// The view must be SECURITY DEFINER: a security_invoker view would run with the
-// caller's rights and every anonymous render would fail on the revoked grant.
+// This historical migration creates a SECURITY DEFINER view. A later
+// migration replaces it with a SECURITY INVOKER view and narrow grants.
 assert.doesNotMatch(storefrontViewSql.split('revoke select on public.studioflow_websites')[0].replace(/--[^\n]*/g,''),
   /security_invoker\s*=\s*true/i,
-  'the shipped view is not security_invoker (that combination denies every anon read)');
+  'the historical view intentionally predates the invoker hardening');
 assert.doesNotMatch(storefrontViewSql,/\bowner_id\b[^\n]*from public\.public_salon_websites/i,
   'no read path selects owner_id out of the public projection');
 
@@ -406,10 +406,23 @@ grant select, insert, update on public.studioflow_bookings, public.studioflow_de
 `);
 await applySqlText(storefrontViewSql,storefrontViewFile);
 
+const storefrontSecurityFile='supabase/migrations/20261124095142_public_storefront_security_invoker.sql';
+const storefrontSecuritySql=readFileSync(storefrontSecurityFile,'utf8');
+assert.match(storefrontSecuritySql,/with\s*\(security_invoker\s*=\s*true\)/i,
+  'the follow-up view runs with caller privileges');
+assert.match(storefrontSecuritySql,/grant select\s*\(slug, content, published_at\)/i,
+  'anonymous access is limited to the storefront projection columns');
+assert.doesNotMatch(storefrontSecuritySql,/public\.studioflow_bookings|public\.services|public\.salons/i,
+  'storefront hardening does not change booking or unrelated public API permissions');
+await applySqlText(storefrontSecuritySql,storefrontSecurityFile);
+
 const {rows:[storefrontPrivacy]}=await db.query(`
   select
     has_table_privilege('anon','public.studioflow_websites','SELECT') as anon_base_read,
     has_table_privilege('authenticated','public.studioflow_websites','SELECT') as auth_base_read,
+    has_column_privilege('anon','public.studioflow_websites','owner_id','SELECT') as anon_owner_id,
+    has_column_privilege('anon','public.studioflow_websites','slug','SELECT') as anon_slug,
+    (select reloptions from pg_class where oid='public.public_salon_websites'::regclass) as view_options,
     (select count(*)::int from information_schema.columns
        where table_schema='public' and table_name='public_salon_websites' and column_name='owner_id') as view_owner_id_columns,
     (select count(*)::int from pg_trigger
@@ -418,18 +431,25 @@ const {rows:[storefrontPrivacy]}=await db.query(`
        where tgrelid='public.studioflow_demo_bookings'::regclass and tgname='studioflow_stamp_demo_booking_salon_slug') as demo_slug_trigger
 `);
 assert.equal(storefrontPrivacy.anon_base_read,false,'anon can no longer read public.studioflow_websites directly');
-assert.equal(storefrontPrivacy.auth_base_read,true,'authenticated keeps its direct table read for owner screens');
+assert.equal(storefrontPrivacy.auth_base_read,true,'authenticated keeps base-table SELECT for owner screens');
+assert.equal(storefrontPrivacy.anon_owner_id,false,'anon cannot read owner_id');
+assert.equal(storefrontPrivacy.anon_slug,true,'anon can read the public slug column');
+assert(storefrontPrivacy.view_options?.includes('security_invoker=true'),'storefront view is security_invoker');
 assert.equal(storefrontPrivacy.view_owner_id_columns,0,'the public projection has no owner_id column');
 assert.equal(storefrontPrivacy.bookings_slug_trigger,1,'bookings stamp the public salon slug on write');
 assert.equal(storefrontPrivacy.demo_slug_trigger,1,'demo bookings stamp the public salon slug on write');
 
 // Website publish hardening + follow-up slug-casing/subdomain/compat fix + hold_expires_at compat.
 const robustPublishFile='supabase/migrations/20261123082445_studioflow_robust_website_publish.sql';
-const publishCaseCompatFile='supabase/migrations/20261123093000_studioflow_publish_slug_case_and_compat.sql';
-const holdExpiresCompatFile='supabase/migrations/20261123100000_studioflow_bookings_hold_expires_at_compat.sql';
+const holdExpiresCompatFile='supabase/migrations/20261124095101_studioflow_bookings_hold_expires_at_compat.sql';
 await applySqlText(readFileSync(robustPublishFile,'utf8'),robustPublishFile);
-await applySqlText(readFileSync(publishCaseCompatFile,'utf8'),publishCaseCompatFile);
+// The slug-case fix from 20261123093000 is included in the later tracking
+// isolation migration; the archived source is intentionally not replayed as a
+// second live migration.
 await applySqlText(readFileSync(holdExpiresCompatFile,'utf8'),holdExpiresCompatFile);
+const publishTrackingFile='supabase/migrations/20261124095131_studioflow_publish_optional_tracking_isolation.sql';
+await applySqlText(readFileSync(publishTrackingFile,'utf8'),publishTrackingFile);
+await applySqlText(storefrontSecuritySql,storefrontSecurityFile);
 const {rows:[holdExpiresCol]}=await db.query(`
   select data_type from information_schema.columns
   where table_schema='public' and table_name='studioflow_bookings' and column_name='hold_expires_at'

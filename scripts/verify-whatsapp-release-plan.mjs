@@ -69,7 +69,7 @@ for(const record of history.retimestamped_unapplied_migrations){
   assert.equal(createHash('sha256').update(readFileSync('supabase/migrations/'+record.new_file,'utf8').replace(/\r\n?/g,'\n')).digest('hex'),record.sha256);
 }
 assert.equal(history.deferred_feature_migrations.length,15);
-assert.equal(history.superseded_unapplied_migrations.length,1);
+assert.equal(history.superseded_unapplied_migrations.length,2);
 assert.equal(history.live_catalog_evidence.applied_versions,history.applied_versions_in_export,
   'The catalog evidence count must remain tied to its original export date');
 assert(history.live_catalog_evidence.captured_at);

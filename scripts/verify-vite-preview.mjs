@@ -41,5 +41,8 @@ try {
   });
   console.log('PASS: affected imports transform and HMR connects on the HTTP preview port.');
 } finally {
-  try { process.kill(-child.pid, 'SIGTERM'); } catch { /* already exited */ }
+  try {
+    if (process.platform === 'win32') child.kill('SIGTERM');
+    else process.kill(-child.pid, 'SIGTERM');
+  } catch { /* already exited */ }
 }

@@ -276,6 +276,8 @@ export const NexoraTemplateCard: React.FC<{
             <img
               src={nexoraPreviewImage(template)}
               data-registry-cover={template.coverImageUrl}
+              width={280}
+              height={176}
               alt={`${meta.displayName} template preview`}
               loading="lazy"
               decoding="async"
