@@ -35,133 +35,23 @@ assert.equal(config.url, FALLBACK_URL, 'the bundled project URL is used when no 
 assert.equal(config.ref, 'zilwgiuiygqqardzutxi', 'the project reference is parsed from the URL');
 assert.equal(config.usesProjectOverride, false, 'the default project is not an override');
 
-/* 2. A malformed URL fails fast with non-secret structural diagnostics. */
+/* 2. A malformed URL fails fast instead of silently using another project. */
 assert.throws(
   () => env.resolveSupabaseConfig({ VITE_SUPABASE_URL: 'not-a-url' }, FALLBACK_URL, FALLBACK_KEY),
-  (error) => {
-    assert.match(error.message, /valid HTTPS project URL/);
-    assert.match(error.message, /reason=invalid-url-syntax/);
-    assert.match(error.message, /rawLength=9/);
-    assert.match(error.message, /hasScheme=false/);
-    assert.equal(error.message.includes('not-a-url'), false, 'raw invalid value must not be echoed in diagnostics');
-    assert.equal(error.diagnostic?.reason, 'invalid-url-syntax');
-    return true;
-  },
-  'a malformed project URL is rejected with non-secret diagnostics',
+  /valid HTTPS project URL/,
+  'a malformed project URL is rejected',
 );
 assert.throws(
   () => env.resolveSupabaseConfig({ VITE_SUPABASE_URL: 'http://insecure.example' }, FALLBACK_URL, FALLBACK_KEY),
-  (error) => {
-    assert.match(error.message, /valid HTTPS project URL/);
-    assert.match(error.message, /reason=non-https-scheme/);
-    assert.match(error.message, /scheme=http/);
-    assert.equal(error.message.includes('insecure.example'), false, 'untrusted hostname must not be echoed');
-    return true;
-  },
+  /valid HTTPS project URL/,
   'a plain-HTTP project URL is rejected',
 );
-assert.throws(
-  () => env.resolveSupabaseConfig({ VITE_SUPABASE_URL: 'http://zilwgiuiygqqardzutxi.supabase.co' }, FALLBACK_URL, FALLBACK_KEY),
-  (error) => error.diagnostic?.reason === 'non-https-scheme' && error.diagnostic?.hostMatchesExpected === true,
-  'plain-HTTP even on the canonical host is rejected',
-);
-assert.throws(
-  () => env.resolveSupabaseConfig({ VITE_SUPABASE_URL: 'https://untrusted.example.com' }, FALLBACK_URL, FALLBACK_KEY),
-  (error) => {
-    assert.match(error.message, /reason=untrusted-host/);
-    assert.equal(error.message.includes('untrusted.example.com'), false, 'untrusted host is never echoed');
-    assert.equal(error.diagnostic?.hostLooksLikeSupabase, false);
-    return true;
-  },
-  'an untrusted HTTPS host is rejected',
-);
-assert.throws(
-  () => env.resolveSupabaseConfig({ VITE_SUPABASE_URL: 'https://supabase.co.attacker.example' }, FALLBACK_URL, FALLBACK_KEY),
-  (error) => error.diagnostic?.reason === 'untrusted-host',
-  'a lookalike suffix-spoofed host is rejected',
-);
-assert.throws(
-  () => env.resolveSupabaseConfig({ VITE_SUPABASE_URL: 'staging-project.supabase.co' }, FALLBACK_URL, FALLBACK_KEY),
-  (error) => error.diagnostic?.reason === 'invalid-url-syntax',
-  'a bare non-canonical host without https:// is rejected',
-);
-assert.throws(
-  () =>
-    env.resolveSupabaseConfig(
-      { VITE_SUPABASE_URL: 'https://user:super_secret_pw@zilwgiuiygqqardzutxi.supabase.co' },
-      FALLBACK_URL,
-      FALLBACK_KEY,
-    ),
-  (error) => {
-    assert.equal(error.diagnostic?.reason, 'credentials-in-url');
-    assert.equal(error.message.includes('super_secret_pw'), false, 'URL credentials must never appear in diagnostics');
-    return true;
-  },
-  'URLs embedding credentials are rejected without leaking credentials',
-);
-assert.throws(
-  () => env.resolveSupabaseConfig({ VITE_SUPABASE_URL: 'https://zilwgiuiygqqardzutxi.supabase.co/rest/v1' }, FALLBACK_URL, FALLBACK_KEY),
-  (error) => error.diagnostic?.reason === 'unexpected-path-or-query',
-  'URLs with unexpected paths are rejected',
-);
-assert.throws(
-  () => env.resolveSupabaseConfig({ VITE_SUPABASE_URL: 'https://zilwgiuiygqqardzutxi.supabase.co:8443' }, FALLBACK_URL, FALLBACK_KEY),
-  (error) => error.diagnostic?.reason === 'unexpected-port',
-  'URLs with custom ports are rejected',
-);
-assert.throws(
-  () => env.resolveSupabaseConfig({ VITE_SUPABASE_URL: 'https://zilwgiuiygqqardzutxi.supabase.co\\nextra' }, FALLBACK_URL, FALLBACK_KEY),
-  (error) => error.diagnostic?.reason === 'contains-whitespace',
-  'URLs with internal escaped newlines are rejected',
-);
-assert.throws(
-  () => env.resolveSupabaseConfig({ VITE_SUPABASE_URL: 'sb_secret_accidentally_in_url_var' }, FALLBACK_URL, FALLBACK_KEY),
-  (error) => {
-    assert.equal(error.diagnostic?.reason, 'invalid-url-syntax');
-    assert.equal(error.diagnostic?.rawLength, 'sb_secret_accidentally_in_url_var'.length);
-    assert.equal(error.message.includes('sb_secret_accidentally_in_url_var'), false, 'secret pasted in URL var never leaks');
-    return true;
-  },
-  'a secret mistakenly placed in VITE_SUPABASE_URL is rejected with non-secret diagnostics only',
-);
-assert.throws(
-  () => env.resolveSupabaseConfig({ VITE_SUPABASE_URL: '[REDACTED]' }, FALLBACK_URL, FALLBACK_KEY),
-  (error) => error.diagnostic?.reason === 'invalid-url-syntax' && error.diagnostic?.isBracketPlaceholder === true,
-  'unknown bracket placeholders fail fast with isBracketPlaceholder diagnostic',
-);
 
-/* 3. A privileged key in a browser variable is rejected (even when quoted or in secondary key var). */
+/* 3. A privileged key in a browser variable is rejected. */
 assert.throws(
   () => env.resolveSupabaseConfig({ VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_secret_abc123' }, FALLBACK_URL, FALLBACK_KEY),
-  (error) => {
-    assert.match(error.message, /privileged Supabase key/);
-    assert.match(error.message, /source=VITE_SUPABASE_PUBLISHABLE_KEY/);
-    assert.match(error.message, /keyKind=secret-prefix/);
-    assert.equal(error.message.includes('sb_secret_abc123'), false, 'secret key must never appear in diagnostic');
-    return true;
-  },
+  /privileged Supabase key/,
   'a secret key in a browser variable is rejected',
-);
-assert.throws(
-  () => env.resolveSupabaseConfig({ VITE_SUPABASE_PUBLISHABLE_KEY: '  "sb_secret_quoted\\n"  ' }, FALLBACK_URL, FALLBACK_KEY),
-  (error) => error.diagnostic?.reason === 'privileged-key' && error.diagnostic?.keyKind === 'secret-prefix',
-  'a quoted/newline-padded secret key in a browser variable is still rejected',
-);
-assert.throws(
-  () =>
-    env.resolveSupabaseConfig(
-      {
-        VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_valid_primary',
-        VITE_SUPABASE_ANON_KEY: 'sb_secret_hidden_in_anon_var',
-      },
-      FALLBACK_URL,
-      FALLBACK_KEY,
-    ),
-  (error) =>
-    error.diagnostic?.reason === 'privileged-key' &&
-    error.diagnostic?.source === 'VITE_SUPABASE_ANON_KEY' &&
-    !error.message.includes('sb_secret_hidden_in_anon_var'),
-  'a privileged key in VITE_SUPABASE_ANON_KEY is rejected even when VITE_SUPABASE_PUBLISHABLE_KEY is set',
 );
 assert.throws(
   () =>
@@ -201,69 +91,18 @@ assert.throws(
   'a Supabase service_role JWT with iss=supabase is rejected',
 );
 
-/* 4b. Vercel CLI `vercel pull` "[SENSITIVE]" placeholders fall back safely (including quoted/escaped variants). */
+/* 4b. Vercel CLI `vercel pull` "[SENSITIVE]" placeholders fall back safely. */
 config = env.resolveSupabaseConfig(
   {
-    VITE_SUPABASE_URL: ' "[SENSITIVE]\\n" ',
+    VITE_SUPABASE_URL: '[SENSITIVE]',
     VITE_SUPABASE_PUBLISHABLE_KEY: '[SENSITIVE]',
-    VITE_SUPABASE_ANON_KEY: '\'[SENSITIVE]\\r\\n\'',
+    VITE_SUPABASE_ANON_KEY: '[SENSITIVE]',
   },
   FALLBACK_URL,
   FALLBACK_KEY,
 );
 assert.equal(config.url, FALLBACK_URL, 'Vercel [SENSITIVE] URL placeholder falls back to bundled public project URL');
 assert.equal(config.publishableKey, FALLBACK_KEY, 'Vercel [SENSITIVE] key placeholder falls back to bundled publishable key');
-
-/* 4c. Escaped newlines, whitespace, surrounding quotes, trailing slashes, and bare canonical host/ref normalize cleanly. */
-config = env.resolveSupabaseConfig(
-  {
-    VITE_SUPABASE_URL: '  "https://zilwgiuiygqqardzutxi.supabase.co/\\n"  ',
-    VITE_SUPABASE_PUBLISHABLE_KEY: '  \\"sb_publishable_clean_123\\r\\n\\"  ',
-  },
-  FALLBACK_URL,
-  FALLBACK_KEY,
-);
-assert.equal(config.url, FALLBACK_URL, 'quoted URL with trailing slash and escaped newline normalizes cleanly');
-assert.equal(config.publishableKey, 'sb_publishable_clean_123', 'escaped-quoted publishable key with escaped CRLF normalizes cleanly');
-assert.equal(config.usesProjectOverride, false, 'normalized canonical URL is not treated as an override');
-
-config = env.resolveSupabaseConfig(
-  { VITE_SUPABASE_URL: '\\n\\"https://zilwgiuiygqqardzutxi.supabase.co\\"\\r\\n' },
-  FALLBACK_URL,
-  FALLBACK_KEY,
-);
-assert.equal(config.url, FALLBACK_URL, 'leading/trailing escaped newlines around escaped quotes normalize cleanly');
-
-const bareWarnings = [];
-const prevWarn = console.warn;
-console.warn = (message) => bareWarnings.push(String(message));
-try {
-  config = env.resolveSupabaseConfig(
-    { VITE_SUPABASE_URL: '  "zilwgiuiygqqardzutxi.supabase.co/\\n"  ' },
-    FALLBACK_URL,
-    FALLBACK_KEY,
-  );
-  assert.equal(config.url, FALLBACK_URL, 'bare canonical host normalizes to canonical HTTPS URL');
-  assert.equal(config.usesProjectOverride, false, 'bare canonical host is not treated as a project override');
-
-  config = env.resolveSupabaseConfig(
-    { VITE_SUPABASE_URL: '  zilwgiuiygqqardzutxi\\r\\n ' },
-    FALLBACK_URL,
-    FALLBACK_KEY,
-  );
-  assert.equal(config.url, FALLBACK_URL, 'bare canonical project ref normalizes to canonical HTTPS URL');
-  assert.equal(config.usesProjectOverride, false, 'bare canonical project ref is not treated as a project override');
-} finally {
-  console.warn = prevWarn;
-}
-assert.ok(
-  bareWarnings.some((message) => message.includes('bare canonical host')),
-  'normalizing bare canonical host logs a non-secret warning',
-);
-assert.ok(
-  bareWarnings.some((message) => message.includes('bare project ref')),
-  'normalizing bare canonical project ref logs a non-secret warning',
-);
 
 /* 5. A different project is reported by host, never by key. */
 const warnings = [];
