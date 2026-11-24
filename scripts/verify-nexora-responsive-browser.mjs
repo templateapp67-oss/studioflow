@@ -58,14 +58,15 @@ const pageErrors = [];
 const hydrationErrors = [];
 let activeRoute = '';
 
-function headerMeasurementMatchesLayout() {
+function headerMeasurementDetails() {
   const header = document.querySelector('.nexora-site-header');
   const inner = header?.querySelector('.nexora-site-header__inner');
   const brand = header?.querySelector('.nexora-site-header__brand');
   const measuredRow = header?.querySelector('.nexora-site-header__measure');
   const compactAction = header?.querySelector('.nexora-site-header__compact-primary');
   const toggle = header?.querySelector('.nexora-site-header__toggle');
-  if (!header || !inner || !brand || !measuredRow || !compactAction || !toggle) return false;
+  if (!header || !inner || !brand || !measuredRow || !compactAction || !toggle
+    || !header.classList.contains('has-measured-layout') || inner.clientWidth <= 0) return null;
 
   const style = window.getComputedStyle(inner);
   const rowGap = Number.parseFloat(style.getPropertyValue('--nsh-row-gap'))
@@ -73,13 +74,27 @@ function headerMeasurementMatchesLayout() {
     || 0;
   const compactGap = Number.parseFloat(style.getPropertyValue('--nsh-compact-gap')) || rowGap;
   const brandWidth = brand.getBoundingClientRect().width;
-  const shouldBeCompact = brandWidth + measuredRow.getBoundingClientRect().width + rowGap > inner.clientWidth + 0.5;
+  const measuredRowWidth = measuredRow.getBoundingClientRect().width;
+  const compactActionWidth = compactAction.getBoundingClientRect().width;
   const toggleWidth = Number.parseFloat(window.getComputedStyle(toggle).width) || toggle.getBoundingClientRect().width;
+  const shouldBeCompact = brandWidth + measuredRowWidth + rowGap > inner.clientWidth + 0.5;
   const shouldShowCompactAction = shouldBeCompact
     && Boolean(header.querySelector('.nexora-site-header__measure-actions .nexora-site-header__primary'))
-    && brandWidth + compactAction.getBoundingClientRect().width + toggleWidth + (2 * compactGap) <= inner.clientWidth + 0.5;
-  return header.classList.contains('nexora-site-header--compact') === shouldBeCompact
-    && header.classList.contains('has-compact-action') === shouldShowCompactAction;
+    && brandWidth + compactActionWidth + toggleWidth + (2 * compactGap) <= inner.clientWidth + 0.5;
+  return {
+    viewportWidth: window.innerWidth,
+    innerWidth: inner.clientWidth,
+    brandWidth,
+    measuredRowWidth,
+    compactActionWidth,
+    toggleWidth,
+    rowGap,
+    compactGap,
+    actualCompact: header.classList.contains('nexora-site-header--compact'),
+    expectedCompact: shouldBeCompact,
+    actualCompactAction: header.classList.contains('has-compact-action'),
+    expectedCompactAction: shouldShowCompactAction,
+  };
 }
 
 try {
@@ -170,7 +185,12 @@ try {
     }
 
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.waitForFunction(headerMeasurementMatchesLayout);
+    const layoutHandle = await page.waitForFunction(headerMeasurementDetails, { timeout: 10000 });
+    const headerLayout = await layoutHandle.jsonValue();
+    assert.equal(headerLayout.actualCompact, headerLayout.expectedCompact,
+      `${routePath} measured responsive collapse: ${JSON.stringify(headerLayout)}`);
+    assert.equal(headerLayout.actualCompactAction, headerLayout.expectedCompactAction,
+      `${routePath} measured compact action: ${JSON.stringify(headerLayout)}`);
     const expectedCompactAt390 = await page.evaluate(() => {
       const header = document.querySelector('.nexora-site-header');
       const inner = header?.querySelector('.nexora-site-header__inner');
