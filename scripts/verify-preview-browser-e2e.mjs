@@ -100,7 +100,13 @@ try {
     if (viewport.width === 1440) {
       const probeUrl = new URL('/?site=nexora-ssr-preview-probe-not-published', previewUrl).toString();
       const probeResponse = await page.goto(probeUrl, { waitUntil: 'networkidle', timeout: 60000 });
-      assert.equal(probeResponse?.status(), 404, `SSR probe should return the not-published 404, got ${probeResponse?.status() ?? 'no response'}`);
+      const probeBody = probeResponse ? await probeResponse.text() : '';
+      const probeHeaders = probeResponse ? {
+        contentType: probeResponse.headers()['content-type'] || '',
+        requestId: probeResponse.headers()['x-vercel-id'] || '',
+        middleware: probeResponse.headers()['x-nexora-ssr-route'] || '',
+      } : {};
+      assert.equal(probeResponse?.status(), 404, `SSR probe should return the not-published 404, got ${probeResponse?.status() ?? 'no response'}; headers=${JSON.stringify(probeHeaders)}; body=${probeBody.slice(0, 1200)}`);
       assert.match(await page.title(), /salon website not found/i, 'SSR route did not return its server-rendered not-found document');
       assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'), 'noindex', 'Unpublished salon response must not be indexed');
       assert.match(await page.locator('body').innerText(), /This salon website is not published/i);
