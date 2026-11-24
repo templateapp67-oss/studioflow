@@ -19,6 +19,7 @@ type Renderer = {
     html: string;
     profile: Record<string, any>;
     normalizedContent: Record<string, any>;
+    site: Record<string, any>;
   };
 };
 
@@ -165,11 +166,19 @@ function renderHead(profile: Record<string, any>, site: Record<string, any>, can
   const offers = services.slice(0, 40).filter((service: any) => typeof service?.name === 'string' && service.name.trim()).map((service: any) => ({
     '@type': 'Offer',
     itemOffered: { '@type': 'Service', name: service.name.trim() },
-    ...(Number.isFinite(Number(service.price)) && service.price !== null ? { price: Number(service.price), priceCurrency: 'INR' } : {}),
+    ...(Number.isFinite(Number(service.price)) && service.price !== null && Number(service.price) >= 0 ? { price: Number(service.price), priceCurrency: 'INR' } : {}),
   }));
+  const schemaTypeByBusiness: Record<string, string> = {
+    hair_salon: 'HairSalon',
+    barber: 'BarberShop',
+    beauty_parlour: 'BeautySalon',
+    aurelia_beauty_parlour: 'BeautySalon',
+    nail_studio: 'NailSalon',
+    tattoo_studio: 'TattooParlor',
+  };
   const schema = {
     '@context': 'https://schema.org',
-    '@type': 'HealthAndBeautyBusiness',
+    '@type': schemaTypeByBusiness[String(profile.businessType || '')] || 'HealthAndBeautyBusiness',
     name: profile.businessName || 'Salon',
     description,
     url: canonical,
@@ -249,8 +258,8 @@ export default async function storefrontHandler(req: RequestLike, res: ResponseL
   const viaQuery = pageUrl.searchParams.has('site') || pageUrl.searchParams.has('s') || pageUrl.searchParams.has('subdomain');
   const canonical = canonicalForRequest(rendered.profile, origin, pageUrl.pathname, slug, viaQuery);
   const assetTags = await getBuiltAssetTags(origin);
-  const initialPayload = safeJson({ slug, site: data.content });
-  const head = renderHead(rendered.profile, data.content as Record<string, any>, canonical) + '\n' + assetTags;
+  const initialPayload = safeJson({ slug, site: rendered.site });
+  const head = renderHead(rendered.profile, rendered.site, canonical) + '\n' + assetTags;
 
   res.status(200);
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
