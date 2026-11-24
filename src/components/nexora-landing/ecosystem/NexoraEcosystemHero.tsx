@@ -214,9 +214,9 @@ export function NexoraEcosystemHero({
                   <img
                     src="/templates/luxury-editorial/hero-680.webp"
                     srcSet="/templates/luxury-editorial/hero-480.webp 480w, /templates/luxury-editorial/hero-680.webp 680w"
-                    sizes="300px"
-                    width={680}
-                    height={850}
+                    sizes="(max-width: 640px) 212px, 248px"
+                    width={248}
+                    height={310}
                     alt="Ziya Women's Hair Studio template hero: a stylist finishing a layered haircut in a rose-ivory studio"
                     loading="eager"
                     decoding="async"
