@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { AuthPage } from './components/AuthPage';
-import { CustomerReferralBridge } from './components/CustomerReferralBridge';
 import { SalonWebsitePreview } from './components/SalonWebsitePreview';
 import { PublishedWebsite } from './App';
 import { useAuthSession } from './lib/useAuthSession';
@@ -14,13 +13,6 @@ function readRecoveryFlag(): boolean {
   } catch {
     return false;
   }
-}
-
-/** Referral checks start after hydration so they cannot change the SSR tree. */
-function CustomerReferralAfterHydration() {
-  const [ready, setReady] = useState(false);
-  useEffect(() => setReady(true), []);
-  return ready ? <CustomerReferralBridge /> : null;
 }
 
 /**
@@ -63,14 +55,11 @@ export function PublishedSalonHydrationApp() {
   }
 
   return (
-    <>
-      <CustomerReferralAfterHydration />
-      <PublishedWebsite
-        key={slug}
-        slug={slug}
-        session={session}
-        previewComponent={SalonWebsitePreview}
-      />
-    </>
+    <PublishedWebsite
+      key={slug}
+      slug={slug}
+      session={session}
+      previewComponent={SalonWebsitePreview}
+    />
   );
 }
