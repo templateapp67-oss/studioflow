@@ -70,15 +70,17 @@ function firstHeader(value: string | string[] | undefined): string {
 }
 
 function getRequestOrigin(req: RequestLike): { origin: string; hostname: string } {
-  const forwardedHost = firstHeader(req.headers['x-forwarded-host']);
-  const rawHost = forwardedHost || firstHeader(req.headers.host) || 'nexorasalon.online';
+  // Vercel supplies the Host header for the domain the request actually hit.
+  // Do not let a caller-controlled forwarded-host value redirect the server's
+  // asset fetch or influence canonical URLs.
+  const rawHost = firstHeader(req.headers.host) || 'nexorasalon.online';
   const host = rawHost.toLowerCase().replace(/\.$/, '');
   if (!/^[a-z0-9.-]+(?::[0-9]{1,5})?$/.test(host)) {
     return { origin: 'https://nexorasalon.online', hostname: 'nexorasalon.online' };
   }
   const hostname = host.replace(/:[0-9]+$/, '');
-  const forwardedProto = firstHeader(req.headers['x-forwarded-proto']).toLowerCase();
-  const protocol = forwardedProto === 'http' || hostname === 'localhost' || hostname === '127.0.0.1' ? 'http' : 'https';
+  // Vercel custom domains are served over HTTPS; retain HTTP only for local dev.
+  const protocol = hostname === 'localhost' || hostname === '127.0.0.1' ? 'http' : 'https';
   return { origin: protocol + '://' + host, hostname };
 }
 
