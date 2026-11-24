@@ -883,7 +883,18 @@
   }
 
   .nxh-hero__title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    width: 100%;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
     font-size: clamp(2.1rem, 9vw, 2.9rem);
+  }
+
+  .nxh-hero__word-mask {
+    max-width: 100%;
   }
 
   .nxh-hero__lead {
