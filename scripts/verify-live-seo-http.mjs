@@ -30,8 +30,9 @@ const retryDelayMs = Math.max(500, Number.parseInt(process.env.SEO_WAIT_RETRY_DE
 
 const defaultHeaders = {};
 if (bypassSecret) {
+  // Stateless HTTP clients must NOT send `x-vercel-set-bypass-cookie: true`,
+  // which triggers an endless 307 cookie-setting redirect loop without a cookie jar.
   defaultHeaders['x-vercel-protection-bypass'] = bypassSecret;
-  defaultHeaders['x-vercel-set-bypass-cookie'] = 'true';
 }
 
 async function fetchWithRetry(url, init = {}, attempts = 3) {
@@ -302,7 +303,10 @@ async function runVerification() {
     );
     return;
   } catch (error) {
-    report.error = error instanceof Error ? error.message : String(error);
+    const causeMsg = error instanceof Error && error.cause
+      ? ` (cause: ${error.cause instanceof Error ? error.cause.message : String(error.cause)})`
+      : '';
+    report.error = `${error instanceof Error ? error.message : String(error)}${causeMsg}`;
     writeReport(report);
     throw error;
   }
