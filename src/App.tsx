@@ -788,11 +788,16 @@ function PublishedWebsite({slug,session}:{key?:React.Key;slug:string;session:Ses
  },[slug,retry]);
   useEffect(()=>{
     if(!site?.profile)return;
-    const currentUrl=new URL(window.location.href);
-    const selector=currentUrl.searchParams.get('site')||currentUrl.searchParams.get('s')||currentUrl.searchParams.get('subdomain');
-    const canonical=site.profile.seo?.canonicalUrl||(
-      selector?currentUrl.origin+'/?site='+encodeURIComponent(selector):currentUrl.origin+currentUrl.pathname
-    );
+    let canonical=site.profile.seo?.canonicalUrl;
+    if(!canonical&&typeof window!=='undefined'&&typeof window.location?.href==='string'&&window.location.href){
+      try{
+        const currentUrl=new URL(window.location.href);
+        const selector=currentUrl.searchParams.get('site')||currentUrl.searchParams.get('s')||currentUrl.searchParams.get('subdomain');
+        canonical=selector?currentUrl.origin+'/?site='+encodeURIComponent(selector):currentUrl.origin+currentUrl.pathname;
+      }catch{
+        // Non-browser test harnesses may expose a partial location object.
+      }
+    }
     const cleanupSeo = applySeoMetadata(site.profile,canonical);
     const restoreIcon = applyWebsiteFavicon(document, websiteFavicon(site.branding, site.profile));
     return () => {
