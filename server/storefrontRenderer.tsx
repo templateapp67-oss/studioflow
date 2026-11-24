@@ -110,5 +110,14 @@ export function renderPublishedSalonHtml(rawContent: unknown, slug: string): Pub
     </React.Suspense>,
   );
 
-  return { html, profile: hydrationProfile, normalizedContent: normalized, site: hydrationSite };
+  // React 19 emits image/font resource hints from renderToString. These are
+  // document resources, not children of the hydrated React root; hoist them
+  // into <head> so hydrateRoot sees the same first child as the client tree.
+  const preloadTags: string[] = [];
+  const hydrationHtml = html.replace(/<link\b(?=[^>]*\brel=["']preload["'])[^>]*\/?>/gi, (tag) => {
+    preloadTags.push(tag);
+    return '';
+  });
+
+  return { html: hydrationHtml, preloadTags, profile: hydrationProfile, normalizedContent: normalized, site: hydrationSite };
 }
