@@ -13,7 +13,7 @@ mkdirSync(tracesDir, { recursive: true });
 const report = {
   overallStatus: 'FAIL',
   testMode: 'read-only-preview-smoke',
-  backendIntegration: 'not tested against hosted Supabase; publishing contract is covered separately by isolated PGlite tests',
+  backendIntegration: 'read-only published-salon lookup through the hosted Supabase public view; no backend writes',
   previewUrl: previewUrl || null,
   blockedWriteRequests: [],
   failedRequests: [],
@@ -21,6 +21,7 @@ const report = {
   pageErrors: [],
   viewports: [],
   storefrontSsrProbe: null,
+  storefrontPublishedProbe: null,
 };
 const summaryPath = join(artifactsDir, 'summary.md');
 const reportPath = join(artifactsDir, 'report.json');
@@ -104,6 +105,35 @@ try {
       assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'), 'noindex', 'Unpublished salon response must not be indexed');
       assert.match(await page.locator('body').innerText(), /This salon website is not published/i);
       report.storefrontSsrProbe = { status: probeResponse.status(), title: await page.title(), robots: 'noindex' };
+
+      // Prove the positive path too: read one already-published public salon
+      // from the production App database. This is GET-only and does not edit
+      // customer or salon data. The slug can be overridden by CI if the
+      // designated smoke salon is ever intentionally unpublished.
+      const publishedSlug = (process.env.SSR_TEST_PUBLISHED_SLUG || 'vijaysalojaipur').trim();
+      assert.match(publishedSlug, /^[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/, 'SSR published test slug must be a valid public slug');
+      const publishedUrl = new URL('/?site=' + encodeURIComponent(publishedSlug), previewUrl).toString();
+      const publishedResponse = await page.goto(publishedUrl, { waitUntil: 'networkidle', timeout: 60000 });
+      assert.equal(publishedResponse?.status(), 200, `Published salon SSR should return 200, got ${publishedResponse?.status() ?? 'no response'}`);
+      const publishedHtml = await publishedResponse.text();
+      const payloadMatch = publishedHtml.match(/<script id="nexora-published-site-data" type="application\\/json">([\\s\\S]*?)<\\/script>/);
+      assert.ok(payloadMatch, 'Published salon response must contain the server-rendered hydration payload');
+      const publishedPayload = JSON.parse(payloadMatch[1]);
+      assert.equal(publishedPayload.slug, publishedSlug, 'SSR hydration payload must belong to the requested published salon');
+      const businessName = String(publishedPayload.site?.profile?.businessName || '').trim();
+      assert.ok(businessName, 'Published salon SSR payload must include its own business name');
+      assert.ok(publishedHtml.includes(businessName), 'Raw HTTP HTML must contain the published salon business name before client JavaScript');
+      assert.match(publishedHtml, /<meta name="robots" content="index,follow">/, 'Published salon HTML must be indexable');
+      assert.match(publishedHtml, /<link rel="canonical" href="/, 'Published salon HTML must contain a canonical URL');
+      assert.match(publishedHtml, /application\\/ld\\+json/, 'Published salon HTML must contain structured data');
+      report.storefrontPublishedProbe = {
+        status: publishedResponse.status(),
+        slug: publishedSlug,
+        businessName,
+        title: (publishedHtml.match(/<title>([\\s\\S]*?)<\\/title>/i) || [])[1] || '',
+        robots: 'index,follow',
+        serverRendered: true,
+      };
     }
 
     await context.tracing.stop({ path: join(tracesDir, `preview-${viewport.width}.zip`) });
