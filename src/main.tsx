@@ -44,7 +44,7 @@ if (rootElement) {
     // Hydrate only the storefront component tree emitted by the server.
     // The default App adds global Suspense/referral wrappers that do not exist
     // in the SSR document and cause React to recover from a root mismatch.
-    void import('./App')
+    void import('./PublishedSalonHydrationApp')
       .then(({ PublishedSalonHydrationApp }) => {
         if (!rootElement.isConnected || document.getElementById('root') !== rootElement) return;
         hydrateRoot(
