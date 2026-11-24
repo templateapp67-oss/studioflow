@@ -1,7 +1,8 @@
 import { build } from 'esbuild';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 
 await mkdir('dist', { recursive: true });
+const builtIndexHtml = await readFile('dist/index.html', 'utf8');
 await build({
   entryPoints: ['server/storefrontRenderer.tsx'],
   outfile: 'dist/storefront-renderer.cjs',
@@ -33,6 +34,7 @@ await build({
   },
   define: {
     'import.meta.env': JSON.stringify({ DEV: false, PROD: true, MODE: 'production' }),
+    '__NEXORA_STOREFRONT_ASSET_HTML__': JSON.stringify(builtIndexHtml),
   },
 });
 console.log('Built the server-side published salon renderer.');
