@@ -173,7 +173,8 @@ jobs:
         if: steps.vercel-config.outputs.available == 'true' && steps.deploy.outcome == 'success'
         env:
           PREVIEW_URL: ${{ steps.deploy.outputs.url }}
-        run: echo "Preview ready: ${PREVIEW_URL}" >> "$GITHUB_STEP_SUMMARY"
+        run: |
+          echo "Preview ready: ${PREVIEW_URL}" >> "$GITHUB_STEP_SUMMARY"
 
   browser-e2e:
     name: Preview Browser E2E (Playwright)
