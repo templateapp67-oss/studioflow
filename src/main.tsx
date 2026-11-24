@@ -27,9 +27,6 @@ registerCustomerPwa();
 
 const rootElement = document.getElementById('root');
 if (rootElement) {
-  // Public marketing documents are server-rendered; delay client-only update
-  // polling until after the first commit so its lazy boundary cannot mismatch
-  // the static HTML during hydration.
   const hasPublishedSalonSsr = Boolean(document.getElementById('nexora-published-site-data'));
   const canHydrate = rootElement.hasChildNodes()
     && (!requiresFullApplication(window.location) || hasPublishedSalonSsr);
@@ -43,8 +40,32 @@ if (rootElement) {
     </StrictMode>
   );
 
-  // Published sites and auth routes keep their existing client app.
-  if (canHydrate) {
+  if (hasPublishedSalonSsr) {
+    // The server rendered PublishedWebsite's storefront subtree. Hydrating
+    // AppRouter first would hit its lazy FullApplication boundary and replace
+    // that HTML with the Suspense loader on a cold load. Load App directly,
+    // then hydrate the matching PublishedWebsite tree without clearing SSR.
+    void import('./App')
+      .then(({ default: PublishedSalonApp }) => {
+        if (!rootElement.isConnected || document.getElementById('root') !== rootElement) return;
+        hydrateRoot(
+          rootElement,
+          <StrictMode>
+            <DebugBoundary>
+              <PublishedSalonApp />
+            </DebugBoundary>
+            <AppUpdateManagerAfterHydration />
+          </StrictMode>,
+        );
+      })
+      .catch((error) => {
+        console.error('[NEXORA] Published salon hydration failed; mounting the client app.', error);
+        if (rootElement.isConnected && document.getElementById('root') === rootElement) {
+          rootElement.replaceChildren();
+          createRoot(rootElement).render(content);
+        }
+      });
+  } else if (canHydrate) {
     hydrateRoot(rootElement, content);
   } else {
     if (rootElement.hasChildNodes()) rootElement.replaceChildren();
