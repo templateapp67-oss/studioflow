@@ -45,9 +45,11 @@ export const looksPrivileged = (key: string): boolean => {
   if (value.startsWith('sb_secret_')) return true;
   if (!value.startsWith('eyJ')) return false;
   try {
-    const payload = JSON.parse(atob(value.split('.')[1] ?? ''));
+    const segment = (value.split('.')[1] ?? '').replace(/-/g, '+').replace(/_/g, '/');
+    const padded = segment.padEnd(Math.ceil(segment.length / 4) * 4, '=');
+    const payload = JSON.parse(atob(padded));
     const role = payload?.role;
-    return role === 'service_role' || payload?.iss === 'supabase';
+    return role === 'service_role' || (payload?.iss === 'supabase' && role !== 'anon');
   } catch {
     return false;
   }
