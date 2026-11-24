@@ -31,10 +31,8 @@ type Renderer = {
 // published slug/content/timestamp columns and has its own anonymous RLS grant.
 // Never use a service-role or Supabase secret key for storefront rendering.
 const EXPECTED_SUPABASE_HOST = 'zilwgiuiygqqardzutxi.supabase.co';
-// Match the browser's public Vite configuration. Do not prefer an unrelated
-// server-only SUPABASE_URL variable that could silently point at the QA project.
-// The SSR endpoint must always read the same production App database as the
-// published-site catalogue. Do not inherit a stale Preview/QA VITE override.
+// Published-site SSR intentionally reads the verified production App project.
+// Do not inherit environment-specific Preview/QA overrides for public websites.
 const SUPABASE_URL = 'https://zilwgiuiygqqardzutxi.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_Xck8H8PcTCCnEwkvBfiSLw_c973vJkH';
 
