@@ -56,6 +56,17 @@ if (rootElement) {
             </DebugBoundary>
             <AppUpdateManagerAfterHydration />
           </StrictMode>,
+          {
+            onRecoverableError(error, errorInfo) {
+              // Preserve the component tree in CI logs so a future SSR mismatch
+              // can be fixed at its source rather than hidden or ignored.
+              console.error('[NEXORA] Recoverable SSR hydration error', {
+                message: error instanceof Error ? error.message : String(error),
+                componentStack: errorInfo.componentStack || '',
+                cause: error instanceof Error ? error.cause : undefined,
+              });
+            },
+          },
         );
       })
       .catch((error) => {
