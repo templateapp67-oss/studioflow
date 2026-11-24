@@ -15,11 +15,9 @@ export function getStorefrontShellHtml(): string {
 export function getStorefrontAssetTags(): string {
   const html = getStorefrontShellHtml();
   const links = html.match(/<link\b[^>]*\brel="(?:modulepreload|stylesheet)"[^>]*>/g) || [];
-  const clarity = html.match(/<script async src="\/clarity\.js"><\/script>/g) || [];
   const scripts = html.match(/<script\b[^>]*type="module"[^>]*src="[^"]+"[^>]*><\/script>/g) || [];
   if (scripts.length === 0) throw new Error('The built application script was not found in the SSR bundle.');
-  if (clarity.length !== 1) throw new Error('The async Clarity loader was not found in the SSR bundle.');
-  return [...links, ...clarity, ...scripts].join('\n');
+  return [...links, ...scripts].join('\n');
 }
 
 export interface PublishedSalonRenderResult {
