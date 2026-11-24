@@ -12,9 +12,10 @@ mkdirSync(screenshotsDir, { recursive: true });
 mkdirSync(tracesDir, { recursive: true });
 const report = {
   overallStatus: 'FAIL',
-  testMode: 'read-only-preview-smoke',
+  testMode: 'read-only-preview-smoke (app version endpoint mocked)',
   backendIntegration: 'not tested against hosted Supabase; publishing contract is covered separately by isolated PGlite tests',
   previewUrl: previewUrl || null,
+  mockedRequests: [],
   blockedWriteRequests: [],
   failedRequests: [],
   consoleErrors: [],
@@ -30,6 +31,7 @@ function saveReport() {
     '',
     `- Test mode: ${report.testMode}`,
     `- Backend integration: ${report.backendIntegration}`,
+    `- Mocked read-only requests: ${report.mockedRequests.length}`,
     `- Preview URL: ${report.previewUrl || 'missing'}`,
     `- Blocked backend write requests: ${report.blockedWriteRequests.length}`,
     `- Failed requests: ${report.failedRequests.length}`,
@@ -71,6 +73,12 @@ try {
     await page.route('**/*', async (route) => {
       const req = route.request();
       const method = req.method().toUpperCase();
+      const requestUrl = new URL(req.url());
+      if (method === 'GET' && requestUrl.origin === previewOrigin && requestUrl.pathname === '/app-version.json') {
+        report.mockedRequests.push({ method, endpoint: safeEndpoint(req.url()), reason: 'version polling is outside this read-only UI smoke' });
+        await route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'Not included in read-only browser smoke' }) });
+        return;
+      }
       if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
         report.blockedWriteRequests.push({ method, endpoint: safeEndpoint(req.url()) });
         await route.abort('blockedbyclient');
@@ -95,6 +103,7 @@ try {
   }
   assert.deepEqual(report.blockedWriteRequests, [], `Preview attempted ${report.blockedWriteRequests.length} backend write request(s)`);
   assert.deepEqual(report.failedRequests, [], `Browser network failures: ${JSON.stringify(report.failedRequests)}`);
+  assert.ok(report.mockedRequests.length > 0, 'Expected the read-only app-version request to be explicitly mocked');
   assert.deepEqual(report.pageErrors, [], `Browser page errors: ${report.pageErrors.join(' | ')}`);
   assert.deepEqual(report.consoleErrors, [], `Browser console errors: ${report.consoleErrors.join(' | ')}`);
   report.overallStatus = 'PASS';
