@@ -108,7 +108,7 @@
       "destination": "/index.html"
     },
     {
-      "source": "/(.*)",
+      "source": "^/(?!api(?:/|$))(.*)$",
       "destination": "/api/storefront?path=/$1"
     }
   ],
