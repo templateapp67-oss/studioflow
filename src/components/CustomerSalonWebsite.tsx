@@ -98,8 +98,16 @@ function SalonWhatsAppFloatingButton({profile}:{profile:SalonWebsitePreviewProps
   <span>WhatsApp Booking</span>
  </a>;
 }
+function storefrontCanonicalUrl(profile:SalonProfile):string|undefined{
+ const configured=profile.seo?.canonicalUrl?.trim();
+ if(configured)return configured;
+ if(typeof window==='undefined')return undefined;
+ const current=new URL(window.location.href);
+ const selector=current.searchParams.get('site')||current.searchParams.get('s')||current.searchParams.get('subdomain');
+ return selector?current.origin+'/?site='+encodeURIComponent(selector):current.origin+current.pathname;
+}
 function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGallery=[],policies,branding,loyaltyConfig,onManageDashboard,onCustomerAccount,customerSignedIn,customerName,customerPhotoUrl,onAddAppointment,readOnly,live}:SalonWebsitePreviewProps){
- useSeoMetadata(profile);
+ useSeoMetadata(profile,storefrontCanonicalUrl(profile));
  const {t}=useWebsiteLanguage();
  const [consultation,setConsultation]=useState<ConsultationDetails|undefined>();
  const [directSlot,setDirectSlot]=useState<DirectBookingSlot|undefined>();
