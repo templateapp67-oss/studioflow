@@ -14,7 +14,7 @@
  * The handler never returns a credential and never logs personal data.
  */
 
-import { readServerEnvironment } from './nexoraEnv';
+import { readServerEnvironment } from './nexoraEnv.js';
 
 const MANAGER_ROLES = ['site_admin', 'sales'];
 

@@ -10,6 +10,7 @@ import {
   type StaffContext,
 } from '../../lib/staffInvites';
 import { ROLE_SHORT_LABELS, normalizeAccessRole } from '../../lib/staffPermissions';
+import { applyNoIndexMetadata } from '../../lib/publicSeo';
 
 const inputClass =
   'w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#900c3f] focus:ring-2 focus:ring-[#900c3f]/15 disabled:bg-slate-100';
@@ -32,6 +33,10 @@ export function StaffLoginPage() {
   const [checking, setChecking] = useState(false);
   // An owner signed in on this browser must be told, not silently swapped.
   const [ownerSession, setOwnerSession] = useState('');
+
+  useEffect(() => {
+    applyNoIndexMetadata('Staff sign in — NEXORA SalonOS');
+  }, []);
 
   useEffect(() => {
     if (!ready) return;

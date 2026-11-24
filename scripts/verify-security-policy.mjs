@@ -172,6 +172,73 @@ assert.ok(wwwRedirect, 'the www host must redirect to the canonical origin');
 assert.equal(wwwRedirect.permanent, true, 'the canonical redirect must be permanent (308)');
 assert.equal(wwwRedirect.destination, 'https://nexorasalon.online/$1', 'the canonical redirect must preserve the path');
 
+// Private/app paths and query flows must send X-Robots-Tag headers on Vercel too,
+// with rule precedence evaluated sequentially exactly as Vercel merges headers.
+const evaluateVercelHeaders = (rawUrl) => {
+  const url = new URL(rawUrl, 'https://nexorasalon.online');
+  const resolved = new Map();
+  for (const entry of config.headers) {
+    const pattern = new RegExp(`^${entry.source}$`, 'i');
+    if (!pattern.test(url.pathname)) continue;
+    if (entry.has && !entry.has.every((cond) => cond.type === 'query' && url.searchParams.has(cond.key))) continue;
+    for (const h of entry.headers) {
+      resolved.set(h.key.toLowerCase(), h.value);
+    }
+  }
+  return resolved;
+};
+
+assert.equal(globalHeaders.headers.find((entry) => entry.key.toLowerCase() === 'x-robots-tag'), undefined, 'catch-all /(.*) rule must not set or overwrite X-Robots-Tag');
+for (const [sampleUrl, expectedRobots] of [
+  ['/api', 'noindex, nofollow'],
+  ['/api/health', 'noindex, nofollow'],
+  ['/API/health', 'noindex, nofollow'],
+  ['/admin', 'noindex, nofollow'],
+  ['/admin/', 'noindex, nofollow'],
+  ['/ADMIN/demo-leads', 'noindex, nofollow'],
+  ['/owner', 'noindex, nofollow'],
+  ['/owner/', 'noindex, nofollow'],
+  ['/owner/settings', 'noindex, nofollow'],
+  ['/staff', 'noindex, nofollow'],
+  ['/staff/', 'noindex, nofollow'],
+  ['/staff/login', 'noindex, nofollow'],
+  ['/staff/accept?token=abc', 'noindex, nofollow'],
+  ['/login', 'noindex, follow'],
+  ['/login/', 'noindex, follow'],
+  ['/login.html', 'noindex, follow'],
+  ['/login?auth=signup', 'noindex, follow'],
+  ['/sign-in', 'noindex, follow'],
+  ['/sign-in/', 'noindex, follow'],
+  ['/sign-up', 'noindex, follow'],
+  ['/sign-up/', 'noindex, follow'],
+  ['/login?app=1', 'noindex, nofollow'],
+  ['/login?auth=signup&template=hair_salon&create=1', 'noindex, nofollow'],
+  ['/?app=1', 'noindex, nofollow'],
+  ['/?site=glow&app=1', 'noindex, nofollow'],
+  ['/?site=glow&customer=1', 'noindex, nofollow'],
+  ['/?site=glow&owner=glow', 'noindex, nofollow'],
+  ['/?site=glow&panel=demo', 'noindex, nofollow'],
+  ['/?site=glow&create=1', 'noindex, nofollow'],
+  ['/?site=glow&module=4', 'noindex, nofollow'],
+  ['/?site=glow&invite=1', 'noindex, nofollow'],
+  ['/?site=glow&recovery=1', 'noindex, nofollow'],
+  ['/', undefined],
+  ['/pricing', undefined],
+  ['/salon-os', undefined],
+  ['/privacy', undefined],
+  ['/salon-onboarding', undefined],
+  ['/salon-growth', undefined],
+  ['/growth-partner-rewards', undefined],
+  ['/partner-rewards', undefined],
+  ['/template-pages/hair-salon.html', undefined],
+  ['/sitemap.xml', undefined],
+  ['/?site=glow', undefined],
+]) {
+  const merged = evaluateVercelHeaders(sampleUrl);
+  assert.equal(merged.get('x-robots-tag'), expectedRobots, `vercel.json merged X-Robots-Tag for ${sampleUrl}`);
+  assert.equal(merged.get('x-content-type-options'), 'nosniff', `global security headers survive on ${sampleUrl}`);
+}
+
 // Every prerendered marketing document must also be routed to by a rewrite,
 // otherwise the SPA shell answers the URL and the per-route head is never sent.
 for (const route of ['/salon-os', '/pricing', '/privacy', '/salon-onboarding', '/salon-growth', '/growth-partner-rewards', '/partner-rewards']) {

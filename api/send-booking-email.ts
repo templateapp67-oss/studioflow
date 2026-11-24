@@ -1,1 +1,1 @@
-export { bookingEmailHandler as default } from "../server/bookingEmail";
+export { bookingEmailHandler as default } from "../server/bookingEmail.js";

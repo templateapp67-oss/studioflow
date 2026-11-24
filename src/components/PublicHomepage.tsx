@@ -18,6 +18,7 @@ import {
   WandSparkles,
 } from 'lucide-react';
 import { NEXORA_PUBLIC_TEMPLATES, NEXORA_PUBLIC_TEMPLATES_BY_ID } from '../lib/nexoraPublicTemplates';
+import { applyPublicSeoMetadata, NEXORA_HOME_SEO } from '../lib/publicSeo';
 import {
   NEXORA_CATEGORIES,
   nexoraCategoryFilters,
@@ -163,6 +164,10 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
   const [menuOpen, setMenuOpen] = useState(false);
   const [footerVisible, setFooterVisible] = useState(false);
   const closePreview = useCallback(() => setPreviewId(null), []);
+
+  useEffect(() => {
+    applyPublicSeoMetadata(NEXORA_HOME_SEO);
+  }, []);
 
   useEffect(() => {
     const footer = document.querySelector('.public-homepage footer');

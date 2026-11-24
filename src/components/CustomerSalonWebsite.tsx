@@ -108,7 +108,7 @@ function storefrontCanonicalUrl(profile:SalonProfile):string|undefined{
  return selector?current.origin+'/?site='+encodeURIComponent(selector):current.origin+current.pathname;
 }
 function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGallery=[],policies,branding,loyaltyConfig,onManageDashboard,onCustomerAccount,customerSignedIn,customerName,customerPhotoUrl,onAddAppointment,readOnly,live}:SalonWebsitePreviewProps){
- useSeoMetadata(profile,storefrontCanonicalUrl(profile));
+ useSeoMetadata(profile,storefrontCanonicalUrl(profile),Boolean(live));
  const {t}=useWebsiteLanguage();
  const [consultation,setConsultation]=useState<ConsultationDetails|undefined>();
  const [directSlot,setDirectSlot]=useState<DirectBookingSlot|undefined>();

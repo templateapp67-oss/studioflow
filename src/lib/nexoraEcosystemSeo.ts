@@ -1,5 +1,5 @@
-import { NEXORA_PUBLIC_ORIGIN } from './publicSeo';
-import { NEXORA_BREADCRUMB_TRAILS, nexoraBreadcrumbListSchema } from './nexoraBreadcrumbs';
+import { NEXORA_PUBLIC_ORIGIN } from './publicSeo.js';
+import { NEXORA_BREADCRUMB_TRAILS, nexoraBreadcrumbListSchema } from './nexoraBreadcrumbs.js';
 
 /**
  * Public metadata for the three NEXORA SALONOS marketing routes that share the

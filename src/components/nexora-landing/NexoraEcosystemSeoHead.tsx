@@ -1,5 +1,10 @@
 import { useEffect } from 'react';
-import { NEXORA_PUBLIC_ORIGIN } from '../../lib/publicSeo';
+import {
+  clearRouteJsonLd,
+  NEXORA_PUBLIC_ORIGIN,
+  setCanonicalLink,
+  setRobotsMeta,
+} from '../../lib/publicSeo';
 import {
   NEXORA_ECOSYSTEM_SEO,
   nexoraEcosystemSchema,
@@ -37,7 +42,7 @@ export function NexoraEcosystemSeoHead({ path }: { path: NexoraEcosystemPath }) 
     };
 
     upsertMeta('name', 'description', seo.description);
-    upsertMeta('name', 'robots', 'index,follow');
+    setRobotsMeta('index,follow');
     upsertMeta('property', 'og:type', 'website');
     upsertMeta('property', 'og:site_name', 'NEXORA SALONOS');
     upsertMeta('property', 'og:title', seo.title);
@@ -53,15 +58,10 @@ export function NexoraEcosystemSeoHead({ path }: { path: NexoraEcosystemPath }) 
     upsertMeta('name', 'twitter:image', ogImage);
     upsertMeta('name', 'twitter:image:alt', seo.ogImageAlt);
 
-    let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
-    if (!canonical) {
-      canonical = document.createElement('link');
-      canonical.rel = 'canonical';
-      document.head.appendChild(canonical);
-    }
-    canonical.href = canonicalUrl;
+    setCanonicalLink(canonicalUrl);
 
     const schemaId = 'nexora-ecosystem-jsonld';
+    clearRouteJsonLd(schemaId);
     let schema = document.getElementById(schemaId) as HTMLScriptElement | null;
     if (!schema) {
       schema = document.createElement('script');
