@@ -52,8 +52,9 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
 const renderer = require('../dist/storefront-renderer.cjs') as Renderer;
 const RESERVED_PATHS = new Set([
   'admin', 'api', 'app', 'assets', 'fonts', 'growth-partner-rewards', 'index.html',
-  'login', 'partner-rewards', 'pricing', 'privacy', 'salon-growth', 'salon-onboarding',
-  'salon-os', 'sign-in', 'sign-up', 'staff', 'template-pages', 'templates',
+  'invite', 'login', 'partner-rewards', 'pricing', 'privacy', 'salon-growth',
+  'salon-onboarding', 'salon-os', 'sign-in', 'sign-up', 'staff', 'template-pages',
+  'templates',
 ]);
 const PLATFORM_HOSTS = new Set([
   'nexorasalon.online', 'www.nexorasalon.online', 'nexora.app', 'www.nexora.app',
@@ -79,10 +80,14 @@ function getRequestOrigin(req: RequestLike): { origin: string; hostname: string 
 
 function validSlug(value: string): string | null {
   const slug = value.trim().toLowerCase();
-  return /^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/.test(slug) ? slug : null;
+  return slug.length > 1 && /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(slug) ? slug : null;
 }
 
 function resolveStorefrontSlug(url: URL, hostname: string): string | null {
+  // The app/customer query routes deliberately open the full customer app.
+  // They must not be mistaken for a public salon storefront even when a
+  // `site` selector is also present (for example /?app=1&site=my-salon).
+  if (['app', 'customer', 'customer_ref'].some((key) => url.searchParams.has(key))) return null;
   const explicit = url.searchParams.get('site') || url.searchParams.get('s') || url.searchParams.get('subdomain');
   if (explicit) return validSlug(explicit);
 
