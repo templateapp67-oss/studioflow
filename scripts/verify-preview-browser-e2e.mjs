@@ -60,7 +60,9 @@ const safeEndpoint = (raw) => { try { const url = new URL(raw); return url.origi
 const previewOrigin = previewUrl ? new URL(previewUrl).origin : '';
 try {
   for (const viewport of [{ width: 1440, height: 960 }, { width: 390, height: 844 }]) {
-    const context = await browser.newContext({ viewport });
+    // Keep service-worker fetches visible to the route interceptor so the
+    // deployment-protection bypass header reaches every Preview request.
+    const context = await browser.newContext({ viewport, serviceWorkers: 'block' });
     await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
     const page = await context.newPage();
     page.on('console', (msg) => { if (msg.type() === 'error') report.consoleErrors.push(msg.text()); });
@@ -81,7 +83,8 @@ try {
       }
       await route.continue({ headers });
     });
-    const response = await page.goto(previewUrl, { waitUntil: 'networkidle', timeout: 60000 });
+    const smokeUrl = new URL('/sign-in', previewUrl).toString();
+    const response = await page.goto(smokeUrl, { waitUntil: 'networkidle', timeout: 60000 });
     assert.ok(response && response.ok(), `Preview returned ${response?.status() ?? 'no response'} at ${viewport.width}px`);
     assert.equal(new URL(page.url()).origin, new URL(previewUrl).origin, 'Preview redirected away from its deployment URL (possibly a protection/login page)');
     assert.doesNotMatch(await page.locator('body').innerText(), /vercel deployment protection|authentication required/i, 'Preview returned a deployment protection interstitial instead of the application');
