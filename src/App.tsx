@@ -733,7 +733,7 @@ function readInitialPublishedSite(slug:string){
 function PublishedWebsite({slug,session}:{key?:React.Key;slug:string;session:Session|null}){
  const customerAccount=useCustomerProfile(session,0);
  const [showBookings,setShowBookings]=useState(false);
- const [site,setSite]=useState<any>(()=>readInitialPublishedSite(slug));const hasServerRenderedSite=useRef(Boolean(readInitialPublishedSite(slug))).current;const [error,setError]=useState('');const [retry,setRetry]=useState(0);const [countdown, setCountdown] = useState(0);
+ const [site,setSite]=useState<any>(()=>readInitialPublishedSite(slug));const hasServerRenderedSite=useRef(Boolean(readInitialPublishedSite(slug)));const [error,setError]=useState('');const [retry,setRetry]=useState(0);const [countdown, setCountdown] = useState(0);
  const [devFallbackTemplate,setDevFallbackTemplate]=useState<BusinessTypeId|null>(null);
  const [authMode,setAuthMode]=useState<'signin'|'signup'|null>(()=>!session&&hasAuthErrorParams(location.search||'',location.hash||'')?'signin':null);
  const siteQueryParams=new URLSearchParams(location.search||'');
@@ -759,7 +759,7 @@ function PublishedWebsite({slug,session}:{key?:React.Key;slug:string;session:Ses
 
  useEffect(()=>{if(!authMode)return;const previous=document.activeElement as HTMLElement|null;const dialog=document.querySelector<HTMLElement>('[role=dialog][aria-label="Customer account"]');dialog?.querySelector<HTMLElement>('input,button')?.focus();const keyboard=(event:KeyboardEvent)=>{if(event.key==='Escape')setAuthMode(null);if(event.key==='Tab'&&dialog){const items=Array.from(dialog.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),a[href]'));const first=items[0],last=items.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}}};document.addEventListener('keydown',keyboard);return()=>{document.removeEventListener('keydown',keyboard);previous?.focus();};},[authMode]);
  useEffect(()=>{if(session)setAuthMode(null);},[session?.user?.id]);
- useEffect(()=>{let active=true,loaded=hasServerRenderedSite,ticket=0;
+ useEffect(()=>{let active=true,loaded=Boolean(site)||hasServerRenderedSite.current,ticket=0;
    const refresh=async()=>{if(document.hidden)return;const request=++ticket;
    // A stalled read used to leave the published site on "Loading salon
    // website…" forever. Every read now has a deadline and surfaces the retry UI.
@@ -783,7 +783,7 @@ function PublishedWebsite({slug,session}:{key?:React.Key;slug:string;session:Ses
      }
    }
    if(!isRecord(parsedContent)||!isRecord(parsedContent.profile)){if(!loaded)setError('The salon profile is missing from this website. Please ask the owner to publish it again.');return;}
-   loaded=true;setError('');setSite((prev:any)=>JSON.stringify(prev)===JSON.stringify(parsedContent)?prev:parsedContent);};
+   loaded=true;setError('');hasServerRenderedSite.current=false;setSite((prev:any)=>JSON.stringify(prev)===JSON.stringify(parsedContent)?prev:parsedContent);};
   void refresh();const channel=supabase.channel(`public-site-${slug}`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'studioflow_websites',filter:`slug=eq.${slug}`},()=>void refresh()).subscribe();const interval=setInterval(()=>void refresh(),15000);window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',refresh);return()=>{active=false;void supabase.removeChannel(channel);clearInterval(interval);window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',refresh);};
  },[slug,retry]);
   useEffect(()=>{
@@ -814,7 +814,7 @@ function PublishedWebsite({slug,session}:{key?:React.Key;slug:string;session:Ses
  // and catalogue defaults, so the first browser tree no longer matches HTML.
  // Use the exact serialized fields for hydration; later live refreshes return
  // the raw public view row and continue through normalizeWorkspace below.
- const content=hasServerRenderedSite&&site?{
+ const content=hasServerRenderedSite.current&&site?{
   profile:site.profile,
   services:Array.isArray(site.services)?site.services:[],
   stylists:Array.isArray(site.stylists)?site.stylists:[],
