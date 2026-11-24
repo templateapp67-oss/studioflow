@@ -5,27 +5,55 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 const toolsRoot = process.env.BROWSER_TOOLS_ROOT;
-if (!toolsRoot) throw new Error('Set BROWSER_TOOLS_ROOT to a directory containing playwright-core and @sparticuz/chromium.');
+if (!toolsRoot) throw new Error('Set BROWSER_TOOLS_ROOT to a directory containing playwright-core.');
 const require = createRequire(join(toolsRoot, 'package.json'));
-const chromiumPackage = require('@sparticuz/chromium');
-const chromium = chromiumPackage.default ?? chromiumPackage;
+const { chromium: playwrightChromium } = require('playwright-core');
+
+// Prefer the project's existing serverless Chromium bundle when present.
+// GitHub Actions can instead use the Chromium binary installed by Playwright.
+let chromiumPackage = null;
+try {
+  chromiumPackage = require('@sparticuz/chromium');
+} catch {
+  // Optional: standard Playwright-managed Chromium is supported below.
+}
+const chromium = chromiumPackage?.default ?? chromiumPackage;
 const libraryArchive = join(toolsRoot, 'node_modules/@sparticuz/chromium/bin/al2023.tar.br');
 const libraryDirectory = join(tmpdir(), 'al2023', 'lib');
-if (existsSync(libraryArchive) && !existsSync(join(libraryDirectory, 'libnspr4.so'))) {
+if (chromiumPackage?.inflate && existsSync(libraryArchive) && !existsSync(join(libraryDirectory, 'libnspr4.so'))) {
   await chromiumPackage.inflate(libraryArchive);
 }
-if (existsSync(join(libraryDirectory, 'libnspr4.so'))) {
+if (chromiumPackage && existsSync(join(libraryDirectory, 'libnspr4.so'))) {
   process.env.LD_LIBRARY_PATH = [libraryDirectory, process.env.LD_LIBRARY_PATH]
     .filter(Boolean)
     .join(':');
 }
-const { chromium: playwrightChromium } = require('playwright-core');
-const origin = process.env.PREVIEW_URL ?? 'http://127.0.0.1:4174';
-const browser = await playwrightChromium.launch({
-  args: chromium.args,
-  executablePath: process.env.CHROMIUM_EXECUTABLE ?? await chromium.executablePath(),
-  headless: true,
-});
+const origin = new URL(process.env.PREVIEW_URL ?? 'http://127.0.0.1:4174').origin;
+const vercelBypassSecret = (process.env.VERCEL_AUTOMATION_BYPASS_SECRET ?? '').trim();
+const launchOptions = { headless: true };
+if (chromium) {
+  launchOptions.args = chromium.args;
+  launchOptions.executablePath = process.env.CHROMIUM_EXECUTABLE ?? await chromium.executablePath();
+} else if (process.env.CHROMIUM_EXECUTABLE) {
+  launchOptions.executablePath = process.env.CHROMIUM_EXECUTABLE;
+}
+const browser = await playwrightChromium.launch(launchOptions);
+
+async function routeToPreview(route) {
+  let requestOrigin;
+  try {
+    requestOrigin = new URL(route.request().url()).origin;
+  } catch {
+    return route.abort();
+  }
+  if (requestOrigin !== origin) return route.abort();
+  const headers = { ...route.request().headers() };
+  if (vercelBypassSecret) {
+    headers['x-vercel-protection-bypass'] = vercelBypassSecret;
+    headers['x-vercel-set-bypass-cookie'] = 'true';
+  }
+  return route.continue({ headers });
+}
 const pageErrors = [];
 const hydrationErrors = [];
 let activeRoute = '';
@@ -59,10 +87,7 @@ try {
     viewport: { width: 1440, height: 1000 },
     reducedMotion: 'reduce',
   });
-  await page.route('**/*', (route) => {
-    if (new URL(route.request().url()).origin === origin) return route.continue();
-    return route.abort();
-  });
+  await page.route('**/*', routeToPreview);
   page.on('pageerror', (error) => pageErrors.push(`${activeRoute}: ${error.message}`));
   page.on('console', (message) => {
     const text = message.text();
@@ -492,10 +517,7 @@ try {
     javaScriptEnabled: false,
     reducedMotion: 'reduce',
   });
-  await noScriptPage.route('**/*', (route) => {
-    if (new URL(route.request().url()).origin === origin) return route.continue();
-    return route.abort();
-  });
+  await noScriptPage.route('**/*', routeToPreview);
   for (const routePath of marketingRoutes) {
     for (const width of [390, 320]) {
       await noScriptPage.setViewportSize({ width, height: 844 });
