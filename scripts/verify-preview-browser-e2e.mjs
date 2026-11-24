@@ -20,6 +20,7 @@ const report = {
   consoleErrors: [],
   pageErrors: [],
   viewports: [],
+  storefrontSsrProbe: null,
 };
 const summaryPath = join(artifactsDir, 'summary.md');
 const reportPath = join(artifactsDir, 'report.json');
@@ -90,6 +91,21 @@ try {
     assert.doesNotMatch(await page.locator('body').innerText(), /vercel deployment protection|authentication required/i, 'Preview returned a deployment protection interstitial instead of the application');
     await page.screenshot({ path: join(screenshotsDir, `preview-${viewport.width}.png`), fullPage: true });
     report.viewports.push({ ...viewport, status: response.status(), title: await page.title() });
+
+    // Exercise the actual Vercel rewrite and SSR function, not only the SPA
+    // shell. A deliberately unpublished slug must return the function's
+    // noindex 404 document; a client-side fallback (200) or function crash
+    // (500) means the published-salon SSR route is not wired correctly.
+    if (viewport.width === 1440) {
+      const probeUrl = new URL('/?site=nexora-ssr-preview-probe-not-published', previewUrl).toString();
+      const probeResponse = await page.goto(probeUrl, { waitUntil: 'networkidle', timeout: 60000 });
+      assert.equal(probeResponse?.status(), 404, `SSR probe should return the not-published 404, got ${probeResponse?.status() ?? 'no response'}`);
+      assert.match(await page.title(), /salon website not found/i, 'SSR route did not return its server-rendered not-found document');
+      assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'), 'noindex', 'Unpublished salon response must not be indexed');
+      assert.match(await page.locator('body').innerText(), /This salon website is not published/i);
+      report.storefrontSsrProbe = { status: probeResponse.status(), title: await page.title(), robots: 'noindex' };
+    }
+
     await context.tracing.stop({ path: join(tracesDir, `preview-${viewport.width}.zip`) });
     await context.close();
   }
