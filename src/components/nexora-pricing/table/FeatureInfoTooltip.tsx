@@ -278,7 +278,9 @@ export function HoverCard({
       const firstFocusable = getFocusableElements()[0];
       if (floating?.dataset.positioned === 'true' && firstFocusable) {
         pendingArrowFocusRef.current = false;
-        firstFocusable.focus();
+        // Keep keyboard focus inside the floating card without scrolling the page;
+        // the scroll-dismiss handler would otherwise close the card and steal focus.
+        firstFocusable.focus({ preventScroll: true });
         return;
       }
       attempts += 1;
