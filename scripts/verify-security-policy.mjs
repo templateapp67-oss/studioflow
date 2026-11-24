@@ -113,16 +113,20 @@ for (const [source, destination] of requiredRewrites) {
     `required route rewrite must remain: ${source} -> ${destination}`,
   );
 }
-const storefrontFallback = config.rewrites.find((entry) => entry.source === '^/(?!api(?:/|$))(.*)
+const storefrontRootFallback = config.rewrites.find((entry) => entry.source === '/' && entry.destination === '/api/storefront?path=/');
+assert.ok(storefrontRootFallback, 'the bare platform root must route to the storefront shell handler');
+const storefrontFallback = config.rewrites.find((entry) => entry.source === '^/([^a].*|a[^p].*|ap[^i].*|api[^/].*|ap)$');
 assert.ok(storefrontFallback, 'non-file salon paths must be handled by the storefront SSR function');
 assert.equal(storefrontFallback.destination, '/api/storefront?path=/$1');
 const storefrontPathPattern = new RegExp(storefrontFallback.source);
 assert.ok(!storefrontPathPattern.test('/api/storefront'), 'SSR fallback must not rewrite its own API function path');
 assert.ok(!storefrontPathPattern.test('/api/sitemap'), 'SSR fallback must not rewrite other API function paths');
-assert.ok(storefrontPathPattern.test('/'), 'platform root must keep its storefront shell fallback');
 assert.ok(storefrontPathPattern.test('/vijaysalojaipur'), 'SSR fallback must still route published salon path URLs');
 assert.ok(storefrontPathPattern.test('/aurelia-beauty-parlour'), 'SSR fallback must allow salon slugs that begin with the letter a except the reserved api prefix');
+assert.ok(storefrontPathPattern.test('/ap'), 'SSR fallback must still allow valid salon slugs that start with ap but are not api');
+assert.ok(storefrontPathPattern.test('/apiary'), 'SSR fallback must not reserve valid salon slugs that merely begin with api');
 assert.equal(config.rewrites.at(-1), storefrontFallback, 'the storefront fallback must remain last');
+
 for (const key of ['app', 'customer', 'customer_ref']) {
   assert.ok(
     config.rewrites.some((entry) => entry.source === '/' && entry.destination === '/index.html' &&
