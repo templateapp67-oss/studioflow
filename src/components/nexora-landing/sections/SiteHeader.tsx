@@ -360,6 +360,13 @@ export function SiteHeader({
         className="nexora-site-header__overflow-disclosure"
         open={moreOpen}
         onToggle={(event) => setMoreOpen(event.currentTarget.open)}
+        onKeyDown={(event) => {
+          if (event.key !== 'Escape' || !event.currentTarget.open) return;
+          event.preventDefault();
+          event.stopPropagation();
+          setMoreOpen(false);
+          moreTriggerRef.current?.focus();
+        }}
       >
         <summary
           ref={moreTriggerRef}
