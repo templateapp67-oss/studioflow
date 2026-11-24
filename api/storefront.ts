@@ -172,6 +172,45 @@ function canonicalForRequest(profile: Record<string, any>, origin: string, pathn
   return origin + (pathname.startsWith('/') ? pathname : '/' + pathname);
 }
 
+function generateStorefrontSeoDefaults(profile: Record<string, any>) {
+  const rawName = String(profile.businessName || '').trim();
+  const isZiyaTemplate = profile.businessType === 'hair_salon';
+  const businessName = isZiyaTemplate && (!rawName || /miraki|luxury editorial salon/i.test(rawName))
+    ? 'Ziya Women’s Hair Studio'
+    : rawName || 'Salon & Wellness Studio';
+  const city = profile.city || '';
+  const typeLabel = isZiyaTemplate ? 'Women’s Haircut Specialist Salon' : String(profile.businessType || 'salon').replace(/_/g, ' ');
+  const tagline = profile.tagline || profile.about || 'Book your appointment online for premium beauty, hair, and grooming services.';
+  const citySuffix = city ? ` in ${city}` : '';
+  return {
+    metaTitle: `${businessName} – ${isZiyaTemplate ? typeLabel : `Premium ${typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1)}`}${citySuffix}`,
+    metaDescription: `${tagline.slice(0, 120)}. Book online instantly at ${businessName}${citySuffix} with top expert stylists and therapists.`,
+    ogTitle: `${businessName}${citySuffix} | Official Website`,
+    ogDescription: tagline.length > 150 ? `${tagline.slice(0, 147)}...` : tagline,
+    ogImageUrl: profile.coverImageUrl || profile.logoUrl || 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1200&q=80',
+    keywords: [
+      businessName.toLowerCase(), `${typeLabel} near me`, `${typeLabel} ${city}`.trim(),
+      'salon booking', 'beauty treatment', 'hair stylist', 'appointment booking',
+    ].filter(Boolean).join(', '),
+    twitterCard: 'summary_large_image',
+  };
+}
+
+function storefrontFavicon(branding: any, profile: any): string {
+  const validImage = (value: unknown): string | undefined => {
+    if (typeof value !== 'string') return;
+    const url = value.trim();
+    if (/^https:\\/\\//i.test(url) || /^\\/(?:template-assets|templates|assets)\\//.test(url)) return url;
+  };
+  return validImage(branding?.faviconUrl)
+    || validImage(profile?.logoUrl)
+    || (profile?.businessType === 'makeup_studio' ? '/templates/vogue-noir/favicon.svg'
+      : profile?.businessType === 'massage_wellness' ? '/templates/bodhi-tree/favicon.svg'
+      : profile?.businessType === 'hair_coloring' ? '/templates/10/favicon.svg'
+      : profile?.businessType === 'lash_brow' ? '/templates/13/favicon.svg'
+      : '/customer-icon-192.png');
+}
+
 function renderHead(
   profile: Record<string, any>,
   site: Record<string, any>,
@@ -342,17 +381,12 @@ export default async function storefrontHandler(req: RequestLike, res: ResponseL
   const canonical = canonicalForRequest(rendered.profile, origin, pageUrl.pathname, slug, viaQuery);
   let head: string;
   try {
-    const [seoModule, faviconModule, activeRenderer] = await Promise.all([
-      import('../src/lib/useSeoMetadata'),
-      import('../src/lib/websiteFavicon'),
-      getRenderer(),
-    ]);
+    const activeRenderer = await getRenderer();
     const assetTags = activeRenderer.getStorefrontAssetTags();
-    const seoHelpers = {
-      generateSeoDefaults: seoModule.generateSeoDefaults,
-      websiteFavicon: faviconModule.websiteFavicon,
-    };
-    head = renderHead(rendered.profile, rendered.site, canonical, seoHelpers) + '\n' + assetTags;
+    head = renderHead(rendered.profile, rendered.site, canonical, {
+      generateSeoDefaults: generateStorefrontSeoDefaults,
+      websiteFavicon: storefrontFavicon,
+    }) + '\n' + assetTags;
   } catch (headError) {
     console.error('[storefront-ssr] SEO/asset module initialization failed', headError);
     res.status(503);
