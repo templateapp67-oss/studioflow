@@ -318,6 +318,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
               <input
                 type="text"
                 required
+                data-testid="staff-full-name"
                 value={fullName}
                 onChange={(e) => {
                   setFullName(e.target.value);
@@ -688,6 +689,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
           <button
             type="button"
             disabled={saving||photoBusy} onClick={handleSubmit}
+            data-testid="staff-save-btn"
             aria-busy={saving||photoBusy} className="sf-staff-save-button px-4 py-2 text-xs font-medium rounded-md text-white shadow-sm flex items-center gap-1.5 cursor-pointer"
           >
             <UserCheck className="w-4 h-4" />

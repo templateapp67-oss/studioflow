@@ -7,6 +7,7 @@ import { useAuthSession } from './lib/useAuthSession';
 import { appendAuthErrorParams, clearOAuthIntent, consumeOAuthCallbackForwarded, hasAuthCallbackFragment, hasAuthCallbackQuery, hasAuthErrorParams, hasOAuthExchangeParams, markOAuthCallbackForwarded, readAuthUrlError, readOAuthIntent } from './lib/authEntry';
 import { isBillingInterval, isPricingPlanId, pricingResumePath } from './lib/nexoraPricing';
 import { workspaceSnapshot, sameWorkspace, mergeWorkspace, revisionConflict, conflictMessage, type ConflictChoice } from './lib/workspaceSync';
+import { formatPublishingError } from './lib/publishing';
 import { useCustomerProfile } from './components/customer/useCustomerProfile';
 import { applyWebsiteFavicon, websiteFavicon } from './lib/websiteFavicon';
 import { hasExplicitSiteQuery, isPlatformRootHost, isStorefrontRootHost, resolveSiteSlug } from './lib/resolveSite';
@@ -424,6 +425,23 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
  const restoreTemplate12Draft=useCallback((draft:Template12WorkspaceDraft)=>{setProfile(draft.profile);setServiceState(draft.services||[]);setStylists(draft.stylists||[]);setExtras(prev=>({...prev,gallery:draft.galleryUrls||[]}));setOnboardingComplete(true);},[]);
  const template12Sync=useTemplate12Sync<Template12WorkspaceDraft>(session.user.id,{onRestore:restoreTemplate12Draft,enabled:profile.businessType==='tattoo_studio'});
  const [appointments,setAppointments]=useState<Appointment[]>([]);const [published,setPublished]=useState<any>(null);
+ const publishedGeneration=useRef(0);
+ useEffect(()=>{
+  let active=true;
+  const gen=publishedGeneration.current;
+  void (async()=>{
+   try{
+    const {data,error:siteError}=await supabase.from('studioflow_websites').select('slug,published_at').eq('owner_id',session.user.id).maybeSingle();
+    if(!active||siteError||publishedGeneration.current!==gen)return;
+    const slugValue=typeof data?.slug==='string'?data.slug.trim():'';
+    const publishedAt=data?.published_at instanceof Date?data.published_at.toISOString():typeof data?.published_at==='string'?data.published_at:'';
+    if(slugValue&&publishedAt)setPublished({slug:slugValue,published_at:publishedAt});
+   }catch{
+    // Best-effort hydration on mount; explicit Publish or Refresh still surfaces errors.
+   }
+  })();
+  return()=>{active=false;};
+ },[session.user.id]);
  const [sync,setSync]=useState('Saved to Supabase');const [syncError,setSyncError]=useState('');const [saveConflicts,setSaveConflicts]=useState<string[]>([]);
  const workspaceActive=useRef(true);useEffect(()=>{workspaceActive.current=true;return()=>{workspaceActive.current=false}},[]);
  const revision=useRef(account.revision);const queue=useRef(Promise.resolve());const lastSaved=useRef(JSON.stringify(workspaceSnapshot(cloudDraft)));
@@ -518,7 +536,25 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
  const customizeTemplate=(id:BusinessTypeId,config?:ArchFlutterCustomizerConfig,workspace?:MensWorkspace)=>{pendingCustomizerConfig.current=config??null;pendingVedaWorkspace.current=workspace??null;chooseTemplate(id);};
  useEffect(()=>{const workspace=pendingVedaWorkspace.current;if(!workspace||!isVedaTemplate(profile.businessType)&&profile.businessType!=='mens_hair_studio')return;pendingVedaWorkspace.current=null;setProfile(workspace.profile);setServiceState(workspace.services);setStylists(workspace.stylists);if(workspace.loyaltyConfig)setLoyaltyConfig(workspace.loyaltyConfig);void flush().catch(()=>{});},[profile,services,stylists,flush]);
  useEffect(()=>{const config=pendingCustomizerConfig.current;if(!config||!isArchFlutterTemplate(profile.businessType))return;pendingCustomizerConfig.current=null;applyCustomizerWorkspace(applyCustomizerConfig(config,{profile,services,stylists,extras}));},[profile,services,stylists,extras,applyCustomizerWorkspace]);
- const publish=async()=>{await flush();const {data,error}=await supabase.rpc('studioflow_publish');if(error)throw error;setPublished(data);};
+ const publish=async()=>{
+  try{
+    const authResult=await supabase.auth.getSession();
+    if(authResult.error)throw authResult.error;
+    if(authResult.data.session?.user?.id!==session.user.id)throw new Error('Your sign-in session has expired. Sign in again before publishing.');
+    await flush();
+    const {data,error}=await supabase.rpc('studioflow_publish');
+    if(error)throw error;
+    const publishedSlug=typeof data?.slug==='string'?data.slug.trim():'';
+    const publishedAt=data?.published_at instanceof Date?data.published_at.toISOString():typeof data?.published_at==='string'?data.published_at:'';
+    if(!publishedSlug||!publishedAt)throw new Error('Supabase did not return the published website address and publish time. The publish status could not be confirmed.');
+    publishedGeneration.current+=1;
+    setPublished({...data,slug:publishedSlug,published_at:publishedAt});
+    setProfile(current=>current.subdomain===publishedSlug?current:{...current,subdomain:publishedSlug});
+  }catch(error){
+    console.error('[StudioFlow] Publish website failed',error);
+    throw new Error(formatPublishingError(error));
+  }
+};
  const book=async(apt:Appointment)=>{await flush();if(!published)throw new Error('Publish your salon website before accepting bookings.');const isAura=profile.businessType==='unisex_salon';const isMens=profile.businessType==='mens_hair_studio';const rpc=isMens?'studioflow_mens_book':apt.branchId?(apt.couponCode?'studioflow_branch_coupon_book':'studioflow_branch_book'):(apt.couponCode?(isAura?'studioflow_aura_coupon_book':'studioflow_coupon_book'):'studioflow_book');const {data,error}=await supabase.rpc(rpc,{p_slug:published.slug,p_request:apt});if(error)throw error;await refreshBookings();return (data?.payload||data) as Appointment;};
  const updateAppointments:React.Dispatch<React.SetStateAction<Appointment[]>>=next=>{
   const updated=typeof next==='function'?next(appointments):next;
@@ -530,7 +566,7 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
    }await refreshBookings();})().catch(error=>setSyncError(error.message));
  };
 
- return <div data-workspace-sync={!syncError&&!recoveryNotice&&sameWorkspace(latest.current,JSON.parse(lastSaved.current))?'saved':'pending'} className="min-h-screen bg-slate-50 text-slate-900">
+ return <div data-testid="owner-workspace-shell" data-workspace-sync={!syncError&&!recoveryNotice&&sameWorkspace(latest.current,JSON.parse(lastSaved.current))?'saved':'pending'} className="min-h-screen bg-slate-50 text-slate-900">
   {recoveryNotice && (
     <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 text-xs sm:text-sm text-amber-900 font-medium flex items-center justify-between gap-3 flex-wrap shadow-2xs" role="status">
       <div className="flex items-center gap-2">
@@ -584,6 +620,7 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
     </div>
     <button
       type="button"
+      data-testid="workspace-save-now"
       className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-semibold shadow-xs transition-all cursor-pointer active:scale-95"
       onClick={() => void flush().catch(() => {})}
     >

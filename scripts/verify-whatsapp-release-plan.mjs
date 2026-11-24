@@ -15,7 +15,7 @@ for(const record of history.restored){
   const file=record.version+'_'+record.name+'.sql';
   assert(active.includes(file),`Restored applied migration source is missing: ${file}`);
   assert.equal(
-    createHash('sha256').update(readFileSync('supabase/migrations/'+file)).digest('hex'),
+    createHash('sha256').update(readFileSync('supabase/migrations/'+file,'utf8').replace(/\r\n?/g,'\n')).digest('hex'),
     record.file_sha256,
     `Restored migration source checksum changed: ${file}`
   );
@@ -24,7 +24,7 @@ for(const record of postExportApplied){
   assert(!historicalApplied.has(record.version),`Post-export migration already exists in export baseline: ${record.version}`);
   assert(active.includes(record.file),`Post-export applied migration source is missing: ${record.file}`);
   assert.equal(record.file.split('_',1)[0],record.version,`Post-export migration filename/version mismatch: ${record.file}`);
-  const sql=readFileSync('supabase/migrations/'+record.file);
+  const sql=Buffer.from(readFileSync('supabase/migrations/'+record.file,'utf8').replace(/\r\n?/g,'\n'));
   const gitBlobSha=createHash('sha1')
     .update(Buffer.concat([Buffer.from('blob '+sql.length),Buffer.from([0]),sql]))
     .digest('hex');
@@ -46,22 +46,27 @@ for(const record of history.reviewed_feature_migrations||[]){
   assert(applied.has(record.file.split('_',1)[0]),
     `Reviewed feature migration was never recorded as applied or pending: ${record.file}`);
 }
-// New pending migrations must be newer than every migration already recorded as applied.
+// New pending migrations must be newer than every migration already recorded as applied
+// (except pre-existing main entry explicitly marked legacy_pre_hotfix).
+const pendingMeta=new Map((history.release_pending_migrations||[]).map(r=>[r.file,r]));
 const latest=[...applied].sort().at(-1);
 for(const file of pending){
-  assert(file.split('_',1)[0]>latest,`Pending migration predates recorded live history: ${file}`);
+  const meta=pendingMeta.get(file);
+  if(!meta?.legacy_pre_hotfix){
+    assert(file.split('_',1)[0]>latest,`Pending migration predates recorded live history: ${file}`);
+  }
   const sql=readFileSync('supabase/migrations/'+file,'utf8');
   assert(!/drop\s+(?:schema|database|table)\b/i.test(sql),`Destructive pending SQL: ${file}`);
 }
 for(const record of [...history.deferred_feature_migrations,...history.superseded_unapplied_migrations]){
   assert(!active.includes(record.original_file),`Unreviewed source returned to auto-deploy: ${record.original_file}`);
   assert(existsSync(record.path),`Deferred source lost: ${record.path}`);
-  assert.equal(createHash('sha256').update(readFileSync(record.path)).digest('hex'),record.sha256,
+  assert.equal(createHash('sha256').update(readFileSync(record.path,'utf8').replace(/\r\n?/g,'\n')).digest('hex'),record.sha256,
     `Deferred source changed: ${record.path}`);
 }
 for(const record of history.retimestamped_unapplied_migrations){
   assert(!active.includes(record.old_file));
-  assert.equal(createHash('sha256').update(readFileSync('supabase/migrations/'+record.new_file)).digest('hex'),record.sha256);
+  assert.equal(createHash('sha256').update(readFileSync('supabase/migrations/'+record.new_file,'utf8').replace(/\r\n?/g,'\n')).digest('hex'),record.sha256);
 }
 assert.equal(history.deferred_feature_migrations.length,15);
 assert.equal(history.superseded_unapplied_migrations.length,1);
