@@ -1,7 +1,6 @@
 import React from 'react';
 import { renderToString } from 'react-dom/server';
 import { SalonWebsitePreview } from '../src/components/SalonWebsitePreview';
-import { Loading } from '../src/components/Loading';
 import { TawkPublicWidget } from '../src/components/TawkPublicWidget';
 import { normalizeWorkspace, isRecord } from '../src/lib/normalizeWorkspace';
 import type { Appointment, SalonProfile } from '../src/types';
@@ -73,7 +72,7 @@ export function renderPublishedSalonHtml(rawContent: unknown, slug: string): Pub
     // Match the client App's Suspense boundary. SalonWebsitePreview is lazy
     // loaded in the browser route, so omitting this boundary makes React see a
     // different hydration tree even though the visible HTML looks identical.
-    <React.Suspense fallback={<Loading text="Loading NEXORA…" />}>
+    <React.Suspense fallback={<main className="grid min-h-screen place-items-center bg-white px-6 text-center text-sm font-semibold text-slate-700" role="status">Loading NEXORA…</main>}>
       <>
         <div className="bg-white border-b px-4 py-2 flex justify-between gap-3 text-xs">
           <a className="text-violet-600 font-semibold" href={'/?app=1&site=' + encodeURIComponent(slug)}>
