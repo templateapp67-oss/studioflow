@@ -7,13 +7,17 @@ import type { Appointment, SalonProfile } from '../src/types';
 
 declare const __NEXORA_STOREFRONT_ASSET_HTML__: string;
 
+export function getStorefrontShellHtml(): string {
+  return __NEXORA_STOREFRONT_ASSET_HTML__;
+}
+
 /** Static hashed Vite assets are embedded during the build; no self-fetch is needed at runtime. */
 export function getStorefrontAssetTags(): string {
-  const html = __NEXORA_STOREFRONT_ASSET_HTML__;
-  const links = html.match(/<link\\b[^>]*\\brel="(?:modulepreload|stylesheet)"[^>]*>/g) || [];
-  const scripts = html.match(/<script\\b[^>]*type="module"[^>]*src="[^"]+"[^>]*><\\/script>/g) || [];
+  const html = getStorefrontShellHtml();
+  const links = html.match(/<link\b[^>]*\brel="(?:modulepreload|stylesheet)"[^>]*>/g) || [];
+  const scripts = html.match(/<script\b[^>]*type="module"[^>]*src="[^"]+"[^>]*><\/script>/g) || [];
   if (scripts.length === 0) throw new Error('The built application script was not found in the SSR bundle.');
-  return [...links, ...scripts].join('\\n');
+  return [...links, ...scripts].join('\n');
 }
 
 export interface PublishedSalonRenderResult {
