@@ -104,7 +104,10 @@ try {
       const probeHeaders = probeResponse ? {
         contentType: probeResponse.headers()['content-type'] || '',
         requestId: probeResponse.headers()['x-vercel-id'] || '',
-        middleware: probeResponse.headers()['x-nexora-ssr-route'] || '',
+        middleware: probeResponse.headers()['x-nexora-ssr-middleware'] || '',
+        handler: probeResponse.headers()['x-nexora-ssr-handler'] || '',
+        stage: probeResponse.headers()['x-nexora-ssr-stage'] || '',
+        slug: probeResponse.headers()['x-nexora-ssr-slug'] || '',
       } : {};
       assert.equal(probeResponse?.status(), 404, `SSR probe should return the not-published 404, got ${probeResponse?.status() ?? 'no response'}; headers=${JSON.stringify(probeHeaders)}; body=${probeBody.slice(0, 1200)}`);
       assert.match(await page.title(), /salon website not found/i, 'SSR route did not return its server-rendered not-found document');
