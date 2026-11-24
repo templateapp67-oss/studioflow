@@ -146,6 +146,16 @@ export function NexoraEcosystemHero({
             id="nxe-hero-title"
             tabIndex={-1}
             ref={titleRef}
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'baseline',
+              justifyContent: 'flex-start',
+              width: '100%',
+              maxWidth: '100%',
+              whiteSpace: 'normal',
+              overflowWrap: 'anywhere',
+            }}
           >
             <span className="nxh-hero__prefix" aria-hidden="true">
               {tagNumber} /
