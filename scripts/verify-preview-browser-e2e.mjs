@@ -16,6 +16,7 @@ const report = {
   backendIntegration: 'read-only published-salon lookup through the hosted Supabase public view; no backend writes',
   previewUrl: previewUrl || null,
   blockedWriteRequests: [],
+  allowedReadOnlyRpcRequests: [],
   failedRequests: [],
   consoleErrors: [],
   pageErrors: [],
@@ -67,6 +68,9 @@ try {
     // Keep service-worker fetches visible to the route interceptor so the
     // deployment-protection bypass header reaches every Preview request.
     const context = await browser.newContext({ viewport, serviceWorkers: 'block' });
+    // A saved language preference must be applied after hydration, not while
+    // React is producing the first client tree.
+    await context.addInitScript(() => localStorage.setItem('nexora-website-language', 'hi'));
     await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
     const page = await context.newPage();
     page.on('console', (msg) => { if (msg.type() === 'error') report.consoleErrors.push(msg.text()); });
@@ -89,6 +93,24 @@ try {
         // The test is read-only: block external analytics beacons silently,
         // without treating them as backend data mutations.
         await route.abort('blockedbyclient');
+        return;
+      }
+      const readOnlyPublicRpc = method === 'POST'
+        && requestUrl.hostname === 'zilwgiuiygqqardzutxi.supabase.co'
+        && [
+          '/rest/v1/rpc/studioflow_list_reviews',
+          '/rest/v1/rpc/studioflow_tawk_public_config',
+        ].includes(requestUrl.pathname);
+      if (readOnlyPublicRpc) {
+        // Supabase RPC uses POST even for read-only STABLE functions. These
+        // two public functions only fetch customer reviews/Tawk display config.
+        report.allowedReadOnlyRpcRequests.push({ method, endpoint: safeEndpoint(req.url()) });
+        const headers = { ...req.headers() };
+        if (vercelBypassSecret && requestUrl.origin === previewOrigin) {
+          headers['x-vercel-protection-bypass'] = vercelBypassSecret;
+          headers['x-vercel-set-bypass-cookie'] = 'true';
+        }
+        await route.continue({ headers });
         return;
       }
       if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
