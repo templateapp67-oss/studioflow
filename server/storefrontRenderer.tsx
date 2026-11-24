@@ -66,6 +66,12 @@ export function renderPublishedSalonHtml(rawContent: unknown, slug: string): Pub
     branding: isRecord(site.branding) ? site.branding : {},
   };
 
+  // The browser receives this object through JSON in the HTML document.
+  // Render from the same JSON round-trip so Date, undefined and other
+  // non-JSON values cannot make the server tree differ from hydration.
+  const hydrationSite = JSON.parse(JSON.stringify(publicSite)) as typeof publicSite;
+  const hydrationProfile = hydrationSite.profile as SalonProfile;
+
   // Keep this fragment in the same order as PublishedWebsite in App.tsx. The
   // browser hydrates this markup instead of discarding it and showing a loader.
   const html = renderToString(
@@ -84,13 +90,13 @@ export function renderPublishedSalonHtml(rawContent: unknown, slug: string): Pub
           key={slug}
           readOnly
           live
-          profile={profile}
-          services={normalized.services}
-          stylists={normalized.stylists}
-          gallery={normalized.extras.gallery}
-          policies={site.policies}
-          branding={site.branding}
-          loyaltyConfig={normalized.loyaltyConfig}
+          profile={hydrationProfile}
+          services={hydrationSite.services}
+          stylists={hydrationSite.stylists}
+          gallery={hydrationSite.gallery}
+          policies={hydrationSite.policies}
+          branding={hydrationSite.branding}
+          loyaltyConfig={hydrationSite.loyaltyConfig}
           customerSignedIn={false}
           customerName="My account"
           customerPhotoUrl=""
@@ -102,5 +108,5 @@ export function renderPublishedSalonHtml(rawContent: unknown, slug: string): Pub
     </React.Suspense>,
   );
 
-  return { html, profile, normalizedContent: normalized, site: publicSite };
+  return { html, profile: hydrationProfile, normalizedContent: normalized, site: hydrationSite };
 }
