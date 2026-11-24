@@ -21,6 +21,7 @@ const report = {
   pageErrors: [],
   viewports: [],
   storefrontSsrProbe: null,
+  storefrontDirectApiProbe: null,
   storefrontPublishedProbe: null,
 };
 const summaryPath = join(artifactsDir, 'summary.md');
@@ -98,6 +99,24 @@ try {
     // noindex 404 document; a client-side fallback (200) or function crash
     // (500) means the published-salon SSR route is not wired correctly.
     if (viewport.width === 1440) {
+      // Call the serverless function directly before testing root middleware.
+      // This separates API startup/registration from a middleware rewrite issue.
+      // The probe is a read-only lookup for a deliberately unpublished slug.
+      const directApiSlug = 'nexora-ssr-direct-api-probe-not-published';
+      const directApiUrl = new URL('/api/storefront?path=%2F&site=' + encodeURIComponent(directApiSlug), previewUrl).toString();
+      const directApiResponse = await page.goto(directApiUrl, { waitUntil: 'networkidle', timeout: 60000 });
+      const directApiBody = directApiResponse ? await directApiResponse.text() : '';
+      const directApiHeaders = directApiResponse ? {
+        handler: directApiResponse.headers()['x-nexora-ssr-handler'] || '',
+        stage: directApiResponse.headers()['x-nexora-ssr-stage'] || '',
+        slug: directApiResponse.headers()['x-nexora-ssr-slug'] || '',
+        requestId: directApiResponse.headers()['x-vercel-id'] || '',
+      } : {};
+      assert.equal(directApiResponse?.status(), 404, `Direct SSR API probe should return 404, got ${directApiResponse?.status() ?? 'no response'}; headers=${JSON.stringify(directApiHeaders)}; body=${directApiBody.slice(0, 1200)}`);
+      assert.equal(directApiHeaders.handler, 'entered', 'Direct SSR API probe must enter the storefront function handler');
+      assert.equal(directApiHeaders.stage, 'unpublished', 'Direct SSR API probe must complete the public database lookup');
+      report.storefrontDirectApiProbe = { status: directApiResponse.status(), ...directApiHeaders };
+
       const probeUrl = new URL('/?site=nexora-ssr-preview-probe-not-published', previewUrl).toString();
       const probeResponse = await page.goto(probeUrl, { waitUntil: 'networkidle', timeout: 60000 });
       const probeBody = probeResponse ? await probeResponse.text() : '';
