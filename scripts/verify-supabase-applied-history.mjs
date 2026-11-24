@@ -20,8 +20,18 @@ for (const version of manifest.applied_versions) {
 for (const alias of manifest.reconciled_aliases ?? []) {
   assert(!files.includes(alias.removed_file), `Duplicate historical alias reintroduced: ${alias.removed_file}`);
   assert(files.includes(alias.canonical_file), `Missing canonical alias target: ${alias.canonical_file}`);
-  assert(manifest.applied_versions.includes(alias.canonical_file.split('_', 1)[0]),
+  const appliedVersions = new Set([
+    ...manifest.applied_versions,
+    ...(manifest.post_export_applied_versions ?? []).map(record => record.version),
+  ]);
+  assert(appliedVersions.has(alias.canonical_file.split('_', 1)[0]),
     `Alias target is not recorded applied: ${alias.canonical_file}`);
+  if (alias.archived_file) {
+    assert(!files.includes(alias.archived_file.split('/').at(-1)), `Archived alias is active: ${alias.archived_file}`);
+    const archived = readFileSync(alias.archived_file, 'utf8').replace(/\r\n?/g, '\n');
+    assert.equal(createHash('sha256').update(archived).digest('hex'), alias.removed_file_sha256,
+      `Archived alias source changed: ${alias.archived_file}`);
+  }
 }
 for (const record of manifest.restored) {
   const expectedName = `${record.version}_${record.name}.sql`;
