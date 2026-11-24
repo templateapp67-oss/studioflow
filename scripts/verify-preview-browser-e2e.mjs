@@ -236,6 +236,15 @@ try {
     await context.close();
   }
   assert.deepEqual(report.blockedWriteRequests, [], `Preview attempted ${report.blockedWriteRequests.length} backend write request(s)`);
+  assert.ok(
+    report.allowedReadOnlyRpcRequests.every((item) =>
+      item.method === 'POST' && (
+        item.endpoint.endsWith('/rpc/studioflow_list_reviews')
+        || item.endpoint.endsWith('/rpc/studioflow_tawk_public_config')
+      )
+    ),
+    'Only the two reviewed read-only public Supabase RPCs may use POST during the storefront smoke test',
+  );
   assert.deepEqual(report.failedRequests, [], `Browser network failures: ${JSON.stringify(report.failedRequests)}`);
   assert.deepEqual(report.pageErrors, [], `Browser page errors: ${report.pageErrors.join(' | ')}`);
   assert.deepEqual(report.consoleErrors, [], `Browser console errors: ${report.consoleErrors.join(' | ')}`);
