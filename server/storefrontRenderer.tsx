@@ -96,7 +96,7 @@ export function renderPublishedSalonHtml(rawContent: unknown, slug: string): Pub
             stylists={hydrationSite.stylists}
             gallery={hydrationSite.gallery}
             policies={hydrationSite.policies}
-            branding={hydrationSite.branding}
+            branding={hydrationSite.branding as { platformName: string; poweredBy: boolean; supportEmail: string }}
             loyaltyConfig={hydrationSite.loyaltyConfig}
             customerSignedIn={false}
             customerName="My account"
