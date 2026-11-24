@@ -58,4 +58,5 @@ export default function middleware(request) {
 
 export const config = {
   matcher: '/',
+  runtime: 'nodejs',
 };
