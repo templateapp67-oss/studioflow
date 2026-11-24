@@ -282,7 +282,7 @@ try {
     // A narrow phone width exercises the compact navigation on every route,
     // including pages whose intentionally shorter header still fits at 390px.
     await page.setViewportSize({ width: 320, height: 740 });
-    await page.waitForFunction(headerMeasurementMatchesLayout);
+    await page.waitForFunction(headerMeasurementDetails, true, { timeout: 10000 });
     assert.ok(await page.locator('.nexora-site-header').evaluate((header) => header.classList.contains('nexora-site-header--compact')), `${routePath} collapses the navigation at 320px`);
     const narrow = await page.evaluate(() => {
       const header = document.querySelector('.nexora-site-header');
