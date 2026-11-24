@@ -432,8 +432,8 @@ jobs:
             throw new Error('Vercel Production env file was not created after the refresh.');
           }
 
-          const lines = fs.readFileSync(path, 'utf8').split(/\\r?\\n/);
-          const matches = lines.filter((line) => /^VITE_SUPABASE_URL\\s*=/.test(line));
+          const lines = fs.readFileSync(path, 'utf8').split(/\r?\n/);
+          const matches = lines.filter((line) => /^VITE_SUPABASE_URL\s*=/.test(line));
           if (matches.length !== 1) {
             throw new Error('Expected exactly one VITE_SUPABASE_URL in the pulled Production env file.');
           }
