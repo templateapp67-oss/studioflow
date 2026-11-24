@@ -1,9 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
-import { resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
-import { generateSeoDefaults } from '../src/lib/useSeoMetadata';
-import { websiteFavicon } from '../src/lib/websiteFavicon';
-
 type RequestLike = {
   method?: string;
   url?: string;
@@ -36,24 +30,45 @@ const EXPECTED_SUPABASE_HOST = 'zilwgiuiygqqardzutxi.supabase.co';
 const SUPABASE_URL = 'https://zilwgiuiygqqardzutxi.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_Xck8H8PcTCCnEwkvBfiSLw_c973vJkH';
 
-const supabaseUrl = new URL(SUPABASE_URL);
-if (supabaseUrl.protocol !== 'https:' || supabaseUrl.hostname !== EXPECTED_SUPABASE_HOST) {
-  throw new Error('Published salon SSR must use the reviewed NEXORA production Supabase project.');
-}
-if (!SUPABASE_PUBLISHABLE_KEY || SUPABASE_PUBLISHABLE_KEY.startsWith('sb_secret_')) {
-  throw new Error('Published salon SSR requires a public Supabase publishable key.');
-}
+let supabaseClient: any = null;
+let supabaseClientPromise: Promise<any> | null = null;
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-});
+async function getSupabaseClient(): Promise<any> {
+  if (supabaseClient) return supabaseClient;
+  if (!supabaseClientPromise) {
+    supabaseClientPromise = (async () => {
+      const supabaseUrl = new URL(SUPABASE_URL);
+      if (supabaseUrl.protocol !== 'https:' || supabaseUrl.hostname !== EXPECTED_SUPABASE_HOST) {
+        throw new Error('Published salon SSR must use the reviewed NEXORA production Supabase project.');
+      }
+      if (!SUPABASE_PUBLISHABLE_KEY || SUPABASE_PUBLISHABLE_KEY.startsWith('sb_secret_')) {
+        throw new Error('Published salon SSR requires a public Supabase publishable key.');
+      }
+      const { createClient } = await import('@supabase/supabase-js');
+      return createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+        auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+      });
+    })().then((client) => {
+      supabaseClient = client;
+      return client;
+    }).catch((error) => {
+      supabaseClientPromise = null;
+      throw error;
+    });
+  }
+  return supabaseClientPromise;
+}
 
 let renderer: Renderer | null = null;
 
 async function getRenderer(): Promise<Renderer> {
   if (renderer) return renderer;
-  // Load the generated renderer only when a page needs it. A file URL avoids
-  // depending on the function bundler preserving module-local import metadata.
+  // Keep Node-only imports lazy so the Vercel request handler can start and
+  // report a controlled error if an optional SSR asset is unavailable.
+  const [{ resolve }, { pathToFileURL }] = await Promise.all([
+    import('node:path'),
+    import('node:url'),
+  ]);
   const rendererUrl = pathToFileURL(resolve(process.cwd(), 'dist/storefront-renderer.cjs')).href;
   const loaded = await import(rendererUrl);
   renderer = (loaded.default || loaded) as Renderer;
@@ -157,8 +172,13 @@ function canonicalForRequest(profile: Record<string, any>, origin: string, pathn
   return origin + (pathname.startsWith('/') ? pathname : '/' + pathname);
 }
 
-function renderHead(profile: Record<string, any>, site: Record<string, any>, canonical: string): string {
-  const defaults = generateSeoDefaults(profile);
+function renderHead(
+  profile: Record<string, any>,
+  site: Record<string, any>,
+  canonical: string,
+  seoHelpers: { generateSeoDefaults(profile: Record<string, any>): any; websiteFavicon(branding: any, profile: any): string },
+): string {
+  const defaults = seoHelpers.generateSeoDefaults(profile);
   const seo = profile.seo || {};
   const title = seo.metaTitle || defaults.metaTitle;
   const description = seo.metaDescription || defaults.metaDescription;
@@ -167,7 +187,7 @@ function renderHead(profile: Record<string, any>, site: Record<string, any>, can
   const image = seo.ogImageUrl || profile.coverImageUrl || profile.logoUrl || defaults.ogImageUrl;
   const keywords = seo.keywords || defaults.keywords;
   const twitterCard = seo.twitterCard || 'summary_large_image';
-  const favicon = websiteFavicon(site.branding, profile);
+  const favicon = seoHelpers.websiteFavicon(site.branding, profile);
   const address: Record<string, string> = {};
   if (profile.address) address.streetAddress = profile.address;
   if (profile.city) address.addressLocality = profile.city;
@@ -259,11 +279,34 @@ export default async function storefrontHandler(req: RequestLike, res: ResponseL
   }
   res.setHeader('X-NEXORA-SSR-Stage', 'public-database-lookup');
 
-  const { data, error } = await supabase
-    .from('public_salon_websites')
-    .select('slug,content,published_at')
-    .eq('slug', slug)
-    .maybeSingle();
+  let supabase: any;
+  try {
+    supabase = await getSupabaseClient();
+  } catch (initializationError) {
+    res.setHeader('X-NEXORA-SSR-Stage', 'database-initialization-error');
+    console.error('[storefront-ssr] Supabase client initialization failed', initializationError);
+    res.status(503);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store');
+    return method === 'HEAD' ? res.end() : res.send('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Salon temporarily unavailable</title></head><body><main><h1>Salon temporarily unavailable</h1><p>Please refresh this page in a moment.</p></main></body></html>');
+  }
+
+  let lookup: { data: any; error: any };
+  try {
+    lookup = await supabase
+      .from('public_salon_websites')
+      .select('slug,content,published_at')
+      .eq('slug', slug)
+      .maybeSingle();
+  } catch (lookupError) {
+    res.setHeader('X-NEXORA-SSR-Stage', 'public-database-error');
+    console.error('[storefront-ssr] public salon lookup threw', lookupError);
+    res.status(503);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store');
+    return method === 'HEAD' ? res.end() : res.send('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Salon temporarily unavailable</title></head><body><main><h1>Salon temporarily unavailable</h1><p>Please refresh this page in a moment.</p></main></body></html>');
+  }
+  const { data, error } = lookup;
 
   if (error) {
     res.setHeader('X-NEXORA-SSR-Stage', 'public-database-error');
@@ -297,9 +340,28 @@ export default async function storefrontHandler(req: RequestLike, res: ResponseL
   }
   const viaQuery = pageUrl.searchParams.has('site') || pageUrl.searchParams.has('s') || pageUrl.searchParams.has('subdomain');
   const canonical = canonicalForRequest(rendered.profile, origin, pageUrl.pathname, slug, viaQuery);
-  const assetTags = (await getRenderer()).getStorefrontAssetTags();
+  let head: string;
+  try {
+    const [seoModule, faviconModule, activeRenderer] = await Promise.all([
+      import('../src/lib/useSeoMetadata'),
+      import('../src/lib/websiteFavicon'),
+      getRenderer(),
+    ]);
+    const assetTags = activeRenderer.getStorefrontAssetTags();
+    const seoHelpers = {
+      generateSeoDefaults: seoModule.generateSeoDefaults,
+      websiteFavicon: faviconModule.websiteFavicon,
+    };
+    head = renderHead(rendered.profile, rendered.site, canonical, seoHelpers) + '\n' + assetTags;
+  } catch (headError) {
+    console.error('[storefront-ssr] SEO/asset module initialization failed', headError);
+    res.status(503);
+    res.setHeader('X-NEXORA-SSR-Stage', 'head-initialization-error');
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store');
+    return method === 'HEAD' ? res.end() : res.send('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Salon temporarily unavailable</title></head><body><main><h1>Salon temporarily unavailable</h1><p>Please refresh this page in a moment.</p></main></body></html>');
+  }
   const initialPayload = safeJson({ slug, site: rendered.site });
-  const head = renderHead(rendered.profile, rendered.site, canonical) + '\n' + assetTags;
 
   res.status(200);
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
