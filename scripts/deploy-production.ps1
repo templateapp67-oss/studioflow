@@ -141,7 +141,6 @@ function Invoke-StudioFlowProductionDeployment {
             'pull',
             '--yes',
             '--environment=production',
-            "--scope=$OrgId",
             "--token=$Token"
         )
 
@@ -188,7 +187,6 @@ function Invoke-StudioFlowProductionDeployment {
         $null = & $invokeChecked -Name 'vercel' -Arguments @(
             'build',
             '--prod',
-            "--scope=$OrgId",
             "--token=$Token"
         )
 
@@ -202,7 +200,6 @@ function Invoke-StudioFlowProductionDeployment {
             "--token=$Token",
             '--project',
             $ProjectId,
-            "--scope=$OrgId"
         )
 
         $vercelUrlMatch = [regex]::Matches(
