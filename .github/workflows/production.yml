@@ -480,14 +480,22 @@ jobs:
           console.log('Vercel accepted the upsert request for the saved Production VITE_SUPABASE_URL.');
           NODE
 
-      - name: Verify saved Production Supabase URL from Vercel
+      - name: Refresh Vercel production environment after saved URL update
         if: steps.persist_supabase_url.outcome == 'success'
-        shell: bash
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      # A missing, sensitive, or malformed URL can be repaired in the pulled
+      # file below. A failed pull above remains fatal: do not build from a
+      # potentially incomplete environment.
+      - name: Verify saved Production Supabase URL from Vercel
+        id: verify_saved_supabase_url
+        if: steps.persist_supabase_url.outcome == 'success'
+        continue-on-error: true
+        shell: bash
         run: |
           set -euo pipefail
-          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
           node <<'NODE'
           const fs = require('node:fs');
           const path = '.vercel/.env.production.local';
@@ -502,6 +510,11 @@ jobs:
           if (actual !== expected) throw new Error('The saved Vercel Production variable does not match the reviewed NEXORA Supabase project.');
           console.log('PASS: Vercel saved Production VITE_SUPABASE_URL matches the reviewed NEXORA Supabase project.');
           NODE
+
+      - name: Warn when saved Vercel URL could not be verified
+        if: steps.persist_supabase_url.outcome == 'failure' || steps.verify_saved_supabase_url.outcome == 'failure'
+        run: |
+          echo "::warning::The saved Production VITE_SUPABASE_URL could not be verified. The next step will normalize the pulled file for this prebuilt deployment; check the Production variable in Vercel Project Settings."
 
       - name: Repair and verify the reviewed production Supabase URL
         env:

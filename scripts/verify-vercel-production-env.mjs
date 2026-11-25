@@ -38,6 +38,26 @@ assert(
       deploySection.indexOf('Build production deployment'),
   'production env preparation must run after project verification and before vercel build',
 );
+const step = (name) => {
+  const body = deploySection.split(`- name: ${name}\n`)[1];
+  assert(body, `Missing production step: ${name}`);
+  return body.split('\n      - ')[0];
+};
+const refreshStep = step('Refresh Vercel production environment after saved URL update');
+const savedUrlStep = step('Verify saved Production Supabase URL from Vercel');
+const warnStep = step('Warn when saved Vercel URL could not be verified');
+assert(refreshStep.includes('vercel pull --yes --environment=production') && !refreshStep.includes('continue-on-error: true'),
+  'a failed refresh must remain fatal rather than building from a potentially incomplete env file');
+assert(savedUrlStep.includes('id: verify_saved_supabase_url') && savedUrlStep.includes('continue-on-error: true'),
+  'a saved URL mismatch must allow the local normalization fallback to run');
+assert(warnStep.includes("steps.persist_supabase_url.outcome == 'failure'") &&
+  warnStep.includes("steps.verify_saved_supabase_url.outcome == 'failure'") && warnStep.includes('::warning::'),
+  'persist or saved URL verification failure must explicitly warn about the local-only fallback');
+assert(deploySection.indexOf('Refresh Vercel production environment after saved URL update') <
+    deploySection.indexOf('Verify saved Production Supabase URL from Vercel') &&
+  deploySection.indexOf('Verify saved Production Supabase URL from Vercel') <
+    deploySection.indexOf('Repair and verify the reviewed production Supabase URL'),
+  'the verified local normalization must follow the refresh and saved URL check');
 assert(
   !deploySection.includes('decrypt=true'),
   'production deploy job must never require Vercel decrypt=true env API scope',
