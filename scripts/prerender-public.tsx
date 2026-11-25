@@ -246,6 +246,8 @@ const privacyHtml = `<!doctype html>
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="${escapeHtml(privacyTitle)}" />
 <meta name="twitter:description" content="${escapeHtml(privacyDescription)}" />
+<meta name="twitter:image" content="${escapeHtml(`${NEXORA_PUBLIC_ORIGIN}/nexora-homepage-og.jpg`)}" />
+<meta name="twitter:image:alt" content="NEXORA SALONOS salon management software" />
 ${clarityScript}
 ${moduleScript}
 ${stylesheet}
