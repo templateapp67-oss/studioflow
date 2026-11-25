@@ -25,7 +25,50 @@ const page = await browser.newPage({
 });
 const failedRequests = [];
 const writeRequests = [];
+const readOnlyPostRequests = [];
 const pageErrors = [];
+
+/**
+ * Supabase/PostgREST uses HTTP POST for RPC calls even when the SQL function is
+ * read-only. Only these two explicitly read-only operations are exempted:
+ * - studioflow_booking_specialists is declared LANGUAGE SQL STABLE.
+ * - studioflow-payments action=status only reads gateway configuration after
+ *   validating the caller; it does not create orders, collect payments or write.
+ * All other POST/PUT/PATCH/DELETE requests to the app or Supabase stay blocked.
+ */
+function readOnlyRequestReason(request, requestUrl) {
+  if (request.method() !== 'POST') return '';
+  let body;
+  try {
+    body = request.postDataJSON();
+  } catch {
+    return '';
+  }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return '';
+
+  if (requestUrl.pathname === '/functions/v1/studioflow-payments') {
+    const keys = Object.keys(body).sort();
+    if (body.action === 'status' && keys.length === 1 && keys[0] === 'action') {
+      return 'read-only payment gateway status';
+    }
+    return '';
+  }
+
+  if (requestUrl.pathname === '/rest/v1/rpc/studioflow_booking_specialists') {
+    const keys = Object.keys(body).sort();
+    if (
+      keys.length === 2
+      && keys[0] === 'p_service_id'
+      && keys[1] === 'p_slug'
+      && typeof body.p_service_id === 'string'
+      && typeof body.p_slug === 'string'
+    ) {
+      return 'read-only stable booking specialist lookup';
+    }
+  }
+
+  return '';
+}
 const webpResponses = new Map();
 
 page.on('pageerror', (error) => pageErrors.push(error.message));
@@ -48,7 +91,13 @@ page.on('request', (request) => {
     const isSupabaseMutation = /\.supabase\.co$/i.test(requestUrl.hostname)
       && /^\/(?:rest\/v1|functions\/v1|storage\/v1|auth\/v1)(?:\/|$)/i.test(requestUrl.pathname);
     if (isPreviewApiMutation || isSupabaseMutation) {
-      writeRequests.push(request.method() + ' ' + requestUrl.hostname + requestUrl.pathname);
+      const readOnlyReason = isSupabaseMutation ? readOnlyRequestReason(request, requestUrl) : '';
+      const safeLabel = request.method() + ' ' + requestUrl.hostname + requestUrl.pathname;
+      if (readOnlyReason) {
+        readOnlyPostRequests.push(safeLabel + ' (' + readOnlyReason + ')');
+      } else {
+        writeRequests.push(safeLabel);
+      }
     }
   } catch {
     // Browser-internal URLs cannot target the application's data services.
@@ -261,7 +310,9 @@ try {
     interactionEventEntries: interactionDurations.length,
     syntheticInteractionP75Ms: p75 === null ? 'not supported by this Chromium runtime' : Number(p75.toFixed(2)),
     longestObservedTaskMs: longTasks.length ? Number(Math.max(...longTasks).toFixed(2)) : 0,
-    writeRequests: writeRequests.length,
+    blockedMutations: writeRequests.length,
+    allowedReadOnlyPostRequests: readOnlyPostRequests.length,
+    readOnlyPostRequestTypes: readOnlyPostRequests.map((entry) => entry.replace(/^POST [^ ]+/, 'POST <Supabase endpoint>')),
     failedRequests: failedRequests.length,
     pageErrors: pageErrors.length,
   };
