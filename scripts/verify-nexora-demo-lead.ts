@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { nexoraDemoLeadHandler } from '../server/nexoraDemoLead';
+import { createHash } from 'node:crypto';
+import { nexoraDemoLeadHandler, leadClientIp, isTooFast } from '../server/nexoraDemoLead';
 
 /**
  * Offline behaviour tests for the shared demo-lead handler.
@@ -44,8 +45,14 @@ const originalEnv = { ...process.env };
 
 let upstream: { status: number; body: any } = { status: 200, body: { ok: true } };
 let upstreamCalls: { url: string; headers: Record<string, string>; payload: any }[] = [];
+let budgetCalls: any[] = []; let budgetValue: any = 1; let budgetStatus = 200;
 
 globalThis.fetch = (async (url: string, init: any) => {
+  if (String(url).includes('/rest/v1/rpc/prune_landing_lead_rate_limits')) return { ok: true, status: 200, json: async () => 0 } as any;
+  if (String(url).includes('/rest/v1/rpc/register_landing_lead_attempt')) {
+    budgetCalls.push(JSON.parse(init.body));
+    return { ok: budgetStatus === 200, status: budgetStatus, json: async () => budgetValue } as any;
+  }
   upstreamCalls.push({ url: String(url), headers: init?.headers ?? {}, payload: JSON.parse(init?.body ?? '{}') });
   return {
     ok: upstream.status >= 200 && upstream.status < 300,
@@ -70,14 +77,26 @@ const validLead = {
 
 async function call(body: unknown, method = 'POST') {
   captured.length = 0;
-  upstreamCalls = [];
-  await nexoraDemoLeadHandler({ method, body } as any, respond());
+  upstreamCalls = []; budgetCalls = [];
+  await nexoraDemoLeadHandler({ method, body, ip: '192.0.2.7' } as any, respond());
   return { status: captured[0]?.status, body: captured[0]?.body };
 }
 
 try {
   process.env.SUPABASE_URL = 'https://zilwgiuiygqqardzutxi.supabase.co';
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-test-key';
+
+  assert.equal(leadClientIp({ ip: '192.0.2.7', headers: { 'x-forwarded-for': '203.0.113.8' } }, false), '192.0.2.7');
+  assert.equal(leadClientIp({ headers: { 'x-vercel-forwarded-for': '203.0.113.8' } }, true), '203.0.113.8');
+  assert.equal(leadClientIp({ headers: { 'x-forwarded-for': '203.0.113.8' } }, true), 'unknown');
+  assert.equal(leadClientIp({ ip: '::ffff:192.0.2.7' }, false), '192.0.2.7');
+  assert.equal(isTooFast(1999), true); assert.equal(isTooFast(2000), false);
+  assert.equal(isTooFast(undefined), false); assert.equal(isTooFast(-1), true);
+  let quick = await call({ ...validLead, formElapsedMs: 100 });
+  assert.equal(quick.status, 400); assert.equal(budgetCalls.length, 0); assert.equal(upstreamCalls.length, 0);
+  budgetValue = 6; let blocked = await call(validLead); assert.equal(blocked.status, 429); assert.equal(upstreamCalls.length, 0);
+  budgetValue = 'bad'; blocked = await call(validLead); assert.equal(blocked.status, 503); assert.equal(upstreamCalls.length, 0);
+  budgetValue = 1; budgetStatus = 503; blocked = await call(validLead); assert.equal(blocked.status, 503); assert.equal(upstreamCalls.length, 0); budgetStatus = 200;
 
   /* --- 1. Valid submission is stored ------------------------------------- */
   upstream = { status: 200, body: { ok: true } };
@@ -86,6 +105,12 @@ try {
   assert.equal(result.body.ok, true, 'A stored lead answers ok:true');
   assert.ok(result.body.requestId, 'The response carries a request id');
   assert.equal(upstreamCalls.length, 1, 'Exactly one upstream call is made');
+  assert.equal(budgetCalls.length, 1);
+  assert.match(budgetCalls[0].p_bucket_key, /^[a-f0-9]{64}$/);
+  assert.equal(budgetCalls[0].p_bucket_key, createHash('sha256').update('nexora-landing-rate-limit-v1:192.0.2.7').digest('hex'));
+  assert.equal(budgetCalls[0].p_window_seconds, 600);
+  assert.ok(!JSON.stringify(budgetCalls).includes('192.0.2.7'), 'IP is never stored in the budget request');
+  assert.equal(budgetCalls[0].p_max_attempts, 5);
   const sent = upstreamCalls[0];
   assert.ok(sent.url.endsWith('/functions/v1/submit-landing-lead'), 'The lead is stored through the Edge Function');
   assert.equal(sent.payload.lead_type, 'demo_request', 'The lead type is mapped');

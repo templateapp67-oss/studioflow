@@ -61,6 +61,7 @@ const corsHeaders = (origin: string | null) => {
   const headers: Record<string, string> = {
     'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Expose-Headers': 'Retry-After',
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': 'no-store',
     // The response carries a per-request origin, so a shared cache must never
@@ -72,7 +73,7 @@ const corsHeaders = (origin: string | null) => {
 };
 
 const json = (payload: unknown, status: number, origin: string | null) =>
-  new Response(JSON.stringify(payload), { status, headers: corsHeaders(origin) });
+  new Response(JSON.stringify(payload), { status, headers: { ...corsHeaders(origin), ...(status === 429 ? { 'Retry-After': '600' } : {}) } });
 
 const SUCCESS = { ok: true, message: 'Your request has been received.' };
 const INVALID = { ok: false, message: 'Please check the required fields and try again.' };
@@ -122,8 +123,8 @@ const sanitiseUtm = (value: string): string => value.replace(/[^\w.\-: ]/g, '').
  * Trusted server-to-server calls
  * ------------------------------------------------------------------------
  * The first-party Nexora server uses a server-side credential, so those calls
- * skip the public per-IP bucket; the server fallback currently has no separate
- * limiter. See release QA notes before deploying this public submission path.
+ * skip the Edge public per-IP bucket; the first-party server claims the same
+ * shared database budget before forwarding. See release QA notes for rollout.
  * Only the function itself uses the privileged client to insert a lead.
  * ------------------------------------------------------------------------ */
 const isTrustedServerCall = async (request: Request): Promise<boolean> => {
@@ -177,7 +178,7 @@ interface LeadService {
   };
 }
 
-const isRateLimited = async (service: LeadService, bucketKey: string): Promise<boolean> => {
+const checkRateLimit = async (service: LeadService, bucketKey: string): Promise<'allowed' | 'limited' | 'unavailable'> => {
   let data: unknown;
   try {
     const result = await service.rpc('register_landing_lead_attempt', {
@@ -190,7 +191,7 @@ const isRateLimited = async (service: LeadService, bucketKey: string): Promise<b
   } catch {
     // Upstream errors can contain PII or credentials; emit only a static event.
     console.error('submit-landing-lead: rate limiter unavailable');
-    return true;
+    return 'unavailable';
   }
   pruneCounter = (pruneCounter + 1) % 25;
   if (pruneCounter === 0) {
@@ -200,7 +201,7 @@ const isRateLimited = async (service: LeadService, bucketKey: string): Promise<b
       // Housekeeping only — a failure here must never fail the request.
     }
   }
-  return (data as number) > RATE_LIMIT_MAX;
+  return (data as number) > RATE_LIMIT_MAX ? 'limited' : 'allowed';
 };
 
 /* --------------------------------------------------------------------------
@@ -272,6 +273,11 @@ Deno.serve(async (request: Request) => {
     return json(SUCCESS, 200, origin);
   }
 
+  // Untrusted client time is only a low-friction heuristic; legacy callers
+  // without an elapsed value remain compatible during rollout.
+  const elapsed = body.form_elapsed_ms;
+  if (elapsed !== undefined && (typeof elapsed !== 'number' || !Number.isSafeInteger(elapsed) || elapsed < 2000)) return json({ ok: false, message: 'Please wait a moment, then try again.' }, 400, origin);
+
   const url = Deno.env.get('SUPABASE_URL');
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SUPABASE_SECRET_KEY');
   if (!url || !serviceKey) {
@@ -283,9 +289,9 @@ Deno.serve(async (request: Request) => {
   const trustedServerCall = await isTrustedServerCall(request);
   if (!trustedServerCall) {
     const bucketKey = await hashKey(clientKey(request));
-    if (await isRateLimited(service, bucketKey)) {
-      return json({ ok: false, message: 'Too many requests. Please try again later.' }, 429, origin);
-    }
+    const budget = await checkRateLimit(service, bucketKey);
+    if (budget === 'limited') return json({ ok: false, message: 'Too many requests. Please try again later.' }, 429, origin);
+    if (budget === 'unavailable') return json({ ok: false, message: 'The request service is temporarily unavailable. Please try again later.' }, 503, origin);
   }
 
   const turnstileToken = asString(body.turnstile_token, 2048);
@@ -304,7 +310,9 @@ Deno.serve(async (request: Request) => {
   if (fullName.length < 2) return json(INVALID, 400, origin);
 
   const email = asString(body.email, 254).toLowerCase();
-  const phone = normalisePhone(asString(body.phone, 32));
+  const rawPhone = asString(body.phone, 32);
+  const phone = normalisePhone(rawPhone);
+  if (rawPhone && !phone) return json(INVALID, 400, origin);
   if (!email && !phone) return json(INVALID, 400, origin);
   if (email && !isEmail(email)) return json(INVALID, 400, origin);
   if (asString(body.email, 254) && !email) return json(INVALID, 400, origin);

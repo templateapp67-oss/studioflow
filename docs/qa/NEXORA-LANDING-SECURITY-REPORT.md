@@ -39,13 +39,11 @@ cannot drift between deployments.
 `idempotency_key` (unique partial index) collapses a retry onto the stored row. Verified live: two identical
 requests produced exactly one row.
 
-### SEC-04 — Rate limiting that survives serverless instances (P0, fixed)
+### SEC-04 — Shared rate-limit implementation (deployment verification pending)
 
 The counter lives in `public.landing_lead_rate_limits` and is shared by every function instance
 (`register_landing_lead_attempt`, 5 attempts / 600 s). Only a salted SHA-256 hash of the client address is
-stored, the salt lives in `LANDING_LEAD_RATE_LIMIT_SALT`, and expired rows are pruned. The raw address is never
-written to the register. The first-party server route is a trusted caller and is governed by the server-side
-limit instead of the shared per-address bucket.
+stored; configure the same stable, secret `LANDING_LEAD_RATE_LIMIT_SALT` on the server and Edge. The public default is not a privacy secret. The raw address is not written to the register. The server route now claims a budget through the same database RPC before its trusted Edge call; the counters align only when both services observe the same address and use the same salt/project. See the rollout and trust caveats in `PUBLIC-CONTENT-SEO-AUDIT.md`.
 
 ### SEC-05 — A privileged key in a browser variable (P0, fixed)
 
@@ -112,5 +110,4 @@ request through the server route, and the published privacy notice states the wi
   compromised account exposes the register to that account. Role assignment is an operational task outside this
   change.
 * The rate limit is per address hash: a shared office address can reach the limit for several visitors.
-* Turnstile is supported by the Edge Function but is not configured in this environment, so only the honeypot and
-  the rate limit protect the endpoint.
+* Turnstile is optional; its deployed configuration is unverified. Do not enable its secret without a compatible widget/token flow; see the public-content audit.

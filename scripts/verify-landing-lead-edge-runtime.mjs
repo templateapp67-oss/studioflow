@@ -2,6 +2,7 @@
 // No provider requests, credentials, or real leads are used.
 import assert from 'node:assert/strict';
 import { build } from 'esbuild';
+import { createHash } from 'node:crypto';
 
 const built = await build({
   entryPoints: ['supabase/functions/submit-landing-lead/index.ts'],
@@ -15,14 +16,17 @@ let handler;
 const env = { SUPABASE_URL: 'https://example.test', SUPABASE_SERVICE_ROLE_KEY: 'service-test-secret' };
 globalThis.Deno = { env: { get: (name) => env[name] }, serve: (fn) => { handler = fn; } };
 let rpcMode = 'ok', insertMode = 'ok', rpcCalls = 0, inserts = 0, verificationCalls = 0;
+let rpcArgs;
 const privateText = 'sensitive-visitor@example.test service-test-secret provider-detail';
 globalThis.__testLeadService = {
-  async rpc() {
+  async rpc(fn, args) {
+    if (fn === 'register_landing_lead_attempt') rpcArgs = args;
     rpcCalls++;
     if (rpcMode === 'throw') throw new Error(privateText);
     if (rpcMode === 'error') return { data: null, error: { code: privateText, message: privateText } };
     if (rpcMode === 'malformed') return { data: NaN, error: null };
     if (rpcMode === 'zero') return { data: 0, error: null };
+    if (rpcMode === 'limited') return { data: 6, error: null };
     return { data: 1, error: null };
   },
   from() { return { insert() { inserts++; return { select() { return { async single() {
@@ -43,17 +47,18 @@ globalThis.fetch = async (url) => {
 try {
   await import('data:text/javascript;base64,' + Buffer.from(built.outputFiles[0].text).toString('base64'));
   const payload = { lead_type: 'demo_request', full_name: 'Test Person', email: 'test@example.test', consent_given: true };
-  async function request(extra = {}, authorization = 'Bearer public-test-key') {
+  async function request(extra = {}, authorization = 'Bearer public-test-key', headers = {}) {
     return handler(new Request('https://edge.example.test/submit', {
-      method: 'POST', headers: { 'content-type': 'application/json', authorization }, body: JSON.stringify({ ...payload, ...extra }),
+      method: 'POST', headers: { 'content-type': 'application/json', authorization, ...headers }, body: JSON.stringify({ ...payload, ...extra }),
     }));
   }
   for (const mode of ['throw', 'error', 'malformed', 'zero']) {
     rpcMode = mode; const before = inserts;
     const response = await request();
-    assert.equal(response.status, 429, `${mode} limiter failure refuses submission`);
+    assert.equal(response.status, 503, `${mode} limiter failure refuses submission`);
     assert.equal(inserts, before);
   }
+  rpcMode = 'limited'; const limited = await request(); assert.equal(limited.status, 429); assert.equal(limited.headers.get('retry-after'), '600');
   rpcMode = 'ok';
   for (const mode of ['error', 'throw']) {
     insertMode = mode;
@@ -63,7 +68,13 @@ try {
   }
   insertMode = 'ok';
   // Document actual compatibility, not a claim of deployed protection.
-  const noSecret = await request(); assert.equal(noSecret.status, 200);
+  const quick = await request({ form_elapsed_ms: 100 }); assert.equal(quick.status, 400);
+  const negative = await request({ form_elapsed_ms: -1 }); assert.equal(negative.status, 400);
+  const invalidPhone = await request({ phone: 'not a number' }); assert.equal(invalidPhone.status, 400);
+  const noSecret = await request({ form_elapsed_ms: 3000 }, 'Bearer public-test-key', { 'x-forwarded-for': '192.0.2.7' }); assert.equal(noSecret.status, 200);
+  assert.equal(rpcArgs.p_bucket_key, createHash('sha256').update('nexora-landing-rate-limit-v1:192.0.2.7').digest('hex'));
+  assert.equal(rpcArgs.p_max_attempts, 5); assert.equal(rpcArgs.p_window_seconds, 600);
+  const trappedBefore = inserts; const trapped = await request({ website: 'spam' }); assert.equal(trapped.status, 200); assert.equal(inserts, trappedBefore);
   env.TURNSTILE_SECRET_KEY = 'turnstile-test-secret';
   const noToken = await request(); assert.equal(noToken.status, 400);
   const callsBeforeTrusted = rpcCalls;

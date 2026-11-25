@@ -8,8 +8,7 @@
  *   * persist the enquiry in the configured NEXORA Supabase project through
  *     the `submit-landing-lead` Edge Function (the private `landing_leads`
  *     table is never written to directly);
- *   * forward using a server credential; the Edge Function currently exempts
- *     that trusted path from its public IP limiter (see release QA notes);
+ *   * claim a shared Postgres per-address budget before the trusted Edge call;
  *   * optionally forward to a CRM sink without ever losing a stored lead;
  *   * answer 2xx only after the request is safely stored — never a fake
  *     success;
@@ -18,6 +17,8 @@
  */
 
 import { readServerEnvironment } from './nexoraEnv.js';
+import { createHash } from 'node:crypto';
+import { isIP } from 'node:net';
 
 const PRIVACY_NOTICE_VERSION = '2026-11';
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -42,7 +43,7 @@ function env(name: string): string {
 }
 
 function cleanText(value: unknown, max = 200): string {
-  return String(value ?? '')
+  return (typeof value === 'string' ? value : '')
     .replace(/[\u0000-\u001f\u007f]/g, ' ')
     .trim()
     .slice(0, max);
@@ -83,6 +84,39 @@ async function postJson(
   } finally {
     clearTimeout(timer);
   }
+}
+
+// Express supplies req.ip according to its trust-proxy configuration. Vercel
+// overwrites its own forwarding header; do not trust arbitrary forwarded headers
+// outside that runtime. Missing/invalid identity shares one conservative bucket.
+export function leadClientIp(req: DemoLeadRequest, vercel = process.env.VERCEL === '1'): string {
+  const raw = vercel ? req.headers?.['x-vercel-forwarded-for'] : req.ip;
+  const value = (Array.isArray(raw) ? raw[0] : raw || '').split(',')[0].trim();
+  if (!isIP(value)) return 'unknown';
+  return value.startsWith('::ffff:') && isIP(value.slice(7)) === 4 ? value.slice(7) : value;
+}
+
+async function claimLeadBudget(req: DemoLeadRequest): Promise<'allowed' | 'limited' | 'unavailable'> {
+  const serviceKey = env('SUPABASE_SERVICE_ROLE_KEY') || env('SUPABASE_SECRET_KEY');
+  if (!serviceKey) return 'unavailable';
+  const salt = (process.env.LANDING_LEAD_RATE_LIMIT_SALT || 'nexora-landing-rate-limit-v1').trim();
+  const hash = createHash('sha256').update(`${salt}:${leadClientIp(req)}`).digest('hex');
+  const url = readServerEnvironment(process.env, false).supabaseUrl;
+  const result = await postJson(`${url.replace(/\/+$/, '')}/rest/v1/rpc/register_landing_lead_attempt`,
+    { 'Content-Type': 'application/json', Accept: 'application/json', apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
+    { p_bucket_key: hash, p_window_seconds: 600, p_max_attempts: 5 });
+  if (!result.ok || typeof result.body !== 'number' || !Number.isSafeInteger(result.body) || result.body < 1) return 'unavailable';
+  // Best effort; unlike an in-memory counter this remains effective when most
+  // serverless instances are cold. A scheduled cleanup is still advisable.
+  if (Math.random() < 0.04) await postJson(`${url.replace(/\/+$/, '')}/rest/v1/rpc/prune_landing_lead_rate_limits`,
+    { 'Content-Type': 'application/json', apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, {}, 2000);
+  return result.body > 5 ? 'limited' : 'allowed';
+}
+
+// This client-supplied timing signal is a frictionless heuristic, not proof
+// of human interaction; omitted elapsed times remain valid for older clients.
+export function isTooFast(elapsed: unknown): boolean {
+  return elapsed !== undefined && (typeof elapsed !== 'number' || !Number.isSafeInteger(elapsed) || elapsed < 2000);
 }
 
 /**
@@ -166,6 +200,8 @@ export async function nexoraDemoLeadHandler(req: DemoLeadRequest, res: JsonRespo
     return res.status(202).json({ ok: true, requestId: id });
   }
 
+  if (isTooFast(body.formElapsedMs)) return fail(res, 400, 'Please wait a moment, then try again.', id);
+
   const name = cleanText(body.name, 100);
   const email = cleanText(body.email, 254).toLowerCase();
   const salonName = cleanText(body.salonName, 120);
@@ -180,8 +216,15 @@ export async function nexoraDemoLeadHandler(req: DemoLeadRequest, res: JsonRespo
   if (name.length < 2) return fail(res, 400, 'Enter your name.', id);
   if (!EMAIL.test(email)) return fail(res, 400, 'Enter a valid work email address.', id);
   if (!salonName) return fail(res, 400, 'Enter your salon or business name.', id);
-  if (phone && !PHONE.test(phone)) return fail(res, 400, 'Enter a valid phone number or leave it blank.', id);
+  if (phone && (!PHONE.test(phone) || phone.replace(/\D/g, '').length < 6 || phone.replace(/\D/g, '').length > 15)) return fail(res, 400, 'Enter a valid phone number or leave it blank.', id);
   if (body.consent !== true) return fail(res, 400, 'Please confirm that Nexora may contact you.', id);
+
+  const budget = await claimLeadBudget(req);
+  if (budget === 'limited') {
+    res.setHeader?.('Retry-After', '600');
+    return fail(res, 429, 'Too many demo requests. Please try again later.', id);
+  }
+  if (budget === 'unavailable') return fail(res, 503, 'Demo requests are temporarily unavailable. No request was sent; please try again later.', id);
 
   const stored = await storeLead({
     lead_type: 'demo_request',
@@ -195,6 +238,7 @@ export async function nexoraDemoLeadHandler(req: DemoLeadRequest, res: JsonRespo
     consent_given: true,
     privacy_notice_version: PRIVACY_NOTICE_VERSION,
     idempotency_key: idempotencyKey,
+    form_elapsed_ms: body.formElapsedMs,
   });
 
   if (!stored.configured) {
@@ -204,6 +248,7 @@ export async function nexoraDemoLeadHandler(req: DemoLeadRequest, res: JsonRespo
     return fail(res, 503, 'Demo requests are not configured yet. No request was sent; please try again later.', id);
   }
   if (stored.status === 429) {
+    res.setHeader?.('Retry-After', '600');
     console.warn(`[nexora-demo-lead] id=${id} rate limited`);
     return fail(res, 429, 'Too many demo requests. Please try again later.', id);
   }
