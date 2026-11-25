@@ -90,7 +90,7 @@ const vercel = JSON.parse(readFileSync(vercelPath, 'utf8'));
 const storefrontPathRewrite = (vercel.rewrites ?? []).find((entry) => entry.source.startsWith('/:path(('));
 assert.ok(storefrontPathRewrite, 'unreserved vanity paths route to the SSR storefront handler');
 assert.ok(storefrontPathRewrite.source.includes('api|admin|owner|staff'), 'vanity route excludes private and API paths');
-assert.ok(storefrontPathRewrite.source.includes('template-pages') && storefrontPathRewrite.source.includes('(?!.*\\\\.[^/]+$)'), 'vanity route excludes template directories and extension-bearing asset paths');
+assert.ok(storefrontPathRewrite.source.includes('template-pages') && storefrontPathRewrite.source.includes('(?!.*\\.[^/]+$)'), 'vanity route excludes template directories and extension-bearing asset paths');
 assert.equal(storefrontPathRewrite.destination, '/api/storefront?path=/:path*', 'vanity paths preserve the requested path as the storefront selector');
 assert.equal(vercel.rewrites.at(-1), storefrontPathRewrite, 'the dynamic storefront rewrite remains last');
 const sitemapRewrites = (vercel.rewrites ?? []).filter((entry) => entry.source === '/sitemap.xml');
