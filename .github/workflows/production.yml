@@ -67,12 +67,15 @@ jobs:
             echo "Initial push: require the Supabase migration safety job."
             exit 0
           fi
-          if git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA" -- \
+          # Capture separately so a failed git diff cannot be mistaken for
+          # an empty change list and accidentally allow a code-only deploy.
+          changed_files="$(git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA" -- \
             supabase/migrations/ \
             supabase/config.toml \
             docs/integrations/restored-supabase-history.json \
             scripts/verify-whatsapp-release-plan.mjs \
-            scripts/verify-supabase-migration-history.mjs | grep -q .; then
+            scripts/verify-supabase-migration-history.mjs)"
+          if [[ -n "$changed_files" ]]; then
             echo "migrations_changed=true" >> "$GITHUB_OUTPUT"
             echo "This push changes migration sources or migration history evidence; run remote history validation and dry-run."
           else
@@ -442,35 +445,37 @@ jobs:
           url.searchParams.set('upsert', 'true');
           url.searchParams.set('teamId', teamId);
 
-          const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-              Authorization: 'Bearer ' + token,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              key: 'VITE_SUPABASE_URL',
-              value: expected,
-              type: 'plain',
-              target: ['production'],
-              comment: 'NEXORA Salon production Supabase project URL',
-            }),
-          });
+          let response;
+          try {
+            response = await fetch(url, {
+              method: 'POST',
+              signal: AbortSignal.timeout(15000),
+              headers: {
+                Authorization: 'Bearer ' + token,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                key: 'VITE_SUPABASE_URL',
+                value: expected,
+                type: 'plain',
+                target: ['production'],
+                comment: 'NEXORA Salon production Supabase project URL',
+              }),
+            });
+          } catch {
+            throw new Error('Vercel Production environment update request failed or timed out.');
+          }
 
           const payload = await response.json().catch(() => ({}));
           const failures = Array.isArray(payload.failed) ? payload.failed : [];
           if (!response.ok || failures.length > 0) {
-            const details = failures.map((item) => item.error?.message || item.error?.code || 'unknown error').join('; ');
-            throw new Error(
-              'Vercel did not confirm the saved Production environment update (' +
-              response.status + '): ' +
-              (details || payload.error?.message || payload.error?.code || 'request rejected')
-            );
+            // Do not echo remote error payloads: they may reflect credentials.
+            throw new Error('Vercel did not confirm the saved Production environment update (HTTP ' + response.status + ', failed records: ' + failures.length + ').');
           }
 
           const created = payload.created;
           const records = Array.isArray(created) ? created : created ? [created] : [];
-          if (records.length && !records.some((item) =>
+          if (!records.some((item) =>
             item.key === 'VITE_SUPABASE_URL' &&
             (!Array.isArray(item.target) || item.target.includes('production'))
           )) {
