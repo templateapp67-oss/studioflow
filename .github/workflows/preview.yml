@@ -200,7 +200,7 @@ jobs:
           set -euo pipefail
           mkdir -p /tmp/pw-runner
           echo '{"private":true}' > /tmp/pw-runner/package.json
-          npm install --prefix /tmp/pw-runner --no-save --no-audit --no-fund playwright@1.65.1 lighthouse@12.8.2
+          npm install --prefix /tmp/pw-runner --no-save --no-audit --no-fund playwright@1.65.1 lighthouse@13.6.0
           /tmp/pw-runner/node_modules/.bin/playwright install chromium --with-deps
           /tmp/pw-runner/node_modules/.bin/playwright --version
 
@@ -267,9 +267,17 @@ jobs:
         env:
           PREVIEW_URL: ${{ steps.resolve-preview.outputs.url }}
           PLAYWRIGHT_PACKAGE_ROOT: /tmp/pw-runner
-          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ env.VERCEL_AUTOMATION_BYPASS_SECRET }}
           LIGHTHOUSE_REPORT_DIR: test-results/preview-lighthouse
         run: node scripts/verify-lighthouse-preview.mjs
+
+      - name: Upload Lighthouse mobile report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: preview-lighthouse-${{ github.run_id }}
+          path: test-results/preview-lighthouse
+          retention-days: 14
+          if-no-files-found: warn
 
       - name: Verify Preview HTTP SEO headers, robots.txt, llms.txt, /partner-rewards and /sitemap.xml
         env:
