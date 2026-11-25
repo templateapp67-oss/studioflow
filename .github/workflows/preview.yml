@@ -268,6 +268,7 @@ jobs:
           PREVIEW_URL: ${{ steps.resolve-preview.outputs.url }}
           PLAYWRIGHT_PACKAGE_ROOT: /tmp/pw-runner
           LIGHTHOUSE_REPORT_DIR: test-results/preview-lighthouse
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: node scripts/audit-lighthouse-preview.mjs
 
       - name: Upload Lighthouse mobile report
@@ -279,11 +280,15 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
 
-      - name: Verify Preview HTTP SEO headers, robots.txt, llms.txt, /partner-rewards and /sitemap.xml
+      - name: Verify Preview HTTP SEO headers, robots.txt, llms.txt, /partner-rewards, redirects and /sitemap.xml
+        if: always() && steps.resolve-preview.outputs.url != ''
         env:
           LIVE_SEO_URL: ${{ steps.resolve-preview.outputs.url }}
           SEO_REPORT_PATH: test-results/preview-live-seo-report.json
           SEO_WAIT_RETRY_ATTEMPTS: "3"
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          CHECK_WWW_REDIRECT_URL: https://www.nexorasalon.online
+          CHECK_HTTP_REDIRECT_ORIGINS: https://nexorasalon.online,https://www.nexorasalon.online
         run: node scripts/verify-live-seo-http.mjs
 
       - name: Publish Preview Live SEO Check Run summary
