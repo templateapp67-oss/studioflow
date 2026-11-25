@@ -158,6 +158,7 @@ async function runVerification() {
       '/salon-os',
       '/pricing',
       '/privacy',
+      '/about',
       '/salon-onboarding',
       '/salon-growth',
       '/growth-partner-rewards',
@@ -193,6 +194,11 @@ async function runVerification() {
       assert.ok(!hasHomepageShell, `${routePath} must not serve the generic homepage shell`);
       assert.ok(!hasVercelAppRef, `${routePath} contains zero *.vercel.app URLs`);
     }
+
+    // 2b. Unknown salon slugs must return a real noindex 404, not the homepage shell.
+    const missingSalon = await get('/nexora-seo-404-probe-2026');
+    assert.equal(missingSalon.status, 404, 'an unpublished/unknown salon route returns HTTP 404');
+    assert.match(missingSalon.body, /noindex/i, 'the 404 response carries a noindex directive');
 
     // 3. Auth routes -> X-Robots-Tag: noindex, follow.
     for (const authPath of ['/login', '/sign-in', '/sign-up']) {

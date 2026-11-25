@@ -57,13 +57,27 @@ const robots = readFileSync(robotsPath, 'utf8').replace(/^\uFEFF/, '');
 const robotsLines = robots.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
 const meaningfulRobotsLines = robotsLines.filter((line) => !line.startsWith('#'));
 const sitemapDirectives = meaningfulRobotsLines.filter((line) => /^Sitemap:/i.test(line));
-const disallowRules = meaningfulRobotsLines
-  .filter((line) => /^Disallow:/i.test(line))
-  .map((line) => line.replace(/^Disallow:/i, '').trim());
-
-assert.ok(meaningfulRobotsLines.includes('User-agent: *'), 'robots.txt defines the global crawler group');
-assert.ok(meaningfulRobotsLines.includes('Allow: /'), 'robots.txt allows public pages to be crawled');
-assert.deepEqual(disallowRules, ['/api/'], 'robots.txt blocks only the API path, leaving noindex pages discoverable');
+const robotsGroups = new Map();
+let activeAgents = [];
+for (const line of meaningfulRobotsLines) {
+  const agent = line.match(/^User-agent:\\s*(.+)$/i);
+  if (agent) {
+    activeAgents = [agent[1].trim()];
+    for (const name of activeAgents) robotsGroups.set(name, []);
+    continue;
+  }
+  if (/^(Allow|Disallow):/i.test(line)) {
+    for (const name of activeAgents) robotsGroups.get(name)?.push(line);
+  }
+}
+const expectedSearchAgents = ['Googlebot','Googlebot-Image','Bingbot','OAI-SearchBot','ChatGPT-User','Claude-SearchBot','Claude-User','PerplexityBot','Perplexity-User'];
+for (const agent of expectedSearchAgents) {
+  assert.deepEqual(robotsGroups.get(agent), ['Allow: /','Disallow: /api/'], agent + ' can crawl public pages but not API endpoints');
+}
+for (const agent of ['GPTBot','ClaudeBot','Google-Extended']) {
+  assert.deepEqual(robotsGroups.get(agent), ['Disallow: /'], agent + ' is not granted model-training crawl access by default');
+}
+assert.deepEqual(robotsGroups.get('*'), ['Allow: /','Disallow: /api/'], 'default crawlers can access public pages but not APIs');
 assert.deepEqual(
   sitemapDirectives,
   ['Sitemap: ' + NEXORA_PUBLIC_ORIGIN + '/sitemap.xml'],
