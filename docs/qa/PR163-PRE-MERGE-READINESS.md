@@ -14,11 +14,13 @@
 
 ## 1. Verdict
 
-PR #163 is **pre-merge ready on the code/test/script/workflow/doc side**, with **all automated
-and Preview CI checks green** (runs `601`–`603`). **Two** things now block an authorized merge:
-(1) **`main` advanced** to `7685a3a` while this branch was worked, producing a real **merge
-conflict** (§5.1) that requires a rebase/resolve first; and (2) **external/manual steps that
-require explicit owner approval** (Supabase migration apply, Edge-function redeploy, Vercel
+PR #163 is **pre-merge ready on the code/test/script/workflow/doc side**, with all automated
+in-repo checks green and Preview runs `601`/`602` green. **Three** things now block an
+authorized merge: (1) **`main` advanced** to `7685a3a` while this branch was worked, producing a
+real **merge conflict** (§5.1) that requires a rebase/resolve first; (2) the latest Preview run
+`604` **failed on an external Vercel preview-deployment quota/rate-limit error**, not a code
+defect — a fresh Preview run is needed to confirm green (§2); and (3) **external/manual steps
+that require explicit owner approval** (Supabase migration apply, Edge-function redeploy, Vercel
 Production env verification, staging QA, live reachability). **No merge has been performed or
 requested, and no conflict has been resolved.**
 
@@ -39,11 +41,17 @@ Workflow run conclusion: **success**. The two checks that previously failed
 (`Preview Browser E2E (Playwright)`, `Responsive Marketing Audit Report`) now **pass** after the
 root-cause fix in §4.
 
-> **Note:** the head was advanced to `69d3454` (this report + a production-workflow Edge Function
-> deploy fix, §4.2) after run `45635927663`. Run `602` on `3ace5d7` returned **success**; run
-> `603` on the current head `69d3454` was **in progress** at the time of this report — confirm it
-> is green before merge. The production-workflow change only affects the `main`-gated Production
-> workflow and is covered by `scripts/verify-workflow-release-safety.mjs`.
+> **Note:** the head was advanced to `806d488` (this report + a production-workflow Edge Function
+> deploy fix, §4.2) after run `45635927663`. Runs `601` (`e493d6d`) and `602` (`3ace5d7`) returned
+> **success**. Run `603` (`69d3454`) was **cancelled** (superseded by the next push). Run `604`
+> (`806d488`) **failed**, but the failure is **external, not a code defect**: the `Deploy preview`
+> step was classified `quota-or-rate-limit` by `scripts/classify-preview-deploy-error.mjs`
+> ("Vercel preview deployment failed; Preview verification is blocked … category:
+> quota-or-rate-limit"). The only changes since the green `602` are a doc and the `main`-gated
+> `production.yml` + a test, none of which affect the Preview deploy. **A fresh Preview run is
+> required to confirm green before merge** — manual `gh workflow run preview.yml` is **403**
+> (the Actions integration lacks dispatch permission), so a re-run must come from a new push to
+> the branch. The `production.yml` change is covered by `scripts/verify-workflow-release-safety.mjs`.
 
 ---
 
