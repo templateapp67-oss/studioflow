@@ -24,8 +24,16 @@ const webpResponses = new Map();
 page.on('pageerror', (error) => pageErrors.push(error.message));
 page.on('requestfailed', (request) => failedRequests.push(request.url() + ' — ' + (request.failure()?.errorText || 'request failed')));
 page.on('request', (request) => {
-  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method())) {
-    writeRequests.push(request.method() + ' ' + request.url());
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method())) return;
+  try {
+    const requestUrl = new URL(request.url());
+    // Ignore third-party analytics beacons; detect mutations to the preview app
+    // and Supabase only. The flow below must never create or change test data.
+    if (requestUrl.origin === origin.origin || /\.supabase\.co$/i.test(requestUrl.hostname)) {
+      writeRequests.push(request.method() + ' ' + request.url());
+    }
+  } catch {
+    // Browser-internal URLs cannot target the application's data services.
   }
 });
 page.on('response', async (response) => {
