@@ -3,7 +3,6 @@ import { createRequire } from 'node:module';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { pathToFileURL } from 'node:url';
 
 const previewUrl = (process.env.PREVIEW_URL || '').trim().replace(/\/+$/, '');
 const packageRoot = (process.env.PLAYWRIGHT_PACKAGE_ROOT || '').trim();
