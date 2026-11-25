@@ -346,6 +346,21 @@
       "has": [
         {
           "type": "query",
+          "key": "customer_ref"
+        }
+      ],
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "query",
           "key": "owner"
         }
       ],
