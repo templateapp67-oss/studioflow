@@ -14,6 +14,7 @@ const SALON_OS_LINK = { label: 'Salon OS', href: '/salon-os' } as const;
  */
 export const NEXORA_BREADCRUMB_TRAILS = {
   '/': [{ label: 'Home' }],
+  '/about': [HOME_LINK, { label: 'About NEXORA' }],
   '/salon-os': [HOME_LINK, { label: 'Salon OS' }],
   '/pricing': [HOME_LINK, SALON_OS_LINK, { label: 'Pricing' }],
   '/privacy': [HOME_LINK, { label: 'Privacy notice' }],
