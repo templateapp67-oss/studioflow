@@ -47,6 +47,7 @@ if (vercelBypassSecret) {
 const tawkLoaderPreviewFixture = {
   status: 200,
   contentType: 'application/javascript; charset=utf-8',
+  headers: { 'access-control-allow-origin': '*', 'cache-control': 'no-store' },
   body: [
     'window.Tawk_API = window.Tawk_API || {};',
     'window.Tawk_API.showWidget = window.Tawk_API.showWidget || function () {};',
