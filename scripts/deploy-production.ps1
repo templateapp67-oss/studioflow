@@ -199,7 +199,7 @@ function Invoke-StudioFlowProductionDeployment {
             '--yes',
             "--token=$Token",
             '--project',
-            $ProjectId,
+            $ProjectId
         )
 
         $vercelUrlMatch = [regex]::Matches(
