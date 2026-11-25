@@ -21,8 +21,10 @@ import { NEXORA_PUBLIC_TEMPLATES, NEXORA_PUBLIC_TEMPLATES_BY_ID } from '../lib/n
 import { applyPublicSeoMetadata, NEXORA_HOME_SEO } from '../lib/publicSeo';
 import {
   NEXORA_CATEGORIES,
+  NEXORA_TEMPLATE_META,
   nexoraCategoryFilters,
   nexoraDisplayName,
+  nexoraTemplatePagePath,
   sortTemplatesByPriority,
 } from '../lib/nexoraTemplateCatalogue';
 import type { BusinessTypeId } from '../types';
@@ -519,12 +521,21 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
             </nav>
             <nav aria-label="Footer template navigation">
               <p className="text-xs font-extrabold uppercase tracking-[0.15em] text-white">Popular templates</p>
-              <ul className="mt-4 grid gap-3 text-sm">
-                {NEXORA_CATEGORIES.slice(0, 4).map((category) => (
-                  <li key={category.categoryId}><a href="#nexora-template-library" onClick={() => setActiveCategory(category.categoryId)} className="inline-flex min-h-[28px] items-center text-[#C8C0D3] transition hover:text-white">{category.categoryName}</a></li>
+              <ul className="mt-4 grid max-h-52 grid-cols-2 gap-x-3 gap-y-2 overflow-y-auto text-sm">
+                {NEXORA_TEMPLATE_META.map((meta) => (
+                  <li key={meta.templateId}>
+                    <a
+                      href={nexoraTemplatePagePath(meta.templateId)}
+                      className="inline-flex min-h-[28px] items-center text-[#C8C0D3] transition hover:text-white"
+                    >
+                      {meta.displayName}
+                    </a>
+                  </li>
                 ))}
-                <li><a href="#nexora-template-library" onClick={() => setActiveCategory('all')} className="inline-flex min-h-[28px] items-center font-bold text-[#C9A66B] hover:text-white">View All Templates</a></li>
               </ul>
+              <a href="#nexora-template-library" onClick={() => setActiveCategory('all')} className="mt-3 inline-flex min-h-[28px] items-center font-bold text-[#C9A66B] hover:text-white">
+                View interactive template library
+              </a>
             </nav>
             <nav aria-label="Footer account navigation">
               <p className="text-xs font-extrabold uppercase tracking-[0.15em] text-white">Your NEXORA account</p>
