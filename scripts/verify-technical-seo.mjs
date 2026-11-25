@@ -33,6 +33,10 @@ function getContent(tag) {
   return tag?.match(/\bcontent=["']([^"']*)["']/i)?.[1] ?? '';
 }
 
+function decodeHtml(value) {
+  return value.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;|&#x27;/g, "'");
+}
+
 for (const file of allFiles) {
   assert.ok(existsSync(file), file + ' exists after prerender');
   const html = readFileSync(file, 'utf8');
@@ -46,7 +50,7 @@ for (const file of allFiles) {
 
   assert.equal(titles.length, 1, routeName + ' has exactly one title');
   assert.ok(titles[0][1].trim().length > 0, routeName + ' has a non-empty title');
-  assert.ok(titles[0][1].trim().length <= 60, routeName + ' title is no longer than 60 characters');
+  assert.ok(decodeHtml(titles[0][1].trim()).length <= 60, routeName + ' decoded title is no longer than 60 characters (got ' + decodeHtml(titles[0][1].trim()).length + ')');
   assert.equal(descriptions.length, 1, routeName + ' has exactly one meta description');
   assert.ok(getContent(descriptions[0]).length > 0, routeName + ' has a non-empty meta description');
   assert.ok(getContent(descriptions[0]).length <= 160, routeName + ' meta description is no longer than 160 characters');

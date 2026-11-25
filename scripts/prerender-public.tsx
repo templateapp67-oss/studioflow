@@ -5,7 +5,6 @@ import { join } from 'node:path';
 import { createServer } from 'vite';
 import { NEXORA_CATEGORIES, NEXORA_TEMPLATE_META, nexoraTemplatePagePath } from '../src/lib/nexoraTemplateCatalogue';
 import { NEXORA_PUBLIC_ORIGIN } from '../src/lib/publicSeo';
-import { nexoraOrganizationSchema } from '../src/lib/nexoraOrganization';
 import { normalizeSeoDescription, normalizeSeoTitle } from '../src/lib/seoText';
 import { NEXORA_PUBLIC_TEMPLATES_BY_ID } from '../src/lib/nexoraPublicTemplates';
 import { NEXORA_LANDING_SEO, nexoraSalonLandingSchema } from '../src/lib/nexoraLandingContent';
@@ -200,7 +199,6 @@ const privacyHtml = `<!doctype html>
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="${escapeHtml(privacyTitle)}" />
 <meta name="twitter:description" content="${escapeHtml(privacyDescription)}" />
-<script type="application/ld+json">${safeJson({ '@context': 'https://schema.org', ...nexoraOrganizationSchema(NEXORA_PUBLIC_ORIGIN) })}</script>
 ${clarityScript}
 ${moduleScript}
 ${stylesheet}
