@@ -40,8 +40,8 @@ const robotsResponse = await fetch(new URL('/robots.txt', previewUrl), {
 });
 const robotsBody = await robotsResponse.text();
 assert.equal(robotsResponse.status, 200, 'Preview robots.txt must be retrievable (HTTP 200).');
-assert.match(robotsResponse.headers.get('content-type') || '', /text\\/plain/i, 'Preview robots.txt must be served as plain text.');
-const robotsLines = robotsBody.split(/\\r?\\n/).map(line => line.trim());
+assert.match(robotsResponse.headers.get('content-type') || '', /text\/plain/i, 'Preview robots.txt must be served as plain text.');
+const robotsLines = robotsBody.split(/\r?\n/).map(line => line.trim());
 assert.ok(robotsLines.includes('Allow: /'), 'robots.txt must allow public crawling.');
 assert.ok(robotsLines.includes('Disallow: /api/'), 'robots.txt must disallow API routes.');
 assert.ok(robotsLines.includes('Sitemap: https://nexorasalon.online/sitemap.xml'), 'robots.txt must point to the canonical sitemap.');
