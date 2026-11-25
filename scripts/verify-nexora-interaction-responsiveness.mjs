@@ -97,8 +97,15 @@ await page.route('**/rest/v1/rpc/studioflow_booking_specialists', async (route) 
       headers: { ...previewCorsHeaders, 'content-type': 'application/json; charset=utf-8' },
       body: JSON.stringify({
         published: true,
-        specialistIds: [],
-        specialists: [],
+        specialistIds: ['preview-qa-specialist'],
+        specialists: [{
+          id: 'preview-qa-specialist',
+          name: 'Preview QA Specialist',
+          role: 'Preview interaction test',
+          avatarUrl: '',
+          specialties: ['General'],
+          rating: 5,
+        }],
       }),
     });
   }
@@ -134,7 +141,12 @@ await page.route('**/rest/v1/rpc/studioflow_available_slots', async (route) => {
     return route.fulfill({
       status: 200,
       headers: { ...previewCorsHeaders, 'content-type': 'application/json; charset=utf-8' },
-      body: '[]',
+      body: JSON.stringify([{
+        time: '11:30',
+        label: '11:30 AM',
+        available: true,
+        stylistId: 'preview-qa-specialist',
+      }]),
     });
   }
   return route.continue();
@@ -412,6 +424,48 @@ try {
   assert.equal(availabilityReadHttpStatus, 200,
     'read-only availability slot lookup returns HTTP 200');
 
+  // Continue through the booking UI using a deterministic read-only slot fixture.
+  const continueToDate = bookingDialog.getByTestId('booking-next-datetime');
+  await continueToDate.waitFor({ state: 'visible' });
+  await page.waitForFunction(() => {
+    const button = document.querySelector('iframe[title*="live desktop preview"]')
+      ?.contentDocument?.querySelector('[data-testid="booking-next-datetime"]');
+    return Boolean(button && !button.disabled);
+  }, { timeout: 10000 }).catch(async () => {
+    assert.equal(await continueToDate.isDisabled(), false,
+      'booking can continue after the read-only specialist eligibility check');
+  });
+  await continueToDate.click();
+  const bookingDateInput = bookingDialog.getByTestId('booking-date-input');
+  await bookingDateInput.waitFor({ state: 'visible' });
+  const nextDateAvailabilityPromise = page.waitForResponse((response) => {
+    const requestUrl = new URL(response.url());
+    return requestUrl.pathname === '/rest/v1/rpc/studioflow_available_slots'
+      && response.request().method() === 'POST';
+  }, { timeout: 15000 });
+  await bookingDialog.getByRole('button', { name: 'Tomorrow' }).click();
+  const nextDateAvailabilityResponse = await nextDateAvailabilityPromise;
+  assert.equal(nextDateAvailabilityResponse.status(), 200,
+    'changing appointment date refreshes read-only availability successfully');
+  const availableSlot = bookingDialog.locator('[data-testid="booking-slot-btn"][data-slot-available="true"]').first();
+  await availableSlot.waitFor({ state: 'visible' });
+  await availableSlot.click();
+  const selectedSlotTime = await availableSlot.getAttribute('data-slot-time');
+  assert.equal(selectedSlotTime, '11:30', 'customer can select an available appointment slot');
+  const continueToGuest = bookingDialog.getByTestId('booking-next-guest');
+  await continueToGuest.waitFor({ state: 'visible' });
+  assert.equal(await continueToGuest.isDisabled(), false, 'selected slot enables the guest-details step');
+  await continueToGuest.click();
+  const bookingGuestName = bookingDialog.getByTestId('booking-guest-name');
+  const bookingGuestPhone = bookingDialog.getByTestId('booking-guest-phone');
+  const bookingGuestEmail = bookingDialog.getByTestId('booking-guest-email');
+  await bookingGuestName.fill('Preview QA Guest');
+  await bookingGuestPhone.fill('9876543210');
+  await bookingGuestEmail.fill('booking-audit@example.invalid');
+  assert.equal(await bookingGuestName.inputValue(), 'Preview QA Guest', 'booking guest name input responds');
+  assert.equal(await bookingGuestPhone.inputValue(), '9876543210', 'booking guest phone input responds');
+  assert.equal(await bookingGuestEmail.inputValue(), 'booking-audit@example.invalid', 'booking guest email input responds');
+
   const frameEventEntries = await liveFrame.locator('body').evaluate(() => window.__nexoraInteractionEntries || []);
   await bookingDialog.getByRole('button', { name: 'Close booking dialog' }).click();
   await bookingDialog.waitFor({ state: 'hidden' });
@@ -509,6 +563,9 @@ try {
     webpResponses: webpResponses.size,
     ownerSignupFormFieldsChecked: 4,
     customerSignupFormFieldsChecked: 5,
+    bookingGuestFormFieldsChecked: 3,
+    bookingSlotSelected: selectedSlotTime,
+    bookingSubmitted: false,
     bookingReadOnlyHttpStatuses: {
       paymentStatus: paymentStatusHttpStatus,
       specialistEligibility: specialistLookupHttpStatus,
