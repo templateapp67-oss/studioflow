@@ -295,10 +295,12 @@ export default async function storefrontHandler(req: RequestLike, res: ResponseL
   const requestUrl = new URL(req.url || '/', origin);
   const originalPath = requestUrl.searchParams.get('path') || requestUrl.pathname || '/';
   const pageUrl = new URL(originalPath.startsWith('/') ? originalPath : '/' + originalPath, origin);
-  // Preserve the original salon selector when a query-string route was rewritten.
-  for (const key of ['site', 's', 'subdomain']) {
+  // Preserve selectors and app/customer flags across a Vercel rewrite. Without
+  // the flags, a vanity URL such as /salon?app=1 can be mistaken for a public
+  // storefront even though resolveStorefrontSlug deliberately excludes apps.
+  for (const key of ['site', 's', 'subdomain', 'app', 'customer', 'customer_ref']) {
     const value = requestUrl.searchParams.get(key);
-    if (value && !pageUrl.searchParams.has(key)) pageUrl.searchParams.set(key, value);
+    if (value !== null && !pageUrl.searchParams.has(key)) pageUrl.searchParams.set(key, value);
   }
 
   const slug = resolveStorefrontSlug(pageUrl, hostname);

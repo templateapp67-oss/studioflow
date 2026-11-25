@@ -258,6 +258,17 @@ try {
         }
       }
 
+      // Vanity rewrites must not discard flags that intentionally open the app.
+      // These read-only requests check the handler stage, not UI authentication.
+      report.vanityAppProbes = [];
+      for (const flag of ['app', 'customer', 'customer_ref']) {
+        const route = `/nexora-ssr-vanity-probe-not-published?site=nexora-ssr-vanity-probe-not-published&${flag}=`;
+        const response = await context.request.get(new URL(route, previewUrl).toString(), { timeout: 60000, headers: bypassHeaders });
+        assert.equal(response.status(), 200, `${flag}: app flow must return the platform shell`);
+        assert.equal(response.headers()['x-nexora-ssr-stage'], 'platform-shell', `${flag}: SSR must not treat the app as a public storefront`);
+        report.vanityAppProbes.push({ flag, status: response.status() });
+      }
+
       // Prove the positive path too: read one already-published public salon
       // from the production App database. This is GET-only and does not edit
       // customer or salon data. The slug can be overridden by CI if the

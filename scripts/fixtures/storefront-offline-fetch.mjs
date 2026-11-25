@@ -1,8 +1,7 @@
 // Test-only preload for verify-production-routes: never contacts a provider.
 // Supabase's public read for an unknown slug returns null; demo-salon is a
 // synthetic published fixture. This module is not loaded by production.
-const originalFetch = globalThis.fetch;
-globalThis.fetch = async (input, init) => {
+globalThis.fetch = async (input) => {
   const url = new URL(typeof input === 'string' || input instanceof URL ? input : input.url);
   if (url.hostname === 'zilwgiuiygqqardzutxi.supabase.co') {
     if (url.pathname === '/rest/v1/public_salon_websites') {
@@ -17,5 +16,5 @@ globalThis.fetch = async (input, init) => {
     }
     return new Response('[]', { status: 200, headers: { 'content-type': 'application/json' } });
   }
-  return originalFetch(input, init);
+  throw new Error('Unexpected external fetch in offline storefront fixture');
 };
