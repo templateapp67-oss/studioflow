@@ -504,53 +504,16 @@ jobs:
           NODE
 
       - name: Repair and verify the reviewed production Supabase URL
-        shell: bash
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: |
-          set -euo pipefail
-
-          # The deployment token can pull the linked Production project and
-          # environment, but Vercel's project-env REST endpoints return 403
-          # for this token. Do not make deployment depend on those endpoints.
-          # VITE_* is public build-time configuration, so set the reviewed
-          # NEXORA URL in this job's local production build env after the pull.
-          node <<'NODE'
-          const fs = require('node:fs');
-          const path = '.vercel/.env.production.local';
-          const expected = 'https://zilwgiuiygqqardzutxi.supabase.co';
-
-          if (!fs.existsSync(path)) {
-            throw new Error('Vercel Production env file was not created by vercel pull.');
-          }
-
-          const lines = fs.readFileSync(path, 'utf8').split(/\r?\n/);
-          const assignment = /^\s*(?:export\s+)?VITE_SUPABASE_URL\s*=/;
-          const retained = lines.filter((line) => !assignment.test(line));
-          while (retained.length && retained[retained.length - 1] === '') retained.pop();
-          retained.push('VITE_SUPABASE_URL=' + expected);
-          fs.writeFileSync(path, retained.join('\n') + '\n', { mode: 0o600 });
-
-          const verifiedLines = fs.readFileSync(path, 'utf8').split(/\r?\n/);
-          const matches = verifiedLines.filter((line) => assignment.test(line));
-          if (matches.length !== 1) {
-            throw new Error('Expected exactly one VITE_SUPABASE_URL in the local Production build env.');
-          }
-
-          let actual = matches[0].slice(matches[0].indexOf('=') + 1).trim();
-          if (actual.startsWith('"') && actual.endsWith('"')) actual = JSON.parse(actual);
-          else if (actual.startsWith("'") && actual.endsWith("'")) actual = actual.slice(1, -1);
-
-          if (actual !== expected) {
-            throw new Error('Local Production build Supabase URL does not match the reviewed NEXORA project.');
-          }
-          console.log('Local Production build Supabase URL verified against the reviewed NEXORA project.');
-          console.log('No Vercel environment API access is required for this production build.');
-          NODE
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: node scripts/prepare-vercel-production-env.mjs
 
       - name: Build production deployment
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VITE_SUPABASE_URL: https://zilwgiuiygqqardzutxi.supabase.co
         run: vercel build --prod --token="$VERCEL_TOKEN"
 
       - name: Deploy production
