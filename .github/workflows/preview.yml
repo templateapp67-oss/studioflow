@@ -558,6 +558,12 @@ jobs:
             const kind = ['assertion', 'timeout', 'other'].includes(report.kind) ? report.kind : 'unknown';
             const line = Number.isInteger(report.line) && report.line > 0 && report.line < 10000 ? report.line : 'unknown';
             const passed = outcome === 'success' && report.status === 'PASS';
+            let detail = `Outcome: ${outcome}; phase: ${phase}; kind: ${kind}; script line: ${line}.`;
+            if (report.overflow) {
+              const ov = report.overflow;
+              const nodes = (ov.top || []).map((el) => `${el.tag}${el.className ? '.' + el.className.split(' ').filter(Boolean).join('.') : ''}${el.id ? '#' + el.id : ''} (right=${el.right}, width=${el.width}, overflow-x=${el.overflowX})`).join('; ');
+              detail += ` No-script overflow: documentWidth=${ov.documentWidth} > viewportWidth=${ov.viewportWidth}; ${ov.elementCount} element(s) past the viewport. Top: ${nodes || 'none listed'}.`;
+            }
             const headSha = context.payload.pull_request?.head?.sha || context.sha;
             await github.rest.checks.create({
               owner: context.repo.owner, repo: context.repo.repo,
@@ -565,7 +571,7 @@ jobs:
               status: 'completed', conclusion: passed ? 'success' : 'failure',
               output: {
                 title: `Responsive marketing audit: ${passed ? 'PASS' : 'FAIL'}`,
-                summary: passed ? 'Responsive audit completed successfully.' : `Outcome: ${outcome}; phase: ${phase}; kind: ${kind}; script line: ${line}. See job logs for details.`,
+                summary: passed ? 'Responsive audit completed successfully.' : detail,
               },
             });
 

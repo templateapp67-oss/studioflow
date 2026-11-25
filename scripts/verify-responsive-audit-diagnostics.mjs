@@ -10,6 +10,40 @@ const report = responsiveDiagnostic(error, `/ hover-card ${secret}`);
 assert.deepEqual(report, { status: 'FAIL', phase: 'hover-card', kind: 'assertion', line: 352 });
 assert.deepEqual(responsiveDiagnostic({ name: 'TimeoutError', stack: secret }, `SPA ${secret}`), { status: 'FAIL', phase: 'spa-seo', kind: 'timeout', line: null });
 assert.deepEqual(responsiveDiagnostic(new Error(secret), secret), { status: 'FAIL', phase: 'startup-or-other', kind: 'other', line: null });
+
+// The no-script horizontal-overflow assertion embeds bounded structural
+// geometry; the diagnostic must surface it (top nodes, document vs viewport
+// width) without leaking page text or URLs.
+const overflowPayload = JSON.stringify({
+  viewportWidth: 390,
+  documentWidth: 581,
+  overflowingElements: [
+    { tag: 'table', className: 'nx-compare', id: '', left: 21, right: 581, width: 560, position: 'static', overflowX: 'visible' },
+    { tag: 'span', className: 'nx-compare__numeric', id: '', left: 521, right: 585, width: 64, position: 'static', overflowX: 'visible' },
+  ],
+});
+const overflowError = {
+  code: 'ERR_ASSERTION',
+  message: `/pricing/ no-script document has no horizontal overflow at 390px: ${overflowPayload}`,
+  stack: `Error: assertion\n    at file:///workspace/scripts/verify-nexora-responsive-browser.mjs:654:7`,
+};
+const overflowReport = responsiveDiagnostic(overflowError, '/pricing/');
+assert.equal(overflowReport.status, 'FAIL');
+assert.equal(overflowReport.phase, 'public-route');
+assert.equal(overflowReport.kind, 'assertion');
+assert.equal(overflowReport.line, 654);
+assert.ok(overflowReport.overflow, 'overflow geometry is surfaced in the report');
+assert.equal(overflowReport.overflow.documentWidth, 581);
+assert.equal(overflowReport.overflow.viewportWidth, 390);
+assert.equal(overflowReport.overflow.elementCount, 2);
+assert.equal(overflowReport.overflow.top[0].tag, 'table');
+assert.equal(overflowReport.overflow.top[0].right, 581);
+assert.ok(!JSON.stringify(overflowReport).includes('/pricing/'), 'overflow summary does not leak the route path');
+
+// A malformed/absent overflow payload must not break the diagnostic.
+const noOverflow = responsiveDiagnostic({ code: 'ERR_ASSERTION', message: 'plain assertion', stack: 'at verify-nexora-responsive-browser.mjs:10:1' }, '/');
+assert.equal(noOverflow.overflow, undefined, 'non-overflow assertions carry no overflow field');
+
 assert.ok(!JSON.stringify(report).includes(secret), 'diagnostic cannot expose exception data or route values');
 const dir = mkdtempSync(join(tmpdir(), 'responsive-report-'));
 try {
@@ -23,6 +57,7 @@ const responsive = workflow.split('- name: Run NEXORA responsive marketing and o
 assert.ok(responsive.includes('RESPONSIVE_REPORT_PATH:') && !responsive.includes('continue-on-error: true'), 'responsive audit remains blocking');
 const publish = workflow.split('- name: Publish responsive audit status')[1].split('\n      - name: Upload Playwright')[0];
 assert.ok(publish.includes("outcome === 'success' && report.status === 'PASS'"), 'independent report requires successful step and report');
+assert.ok(publish.includes('report.overflow') && publish.includes('No-script overflow'), 'check-run summary names the overflowing nodes when present');
 assert.ok(!publish.includes('report.message') && !publish.includes('report.stack'), 'check-run reports no raw errors');
 assert.ok(workflow.includes('This report covers the read-only storefront smoke only'), 'smoke status is not presented as responsive status');
 const browser = readFileSync('scripts/verify-nexora-responsive-browser.mjs', 'utf8');

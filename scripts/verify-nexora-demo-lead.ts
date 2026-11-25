@@ -117,6 +117,17 @@ try {
   assert.equal(budgetCalls.length, 1);
   assert.match(budgetCalls[0].p_bucket_key, /^[a-f0-9]{64}$/);
   assert.equal(budgetCalls[0].p_bucket_key, createHash('sha256').update('nexora-landing-rate-limit-v1:192.0.2.7').digest('hex'));
+  // Salt consistency: the configured salt must actually change the bucket key,
+  // and a mismatched salt must isolate buckets (the Edge and server share a
+  // budget only when both use the same salt).
+  process.env.LANDING_LEAD_RATE_LIMIT_SALT = 'custom-salt-alpha';
+  let salted = await call(validLead);
+  assert.equal(salted.status, 201, 'a submission under a custom salt is stored');
+  assert.equal(budgetCalls[0].p_bucket_key, createHash('sha256').update('custom-salt-alpha:192.0.2.7').digest('hex'), 'the custom salt changes the bucket key');
+  process.env.LANDING_LEAD_RATE_LIMIT_SALT = 'custom-salt-beta';
+  await call(validLead);
+  assert.notEqual(budgetCalls[0].p_bucket_key, createHash('sha256').update('custom-salt-alpha:192.0.2.7').digest('hex'), 'a different salt isolates the bucket');
+  delete process.env.LANDING_LEAD_RATE_LIMIT_SALT;
   assert.equal(budgetCalls[0].p_window_seconds, 600);
   assert.ok(!JSON.stringify(budgetCalls).includes('192.0.2.7'), 'IP is never stored in the budget request');
   assert.equal(budgetCalls[0].p_max_attempts, 5);
