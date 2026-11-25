@@ -141,7 +141,6 @@ function Invoke-StudioFlowProductionDeployment {
             'pull',
             '--yes',
             '--environment=production',
-            "--project=$ProjectId",
             "--scope=$OrgId",
             "--token=$Token"
         )
