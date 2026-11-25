@@ -72,7 +72,16 @@ function readOnlyRequestReason(request, requestUrl) {
 const webpResponses = new Map();
 
 page.on('pageerror', (error) => pageErrors.push(error.message));
-page.on('requestfailed', (request) => failedRequests.push(request.url() + ' — ' + (request.failure()?.errorText || 'request failed')));
+page.on('requestfailed', (request) => {
+  const failure = request.failure()?.errorText || 'request failed';
+  try {
+    const requestUrl = new URL(request.url());
+    // Preserve the failing host/path, but never emit query strings or fragments.
+    failedRequests.push(requestUrl.hostname + requestUrl.pathname + ' — ' + failure);
+  } catch {
+    failedRequests.push('non-http browser resource — ' + failure);
+  }
+});
 page.on('request', (request) => {
   if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method())) return;
   try {
@@ -316,6 +325,15 @@ try {
     failedRequests: failedRequests.length,
     pageErrors: pageErrors.length,
   };
+  // Emit safe diagnostics before assertions so a failed CI run still shows
+  // the exact failed host/path and blocked mutation endpoints without tokens.
+  console.log(JSON.stringify({
+    status: 'DIAGNOSTICS',
+    ...result,
+    failedRequestDetails: failedRequests,
+    blockedMutationDetails: writeRequests,
+    allowedReadOnlyPostDetails: readOnlyPostRequests,
+  }, null, 2));
   if (p75 !== null) assert.ok(p75 <= 200, 'synthetic browser interaction p75 is within the 200 ms responsiveness target (' + p75.toFixed(2) + ' ms)');
   assert.equal(writeRequests.length, 0,
     'the preview interaction audit performs no app/Supabase mutations or test transactions: ' + writeRequests.join(', '));
