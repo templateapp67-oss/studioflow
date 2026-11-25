@@ -263,19 +263,58 @@ async function runVerification() {
       .split(/\r?\n/)
       .map((line) => line.trim())
       .filter((line) => line && !line.startsWith('#'));
-    const disallowRules = robotsLines
+    const robotsGroups = new Map();
+    let activeAgent = null;
+    for (const line of robotsLines) {
+      const agent = line.match(/^User-agent:\s*(.+)$/i);
+      if (agent) {
+        activeAgent = agent[1].trim();
+        robotsGroups.set(activeAgent, []);
+        continue;
+      }
+      if (/^(Allow|Disallow):/i.test(line) && activeAgent) {
+        robotsGroups.get(activeAgent).push(line);
+      }
+    }
+    const expectedSearchAgents = [
+      'Googlebot', 'Googlebot-Image', 'Bingbot',
+      'OAI-SearchBot', 'ChatGPT-User', 'Claude-SearchBot', 'Claude-User',
+      'PerplexityBot', 'Perplexity-User',
+    ];
+    const expectedTrainingAgents = ['GPTBot', 'ClaudeBot', 'Google-Extended'];
+    for (const agent of expectedSearchAgents) {
+      assert.deepEqual(
+        robotsGroups.get(agent),
+        ['Allow: /', 'Disallow: /api/'],
+        agent + ' can crawl public pages but not API endpoints',
+      );
+    }
+    for (const agent of expectedTrainingAgents) {
+      assert.deepEqual(
+        robotsGroups.get(agent),
+        ['Disallow: /'],
+        agent + ' remains blocked from model-training crawl access',
+      );
+    }
+    assert.deepEqual(
+      robotsGroups.get('*'),
+      ['Allow: /', 'Disallow: /api/'],
+      'default crawlers can access public pages but not APIs',
+    );
+    const disallowRules = [...robotsGroups.values()]
+      .flat()
       .filter((line) => line.startsWith('Disallow:'))
       .map((line) => line.slice('Disallow:'.length).trim());
     report.robotsTxt = {
       status: robots.status,
       xRobotsTag: robots.robots,
       lines: robotsLines,
+      groups: Object.fromEntries(robotsGroups),
       disallowRules,
     };
     assert.equal(robots.status, 200, '/robots.txt returns HTTP 200');
     assertPublicRobots('/robots.txt', robots.robots);
-    assert.ok(robotsLines.includes('Allow: /'), '/robots.txt allows public crawling');
-    assert.deepEqual(disallowRules, ['/api/'], '/robots.txt disallows only /api/ so crawlers can discover noindex HTML/app routes');
+    assert.ok(robotsLines.includes('Sitemap: https://nexorasalon.online/sitemap.xml'), '/robots.txt points to canonical apex sitemap');
     assert.ok(robotsLines.includes('Sitemap: https://nexorasalon.online/sitemap.xml'), '/robots.txt points to canonical apex sitemap');
 
     // 6. /llms.txt hygiene.
