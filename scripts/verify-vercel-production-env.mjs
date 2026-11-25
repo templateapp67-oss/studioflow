@@ -19,43 +19,52 @@ const RESEND_SENTINEL = 're_secret_resend_sentinel_do_not_leak_776655';
 const MALFORMED_47_CHAR_URL = 'https://zilwgiuiygqqardzutxi.supabase.co broken';
 assert.equal(MALFORMED_47_CHAR_URL.length, 47, 'test fixture reproduces exact 47-char production diagnostic');
 
-// 1. Verify workflow wiring in .github/workflows/production.yml.
-const workflow = readFileSync('.github/workflows/production.yml', 'utf8').replace(/\r\n?/g, '\n');
-const deploySection = workflow.split('\n  deploy:\n')[1];
+// 1. Verify the production job delegates its complete Vercel lifecycle to native Windows PowerShell.
+const workflow = readFileSync('.github/workflows/production.yml', 'utf8').replace(/\\r\\n?/g, '\\n');
+const deploySection = workflow.split('\\n  deploy:\\n')[1];
 assert(deploySection, 'Missing deploy job in .github/workflows/production.yml');
+assert(deploySection.includes('runs-on: windows-latest'),
+  'Production Vercel deployment must run on the Windows PowerShell runner.');
 assert(
-  deploySection.includes('run: node scripts/prepare-vercel-production-env.mjs'),
-  'production deploy job must invoke scripts/prepare-vercel-production-env.mjs',
+  deploySection.includes('Install pinned Vercel CLI') &&
+    deploySection.includes('npm.cmd install --global vercel@65.14.0'),
+  'Windows production deploy must install the pinned Vercel CLI.',
 );
-assert(
-  deploySection.includes(`VITE_SUPABASE_URL: ${EXPECTED_PRODUCTION_SUPABASE_URL}`),
-  'production Build deployment step must also declare canonical VITE_SUPABASE_URL as defense-in-depth',
-);
-const normalizerStepName = 'Verify and normalize reviewed Production Supabase URL';
-const normalizerStep = deploySection.split(`- name: ${normalizerStepName}\n`)[1];
-assert(normalizerStep, `Missing production step: ${normalizerStepName}`);
-assert(
-  deploySection.indexOf('Verify linked Vercel project') <
-    deploySection.indexOf(normalizerStepName) &&
-    deploySection.indexOf(normalizerStepName) <
-      deploySection.indexOf('Build production deployment'),
-  'production env preparation must run after project verification and before vercel build',
-);
-assert(
-  normalizerStep.includes('run: node scripts/prepare-vercel-production-env.mjs'),
-  'production env preparation step must use the strict local normalizer',
-);
+const powershellStepName = 'Run production deployment with native Windows PowerShell';
+const powershellStep = deploySection.split(`- name: ${powershellStepName}\\n`)[1];
+assert(powershellStep, `Missing production step: ${powershellStepName}`);
+const powershellStepBody = powershellStep.split('\\n      - ')[0];
+assert(powershellStepBody.includes('shell: pwsh') && powershellStepBody.includes('.\\scripts\\deploy-production.ps1'),
+  'Production deploy step must invoke scripts/deploy-production.ps1 with pwsh.');
+
+const powershellDeploy = readFileSync('scripts/deploy-production.ps1', 'utf8').replace(/\\r\\n?/g, '\\n');
+assert(powershellDeploy.includes(`$expectedSupabaseUrl = '${EXPECTED_PRODUCTION_SUPABASE_URL}'`),
+  'PowerShell deployment must pin the canonical NEXORA Production Supabase URL.');
+assert(powershellDeploy.includes("Join-Path $root 'scripts/prepare-vercel-production-env.mjs'"),
+  'PowerShell deployment must run the strict local Production env normalizer.');
+assert(powershellDeploy.includes("Join-Path $root 'scripts/verify-live-seo-http.mjs'"),
+  'PowerShell deployment must run live Production SEO verification.');
+assert(powershellDeploy.includes("'--archive=tgz'") &&
+  powershellDeploy.includes("'--prebuilt'") &&
+  powershellDeploy.includes("'--prod'"),
+  'PowerShell production deploy must use prebuilt tgz archive upload to Production.');
+assert(powershellDeploy.includes("'icacls.exe'") &&
+  powershellDeploy.includes("'/inheritance:r'"),
+  'PowerShell deployment must restrict Windows ACLs on the pulled production env file.');
+assert(powershellDeploy.includes("$env:VITE_SUPABASE_URL = $expectedSupabaseUrl"),
+  'PowerShell build must explicitly pin VITE_SUPABASE_URL.');
+assert(!powershellDeploy.includes('api.vercel.com/v10/projects/'),
+  'PowerShell deployment must not call the separately permissioned Vercel Project Environment API.');
 assert(
   !deploySection.includes('Persist reviewed Production Supabase URL in Vercel project settings') &&
     !deploySection.includes('api.vercel.com/v10/projects/') &&
-    !deploySection.includes('Refresh Vercel production environment after saved URL update') &&
-    !deploySection.includes('Verify saved Production Supabase URL from Vercel') &&
     !deploySection.includes('Warn when saved Vercel URL could not be verified'),
-  'production deploy must not call the deployment token against the separately permissioned Vercel Project Environment API',
+  'Production workflow must not make an unnecessary Vercel Environment API write or warn after a known 403.',
 );
 assert(
-  !deploySection.includes('decrypt=true'),
-  'production deploy job must never require Vercel decrypt=true env API scope',
+  !powershellDeploy.includes('ATTEMPT_VERCEL_REMOTE_ENV_REPAIR=1') &&
+    !deploySection.includes('decrypt=true'),
+  'Production PowerShell deployment must not require Vercel environment decrypt permissions.',
 );
 const helperCodeLines = readFileSync('scripts/prepare-vercel-production-env.mjs', 'utf8')
   .split(/\r?\n/)
