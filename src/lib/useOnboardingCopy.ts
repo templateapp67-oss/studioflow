@@ -59,6 +59,9 @@ export function useOnboardingCopy(profile: SalonProfile, setProfile: Dispatch<Se
     const baseline = profile.tagline;
     const provenance = JSON.stringify([profile.taglineEditedByOwner, profile.onboardingGeneratedTagline]);
     const timer = setTimeout(async () => {
+      // An editor or workspace sync can cancel without changing effect deps.
+      // A cancelled debounce must never start a request or revive loading.
+      if (controller.signal.aborted || taglineRequest.current !== controller) return;
       setTaglineStatus('loading');
       const timeout = setTimeout(() => { controller.abort(); if (taglineRequest.current === controller) { taglineRequest.current = null; forced.current = false; setTaglineStatus('error'); } }, 25000);
       controller.signal.addEventListener('abort', () => clearTimeout(timeout), { once: true });

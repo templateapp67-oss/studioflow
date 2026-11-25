@@ -57,8 +57,8 @@ export function validateCopy(text: unknown, kind: Input['kind']): string | null 
   if (typeof text !== 'string' || text.length > 2000) return null;
   const result = text.trim();
   const words = result.split(/\s+/).filter(Boolean).length;
-  if (!result || /```|<[^>]*>/.test(result)) return null;
-  if (kind === 'tagline') return words <= 7 && !/[\r\n]/.test(result) && !/^["'“‘]|["'”’]$/.test(result) && !/^(?:here(?:'s| is)|tagline\s*:|option\b|[-*#]|\d+[.)])/i.test(result) ? result : null;
+  if (!result || /```|<[^>]*>|[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(result)) return null;
+  if (kind === 'tagline') return result.length <= 160 && words <= 7 && !/[\x00-\x1f\x7f]/.test(result) && !/^["'“‘]|["'”’]$/.test(result) && !/^(?:here(?:'s| is)|tagline\s*:|option\b|[-*#]|\d+[.)])/i.test(result) ? result : null;
   const paragraphs = result.split(/\n\s*\n/).filter(Boolean);
   return words >= 50 && words <= 80 && paragraphs.length >= 2 && paragraphs.length <= 3 && !/^\s*[-*#]/m.test(result) ? result : null;
 }

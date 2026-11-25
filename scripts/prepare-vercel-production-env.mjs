@@ -266,13 +266,23 @@ async function attemptRemoteVercelRepair({
     // record ID and target scope, never decrypted secret values.
     const envs = [];
     let until = null;
+    let complete = false;
+    const seen = new Set();
     for (let page = 0; page < 10; page += 1) {
       const cursor = until ? `&until=${encodeURIComponent(String(until))}` : '';
       const list = await request(`/v10/projects/${project}/env?limit=100${cursor}&${teamParam}`);
-      if (Array.isArray(list.envs)) envs.push(...list.envs);
+      if (!Array.isArray(list?.envs)) break;
+      envs.push(...list.envs);
       const next = list?.pagination?.next;
-      if (!next || next === until) break;
+      if (next === null || next === undefined || next === 0 || next === '') { complete = true; break; }
+      if (!['string', 'number'].includes(typeof next) || seen.has(String(next))) break;
+      seen.add(String(next));
       until = next;
+    }
+    if (!complete) {
+      // An incomplete listing could hide another production record. Never
+      // mutate remote state based on a truncated, malformed, or cyclic listing.
+      return { attempted: true, updated: false, reason: 'incomplete-remote-list', detail: 'Vercel environment listing was incomplete' };
     }
 
     const matches = envs.filter(

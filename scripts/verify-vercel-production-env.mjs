@@ -324,6 +324,33 @@ try {
     assert(finalText.includes(`SUPABASE_SERVICE_ROLE_KEY="${SERVICE_KEY_SENTINEL}"`), `${label} must preserve unrelated keys`);
   }
 
+  // Opt-in remote repair must never write when a listing is malformed,
+  // cyclic, or exceeds its page bound; local normalization remains available.
+  for (const kind of ['malformed', 'cycle', 'truncated']) {
+    const envFile = join(tempRoot, `incomplete-${kind}.env`);
+    writeFileSync(envFile, 'VITE_SUPABASE_URL="[SENSITIVE]"\n');
+    let calls = 0;
+    const warnings = [];
+    const result = await prepareVercelProductionEnv({
+      envFile, token: TOKEN_SENTINEL, projectId: 'prj_test', teamId: 'team_test', attemptRemoteRepair: true,
+      fetchImpl: async (_url, init = {}) => {
+        assert.equal(init.method || 'GET', 'GET', 'incomplete list must never be followed by a remote write');
+        calls++;
+        const body = kind === 'malformed' ? {} : { envs: [], pagination: { next: kind === 'cycle' ? (calls % 2 ? 1 : 2) : calls } };
+        return new Response(JSON.stringify(body), { status: 200 });
+      },
+      pullImpl: () => { throw new Error('must not pull after incomplete list'); },
+      log: () => {}, warn: message => warnings.push(message),
+    });
+    assert.equal(result.remoteReason, 'incomplete-remote-list');
+    assert.equal(result.remoteUpdated, false);
+    assert.equal(result.status, 'local-normalized');
+    assert.equal(calls, kind === 'malformed' ? 1 : kind === 'cycle' ? 3 : 10);
+    assert.equal(inspectEnvFileVar(readFileSync(envFile, 'utf8')).matches[0].value, EXPECTED_PRODUCTION_SUPABASE_URL);
+    assert.equal(warnings.length, 1);
+    assertNoSecrets(warnings);
+  }
+
   // 6. Opt-in remote API success (PATCH existing record + vercel pull refresh).
   {
     const envFile = join(tempRoot, 'remote-patch.env');

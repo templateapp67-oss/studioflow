@@ -36,11 +36,15 @@ assert.equal(parseCopyInput({ ...input, businessName: 'x'.repeat(121) }), null);
 assert.ok(parseCopyInput({ kind: 'about' }), 'optional details are accepted');
 assert.equal(parseCopyInput({ kind: 'tagline' }), null);
 assert.equal(validateCopy('one two three four five six seven eight', 'tagline'), null);
+assert.equal(validateCopy('x'.repeat(161), 'tagline'), null, 'generated tagline must fit the editor and follow-up request');
+assert.equal(validateCopy('Valid\u0000text', 'tagline'), null, 'provider control characters are rejected');
+assert.equal(validateCopy('Valid\ttext', 'tagline'), null, 'a generated tagline must pass follow-up input validation');
 assert.equal(validateCopy('Welcome to your style', 'tagline'), 'Welcome to your style');
 assert.equal(validateCopy('Too short', 'about'), null);
 const paragraph = 'Welcome to our studio, a place to explore your personal style and enjoy a thoughtful moment of care. We look forward to meeting you and helping you feel comfortable as you discover the possibilities that suit you.';
 const about = `${paragraph}\n\n${paragraph}`;
 assert.ok(validateCopy(about, 'about'));
+assert.equal(validateCopy(about + '\u0000', 'about'), null, 'About copy rejects unsafe controls');
 assert.equal(validateCopy(about.replace('\n\n', ' '), 'about'), null);
 let calls = 0;
 const deps = { apiKey: 'key-secret', verify: async () => ({ id: 'test-user' }), authorize: async () => true, hit: () => ({ allowed: true, resetAfterSeconds: 10 }), generate: async (prompt: string) => { calls++; assert.ok(prompt.includes('lashes and brows')); return about; } };
@@ -211,6 +215,33 @@ await act(async () => { toggleActive!(true); });
 await act(async () => { await pause(750); });
 assert.equal(forcedRequests.length, 1, 'cancelled explicit regeneration is not replayed on reopening');
 await act(async () => { forceApp!.unmount(); });
+
+// Cancellation before the debounce fires must not start generation or leave
+// a loading indicator stuck when manual/external edits do not change identity.
+for (const mode of ['edit', 'sync', 'cancel'] as const) {
+  let debounceControls: ReturnType<typeof useOnboardingCopy>;
+  let debounceState: SalonProfile, updateDebounce: React.Dispatch<React.SetStateAction<SalonProfile>>;
+  let debounceCalls = 0;
+  const debounceGenerate: CopyGenerator = async () => { debounceCalls++; throw new Error('should not run'); };
+  function DebounceHarness() {
+    const [p, setP] = useState({ ...INITIAL_SALON_PROFILE, businessName: 'Debounce', tagline: '' });
+    debounceState = p; updateDebounce = setP;
+    debounceControls = useOnboardingCopy(p, setP, true, debounceGenerate);
+    return <div>{p.tagline}{debounceControls.taglineStatus}</div>;
+  }
+  let debounceApp: ReturnType<typeof create>;
+  await act(async () => { debounceApp = create(<DebounceHarness />); });
+  await act(async () => {
+    if (mode === 'edit') debounceControls!.editTagline('Owner text');
+    else if (mode === 'sync') updateDebounce!(p => patchOwnerCopy(p, { tagline: 'Remote text' }));
+    else debounceControls!.cancelTagline();
+  });
+  await act(async () => { await pause(800); });
+  assert.equal(debounceCalls, 0, `${mode}: a cancelled debounce must not invoke the generator`);
+  assert.equal(debounceControls!.taglineStatus, 'idle', `${mode}: cancellation must not leave loading stuck`);
+  if (mode !== 'cancel') assert.equal(debounceState!.tagline, mode === 'edit' ? 'Owner text' : 'Remote text');
+  await act(async () => { debounceApp!.unmount(); });
+}
 
 // Unknown legacy provenance is protected, even when it happens to match a
 // bundled template. New blank-profile seeds are explicitly marked instead.
