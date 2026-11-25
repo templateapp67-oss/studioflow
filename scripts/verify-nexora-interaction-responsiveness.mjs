@@ -216,6 +216,43 @@ function readOnlyRequestReason(request, requestUrl) {
 
   return '';
 }
+const blockedMutationRequests = [];
+// Fail closed: only the reviewed read-only POSTs above may reach local fixtures.
+// Any other app or Supabase write is answered locally and never sent to a backend.
+await page.route('**/*', async (route) => {
+  const request = route.request();
+  const method = request.method().toUpperCase();
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) return route.fallback();
+
+  let requestUrl;
+  try {
+    requestUrl = new URL(request.url());
+  } catch {
+    return route.fallback();
+  }
+
+  const isPreviewApiMutation = requestUrl.origin === origin.origin
+    && /^\/api(?:\/|$)/i.test(requestUrl.pathname);
+  const isSupabaseMutation = /\.supabase\.co$/i.test(requestUrl.hostname)
+    && /^\/(?:rest\/v1|functions\/v1|storage\/v1|auth\/v1)(?:\/|$)/i.test(requestUrl.pathname);
+  if (!isPreviewApiMutation && !isSupabaseMutation) return route.fallback();
+  if (isSupabaseMutation && readOnlyRequestReason(request, requestUrl)) return route.fallback();
+
+  const endpoint = method + ' ' + requestUrl.hostname + requestUrl.pathname;
+  blockedMutationRequests.push(endpoint);
+  return route.fulfill({
+    status: 403,
+    headers: {
+      ...previewCorsHeaders,
+      'content-type': 'application/json; charset=utf-8',
+    },
+    body: JSON.stringify({
+      error: 'Blocked by read-only Preview interaction audit',
+      code: 'PREVIEW_AUDIT_WRITE_BLOCKED',
+    }),
+  });
+});
+
 const webpResponses = new Map();
 
 page.on('pageerror', (error) => pageErrors.push(error.message));
@@ -598,9 +635,12 @@ try {
     ...result,
     failedRequestDetails: failedRequests,
     blockedMutationDetails: writeRequests,
+    blockedBeforeBackendDetails: blockedMutationRequests,
     allowedReadOnlyPostDetails: readOnlyPostRequests,
   }, null, 2));
   if (p75 !== null) assert.ok(p75 <= 200, 'synthetic browser interaction p75 is within the 200 ms responsiveness target (' + p75.toFixed(2) + ' ms)');
+  assert.equal(blockedMutationRequests.length, 0,
+    'unexpected app/Supabase writes were blocked locally before reaching a backend: ' + blockedMutationRequests.join(', '));
   assert.equal(writeRequests.length, 0,
     'the preview interaction audit performs no app/Supabase mutations or test transactions: ' + writeRequests.join(', '));
   assert.equal(failedRequests.length, 0, 'all browser requests succeed');
