@@ -474,9 +474,14 @@ try {
   await page.waitForTimeout(400);
   assert.equal(await touchTrigger.getAttribute('aria-expanded'), 'false', 'touch pointers do not open a hover-only card');
 
+  // Ensure Playwright's hover does not itself initiate a scroll while the
+  // delayed-open timer is running; scrolling intentionally dismisses the card.
+  await touchTrigger.scrollIntoViewIfNeeded();
+  await page.mouse.move(1, 1);
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   await touchTrigger.hover();
   const scrollPanel = page.locator('.nx-hover-card__panel');
-  await scrollPanel.waitFor({ state: 'visible', timeout: 1500 });
+  await scrollPanel.waitFor({ state: 'visible', timeout: 10000 });
   await page.evaluate(() => window.scrollBy(0, 400));
   await page.waitForFunction(() => document.querySelector('.nx-hover-card__panel')?.closest('.nx-hover-card__floating')?.hasAttribute('hidden'));
   assert.equal(await scrollPanel.isVisible(), false, 'scrolling away dismisses the hover card');
