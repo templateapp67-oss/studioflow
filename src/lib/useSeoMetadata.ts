@@ -1,3 +1,4 @@
+import { buildStorefrontBusinessSchema, buildStorefrontCanonicalUrl } from './storefrontSeo.js';
 import { useEffect, useState } from 'react';
 import type { SalonProfile } from '../types';
 import {
@@ -90,19 +91,27 @@ export function applySeoMetadata(profile: SalonProfile, canonicalUrlOverride?: s
     };
   }
 
-  let defaultCanonicalUrl = `${hostOrigin}${pagePath}`;
-  if ((!pagePath || pagePath === '/') && search) {
-    try {
-      const params = new URLSearchParams(search);
-      const siteSlug = (params.get('site') || params.get('s') || params.get('subdomain') || '').trim().toLowerCase();
-      if (siteSlug) {
-        defaultCanonicalUrl = `${hostOrigin}/?site=${encodeURIComponent(siteSlug)}`;
-      }
-    } catch {
-      // ignore malformed query string
-    }
+  let siteSlug = '';
+  try {
+    const params = new URLSearchParams(search);
+    siteSlug = (params.get('site') || params.get('s') || params.get('subdomain') || '').trim().toLowerCase();
+  } catch {
+    // A malformed query string falls back to the current public pathname.
   }
-  const canonicalUrl = canonicalUrlOverride || seo.canonicalUrl || defaultCanonicalUrl;
+  const canonicalProfile = {
+    ...profile,
+    seo: {
+      ...seo,
+      canonicalUrl: seo.canonicalUrl || canonicalUrlOverride,
+    },
+  };
+  const canonicalUrl = buildStorefrontCanonicalUrl({
+    profile: canonicalProfile,
+    origin: hostOrigin,
+    pathname: pagePath || '/',
+    slug: siteSlug,
+    viaQuery: Boolean(siteSlug),
+  });
 
   const setMeta = (nameAttr: 'name' | 'property', nameValue: string, contentValue: string) => {
     let el = document.querySelector(`meta[${nameAttr}="${nameValue}"]`);
@@ -128,6 +137,7 @@ export function applySeoMetadata(profile: SalonProfile, canonicalUrlOverride?: s
   setMeta('property', 'og:description', ogDescription);
   if (ogImageUrl) {
     setMeta('property', 'og:image', ogImageUrl);
+    setMeta('property', 'og:image:alt', `${profile.businessName || 'Salon'} website preview`);
   }
   setMeta('property', 'og:site_name', profile.businessName || 'NEXORA');
   setMeta('property', 'og:url', canonicalUrl);
@@ -138,6 +148,7 @@ export function applySeoMetadata(profile: SalonProfile, canonicalUrlOverride?: s
   setMeta('name', 'twitter:description', ogDescription);
   if (ogImageUrl) {
     setMeta('name', 'twitter:image', ogImageUrl);
+    setMeta('name', 'twitter:image:alt', `${profile.businessName || 'Salon'} website preview`);
   }
 
   // Schema.org Structured Data (JSON-LD)
@@ -159,31 +170,12 @@ export function applySeoMetadata(profile: SalonProfile, canonicalUrlOverride?: s
   } catch {
     // A malformed previous value is replaced by the safe generic schema below.
   }
-  const existingAddress = existingSchema.address && typeof existingSchema.address === 'object'
-    ? existingSchema.address as Record<string, any>
-    : {};
   const jsonLdData = {
     ...existingSchema,
-    '@context': 'https://schema.org',
-    // Preserve a richer subtype (for example HairSalon or BeautySalon) and
-    // hasOfferCatalog when this updater runs after server-side rendering.
-    '@type': typeof existingSchema['@type'] === 'string'
-      ? existingSchema['@type']
-      : 'HealthAndBeautyBusiness',
-    name: profile.businessName || existingSchema.name || 'Salon Website',
-    description: metaDescription,
-    url: canonicalUrl,
-    telephone: profile.phone || existingSchema.telephone || '',
-    image: ogImageUrl || existingSchema.image || '',
-    address: {
-      ...existingAddress,
-      '@type': 'PostalAddress',
-      streetAddress: profile.address || existingAddress.streetAddress || '',
-      addressLocality: profile.city || existingAddress.addressLocality || '',
-      postalCode: profile.postalCode || existingAddress.postalCode || '',
-      addressCountry: existingAddress.addressCountry || 'IN',
-    },
-    priceRange: existingSchema.priceRange || '₹₹',
+    // Share the exact server-side business schema rules with client navigation.
+    ...buildStorefrontBusinessSchema(profile, canonicalUrl, metaDescription, ogImageUrl),
+    // Keep verified service offers rendered by the server when hydration runs.
+    ...(existingSchema.hasOfferCatalog ? { hasOfferCatalog: existingSchema.hasOfferCatalog } : {}),
   };
 
   scriptEl.textContent = JSON.stringify(jsonLdData, null, 2);
