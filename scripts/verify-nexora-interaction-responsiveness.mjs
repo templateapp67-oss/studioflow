@@ -30,6 +30,76 @@ if (vercelBypassSecret) {
     await route.continue({ headers });
   });
 }
+
+/**
+ * The preview interaction audit exercises booking UI, not live payment or
+ * production booking data. Stub exactly the two known read-only lookups so
+ * browser CORS/preflight or production availability cannot make this UI test
+ * flaky. All other Supabase writes remain visible to the mutation guard.
+ */
+const previewCorsHeaders = {
+  'access-control-allow-origin': origin.origin,
+  'access-control-allow-methods': 'GET, POST, OPTIONS',
+  'access-control-allow-headers': '*',
+  'access-control-max-age': '600',
+};
+
+await page.route('**/functions/v1/studioflow-payments', async (route) => {
+  const request = route.request();
+  const requestUrl = new URL(request.url());
+  if (!/^[a-z0-9-]+\\.supabase\\.co$/i.test(requestUrl.hostname)
+    || requestUrl.pathname !== '/functions/v1/studioflow-payments') {
+    return route.continue();
+  }
+  if (request.method() === 'OPTIONS') {
+    return route.fulfill({ status: 204, headers: previewCorsHeaders, body: '' });
+  }
+  let body;
+  try { body = request.postDataJSON(); } catch { body = null; }
+  const keys = body && typeof body === 'object' && !Array.isArray(body)
+    ? Object.keys(body).sort()
+    : [];
+  if (request.method() === 'POST' && body?.action === 'status'
+    && keys.length === 1 && keys[0] === 'action') {
+    return route.fulfill({
+      status: 401,
+      headers: { ...previewCorsHeaders, 'content-type': 'application/json; charset=utf-8' },
+      body: JSON.stringify({ error: 'Sign in before checkout' }),
+    });
+  }
+  return route.continue();
+});
+
+await page.route('**/rest/v1/rpc/studioflow_booking_specialists', async (route) => {
+  const request = route.request();
+  const requestUrl = new URL(request.url());
+  if (!/^[a-z0-9-]+\\.supabase\\.co$/i.test(requestUrl.hostname)
+    || requestUrl.pathname !== '/rest/v1/rpc/studioflow_booking_specialists') {
+    return route.continue();
+  }
+  if (request.method() === 'OPTIONS') {
+    return route.fulfill({ status: 204, headers: previewCorsHeaders, body: '' });
+  }
+  let body;
+  try { body = request.postDataJSON(); } catch { body = null; }
+  const keys = body && typeof body === 'object' && !Array.isArray(body)
+    ? Object.keys(body).sort()
+    : [];
+  const isExpectedLookup = request.method() === 'POST'
+    && keys.length === 2
+    && keys[0] === 'p_service_id'
+    && keys[1] === 'p_slug'
+    && typeof body.p_service_id === 'string'
+    && typeof body.p_slug === 'string';
+  if (isExpectedLookup) {
+    return route.fulfill({
+      status: 200,
+      headers: { ...previewCorsHeaders, 'content-type': 'application/json; charset=utf-8' },
+      body: '[]',
+    });
+  }
+  return route.continue();
+});
 const failedRequests = [];
 const writeRequests = [];
 const readOnlyPostRequests = [];
@@ -83,6 +153,9 @@ page.on('requestfailed', (request) => {
   const failure = request.failure()?.errorText || 'request failed';
   try {
     const requestUrl = new URL(request.url());
+    // Tawk's optional third-party embed is deliberately denied by the Preview
+    // Content-Security-Policy; that expected policy block is not an app failure.
+    if (requestUrl.hostname === 'embed.tawk.to' && /csp/i.test(failure)) return;
     // Preserve the failing host/path, but never emit query strings or fragments.
     failedRequests.push(requestUrl.hostname + requestUrl.pathname + ' — ' + failure);
   } catch {
