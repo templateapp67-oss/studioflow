@@ -235,6 +235,8 @@ async function runVerification() {
       '/staff/login',
       '/login?create=1',
       '/?app=1',
+      '/?customer_ref=abc',
+      '/?site=artbyuma&customer_ref=abc',
       '/?owner=1',
       '/?invite=1',
       '/?site=artbyuma&app=1',
@@ -367,7 +369,7 @@ async function runVerification() {
       assert.equal(parsed.origin, 'https://nexorasalon.online', `every sitemap URL uses canonical non-www HTTPS origin: ${loc}`);
       assert.ok(!parsed.pathname.startsWith('/api/'), `sitemap excludes /api/: ${loc}`);
       assert.ok(!/^\/(?:login|sign-in|sign-up|admin|owner|staff)(?:\/|$)/i.test(parsed.pathname), `sitemap excludes private/auth path: ${loc}`);
-      for (const key of ['app', 'customer', 'owner', 'panel', 'create', 'module', 'invite', 'recovery']) {
+      for (const key of ['app', 'customer', 'customer_ref', 'owner', 'panel', 'create', 'module', 'invite', 'recovery']) {
         assert.equal(parsed.searchParams.has(key), false, `sitemap excludes session param ${key}: ${loc}`);
       }
       const siteSlug = parsed.searchParams.get('site');
