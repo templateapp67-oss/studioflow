@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { build } from 'esbuild';
+import { parseSitemapLocations } from './parse-sitemap-xml.mjs';
 
 /**
  * Sitemap and robots.txt release gate.
@@ -84,6 +85,10 @@ assert.deepEqual(
   'robots.txt contains exactly one canonical Sitemap directive',
 );
 assert.ok(!robotsGroups.get('*')?.some((rule) => /^Disallow:\s*\/$/i.test(rule)), 'the default crawler group never blocks the entire site');
+
+const llms = readFileSync('public/llms.txt', 'utf8');
+assert.doesNotMatch(llms, /\.vercel\.app\b/i, 'llms.txt must not publish ephemeral Vercel domains');
+assert.ok(llms.includes(NEXORA_PUBLIC_ORIGIN + '/partner-rewards'), 'llms.txt links to canonical Partner Rewards');
 
 /* The public URL maps to a real Vercel function and an Express fallback route. */
 const vercel = JSON.parse(readFileSync(vercelPath, 'utf8'));
@@ -169,7 +174,17 @@ const urls = rawLocs.map((loc) => {
   return decoded;
 });
 
+assert.deepEqual(parseSitemapLocations(xml), urls, 'strict parser returns the complete set of generated sitemap URLs');
+for (const malformed of [
+  xml.replace('</urlset>', ''),
+  xml.replace('</url>', '</wrong>'),
+  xml.replace('http://www.sitemaps.org/schemas/sitemap/0.9', 'https://invalid.example'),
+  xml.replace('</loc>', '</loc><loc>https://nexorasalon.online/extra</loc>'),
+  '<!DOCTYPE urlset><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>',
+]) assert.throws(() => parseSitemapLocations(malformed), /not a valid XML sitemap/, 'invalid XML/sitemap structure must fail');
 assert.equal(new Set(urls).size, urls.length, 'sitemap contains no duplicate URLs');
+assert.equal(urls.length, 4 + NEXORA_ECOSYSTEM_ROUTES.length + NEXORA_TEMPLATE_META.length + 2,
+  'sitemap has exactly the base routes, ecosystem routes, template routes, and two valid unique published storefronts');
 for (const publicPath of [
   '/',
   '/salon-os',

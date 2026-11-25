@@ -14,6 +14,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { parseSitemapLocations } from './parse-sitemap-xml.mjs';
 
 const rawBase = (process.env.LIVE_SEO_URL || '').trim().replace(/\/+$/, '');
 if (!rawBase) {
@@ -342,7 +343,7 @@ async function runVerification() {
 
     // 7. Dynamic /sitemap.xml hygiene.
     const sitemap = await get('/sitemap.xml');
-    const locs = [...sitemap.body.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]);
+    const locs = parseSitemapLocations(sitemap.body);
     const siteUrls = locs.filter((loc) => loc.includes('/?site='));
     report.sitemapXml = {
       status: sitemap.status,

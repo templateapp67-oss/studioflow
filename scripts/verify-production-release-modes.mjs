@@ -271,8 +271,8 @@ const expression=(job)=>{
 };
 // GitHub's expressions here deliberately use the JS-compatible comparison
 // subset. Exercise the actual folded job conditions, not a separate model.
-const run=(job,event,mode,changed,migrate='success',ci='success',changes='success')=>{
-  const github={ref:'refs/heads/main',event_name:event};
+const run=(job,event,mode,changed,migrate='success',ci='success',changes='success',ref='refs/heads/main')=>{
+  const github={ref,event_name:event};
   const inputs={release_mode:mode};
   const needs={ci:{result:ci},changes:{result:changes,outputs:{migrations_changed:String(changed)}},migrate:{result:migrate}};
   return new Function('github','inputs','needs','always',`return (${expression(job)});`)(github,inputs,needs,()=>true);
@@ -285,6 +285,11 @@ assert(!run('deploy','workflow_dispatch','apply_and_deploy',false,'failure'));
 assert(!run('deploy','workflow_dispatch','apply_and_deploy',false,'success','failure'));
 assert(!run('migrate','workflow_dispatch','deploy_only',false));
 assert(run('deploy','workflow_dispatch','deploy_only',false,'skipped'));
+assert(!run('deploy','workflow_dispatch','deploy_only',false,'skipped','failure'), 'deploy_only must require passing CI');
+assert(!run('deploy','workflow_dispatch','deploy_only',false,'skipped','success','failure'), 'deploy_only must require successful change detection');
+assert(!run('deploy','workflow_dispatch','deploy_only',false,'failure'), 'deploy_only must not bypass a failed migration job');
+assert(!run('deploy','workflow_dispatch','deploy_only',false,'skipped','success','success','refs/heads/arena/test'), 'manual release must never deploy a non-main ref');
+assert(!run('migrate','workflow_dispatch','apply_and_deploy',false,'success','success','success','refs/heads/arena/test'), 'manual apply must never run on a non-main ref');
 assert(!run('migrate','workflow_dispatch','invalid',false));
 assert(!run('deploy','workflow_dispatch','invalid',false,'skipped'));
 assert(run('migrate','push',undefined,true));
