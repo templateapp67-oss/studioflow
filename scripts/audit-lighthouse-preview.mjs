@@ -8,7 +8,11 @@ const previewUrl = (process.env.PREVIEW_URL || '').trim().replace(/\/+$/, '');
 const packageRoot = (process.env.PLAYWRIGHT_PACKAGE_ROOT || '').trim();
 const reportDir = resolve(process.env.LIGHTHOUSE_REPORT_DIR || 'test-results/preview-lighthouse');
 const bypass = (process.env.VERCEL_AUTOMATION_BYPASS_SECRET || '').trim();
-const previewHeaders = bypass ? { 'x-vercel-protection-bypass': bypass, 'x-vercel-set-bypass-cookie': 'true' } : {};
+const previewFetchHeaders = bypass ? { 'x-vercel-protection-bypass': bypass } : {};
+const previewBrowserHeaders = bypass ? {
+  ...previewFetchHeaders,
+  'x-vercel-set-bypass-cookie': 'true',
+} : {};
 
 if (!previewUrl) throw new Error('PREVIEW_URL is required for Lighthouse preview auditing.');
 if (!packageRoot) throw new Error('PLAYWRIGHT_PACKAGE_ROOT is required for pinned browser tooling.');
@@ -35,7 +39,7 @@ const report = {
 // Keep the staging-only noindex audit out of the Lighthouse SEO score, while
 // explicitly proving that robots.txt itself is publicly retrievable and valid.
 const robotsResponse = await fetch(new URL('/robots.txt', previewUrl), {
-  headers: previewHeaders,
+  headers: previewFetchHeaders,
   signal: AbortSignal.timeout(15000),
 });
 const robotsBody = await robotsResponse.text();
@@ -77,7 +81,7 @@ for (const route of routes) {
       formFactor: 'mobile',
       screenEmulation: { mobile: true, width: 390, height: 844, deviceScaleFactor: 2, disabled: false },
       throttlingMethod: 'simulate',
-      extraHeaders: previewHeaders,
+      extraHeaders: previewBrowserHeaders,
     }, {
       extends: 'lighthouse:default',
       settings: {
@@ -87,7 +91,7 @@ for (const route of routes) {
     const diagnosticContext = await diagnosticBrowser.newContext({
       viewport: { width: 390, height: 844 },
       deviceScaleFactor: 2,
-      extraHTTPHeaders: previewHeaders,
+      extraHTTPHeaders: previewBrowserHeaders,
     });
     const diagnosticPage = await diagnosticContext.newPage();
     await diagnosticPage.addInitScript(() => {
