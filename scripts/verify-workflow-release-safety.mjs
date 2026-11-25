@@ -5,7 +5,7 @@ const workflows = Object.fromEntries(['production', 'preview', 'ci'].map((name) 
   name, readFileSync(`.github/workflows/${name}.yml`, 'utf8').replace(/\r\n?/g, '\n'),
 ]));
 for (const [name, workflow] of Object.entries(workflows)) {
-  const refs = [...workflow.matchAll(/^\s*(?:-\s*)?uses:\s*actions\/github-script@([^\s#]+)/gm)].map((m) => m[1]);
+  const refs = [...workflow.matchAll(/^\s*(?:-\s*)?uses:\s*['"]?actions\/github-script@([^'"\s#]+)/gmi)].map((m) => m[1]);
   assert(refs.every((ref) => ref === 'v8'), `${name}: every github-script action must use v8`);
   if (name !== 'ci') assert(refs.length > 0, `${name} must retain its github-script reporting steps`);
 }

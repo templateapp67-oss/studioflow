@@ -31,20 +31,20 @@ const reportPath = (process.env.SEO_REPORT_PATH || '').trim();
 const maxRunAttempts = Math.max(1, Number.parseInt(process.env.SEO_WAIT_RETRY_ATTEMPTS || '1', 10) || 1);
 const retryDelayMs = Math.max(500, Number.parseInt(process.env.SEO_WAIT_RETRY_DELAY_MS || '5000', 10) || 5000);
 
-const defaultHeaders = {};
-if (bypassSecret) {
-  // Stateless HTTP clients must NOT send `x-vercel-set-bypass-cookie: true`,
-  // which triggers an endless 307 cookie-setting redirect loop without a cookie jar.
-  defaultHeaders['x-vercel-protection-bypass'] = bypassSecret;
-}
-
 async function fetchWithRetry(url, init = {}, attempts = 3) {
   let lastError;
   for (let i = 0; i < attempts; i += 1) {
     try {
+      // Never let fetch forward the preview bypass to another origin or an
+      // HTTP downgrade. Redirects are examined explicitly by the caller.
+      const headers = { ...(init.headers || {}) };
+      if (bypassSecret && new URL(url).origin === baseUrl.origin) {
+        headers['x-vercel-protection-bypass'] = bypassSecret;
+      }
       const response = await fetch(url, {
         ...init,
-        headers: { ...defaultHeaders, ...(init.headers || {}) },
+        headers,
+        redirect: 'manual',
         signal: AbortSignal.timeout(15000),
       });
       if (response.status >= 500 && i < attempts - 1) {
@@ -62,15 +62,28 @@ async function fetchWithRetry(url, init = {}, attempts = 3) {
   throw lastError;
 }
 
-const get = async (routePath, init = {}) => {
-  const response = await fetchWithRetry(`${rawBase}${routePath}`, init);
-  return {
-    status: response.status,
-    headers: response.headers,
-    robots: response.headers.get('x-robots-tag'),
-    contentType: response.headers.get('content-type') || '',
-    body: await response.text(),
-  };
+const get = async (routePath) => {
+  let current = `${rawBase}${routePath}`;
+  for (let hops = 0; hops <= 10; hops += 1) {
+    const response = await fetchWithRetry(current);
+    const location = response.headers.get('location');
+    if ([301, 302, 303, 307, 308].includes(response.status) && location) {
+      if (hops === 10) throw new Error('SEO probe exceeded the redirect limit');
+      let next;
+      try { next = new URL(location, current); }
+      catch { throw new Error('SEO probe received an invalid redirect'); }
+      if (next.origin !== baseUrl.origin) throw new Error('SEO probe refused a cross-origin redirect');
+      current = next.href;
+      continue;
+    }
+    return {
+      status: response.status,
+      headers: response.headers,
+      robots: response.headers.get('x-robots-tag'),
+      contentType: response.headers.get('content-type') || '',
+      body: await response.text(),
+    };
+  }
 };
 
 async function verifyPermanentRedirectChain(startUrl, expectedFinalUrl, maxHops = 2) {
@@ -344,13 +357,19 @@ async function runVerification() {
     // 7. Dynamic /sitemap.xml hygiene.
     const sitemap = await get('/sitemap.xml');
     const locs = parseSitemapLocations(sitemap.body);
-    const siteUrls = locs.filter((loc) => loc.includes('/?site='));
+    const parsedLocs = locs.map((loc) => {
+      try { return new URL(loc); }
+      catch { throw new Error('/sitemap.xml contains an invalid URL'); }
+    });
+    const siteUrls = locs.filter((_, index) => parsedLocs[index].searchParams.has('site'));
     report.sitemapXml = {
       status: sitemap.status,
       xRobotsTag: sitemap.robots,
       contentType: sitemap.contentType,
       totalUrls: locs.length,
-      publishedSiteUrls: siteUrls,
+      // Populate URLs only after validating them, so failed checks do not
+      // publish unexpected query values or credentials into the check report.
+      publishedSiteUrls: [],
       hasApexHomepage: locs.includes('https://nexorasalon.online/'),
       hasPartnerRewards: locs.includes('https://nexorasalon.online/partner-rewards'),
       wwwCount: locs.filter((loc) => loc.includes('www.nexorasalon.online')).length,
@@ -373,11 +392,17 @@ async function runVerification() {
       for (const key of ['app', 'customer', 'customer_ref', 'owner', 'panel', 'create', 'module', 'invite', 'recovery']) {
         assert.equal(parsed.searchParams.has(key), false, `sitemap excludes session param ${key}: ${loc}`);
       }
-      const siteSlug = parsed.searchParams.get('site');
-      if (siteSlug) {
-        assert.ok(!siteSlug.startsWith('studioflow-qa-'), `sitemap excludes QA salon slug: ${loc}`);
+      if (parsed.searchParams.has('site')) {
+        const siteSlug = parsed.searchParams.get('site');
+        assert.equal(parsed.pathname, '/', 'published storefront URLs must use the root path');
+        assert.equal([...parsed.searchParams].length, 1, 'published storefront URLs must contain exactly one site parameter');
+        assert.ok(/^[a-z0-9][a-z0-9-]{2,62}$/.test(siteSlug), 'published storefront slug must be nonempty and well formed');
+        assert.ok(!siteSlug.startsWith('studioflow-qa-'), 'sitemap excludes QA salon slugs');
+      } else {
+        assert.equal(parsed.search, '', 'non-storefront sitemap URLs must not contain query parameters');
       }
     }
+    report.sitemapXml.publishedSiteUrls = siteUrls;
     if (requirePublishedSites) {
       assert.ok(siteUrls.length > 0, '/sitemap.xml must include published Supabase ?site=<slug> storefront URLs');
     }

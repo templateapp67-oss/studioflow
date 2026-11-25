@@ -180,6 +180,8 @@ for (const malformed of [
   xml.replace('</url>', '</wrong>'),
   xml.replace('http://www.sitemaps.org/schemas/sitemap/0.9', 'https://invalid.example'),
   xml.replace('</loc>', '</loc><loc>https://nexorasalon.online/extra</loc>'),
+  xml.replace('<url>', 'unexpected text<url>'),
+  xml.replace('<url>', '<url>unexpected text'),
   '<!DOCTYPE urlset><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>',
 ]) assert.throws(() => parseSitemapLocations(malformed), /not a valid XML sitemap/, 'invalid XML/sitemap structure must fail');
 assert.equal(new Set(urls).size, urls.length, 'sitemap contains no duplicate URLs');

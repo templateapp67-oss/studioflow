@@ -29,7 +29,12 @@ export function parseSitemapLocations(xml) {
     }
     stack.push(tag);
   });
-  const appendText = (text) => { if (locText !== null) locText += text; };
+  const appendText = (text) => {
+    if (locText !== null) locText += text;
+    else if ((stack.length === 1 || stack.length === 2) && text.trim()) {
+      throw new Error('Unexpected text in sitemap container');
+    }
+  };
   parser.on('text', appendText);
   parser.on('cdata', appendText);
   parser.on('closetag', () => {
