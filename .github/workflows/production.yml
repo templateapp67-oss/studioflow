@@ -418,109 +418,13 @@ jobs:
           console.log('Downloaded Vercel project identity matches the configured GitHub IDs.');
           NODE
 
-      - name: Persist reviewed Production Supabase URL in Vercel project settings
-        id: persist_supabase_url
-        continue-on-error: true
-        shell: bash
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        run: |
-          set -euo pipefail
-          node <<'NODE'
-          const token = process.env.VERCEL_TOKEN;
-          const projectId = process.env.VERCEL_PROJECT_ID?.trim();
-          const teamId = process.env.VERCEL_ORG_ID?.trim();
-          const expected = 'https://zilwgiuiygqqardzutxi.supabase.co';
-
-          if (!token || !projectId || !teamId) {
-            throw new Error('Cannot persist the Production Supabase URL: Vercel credentials are incomplete.');
-          }
-
-          const url = new URL('https://api.vercel.com/v10/projects/' + encodeURIComponent(projectId) + '/env');
-          url.searchParams.set('upsert', 'true');
-          url.searchParams.set('teamId', teamId);
-
-          const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-              Authorization: 'Bearer ' + token,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              key: 'VITE_SUPABASE_URL',
-              value: expected,
-              type: 'plain',
-              target: ['production'],
-              comment: 'NEXORA Salon production Supabase project URL',
-            }),
-          });
-
-          const payload = await response.json().catch(() => ({}));
-          const failures = Array.isArray(payload.failed) ? payload.failed : [];
-          if (!response.ok || failures.length > 0) {
-            const details = failures.map((item) => item.error?.message || item.error?.code || 'unknown error').join('; ');
-            throw new Error(
-              'Vercel did not confirm the saved Production environment update (' +
-              response.status + '): ' +
-              (details || payload.error?.message || payload.error?.code || 'request rejected')
-            );
-          }
-
-          const created = payload.created;
-          const records = Array.isArray(created) ? created : created ? [created] : [];
-          if (records.length && !records.some((item) =>
-            item.key === 'VITE_SUPABASE_URL' &&
-            (!Array.isArray(item.target) || item.target.includes('production'))
-          )) {
-            throw new Error('Vercel response did not confirm the Production VITE_SUPABASE_URL record.');
-          }
-
-          console.log('Vercel accepted the upsert request for the saved Production VITE_SUPABASE_URL.');
-          NODE
-
-      - name: Refresh Vercel production environment after saved URL update
-        if: steps.persist_supabase_url.outcome == 'success'
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
-
-      # A missing, sensitive, or malformed URL can be repaired in the pulled
-      # file below. A failed pull above remains fatal: do not build from a
-      # potentially incomplete environment.
-      - name: Verify saved Production Supabase URL from Vercel
-        id: verify_saved_supabase_url
-        if: steps.persist_supabase_url.outcome == 'success'
-        continue-on-error: true
-        shell: bash
-        run: |
-          set -euo pipefail
-          node <<'NODE'
-          const fs = require('node:fs');
-          const path = '.vercel/.env.production.local';
-          const expected = 'https://zilwgiuiygqqardzutxi.supabase.co';
-          if (!fs.existsSync(path)) throw new Error('Production env pull did not create its file.');
-          const lines = fs.readFileSync(path, 'utf8').split(/\r?\n/);
-          const matches = lines.filter((line) => /^\s*(?:export\s+)?VITE_SUPABASE_URL\s*=/.test(line));
-          if (matches.length !== 1) throw new Error('Expected exactly one pulled VITE_SUPABASE_URL.');
-          let actual = matches[0].slice(matches[0].indexOf('=') + 1).trim();
-          if (actual.startsWith('"') && actual.endsWith('"')) actual = JSON.parse(actual);
-          else if (actual.startsWith("'") && actual.endsWith("'")) actual = actual.slice(1, -1);
-          if (actual !== expected) throw new Error('The saved Vercel Production variable does not match the reviewed NEXORA Supabase project.');
-          console.log('PASS: Vercel saved Production VITE_SUPABASE_URL matches the reviewed NEXORA Supabase project.');
-          NODE
-
-      - name: Warn when saved Vercel URL could not be verified
-        if: steps.persist_supabase_url.outcome == 'failure' || steps.verify_saved_supabase_url.outcome == 'failure'
-        run: |
-          echo "::warning::The saved Production VITE_SUPABASE_URL could not be verified. The next step will normalize the pulled file for this prebuilt deployment; check the Production variable in Vercel Project Settings."
-
-      - name: Repair and verify the reviewed production Supabase URL
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      # This deployment token is intentionally scoped for Vercel pull/build/deploy.
+      # The separate Project Environment Management API rejected its write with
+      # HTTP 403 even though the pulled Production URL already matched the reviewed
+      # Supabase project. Verify the actual pulled value and normalize the local
+      # prebuilt build input only when needed; do not make an unnecessary remote
+      # write or emit a warning for a known permission boundary.
+      - name: Verify and normalize reviewed Production Supabase URL
         run: node scripts/prepare-vercel-production-env.mjs
 
       - name: Build production deployment
@@ -535,7 +439,7 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
           set -euo pipefail
-          url="$(vercel deploy --prebuilt --prod --yes --token="$VERCEL_TOKEN" --project "$VERCEL_PROJECT_ID")"
+          url="$(vercel deploy --prebuilt --archive=tgz --prod --yes --token="$VERCEL_TOKEN" --project "$VERCEL_PROJECT_ID")"
           test -n "$url"
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
