@@ -34,7 +34,7 @@ requires('base-uri', ["'self'"]);
 requires('object-src', ["'none'"]);
 requires('frame-ancestors', ["'self'"]);
 requires('form-action', ["'self'", 'https://*.supabase.co', 'https://*.razorpay.com']);
-requires('script-src', ["'self'", 'https://checkout.razorpay.com', 'https://unpkg.com']);
+requires('script-src', ["'self'", 'https://checkout.razorpay.com', 'https://unpkg.com', 'https://embed.tawk.to']);
 forbids('script-src', ["'unsafe-inline'", "'unsafe-eval'", '*']);
 requires('script-src-attr', ["'none'"]);
 requires('style-src', ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://unpkg.com']);
@@ -42,7 +42,7 @@ requires('style-src-attr', ["'unsafe-inline'"]);
 requires('font-src', ["'self'", 'data:', 'https://fonts.gstatic.com', 'https://unpkg.com']);
 requires('connect-src', [
   "'self'", 'https://*.supabase.co', 'wss://*.supabase.co', 'https://*.razorpay.com',
-  'https://nominatim.openstreetmap.org', 'https://images.unsplash.com',
+  'https://nominatim.openstreetmap.org', 'https://images.unsplash.com', 'https://*.tawk.to', 'wss://*.tawk.to',
   'https://raw.githubusercontent.com', 'https://*.pexels.com',
   'https://img.youtube.com', 'https://i.ytimg.com', 'https://*.fbcdn.net', 'https://*.cdninstagram.com',
 ]);
@@ -51,7 +51,7 @@ requires('img-src', [
   'https://raw.githubusercontent.com', 'https://*.pexels.com', 'https://img.youtube.com',
   'https://i.ytimg.com', 'https://*.fbcdn.net', 'https://*.cdninstagram.com', 'https://*.instagram.com',
   'https://tile.openstreetmap.org', 'https://*.tile.openstreetmap.org', 'https://unpkg.com',
-  'https://www.google.com', 'https://maps.google.com',
+  'https://www.google.com', 'https://maps.google.com', 'https://*.tawk.to',
 ]);
 requires('media-src', [
   "'self'", 'data:', 'blob:', 'https://*.supabase.co', 'https://*.fbcdn.net',
@@ -61,7 +61,7 @@ requires('media-src', [
 requires('frame-src', [
   "'self'", 'https://*.razorpay.com', 'https://www.youtube.com', 'https://www.youtube-nocookie.com',
   'https://www.facebook.com', 'https://web.facebook.com', 'https://staticxx.facebook.com', 'https://www.instagram.com', 'https://player.vimeo.com',
-  'https://www.google.com', 'https://maps.google.com', 'https://www.openstreetmap.org',
+  'https://www.google.com', 'https://maps.google.com', 'https://www.openstreetmap.org', 'https://*.tawk.to',
 ]);
 requires('worker-src', ["'self'", 'blob:']);
 requires('manifest-src', ["'self'"]);
@@ -71,6 +71,16 @@ const whatsAppPanel = readFileSync('src/components/NexoraWhatsAppPanel.tsx', 'ut
 const metaSdkUrl = whatsAppPanel.match(/script\.src = '(https:\/\/connect\.facebook\.net\/[^']*sdk\.js)'/)?.[1];
 assert.ok(metaSdkUrl, 'owner signup uses the first-party Meta SDK');
 requires('script-src', [new URL(metaSdkUrl).origin]);
+
+const nexoraTawk = readFileSync('src/components/NexoraTawkWidget.tsx', 'utf8');
+const nexoraTawkUrl = nexoraTawk.match(/NEXORA_TAWK_WIDGET_URL\s*=\s*['"]([^'"]+)['"]/)?.[1];
+assert.ok(nexoraTawkUrl, 'NEXORA public Tawk widget loader URL exists');
+assert.equal(new URL(nexoraTawkUrl).origin, 'https://embed.tawk.to');
+requires('script-src', [new URL(nexoraTawkUrl).origin]);
+requires('frame-src', ['https://*.tawk.to']);
+requires('connect-src', ['https://*.tawk.to', 'wss://*.tawk.to']);
+requires('img-src', ['https://*.tawk.to']);
+
 const leaflet = readFileSync('src/lib/loadLeaflet.ts', 'utf8');
 assert.ok(leaflet.includes('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'));
 assert.ok(leaflet.includes('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'));
@@ -123,16 +133,11 @@ assert.ok(assetPassthrough, 'static file asset passthrough rewrite must remain')
 assert.equal(assetPassthrough.source, '/(.*\\..*)', 'asset passthrough must match dotted file paths only');
 const storefrontRootFallback = config.rewrites.find((entry) => entry.source === '/' && entry.destination === '/api/storefront?path=/');
 assert.ok(storefrontRootFallback, 'the bare platform root must route to the storefront shell handler');
-const storefrontFallback = config.rewrites.find((entry) => entry.source === '^/([^a].*|a[^p].*|ap[^i].*|api[^/].*|ap)$');
+const storefrontFallback = config.rewrites.find((entry) => entry.source.startsWith('/:path(('));
 assert.ok(storefrontFallback, 'non-file salon paths must be handled by the storefront SSR function');
-assert.equal(storefrontFallback.destination, '/api/storefront?path=/$1');
-const storefrontPathPattern = new RegExp(storefrontFallback.source);
-assert.ok(!storefrontPathPattern.test('/api/storefront'), 'SSR fallback must not rewrite its own API function path');
-assert.ok(!storefrontPathPattern.test('/api/sitemap'), 'SSR fallback must not rewrite other API function paths');
-assert.ok(storefrontPathPattern.test('/vijaysalojaipur'), 'SSR fallback must still route published salon path URLs');
-assert.ok(storefrontPathPattern.test('/aurelia-beauty-parlour'), 'SSR fallback must allow salon slugs that begin with the letter a except the reserved api prefix');
-assert.ok(storefrontPathPattern.test('/ap'), 'SSR fallback must still allow valid salon slugs that start with ap but are not api');
-assert.ok(storefrontPathPattern.test('/apiary'), 'SSR fallback must not reserve valid salon slugs that merely begin with api');
+assert.equal(storefrontFallback.destination, '/api/storefront?path=/:path*');
+assert.ok(storefrontFallback.source.includes('(?:api|admin|owner|staff|login|sign-in|sign-up|assets|fonts|templates|template-pages)'), 'SSR fallback must exclude private, API, auth and static path prefixes');
+assert.ok(storefrontFallback.source.includes('(?!.*\\.[^/]+$)'), 'SSR fallback must leave extension-bearing asset paths to static-file routing');
 assert.equal(config.rewrites.at(-1), storefrontFallback, 'the storefront fallback must remain last');
 
 for (const key of ['app', 'customer', 'customer_ref']) {
@@ -216,6 +221,8 @@ for (const [sampleUrl, expectedRobots] of [
   ['/?app=1', 'noindex, nofollow'],
   ['/?site=glow&app=1', 'noindex, nofollow'],
   ['/?site=glow&customer=1', 'noindex, nofollow'],
+  ['/?customer_ref=abc', 'noindex, nofollow'],
+  ['/?site=glow&customer_ref=abc', 'noindex, nofollow'],
   ['/?site=glow&owner=glow', 'noindex, nofollow'],
   ['/?site=glow&panel=demo', 'noindex, nofollow'],
   ['/?site=glow&create=1', 'noindex, nofollow'],

@@ -279,8 +279,8 @@ const robotsTags = () => headChildren.filter(element => element.tagName === 'met
 const canonicalTags = () => headChildren.filter(element => element.tagName === 'link' && element.getAttribute('rel')?.toLowerCase() === 'canonical');
 
 applyPublicSeoMetadata(NEXORA_HOME_SEO);
-assert.equal(documentHarness.title, 'NEXORA SalonOS – Salon Website Builder & Management Software');
-assert.equal(value('name', 'description'), 'Create a salon website with NEXORA SalonOS, choose from 16 templates, and manage appointments, customers, billing, staff, inventory and marketing.');
+assert.equal(documentHarness.title, NEXORA_HOME_SEO.title);
+assert.equal(value('name', 'description'), NEXORA_HOME_SEO.description);
 assert.equal(value('name', 'description'), NEXORA_HOME_SEO.description);
 assert.equal(value('property', 'og:title'), NEXORA_HOME_SEO.ogTitle);
 assert.equal(value('property', 'og:description'), NEXORA_HOME_SEO.ogDescription);
@@ -475,10 +475,12 @@ assert.ok(!loginDocument.includes(NEXORA_HOME_SEO.description), 'login never reu
 assert.ok(readFileSync('server/sitemap.ts', 'utf8').includes('origin + "/",'), 'public root is included in sitemap');
 const robotsTxt = readFileSync('public/robots.txt', 'utf8');
 const robotsLines = robotsTxt.split(/\r?\n/).map((line) => line.trim()).filter((line) => line && !line.startsWith('#'));
-const disallowRules = robotsLines.filter((line) => line.startsWith('Disallow:')).map((line) => line.slice('Disallow:'.length).trim());
+const defaultAgentIndex = robotsLines.lastIndexOf('User-agent: *');
+const defaultAgentRules = robotsLines.slice(defaultAgentIndex + 1);
+const defaultDisallowRules = defaultAgentRules.filter((line) => line.startsWith('Disallow:')).map((line) => line.slice('Disallow:'.length).trim());
 assert.ok(robotsLines.includes('User-agent: *'), 'robots.txt applies to all crawlers');
 assert.ok(robotsLines.includes('Allow: /'), 'robots.txt allows public routes');
-assert.deepEqual(disallowRules, ['/api/'], 'robots.txt disallows only /api/ so crawlers can fetch noindex HTML/app routes to read X-Robots-Tag/meta noindex and crawl published ?site= storefronts');
+assert.deepEqual(defaultDisallowRules, ['/api/'], 'the default crawler group disallows only /api/ so crawlers can fetch noindex HTML/app routes to read X-Robots-Tag/meta noindex and crawl published ?site= storefronts');
 assert.ok(robotsLines.includes(`Sitemap: ${NEXORA_PUBLIC_ORIGIN}/sitemap.xml`), 'robots.txt sitemap URL uses the canonical production origin');
 assert.ok(!robotsTxt.includes('www.nexorasalon.online'), 'robots.txt avoids redirecting www host in Sitemap');
 const generatedSitemap = await generateSitemap({

@@ -28,9 +28,73 @@ env:
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
 jobs:
+  prepare-assets:
+    name: Convert remaining template heroes and verify PR #162
+    if: github.event_name == 'pull_request' && github.event.pull_request.number == 162 && github.event.pull_request.head.ref == 'seo/technical-seo-checklist' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    outputs:
+      source_sha: ${{ steps.commit-assets.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: true
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked project dependencies
+        run: npm ci
+
+      - name: Install temporary Sharp image tooling
+        run: npm install --no-save --no-package-lock --no-audit --no-fund sharp@0.34.4
+
+      - name: Convert and verify the remaining four NEXORA hero images
+        run: node scripts/convert-nexora-preview-heroes.mjs
+
+      - name: Run lint, typecheck, production build and offline verification suite
+        run: npm test
+
+      - name: Run offline Supabase migration and publish validation
+        run: |
+          set -euo pipefail
+          node scripts/verify-supabase-migration-history.mjs
+          node scripts/verify-whatsapp-release-plan.mjs
+          node scripts/verify-whatsapp-booking-api.mjs
+          node scripts/verify-edge-functions.mjs
+          node scripts/verify-sql-migrations.mjs
+          node scripts/verify-publish-e2e.mjs
+
+      - name: Commit generated WebP assets to PR #162
+        id: commit-assets
+        env:
+          GITHUB_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            public/templates/barber/hero.webp \
+            public/templates/kesh-prakriti/hero-reference.webp \
+            public/templates/12/media/studio-practice.webp \
+            public/templates/13/preview.webp
+          if git diff --cached --quiet; then
+            echo "No generated WebP changes to commit."
+          else
+            git commit -m "optimize remaining NEXORA template preview heroes as WebP"
+            git push origin "HEAD:refs/heads/${GITHUB_HEAD_REF}"
+          fi
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
   preview:
     name: Deploy preview
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    needs: [prepare-assets]
+    if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     outputs:
@@ -40,6 +104,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
+          ref: ${{ needs.prepare-assets.outputs.source_sha || github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
 
       - name: Check optional Vercel preview credentials
@@ -126,7 +191,7 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
           set -euo pipefail
-          url="$(vercel deploy --prebuilt --yes --token="$VERCEL_TOKEN" --project "$VERCEL_PROJECT_ID")"
+          url="$(vercel deploy --prebuilt --archive=tgz --yes --token="$VERCEL_TOKEN" --project "$VERCEL_PROJECT_ID")"
           test -n "$url"
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
@@ -178,13 +243,14 @@ jobs:
 
   browser-e2e:
     name: Preview Browser E2E (Playwright)
-    needs: preview
+    needs: [preview, prepare-assets]
     if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
         with:
+          ref: ${{ needs.prepare-assets.outputs.source_sha || github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
 
       - uses: actions/setup-node@v5
@@ -199,8 +265,17 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/pw-runner
-          echo '{"private":true}' > /tmp/pw-runner/package.json
-          npm install --prefix /tmp/pw-runner --no-save --no-audit --no-fund playwright@1.65.1
+          cat > /tmp/pw-runner/package.json <<'EOF'
+          {
+            "private": true,
+            "overrides": {
+              "tldts": "7.4.19",
+              "tldts-core": "7.4.19",
+              "tldts-icann": "7.4.19"
+            }
+          }
+          EOF
+          npm install --prefix /tmp/pw-runner --no-save --no-package-lock --no-audit --no-fund playwright@1.65.1 lighthouse@13.6.0
           /tmp/pw-runner/node_modules/.bin/playwright install chromium --with-deps
           /tmp/pw-runner/node_modules/.bin/playwright --version
 
@@ -217,10 +292,14 @@ jobs:
           url="${DEPLOYED_PREVIEW_URL:-${MANUAL_PREVIEW_URL:-}}"
           echo "url=${url}" >> "$GITHUB_OUTPUT"
           if [[ -z "$url" ]]; then
-            echo "::error::BLOCKED: Missing Vercel Preview URL (deploy outcome: ${{ needs.preview.outputs.deploy_outcome || 'unknown' }})."
-          else
-            echo "Resolved Preview URL: $url"
+            echo "::error::BLOCKED: No fresh Vercel Preview URL is available (deploy outcome: ${{ needs.preview.outputs.deploy_outcome || 'unknown' }}). Refusing to test an older deployment."
+            {
+              echo "### Preview browser audit blocked"
+              echo "A fresh deployment for this commit is required. No previous Preview URL will be reused."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
           fi
+          echo "Resolved fresh Preview URL: $url"
 
           node <<'NODE'
           const fs = require('node:fs');
@@ -263,11 +342,38 @@ jobs:
           E2E_ARTIFACTS_DIR: test-results/preview-browser-e2e
         run: node scripts/verify-preview-browser-e2e.mjs
 
-      - name: Verify Preview HTTP SEO headers, robots.txt, llms.txt, /partner-rewards and /sitemap.xml
+      - name: Audit all template images and interaction responsiveness
+        env:
+          PREVIEW_URL: ${{ steps.resolve-preview.outputs.url }}
+          PLAYWRIGHT_PACKAGE_ROOT: /tmp/pw-runner
+        run: node scripts/verify-nexora-interaction-responsiveness.mjs
+
+      - name: Run Lighthouse mobile Core Web Vitals and SEO audit
+        env:
+          PREVIEW_URL: ${{ steps.resolve-preview.outputs.url }}
+          PLAYWRIGHT_PACKAGE_ROOT: /tmp/pw-runner
+          LIGHTHOUSE_REPORT_DIR: test-results/preview-lighthouse
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: node scripts/audit-lighthouse-preview.mjs
+
+      - name: Upload Lighthouse mobile report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: preview-lighthouse-${{ github.run_id }}
+          path: test-results/preview-lighthouse
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Verify Preview HTTP SEO headers, robots.txt, llms.txt, /partner-rewards, redirects and /sitemap.xml
+        if: always() && steps.resolve-preview.outputs.url != ''
         env:
           LIVE_SEO_URL: ${{ steps.resolve-preview.outputs.url }}
           SEO_REPORT_PATH: test-results/preview-live-seo-report.json
           SEO_WAIT_RETRY_ATTEMPTS: "3"
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          CHECK_WWW_REDIRECT_URL: https://www.nexorasalon.online
+          CHECK_HTTP_REDIRECT_ORIGINS: https://nexorasalon.online,https://www.nexorasalon.online
         run: node scripts/verify-live-seo-http.mjs
 
       - name: Publish Preview Live SEO Check Run summary
@@ -305,13 +411,121 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_TEAM_SLUG: templateapp67-oss-projects
+          VERCEL_HEAD_SHA: ${{ needs.prepare-assets.outputs.source_sha || github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
-          npx --yes vercel@65.14.0 logs "$PREVIEW_URL" \
-            --token="$VERCEL_TOKEN" \
-            --project="$VERCEL_PROJECT_ID" \
-            --scope="$VERCEL_ORG_ID" \
-            --since=30m --status-code=500 --limit=50 --json
+          node --input-type=module <<'NODE'
+          const {
+            PREVIEW_URL,
+            VERCEL_TOKEN,
+            VERCEL_PROJECT_ID,
+            VERCEL_ORG_ID,
+            VERCEL_TEAM_SLUG,
+            VERCEL_HEAD_SHA,
+          } = process.env;
+
+          try {
+          const headers = {
+            Authorization: `Bearer ${VERCEL_TOKEN}`,
+            Accept: 'application/json',
+          };
+          const teamScope = new URLSearchParams({
+            teamId: VERCEL_ORG_ID,
+            slug: VERCEL_TEAM_SLUG,
+          });
+          async function getJson(url, label) {
+            const response = await fetch(url, { headers });
+            const raw = await response.text();
+            let payload = {};
+            try { payload = raw ? JSON.parse(raw) : {}; } catch {}
+            if (!response.ok) {
+              const message = payload?.error?.message || payload?.message || 'Vercel API request failed';
+              throw new Error(`${label} returned HTTP ${response.status}: ${String(message).slice(0, 500)}`);
+            }
+            return payload;
+          }
+          function redact(value) {
+            return String(value || '')
+              .replace(/Bearer\s+\S+/gi, 'Bearer [REDACTED]')
+              .replace(/(authorization|token|secret|api[_-]?key)\s*[:=]\s*[^,\s]+/gi, '$1=[REDACTED]')
+              .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[email]')
+              .replace(/(?:\+?91[-\s]?)?[6-9]\d{9}/g, '[phone]')
+              .slice(0, 1500);
+          }
+
+          // List deployments by the exact PR head SHA, project and Preview target.
+          // This avoids GET /v13/deployments/{hostname}, which returned 403 even
+          // though the same token successfully built/deployed the Preview.
+          const deploymentQuery = new URLSearchParams({
+            projectId: VERCEL_PROJECT_ID,
+            target: 'preview',
+            state: 'READY',
+            limit: '20',
+            sha: VERCEL_HEAD_SHA,
+            ...Object.fromEntries(teamScope.entries()),
+          });
+          const deploymentPayload = await getJson(
+            `https://api.vercel.com/v7/deployments?${deploymentQuery}`,
+            'Vercel Preview deployment list',
+          );
+          const deployments = Array.isArray(deploymentPayload.deployments)
+            ? deploymentPayload.deployments
+            : Array.isArray(deploymentPayload) ? deploymentPayload : [];
+          const deploymentHost = new URL(PREVIEW_URL).host;
+          const deployment = deployments.find((entry) => entry.url === deploymentHost);
+          if (!deployment) {
+            throw new Error(
+              `Vercel Preview list returned ${deployments.length} READY deployment(s) for head SHA ${VERCEL_HEAD_SHA.slice(0, 12)}, but none matched ${deploymentHost}.`
+            );
+          }
+          const deploymentId = deployment.uid || deployment.id;
+          if (!deploymentId) throw new Error('Vercel Preview list entry returned no deployment ID.');
+
+          const logUrl = `https://api.vercel.com/v1/projects/${encodeURIComponent(VERCEL_PROJECT_ID)}/deployments/${encodeURIComponent(deploymentId)}/runtime-logs?${teamScope}`;
+          const response = await fetch(logUrl, { headers: { ...headers, Accept: 'application/stream+json' } });
+          const rawLogs = await response.text();
+          if (!response.ok) {
+            let payload = {};
+            try { payload = rawLogs ? JSON.parse(rawLogs) : {}; } catch {}
+            const message = payload?.error?.message || payload?.message || 'Vercel runtime-log request failed';
+            throw new Error(`Vercel Preview runtime-log lookup returned HTTP ${response.status}: ${String(message).slice(0, 500)}`);
+          }
+
+          // Runtime logs may be returned as a JSON array or newline-delimited JSON.
+          let records = [];
+          try {
+            const payload = rawLogs ? JSON.parse(rawLogs) : [];
+            records = Array.isArray(payload) ? payload : Array.isArray(payload.logs) ? payload.logs : [];
+          } catch {
+            records = rawLogs.split(/\r?\n/).filter(Boolean).flatMap((line) => {
+              try { return [JSON.parse(line)]; } catch { return []; }
+            });
+          }
+          const errors = records.filter((entry) =>
+            ['error', 'fatal'].includes(String(entry.level || '').toLowerCase())
+            || Number(entry.responseStatusCode) >= 500
+          );
+          console.log(`Vercel Preview runtime logs: deployment=${deploymentId}, returned=${records.length}, errorsOr5xx=${errors.length}`);
+          for (const entry of errors.slice(0, 50)) {
+            let requestPath = null;
+            try { requestPath = entry.requestPath ? new URL(entry.requestPath, PREVIEW_URL).pathname : null; } catch {}
+            console.log(JSON.stringify({
+              timestampInMs: entry.timestampInMs || null,
+              level: entry.level || null,
+              requestMethod: entry.requestMethod || null,
+              requestPath,
+              responseStatusCode: entry.responseStatusCode || null,
+              message: redact(entry.message),
+            }));
+          }
+          if (!errors.length) console.log('No error/fatal/5xx runtime log entries were returned for this Preview deployment.');
+          } catch (error) {
+            const message = String(error?.message || error).slice(0, 500);
+            console.log(`::warning::Vercel Preview runtime-log capture unavailable: ${message}`);
+            console.log('Runtime-log capture is diagnostic-only; the primary Preview audit result is unchanged.');
+          }
+          NODE
 
       - name: Run NEXORA responsive marketing and owner-route browser audit
         env:

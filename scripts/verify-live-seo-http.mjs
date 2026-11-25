@@ -5,7 +5,8 @@
 //   LIVE_SEO_URL                    Base origin to verify (e.g. https://nexorasalon.online or http://127.0.0.1:4174)
 //   VERCEL_AUTOMATION_BYPASS_SECRET Optional Vercel protection bypass header for preview deployments
 //   CHECK_WWW_REDIRECT_URL          Optional www origin (e.g. https://www.nexorasalon.online) to verify 308 -> apex
-//   CHECK_HTTP_REDIRECT             Set to "1" to verify http:// -> https:// 308 permanent redirects (apex & www)
+//   CHECK_HTTP_REDIRECT             Set to "1" to verify http:// -> https:// 308 redirects for LIVE_SEO_URL and optional www origin
+//   CHECK_HTTP_REDIRECT_ORIGINS     Optional comma-separated HTTPS origins to verify from their HTTP equivalents
 //   REQUIRE_PUBLISHED_SITES         Set to "1" to assert live Supabase-backed /sitemap.xml includes >=1 ?site=<slug>
 //   SEO_REPORT_PATH                 Optional JSON path to write structured verification evidence (written on pass/fail)
 //   SEO_WAIT_RETRY_ATTEMPTS         Optional retry count for post-deploy CDN propagation (default 1)
@@ -23,6 +24,7 @@ const isVercelPreviewHost = baseUrl.hostname.toLowerCase().endsWith('.vercel.app
 const bypassSecret = (process.env.VERCEL_AUTOMATION_BYPASS_SECRET || '').trim();
 const wwwOrigin = (process.env.CHECK_WWW_REDIRECT_URL || '').trim().replace(/\/+$/, '');
 const checkHttpRedirect = process.env.CHECK_HTTP_REDIRECT === '1';
+const checkHttpRedirectOrigins = (process.env.CHECK_HTTP_REDIRECT_ORIGINS || '').split(',').map(value => value.trim()).filter(Boolean);
 const requirePublishedSites = process.env.REQUIRE_PUBLISHED_SITES === '1';
 const reportPath = (process.env.SEO_REPORT_PATH || '').trim();
 const maxRunAttempts = Math.max(1, Number.parseInt(process.env.SEO_WAIT_RETRY_ATTEMPTS || '1', 10) || 1);
@@ -141,6 +143,19 @@ async function runVerification() {
       }
     }
 
+    // 1c. Explicit production HTTP origins -> canonical HTTPS, independent of the preview host.
+    for (const originValue of checkHttpRedirectOrigins) {
+      const sourceOrigin = new URL(originValue);
+      assert.equal(sourceOrigin.protocol, 'https:', 'CHECK_HTTP_REDIRECT_ORIGINS entries must be HTTPS origins');
+      assert.equal(sourceOrigin.pathname, '/', 'CHECK_HTTP_REDIRECT_ORIGINS entries must be origins, not paths');
+      const wwwSource = sourceOrigin.hostname.toLowerCase().startsWith('www.');
+      for (const routePath of redirectPaths) {
+        const expected = `https://nexorasalon.online${routePath}`;
+        const hops = await verifyPermanentRedirectChain(`http://${sourceOrigin.host}${routePath}`, expected, wwwSource ? 2 : 1);
+        report.redirects.push({ from: `http://${sourceOrigin.host}${routePath}`, expected, hops });
+      }
+    }
+
     // 2. Public routes (indexable on production/local; Vercel preview hosts inject platform default `noindex`).
     const assertPublicRobots = (routePath, tag) => {
       if (isVercelPreviewHost) {
@@ -158,6 +173,7 @@ async function runVerification() {
       '/salon-os',
       '/pricing',
       '/privacy',
+      '/about',
       '/salon-onboarding',
       '/salon-growth',
       '/growth-partner-rewards',
@@ -194,6 +210,15 @@ async function runVerification() {
       assert.ok(!hasVercelAppRef, `${routePath} contains zero *.vercel.app URLs`);
     }
 
+    // 2b. Both query-string and vanity-path unknown salon URLs must reach the SSR 404,
+    // not fall through to Vercel's generic 404 or the marketing homepage shell.
+    for (const missingSalonPath of ['/?site=nexora-seo-404-probe-2026', '/nexora-seo-404-probe-2026']) {
+      const missingSalon = await get(missingSalonPath);
+      assert.equal(missingSalon.status, 404, missingSalonPath + ' returns the storefront HTTP 404');
+      assert.match(missingSalon.body, /<meta[^>]+name=["']robots["'][^>]+content=["']noindex["']/i, missingSalonPath + ' 404 HTML carries a noindex directive');
+      assert.match(missingSalon.body, /Salon website not found|This salon website is not published/i, missingSalonPath + ' uses the NEXORA storefront not-found document');
+    }
+
     // 3. Auth routes -> X-Robots-Tag: noindex, follow.
     for (const authPath of ['/login', '/sign-in', '/sign-up']) {
       const res = await get(authPath);
@@ -210,6 +235,8 @@ async function runVerification() {
       '/staff/login',
       '/login?create=1',
       '/?app=1',
+      '/?customer_ref=abc',
+      '/?site=artbyuma&customer_ref=abc',
       '/?owner=1',
       '/?invite=1',
       '/?site=artbyuma&app=1',
@@ -238,19 +265,57 @@ async function runVerification() {
       .split(/\r?\n/)
       .map((line) => line.trim())
       .filter((line) => line && !line.startsWith('#'));
-    const disallowRules = robotsLines
+    const robotsGroups = new Map();
+    let activeAgent = null;
+    for (const line of robotsLines) {
+      const agent = line.match(/^User-agent:\s*(.+)$/i);
+      if (agent) {
+        activeAgent = agent[1].trim();
+        robotsGroups.set(activeAgent, []);
+        continue;
+      }
+      if (/^(Allow|Disallow):/i.test(line) && activeAgent) {
+        robotsGroups.get(activeAgent).push(line);
+      }
+    }
+    const expectedSearchAgents = [
+      'Googlebot', 'Googlebot-Image', 'Bingbot',
+      'OAI-SearchBot', 'ChatGPT-User', 'Claude-SearchBot', 'Claude-User',
+      'PerplexityBot', 'Perplexity-User',
+    ];
+    const expectedTrainingAgents = ['GPTBot', 'ClaudeBot', 'Google-Extended'];
+    for (const agent of expectedSearchAgents) {
+      assert.deepEqual(
+        robotsGroups.get(agent),
+        ['Allow: /', 'Disallow: /api/'],
+        agent + ' can crawl public pages but not API endpoints',
+      );
+    }
+    for (const agent of expectedTrainingAgents) {
+      assert.deepEqual(
+        robotsGroups.get(agent),
+        ['Disallow: /'],
+        agent + ' remains blocked from model-training crawl access',
+      );
+    }
+    assert.deepEqual(
+      robotsGroups.get('*'),
+      ['Allow: /', 'Disallow: /api/'],
+      'default crawlers can access public pages but not APIs',
+    );
+    const disallowRules = [...robotsGroups.values()]
+      .flat()
       .filter((line) => line.startsWith('Disallow:'))
       .map((line) => line.slice('Disallow:'.length).trim());
     report.robotsTxt = {
       status: robots.status,
       xRobotsTag: robots.robots,
       lines: robotsLines,
+      groups: Object.fromEntries(robotsGroups),
       disallowRules,
     };
     assert.equal(robots.status, 200, '/robots.txt returns HTTP 200');
     assertPublicRobots('/robots.txt', robots.robots);
-    assert.ok(robotsLines.includes('Allow: /'), '/robots.txt allows public crawling');
-    assert.deepEqual(disallowRules, ['/api/'], '/robots.txt disallows only /api/ so crawlers can discover noindex HTML/app routes');
     assert.ok(robotsLines.includes('Sitemap: https://nexorasalon.online/sitemap.xml'), '/robots.txt points to canonical apex sitemap');
 
     // 6. /llms.txt hygiene.
@@ -304,7 +369,7 @@ async function runVerification() {
       assert.equal(parsed.origin, 'https://nexorasalon.online', `every sitemap URL uses canonical non-www HTTPS origin: ${loc}`);
       assert.ok(!parsed.pathname.startsWith('/api/'), `sitemap excludes /api/: ${loc}`);
       assert.ok(!/^\/(?:login|sign-in|sign-up|admin|owner|staff)(?:\/|$)/i.test(parsed.pathname), `sitemap excludes private/auth path: ${loc}`);
-      for (const key of ['app', 'customer', 'owner', 'panel', 'create', 'module', 'invite', 'recovery']) {
+      for (const key of ['app', 'customer', 'customer_ref', 'owner', 'panel', 'create', 'module', 'invite', 'recovery']) {
         assert.equal(parsed.searchParams.has(key), false, `sitemap excludes session param ${key}: ${loc}`);
       }
       const siteSlug = parsed.searchParams.get('site');

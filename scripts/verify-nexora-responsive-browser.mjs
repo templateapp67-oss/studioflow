@@ -180,6 +180,15 @@ try {
     assert.ok(desktop.crumbRight <= desktop.viewportWidth + 1, `${routePath} desktop breadcrumb stays inside the viewport`);
 
     if (routePath === '/') {
+      // At widths where the full navigation row cannot fit, the "More" disclosure
+      // lives inside the compact drawer. Open the actual drawer before testing it;
+      // never click a hidden summary from the collapsed menu.
+      if (desktop.compact) {
+        const desktopToggle = page.locator('.nexora-site-header__toggle');
+        assert.equal(await desktopToggle.isVisible(), true, 'a compact desktop header exposes its menu toggle');
+        await desktopToggle.click();
+        await page.waitForFunction(() => document.querySelector('.nexora-site-header__toggle')?.getAttribute('aria-expanded') === 'true');
+      }
       const more = page.locator('.nexora-site-header__overflow-disclosure');
       const summary = more.locator('summary');
       await summary.click();
@@ -190,6 +199,10 @@ try {
       await page.waitForFunction(() => document.querySelector('.nexora-site-header__overflow-disclosure')?.open === false);
       await page.waitForFunction(() => document.activeElement === document.querySelector('.nexora-site-header__overflow-toggle'));
       assert.ok(await summary.evaluate((node) => document.activeElement === node), 'Escape closes More and restores focus to its summary');
+      if (desktop.compact) {
+        await page.locator('.nexora-site-header__toggle').click();
+        await page.waitForFunction(() => document.querySelector('.nexora-site-header__toggle')?.getAttribute('aria-expanded') === 'false');
+      }
     }
 
     await page.setViewportSize({ width: 390, height: 844 });
@@ -465,10 +478,30 @@ try {
 
   await toggle.click();
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.waitForFunction(() => !document.querySelector('.nexora-site-header')?.classList.contains('nexora-site-header--compact'));
-  assert.equal(await toggle.getAttribute('aria-expanded'), 'false', 'resizing back to desktop closes the compact menu');
+  // The homepage can still need the compact drawer at 1440px because it has
+  // more navigation and actions than a typical marketing page. Assert the
+  // measured content-fit state, not a hard-coded width breakpoint.
+  const wideMeasurement = await page.waitForFunction(headerMeasurementDetails, true, { timeout: 10000 });
+  const wideDetails = await wideMeasurement.jsonValue();
+  if (!wideDetails.expectedCompact) {
+    await page.waitForFunction(() => document.querySelector('.nexora-site-header__toggle')?.getAttribute('aria-expanded') === 'false');
+  } else {
+    assert.equal(await toggle.getAttribute('aria-expanded'), 'true', 'the compact menu remains available when the full navigation still cannot fit at 1440px');
+  }
+
   await page.setViewportSize({ width: 320, height: 740 });
-  await page.waitForFunction(() => document.querySelector('.nexora-site-header')?.classList.contains('nexora-site-header--compact'));
+  await page.waitForFunction(() => window.innerWidth === 320
+    && document.querySelector('.nexora-site-header')?.classList.contains('has-measured-layout'));
+  await page.evaluate(() => window.dispatchEvent(new Event('resize')));
+  const finalNarrowMeasurement = await page.waitForFunction(headerMeasurementDetails, true, { timeout: 10000 });
+  const finalNarrowDetails = await finalNarrowMeasurement.jsonValue();
+  assert.equal(finalNarrowDetails.viewportWidth, 320, 'the final narrow-header measurement uses the 320px viewport');
+  assert.equal(finalNarrowDetails.expectedCompact, true, 'the 320px navigation row cannot fit');
+  assert.equal(finalNarrowDetails.actualCompact, true, `the header remains compact at 320px: ${JSON.stringify(finalNarrowDetails)}`);
+
+  // Close a drawer that remained open because both tested widths legitimately
+  // require compact navigation, then exercise the primary-action overflow path.
+  if (await toggle.getAttribute('aria-expanded') === 'true') await toggle.click();
   const compactActionVisible = await page.locator('.nexora-site-header').evaluate((header) => header.classList.contains('has-compact-action'));
   if (!compactActionVisible) {
     await toggle.click();

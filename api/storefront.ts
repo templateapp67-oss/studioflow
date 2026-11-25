@@ -1,3 +1,5 @@
+import { normalizeCanonicalUrl, normalizeSeoDescription, normalizeSeoTitle } from '../src/lib/seoText.js';
+
 type RequestLike = {
   method?: string;
   url?: string;
@@ -77,7 +79,7 @@ async function getRenderer(): Promise<Renderer> {
 }
 
 const RESERVED_PATHS = new Set([
-  'admin', 'api', 'app', 'assets', 'fonts', 'growth-partner-rewards', 'index.html',
+  'about', 'admin', 'api', 'app', 'assets', 'fonts', 'growth-partner-rewards', 'index.html',
   'invite', 'login', 'partner-rewards', 'pricing', 'privacy', 'salon-growth',
   'salon-onboarding', 'salon-os', 'sign-in', 'sign-up', 'staff', 'template-pages',
   'templates',
@@ -160,17 +162,11 @@ async function sendPlatformShell(res: ResponseLike, method: string): Promise<voi
 }
 
 function canonicalForRequest(profile: Record<string, any>, origin: string, pathname: string, slug: string, viaQuery: boolean): string {
-  const configured = typeof profile.seo?.canonicalUrl === 'string' ? profile.seo.canonicalUrl.trim() : '';
-  if (configured) {
-    try {
-      const url = new URL(configured);
-      if (url.protocol === 'https:' && !url.username && !url.password) return url.toString();
-    } catch {
-      // Fall through to a canonical address derived from this published URL.
-    }
-  }
-  if (viaQuery) return origin + '/?site=' + encodeURIComponent(slug);
-  return origin + (pathname.startsWith('/') ? pathname : '/' + pathname);
+  const fallback = viaQuery
+    ? origin + '/?site=' + encodeURIComponent(slug)
+    : origin + (pathname.startsWith('/') ? pathname : '/' + pathname);
+  const configured = typeof profile.seo?.canonicalUrl === 'string' ? profile.seo.canonicalUrl : undefined;
+  return normalizeCanonicalUrl(configured, fallback, [String(profile.customDomain || '')]);
 }
 
 function generateStorefrontSeoDefaults(profile: Record<string, any>) {
@@ -184,10 +180,10 @@ function generateStorefrontSeoDefaults(profile: Record<string, any>) {
   const tagline = profile.tagline || profile.about || 'Book your appointment online for premium beauty, hair, and grooming services.';
   const citySuffix = city ? ` in ${city}` : '';
   return {
-    metaTitle: `${businessName} – ${isZiyaTemplate ? typeLabel : `Premium ${typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1)}`}${citySuffix}`,
-    metaDescription: `${tagline.slice(0, 120)}. Book online instantly at ${businessName}${citySuffix} with top expert stylists and therapists.`,
-    ogTitle: `${businessName}${citySuffix} | Official Website`,
-    ogDescription: tagline.length > 150 ? `${tagline.slice(0, 147)}...` : tagline,
+    metaTitle: normalizeSeoTitle(`${businessName} – ${isZiyaTemplate ? typeLabel : `Premium ${typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1)}`}${citySuffix}`),
+    metaDescription: normalizeSeoDescription(`${tagline}. Explore services, prices and online booking at ${businessName}${citySuffix}.`),
+    ogTitle: normalizeSeoTitle(`${businessName}${citySuffix} | Official Website`),
+    ogDescription: normalizeSeoDescription(tagline),
     ogImageUrl: profile.coverImageUrl || profile.logoUrl || 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1200&q=80',
     keywords: [
       businessName.toLowerCase(), `${typeLabel} near me`, `${typeLabel} ${city}`.trim(),
@@ -220,10 +216,10 @@ function renderHead(
 ): string {
   const defaults = seoHelpers.generateSeoDefaults(profile);
   const seo = profile.seo || {};
-  const title = seo.metaTitle || defaults.metaTitle;
-  const description = seo.metaDescription || defaults.metaDescription;
-  const ogTitle = seo.ogTitle || seo.metaTitle || defaults.ogTitle;
-  const ogDescription = seo.ogDescription || seo.metaDescription || defaults.ogDescription;
+  const title = normalizeSeoTitle(seo.metaTitle || defaults.metaTitle);
+  const description = normalizeSeoDescription(seo.metaDescription || defaults.metaDescription);
+  const ogTitle = normalizeSeoTitle(seo.ogTitle || seo.metaTitle || defaults.ogTitle);
+  const ogDescription = normalizeSeoDescription(seo.ogDescription || seo.metaDescription || defaults.ogDescription);
   const image = seo.ogImageUrl || profile.coverImageUrl || profile.logoUrl || defaults.ogImageUrl;
   const keywords = seo.keywords || defaults.keywords;
   const twitterCard = seo.twitterCard || 'summary_large_image';
@@ -275,10 +271,12 @@ function renderHead(
     '<meta property="og:description" content="' + escapeHtml(ogDescription) + '">',
     '<meta property="og:url" content="' + escapeHtml(canonical) + '">',
     '<meta property="og:image" content="' + escapeHtml(image) + '">',
+    '<meta property="og:image:alt" content="' + escapeHtml((profile.businessName || 'Salon') + ' salon website and services') + '">',
     '<meta name="twitter:card" content="' + escapeHtml(twitterCard) + '">',
     '<meta name="twitter:title" content="' + escapeHtml(ogTitle) + '">',
     '<meta name="twitter:description" content="' + escapeHtml(ogDescription) + '">',
     '<meta name="twitter:image" content="' + escapeHtml(image) + '">',
+    '<meta name="twitter:image:alt" content="' + escapeHtml((profile.businessName || 'Salon') + ' salon website and services') + '">',
     '<script id="studioflow-seo-jsonld" type="application/ld+json">' + safeJson(schema) + '</script>',
   ].join('\n');
 }

@@ -250,7 +250,7 @@ const runBash=(runtime,args,overrides={},{minimal=false,pathPrefix=[],wslEnvKeys
 };
 
 const bashRuntime=resolveBashRuntime();
-if(!bashRuntime.bin && (!IS_WIN || IS_CI)){
+if(!bashRuntime.bin && (!IS_WIN || IS_CI || process.env.STUDIOFLOW_REQUIRE_BASH === '1')){
   assert.fail(
     `Could not locate a working GNU bash binary for release-mode shell verification (probed: ${bashRuntime.probed.join(', ') || 'none'}).`
   );

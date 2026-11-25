@@ -57,23 +57,47 @@ const robots = readFileSync(robotsPath, 'utf8').replace(/^\uFEFF/, '');
 const robotsLines = robots.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
 const meaningfulRobotsLines = robotsLines.filter((line) => !line.startsWith('#'));
 const sitemapDirectives = meaningfulRobotsLines.filter((line) => /^Sitemap:/i.test(line));
-const disallowRules = meaningfulRobotsLines
-  .filter((line) => /^Disallow:/i.test(line))
-  .map((line) => line.replace(/^Disallow:/i, '').trim());
-
-assert.ok(meaningfulRobotsLines.includes('User-agent: *'), 'robots.txt defines the global crawler group');
-assert.ok(meaningfulRobotsLines.includes('Allow: /'), 'robots.txt allows public pages to be crawled');
-assert.deepEqual(disallowRules, ['/api/'], 'robots.txt blocks only the API path, leaving noindex pages discoverable');
+const robotsGroups = new Map();
+let activeAgents = [];
+for (const line of meaningfulRobotsLines) {
+  const agent = line.match(/^User-agent:\s*(.+)$/i);
+  if (agent) {
+    activeAgents = [agent[1].trim()];
+    for (const name of activeAgents) robotsGroups.set(name, []);
+    continue;
+  }
+  if (/^(Allow|Disallow):/i.test(line)) {
+    for (const name of activeAgents) robotsGroups.get(name)?.push(line);
+  }
+}
+const expectedSearchAgents = ['Googlebot','Googlebot-Image','Bingbot','OAI-SearchBot','ChatGPT-User','Claude-SearchBot','Claude-User','PerplexityBot','Perplexity-User'];
+for (const agent of expectedSearchAgents) {
+  assert.deepEqual(robotsGroups.get(agent), ['Allow: /','Disallow: /api/'], agent + ' can crawl public pages but not API endpoints');
+}
+for (const agent of ['GPTBot','ClaudeBot','Google-Extended']) {
+  assert.deepEqual(robotsGroups.get(agent), ['Disallow: /'], agent + ' is not granted model-training crawl access by default');
+}
+assert.deepEqual(robotsGroups.get('*'), ['Allow: /','Disallow: /api/'], 'default crawlers can access public pages but not APIs');
 assert.deepEqual(
   sitemapDirectives,
   ['Sitemap: ' + NEXORA_PUBLIC_ORIGIN + '/sitemap.xml'],
   'robots.txt contains exactly one canonical Sitemap directive',
 );
-assert.doesNotMatch(robots, /Disallow:\s*\/\s*(?:#.*)?$/im, 'robots.txt never blocks the entire site');
+assert.ok(!robotsGroups.get('*')?.some((rule) => /^Disallow:\s*\/$/i.test(rule)), 'the default crawler group never blocks the entire site');
 
 /* The public URL maps to a real Vercel function and an Express fallback route. */
 const vercel = JSON.parse(readFileSync(vercelPath, 'utf8'));
+const storefrontPathRewrite = (vercel.rewrites ?? []).find((entry) => entry.source.startsWith('/:path(('));
+assert.ok(storefrontPathRewrite, 'unreserved vanity paths route to the SSR storefront handler');
+assert.ok(storefrontPathRewrite.source.includes('api|admin|owner|staff'), 'vanity route excludes private and API paths');
+assert.ok(storefrontPathRewrite.source.includes('template-pages') && storefrontPathRewrite.source.includes('(?!.*\\.[^/]+$)'), 'vanity route excludes template directories and extension-bearing asset paths');
+assert.equal(storefrontPathRewrite.destination, '/api/storefront?path=/:path*', 'vanity paths preserve the requested path as the storefront selector');
+assert.equal(vercel.rewrites.at(-1), storefrontPathRewrite, 'the dynamic storefront rewrite remains last');
 const sitemapRewrites = (vercel.rewrites ?? []).filter((entry) => entry.source === '/sitemap.xml');
+const aboutRewrites = (vercel.rewrites ?? []).filter((entry) => entry.source === '/about' && entry.destination === '/about/index.html');
+assert.equal(aboutRewrites.length, 1, 'About page has one explicit prerendered Vercel rewrite');
+const wwwRedirects = (vercel.redirects ?? []).filter((entry) => entry.source === '/(.*)' && (entry.has ?? []).some((condition) => condition.type === 'host' && condition.value === 'www.nexorasalon.online') && entry.destination === 'https://nexorasalon.online/$1' && entry.permanent === true);
+assert.equal(wwwRedirects.length, 1, 'www host is redirected directly to the canonical apex URL');
 assert.equal(sitemapRewrites.length, 1, 'Vercel has one explicit /sitemap.xml rewrite');
 assert.equal(sitemapRewrites[0].destination, '/api/sitemap', '/sitemap.xml is routed to the sitemap API function');
 
