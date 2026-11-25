@@ -421,7 +421,7 @@ jobs:
       - name: Repair and verify the reviewed production Supabase URL
         shell: bash
         env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TOKEN: \${{ secrets.VERCEL_TOKEN }}
         run: |
           set -euo pipefail
 
@@ -439,14 +439,14 @@ jobs:
             throw new Error('Vercel Production env file was not created by vercel pull.');
           }
 
-          const lines = fs.readFileSync(path, 'utf8').split(/\\r?\\n/);
-          const assignment = /^\\s*(?:export\\s+)?VITE_SUPABASE_URL\\s*=/;
+          const lines = fs.readFileSync(path, 'utf8').split(/\r?\n/);
+          const assignment = /^\s*(?:export\s+)?VITE_SUPABASE_URL\s*=/;
           const retained = lines.filter((line) => !assignment.test(line));
           while (retained.length && retained[retained.length - 1] === '') retained.pop();
           retained.push('VITE_SUPABASE_URL=' + expected);
-          fs.writeFileSync(path, retained.join('\\n') + '\\n', { mode: 0o600 });
+          fs.writeFileSync(path, retained.join('\n') + '\n', { mode: 0o600 });
 
-          const verifiedLines = fs.readFileSync(path, 'utf8').split(/\\r?\\n/);
+          const verifiedLines = fs.readFileSync(path, 'utf8').split(/\r?\n/);
           const matches = verifiedLines.filter((line) => assignment.test(line));
           if (matches.length !== 1) {
             throw new Error('Expected exactly one VITE_SUPABASE_URL in the local Production build env.');
