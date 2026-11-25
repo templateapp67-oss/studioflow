@@ -22,6 +22,7 @@ import './nexoraEcosystemHero.css';
  */
 
 const NAV_LINKS = [
+  { label: 'About NEXORA', href: '/about' },
   { label: 'Salon Onboarding', href: '/salon-onboarding' },
   { label: 'Salon Growth', href: '/salon-growth' },
   { label: 'Growth Partner Rewards', href: '/growth-partner-rewards' },
