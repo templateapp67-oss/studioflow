@@ -37,6 +37,28 @@ if (vercelBypassSecret) {
  * browser CORS/preflight or production availability cannot make this UI test
  * flaky. All other Supabase writes remain visible to the mutation guard.
  */
+// The Tawk widget is a third-party support integration, not part of this
+// template-image / booking-interaction audit. Tawk can restrict widget
+// availability by domain, and ephemeral Vercel Preview hostnames may not be
+// included in the property's allowlist. Stub only this exact production loader
+// URL in Playwright; the application component and production Tawk setup remain
+// unchanged. The separate live-domain smoke test remains responsible for
+// checking the real public site.
+const tawkLoaderPreviewFixture = {
+  status: 200,
+  contentType: 'application/javascript; charset=utf-8',
+  body: [
+    'window.Tawk_API = window.Tawk_API || {};',
+    'window.Tawk_API.showWidget = window.Tawk_API.showWidget || function () {};',
+    'window.Tawk_API.hideWidget = window.Tawk_API.hideWidget || function () {};',
+    'if (typeof window.Tawk_API.onLoad === "function") window.Tawk_API.onLoad();',
+  ].join('\n'),
+};
+await page.route(
+  'https://embed.tawk.to/6af928650ca0f03c41f84ba9/1k7ekbjg3',
+  (route) => route.fulfill(tawkLoaderPreviewFixture),
+);
+
 const previewCorsHeaders = {
   'access-control-allow-origin': origin.origin,
   'access-control-allow-methods': 'GET, POST, OPTIONS',
@@ -158,11 +180,11 @@ const pageErrors = [];
 
 /**
  * Supabase/PostgREST uses HTTP POST for RPC calls even when the SQL function is
- * read-only. Only these two explicitly read-only operations are exempted:
+ * read-only. Only three explicitly reviewed read-only operations are exempted:
  * - studioflow_booking_specialists is declared LANGUAGE SQL STABLE.
- * - studioflow-payments action=status only reads gateway configuration after
- *   validating the caller; it does not create orders, collect payments or write.
- * All other POST/PUT/PATCH/DELETE requests to the app or Supabase stay blocked.
+ * - studioflow_available_slots is a read-only availability lookup.
+ * - studioflow-payments action=status reads gateway configuration only.
+ * All other app/Supabase writes are blocked locally before reaching a backend.
  */
 function readOnlyRequestReason(request, requestUrl) {
   if (request.method() !== 'POST') return '';
@@ -623,6 +645,7 @@ try {
     syntheticInteractionP75Ms: p75 === null ? 'not supported by this Chromium runtime' : Number(p75.toFixed(2)),
     longestObservedTaskMs: longTasks.length ? Number(Math.max(...longTasks).toFixed(2)) : 0,
     blockedMutations: writeRequests.length,
+    previewThirdPartyFixtures: ['Tawk support widget loader (isolated from Vercel Preview test)'],
     allowedReadOnlyPostRequests: readOnlyPostRequests.length,
     readOnlyPostRequestTypes: readOnlyPostRequests.map((entry) => entry.replace(/^POST [^ ]+/, 'POST <Supabase endpoint>')),
     failedRequests: failedRequests.length,
