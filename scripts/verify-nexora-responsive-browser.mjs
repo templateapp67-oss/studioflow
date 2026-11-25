@@ -374,7 +374,13 @@ try {
   }
   assert.equal(focusedPreviewTrigger, true, 'the preview link is reachable in the normal tab order');
   await page.waitForFunction(() => document.querySelector('.public-homepage__template-preview [data-nx-hover-card-trigger]')?.getAttribute('aria-expanded') === 'true');
+  await hoverPanel.waitFor({ state: 'visible', timeout: 1500 });
   await hoverTrigger.press('ArrowDown');
+  await page.waitForFunction(
+    () => document.activeElement === document.querySelector('.nx-hover-card__panel a[href="#nexora-template-library"]'),
+    null,
+    { timeout: 1500 },
+  );
   assert.equal(await hoverPanel.locator('a[href="#nexora-template-library"]').evaluate((node) => document.activeElement === node), true, 'ArrowDown moves keyboard focus into interactive preview content');
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => document.querySelector('.nx-hover-card__panel')?.closest('.nx-hover-card__floating')?.hasAttribute('hidden'));
