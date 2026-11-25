@@ -249,11 +249,11 @@ async function runVerification() {
       '/?site=artbyuma&recovery=1',
     ]) {
       const res = await get(privatePath);
+      // Do not include private response bodies in a publicly visible check run.
       report.privateHeaders.push({
         path: privatePath,
         status: res.status,
         xRobotsTag: res.robots,
-        ...(res.status !== 200 ? { bodySnippet: res.body.slice(0, 300) } : {}),
       });
       assert.equal(res.status, 200, `${privatePath} returns HTTP 200`);
       assert.equal(res.robots, 'noindex, nofollow', `${privatePath} must return X-Robots-Tag: noindex, nofollow`);

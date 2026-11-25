@@ -299,6 +299,31 @@ assert(run('migrate','push',undefined,false));
 assert(run('deploy','push',undefined,false,'success'));
 assert(!run('deploy','push',undefined,false,'failure'));
 
+// Run the actual change-detection shell with a mocked git command. A failed
+// diff must fail the changes job, not masquerade as a code-only release.
+if(bashRuntime.bin){
+  const detectStep=workflow.split('- name: Detect changed migration files')[1].split('\n  migrate:')[0];
+  const detectShell=detectStep.split('        run: |\n')[1].split('\n').map(line=>line.replace(/^          /,'')).join('\n');
+  const tempDir=mkdtempSync(join(tmpdir(),'studioflow-detect-'));
+  try{
+    const outputPath=join(tempDir,'output');
+    for(const [label,gitBody,expectedStatus,expectedOutput] of [
+      ['unchanged', 'return 0', 0, 'migrations_changed=false'],
+      ['changed', "printf '%s\\n' supabase/migrations/example.sql", 0, 'migrations_changed=true'],
+      ['git failure', 'return 128', 128, ''],
+    ]){
+      writeFileSync(outputPath,'');
+      const result=runBash(bashRuntime,['-euo','pipefail','-c',`git() { ${gitBody}; }\n${detectShell}`],
+        {BEFORE_SHA:'before',GITHUB_SHA:'after',GITHUB_OUTPUT:bashRuntime.toBashPath(outputPath)},
+        {wslEnvKeys:['BEFORE_SHA','GITHUB_SHA','GITHUB_OUTPUT']});
+      const output=readFileSync(outputPath,'utf8');
+      assert.equal(result.status,expectedStatus,`${label}: ${formatSpawnFailure(result)}`);
+      if(expectedOutput) assert(output.includes(expectedOutput),`${label} must output ${expectedOutput}`);
+      else assert(!output.includes('migrations_changed=false'), 'git failure must never report a code-only change');
+    }
+  } finally { rmSync(tempDir,{recursive:true,force:true}); }
+}
+
 for(const label of ['Apply production migrations','Deploy reviewed WhatsApp Edge Functions']){
   const step=workflow.split('- name: '+label)[1].split('\n      - ')[0].split('\n  deploy:')[0];
   assert(step.includes("if: github.event_name == 'workflow_dispatch' && inputs.release_mode == 'apply_and_deploy'"));

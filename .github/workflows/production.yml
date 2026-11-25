@@ -67,12 +67,15 @@ jobs:
             echo "Initial push: require the Supabase migration safety job."
             exit 0
           fi
-          if git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA" -- \
+          # Capture separately so a failed git diff cannot be mistaken for
+          # an empty change list and accidentally allow a code-only deploy.
+          changed_files="$(git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA" -- \
             supabase/migrations/ \
             supabase/config.toml \
             docs/integrations/restored-supabase-history.json \
             scripts/verify-whatsapp-release-plan.mjs \
-            scripts/verify-supabase-migration-history.mjs | grep -q .; then
+            scripts/verify-supabase-migration-history.mjs)"
+          if [[ -n "$changed_files" ]]; then
             echo "migrations_changed=true" >> "$GITHUB_OUTPUT"
             echo "This push changes migration sources or migration history evidence; run remote history validation and dry-run."
           else
