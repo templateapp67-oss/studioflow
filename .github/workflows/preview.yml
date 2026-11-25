@@ -23,10 +23,6 @@ permissions:
   checks: write
   issues: write
 
-env:
-  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-
 jobs:
   prepare-assets:
     name: Convert remaining template heroes and verify PR #162
@@ -112,6 +108,8 @@ jobs:
         shell: bash
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
           set -euo pipefail
           missing=()
@@ -189,6 +187,7 @@ jobs:
         continue-on-error: true
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
           set -euo pipefail
           url="$(vercel deploy --prebuilt --archive=tgz --yes --token="$VERCEL_TOKEN" --project "$VERCEL_PROJECT_ID")"
@@ -287,6 +286,8 @@ jobs:
           MANUAL_PREVIEW_URL: ${{ inputs.preview_url }}
           SECRET_BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
         run: |
           set -euo pipefail
           url="${DEPLOYED_PREVIEW_URL:-${MANUAL_PREVIEW_URL:-}}"
