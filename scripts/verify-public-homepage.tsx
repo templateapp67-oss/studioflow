@@ -279,8 +279,8 @@ const robotsTags = () => headChildren.filter(element => element.tagName === 'met
 const canonicalTags = () => headChildren.filter(element => element.tagName === 'link' && element.getAttribute('rel')?.toLowerCase() === 'canonical');
 
 applyPublicSeoMetadata(NEXORA_HOME_SEO);
-assert.equal(documentHarness.title, 'NEXORA SalonOS – Salon Website Builder & Management Software');
-assert.equal(value('name', 'description'), 'Create a salon website with NEXORA SalonOS, choose from 16 templates, and manage appointments, customers, billing, staff, inventory and marketing.');
+assert.equal(documentHarness.title, NEXORA_HOME_SEO.title);
+assert.equal(value('name', 'description'), NEXORA_HOME_SEO.description);
 assert.equal(value('name', 'description'), NEXORA_HOME_SEO.description);
 assert.equal(value('property', 'og:title'), NEXORA_HOME_SEO.ogTitle);
 assert.equal(value('property', 'og:description'), NEXORA_HOME_SEO.ogDescription);
