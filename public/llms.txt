@@ -3,6 +3,7 @@
 > NEXORA Salon OS helps salon, spa and beauty businesses explore customisable website templates and manage their online presence.
 
 ## Key pages
+- [About NEXORA](https://nexorasalon.online/about): Organisation, product and editorial team profile.
 - [Homepage](https://nexorasalon.online/): Explore NEXORA and all 16 public salon website templates.
 - [SalonOS platform](https://nexorasalon.online/salon-os): Overview of NEXORA SalonOS salon management software.
 - [Pricing & plans](https://nexorasalon.online/pricing): Compare NEXORA SalonOS plans and feature coverage.

@@ -62,6 +62,10 @@
       "destination": "/api/sitemap"
     },
     {
+      "source": "/about",
+      "destination": "/about/index.html"
+    },
+    {
       "source": "/salon-os",
       "destination": "/salon-os/index.html"
     },
