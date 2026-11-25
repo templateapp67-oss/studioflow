@@ -15,14 +15,15 @@
 ## 1. Verdict
 
 PR #163 is **pre-merge ready on the code/test/script/workflow/doc side**, with all automated
-in-repo checks green and Preview runs `601`/`602` green. **Three** things now block an
-authorized merge: (1) **`main` advanced** to `7685a3a` while this branch was worked, producing a
-real **merge conflict** (§5.1) that requires a rebase/resolve first; (2) the latest Preview run
-`604` **failed on an external Vercel preview-deployment quota/rate-limit error**, not a code
-defect — a fresh Preview run is needed to confirm green (§2); and (3) **external/manual steps
-that require explicit owner approval** (Supabase migration apply, Edge-function redeploy, Vercel
-Production env verification, staging QA, live reachability). **No merge has been performed or
-requested, and no conflict has been resolved.**
+in-repo checks green (`npm test` 182/182) and Preview runs `601`/`602` green. **Three** things
+now block an authorized merge: (1) **`main` advanced** to `7685a3a` while this branch was worked,
+producing a real **merge conflict** (§5.1) that requires a rebase/resolve first; (2) the latest
+Preview runs (`604`–`606`, incl. the final head `2d4e660`) **failed on a persistent external
+Vercel preview-deployment quota/rate-limit error**, not a code defect — a confirming Preview run
+is needed once Vercel quota is restored (§2); and (3) **external/manual steps that require
+explicit owner approval** (Supabase migration apply, Edge-function redeploy, Vercel Production
+env verification, staging QA, live reachability). **No merge has been performed or requested, and
+no conflict has been resolved.**
 
 ---
 
@@ -41,17 +42,21 @@ Workflow run conclusion: **success**. The two checks that previously failed
 (`Preview Browser E2E (Playwright)`, `Responsive Marketing Audit Report`) now **pass** after the
 root-cause fix in §4.
 
-> **Note:** the head was advanced to `806d488` (this report + a production-workflow Edge Function
-> deploy fix, §4.2) after run `45635927663`. Runs `601` (`e493d6d`) and `602` (`3ace5d7`) returned
-> **success**. Run `603` (`69d3454`) was **cancelled** (superseded by the next push). Run `604`
-> (`806d488`) **failed**, but the failure is **external, not a code defect**: the `Deploy preview`
-> step was classified `quota-or-rate-limit` by `scripts/classify-preview-deploy-error.mjs`
-> ("Vercel preview deployment failed; Preview verification is blocked … category:
-> quota-or-rate-limit"). The only changes since the green `602` are a doc and the `main`-gated
-> `production.yml` + a test, none of which affect the Preview deploy. **A fresh Preview run is
-> required to confirm green before merge** — manual `gh workflow run preview.yml` is **403**
-> (the Actions integration lacks dispatch permission), so a re-run must come from a new push to
-> the branch. The `production.yml` change is covered by `scripts/verify-workflow-release-safety.mjs`.
+> **Note (final-head runs):** the head advanced through `69d3454` → `806d488` → `7f7f7ba` → `2d4e660`
+> (this report + the production-workflow Edge Function deploy fix and its config/test follow-ups,
+> §4.2). Runs `601` (`e493d6d`) and `602` (`3ace5d7`) returned **success**. Run `603`
+> (`69d3454`) was **cancelled** (superseded by the next push). Runs `604` (`806d488`), `605`
+> (`7f7f7ba`) and **`606` (`2d4e660`, final head)** all **failed**, but every failure is
+> **external, not a code defect**: each `Deploy preview` step was classified
+> `quota-or-rate-limit` by `scripts/classify-preview-deploy-error.mjs` ("Vercel preview
+> deployment failed; Preview verification is blocked … category: quota-or-rate-limit"). The
+> changes since the green `602` are a doc, the `main`-gated `production.yml`, `supabase/config.toml`
+> and tests — none of which affect the Preview deploy. **This is a persistent Vercel
+> preview-deployment quota/rate-limit exhaustion, not a regression.** Manual
+> `gh workflow run preview.yml` is **403** (the Actions integration lacks dispatch permission), so
+> a confirming run must come from a new push after the Vercel quota/billing is restored. The
+> in-repo code side is independently green: full `npm test` **182/182** (§3). The
+> `production.yml` change is covered by `scripts/verify-workflow-release-safety.mjs`.
 
 ---
 
