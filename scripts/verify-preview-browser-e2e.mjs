@@ -206,6 +206,13 @@ try {
         'x-vercel-protection-bypass': vercelBypassSecret,
         'x-vercel-set-bypass-cookie': 'true',
       } : {};
+      // Unauthenticated POST must stop before any paid AI call or write. This
+      // verifies the Vercel function is deployed as well as fail-closed.
+      const copyProbe = await context.request.post(new URL('/api/onboarding-copy', previewUrl).toString(), {
+        timeout: 60000, headers: bypassHeaders, data: { kind: 'about' },
+      });
+      assert.equal(copyProbe.status(), 401, 'onboarding copy API rejects requests without a verified session');
+      report.onboardingCopyAuthProbe = { status: copyProbe.status() };
       const directApiResponse = await context.request.get(directApiUrl, {
         timeout: 60000,
         headers: bypassHeaders,

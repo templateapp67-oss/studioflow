@@ -16,6 +16,7 @@ import {
   type VedaAiDetails,
 } from "./src/lib/vedaSanjeevaniAi";
 import { nexoraDemoLeadHandler } from "./server/nexoraDemoLead";
+import { onboardingCopyHandler } from "./server/onboardingCopy";
 import { nexoraDemoLeadsAdminHandler } from "./server/nexoraDemoLeads";
 import {
   apiErrorHandler,
@@ -185,6 +186,10 @@ async function startServer() {
       },
       res,
     );
+  }));
+
+  app.post("/api/onboarding-copy", asyncHandler(async (req, res) => {
+    await onboardingCopyHandler(req, res);
   }));
 
   // AI Bio Generation Route with Gemini

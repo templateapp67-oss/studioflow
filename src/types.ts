@@ -312,6 +312,10 @@ export interface SalonProfile {
   whatsapp: string;
   email: string;
   tagline: string;
+  /** Explicit onboarding edits stay protected across wizard remounts. */
+  taglineEditedByOwner?: boolean;
+  /** Last AI-generated value, so subsequent manual changes are distinguishable. */
+  onboardingGeneratedTagline?: string;
   about: string;
   ownerPhotoUrl: string;
   coverImageUrl: string;
