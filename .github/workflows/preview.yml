@@ -411,15 +411,78 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_TEAM_SLUG: templateapp67-oss-projects
         run: |
           set -euo pipefail
-          # VERCEL_ORG_ID is the team ID, not the team slug. Use --team
-          # (which accepts team IDs) rather than --scope (which expects a slug).
-          export VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID
-          npx --yes vercel@65.14.0 logs "$PREVIEW_URL" \
-            --team="$VERCEL_ORG_ID" \
-            --project="$VERCEL_PROJECT_ID" \
-            --since=30m --status-code=500 --limit=50 --json
+          node --input-type=module <<'NODE'
+          const {
+            PREVIEW_URL,
+            VERCEL_TOKEN,
+            VERCEL_PROJECT_ID,
+            VERCEL_ORG_ID,
+            VERCEL_TEAM_SLUG,
+          } = process.env;
+
+          const headers = {
+            Authorization: `Bearer ${VERCEL_TOKEN}`,
+            Accept: 'application/json',
+          };
+          const scope = new URLSearchParams({
+            teamId: VERCEL_ORG_ID,
+            slug: VERCEL_TEAM_SLUG,
+          });
+          async function getJson(url, label) {
+            const response = await fetch(url, { headers });
+            const raw = await response.text();
+            let payload = {};
+            try { payload = raw ? JSON.parse(raw) : {}; } catch {}
+            if (!response.ok) {
+              const message = payload?.error?.message || payload?.message || 'Vercel API request failed';
+              throw new Error(`${label} returned HTTP ${response.status}: ${String(message).slice(0, 500)}`);
+            }
+            return payload;
+          }
+          function redact(value) {
+            return String(value || '')
+              .replace(/Bearer\\s+\\S+/gi, 'Bearer [REDACTED]')
+              .replace(/(authorization|token|secret|api[_-]?key)\\s*[:=]\\s*[^,\\s]+/gi, '$1=[REDACTED]')
+              .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/gi, '[email]')
+              .replace(/(?:\\+?91[-\\s]?)?[6-9]\\d{9}/g, '[phone]')
+              .slice(0, 1500);
+          }
+
+          const deploymentHost = new URL(PREVIEW_URL).host;
+          const deployment = await getJson(
+            `https://api.vercel.com/v13/deployments/${encodeURIComponent(deploymentHost)}?${scope}`,
+            'Vercel Preview deployment lookup',
+          );
+          const deploymentId = deployment.id || deployment.uid || deployment.deploymentId;
+          if (!deploymentId) throw new Error('Vercel Preview lookup returned no deployment ID.');
+
+          const logPayload = await getJson(
+            `https://api.vercel.com/v1/projects/${encodeURIComponent(VERCEL_PROJECT_ID)}/deployments/${encodeURIComponent(deploymentId)}/runtime-logs?${scope}`,
+            'Vercel Preview runtime-log lookup',
+          );
+          const records = Array.isArray(logPayload.logs)
+            ? logPayload.logs
+            : Array.isArray(logPayload) ? logPayload : [];
+          const errors = records.filter((entry) =>
+            ['error', 'fatal'].includes(String(entry.level || '').toLowerCase())
+            || Number(entry.responseStatusCode) >= 500
+          );
+          console.log(`Vercel Preview runtime logs: deployment=${deploymentId}, returned=${records.length}, errorsOr5xx=${errors.length}`);
+          for (const entry of errors.slice(0, 50)) {
+            console.log(JSON.stringify({
+              timestampInMs: entry.timestampInMs || null,
+              level: entry.level || null,
+              requestMethod: entry.requestMethod || null,
+              requestPath: entry.requestPath ? new URL(entry.requestPath, PREVIEW_URL).pathname : null,
+              responseStatusCode: entry.responseStatusCode || null,
+              message: redact(entry.message),
+            }));
+          }
+          if (!errors.length) console.log('No error/fatal/5xx runtime log entries were returned for this Preview deployment.');
+          NODE
 
       - name: Run NEXORA responsive marketing and owner-route browser audit
         env:

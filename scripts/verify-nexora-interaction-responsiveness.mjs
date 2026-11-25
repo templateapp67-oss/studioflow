@@ -16,13 +16,20 @@ const vercelBypassSecret = (process.env.VERCEL_AUTOMATION_BYPASS_SECRET || '').t
 const page = await browser.newPage({
   viewport: { width: 1365, height: 950 },
   reducedMotion: 'reduce',
-  // Use the same Vercel Automation Bypass headers as the existing Preview E2E.
-  // The browser context applies them to the top-level page and preview iframe.
-  extraHTTPHeaders: vercelBypassSecret ? {
-    'x-vercel-protection-bypass': vercelBypassSecret,
-    'x-vercel-set-bypass-cookie': 'true',
-  } : {},
 });
+// Vercel bypass headers must only be sent to this Preview origin. Sending them
+// globally also sends them to Supabase, triggering a failed CORS preflight.
+if (vercelBypassSecret) {
+  await page.route('**/*', async (route) => {
+    const requestUrl = new URL(route.request().url());
+    const headers = { ...route.request().headers() };
+    if (requestUrl.origin === origin.origin) {
+      headers['x-vercel-protection-bypass'] = vercelBypassSecret;
+      headers['x-vercel-set-bypass-cookie'] = 'true';
+    }
+    await route.continue({ headers });
+  });
+}
 const failedRequests = [];
 const writeRequests = [];
 const readOnlyPostRequests = [];
@@ -235,11 +242,39 @@ try {
   await bookButton.waitFor({ state: 'visible' });
   const liveFrame = page.frameLocator('iframe[title*="live desktop preview"]');
   await installInteractionObserver(liveFrame.locator('body'));
+
+  // These requests are read-only, but the modal is disposed as soon as it closes.
+  // Wait for their HTTP responses before closing to avoid browser ERR_ABORTED noise.
+  const paymentStatusResponsePromise = page.waitForResponse((response) => {
+    const requestUrl = new URL(response.url());
+    return requestUrl.pathname === '/functions/v1/studioflow-payments'
+      && response.request().method() === 'POST';
+  }, { timeout: 15000 });
+  const specialistLookupResponsePromise = page.waitForResponse((response) => {
+    const requestUrl = new URL(response.url());
+    return requestUrl.pathname === '/rest/v1/rpc/studioflow_booking_specialists'
+      && response.request().method() === 'POST';
+  }, { timeout: 15000 });
+
   await bookButton.click();
   const bookingDialog = frame.getByTestId('booking-modal');
   await bookingDialog.waitFor({ state: 'visible' });
   assert.equal(await bookingDialog.getAttribute('aria-modal'), 'true',
     'template booking modal opens as an accessible modal dialog without submitting a booking');
+
+  const [paymentStatusResponse, specialistLookupResponse] = await Promise.all([
+    paymentStatusResponsePromise,
+    specialistLookupResponsePromise,
+  ]);
+  const paymentStatusHttpStatus = paymentStatusResponse.status();
+  const specialistLookupHttpStatus = specialistLookupResponse.status();
+  // An unauthenticated Preview iframe is expected to receive 401 from the
+  // payment-status endpoint; an authenticated session may receive 200.
+  assert.ok([200, 401].includes(paymentStatusHttpStatus),
+    'read-only payment status returns 200 or expected unsigned-preview 401, got ' + paymentStatusHttpStatus);
+  assert.equal(specialistLookupHttpStatus, 200,
+    'read-only specialist eligibility lookup returns HTTP 200');
+
   const frameEventEntries = await liveFrame.locator('body').evaluate(() => window.__nexoraInteractionEntries || []);
   await bookingDialog.getByRole('button', { name: 'Close booking dialog' }).click();
   await bookingDialog.waitFor({ state: 'hidden' });
@@ -316,6 +351,10 @@ try {
     webpResponses: webpResponses.size,
     ownerSignupFormFieldsChecked: 4,
     customerSignupFormFieldsChecked: 5,
+    bookingReadOnlyHttpStatuses: {
+      paymentStatus: paymentStatusHttpStatus,
+      specialistEligibility: specialistLookupHttpStatus,
+    },
     interactionEventEntries: interactionDurations.length,
     syntheticInteractionP75Ms: p75 === null ? 'not supported by this Chromium runtime' : Number(p75.toFixed(2)),
     longestObservedTaskMs: longTasks.length ? Number(Math.max(...longTasks).toFixed(2)) : 0,

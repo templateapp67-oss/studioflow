@@ -34,7 +34,7 @@ requires('base-uri', ["'self'"]);
 requires('object-src', ["'none'"]);
 requires('frame-ancestors', ["'self'"]);
 requires('form-action', ["'self'", 'https://*.supabase.co', 'https://*.razorpay.com']);
-requires('script-src', ["'self'", 'https://checkout.razorpay.com', 'https://unpkg.com']);
+requires('script-src', ["'self'", 'https://checkout.razorpay.com', 'https://unpkg.com', 'https://embed.tawk.to']);
 forbids('script-src', ["'unsafe-inline'", "'unsafe-eval'", '*']);
 requires('script-src-attr', ["'none'"]);
 requires('style-src', ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://unpkg.com']);
@@ -42,7 +42,7 @@ requires('style-src-attr', ["'unsafe-inline'"]);
 requires('font-src', ["'self'", 'data:', 'https://fonts.gstatic.com', 'https://unpkg.com']);
 requires('connect-src', [
   "'self'", 'https://*.supabase.co', 'wss://*.supabase.co', 'https://*.razorpay.com',
-  'https://nominatim.openstreetmap.org', 'https://images.unsplash.com',
+  'https://nominatim.openstreetmap.org', 'https://images.unsplash.com', 'https://*.tawk.to', 'wss://*.tawk.to',
   'https://raw.githubusercontent.com', 'https://*.pexels.com',
   'https://img.youtube.com', 'https://i.ytimg.com', 'https://*.fbcdn.net', 'https://*.cdninstagram.com',
 ]);
@@ -51,7 +51,7 @@ requires('img-src', [
   'https://raw.githubusercontent.com', 'https://*.pexels.com', 'https://img.youtube.com',
   'https://i.ytimg.com', 'https://*.fbcdn.net', 'https://*.cdninstagram.com', 'https://*.instagram.com',
   'https://tile.openstreetmap.org', 'https://*.tile.openstreetmap.org', 'https://unpkg.com',
-  'https://www.google.com', 'https://maps.google.com',
+  'https://www.google.com', 'https://maps.google.com', 'https://*.tawk.to',
 ]);
 requires('media-src', [
   "'self'", 'data:', 'blob:', 'https://*.supabase.co', 'https://*.fbcdn.net',
@@ -61,7 +61,7 @@ requires('media-src', [
 requires('frame-src', [
   "'self'", 'https://*.razorpay.com', 'https://www.youtube.com', 'https://www.youtube-nocookie.com',
   'https://www.facebook.com', 'https://web.facebook.com', 'https://staticxx.facebook.com', 'https://www.instagram.com', 'https://player.vimeo.com',
-  'https://www.google.com', 'https://maps.google.com', 'https://www.openstreetmap.org',
+  'https://www.google.com', 'https://maps.google.com', 'https://www.openstreetmap.org', 'https://*.tawk.to',
 ]);
 requires('worker-src', ["'self'", 'blob:']);
 requires('manifest-src', ["'self'"]);
@@ -71,6 +71,16 @@ const whatsAppPanel = readFileSync('src/components/NexoraWhatsAppPanel.tsx', 'ut
 const metaSdkUrl = whatsAppPanel.match(/script\.src = '(https:\/\/connect\.facebook\.net\/[^']*sdk\.js)'/)?.[1];
 assert.ok(metaSdkUrl, 'owner signup uses the first-party Meta SDK');
 requires('script-src', [new URL(metaSdkUrl).origin]);
+
+const nexoraTawk = readFileSync('src/components/NexoraTawkWidget.tsx', 'utf8');
+const nexoraTawkUrl = nexoraTawk.match(/NEXORA_TAWK_WIDGET_URL\s*=\s*['"]([^'"]+)['"]/)?.[1];
+assert.ok(nexoraTawkUrl, 'NEXORA public Tawk widget loader URL exists');
+assert.equal(new URL(nexoraTawkUrl).origin, 'https://embed.tawk.to');
+requires('script-src', [new URL(nexoraTawkUrl).origin]);
+requires('frame-src', ['https://*.tawk.to']);
+requires('connect-src', ['https://*.tawk.to', 'wss://*.tawk.to']);
+requires('img-src', ['https://*.tawk.to']);
+
 const leaflet = readFileSync('src/lib/loadLeaflet.ts', 'utf8');
 assert.ok(leaflet.includes('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'));
 assert.ok(leaflet.includes('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'));
