@@ -412,6 +412,7 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_TEAM_SLUG: templateapp67-oss-projects
+          VERCEL_HEAD_SHA: ${{ needs.prepare-assets.outputs.source_sha || github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
           node --input-type=module <<'NODE'
@@ -421,13 +422,14 @@ jobs:
             VERCEL_PROJECT_ID,
             VERCEL_ORG_ID,
             VERCEL_TEAM_SLUG,
+            VERCEL_HEAD_SHA,
           } = process.env;
 
           const headers = {
             Authorization: `Bearer ${VERCEL_TOKEN}`,
             Accept: 'application/json',
           };
-          const scope = new URLSearchParams({
+          const teamScope = new URLSearchParams({
             teamId: VERCEL_ORG_ID,
             slug: VERCEL_TEAM_SLUG,
           });
@@ -451,32 +453,67 @@ jobs:
               .slice(0, 1500);
           }
 
+          // List deployments by the exact PR head SHA, project and Preview target.
+          // This avoids GET /v13/deployments/{hostname}, which returned 403 even
+          // though the same token successfully built/deployed the Preview.
+          const deploymentQuery = new URLSearchParams({
+            projectId: VERCEL_PROJECT_ID,
+            target: 'preview',
+            state: 'READY',
+            limit: '20',
+            sha: VERCEL_HEAD_SHA,
+            ...Object.fromEntries(teamScope.entries()),
+          });
+          const deploymentPayload = await getJson(
+            `https://api.vercel.com/v7/deployments?${deploymentQuery}`,
+            'Vercel Preview deployment list',
+          );
+          const deployments = Array.isArray(deploymentPayload.deployments)
+            ? deploymentPayload.deployments
+            : Array.isArray(deploymentPayload) ? deploymentPayload : [];
           const deploymentHost = new URL(PREVIEW_URL).host;
-          const deployment = await getJson(
-            `https://api.vercel.com/v13/deployments/${encodeURIComponent(deploymentHost)}?${scope}`,
-            'Vercel Preview deployment lookup',
-          );
-          const deploymentId = deployment.id || deployment.uid || deployment.deploymentId;
-          if (!deploymentId) throw new Error('Vercel Preview lookup returned no deployment ID.');
+          const deployment = deployments.find((entry) => entry.url === deploymentHost);
+          if (!deployment) {
+            throw new Error(
+              `Vercel Preview list returned ${deployments.length} READY deployment(s) for head SHA ${VERCEL_HEAD_SHA.slice(0, 12)}, but none matched ${deploymentHost}.`
+            );
+          }
+          const deploymentId = deployment.uid || deployment.id;
+          if (!deploymentId) throw new Error('Vercel Preview list entry returned no deployment ID.');
 
-          const logPayload = await getJson(
-            `https://api.vercel.com/v1/projects/${encodeURIComponent(VERCEL_PROJECT_ID)}/deployments/${encodeURIComponent(deploymentId)}/runtime-logs?${scope}`,
-            'Vercel Preview runtime-log lookup',
-          );
-          const records = Array.isArray(logPayload.logs)
-            ? logPayload.logs
-            : Array.isArray(logPayload) ? logPayload : [];
+          const logUrl = `https://api.vercel.com/v1/projects/${encodeURIComponent(VERCEL_PROJECT_ID)}/deployments/${encodeURIComponent(deploymentId)}/runtime-logs?${teamScope}`;
+          const response = await fetch(logUrl, { headers });
+          const rawLogs = await response.text();
+          if (!response.ok) {
+            let payload = {};
+            try { payload = rawLogs ? JSON.parse(rawLogs) : {}; } catch {}
+            const message = payload?.error?.message || payload?.message || 'Vercel runtime-log request failed';
+            throw new Error(`Vercel Preview runtime-log lookup returned HTTP ${response.status}: ${String(message).slice(0, 500)}`);
+          }
+
+          // Runtime logs may be returned as a JSON array or newline-delimited JSON.
+          let records = [];
+          try {
+            const payload = rawLogs ? JSON.parse(rawLogs) : [];
+            records = Array.isArray(payload) ? payload : Array.isArray(payload.logs) ? payload.logs : [];
+          } catch {
+            records = rawLogs.split(/\r?\n/).filter(Boolean).flatMap((line) => {
+              try { return [JSON.parse(line)]; } catch { return []; }
+            });
+          }
           const errors = records.filter((entry) =>
             ['error', 'fatal'].includes(String(entry.level || '').toLowerCase())
             || Number(entry.responseStatusCode) >= 500
           );
           console.log(`Vercel Preview runtime logs: deployment=${deploymentId}, returned=${records.length}, errorsOr5xx=${errors.length}`);
           for (const entry of errors.slice(0, 50)) {
+            let requestPath = null;
+            try { requestPath = entry.requestPath ? new URL(entry.requestPath, PREVIEW_URL).pathname : null; } catch {}
             console.log(JSON.stringify({
               timestampInMs: entry.timestampInMs || null,
               level: entry.level || null,
               requestMethod: entry.requestMethod || null,
-              requestPath: entry.requestPath ? new URL(entry.requestPath, PREVIEW_URL).pathname : null,
+              requestPath,
               responseStatusCode: entry.responseStatusCode || null,
               message: redact(entry.message),
             }));
