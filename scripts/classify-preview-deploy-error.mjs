@@ -13,5 +13,5 @@ export function classifyPreviewDeployError(text) {
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   let text = '';
   try { text = readFileSync(process.argv[2], 'utf8').slice(-100000); } catch {}
-  console.log(`::warning::Vercel Preview deployment failure category: ${classifyPreviewDeployError(text)} (see deployment step logs for details).`);
+  console.log(`::warning::Vercel Preview deployment failure category: ${classifyPreviewDeployError(text)} (inspect Vercel deployment logs and quota for details; raw CLI output suppressed).`);
 }

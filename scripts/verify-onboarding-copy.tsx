@@ -164,6 +164,54 @@ await act(async () => { syncRequests[1].resolve('stale story'); await Promise.re
 assert.equal(synced!.about, 'Remote story');
 await act(async () => { syncApp!.unmount(); });
 
+// The tagline prompt includes the owner name: changing it invalidates the
+// previous snapshot just like changing the business name or category.
+const ownerRequests: typeof pending = [];
+const ownerGenerate: CopyGenerator = (payload, signal) => new Promise((resolve, reject) => ownerRequests.push({ input: payload, signal, resolve, reject }));
+let ownerProfile: SalonProfile, setOwnerProfile: React.Dispatch<React.SetStateAction<SalonProfile>>;
+function OwnerNameHarness() {
+  const [p, setP] = useState({ ...INITIAL_SALON_PROFILE, businessName: 'Owner Test', ownerName: 'Before', tagline: '' });
+  ownerProfile = p; setOwnerProfile = setP;
+  useOnboardingCopy(p, setP, true, ownerGenerate);
+  return <div>{p.tagline}</div>;
+}
+let ownerApp: ReturnType<typeof create>;
+await act(async () => { ownerApp = create(<OwnerNameHarness />); });
+await act(async () => { await pause(750); });
+assert.equal(ownerRequests[0].input.ownerName, 'Before');
+await act(async () => { setOwnerProfile!(p => ({ ...p, ownerName: 'After' })); });
+assert.equal(ownerRequests[0].signal.aborted, true);
+await act(async () => { ownerRequests[0].resolve('Stale owner name'); await pause(750); });
+assert.notEqual(ownerProfile!.tagline, 'Stale owner name');
+assert.equal(ownerRequests[1].input.ownerName, 'After');
+await act(async () => { ownerRequests[1].resolve('Fresh owner name'); await Promise.resolve(); });
+assert.equal(ownerProfile!.tagline, 'Fresh owner name');
+await act(async () => { ownerApp!.unmount(); });
+
+// Leaving the step cancels an explicit regenerate, not an implicit permission
+// to overwrite manual copy the next time the wizard is opened.
+let toggleActive: React.Dispatch<React.SetStateAction<boolean>>, forceControls: ReturnType<typeof useOnboardingCopy>;
+const forcedRequests: typeof pending = [];
+const forcedGenerate: CopyGenerator = (payload, signal) => new Promise((resolve, reject) => forcedRequests.push({ input: payload, signal, resolve, reject }));
+function ForceHarness() {
+  const [active, setActive] = useState(true);
+  const [p, setP] = useState({ ...INITIAL_SALON_PROFILE, businessName: 'Force Test', tagline: 'Owner words', taglineEditedByOwner: true });
+  toggleActive = setActive;
+  forceControls = useOnboardingCopy(p, setP, active, forcedGenerate);
+  return <div>{p.tagline}</div>;
+}
+let forceApp: ReturnType<typeof create>;
+await act(async () => { forceApp = create(<ForceHarness />); });
+await act(async () => { forceControls!.regenerateTagline(); });
+await act(async () => { await pause(750); });
+assert.equal(forcedRequests.length, 1);
+await act(async () => { toggleActive!(false); });
+assert.equal(forcedRequests[0].signal.aborted, true);
+await act(async () => { toggleActive!(true); });
+await act(async () => { await pause(750); });
+assert.equal(forcedRequests.length, 1, 'cancelled explicit regeneration is not replayed on reopening');
+await act(async () => { forceApp!.unmount(); });
+
 // Unknown legacy provenance is protected, even when it happens to match a
 // bundled template. New blank-profile seeds are explicitly marked instead.
 const seeded = applyTemplateDesign({ ...INITIAL_SALON_PROFILE, tagline: '' }, CATEGORY_TEMPLATES.nail_studio);

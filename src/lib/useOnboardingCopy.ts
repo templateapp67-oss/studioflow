@@ -51,7 +51,8 @@ export function useOnboardingCopy(profile: SalonProfile, setProfile: Dispatch<Se
 
   useEffect(() => {
     cancelTagline();
-    if (!active || (manual.current && !forced.current) || !profile.businessName?.trim() || !profile.businessType) return;
+    if (!active || !profile.businessName?.trim() || !profile.businessType) { forced.current = false; return; }
+    if (manual.current && !forced.current) return;
     const controller = new AbortController();
     taglineRequest.current = controller;
     const snapshot = details(profile, 'tagline');
@@ -64,18 +65,18 @@ export function useOnboardingCopy(profile: SalonProfile, setProfile: Dispatch<Se
       try {
         const text = await generate(snapshot, controller.signal);
         if (controller.signal.aborted || taglineRequest.current !== controller || (manual.current && !forced.current)) return;
-        if (latest.current.businessName !== snapshot.businessName || latest.current.businessType !== snapshot.theme || latest.current.tagline !== baseline || JSON.stringify([latest.current.taglineEditedByOwner, latest.current.onboardingGeneratedTagline]) !== provenance) {
+        if (latest.current.businessName !== snapshot.businessName || (latest.current.ownerName || '') !== snapshot.ownerName || latest.current.businessType !== snapshot.theme || latest.current.tagline !== baseline || JSON.stringify([latest.current.taglineEditedByOwner, latest.current.onboardingGeneratedTagline]) !== provenance) {
           manual.current = hasManualTagline(latest.current); forced.current = false; setTaglineStatus('idle'); return;
         }
         manual.current = false; forced.current = false;
-        setProfile(prev => prev.businessName === snapshot.businessName && prev.businessType === snapshot.theme && prev.tagline === baseline && JSON.stringify([prev.taglineEditedByOwner, prev.onboardingGeneratedTagline]) === provenance ? { ...prev, tagline: text, taglineEditedByOwner: false, onboardingGeneratedTagline: text } : prev);
+        setProfile(prev => prev.businessName === snapshot.businessName && (prev.ownerName || '') === snapshot.ownerName && prev.businessType === snapshot.theme && prev.tagline === baseline && JSON.stringify([prev.taglineEditedByOwner, prev.onboardingGeneratedTagline]) === provenance ? { ...prev, tagline: text, taglineEditedByOwner: false, onboardingGeneratedTagline: text } : prev);
         setTaglineStatus('idle');
       } catch {
         if (taglineRequest.current === controller) { forced.current = false; setTaglineStatus('error'); }
       } finally { clearTimeout(timeout); if (taglineRequest.current === controller) taglineRequest.current = null; }
     }, 700);
     return () => { clearTimeout(timer); controller.abort(); if (taglineRequest.current === controller) taglineRequest.current = null; };
-  }, [active, profile.businessName, profile.businessType, revision, generate, setProfile, cancelTagline]);
+  }, [active, profile.businessName, profile.ownerName, profile.businessType, revision, generate, setProfile, cancelTagline]);
 
   // Any input change invalidates an in-flight About request; it must not apply
   // copy written for an earlier salon or overwrite edits made during the call.

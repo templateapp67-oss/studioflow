@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { classifyPreviewDeployError } from './classify-preview-deploy-error.mjs';
+import { countRuntimeLogRecords } from './summarize-preview-runtime-logs.mjs';
 
 const workflows = Object.fromEntries(['production', 'preview', 'ci'].map((name) => [
   name, readFileSync(`.github/workflows/${name}.yml`, 'utf8').replace(/\r\n?/g, '\n'),
@@ -21,6 +22,15 @@ const previewDeploy = workflows.preview.split('- name: Deploy preview\n        i
 assert(previewDeploy && !previewDeploy.includes('continue-on-error: true'), 'a failed Preview deployment must fail its job');
 assert(workflows.preview.includes("if: always() && steps.vercel-config.outputs.available == 'true' && steps.deploy.outcome == 'failure'"), 'deployment failure diagnostics still run');
 assert(workflows.preview.indexOf('- name: Capture Vercel runtime logs after failed Preview audits') > workflows.preview.indexOf('- name: Run NEXORA responsive marketing and owner-route browser audit'), 'capture runtime logs after responsive failures too');
+
+assert(!previewDeploy.includes('cat "$deploy_log"'), 'raw deployment output must not reach workflow logs');
+const runtimeCapture = workflows.preview.split('- name: Capture Vercel runtime logs after failed Preview audits')[1]?.split('\n      - name:')[0];
+assert(runtimeCapture?.includes('>"$runtime_log" 2>"$runtime_error"') && runtimeCapture.includes('node scripts/summarize-preview-runtime-logs.mjs "$runtime_log"'), 'runtime diagnostics must suppress raw stdout and stderr');
+assert.equal(countRuntimeLogRecords('[{"message":"private token","url":"https://private.test"}]'), 1);
+assert.equal(countRuntimeLogRecords('{"logs":[{"message":"secret"},{}]}'), 2);
+assert.equal(countRuntimeLogRecords('{"message":"secret"}\n{"message":"private"}'), 2);
+assert.equal(countRuntimeLogRecords('arbitrary private error text'), null);
+assert.equal(countRuntimeLogRecords(''), 0);
 
 const production = workflows.production;
 const deploy = production.split('\n  deploy:\n')[1];

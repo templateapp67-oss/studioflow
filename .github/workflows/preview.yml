@@ -208,7 +208,7 @@ jobs:
           echo "::warning::Vercel preview deployment failed; Preview verification is blocked."
           {
             echo "### Vercel Preview not deployed"
-            echo "The deployment command failed; see the Deploy preview step log for the Vercel error. Preview verification remains blocked."
+            echo "The deployment command failed. Raw CLI output is suppressed; inspect Vercel deployment logs and quota. Preview verification remains blocked."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Comment preview URL on PR
@@ -579,11 +579,18 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
         run: |
           set -euo pipefail
-          npx --yes vercel@65.14.0 logs "$PREVIEW_URL" \
+          runtime_log="$(mktemp)"
+          runtime_error="$(mktemp)"
+          trap 'rm -f "$runtime_log" "$runtime_error"' EXIT
+          if ! npx --yes vercel@65.14.0 logs "$PREVIEW_URL" \
             --token="$VERCEL_TOKEN" \
             --project="$VERCEL_PROJECT_ID" \
             --scope="$VERCEL_ORG_ID" \
-            --since=30m --status-code=500 --limit=50 --json
+            --since=30m --status-code=500 --limit=50 --json >"$runtime_log" 2>"$runtime_error"; then
+            echo "::warning::Could not retrieve Vercel runtime logs; inspect the Vercel dashboard. Raw CLI output is suppressed."
+            exit 1
+          fi
+          node scripts/summarize-preview-runtime-logs.mjs "$runtime_log"
 
       - name: Upload Playwright report, screenshots and traces
         uses: actions/upload-artifact@v4
