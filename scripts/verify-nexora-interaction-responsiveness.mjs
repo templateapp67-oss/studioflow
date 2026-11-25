@@ -198,7 +198,7 @@ try {
     'owner signup password visibility toggle restores masking');
   const ownerFormValues = await page.locator('form').first().evaluate((form) => ({
     fields: [...form.querySelectorAll('input')].filter((input) => input.value.trim()).length,
-    submitButtons: form.querySelectorAll('button[type="submit"], input[type="submit"]').length,
+    submitButtons: form.querySelectorAll('[data-testid="auth-submit"]').length,
   }));
   assert.ok(ownerFormValues.fields >= 4, 'owner signup name, salon, email and password fields accept input');
   assert.ok(ownerFormValues.submitButtons >= 1, 'owner signup exposes a submit control but is not submitted');
@@ -219,7 +219,7 @@ try {
     birthDate: form.querySelector('[data-testid="auth-dob"]')?.value || '',
     whatsapp: form.querySelector('[data-testid="auth-whatsapp"]')?.value || '',
     email: form.querySelector('[data-testid="auth-email"]')?.value || '',
-    submitButtons: form.querySelectorAll('button[type="submit"], input[type="submit"]').length,
+    submitButtons: form.querySelectorAll('[data-testid="auth-submit"]').length,
   }));
   assert.equal(customerFormValues.fullName, 'Preview QA Customer', 'customer signup name input responds');
   assert.equal(customerFormValues.birthDate, '1995-01-01', 'customer DOB input responds');
