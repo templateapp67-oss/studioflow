@@ -70,7 +70,12 @@ for (const file of allFiles) {
 
   const images = [...html.matchAll(/<img\b[^>]*>/gi)].map((match) => match[0]);
   for (const image of images) {
-    assert.match(image, /\balt=["'][^"']*["']/i, routeName + ' image includes an alt attribute');
+    const altMatch = image.match(/\balt=["']([^"']*)["']/i);
+    assert.ok(altMatch, routeName + ' image includes an alt attribute');
+    const alt = decodeHtml(altMatch[1]).trim();
+    const explicitlyDecorative = /\baria-hidden=["']true["']|\brole=["'](?:presentation|none)["']/i.test(image);
+    assert.ok(alt.length > 0 || explicitlyDecorative, routeName + ' non-decorative image has meaningful alt text');
+    assert.ok(!/^(?:image|photo|picture|graphic|untitled)(?:[ ._-]|$)/i.test(alt), routeName + ' alt text is descriptive, not a generic placeholder');
   }
 }
 
