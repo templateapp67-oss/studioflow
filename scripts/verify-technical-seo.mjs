@@ -80,6 +80,14 @@ for (const file of allFiles) {
 }
 
 const aboutHtml = readFileSync('dist/about/index.html', 'utf8');
+for (const file of PUBLIC_DOCUMENTS) {
+  const html = readFileSync(file, 'utf8');
+  const noScriptFallback = html.match(/<noscript><style>([\\s\\S]*?)<\\/style><\\/noscript>/i)?.[1] ?? '';
+  assert.ok(noScriptFallback.includes('.nexora-site-header:not(.has-measured-layout) .nexora-site-header__menu'), file + ' preserves a no-JavaScript navigation fallback');
+  assert.match(noScriptFallback, /display:\\s*flex\\s*!important;/, file + ' keeps the no-JavaScript navigation visible');
+  assert.match(noScriptFallback, /position:\\s*static\\s*!important;/, file + ' keeps the no-JavaScript menu in normal document flow');
+  assert.match(noScriptFallback, /nexora-site-header__toggle[\\s\\S]*?display:\\s*none\\s*!important;/, file + ' does not expose an inert hamburger when JavaScript is disabled');
+}
 assert.ok(aboutHtml.includes('NEXORA Editorial Team'), 'the public About page identifies the editorial organisation');
 assert.ok(aboutHtml.includes('#editorial-team'), 'the About page has a stable editorial profile anchor');
 const templateHtml = templateFiles.map((file) => readFileSync(file, 'utf8'));
