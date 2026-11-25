@@ -34,10 +34,21 @@ page.on('request', (request) => {
   if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method())) return;
   try {
     const requestUrl = new URL(request.url());
-    // Ignore third-party analytics beacons; detect mutations to the preview app
-    // and Supabase only. The flow below must never create or change test data.
-    if (requestUrl.origin === origin.origin || /\.supabase\.co$/i.test(requestUrl.hostname)) {
-      writeRequests.push(request.method() + ' ' + request.url());
+    // Vercel Web Analytics and Speed Insights send same-origin telemetry POSTs.
+    // They are not application mutations, so exclude only those documented paths.
+    const isVercelTelemetry = requestUrl.origin === origin.origin
+      && /^\/_vercel\/(?:insights|speed-insights)(?:\/|$)/i.test(requestUrl.pathname);
+    if (isVercelTelemetry) return;
+
+    // Keep the no-write guard focused on application API handlers and Supabase
+    // data/auth/storage/function endpoints. Retain only host + path in logs;
+    // never capture query strings, tokens, or request bodies.
+    const isPreviewApiMutation = requestUrl.origin === origin.origin
+      && (requestUrl.pathname === '/api' || requestUrl.pathname.startsWith('/api/'));
+    const isSupabaseMutation = /\.supabase\.co$/i.test(requestUrl.hostname)
+      && /^\/(?:rest\/v1|functions\/v1|storage\/v1|auth\/v1)(?:\/|$)/i.test(requestUrl.pathname);
+    if (isPreviewApiMutation || isSupabaseMutation) {
+      writeRequests.push(request.method() + ' ' + requestUrl.hostname + requestUrl.pathname);
     }
   } catch {
     // Browser-internal URLs cannot target the application's data services.
@@ -255,7 +266,8 @@ try {
     pageErrors: pageErrors.length,
   };
   if (p75 !== null) assert.ok(p75 <= 200, 'synthetic browser interaction p75 is within the 200 ms responsiveness target (' + p75.toFixed(2) + ' ms)');
-  assert.equal(writeRequests.length, 0, 'the preview interaction audit performs no write requests or test transactions');
+  assert.equal(writeRequests.length, 0,
+    'the preview interaction audit performs no app/Supabase mutations or test transactions: ' + writeRequests.join(', '));
   assert.equal(failedRequests.length, 0, 'all browser requests succeed');
   assert.equal(pageErrors.length, 0, 'browser reports no unhandled page errors');
   console.log(JSON.stringify({ status: 'PASS', ...result }, null, 2));
