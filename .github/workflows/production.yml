@@ -400,6 +400,54 @@ jobs:
           console.log('Downloaded Vercel project identity matches the configured GitHub IDs.');
           NODE
 
+      - name: Repair and verify the reviewed production Supabase URL
+        shell: bash
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+        run: |
+          set -euo pipefail
+
+          # Production storefronts are required to use this repository's
+          # reviewed NEXORA Supabase project. The current Vercel Production
+          # value contains malformed characters and causes Vite SSR builds
+          # to fail before deployment.
+          url_file="$(mktemp)"
+          trap 'rm -f "$url_file"' EXIT
+          printf '%s' 'https://zilwgiuiygqqardzutxi.supabase.co' > "$url_file"
+
+          # Repair the stored Production value, not just this runner's shell.
+          vercel env update VITE_SUPABASE_URL production \
+            --yes --token="$VERCEL_TOKEN" --scope="$VERCEL_ORG_ID" < "$url_file"
+
+          # Refresh the local Vercel build cache after changing the remote value.
+          vercel pull --yes --environment=production \
+            --token="$VERCEL_TOKEN" --scope="$VERCEL_ORG_ID"
+
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = '.vercel/.env.production.local';
+          const expected = 'https://zilwgiuiygqqardzutxi.supabase.co';
+          if (!fs.existsSync(path)) {
+            throw new Error('Vercel Production env file was not created after the refresh.');
+          }
+
+          const lines = fs.readFileSync(path, 'utf8').split(/\r?\n/);
+          const matches = lines.filter((line) => /^VITE_SUPABASE_URL\s*=/.test(line));
+          if (matches.length !== 1) {
+            throw new Error('Expected exactly one VITE_SUPABASE_URL in the pulled Production env file.');
+          }
+
+          let actual = matches[0].slice(matches[0].indexOf('=') + 1).trim();
+          if (actual.startsWith('"') && actual.endsWith('"')) actual = JSON.parse(actual);
+          else if (actual.startsWith("'") && actual.endsWith("'")) actual = actual.slice(1, -1);
+
+          if (actual !== expected) {
+            throw new Error('Vercel Production Supabase URL still does not match the reviewed NEXORA project.');
+          }
+          console.log('Vercel Production Supabase URL is normalized and verified against the reviewed NEXORA project.');
+          NODE
+
       - name: Build production deployment
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
