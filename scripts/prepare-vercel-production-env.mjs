@@ -13,14 +13,15 @@
 //
 // Strategy:
 // 1. Fail closed if `.vercel/.env.production.local` was not produced by `vercel pull`.
-// 2. If `VITE_SUPABASE_URL` is already exact, finish immediately with zero API calls.
-// 3. Otherwise attempt a best-effort remote repair via Vercel API (without
-//    `decrypt=true`) and refresh via `vercel pull`.
-// 4. If the token lacks remote env API scope (401/403) or remote refresh still
-//    does not expose the plain URL, normalize `.vercel/.env.production.local` in
-//    place while preserving every other env entry verbatim, emit a clear non-secret
-//    warning with Dashboard instructions, and verify the written file before exiting.
-import { existsSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+// 2. If `VITE_SUPABASE_URL` is already exact, finish immediately with zero writes/API calls.
+// 3. Optionally (when `ATTEMPT_VERCEL_REMOTE_ENV_REPAIR=1` is set with an admin
+//    token), attempt best-effort remote repair via Vercel API (without
+//    `decrypt=true`) and refresh via `vercel pull`. By default CI skips the
+//    project-env REST API because deploy-scoped tokens return HTTP 403.
+// 4. Losslessly normalize `.vercel/.env.production.local` in place with `0o600`
+//    permissions while preserving every other env entry verbatim, and strictly
+//    verify the written file before returning.
+import { chmodSync, existsSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -373,6 +374,7 @@ export async function prepareVercelProductionEnv({
   projectId = process.env.VERCEL_PROJECT_ID?.trim() || '',
   teamId = process.env.VERCEL_ORG_ID?.trim() || '',
   apiBaseUrl = process.env.VERCEL_API_BASE_URL?.trim() || DEFAULT_VERCEL_API_BASE,
+  attemptRemoteRepair = process.env.ATTEMPT_VERCEL_REMOTE_ENV_REPAIR === '1',
   fetchImpl = globalThis.fetch,
   pullImpl = defaultPullImpl,
   log = (msg) => console.log(msg),
@@ -393,40 +395,45 @@ export async function prepareVercelProductionEnv({
   const mismatchDetail = describeVarMismatch(initialState.matches, expectedUrl);
   log(`Pulled Vercel Production ${key} requires normalization (${mismatchDetail}).`);
 
-  const remote = await attemptRemoteVercelRepair({
-    apiBaseUrl,
-    fetchImpl,
-    token,
-    projectId,
-    teamId,
-    expectedUrl,
-    key,
-  });
+  let remote = { attempted: false, updated: false, reason: 'skipped-by-default', detail: 'local normalization only' };
+  if (attemptRemoteRepair) {
+    remote = await attemptRemoteVercelRepair({
+      apiBaseUrl,
+      fetchImpl,
+      token,
+      projectId,
+      teamId,
+      expectedUrl,
+      key,
+    });
 
-  if (remote.updated) {
-    try {
-      await pullImpl({ token, envFile });
-      if (existsSync(envFile)) {
-        const refreshedContent = readFileSync(envFile, 'utf8');
-        const refreshedState = inspectEnvFileVar(refreshedContent, key);
-        if (refreshedState.matches.length === 1 && refreshedState.matches[0].value === expectedUrl) {
-          log(`Vercel Production ${key} was repaired via Vercel API, refreshed via vercel pull, and verified.`);
-          return { status: 'remote-repaired', remoteUpdated: true, localNormalized: false };
+    if (remote.updated) {
+      try {
+        await pullImpl({ token, envFile });
+        if (existsSync(envFile)) {
+          const refreshedContent = readFileSync(envFile, 'utf8');
+          const refreshedState = inspectEnvFileVar(refreshedContent, key);
+          if (refreshedState.matches.length === 1 && refreshedState.matches[0].value === expectedUrl) {
+            log(`Vercel Production ${key} was repaired via Vercel API, refreshed via vercel pull, and verified.`);
+            return { status: 'remote-repaired', remoteUpdated: true, localNormalized: false };
+          }
+          warn(
+            `Vercel API updated ${key}, but the refreshed ${envFile} still reported ${describeVarMismatch(refreshedState.matches, expectedUrl)} (the variable may be marked Sensitive in Vercel). Normalizing ${envFile} locally for this prebuilt production deployment; set ${key} to ${expectedUrl} as Plain Text in Vercel Project Settings -> Environment Variables (Production).`,
+          );
         }
+      } catch (pullError) {
+        const msg = pullError instanceof Error ? pullError.message : 'refresh error';
         warn(
-          `Vercel API updated ${key}, but the refreshed ${envFile} still reported ${describeVarMismatch(refreshedState.matches, expectedUrl)} (the variable may be marked Sensitive in Vercel). Normalizing ${envFile} locally for this prebuilt production deployment; set ${key} to ${expectedUrl} as Plain Text in Vercel Project Settings -> Environment Variables (Production).`,
+          `Vercel API updated ${key}, but refreshing ${envFile} failed (${msg}). Normalizing ${envFile} locally for this prebuilt production deployment.`,
         );
       }
-    } catch (pullError) {
-      const msg = pullError instanceof Error ? pullError.message : 'refresh error';
+    } else {
       warn(
-        `Vercel API updated ${key}, but refreshing ${envFile} failed (${msg}). Normalizing ${envFile} locally for this prebuilt production deployment.`,
+        `Vercel API did not permit automatic remote update of ${key} (${remote.detail}). Normalizing ${envFile} locally to ${expectedUrl} so this prebuilt production deployment can proceed. Update ${key} in Vercel Dashboard -> Project Settings -> Environment Variables -> Production (Plain Text) to ${expectedUrl} to remove this warning.`,
       );
     }
   } else {
-    warn(
-      `Vercel API did not permit automatic remote update of ${key} (${remote.detail}). Normalizing ${envFile} locally to ${expectedUrl} so this prebuilt production deployment can proceed. Update ${key} in Vercel Dashboard -> Project Settings -> Environment Variables -> Production (Plain Text) to ${expectedUrl} to remove this warning.`,
-    );
+    log(`Normalizing ${key} in ${envFile} locally without calling Vercel project-env REST APIs.`);
   }
 
   const beforeLocalRewrite = readFileSync(envFile, 'utf8');
@@ -435,7 +442,10 @@ export async function prepareVercelProductionEnv({
     .map((entry) => entry.key);
 
   const normalizedContent = upsertDotenvVar(beforeLocalRewrite, key, expectedUrl);
-  writeFileSync(envFile, normalizedContent, 'utf8');
+  writeFileSync(envFile, normalizedContent, { encoding: 'utf8', mode: 0o600 });
+  if (process.platform !== 'win32') {
+    chmodSync(envFile, 0o600);
+  }
 
   // Strict post-write verification (fail closed if the file still does not match).
   const verifiedContent = readFileSync(envFile, 'utf8');

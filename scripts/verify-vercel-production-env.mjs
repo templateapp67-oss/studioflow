@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import http from 'node:http';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
@@ -132,7 +132,58 @@ try {
     assertNoSecrets([...logs, ...warnings]);
   }
 
-  // 4. Exact PR #155 failure scenario: malformed 47-char URL + Vercel API 403 forbidden.
+  // 4. Default CI mode: malformed 47-char URL normalizes locally with ZERO Vercel API calls and 0o600 permissions.
+  {
+    const envFile = join(tempRoot, 'default-local-only.env');
+    writeFileSync(
+      envFile,
+      [
+        '# Created by Vercel CLI',
+        `SUPABASE_SERVICE_ROLE_KEY="${SERVICE_KEY_SENTINEL}"`,
+        `VITE_SUPABASE_URL="${MALFORMED_47_CHAR_URL}"`,
+        `RESEND_API_KEY="${RESEND_SENTINEL}"`,
+        '',
+      ].join('\n'),
+      { encoding: 'utf8', mode: 0o644 },
+    );
+
+    let fetchCalls = 0;
+    const logs = [];
+    const warnings = [];
+    const result = await prepareVercelProductionEnv({
+      envFile,
+      token: TOKEN_SENTINEL,
+      projectId: 'prj_studioflow',
+      teamId: 'team_studioflow',
+      fetchImpl: async () => {
+        fetchCalls += 1;
+        throw new Error('default CI mode must not call forbidden Vercel project-env REST endpoints');
+      },
+      log: (m) => logs.push(m),
+      warn: (m) => warnings.push(m),
+    });
+
+    assert.equal(result.status, 'local-normalized');
+    assert.equal(result.remoteUpdated, false);
+    assert.equal(result.remoteReason, 'skipped-by-default');
+    assert.equal(fetchCalls, 0, 'default mode makes zero Vercel env API calls');
+    assert.equal(warnings.length, 0, 'default mode emits no noisy warning on every deploy');
+    if (process.platform !== 'win32') {
+      assert.equal(statSync(envFile).mode & 0o777, 0o600, 'rewritten production env file must enforce 0o600 permissions');
+    }
+
+    const updated = readFileSync(envFile, 'utf8');
+    const parsed = inspectEnvFileVar(updated);
+    assert.equal(parsed.matches.length, 1);
+    assert.equal(parsed.matches[0].value, EXPECTED_PRODUCTION_SUPABASE_URL);
+    const dotenvUpdated = dotenv.parse(updated);
+    assert.equal(dotenvUpdated.VITE_SUPABASE_URL, EXPECTED_PRODUCTION_SUPABASE_URL);
+    assert.equal(dotenvUpdated.SUPABASE_SERVICE_ROLE_KEY, SERVICE_KEY_SENTINEL);
+    assert.equal(dotenvUpdated.RESEND_API_KEY, RESEND_SENTINEL);
+    assertNoSecrets([...logs, ...warnings]);
+  }
+
+  // 4a. Opt-in remote repair with Vercel API 403 forbidden gracefully falls back to local normalization.
   {
     const envFile = join(tempRoot, 'forbidden-403.env');
     writeFileSync(
@@ -155,6 +206,7 @@ try {
       token: TOKEN_SENTINEL,
       projectId: 'prj_studioflow',
       teamId: 'team_studioflow',
+      attemptRemoteRepair: true,
       fetchImpl: async (url) => {
         requestedUrls.push(String(url));
         return new Response(
@@ -198,6 +250,7 @@ try {
       token: TOKEN_SENTINEL,
       projectId: 'prj_secret_proj_999',
       teamId: 'team_secret_org_888',
+      attemptRemoteRepair: true,
       fetchImpl: async () =>
         new Response(
           JSON.stringify({
@@ -246,7 +299,7 @@ try {
     assert(finalText.includes(`SUPABASE_SERVICE_ROLE_KEY="${SERVICE_KEY_SENTINEL}"`), `${label} must preserve unrelated keys`);
   }
 
-  // 6. Remote API success (PATCH existing record + vercel pull refresh).
+  // 6. Opt-in remote API success (PATCH existing record + vercel pull refresh).
   {
     const envFile = join(tempRoot, 'remote-patch.env');
     writeFileSync(
@@ -261,6 +314,7 @@ try {
       token: TOKEN_SENTINEL,
       projectId: 'prj_studioflow',
       teamId: 'team_studioflow',
+      attemptRemoteRepair: true,
       fetchImpl: async (url, init = {}) => {
         calls.push({ url: String(url), method: init.method || 'GET', body: init.body || null });
         if ((init.method || 'GET') === 'GET') {
@@ -300,7 +354,7 @@ try {
     assert.deepEqual(JSON.parse(calls[1].body), { value: EXPECTED_PRODUCTION_SUPABASE_URL });
   }
 
-  // 7. Remote API succeeds, but Vercel still marks variable Sensitive so vercel pull writes [SENSITIVE].
+  // 7. Opt-in remote API succeeds, but Vercel still marks variable Sensitive so vercel pull writes [SENSITIVE].
   {
     const envFile = join(tempRoot, 'remote-still-sensitive.env');
     writeFileSync(envFile, `VITE_SUPABASE_URL="[SENSITIVE]"\n`, 'utf8');
@@ -310,6 +364,7 @@ try {
       token: TOKEN_SENTINEL,
       projectId: 'prj_studioflow',
       teamId: 'team_studioflow',
+      attemptRemoteRepair: true,
       fetchImpl: async (_url, init = {}) => {
         if ((init.method || 'GET') === 'GET') {
           return new Response(JSON.stringify({ envs: [] }), { status: 200 });
@@ -341,7 +396,7 @@ try {
     /was not found/,
   );
 
-  // 9. End-to-end CLI execution against a local mock HTTP server returning 403.
+  // 9. End-to-end CLI execution against a local mock HTTP server returning 403 (opt-in remote repair mode).
   const server = http.createServer((_req, res) => {
     res.writeHead(403, { 'content-type': 'application/json' });
     res.end(JSON.stringify({ error: { code: 'forbidden', message: 'Not authorized' } }));
@@ -362,6 +417,7 @@ try {
           ...process.env,
           VERCEL_PRODUCTION_ENV_FILE: cliEnvFile,
           VERCEL_API_BASE_URL: `http://127.0.0.1:${address.port}`,
+          ATTEMPT_VERCEL_REMOTE_ENV_REPAIR: '1',
           VERCEL_TOKEN: TOKEN_SENTINEL,
           VERCEL_PROJECT_ID: 'prj_cli_test',
           VERCEL_ORG_ID: 'team_cli_test',
