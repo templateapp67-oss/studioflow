@@ -457,10 +457,10 @@ jobs:
 
           const project = encodeURIComponent(projectId);
           const teamQuery = '?teamId=' + encodeURIComponent(teamId);
-          // Do not request decrypted values: the deployment token can manage
-          // project configuration but is not authorized for the privileged
-          // decrypt=true environment-list endpoint. Only the variable's id and
-          // target metadata are needed to update this public Config value.
+          // Do not request decrypted values: the previous decrypt=true list
+          // request returned 403 Not authorized for the configured deployment
+          // token. Only the variable's id and target metadata are needed to
+          // update this public Config value.
           const list = await request('/v10/projects/' + project + '/env?decrypt=false&limit=100' + '&teamId=' + encodeURIComponent(teamId));
           const envs = Array.isArray(list.envs) ? list.envs : [];
           const matches = envs.filter((env) =>
