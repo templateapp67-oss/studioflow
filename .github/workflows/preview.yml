@@ -28,9 +28,73 @@ env:
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
 jobs:
+  prepare-assets:
+    name: Convert remaining template heroes and verify PR #162
+    if: github.event_name == 'pull_request' && github.event.pull_request.number == 162 && github.event.pull_request.head.ref == 'seo/technical-seo-checklist' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    outputs:
+      source_sha: ${{ steps.commit-assets.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: true
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked project dependencies
+        run: npm ci
+
+      - name: Install temporary Sharp image tooling
+        run: npm install --no-save --no-package-lock --no-audit --no-fund sharp@0.34.4
+
+      - name: Convert and verify the remaining four NEXORA hero images
+        run: node scripts/convert-nexora-preview-heroes.mjs
+
+      - name: Run lint, typecheck, production build and offline verification suite
+        run: npm test
+
+      - name: Run offline Supabase migration and publish validation
+        run: |
+          set -euo pipefail
+          node scripts/verify-supabase-migration-history.mjs
+          node scripts/verify-whatsapp-release-plan.mjs
+          node scripts/verify-whatsapp-booking-api.mjs
+          node scripts/verify-edge-functions.mjs
+          node scripts/verify-sql-migrations.mjs
+          node scripts/verify-publish-e2e.mjs
+
+      - name: Commit generated WebP assets to PR #162
+        id: commit-assets
+        env:
+          GITHUB_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            public/templates/barber/hero.webp \
+            public/templates/kesh-prakriti/hero-reference.webp \
+            public/templates/12/media/studio-practice.webp \
+            public/templates/13/preview.webp
+          if git diff --cached --quiet; then
+            echo "No generated WebP changes to commit."
+          else
+            git commit -m "optimize remaining NEXORA template preview heroes as WebP"
+            git push origin "HEAD:refs/heads/${GITHUB_HEAD_REF}"
+          fi
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
   preview:
     name: Deploy preview
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    needs: [prepare-assets]
+    if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     outputs:
@@ -40,6 +104,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
+          ref: ${{ needs.prepare-assets.outputs.source_sha || github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
 
       - name: Check optional Vercel preview credentials
@@ -178,13 +243,14 @@ jobs:
 
   browser-e2e:
     name: Preview Browser E2E (Playwright)
-    needs: preview
+    needs: [preview, prepare-assets]
     if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
         with:
+          ref: ${{ needs.prepare-assets.outputs.source_sha || github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
 
       - uses: actions/setup-node@v5
@@ -262,6 +328,12 @@ jobs:
           PLAYWRIGHT_PACKAGE_ROOT: /tmp/pw-runner
           E2E_ARTIFACTS_DIR: test-results/preview-browser-e2e
         run: node scripts/verify-preview-browser-e2e.mjs
+
+      - name: Audit all template images and interaction responsiveness
+        env:
+          PREVIEW_URL: ${{ steps.resolve-preview.outputs.url }}
+          PLAYWRIGHT_PACKAGE_ROOT: /tmp/pw-runner
+        run: node scripts/verify-nexora-interaction-responsiveness.mjs
 
       - name: Run Lighthouse mobile Core Web Vitals and SEO audit
         env:
