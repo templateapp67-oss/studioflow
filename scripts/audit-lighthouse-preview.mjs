@@ -8,6 +8,7 @@ const previewUrl = (process.env.PREVIEW_URL || '').trim().replace(/\/+$/, '');
 const packageRoot = (process.env.PLAYWRIGHT_PACKAGE_ROOT || '').trim();
 const reportDir = resolve(process.env.LIGHTHOUSE_REPORT_DIR || 'test-results/preview-lighthouse');
 const bypass = (process.env.VERCEL_AUTOMATION_BYPASS_SECRET || '').trim();
+const previewHeaders = bypass ? { 'x-vercel-protection-bypass': bypass } : {};
 
 if (!previewUrl) throw new Error('PREVIEW_URL is required for Lighthouse preview auditing.');
 if (!packageRoot) throw new Error('PLAYWRIGHT_PACKAGE_ROOT is required for pinned browser tooling.');
@@ -30,6 +31,29 @@ const report = {
   note: 'Lighthouse lab data is not field INP or real-device measurement.',
 };
 
+// Vercel Preview deployments are intentionally excluded from search indexing.
+// Keep the staging-only noindex audit out of the Lighthouse SEO score, while
+// explicitly proving that robots.txt itself is publicly retrievable and valid.
+const robotsResponse = await fetch(new URL('/robots.txt', previewUrl), {
+  headers: previewHeaders,
+  signal: AbortSignal.timeout(15000),
+});
+const robotsBody = await robotsResponse.text();
+assert.equal(robotsResponse.status, 200, 'Preview robots.txt must be retrievable (HTTP 200).');
+assert.match(robotsResponse.headers.get('content-type') || '', /text\\/plain/i, 'Preview robots.txt must be served as plain text.');
+const robotsLines = robotsBody.split(/\\r?\\n/).map(line => line.trim());
+assert.ok(robotsLines.includes('Allow: /'), 'robots.txt must allow public crawling.');
+assert.ok(robotsLines.includes('Disallow: /api/'), 'robots.txt must disallow API routes.');
+assert.ok(robotsLines.includes('Sitemap: https://nexorasalon.online/sitemap.xml'), 'robots.txt must point to the canonical sitemap.');
+report.robotsTxt = {
+  status: robotsResponse.status,
+  contentType: robotsResponse.headers.get('content-type') || '',
+  allowsPublicPages: robotsLines.includes('Allow: /'),
+  disallowsApi: robotsLines.includes('Disallow: /api/'),
+  canonicalSitemap: robotsLines.includes('Sitemap: https://nexorasalon.online/sitemap.xml'),
+};
+report.previewIndexingPolicy = 'Vercel Preview is intentionally noindex; is-crawlable is excluded from the preview score. Canonical production crawlability is covered by the live SEO gate after production rollout.';
+
 let failed = false;
 for (const route of routes) {
   const chrome = await chromeLauncher.launch({
@@ -47,7 +71,12 @@ for (const route of routes) {
       formFactor: 'mobile',
       screenEmulation: { mobile: true, width: 390, height: 844, deviceScaleFactor: 2, disabled: false },
       throttlingMethod: 'simulate',
-      extraHeaders: bypass ? { 'x-vercel-protection-bypass': bypass } : {},
+    }, {
+      extends: 'lighthouse:default',
+      settings: {
+        extraHeaders: previewHeaders,
+        skipAudits: ['is-crawlable'],
+      },
     });
     const lhr = result.lhr;
     const page = {
