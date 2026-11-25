@@ -35,6 +35,7 @@ if (bypassSecret) {
   // Stateless HTTP clients must NOT send `x-vercel-set-bypass-cookie: true`,
   // which triggers an endless 307 cookie-setting redirect loop without a cookie jar.
   defaultHeaders['x-vercel-protection-bypass'] = bypassSecret;
+  defaultHeaders['x-vercel-set-bypass-cookie'] = 'true';
 }
 
 async function fetchWithRetry(url, init = {}, attempts = 3) {
