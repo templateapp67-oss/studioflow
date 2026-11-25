@@ -22,7 +22,7 @@ const walk = (dir) => readdirSync(dir, { withFileTypes: true })
 
 // --- 1. every deployment folder has an entrypoint -------------------------
 const folders = readdirSync(FUNCTIONS_DIR, { withFileTypes: true })
-  .filter((entry) => entry.isDirectory())
+  .filter((entry) => entry.isDirectory() && entry.name !== '_shared')
   .map((entry) => entry.name);
 assert.ok(folders.length >= 10, `expected the full function set, found ${folders.length}`);
 for (const name of folders) {

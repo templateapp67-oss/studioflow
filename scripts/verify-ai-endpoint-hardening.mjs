@@ -178,7 +178,8 @@ const auth = await loadModule('server/supabaseAuth.ts');
     auth.requireVerifiedUser({ config, fetchImpl: async () => { throw new Error('offline'); } }),
     { headers: { authorization: 'Bearer token' } },
   );
-  assert.equal(authOutage.next, true, 'an unreachable Auth server does not deny a signed-in caller');
+  assert.equal(authOutage.next, false, 'protected routes fail closed during an Auth outage');
+  assert.equal(authOutage.status, 503);
   assert.equal(authOutage.headers['x-ai-auth'], 'unverified');
 
   const accepted = await run(
@@ -191,11 +192,20 @@ const auth = await loadModule('server/supabaseAuth.ts');
   assert.equal(accepted.next, true, 'a valid session reaches the handler');
   assert.equal(accepted.locals.authUser.id, 'user-9', 'the verified user is attached for per-user budgets');
 
+  const verifiedMfaUser = async () => ({
+    status: 200, ok: true, json: async () => ({ id: 'user-mfa', factors: [{ status: 'verified' }] }),
+  });
+  const mfaGuard = auth.requireVerifiedUser({ config, fetchImpl: verifiedMfaUser });
+  const mfaSession = aal => `header.${Buffer.from(JSON.stringify({ aal })).toString('base64url')}.signature`;
+  assert.equal((await run(mfaGuard, { headers: { authorization: `Bearer ${mfaSession('aal1')}` } })).status, 403);
+  assert.equal((await run(mfaGuard, { headers: { authorization: `Bearer ${mfaSession('aal2')}` } })).next, true);
+
   const unconfigured = await run(
     auth.requireVerifiedUser({ config: { url: '', publishableKey: '', configured: false } }),
     { headers: {} },
   );
-  assert.equal(unconfigured.next, true, 'a configuration gap degrades to the strict anonymous budget');
+  assert.equal(unconfigured.next, false, 'protected routes require Auth configuration');
+  assert.equal(unconfigured.status, 503);
   assert.equal(unconfigured.headers['x-ai-auth'], 'unconfigured');
 
   const optional = await run(auth.optionalVerifiedUser({ config }), { headers: {} });
@@ -222,9 +232,14 @@ const reservePort = () => new Promise((resolve, reject) => {
 });
 let port = await reservePort();
 
-async function startServer(extraEnv = {}) {
+async function startServer(extraEnv = {}, mockAuth = false) {
+  const mockModule = `const realFetch = globalThis.fetch;
+    globalThis.fetch = (input, init) => String(input).endsWith('/auth/v1/user')
+      ? Promise.resolve(Response.json({ id: 'example-owner', role: 'authenticated' }))
+      : realFetch(input, init);`;
+  const runtimeArgs = mockAuth ? ['--import', `data:text/javascript,${encodeURIComponent(mockModule)}`] : [];
   for (let attempt = 0; attempt < 4; attempt += 1) {
-    const child = spawn(process.execPath, ['dist/server.cjs', '--port', String(port)], {
+    const child = spawn(process.execPath, [...runtimeArgs, 'dist/server.cjs', '--port', String(port)], {
       env: { ...process.env, NODE_ENV: 'production', GEMINI_API_KEY: '', ...extraEnv },
       stdio: ['ignore', 'pipe', 'pipe'],
       detached: true,
@@ -307,15 +322,13 @@ const alive = async () => (await fetch(`http://127.0.0.1:${port}/api/health`)).o
       assert.equal(anonymous.status, 401, `${route} requires a session`);
       assert.equal((await anonymous.json()).code, 'auth_required', `${route} reports auth_required`);
     }
-    // A token is verified against Supabase Auth. When this environment cannot
-    // reach Auth, the documented policy applies: the request proceeds as
-    // unverified rather than denying a signed-in owner during an outage.
+    // Invalid sessions fail closed, including when Auth is unavailable.
     const withToken = await post('/api/generate-bio', { businessName: 'Test' }, { authorization: 'Bearer expired.token.here' });
     if (withToken.status === 401) {
       assert.equal((await withToken.json()).code, 'invalid_session', 'an unusable token reports invalid_session');
     } else {
-      assert.equal(withToken.status, 200, 'an unverifiable token falls back to the template draft');
-      assert.equal(withToken.headers.get('x-ai-auth'), 'unverified', 'the unverified state is reported');
+      assert.equal(withToken.status, 503, 'unverified sessions never reach the provider or fallback handler');
+      assert.equal((await withToken.json()).code, 'auth_unavailable');
     }
 
     // P1: the anonymous recommendation budget is a real ceiling.
@@ -333,9 +346,9 @@ const alive = async () => (await fetch(`http://127.0.0.1:${port}/api/health`)).o
   }
 }
 
-/* Instance B: Auth unreachable — the documented "cannot check" policy. */
+/* Instance B: a verified session still gets safe generated fallback content. */
 {
-  const server = await startServer({ SUPABASE_URL: 'https://127.0.0.1:9' });
+  const server = await startServer({}, true);
   try {
     await server.ready;
     const headers = { authorization: 'Bearer any.signed.token' };
@@ -361,8 +374,6 @@ const alive = async () => (await fetch(`http://127.0.0.1:${port}/api/health`)).o
       assert.ok(await alive(), 'the server survived a hostile bio body');
     }
 
-    const unverified = await post('/api/generate-bio', { businessName: 'Test' }, headers);
-    assert.equal(unverified.headers.get('x-ai-auth'), 'unverified', 'an unverifiable token is reported in the header');
   } finally {
     stop(server.child);
   }

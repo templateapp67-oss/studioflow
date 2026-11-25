@@ -1,4 +1,5 @@
 // Secrets stay in Supabase Edge Function settings, never in the browser bundle.
+import { protectSession, protectedResponse } from '../_shared/sessionProtection.ts';
 import {createClient} from 'npm:@supabase/supabase-js@2.117.3';
 import {signatureMatches,depositPaise,sameSecret} from './payment-security.ts';
 import {paymentLinkOrderKey,verifiedLinkPaymentId,verifyLinkPayment} from './payment-link-security.ts';
@@ -289,6 +290,8 @@ Deno.serve(async(req:Request)=>{
 
     if(!token)return respond({error:'Sign in before checkout'},401);
     const auth=await service.auth.getUser(token);if(auth.error||!auth.data.user)return respond({error:'Your session expired. Sign in again.'},401);
+    const protection = await protectSession(service, token, auth.data.user, 'studioflow-payments', 100);
+    if (protection) return protectedResponse(respond({ error: protection.error }, protection.status), protection);
     if(body.action==='status')return respond({configured:creds.configured,webhookConfigured:!!creds.webhookSecret,mode:creds.mode});
     if(!creds.configured)return respond({error:'Platform payment gateway is not configured. The platform owner must add Razorpay credentials.'},503);
 

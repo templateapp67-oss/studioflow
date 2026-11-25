@@ -111,6 +111,7 @@ export async function onboardingCopyHandler(req: RequestLike, res: ResponseLike,
   catch { return res.status(503).json({ error: 'Authentication is temporarily unavailable.' }); }
   if (user === undefined) return res.status(503).json({ error: 'Authentication is temporarily unavailable.' });
   if (!user) return res.status(401).json({ error: 'Sign in to use AI copywriting.' });
+  if (user.mfaRequired) return res.status(403).json({ error: 'Verify your authenticator before continuing.' });
   const input = parseCopyInput(req.body);
   if (!input) return res.status(400).json({ error: 'Please check the business details and try again.' });
   const apiKey = (deps.apiKey ?? process.env.GEMINI_API_KEY ?? '').trim();

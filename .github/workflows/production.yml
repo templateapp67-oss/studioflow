@@ -330,6 +330,8 @@ jobs:
           submit-landing-lead
           nexora-whatsapp-connect nexora-whatsapp-webhook
           studioflow-payments studioflow-whatsapp-booking studioflow-booking-emails
+          nexora-mobile-qr studioflow-service-ai-images studioflow-campaign-whatsapp
+          studioflow-welcome-whatsapp studioflow-tawk-connect
           --remote="$SUPABASE_PROJECT_REF" --use-api
 
   deploy:

@@ -2057,6 +2057,11 @@
       "file": "20261125090000_nexora_lead_rate_limit_rpc.sql",
       "approval": "pending_owner_review",
       "purpose": "Pending branch implementation of the shared lead-rate-limit RPC; production apply requires the protected manual release and explicit owner approval."
+    },
+    {
+      "file": "20261125100000_studioflow_auth_access_hardening.sql",
+      "approval": "pending_owner_review",
+      "purpose": "Add scoped staff invite delivery, private table and storage MFA policies, an authenticated Data API assurance check, and immutable booking identity on direct updates."
     }
   ],
   "reviewed_feature_migrations": [

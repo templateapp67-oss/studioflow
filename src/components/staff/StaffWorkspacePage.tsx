@@ -1,3 +1,4 @@
+import { AuthMfaChallenge } from '../AuthMfa';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuthSession } from '../../lib/useAuthSession';
@@ -72,7 +73,7 @@ function statusTone(status: string) {
  * disagree the server wins — the restricted field is simply absent.
  */
 export function StaffWorkspacePage() {
-  const { session, ready } = useAuthSession();
+  const { session, ready, mfa, retryMfa } = useAuthSession();
 
   useEffect(() => {
     applyNoIndexMetadata('Staff workspace — NEXORA SalonOS');
@@ -169,6 +170,7 @@ export function StaffWorkspacePage() {
     if (!permittedPanels.some((panel) => panel.title === activePanel)) setActivePanel(permittedPanels[0].title);
   }, [permittedPanels, activePanel]);
 
+  if (mfa) return <AuthMfaChallenge error={mfa.error} retry={retryMfa} />;
   if (!ready || (session && loading && !context && !error)) {
     return <main className="grid min-h-screen place-items-center bg-slate-50 px-4"><p role="status" className="text-sm font-semibold text-slate-600">Opening your workspace…</p></main>;
   }
@@ -361,6 +363,7 @@ export function StaffWorkspacePage() {
               <a href="/?module=2" className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700">Salon settings</a>
             ) : null}
             <button type="button" onClick={() => void load()} className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700">Refresh</button>
+            <a className="secondary-action" href="/login?security=1&amp;from=staff">Account security</a>
             <button
               type="button"
               onClick={async () => { await signOutLocal(); location.assign(STAFF_LOGIN_PATH); }}
