@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve, join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const previewUrl = (process.env.PREVIEW_URL || '').trim().replace(/\/+$/, '');
 const packageRoot = (process.env.PLAYWRIGHT_PACKAGE_ROOT || '').trim();
@@ -14,7 +15,7 @@ if (!packageRoot) throw new Error('PLAYWRIGHT_PACKAGE_ROOT is required for pinne
 mkdirSync(reportDir, { recursive: true });
 const require = createRequire(join(packageRoot, 'package.json'));
 const { chromium } = require('playwright');
-const lighthouseModule = require('lighthouse');
+const lighthouseModule = await import(pathToFileURL(require.resolve('lighthouse')).href);
 const lighthouse = lighthouseModule.default || lighthouseModule;
 const chromeLauncher = require('chrome-launcher');
 
@@ -66,6 +67,7 @@ for (const route of routes) {
     if (page.lcpMs === null || page.lcpMs > report.budgets.lcpMs) failures.push('LCP above budget');
     if (page.cls === null || page.cls > report.budgets.cls) failures.push('CLS above budget');
     if (page.tbtMs === null || page.tbtMs > report.budgets.tbtMs) failures.push('TBT above budget');
+    if (lhr.audits['http-status-code']?.score !== 1) failures.push('HTTP response is not a successful 2xx response');
     if (page.statusCode !== null && page.statusCode !== 200) failures.push('HTTP status is not 200');
     page.failures = failures;
     if (failures.length) failed = true;

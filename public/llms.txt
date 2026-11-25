@@ -1,6 +1,8 @@
 # NEXORA Salon OS
 
 > NEXORA Salon OS helps salon, spa and beauty businesses explore customisable website templates and manage their online presence.
+>
+> Expanded machine-readable reference: [llms-full.txt](https://nexorasalon.online/llms-full.txt).
 
 ## Key pages
 - [About NEXORA](https://nexorasalon.online/about): Organisation, product and editorial team profile.
