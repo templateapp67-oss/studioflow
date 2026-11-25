@@ -132,8 +132,8 @@
       "destination": "/api/storefront?path=/"
     },
     {
-      "source": "^/([^a].*|a[^p].*|ap[^i].*|api[^/].*|ap)$",
-      "destination": "/api/storefront?path=/$1"
+      "source": "/:path((?!(?:api|admin|owner|staff|login|sign-in|sign-up|assets|fonts|templates|template-pages)(?:/|$))(?!.*\\.[^/]+$).*)",
+      "destination": "/api/storefront?path=/:path*"
     }
   ],
   "headers": [
