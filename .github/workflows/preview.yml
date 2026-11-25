@@ -444,10 +444,10 @@ jobs:
           }
           function redact(value) {
             return String(value || '')
-              .replace(/Bearer\\s+\\S+/gi, 'Bearer [REDACTED]')
-              .replace(/(authorization|token|secret|api[_-]?key)\\s*[:=]\\s*[^,\\s]+/gi, '$1=[REDACTED]')
-              .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/gi, '[email]')
-              .replace(/(?:\\+?91[-\\s]?)?[6-9]\\d{9}/g, '[phone]')
+              .replace(/Bearer\s+\S+/gi, 'Bearer [REDACTED]')
+              .replace(/(authorization|token|secret|api[_-]?key)\s*[:=]\s*[^,\s]+/gi, '$1=[REDACTED]')
+              .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[email]')
+              .replace(/(?:\+?91[-\s]?)?[6-9]\d{9}/g, '[phone]')
               .slice(0, 1500);
           }
 
