@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { classifyPreviewDeployError } from './classify-preview-deploy-error.mjs';
 
 const workflows = Object.fromEntries(['production', 'preview', 'ci'].map((name) => [
   name, readFileSync(`.github/workflows/${name}.yml`, 'utf8').replace(/\r\n?/g, '\n'),
@@ -9,6 +10,12 @@ for (const [name, workflow] of Object.entries(workflows)) {
   assert(refs.every((ref) => ref === 'v8'), `${name}: every github-script action must use v8`);
   if (name !== 'ci') assert(refs.length > 0, `${name} must retain its github-script reporting steps`);
 }
+
+assert.equal(classifyPreviewDeployError('Error 429: private token'), 'quota-or-rate-limit');
+assert.equal(classifyPreviewDeployError('The maximum number of functions exceeded'), 'function-limit-or-size');
+assert.equal(classifyPreviewDeployError('Error 403: forbidden'), 'authorization');
+assert.equal(classifyPreviewDeployError('opaque private token'), 'other-or-unknown');
+assert.ok(workflows.preview.includes('node scripts/classify-preview-deploy-error.mjs "$deploy_log"'), 'failed Preview deploys publish only a static diagnostic category');
 
 const production = workflows.production;
 const deploy = production.split('\n  deploy:\n')[1];
