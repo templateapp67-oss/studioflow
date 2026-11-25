@@ -341,6 +341,9 @@ try {
   await page.goto(new URL('/', origin).toString(), { waitUntil: 'domcontentloaded' });
   const hoverTrigger = page.locator('.public-homepage__template-preview [data-nx-hover-card-trigger]');
   const hoverPanel = page.locator('.nx-hover-card__panel');
+  // The portal is created by a React effect, so attachment proves hydration
+  // completed before pointer/keyboard interactions against prerendered HTML.
+  await hoverPanel.waitFor({ state: 'attached', timeout: 10000 });
   assert.equal(await hoverTrigger.getAttribute('aria-expanded'), 'false', 'the homepage link preview starts closed');
   assert.equal(await hoverTrigger.getAttribute('aria-controls') !== null, true, 'the preview trigger exposes its controlled card');
   assert.equal(await hoverTrigger.getAttribute('aria-keyshortcuts'), 'ArrowDown', 'the trigger advertises the explicit keyboard key for entering the card');
@@ -433,6 +436,8 @@ try {
   for (const [width, height] of [[320, 740], [768, 900], [1440, 1000]]) {
     await page.setViewportSize({ width, height });
     await page.goto(new URL('/', origin).toString(), { waitUntil: 'domcontentloaded' });
+    await page.locator('.nx-hover-card__panel').waitFor({ state: 'attached', timeout: 10000 });
+    await page.mouse.move(1, 1);
     if (width === 768) {
       await page.locator('.public-homepage').evaluate((node) => node.setAttribute('data-appearance', 'dark'));
     }
@@ -446,7 +451,7 @@ try {
     const edgeTrigger = page.locator('.public-homepage__template-preview [data-nx-hover-card-trigger]');
     await edgeTrigger.hover();
     const edgePanel = page.locator('.nx-hover-card__panel');
-    await edgePanel.waitFor({ state: 'visible', timeout: 1500 });
+    await edgePanel.waitFor({ state: 'visible', timeout: 10000 });
     const panelBounds = await edgePanel.boundingBox();
     assert.ok(panelBounds, `${width}px preview panel has measurable viewport bounds`);
     assert.ok(panelBounds.x >= 8 && panelBounds.y >= 8, `${width}px preview shifts inside the left/top viewport edges`);
@@ -461,6 +466,7 @@ try {
 
   await page.goto(new URL('/', origin).toString(), { waitUntil: 'domcontentloaded' });
   const touchTrigger = page.locator('.public-homepage__template-preview [data-nx-hover-card-trigger]');
+  await page.locator('.nx-hover-card__panel').waitFor({ state: 'attached', timeout: 10000 });
   await page.evaluate(() => {
     const wrapper = document.querySelector('.public-homepage__template-preview');
     wrapper?.dispatchEvent(new PointerEvent('pointerover', { bubbles: true, pointerType: 'touch' }));

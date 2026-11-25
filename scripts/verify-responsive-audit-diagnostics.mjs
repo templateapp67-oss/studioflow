@@ -26,6 +26,7 @@ assert.ok(publish.includes("outcome === 'success' && report.status === 'PASS'"),
 assert.ok(!publish.includes('report.message') && !publish.includes('report.stack'), 'check-run reports no raw errors');
 assert.ok(workflow.includes('This report covers the read-only storefront smoke only'), 'smoke status is not presented as responsive status');
 const browser = readFileSync('scripts/verify-nexora-responsive-browser.mjs', 'utf8');
+assert.ok((browser.match(/waitFor\(\{ state: 'attached', timeout: 10000 \}\)/g) || []).length >= 3, 'hover tests wait for the client-created portal after navigation');
 assert.ok(browser.includes('openProbe.opened - openProbe.entered >= 300') && browser.includes('closeProbe.closed - closeProbe.left >= 200'), 'browser audit retains minimum hover timing checks');
 assert.ok(!browser.includes('waitForTimeout(180)') && !browser.includes('waitForTimeout(100);\n  assert.equal(await hoverPanel.isVisible()'), 'hover assertions do not depend on Node-side sleeps beating browser timers');
 console.log('PASS: responsive check reporting is sanitized and fail-closed; hover delay and grace assertions use browser event timing.');
