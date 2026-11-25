@@ -93,8 +93,61 @@ assert.ok(aboutHtml.includes('#editorial-team'), 'the About page has a stable ed
 const templateHtml = templateFiles.map((file) => readFileSync(file, 'utf8'));
 assert.ok(templateHtml.every((html) => html.includes('/about#editorial-team')), 'all template pages reference the declared editorial publisher/author profile');
 assert.ok(templateHtml.every((html) => /fetchpriority=["']high["']/i.test(html) && /decoding=["']async["']/i.test(html)), 'every template hero image is prioritised and decoded asynchronously');
-const webpHeroCount = templateHtml.filter((html) => /<img\b[^>]*src=["'][^"']+\.webp(?:\?[^"']*)?["']/i.test(html)).length;
-assert.ok(webpHeroCount >= 12, 'at least 12 of the 16 template hero images use WebP');
+const previewArtworkSource = readFileSync('src/lib/nexoraPreviewImages.ts', 'utf8');
+const artworkBlock = previewArtworkSource.match(/export const NEXORA_PREVIEW_ARTWORK[^=]*=\s*\{([\s\S]*?)\n\};/)?.[1] ?? '';
+const artworkEntries = [...artworkBlock.matchAll(/^\s*([a-z][a-z0-9_]*):\s*'([^']+)'/gm)];
+assert.equal(artworkEntries.length, 16, 'the public template-card artwork map contains exactly 16 templates');
+assert.ok(artworkEntries.every(([, , assetPath]) => assetPath.endsWith('.webp')), 'all 16 public template-card hero sources use WebP');
+function readWebpDimensions(buffer, assetPath) {
+  assert.equal(buffer.toString('ascii', 0, 4), 'RIFF', assetPath + ' has a RIFF container');
+  assert.equal(buffer.toString('ascii', 8, 12), 'WEBP', assetPath + ' is a WebP file');
+  for (let offset = 12; offset + 8 <= buffer.length;) {
+    const chunk = buffer.toString('ascii', offset, offset + 4);
+    const length = buffer.readUInt32LE(offset + 4);
+    const data = offset + 8;
+    if (chunk === 'VP8X' && length >= 10) {
+      return { width: 1 + buffer.readUIntLE(data + 4, 3), height: 1 + buffer.readUIntLE(data + 7, 3) };
+    }
+    if (chunk === 'VP8 ' && length >= 10) {
+      return {
+        width: buffer.readUInt16LE(data + 6) & 0x3fff,
+        height: buffer.readUInt16LE(data + 8) & 0x3fff,
+      };
+    }
+    if (chunk === 'VP8L' && length >= 5 && buffer[data] === 0x2f) {
+      const bits = buffer.readUInt32LE(data + 1);
+      return { width: (bits & 0x3fff) + 1, height: ((bits >>> 14) & 0x3fff) + 1 };
+    }
+    offset = data + length + (length % 2);
+  }
+  throw new Error(assetPath + ' has no supported WebP image frame header');
+}
+for (const [templateId, , assetPath] of artworkEntries) {
+  const publicPath = 'public' + assetPath;
+  assert.ok(existsSync(publicPath), templateId + ' WebP hero asset exists at ' + publicPath);
+  const dimensions = readWebpDimensions(readFileSync(publicPath), publicPath);
+  assert.ok(dimensions.width >= 280 && dimensions.height >= 176,
+    templateId + ' WebP hero has usable intrinsic dimensions (' + dimensions.width + 'x' + dimensions.height + ')');
+}
+const fallbackBlock = previewArtworkSource.match(/export const NEXORA_PREVIEW_ARTWORK_FALLBACKS[^=]*=\s*\{([\s\S]*?)\n\};/)?.[1] ?? '';
+const fallbackEntries = [...fallbackBlock.matchAll(/^\s*([a-z][a-z0-9_]*):\s*'([^']+)'/gm)];
+assert.deepEqual(fallbackEntries.map(([, id]) => id).sort(), ['barber', 'hair_spa', 'lash_brow', 'tattoo_studio'],
+  'the four converted images retain explicit original-JPEG fallbacks');
+for (const [, templateId, fallbackPath] of fallbackEntries) {
+  assert.ok(existsSync('public' + fallbackPath), templateId + ' original JPEG fallback remains available');
+}
+const homepageHtml = readFileSync('dist/index.html', 'utf8');
+const templateCardImages = [...homepageHtml.matchAll(/<img\b[^>]*data-registry-cover=[^>]*>/gi)].map(([tag]) => tag);
+assert.equal(templateCardImages.length, 16, 'the prerendered homepage contains all 16 template-card images');
+for (const [index, image] of templateCardImages.entries()) {
+  assert.match(image, /\bsrc=["'][^"']+\.webp(?:\?[^"']*)?["']/i, 'template card ' + (index + 1) + ' uses its WebP source');
+  assert.match(image, /\bwidth=["']280["']/i, 'template card ' + (index + 1) + ' reserves its width');
+  assert.match(image, /\bheight=["']176["']/i, 'template card ' + (index + 1) + ' reserves its height');
+  const alt = image.match(/\balt=["']([^"']*)["']/i)?.[1]?.trim() ?? '';
+  assert.ok(alt.length > 0, 'template card ' + (index + 1) + ' has descriptive alt text');
+  assert.match(image, /\bloading=["']lazy["']/i, 'template card ' + (index + 1) + ' lazy-loads below-fold artwork');
+  assert.match(image, /\bdecoding=["']async["']/i, 'template card ' + (index + 1) + ' decodes artwork asynchronously');
+}
 
 const directoryProfile = JSON.parse(readFileSync('public/nexora-directory-profile.json', 'utf8'));
 assert.equal(directoryProfile['@type'], 'Organization', 'directory profile describes NEXORA as an organisation, not a walk-in salon');
