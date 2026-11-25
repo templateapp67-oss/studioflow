@@ -47,7 +47,7 @@ const previewCorsHeaders = {
 await page.route('**/functions/v1/studioflow-payments', async (route) => {
   const request = route.request();
   const requestUrl = new URL(request.url());
-  if (!/^[a-z0-9-]+\\.supabase\\.co$/i.test(requestUrl.hostname)
+  if (!requestUrl.hostname.toLowerCase().endsWith('.supabase.co')
     || requestUrl.pathname !== '/functions/v1/studioflow-payments') {
     return route.continue();
   }
@@ -73,7 +73,7 @@ await page.route('**/functions/v1/studioflow-payments', async (route) => {
 await page.route('**/rest/v1/rpc/studioflow_booking_specialists', async (route) => {
   const request = route.request();
   const requestUrl = new URL(request.url());
-  if (!/^[a-z0-9-]+\\.supabase\\.co$/i.test(requestUrl.hostname)
+  if (!requestUrl.hostname.toLowerCase().endsWith('.supabase.co')
     || requestUrl.pathname !== '/rest/v1/rpc/studioflow_booking_specialists') {
     return route.continue();
   }
