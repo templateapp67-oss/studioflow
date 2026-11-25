@@ -191,7 +191,7 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
           set -euo pipefail
-          url="$(vercel deploy --prebuilt --yes --token="$VERCEL_TOKEN" --project "$VERCEL_PROJECT_ID")"
+          url="$(vercel deploy --prebuilt --archive=tgz --yes --token="$VERCEL_TOKEN" --project "$VERCEL_PROJECT_ID")"
           test -n "$url"
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
@@ -285,21 +285,21 @@ jobs:
         env:
           DEPLOYED_PREVIEW_URL: ${{ needs.preview.outputs.preview_url }}
           MANUAL_PREVIEW_URL: ${{ inputs.preview_url }}
-          FALLBACK_PREVIEW_URL: https://studioflow-g2kzo1mjb-templateapp67-oss-projects.vercel.app
           SECRET_BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
           set -euo pipefail
-          url="${DEPLOYED_PREVIEW_URL:-${MANUAL_PREVIEW_URL:-${FALLBACK_PREVIEW_URL:-}}}"
+          url="${DEPLOYED_PREVIEW_URL:-${MANUAL_PREVIEW_URL:-}}"
           echo "url=${url}" >> "$GITHUB_OUTPUT"
-          if [[ -z "$DEPLOYED_PREVIEW_URL" && -z "$MANUAL_PREVIEW_URL" && -n "$FALLBACK_PREVIEW_URL" ]]; then
-            echo "::warning::Using the existing validated PR #162 Preview snapshot because Vercel's daily upload quota is exhausted; no new deployment was created."
-          fi
           if [[ -z "$url" ]]; then
-            echo "::error::BLOCKED: Missing Vercel Preview URL (deploy outcome: ${{ needs.preview.outputs.deploy_outcome || 'unknown' }})."
-          else
-            echo "Resolved Preview URL: $url"
+            echo "::error::BLOCKED: No fresh Vercel Preview URL is available (deploy outcome: ${{ needs.preview.outputs.deploy_outcome || 'unknown' }}). Refusing to test an older deployment."
+            {
+              echo "### Preview browser audit blocked"
+              echo "A fresh deployment for this commit is required. No previous Preview URL will be reused."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
           fi
+          echo "Resolved fresh Preview URL: $url"
 
           node <<'NODE'
           const fs = require('node:fs');
