@@ -54,6 +54,11 @@ report.robotsTxt = {
 };
 report.previewIndexingPolicy = 'Vercel Preview is intentionally noindex; is-crawlable is excluded from the preview score. Canonical production crawlability is covered by the live SEO gate after production rollout.';
 
+const diagnosticBrowser = await chromium.launch({
+  headless: true,
+  executablePath: browserExecutable,
+  args: ['--no-sandbox', '--disable-dev-shm-usage'],
+});
 let failed = false;
 for (const route of routes) {
   const chrome = await chromeLauncher.launch({
@@ -78,6 +83,72 @@ for (const route of routes) {
         skipAudits: ['is-crawlable', 'robots-txt'],
       },
     });
+    const diagnosticContext = await diagnosticBrowser.newContext({
+      viewport: { width: 390, height: 844 },
+      deviceScaleFactor: 2,
+      extraHTTPHeaders: previewHeaders,
+    });
+    const diagnosticPage = await diagnosticContext.newPage();
+    await diagnosticPage.addInitScript(() => {
+      const shifts = [];
+      Object.defineProperty(window, '__nexoraLayoutShifts', { value: shifts, configurable: false });
+      if ('PerformanceObserver' in window) {
+        try {
+          const observer = new PerformanceObserver((list) => {
+            for (const entry of list.getEntries()) {
+              if (entry.hadRecentInput) continue;
+              const sources = (entry.sources || []).map((source) => {
+                const node = source.node;
+                const selector = node
+                  ? [node.tagName?.toLowerCase(), node.id ? '#' + node.id : '', typeof node.className === 'string' && node.className.trim() ? '.' + node.className.trim().split(/\s+/).slice(0, 3).join('.') : ''].join('')
+                  : null;
+                return {
+                  selector,
+                  snippet: node?.outerHTML?.slice(0, 320) || null,
+                  previousRect: source.previousRect ? {
+                    x: source.previousRect.x, y: source.previousRect.y,
+                    width: source.previousRect.width, height: source.previousRect.height,
+                  } : null,
+                  currentRect: source.currentRect ? {
+                    x: source.currentRect.x, y: source.currentRect.y,
+                    width: source.currentRect.width, height: source.currentRect.height,
+                  } : null,
+                };
+              });
+              shifts.push({ value: entry.value, startTime: entry.startTime, sources });
+            }
+          });
+          observer.observe({ type: 'layout-shift', buffered: true });
+        } catch { /* Layout Shift attribution is not supported in every Chromium build. */ }
+      }
+    });
+    let layoutShiftDiagnostics = [];
+    let visualDiagnostics = null;
+    try {
+      await diagnosticPage.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
+      await diagnosticPage.waitForTimeout(2000);
+      layoutShiftDiagnostics = await diagnosticPage.evaluate(() => window.__nexoraLayoutShifts || []);
+      visualDiagnostics = await diagnosticPage.evaluate(() => ({
+        fontStatus: document.fonts?.status || 'unknown',
+        fonts: document.fonts ? {
+          hanken: document.fonts.check('16px "Hanken Grotesk"'),
+          manrope: document.fonts.check('16px Manrope'),
+          poppins: document.fonts.check('16px Poppins'),
+        } : null,
+        images: [...document.images].slice(0, 30).map((image) => ({
+          src: image.currentSrc || image.src,
+          complete: image.complete,
+          naturalWidth: image.naturalWidth,
+          naturalHeight: image.naturalHeight,
+          width: image.getBoundingClientRect().width,
+          height: image.getBoundingClientRect().height,
+        })),
+      }));
+    } catch (diagnosticError) {
+      layoutShiftDiagnostics = [{ diagnosticError: diagnosticError instanceof Error ? diagnosticError.message : String(diagnosticError) }];
+    } finally {
+      await diagnosticContext.close();
+    }
     const lhr = result.lhr;
     const page = {
       path: route,
@@ -89,6 +160,8 @@ for (const route of routes) {
       cls: lhr.audits['cumulative-layout-shift']?.numericValue ?? null,
       tbtMs: lhr.audits['total-blocking-time']?.numericValue ?? null,
       statusCode: lhr.audits['http-status-code']?.details?.items?.[0]?.httpStatusCode ?? null,
+      layoutShiftDiagnostics,
+      visualDiagnostics,
     };
     const seoAuditFailures = (lhr.categories.seo?.auditRefs ?? [])
       .filter((auditRef) => auditRef.weight > 0 && lhr.audits[auditRef.id]?.score !== 1)
@@ -133,6 +206,7 @@ for (const route of routes) {
     await chrome.kill();
   }
 }
+await diagnosticBrowser.close();
 report.overallStatus = failed ? 'FAIL' : 'PASS';
 report.generatedAt = new Date().toISOString();
 writeFileSync(join(reportDir, 'lighthouse-mobile-report.json'), JSON.stringify(report, null, 2) + '\n');
