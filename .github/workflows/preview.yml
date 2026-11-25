@@ -425,6 +425,7 @@ jobs:
             VERCEL_HEAD_SHA,
           } = process.env;
 
+          try {
           const headers = {
             Authorization: `Bearer ${VERCEL_TOKEN}`,
             Accept: 'application/json',
@@ -482,7 +483,7 @@ jobs:
           if (!deploymentId) throw new Error('Vercel Preview list entry returned no deployment ID.');
 
           const logUrl = `https://api.vercel.com/v1/projects/${encodeURIComponent(VERCEL_PROJECT_ID)}/deployments/${encodeURIComponent(deploymentId)}/runtime-logs?${teamScope}`;
-          const response = await fetch(logUrl, { headers });
+          const response = await fetch(logUrl, { headers: { ...headers, Accept: 'application/stream+json' } });
           const rawLogs = await response.text();
           if (!response.ok) {
             let payload = {};
@@ -519,6 +520,11 @@ jobs:
             }));
           }
           if (!errors.length) console.log('No error/fatal/5xx runtime log entries were returned for this Preview deployment.');
+          } catch (error) {
+            const message = String(error?.message || error).slice(0, 500);
+            console.log(`::warning::Vercel Preview runtime-log capture unavailable: ${message}`);
+            console.log('Runtime-log capture is diagnostic-only; the primary Preview audit result is unchanged.');
+          }
           NODE
 
       - name: Run NEXORA responsive marketing and owner-route browser audit
