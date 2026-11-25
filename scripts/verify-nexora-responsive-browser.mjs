@@ -481,7 +481,14 @@ try {
   await page.waitForFunction(() => !document.querySelector('.nexora-site-header')?.classList.contains('nexora-site-header--compact'));
   assert.equal(await toggle.getAttribute('aria-expanded'), 'false', 'resizing back to desktop closes the compact menu');
   await page.setViewportSize({ width: 320, height: 740 });
-  await page.waitForFunction(() => document.querySelector('.nexora-site-header')?.classList.contains('nexora-site-header--compact'));
+  // Make the resize measurement deterministic in the browser harness: Playwright
+  // changes the viewport, then we dispatch the same native resize signal consumed
+  // by SiteHeader's measurement listener before asserting the responsive state.
+  await page.evaluate(() => window.dispatchEvent(new Event('resize')));
+  const finalNarrowMeasurement = await page.waitForFunction(headerMeasurementDetails, true, { timeout: 10000 });
+  const finalNarrowDetails = await finalNarrowMeasurement.jsonValue();
+  assert.equal(finalNarrowDetails.viewportWidth, 320, 'the final narrow-header measurement uses the 320px viewport');
+  assert.equal(finalNarrowDetails.actualCompact, true, `the header re-measures into compact mode at 320px: ${JSON.stringify(finalNarrowDetails)}`);
   const compactActionVisible = await page.locator('.nexora-site-header').evaluate((header) => header.classList.contains('has-compact-action'));
   if (!compactActionVisible) {
     await toggle.click();
