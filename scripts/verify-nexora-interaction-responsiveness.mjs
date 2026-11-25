@@ -95,7 +95,11 @@ await page.route('**/rest/v1/rpc/studioflow_booking_specialists', async (route) 
     return route.fulfill({
       status: 200,
       headers: { ...previewCorsHeaders, 'content-type': 'application/json; charset=utf-8' },
-      body: '[]',
+      body: JSON.stringify({
+        published: true,
+        specialistIds: [],
+        specialists: [],
+      }),
     });
   }
   return route.continue();
@@ -153,9 +157,6 @@ page.on('requestfailed', (request) => {
   const failure = request.failure()?.errorText || 'request failed';
   try {
     const requestUrl = new URL(request.url());
-    // Tawk's optional third-party embed is deliberately denied by the Preview
-    // Content-Security-Policy; that expected policy block is not an app failure.
-    if (requestUrl.hostname === 'embed.tawk.to' && /csp/i.test(failure)) return;
     // Preserve the failing host/path, but never emit query strings or fragments.
     failedRequests.push(requestUrl.hostname + requestUrl.pathname + ' — ' + failure);
   } catch {
