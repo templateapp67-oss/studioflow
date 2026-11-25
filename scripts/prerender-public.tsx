@@ -23,6 +23,50 @@ const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (character) => (
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 }[character]!));
 const safeJson = (value: unknown) => JSON.stringify(value).replace(/</g, '\\u003c');
+const NO_SCRIPT_HEADER_FALLBACK = `<noscript><style>
+@media (max-width: 1399px) {
+  .nexora-site-header:not(.has-measured-layout) .nexora-site-header__inner {
+    align-items: stretch !important;
+    flex-direction: column !important;
+    flex-wrap: wrap !important;
+    gap: var(--nx-space-2) !important;
+  }
+  .nexora-site-header:not(.has-measured-layout) .nexora-site-header__brand {
+    align-self: flex-start !important;
+  }
+  .nexora-site-header:not(.has-measured-layout) .nexora-site-header__toggle {
+    display: none !important;
+  }
+  .nexora-site-header:not(.has-measured-layout) .nexora-site-header__menu {
+    position: static !important;
+    top: auto;
+    right: auto;
+    left: auto;
+    z-index: auto;
+    display: flex !important;
+    align-items: stretch;
+    flex-direction: column;
+    gap: var(--nx-space-2);
+    width: 100%;
+    max-height: none;
+    overflow: visible;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .nexora-site-header:not(.has-measured-layout) .nexora-site-header__nav,
+  .nexora-site-header:not(.has-measured-layout) .nexora-site-header__actions {
+    width: 100%;
+  }
+  .nexora-site-header:not(.has-measured-layout) .nexora-site-header__nav-list,
+  .nexora-site-header:not(.has-measured-layout) .nexora-site-header__actions {
+    flex-wrap: wrap;
+  }
+}
+</style></noscript>`;
 const renderBreadcrumbHtml = (items: readonly NexoraBreadcrumbItem[]) => {
   const listItems = items.map((item, index) => {
     const current = index === items.length - 1;
@@ -71,7 +115,8 @@ try {
 }
 const rootMarker = '<div id="root"></div>';
 if (!indexHtml.includes(rootMarker)) throw new Error('Expected an empty #root in Vite index.html before prerendering.');
-await writeFile(indexPath, indexHtml.replace(rootMarker, `<div id="root">${renderedHomepage}</div>`));
+const indexHtmlWithNoScriptFallback = indexHtml.replace("</head>", `${NO_SCRIPT_HEADER_FALLBACK}\n</head>`);
+await writeFile(indexPath, indexHtmlWithNoScriptFallback.replace(rootMarker, `<div id="root">${renderedHomepage}</div>`));
 
 // The SalonOS landing page is prerendered into its own document so crawlers
 // receive the full page content instead of an empty client-only shell.
@@ -113,6 +158,7 @@ const landingHtml = `<!doctype html>
 ${clarityScript}
 ${moduleScript}
 ${stylesheet}
+${NO_SCRIPT_HEADER_FALLBACK}
 </head>
 <body>
 <div id="root">${renderedLanding}</div>
@@ -158,6 +204,7 @@ const pricingHtml = `<!doctype html>
 ${clarityScript}
 ${moduleScript}
 ${stylesheet}
+${NO_SCRIPT_HEADER_FALLBACK}
 </head>
 <body>
 <div id="root">${renderedPricing}</div>
@@ -202,6 +249,7 @@ const privacyHtml = `<!doctype html>
 ${clarityScript}
 ${moduleScript}
 ${stylesheet}
+${NO_SCRIPT_HEADER_FALLBACK}
 </head>
 <body>
 <div id="root">${renderedPrivacy}</div>
@@ -256,6 +304,7 @@ for (const path of NEXORA_ECOSYSTEM_ROUTES) {
 ${clarityScript}
 ${moduleScript}
 ${stylesheet}
+${NO_SCRIPT_HEADER_FALLBACK}
 </head>
 <body>
 <div id="root">${rendered}</div>
