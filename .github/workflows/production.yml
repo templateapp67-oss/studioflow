@@ -257,13 +257,32 @@ jobs:
           SUPABASE_PROJECT_REF: ${{ steps.supabase_credentials.outputs.project_ref }}
         run: |
           set -euo pipefail
-          result="$(supabase db query "select case
-            when count(*) = 2 then 'PASS: required private schemas exist'
-            else 'FAIL: one or more required private schemas are missing'
-          end as schema_preflight
-          from pg_namespace
-          where nspname in ('studioflow_private','studioflow_android_private')" \
-            --remote="$SUPABASE_PROJECT_REF" --read-only --output=csv)"
+          attempt=1
+          max_attempts=3
+          while true; do
+            if result="$(supabase db query "select case
+              when count(*) = 2 then 'PASS: required private schemas exist'
+              else 'FAIL: one or more required private schemas are missing'
+            end as schema_preflight
+            from pg_namespace
+            where nspname in ('studioflow_private','studioflow_android_private')" \
+              --remote="$SUPABASE_PROJECT_REF" --read-only --output=csv 2>&1)"; then
+              break
+            else
+              query_status=$?
+            fi
+
+            printf '%s\n' "$result"
+            if ! grep -Eq 'unexpected status 5[0-9]{2}' <<<"$result" || (( attempt >= max_attempts )); then
+              echo "::error::Supabase private-schema preflight could not complete; refusing migration dry-run."
+              exit "$query_status"
+            fi
+
+            echo "::warning::Supabase SQL query API returned a transient 5xx response (attempt $attempt/$max_attempts); retrying the read-only preflight."
+            sleep $((attempt * 5))
+            attempt=$((attempt + 1))
+          done
+
           printf '%s\n' "$result"
           if ! grep -Fq 'PASS: required private schemas exist' <<<"$result"; then
             echo "::error::Required private schemas are missing; refusing migration dry-run."
