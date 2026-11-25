@@ -421,7 +421,7 @@ jobs:
       - name: Repair and verify the reviewed production Supabase URL
         shell: bash
         env:
-          VERCEL_TOKEN: \${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
           set -euo pipefail
 
