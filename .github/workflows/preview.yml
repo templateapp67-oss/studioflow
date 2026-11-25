@@ -142,7 +142,7 @@ jobs:
       - name: Comment preview URL on PR
         if: steps.vercel-config.outputs.available == 'true' && steps.deploy.outcome == 'success' && github.event_name == 'pull_request'
         continue-on-error: true
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         env:
           PREVIEW_URL: ${{ steps.deploy.outputs.url }}
         with:
@@ -287,7 +287,7 @@ jobs:
         run: node scripts/verify-live-seo-http.mjs
 
       - name: Publish Preview Live SEO Check Run summary
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         if: always()
         continue-on-error: true
         with:
@@ -345,7 +345,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Publish Browser E2E Check Run summary
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         if: always()
         continue-on-error: true
         with:
