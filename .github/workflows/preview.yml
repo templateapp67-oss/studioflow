@@ -265,8 +265,17 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/pw-runner
-          echo '{"private":true}' > /tmp/pw-runner/package.json
-          npm install --prefix /tmp/pw-runner --no-save --no-audit --no-fund playwright@1.65.1 lighthouse@13.6.0
+          cat > /tmp/pw-runner/package.json <<'EOF'
+          {
+            "private": true,
+            "overrides": {
+              "tldts": "7.4.19",
+              "tldts-core": "7.4.19",
+              "tldts-icann": "7.4.19"
+            }
+          }
+          EOF
+          npm install --prefix /tmp/pw-runner --no-save --no-package-lock --no-audit --no-fund playwright@1.65.1 lighthouse@13.6.0
           /tmp/pw-runner/node_modules/.bin/playwright install chromium --with-deps
           /tmp/pw-runner/node_modules/.bin/playwright --version
 
