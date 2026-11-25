@@ -59,7 +59,11 @@ for (const file of allFiles) {
   assert.equal(robots.length, 1, routeName + ' has one robots meta directive');
   assert.match(getContent(robots[0]), /^index,\s*follow$/i, routeName + ' is intended to be indexable');
   assert.equal(h1Count, 1, routeName + ' has exactly one H1');
-  assert.ok(jsonLd.length >= 1, routeName + ' has structured data');
+  if (routeName === '/privacy/index.html') {
+    assert.equal(jsonLd.length, 0, 'privacy page retains its existing no-JSON-LD contract');
+  } else {
+    assert.ok(jsonLd.length >= 1, routeName + ' has structured data');
+  }
   for (const [index, match] of jsonLd.entries()) {
     assert.doesNotThrow(() => JSON.parse(match[1]), routeName + ' JSON-LD block ' + (index + 1) + ' parses as JSON');
   }
