@@ -8,7 +8,7 @@ const previewUrl = (process.env.PREVIEW_URL || '').trim().replace(/\/+$/, '');
 const packageRoot = (process.env.PLAYWRIGHT_PACKAGE_ROOT || '').trim();
 const reportDir = resolve(process.env.LIGHTHOUSE_REPORT_DIR || 'test-results/preview-lighthouse');
 const bypass = (process.env.VERCEL_AUTOMATION_BYPASS_SECRET || '').trim();
-const previewHeaders = bypass ? { 'x-vercel-protection-bypass': bypass } : {};
+const previewHeaders = bypass ? { 'x-vercel-protection-bypass': bypass, 'x-vercel-set-bypass-cookie': 'true' } : {};
 
 if (!previewUrl) throw new Error('PREVIEW_URL is required for Lighthouse preview auditing.');
 if (!packageRoot) throw new Error('PLAYWRIGHT_PACKAGE_ROOT is required for pinned browser tooling.');
@@ -77,10 +77,10 @@ for (const route of routes) {
       formFactor: 'mobile',
       screenEmulation: { mobile: true, width: 390, height: 844, deviceScaleFactor: 2, disabled: false },
       throttlingMethod: 'simulate',
+      extraHeaders: previewHeaders,
     }, {
       extends: 'lighthouse:default',
       settings: {
-        extraHeaders: previewHeaders,
         skipAudits: ['is-crawlable', 'robots-txt'],
       },
     });
