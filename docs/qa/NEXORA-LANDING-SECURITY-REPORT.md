@@ -42,7 +42,7 @@ requests produced exactly one row.
 ### SEC-04 — Shared rate-limit implementation (deployment verification pending)
 
 The counter lives in `public.landing_lead_rate_limits` and is shared by every function instance
-(`register_landing_lead_attempt`, 5 attempts / 600 s). Only a salted SHA-256 hash of the client address is
+(`claim_landing_lead_rate_limit`, 5 attempts / 600 s). Only a salted SHA-256 hash of the client address is
 stored; configure the same stable, secret `LANDING_LEAD_RATE_LIMIT_SALT` on the server and Edge. The public default is not a privacy secret. The raw address is not written to the register. The server route now claims a budget through the same database RPC before its trusted Edge call; the counters align only when both services observe the same address and use the same salt/project. See the rollout and trust caveats in `PUBLIC-CONTENT-SEO-AUDIT.md`.
 
 ### SEC-05 — A privileged key in a browser variable (P0, fixed)

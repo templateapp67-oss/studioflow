@@ -27,6 +27,7 @@
 // automatically. No credential is ever shipped to the browser.
 // =============================================================================
 import { createClient } from 'npm:@supabase/supabase-js@2.117.3';
+import { parseLeadBudget, type LeadBudget } from './landingLeadRateLimit.ts';
 
 const ALLOWED_ORIGINS = new Set([
   'https://nexorasalon.online',
@@ -72,8 +73,8 @@ const corsHeaders = (origin: string | null) => {
   return headers;
 };
 
-const json = (payload: unknown, status: number, origin: string | null) =>
-  new Response(JSON.stringify(payload), { status, headers: { ...corsHeaders(origin), ...(status === 429 ? { 'Retry-After': '600' } : {}) } });
+const json = (payload: unknown, status: number, origin: string | null, retryAfterSeconds?: number) =>
+  new Response(JSON.stringify(payload), { status, headers: { ...corsHeaders(origin), ...(retryAfterSeconds ? { 'Retry-After': String(retryAfterSeconds) } : {}) } });
 
 const SUCCESS = { ok: true, message: 'Your request has been received.' };
 const INVALID = { ok: false, message: 'Please check the required fields and try again.' };
@@ -178,20 +179,20 @@ interface LeadService {
   };
 }
 
-const checkRateLimit = async (service: LeadService, bucketKey: string): Promise<'allowed' | 'limited' | 'unavailable'> => {
-  let data: unknown;
+const checkRateLimit = async (service: LeadService, bucketKey: string): Promise<LeadBudget | null> => {
+  let budget: LeadBudget | null;
   try {
-    const result = await service.rpc('register_landing_lead_attempt', {
+    const result = await service.rpc('claim_landing_lead_rate_limit', {
       p_bucket_key: bucketKey,
       p_window_seconds: RATE_LIMIT_WINDOW_SECONDS,
       p_max_attempts: RATE_LIMIT_MAX,
     });
-    if (result.error || typeof result.data !== 'number' || !Number.isSafeInteger(result.data) || result.data < 1) throw new Error('limiter unavailable');
-    data = result.data;
+    budget = result.error ? null : parseLeadBudget(result.data, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_SECONDS);
+    if (!budget) throw new Error('limiter unavailable');
   } catch {
     // Upstream errors can contain PII or credentials; emit only a static event.
     console.error('submit-landing-lead: rate limiter unavailable');
-    return 'unavailable';
+    return null;
   }
   pruneCounter = (pruneCounter + 1) % 25;
   if (pruneCounter === 0) {
@@ -201,7 +202,7 @@ const checkRateLimit = async (service: LeadService, bucketKey: string): Promise<
       // Housekeeping only — a failure here must never fail the request.
     }
   }
-  return (data as number) > RATE_LIMIT_MAX ? 'limited' : 'allowed';
+  return budget;
 };
 
 /* --------------------------------------------------------------------------
@@ -290,8 +291,8 @@ Deno.serve(async (request: Request) => {
   if (!trustedServerCall) {
     const bucketKey = await hashKey(clientKey(request));
     const budget = await checkRateLimit(service, bucketKey);
-    if (budget === 'limited') return json({ ok: false, message: 'Too many requests. Please try again later.' }, 429, origin);
-    if (budget === 'unavailable') return json({ ok: false, message: 'The request service is temporarily unavailable. Please try again later.' }, 503, origin);
+    if (budget && !budget.allowed) return json({ ok: false, message: 'Too many requests. Please try again later.' }, 429, origin, budget.retryAfterSeconds);
+    if (!budget) return json({ ok: false, message: 'The request service is temporarily unavailable. Please try again later.' }, 503, origin);
   }
 
   const turnstileToken = asString(body.turnstile_token, 2048);

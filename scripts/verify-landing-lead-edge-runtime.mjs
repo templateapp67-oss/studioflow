@@ -20,14 +20,15 @@ let rpcArgs;
 const privateText = 'sensitive-visitor@example.test service-test-secret provider-detail';
 globalThis.__testLeadService = {
   async rpc(fn, args) {
-    if (fn === 'register_landing_lead_attempt') rpcArgs = args;
+    if (fn === 'claim_landing_lead_rate_limit') rpcArgs = args;
     rpcCalls++;
     if (rpcMode === 'throw') throw new Error(privateText);
     if (rpcMode === 'error') return { data: null, error: { code: privateText, message: privateText } };
-    if (rpcMode === 'malformed') return { data: NaN, error: null };
-    if (rpcMode === 'zero') return { data: 0, error: null };
-    if (rpcMode === 'limited') return { data: 6, error: null };
-    return { data: 1, error: null };
+    if (rpcMode === 'malformed') return { data: null, error: null };
+    if (rpcMode === 'zero') return { data: { allowed: true, count: 0, limit: 5, remaining: 5, retry_after_seconds: 0 }, error: null };
+    if (rpcMode === 'inconsistent') return { data: { allowed: true, count: 6, limit: 5, remaining: 0, retry_after_seconds: 0 }, error: null };
+    if (rpcMode === 'limited') return { data: { allowed: false, count: 6, limit: 5, remaining: 0, retry_after_seconds: 37 }, error: null };
+    return { data: { allowed: true, count: 1, limit: 5, remaining: 4, retry_after_seconds: 0 }, error: null };
   },
   from() { return { insert() { inserts++; return { select() { return { async single() {
     if (insertMode === 'throw') throw new Error(privateText);
@@ -52,13 +53,13 @@ try {
       method: 'POST', headers: { 'content-type': 'application/json', authorization, ...headers }, body: JSON.stringify({ ...payload, ...extra }),
     }));
   }
-  for (const mode of ['throw', 'error', 'malformed', 'zero']) {
+  for (const mode of ['throw', 'error', 'malformed', 'zero', 'inconsistent']) {
     rpcMode = mode; const before = inserts;
     const response = await request();
     assert.equal(response.status, 503, `${mode} limiter failure refuses submission`);
     assert.equal(inserts, before);
   }
-  rpcMode = 'limited'; const limited = await request(); assert.equal(limited.status, 429); assert.equal(limited.headers.get('retry-after'), '600');
+  rpcMode = 'limited'; const limited = await request(); assert.equal(limited.status, 429); assert.equal(limited.headers.get('retry-after'), '37');
   rpcMode = 'ok';
   for (const mode of ['error', 'throw']) {
     insertMode = mode;

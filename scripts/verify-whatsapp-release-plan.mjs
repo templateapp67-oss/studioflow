@@ -83,4 +83,4 @@ assert(workflow.includes('$SUPABASE_PROJECT_REF" != "zilwgiuiygqqardzutxi"'));
 const config=readFileSync('supabase/config.toml','utf8');
 assert(/\[functions\.nexora-whatsapp-connect\]\s*verify_jwt\s*=\s*true/.test(config));
 assert(/\[functions\.studioflow-whatsapp-booking\]\s*verify_jwt\s*=\s*false/.test(config));
-console.log(`PASS: ${applied.size} applied migration versions (captured export plus ${postExportApplied.length} post-export records), ${pending.length} explicitly approved pending migrations, ${reviewedFiles.size} reviewed feature records; 15 deferred feature drafts and the superseded test draft remain preserved. Live apply is not tested.`);
+console.log(`PASS: ${applied.size} applied migration versions (captured export plus ${postExportApplied.length} post-export records), ${pending.length} listed pending migrations (production approval remains separate), ${reviewedFiles.size} reviewed feature records; 15 deferred feature drafts and the superseded test draft remain preserved. Live apply is not tested.`);

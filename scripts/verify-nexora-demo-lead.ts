@@ -18,9 +18,11 @@ type Responder = {
 };
 
 const captured: { status: number; body: any }[] = [];
+const headers: Record<string, string> = {};
 const logs: string[] = [];
 
 const respond = (): Responder => ({
+  setHeader: (name, value) => { headers[name] = value; },
   status(code: number) {
     return {
       status: () => respond(),
@@ -45,11 +47,12 @@ const originalEnv = { ...process.env };
 
 let upstream: { status: number; body: any } = { status: 200, body: { ok: true } };
 let upstreamCalls: { url: string; headers: Record<string, string>; payload: any }[] = [];
-let budgetCalls: any[] = []; let budgetValue: any = 1; let budgetStatus = 200;
+const allowed = { allowed: true, count: 1, limit: 5, remaining: 4, retry_after_seconds: 0 };
+let budgetCalls: any[] = []; let budgetValue: any = allowed; let budgetStatus = 200;
 
 globalThis.fetch = (async (url: string, init: any) => {
   if (String(url).includes('/rest/v1/rpc/prune_landing_lead_rate_limits')) return { ok: true, status: 200, json: async () => 0 } as any;
-  if (String(url).includes('/rest/v1/rpc/register_landing_lead_attempt')) {
+  if (String(url).includes('/rest/v1/rpc/claim_landing_lead_rate_limit')) {
     budgetCalls.push(JSON.parse(init.body));
     return { ok: budgetStatus === 200, status: budgetStatus, json: async () => budgetValue } as any;
   }
@@ -76,7 +79,7 @@ const validLead = {
 };
 
 async function call(body: unknown, method = 'POST') {
-  captured.length = 0;
+  captured.length = 0; for (const key of Object.keys(headers)) delete headers[key];
   upstreamCalls = []; budgetCalls = [];
   await nexoraDemoLeadHandler({ method, body, ip: '192.0.2.7' } as any, respond());
   return { status: captured[0]?.status, body: captured[0]?.body };
@@ -94,9 +97,10 @@ try {
   assert.equal(isTooFast(undefined), false); assert.equal(isTooFast(-1), true);
   let quick = await call({ ...validLead, formElapsedMs: 100 });
   assert.equal(quick.status, 400); assert.equal(budgetCalls.length, 0); assert.equal(upstreamCalls.length, 0);
-  budgetValue = 6; let blocked = await call(validLead); assert.equal(blocked.status, 429); assert.equal(upstreamCalls.length, 0);
+  budgetValue = { allowed: false, count: 6, limit: 5, remaining: 0, retry_after_seconds: 37 }; let blocked = await call(validLead); assert.equal(blocked.status, 429); assert.equal(headers['Retry-After'], '37'); assert.equal(upstreamCalls.length, 0);
   budgetValue = 'bad'; blocked = await call(validLead); assert.equal(blocked.status, 503); assert.equal(upstreamCalls.length, 0);
-  budgetValue = 1; budgetStatus = 503; blocked = await call(validLead); assert.equal(blocked.status, 503); assert.equal(upstreamCalls.length, 0); budgetStatus = 200;
+  budgetValue = { ...allowed, allowed: false }; blocked = await call(validLead); assert.equal(blocked.status, 503); assert.equal(upstreamCalls.length, 0);
+  budgetValue = allowed; budgetStatus = 503; blocked = await call(validLead); assert.equal(blocked.status, 503); assert.equal(upstreamCalls.length, 0); budgetStatus = 200;
 
   /* --- 1. Valid submission is stored ------------------------------------- */
   upstream = { status: 200, body: { ok: true } };

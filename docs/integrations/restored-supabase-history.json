@@ -2052,7 +2052,13 @@
     "relations": 273,
     "assessment": "Read-only owner-supplied live catalog; not a live migration dry-run or deployment."
   },
-  "release_pending_migrations": [],
+  "release_pending_migrations": [
+    {
+      "file": "20261125090000_nexora_lead_rate_limit_rpc.sql",
+      "approval": "pending_owner_review",
+      "purpose": "Pending branch implementation of the shared lead-rate-limit RPC; production apply requires the protected manual release and explicit owner approval."
+    }
+  ],
   "reviewed_feature_migrations": [
     {
       "file": "20261117130000_reconcile_template15_multiservice_booking.sql",

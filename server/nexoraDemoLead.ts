@@ -19,6 +19,7 @@
 import { readServerEnvironment } from './nexoraEnv.js';
 import { createHash } from 'node:crypto';
 import { isIP } from 'node:net';
+import { parseLeadBudget, type LeadBudget } from '../supabase/functions/submit-landing-lead/landingLeadRateLimit.js';
 
 const PRIVACY_NOTICE_VERSION = '2026-11';
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -96,21 +97,22 @@ export function leadClientIp(req: DemoLeadRequest, vercel = process.env.VERCEL =
   return value.startsWith('::ffff:') && isIP(value.slice(7)) === 4 ? value.slice(7) : value;
 }
 
-async function claimLeadBudget(req: DemoLeadRequest): Promise<'allowed' | 'limited' | 'unavailable'> {
+async function claimLeadBudget(req: DemoLeadRequest): Promise<LeadBudget | null> {
   const serviceKey = env('SUPABASE_SERVICE_ROLE_KEY') || env('SUPABASE_SECRET_KEY');
-  if (!serviceKey) return 'unavailable';
+  if (!serviceKey) return null;
   const salt = (process.env.LANDING_LEAD_RATE_LIMIT_SALT || 'nexora-landing-rate-limit-v1').trim();
   const hash = createHash('sha256').update(`${salt}:${leadClientIp(req)}`).digest('hex');
   const url = readServerEnvironment(process.env, false).supabaseUrl;
-  const result = await postJson(`${url.replace(/\/+$/, '')}/rest/v1/rpc/register_landing_lead_attempt`,
+  const result = await postJson(`${url.replace(/\/+$/, '')}/rest/v1/rpc/claim_landing_lead_rate_limit`,
     { 'Content-Type': 'application/json', Accept: 'application/json', apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
     { p_bucket_key: hash, p_window_seconds: 600, p_max_attempts: 5 });
-  if (!result.ok || typeof result.body !== 'number' || !Number.isSafeInteger(result.body) || result.body < 1) return 'unavailable';
+  const budget = result.ok ? parseLeadBudget(result.body, 5, 600) : null;
+  if (!budget) return null;
   // Best effort; unlike an in-memory counter this remains effective when most
   // serverless instances are cold. A scheduled cleanup is still advisable.
   if (Math.random() < 0.04) await postJson(`${url.replace(/\/+$/, '')}/rest/v1/rpc/prune_landing_lead_rate_limits`,
     { 'Content-Type': 'application/json', apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, {}, 2000);
-  return result.body > 5 ? 'limited' : 'allowed';
+  return budget;
 }
 
 // This client-supplied timing signal is a frictionless heuristic, not proof
@@ -220,11 +222,11 @@ export async function nexoraDemoLeadHandler(req: DemoLeadRequest, res: JsonRespo
   if (body.consent !== true) return fail(res, 400, 'Please confirm that Nexora may contact you.', id);
 
   const budget = await claimLeadBudget(req);
-  if (budget === 'limited') {
-    res.setHeader?.('Retry-After', '600');
+  if (budget && !budget.allowed) {
+    res.setHeader?.('Retry-After', String(budget.retryAfterSeconds));
     return fail(res, 429, 'Too many demo requests. Please try again later.', id);
   }
-  if (budget === 'unavailable') return fail(res, 503, 'Demo requests are temporarily unavailable. No request was sent; please try again later.', id);
+  if (!budget) return fail(res, 503, 'Demo requests are temporarily unavailable. No request was sent; please try again later.', id);
 
   const stored = await storeLead({
     lead_type: 'demo_request',
