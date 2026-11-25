@@ -40,6 +40,7 @@ export const NOINDEX_PATH_PREFIXES = ['/api', '/admin', '/owner', '/staff'] as c
 export const NOINDEX_QUERY_KEYS = [
   'app',
   'customer',
+  'customer_ref',
   'owner',
   'panel',
   'create',
