@@ -122,7 +122,7 @@ const publishedSlugs = [
 const xml = sitemapXml(NEXORA_PUBLIC_ORIGIN, publishedSlugs);
 assert.match(
   xml,
-  /^<\?xml version="1\.0" encoding="UTF-8"\?>\n<urlset xmlns="https:\/\/www\.sitemaps\.org\/schemas\/sitemap\/0\.9">[\s\S]*<\/urlset>$/,
+  /^<\?xml version="1\.0" encoding="UTF-8"\?>\n<urlset xmlns="http:\/\/www\.sitemaps\.org\/schemas\/sitemap\/0\.9">[\s\S]*<\/urlset>$/,
   'sitemap is a complete XML urlset document with the standard namespace',
 );
 
