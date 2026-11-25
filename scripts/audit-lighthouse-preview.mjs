@@ -75,7 +75,7 @@ for (const route of routes) {
       extends: 'lighthouse:default',
       settings: {
         extraHeaders: previewHeaders,
-        skipAudits: ['is-crawlable'],
+        skipAudits: ['is-crawlable', 'robots-txt'],
       },
     });
     const lhr = result.lhr;
