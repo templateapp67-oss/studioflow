@@ -17,6 +17,7 @@ const OPTIONAL_ENV = new Map([
   ['verify-live-seo-http.mjs', ['LIVE_SEO_URL']],
   ['verify-nexora-responsive-browser.mjs', ['BROWSER_TOOLS_ROOT', 'PREVIEW_URL']],
   ['verify-preview-browser-e2e.mjs', ['PLAYWRIGHT_PACKAGE_ROOT', 'PREVIEW_URL']],
+  ['verify-nexora-interaction-responsiveness.mjs', ['PLAYWRIGHT_PACKAGE_ROOT', 'PREVIEW_URL']],
 ]);
 // These suites create/update files inside the repo workspace while running, so
 // they execute serially after the parallel pool to prevent any race.
