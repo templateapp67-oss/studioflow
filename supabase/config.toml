@@ -1,3 +1,13 @@
+# Public landing-page lead endpoint. It is reachable without a Supabase session
+# (browser form POST) and validates input via honeypot + Turnstile + a salted
+# shared rate-limit store, not a Supabase JWT. The gateway JWT check must stay
+# disabled: a browser form submit carries no Authorization header, and enabling
+# it would reject every genuine lead. Omitting this block would silently deploy
+# with the gateway default (verify_jwt = true) and break the endpoint, so it is
+# required for this function.
+[functions.submit-landing-lead]
+verify_jwt = false
+
 # Owner connection uses a valid Supabase JWT and performs an explicit Auth getUser() check.
 [functions.nexora-whatsapp-connect]
 verify_jwt = true

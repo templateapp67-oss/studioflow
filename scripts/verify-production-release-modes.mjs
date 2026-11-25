@@ -329,7 +329,7 @@ if(bashRuntime.bin){
   } finally { rmSync(tempDir,{recursive:true,force:true}); }
 }
 
-for(const label of ['Apply production migrations','Deploy reviewed WhatsApp Edge Functions']){
+for(const label of ['Apply production migrations','Deploy reviewed Edge Functions']){
   const step=workflow.split('- name: '+label)[1].split('\n      - ')[0].split('\n  deploy:')[0];
   assert(step.includes("if: github.event_name == 'workflow_dispatch' && inputs.release_mode == 'apply_and_deploy'"));
 }
@@ -379,7 +379,7 @@ const hostedSteps=[
   'Verify local and remote Supabase migration history',
   'Migration dry-run (remote production database)',
   'Apply production migrations (manual apply_and_deploy only)',
-  'Deploy reviewed WhatsApp Edge Functions (manual apply_and_deploy only)',
+  'Deploy reviewed Edge Functions (manual apply_and_deploy only)',
 ];
 for(const stepName of hostedSteps){
   assert(migrateJob.indexOf('Validate Supabase migration credentials')<migrateJob.indexOf(stepName),
@@ -608,6 +608,7 @@ exec "$STUDIOFLOW_NODE_BIN" "$@"
     assert.deepEqual(calls[3].argv,['db','push',`--remote=${EXPECTED_REF}`,'--password',PASS_SENTINEL,'--yes']);
     assert.deepEqual(calls[4].argv,[
       'functions','deploy',
+      'submit-landing-lead',
       'nexora-whatsapp-connect','nexora-whatsapp-webhook',
       'studioflow-payments','studioflow-whatsapp-booking','studioflow-booking-emails',
       `--remote=${EXPECTED_REF}`,'--use-api',
@@ -668,7 +669,7 @@ console.log('PASS: one release dropdown; all main pushes run remote migration-hi
 // contract -- exactly how studioflow-booking-emails would have shipped with a
 // gateway JWT check that breaks its CORS preflight and GET status probe.
 const supabaseConfig = readFileSync('supabase/config.toml', 'utf8').replace(/\r\n?/g, '\n');
-const deployStepBlock = getMigrateStep('Deploy reviewed WhatsApp Edge Functions (manual apply_and_deploy only)');
+const deployStepBlock = getMigrateStep('Deploy reviewed Edge Functions (manual apply_and_deploy only)');
 const deployRun = deployStepBlock.split('        run: >-\n')[1];
 assert(deployRun, 'Edge Function deploy step must use a folded run block');
 const deployedFunctions = deployRun

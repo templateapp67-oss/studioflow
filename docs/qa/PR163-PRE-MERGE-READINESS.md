@@ -124,6 +124,15 @@ only in manual `apply_and_deploy` mode, includes `submit-landing-lead` / `nexora
 `nexora-whatsapp-webhook` / `studioflow-payments`, and has no `continue-on-error: true`. The step
 is still manual-only and never mutates production on a plain `main` push.
 
+**Required config (same fix):** Because `submit-landing-lead` is now deployed via
+`supabase functions deploy`, `supabase/config.toml` needed a `[functions.submit-landing-lead]`
+section. It was absent, so the CLI would have deployed it with the gateway default
+`verify_jwt = true` and rejected every genuine browser form submit. Added the section with
+`verify_jwt = false` (the endpoint is public, validates via honeypot + Turnstile + salted
+rate-limit, and carries no Supabase JWT — matching its current runtime). `verify-production-release-modes.mjs`
+now asserts the section exists. The two release-plan tests that referenced the old step name were
+updated to the renamed step.
+
 ---
 
 ## 5. Environment limits / skipped checks (disclosed)

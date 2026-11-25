@@ -74,7 +74,7 @@ assert.equal(history.live_catalog_evidence.applied_versions,history.applied_vers
   'The catalog evidence count must remain tied to its original export date');
 assert(history.live_catalog_evidence.captured_at);
 const workflow=readFileSync('.github/workflows/production.yml','utf8');
-const edgeStep=workflow.split('- name: Deploy reviewed WhatsApp Edge Functions')[1]?.split('\n  deploy:')[0];
+const edgeStep=workflow.split('- name: Deploy reviewed Edge Functions')[1]?.split('\n  deploy:')[0];
 assert(edgeStep,'Missing Edge deployment step after approved migrations');
 assert(edgeStep.includes("github.event_name == 'workflow_dispatch' && inputs.release_mode == 'apply_and_deploy'"));
 assert(edgeStep.includes('--remote="$SUPABASE_PROJECT_REF" --use-api'));
