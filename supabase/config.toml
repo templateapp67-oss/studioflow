@@ -37,6 +37,20 @@ verify_jwt = false
 [functions.studioflow-tawk-connect]
 verify_jwt = false
 
+# Keep gateway JWT verification for these signed-in endpoints. Each
+# handler also verifies the authenticated user and enforces its own scope.
+[functions.nexora-mobile-qr]
+verify_jwt = true
+
+[functions.studioflow-service-ai-images]
+verify_jwt = true
+
+[functions.studioflow-campaign-whatsapp]
+verify_jwt = true
+
+[functions.studioflow-welcome-whatsapp]
+verify_jwt = true
+
 [auth]
 minimum_password_length = 12
 
