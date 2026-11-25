@@ -69,7 +69,9 @@ try {
   }
   insertMode = 'ok';
   // Document actual compatibility, not a claim of deployed protection.
+  const quickRpcBefore = rpcCalls;
   const quick = await request({ form_elapsed_ms: 100 }); assert.equal(quick.status, 400);
+  assert.equal(rpcCalls, quickRpcBefore, 'a fast submission is rejected before the rate limiter, consuming no budget');
   const negative = await request({ form_elapsed_ms: -1 }); assert.equal(negative.status, 400);
   const invalidPhone = await request({ phone: 'not a number' }); assert.equal(invalidPhone.status, 400);
   const noSecret = await request({ form_elapsed_ms: 3000 }, 'Bearer public-test-key', { 'x-forwarded-for': '192.0.2.7' }); assert.equal(noSecret.status, 200);
@@ -79,6 +81,17 @@ try {
   // A honeypot submission is dropped before the rate limiter, so it must not
   // consume the shared per-IP budget.
   assert.equal(rpcCalls, trappedRpcBefore, 'a honeypot submission does not consume the rate-limit budget');
+  // The answer must be indistinguishable from a real success: no bot-detection
+  // clue in the status or the body.
+  const successShape = await request({ form_elapsed_ms: 3000 });
+  assert.deepEqual(await trapped.json(), await successShape.json(), 'a honeypot answer is identical to a stored-lead answer');
+  // All three honeypot fields must trap, not just `website`.
+  for (const field of ['company_website', 'fax_number']) {
+    const before = inserts;
+    const trappedAlt = await request({ [field]: 'https://spam.example' });
+    assert.equal(trappedAlt.status, 200, `the ${field} honeypot field traps`);
+    assert.equal(inserts, before, `a ${field} honeypot submission is never stored`);
+  }
   // Legitimate Indian +91 numbers and plus-addressed emails must not be
   // false-positived by the phone/email spam checks.
   const indiaPhone = await request({ phone: '+91 98765 43210' }); assert.equal(indiaPhone.status, 200, 'a valid +91 phone is accepted');

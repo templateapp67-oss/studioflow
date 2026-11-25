@@ -98,6 +98,10 @@ try {
   assert.equal(isTooFast(undefined), false); assert.equal(isTooFast(-1), true);
   let quick = await call({ ...validLead, formElapsedMs: 100 });
   assert.equal(quick.status, 400); assert.equal(budgetCalls.length, 0); assert.equal(upstreamCalls.length, 0);
+  // The Edge spelling (snake_case) must also trigger the timing guard on the
+  // direct server route, so a bot cannot skip it by reusing that field name.
+  quick = await call({ ...validLead, formElapsedMs: undefined, form_elapsed_ms: 100 });
+  assert.equal(quick.status, 400); assert.equal(budgetCalls.length, 0); assert.equal(upstreamCalls.length, 0);
   budgetValue = { allowed: false, count: 6, limit: 5, remaining: 0, retry_after_seconds: 37 }; let blocked = await call(validLead); assert.equal(blocked.status, 429); assert.equal(headers['Retry-After'], '37'); assert.equal(upstreamCalls.length, 0);
   budgetValue = 'bad'; blocked = await call(validLead); assert.equal(blocked.status, 503); assert.equal(upstreamCalls.length, 0);
   budgetValue = { ...allowed, allowed: false }; blocked = await call(validLead); assert.equal(blocked.status, 503); assert.equal(upstreamCalls.length, 0);

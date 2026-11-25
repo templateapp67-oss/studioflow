@@ -219,7 +219,10 @@ export async function nexoraDemoLeadHandler(req: DemoLeadRequest, res: JsonRespo
     return res.status(201).json({ ok: true, requestId: id });
   }
 
-  if (isTooFast(body.formElapsedMs)) return fail(res, 400, 'Please wait a moment, then try again.', id);
+  // Check both the client (camelCase) and Edge (snake_case) field names so a
+  // direct bot cannot skip the timing heuristic by reusing the Edge spelling.
+  // Absent values still pass, keeping legacy callers compatible.
+  if (isTooFast(body.formElapsedMs) || isTooFast(body.form_elapsed_ms)) return fail(res, 400, 'Please wait a moment, then try again.', id);
 
   const name = cleanText(body.name, 100);
   const email = cleanText(body.email, 254).toLowerCase();
