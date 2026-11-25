@@ -117,7 +117,10 @@ export function parseDotenvEntries(content) {
         p += 1;
       }
       if (!closed) {
-        value = unescapeDoubleQuoted(content.slice(valStart, p));
+        throw new Error(`Unterminated quoted dotenv value for ${key}; refusing to modify the environment file.`);
+      }
+      if (!/^[ \t]*(?:#.*)?$/.test(content.slice(p, consumeRestOfLine(p)).replace(/[\r\n]+$/, ''))) {
+        throw new Error(`Unexpected text after quoted dotenv value for ${key}; refusing to modify the environment file.`);
       }
       i = consumeRestOfLine(p);
     } else if (p < len && (content[p] === "'" || content[p] === '`')) {
@@ -135,7 +138,10 @@ export function parseDotenvEntries(content) {
         p += 1;
       }
       if (!closed) {
-        value = content.slice(valStart, p);
+        throw new Error(`Unterminated quoted dotenv value for ${key}; refusing to modify the environment file.`);
+      }
+      if (!/^[ \t]*(?:#.*)?$/.test(content.slice(p, consumeRestOfLine(p)).replace(/[\r\n]+$/, ''))) {
+        throw new Error(`Unexpected text after quoted dotenv value for ${key}; refusing to modify the environment file.`);
       }
       i = consumeRestOfLine(p);
     } else {
@@ -168,6 +174,11 @@ export function upsertDotenvVar(content, key, value) {
   for (let idx = 0; idx < entries.length; idx += 1) {
     const entry = entries[idx];
     if (entry.type === 'var' && entry.key === key) {
+      // A malformed multiline URL can consume a subsequent env assignment.
+      // Do not guess whether an assignment-looking line belongs to the value.
+      if (/(?:\r\n|\r|\n)[ \t]*(?:export[ \t]+)?[A-Za-z_][A-Za-z0-9_]*[ \t]*=/.test(entry.raw)) {
+        throw new Error(`Ambiguous multiline dotenv value for ${key}; refusing to modify the environment file.`);
+      }
       if (!replaced) {
         const hadTrailingNewline = entry.raw.endsWith('\n') || entry.raw.endsWith('\r');
         const hasFollowingEntry = idx < entries.length - 1;
@@ -209,35 +220,6 @@ export function describeVarMismatch(matches, expectedValue) {
   return `malformed(length=${value.length}, containsWhitespace=${containsWhitespace}, containsBackslash=${containsBackslash}, isSensitivePlaceholder=${isSensitivePlaceholder})`;
 }
 
-const scrubSensitiveValues = (text, sensitiveValues = []) => {
-  let scrubbed = text;
-  for (const secret of sensitiveValues) {
-    if (typeof secret === 'string' && secret.length > 0) {
-      scrubbed = scrubbed.split(secret).join('[REDACTED]');
-    }
-  }
-  return scrubbed;
-};
-
-const sanitizeApiError = (status, rawBody, sensitiveValues = []) => {
-  try {
-    const parsed = JSON.parse(rawBody);
-    const code =
-      typeof parsed?.error?.code === 'string'
-        ? scrubSensitiveValues(parsed.error.code, sensitiveValues).slice(0, 64)
-        : '';
-    const message =
-      typeof parsed?.error?.message === 'string'
-        ? scrubSensitiveValues(parsed.error.message, sensitiveValues).slice(0, 120)
-        : '';
-    if (code && message) return `HTTP ${status} (${code}: ${message})`;
-    if (code || message) return `HTTP ${status} (${code || message})`;
-  } catch {
-    // Non-JSON response; report only the HTTP status code.
-  }
-  return `HTTP ${status}`;
-};
-
 async function attemptRemoteVercelRepair({
   apiBaseUrl,
   fetchImpl,
@@ -271,8 +253,8 @@ async function attemptRemoteVercelRepair({
       },
     });
     if (!response.ok) {
-      const body = await response.text().catch(() => '');
-      const error = new Error(sanitizeApiError(response.status, body, [token, projectId, teamId]));
+      // Never print a remote response body, which could reflect other secrets.
+      const error = new Error(`HTTP ${response.status}`);
       error.httpStatus = response.status;
       throw error;
     }
@@ -284,13 +266,23 @@ async function attemptRemoteVercelRepair({
     // record ID and target scope, never decrypted secret values.
     const envs = [];
     let until = null;
+    let complete = false;
+    const seen = new Set();
     for (let page = 0; page < 10; page += 1) {
       const cursor = until ? `&until=${encodeURIComponent(String(until))}` : '';
       const list = await request(`/v10/projects/${project}/env?limit=100${cursor}&${teamParam}`);
-      if (Array.isArray(list.envs)) envs.push(...list.envs);
+      if (!Array.isArray(list?.envs)) break;
+      envs.push(...list.envs);
       const next = list?.pagination?.next;
-      if (!next || next === until) break;
+      if (next === null || next === undefined || next === 0 || next === '') { complete = true; break; }
+      if (!['string', 'number'].includes(typeof next) || seen.has(String(next))) break;
+      seen.add(String(next));
       until = next;
+    }
+    if (!complete) {
+      // An incomplete listing could hide another production record. Never
+      // mutate remote state based on a truncated, malformed, or cyclic listing.
+      return { attempted: true, updated: false, reason: 'incomplete-remote-list', detail: 'Vercel environment listing was incomplete' };
     }
 
     const matches = envs.filter(
@@ -338,7 +330,7 @@ async function attemptRemoteVercelRepair({
       updated: false,
       httpStatus,
       reason: isAuthError ? 'unauthorized' : 'api-error',
-      detail: error instanceof Error ? error.message : 'unexpected Vercel API error',
+      detail: httpStatus ? `HTTP ${httpStatus}` : 'Vercel API request failed or returned an invalid response',
     };
   }
 }
@@ -410,23 +402,23 @@ export async function prepareVercelProductionEnv({
     if (remote.updated) {
       try {
         await pullImpl({ token, envFile });
-        if (existsSync(envFile)) {
-          const refreshedContent = readFileSync(envFile, 'utf8');
-          const refreshedState = inspectEnvFileVar(refreshedContent, key);
-          if (refreshedState.matches.length === 1 && refreshedState.matches[0].value === expectedUrl) {
-            log(`Vercel Production ${key} was repaired via Vercel API, refreshed via vercel pull, and verified.`);
-            return { status: 'remote-repaired', remoteUpdated: true, localNormalized: false };
-          }
-          warn(
-            `Vercel API updated ${key}, but the refreshed ${envFile} still reported ${describeVarMismatch(refreshedState.matches, expectedUrl)} (the variable may be marked Sensitive in Vercel). Normalizing ${envFile} locally for this prebuilt production deployment; set ${key} to ${expectedUrl} as Plain Text in Vercel Project Settings -> Environment Variables (Production).`,
-          );
-        }
-      } catch (pullError) {
-        const msg = pullError instanceof Error ? pullError.message : 'refresh error';
-        warn(
-          `Vercel API updated ${key}, but refreshing ${envFile} failed (${msg}). Normalizing ${envFile} locally for this prebuilt production deployment.`,
-        );
+      } catch {
+        // The failed pull may have partially replaced the file. Never build
+        // from it, and do not echo arbitrary CLI errors that may contain secrets.
+        throw new Error('Vercel production environment refresh failed after remote update; refusing to build from a potentially incomplete file.');
       }
+      if (!existsSync(envFile)) {
+        throw new Error('Vercel production environment file is missing after refresh; refusing to build.');
+      }
+      const refreshedContent = readFileSync(envFile, 'utf8');
+      const refreshedState = inspectEnvFileVar(refreshedContent, key);
+      if (refreshedState.matches.length === 1 && refreshedState.matches[0].value === expectedUrl) {
+        log(`Vercel Production ${key} was repaired via Vercel API, refreshed via vercel pull, and verified.`);
+        return { status: 'remote-repaired', remoteUpdated: true, localNormalized: false };
+      }
+      warn(
+        `Vercel API updated ${key}, but the refreshed ${envFile} still reported ${describeVarMismatch(refreshedState.matches, expectedUrl)} (the variable may be marked Sensitive in Vercel). Normalizing ${envFile} locally for this prebuilt production deployment; set ${key} to ${expectedUrl} as Plain Text in Vercel Project Settings -> Environment Variables (Production).`,
+      );
     } else {
       warn(
         `Vercel API did not permit automatic remote update of ${key} (${remote.detail}). Normalizing ${envFile} locally to ${expectedUrl} so this prebuilt production deployment can proceed. Update ${key} in Vercel Dashboard -> Project Settings -> Environment Variables -> Production (Plain Text) to ${expectedUrl} to remove this warning.`,
@@ -437,9 +429,9 @@ export async function prepareVercelProductionEnv({
   }
 
   const beforeLocalRewrite = readFileSync(envFile, 'utf8');
-  const expectedOtherKeys = parseDotenvEntries(beforeLocalRewrite)
+  const expectedOtherEntries = parseDotenvEntries(beforeLocalRewrite)
     .filter((entry) => entry.type === 'var' && entry.key !== key)
-    .map((entry) => entry.key);
+    .map((entry) => entry.raw.replace(/(?:\r\n|\r|\n)$/, ''));
 
   const normalizedContent = upsertDotenvVar(beforeLocalRewrite, key, expectedUrl);
   writeFileSync(envFile, normalizedContent, { encoding: 'utf8', mode: 0o600 });
@@ -455,12 +447,12 @@ export async function prepareVercelProductionEnv({
       `Vercel Production ${key} in ${envFile} still does not match the reviewed NEXORA project after local normalization.`,
     );
   }
-  const actualOtherKeys = verifiedState.entries
+  const actualOtherEntries = verifiedState.entries
     .filter((entry) => entry.type === 'var' && entry.key !== key)
-    .map((entry) => entry.key);
+    .map((entry) => entry.raw.replace(/(?:\r\n|\r|\n)$/, ''));
   if (
-    actualOtherKeys.length !== expectedOtherKeys.length ||
-    actualOtherKeys.some((otherKey, index) => otherKey !== expectedOtherKeys[index])
+    actualOtherEntries.length !== expectedOtherEntries.length ||
+    actualOtherEntries.some((entry, index) => entry !== expectedOtherEntries[index])
   ) {
     throw new Error(`Normalizing ${key} unexpectedly altered unrelated keys in ${envFile}.`);
   }

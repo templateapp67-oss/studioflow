@@ -16,6 +16,7 @@ import {
   type VedaAiDetails,
 } from "./src/lib/vedaSanjeevaniAi";
 import { nexoraDemoLeadHandler } from "./server/nexoraDemoLead";
+import { onboardingCopyHandler } from "./server/onboardingCopy";
 import { nexoraDemoLeadsAdminHandler } from "./server/nexoraDemoLeads";
 import {
   apiErrorHandler,
@@ -29,7 +30,8 @@ import {
 } from "./server/httpSafety";
 import { rateLimit } from "./server/rateLimit";
 import { canonicalHostRedirect } from "./server/canonicalHost";
-import { robotsHeaderMiddleware } from "./server/robotsHeaders";
+import { robotsHeaderMiddleware, robotsTagForRequest } from "./server/robotsHeaders";
+import storefrontHandler, { resolveStorefrontSlug } from "./api/storefront";
 import { bookingDepositHandler } from "./server/bookingDeposit";
 import { optionalVerifiedUser, requireVerifiedUser } from "./server/supabaseAuth";
 
@@ -156,8 +158,8 @@ async function startServer() {
   // is used by both this Express server and the Vercel function
   // `api/nexora-demo-lead.ts`. Credentials never enter browser code, the
   // enquiry is stored by the `submit-landing-lead` Supabase Edge Function in
-  // the private `public.landing_leads` table, and the durable rate limit of
-  // that function applies across every instance.
+  // the private `public.landing_leads` table. The fallback claims a shared
+  // per-address database budget before its trusted Edge call.
   app.post("/api/nexora-demo-lead", asyncHandler(async (req, res) => {
     await nexoraDemoLeadHandler(
       {
@@ -184,6 +186,10 @@ async function startServer() {
       },
       res,
     );
+  }));
+
+  app.post("/api/onboarding-copy", asyncHandler(async (req, res) => {
+    await onboardingCopyHandler(req, res);
   }));
 
   // AI Bio Generation Route with Gemini
@@ -635,6 +641,15 @@ Return strictly valid JSON in this format:
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), "dist");
+    // Match Vercel root middleware before express.static can serve index.html.
+    // Keep customer and private app/session flows on their existing SPA path.
+    app.use((req, res, next) => {
+      if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+      const url = new URL(req.originalUrl, 'http://localhost');
+      if (url.pathname !== '/' || robotsTagForRequest(url.pathname, url.search) ||
+          url.searchParams.has('customer_ref') || !resolveStorefrontSlug(url, 'localhost')) return next();
+      void storefrontHandler(req, res).catch(next);
+    });
     // `redirect: false` keeps the marketing documents on their canonical,
     // slash-free URLs. Without it `express.static` answers `/pricing` with a
     // 301 to `/pricing/`, which contradicts the canonical link in the
@@ -675,7 +690,15 @@ Return strictly valid JSON in this format:
     app.get(/^\/partner-rewards\/?$/, (_req, res) => {
       res.sendFile(path.join(distPath, "partner-rewards", "index.html"));
     });
-    app.get("*", (_req, res) => {
+    app.get("*", (req, res, next) => {
+      const url = new URL(req.originalUrl, 'http://localhost');
+      // Static assets, APIs, marketing and app routes have already been served.
+      // Unreserved salon paths use the same SSR lookup as Vercel; unknown slugs
+      // must not silently turn into an indexable 200 homepage.
+      if (!robotsTagForRequest(url.pathname, url.search) && resolveStorefrontSlug(url, 'localhost')) {
+        void storefrontHandler(req, res).catch(next);
+        return;
+      }
       res.sendFile(path.join(distPath, "index.html"));
     });
   }

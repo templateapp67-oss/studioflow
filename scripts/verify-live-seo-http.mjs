@@ -14,6 +14,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { parseSitemapLocations } from './parse-sitemap-xml.mjs';
 
 const rawBase = (process.env.LIVE_SEO_URL || '').trim().replace(/\/+$/, '');
 if (!rawBase) {
@@ -30,20 +31,26 @@ const reportPath = (process.env.SEO_REPORT_PATH || '').trim();
 const maxRunAttempts = Math.max(1, Number.parseInt(process.env.SEO_WAIT_RETRY_ATTEMPTS || '1', 10) || 1);
 const retryDelayMs = Math.max(500, Number.parseInt(process.env.SEO_WAIT_RETRY_DELAY_MS || '5000', 10) || 5000);
 
-const defaultHeaders = {};
-if (bypassSecret) {
-  // Stateless HTTP clients must NOT send `x-vercel-set-bypass-cookie: true`,
-  // which triggers an endless 307 cookie-setting redirect loop without a cookie jar.
-  defaultHeaders['x-vercel-protection-bypass'] = bypassSecret;
+// Strip URL userinfo (credentials) so verification error messages, reports,
+// and stderr never publish a credential embedded in a sitemap or fetch URL.
+function redactCredentials(message) {
+  return String(message).replace(/\/\/[^/\s:@]+(?::[^/\s@]+)?@/g, '//');
 }
 
 async function fetchWithRetry(url, init = {}, attempts = 3) {
   let lastError;
   for (let i = 0; i < attempts; i += 1) {
     try {
+      // Never let fetch forward the preview bypass to another origin or an
+      // HTTP downgrade. Redirects are examined explicitly by the caller.
+      const headers = { ...(init.headers || {}) };
+      if (bypassSecret && new URL(url).origin === baseUrl.origin) {
+        headers['x-vercel-protection-bypass'] = bypassSecret;
+      }
       const response = await fetch(url, {
         ...init,
-        headers: { ...defaultHeaders, ...(init.headers || {}) },
+        headers,
+        redirect: 'manual',
         signal: AbortSignal.timeout(15000),
       });
       if (response.status >= 500 && i < attempts - 1) {
@@ -61,15 +68,28 @@ async function fetchWithRetry(url, init = {}, attempts = 3) {
   throw lastError;
 }
 
-const get = async (routePath, init = {}) => {
-  const response = await fetchWithRetry(`${rawBase}${routePath}`, init);
-  return {
-    status: response.status,
-    headers: response.headers,
-    robots: response.headers.get('x-robots-tag'),
-    contentType: response.headers.get('content-type') || '',
-    body: await response.text(),
-  };
+const get = async (routePath) => {
+  let current = `${rawBase}${routePath}`;
+  for (let hops = 0; hops <= 10; hops += 1) {
+    const response = await fetchWithRetry(current);
+    const location = response.headers.get('location');
+    if ([301, 302, 303, 307, 308].includes(response.status) && location) {
+      if (hops === 10) throw new Error('SEO probe exceeded the redirect limit');
+      let next;
+      try { next = new URL(location, current); }
+      catch { throw new Error('SEO probe received an invalid redirect'); }
+      if (next.origin !== baseUrl.origin) throw new Error('SEO probe refused a cross-origin redirect');
+      current = next.href;
+      continue;
+    }
+    return {
+      status: response.status,
+      headers: response.headers,
+      robots: response.headers.get('x-robots-tag'),
+      contentType: response.headers.get('content-type') || '',
+      body: await response.text(),
+    };
+  }
 };
 
 async function verifyPermanentRedirectChain(startUrl, expectedFinalUrl, maxHops = 2) {
@@ -249,11 +269,11 @@ async function runVerification() {
       '/?site=artbyuma&recovery=1',
     ]) {
       const res = await get(privatePath);
+      // Do not include private response bodies in a publicly visible check run.
       report.privateHeaders.push({
         path: privatePath,
         status: res.status,
         xRobotsTag: res.robots,
-        ...(res.status !== 200 ? { bodySnippet: res.body.slice(0, 300) } : {}),
       });
       assert.equal(res.status, 200, `${privatePath} returns HTTP 200`);
       assert.equal(res.robots, 'noindex, nofollow', `${privatePath} must return X-Robots-Tag: noindex, nofollow`);
@@ -342,14 +362,20 @@ async function runVerification() {
 
     // 7. Dynamic /sitemap.xml hygiene.
     const sitemap = await get('/sitemap.xml');
-    const locs = [...sitemap.body.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]);
-    const siteUrls = locs.filter((loc) => loc.includes('/?site='));
+    const locs = parseSitemapLocations(sitemap.body);
+    const parsedLocs = locs.map((loc) => {
+      try { return new URL(loc); }
+      catch { throw new Error('/sitemap.xml contains an invalid URL'); }
+    });
+    const siteUrls = locs.filter((_, index) => parsedLocs[index].searchParams.has('site'));
     report.sitemapXml = {
       status: sitemap.status,
       xRobotsTag: sitemap.robots,
       contentType: sitemap.contentType,
       totalUrls: locs.length,
-      publishedSiteUrls: siteUrls,
+      // Populate URLs only after validating them, so failed checks do not
+      // publish unexpected query values or credentials into the check report.
+      publishedSiteUrls: [],
       hasApexHomepage: locs.includes('https://nexorasalon.online/'),
       hasPartnerRewards: locs.includes('https://nexorasalon.online/partner-rewards'),
       wwwCount: locs.filter((loc) => loc.includes('www.nexorasalon.online')).length,
@@ -367,16 +393,24 @@ async function runVerification() {
     for (const loc of locs) {
       const parsed = new URL(loc);
       assert.equal(parsed.origin, 'https://nexorasalon.online', `every sitemap URL uses canonical non-www HTTPS origin: ${loc}`);
+      assert.ok(!parsed.username && !parsed.password, `sitemap URLs must not contain credentials or fragments: ${loc}`);
+      assert.ok(!parsed.hash, `sitemap URLs must not contain credentials or fragments: ${loc}`);
       assert.ok(!parsed.pathname.startsWith('/api/'), `sitemap excludes /api/: ${loc}`);
       assert.ok(!/^\/(?:login|sign-in|sign-up|admin|owner|staff)(?:\/|$)/i.test(parsed.pathname), `sitemap excludes private/auth path: ${loc}`);
       for (const key of ['app', 'customer', 'customer_ref', 'owner', 'panel', 'create', 'module', 'invite', 'recovery']) {
         assert.equal(parsed.searchParams.has(key), false, `sitemap excludes session param ${key}: ${loc}`);
       }
-      const siteSlug = parsed.searchParams.get('site');
-      if (siteSlug) {
-        assert.ok(!siteSlug.startsWith('studioflow-qa-'), `sitemap excludes QA salon slug: ${loc}`);
+      if (parsed.searchParams.has('site')) {
+        const siteSlug = parsed.searchParams.get('site');
+        assert.equal(parsed.pathname, '/', 'published storefront URLs must use the root path');
+        assert.equal([...parsed.searchParams].length, 1, 'published storefront URLs must contain exactly one site parameter');
+        assert.ok(/^[a-z0-9][a-z0-9-]{2,62}$/.test(siteSlug), 'published storefront slug must be nonempty and well formed');
+        assert.ok(!siteSlug.startsWith('studioflow-qa-'), 'sitemap excludes QA salon slugs');
+      } else {
+        assert.equal(parsed.search, '', 'non-storefront sitemap URLs must not contain query parameters');
       }
     }
+    report.sitemapXml.publishedSiteUrls = siteUrls;
     if (requirePublishedSites) {
       assert.ok(siteUrls.length > 0, '/sitemap.xml must include published Supabase ?site=<slug> storefront URLs');
     }
@@ -391,9 +425,9 @@ async function runVerification() {
     const causeMsg = error instanceof Error && error.cause
       ? ` (cause: ${error.cause instanceof Error ? error.cause.message : String(error.cause)})`
       : '';
-    report.error = `${error instanceof Error ? error.message : String(error)}${causeMsg}`;
+    report.error = redactCredentials(`${error instanceof Error ? error.message : String(error)}${causeMsg}`);
     writeReport(report);
-    throw error;
+    throw new Error(redactCredentials(error instanceof Error ? error.message : String(error)));
   }
 }
 
@@ -406,11 +440,11 @@ for (let attempt = 1; attempt <= maxRunAttempts; attempt += 1) {
   } catch (error) {
     lastFailure = error;
     if (attempt < maxRunAttempts) {
-      console.warn(`Live SEO verification attempt ${attempt}/${maxRunAttempts} failed (${error?.message || error}); retrying in ${retryDelayMs}ms...`);
+      console.warn(`Live SEO verification attempt ${attempt}/${maxRunAttempts} failed (${redactCredentials(error?.message || error)}); retrying in ${retryDelayMs}ms...`);
       await new Promise((r) => setTimeout(r, retryDelayMs));
     }
   }
 }
 if (lastFailure) {
-  throw lastFailure;
+  throw new Error(redactCredentials(lastFailure instanceof Error ? lastFailure.message : String(lastFailure)));
 }

@@ -67,12 +67,15 @@ jobs:
             echo "Initial push: require the Supabase migration safety job."
             exit 0
           fi
-          if git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA" -- \
+          # Capture separately so a failed git diff cannot be mistaken for
+          # an empty change list and accidentally allow a code-only deploy.
+          changed_files="$(git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA" -- \
             supabase/migrations/ \
             supabase/config.toml \
             docs/integrations/restored-supabase-history.json \
             scripts/verify-whatsapp-release-plan.mjs \
-            scripts/verify-supabase-migration-history.mjs | grep -q .; then
+            scripts/verify-supabase-migration-history.mjs)"
+          if [[ -n "$changed_files" ]]; then
             echo "migrations_changed=true" >> "$GITHUB_OUTPUT"
             echo "This push changes migration sources or migration history evidence; run remote history validation and dry-run."
           else
@@ -313,15 +316,18 @@ jobs:
           SUPABASE_PROJECT_REF: ${{ steps.supabase_credentials.outputs.project_ref }}
         run: supabase db push --remote="$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD" --yes
 
-      - name: Deploy reviewed WhatsApp Edge Functions (manual apply_and_deploy only)
+      - name: Deploy reviewed Edge Functions (manual apply_and_deploy only)
         if: github.event_name == 'workflow_dispatch' && inputs.release_mode == 'apply_and_deploy'
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ steps.supabase_credentials.outputs.project_ref }}
         # Per-function JWT settings come from config.toml. Never globally
         # disable JWT verification or prune unrelated shared-project functions.
+        # submit-landing-lead carries the PR #163 lead rate-limit/salt changes,
+        # so it must be redeployed alongside the reviewed WhatsApp/payment set.
         run: >-
           supabase functions deploy
+          submit-landing-lead
           nexora-whatsapp-connect nexora-whatsapp-webhook
           studioflow-payments studioflow-whatsapp-booking studioflow-booking-emails
           --remote="$SUPABASE_PROJECT_REF" --use-api

@@ -110,10 +110,10 @@ function getRequestOrigin(req: RequestLike): { origin: string; hostname: string 
 
 function validSlug(value: string): string | null {
   const slug = value.trim().toLowerCase();
-  return slug.length > 1 && /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(slug) ? slug : null;
+  return slug.length > 1 && slug.length <= 63 && /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(slug) ? slug : null;
 }
 
-function resolveStorefrontSlug(url: URL, hostname: string): string | null {
+export function resolveStorefrontSlug(url: URL, hostname: string): string | null {
   // The app/customer query routes deliberately open the full customer app.
   // They must not be mistaken for a public salon storefront even when a
   // `site` selector is also present (for example /?app=1&site=my-salon).
@@ -295,10 +295,12 @@ export default async function storefrontHandler(req: RequestLike, res: ResponseL
   const requestUrl = new URL(req.url || '/', origin);
   const originalPath = requestUrl.searchParams.get('path') || requestUrl.pathname || '/';
   const pageUrl = new URL(originalPath.startsWith('/') ? originalPath : '/' + originalPath, origin);
-  // Preserve the original salon selector when a query-string route was rewritten.
-  for (const key of ['site', 's', 'subdomain']) {
+  // Preserve selectors and app/customer flags across a Vercel rewrite. Without
+  // the flags, a vanity URL such as /salon?app=1 can be mistaken for a public
+  // storefront even though resolveStorefrontSlug deliberately excludes apps.
+  for (const key of ['site', 's', 'subdomain', 'app', 'customer', 'customer_ref']) {
     const value = requestUrl.searchParams.get(key);
-    if (value && !pageUrl.searchParams.has(key)) pageUrl.searchParams.set(key, value);
+    if (value !== null && !pageUrl.searchParams.has(key)) pageUrl.searchParams.set(key, value);
   }
 
   const slug = resolveStorefrontSlug(pageUrl, hostname);
@@ -310,6 +312,7 @@ export default async function storefrontHandler(req: RequestLike, res: ResponseL
     } catch (error) {
       console.error('[storefront-ssr] platform shell render failed', error);
       res.status(503);
+      res.setHeader('X-Robots-Tag', 'noindex');
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       res.setHeader('Cache-Control', 'no-store');
       return method === 'HEAD' ? res.end() : res.send('<!doctype html><html><head><meta name="robots" content="noindex"><title>NEXORA temporarily unavailable</title></head><body><h1>NEXORA is temporarily unavailable.</h1></body></html>');
@@ -324,6 +327,7 @@ export default async function storefrontHandler(req: RequestLike, res: ResponseL
     res.setHeader('X-NEXORA-SSR-Stage', 'database-initialization-error');
     console.error('[storefront-ssr] Supabase client initialization failed', initializationError);
     res.status(503);
+    res.setHeader('X-Robots-Tag', 'noindex');
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
     return method === 'HEAD' ? res.end() : res.send('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Salon temporarily unavailable</title></head><body><main><h1>Salon temporarily unavailable</h1><p>Please refresh this page in a moment.</p></main></body></html>');
@@ -340,6 +344,7 @@ export default async function storefrontHandler(req: RequestLike, res: ResponseL
     res.setHeader('X-NEXORA-SSR-Stage', 'public-database-error');
     console.error('[storefront-ssr] public salon lookup threw', lookupError);
     res.status(503);
+    res.setHeader('X-Robots-Tag', 'noindex');
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
     return method === 'HEAD' ? res.end() : res.send('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Salon temporarily unavailable</title></head><body><main><h1>Salon temporarily unavailable</h1><p>Please refresh this page in a moment.</p></main></body></html>');
@@ -350,6 +355,7 @@ export default async function storefrontHandler(req: RequestLike, res: ResponseL
     res.setHeader('X-NEXORA-SSR-Stage', 'public-database-error');
     console.error('[storefront-ssr] public salon lookup failed', error);
     res.status(503);
+    res.setHeader('X-Robots-Tag', 'noindex');
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
     if (method === 'HEAD') return res.end();
@@ -358,6 +364,7 @@ export default async function storefrontHandler(req: RequestLike, res: ResponseL
   if (!data || !data.content) {
     res.setHeader('X-NEXORA-SSR-Stage', 'unpublished');
     res.status(404);
+    res.setHeader('X-Robots-Tag', 'noindex');
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
     if (method === 'HEAD') return res.end();
@@ -371,6 +378,7 @@ export default async function storefrontHandler(req: RequestLike, res: ResponseL
   } catch (error) {
     console.error('[storefront-ssr] published salon renderer failed', error);
     res.status(503);
+    res.setHeader('X-Robots-Tag', 'noindex');
     res.setHeader('X-NEXORA-SSR-Stage', 'renderer-error');
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
@@ -389,6 +397,7 @@ export default async function storefrontHandler(req: RequestLike, res: ResponseL
   } catch (headError) {
     console.error('[storefront-ssr] SEO/asset module initialization failed', headError);
     res.status(503);
+    res.setHeader('X-Robots-Tag', 'noindex');
     res.setHeader('X-NEXORA-SSR-Stage', 'head-initialization-error');
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');

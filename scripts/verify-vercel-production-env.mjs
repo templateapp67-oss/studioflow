@@ -248,7 +248,7 @@ try {
     assert.equal(requestedUrls.length, 1);
     assert(!requestedUrls[0].includes('decrypt=true'), 'must not request decrypt=true');
     assert.equal(warnings.length, 1);
-    assert(warnings[0].includes('HTTP 403 (forbidden: Not authorized)'), 'warning must surface non-secret API status');
+    assert(warnings[0].includes('HTTP 403'), 'warning must surface non-secret API status');
     assert(warnings[0].includes('Vercel Dashboard'), 'warning must explain permanent Dashboard remediation');
 
     const updated = readFileSync(envFile, 'utf8');
@@ -292,12 +292,13 @@ try {
     assert(!warnings[0].includes(TOKEN_SENTINEL), 'reflected token must be redacted');
     assert(!warnings[0].includes('prj_secret_proj_999'), 'reflected projectId must be redacted');
     assert(!warnings[0].includes('team_secret_org_888'), 'reflected teamId must be redacted');
-    assert(warnings[0].includes('[REDACTED]'), 'redaction marker should replace reflected identifiers');
+    assert(warnings[0].includes('HTTP 403'), 'report status without printing the remote payload');
   }
 
   // 5. Missing, [SENSITIVE], and duplicate VITE_SUPABASE_URL entries all normalize cleanly on 403.
   for (const [label, content] of [
     ['missing', `SUPABASE_SERVICE_ROLE_KEY="${SERVICE_KEY_SENTINEL}"\n`],
+    ['missing-no-newline', `SUPABASE_SERVICE_ROLE_KEY="${SERVICE_KEY_SENTINEL}"`],
     ['sensitive', `SUPABASE_SERVICE_ROLE_KEY="${SERVICE_KEY_SENTINEL}"\nVITE_SUPABASE_URL="[SENSITIVE]"\n`],
     [
       'duplicate',
@@ -321,6 +322,33 @@ try {
     assert.equal(parsed.matches.length, 1, `${label} must result in exactly one VITE_SUPABASE_URL`);
     assert.equal(parsed.matches[0].value, EXPECTED_PRODUCTION_SUPABASE_URL);
     assert(finalText.includes(`SUPABASE_SERVICE_ROLE_KEY="${SERVICE_KEY_SENTINEL}"`), `${label} must preserve unrelated keys`);
+  }
+
+  // Opt-in remote repair must never write when a listing is malformed,
+  // cyclic, or exceeds its page bound; local normalization remains available.
+  for (const kind of ['malformed', 'cycle', 'truncated']) {
+    const envFile = join(tempRoot, `incomplete-${kind}.env`);
+    writeFileSync(envFile, 'VITE_SUPABASE_URL="[SENSITIVE]"\n');
+    let calls = 0;
+    const warnings = [];
+    const result = await prepareVercelProductionEnv({
+      envFile, token: TOKEN_SENTINEL, projectId: 'prj_test', teamId: 'team_test', attemptRemoteRepair: true,
+      fetchImpl: async (_url, init = {}) => {
+        assert.equal(init.method || 'GET', 'GET', 'incomplete list must never be followed by a remote write');
+        calls++;
+        const body = kind === 'malformed' ? {} : { envs: [], pagination: { next: kind === 'cycle' ? (calls % 2 ? 1 : 2) : calls } };
+        return new Response(JSON.stringify(body), { status: 200 });
+      },
+      pullImpl: () => { throw new Error('must not pull after incomplete list'); },
+      log: () => {}, warn: message => warnings.push(message),
+    });
+    assert.equal(result.remoteReason, 'incomplete-remote-list');
+    assert.equal(result.remoteUpdated, false);
+    assert.equal(result.status, 'local-normalized');
+    assert.equal(calls, kind === 'malformed' ? 1 : kind === 'cycle' ? 3 : 10);
+    assert.equal(inspectEnvFileVar(readFileSync(envFile, 'utf8')).matches[0].value, EXPECTED_PRODUCTION_SUPABASE_URL);
+    assert.equal(warnings.length, 1);
+    assertNoSecrets(warnings);
   }
 
   // 6. Opt-in remote API success (PATCH existing record + vercel pull refresh).
@@ -419,6 +447,54 @@ try {
     () => prepareVercelProductionEnv({ envFile: join(tempRoot, 'nonexistent.env') }),
     /was not found/,
   );
+
+  // A corrupt quote must never absorb or silently remove another env entry.
+  for (const [label, content] of [
+    ['unclosed-double', `VITE_SUPABASE_URL="broken\nSUPABASE_SERVICE_ROLE_KEY=${SERVICE_KEY_SENTINEL}\n`],
+    ['unclosed-single', `VITE_SUPABASE_URL='broken\nSUPABASE_SERVICE_ROLE_KEY=${SERVICE_KEY_SENTINEL}\n`],
+    ['unclosed-backtick', `VITE_SUPABASE_URL=\`broken\nSUPABASE_SERVICE_ROLE_KEY=${SERVICE_KEY_SENTINEL}\n`],
+    ['ambiguous-multiline', `VITE_SUPABASE_URL="broken\nSUPABASE_SERVICE_ROLE_KEY=${SERVICE_KEY_SENTINEL}\n"\n`],
+    ['accidental-close', `VITE_SUPABASE_URL="broken\nSUPABASE_SERVICE_ROLE_KEY="${SERVICE_KEY_SENTINEL}"\n`],
+  ]) {
+    const envFile = join(tempRoot, `${label}.env`);
+    writeFileSync(envFile, content, 'utf8');
+    await assert.rejects(() => prepareVercelProductionEnv({ envFile, log: () => {} }), (error) => {
+      assert.match(error.message, /refusing to modify/);
+      assert(!error.message.includes(SERVICE_KEY_SENTINEL));
+      return true;
+    });
+    assert.equal(readFileSync(envFile, 'utf8'), content, `${label} must leave the file unchanged`);
+  }
+
+  // A failed refresh may partially overwrite the file; never normalize or build it.
+  {
+    const envFile = join(tempRoot, 'failed-refresh.env');
+    writeFileSync(envFile, 'VITE_SUPABASE_URL="[SENSITIVE]"\n', 'utf8');
+    const partial = `VITE_SUPABASE_URL="[SENSITIVE]"\nSUPABASE_SERVICE_ROLE_KEY="${SERVICE_KEY_SENTINEL}"\n`;
+    await assert.rejects(() => prepareVercelProductionEnv({
+      envFile,
+      token: TOKEN_SENTINEL,
+      projectId: 'prj_test',
+      teamId: 'team_test',
+      attemptRemoteRepair: true,
+      fetchImpl: async (_url, init = {}) => new Response(
+        JSON.stringify((init.method || 'GET') === 'GET' ? { envs: [] } : { created: {} }),
+        { status: 200 },
+      ),
+      pullImpl: () => {
+        writeFileSync(envFile, partial, 'utf8');
+        throw new Error(`failure containing ${TOKEN_SENTINEL} and ${SERVICE_KEY_SENTINEL}`);
+      },
+      log: () => {},
+      warn: () => {},
+    }), (error) => {
+      assert.match(error.message, /refresh failed.*refusing to build/);
+      assert(!error.message.includes(TOKEN_SENTINEL));
+      assert(!error.message.includes(SERVICE_KEY_SENTINEL));
+      return true;
+    });
+    assert.equal(readFileSync(envFile, 'utf8'), partial, 'failed refresh must not normalize partial output');
+  }
 
   // 9. End-to-end CLI execution against a local mock HTTP server returning 403 (opt-in remote repair mode).
   const server = http.createServer((_req, res) => {

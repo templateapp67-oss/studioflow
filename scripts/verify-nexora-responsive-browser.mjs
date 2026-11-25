@@ -3,6 +3,7 @@ import { createRequire } from 'node:module';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { responsiveDiagnostic, writeResponsiveReport } from './responsive-audit-diagnostics.mjs';
 
 const toolsRoot = process.env.BROWSER_TOOLS_ROOT;
 if (!toolsRoot) throw new Error('Set BROWSER_TOOLS_ROOT to a directory containing playwright-core.');
@@ -340,18 +341,36 @@ try {
   await page.goto(new URL('/', origin).toString(), { waitUntil: 'domcontentloaded' });
   const hoverTrigger = page.locator('.public-homepage__template-preview [data-nx-hover-card-trigger]');
   const hoverPanel = page.locator('.nx-hover-card__panel');
+  // The portal is created by a React effect, so attachment proves hydration
+  // completed before pointer/keyboard interactions against prerendered HTML.
+  await hoverPanel.waitFor({ state: 'attached', timeout: 10000 });
   assert.equal(await hoverTrigger.getAttribute('aria-expanded'), 'false', 'the homepage link preview starts closed');
   assert.equal(await hoverTrigger.getAttribute('aria-controls') !== null, true, 'the preview trigger exposes its controlled card');
   assert.equal(await hoverTrigger.getAttribute('aria-keyshortcuts'), 'ArrowDown', 'the trigger advertises the explicit keyboard key for entering the card');
   assert.equal(await hoverTrigger.getAttribute('aria-describedby'), null, 'a rich preview is not flattened into the trigger description');
   assert.equal(await hoverPanel.isVisible(), false, 'the preview remains hidden before hover or focus');
 
-  const hoverStarted = Date.now();
+  // Measure the browser's actual pointer-to-open interval. A Node-side sleep
+  // can overshoot on a busy CI runner and incorrectly assert an already-open
+  // card is still closed; DOM event timestamps keep the minimum-delay check.
+  await hoverTrigger.evaluate((trigger) => {
+    const wrapper = trigger.closest('.nx-hover-card');
+    const probe = { entered: null, opened: null };
+    window.__nexoraOpenProbe = probe;
+    wrapper.addEventListener('pointerover', () => { probe.entered = performance.now(); }, { once: true, capture: true });
+    const observer = new MutationObserver(() => {
+      if (trigger.getAttribute('aria-expanded') === 'true') {
+        probe.opened = performance.now();
+        observer.disconnect();
+      }
+    });
+    observer.observe(trigger, { attributes: true, attributeFilter: ['aria-expanded'] });
+  });
   await hoverTrigger.hover();
-  await page.waitForTimeout(180);
-  assert.equal(await hoverTrigger.getAttribute('aria-expanded'), 'false', 'pointer hover observes the intentional open delay');
-  await hoverPanel.waitFor({ state: 'visible', timeout: 1500 });
-  assert.ok(Date.now() - hoverStarted >= 300, 'pointer hover opens after the configured 300–500ms delay');
+  await hoverPanel.waitFor({ state: 'visible', timeout: 10000 });
+  const openProbe = await page.evaluate(() => window.__nexoraOpenProbe);
+  assert.ok(openProbe.entered !== null && openProbe.opened !== null, 'pointer and open events were observed');
+  assert.ok(openProbe.opened - openProbe.entered >= 300, 'pointer hover observes the configured minimum open delay');
   assert.ok((await hoverPanel.textContent())?.includes('NEXORA Template Library'), 'the card previews the destination link');
   assert.equal(await hoverPanel.locator('a[href="#nexora-template-library"]').count(), 1, 'the preview action remains an ordinary keyboard-reachable link');
   assert.equal(await hoverPanel.evaluate((node) => getComputedStyle(node).transitionDuration), '0s', 'reduced-motion preference disables the card animation');
@@ -359,10 +378,24 @@ try {
   await hoverPanel.hover();
   await page.waitForTimeout(320);
   assert.equal(await hoverPanel.isVisible(), true, 'moving the pointer from the trigger into the card keeps it open');
+  await hoverPanel.evaluate((panel) => {
+    const floating = panel.closest('.nx-hover-card__floating');
+    const probe = { left: null, closed: null };
+    window.__nexoraCloseProbe = probe;
+    floating.addEventListener('pointerleave', () => { probe.left = performance.now(); }, { once: true });
+    const observer = new MutationObserver(() => {
+      if (floating.hasAttribute('hidden')) {
+        probe.closed = performance.now();
+        observer.disconnect();
+      }
+    });
+    observer.observe(floating, { attributes: true, attributeFilter: ['hidden'] });
+  });
   await page.mouse.move(2, 900);
-  await page.waitForTimeout(100);
-  assert.equal(await hoverPanel.isVisible(), true, 'the card remains during its pointer-leave grace period');
   await page.waitForFunction(() => document.querySelector('.nx-hover-card__panel')?.closest('.nx-hover-card__floating')?.hasAttribute('hidden'));
+  const closeProbe = await page.evaluate(() => window.__nexoraCloseProbe);
+  assert.ok(closeProbe.left !== null && closeProbe.closed !== null, 'pointer-leave and close events were observed');
+  assert.ok(closeProbe.closed - closeProbe.left >= 200, 'the card retains its pointer-leave grace period');
   assert.equal(await hoverPanel.isVisible(), false, 'the card closes after the pointer leaves both trigger and card');
   await hoverTrigger.hover();
   await hoverPanel.waitFor({ state: 'visible', timeout: 1500 });
@@ -403,6 +436,8 @@ try {
   for (const [width, height] of [[320, 740], [768, 900], [1440, 1000]]) {
     await page.setViewportSize({ width, height });
     await page.goto(new URL('/', origin).toString(), { waitUntil: 'domcontentloaded' });
+    await page.locator('.nx-hover-card__panel').waitFor({ state: 'attached', timeout: 10000 });
+    await page.mouse.move(1, 1);
     if (width === 768) {
       await page.locator('.public-homepage').evaluate((node) => node.setAttribute('data-appearance', 'dark'));
     }
@@ -416,7 +451,7 @@ try {
     const edgeTrigger = page.locator('.public-homepage__template-preview [data-nx-hover-card-trigger]');
     await edgeTrigger.hover();
     const edgePanel = page.locator('.nx-hover-card__panel');
-    await edgePanel.waitFor({ state: 'visible', timeout: 1500 });
+    await edgePanel.waitFor({ state: 'visible', timeout: 10000 });
     const panelBounds = await edgePanel.boundingBox();
     assert.ok(panelBounds, `${width}px preview panel has measurable viewport bounds`);
     assert.ok(panelBounds.x >= 8 && panelBounds.y >= 8, `${width}px preview shifts inside the left/top viewport edges`);
@@ -431,6 +466,7 @@ try {
 
   await page.goto(new URL('/', origin).toString(), { waitUntil: 'domcontentloaded' });
   const touchTrigger = page.locator('.public-homepage__template-preview [data-nx-hover-card-trigger]');
+  await page.locator('.nx-hover-card__panel').waitFor({ state: 'attached', timeout: 10000 });
   await page.evaluate(() => {
     const wrapper = document.querySelector('.public-homepage__template-preview');
     wrapper?.dispatchEvent(new PointerEvent('pointerover', { bubbles: true, pointerType: 'touch' }));
@@ -438,9 +474,14 @@ try {
   await page.waitForTimeout(400);
   assert.equal(await touchTrigger.getAttribute('aria-expanded'), 'false', 'touch pointers do not open a hover-only card');
 
+  // Ensure Playwright's hover does not itself initiate a scroll while the
+  // delayed-open timer is running; scrolling intentionally dismisses the card.
+  await touchTrigger.scrollIntoViewIfNeeded();
+  await page.mouse.move(1, 1);
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   await touchTrigger.hover();
   const scrollPanel = page.locator('.nx-hover-card__panel');
-  await scrollPanel.waitFor({ state: 'visible', timeout: 1500 });
+  await scrollPanel.waitFor({ state: 'visible', timeout: 10000 });
   await page.evaluate(() => window.scrollBy(0, 400));
   await page.waitForFunction(() => document.querySelector('.nx-hover-card__panel')?.closest('.nx-hover-card__floating')?.hasAttribute('hidden'));
   assert.equal(await scrollPanel.isVisible(), false, 'scrolling away dismisses the hover card');
@@ -779,6 +820,34 @@ try {
     headJsonLdIds: ['nexora-ecosystem-jsonld'],
   });
 
+  // Social metadata must follow client-side navigation as well as prerendering.
+  // Poison the previous route's card dimensions/alt to catch stale values.
+  await seoPage.evaluate(() => {
+    for (const key of ['og:image:width', 'og:image:height', 'og:image:alt']) {
+      document.querySelector(`meta[property="${key}"]`)?.setAttribute('content', 'stale');
+    }
+    document.querySelector('meta[name="twitter:image"]')?.setAttribute('content', 'https://example.invalid/stale.jpg');
+    document.querySelector('meta[name="twitter:image:alt"]')?.setAttribute('content', 'stale');
+  });
+  await spaNavigate('/privacy');
+  await waitForSeoHead('SPA /privacy', {
+    robots: ['index,follow'],
+    canonicals: ['https://nexorasalon.online/privacy'],
+    headJsonLdIds: [],
+  });
+  const privacySocial = await seoPage.evaluate(() => Object.fromEntries([
+    ['og:image', 'property'], ['og:image:width', 'property'], ['og:image:height', 'property'],
+    ['og:image:alt', 'property'], ['twitter:image', 'name'], ['twitter:image:alt', 'name'],
+  ].map(([key, attribute]) => [key, document.querySelector(`meta[${attribute}="${key}"]`)?.getAttribute('content')])));
+  assert.deepEqual(privacySocial, {
+    'og:image': 'https://nexorasalon.online/nexora-homepage-og.jpg',
+    'og:image:width': '1200',
+    'og:image:height': '630',
+    'og:image:alt': 'NEXORA SALONOS salon management software',
+    'twitter:image': 'https://nexorasalon.online/nexora-homepage-og.jpg',
+    'twitter:image:alt': 'NEXORA SALONOS salon management software',
+  }, 'SPA privacy route replaces stale social image metadata');
+
   await spaNavigate('/login');
   await waitForSeoHead('SPA /login', {
     robots: ['noindex,follow'],
@@ -838,7 +907,11 @@ try {
 
   assert.deepEqual(hydrationErrors, [], 'public routes hydrate without React hydration mismatch warnings or errors');
   assert.deepEqual(pageErrors, [], 'public route interaction produces no uncaught browser errors');
+  writeResponsiveReport(process.env.RESPONSIVE_REPORT_PATH, { status: 'PASS' });
   console.log(`PASS: headless preview — ${marketingRoutes.length} public marketing routes, responsive header/breadcrumb bounds and contrast, keyboard skip links, hover-card delay/bridge/Escape/scroll/focus behavior, touch suppression, phone/tablet/desktop viewport fit and dark appearance, direct-hash current-state hydration, signed-in hydration and update polling, owner/storefront isolation, mobile-menu accessibility/behavior, WhatsApp safety/tracking, native disclosure, script-free fallback and real-browser SPA SEO meta/canonical/JSON-LD hygiene.`);
+} catch (error) {
+  writeResponsiveReport(process.env.RESPONSIVE_REPORT_PATH, responsiveDiagnostic(error, activeRoute));
+  throw error;
 } finally {
   await browser.close();
 }

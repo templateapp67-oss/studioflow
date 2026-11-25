@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { nexoraDemoLeadHandler } from '../server/nexoraDemoLead';
+import { createHash } from 'node:crypto';
+import { nexoraDemoLeadHandler, leadClientIp, isTooFast } from '../server/nexoraDemoLead';
 
 /**
  * Offline behaviour tests for the shared demo-lead handler.
@@ -17,9 +18,11 @@ type Responder = {
 };
 
 const captured: { status: number; body: any }[] = [];
+const headers: Record<string, string> = {};
 const logs: string[] = [];
 
 const respond = (): Responder => ({
+  setHeader: (name, value) => { headers[name] = value; },
   status(code: number) {
     return {
       status: () => respond(),
@@ -42,14 +45,22 @@ const originalWarn = console.warn;
 const originalError = console.error;
 const originalEnv = { ...process.env };
 
-let upstream: { status: number; body: any } = { status: 200, body: { ok: true } };
+let upstream: { status: number; body: any; retryAfter?: number } = { status: 200, body: { ok: true } };
 let upstreamCalls: { url: string; headers: Record<string, string>; payload: any }[] = [];
+const allowed = { allowed: true, count: 1, limit: 5, remaining: 4, retry_after_seconds: 0 };
+let budgetCalls: any[] = []; let budgetValue: any = allowed; let budgetStatus = 200;
 
 globalThis.fetch = (async (url: string, init: any) => {
+  if (String(url).includes('/rest/v1/rpc/prune_landing_lead_rate_limits')) return { ok: true, status: 200, json: async () => 0 } as any;
+  if (String(url).includes('/rest/v1/rpc/claim_landing_lead_rate_limit')) {
+    budgetCalls.push(JSON.parse(init.body));
+    return { ok: budgetStatus === 200, status: budgetStatus, json: async () => budgetValue } as any;
+  }
   upstreamCalls.push({ url: String(url), headers: init?.headers ?? {}, payload: JSON.parse(init?.body ?? '{}') });
   return {
     ok: upstream.status >= 200 && upstream.status < 300,
     status: upstream.status,
+    headers: { get: (name: string) => String(name).toLowerCase() === 'retry-after' && typeof upstream.retryAfter === 'number' ? String(upstream.retryAfter) : null },
     json: async () => upstream.body,
   } as any;
 }) as any;
@@ -69,15 +80,32 @@ const validLead = {
 };
 
 async function call(body: unknown, method = 'POST') {
-  captured.length = 0;
-  upstreamCalls = [];
-  await nexoraDemoLeadHandler({ method, body } as any, respond());
+  captured.length = 0; for (const key of Object.keys(headers)) delete headers[key];
+  upstreamCalls = []; budgetCalls = [];
+  await nexoraDemoLeadHandler({ method, body, ip: '192.0.2.7' } as any, respond());
   return { status: captured[0]?.status, body: captured[0]?.body };
 }
 
 try {
   process.env.SUPABASE_URL = 'https://zilwgiuiygqqardzutxi.supabase.co';
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-test-key';
+
+  assert.equal(leadClientIp({ ip: '192.0.2.7', headers: { 'x-forwarded-for': '203.0.113.8' } }, false), '192.0.2.7');
+  assert.equal(leadClientIp({ headers: { 'x-vercel-forwarded-for': '203.0.113.8' } }, true), '203.0.113.8');
+  assert.equal(leadClientIp({ headers: { 'x-forwarded-for': '203.0.113.8' } }, true), 'unknown');
+  assert.equal(leadClientIp({ ip: '::ffff:192.0.2.7' }, false), '192.0.2.7');
+  assert.equal(isTooFast(1999), true); assert.equal(isTooFast(2000), false);
+  assert.equal(isTooFast(undefined), false); assert.equal(isTooFast(-1), true);
+  let quick = await call({ ...validLead, formElapsedMs: 100 });
+  assert.equal(quick.status, 400); assert.equal(budgetCalls.length, 0); assert.equal(upstreamCalls.length, 0);
+  // The Edge spelling (snake_case) must also trigger the timing guard on the
+  // direct server route, so a bot cannot skip it by reusing that field name.
+  quick = await call({ ...validLead, formElapsedMs: undefined, form_elapsed_ms: 100 });
+  assert.equal(quick.status, 400); assert.equal(budgetCalls.length, 0); assert.equal(upstreamCalls.length, 0);
+  budgetValue = { allowed: false, count: 6, limit: 5, remaining: 0, retry_after_seconds: 37 }; let blocked = await call(validLead); assert.equal(blocked.status, 429); assert.equal(headers['Retry-After'], '37'); assert.equal(upstreamCalls.length, 0);
+  budgetValue = 'bad'; blocked = await call(validLead); assert.equal(blocked.status, 503); assert.equal(upstreamCalls.length, 0);
+  budgetValue = { ...allowed, allowed: false }; blocked = await call(validLead); assert.equal(blocked.status, 503); assert.equal(upstreamCalls.length, 0);
+  budgetValue = allowed; budgetStatus = 503; blocked = await call(validLead); assert.equal(blocked.status, 503); assert.equal(upstreamCalls.length, 0); budgetStatus = 200;
 
   /* --- 1. Valid submission is stored ------------------------------------- */
   upstream = { status: 200, body: { ok: true } };
@@ -86,6 +114,23 @@ try {
   assert.equal(result.body.ok, true, 'A stored lead answers ok:true');
   assert.ok(result.body.requestId, 'The response carries a request id');
   assert.equal(upstreamCalls.length, 1, 'Exactly one upstream call is made');
+  assert.equal(budgetCalls.length, 1);
+  assert.match(budgetCalls[0].p_bucket_key, /^[a-f0-9]{64}$/);
+  assert.equal(budgetCalls[0].p_bucket_key, createHash('sha256').update('nexora-landing-rate-limit-v1:192.0.2.7').digest('hex'));
+  // Salt consistency: the configured salt must actually change the bucket key,
+  // and a mismatched salt must isolate buckets (the Edge and server share a
+  // budget only when both use the same salt).
+  process.env.LANDING_LEAD_RATE_LIMIT_SALT = 'custom-salt-alpha';
+  let salted = await call(validLead);
+  assert.equal(salted.status, 201, 'a submission under a custom salt is stored');
+  assert.equal(budgetCalls[0].p_bucket_key, createHash('sha256').update('custom-salt-alpha:192.0.2.7').digest('hex'), 'the custom salt changes the bucket key');
+  process.env.LANDING_LEAD_RATE_LIMIT_SALT = 'custom-salt-beta';
+  await call(validLead);
+  assert.notEqual(budgetCalls[0].p_bucket_key, createHash('sha256').update('custom-salt-alpha:192.0.2.7').digest('hex'), 'a different salt isolates the bucket');
+  delete process.env.LANDING_LEAD_RATE_LIMIT_SALT;
+  assert.equal(budgetCalls[0].p_window_seconds, 600);
+  assert.ok(!JSON.stringify(budgetCalls).includes('192.0.2.7'), 'IP is never stored in the budget request');
+  assert.equal(budgetCalls[0].p_max_attempts, 5);
   const sent = upstreamCalls[0];
   assert.ok(sent.url.endsWith('/functions/v1/submit-landing-lead'), 'The lead is stored through the Edge Function');
   assert.equal(sent.payload.lead_type, 'demo_request', 'The lead type is mapped');
@@ -95,7 +140,8 @@ try {
   assert.equal(sent.payload.consent_given, true, 'Consent is forwarded');
   assert.equal(sent.payload.privacy_notice_version, '2026-11', 'The privacy notice version is forwarded');
   assert.equal(sent.payload.idempotency_key, null, 'No idempotency key is invented when the caller sends none');
-  assert.ok(!JSON.stringify(sent.headers).includes('service-role-test-key') || true, 'Header check placeholder');
+  assert.equal(sent.headers.Authorization, 'Bearer service-role-test-key', 'The fallback uses the trusted server credential, never sent to the browser');
+  assert.ok(!JSON.stringify(result.body).includes('service-role-test-key'), 'The server credential is not returned to the browser');
 
   /* --- 1b. A retry carries its idempotency key ----------------------------- */
   upstream = { status: 200, body: { ok: true } };
@@ -128,8 +174,15 @@ try {
 
   /* --- 6. Honeypot --------------------------------------------------------- */
   result = await call({ ...validLead, website: 'https://spam.example' });
-  assert.equal(result.status, 202, 'A honeypot submission is acknowledged');
+  assert.equal(result.status, 201, 'A honeypot submission is acknowledged like a stored lead');
   assert.equal(upstreamCalls.length, 0, 'A honeypot submission is never stored');
+  // The alternate honeypot fields used by the Edge Function must also trap on
+  // the direct server route, otherwise a bot could bypass the trap here.
+  for (const field of ['company_website', 'fax_number']) {
+    result = await call({ ...validLead, website: '', [field]: 'https://spam.example' });
+    assert.equal(result.status, 201, `A honeypot ${field} submission is acknowledged`);
+    assert.equal(upstreamCalls.length, 0, `A honeypot ${field} submission is never stored`);
+  }
 
   /* --- 7. Wrong method ------------------------------------------------------ */
   result = await call(validLead, 'GET');
@@ -140,6 +193,12 @@ try {
   result = await call(validLead);
   assert.equal(result.status, 429, 'A rate-limited request answers 429');
   assert.ok(!result.body.ok, 'A rate-limited request never reports success');
+  assert.equal(headers['Retry-After'], '600', 'A 429 without an upstream Retry-After falls back to the window');
+  // The actual upstream remaining window is forwarded, not the maximum.
+  upstream = { status: 429, body: { ok: false, message: 'Too many requests.' }, retryAfter: 42 };
+  result = await call(validLead);
+  assert.equal(result.status, 429);
+  assert.equal(headers['Retry-After'], '42', 'The upstream Retry-After is forwarded');
 
   /* --- 9. Storage outage ---------------------------------------------------- */
   upstream = { status: 500, body: { ok: false } };

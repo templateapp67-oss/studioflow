@@ -186,22 +186,26 @@ jobs:
       - name: Deploy preview
         id: deploy
         if: steps.vercel-config.outputs.available == 'true'
-        continue-on-error: true
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
           set -euo pipefail
-          url="$(vercel deploy --prebuilt --archive=tgz --yes --token="$VERCEL_TOKEN" --project "$VERCEL_PROJECT_ID")"
+          deploy_log="$(mktemp)"
+          trap 'rm -f "$deploy_log"' EXIT
+          if ! url="$(vercel deploy --prebuilt --archive=tgz --yes --token="$VERCEL_TOKEN" --project "$VERCEL_PROJECT_ID" 2>"$deploy_log")"; then
+            node scripts/classify-preview-deploy-error.mjs "$deploy_log"
+            exit 1
+          fi
           test -n "$url"
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
-      - name: Report non-blocking preview deployment failure
-        if: steps.vercel-config.outputs.available == 'true' && steps.deploy.outcome == 'failure'
+      - name: Report preview deployment failure
+        if: always() && steps.vercel-config.outputs.available == 'true' && steps.deploy.outcome == 'failure'
         run: |
-          echo "::warning::Vercel preview deployment failed; pull-request CI remains unblocked."
+          echo "::warning::Vercel preview deployment failed; Preview verification is blocked."
           {
             echo "### Vercel Preview not deployed"
-            echo "The deployment command failed. This is non-blocking for PR CI; see the Deploy preview step log for the Vercel error."
+            echo "The deployment command failed. Raw CLI output is suppressed; inspect Vercel deployment logs and quota. Preview verification remains blocked."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Comment preview URL on PR
@@ -528,10 +532,68 @@ jobs:
           NODE
 
       - name: Run NEXORA responsive marketing and owner-route browser audit
+        id: responsive-audit
         env:
           PREVIEW_URL: ${{ steps.resolve-preview.outputs.url }}
           BROWSER_TOOLS_ROOT: /tmp/pw-runner
+          RESPONSIVE_REPORT_PATH: test-results/preview-browser-e2e/responsive-report.json
         run: node scripts/verify-nexora-responsive-browser.mjs
+
+      - name: Publish responsive audit status
+        uses: actions/github-script@v8
+        if: always()
+        continue-on-error: true
+        env:
+          AUDIT_OUTCOME: ${{ steps.responsive-audit.outcome }}
+        with:
+          script: |
+            const fs = require('node:fs');
+            const outcome = process.env.AUDIT_OUTCOME || 'skipped';
+            let report = {};
+            try { report = JSON.parse(fs.readFileSync('test-results/preview-browser-e2e/responsive-report.json', 'utf8')); } catch {}
+            const phase = ['hover-card', 'spa-seo', 'owner-storefront', 'public-route', 'startup-or-other'].includes(report.phase) ? report.phase : 'unknown';
+            const kind = ['assertion', 'timeout', 'other'].includes(report.kind) ? report.kind : 'unknown';
+            const line = Number.isInteger(report.line) && report.line > 0 && report.line < 10000 ? report.line : 'unknown';
+            const passed = outcome === 'success' && report.status === 'PASS';
+            let detail = `Outcome: ${outcome}; phase: ${phase}; kind: ${kind}; script line: ${line}.`;
+            if (report.overflow) {
+              const ov = report.overflow;
+              const nodes = (ov.top || []).map((el) => `${el.tag}${el.className ? '.' + el.className.split(' ').filter(Boolean).join('.') : ''}${el.id ? '#' + el.id : ''} (right=${el.right}, width=${el.width}, overflow-x=${el.overflowX})`).join('; ');
+              detail += ` No-script overflow: documentWidth=${ov.documentWidth} > viewportWidth=${ov.viewportWidth}; ${ov.elementCount} element(s) past the viewport. Top: ${nodes || 'none listed'}.`;
+            }
+            const headSha = context.payload.pull_request?.head?.sha || context.sha;
+            await github.rest.checks.create({
+              owner: context.repo.owner, repo: context.repo.repo,
+              name: 'Responsive Marketing Audit Report', head_sha: headSha,
+              status: 'completed', conclusion: passed ? 'success' : 'failure',
+              output: {
+                title: `Responsive marketing audit: ${passed ? 'PASS' : 'FAIL'}`,
+                summary: passed ? 'Responsive audit completed successfully.' : detail,
+              },
+            });
+
+      - name: Capture Vercel runtime logs after failed Preview audits
+        if: failure() && steps.resolve-preview.outputs.url != ''
+        continue-on-error: true
+        env:
+          PREVIEW_URL: ${{ steps.resolve-preview.outputs.url }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+        run: |
+          set -euo pipefail
+          runtime_log="$(mktemp)"
+          runtime_error="$(mktemp)"
+          trap 'rm -f "$runtime_log" "$runtime_error"' EXIT
+          if ! npx --yes vercel@65.14.0 logs "$PREVIEW_URL" \
+            --token="$VERCEL_TOKEN" \
+            --project="$VERCEL_PROJECT_ID" \
+            --scope="$VERCEL_ORG_ID" \
+            --since=30m --status-code=500 --limit=50 --json >"$runtime_log" 2>"$runtime_error"; then
+            echo "::warning::Could not retrieve Vercel runtime logs; inspect the Vercel dashboard. Raw CLI output is suppressed."
+            exit 1
+          fi
+          node scripts/summarize-preview-runtime-logs.mjs "$runtime_log"
 
       - name: Upload Playwright report, screenshots and traces
         uses: actions/upload-artifact@v4
@@ -571,7 +633,7 @@ jobs:
               conclusion: status === 'PASS' ? 'success' : 'failure',
               output: {
                 title: `Preview Browser E2E: ${status}`,
-                summary,
+                summary: summary + '\nThis report covers the read-only storefront smoke only; see Responsive Marketing Audit Report for the separate responsive audit.',
                 text: '```json\n' + reportRaw + '\n```',
               },
             });

@@ -206,6 +206,13 @@ try {
         'x-vercel-protection-bypass': vercelBypassSecret,
         'x-vercel-set-bypass-cookie': 'true',
       } : {};
+      // Unauthenticated POST must stop before any paid AI call or write. This
+      // verifies the Vercel function is deployed as well as fail-closed.
+      const copyProbe = await context.request.post(new URL('/api/onboarding-copy', previewUrl).toString(), {
+        timeout: 60000, headers: bypassHeaders, data: { kind: 'about' },
+      });
+      assert.equal(copyProbe.status(), 401, 'onboarding copy API rejects requests without a verified session');
+      report.onboardingCopyAuthProbe = { status: copyProbe.status() };
       const directApiResponse = await context.request.get(directApiUrl, {
         timeout: 60000,
         headers: bypassHeaders,
@@ -242,6 +249,33 @@ try {
       assert.match(probeBody, /This salon website is not published/i);
       report.storefrontSsrProbe = { status: probeResponse.status(), title: 'Salon website not found', robots: 'noindex' };
 
+      // Exercise both externally routed query and vanity forms, not just a
+      // direct function call. HEAD must expose noindex without an HTML body.
+      report.unpublishedRouteProbes = [];
+      for (const route of ['/?site=nexora-ssr-preview-probe-not-published', '/nexora-ssr-vanity-probe-not-published', '/apiary-ssr-probe-not-published']) {
+        for (const method of ['GET', 'HEAD']) {
+          const response = await context.request.fetch(new URL(route, previewUrl).toString(), { method, timeout: 60000, headers: bypassHeaders });
+          const body = await response.text();
+          assert.equal(response.status(), 404, `${method} ${route}: unpublished SSR must return 404`);
+          assert.match(response.headers()['x-robots-tag'] || '', /noindex/i, `${method} ${route}: missing noindex header`);
+          assert.equal(response.headers()['x-nexora-ssr-stage'], 'unpublished', `${method} ${route}: must reach the public lookup`);
+          if (method === 'GET') assert.match(body, /<meta name="robots" content="noindex">/i, `${route}: HTML noindex`);
+          else assert.equal(body, '', `${route}: HEAD body must be empty`);
+          report.unpublishedRouteProbes.push({ route, method, status: response.status() });
+        }
+      }
+
+      // Vanity rewrites must not discard flags that intentionally open the app.
+      // These read-only requests check the handler stage, not UI authentication.
+      report.vanityAppProbes = [];
+      for (const flag of ['app', 'customer', 'customer_ref']) {
+        const route = `/nexora-ssr-vanity-probe-not-published?site=nexora-ssr-vanity-probe-not-published&${flag}=`;
+        const response = await context.request.get(new URL(route, previewUrl).toString(), { timeout: 60000, headers: bypassHeaders });
+        assert.equal(response.status(), 200, `${flag}: app flow must return the platform shell`);
+        assert.equal(response.headers()['x-nexora-ssr-stage'], 'platform-shell', `${flag}: SSR must not treat the app as a public storefront`);
+        report.vanityAppProbes.push({ flag, status: response.status() });
+      }
+
       // Prove the positive path too: read one already-published public salon
       // from the production App database. This is GET-only and does not edit
       // customer or salon data. The slug can be overridden by CI if the
@@ -269,6 +303,13 @@ try {
       assert.equal(publishedPayload.slug, publishedSlug, 'SSR hydration payload must belong to the requested published salon');
       const businessName = String(publishedPayload.site?.profile?.businessName || '').trim();
       assert.ok(businessName, 'Published salon SSR payload must include its own business name');
+      const vanity = await context.request.get(new URL('/' + encodeURIComponent(publishedSlug), previewUrl).toString(), { timeout: 60000, headers: bypassHeaders });
+      const vanityBody = await vanity.text();
+      assert.equal(vanity.status(), 200, 'published vanity must return 200');
+      assert.equal(vanity.headers()['x-nexora-ssr-stage'], 'published-render', 'published vanity must use SSR');
+      assert.ok(vanityBody.includes(businessName), 'published vanity SSR must contain the salon name');
+      assert.match(vanityBody, /<meta name="robots" content="index,follow">/, 'published vanity HTML must be indexable');
+      report.storefrontPublishedVanityProbe = { status: vanity.status(), slug: publishedSlug };
       assert.ok(publishedHtml.includes(businessName), 'Raw HTTP HTML must contain the published salon business name before client JavaScript');
       assert.match(publishedHtml, /<meta name="robots" content="index,follow">/, 'Published salon HTML must be indexable');
       assert.match(publishedHtml, /<link rel="canonical" href="/, 'Published salon HTML must contain a canonical URL');
