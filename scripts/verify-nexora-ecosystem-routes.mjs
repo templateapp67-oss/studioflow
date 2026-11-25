@@ -204,10 +204,10 @@ for (const path of NEXORA_ECOSYSTEM_ROUTES) {
 /* 4. Every marketing route is served before the final dynamic salon fallback. */
 const vercel = JSON.parse(readFileSync('vercel.json', 'utf8'));
 const rewrites = vercel.rewrites.map((entry) => [entry.source, entry.destination]);
-const storefrontFallbackSource = '^/([^a].*|a[^p].*|ap[^i].*|api[^/].*|ap)$';
-const fallbackIndex = rewrites.findIndex(([source]) => source === storefrontFallbackSource);
-assert.ok(fallbackIndex >= 0, 'The dynamic storefront fallback must exist');
-assert.equal(fallbackIndex, rewrites.length - 1, 'The dynamic storefront fallback must stay the last rewrite');
+const storefrontFallbackSource = '/:path((';
+const fallbackIndex = rewrites.findIndex(([source]) => source.startsWith(storefrontFallbackSource));
+assert.ok(fallbackIndex >= 0, 'The path-parameter storefront SSR fallback must exist');
+assert.equal(fallbackIndex, rewrites.length - 1, 'The storefront SSR fallback must stay the last rewrite');
 assert.ok(!rewrites.some(([source]) => source === '/(.*)'), 'A broad SPA catch-all must not shadow dynamic salon storefront URLs');
 for (const path of NEXORA_ECOSYSTEM_ROUTES) {
   const index = rewrites.findIndex(([source]) => source === path);
