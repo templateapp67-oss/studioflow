@@ -1,7 +1,7 @@
 # PR #163 — Pre-Merge Readiness Report
 
 **Branch:** `arena/355b1737-studioflow` (base `main` = `cc6342ab3d64077bc9ef22a8a79e32428a7e2ce4`)
-**PR head:** `e493d6df964830e1884b9ff1e2a4b8b62146d2a0`
+**PR head:** `3ace5d711a345609b6caecf87750837c22d5020d` (was `e493d6d`, now includes the readiness report + production Edge Function deploy fix)
 **PR state:** OPEN · `mergeCommit: null` · `mergedAt: null` — **not merged**, nothing pushed to `main`.
 **Report date:** 2026-11-25
 
@@ -35,6 +35,11 @@ No merge has been performed or requested.
 Workflow run conclusion: **success**. The two checks that previously failed
 (`Preview Browser E2E (Playwright)`, `Responsive Marketing Audit Report`) now **pass** after the
 root-cause fix in §4.
+
+> **Note:** the head was advanced to `3ace5d7` (this report + a production-workflow Edge Function
+> deploy fix, §4.2) after run `45635927663`. A fresh Preview run on `3ace5d7` should be re-checked
+> before merge; the production-workflow change only affects the `main`-gated Production workflow and
+> is covered by `scripts/verify-workflow-release-safety.mjs`.
 
 ---
 
@@ -91,6 +96,21 @@ self-diagnosing without relying on blocked job logs. Covered by
 rate-limit salt is actually honored — a custom salt changes `p_bucket_key` to
 `sha256('custom-salt-alpha:192.0.2.7')`, a mismatched salt isolates the bucket, and restoring
 the default returns `p_window_seconds === 600`.
+
+### 4.2 Production Edge Function deploy step now covers `submit-landing-lead` (this session)
+
+**Gap found:** `.github/workflows/production.yml` had a manual `apply_and_deploy` step that
+redeployed the reviewed WhatsApp/payment Edge Functions but **omitted `submit-landing-lead`**, the
+function this PR updates with the lead rate-limit/salt hardening. Without redeploying it, the
+PR's updated Edge function would never reach production after merge — the production DB would get
+the new RPC while the function kept running the stale bundle.
+
+**Fix:** Added `submit-landing-lead` to the `supabase functions deploy` list in the "Deploy
+reviewed Edge Functions" step (rename from "Deploy reviewed WhatsApp Edge Functions" to reflect
+the wider scope). `scripts/verify-workflow-release-safety.mjs` now asserts that step exists, runs
+only in manual `apply_and_deploy` mode, includes `submit-landing-lead` / `nexora-whatsapp-connect` /
+`nexora-whatsapp-webhook` / `studioflow-payments`, and has no `continue-on-error: true`. The step
+is still manual-only and never mutates production on a plain `main` push.
 
 ---
 

@@ -316,15 +316,18 @@ jobs:
           SUPABASE_PROJECT_REF: ${{ steps.supabase_credentials.outputs.project_ref }}
         run: supabase db push --remote="$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD" --yes
 
-      - name: Deploy reviewed WhatsApp Edge Functions (manual apply_and_deploy only)
+      - name: Deploy reviewed Edge Functions (manual apply_and_deploy only)
         if: github.event_name == 'workflow_dispatch' && inputs.release_mode == 'apply_and_deploy'
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ steps.supabase_credentials.outputs.project_ref }}
         # Per-function JWT settings come from config.toml. Never globally
         # disable JWT verification or prune unrelated shared-project functions.
+        # submit-landing-lead carries the PR #163 lead rate-limit/salt changes,
+        # so it must be redeployed alongside the reviewed WhatsApp/payment set.
         run: >-
           supabase functions deploy
+          submit-landing-lead
           nexora-whatsapp-connect nexora-whatsapp-webhook
           studioflow-payments studioflow-whatsapp-booking studioflow-booking-emails
           --remote="$SUPABASE_PROJECT_REF" --use-api

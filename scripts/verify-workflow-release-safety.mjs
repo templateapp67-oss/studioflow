@@ -51,6 +51,17 @@ for (const name of ['Pull Vercel production environment', 'Refresh Vercel produc
   assert(block && !block.includes('continue-on-error: true'), `${name} must fail the production job on error`);
 }
 
+// The production apply must redeploy the reviewed Edge Functions, including
+// submit-landing-lead, so the PR #163 lead rate-limit/salt changes ship with
+// the release instead of lingering as stale production code.
+const edgeDeploy = production.split('- name: Deploy reviewed Edge Functions (manual apply_and_deploy only)\n')[1]?.split('\n      - ')[0];
+assert(edgeDeploy, 'production Edge Function deploy step exists');
+assert(/if:\s*github\.event_name == 'workflow_dispatch' && inputs\.release_mode == 'apply_and_deploy'/.test(edgeDeploy), 'Edge Function deploy runs only in manual apply_and_deploy mode');
+for (const fn of ['submit-landing-lead', 'nexora-whatsapp-connect', 'nexora-whatsapp-webhook', 'studioflow-payments']) {
+  assert(edgeDeploy.includes(fn), `production Edge Function deploy must include ${fn}`);
+}
+assert(!edgeDeploy.includes('continue-on-error: true'), 'production Edge Function deploy must fail the job on error');
+
 const vercel = JSON.parse(readFileSync('vercel.json', 'utf8'));
 const redirects = (vercel.redirects || []).filter((r) => r.source === '/(.*)' &&
   r.has?.some((h) => h.type === 'host' && h.value === 'www.nexorasalon.online'));
@@ -59,4 +70,4 @@ assert.equal(redirects[0].destination, 'https://nexorasalon.online/$1');
 assert.equal(redirects[0].permanent, true, 'www redirect is permanent');
 // TLS-level HTTP redirects are provided by the deployment platform, not by
 // vercel.json; the blocking live check above is the release gate for them.
-console.log('PASS: github-script v8 consistency, fatal production steps, live SEO/HTTP redirect gate, and Vercel www canonical redirect.');
+console.log('PASS: github-script v8 consistency, fatal production steps, Edge Function deploy gate, live SEO/HTTP redirect gate, and Vercel www canonical redirect.');
