@@ -12,9 +12,16 @@ assert.match(origin.hostname, /vercel\.app$/i, 'interaction audit is restricted 
 const require = createRequire(resolve(toolsRoot, 'package.json'));
 const { chromium } = require('playwright');
 const browser = await chromium.launch({ headless: true });
+const vercelBypassSecret = (process.env.VERCEL_AUTOMATION_BYPASS_SECRET || '').trim();
 const page = await browser.newPage({
   viewport: { width: 1365, height: 950 },
   reducedMotion: 'reduce',
+  // Use the same Vercel Automation Bypass headers as the existing Preview E2E.
+  // The browser context applies them to the top-level page and preview iframe.
+  extraHTTPHeaders: vercelBypassSecret ? {
+    'x-vercel-protection-bypass': vercelBypassSecret,
+    'x-vercel-set-bypass-cookie': 'true',
+  } : {},
 });
 const failedRequests = [];
 const writeRequests = [];
@@ -169,8 +176,63 @@ try {
   await bookingDialog.waitFor({ state: 'hidden' });
   await previewDialog.getByRole('button', { name: /close template preview/i }).click();
   await previewDialog.waitFor({ state: 'hidden' });
+  const homepageEventEntries = await page.evaluate(() => window.__nexoraInteractionEntries || []);
 
-  const eventEntries = await page.evaluate(() => window.__nexoraInteractionEntries || []);
+  // Exercise both owner and customer registration forms without submitting.
+  // Synthetic values remain in the browser only; no authentication or database
+  // mutation is initiated by this audit.
+  const ownerSignupUrl = new URL('/login?auth=signup', origin).toString();
+  const ownerSignupResponse = await page.goto(ownerSignupUrl, { waitUntil: 'domcontentloaded' });
+  assert.equal(ownerSignupResponse?.status(), 200, 'owner signup form route loads with HTTP 200');
+  await page.locator('form').first().waitFor({ state: 'visible' });
+  await installInteractionObserver(page);
+  await page.getByTestId('auth-full-name').fill('Preview QA Owner');
+  await page.getByTestId('auth-salon-name').fill('Preview QA Salon');
+  await page.getByTestId('auth-email').fill('owner-audit@example.invalid');
+  await page.getByTestId('auth-password').fill('PreviewAuditPass123!');
+  await page.getByRole('button', { name: 'Show password' }).click();
+  assert.equal(await page.getByTestId('auth-password').getAttribute('type'), 'text',
+    'owner signup password visibility toggle responds to interaction');
+  await page.getByRole('button', { name: 'Hide password' }).click();
+  assert.equal(await page.getByTestId('auth-password').getAttribute('type'), 'password',
+    'owner signup password visibility toggle restores masking');
+  const ownerFormValues = await page.locator('form').first().evaluate((form) => ({
+    fields: [...form.querySelectorAll('input')].filter((input) => input.value.trim()).length,
+    submitButtons: form.querySelectorAll('button[type="submit"], input[type="submit"]').length,
+  }));
+  assert.ok(ownerFormValues.fields >= 4, 'owner signup name, salon, email and password fields accept input');
+  assert.ok(ownerFormValues.submitButtons >= 1, 'owner signup exposes a submit control but is not submitted');
+  const ownerEventEntries = await page.evaluate(() => window.__nexoraInteractionEntries || []);
+
+  const customerSignupUrl = new URL('/login?customer=1&auth=signup', origin).toString();
+  const customerSignupResponse = await page.goto(customerSignupUrl, { waitUntil: 'domcontentloaded' });
+  assert.equal(customerSignupResponse?.status(), 200, 'customer signup form route loads with HTTP 200');
+  await page.locator('form').first().waitFor({ state: 'visible' });
+  await installInteractionObserver(page);
+  await page.getByTestId('auth-full-name').fill('Preview QA Customer');
+  await page.getByTestId('auth-dob').fill('1995-01-01');
+  await page.getByTestId('auth-whatsapp').fill('9876543210');
+  await page.getByTestId('auth-email').fill('customer-audit@example.invalid');
+  await page.getByTestId('auth-password').fill('PreviewAuditPass123!');
+  const customerFormValues = await page.locator('form').first().evaluate((form) => ({
+    fullName: form.querySelector('[data-testid="auth-full-name"]')?.value || '',
+    birthDate: form.querySelector('[data-testid="auth-dob"]')?.value || '',
+    whatsapp: form.querySelector('[data-testid="auth-whatsapp"]')?.value || '',
+    email: form.querySelector('[data-testid="auth-email"]')?.value || '',
+    submitButtons: form.querySelectorAll('button[type="submit"], input[type="submit"]').length,
+  }));
+  assert.equal(customerFormValues.fullName, 'Preview QA Customer', 'customer signup name input responds');
+  assert.equal(customerFormValues.birthDate, '1995-01-01', 'customer DOB input responds');
+  assert.equal(customerFormValues.whatsapp, '9876543210', 'customer WhatsApp input responds');
+  assert.equal(customerFormValues.email, 'customer-audit@example.invalid', 'customer email input responds');
+  assert.ok(customerFormValues.submitButtons >= 1, 'customer signup exposes a submit control but is not submitted');
+  const customerEventEntries = await page.evaluate(() => window.__nexoraInteractionEntries || []);
+
+  const eventEntries = [
+    ...homepageEventEntries,
+    ...ownerEventEntries,
+    ...customerEventEntries,
+  ];
   const interactionDurations = [...eventEntries, ...frameEventEntries]
     .map((entry) => Number(entry.duration))
     .filter((duration) => Number.isFinite(duration) && duration > 0)
@@ -183,6 +245,8 @@ try {
   const result = {
     templatesChecked: imageStats.length,
     webpResponses: webpResponses.size,
+    ownerSignupFormFieldsChecked: 4,
+    customerSignupFormFieldsChecked: 5,
     interactionEventEntries: interactionDurations.length,
     syntheticInteractionP75Ms: p75 === null ? 'not supported by this Chromium runtime' : Number(p75.toFixed(2)),
     longestObservedTaskMs: longTasks.length ? Number(Math.max(...longTasks).toFixed(2)) : 0,
