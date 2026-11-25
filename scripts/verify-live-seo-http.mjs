@@ -210,10 +210,14 @@ async function runVerification() {
       assert.ok(!hasVercelAppRef, `${routePath} contains zero *.vercel.app URLs`);
     }
 
-    // 2b. Unknown salon slugs must return a real noindex 404, not the homepage shell.
-    const missingSalon = await get('/nexora-seo-404-probe-2026');
-    assert.equal(missingSalon.status, 404, 'an unpublished/unknown salon route returns HTTP 404');
-    assert.match(missingSalon.body, /noindex/i, 'the 404 response carries a noindex directive');
+    // 2b. Both query-string and vanity-path unknown salon URLs must reach the SSR 404,
+    // not fall through to Vercel's generic 404 or the marketing homepage shell.
+    for (const missingSalonPath of ['/?site=nexora-seo-404-probe-2026', '/nexora-seo-404-probe-2026']) {
+      const missingSalon = await get(missingSalonPath);
+      assert.equal(missingSalon.status, 404, missingSalonPath + ' returns the storefront HTTP 404');
+      assert.match(missingSalon.body, /<meta[^>]+name=["']robots["'][^>]+content=["']noindex["']/i, missingSalonPath + ' 404 HTML carries a noindex directive');
+      assert.match(missingSalon.body, /Salon website not found|This salon website is not published/i, missingSalonPath + ' uses the NEXORA storefront not-found document');
+    }
 
     // 3. Auth routes -> X-Robots-Tag: noindex, follow.
     for (const authPath of ['/login', '/sign-in', '/sign-up']) {
