@@ -1,14 +1,261 @@
 import assert from 'node:assert/strict';
 import {chmodSync,existsSync,mkdirSync,mkdtempSync,readdirSync,readFileSync,rmSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {dirname,join} from 'node:path';
+import {delimiter,dirname,join} from 'node:path';
 import {spawnSync} from 'node:child_process';
 
 const EXPECTED_REF='zilwgiuiygqqardzutxi';
-const bash=process.platform==='win32'
-  ? [join(process.env.ProgramFiles||'C:\\Program Files','Git','bin','bash.exe'),join(process.env['ProgramFiles(x86)']||'C:\\Program Files (x86)','Git','bin','bash.exe')].find(existsSync)||'bash'
-  : 'bash';
-const shellPath=(path)=>process.platform==='win32'?path.replace(/^([A-Za-z]):[\\/]/,(_,drive)=>`/${drive.toLowerCase()}/`).replace(/\\/g,'/'):path;
+const IS_WIN=process.platform==='win32';
+const IS_CI=Boolean(process.env.CI || process.env.GITHUB_ACTIONS);
+
+const getEnvCI=(source,key)=>{
+  if(!IS_WIN) return source[key];
+  const target=key.toLowerCase();
+  for(const [k,v] of Object.entries(source)){
+    if(k.toLowerCase()===target && v!==undefined) return v;
+  }
+  return undefined;
+};
+
+const setEnvCI=(target,key,value)=>{
+  if(IS_WIN){
+    const lower=key.toLowerCase();
+    for(const existing of Object.keys(target)){
+      if(existing.toLowerCase()===lower && existing!==key){
+        delete target[existing];
+      }
+    }
+  }
+  if(value===undefined){
+    delete target[key];
+  } else {
+    target[key]=String(value);
+  }
+};
+
+const WIN_BASE_ENV_KEYS=[
+  'APPDATA',
+  'COMSPEC',
+  'HOMEDRIVE',
+  'HOMEPATH',
+  'LOCALAPPDATA',
+  'MSYSTEM',
+  'PATHEXT',
+  'SYSTEMDRIVE',
+  'SYSTEMROOT',
+  'TEMP',
+  'TMP',
+  'USERPROFILE',
+  'WINDIR',
+];
+
+const buildCleanEnv=(overrides={},{minimal=false,pathPrefix=[]}={})=>{
+  const env={};
+  if(minimal){
+    const basePath=getEnvCI(process.env,'PATH');
+    if(basePath!==undefined) setEnvCI(env,'PATH',basePath);
+    const home=getEnvCI(process.env,'HOME');
+    if(home!==undefined) setEnvCI(env,'HOME',home);
+    if(IS_WIN){
+      for(const key of WIN_BASE_ENV_KEYS){
+        const val=getEnvCI(process.env,key);
+        if(val!==undefined) setEnvCI(env,key,val);
+      }
+    }
+  } else {
+    for(const [k,v] of Object.entries(process.env)){
+      if(v!==undefined) setEnvCI(env,k,v);
+    }
+  }
+
+  for(const [k,v] of Object.entries(overrides)){
+    setEnvCI(env,k,v);
+  }
+
+  if(pathPrefix.length>0){
+    const currentPath=getEnvCI(env,'PATH');
+    const combined=[...pathPrefix,...(currentPath?[currentPath]:[])].join(delimiter);
+    setEnvCI(env,'PATH',combined);
+  }
+
+  return env;
+};
+
+const toPosixPath=(rawPath,mountPrefix='')=>{
+  if(!IS_WIN) return rawPath;
+  return rawPath
+    .replace(/^([A-Za-z]):[\\/]/,(_,drive)=>`${mountPrefix}/${drive.toLowerCase()}/`)
+    .replace(/\\/g,'/');
+};
+
+const isSystem32Path=(candidate)=>
+  IS_WIN && /[\\/]windows[\\/]system32[\\/]bash\.exe$/i.test(candidate);
+
+const collectBashCandidates=()=>{
+  const seen=new Set();
+  const candidates=[];
+  const add=(candidate)=>{
+    if(!candidate || typeof candidate!=='string') return;
+    const trimmed=candidate.trim();
+    if(!trimmed) return;
+    const key=IS_WIN?trimmed.toLowerCase():trimmed;
+    if(seen.has(key)) return;
+    seen.add(key);
+    candidates.push(trimmed);
+  };
+
+  add(process.env.STUDIOFLOW_BASH);
+  add(process.env.GIT_BASH);
+
+  if(!IS_WIN){
+    for(const candidate of ['/bin/bash','/usr/bin/bash','/usr/local/bin/bash','/opt/homebrew/bin/bash','bash']){
+      add(candidate);
+    }
+    return candidates;
+  }
+
+  const addGitRoot=(root)=>{
+    if(!root) return;
+    add(join(root,'bin','bash.exe'));
+    add(join(root,'usr','bin','bash.exe'));
+  };
+
+  // Derive Git Bash from any git.exe already on PATH (covers custom drives,
+  // per-user installs, Scoop, Chocolatey, portable Git, etc.).
+  const pathEntries=(getEnvCI(process.env,'PATH')||'')
+    .split(delimiter)
+    .map(entry=>entry.trim().replace(/^"(.*)"$/,'$1'))
+    .filter(Boolean);
+  const system32BashCandidates=[];
+  const otherPathBashCandidates=[];
+
+  for(const dir of pathEntries){
+    const gitExe=join(dir,'git.exe');
+    if(existsSync(gitExe)){
+      addGitRoot(dir);
+      addGitRoot(dirname(dir));
+      addGitRoot(dirname(dirname(dir)));
+    }
+    const pathBash=join(dir,'bash.exe');
+    if(existsSync(pathBash)){
+      if(isSystem32Path(pathBash)) system32BashCandidates.push(pathBash);
+      else otherPathBashCandidates.push(pathBash);
+    }
+  }
+
+  // Standard Windows Git / MSYS2 / Cygwin locations.
+  addGitRoot(join(getEnvCI(process.env,'ProgramFiles')||'C:\\Program Files','Git'));
+  if(getEnvCI(process.env,'ProgramW6432')){
+    addGitRoot(join(getEnvCI(process.env,'ProgramW6432'),'Git'));
+  }
+  addGitRoot(join(getEnvCI(process.env,'ProgramFiles(x86)')||'C:\\Program Files (x86)','Git'));
+  if(getEnvCI(process.env,'LOCALAPPDATA')){
+    addGitRoot(join(getEnvCI(process.env,'LOCALAPPDATA'),'Programs','Git'));
+  }
+  if(getEnvCI(process.env,'USERPROFILE')){
+    addGitRoot(join(getEnvCI(process.env,'USERPROFILE'),'AppData','Local','Programs','Git'));
+    addGitRoot(join(getEnvCI(process.env,'USERPROFILE'),'scoop','apps','git','current'));
+  }
+  if(getEnvCI(process.env,'ChocolateyInstall')){
+    addGitRoot(join(getEnvCI(process.env,'ChocolateyInstall'),'lib','git','tools'));
+  }
+  addGitRoot('C:\\Git');
+  add('C:\\msys64\\usr\\bin\\bash.exe');
+  add('C:\\cygwin64\\bin\\bash.exe');
+
+  for(const candidate of otherPathBashCandidates) add(candidate);
+  for(const candidate of system32BashCandidates) add(candidate);
+  add('bash');
+  return candidates;
+};
+
+const detectMountPrefix=(pwdOutput)=>{
+  if(!IS_WIN) return '';
+  const trimmed=(pwdOutput||'').trim();
+  if(/^\/mnt\/[a-z](\/|$)/i.test(trimmed)) return '/mnt';
+  if(/^\/cygdrive\/[a-z](\/|$)/i.test(trimmed)) return '/cygdrive';
+  return '';
+};
+
+const resolveBashRuntime=()=>{
+  const probeScript='[[ "${STUDIOFLOW_BASH_PROBE:-}" == "ok" ]] && [[ "${STUDIOFLOW_CRLF_PROBE:-}" == $\'\\tok\\r\\n\' ]] && pwd';
+  const probed=[];
+
+  for(const candidate of collectBashCandidates()){
+    if(/[\\/]/.test(candidate) && !existsSync(candidate)) continue;
+    probed.push(candidate);
+
+    const baseEnv=buildCleanEnv({
+      STUDIOFLOW_BASH_PROBE:'ok',
+      STUDIOFLOW_CRLF_PROBE:'\tok\r\n',
+    },{minimal:true});
+
+    let res=spawnSync(candidate,['-euo','pipefail','-c',probeScript],{
+      env:baseEnv,
+      encoding:'utf8',
+      windowsHide:true,
+    });
+    if(!res.error && res.status===0){
+      const mountPrefix=detectMountPrefix(res.stdout);
+      return {
+        bin:candidate,
+        isWsl:false,
+        toBashPath:(rawPath)=>toPosixPath(rawPath,mountPrefix),
+      };
+    }
+
+    if(IS_WIN && (isSystem32Path(candidate) || candidate==='bash')){
+      const wslEnv=buildCleanEnv({
+        STUDIOFLOW_BASH_PROBE:'ok',
+        STUDIOFLOW_CRLF_PROBE:'\tok\r\n',
+        WSLENV:'STUDIOFLOW_BASH_PROBE:STUDIOFLOW_CRLF_PROBE',
+      },{minimal:true});
+      res=spawnSync(candidate,['-euo','pipefail','-c',probeScript],{
+        env:wslEnv,
+        encoding:'utf8',
+        windowsHide:true,
+      });
+      if(!res.error && res.status===0){
+        const mountPrefix=detectMountPrefix(res.stdout)||'/mnt';
+        return {
+          bin:candidate,
+          isWsl:true,
+          toBashPath:(rawPath)=>toPosixPath(rawPath,mountPrefix),
+        };
+      }
+    }
+  }
+
+  return {bin:null,isWsl:false,toBashPath:(rawPath)=>toPosixPath(rawPath),probed};
+};
+
+const formatSpawnFailure=(res)=>{
+  const parts=[];
+  if(res.error) parts.push(`error=${res.error.code||res.error.message}`);
+  parts.push(`status=${res.status}`);
+  if(res.signal) parts.push(`signal=${res.signal}`);
+  const detail=`${res.stdout??''}\n${res.stderr??''}`.trim();
+  if(detail) parts.push(detail);
+  return parts.join('; ');
+};
+
+const runBash=(runtime,args,overrides={},{minimal=false,pathPrefix=[],wslEnvKeys=[]}={})=>{
+  const mergedOverrides={...overrides};
+  if(runtime.isWsl && wslEnvKeys.length>0){
+    const existing=getEnvCI(process.env,'WSLENV');
+    mergedOverrides.WSLENV=[...(existing?[existing]:[]),...wslEnvKeys].join(':');
+  }
+  const env=buildCleanEnv(mergedOverrides,{minimal,pathPrefix});
+  return spawnSync(runtime.bin,args,{env,encoding:'utf8',windowsHide:true});
+};
+
+const bashRuntime=resolveBashRuntime();
+if(!bashRuntime.bin && (!IS_WIN || IS_CI)){
+  assert.fail(
+    `Could not locate a working GNU bash binary for release-mode shell verification (probed: ${bashRuntime.probed.join(', ') || 'none'}).`
+  );
+}
+
 const workflow=readFileSync('.github/workflows/production.yml','utf8').replace(/\r\n?/g,'\n');
 const dispatch=workflow.split('  workflow_dispatch:\n')[1].split('\nconcurrency:')[0];
 assert(dispatch.includes('type: choice') && dispatch.includes('default: dry_run'));
@@ -64,16 +311,24 @@ assert(ciGate.indexOf('echo "::error::')>=0 && ciGate.includes('exit 1'),
 
 const validation=workflow.split('- name: Validate manual release mode')[1].split('\n      - ')[0];
 const shell=validation.split('        run: |\n')[1].split('\n').map(line=>line.replace(/^          /,'')).join('\n');
-for(const mode of [...options,'invalid','true','']){
-  const result=spawnSync(bash,['-eu','-c',shell],{env:{...process.env,RELEASE_MODE:mode},encoding:'utf8'});
-  assert.equal(result.status===0,options.includes(mode),`Release validation mismatch for ${JSON.stringify(mode)}`);
+assert(shell.includes('dry_run|apply_and_deploy|deploy_only) ;;') && shell.includes('exit 1'),
+  'manual release mode validation must allow only the three reviewed choices');
+if(bashRuntime.bin){
+  for(const mode of [...options,'invalid','true','']){
+    const result=runBash(bashRuntime,['-eu','-c',shell],{RELEASE_MODE:mode},{wslEnvKeys:['RELEASE_MODE']});
+    assert.equal(
+      result.status===0,
+      options.includes(mode),
+      `Release validation mismatch for ${JSON.stringify(mode)} (${formatSpawnFailure(result)})`
+    );
+  }
 }
 
 // --- Supabase project-reference validation, whitespace normalization, and propagation ---
 const migrateJob=workflow.split('\n  migrate:\n')[1].split('\n  deploy:\n')[0];
 assert(migrateJob.includes('environment:\n      name: production-db'),'migrate job must target production-db environment');
 const reviewedEnvMatch=migrateJob.match(/^    env:\n      REVIEWED_SUPABASE_PROJECT_REF: (\S+)$/m);
-assert(reviewedEnvMatch,`migrate job must declare REVIEWED_SUPABASE_PROJECT_REF`);
+assert(reviewedEnvMatch,'migrate job must declare REVIEWED_SUPABASE_PROJECT_REF');
 assert.equal(reviewedEnvMatch[1],EXPECTED_REF);
 
 const getMigrateStep=(labelPrefix)=>{
@@ -119,92 +374,104 @@ for(const line of echoLines){
 // The target-project guard itself must still compare against the literal ref.
 assert(credShell.includes(`"$SUPABASE_PROJECT_REF" != "${EXPECTED_REF}"`),'target-project guard must stay literal');
 
-const tempRoot=mkdtempSync(join(tmpdir(),'studioflow-prod-ref-'));
-try {
-  const TOKEN_SENTINEL='sbp_secret_access_token_sentinel_do_not_print';
-  const PASS_SENTINEL='db_secret_password_sentinel_do_not_print';
-  const WRONG_SECRET_SENTINEL='gsahfgwhhpjwtpmhozkm';
+if(bashRuntime.bin){
+  const tempRoot=mkdtempSync(join(tmpdir(),'studioflow-prod-ref-'));
+  try {
+    const TOKEN_SENTINEL='sbp_secret_access_token_sentinel_do_not_print';
+    const PASS_SENTINEL='db_secret_password_sentinel_do_not_print';
+    const WRONG_SECRET_SENTINEL='gsahfgwhhpjwtpmhozkm';
 
-  const runCredValidation=(overrides={})=>{
-    const outFile=join(tempRoot,`github-output-${Math.random().toString(36).slice(2)}.txt`);
-    writeFileSync(outFile,'','utf8');
-    const env={
-      PATH:process.env.PATH,
-      HOME:process.env.HOME,
-      GITHUB_OUTPUT:outFile,
-      REVIEWED_SUPABASE_PROJECT_REF:reviewedEnvMatch[1],
-      SUPABASE_ACCESS_TOKEN:TOKEN_SENTINEL,
-      SUPABASE_DB_PASSWORD:PASS_SENTINEL,
-      SUPABASE_PROJECT_REF_VAR:'',
-      SUPABASE_PROJECT_REF_SECRET:'',
-      ...overrides,
+    const runCredValidation=(overrides={})=>{
+      const outFile=join(tempRoot,`github-output-${Math.random().toString(36).slice(2)}.txt`);
+      writeFileSync(outFile,'','utf8');
+      const credOverrides={
+        GITHUB_OUTPUT:bashRuntime.toBashPath(outFile),
+        REVIEWED_SUPABASE_PROJECT_REF:reviewedEnvMatch[1],
+        SUPABASE_ACCESS_TOKEN:TOKEN_SENTINEL,
+        SUPABASE_DB_PASSWORD:PASS_SENTINEL,
+        SUPABASE_PROJECT_REF_VAR:'',
+        SUPABASE_PROJECT_REF_SECRET:'',
+        ...overrides,
+      };
+      const res=runBash(bashRuntime,['-c',credShell],credOverrides,{
+        minimal:true,
+        wslEnvKeys:[
+          'GITHUB_OUTPUT',
+          'REVIEWED_SUPABASE_PROJECT_REF',
+          'SUPABASE_ACCESS_TOKEN',
+          'SUPABASE_DB_PASSWORD',
+          'SUPABASE_PROJECT_REF_VAR',
+          'SUPABASE_PROJECT_REF_SECRET',
+        ],
+      });
+      const combined=`${res.stdout??''}\n${res.stderr??''}`;
+      assert(!combined.includes(TOKEN_SENTINEL),'must never print SUPABASE_ACCESS_TOKEN');
+      assert(!combined.includes(PASS_SENTINEL),'must never print SUPABASE_DB_PASSWORD');
+      if(credOverrides.SUPABASE_PROJECT_REF_SECRET && !credOverrides.SUPABASE_PROJECT_REF_SECRET.includes(EXPECTED_REF)){
+        const trimmedSecret=credOverrides.SUPABASE_PROJECT_REF_SECRET.trim();
+        if(trimmedSecret){
+          assert(!combined.includes(trimmedSecret),'must never print wrong secret project ref value');
+        }
+      }
+      const outputContent=readFileSync(outFile,'utf8');
+      return {status:res.status,stdout:res.stdout,stderr:res.stderr,combined,outputContent,detail:formatSpawnFailure(res)};
     };
-    const res=spawnSync(bash,['-c',credShell],{env,encoding:'utf8'});
-    const combined=`${res.stdout??''}\n${res.stderr??''}`;
-    assert(!combined.includes(TOKEN_SENTINEL),'must never print SUPABASE_ACCESS_TOKEN');
-    assert(!combined.includes(PASS_SENTINEL),'must never print SUPABASE_DB_PASSWORD');
-    if(env.SUPABASE_PROJECT_REF_SECRET && !env.SUPABASE_PROJECT_REF_SECRET.includes(EXPECTED_REF)){
-      const trimmedSecret=env.SUPABASE_PROJECT_REF_SECRET.trim();
-      if(trimmedSecret){
-        assert(!combined.includes(trimmedSecret),'must never print wrong secret project ref value');
+
+    // 1. Valid references succeed across reviewed config, GitHub variable, GitHub secret, and surrounding whitespace.
+    for(const [label,overrides,expectWarning] of [
+      ['reviewed workflow default (no secret required)',{},false],
+      ['exact vars.SUPABASE_PROJECT_REF',{SUPABASE_PROJECT_REF_VAR:EXPECTED_REF},false],
+      ['exact secrets.SUPABASE_PROJECT_REF',{SUPABASE_PROJECT_REF_SECRET:EXPECTED_REF},false],
+      ['leading tab in secrets.SUPABASE_PROJECT_REF (Run #22 pattern)',{SUPABASE_PROJECT_REF_SECRET:`\t${EXPECTED_REF}`},'leading tab'],
+      ['trailing CRLF in secrets.SUPABASE_PROJECT_REF',{SUPABASE_PROJECT_REF_SECRET:`${EXPECTED_REF}\r\n`},'trailing CR,LF'],
+      ['surrounding spaces/tabs/CRLF in vars.SUPABASE_PROJECT_REF',{SUPABASE_PROJECT_REF_VAR:` \t\r\n${EXPECTED_REF}\r\n\t `},'leading tab,CR,LF,space and trailing tab,CR,LF,space'],
+      ['consistent vars and whitespace-padded secret',{SUPABASE_PROJECT_REF_VAR:EXPECTED_REF,SUPABASE_PROJECT_REF_SECRET:`\t${EXPECTED_REF}\n`},'leading tab and trailing LF'],
+    ]){
+      const res=runCredValidation(overrides);
+      assert.equal(res.status,0,`${label} should succeed: ${res.detail}`);
+      assert.equal(res.outputContent,`project_ref=${EXPECTED_REF}\n`,`${label} must emit exact clean project_ref output`);
+      if(expectWarning){
+        assert(res.combined.includes('::warning::') && res.combined.includes(expectWarning),
+          `${label} should warn about ${expectWarning}, got: ${res.combined}`);
+      } else {
+        assert(!res.combined.includes('::warning::'),`${label} should not warn when already clean: ${res.combined}`);
       }
     }
-    const outputContent=readFileSync(outFile,'utf8');
-    return {status:res.status,stdout:res.stdout,stderr:res.stderr,combined,outputContent};
-  };
 
-  // 1. Valid references succeed across reviewed config, GitHub variable, GitHub secret, and surrounding whitespace.
-  for(const [label,overrides,expectWarning] of [
-    ['reviewed workflow default (no secret required)',{},false],
-    ['exact vars.SUPABASE_PROJECT_REF',{SUPABASE_PROJECT_REF_VAR:EXPECTED_REF},false],
-    ['exact secrets.SUPABASE_PROJECT_REF',{SUPABASE_PROJECT_REF_SECRET:EXPECTED_REF},false],
-    ['leading tab in secrets.SUPABASE_PROJECT_REF (Run #22 pattern)',{SUPABASE_PROJECT_REF_SECRET:`\t${EXPECTED_REF}`},'leading tab'],
-    ['trailing CRLF in secrets.SUPABASE_PROJECT_REF',{SUPABASE_PROJECT_REF_SECRET:`${EXPECTED_REF}\r\n`},'trailing CR,LF'],
-    ['surrounding spaces/tabs/CRLF in vars.SUPABASE_PROJECT_REF',{SUPABASE_PROJECT_REF_VAR:` \t\r\n${EXPECTED_REF}\r\n\t `},'leading tab,CR,LF,space and trailing tab,CR,LF,space'],
-    ['consistent vars and whitespace-padded secret',{SUPABASE_PROJECT_REF_VAR:EXPECTED_REF,SUPABASE_PROJECT_REF_SECRET:`\t${EXPECTED_REF}\n`},'leading tab and trailing LF'],
-  ]){
-    const res=runCredValidation(overrides);
-    assert.equal(res.status,0,`${label} should succeed: ${res.combined}`);
-    assert.equal(res.outputContent,`project_ref=${EXPECTED_REF}\n`,`${label} must emit exact clean project_ref output`);
-    if(expectWarning){
-      assert(res.combined.includes('::warning::') && res.combined.includes(expectWarning),
-        `${label} should warn about ${expectWarning}, got: ${res.combined}`);
-    } else {
-      assert(!res.combined.includes('::warning::'),`${label} should not warn when already clean: ${res.combined}`);
+    // 2. Wrong references, internal whitespace, whitespace-only values, conflicts, and missing secrets fail before hosted operations.
+    for(const [label,overrides,expectedSnippet] of [
+      ['missing SUPABASE_ACCESS_TOKEN',{SUPABASE_ACCESS_TOKEN:''},'did not provide SUPABASE_ACCESS_TOKEN'],
+      ['missing SUPABASE_DB_PASSWORD',{SUPABASE_DB_PASSWORD:''},'did not provide SUPABASE_DB_PASSWORD'],
+      ['wrong secret ref without whitespace',{SUPABASE_PROJECT_REF_SECRET:WRONG_SECRET_SENTINEL},'no surrounding whitespace was found; the stored value is a different reference'],
+      ['wrong secret ref WITH leading tab and CRLF',{SUPABASE_PROJECT_REF_SECRET:`\t${WRONG_SECRET_SENTINEL}\r\n`},'even after trimming leading tab and trailing CR,LF. Stored value is a different reference, not merely surrounding whitespace'],
+      ['wrong vars ref without whitespace',{SUPABASE_PROJECT_REF_VAR:'otherprojectref12345'},'vars.SUPABASE_PROJECT_REF does not match'],
+      ['full Supabase URL instead of project ref',{SUPABASE_PROJECT_REF_SECRET:`\thttps://${EXPECTED_REF}.supabase.co\r\n`},'Configure only the 20-character project reference ID, not a Supabase URL or hostname'],
+      ['internal space in project ref',{SUPABASE_PROJECT_REF_SECRET:'zilwgiuiyg qqardzutxi'},'contains internal whitespace'],
+      ['internal tab in project ref',{SUPABASE_PROJECT_REF_SECRET:'zilwgiuiyg\tqqardzutxi'},'contains internal whitespace'],
+      ['internal newline / multiline in project ref',{SUPABASE_PROJECT_REF_SECRET:`${EXPECTED_REF}\n${WRONG_SECRET_SENTINEL}`},'contains internal whitespace'],
+      ['surrounding + internal whitespace',{SUPABASE_PROJECT_REF_VAR:`\tzilwgiuiyg qqardzutxi\r\n`},'contains internal whitespace'],
+      ['whitespace-only tab secret',{SUPABASE_PROJECT_REF_SECRET:'\t'},'contains only whitespace'],
+      ['whitespace-only CRLF/spaces var',{SUPABASE_PROJECT_REF_VAR:'  \r\n\t '},'contains only whitespace'],
+      ['conflicting valid var + wrong secret',{SUPABASE_PROJECT_REF_VAR:EXPECTED_REF,SUPABASE_PROJECT_REF_SECRET:WRONG_SECRET_SENTINEL},'vars.SUPABASE_PROJECT_REF is valid, but secrets.SUPABASE_PROJECT_REF conflicts'],
+      ['conflicting wrong var + valid secret',{SUPABASE_PROJECT_REF_VAR:'wrongprojectref00000',SUPABASE_PROJECT_REF_SECRET:EXPECTED_REF},'SUPABASE_PROJECT_REF in vars.SUPABASE_PROJECT_REF does not match'],
+      ['tampered REVIEWED_SUPABASE_PROJECT_REF with unset overrides',{REVIEWED_SUPABASE_PROJECT_REF:'arbitraryproject0000'},'does not match this repository\'s reviewed StudioFlow project'],
+    ]){
+      const res=runCredValidation(overrides);
+      assert.notEqual(res.status,0,`${label} must fail`);
+      assert.equal(res.outputContent,'',`${label} must not emit project_ref output on failure`);
+      assert(res.combined.includes(expectedSnippet),`${label} expected "${expectedSnippet}", got: ${res.detail}`);
     }
-  }
 
-  // 2. Wrong references, internal whitespace, whitespace-only values, conflicts, and missing secrets fail before hosted operations.
-  for(const [label,overrides,expectedSnippet] of [
-    ['missing SUPABASE_ACCESS_TOKEN',{SUPABASE_ACCESS_TOKEN:''},'did not provide SUPABASE_ACCESS_TOKEN'],
-    ['missing SUPABASE_DB_PASSWORD',{SUPABASE_DB_PASSWORD:''},'did not provide SUPABASE_DB_PASSWORD'],
-    ['wrong secret ref without whitespace',{SUPABASE_PROJECT_REF_SECRET:WRONG_SECRET_SENTINEL},'no surrounding whitespace was found; the stored value is a different reference'],
-    ['wrong secret ref WITH leading tab and CRLF',{SUPABASE_PROJECT_REF_SECRET:`\t${WRONG_SECRET_SENTINEL}\r\n`},'even after trimming leading tab and trailing CR,LF. Stored value is a different reference, not merely surrounding whitespace'],
-    ['wrong vars ref without whitespace',{SUPABASE_PROJECT_REF_VAR:'otherprojectref12345'},'vars.SUPABASE_PROJECT_REF does not match'],
-    ['full Supabase URL instead of project ref',{SUPABASE_PROJECT_REF_SECRET:`\thttps://${EXPECTED_REF}.supabase.co\r\n`},'Configure only the 20-character project reference ID, not a Supabase URL or hostname'],
-    ['internal space in project ref',{SUPABASE_PROJECT_REF_SECRET:'zilwgiuiyg qqardzutxi'},'contains internal whitespace'],
-    ['internal tab in project ref',{SUPABASE_PROJECT_REF_SECRET:'zilwgiuiyg\tqqardzutxi'},'contains internal whitespace'],
-    ['internal newline / multiline in project ref',{SUPABASE_PROJECT_REF_SECRET:`${EXPECTED_REF}\n${WRONG_SECRET_SENTINEL}`},'contains internal whitespace'],
-    ['surrounding + internal whitespace',{SUPABASE_PROJECT_REF_VAR:`\tzilwgiuiyg qqardzutxi\r\n`},'contains internal whitespace'],
-    ['whitespace-only tab secret',{SUPABASE_PROJECT_REF_SECRET:'\t'},'contains only whitespace'],
-    ['whitespace-only CRLF/spaces var',{SUPABASE_PROJECT_REF_VAR:'  \r\n\t '},'contains only whitespace'],
-    ['conflicting valid var + wrong secret',{SUPABASE_PROJECT_REF_VAR:EXPECTED_REF,SUPABASE_PROJECT_REF_SECRET:WRONG_SECRET_SENTINEL},'vars.SUPABASE_PROJECT_REF is valid, but secrets.SUPABASE_PROJECT_REF conflicts'],
-    ['conflicting wrong var + valid secret',{SUPABASE_PROJECT_REF_VAR:'wrongprojectref00000',SUPABASE_PROJECT_REF_SECRET:EXPECTED_REF},'SUPABASE_PROJECT_REF in vars.SUPABASE_PROJECT_REF does not match'],
-    ['tampered REVIEWED_SUPABASE_PROJECT_REF with unset overrides',{REVIEWED_SUPABASE_PROJECT_REF:'arbitraryproject0000'},'does not match this repository\'s reviewed StudioFlow project'],
-  ]){
-    const res=runCredValidation(overrides);
-    assert.notEqual(res.status,0,`${label} must fail`);
-    assert.equal(res.outputContent,'',`${label} must not emit project_ref output on failure`);
-    assert(res.combined.includes(expectedSnippet),`${label} expected "${expectedSnippet}", got: ${res.combined}`);
-  }
-
-  // 3. End-to-end propagation: normalize "\tzilwgiuiygqqardzutxi\r\n" once and execute every hosted step's shell command against a mock supabase CLI.
-  const binDir=join(tempRoot,'bin');
-  const callsFile=join(tempRoot,'supabase-calls.jsonl');
-  mkdirSync(binDir,{recursive:true});
-  const mockSupabase=join(binDir,'supabase');
-  writeFileSync(mockSupabase,`#!/usr/bin/env node
-const fs = require('node:fs');
+    // 3. End-to-end propagation: normalize "\tzilwgiuiygqqardzutxi\r\n" once and execute every hosted step's shell command against a mock supabase CLI.
+    // Keep the mock implementation in an explicit .cjs file invoked via a POSIX
+    // shim so Node 26+ never rejects an extensionless CommonJS script if an
+    // ancestor directory of tmpdir() has "type": "module", and so Windows paths
+    // with spaces (e.g. C:\Program Files\nodejs\node.exe) execute reliably.
+    const binDir=join(tempRoot,'bin');
+    const callsFile=join(tempRoot,'supabase-calls.jsonl');
+    mkdirSync(binDir,{recursive:true});
+    const mockSupabaseCjs=join(binDir,'supabase.cjs');
+    writeFileSync(mockSupabaseCjs,`const fs = require('node:fs');
 const argv = process.argv.slice(2);
 fs.appendFileSync(process.env.MOCK_SUPABASE_LOG, JSON.stringify({
   argv,
@@ -231,102 +498,136 @@ if(argv[0] === 'migration' && argv[1] === 'list'){
   process.stdout.write(rows.join('\\n')+'\\n');
 }
 `,'utf8');
-  chmodSync(mockSupabase,0o755);
-  writeFileSync(callsFile,'','utf8');
-
-  const validated=runCredValidation({SUPABASE_PROJECT_REF_SECRET:`\t${EXPECTED_REF}\r\n`});
-  assert.equal(validated.status,0);
-  const propagatedRef=validated.outputContent.trim().split('=')[1];
-  assert.equal(propagatedRef,EXPECTED_REF);
-
-  const extractStepCommand=(stepName)=>{
-    const block=getMigrateStep(stepName);
-    if(block.includes('        run: >-\n')){
-      return block.split('        run: >-\n')[1].trim().split('\n').map(l=>l.trim()).join(' ');
+    const mockSupabase=join(binDir,'supabase');
+    writeFileSync(mockSupabase,`#!/bin/sh
+exec "$STUDIOFLOW_NODE_BIN" "$STUDIOFLOW_MOCK_SUPABASE_CJS" "$@"
+`,'utf8');
+    chmodSync(mockSupabase,0o755);
+    if(IS_WIN){
+      const mockNode=join(binDir,'node');
+      writeFileSync(mockNode,`#!/bin/sh
+exec "$STUDIOFLOW_NODE_BIN" "$@"
+`,'utf8');
+      chmodSync(mockNode,0o755);
     }
-    if(block.includes('        run: |\n')){
-      return block.split('        run: |\n')[1].split('\n').map(l=>l.replace(/^          /,'')).join('\n').trim();
+    writeFileSync(callsFile,'','utf8');
+
+    const validated=runCredValidation({SUPABASE_PROJECT_REF_SECRET:`\t${EXPECTED_REF}\r\n`});
+    assert.equal(validated.status,0,validated.detail);
+    const propagatedRef=validated.outputContent.trim().split('=')[1];
+    assert.equal(propagatedRef,EXPECTED_REF);
+
+    const extractStepCommand=(stepName)=>{
+      const block=getMigrateStep(stepName);
+      if(block.includes('        run: >-\n')){
+        return block.split('        run: >-\n')[1].trim().split('\n').map(l=>l.trim()).join(' ');
+      }
+      if(block.includes('        run: |\n')){
+        return block.split('        run: |\n')[1].split('\n').map(l=>l.replace(/^          /,'')).join('\n').trim();
+      }
+      return block.split('        run: ')[1].split('\n')[0].trim();
+    };
+
+    const mockBinBashDir=bashRuntime.toBashPath(binDir);
+    const nodeBashDir=bashRuntime.toBashPath(dirname(process.execPath));
+    const nodeBashBin=bashRuntime.toBashPath(process.execPath);
+
+    for(const stepName of hostedSteps){
+      const cmd=extractStepCommand(stepName);
+      const wrappedCmd=`export PATH="$STUDIOFLOW_MOCK_BIN_DIR:$STUDIOFLOW_NODE_DIR:$PATH"\n${cmd}`;
+      const stepRes=runBash(
+        bashRuntime,
+        ['-euo','pipefail','-c',wrappedCmd],
+        {
+          STUDIOFLOW_MOCK_BIN_DIR:mockBinBashDir,
+          STUDIOFLOW_NODE_DIR:nodeBashDir,
+          STUDIOFLOW_NODE_BIN:nodeBashBin,
+          STUDIOFLOW_MOCK_SUPABASE_CJS:mockSupabaseCjs,
+          MOCK_SUPABASE_LOG:callsFile,
+          SUPABASE_ACCESS_TOKEN:TOKEN_SENTINEL,
+          SUPABASE_DB_PASSWORD:PASS_SENTINEL,
+          SUPABASE_PROJECT_REF:propagatedRef,
+        },
+        {
+          pathPrefix:[binDir,dirname(process.execPath)],
+          wslEnvKeys:[
+            'STUDIOFLOW_MOCK_BIN_DIR',
+            'STUDIOFLOW_NODE_DIR',
+            'STUDIOFLOW_NODE_BIN',
+            'STUDIOFLOW_MOCK_SUPABASE_CJS',
+            'MOCK_SUPABASE_LOG',
+            'SUPABASE_ACCESS_TOKEN',
+            'SUPABASE_DB_PASSWORD',
+            'SUPABASE_PROJECT_REF',
+            'SUPABASE_MIGRATION_LIST_OUTPUT',
+          ],
+        },
+      );
+      assert.equal(stepRes.status,0,`${stepName} command failed under mock CLI: ${formatSpawnFailure(stepRes)}`);
     }
-    return block.split('        run: ')[1].split('\n')[0].trim();
-  };
 
-  for(const stepName of hostedSteps){
-    const cmd=extractStepCommand(stepName);
-    const stepRes=spawnSync(bash,['-euo','pipefail','-c',cmd],{
-      env:{
-        ...process.env,
-        PATH:process.platform==='win32'
-          ? `${shellPath(binDir)}:${shellPath(dirname(process.execPath))}:/usr/bin:/bin`
-          : `${binDir}:${process.env.PATH}`,
-        MOCK_SUPABASE_LOG:callsFile,
-        SUPABASE_ACCESS_TOKEN:TOKEN_SENTINEL,
-        SUPABASE_DB_PASSWORD:PASS_SENTINEL,
-        SUPABASE_PROJECT_REF:propagatedRef,
-      },
-      encoding:'utf8',
-    });
-    assert.equal(stepRes.status,0,`${stepName} command failed under mock CLI: ${stepRes.stderr}`);
+    const calls=readFileSync(callsFile,'utf8').trim().split(/\r?\n/).map(line=>JSON.parse(line));
+    assert.equal(calls.length,5);
+    for(const call of calls){
+      assert.equal(call.envRef,EXPECTED_REF,'propagated SUPABASE_PROJECT_REF env has zero whitespace');
+    }
+
+    assert.deepEqual(calls[0].argv,['link','--project-ref',EXPECTED_REF]);
+    assert.deepEqual(calls[1].argv,['migration','list',`--remote=${EXPECTED_REF}`,'--password',PASS_SENTINEL]);
+    assert.deepEqual(calls[2].argv,['db','push','--dry-run',`--remote=${EXPECTED_REF}`,'--password',PASS_SENTINEL]);
+    assert.deepEqual(calls[3].argv,['db','push',`--remote=${EXPECTED_REF}`,'--password',PASS_SENTINEL,'--yes']);
+    assert.deepEqual(calls[4].argv,[
+      'functions','deploy',
+      'nexora-whatsapp-connect','nexora-whatsapp-webhook',
+      'studioflow-payments','studioflow-whatsapp-booking','studioflow-booking-emails',
+      `--remote=${EXPECTED_REF}`,'--use-api',
+    ]);
+  } finally {
+    rmSync(tempRoot,{recursive:true,force:true});
   }
-
-  const calls=readFileSync(callsFile,'utf8').trim().split('\n').map(line=>JSON.parse(line));
-  assert.equal(calls.length,5);
-  for(const call of calls){
-    assert.equal(call.envRef,EXPECTED_REF,'propagated SUPABASE_PROJECT_REF env has zero whitespace');
-  }
-
-  // Exercise the production history parser against a remote-only timestamp row.
-  const localVersions=readdirSync('supabase/migrations')
-    .filter(name=>/^\d{14}_.+\.sql$/.test(name))
-    .map(name=>name.slice(0,14)).sort();
-  const history=JSON.parse(readFileSync('docs/integrations/restored-supabase-history.json','utf8'));
-  const pendingVersions=new Set((history.release_pending_migrations||[]).map(record=>record.file.split('_',1)[0]));
-  const baseMigrationList=[
-    'LOCAL | REMOTE | TIME (UTC)',
-    '------|--------|----------',
-    ...localVersions.map(version=>{
-      const migration='`'+version+'`';
-      const remote=pendingVersions.has(version)?'':migration;
-      const appliedAt=pendingVersions.has(version)?'':'`2026-11-19 00:00:00`';
-      return migration+' | '+remote+' | '+appliedAt;
-    })
-  ].join('\n');
-  const remoteOnlyResult=spawnSync('node',['scripts/verify-supabase-migration-history.mjs'],{
-    env:{
-      ...process.env,
-      SUPABASE_MIGRATION_LIST_OUTPUT:baseMigrationList+'\n              | `20990101000000` | `2099-01-01 00:00:00`',
-    },
-    encoding:'utf8',
-  });
-  assert.notEqual(remoteOnlyResult.status,0,'remote-only applied migration must fail closed');
-  const remoteOnlyOutput=(remoteOnlyResult.stdout||'')+'\\n'+(remoteOnlyResult.stderr||'');
-  assert(remoteOnlyOutput.includes('20990101000000'),
-    'remote-only failure must identify the unmatched remote version: '+remoteOnlyOutput);
-
-  const duplicateRemoteResult=spawnSync('node',['scripts/verify-supabase-migration-history.mjs'],{
-    env:{
-      ...process.env,
-      SUPABASE_MIGRATION_LIST_OUTPUT:baseMigrationList+'\n              | `20261118203000` | `2026-11-18 20:30:00`',
-    },
-    encoding:'utf8',
-  });
-  assert.notEqual(duplicateRemoteResult.status,0,'duplicate remote migration history row must fail closed');
-  const duplicateRemoteOutput=(duplicateRemoteResult.stdout||'')+'\\n'+(duplicateRemoteResult.stderr||'');
-  assert(duplicateRemoteOutput.includes('duplicate remote migration history rows'),
-    'duplicate remote failure must explain the duplicate history row: '+duplicateRemoteOutput);
-
-  assert.deepEqual(calls[0].argv,['link','--project-ref',EXPECTED_REF]);
-  assert.deepEqual(calls[1].argv,['migration','list',`--remote=${EXPECTED_REF}`,'--password',PASS_SENTINEL]);
-  assert.deepEqual(calls[2].argv,['db','push','--dry-run',`--remote=${EXPECTED_REF}`,'--password',PASS_SENTINEL]);
-  assert.deepEqual(calls[3].argv,['db','push',`--remote=${EXPECTED_REF}`,'--password',PASS_SENTINEL,'--yes']);
-  assert.deepEqual(calls[4].argv,[
-    'functions','deploy',
-    'nexora-whatsapp-connect','nexora-whatsapp-webhook',
-    'studioflow-payments','studioflow-whatsapp-booking','studioflow-booking-emails',
-    `--remote=${EXPECTED_REF}`,'--use-api',
-  ]);
-} finally {
-  rmSync(tempRoot,{recursive:true,force:true});
+} else {
+  console.log('NOTE: skipped live bash sub-checks on local Windows because no working bash.exe was found (install Git for Windows / Git Bash or set GIT_BASH to run them locally; Linux CI always executes them).');
 }
+
+// Exercise the production history parser against remote-only and duplicate timestamp rows.
+const localVersions=readdirSync('supabase/migrations')
+  .filter(name=>/^\d{14}_.+\.sql$/.test(name))
+  .map(name=>name.slice(0,14)).sort();
+const history=JSON.parse(readFileSync('docs/integrations/restored-supabase-history.json','utf8'));
+const pendingVersions=new Set((history.release_pending_migrations||[]).map(record=>record.file.split('_',1)[0]));
+const baseMigrationList=[
+  'LOCAL | REMOTE | TIME (UTC)',
+  '------|--------|----------',
+  ...localVersions.map(version=>{
+    const migration='`'+version+'`';
+    const remote=pendingVersions.has(version)?'':migration;
+    const appliedAt=pendingVersions.has(version)?'':'`2026-11-19 00:00:00`';
+    return migration+' | '+remote+' | '+appliedAt;
+  })
+].join('\n');
+const remoteOnlyResult=spawnSync(process.execPath,['scripts/verify-supabase-migration-history.mjs'],{
+  env:buildCleanEnv({
+    SUPABASE_MIGRATION_LIST_OUTPUT:baseMigrationList+'\n              | `20990101000000` | `2099-01-01 00:00:00`',
+  }),
+  encoding:'utf8',
+  windowsHide:true,
+});
+assert.notEqual(remoteOnlyResult.status,0,'remote-only applied migration must fail closed');
+const remoteOnlyOutput=`${remoteOnlyResult.stdout||''}\n${remoteOnlyResult.stderr||''}`;
+assert(remoteOnlyOutput.includes('20990101000000'),
+  'remote-only failure must identify the unmatched remote version: '+remoteOnlyOutput);
+
+const duplicateRemoteResult=spawnSync(process.execPath,['scripts/verify-supabase-migration-history.mjs'],{
+  env:buildCleanEnv({
+    SUPABASE_MIGRATION_LIST_OUTPUT:baseMigrationList+'\n              | `20261118203000` | `2026-11-18 20:30:00`',
+  }),
+  encoding:'utf8',
+  windowsHide:true,
+});
+assert.notEqual(duplicateRemoteResult.status,0,'duplicate remote migration history row must fail closed');
+const duplicateRemoteOutput=`${duplicateRemoteResult.stdout||''}\n${duplicateRemoteResult.stderr||''}`;
+assert(duplicateRemoteOutput.includes('duplicate remote migration history rows'),
+  'duplicate remote failure must explain the duplicate history row: '+duplicateRemoteOutput);
 
 console.log('PASS: one release dropdown; all main pushes run remote migration-history validation and a read-only dry-run; only the approved apply_and_deploy mode applies migrations and deploys functions; deploy_only skips database changes; CI and migration failure block deployment; validated Supabase project references propagate to all hosted CLI steps.');
 
@@ -336,8 +637,7 @@ console.log('PASS: one release dropdown; all main pushes run remote migration-hi
 // default (verify_jwt = true), which silently changes the function's auth
 // contract -- exactly how studioflow-booking-emails would have shipped with a
 // gateway JWT check that breaks its CORS preflight and GET status probe.
-const { readFileSync: readCfg } = await import('node:fs');
-const supabaseConfig = readCfg('supabase/config.toml', 'utf8');
+const supabaseConfig = readFileSync('supabase/config.toml', 'utf8').replace(/\r\n?/g, '\n');
 const deployStepBlock = getMigrateStep('Deploy reviewed WhatsApp Edge Functions (manual apply_and_deploy only)');
 const deployRun = deployStepBlock.split('        run: >-\n')[1];
 assert(deployRun, 'Edge Function deploy step must use a folded run block');
