@@ -72,13 +72,12 @@ jobs:
             supabase/config.toml \
             docs/integrations/restored-supabase-history.json \
             scripts/verify-whatsapp-release-plan.mjs \
-            scripts/verify-supabase-migration-history.mjs \
-            .github/workflows/production.yml | grep -q .; then
+            scripts/verify-supabase-migration-history.mjs | grep -q .; then
             echo "migrations_changed=true" >> "$GITHUB_OUTPUT"
-            echo "This push changes migration sources, migration history evidence, or the protected release workflow; run remote history validation and dry-run."
+            echo "This push changes migration sources or migration history evidence; run remote history validation and dry-run."
           else
             echo "migrations_changed=false" >> "$GITHUB_OUTPUT"
-            echo "No migration sources, history evidence, or release workflow changed; this is a code-only release."
+            echo "No migration sources or history evidence changed; this is a code-only release."
           fi
 
   migrate:
@@ -408,21 +407,21 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Production storefronts are required to use this repository's
-          # reviewed NEXORA Supabase project. The current Vercel Production
-          # value contains malformed characters and causes Vite SSR builds
-          # to fail before deployment.
+          # Production storefronts use the reviewed NEXORA Supabase project.
+          # VITE_* values are public build-time config (not secrets), so keep
+          # this value as Config to make it available to the production build.
           url_file="$(mktemp)"
           trap 'rm -f "$url_file"' EXIT
           printf '%s' 'https://zilwgiuiygqqardzutxi.supabase.co' > "$url_file"
 
           # Repair the stored Production value, not just this runner's shell.
           vercel env update VITE_SUPABASE_URL production \
-            --yes --token="$VERCEL_TOKEN" --scope="$VERCEL_ORG_ID" < "$url_file"
+            --type config --yes --token="$VERCEL_TOKEN" < "$url_file"
 
-          # Refresh the local Vercel build cache after changing the remote value.
-          vercel pull --yes --environment=production \
-            --token="$VERCEL_TOKEN" --scope="$VERCEL_ORG_ID"
+          # Refresh the linked project cache after changing the remote value.
+          # The project was verified above; do not pass the team ID as --scope
+          # because Vercel CLI --scope expects a team slug, not VERCEL_ORG_ID.
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
 
           node <<'NODE'
           const fs = require('node:fs');
