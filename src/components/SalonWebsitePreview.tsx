@@ -1036,7 +1036,10 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
                 <div className="relative group shrink-0">
                   <img 
                     src={activeProfile.logoUrl} 
-                    alt={activeProfile.businessName} 
+                    alt={activeProfile.businessName ? `${activeProfile.businessName} logo` : 'Salon logo'} 
+                    width={170}
+                    height={44}
+                    decoding="async"
                     className="h-11 max-w-[170px] object-contain rounded-xl shadow-xs transition-transform group-hover:scale-105" 
                   />
                 </div>
@@ -1116,7 +1119,12 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
             <div className="absolute inset-0 z-0 overflow-hidden">
               <img
                 src={activeProfile.coverImageUrl}
-                alt={activeProfile.businessName}
+                alt={activeProfile.businessName ? `${activeProfile.businessName} website hero image` : 'Salon website hero image'}
+                width={1600}
+                height={1000}
+                loading="eager"
+                fetchPriority="high"
+                decoding="async"
                 className={`w-full h-full object-cover object-center ${heroAIStyling.imageFilterClass} transition-all duration-700 hover:scale-105`}
               />
               {/* Dynamic Overlay Ambient Tint (Gentle ~15-25% mask max) */}
@@ -1339,7 +1347,11 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
                   <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 shadow-sm" style={{ borderColor: activeAccent.primaryHex }}>
                     <img
                       src={activeProfile.ownerPhotoUrl || undefined}
-                      alt={activeProfile.ownerName}
+                      alt={activeProfile.ownerName ? `${activeProfile.ownerName}, salon owner or lead stylist` : 'Salon owner or lead stylist profile'}
+                      width={80}
+                      height={80}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -1984,7 +1996,11 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
                 >
                   <img
                     src={photo.url}
-                    alt={photo.title || 'Salon Gallery Photo'}
+                    alt={photo.title || `${activeProfile.businessName || 'Salon'} gallery photo ${idx + 1}`}
+                    width={600}
+                    height={450}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
                     referrerPolicy="no-referrer"
                   />
@@ -2377,7 +2393,11 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
                     >
                       <img 
                         src={photo.url} 
-                        alt="thumbnail" 
+                        alt={photo.title ? `${photo.title} gallery thumbnail` : `${activeProfile.businessName || 'Salon'} gallery thumbnail ${idx + 1}`}
+                        width={64}
+                        height={64}
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover"
                       />
                     </button>
