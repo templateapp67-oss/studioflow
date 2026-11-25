@@ -1,3 +1,4 @@
+import { buildStorefrontBusinessSchema, buildStorefrontCanonicalUrl } from '../src/lib/storefrontSeo.js';
 type RequestLike = {
   method?: string;
   url?: string;
@@ -160,17 +161,7 @@ async function sendPlatformShell(res: ResponseLike, method: string): Promise<voi
 }
 
 function canonicalForRequest(profile: Record<string, any>, origin: string, pathname: string, slug: string, viaQuery: boolean): string {
-  const configured = typeof profile.seo?.canonicalUrl === 'string' ? profile.seo.canonicalUrl.trim() : '';
-  if (configured) {
-    try {
-      const url = new URL(configured);
-      if (url.protocol === 'https:' && !url.username && !url.password) return url.toString();
-    } catch {
-      // Fall through to a canonical address derived from this published URL.
-    }
-  }
-  if (viaQuery) return origin + '/?site=' + encodeURIComponent(slug);
-  return origin + (pathname.startsWith('/') ? pathname : '/' + pathname);
+  return buildStorefrontCanonicalUrl({ profile, origin, pathname, slug, viaQuery });
 }
 
 function generateStorefrontSeoDefaults(profile: Record<string, any>) {
@@ -228,35 +219,14 @@ function renderHead(
   const keywords = seo.keywords || defaults.keywords;
   const twitterCard = seo.twitterCard || 'summary_large_image';
   const favicon = seoHelpers.websiteFavicon(site.branding, profile);
-  const address: Record<string, string> = {};
-  if (profile.address) address.streetAddress = profile.address;
-  if (profile.city) address.addressLocality = profile.city;
-  if (profile.postalCode) address.postalCode = profile.postalCode;
-  if (Object.keys(address).length) address.addressCountry = 'IN';
-
   const services = Array.isArray(site.services) ? site.services : [];
   const offers = services.slice(0, 40).filter((service: any) => typeof service?.name === 'string' && service.name.trim()).map((service: any) => ({
     '@type': 'Offer',
     itemOffered: { '@type': 'Service', name: service.name.trim() },
     ...(Number.isFinite(Number(service.price)) && service.price !== null && Number(service.price) >= 0 ? { price: Number(service.price), priceCurrency: 'INR' } : {}),
   }));
-  const schemaTypeByBusiness: Record<string, string> = {
-    hair_salon: 'HairSalon',
-    barber: 'BarberShop',
-    beauty_parlour: 'BeautySalon',
-    aurelia_beauty_parlour: 'BeautySalon',
-    nail_studio: 'NailSalon',
-    tattoo_studio: 'TattooParlor',
-  };
   const schema = {
-    '@context': 'https://schema.org',
-    '@type': schemaTypeByBusiness[String(profile.businessType || '')] || 'HealthAndBeautyBusiness',
-    name: profile.businessName || 'Salon',
-    description,
-    url: canonical,
-    ...(profile.phone || profile.whatsapp ? { telephone: profile.phone || profile.whatsapp } : {}),
-    ...(image ? { image } : {}),
-    ...(Object.keys(address).length ? { address: { '@type': 'PostalAddress', ...address } } : {}),
+    ...buildStorefrontBusinessSchema(profile, canonical, description, image),
     ...(offers.length ? { hasOfferCatalog: { '@type': 'OfferCatalog', name: 'Salon services', itemListElement: offers } } : {}),
   };
 
@@ -275,10 +245,12 @@ function renderHead(
     '<meta property="og:description" content="' + escapeHtml(ogDescription) + '">',
     '<meta property="og:url" content="' + escapeHtml(canonical) + '">',
     '<meta property="og:image" content="' + escapeHtml(image) + '">',
+    '<meta property="og:image:alt" content="' + escapeHtml(profile.businessName || 'Salon website') + ' website preview">',
     '<meta name="twitter:card" content="' + escapeHtml(twitterCard) + '">',
     '<meta name="twitter:title" content="' + escapeHtml(ogTitle) + '">',
     '<meta name="twitter:description" content="' + escapeHtml(ogDescription) + '">',
     '<meta name="twitter:image" content="' + escapeHtml(image) + '">',
+    '<meta name="twitter:image:alt" content="' + escapeHtml(profile.businessName || 'Salon') + ' website preview">',
     '<script id="studioflow-seo-jsonld" type="application/ld+json">' + safeJson(schema) + '</script>',
   ].join('\n');
 }
