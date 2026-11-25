@@ -20,8 +20,8 @@ const MALFORMED_47_CHAR_URL = 'https://zilwgiuiygqqardzutxi.supabase.co broken';
 assert.equal(MALFORMED_47_CHAR_URL.length, 47, 'test fixture reproduces exact 47-char production diagnostic');
 
 // 1. Verify the production job delegates its complete Vercel lifecycle to native Windows PowerShell.
-const workflow = readFileSync('.github/workflows/production.yml', 'utf8').replace(/\\r\\n?/g, '\\n');
-const deploySection = workflow.split('\\n  deploy:\\n')[1];
+const workflow = readFileSync('.github/workflows/production.yml', 'utf8').replace(/\r\n?/g, '\n');
+const deploySection = workflow.split('\n  deploy:\n')[1];
 assert(deploySection, 'Missing deploy job in .github/workflows/production.yml');
 assert(deploySection.includes('runs-on: windows-latest'),
   'Production Vercel deployment must run on the Windows PowerShell runner.');
@@ -33,11 +33,11 @@ assert(
 const powershellStepName = 'Run production deployment with native Windows PowerShell';
 const powershellStep = deploySection.split(`- name: ${powershellStepName}\\n`)[1];
 assert(powershellStep, `Missing production step: ${powershellStepName}`);
-const powershellStepBody = powershellStep.split('\\n      - ')[0];
+const powershellStepBody = powershellStep.split('\n      - ')[0];
 assert(powershellStepBody.includes('shell: pwsh') && powershellStepBody.includes('.\\scripts\\deploy-production.ps1'),
   'Production deploy step must invoke scripts/deploy-production.ps1 with pwsh.');
 
-const powershellDeploy = readFileSync('scripts/deploy-production.ps1', 'utf8').replace(/\\r\\n?/g, '\\n');
+const powershellDeploy = readFileSync('scripts/deploy-production.ps1', 'utf8').replace(/\r\n?/g, '\n');
 assert(powershellDeploy.includes(`$expectedSupabaseUrl = '${EXPECTED_PRODUCTION_SUPABASE_URL}'`),
   'PowerShell deployment must pin the canonical NEXORA Production Supabase URL.');
 assert(powershellDeploy.includes("Join-Path $root 'scripts/prepare-vercel-production-env.mjs'"),
