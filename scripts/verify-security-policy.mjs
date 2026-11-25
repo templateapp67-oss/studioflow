@@ -211,6 +211,8 @@ for (const [sampleUrl, expectedRobots] of [
   ['/?app=1', 'noindex, nofollow'],
   ['/?site=glow&app=1', 'noindex, nofollow'],
   ['/?site=glow&customer=1', 'noindex, nofollow'],
+  ['/?customer_ref=abc', 'noindex, nofollow'],
+  ['/?site=glow&customer_ref=abc', 'noindex, nofollow'],
   ['/?site=glow&owner=glow', 'noindex, nofollow'],
   ['/?site=glow&panel=demo', 'noindex, nofollow'],
   ['/?site=glow&create=1', 'noindex, nofollow'],
