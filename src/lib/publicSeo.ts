@@ -4,8 +4,8 @@ import { nexoraOrganizationSchema } from './nexoraOrganization.js';
 export const NEXORA_PUBLIC_ORIGIN = 'https://nexorasalon.online';
 export const NEXORA_HOME_OG_IMAGE = `${NEXORA_PUBLIC_ORIGIN}/nexora-homepage-og.jpg`;
 
-const NEXORA_HOME_TITLE = 'NEXORA SalonOS – Salon Website Builder & Management Software';
-const NEXORA_HOME_DESCRIPTION = 'Create a salon website with NEXORA SalonOS, choose from 16 templates, and manage appointments, customers, billing, staff, inventory and marketing.';
+const NEXORA_HOME_TITLE = 'NEXORA SalonOS | Salon Website Builder';
+const NEXORA_HOME_DESCRIPTION = 'Create a salon website with 16 NEXORA templates and manage appointments, customers, billing, staff, inventory and marketing.';
 
 export const NEXORA_HOME_SEO = {
   title: NEXORA_HOME_TITLE,
