@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
-import { CATEGORY_TEMPLATES } from '../categoryTemplates';
 import type { SalonProfile } from '../types';
 import { aiRequestHeaders } from './aiRequestAuth';
 
@@ -17,7 +16,6 @@ export const requestOnboardingCopy: CopyGenerator = async (input, signal) => {
   return text.trim();
 };
 
-const isTemplateTagline = (value: string) => Object.values(CATEGORY_TEMPLATES).some(template => template.tagline === value);
 const details = (profile: SalonProfile, kind: CopyInput['kind']): CopyInput => ({
   kind, businessName: profile.businessName || '', ownerName: profile.ownerName || '',
   theme: profile.businessType || '', tagline: profile.tagline || '',
@@ -28,7 +26,7 @@ export function useOnboardingCopy(profile: SalonProfile, setProfile: Dispatch<Se
   const latest = useRef(profile);
   latest.current = profile;
   // Existing custom copy is always protected, including after reopening the wizard.
-  const manual = useRef(Boolean(profile.tagline?.trim()) && (profile.taglineEditedByOwner === true || (profile.tagline !== profile.onboardingGeneratedTagline && !isTemplateTagline(profile.tagline))));
+  const manual = useRef(Boolean(profile.tagline?.trim()) && (profile.taglineEditedByOwner === true || profile.tagline !== profile.onboardingGeneratedTagline));
   const forced = useRef(false);
   const taglineRequest = useRef<AbortController | null>(null);
   const aboutRequest = useRef<AbortController | null>(null);

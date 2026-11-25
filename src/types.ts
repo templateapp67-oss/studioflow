@@ -314,7 +314,7 @@ export interface SalonProfile {
   tagline: string;
   /** Explicit onboarding edits stay protected across wizard remounts. */
   taglineEditedByOwner?: boolean;
-  /** Last AI-generated value, so subsequent manual changes are distinguishable. */
+  /** Last known seeded or AI value; a different value is protected as owner copy. */
   onboardingGeneratedTagline?: string;
   about: string;
   ownerPhotoUrl: string;

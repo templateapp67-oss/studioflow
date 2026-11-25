@@ -72,6 +72,9 @@ export function normalizeWorkspace(value:unknown, identity:Record<string,any>={}
   if(savedOffers)profile.promoOffers=savedOffers;
  }
  if(profile.businessType==='mens_hair_studio'){profile.mensStudio=mensConfig(profile);profile.websiteTestimonials=[];profile.photoGallery=[];profile.photoGalleryInitialized=true;profile.photoGalleryType='mens_hair_studio';profile.promoOffers=[];profile.comparisonPhotos=[];}
+ // Mark only copy seeded from a genuinely empty profile; legacy nonempty
+ // values have unknown provenance and must not be assumed to be defaults.
+ if (!raw.tagline && profile.tagline && raw.taglineEditedByOwner !== true) profile.onboardingGeneratedTagline=profile.tagline;
  profile.socialVideos=showcaseVideos(profile as SalonProfile);profile.demoVideosInitialized=true;
  const loyalty=record(draft.loyaltyConfig),extras=record(draft.extras);
  profile.websiteTestimonials=clientExperiences(profile as SalonProfile);profile.demoTestimonialsInitialized=true;

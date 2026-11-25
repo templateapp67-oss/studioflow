@@ -8,6 +8,8 @@ import { CATEGORY_TEMPLATES } from '../src/categoryTemplates';
 import type { SalonProfile } from '../src/types';
 import { OnboardingWizard } from '../src/components/OnboardingWizard';
 import { supabase } from '../src/lib/supabase';
+import { applyTemplateDesign } from '../src/lib/templateSelection';
+import { normalizeWorkspace } from '../src/lib/normalizeWorkspace';
 
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 const input = { kind: 'about', businessName: 'Test Studio', ownerName: 'Riya', theme: 'lash_brow', tagline: 'Your style, your way' };
@@ -49,7 +51,7 @@ let state: SalonProfile, controls: ReturnType<typeof useOnboardingCopy>, setStat
 const pending: { input: any; signal: AbortSignal; resolve: (value: string) => void; reject: (error: Error) => void }[] = [];
 const generate: CopyGenerator = (payload, signal) => new Promise((resolve, reject) => pending.push({ input: payload, signal, resolve, reject }));
 function Harness() {
-  const [profile, setProfile] = useState({ ...INITIAL_SALON_PROFILE, businessName: 'First', businessType: 'hair_salon' as const, ownerName: '', tagline: CATEGORY_TEMPLATES.hair_salon.tagline, about: 'Original' });
+  const [profile, setProfile] = useState({ ...INITIAL_SALON_PROFILE, businessName: 'First', businessType: 'hair_salon' as const, ownerName: '', tagline: CATEGORY_TEMPLATES.hair_salon.tagline, onboardingGeneratedTagline: CATEGORY_TEMPLATES.hair_salon.tagline, about: 'Original' });
   state = profile; setState = setProfile;
   controls = useOnboardingCopy(profile, setProfile, true, generate);
   return <div>{profile.tagline}{profile.about}{controls.taglineStatus}{controls.aboutStatus}</div>;
@@ -96,6 +98,25 @@ await act(async () => { pending[7].reject(new Error('sensitive')); await Promise
 assert.equal(controls!.aboutStatus, 'error'); assert.equal(state!.about, about);
 await act(async () => { void controls!.writeAbout(); });
 await act(async () => { app!.unmount(); }); assert.ok(pending[8].signal.aborted);
+// Unknown legacy provenance is protected, even when it happens to match a
+// bundled template. New blank-profile seeds are explicitly marked instead.
+const seeded = applyTemplateDesign({ ...INITIAL_SALON_PROFILE, tagline: '' }, CATEGORY_TEMPLATES.nail_studio);
+assert.equal(seeded.onboardingGeneratedTagline, seeded.tagline);
+assert.equal(applyTemplateDesign({ ...seeded, taglineEditedByOwner: true }, CATEGORY_TEMPLATES.hair_salon).tagline, seeded.tagline, 'explicitly edited taglines survive template switching');
+assert.equal(normalizeWorkspace({ profile: { businessType: 'nail_studio', tagline: '' } }).profile.onboardingGeneratedTagline, CATEGORY_TEMPLATES.nail_studio.tagline);
+let legacyControls: ReturnType<typeof useOnboardingCopy>;
+let legacyCalls = 0;
+function LegacyHarness() {
+  const [p, setP] = useState({ ...INITIAL_SALON_PROFILE, businessName: 'Legacy', tagline: CATEGORY_TEMPLATES.hair_salon.tagline, onboardingGeneratedTagline: undefined, taglineEditedByOwner: undefined });
+  legacyControls = useOnboardingCopy(p, setP, true, async () => { legacyCalls++; return 'Generated'; });
+  return <div>{legacyControls.taglineStatus}</div>;
+}
+let legacy: ReturnType<typeof create>;
+await act(async () => { legacy = create(<LegacyHarness />); });
+await act(async () => { await pause(750); });
+assert.equal(legacyCalls, 0, 'unknown legacy copy is not overwritten even if it matches a stock tagline');
+await act(async () => { legacy!.unmount(); });
+
 // Exercise the actual wizard field wiring and request payload with a mocked
 // session/provider. No external request or real account is used.
 const previousFetch = globalThis.fetch;
