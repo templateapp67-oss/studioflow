@@ -104,6 +104,9 @@ assert.ok(llmsFull.includes('NEXORA Editorial Team'), 'full AI reference identif
 const vercel = JSON.parse(readFileSync('vercel.json', 'utf8'));
 assert.ok(vercel.rewrites.some((entry) => entry.source === '/about' && entry.destination === '/about/index.html'), '/about rewrites to its prerendered document');
 
+const headerCss = readFileSync('src/components/nexora-landing/sections/siteHeader.css', 'utf8');
+assert.match(headerCss, /\.nexora-site-header:not\(\.has-measured-layout\) \.nexora-site-header__inner\s*\{[^}]*flex-direction:\s*row;[^}]*flex-wrap:\s*nowrap;/s, 'unmeasured mobile/tablet header uses a stable single-row layout');
+assert.match(headerCss, /\.nexora-site-header:not\(\.has-measured-layout\) \.nexora-site-header__toggle\s*\{[^}]*display:\s*inline-flex;/s, 'the server-rendered compact navigation toggle is visible before measurement');
 const perfReport = readFileSync('docs/qa/NEXORA-LANDING-PERFORMANCE-REPORT.md', 'utf8');
 assert.match(perfReport, /LCP.*measured/i, 'performance report records LCP measurement status');
 assert.match(perfReport, /CLS.*measured/i, 'performance report records CLS measurement status');
