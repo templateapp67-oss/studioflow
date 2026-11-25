@@ -178,7 +178,7 @@ assert.ok(signedOutRootHtml.includes('Sign In'), 'the routed homepage offers sig
 assert.equal((homeHtml.match(/<h1\b/g) || []).length, 1, 'homepage has exactly one H1');
 assert.ok(homeHtml.includes('<h1 id="public-home-title"'), 'homepage H1 is the marketing headline');
 assert.match(homeHtml, /<nav class="nx-breadcrumbs" aria-label="Breadcrumb">[\s\S]*?aria-current="page"[\s\S]*?<\/nav>/, 'homepage exposes its current breadcrumb as a labeled navigation landmark');
-assert.ok(homeHtml.includes('A beautiful salon website, made for your brand'), 'premium hero headline renders');
+assert.ok(homeHtml.includes('Build your salon website and manage appointments, customers, billing and more.'), 'homepage renders the approved website-builder and salon-management headline');
 assert.ok(authenticatedHomeHtml.includes('Owner Workspace'), 'signed-in owners receive a workspace action');
 assert.ok(authenticatedHomeHtml.includes('Open Workspace'), 'signed-in owners can open the full workspace');
 assert.ok(!authenticatedHomeHtml.includes('Get Started'), 'signed-in owners do not see the signup CTA');
