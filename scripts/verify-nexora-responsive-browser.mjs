@@ -477,19 +477,20 @@ try {
   assert.equal(await page.locator('.nexora-site-header').count(), 0, '/login does not inherit the public marketing header');
   assert.equal(await page.locator('.nx-breadcrumbs').count(), 0, '/login does not inherit public marketing breadcrumbs');
 
-  // An unpublished slug is a server-side 404 as a public storefront.
+  // An unpublished slug is a server-side 404 when requested as a public storefront.
   const unpublishedSsrResponse = await page.goto(
     new URL('/?site=owner-isolation-audit', origin).toString(),
     { waitUntil: 'domcontentloaded' },
   );
   assert.equal(unpublishedSsrResponse?.status(), 404, 'an unpublished public storefront returns the expected server-side 404');
 
-  // app=1 deliberately bypasses SSR and opens the client application shell.
-  // This audit blocks external requests, including Supabase, so the client must
-  // surface its unavailable state rather than remain on a permanent loading screen.
-  activeRoute = '/?site=owner-isolation-audit&app=1';
+  // Load the static SPA entry directly so the salon-site branch is exercised
+  // in the browser. Do not use app=1: that query intentionally opens CustomerApp.
+  // The audit blocks external requests, including Supabase, so the unpublished
+  // salon should render the app's unavailable state instead of the marketing shell.
+  activeRoute = '/index.html?site=owner-isolation-audit';
   const storefrontResponse = await page.goto(new URL(activeRoute, origin).toString(), { waitUntil: 'domcontentloaded' });
-  assert.equal(storefrontResponse?.status(), 200, 'the explicit salon-site query with app=1 stays on the client application route');
+  assert.equal(storefrontResponse?.status(), 200, 'the static SPA entry remains available for an explicit salon-site query');
   await page.getByRole('heading', { name: 'Website unavailable' }).waitFor({ timeout: 20000 });
   assert.equal(await page.locator('.nexora-site-header').count(), 0, 'a salon storefront does not inherit the public marketing header');
   assert.equal(await page.locator('.nx-breadcrumbs').count(), 0, 'a salon storefront does not inherit public marketing breadcrumbs');
@@ -512,10 +513,10 @@ try {
   assert.equal(await page.locator('.nx-breadcrumbs').count(), 1, 'an owner session keeps the public breadcrumb');
   assert.equal(await page.locator('.nexora-site-header a.nexora-site-header__primary').getAttribute('href'), '/login');
 
-  const signedInStorefrontPath = '/?site=owner-isolation-audit&app=1';
+  const signedInStorefrontPath = '/index.html?site=owner-isolation-audit';
   activeRoute = signedInStorefrontPath + ' (signed-in storefront)';
   const signedInStorefrontResponse = await page.goto(new URL(signedInStorefrontPath, origin).toString(), { waitUntil: 'domcontentloaded' });
-  assert.equal(signedInStorefrontResponse?.status(), 200, 'an owner session keeps an explicit app=1 storefront request in the client application');
+  assert.equal(signedInStorefrontResponse?.status(), 200, 'an owner session keeps an explicit salon-site request in the client application');
   await page.getByRole('heading', { name: 'Website unavailable' }).waitFor({ timeout: 20000 });
   assert.equal(await page.locator('.nexora-site-header').count(), 0, 'signed-in storefront requests stay outside the marketing shell');
   assert.equal(await page.locator('.nx-breadcrumbs').count(), 0, 'signed-in storefront requests do not inherit marketing breadcrumbs');
