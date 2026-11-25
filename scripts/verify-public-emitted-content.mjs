@@ -36,6 +36,28 @@ function localAsset(value, path) {
   if (url.origin !== origin) return;
   assert.ok(existsSync(`dist${decodeURIComponent(url.pathname)}`), `${path}: missing asset ${url.pathname}`);
 }
+// Read actual JPEG frame dimensions rather than trusting declared social sizes.
+function jpegDimensions(file) {
+  const data = readFileSync(file);
+  assert.ok(data.length >= 4 && data.readUInt16BE(0) === 0xffd8, `${file}: expected JPEG`);
+  let pos = 2;
+  while (pos < data.length) {
+    assert.equal(data[pos++], 0xff, `${file}: invalid JPEG marker`);
+    while (data[pos] === 0xff) pos++;
+    const marker = data[pos++];
+    if (marker === 0xd9 || marker === 0xda) break;
+    if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) continue;
+    assert.ok(pos + 2 <= data.length, `${file}: truncated JPEG segment`);
+    const length = data.readUInt16BE(pos);
+    assert.ok(length >= 2 && pos + length <= data.length, `${file}: invalid JPEG segment length`);
+    if ([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf].includes(marker)) {
+      assert.ok(length >= 7, `${file}: truncated JPEG frame`);
+      return { width: data.readUInt16BE(pos + 5), height: data.readUInt16BE(pos + 3) };
+    }
+    pos += length;
+  }
+  throw new Error(`${file}: JPEG has no supported frame`);
+}
 for (const [path, doc] of documents) {
   const canonical = only(doc, 'link[rel="canonical"]', path).attribs.href;
   assert.equal(canonical, origin + path, `${path}: canonical`);
@@ -52,6 +74,12 @@ for (const [path, doc] of documents) {
   assert.equal(new URL(ogImage).origin, origin, `${path}: local absolute OG image`);
   localAsset(ogImage, path);
   assert.equal(meta(doc, 'name', 'twitter:image', path), ogImage, `${path}: social image agreement`);
+  if (publicRoutes.includes(path)) {
+    const imageUrl = new URL(ogImage);
+    const actual = jpegDimensions(`dist${decodeURIComponent(imageUrl.pathname)}`);
+    assert.equal(meta(doc, 'property', 'og:image:width', path), String(actual.width), `${path}: OG width matches JPEG`);
+    assert.equal(meta(doc, 'property', 'og:image:height', path), String(actual.height), `${path}: OG height matches JPEG`);
+  }
   if (path.startsWith('/template-pages/')) {
     assert.equal(meta(doc, 'property', 'og:title', path), title, `${path}: template title agreement`);
     assert.equal(meta(doc, 'name', 'twitter:title', path), title, `${path}: template Twitter title agreement`);

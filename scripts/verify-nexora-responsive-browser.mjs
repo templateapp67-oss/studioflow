@@ -779,6 +779,34 @@ try {
     headJsonLdIds: ['nexora-ecosystem-jsonld'],
   });
 
+  // Social metadata must follow client-side navigation as well as prerendering.
+  // Poison the previous route's card dimensions/alt to catch stale values.
+  await seoPage.evaluate(() => {
+    for (const key of ['og:image:width', 'og:image:height', 'og:image:alt']) {
+      document.querySelector(`meta[property="${key}"]`)?.setAttribute('content', 'stale');
+    }
+    document.querySelector('meta[name="twitter:image"]')?.setAttribute('content', 'https://example.invalid/stale.jpg');
+    document.querySelector('meta[name="twitter:image:alt"]')?.setAttribute('content', 'stale');
+  });
+  await spaNavigate('/privacy');
+  await waitForSeoHead('SPA /privacy', {
+    robots: ['index,follow'],
+    canonicals: ['https://nexorasalon.online/privacy'],
+    headJsonLdIds: [],
+  });
+  const privacySocial = await seoPage.evaluate(() => Object.fromEntries([
+    ['og:image', 'property'], ['og:image:width', 'property'], ['og:image:height', 'property'],
+    ['og:image:alt', 'property'], ['twitter:image', 'name'], ['twitter:image:alt', 'name'],
+  ].map(([key, attribute]) => [key, document.querySelector(`meta[${attribute}="${key}"]`)?.getAttribute('content')])));
+  assert.deepEqual(privacySocial, {
+    'og:image': 'https://nexorasalon.online/nexora-homepage-og.jpg',
+    'og:image:width': '1200',
+    'og:image:height': '630',
+    'og:image:alt': 'NEXORA SALONOS salon management software',
+    'twitter:image': 'https://nexorasalon.online/nexora-homepage-og.jpg',
+    'twitter:image:alt': 'NEXORA SALONOS salon management software',
+  }, 'SPA privacy route replaces stale social image metadata');
+
   await spaNavigate('/login');
   await waitForSeoHead('SPA /login', {
     robots: ['noindex,follow'],
