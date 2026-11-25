@@ -315,7 +315,6 @@ async function runVerification() {
     assert.equal(robots.status, 200, '/robots.txt returns HTTP 200');
     assertPublicRobots('/robots.txt', robots.robots);
     assert.ok(robotsLines.includes('Sitemap: https://nexorasalon.online/sitemap.xml'), '/robots.txt points to canonical apex sitemap');
-    assert.ok(robotsLines.includes('Sitemap: https://nexorasalon.online/sitemap.xml'), '/robots.txt points to canonical apex sitemap');
 
     // 6. /llms.txt hygiene.
     const llms = await get('/llms.txt');
