@@ -475,17 +475,27 @@ try {
   const previewImageResults = await frame.locator('img').evaluateAll(async (images) => {
     const requested = images.filter((image) => Boolean(image.currentSrc || image.src));
     return Promise.all(requested.map(async (image) => {
-      try { await image.decode(); } catch {
-        // Keep failures visible in the naturalWidth result below.
-      }
+      // The live preview iframe contains lazy-loaded gallery/staff images. Make
+      // each requested image eager and bring it into the iframe viewport before
+      // decoding, so the browser doesn't abort it when the preview is closed.
+      image.loading = 'eager';
+      image.fetchPriority = 'low';
+      image.scrollIntoView({ block: 'center', behavior: 'instant' });
+      const decodeState = await Promise.race([
+        image.decode().then(() => 'decoded').catch(() => 'decode-error'),
+        new Promise((resolve) => setTimeout(() => resolve('timeout'), 10000)),
+      ]);
       return {
         src: new URL(image.currentSrc || image.src, document.baseURI).pathname,
         complete: image.complete,
         naturalWidth: image.naturalWidth,
+        decodeState,
       };
     }));
   });
-  const brokenPreviewImages = previewImageResults.filter((image) => !image.complete || image.naturalWidth <= 0);
+  const brokenPreviewImages = previewImageResults.filter((image) =>
+    !image.complete || image.naturalWidth <= 0 || image.decodeState !== 'decoded'
+  );
   assert.equal(brokenPreviewImages.length, 0,
     'all requested preview-frame images must decode before navigation: '
     + brokenPreviewImages.map((image) => image.src).join(', '));
