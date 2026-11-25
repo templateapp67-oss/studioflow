@@ -87,6 +87,9 @@ assert.ok(!robotsGroups.get('*')?.some((rule) => /^Disallow:\s*\/$/i.test(rule))
 
 /* The public URL maps to a real Vercel function and an Express fallback route. */
 const vercel = JSON.parse(readFileSync(vercelPath, 'utf8'));
+const storefrontPathRewrite = (vercel.rewrites ?? []).find((entry) => entry.source === '/:path((?!(?:api|admin|owner|staff|login|sign-in|sign-up|assets|fonts|templates|template-pages)(?:/|$))(?!.*\\\\.[^/]+$).*)');
+assert.ok(storefrontPathRewrite, 'unreserved vanity paths route to the SSR storefront handler');
+assert.equal(storefrontPathRewrite.destination, '/api/storefront?path=/:path*', 'vanity paths preserve the requested path as the storefront selector');
 const sitemapRewrites = (vercel.rewrites ?? []).filter((entry) => entry.source === '/sitemap.xml');
 const aboutRewrites = (vercel.rewrites ?? []).filter((entry) => entry.source === '/about' && entry.destination === '/about/index.html');
 assert.equal(aboutRewrites.length, 1, 'About page has one explicit prerendered Vercel rewrite');
