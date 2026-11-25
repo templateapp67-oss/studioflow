@@ -4,6 +4,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
+import dotenv from 'dotenv';
 import {
   EXPECTED_PRODUCTION_SUPABASE_URL,
   inspectEnvFileVar,
@@ -25,6 +26,10 @@ assert(deploySection, 'Missing deploy job in .github/workflows/production.yml');
 assert(
   deploySection.includes('run: node scripts/prepare-vercel-production-env.mjs'),
   'production deploy job must invoke scripts/prepare-vercel-production-env.mjs',
+);
+assert(
+  deploySection.includes(`VITE_SUPABASE_URL: ${EXPECTED_PRODUCTION_SUPABASE_URL}`),
+  'production Build deployment step must also declare canonical VITE_SUPABASE_URL as defense-in-depth',
 );
 assert(
   deploySection.indexOf('Verify linked Vercel project') <
@@ -67,6 +72,21 @@ assert(
   const parsed = inspectEnvFileVar(rewritten);
   assert.equal(parsed.matches.length, 1);
   assert.equal(parsed.matches[0].value, EXPECTED_PRODUCTION_SUPABASE_URL);
+
+  // Verify real dotenv@17 parses the rewritten file cleanly and preserves all unrelated secrets.
+  const dotenvParsed = dotenv.parse(rewritten);
+  assert.equal(dotenvParsed.VITE_SUPABASE_URL, EXPECTED_PRODUCTION_SUPABASE_URL);
+  assert.equal(dotenvParsed.SUPABASE_SERVICE_ROLE_KEY, SERVICE_KEY_SENTINEL);
+  assert.equal(dotenvParsed.RESEND_API_KEY, RESEND_SENTINEL);
+
+  // UTF-8 BOM on line 1 and backtick-quoted multiline values must also normalize cleanly.
+  const bomAndBacktick = `\uFEFFVITE_SUPABASE_URL=\`https://zilwgiuiygqqardzutxi.supabase.co\nline2\`\nRESEND_API_KEY="${RESEND_SENTINEL}"\n`;
+  const rewrittenBom = upsertDotenvVar(bomAndBacktick, 'VITE_SUPABASE_URL', EXPECTED_PRODUCTION_SUPABASE_URL);
+  assert(!rewrittenBom.includes('line2'), 'backtick multiline continuation must be removed');
+  assert.equal(inspectEnvFileVar(rewrittenBom).matches.length, 1);
+  const dotenvBom = dotenv.parse(rewrittenBom);
+  assert.equal(dotenvBom.VITE_SUPABASE_URL, EXPECTED_PRODUCTION_SUPABASE_URL);
+  assert.equal(dotenvBom.RESEND_API_KEY, RESEND_SENTINEL);
 }
 
 const tempRoot = mkdtempSync(join(tmpdir(), 'studioflow-vercel-env-'));
@@ -161,7 +181,41 @@ try {
     assert.equal(parsed.matches[0].value, EXPECTED_PRODUCTION_SUPABASE_URL);
     assert(updated.includes(`SUPABASE_SERVICE_ROLE_KEY="${SERVICE_KEY_SENTINEL}"`));
     assert(updated.includes(`RESEND_API_KEY="${RESEND_SENTINEL}"`));
+    const dotenvUpdated = dotenv.parse(updated);
+    assert.equal(dotenvUpdated.VITE_SUPABASE_URL, EXPECTED_PRODUCTION_SUPABASE_URL);
+    assert.equal(dotenvUpdated.SUPABASE_SERVICE_ROLE_KEY, SERVICE_KEY_SENTINEL);
+    assert.equal(dotenvUpdated.RESEND_API_KEY, RESEND_SENTINEL);
     assertNoSecrets([...logs, ...warnings]);
+  }
+
+  // 4b. Reflected credentials in Vercel error payload are scrubbed before warning output.
+  {
+    const envFile = join(tempRoot, 'scrubbed-error.env');
+    writeFileSync(envFile, `VITE_SUPABASE_URL="${MALFORMED_47_CHAR_URL}"\n`, 'utf8');
+    const warnings = [];
+    await prepareVercelProductionEnv({
+      envFile,
+      token: TOKEN_SENTINEL,
+      projectId: 'prj_secret_proj_999',
+      teamId: 'team_secret_org_888',
+      fetchImpl: async () =>
+        new Response(
+          JSON.stringify({
+            error: {
+              code: 'forbidden',
+              message: `Denied for prj_secret_proj_999 in team_secret_org_888 with ${TOKEN_SENTINEL}`,
+            },
+          }),
+          { status: 403 },
+        ),
+      log: () => {},
+      warn: (m) => warnings.push(m),
+    });
+    assert.equal(warnings.length, 1);
+    assert(!warnings[0].includes(TOKEN_SENTINEL), 'reflected token must be redacted');
+    assert(!warnings[0].includes('prj_secret_proj_999'), 'reflected projectId must be redacted');
+    assert(!warnings[0].includes('team_secret_org_888'), 'reflected teamId must be redacted');
+    assert(warnings[0].includes('[REDACTED]'), 'redaction marker should replace reflected identifiers');
   }
 
   // 5. Missing, [SENSITIVE], and duplicate VITE_SUPABASE_URL entries all normalize cleanly on 403.

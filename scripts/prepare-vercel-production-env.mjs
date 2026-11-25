@@ -72,6 +72,7 @@ export function parseDotenvEntries(content) {
     const start = i;
     let p = i;
 
+    if (p === 0 && content[p] === '\uFEFF') p += 1;
     while (p < len && (content[p] === ' ' || content[p] === '\t')) p += 1;
     if (content.startsWith('export', p) && (content[p + 6] === ' ' || content[p + 6] === '\t')) {
       p += 6;
@@ -118,12 +119,13 @@ export function parseDotenvEntries(content) {
         value = unescapeDoubleQuoted(content.slice(valStart, p));
       }
       i = consumeRestOfLine(p);
-    } else if (p < len && content[p] === "'") {
+    } else if (p < len && (content[p] === "'" || content[p] === '`')) {
+      const quote = content[p];
       p += 1;
       const valStart = p;
       let closed = false;
       while (p < len) {
-        if (content[p] === "'") {
+        if (content[p] === quote) {
           value = content.slice(valStart, p);
           p += 1;
           closed = true;
@@ -206,11 +208,27 @@ export function describeVarMismatch(matches, expectedValue) {
   return `malformed(length=${value.length}, containsWhitespace=${containsWhitespace}, containsBackslash=${containsBackslash}, isSensitivePlaceholder=${isSensitivePlaceholder})`;
 }
 
-const sanitizeApiError = (status, rawBody) => {
+const scrubSensitiveValues = (text, sensitiveValues = []) => {
+  let scrubbed = text;
+  for (const secret of sensitiveValues) {
+    if (typeof secret === 'string' && secret.length > 0) {
+      scrubbed = scrubbed.split(secret).join('[REDACTED]');
+    }
+  }
+  return scrubbed;
+};
+
+const sanitizeApiError = (status, rawBody, sensitiveValues = []) => {
   try {
     const parsed = JSON.parse(rawBody);
-    const code = typeof parsed?.error?.code === 'string' ? parsed.error.code.slice(0, 64) : '';
-    const message = typeof parsed?.error?.message === 'string' ? parsed.error.message.slice(0, 120) : '';
+    const code =
+      typeof parsed?.error?.code === 'string'
+        ? scrubSensitiveValues(parsed.error.code, sensitiveValues).slice(0, 64)
+        : '';
+    const message =
+      typeof parsed?.error?.message === 'string'
+        ? scrubSensitiveValues(parsed.error.message, sensitiveValues).slice(0, 120)
+        : '';
     if (code && message) return `HTTP ${status} (${code}: ${message})`;
     if (code || message) return `HTTP ${status} (${code || message})`;
   } catch {
@@ -253,7 +271,7 @@ async function attemptRemoteVercelRepair({
     });
     if (!response.ok) {
       const body = await response.text().catch(() => '');
-      const error = new Error(sanitizeApiError(response.status, body));
+      const error = new Error(sanitizeApiError(response.status, body, [token, projectId, teamId]));
       error.httpStatus = response.status;
       throw error;
     }
@@ -325,12 +343,22 @@ async function attemptRemoteVercelRepair({
 }
 
 const defaultPullImpl = ({ token }) => {
-  const vercelCmd = process.platform === 'win32' ? 'vercel.cmd' : 'vercel';
-  const result = spawnSync(
-    vercelCmd,
-    ['pull', '--yes', '--environment=production', `--token=${token}`],
-    { encoding: 'utf8', windowsHide: true },
-  );
+  const result =
+    process.platform === 'win32'
+      ? spawnSync(
+          process.env.COMSPEC || 'cmd.exe',
+          ['/d', '/c', 'vercel pull --yes --environment=production --token="%VERCEL_TOKEN%"'],
+          {
+            env: { ...process.env, VERCEL_TOKEN: token },
+            encoding: 'utf8',
+            windowsHide: true,
+          },
+        )
+      : spawnSync(
+          'vercel',
+          ['pull', '--yes', '--environment=production', `--token=${token}`],
+          { encoding: 'utf8', windowsHide: true },
+        );
   if (result.error || result.status !== 0) {
     const code = result.error?.code || `exit ${result.status}`;
     throw new Error(`vercel pull refresh failed (${code}).`);
