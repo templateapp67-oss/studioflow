@@ -72,7 +72,7 @@ export const NEXORA_ECOSYSTEM_SEO: Readonly<Record<NexoraEcosystemPath, NexoraEc
     label: 'Salon Growth',
     title: 'Salon Growth & Retention | NEXORA SalonOS',
     description:
-      'How NEXORA SalonOS supports organised customer records, booking workflows, recall and reporting for salons, with limits, consent and configuration dependencies stated plainly.',
+      'Organise salon customer records, booking, recall and reporting with NEXORA SalonOS. Features depend on setup and customer consent.',
     ogImagePath: '/nexora-homepage-og.jpg',
     ogImageAlt: 'NEXORA SalonOS salon customer and booking tools',
     themeColor: '#312347',
