@@ -457,7 +457,11 @@ jobs:
 
           const project = encodeURIComponent(projectId);
           const teamQuery = '?teamId=' + encodeURIComponent(teamId);
-          const list = await request('/v10/projects/' + project + '/env?decrypt=true&limit=100' + '&teamId=' + encodeURIComponent(teamId));
+          // Do not request decrypted values: the previous decrypt=true list
+          // request returned 403 Not authorized for the configured deployment
+          // token. Only the variable's id and target metadata are needed to
+          // update this public Config value.
+          const list = await request('/v10/projects/' + project + '/env?decrypt=false&limit=100' + '&teamId=' + encodeURIComponent(teamId));
           const envs = Array.isArray(list.envs) ? list.envs : [];
           const matches = envs.filter((env) =>
             env.key === 'VITE_SUPABASE_URL' &&
@@ -475,15 +479,7 @@ jobs:
             method: 'PATCH',
             body: JSON.stringify({ value: expected }),
           });
-
-          const verified = await request('/v10/projects/' + project + '/env?decrypt=true&limit=100' + '&teamId=' + encodeURIComponent(teamId));
-          const updated = (Array.isArray(verified.envs) ? verified.envs : []).find((env) =>
-            env.id === matches[0].id && env.target?.includes('production')
-          );
-          if (!updated || updated.value !== expected) {
-            throw new Error('Vercel Production VITE_SUPABASE_URL did not persist the reviewed NEXORA project URL.');
-          }
-          console.log('Vercel Production VITE_SUPABASE_URL was updated and verified for the linked project.');
+          console.log('Vercel Production VITE_SUPABASE_URL update request completed; verifying through a fresh production env pull.');
           NODE
 
           # Refresh the local production build environment after the API update.
