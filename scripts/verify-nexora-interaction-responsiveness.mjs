@@ -104,6 +104,41 @@ await page.route('**/rest/v1/rpc/studioflow_booking_specialists', async (route) 
   }
   return route.continue();
 });
+
+await page.route('**/rest/v1/rpc/studioflow_available_slots', async (route) => {
+  const request = route.request();
+  const requestUrl = new URL(request.url());
+  if (!requestUrl.hostname.toLowerCase().endsWith('.supabase.co')
+    || requestUrl.pathname !== '/rest/v1/rpc/studioflow_available_slots') {
+    return route.continue();
+  }
+  if (request.method() === 'OPTIONS') {
+    return route.fulfill({ status: 204, headers: previewCorsHeaders, body: '' });
+  }
+  let body;
+  try { body = request.postDataJSON(); } catch { body = null; }
+  const keys = body && typeof body === 'object' && !Array.isArray(body)
+    ? Object.keys(body).sort()
+    : [];
+  const isExpectedAvailabilityRead = request.method() === 'POST'
+    && keys.length === 4
+    && keys[0] === 'p_date'
+    && keys[1] === 'p_service_id'
+    && keys[2] === 'p_slug'
+    && keys[3] === 'p_stylist_id'
+    && typeof body.p_date === 'string'
+    && typeof body.p_service_id === 'string'
+    && typeof body.p_slug === 'string'
+    && typeof body.p_stylist_id === 'string';
+  if (isExpectedAvailabilityRead) {
+    return route.fulfill({
+      status: 200,
+      headers: { ...previewCorsHeaders, 'content-type': 'application/json; charset=utf-8' },
+      body: '[]',
+    });
+  }
+  return route.continue();
+});
 const failedRequests = [];
 const writeRequests = [];
 const readOnlyPostRequests = [];
@@ -146,6 +181,25 @@ function readOnlyRequestReason(request, requestUrl) {
     ) {
       return 'read-only stable booking specialist lookup';
     }
+    return '';
+  }
+
+  if (requestUrl.pathname === '/rest/v1/rpc/studioflow_available_slots') {
+    const keys = Object.keys(body).sort();
+    if (
+      keys.length === 4
+      && keys[0] === 'p_date'
+      && keys[1] === 'p_service_id'
+      && keys[2] === 'p_slug'
+      && keys[3] === 'p_stylist_id'
+      && typeof body.p_date === 'string'
+      && typeof body.p_service_id === 'string'
+      && typeof body.p_slug === 'string'
+      && typeof body.p_stylist_id === 'string'
+    ) {
+      return 'read-only stable availability slots lookup';
+    }
+    return '';
   }
 
   return '';
@@ -329,6 +383,11 @@ try {
     return requestUrl.pathname === '/rest/v1/rpc/studioflow_booking_specialists'
       && response.request().method() === 'POST';
   }, { timeout: 15000 });
+  const availabilityReadResponsePromise = page.waitForResponse((response) => {
+    const requestUrl = new URL(response.url());
+    return requestUrl.pathname === '/rest/v1/rpc/studioflow_available_slots'
+      && response.request().method() === 'POST';
+  }, { timeout: 15000 });
 
   await bookButton.click();
   const bookingDialog = frame.getByTestId('booking-modal');
@@ -336,9 +395,10 @@ try {
   assert.equal(await bookingDialog.getAttribute('aria-modal'), 'true',
     'template booking modal opens as an accessible modal dialog without submitting a booking');
 
-  const [paymentStatusResponse, specialistLookupResponse] = await Promise.all([
+  const [paymentStatusResponse, specialistLookupResponse, availabilityReadResponse] = await Promise.all([
     paymentStatusResponsePromise,
     specialistLookupResponsePromise,
+    availabilityReadResponsePromise,
   ]);
   const paymentStatusHttpStatus = paymentStatusResponse.status();
   const specialistLookupHttpStatus = specialistLookupResponse.status();
@@ -348,10 +408,34 @@ try {
     'read-only payment status returns 200 or expected unsigned-preview 401, got ' + paymentStatusHttpStatus);
   assert.equal(specialistLookupHttpStatus, 200,
     'read-only specialist eligibility lookup returns HTTP 200');
+  const availabilityReadHttpStatus = availabilityReadResponse.status();
+  assert.equal(availabilityReadHttpStatus, 200,
+    'read-only availability slot lookup returns HTTP 200');
 
   const frameEventEntries = await liveFrame.locator('body').evaluate(() => window.__nexoraInteractionEntries || []);
   await bookingDialog.getByRole('button', { name: 'Close booking dialog' }).click();
   await bookingDialog.waitFor({ state: 'hidden' });
+
+  // Resolve every requested image inside the preview iframe before page navigation.
+  // Navigating with these lazy images still in flight creates benign ERR_ABORTED noise.
+  const previewImageResults = await frame.locator('img').evaluateAll(async (images) => {
+    const requested = images.filter((image) => Boolean(image.currentSrc || image.src));
+    return Promise.all(requested.map(async (image) => {
+      try { await image.decode(); } catch {
+        // Keep failures visible in the naturalWidth result below.
+      }
+      return {
+        src: new URL(image.currentSrc || image.src, document.baseURI).pathname,
+        complete: image.complete,
+        naturalWidth: image.naturalWidth,
+      };
+    }));
+  });
+  const brokenPreviewImages = previewImageResults.filter((image) => !image.complete || image.naturalWidth <= 0);
+  assert.equal(brokenPreviewImages.length, 0,
+    'all requested preview-frame images must decode before navigation: '
+    + brokenPreviewImages.map((image) => image.src).join(', '));
+
   await previewDialog.getByRole('button', { name: /close template preview/i }).click();
   await previewDialog.waitFor({ state: 'hidden' });
   const homepageEventEntries = await page.evaluate(() => window.__nexoraInteractionEntries || []);
@@ -428,7 +512,9 @@ try {
     bookingReadOnlyHttpStatuses: {
       paymentStatus: paymentStatusHttpStatus,
       specialistEligibility: specialistLookupHttpStatus,
+      availability: availabilityReadHttpStatus,
     },
+    previewFrameImagesChecked: previewImageResults.length,
     interactionEventEntries: interactionDurations.length,
     syntheticInteractionP75Ms: p75 === null ? 'not supported by this Chromium runtime' : Number(p75.toFixed(2)),
     longestObservedTaskMs: longTasks.length ? Number(Math.max(...longTasks).toFixed(2)) : 0,
