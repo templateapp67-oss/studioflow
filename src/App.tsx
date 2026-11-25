@@ -64,6 +64,7 @@ import { supabase, captureReferral } from './lib/supabase';
 import { applySeoMetadata } from './lib/useSeoMetadata';
 import { applyNoIndexMetadata, applyPublicSeoMetadata, hasNoIndexPathPrefix, hasNoIndexQueryParams, NEXORA_HOME_SEO, NEXORA_LOGIN_SEO } from './lib/publicSeo';
 import { loadApplicationFonts } from './lib/loadApplicationFonts';
+import type { SalonWebsitePreviewProps } from './components/SalonWebsitePreview';
 
 type Template12WorkspaceDraft = { profile: SalonProfile; services: SalonService[]; stylists: Stylist[]; galleryUrls: string[] };
 
@@ -745,12 +746,23 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
   </AppErrorBoundary>
  </div>;
 }
-function PublishedWebsite({slug,session}:{key?:React.Key;slug:string;session:Session|null}){
+function readInitialPublishedSite(slug:string){
+ if(typeof document==='undefined')return null;
+ const element=document.getElementById('nexora-published-site-data');
+ if(!element?.textContent)return null;
+ try{
+  const payload=JSON.parse(element.textContent);
+  return payload?.slug===slug&&payload?.site&&typeof payload.site==='object'?payload.site:null;
+ }catch{return null;}
+}
+export function PublishedWebsite({slug,session,previewComponent}:{key?:React.Key;slug:string;session:Session|null;previewComponent?:React.ComponentType<SalonWebsitePreviewProps>}){
  const customerAccount=useCustomerProfile(session,0);
+ const [customerReferralReady,setCustomerReferralReady]=useState(false);
+ useEffect(()=>setCustomerReferralReady(true),[]);
  const [showBookings,setShowBookings]=useState(false);
- const [site,setSite]=useState<any>(null);const [error,setError]=useState('');const [retry,setRetry]=useState(0);const [countdown, setCountdown] = useState(0);
+ const [site,setSite]=useState<any>(()=>readInitialPublishedSite(slug));const hasServerRenderedSite=useRef(Boolean(readInitialPublishedSite(slug)));const [error,setError]=useState('');const [retry,setRetry]=useState(0);const [countdown, setCountdown] = useState(0);
  const [devFallbackTemplate,setDevFallbackTemplate]=useState<BusinessTypeId|null>(null);
- const [authMode,setAuthMode]=useState<'signin'|'signup'|null>(()=>!session&&hasAuthErrorParams(location.search||'',location.hash||'')?'signin':null);
+ const [authMode,setAuthMode]=useState<'signin'|'signup'|null>(null);
  const siteQueryParams=new URLSearchParams(location.search||'');
  const stayOnSitePath=siteQueryParams.has('site')||siteQueryParams.has('s')||siteQueryParams.has('subdomain')||(Boolean(location.pathname)&&location.pathname.replace(/^\/+|\/+$/g,'').toLowerCase()===slug.toLowerCase())?`/?site=${encodeURIComponent(slug)}`:'/';
 
@@ -773,8 +785,9 @@ function PublishedWebsite({slug,session}:{key?:React.Key;slug:string;session:Ses
   }, [error]);
 
  useEffect(()=>{if(!authMode)return;const previous=document.activeElement as HTMLElement|null;const dialog=document.querySelector<HTMLElement>('[role=dialog][aria-label="Customer account"]');dialog?.querySelector<HTMLElement>('input,button')?.focus();const keyboard=(event:KeyboardEvent)=>{if(event.key==='Escape')setAuthMode(null);if(event.key==='Tab'&&dialog){const items=Array.from(dialog.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),a[href]'));const first=items[0],last=items.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}}};document.addEventListener('keydown',keyboard);return()=>{document.removeEventListener('keydown',keyboard);previous?.focus();};},[authMode]);
+ useEffect(()=>{if(customerReferralReady&&!session&&hasAuthErrorParams(location.search||'',location.hash||'')&&!authMode)setAuthMode('signin');},[customerReferralReady,session?.user?.id,authMode]);
  useEffect(()=>{if(session)setAuthMode(null);},[session?.user?.id]);
- useEffect(()=>{let active=true,loaded=false,ticket=0;
+ useEffect(()=>{let active=true,loaded=Boolean(site)||hasServerRenderedSite.current,ticket=0;
    const refresh=async()=>{if(document.hidden)return;const request=++ticket;
    // A stalled read used to leave the published site on "Loading salon
    // website…" forever. Every read now has a deadline and surfaces the retry UI.
@@ -798,13 +811,23 @@ function PublishedWebsite({slug,session}:{key?:React.Key;slug:string;session:Ses
      }
    }
    if(!isRecord(parsedContent)||!isRecord(parsedContent.profile)){if(!loaded)setError('The salon profile is missing from this website. Please ask the owner to publish it again.');return;}
-   loaded=true;setError('');setSite((prev:any)=>JSON.stringify(prev)===JSON.stringify(parsedContent)?prev:parsedContent);};
+   loaded=true;setError('');hasServerRenderedSite.current=false;setSite((prev:any)=>JSON.stringify(prev)===JSON.stringify(parsedContent)?prev:parsedContent);};
   void refresh();const channel=supabase.channel(`public-site-${slug}`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'studioflow_websites',filter:`slug=eq.${slug}`},()=>void refresh()).subscribe();const interval=setInterval(()=>void refresh(),15000);window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',refresh);return()=>{active=false;void supabase.removeChannel(channel);clearInterval(interval);window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',refresh);};
  },[slug,retry]);
   const locationKey = typeof window !== 'undefined' ? `${window.location.pathname}|${window.location.search}` : '';
   useEffect(()=>{
     if(!site?.profile)return;
-    const cleanupSeo = applySeoMetadata(site.profile);
+    let canonical=site.profile.seo?.canonicalUrl;
+    if(!canonical&&typeof window!=='undefined'&&typeof window.location?.href==='string'&&window.location.href){
+      try{
+        const currentUrl=new URL(window.location.href);
+        const selector=currentUrl.searchParams.get('site')||currentUrl.searchParams.get('s')||currentUrl.searchParams.get('subdomain');
+        canonical=selector?currentUrl.origin+'/?site='+encodeURIComponent(selector):currentUrl.origin+currentUrl.pathname;
+      }catch{
+        // Non-browser test harnesses may expose a partial location object.
+      }
+    }
+    const cleanupSeo = applySeoMetadata(site.profile,canonical);
     const restoreIcon = applyWebsiteFavicon(document, websiteFavicon(site.branding, site.profile));
     return () => {
       cleanupSeo();
@@ -815,6 +838,22 @@ function PublishedWebsite({slug,session}:{key?:React.Key;slug:string;session:Ses
  if(error)return <main className="p-10"><h1 className="text-2xl font-bold">Website unavailable</h1><p>{error.includes('not published') ? 'The salon owner has not published this website yet.' : error}</p><p className="text-sm text-slate-500 mt-2">Retrying automatically in {countdown} seconds...</p><div className="mt-4 flex flex-col gap-3"><div className="flex gap-3"><button className="primary-action" onClick={()=>{setError('');setSite(null);setRetry(r=>r+1);}}>Try again</button><a className="secondary-action" href="/">Open NEXORA</a></div><details className="mt-4 p-4 border rounded-xl"><summary className="font-semibold cursor-pointer">Need help publishing?</summary><p className="mt-2 text-sm text-slate-600">If you are the salon owner, please sign in to your Salon Workspace, complete the setup, and click the 'Publish' button in the dashboard to make your website live.</p></details></div></main>;
  if(!site)return <Loading text="Loading salon website…" />;
  const book=async(apt:Appointment)=>{if(!session){setAuthMode('signin');throw new Error('Please log in or create a customer account to continue your booking.');}const isAura=site?.profile?.businessType==='unisex_salon';const isMens=site?.profile?.businessType==='mens_hair_studio';const rpc=isMens?'studioflow_mens_book':apt.branchId?(apt.couponCode?'studioflow_branch_coupon_book':'studioflow_branch_book'):(apt.couponCode?(isAura?'studioflow_aura_coupon_book':'studioflow_coupon_book'):'studioflow_book');const {data,error}=await supabase.rpc(rpc,{p_slug:slug,p_request:apt});if(error)throw error;return data?.payload||data;};
- const content=normalizeWorkspace({...site,extras:{gallery:site.gallery,policies:site.policies,whiteLabel:site.branding}});
- return <><div className="bg-white border-b px-4 py-2 flex justify-between gap-3 text-xs"><a className="text-violet-600 font-semibold" href={'/?app=1&site='+encodeURIComponent(slug)}>Open this salon in Nexora App ↗</a><a className="text-violet-600" href="/?app=1&tab=bookings">My Bookings</a></div>{showBookings&&<SalonBookingsDialog profile={{...content.profile,subdomain:slug}} onClose={()=>setShowBookings(false)}/>} {authMode&&<div className="fixed inset-0 z-[100] bg-black/50 p-4 flex items-center justify-center" onClick={()=>setAuthMode(null)}><section role="dialog" aria-modal="true" aria-label="Customer account" className="bg-white text-slate-900 rounded-2xl w-full max-w-lg max-h-[90dvh] overflow-y-auto p-4" onClick={e=>e.stopPropagation()}><button className="secondary-action mb-3" onClick={()=>setAuthMode(null)}>Close</button>{session?<Suspense fallback={<p role="status">Loading account settings…</p>}><WebsiteCustomerAccount session={session} account={customerAccount}/></Suspense>:<AuthPage key={authMode} compact customerMode initialMode={authMode} returnSlug={slug} redirectPathOverride={stayOnSitePath}/>}</section></div>}<SalonWebsitePreview key={slug} customerSignedIn={!!session} customerName={customerAccount.profile.full_name||session?.user.user_metadata?.full_name||'My account'} customerPhotoUrl={customerAccount.photoUrl} onCustomerAccount={mode=>setAuthMode(mode||'signin')} profile={{...content.profile,subdomain:slug}} services={normalizeServices<SalonService>(content.services,'published site services')} stylists={content.stylists} gallery={content.extras.gallery} policies={site.policies} branding={site.branding} loyaltyConfig={site.loyaltyConfig} onAddAppointment={book} readOnly live /><TawkPublicWidget slug={slug} /></>;
+ // The SSR payload is already normalized by renderPublishedSalonHtml.
+ // Re-normalizing it before hydration can mutate demo flags, reviews, gallery
+ // and catalogue defaults, so the first browser tree no longer matches HTML.
+ // Use the exact serialized fields for hydration; later live refreshes return
+ // the raw public view row and continue through normalizeWorkspace below.
+ const PreviewComponent=previewComponent||SalonWebsitePreview;
+ const content=hasServerRenderedSite.current&&site?{
+  profile:site.profile,
+  services:Array.isArray(site.services)?site.services:[],
+  stylists:Array.isArray(site.stylists)?site.stylists:[],
+  loyaltyConfig:site.loyaltyConfig,
+  extras:{
+   gallery:Array.isArray(site.gallery)?site.gallery:[],
+   policies:site.policies&&typeof site.policies==='object'?site.policies:{},
+   whiteLabel:site.branding&&typeof site.branding==='object'?site.branding:{},
+  },
+ }:normalizeWorkspace({...site,extras:{gallery:site.gallery,policies:site.policies,whiteLabel:site.branding}});
+ return <><div className="bg-white border-b px-4 py-2 flex justify-between gap-3 text-xs"><a className="text-violet-600 font-semibold" href={'/?app=1&site='+encodeURIComponent(slug)}>Open this salon in Nexora App ↗</a><a className="text-violet-600" href="/?app=1&tab=bookings">My Bookings</a></div>{showBookings&&<SalonBookingsDialog profile={{...content.profile,subdomain:slug}} onClose={()=>setShowBookings(false)}/>}{authMode&&<div className="fixed inset-0 z-[100] bg-black/50 p-4 flex items-center justify-center" onClick={()=>setAuthMode(null)}><section role="dialog" aria-modal="true" aria-label="Customer account" className="bg-white text-slate-900 rounded-2xl w-full max-w-lg max-h-[90dvh] overflow-y-auto p-4" onClick={e=>e.stopPropagation()}><button className="secondary-action mb-3" onClick={()=>setAuthMode(null)}>Close</button>{session?<Suspense fallback={<p role="status">Loading account settings…</p>}><WebsiteCustomerAccount session={session} account={customerAccount}/></Suspense>:<AuthPage key={authMode} compact customerMode initialMode={authMode} returnSlug={slug} redirectPathOverride={stayOnSitePath}/>}</section></div>}<Suspense fallback={<main role="status">Loading salon website…</main>}><PreviewComponent key={slug} customerSignedIn={customerReferralReady&&!!session} customerName={customerReferralReady?(customerAccount.profile.full_name||session?.user.user_metadata?.full_name||'My account'):'My account'} customerPhotoUrl={customerReferralReady?customerAccount.photoUrl:''} onCustomerAccount={mode=>setAuthMode(mode||'signin')} profile={{...content.profile,subdomain:slug}} services={!customerReferralReady&&hasServerRenderedSite.current?content.services:normalizeServices<SalonService>(content.services,'published site services')} stylists={content.stylists} gallery={content.extras.gallery} policies={site.policies} branding={site.branding} loyaltyConfig={site.loyaltyConfig} onAddAppointment={book} readOnly live /></Suspense><TawkPublicWidget slug={slug} />{customerReferralReady&&<CustomerReferralBridge/>}</>;
 }

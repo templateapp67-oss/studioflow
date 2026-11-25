@@ -150,22 +150,40 @@ export function applySeoMetadata(profile: SalonProfile, canonicalUrlOverride?: s
     document.head.appendChild(scriptEl);
   }
 
+  let existingSchema: Record<string, any> = {};
+  try {
+    const parsed = JSON.parse(scriptEl.textContent || '{}');
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      existingSchema = parsed as Record<string, any>;
+    }
+  } catch {
+    // A malformed previous value is replaced by the safe generic schema below.
+  }
+  const existingAddress = existingSchema.address && typeof existingSchema.address === 'object'
+    ? existingSchema.address as Record<string, any>
+    : {};
   const jsonLdData = {
+    ...existingSchema,
     '@context': 'https://schema.org',
-    '@type': 'HealthAndBeautyBusiness',
-    name: profile.businessName || 'Salon Website',
+    // Preserve a richer subtype (for example HairSalon or BeautySalon) and
+    // hasOfferCatalog when this updater runs after server-side rendering.
+    '@type': typeof existingSchema['@type'] === 'string'
+      ? existingSchema['@type']
+      : 'HealthAndBeautyBusiness',
+    name: profile.businessName || existingSchema.name || 'Salon Website',
     description: metaDescription,
     url: canonicalUrl,
-    telephone: profile.phone || '',
-    image: ogImageUrl,
+    telephone: profile.phone || existingSchema.telephone || '',
+    image: ogImageUrl || existingSchema.image || '',
     address: {
+      ...existingAddress,
       '@type': 'PostalAddress',
-      streetAddress: profile.address || '',
-      addressLocality: profile.city || '',
-      postalCode: profile.postalCode || '',
-      addressCountry: 'IN',
+      streetAddress: profile.address || existingAddress.streetAddress || '',
+      addressLocality: profile.city || existingAddress.addressLocality || '',
+      postalCode: profile.postalCode || existingAddress.postalCode || '',
+      addressCountry: existingAddress.addressCountry || 'IN',
     },
-    priceRange: '₹₹',
+    priceRange: existingSchema.priceRange || '₹₹',
   };
 
   scriptEl.textContent = JSON.stringify(jsonLdData, null, 2);

@@ -18,6 +18,22 @@
   ],
   "rewrites": [
     {
+      "source": "/owner",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/owner/(.*)",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin/(.*)",
+      "destination": "/index.html"
+    },
+    {
       "source": "/login",
       "destination": "/login.html"
     },
@@ -78,8 +94,42 @@
       "destination": "/partner-rewards/index.html"
     },
     {
-      "source": "/(.*)",
+      "source": "/",
+      "has": [
+        {
+          "type": "query",
+          "key": "app"
+        }
+      ],
       "destination": "/index.html"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "query",
+          "key": "customer"
+        }
+      ],
+      "destination": "/index.html"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "query",
+          "key": "customer_ref"
+        }
+      ],
+      "destination": "/index.html"
+    },
+    {
+      "source": "/",
+      "destination": "/api/storefront?path=/"
+    },
+    {
+      "source": "^/([^a].*|a[^p].*|ap[^i].*|api[^/].*|ap)$",
+      "destination": "/api/storefront?path=/$1"
     }
   ],
   "headers": [
@@ -118,7 +168,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self' https://*.supabase.co https://*.razorpay.com; script-src 'self' https://checkout.razorpay.com https://unpkg.com https://connect.facebook.net; script-src-attr 'none'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; style-src-attr 'unsafe-inline'; font-src 'self' data: https://fonts.gstatic.com https://unpkg.com; img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://raw.githubusercontent.com https://*.pexels.com https://img.youtube.com https://i.ytimg.com https://*.fbcdn.net https://*.cdninstagram.com https://*.instagram.com https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://unpkg.com https://www.google.com https://maps.google.com; media-src 'self' data: blob: https://*.supabase.co https://*.fbcdn.net https://*.cdninstagram.com https://*.googlevideo.com https://www.youtube.com https://youtube.com https://player.vimeo.com https://*.vimeocdn.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.razorpay.com https://nominatim.openstreetmap.org https://images.unsplash.com https://raw.githubusercontent.com https://*.pexels.com https://img.youtube.com https://i.ytimg.com https://*.fbcdn.net https://*.cdninstagram.com; frame-src 'self' https://*.razorpay.com https://www.youtube.com https://www.youtube-nocookie.com https://www.facebook.com https://web.facebook.com https://staticxx.facebook.com https://www.instagram.com https://player.vimeo.com https://www.google.com https://maps.google.com https://www.openstreetmap.org; worker-src 'self' blob:; manifest-src 'self'"
+          "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self' https://*.supabase.co https://*.razorpay.com; script-src 'self' https://checkout.razorpay.com https://unpkg.com https://connect.facebook.net https://www.clarity.ms https://*.clarity.ms https://c.bing.com; script-src-attr 'none'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; style-src-attr 'unsafe-inline'; font-src 'self' data: https://fonts.gstatic.com https://unpkg.com; img-src 'self' data: blob: https://*.supabase.co https://*.clarity.ms https://c.bing.com https://images.unsplash.com https://raw.githubusercontent.com https://*.pexels.com https://img.youtube.com https://i.ytimg.com https://*.fbcdn.net https://*.cdninstagram.com https://*.instagram.com https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://unpkg.com https://www.google.com https://maps.google.com; media-src 'self' data: blob: https://*.supabase.co https://*.fbcdn.net https://*.cdninstagram.com https://*.googlevideo.com https://www.youtube.com https://youtube.com https://player.vimeo.com https://*.vimeocdn.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.razorpay.com https://*.clarity.ms https://c.bing.com https://nominatim.openstreetmap.org https://images.unsplash.com https://raw.githubusercontent.com https://*.pexels.com https://img.youtube.com https://i.ytimg.com https://*.fbcdn.net https://*.cdninstagram.com https://www.clarity.ms https://*.clarity.ms; frame-src 'self' https://*.razorpay.com https://www.youtube.com https://www.youtube-nocookie.com https://www.facebook.com https://web.facebook.com https://staticxx.facebook.com https://www.instagram.com https://player.vimeo.com https://www.google.com https://maps.google.com https://www.openstreetmap.org; worker-src 'self' blob:; manifest-src 'self'"
         }
       ]
     },
@@ -377,5 +427,10 @@
         }
       ]
     }
-  ]
+  ],
+  "functions": {
+    "api/storefront.ts": {
+      "includeFiles": "dist/storefront-renderer.cjs"
+    }
+  }
 }

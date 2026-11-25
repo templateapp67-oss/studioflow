@@ -75,6 +75,7 @@ export function HoverCard({
   const pointerOnPanelRef = useRef(false);
   const focusInsideRef = useRef(false);
   const dismissedUntilLeaveRef = useRef(false);
+  const pendingArrowFocusRef = useRef(false);
 
   const clearOpenTimer = useCallback(() => {
     if (openTimerRef.current) window.clearTimeout(openTimerRef.current);
@@ -262,12 +263,35 @@ export function HoverCard({
   };
   const getFocusableElements = () => [...(panelRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR) ?? [])]
     .filter((element) => element.getClientRects().length > 0 && !element.hasAttribute('disabled'));
+
+  // The portal is rendered before its position is measured. Keep trying on
+  // animation frames until React has applied the measured position and the
+  // first action is laid out; focusing earlier can leave focus on the trigger.
   const onTriggerKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (event.key !== 'ArrowDown' || !openRef.current) return;
     event.preventDefault();
-    const firstFocusable = getFocusableElements()[0];
-    if (firstFocusable) firstFocusable.focus();
-    else panelRef.current?.focus();
+    pendingArrowFocusRef.current = true;
+    let attempts = 0;
+    const focusWhenReady = () => {
+      if (!pendingArrowFocusRef.current || !openRef.current) return;
+      const floating = floatingRef.current;
+      const firstFocusable = getFocusableElements()[0];
+      if (floating?.dataset.positioned === 'true' && firstFocusable) {
+        pendingArrowFocusRef.current = false;
+        // Keep keyboard focus inside the floating card without scrolling the page;
+        // the scroll-dismiss handler would otherwise close the card and steal focus.
+        firstFocusable.focus({ preventScroll: true });
+        return;
+      }
+      attempts += 1;
+      if (attempts < 30) {
+        window.requestAnimationFrame(focusWhenReady);
+      } else {
+        pendingArrowFocusRef.current = false;
+        panelRef.current?.focus();
+      }
+    };
+    window.requestAnimationFrame(focusWhenReady);
   };
   const onPanelKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== 'Tab') return;

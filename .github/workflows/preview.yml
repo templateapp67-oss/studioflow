@@ -256,6 +256,7 @@ jobs:
           NODE
 
       - name: Run read-only Playwright E2E against Preview
+        id: storefront-e2e
         env:
           PREVIEW_URL: ${{ steps.resolve-preview.outputs.url }}
           PLAYWRIGHT_PACKAGE_ROOT: /tmp/pw-runner
@@ -295,6 +296,22 @@ jobs:
                 text: '```json\n' + reportRaw + '\n```',
               },
             });
+
+      - name: Capture Vercel runtime logs for failed storefront preview
+        if: failure() && steps.resolve-preview.outputs.url != ''
+        continue-on-error: true
+        env:
+          PREVIEW_URL: ${{ steps.resolve-preview.outputs.url }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+        run: |
+          set -euo pipefail
+          npx --yes vercel@65.14.0 logs "$PREVIEW_URL" \
+            --token="$VERCEL_TOKEN" \
+            --project="$VERCEL_PROJECT_ID" \
+            --scope="$VERCEL_ORG_ID" \
+            --since=30m --status-code=500 --limit=50 --json
 
       - name: Run NEXORA responsive marketing and owner-route browser audit
         env:

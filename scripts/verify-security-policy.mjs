@@ -83,21 +83,22 @@ assert.ok(fonts.includes('https://fonts.gstatic.com'));
 
 // Prerendered SEO data blocks are allowed; executable inline scripts are not.
 const prerender = readFileSync('scripts/prerender-public.tsx', 'utf8');
-for (const match of prerender.matchAll(/<script([^>]*)>/g)) {
-  // The entry-script matcher is source code, not an inline script.
-  if (match[1].includes('type="module"')) continue;
-  assert.ok(match[1].includes('type="application/ld+json"'), 'prerendered pages may only inline JSON-LD data blocks');
+for (const match of prerender.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
+  const attributes = match[1];
+  // The source text includes a regular expression that matches the external
+  // Vite module entry; it is not an inline script in the prerendered page.
+  if (/\btype\s*=\s*["']module["']/i.test(attributes)) continue;
+  // External scripts are controlled by script-src in the enforcing CSP.
+  if (/\bsrc\s*=/i.test(attributes)) continue;
+  const isJsonLd = /\btype\s*=\s*["']application\/ld\+json["']/i.test(attributes);
+  assert.ok(isJsonLd, 'prerendered pages may only inline JSON-LD data blocks');
 }
 
 // Deployment must keep auth, sitemap, static assets and legacy Node APIs intact.
-assert.deepEqual(config.rewrites.map((entry) => [entry.source, entry.destination]), [
+const requiredRewrites = [
   ['/login', '/login.html'],
-  // `/sign-in` and `/sign-up` are aliases of the same login document, so the
-  // canonical, `noindex` login head is what those URLs receive.
   ['/sign-in', '/login.html'],
   ['/sign-up', '/login.html'],
-  // Staff entry points are app-shell routes: the invite token and the staff
-  // session are resolved by the client router, never by a rewrite.
   ['/staff', '/index.html'],
   ['/staff/login', '/index.html'],
   ['/staff/accept', '/index.html'],
@@ -108,10 +109,62 @@ assert.deepEqual(config.rewrites.map((entry) => [entry.source, entry.destination
   ['/salon-onboarding', '/salon-onboarding/index.html'],
   ['/salon-growth', '/salon-growth/index.html'],
   ['/growth-partner-rewards', '/growth-partner-rewards/index.html'],
-  ['/(.*\\..*)', '/$1'],
   ['/partner-rewards', '/partner-rewards/index.html'],
-  ['/(.*)', '/index.html'],
-]);
+];
+for (const [source, destination] of requiredRewrites) {
+  assert.ok(
+    config.rewrites.some((entry) => entry.source === source && entry.destination === destination),
+    `required route rewrite must remain: ${source} -> ${destination}`,
+  );
+}
+
+const assetPassthrough = config.rewrites.find((entry) => entry.destination === '/$1' && entry.source.includes('..'));
+assert.ok(assetPassthrough, 'static file asset passthrough rewrite must remain');
+assert.equal(assetPassthrough.source, '/(.*\\..*)', 'asset passthrough must match dotted file paths only');
+const storefrontRootFallback = config.rewrites.find((entry) => entry.source === '/' && entry.destination === '/api/storefront?path=/');
+assert.ok(storefrontRootFallback, 'the bare platform root must route to the storefront shell handler');
+const storefrontFallback = config.rewrites.find((entry) => entry.source === '^/([^a].*|a[^p].*|ap[^i].*|api[^/].*|ap)$');
+assert.ok(storefrontFallback, 'non-file salon paths must be handled by the storefront SSR function');
+assert.equal(storefrontFallback.destination, '/api/storefront?path=/$1');
+const storefrontPathPattern = new RegExp(storefrontFallback.source);
+assert.ok(!storefrontPathPattern.test('/api/storefront'), 'SSR fallback must not rewrite its own API function path');
+assert.ok(!storefrontPathPattern.test('/api/sitemap'), 'SSR fallback must not rewrite other API function paths');
+assert.ok(storefrontPathPattern.test('/vijaysalojaipur'), 'SSR fallback must still route published salon path URLs');
+assert.ok(storefrontPathPattern.test('/aurelia-beauty-parlour'), 'SSR fallback must allow salon slugs that begin with the letter a except the reserved api prefix');
+assert.ok(storefrontPathPattern.test('/ap'), 'SSR fallback must still allow valid salon slugs that start with ap but are not api');
+assert.ok(storefrontPathPattern.test('/apiary'), 'SSR fallback must not reserve valid salon slugs that merely begin with api');
+assert.equal(config.rewrites.at(-1), storefrontFallback, 'the storefront fallback must remain last');
+
+for (const key of ['app', 'customer', 'customer_ref']) {
+  assert.ok(
+    config.rewrites.some((entry) => entry.source === '/' && entry.destination === '/index.html' &&
+      (entry.has || []).some((condition) => condition.type === 'query' && condition.key === key)),
+    `root ${key} entry must keep serving the normal application shell`,
+  );
+}
+assert.ok(
+  !config.rewrites.some((entry) => entry.source === '/' &&
+    (entry.has || []).some((condition) => condition.type === 'query' && ['site', 's', 'subdomain'].includes(condition.key))),
+  'published salon root query URLs must be intercepted before the root index.html filesystem match',
+);
+
+// Exercise the actual Vercel Routing Middleware contract without a network call.
+const { default: routeStorefrontRequest } = await import('../middleware.js');
+const queryResponse = routeStorefrontRequest(new Request('https://preview.example/?site=Salon-Preview-01'));
+const rewriteTarget = queryResponse.headers.get('x-middleware-rewrite');
+assert.ok(rewriteTarget, 'a published salon root URL must rewrite to the SSR function');
+const rewriteUrl = new URL(rewriteTarget);
+assert.equal(rewriteUrl.pathname, '/api/storefront');
+assert.equal(rewriteUrl.searchParams.get('path'), '/');
+assert.equal(rewriteUrl.searchParams.get('site'), 'salon-preview-01');
+
+for (const query of ['?app=1&site=salon-preview-01', '?customer=1&site=salon-preview-01', '?customer_ref=abc&site=salon-preview-01']) {
+  const response = routeStorefrontRequest(new Request(`https://preview.example/${query}`));
+  assert.equal(response.headers.get('x-middleware-next'), '1', `customer/app route must not be intercepted: ${query}`);
+}
+const invalidSlugResponse = routeStorefrontRequest(new Request('https://preview.example/?site=bad%2Fslug'));
+assert.equal(invalidSlugResponse.headers.get('x-middleware-next'), '1', 'invalid selectors must not reach the SSR function');
+
 // `www` must 308 to the canonical origin instead of serving a duplicate host.
 const wwwRedirect = (config.redirects || []).find((entry) =>
   (entry.has || []).some((condition) => condition.type === 'host' && condition.value === 'www.nexorasalon.online'));
@@ -203,4 +256,14 @@ for (const route of [
 assert.ok(server.includes('app.get("/sitemap.xml", sitemapHandler)'));
 assert.ok(server.includes('app.all("/api/*"'), 'unknown API paths must stay JSON 404s, not SPA HTML');
 
-console.log('PASS: enforcing CSP matches runtime integrations; login/sitemap/static/SPA rewrites and legacy API registrations are preserved. Browser/provider smoke tests remain required.');
+const sitemapFunction = readFileSync('api/sitemap.ts', 'utf8');
+assert.ok(sitemapFunction.includes("sitemapHandler"), 'Vercel sitemap route must reuse the shared sitemap handler');
+assert.ok(sitemapFunction.includes("export { sitemapHandler as default }"), 'Vercel sitemap route must expose the shared handler as its default function');
+
+const storefrontSource = readFileSync('api/storefront.ts', 'utf8');
+assert.ok(storefrontSource.includes('id="studioflow-seo-jsonld"'), 'SSR JSON-LD must reuse the client SEO updater node');
+const seoUpdater = readFileSync('src/lib/useSeoMetadata.ts', 'utf8');
+assert.ok(seoUpdater.includes('let existingSchema:'), 'client SEO updater must parse the existing server schema');
+assert.ok(seoUpdater.includes('...existingSchema'), 'client SEO updater must preserve SSR business subtype and offers');
+
+console.log('PASS: enforcing CSP matches runtime integrations; legacy routes remain intact; root salon selectors reach SSR before index.html while app/customer routes stay on the SPA shell.');
