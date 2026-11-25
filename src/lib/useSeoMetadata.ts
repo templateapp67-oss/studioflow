@@ -8,6 +8,7 @@ import {
   setCanonicalLink,
   setRobotsMeta,
 } from './publicSeo';
+import { normalizeCanonicalUrl, normalizeSeoDescription, normalizeSeoTitle } from './seoText';
 
 export function generateSeoDefaults(profile: Partial<SalonProfile>) {
   const rawName = String(profile.businessName || '').trim();
@@ -23,10 +24,10 @@ export function generateSeoDefaults(profile: Partial<SalonProfile>) {
   const tagline = profile.tagline || profile.about || 'Book your appointment online for premium beauty, hair, and grooming services.';
   const citySuffix = city ? ` in ${city}` : '';
 
-  const metaTitle = `${businessName} – ${isZiyaTemplate ? typeLabel : `Premium ${typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1)}`}${citySuffix}`;
-  const metaDescription = `${tagline.slice(0, 120)}. Book online instantly at ${businessName}${citySuffix} with top expert stylists and therapists.`;
-  const ogTitle = `${businessName}${citySuffix} | Official Website`;
-  const ogDescription = tagline.length > 150 ? `${tagline.slice(0, 147)}...` : tagline;
+  const metaTitle = normalizeSeoTitle(`${businessName} – ${isZiyaTemplate ? typeLabel : `Premium ${typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1)}`}${citySuffix}`);
+  const metaDescription = normalizeSeoDescription(`${tagline}. Explore services, prices and online booking at ${businessName}${citySuffix}.`);
+  const ogTitle = normalizeSeoTitle(`${businessName}${citySuffix} | Official Website`);
+  const ogDescription = normalizeSeoDescription(tagline);
   const ogImageUrl = profile.coverImageUrl || profile.logoUrl || 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1200&q=80';
   const keywords = [
     businessName.toLowerCase(),
@@ -63,17 +64,17 @@ export function applySeoMetadata(profile: SalonProfile, canonicalUrlOverride?: s
   const seo = profile.seo || {};
   const defaults = generateSeoDefaults(profile);
 
-  const metaTitle = seo.metaTitle || defaults.metaTitle;
-  const metaDescription = seo.metaDescription || defaults.metaDescription;
-  const ogTitle = seo.ogTitle || seo.metaTitle || defaults.ogTitle;
-  const ogDescription = seo.ogDescription || seo.metaDescription || defaults.ogDescription;
+  const metaTitle = normalizeSeoTitle(seo.metaTitle || defaults.metaTitle);
+  const metaDescription = normalizeSeoDescription(seo.metaDescription || defaults.metaDescription);
+  const ogTitle = normalizeSeoTitle(seo.ogTitle || seo.metaTitle || defaults.ogTitle);
+  const ogDescription = normalizeSeoDescription(seo.ogDescription || seo.metaDescription || defaults.ogDescription);
   const ogImageUrl = seo.ogImageUrl || profile.coverImageUrl || profile.logoUrl || defaults.ogImageUrl;
   const keywords = seo.keywords || defaults.keywords;
   const twitterCard = seo.twitterCard || 'summary_large_image';
 
   const browserLocation =
     typeof window !== 'undefined' && window.location && typeof window.location === 'object' ? window.location : null;
-  const hostOrigin = browserLocation?.origin || 'https://studioflow.app';
+  const hostOrigin = browserLocation?.origin || 'https://nexorasalon.online';
   const pagePath = browserLocation?.pathname || '';
   const search = browserLocation?.search || '';
 
@@ -102,7 +103,7 @@ export function applySeoMetadata(profile: SalonProfile, canonicalUrlOverride?: s
       // ignore malformed query string
     }
   }
-  const canonicalUrl = canonicalUrlOverride || seo.canonicalUrl || defaultCanonicalUrl;
+  const canonicalUrl = normalizeCanonicalUrl(canonicalUrlOverride || seo.canonicalUrl, defaultCanonicalUrl, [profile.customDomain || '']);
 
   const setMeta = (nameAttr: 'name' | 'property', nameValue: string, contentValue: string) => {
     let el = document.querySelector(`meta[${nameAttr}="${nameValue}"]`);

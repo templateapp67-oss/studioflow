@@ -1,4 +1,6 @@
 /** Canonical public production origin already used by NEXORA account and customer links. */
+import { nexoraOrganizationSchema } from './nexoraOrganization.js';
+
 export const NEXORA_PUBLIC_ORIGIN = 'https://nexorasalon.online';
 export const NEXORA_HOME_OG_IMAGE = `${NEXORA_PUBLIC_ORIGIN}/nexora-homepage-og.jpg`;
 
@@ -61,6 +63,7 @@ const ROUTE_MANAGED_JSONLD_SET = new Set<string>(ROUTE_MANAGED_JSONLD_IDS);
 const NEXORA_HOME_JSONLD = {
   '@context': 'https://schema.org',
   '@graph': [
+    nexoraOrganizationSchema(NEXORA_PUBLIC_ORIGIN),
     {
       '@type': 'SoftwareApplication',
       name: 'NEXORA Salon OS',

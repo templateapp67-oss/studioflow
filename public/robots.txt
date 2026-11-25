@@ -1,11 +1,54 @@
+# Public search and answer-engine crawlers
+# Private/session routes remain noindex; /api/ stays outside the crawl budget.
+User-agent: Googlebot
+Allow: /
+Disallow: /api/
+
+User-agent: Googlebot-Image
+Allow: /
+Disallow: /api/
+
+User-agent: Bingbot
+Allow: /
+Disallow: /api/
+
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /api/
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /api/
+
+User-agent: Claude-SearchBot
+Allow: /
+Disallow: /api/
+
+User-agent: Claude-User
+Allow: /
+Disallow: /api/
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /api/
+
+User-agent: Perplexity-User
+Allow: /
+Disallow: /api/
+
+# Training crawlers are not granted blanket access by default.
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+# Default policy for other crawlers.
 User-agent: *
 Allow: /
-
-# Keep JSON/server API endpoints out of crawl budget.
-# Auth, admin, owner, staff and query-string app/session routes remain crawlable
-# so search engines can read their HTTP X-Robots-Tag and meta robots noindex
-# directives and remove them from search results instead of indexing them as
-# "blocked by robots.txt".
 Disallow: /api/
 
 Sitemap: https://nexorasalon.online/sitemap.xml
