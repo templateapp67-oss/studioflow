@@ -5,7 +5,8 @@
 //   LIVE_SEO_URL                    Base origin to verify (e.g. https://nexorasalon.online or http://127.0.0.1:4174)
 //   VERCEL_AUTOMATION_BYPASS_SECRET Optional Vercel protection bypass header for preview deployments
 //   CHECK_WWW_REDIRECT_URL          Optional www origin (e.g. https://www.nexorasalon.online) to verify 308 -> apex
-//   CHECK_HTTP_REDIRECT             Set to "1" to verify http:// -> https:// 308 permanent redirects (apex & www)
+//   CHECK_HTTP_REDIRECT             Set to "1" to verify http:// -> https:// 308 redirects for LIVE_SEO_URL and optional www origin
+//   CHECK_HTTP_REDIRECT_ORIGINS     Optional comma-separated HTTPS origins to verify from their HTTP equivalents
 //   REQUIRE_PUBLISHED_SITES         Set to "1" to assert live Supabase-backed /sitemap.xml includes >=1 ?site=<slug>
 //   SEO_REPORT_PATH                 Optional JSON path to write structured verification evidence (written on pass/fail)
 //   SEO_WAIT_RETRY_ATTEMPTS         Optional retry count for post-deploy CDN propagation (default 1)
@@ -23,6 +24,7 @@ const isVercelPreviewHost = baseUrl.hostname.toLowerCase().endsWith('.vercel.app
 const bypassSecret = (process.env.VERCEL_AUTOMATION_BYPASS_SECRET || '').trim();
 const wwwOrigin = (process.env.CHECK_WWW_REDIRECT_URL || '').trim().replace(/\/+$/, '');
 const checkHttpRedirect = process.env.CHECK_HTTP_REDIRECT === '1';
+const checkHttpRedirectOrigins = (process.env.CHECK_HTTP_REDIRECT_ORIGINS || '').split(',').map(value => value.trim()).filter(Boolean);
 const requirePublishedSites = process.env.REQUIRE_PUBLISHED_SITES === '1';
 const reportPath = (process.env.SEO_REPORT_PATH || '').trim();
 const maxRunAttempts = Math.max(1, Number.parseInt(process.env.SEO_WAIT_RETRY_ATTEMPTS || '1', 10) || 1);
@@ -138,6 +140,19 @@ async function runVerification() {
           const hops = await verifyPermanentRedirectChain(`${httpWwwOrigin}${routePath}`, expected, 2);
           report.redirects.push({ from: `${httpWwwOrigin}${routePath}`, expected, hops });
         }
+      }
+    }
+
+    // 1c. Explicit production HTTP origins -> canonical HTTPS, independent of the preview host.
+    for (const originValue of checkHttpRedirectOrigins) {
+      const sourceOrigin = new URL(originValue);
+      assert.equal(sourceOrigin.protocol, 'https:', 'CHECK_HTTP_REDIRECT_ORIGINS entries must be HTTPS origins');
+      assert.equal(sourceOrigin.pathname, '/', 'CHECK_HTTP_REDIRECT_ORIGINS entries must be origins, not paths');
+      const wwwSource = sourceOrigin.hostname.toLowerCase().startsWith('www.');
+      for (const routePath of redirectPaths) {
+        const expected = `https://nexorasalon.online${routePath}`;
+        const hops = await verifyPermanentRedirectChain(`http://${sourceOrigin.host}${routePath}`, expected, wwwSource ? 2 : 1);
+        report.redirects.push({ from: `http://${sourceOrigin.host}${routePath}`, expected, hops });
       }
     }
 
