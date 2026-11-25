@@ -45,7 +45,7 @@ const originalWarn = console.warn;
 const originalError = console.error;
 const originalEnv = { ...process.env };
 
-let upstream: { status: number; body: any } = { status: 200, body: { ok: true } };
+let upstream: { status: number; body: any; retryAfter?: number } = { status: 200, body: { ok: true } };
 let upstreamCalls: { url: string; headers: Record<string, string>; payload: any }[] = [];
 const allowed = { allowed: true, count: 1, limit: 5, remaining: 4, retry_after_seconds: 0 };
 let budgetCalls: any[] = []; let budgetValue: any = allowed; let budgetStatus = 200;
@@ -60,6 +60,7 @@ globalThis.fetch = (async (url: string, init: any) => {
   return {
     ok: upstream.status >= 200 && upstream.status < 300,
     status: upstream.status,
+    headers: { get: (name: string) => String(name).toLowerCase() === 'retry-after' && typeof upstream.retryAfter === 'number' ? String(upstream.retryAfter) : null },
     json: async () => upstream.body,
   } as any;
 }) as any;
@@ -158,8 +159,15 @@ try {
 
   /* --- 6. Honeypot --------------------------------------------------------- */
   result = await call({ ...validLead, website: 'https://spam.example' });
-  assert.equal(result.status, 202, 'A honeypot submission is acknowledged');
+  assert.equal(result.status, 201, 'A honeypot submission is acknowledged like a stored lead');
   assert.equal(upstreamCalls.length, 0, 'A honeypot submission is never stored');
+  // The alternate honeypot fields used by the Edge Function must also trap on
+  // the direct server route, otherwise a bot could bypass the trap here.
+  for (const field of ['company_website', 'fax_number']) {
+    result = await call({ ...validLead, website: '', [field]: 'https://spam.example' });
+    assert.equal(result.status, 201, `A honeypot ${field} submission is acknowledged`);
+    assert.equal(upstreamCalls.length, 0, `A honeypot ${field} submission is never stored`);
+  }
 
   /* --- 7. Wrong method ------------------------------------------------------ */
   result = await call(validLead, 'GET');
@@ -170,6 +178,12 @@ try {
   result = await call(validLead);
   assert.equal(result.status, 429, 'A rate-limited request answers 429');
   assert.ok(!result.body.ok, 'A rate-limited request never reports success');
+  assert.equal(headers['Retry-After'], '600', 'A 429 without an upstream Retry-After falls back to the window');
+  // The actual upstream remaining window is forwarded, not the maximum.
+  upstream = { status: 429, body: { ok: false, message: 'Too many requests.' }, retryAfter: 42 };
+  result = await call(validLead);
+  assert.equal(result.status, 429);
+  assert.equal(headers['Retry-After'], '42', 'The upstream Retry-After is forwarded');
 
   /* --- 9. Storage outage ---------------------------------------------------- */
   upstream = { status: 500, body: { ok: false } };

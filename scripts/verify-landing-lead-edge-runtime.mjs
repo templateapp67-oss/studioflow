@@ -75,7 +75,15 @@ try {
   const noSecret = await request({ form_elapsed_ms: 3000 }, 'Bearer public-test-key', { 'x-forwarded-for': '192.0.2.7' }); assert.equal(noSecret.status, 200);
   assert.equal(rpcArgs.p_bucket_key, createHash('sha256').update('nexora-landing-rate-limit-v1:192.0.2.7').digest('hex'));
   assert.equal(rpcArgs.p_max_attempts, 5); assert.equal(rpcArgs.p_window_seconds, 600);
-  const trappedBefore = inserts; const trapped = await request({ website: 'spam' }); assert.equal(trapped.status, 200); assert.equal(inserts, trappedBefore);
+  const trappedBefore = inserts; const trappedRpcBefore = rpcCalls; const trapped = await request({ website: 'spam' }); assert.equal(trapped.status, 200); assert.equal(inserts, trappedBefore);
+  // A honeypot submission is dropped before the rate limiter, so it must not
+  // consume the shared per-IP budget.
+  assert.equal(rpcCalls, trappedRpcBefore, 'a honeypot submission does not consume the rate-limit budget');
+  // Legitimate Indian +91 numbers and plus-addressed emails must not be
+  // false-positived by the phone/email spam checks.
+  const indiaPhone = await request({ phone: '+91 98765 43210' }); assert.equal(indiaPhone.status, 200, 'a valid +91 phone is accepted');
+  const plusEmail = await request({ email: 'aarav+demo@salonexample.in' }); assert.equal(plusEmail.status, 200, 'a plus-addressed email is accepted');
+  const normalName = await request({ full_name: 'Aarav Sharma', business_name: 'Studio Nine' }); assert.equal(normalName.status, 200, 'a normal name and business are accepted');
   env.TURNSTILE_SECRET_KEY = 'turnstile-test-secret';
   const noToken = await request(); assert.equal(noToken.status, 400);
   const callsBeforeTrusted = rpcCalls;

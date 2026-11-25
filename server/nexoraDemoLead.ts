@@ -24,6 +24,10 @@ import { parseLeadBudget, type LeadBudget } from '../supabase/functions/submit-l
 const PRIVACY_NOTICE_VERSION = '2026-11';
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const PHONE = /^[+()\d\s.-]{7,20}$/;
+/** Must match the Edge Function's honeypot field set so neither path can be bypassed. */
+const HONEYPOT_FIELDS = ['website', 'company_website', 'fax_number'];
+const RATE_LIMIT_WINDOW_SECONDS = 600;
+const RATE_LIMIT_MAX = 5;
 
 type JsonResponder = {
   status: (code: number) => JsonResponder;
@@ -68,7 +72,7 @@ async function postJson(
   headers: Record<string, string>,
   payload: unknown,
   timeoutMs = 8000,
-): Promise<{ ok: boolean; status: number; body: any }> {
+): Promise<{ ok: boolean; status: number; body: any; retryAfter: number | null }> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -79,9 +83,18 @@ async function postJson(
       body: JSON.stringify(payload),
     });
     const body = await response.json().catch(() => ({}));
-    return { ok: response.ok, status: response.status, body };
+    // Forward the upstream's actual Retry-After when present so a 429 from
+    // the Edge Function reports the true remaining window, not the maximum.
+    const retryAfterRaw = response.headers?.get?.('retry-after');
+    const retryAfter = Number(retryAfterRaw);
+    return {
+      ok: response.ok,
+      status: response.status,
+      body,
+      retryAfter: Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : null,
+    };
   } catch {
-    return { ok: false, status: 0, body: {} };
+    return { ok: false, status: 0, body: {}, retryAfter: null };
   } finally {
     clearTimeout(timer);
   }
@@ -105,8 +118,8 @@ async function claimLeadBudget(req: DemoLeadRequest): Promise<LeadBudget | null>
   const url = readServerEnvironment(process.env, false).supabaseUrl;
   const result = await postJson(`${url.replace(/\/+$/, '')}/rest/v1/rpc/claim_landing_lead_rate_limit`,
     { 'Content-Type': 'application/json', Accept: 'application/json', apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
-    { p_bucket_key: hash, p_window_seconds: 600, p_max_attempts: 5 });
-  const budget = result.ok ? parseLeadBudget(result.body, 5, 600) : null;
+    { p_bucket_key: hash, p_window_seconds: RATE_LIMIT_WINDOW_SECONDS, p_max_attempts: RATE_LIMIT_MAX });
+  const budget = result.ok ? parseLeadBudget(result.body, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_SECONDS) : null;
   if (!budget) return null;
   // Best effort; unlike an in-memory counter this remains effective when most
   // serverless instances are cold. A scheduled cleanup is still advisable.
@@ -141,13 +154,14 @@ async function storeLead(payload: Record<string, unknown>) {
     },
     payload,
   );
-  return {
-    configured: true as const,
-    status: result.status,
-    ok: result.ok && result.body?.ok === true,
-    leadId: typeof result.body?.leadId === 'string' ? result.body.leadId : null,
-    idempotent: result.body?.idempotent === true,
-  };
+    return {
+      configured: true as const,
+      status: result.status,
+      ok: result.ok && result.body?.ok === true,
+      retryAfter: result.retryAfter,
+      leadId: typeof result.body?.leadId === 'string' ? result.body.leadId : null,
+      idempotent: result.body?.idempotent === true,
+    };
 }
 
 /**
@@ -197,9 +211,12 @@ export async function nexoraDemoLeadHandler(req: DemoLeadRequest, res: JsonRespo
 
   const body = req.body && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body : {};
   // Honeypot submissions are acknowledged without storing or forwarding them.
-  if (cleanText(body.website, 200)) {
+  // The field set matches the Edge Function so a bot cannot bypass the trap
+  // by using an alternate field on the direct server route. The answer is a
+  // plain success so the outcome is not distinguishable from a stored lead.
+  if (HONEYPOT_FIELDS.some((field) => cleanText(body[field], 200))) {
     console.warn(`[nexora-demo-lead] id=${id} honeypot acknowledged`);
-    return res.status(202).json({ ok: true, requestId: id });
+    return res.status(201).json({ ok: true, requestId: id });
   }
 
   if (isTooFast(body.formElapsedMs)) return fail(res, 400, 'Please wait a moment, then try again.', id);
@@ -250,7 +267,9 @@ export async function nexoraDemoLeadHandler(req: DemoLeadRequest, res: JsonRespo
     return fail(res, 503, 'Demo requests are not configured yet. No request was sent; please try again later.', id);
   }
   if (stored.status === 429) {
-    res.setHeader?.('Retry-After', '600');
+    // Report the Edge Function's actual remaining window; fall back to the
+    // configured window only when the upstream did not send one.
+    res.setHeader?.('Retry-After', String(stored.retryAfter ?? RATE_LIMIT_WINDOW_SECONDS));
     console.warn(`[nexora-demo-lead] id=${id} rate limited`);
     return fail(res, 429, 'Too many demo requests. Please try again later.', id);
   }
