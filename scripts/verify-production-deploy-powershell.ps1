@@ -26,6 +26,7 @@ function New-MockVercelInvoker {
     $nodePath = $nodeCommand.Source
     $expectedOrg = $orgId
     $expectedProject = $projectId
+    $canonicalUrl = $expectedUrl
     $secret = $serviceKeySentinel
 
     return {
@@ -60,7 +61,7 @@ function New-MockVercelInvoker {
                     return [pscustomobject]@{ ExitCode = 0; Output = 'Mock Vercel Production pull complete.' }
                 }
                 'build' {
-                    if ($env:VITE_SUPABASE_URL -ne $expectedUrl) {
+                    if ($env:VITE_SUPABASE_URL -ne $canonicalUrl) {
                         return [pscustomobject]@{ ExitCode = 31; Output = 'PowerShell did not pin the reviewed VITE_SUPABASE_URL.' }
                     }
                     if ($FailBuild) {
