@@ -422,81 +422,34 @@ jobs:
         shell: bash
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
         run: |
           set -euo pipefail
 
-          # Production storefronts use the reviewed NEXORA Supabase project.
-          # VITE_* values are public build-time config (not secrets), so keep
-          # this value as Config to make it available to the production build.
-          node <<'NODE'
-          const token = process.env.VERCEL_TOKEN;
-          const projectId = process.env.VERCEL_PROJECT_ID?.trim();
-          const teamId = process.env.VERCEL_ORG_ID?.trim();
-          const expected = 'https://zilwgiuiygqqardzutxi.supabase.co';
-
-          if (!token || !projectId || !teamId) {
-            throw new Error('Vercel API repair is missing its token, project ID, or team ID.');
-          }
-
-          async function request(path, init = {}) {
-            const response = await fetch('https://api.vercel.com' + path, {
-              ...init,
-              headers: {
-                Authorization: 'Bearer ' + token,
-                ...(init.body ? { 'Content-Type': 'application/json' } : {}),
-                ...init.headers,
-              },
-            });
-            if (!response.ok) {
-              const detail = await response.text().catch(() => '');
-              throw new Error('Vercel API request failed (' + response.status + '): ' + detail.slice(0, 500));
-            }
-            return response.json();
-          }
-
-          const project = encodeURIComponent(projectId);
-          const teamQuery = '?teamId=' + encodeURIComponent(teamId);
-          // Do not request decrypted values: the previous decrypt=true list
-          // request returned 403 Not authorized for the configured deployment
-          // token. Only the variable's id and target metadata are needed to
-          // update this public Config value.
-          const list = await request('/v10/projects/' + project + '/env?decrypt=false&limit=100' + '&teamId=' + encodeURIComponent(teamId));
-          const envs = Array.isArray(list.envs) ? list.envs : [];
-          const matches = envs.filter((env) =>
-            env.key === 'VITE_SUPABASE_URL' &&
-            Array.isArray(env.target) &&
-            env.target.includes('production') &&
-            !env.gitBranch
-          );
-
-          if (matches.length !== 1 || !matches[0].id) {
-            throw new Error('Expected exactly one project-level Production VITE_SUPABASE_URL record; found ' + matches.length + '.');
-          }
-
-          const envId = encodeURIComponent(matches[0].id);
-          await request('/v9/projects/' + project + '/env/' + envId + teamQuery, {
-            method: 'PATCH',
-            body: JSON.stringify({ value: expected }),
-          });
-          console.log('Vercel Production VITE_SUPABASE_URL update request completed; verifying through a fresh production env pull.');
-          NODE
-
-          # Refresh the local production build environment after the API update.
-          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
-
+          # The deployment token can pull the linked Production project and
+          # environment, but Vercel's project-env REST endpoints return 403
+          # for this token. Do not make deployment depend on those endpoints.
+          # VITE_* is public build-time configuration, so set the reviewed
+          # NEXORA URL in this job's local production build env after the pull.
           node <<'NODE'
           const fs = require('node:fs');
           const path = '.vercel/.env.production.local';
           const expected = 'https://zilwgiuiygqqardzutxi.supabase.co';
+
           if (!fs.existsSync(path)) {
-            throw new Error('Vercel Production env file was not created after the refresh.');
+            throw new Error('Vercel Production env file was not created by vercel pull.');
           }
 
           const lines = fs.readFileSync(path, 'utf8').split(/\r?\n/);
-          const matches = lines.filter((line) => /^VITE_SUPABASE_URL\s*=/.test(line));
+          const assignment = /^\s*(?:export\s+)?VITE_SUPABASE_URL\s*=/;
+          const retained = lines.filter((line) => !assignment.test(line));
+          while (retained.length && retained[retained.length - 1] === '') retained.pop();
+          retained.push('VITE_SUPABASE_URL=' + expected);
+          fs.writeFileSync(path, retained.join('\n') + '\n', { mode: 0o600 });
+
+          const verifiedLines = fs.readFileSync(path, 'utf8').split(/\r?\n/);
+          const matches = verifiedLines.filter((line) => assignment.test(line));
           if (matches.length !== 1) {
-            throw new Error('Expected exactly one VITE_SUPABASE_URL in the pulled Production env file.');
+            throw new Error('Expected exactly one VITE_SUPABASE_URL in the local Production build env.');
           }
 
           let actual = matches[0].slice(matches[0].indexOf('=') + 1).trim();
@@ -504,9 +457,10 @@ jobs:
           else if (actual.startsWith("'") && actual.endsWith("'")) actual = actual.slice(1, -1);
 
           if (actual !== expected) {
-            throw new Error('Vercel Production Supabase URL still does not match the reviewed NEXORA project.');
+            throw new Error('Local Production build Supabase URL does not match the reviewed NEXORA project.');
           }
-          console.log('Vercel Production Supabase URL is normalized and verified against the reviewed NEXORA project.');
+          console.log('Local Production build Supabase URL verified against the reviewed NEXORA project.');
+          console.log('No Vercel environment API access is required for this production build.');
           NODE
 
       - name: Build production deployment
