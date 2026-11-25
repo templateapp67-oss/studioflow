@@ -149,20 +149,20 @@ try {
   const frame = page.frameLocator('iframe[title*="live desktop preview"]');
   const bookButton = frame.getByRole('button', { name: /^Book Appointment$/i }).first();
   await bookButton.waitFor({ state: 'visible' });
-  await installInteractionObserver(page.frameLocator('iframe[title*="live desktop preview"]'));
+  const liveFrame = page.frameLocator('iframe[title*="live desktop preview"]');
+  await installInteractionObserver(liveFrame.locator('body'));
   await bookButton.click();
   const bookingDialog = frame.getByTestId('booking-modal');
   await bookingDialog.waitFor({ state: 'visible' });
   assert.equal(await bookingDialog.getAttribute('aria-modal'), 'true',
     'template booking modal opens as an accessible modal dialog without submitting a booking');
+  const frameEventEntries = await liveFrame.locator('body').evaluate(() => window.__nexoraInteractionEntries || []);
   await bookingDialog.getByRole('button', { name: 'Close booking dialog' }).click();
   await bookingDialog.waitFor({ state: 'hidden' });
   await previewDialog.getByRole('button', { name: /close template preview/i }).click();
   await previewDialog.waitFor({ state: 'hidden' });
 
   const eventEntries = await page.evaluate(() => window.__nexoraInteractionEntries || []);
-  const frameEventEntries = await page.frameLocator('iframe[title*="live desktop preview"]').locator('body')
-    .evaluate(() => window.__nexoraInteractionEntries || []).catch(() => []);
   const interactionDurations = [...eventEntries, ...frameEventEntries]
     .map((entry) => Number(entry.duration))
     .filter((duration) => Number.isFinite(duration) && duration > 0)
