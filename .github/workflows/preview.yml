@@ -413,10 +413,12 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
         run: |
           set -euo pipefail
+          # VERCEL_ORG_ID is the team ID, not the team slug. Use --team
+          # (which accepts team IDs) rather than --scope (which expects a slug).
+          export VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID
           npx --yes vercel@65.14.0 logs "$PREVIEW_URL" \
-            --token="$VERCEL_TOKEN" \
+            --team="$VERCEL_ORG_ID" \
             --project="$VERCEL_PROJECT_ID" \
-            --scope="$VERCEL_ORG_ID" \
             --since=30m --status-code=500 --limit=50 --json
 
       - name: Run NEXORA responsive marketing and owner-route browser audit
