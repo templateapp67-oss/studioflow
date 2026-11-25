@@ -31,6 +31,12 @@ const reportPath = (process.env.SEO_REPORT_PATH || '').trim();
 const maxRunAttempts = Math.max(1, Number.parseInt(process.env.SEO_WAIT_RETRY_ATTEMPTS || '1', 10) || 1);
 const retryDelayMs = Math.max(500, Number.parseInt(process.env.SEO_WAIT_RETRY_DELAY_MS || '5000', 10) || 5000);
 
+// Strip URL userinfo (credentials) so verification error messages, reports,
+// and stderr never publish a credential embedded in a sitemap or fetch URL.
+function redactCredentials(message) {
+  return String(message).replace(/\/\/[^/\s:@]+(?::[^/\s@]+)?@/g, '//');
+}
+
 async function fetchWithRetry(url, init = {}, attempts = 3) {
   let lastError;
   for (let i = 0; i < attempts; i += 1) {
@@ -387,6 +393,8 @@ async function runVerification() {
     for (const loc of locs) {
       const parsed = new URL(loc);
       assert.equal(parsed.origin, 'https://nexorasalon.online', `every sitemap URL uses canonical non-www HTTPS origin: ${loc}`);
+      assert.ok(!parsed.username && !parsed.password, `sitemap URLs must not contain credentials or fragments: ${loc}`);
+      assert.ok(!parsed.hash, `sitemap URLs must not contain credentials or fragments: ${loc}`);
       assert.ok(!parsed.pathname.startsWith('/api/'), `sitemap excludes /api/: ${loc}`);
       assert.ok(!/^\/(?:login|sign-in|sign-up|admin|owner|staff)(?:\/|$)/i.test(parsed.pathname), `sitemap excludes private/auth path: ${loc}`);
       for (const key of ['app', 'customer', 'customer_ref', 'owner', 'panel', 'create', 'module', 'invite', 'recovery']) {
@@ -417,9 +425,9 @@ async function runVerification() {
     const causeMsg = error instanceof Error && error.cause
       ? ` (cause: ${error.cause instanceof Error ? error.cause.message : String(error.cause)})`
       : '';
-    report.error = `${error instanceof Error ? error.message : String(error)}${causeMsg}`;
+    report.error = redactCredentials(`${error instanceof Error ? error.message : String(error)}${causeMsg}`);
     writeReport(report);
-    throw error;
+    throw new Error(redactCredentials(error instanceof Error ? error.message : String(error)));
   }
 }
 
@@ -432,11 +440,11 @@ for (let attempt = 1; attempt <= maxRunAttempts; attempt += 1) {
   } catch (error) {
     lastFailure = error;
     if (attempt < maxRunAttempts) {
-      console.warn(`Live SEO verification attempt ${attempt}/${maxRunAttempts} failed (${error?.message || error}); retrying in ${retryDelayMs}ms...`);
+      console.warn(`Live SEO verification attempt ${attempt}/${maxRunAttempts} failed (${redactCredentials(error?.message || error)}); retrying in ${retryDelayMs}ms...`);
       await new Promise((r) => setTimeout(r, retryDelayMs));
     }
   }
 }
 if (lastFailure) {
-  throw lastFailure;
+  throw new Error(redactCredentials(lastFailure instanceof Error ? lastFailure.message : String(lastFailure)));
 }

@@ -35,18 +35,28 @@ assert.equal(countRuntimeLogRecords(''), 0);
 const production = workflows.production;
 const deploy = production.split('\n  deploy:\n')[1];
 assert(deploy, 'production deploy job exists');
-const seo = deploy.split('- name: Verify live production SEO headers, 308 redirect, sitemap and prerendered routes')[1]?.split('\n      - ')[0];
-assert(seo, 'production live SEO check exists');
+// Production live SEO verification is performed inside the PowerShell deploy
+// script (deploy-production.ps1), which invokes verify-live-seo-http.mjs with
+// the production env and fails the deploy when the live check fails. The
+// workflow's deploy step must run that script without skipping SEO verification.
+const deployStep = deploy.split('- name: Run production deployment with native Windows PowerShell')[1]?.split('\n      - ')[0];
+assert(deployStep, 'production PowerShell deploy step exists');
+assert(deployStep.includes('deploy-production.ps1'), 'production deploy must run deploy-production.ps1');
+assert(!deployStep.includes('SkipLiveSeoVerification'), 'production deploy must not skip live SEO verification');
+assert(!deployStep.includes('continue-on-error: true'), 'production deploy must fail the job on error');
+const deployScript = readFileSync('scripts/deploy-production.ps1', 'utf8').replace(/\r\n?/g, '\n');
+assert(deployScript.includes('scripts/verify-live-seo-http.mjs'), 'deploy script must run the live SEO verifier');
 for (const setting of [
-  'LIVE_SEO_URL: https://nexorasalon.online',
-  'CHECK_WWW_REDIRECT_URL: https://www.nexorasalon.online',
-  'CHECK_HTTP_REDIRECT: "1"',
-  'REQUIRE_PUBLISHED_SITES: "1"',
-  'run: node scripts/verify-live-seo-http.mjs',
-]) assert(seo.includes(setting), `production SEO check must include ${setting}`);
-assert(!seo.includes('continue-on-error: true'), 'production SEO failures must fail the job');
-for (const name of ['Pull Vercel production environment', 'Refresh Vercel production environment after saved URL update',
-  'Repair and verify the reviewed production Supabase URL', 'Build production deployment', 'Deploy production']) {
+  "LIVE_SEO_URL = 'https://nexorasalon.online'",
+  "CHECK_WWW_REDIRECT_URL = 'https://www.nexorasalon.online'",
+  "CHECK_HTTP_REDIRECT = '1'",
+  "REQUIRE_PUBLISHED_SITES = '1'",
+  'SEO_REPORT_PATH = $reportPath',
+]) assert(deployScript.includes(setting), `production SEO env must include ${setting}`);
+// The summary step only publishes the report; it is intentionally non-blocking.
+const seoSummary = deploy.split('- name: Publish Production Live SEO Check Run summary')[1]?.split('\n      - ')[0];
+assert(seoSummary, 'production SEO report summary step exists');
+for (const name of ['Install locked dependencies', 'Install pinned Vercel CLI']) {
   const block = deploy.split(`- name: ${name}\n`)[1]?.split('\n      - ')[0];
   assert(block && !block.includes('continue-on-error: true'), `${name} must fail the production job on error`);
 }

@@ -27,15 +27,34 @@ const server = createServer((req, res) => {
     res.writeHead(302, { Location: `http://127.0.0.1:${redirectPort}/external` });
     return res.end();
   }
-  const params = ['app', 'customer', 'owner', 'panel', 'create', 'module', 'invite', 'recovery'];
+  // 2b probe: an unknown salon (query-string `?site=` and vanity-path) must reach
+  // the storefront SSR 404, not a generic 200 fallback. Mirrors the real SSR
+  // not-found document: HTTP 404, a noindex meta, and the NEXORA not-found copy.
+  if (path === '/nexora-seo-404-probe-2026' || request.searchParams.get('site') === 'nexora-seo-404-probe-2026') {
+    res.writeHead(404, { 'Content-Type': 'text/html' });
+    return res.end('<html><head><meta name="robots" content="noindex"><title>Salon website not found</title></head><body>Salon website not found</body></html>');
+  }
+  const params = ['app', 'customer', 'customer_ref', 'owner', 'panel', 'create', 'module', 'invite', 'recovery'];
   const isPrivate = /^\/(api|admin|owner|staff)(\/|$)/.test(path) || params.some((key) => request.searchParams.has(key));
   const isAuth = ['/login', '/sign-in', '/sign-up'].includes(path) && !isPrivate;
   if (isPrivate && mode !== 'private-header') res.setHeader('X-Robots-Tag', 'noindex, nofollow');
   if (isAuth && mode !== 'auth-header') res.setHeader('X-Robots-Tag', 'noindex, follow');
   if (mode === 'public-header' && path === '/pricing') res.setHeader('X-Robots-Tag', 'noindex');
-  if (path === '/robots.txt') return res.end('User-agent: *\nAllow: /\nDisallow: /api/\n' +
-    (mode === 'robots' ? 'Disallow: /login\n' : '') +
-    (mode === 'robots-lowercase' ? 'disallow: /login\n' : '') + `Sitemap: ${origin}/sitemap.xml\n`);
+  if (path === '/robots.txt') {
+    // A valid robots.txt groups search crawlers (allow public, block API),
+    // training crawlers (block all), and a default group, then points at the
+    // canonical apex sitemap. The `robots` / `robots-lowercase` regressions add
+    // an extra disallow to the default group, which the checker must reject.
+    const searchAgents = ['Googlebot', 'Googlebot-Image', 'Bingbot', 'OAI-SearchBot', 'ChatGPT-User', 'Claude-SearchBot', 'Claude-User', 'PerplexityBot', 'Perplexity-User'];
+    const trainingAgents = ['GPTBot', 'ClaudeBot', 'Google-Extended'];
+    const defaultGroup = ['Allow: /', 'Disallow: /api/'];
+    const defect = mode === 'robots' ? 'Disallow: /login' : mode === 'robots-lowercase' ? 'disallow: /login' : null;
+    const lines = ['User-agent: *', ...defaultGroup, ...(defect ? [defect] : []),
+      ...searchAgents.flatMap((agent) => ['User-agent: ' + agent, 'Allow: /', 'Disallow: /api/']),
+      ...trainingAgents.flatMap((agent) => ['User-agent: ' + agent, 'Disallow: /']),
+      `Sitemap: ${origin}/sitemap.xml`];
+    return res.end(lines.join('\n') + '\n');
+  }
   if (path === '/llms.txt') return res.end(`${origin}/\n` + (mode === 'llms' ? 'https://bad.vercel.app/\n' : ''));
   if (path === '/sitemap.xml') {
     res.setHeader('Content-Type', 'application/xml');
@@ -59,8 +78,8 @@ try {
     pass: null,
     redirect: /must return HTTP 308/,
     'external-redirect': /refused a cross-origin redirect/,
-    robots: /disallows only \/api\//,
-    'robots-lowercase': /disallows only \/api\//,
+    robots: /default crawlers can access public pages but not APIs/,
+    'robots-lowercase': /default crawlers can access public pages but not APIs/,
     llms: /zero \*\.vercel\.app URLs/,
     malformed: /not a valid XML sitemap/,
     duplicate: /no duplicate <loc> entries/,

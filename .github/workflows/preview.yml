@@ -192,10 +192,7 @@ jobs:
           set -euo pipefail
           deploy_log="$(mktemp)"
           trap 'rm -f "$deploy_log"' EXIT
-          if url="$(vercel deploy --prebuilt --archive=tgz --yes --token="$VERCEL_TOKEN" --project "$VERCEL_PROJECT_ID" 2>"$deploy_log")"; then
-            cat "$deploy_log" >&2
-          else
-            cat "$deploy_log" >&2
+          if ! url="$(vercel deploy --prebuilt --archive=tgz --yes --token="$VERCEL_TOKEN" --project "$VERCEL_PROJECT_ID" 2>"$deploy_log")"; then
             node scripts/classify-preview-deploy-error.mjs "$deploy_log"
             exit 1
           fi

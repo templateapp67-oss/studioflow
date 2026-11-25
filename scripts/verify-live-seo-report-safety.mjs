@@ -13,9 +13,14 @@ const dir = mkdtempSync(join(tmpdir(), 'studioflow-seo-report-'));
 const reportPath = join(dir, 'report.json');
 const server = createServer((req, res) => {
   const path = new URL(req.url, 'http://localhost').pathname;
+  const request = new URL(req.url, 'http://localhost');
   if (path === '/api/email-service-status') {
     res.writeHead(403, { 'x-robots-tag': 'noindex, nofollow' });
     res.end(sentinel);
+  } else if (path === '/nexora-seo-404-probe-2026' || request.searchParams.get('site') === 'nexora-seo-404-probe-2026') {
+    // 2b probe: unknown salon must reach the storefront SSR 404, not a 200 fallback.
+    res.writeHead(404, { 'Content-Type': 'text/html' });
+    res.end('<html><head><meta name="robots" content="noindex"><title>Salon website not found</title></head><body>Salon website not found</body></html>');
   } else if (['/login', '/sign-in', '/sign-up'].includes(path)) {
     res.writeHead(200, { 'x-robots-tag': 'noindex, follow' });
     res.end('auth');
