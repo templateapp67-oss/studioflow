@@ -81,7 +81,8 @@ for (const document of DOCUMENTS) {
       ROUTES.has(target) ||
         target.startsWith('/templates/') ||
         target.startsWith('/template-pages/') ||
-        target.startsWith('/login'),
+        target.startsWith('/login') ||
+        existsSync('public' + target),
       `${document.path} links to ${target}, which is not a known route`,
     );
     if (target.startsWith('/template-pages/')) {

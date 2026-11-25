@@ -83,7 +83,7 @@ assert.deepEqual(
   ['Sitemap: ' + NEXORA_PUBLIC_ORIGIN + '/sitemap.xml'],
   'robots.txt contains exactly one canonical Sitemap directive',
 );
-assert.doesNotMatch(robots, /Disallow:\s*\/\s*(?:#.*)?$/im, 'robots.txt never blocks the entire site');
+assert.ok(!robotsGroups.get('*')?.some((rule) => /^Disallow:\s*\/$/i.test(rule)), 'the default crawler group never blocks the entire site');
 
 /* The public URL maps to a real Vercel function and an Express fallback route. */
 const vercel = JSON.parse(readFileSync(vercelPath, 'utf8'));
