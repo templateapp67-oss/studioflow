@@ -416,12 +416,13 @@ jobs:
 
           # Repair the stored Production value, not just this runner's shell.
           vercel env update VITE_SUPABASE_URL production \
-            --type config --yes --token="$VERCEL_TOKEN" < "$url_file"
+            --yes --token="$VERCEL_TOKEN" --scope=templateapp67-oss-projects < "$url_file"
 
           # Refresh the linked project cache after changing the remote value.
           # The project was verified above; do not pass the team ID as --scope
           # because Vercel CLI --scope expects a team slug, not VERCEL_ORG_ID.
-          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN" \
+            --scope=templateapp67-oss-projects
 
           node <<'NODE'
           const fs = require('node:fs');
