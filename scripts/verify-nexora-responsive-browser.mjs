@@ -180,6 +180,15 @@ try {
     assert.ok(desktop.crumbRight <= desktop.viewportWidth + 1, `${routePath} desktop breadcrumb stays inside the viewport`);
 
     if (routePath === '/') {
+      // At widths where the full navigation row cannot fit, the "More" disclosure
+      // lives inside the compact drawer. Open the actual drawer before testing it;
+      // never click a hidden summary from the collapsed menu.
+      if (desktop.compact) {
+        const desktopToggle = page.locator('.nexora-site-header__toggle');
+        assert.equal(await desktopToggle.isVisible(), true, 'a compact desktop header exposes its menu toggle');
+        await desktopToggle.click();
+        await page.waitForFunction(() => document.querySelector('.nexora-site-header__toggle')?.getAttribute('aria-expanded') === 'true');
+      }
       const more = page.locator('.nexora-site-header__overflow-disclosure');
       const summary = more.locator('summary');
       await summary.click();
@@ -190,6 +199,10 @@ try {
       await page.waitForFunction(() => document.querySelector('.nexora-site-header__overflow-disclosure')?.open === false);
       await page.waitForFunction(() => document.activeElement === document.querySelector('.nexora-site-header__overflow-toggle'));
       assert.ok(await summary.evaluate((node) => document.activeElement === node), 'Escape closes More and restores focus to its summary');
+      if (desktop.compact) {
+        await page.locator('.nexora-site-header__toggle').click();
+        await page.waitForFunction(() => document.querySelector('.nexora-site-header__toggle')?.getAttribute('aria-expanded') === 'false');
+      }
     }
 
     await page.setViewportSize({ width: 390, height: 844 });
