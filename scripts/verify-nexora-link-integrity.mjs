@@ -101,6 +101,32 @@ for (const document of DOCUMENTS) {
   }
 }
 
+/* Every public marketing/template document must be reachable from the public homepage. */
+const routeGraph = new Map(DOCUMENTS.map((document) => [document.path, new Set()]));
+for (const document of DOCUMENTS) {
+  const html = readFileSync(document.file, 'utf8');
+  for (const href of linksOf(html)) {
+    if (!href.startsWith('/')) continue;
+    let target;
+    try {
+      target = new URL(href, 'https://nexorasalon.online').pathname;
+      if (target.length > 1 && target.endsWith('/')) target = target.slice(0, -1);
+    } catch { continue; }
+    if (routeGraph.has(target)) routeGraph.get(document.path).add(target);
+  }
+}
+const reachable = new Set(['/']);
+const pending = ['/'];
+while (pending.length) {
+  const current = pending.shift();
+  for (const target of routeGraph.get(current) ?? []) {
+    if (!reachable.has(target)) { reachable.add(target); pending.push(target); }
+  }
+}
+for (const document of DOCUMENTS) {
+  assert.ok(reachable.has(document.path), document.path + ' is reachable from the homepage and is not an orphan page');
+}
+
 /* The demo dialog and the plan hand-off must only use real destinations. */
 const demoProvider = readFileSync('src/components/nexora-pricing/DemoProvider.tsx', 'utf8');
 assert.ok(demoProvider.includes("postLeadToServerRoute('/api/nexora-demo-lead'"), 'The demo form posts to the real lead route');

@@ -23,7 +23,10 @@ const allFiles = [...PUBLIC_DOCUMENTS, ...templateFiles];
 
 function headTags(html, name) {
   const tags = [...html.matchAll(/<meta\b[^>]*>/gi)].map((match) => match[0]);
-  return tags.filter((tag) => new RegExp('\\bname=["\\']' + name + '["\\']', 'i').test(tag));
+  return tags.filter((tag) => {
+    const value = tag.match(/\bname\s*=\s*["']([^"']+)["']/i)?.[1];
+    return value?.toLowerCase() === name.toLowerCase();
+  });
 }
 
 function getContent(tag) {

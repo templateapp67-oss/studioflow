@@ -60,7 +60,7 @@ const sitemapDirectives = meaningfulRobotsLines.filter((line) => /^Sitemap:/i.te
 const robotsGroups = new Map();
 let activeAgents = [];
 for (const line of meaningfulRobotsLines) {
-  const agent = line.match(/^User-agent:\\s*(.+)$/i);
+  const agent = line.match(/^User-agent:\s*(.+)$/i);
   if (agent) {
     activeAgents = [agent[1].trim()];
     for (const name of activeAgents) robotsGroups.set(name, []);
@@ -88,6 +88,10 @@ assert.doesNotMatch(robots, /Disallow:\s*\/\s*(?:#.*)?$/im, 'robots.txt never bl
 /* The public URL maps to a real Vercel function and an Express fallback route. */
 const vercel = JSON.parse(readFileSync(vercelPath, 'utf8'));
 const sitemapRewrites = (vercel.rewrites ?? []).filter((entry) => entry.source === '/sitemap.xml');
+const aboutRewrites = (vercel.rewrites ?? []).filter((entry) => entry.source === '/about' && entry.destination === '/about/index.html');
+assert.equal(aboutRewrites.length, 1, 'About page has one explicit prerendered Vercel rewrite');
+const wwwRedirects = (vercel.redirects ?? []).filter((entry) => entry.source === '/(.*)' && (entry.has ?? []).some((condition) => condition.type === 'host' && condition.value === 'www.nexorasalon.online') && entry.destination === 'https://nexorasalon.online/$1' && entry.permanent === true);
+assert.equal(wwwRedirects.length, 1, 'www host is redirected directly to the canonical apex URL');
 assert.equal(sitemapRewrites.length, 1, 'Vercel has one explicit /sitemap.xml rewrite');
 assert.equal(sitemapRewrites[0].destination, '/api/sitemap', '/sitemap.xml is routed to the sitemap API function');
 
