@@ -31,7 +31,7 @@ assert(
   'Windows production deploy must install the pinned Vercel CLI.',
 );
 const powershellStepName = 'Run production deployment with native Windows PowerShell';
-const powershellStep = deploySection.split(`- name: ${powershellStepName}\\n`)[1];
+const powershellStep = deploySection.split(`- name: ${powershellStepName}\n`)[1];
 assert(powershellStep, `Missing production step: ${powershellStepName}`);
 const powershellStepBody = powershellStep.split('\n      - ')[0];
 assert(powershellStepBody.includes('shell: pwsh') && powershellStepBody.includes('.\\scripts\\deploy-production.ps1'),
