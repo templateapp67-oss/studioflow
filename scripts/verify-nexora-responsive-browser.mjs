@@ -3,6 +3,7 @@ import { createRequire } from 'node:module';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { responsiveDiagnostic, writeResponsiveReport } from './responsive-audit-diagnostics.mjs';
 
 const toolsRoot = process.env.BROWSER_TOOLS_ROOT;
 if (!toolsRoot) throw new Error('Set BROWSER_TOOLS_ROOT to a directory containing playwright-core.');
@@ -346,12 +347,27 @@ try {
   assert.equal(await hoverTrigger.getAttribute('aria-describedby'), null, 'a rich preview is not flattened into the trigger description');
   assert.equal(await hoverPanel.isVisible(), false, 'the preview remains hidden before hover or focus');
 
-  const hoverStarted = Date.now();
+  // Measure the browser's actual pointer-to-open interval. A Node-side sleep
+  // can overshoot on a busy CI runner and incorrectly assert an already-open
+  // card is still closed; DOM event timestamps keep the minimum-delay check.
+  await hoverTrigger.evaluate((trigger) => {
+    const wrapper = trigger.closest('.nx-hover-card');
+    const probe = { entered: null, opened: null };
+    window.__nexoraOpenProbe = probe;
+    wrapper.addEventListener('pointerover', () => { probe.entered = performance.now(); }, { once: true, capture: true });
+    const observer = new MutationObserver(() => {
+      if (trigger.getAttribute('aria-expanded') === 'true') {
+        probe.opened = performance.now();
+        observer.disconnect();
+      }
+    });
+    observer.observe(trigger, { attributes: true, attributeFilter: ['aria-expanded'] });
+  });
   await hoverTrigger.hover();
-  await page.waitForTimeout(180);
-  assert.equal(await hoverTrigger.getAttribute('aria-expanded'), 'false', 'pointer hover observes the intentional open delay');
-  await hoverPanel.waitFor({ state: 'visible', timeout: 1500 });
-  assert.ok(Date.now() - hoverStarted >= 300, 'pointer hover opens after the configured 300–500ms delay');
+  await hoverPanel.waitFor({ state: 'visible', timeout: 10000 });
+  const openProbe = await page.evaluate(() => window.__nexoraOpenProbe);
+  assert.ok(openProbe.entered !== null && openProbe.opened !== null, 'pointer and open events were observed');
+  assert.ok(openProbe.opened - openProbe.entered >= 300, 'pointer hover observes the configured minimum open delay');
   assert.ok((await hoverPanel.textContent())?.includes('NEXORA Template Library'), 'the card previews the destination link');
   assert.equal(await hoverPanel.locator('a[href="#nexora-template-library"]').count(), 1, 'the preview action remains an ordinary keyboard-reachable link');
   assert.equal(await hoverPanel.evaluate((node) => getComputedStyle(node).transitionDuration), '0s', 'reduced-motion preference disables the card animation');
@@ -359,10 +375,24 @@ try {
   await hoverPanel.hover();
   await page.waitForTimeout(320);
   assert.equal(await hoverPanel.isVisible(), true, 'moving the pointer from the trigger into the card keeps it open');
+  await hoverPanel.evaluate((panel) => {
+    const floating = panel.closest('.nx-hover-card__floating');
+    const probe = { left: null, closed: null };
+    window.__nexoraCloseProbe = probe;
+    floating.addEventListener('pointerleave', () => { probe.left = performance.now(); }, { once: true });
+    const observer = new MutationObserver(() => {
+      if (floating.hasAttribute('hidden')) {
+        probe.closed = performance.now();
+        observer.disconnect();
+      }
+    });
+    observer.observe(floating, { attributes: true, attributeFilter: ['hidden'] });
+  });
   await page.mouse.move(2, 900);
-  await page.waitForTimeout(100);
-  assert.equal(await hoverPanel.isVisible(), true, 'the card remains during its pointer-leave grace period');
   await page.waitForFunction(() => document.querySelector('.nx-hover-card__panel')?.closest('.nx-hover-card__floating')?.hasAttribute('hidden'));
+  const closeProbe = await page.evaluate(() => window.__nexoraCloseProbe);
+  assert.ok(closeProbe.left !== null && closeProbe.closed !== null, 'pointer-leave and close events were observed');
+  assert.ok(closeProbe.closed - closeProbe.left >= 200, 'the card retains its pointer-leave grace period');
   assert.equal(await hoverPanel.isVisible(), false, 'the card closes after the pointer leaves both trigger and card');
   await hoverTrigger.hover();
   await hoverPanel.waitFor({ state: 'visible', timeout: 1500 });
@@ -866,7 +896,11 @@ try {
 
   assert.deepEqual(hydrationErrors, [], 'public routes hydrate without React hydration mismatch warnings or errors');
   assert.deepEqual(pageErrors, [], 'public route interaction produces no uncaught browser errors');
+  writeResponsiveReport(process.env.RESPONSIVE_REPORT_PATH, { status: 'PASS' });
   console.log(`PASS: headless preview — ${marketingRoutes.length} public marketing routes, responsive header/breadcrumb bounds and contrast, keyboard skip links, hover-card delay/bridge/Escape/scroll/focus behavior, touch suppression, phone/tablet/desktop viewport fit and dark appearance, direct-hash current-state hydration, signed-in hydration and update polling, owner/storefront isolation, mobile-menu accessibility/behavior, WhatsApp safety/tracking, native disclosure, script-free fallback and real-browser SPA SEO meta/canonical/JSON-LD hygiene.`);
+} catch (error) {
+  writeResponsiveReport(process.env.RESPONSIVE_REPORT_PATH, responsiveDiagnostic(error, activeRoute));
+  throw error;
 } finally {
   await browser.close();
 }

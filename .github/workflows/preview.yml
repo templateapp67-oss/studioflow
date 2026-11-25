@@ -528,10 +528,39 @@ jobs:
           NODE
 
       - name: Run NEXORA responsive marketing and owner-route browser audit
+        id: responsive-audit
         env:
           PREVIEW_URL: ${{ steps.resolve-preview.outputs.url }}
           BROWSER_TOOLS_ROOT: /tmp/pw-runner
+          RESPONSIVE_REPORT_PATH: test-results/preview-browser-e2e/responsive-report.json
         run: node scripts/verify-nexora-responsive-browser.mjs
+
+      - name: Publish responsive audit status
+        uses: actions/github-script@v8
+        if: always()
+        continue-on-error: true
+        env:
+          AUDIT_OUTCOME: ${{ steps.responsive-audit.outcome }}
+        with:
+          script: |
+            const fs = require('node:fs');
+            const outcome = process.env.AUDIT_OUTCOME || 'skipped';
+            let report = {};
+            try { report = JSON.parse(fs.readFileSync('test-results/preview-browser-e2e/responsive-report.json', 'utf8')); } catch {}
+            const phase = ['hover-card', 'spa-seo', 'owner-storefront', 'public-route', 'startup-or-other'].includes(report.phase) ? report.phase : 'unknown';
+            const kind = ['assertion', 'timeout', 'other'].includes(report.kind) ? report.kind : 'unknown';
+            const line = Number.isInteger(report.line) && report.line > 0 && report.line < 10000 ? report.line : 'unknown';
+            const passed = outcome === 'success' && report.status === 'PASS';
+            const headSha = context.payload.pull_request?.head?.sha || context.sha;
+            await github.rest.checks.create({
+              owner: context.repo.owner, repo: context.repo.repo,
+              name: 'Responsive Marketing Audit Report', head_sha: headSha,
+              status: 'completed', conclusion: passed ? 'success' : 'failure',
+              output: {
+                title: `Responsive marketing audit: ${passed ? 'PASS' : 'FAIL'}`,
+                summary: passed ? 'Responsive audit completed successfully.' : `Outcome: ${outcome}; phase: ${phase}; kind: ${kind}; script line: ${line}. See job logs for details.`,
+              },
+            });
 
       - name: Upload Playwright report, screenshots and traces
         uses: actions/upload-artifact@v4
@@ -571,7 +600,7 @@ jobs:
               conclusion: status === 'PASS' ? 'success' : 'failure',
               output: {
                 title: `Preview Browser E2E: ${status}`,
-                summary,
+                summary: summary + '\nThis report covers the read-only storefront smoke only; see Responsive Marketing Audit Report for the separate responsive audit.',
                 text: '```json\n' + reportRaw + '\n```',
               },
             });
