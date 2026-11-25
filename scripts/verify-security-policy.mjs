@@ -127,7 +127,7 @@ const storefrontFallback = config.rewrites.find((entry) => entry.source.startsWi
 assert.ok(storefrontFallback, 'non-file salon paths must be handled by the storefront SSR function');
 assert.equal(storefrontFallback.destination, '/api/storefront?path=/:path*');
 assert.ok(storefrontFallback.source.includes('(?:api|admin|owner|staff|login|sign-in|sign-up|assets|fonts|templates|template-pages)'), 'SSR fallback must exclude private, API, auth and static path prefixes');
-assert.ok(storefrontFallback.source.includes('(?!.*\\\\.[^/]+$)'), 'SSR fallback must leave extension-bearing asset paths to static-file routing');
+assert.ok(storefrontFallback.source.includes('(?!.*\\.[^/]+$)'), 'SSR fallback must leave extension-bearing asset paths to static-file routing');
 assert.equal(config.rewrites.at(-1), storefrontFallback, 'the storefront fallback must remain last');
 
 for (const key of ['app', 'customer', 'customer_ref']) {
