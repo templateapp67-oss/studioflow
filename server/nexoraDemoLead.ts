@@ -8,8 +8,8 @@
  *   * persist the enquiry in the configured NEXORA Supabase project through
  *     the `submit-landing-lead` Edge Function (the private `landing_leads`
  *     table is never written to directly);
- *   * rely on the Edge Function's shared, database-backed rate limiter so the
- *     limit holds across serverless instances;
+ *   * forward using a server credential; the Edge Function currently exempts
+ *     that trusted path from its public IP limiter (see release QA notes);
  *   * optionally forward to a CRM sink without ever losing a stored lead;
  *   * answer 2xx only after the request is safely stored — never a fake
  *     success;

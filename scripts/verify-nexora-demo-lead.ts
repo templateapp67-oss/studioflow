@@ -95,7 +95,8 @@ try {
   assert.equal(sent.payload.consent_given, true, 'Consent is forwarded');
   assert.equal(sent.payload.privacy_notice_version, '2026-11', 'The privacy notice version is forwarded');
   assert.equal(sent.payload.idempotency_key, null, 'No idempotency key is invented when the caller sends none');
-  assert.ok(!JSON.stringify(sent.headers).includes('service-role-test-key') || true, 'Header check placeholder');
+  assert.equal(sent.headers.Authorization, 'Bearer service-role-test-key', 'The fallback uses the trusted server credential, never sent to the browser');
+  assert.ok(!JSON.stringify(result.body).includes('service-role-test-key'), 'The server credential is not returned to the browser');
 
   /* --- 1b. A retry carries its idempotency key ----------------------------- */
   upstream = { status: 200, body: { ok: true } };

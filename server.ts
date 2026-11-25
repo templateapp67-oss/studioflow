@@ -158,8 +158,8 @@ async function startServer() {
   // is used by both this Express server and the Vercel function
   // `api/nexora-demo-lead.ts`. Credentials never enter browser code, the
   // enquiry is stored by the `submit-landing-lead` Supabase Edge Function in
-  // the private `public.landing_leads` table, and the durable rate limit of
-  // that function applies across every instance.
+  // the private `public.landing_leads` table. The trusted fallback is exempt
+  // from the public Edge IP limiter; see the release QA notes.
   app.post("/api/nexora-demo-lead", asyncHandler(async (req, res) => {
     await nexoraDemoLeadHandler(
       {

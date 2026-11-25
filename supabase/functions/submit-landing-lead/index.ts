@@ -121,12 +121,10 @@ const sanitiseUtm = (value: string): string => value.replace(/[^\w.\-: ]/g, '').
 /* --------------------------------------------------------------------------
  * Trusted server-to-server calls
  * ------------------------------------------------------------------------
- * The first-party Nexora server posts to this function as well. Those calls
- * carry the server-side credential and are governed by the server's own
- * per-visitor rate limit, so they are not counted against the public
- * per-IP bucket (every public request would otherwise share one server IP).
- * An untrusted caller can neither skip the limit nor reach the database: the
- * insert always uses the function's own privileged client.
+ * The first-party Nexora server uses a server-side credential, so those calls
+ * skip the public per-IP bucket; the server fallback currently has no separate
+ * limiter. See release QA notes before deploying this public submission path.
+ * Only the function itself uses the privileged client to insert a lead.
  * ------------------------------------------------------------------------ */
 const isTrustedServerCall = async (request: Request): Promise<boolean> => {
   const expected = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SUPABASE_SECRET_KEY');
@@ -180,15 +178,18 @@ interface LeadService {
 }
 
 const isRateLimited = async (service: LeadService, bucketKey: string): Promise<boolean> => {
-  const { data, error } = await service.rpc('register_landing_lead_attempt', {
-    p_bucket_key: bucketKey,
-    p_window_seconds: RATE_LIMIT_WINDOW_SECONDS,
-    p_max_attempts: RATE_LIMIT_MAX,
-  });
-  if (error || typeof data !== 'number') {
-    // Fail closed for the caller: if the limiter cannot be reached, refuse the
-    // request rather than leaving the endpoint unprotected.
-    console.error('submit-landing-lead: rate limiter unavailable', error?.code ?? 'unknown');
+  let data: unknown;
+  try {
+    const result = await service.rpc('register_landing_lead_attempt', {
+      p_bucket_key: bucketKey,
+      p_window_seconds: RATE_LIMIT_WINDOW_SECONDS,
+      p_max_attempts: RATE_LIMIT_MAX,
+    });
+    if (result.error || typeof result.data !== 'number' || !Number.isSafeInteger(result.data) || result.data < 1) throw new Error('limiter unavailable');
+    data = result.data;
+  } catch {
+    // Upstream errors can contain PII or credentials; emit only a static event.
+    console.error('submit-landing-lead: rate limiter unavailable');
     return true;
   }
   pruneCounter = (pruneCounter + 1) % 25;
@@ -199,7 +200,7 @@ const isRateLimited = async (service: LeadService, bucketKey: string): Promise<b
       // Housekeeping only — a failure here must never fail the request.
     }
   }
-  return data > RATE_LIMIT_MAX;
+  return (data as number) > RATE_LIMIT_MAX;
 };
 
 /* --------------------------------------------------------------------------
@@ -353,14 +354,14 @@ Deno.serve(async (request: Request) => {
         return json(trustedServerCall ? { ...SUCCESS, idempotent: true } : SUCCESS, 200, origin);
       }
       // Operational log only — never log the submitted personal data.
-      console.error('submit-landing-lead: insert failed', { code: error.code, message: error.message });
+      console.error('submit-landing-lead: insert failed');
       return json({ ok: false, message: 'We could not record your request. Please try again later.' }, 500, origin);
     }
     // The lead id is only handed to a trusted first-party server call so it can
     // record the CRM delivery state. Public callers never receive identifiers.
     return json(trustedServerCall && data?.id ? { ...SUCCESS, leadId: data.id } : SUCCESS, 200, origin);
-  } catch (error) {
-    console.error('submit-landing-lead: unexpected failure', error instanceof Error ? error.message : 'unknown error');
+  } catch {
+    console.error('submit-landing-lead: unexpected failure');
     return json({ ok: false, message: 'We could not record your request. Please try again later.' }, 500, origin);
   }
 });
