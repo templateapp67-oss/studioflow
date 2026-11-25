@@ -53,7 +53,7 @@ for (const file of allFiles) {
   assert.ok(decodeHtml(titles[0][1].trim()).length <= 60, routeName + ' decoded title is no longer than 60 characters (got ' + decodeHtml(titles[0][1].trim()).length + ')');
   assert.equal(descriptions.length, 1, routeName + ' has exactly one meta description');
   assert.ok(getContent(descriptions[0]).length > 0, routeName + ' has a non-empty meta description');
-  assert.ok(getContent(descriptions[0]).length <= 160, routeName + ' meta description is no longer than 160 characters');
+  assert.ok(decodeHtml(getContent(descriptions[0])).length <= 160, routeName + ' decoded meta description is no longer than 160 characters');
   assert.equal(canonicals.length, 1, routeName + ' has exactly one canonical URL');
   assert.ok(canonicals[0][0].includes('https://nexorasalon.online/'), routeName + ' canonical uses the verified HTTPS origin');
   assert.equal(robots.length, 1, routeName + ' has one robots meta directive');
