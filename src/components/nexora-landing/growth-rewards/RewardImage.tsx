@@ -67,6 +67,7 @@ export function RewardImage({ slug, alt, sizes, variant = 'card', eager = false 
       width={displayWidth}
       height={Math.round(displayWidth / ratio)}
       alt={alt}
+      aria-hidden={alt ? undefined : true}
       loading={eager ? 'eager' : 'lazy'}
       decoding={eager ? 'sync' : 'async'}
       onError={() => setFailed(true)}
