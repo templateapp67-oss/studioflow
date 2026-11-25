@@ -152,7 +152,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                 </span>
                 <h2 className="font-display text-3xl font-bold mt-1">Select your salon category</h2>
                 <p className="text-gray-600 text-sm mt-1">
-                  This helps us auto-generate the perfect layout, service list, and aesthetic for your brand.
+                  Your category guides the website layout, service list and AI copy. Visual palettes are chosen separately.
                 </p>
               </div>
 
@@ -382,7 +382,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                 </span>
                 <h2 className="font-display text-3xl font-bold mt-1">Choose your website aesthetic</h2>
                 <p className="text-gray-600 text-sm mt-1">
-                  Select a color palette and visual atmosphere that matches your salon vibe.
+                  Select a color palette and visual atmosphere. This changes the design, not the AI copy category.
                 </p>
               </div>
 

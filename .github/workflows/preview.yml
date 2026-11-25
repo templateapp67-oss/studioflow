@@ -186,7 +186,6 @@ jobs:
       - name: Deploy preview
         id: deploy
         if: steps.vercel-config.outputs.available == 'true'
-        continue-on-error: true
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
@@ -203,13 +202,13 @@ jobs:
           test -n "$url"
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
-      - name: Report non-blocking preview deployment failure
-        if: steps.vercel-config.outputs.available == 'true' && steps.deploy.outcome == 'failure'
+      - name: Report preview deployment failure
+        if: always() && steps.vercel-config.outputs.available == 'true' && steps.deploy.outcome == 'failure'
         run: |
-          echo "::warning::Vercel preview deployment failed; pull-request CI remains unblocked."
+          echo "::warning::Vercel preview deployment failed; Preview verification is blocked."
           {
             echo "### Vercel Preview not deployed"
-            echo "The deployment command failed. This is non-blocking for PR CI; see the Deploy preview step log for the Vercel error."
+            echo "The deployment command failed; see the Deploy preview step log for the Vercel error. Preview verification remains blocked."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Comment preview URL on PR
@@ -569,6 +568,22 @@ jobs:
                 summary: passed ? 'Responsive audit completed successfully.' : `Outcome: ${outcome}; phase: ${phase}; kind: ${kind}; script line: ${line}. See job logs for details.`,
               },
             });
+
+      - name: Capture Vercel runtime logs after failed Preview audits
+        if: failure() && steps.resolve-preview.outputs.url != ''
+        continue-on-error: true
+        env:
+          PREVIEW_URL: ${{ steps.resolve-preview.outputs.url }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+        run: |
+          set -euo pipefail
+          npx --yes vercel@65.14.0 logs "$PREVIEW_URL" \
+            --token="$VERCEL_TOKEN" \
+            --project="$VERCEL_PROJECT_ID" \
+            --scope="$VERCEL_ORG_ID" \
+            --since=30m --status-code=500 --limit=50 --json
 
       - name: Upload Playwright report, screenshots and traces
         uses: actions/upload-artifact@v4

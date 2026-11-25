@@ -30,6 +30,7 @@ import { EnvironmentDiagnostic } from './EnvironmentDiagnostic';
 import { PromoStudio } from './PromoStudio';
 import {servicesForTemplate} from '../lib/serviceCatalogue';
 import { applyTemplateDesign } from '../lib/templateSelection';
+import { patchOwnerCopy } from '../lib/copyProvenance';
 import { upgradeLegacyBeautyParlourStylists } from '../lib/roopMahalReference';
 import { CATEGORY_TEMPLATES } from '../categoryTemplates';
 import { SocialConnectivityStep } from './SocialConnectivityStep';
@@ -177,7 +178,7 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
     }
   };
   const saveExtras = (next: Extras) => setExtras(next);
-  const patchProfile = (key: keyof SalonProfile, value: unknown) => setProfile((prev) => ({ ...prev, [key]: value }));
+  const patchProfile = (key: keyof SalonProfile, value: unknown) => setProfile((prev) => key === 'tagline' || key === 'about' ? patchOwnerCopy(prev, { [key]: String(value ?? '') }) : ({ ...prev, [key]: value }));
   const chooseTemplate = (id: BusinessTypeId) => { const template = templates.find(t => t.id === id) || CATEGORY_TEMPLATES[id]; if (!template) return; setServices(servicesForTemplate(services,profile,template)); setProfile((prev) => ({...applyTemplateDesign(prev, template),serviceCatalogueInitialized:true})); if(!stylists.length)setStylists(template.stylists); else if(id==='beauty_parlour')setStylists(prev=>upgradeLegacyBeautyParlourStylists(prev,'beauty_parlour')); else if(id==='makeup_studio')setStylists(prev=>upgradeLegacyMakeupStudioStylists(prev,'makeup_studio')); flash(`${template.shortName} template applied`); };
 
 

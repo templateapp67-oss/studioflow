@@ -317,6 +317,10 @@ export interface SalonProfile {
   /** Last known seeded or AI value; a different value is protected as owner copy. */
   onboardingGeneratedTagline?: string;
   about: string;
+  /** Explicit story edits must survive category changes. */
+  aboutEditedByOwner?: boolean;
+  /** Known template story, distinguishable from unknown or owner copy. */
+  onboardingSeededAbout?: string;
   ownerPhotoUrl: string;
   coverImageUrl: string;
   logoUrl?: string;

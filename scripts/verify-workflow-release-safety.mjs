@@ -17,6 +17,11 @@ assert.equal(classifyPreviewDeployError('Error 403: forbidden'), 'authorization'
 assert.equal(classifyPreviewDeployError('opaque private token'), 'other-or-unknown');
 assert.ok(workflows.preview.includes('node scripts/classify-preview-deploy-error.mjs "$deploy_log"'), 'failed Preview deploys publish only a static diagnostic category');
 
+const previewDeploy = workflows.preview.split('- name: Deploy preview\n        id: deploy')[1]?.split('\n      - name:')[0];
+assert(previewDeploy && !previewDeploy.includes('continue-on-error: true'), 'a failed Preview deployment must fail its job');
+assert(workflows.preview.includes("if: always() && steps.vercel-config.outputs.available == 'true' && steps.deploy.outcome == 'failure'"), 'deployment failure diagnostics still run');
+assert(workflows.preview.indexOf('- name: Capture Vercel runtime logs after failed Preview audits') > workflows.preview.indexOf('- name: Run NEXORA responsive marketing and owner-route browser audit'), 'capture runtime logs after responsive failures too');
+
 const production = workflows.production;
 const deploy = production.split('\n  deploy:\n')[1];
 assert(deploy, 'production deploy job exists');

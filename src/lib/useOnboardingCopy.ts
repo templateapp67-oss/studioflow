@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import type { SalonProfile } from '../types';
 import { aiRequestHeaders } from './aiRequestAuth';
+import { hasManualTagline, patchOwnerCopy } from './copyProvenance';
 
 type CopyInput = { kind: 'tagline' | 'about'; businessName: string; ownerName: string; theme: string; tagline: string };
 export type CopyGenerator = (input: CopyInput, signal: AbortSignal) => Promise<string>;
@@ -26,7 +27,8 @@ export function useOnboardingCopy(profile: SalonProfile, setProfile: Dispatch<Se
   const latest = useRef(profile);
   latest.current = profile;
   // Existing custom copy is always protected, including after reopening the wizard.
-  const manual = useRef(Boolean(profile.tagline?.trim()) && (profile.taglineEditedByOwner === true || profile.tagline !== profile.onboardingGeneratedTagline));
+  const manual = useRef(hasManualTagline(profile));
+  const observedTagline = useRef(JSON.stringify([profile.tagline, profile.taglineEditedByOwner, profile.onboardingGeneratedTagline]));
   const forced = useRef(false);
   const taglineRequest = useRef<AbortController | null>(null);
   const aboutRequest = useRef<AbortController | null>(null);
@@ -36,6 +38,17 @@ export function useOnboardingCopy(profile: SalonProfile, setProfile: Dispatch<Se
   const cancelTagline = useCallback(() => { taglineRequest.current?.abort(); taglineRequest.current = null; setTaglineStatus('idle'); }, []);
   const cancelAbout = useCallback(() => { aboutRequest.current?.abort(); aboutRequest.current = null; setAboutStatus('idle'); }, []);
 
+  // Workspace sync or another editor can change copy without calling our
+  // handlers. Cancel the old request, recompute provenance, and protect it.
+  useEffect(() => {
+    const current = JSON.stringify([profile.tagline, profile.taglineEditedByOwner, profile.onboardingGeneratedTagline]);
+    if (observedTagline.current === current) return;
+    observedTagline.current = current;
+    manual.current = hasManualTagline(profile);
+    if (taglineRequest.current) { cancelTagline(); forced.current = false; }
+    if (!profile.tagline?.trim()) setRevision(n => n + 1);
+  }, [profile.tagline, profile.taglineEditedByOwner, profile.onboardingGeneratedTagline, cancelTagline]);
+
   useEffect(() => {
     cancelTagline();
     if (!active || (manual.current && !forced.current) || !profile.businessName?.trim() || !profile.businessType) return;
@@ -43,6 +56,7 @@ export function useOnboardingCopy(profile: SalonProfile, setProfile: Dispatch<Se
     taglineRequest.current = controller;
     const snapshot = details(profile, 'tagline');
     const baseline = profile.tagline;
+    const provenance = JSON.stringify([profile.taglineEditedByOwner, profile.onboardingGeneratedTagline]);
     const timer = setTimeout(async () => {
       setTaglineStatus('loading');
       const timeout = setTimeout(() => { controller.abort(); if (taglineRequest.current === controller) { taglineRequest.current = null; forced.current = false; setTaglineStatus('error'); } }, 25000);
@@ -50,9 +64,11 @@ export function useOnboardingCopy(profile: SalonProfile, setProfile: Dispatch<Se
       try {
         const text = await generate(snapshot, controller.signal);
         if (controller.signal.aborted || taglineRequest.current !== controller || (manual.current && !forced.current)) return;
-        if (latest.current.businessName !== snapshot.businessName || latest.current.businessType !== snapshot.theme || latest.current.tagline !== baseline) return;
+        if (latest.current.businessName !== snapshot.businessName || latest.current.businessType !== snapshot.theme || latest.current.tagline !== baseline || JSON.stringify([latest.current.taglineEditedByOwner, latest.current.onboardingGeneratedTagline]) !== provenance) {
+          manual.current = hasManualTagline(latest.current); forced.current = false; setTaglineStatus('idle'); return;
+        }
         manual.current = false; forced.current = false;
-        setProfile(prev => prev.businessName === snapshot.businessName && prev.businessType === snapshot.theme && prev.tagline === baseline ? { ...prev, tagline: text, taglineEditedByOwner: false, onboardingGeneratedTagline: text } : prev);
+        setProfile(prev => prev.businessName === snapshot.businessName && prev.businessType === snapshot.theme && prev.tagline === baseline && JSON.stringify([prev.taglineEditedByOwner, prev.onboardingGeneratedTagline]) === provenance ? { ...prev, tagline: text, taglineEditedByOwner: false, onboardingGeneratedTagline: text } : prev);
         setTaglineStatus('idle');
       } catch {
         if (taglineRequest.current === controller) { forced.current = false; setTaglineStatus('error'); }
@@ -63,28 +79,29 @@ export function useOnboardingCopy(profile: SalonProfile, setProfile: Dispatch<Se
 
   // Any input change invalidates an in-flight About request; it must not apply
   // copy written for an earlier salon or overwrite edits made during the call.
-  useEffect(() => { cancelAbout(); }, [active, profile.businessName, profile.ownerName, profile.businessType, profile.tagline, cancelAbout]);
+  useEffect(() => { cancelAbout(); }, [active, profile.businessName, profile.ownerName, profile.businessType, profile.tagline, profile.about, profile.aboutEditedByOwner, profile.onboardingSeededAbout, cancelAbout]);
   useEffect(() => () => { taglineRequest.current?.abort(); aboutRequest.current?.abort(); }, []);
 
   const editTagline = (value: string) => {
     cancelTagline(); cancelAbout();
     manual.current = Boolean(value.trim()); forced.current = false;
-    setProfile(prev => ({ ...prev, tagline: value, taglineEditedByOwner: Boolean(value.trim()), onboardingGeneratedTagline: undefined }));
+    setProfile(prev => patchOwnerCopy(prev, { tagline: value }));
     if (!value.trim()) setRevision(n => n + 1);
   };
   const regenerateTagline = () => { cancelTagline(); forced.current = true; setRevision(n => n + 1); };
-  const editAbout = (value: string) => { cancelAbout(); setProfile(prev => ({ ...prev, about: value })); };
+  const editAbout = (value: string) => { cancelAbout(); setProfile(prev => patchOwnerCopy(prev, { about: value })); };
   const writeAbout = async () => {
     cancelAbout();
     const controller = new AbortController(); aboutRequest.current = controller;
     const snapshot = latest.current, key = identity(snapshot), baseline = snapshot.about;
+    const provenance = JSON.stringify([snapshot.aboutEditedByOwner, snapshot.onboardingSeededAbout]);
     setAboutStatus('loading');
     const timeout = setTimeout(() => { controller.abort(); if (aboutRequest.current === controller) { aboutRequest.current = null; setAboutStatus('error'); } }, 25000);
     controller.signal.addEventListener('abort', () => clearTimeout(timeout), { once: true });
     try {
       const text = await generate(details(snapshot, 'about'), controller.signal);
       if (controller.signal.aborted || aboutRequest.current !== controller) return;
-      setProfile(prev => identity(prev) === key && prev.about === baseline ? { ...prev, about: text } : prev);
+      setProfile(prev => identity(prev) === key && prev.about === baseline && JSON.stringify([prev.aboutEditedByOwner, prev.onboardingSeededAbout]) === provenance ? patchOwnerCopy(prev, { about: text }) : prev);
       setAboutStatus('idle');
     } catch { if (aboutRequest.current === controller) setAboutStatus('error'); }
     finally { clearTimeout(timeout); if (aboutRequest.current === controller) aboutRequest.current = null; }

@@ -8,10 +8,9 @@ import { supabase } from './supabase';
  * helper attaches the current Supabase access token so an owner's own requests
  * are attributed to their user id instead of a shared network address.
  *
- * When no session exists the token is simply omitted: the request then travels
- * anonymously and the server applies its strict anonymous budget. Every caller
- * already has a template fallback for a non-2xx response, so a missing session
- * degrades the feature instead of breaking the page.
+ * When no session exists the token is omitted; each route decides whether to
+ * reject the request. Onboarding copy fails closed and shows a generic error;
+ * it does not silently replace AI output with template text.
  */
 export async function aiRequestHeaders(): Promise<Record<string, string>> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
