@@ -268,7 +268,7 @@ jobs:
           PREVIEW_URL: ${{ steps.resolve-preview.outputs.url }}
           PLAYWRIGHT_PACKAGE_ROOT: /tmp/pw-runner
           LIGHTHOUSE_REPORT_DIR: test-results/preview-lighthouse
-        run: node scripts/verify-lighthouse-preview.mjs
+        run: node scripts/audit-lighthouse-preview.mjs
 
       - name: Upload Lighthouse mobile report
         uses: actions/upload-artifact@v4
