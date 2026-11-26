@@ -29,8 +29,8 @@ env:
 
 jobs:
   prepare-assets:
-    name: Convert remaining template heroes and verify PR #162
-    if: github.event_name == 'pull_request' && github.event.pull_request.number == 162 && github.event.pull_request.head.ref == 'seo/technical-seo-checklist' && github.event.pull_request.head.repo.full_name == github.repository
+    name: Convert remaining template heroes and verify PR
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
