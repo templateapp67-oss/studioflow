@@ -119,6 +119,42 @@ const auth = await loadModule('server/supabaseAuth.ts');
   for (let i = 0; i < 500; i += 1) bounded.hit(`k${i}`);
   assert.ok(bounded.size() <= 20, `limiter keeps at most maxKeys windows (got ${bounded.size()})`);
 
+  // The production limiter uses the already-provisioned service-role RPC and
+  // sends only a digest of the identity bucket, never the raw user id or IP.
+  let sharedRequest;
+  const shared = await limiter.claimSharedRateLimit({
+    key: 'generate-bio:user:private-user-id',
+    windowMs: 60_000,
+    max: 8,
+    supabaseUrl: 'https://example.supabase.co',
+    serviceRoleKey: 'server-only-key',
+    fetchImpl: async (url, init) => {
+      sharedRequest = { url, init, body: JSON.parse(init.body) };
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ allowed: true, remaining: 7, retryAfterSeconds: 60 }),
+      };
+    },
+  });
+  assert.equal(shared.allowed, true, 'shared rate-limit RPC allows an in-budget request');
+  assert.equal(shared.remaining, 7, 'shared rate-limit RPC returns its remaining budget');
+  assert.match(sharedRequest.url, /rpc\\/studioflow_edge_rate_limit_claim$/);
+  assert.equal(sharedRequest.body.p_window_seconds, 60);
+  assert.equal(sharedRequest.body.p_max_attempts, 8);
+  assert.match(sharedRequest.body.p_bucket_key, /^server:[a-f0-9]{64}$/);
+  assert.ok(!sharedRequest.body.p_bucket_key.includes('private-user-id'), 'raw user identity is not persisted');
+  assert.equal(sharedRequest.init.headers.apikey, 'server-only-key');
+  await assert.rejects(
+    limiter.claimSharedRateLimit({
+      key: 'bucket', windowMs: 60_000, max: 8,
+      supabaseUrl: 'https://example.supabase.co', serviceRoleKey: 'server-only-key',
+      fetchImpl: async () => ({ ok: false, status: 500 }),
+    }),
+    /Shared rate-limit RPC returned HTTP 500/,
+    'shared limiter errors are not treated as an allowed request',
+  );
+
   // Bearer parsing accepts only a well-formed header.
   assert.equal(auth.readBearerToken({ authorization: 'Bearer abc.def-ghi' }), 'abc.def-ghi');
   assert.equal(auth.readBearerToken({ authorization: 'bearer token_123' }), 'token_123');
