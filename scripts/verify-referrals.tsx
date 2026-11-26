@@ -44,6 +44,15 @@ let signedOut=0;const authOrder:string[]=[];
 await act(async()=>{tree=create(<CustomerInvitePage session={{user:{id:'sender'}} as any}/>)});
 assert.ok(JSON.stringify(tree.toJSON()).includes('Create your customer account'),'Signed-in sender still sees signup');assert.equal(tree.root.findAllByType('input').find((i:any)=>i.props.maxLength===32).props.value,'MYOWNCODE');assert.ok(tree.root.findAllByType('input').some((i:any)=>i.props.type==='date'),'Referral signup includes DOB');assert.equal(signedOut,0,'Viewing an invite does not sign out the current account');
 await act(async()=>{await tree.root.findByType('form').props.onSubmit({preventDefault(){}})});
-assert.deepEqual(authOrder,[],'Empty mandatory fields do not sign out the current account');await act(async()=>tree.root.findAllByType('input').find((i:any)=>i.props.type==='date').props.onChange({target:{value:'1995-04-20'}}));await act(async()=>tree.root.findAllByType('input').find((i:any)=>i.props.type==='tel').props.onChange({target:{value:'9876543210'}}));await act(async()=>{await tree.root.findByType('form').props.onSubmit({preventDefault(){}})});assert.deepEqual(authOrder,['signout','signup']);assert.equal(signedUp.options.data.customer_referral_code,'MYOWNCODE');assert.equal(signedUp.options.emailRedirectTo,'https://salon.test/?app=1&tab=rewards','Email confirmation returns to rewards, without reopening signup');assert.ok(JSON.stringify(tree.toJSON()).includes('Check your email'));await act(async()=>tree.unmount());
+assert.deepEqual(authOrder,[],'Empty mandatory fields do not sign out the current account');await act(async()=>{
+ const inviteInputs=tree.root.findAllByType('input');
+ inviteInputs.find((i:any)=>i.props.autoComplete==='name').props.onChange({target:{value:'Riya Sharma'}});
+ inviteInputs.find((i:any)=>i.props.type==='email').props.onChange({target:{value:'riya-invite@example.test'}});
+ inviteInputs.find((i:any)=>i.props.type==='password').props.onChange({target:{value:'StrongPassword123!'}});
+ inviteInputs.find((i:any)=>i.props.type==='date').props.onChange({target:{value:'1995-04-20'}});
+ inviteInputs.find((i:any)=>i.props.type==='tel').props.onChange({target:{value:'9876543210'}});
+});
+await act(async()=>{await tree.root.findByType('form').props.onSubmit({preventDefault(){}})});
+assert.deepEqual(authOrder,['signout','signup']);assert.equal(signedUp.options.data.customer_referral_code,'MYOWNCODE');assert.equal(signedUp.options.emailRedirectTo,'https://salon.test/?app=1&tab=rewards','Email confirmation returns to rewards, without reopening signup');assert.ok(JSON.stringify(tree.toJSON()).includes('Check your email'));await act(async()=>tree.unmount());
 clearCustomerReferral();saved.set('nexora_customer_referral',JSON.stringify({code:'OLDCODE',expires:Date.now()-1}));assert.equal(captureCustomerReferral(),'','Expired invitations cannot be attached');
 console.log('PASS: navigable referral URL, website persistence, partner separation, authenticated claim, sign-out cleanup, customer signup validator, edited metadata/confirmation attribution, and expiry.');
