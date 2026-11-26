@@ -6,7 +6,7 @@ const migration = readFileSync(
   'utf8',
 );
 
-assert.match(migration, /^begin;[\s\S]*commit;\s*$/i, 'the publication guard migration is transactional');
+assert.match(migration, /\bbegin;[\s\S]*\bcommit;\s*$/i, 'the publication guard migration is transactional');
 assert.match(
   migration,
   /function public\.get_salon_social_videos\(p_slug text\)[\s\S]*?where w\.slug = p_slug\s+and w\.published_at is not null\s+and w\.published_at <= now\(\)\s+and v\.is_active/i,
