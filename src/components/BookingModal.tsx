@@ -179,11 +179,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [previewStylistId, setPreviewStylistId] = useState<string | null>(null);
   const [branchChoices, setBranchChoices] = useState<SalonBranch[]>(profile.branches || []);
   const [selectedBranchId, setSelectedBranchId] = useState('');
-  const ownerDraftPreview = React.useContext(OwnerDraftBookingPreview);
-  const isDraft = ownerDraftPreview || !profile.subdomain?.trim();
+  const isDraft = React.useContext(OwnerDraftBookingPreview);
   const selectedBranch = branchChoices.find(branch => branch.id === selectedBranchId);
   useEffect(() => {
-    if (!isOpen || isDraft) return;
+    if (!isOpen || isDraft || !profile.subdomain) return;
     let active = true;
     const fallback = profile.branches || [];
     void supabase.rpc('studioflow_public_branches', { p_slug: profile.subdomain }).then(({ data, error }) => {
