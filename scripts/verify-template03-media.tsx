@@ -3,6 +3,7 @@ import { strict as assert } from 'node:assert';
 import { act, create } from 'react-test-renderer';
 import { AuraImage } from '../src/components/aura/AuraImage';
 import { createAuraSiteContent, loadPublicAuraSections, uploadAuraMedia } from '../src/lib/auraTemplateSections';
+import { pngFile } from './fakeImages';
 import { AURA_UNISEX_IMAGES } from '../src/lib/auraUnisex';
 import { CATEGORY_TEMPLATES } from '../src/categoryTemplates';
 
@@ -35,8 +36,8 @@ const client = {
   } },
   rpc: async (_name: string, { p_slug }: any) => ({ data: rows[p_slug], error: null }),
 };
-const file = { type: 'image/png', size: 123, name: 'hero.png' } as File;
-await assert.rejects(() => uploadAuraMedia({ ...file, size: 0 } as File, 'image', salonId, client), /non-empty/);
+const file = pngFile('hero.png', 123);
+await assert.rejects(() => uploadAuraMedia(new File([], 'empty.png', { type: 'image/png' }), 'image', salonId, client), /non-empty/);
 await assert.rejects(() => uploadAuraMedia(file, 'image', '------------------------------------', client), /salon media folder/);
 const uploaded = await uploadAuraMedia(file, 'image', salonId, client);
 assert.match(storedPath, new RegExp(`^${salonId}/template-03/images/.*\\.png$`));

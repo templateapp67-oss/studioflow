@@ -5,10 +5,14 @@ import { siteSchema, slotsSchema, bookingResultSchema, quizResultSchema, reviewR
 import type { Env } from './env';
 import type { Site, SiteState, BookingResult } from '../types';
 import { normalizePhone } from './format';
+import { createSessionAuthStorage, removeLegacyAuthTokens } from './authStorage';
 
 export const fallbackSite: Site = siteSchema.parse(fallbackJson);
 let client: SupabaseClient | null = null;
-export function getSupabase(env: Env) { return client ??= createClient(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce' }, global: { fetch: (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(8000) }) } }); }
+// Session tokens are stored in sessionStorage (never localStorage) and any
+// legacy localStorage copy is migrated/swept on client creation.
+try { if (typeof window !== 'undefined') removeLegacyAuthTokens(); } catch { /* storage may be unavailable */ }
+export function getSupabase(env: Env) { return client ??= createClient(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce', storage: createSessionAuthStorage() }, global: { fetch: (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(8000) }) } }); }
 async function rpc(env: Env, name: string, args: Record<string, unknown> = {}) {
   const { data, error } = await getSupabase(env).rpc(name, args);
   if (error) throw new Error('The live service is temporarily unavailable. Please try again.');

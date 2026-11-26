@@ -12,6 +12,10 @@
  * database hashed.
  */
 
+import { STAFF_INVITE_SCHEMA, safeOutboundFetch, validateBody } from './httpValidation.js';
+import { hashBucketKey } from './distributedRateLimit.js';
+import { recoveryWindowActive, secondFactorSatisfied, tokenClaims } from './supabaseAuth.js';
+
 const DEFAULT_SUPABASE_URL = 'https://zilwgiuiygqqardzutxi.supabase.co';
 const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_Xck8H8PcTCCnEwkvBfiSLw_c973vJkH';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -56,16 +60,34 @@ async function claimInviteQuota(key: string, maxAttempts: number) {
   const { url } = supabaseBase();
   const serviceKey = env('SUPABASE_SERVICE_ROLE_KEY') || env('SUPABASE_SECRET_KEY');
   if (!serviceKey) throw new Error('Invite rate limiting is unavailable.');
-  const response = await fetch(`${url}/rest/v1/rpc/studioflow_edge_rate_limit_claim`, {
+  const response = await safeOutboundFetch(`${url}/rest/v1/rpc/studioflow_edge_rate_limit_claim`, {
     method: 'POST',
     headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ p_bucket_key: key, p_window_seconds: WINDOW_SECONDS, p_max_attempts: maxAttempts }),
+    body: JSON.stringify({ p_bucket_key: hashBucketKey('staff-invite', key), p_window_seconds: WINDOW_SECONDS, p_max_attempts: maxAttempts }),
     signal: AbortSignal.timeout(5000),
   });
   if (!response.ok) throw new Error('Invite rate limiting is unavailable.');
   const decision = await response.json();
   if (typeof decision?.allowed !== 'boolean') throw new Error('Invite quota returned an invalid response.');
   return decision.allowed ? 0 : Math.max(1, Number(decision.retryAfterSeconds) || WINDOW_SECONDS);
+}
+
+/** Verifies the caller against Auth so factors can be checked — fail closed. */
+async function authenticatedUser(token: string): Promise<{ id: string; factors: { status?: string }[] } | null> {
+  try {
+    const url = (env('SUPABASE_URL') || DEFAULT_SUPABASE_URL).replace(/\/+$/, '');
+    const key = env('SUPABASE_ANON_KEY') || env('SUPABASE_PUBLISHABLE_KEY') || DEFAULT_SUPABASE_ANON_KEY;
+    const response = await safeOutboundFetch(`${url}/auth/v1/user`, {
+      headers: { apikey: key, Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!response.ok) return null;
+    const user = await response.json();
+    if (typeof user?.id !== 'string') return null;
+    return { id: user.id, factors: Array.isArray(user?.factors) ? user.factors : [] };
+  } catch {
+    return null;
+  }
 }
 
 function json(res: JsonResponder, status: number, body: unknown) {
@@ -156,7 +178,7 @@ function supabaseBase(): { url: string; key: string } {
 async function supabaseRpc(name: string, token: string, args: Record<string, unknown>): Promise<boolean> {
   try {
     const { url, key } = supabaseBase();
-    const response = await fetch(`${url}/rest/v1/rpc/${name}`, {
+    const response = await safeOutboundFetch(`${url}/rest/v1/rpc/${name}`, {
       method: 'POST',
       headers: { apikey: key, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(args),
@@ -189,7 +211,21 @@ export async function staffInviteEmailHandler(req: InviteRequest, res: JsonRespo
   const token = /^Bearer\s+(.+)$/i.exec(auth)?.[1]?.trim() || '';
   if (!token) return json(res, 401, { success: false, error: 'Sign in to send a staff invite.' });
 
-  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  // AAL2 is mandatory for staff administration: an owner with a verified
+  // authenticator must present an AAL2 session (or an active recovery
+  // window). The DB hook and the invite RPC enforce the same rule; this is
+  // the application-layer twin, fail closed.
+  const user = await authenticatedUser(token);
+  if (!user) return json(res, 401, { success: false, error: 'Your session expired. Sign in again.' });
+  if (!secondFactorSatisfied(tokenClaims(token), user.factors) && !(await recoveryWindowActive(user.id))) {
+    return json(res, 403, { success: false, error: 'Verify your authenticator before continuing.', code: 'mfa_required' });
+  }
+
+  const bodyResult = validateBody(req.body, STAFF_INVITE_SCHEMA, 16 * 1024);
+  if (bodyResult.ok === false) {
+    return json(res, bodyResult.status, { success: false, error: bodyResult.status === 413 ? 'The request is too large.' : 'Request body failed validation.', code: bodyResult.code });
+  }
+  const body: Record<string, unknown> = bodyResult.data;
   const inviteId = cleanText(body.inviteId, 40);
   const inviteToken = cleanText(body.token, 80);
   if (!UUID.test(inviteId)) return json(res, 400, { success: false, error: 'Invite id is missing or invalid.' });
@@ -198,7 +234,7 @@ export async function staffInviteEmailHandler(req: InviteRequest, res: JsonRespo
   const { url, key } = supabaseBase();
   let invite;
   try {
-    const response = await fetch(`${url}/rest/v1/rpc/studioflow_staff_invite_delivery`, {
+    const response = await safeOutboundFetch(`${url}/rest/v1/rpc/studioflow_staff_invite_delivery`, {
       method: 'POST',
       headers: { apikey: key, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ p_invite_id: inviteId, p_token: inviteToken }),
@@ -252,7 +288,7 @@ export async function staffInviteEmailHandler(req: InviteRequest, res: JsonRespo
   }
 
   try {
-    const response = await fetch('https://api.resend.com/emails', {
+    const response = await safeOutboundFetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({

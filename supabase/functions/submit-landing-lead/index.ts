@@ -18,7 +18,7 @@
 //      on the server.
 //   8. Only allow-listed fields are accepted; unknown properties are discarded.
 //   9. Visitor text is stored as plain text (never rendered as HTML).
-//  10. Rate limiting + honeypot (+ optional Turnstile) provide anti-spam.
+//  10. Rate limiting + honeypot + fail-closed Turnstile verification provide anti-spam.
 //  11. Responses are generic and never expose database ids or internal errors.
 //  12. Operational logs never contain names, emails, phone numbers or messages.
 //  13. No marketing message is sent: only the enquiry itself is recorded.
@@ -50,11 +50,21 @@ const RATE_LIMIT_MAX = 5;
 const RATE_LIMIT_WINDOW_SECONDS = 600;
 /**
  * Salt for the rate-limit bucket key. It must be STABLE across function
- * instances (the counter is shared in Postgres) but is never stored: only the
- * salted hash reaches the database. Set `LANDING_LEAD_RATE_LIMIT_SALT` per
- * environment to keep buckets separate between production and staging.
+ * instances (the counter is shared in Postgres) but is never stored: only
+ * the salted hash reaches the database.
+ *
+ * `LANDING_LEAD_RATE_LIMIT_SALT` is REQUIRED. There is deliberately no
+ * default: a public, predictable salt would let anyone compute bucket keys,
+ * and silently accepting one would mask a broken deployment. A missing salt
+ * throws at module load, so a misconfigured deployment cannot serve requests
+ * or store leads at all (fail-fast).
  */
-const RATE_LIMIT_SALT = (Deno.env.get('LANDING_LEAD_RATE_LIMIT_SALT') || 'nexora-landing-rate-limit-v1').trim();
+const resolveRateLimitSalt = (): string => {
+  const value = (Deno.env.get('LANDING_LEAD_RATE_LIMIT_SALT') || '').trim();
+  if (!value) throw new Error('LANDING_LEAD_RATE_LIMIT_SALT is not configured');
+  return value;
+};
+const RATE_LIMIT_SALT = resolveRateLimitSalt();
 
 const privacyNoticeVersion = (Deno.env.get('PRIVACY_NOTICE_VERSION') || '2026-11').trim();
 
@@ -78,6 +88,8 @@ const json = (payload: unknown, status: number, origin: string | null, retryAfte
 
 const SUCCESS = { ok: true, message: 'Your request has been received.' };
 const INVALID = { ok: false, message: 'Please check the required fields and try again.' };
+/** Generic rejection for a failed bot check: never reveals why it failed. */
+const VERIFICATION_FAILED = { ok: false, message: 'Please verify that you are a human and try again.' };
 
 /* --------------------------------------------------------------------------
  * Helpers
@@ -206,11 +218,19 @@ const checkRateLimit = async (service: LeadService, bucketKey: string): Promise<
 };
 
 /* --------------------------------------------------------------------------
- * Optional Turnstile verification (only when the secret is configured)
+ * Turnstile verification — fail closed, always
+ * ------------------------------------------------------------------------
+ * Bot verification must NEVER be silently skipped. Any failure — the secret
+ * not being configured, a missing token, a network error, a non-200 response,
+ * or Cloudflare answering success !== true — rejects the request. Callers
+ * cannot distinguish the cases, and no lead is ever stored on a failure.
  * ------------------------------------------------------------------------ */
 const verifyTurnstile = async (token: string, ip: string): Promise<boolean> => {
   const secret = Deno.env.get('TURNSTILE_SECRET_KEY');
-  if (!secret) return true; // not configured — no verification required
+  if (!secret) {
+    console.error('submit-landing-lead: TURNSTILE_SECRET_KEY is not configured');
+    return false;
+  }
   if (!token) return false;
   try {
     const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
@@ -297,7 +317,8 @@ Deno.serve(async (request: Request) => {
 
   const turnstileToken = asString(body.turnstile_token, 2048);
   if (!(await verifyTurnstile(turnstileToken, clientKey(request)))) {
-    return json(INVALID, 400, origin);
+    // Fail closed: a missing token or a verification error rejects the lead.
+    return json(VERIFICATION_FAILED, 403, origin);
   }
 
   /* ---- validation (allow-listed fields only) ---- */

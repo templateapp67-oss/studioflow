@@ -2052,7 +2052,20 @@
     "relations": 273,
     "assessment": "Read-only owner-supplied live catalog; not a live migration dry-run or deployment."
   },
-  "release_pending_migrations": [],
+  "release_pending_migrations": [
+    {
+      "file": "20261126120000_accounts_backup_table_rls.sql",
+      "purpose": "Security hardening review (2026-11-26): idempotent guard that enables row level security on public.studioflow_accounts_backup when the runbook script supabase/migrations/daily_snapshot.sql was used, revokes anon/authenticated/public grants, and leaves access to service_role. No-op when the backup table was never created. Retain behind the protected manual production migration workflow; apply before or after daily_snapshot.sql is executed."
+    },
+    {
+      "file": "20261126130000_revoke_nexora_food_super_admin_bootstrap.sql",
+      "purpose": "Security hardening review (2026-11-26): idempotent revoke of the standing super_admin grant that migration 20261011080053_nexora_food_shared_backend bootstrapped for the personal account templateapp67@gmail.com. Deletes only the matching nexora_food_user_roles rows, writes a compensating revoke-super-admin-bootstrap audit entry only when a row was actually removed, and is a no-op when the grant or the account is absent. Retain behind the protected manual production migration workflow; not requested for auto-apply."
+    },
+    {
+      "file": "20261126143000_studioflow_mfa_recovery_codes.sql",
+      "purpose": "Security hardening (2026-11-26): SHA-256 + per-code salt table for single-use MFA backup recovery codes, issue/count RPCs granted to authenticated with an AAL2 assertion (issue replaces the prior batch atomically), service-role-only consume/active RPCs for the Node recovery route (AAL1 callers are blocked by the pre-request hook), a per-account throttle of 10 attempts per 10 minutes via the shared studioflow_edge_rate_limit_claim limiter, a 30-day prune helper, and studioflow_private.mfa_session_allowed() replaced so that a 10-minute recovery window opened by a consumed code also satisfies the Data API pre-request hook and every AAL2 RLS policy. Consuming a code is the only supported way back into an account whose authenticator is lost. Retain behind the protected manual production migration workflow; do not auto-apply."
+    }
+  ],
   "reviewed_feature_migrations": [
     {
       "file": "20261117130000_reconcile_template15_multiservice_booking.sql",

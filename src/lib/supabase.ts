@@ -1,5 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NEXORA_PROJECT_HOST, resolveSupabaseConfig } from './nexoraEnv';
+import { AUTH_STORAGE_KEY, createSessionAuthStorage, removeLegacyAuthTokens } from './authStorage';
+import { buildStorageFileName, validateUploadFile } from '../utils/fileSignature';
 
 // The existing StudioFlow Supabase project. The URL and the publishable (anon)
 // browser key are safe to ship to the browser: all access is restricted by
@@ -22,10 +24,25 @@ const resolved = resolveSupabaseConfig(env, PROJECT_URL, PUBLISHABLE_KEY);
 const supabaseUrl: string = resolved.url;
 const supabasePublishableKey: string = resolved.publishableKey;
 
+// Session tokens are kept in sessionStorage (never localStorage) via a
+// storage adapter that migrates any legacy localStorage session on first read.
+// See src/lib/authStorage.ts.
 /** The single browser Supabase client used by the whole application. */
 export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: 'studioflow_supabase_session' },
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    storageKey: AUTH_STORAGE_KEY,
+    storage: createSessionAuthStorage(),
+  },
 });
+
+// Best-effort sweep of legacy localStorage token copies on module load; guarded
+// so server-side rendering and tests never touch Web Storage. Never throws.
+try {
+  if (typeof window !== 'undefined') removeLegacyAuthTokens(AUTH_STORAGE_KEY);
+} catch { /* storage may be unavailable */ }
 
 /** Project URL the browser client is pointed at. */
 export const SUPABASE_PROJECT_URL = supabaseUrl;
@@ -62,14 +79,14 @@ const browserOrigin = () => (typeof location === 'undefined' ? '' : location.ori
 export const websiteLink = (slug: string) => `${browserOrigin()}/?site=${encodeURIComponent(slug)}`;
 
 export async function uploadSalonImage(file: File) {
-  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
-    throw new Error('Use JPG, PNG or WebP images smaller than 5 MB.');
-  }
+  // Signature-verified before anything leaves the browser: the declared type
+  // and extension are never trusted, and the stored name is a random UUID.
+  const check = await validateUploadFile(file, { maxBytes: 5 * 1024 * 1024, allowed: ['jpeg', 'png', 'webp'] });
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) throw new Error('Sign in before uploading photos.');
-  const extension = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
-  const path = `${data.user.id}/${crypto.randomUUID()}.${extension}`;
-  const result = await supabase.storage.from('studioflow-media').upload(path, file, { contentType: file.type, upsert: false });
+  const path = buildStorageFileName(check.signature, data.user.id);
+  const contentType = check.signature === 'jpeg' ? 'image/jpeg' : `image/${check.signature}`;
+  const result = await supabase.storage.from('studioflow-media').upload(path, file, { contentType, upsert: false });
   if (result.error) throw result.error;
   return supabase.storage.from('studioflow-media').getPublicUrl(path).data.publicUrl;
 }

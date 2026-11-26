@@ -144,7 +144,7 @@ try {
 
   const server = readFileSync('server.ts', 'utf8');
   assert.ok(server.includes('app.get("/api/email-service-status", emailStatusHandler)'));
-  assert.ok(server.includes('app.post("/api/send-booking-email", bookingEmailHandler)'));
+  assert.ok(server.includes('app.post("/api/send-booking-email", strictBody(BOOKING_EMAIL_SCHEMA'), 'send-booking-email must register the strict booking-email validator');
   assert.ok(existsSync('api/send-booking-email.ts') && existsSync('api/email-service-status.ts'), 'Vercel adapters must preserve legacy API paths');
   const edge = readFileSync('supabase/functions/studioflow-booking-emails/index.ts', 'utf8');
   assert.ok(edge.includes('/auth/v1/user') && edge.includes('/rest/v1/studioflow_bookings'));

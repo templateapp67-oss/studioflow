@@ -1,4 +1,5 @@
 import { normalizeCanonicalUrl, normalizeSeoDescription, normalizeSeoTitle } from '../src/lib/seoText.js';
+import { assertSafeOutboundUrl } from '../server/httpValidation.js';
 
 type RequestLike = {
   method?: string;
@@ -40,8 +41,9 @@ async function getSupabaseClient(): Promise<any> {
   if (supabaseClient) return supabaseClient;
   if (!supabaseClientPromise) {
     supabaseClientPromise = (async () => {
-      const supabaseUrl = new URL(SUPABASE_URL);
-      if (supabaseUrl.protocol !== 'https:' || supabaseUrl.hostname !== EXPECTED_SUPABASE_HOST) {
+      // Same outbound guard the API routes use: HTTPS, public host, no credentials.
+      const supabaseUrl = assertSafeOutboundUrl(SUPABASE_URL);
+      if (supabaseUrl.hostname !== EXPECTED_SUPABASE_HOST) {
         throw new Error('Published salon SSR must use the reviewed NEXORA production Supabase project.');
       }
       if (!SUPABASE_PUBLISHABLE_KEY || SUPABASE_PUBLISHABLE_KEY.startsWith('sb_secret_')) {

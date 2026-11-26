@@ -30,7 +30,7 @@ class LegacySessionUiTest {
         val h=CustomerUiTest()
         ActivityScenario.launch(MainActivity::class.java).use { s ->
             h.until(s,"Home missing","!!document.querySelector('.cr-app nav')")
-            h.js(s,"localStorage.removeItem('studioflow_supabase_session')")
+            h.js(s,"try{localStorage.removeItem('studioflow_supabase_session')}catch(e){};try{sessionStorage.removeItem('studioflow_supabase_session')}catch(e){}")
         }
         val context=i.targetContext
         context.getSharedPreferences("MainActivity",Context.MODE_PRIVATE).edit().remove("legacy_migrated").commit()
@@ -43,9 +43,9 @@ class LegacySessionUiTest {
             h.screenshot("legacy-session-prefilled")
             h.js(s,"document.querySelector('button[aria-label=\\\"Back to profile\\\"]')?.click()")
             h.js(s,"Array.from(document.querySelectorAll('button')).find(x=>x.textContent.trim()==='Log Out')?.click()")
-            h.until(s,"Legacy logout failed","document.body.innerText.includes('Sign in / Create customer account')&&localStorage.getItem('studioflow_supabase_session')===null")
+            h.until(s,"Legacy logout failed","document.body.innerText.includes('Sign in / Create customer account')&&localStorage.getItem('studioflow_supabase_session')===null&&sessionStorage.getItem('studioflow_supabase_session')===null")
             // AndroidJUnitRunner force-stops the process after this class. Allow Chromium's
-            // asynchronous local-storage disk commit to finish before that forced termination.
+            // asynchronous Web Storage commit to finish before that forced termination.
             Thread.sleep(5500)
         }
         assertTrue("Migration flag missing",context.getSharedPreferences("MainActivity",Context.MODE_PRIVATE).getBoolean("legacy_migrated",false))

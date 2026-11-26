@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import { readServerEnvironment } from './nexoraEnv.js';
+import { resolveServiceRoleConfiguration } from './distributedRateLimit.js';
 
 /**
  * Supabase access-token verification for the AI routes.
@@ -72,6 +73,45 @@ export function readBearerToken(headers: Request['headers']): string | null {
   return match ? match[1] : null;
 }
 
+export interface TokenClaims {
+  aal?: string;
+  exp?: number;
+}
+
+/** Safely decodes the JWT payload. The token was already verified by Auth. */
+export function tokenClaims(token: string): TokenClaims {
+  try {
+    const payload = token.split('.')[1];
+    if (!payload) return {};
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const parsed = JSON.parse(Buffer.from(normalized, 'base64').toString('utf8')) as Record<string, unknown>;
+    return {
+      aal: typeof parsed?.aal === 'string' ? parsed.aal : undefined,
+      exp: Number.isFinite(Number(parsed?.exp)) ? Number(parsed.exp) : undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
+export function hasVerifiedFactor(factors?: { status?: string }[] | null): boolean {
+  return Array.isArray(factors) && factors.some((factor) => factor && factor.status === 'verified');
+}
+
+/**
+ * The second-factor rule shared by every gate: an account with a verified
+ * authenticator factor must present an AAL2 session; an account without one
+ * is governed by the base password check alone. This mirrors the database
+ * pre-request hook (`studioflow_private.mfa_session_allowed`).
+ */
+export function secondFactorSatisfied(
+  claims: TokenClaims | null,
+  factors?: { status?: string }[] | null,
+): boolean {
+  if (!hasVerifiedFactor(factors)) return true;
+  return claims?.aal === 'aal2';
+}
+
 interface CacheEntry {
   user: AuthUser;
   expiresAt: number;
@@ -117,13 +157,19 @@ export async function verifyAccessToken(
     };
     if (typeof body?.id !== 'string' || !body.id || body.is_anonymous) return null;
     // Auth validated this exact token before any claims are read.
-    let claims: { aal?: string; exp?: number } = {};
-    try { claims = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8')); } catch { /* Malformed claims cannot satisfy MFA. */ }
+    const claims = tokenClaims(token);
+    const factors = Array.isArray(body.factors) ? body.factors : [];
+    let mfaRequired = !secondFactorSatisfied(claims, factors);
+    if (mfaRequired) {
+      // A recently consumed recovery code lets the owner back in for a short
+      // re-enrolment window instead of locking every screen.
+      mfaRequired = !(await recoveryWindowActive(body.id, fetchImpl));
+    }
     const user: AuthUser = {
       id: body.id,
       email: typeof body.email === 'string' ? body.email : undefined,
       role: typeof body.role === 'string' ? body.role : undefined,
-      mfaRequired: (body.factors ?? []).some(factor => factor.status === 'verified') && claims.aal !== 'aal2',
+      mfaRequired,
     };
     if (userCache.size >= CACHE_MAX_ENTRIES) userCache.clear();
     // Cache only AAL2. Verification of an AAL1 token must see newly enrolled factors.
@@ -134,6 +180,54 @@ export async function verifyAccessToken(
   } catch {
     // Timeout, DNS failure or provider outage: cannot decide, do not deny.
     return undefined;
+  }
+}
+
+const recoveryCache = new Map<string, number>();
+const RECOVERY_CACHE_MAX = 500;
+const RECOVERY_CACHE_TTL_MS = 60_000;
+
+/**
+ * A freshly consumed recovery code opens a short (10 minute) re-enrolment
+ * window — this is the one supported way back into an account whose second
+ * factor is lost. The check calls a service-role-only RPC: nothing
+ * user-scoped is readable at AAL1 (the Data API pre-request hook blocks it),
+ * so this check runs after the bearer token already verified and only ever
+ * grants the AAL2-equivalent path briefly, never new privileges. Fails
+ * closed to `false` on any error, missing key or timeout.
+ */
+export async function recoveryWindowActive(
+  userId: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<boolean> {
+  const key = digest(`recovery:${userId}`);
+  const cached = recoveryCache.get(key);
+  if (cached && cached > Date.now()) return true;
+  try {
+    const service = resolveServiceRoleConfiguration();
+    const auth = resolveAuthConfiguration();
+    if (!auth.url) return false;
+    const headers: Record<string, string> = { 'content-type': 'application/json' };
+    if (service.configured) {
+      headers.apikey = service.serviceKey;
+      headers.authorization = `Bearer ${service.serviceKey}`;
+    }
+    const response = await fetchImpl(`${auth.url}/rest/v1/rpc/studioflow_mfa_recovery_active`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ p_user_id: userId }),
+      signal: AbortSignal.timeout(5_000),
+    });
+    if (!response.ok) return false;
+    const body = await response.json().catch(() => null);
+    if (body === true) {
+      if (recoveryCache.size >= RECOVERY_CACHE_MAX) recoveryCache.clear();
+      recoveryCache.set(key, Date.now() + RECOVERY_CACHE_TTL_MS);
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
   }
 }
 
@@ -235,5 +329,48 @@ export function optionalVerifiedUser(options: RequireUserOptions = {}): RequestH
 /** Test hook: clears the verification cache between cases. */
 export function clearAuthCache(): void {
   userCache.clear();
+  recoveryCache.clear();
   warnedUnconfigured = false;
+}
+
+/**
+ * The one gate that may run at AAL1 with an enrolled authenticator: recovery
+ * code consumption and the recovery-window probe. Everything else must stay
+ * behind `requireVerifiedUser` — do not widen this for convenience.
+ *
+ * Verifies the bearer token exactly like `requireVerifiedUser`, but never
+ * rejects on the second factor; it only attaches the verified user.
+ */
+export function requireAuthenticatedUser(options: RequireUserOptions = {}): RequestHandler {
+  const config = options.config ?? resolveAuthConfiguration();
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      if (!config.configured) {
+        warnUnconfiguredOnce();
+        options.onWarning?.();
+        res.setHeader('X-AI-Auth', 'unconfigured');
+        res.status(503).json({ error: 'Sign-in verification is temporarily unavailable.', code: 'auth_unavailable' });
+        return;
+      }
+      const token = readBearerToken(req.headers);
+      if (!token) {
+        res.status(401).json({ error: 'Sign in to continue.', code: 'auth_required' });
+        return;
+      }
+      const user = await verifyAccessToken(token, config, options.fetchImpl ?? fetch);
+      if (user === undefined) {
+        res.setHeader('X-AI-Auth', 'unverified');
+        res.status(503).json({ error: 'Sign-in verification is temporarily unavailable.', code: 'auth_unavailable' });
+        return;
+      }
+      if (user === null) {
+        res.status(401).json({ error: 'Your session has expired. Sign in again.', code: 'invalid_session' });
+        return;
+      }
+      res.locals.authUser = user;
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
 }

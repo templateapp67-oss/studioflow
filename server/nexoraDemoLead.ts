@@ -20,6 +20,7 @@ import { readServerEnvironment } from './nexoraEnv.js';
 import { createHash } from 'node:crypto';
 import { isIP } from 'node:net';
 import { parseLeadBudget, type LeadBudget } from '../supabase/functions/submit-landing-lead/landingLeadRateLimit.js';
+import { assertSafeOutboundUrl, DEMO_LEAD_SCHEMA, safeOutboundFetch, validateBody } from './httpValidation.js';
 
 const PRIVACY_NOTICE_VERSION = '2026-11';
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -76,7 +77,9 @@ async function postJson(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(url, {
+    // Outbound guard: HTTPS only, never a private/loopback/link-local host,
+    // and redirects are never followed (see safeOutboundFetch).
+    const response = await safeOutboundFetch(url, {
       method: 'POST',
       headers,
       signal: controller.signal,
@@ -113,7 +116,11 @@ export function leadClientIp(req: DemoLeadRequest, vercel = process.env.VERCEL =
 async function claimLeadBudget(req: DemoLeadRequest): Promise<LeadBudget | null> {
   const serviceKey = env('SUPABASE_SERVICE_ROLE_KEY') || env('SUPABASE_SECRET_KEY');
   if (!serviceKey) return null;
-  const salt = (process.env.LANDING_LEAD_RATE_LIMIT_SALT || 'nexora-landing-rate-limit-v1').trim();
+  // REQUIRED, with no fallback: a public default salt would make bucket keys
+  // predictable. A missing salt throws (fail-fast) instead of silently
+  // degrading; the async route wrapper turns it into a 500 and logs it.
+  const salt = (process.env.LANDING_LEAD_RATE_LIMIT_SALT || '').trim();
+  if (!salt) throw new Error('LANDING_LEAD_RATE_LIMIT_SALT is not configured');
   const hash = createHash('sha256').update(`${salt}:${leadClientIp(req)}`).digest('hex');
   const url = readServerEnvironment(process.env, false).supabaseUrl;
   const result = await postJson(`${url.replace(/\/+$/, '')}/rest/v1/rpc/claim_landing_lead_rate_limit`,
@@ -182,7 +189,7 @@ async function recordCrmDeliveryState(
   if (!serviceKey) return;
   const filter = leadId ? `id=eq.${encodeURIComponent(leadId)}` : `idempotency_key=eq.${encodeURIComponent(idempotencyKey as string)}`;
   try {
-    const response = await fetch(`${url.replace(/\/+$/, '')}/rest/v1/landing_leads?${filter}`, {
+    const response = await safeOutboundFetch(`${url.replace(/\/+$/, '')}/rest/v1/landing_leads?${filter}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -209,7 +216,18 @@ export async function nexoraDemoLeadHandler(req: DemoLeadRequest, res: JsonRespo
   const id = requestId();
   if (req.method && req.method !== 'POST') return fail(res, 405, 'POST method required.', id);
 
-  const body = req.body && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body : {};
+  const bodyResult = validateBody(req.body, DEMO_LEAD_SCHEMA, 64 * 1024);
+  if (bodyResult.ok === false) {
+    // The form never receives a partial success when its payload is not a
+    // plain object of the declared fields.
+    return fail(
+      res,
+      bodyResult.status,
+      bodyResult.status === 413 ? 'The request is too large.' : 'Please check the form and try again.',
+      id,
+    );
+  }
+  const body: Record<string, unknown> = bodyResult.data;
   // Honeypot submissions are acknowledged without storing or forwarding them.
   // The field set matches the Edge Function so a bot cannot bypass the trap
   // by using an alternate field on the direct server route. The answer is a
@@ -234,6 +252,10 @@ export async function nexoraDemoLeadHandler(req: DemoLeadRequest, res: JsonRespo
   const idempotencyKey = /^[A-Za-z0-9_-]{8,64}$/.test(cleanText(body.idempotencyKey ?? body.idempotency_key, 64))
     ? cleanText(body.idempotencyKey ?? body.idempotency_key, 64)
     : null;
+  // A Turnstile token from the browser, when the widget is deployed. It is
+  // forwarded verbatim to the Edge Function, which is the only place that
+  // verifies it — the server never trusts it on its own.
+  const turnstileToken = cleanText(body.turnstileToken ?? body.turnstile_token, 2048);
 
   if (name.length < 2) return fail(res, 400, 'Enter your name.', id);
   if (!EMAIL.test(email)) return fail(res, 400, 'Enter a valid work email address.', id);
@@ -261,6 +283,7 @@ export async function nexoraDemoLeadHandler(req: DemoLeadRequest, res: JsonRespo
     privacy_notice_version: PRIVACY_NOTICE_VERSION,
     idempotency_key: idempotencyKey,
     form_elapsed_ms: body.formElapsedMs,
+    turnstile_token: turnstileToken || null,
   });
 
   if (!stored.configured) {
@@ -280,6 +303,12 @@ export async function nexoraDemoLeadHandler(req: DemoLeadRequest, res: JsonRespo
     console.warn(`[nexora-demo-lead] id=${id} rejected by validation`);
     return fail(res, 400, 'Enter your name, a valid email, your business name, and consent to be contacted.', id);
   }
+  if (stored.status === 403) {
+    // The Edge Function rejected the bot verification; do not store or fake
+    // success. The same 403 is relayed so the form can ask for a retry.
+    console.warn(`[nexora-demo-lead] id=${id} rejected by bot verification`);
+    return fail(res, 403, 'Please verify that you are a human and try again.', id);
+  }
   if (!stored.ok) {
     console.error(`[nexora-demo-lead] id=${id} storage failed status=${stored.status}`);
     return fail(res, 502, 'The demo request service did not accept your request. No request was confirmed; please try again later.', id);
@@ -292,8 +321,10 @@ export async function nexoraDemoLeadHandler(req: DemoLeadRequest, res: JsonRespo
   } else {
     let target: URL | null = null;
     try {
-      const parsed = new URL(crmEndpoint);
-      if (parsed.protocol === 'https:' && !parsed.username && !parsed.password) target = parsed;
+      // Full SSRF guard: HTTPS only, no credentials, and never a
+      // private/loopback/link-local host (a CRM sink may live on a private
+      // network — it must not be reachable through our server).
+      target = assertSafeOutboundUrl(crmEndpoint);
     } catch {
       target = null;
     }

@@ -104,7 +104,7 @@ assert.ok(landingContent.includes('No independently verified revenue-uplift') &&
 assert.ok(sitemap.includes('origin + "/salon-os"') && sitemap.includes('origin + "/pricing"') && sitemap.includes('origin + "/privacy"'), 'The public marketing routes are included in the sitemap');
 assert.ok(demoProvider.includes("postLeadToServerRoute('/api/nexora-demo-lead'") && demoProvider.includes('id={consentId} type="checkbox" required') && demoProvider.includes('checked={lead.consent}'), 'Demo dialog validates consent and posts to the server-side lead route');
 assert.ok(demoCta.includes('openDemo()'), 'Shared marketing CTAs open the demo dialog');
-assert.ok(server.includes('app.post("/api/nexora-demo-lead"') && demoLeadHandler.includes('NEXORA_CRM_LEAD_ENDPOINT') && demoLeadHandler.includes("protocol === 'https:'") && demoLeadHandler.includes('!parsed.password') && demoLeadHandler.includes('NEXORA_CRM_LEAD_TOKEN'), 'Demo lead forwarding requires server-side HTTPS CRM configuration');
+assert.ok(server.includes('app.post("/api/nexora-demo-lead"') && demoLeadHandler.includes('NEXORA_CRM_LEAD_ENDPOINT') && demoLeadHandler.includes('assertSafeOutboundUrl') && demoLeadHandler.includes('NEXORA_CRM_LEAD_TOKEN'), 'Demo lead forwarding requires server-side HTTPS CRM configuration');
 assert.ok(content.includes('SAMPLE_CONTENT = false') && !content.includes('Sample testimonial') && !content.includes('ROI metric'), 'No unverified testimonial, rating, partner or ROI claims are published');
 /* --- Comparison table redesign ------------------------------------------- */
 for (const [token, value] of [

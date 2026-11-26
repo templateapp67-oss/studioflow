@@ -26,6 +26,7 @@ import {AuthPage} from '../src/components/AuthPage';
 import {PromoStudio} from '../src/components/PromoStudio';
 import {SocialConnectivityStep,VIDEO_URL_PLACEHOLDER} from '../src/components/SocialConnectivityStep';
 import {renderToStaticMarkup} from 'react-dom/server';
+import {jpegBytes,jpegFile,pngBytes,pngFile} from './fakeImages';
 import assert from 'node:assert/strict';
 import {CATEGORY_STANDARDIZED_DATA} from '../src/templateData';
 import {CATEGORY_TEMPLATES} from '../src/categoryTemplates';
@@ -458,9 +459,9 @@ console.log('PASS: 12 templates seed three labelled demo reviews (Templates 06 a
 const reviewOldRpc=supabase.rpc,oldGetUser=supabase.auth.getUser,oldStorageFrom=supabase.storage.from;
 (globalThis as any).document={hidden:false,addEventListener(){},removeEventListener(){},querySelector(){return null;}};
 let capturedUpload:any;const canvasSizes:number[][]=[];
-(globalThis as any).FileReader=class{onload:any;readAsDataURL(){this.onload({target:{result:'data:image/jpeg;base64,AQID'}});}};
+(globalThis as any).FileReader=class{onload:any;readAsDataURL(){this.onload({target:{result:'data:image/jpeg;base64,'+Buffer.from(jpegBytes(1024)).toString('base64')}});}};
 (globalThis as any).Image=class{width=4000;height=3000;onload:any;set src(_value:string){queueMicrotask(()=>this.onload());}};
-(globalThis as any).document.createElement=()=>{const canvas={width:0,height:0,getContext:()=>({drawImage:(_image:any,_x:number,_y:number,width:number,height:number)=>{canvasSizes.push([width,height]);}}),toDataURL:(type:string)=>`data:${type};base64,AQID`};return canvas;};
+(globalThis as any).document.createElement=()=>{const canvas={width:0,height:0,getContext:()=>({drawImage:(_image:any,_x:number,_y:number,width:number,height:number)=>{canvasSizes.push([width,height]);}}),toDataURL:(type:string)=>`data:${type};base64,`+Buffer.from(type==='image/png'?pngBytes(2048):jpegBytes(2048)).toString('base64')};return canvas;};
 
 let submittedReview:any,loginCount=0;const reviewPhoto='https://example.com/customer-upload.jpg';
 (supabase.auth as any).getUser=async()=>({data:{user:{id:'fixture-customer'}},error:null});
@@ -484,7 +485,7 @@ try{
  await act(async()=>reviewForm.root.findByType('textarea').props.onChange({target:{value:'A lovely salon visit with careful service.'}}));
  await act(async()=>reviewForm.root.findByProps({'aria-label':'Review service (optional)'}).props.onChange({target:{value:'Haircut'}}));assert.equal(reviewForm.root.findByType('textarea').props.value,'A lovely salon visit with careful service.');
 
- const photoEvent={target:{files:[{name:'review.jpg',type:'image/jpeg',size:1024}],value:'review.jpg'}};
+ const photoEvent={target:{files:[jpegFile('review.jpg',1024)],value:'review.jpg'}};
  await act(async()=>reviewForm.root.findAll((n:any)=>n.type==='input'&&n.props.type==='file')[0].props.onChange(photoEvent));
  await act(async()=>reviewForm.root.findByType('form').props.onSubmit({preventDefault(){}}));
  assert.ok(capturedUpload.size<2*1024*1024);assert.ok(canvasSizes.some(([width,height])=>width===1600&&height===1200));assert.equal(submittedReview.p_rating,4);assert.equal(submittedReview.p_image_url,reviewPhoto);assert.equal(submittedReview.p_service_name,'Haircut');assert.ok(demoText(reviewForm.toJSON()).includes('Your review is now visible'));assert.ok(reviewForm.root.findAllByType('img').some(n=>n.props.src===reviewPhoto));assert.ok(!demoText(reviewForm.toJSON()).includes('Verified visit'));assert.ok(demoText(reviewForm.toJSON()).includes('Owner update'));
@@ -537,7 +538,7 @@ await act(async()=>{serviceDialog().findAllByType('input').find(n=>n.props.type=
 await act(async()=>serviceDialog().findByType('form').props.onSubmit({preventDefault(){}}));assert.equal(editedMenu.length,0);assert.ok(serviceEditor.root.findByProps({role:'alert'}));
 await act(async()=>addNumber(0,'1250.50'));
 const pickServicePhoto=async(file:File)=>{await act(async()=>{serviceDialog().findByProps({'aria-label':'Upload service image'}).props.onChange({target:{files:[file],value:'photo'}});await new Promise(resolve=>setTimeout(resolve,30));});};
-await pickServicePhoto(new File([new Uint8Array(4)],'large-service.jpg',{type:'image/jpeg'}));
+await pickServicePhoto(jpegFile('large-service.jpg'));
 assert.ok(canvasSizes.some(([width,height])=>width===1200&&height===900),'Service upload must resize the long edge to 1200px');
 assert.equal(serviceUploads.length,1);assert.ok(serviceUploads[0].path.startsWith('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/services/'));assert.ok(serviceUploads[0].file.size<=2*1024*1024);
 assert.equal(serviceDialog().findAllByProps({alt:'Service photo preview'}).length,1,'Uploaded photo must preview before saving');
@@ -562,7 +563,7 @@ for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_h
  }
 }
 await act(async()=>serviceEditor.root.findByProps({'aria-label':`Edit ${chosenStarter.name}`}).props.onClick());
-await pickServicePhoto(new File([new Uint8Array(4)],'replacement.png',{type:'image/png'}));
+await pickServicePhoto(pngFile('replacement.png'));
 await act(async()=>{inputService(0,'Updated scalp care');inputService(1,'Updated category');inputService(2,'1499.75');inputService(3,'60');serviceDialog().findAllByType('textarea').find(n=>n.props.maxLength===2000)!.props.onChange({target:{value:'Edited description'}});});
 await act(async()=>serviceDialog().findByType('form').props.onSubmit({preventDefault(){}}));
 assert.equal(editedMenu[0].id,savedServiceId);assert.equal(editedMenu[0].price,1499.75);assert.equal(editedMenu[0].durationMinutes,60);assert.equal(editedMenu[0].description,'Edited description');assert.notEqual(editedMenu[0].imageUrl,initialServicePhoto);assert.equal(editedMenu[0].imagePath,serviceUploads[1].path);
@@ -571,11 +572,11 @@ await act(async()=>editorButton('Remove photo').props.onClick());
 await act(async()=>serviceDialog().findByType('form').props.onSubmit({preventDefault(){}}));
 assert.equal(editedMenu[0].imageUrl,'');assert.equal(editedMenu[0].imagePath,'');
 await act(async()=>serviceEditor.root.findByProps({'aria-label':'Edit Updated scalp care'}).props.onClick());
-await pickServicePhoto(new File([new Uint8Array(4)],'cancelled.jpg',{type:'image/jpeg'}));
+await pickServicePhoto(jpegFile('cancelled.jpg'));
 await act(async()=>editorButton('Cancel').props.onClick());
 assert.equal(editedMenu[0].imageUrl,'','Cancelling must not change the saved photo');
 assert.ok(discardedServicePhotos.includes(serviceUploads[2].path),'Cancelled unsaved uploads must be cleaned up');
-await assert.rejects(()=>uploadServicePhoto(new File(['text'],'wrong.txt',{type:'text/plain'})),/JPG/);
+await assert.rejects(()=>uploadServicePhoto(new File(['text'],'wrong.txt',{type:'text/plain'})),/JPEG/);
 await act(async()=>serviceEditor.root.findByProps({'aria-label':'Remove Updated scalp care'}).props.onClick());
 await act(async()=>editorButton('Confirm removal').props.onClick());assert.equal(editedMenu.length,0);await act(async()=>serviceEditor.unmount());(supabase.auth as any).getUser=servicePhotoAuth;(supabase.storage as any).from=servicePhotoStorage;
 let wizard:any;await act(async()=>{wizard=create(<OnboardingWizard profile={INITIAL_SALON_PROFILE} setProfile={()=>{}} services={[customService]} setServices={()=>{}} stylists={[]} setStylists={()=>{}} templates={Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')} onComplete={()=>{}}/>);});

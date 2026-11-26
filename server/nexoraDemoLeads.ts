@@ -15,6 +15,8 @@
  */
 
 import { readServerEnvironment } from './nexoraEnv.js';
+import { DEMO_LEADS_ADMIN_SCHEMA, safeOutboundFetch, validateBody } from './httpValidation.js';
+import { recoveryWindowActive, secondFactorSatisfied, tokenClaims } from './supabaseAuth.js';
 
 const MANAGER_ROLES = ['site_admin', 'sales'];
 
@@ -39,7 +41,12 @@ const headerValue = (req: AdminRequest, name: string): string => {
 };
 
 const csvCell = (value: unknown): string => {
-  const text = value === null || value === undefined ? '' : String(value);
+  const raw = value === null || value === undefined ? '' : String(value);
+  // Spreadsheet formula injection: a cell whose text begins with =, +, - or @
+  // is executed as a formula when the register is opened in Excel or Sheets.
+  // Prefix it with an apostrophe so it stays text; the quote handling below
+  // is unchanged.
+  const text = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
   return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 };
 
@@ -67,7 +74,8 @@ const LEAD_COLUMNS = [
 
 async function requestJson(url: string, init: RequestInit): Promise<{ status: number; body: any }> {
   try {
-    const response = await fetch(url, { ...init, signal: AbortSignal.timeout(8000) });
+    // Outbound guard: HTTPS only, public hosts only, redirects not followed.
+    const response = await safeOutboundFetch(url, { ...init, signal: AbortSignal.timeout(8000) });
     const body = await response.json().catch(() => ({}));
     return { status: response.status, body };
   } catch {
@@ -76,7 +84,7 @@ async function requestJson(url: string, init: RequestInit): Promise<{ status: nu
 }
 
 /** Resolves the signed-in manager from the request's bearer token. */
-async function resolveManager(req: AdminRequest): Promise<{ ok: boolean; status: number; reason: string; user?: any }> {
+async function resolveManager(req: AdminRequest): Promise<{ ok: boolean; status: number; reason: string; code?: string; user?: any }> {
   const authorization = headerValue(req, 'authorization');
   const token = authorization.replace(/^Bearer\s+/i, '').trim();
   if (!token) return { ok: false, status: 401, reason: 'Sign in to manage demo requests.' };
@@ -90,6 +98,13 @@ async function resolveManager(req: AdminRequest): Promise<{ ok: boolean; status:
   });
   if (result.status !== 200 || !result.body?.id) {
     return { ok: false, status: 401, reason: 'Your session could not be verified. Sign in again.' };
+  }
+
+  // AAL2 is mandatory for the demo-request register: an enrolled manager must
+  // present an AAL2 session (or an active recovery window), fail closed.
+  const factors = Array.isArray(result.body?.factors) ? result.body.factors : [];
+  if (!secondFactorSatisfied(tokenClaims(token), factors) && !(await recoveryWindowActive(result.body.id))) {
+    return { ok: false, status: 403, reason: 'Verify your authenticator before continuing.', code: 'mfa_required' };
   }
 
   const role = result.body?.app_metadata?.site_role;
@@ -106,10 +121,18 @@ export async function nexoraDemoLeadsAdminHandler(req: AdminRequest, res: JsonRe
 
   const manager = await resolveManager(req);
   if (!manager.ok) {
-    return res.status(manager.status).json({ error: manager.reason });
+    return res.status(manager.status).json({ error: manager.reason, ...(manager.code ? { code: manager.code } : {}) });
   }
 
-  const body = req.body && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body : {};
+  const bodyResult = validateBody(req.body, DEMO_LEADS_ADMIN_SCHEMA, 16 * 1024);
+  if (bodyResult.ok === false) {
+    return res.status(bodyResult.status).json({
+      error: bodyResult.status === 413 ? 'The request is too large.' : 'Request body failed validation.',
+      code: bodyResult.code,
+      ...(bodyResult.status === 400 ? { fields: bodyResult.fields } : {}),
+    });
+  }
+  const body: Record<string, unknown> = bodyResult.data;
   const action = typeof body.action === 'string' ? body.action : 'list';
 
   const environment = readServerEnvironment(process.env, false);

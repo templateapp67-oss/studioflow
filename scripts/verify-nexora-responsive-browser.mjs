@@ -578,7 +578,7 @@ try {
 
   activeRoute = '/ signed-in owner homepage';
   await page.addInitScript(() => {
-    localStorage.setItem('studioflow_supabase_session', JSON.stringify({
+    sessionStorage.setItem('studioflow_supabase_session', JSON.stringify({
       access_token: 'audit.access.token',
       refresh_token: 'audit-refresh-token',
       expires_at: Math.floor(Date.now() / 1000) + 3600,

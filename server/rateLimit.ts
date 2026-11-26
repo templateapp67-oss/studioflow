@@ -1,23 +1,21 @@
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
+import { claimDistributedRateLimit, hashBucketKey } from './distributedRateLimit.js';
 
 /**
- * In-process rate limiting for the cost-bearing AI routes.
+ * Rate limiting for the cost-bearing Node/Vercel API routes.
  *
- * No provider call is free and every AI route here forwards to Gemini, so an
- * unauthenticated client could burn the project's quota or bill. This module
- * bounds that per caller with a fixed window counter.
+ * Production state lives in the shared Postgres store used by the Edge
+ * Functions (`studioflow_edge_rate_limit_claim`) via the service role, so a
+ * caller's budget survives serverless cold starts, multiple instances and
+ * region switches. The bounded in-process store below is the local
+ * development fallback only (no service key configured, or
+ * STUDIOFLOW_DISABLE_DISTRIBUTED_RATE_LIMIT=1); when it engages a one-time
+ * warning says so — limits are never weaker silently.
  *
- * Deliberate limits, stated honestly:
- *  - State is per process. On a multi-instance deployment (Vercel functions,
- *    several Node workers) each instance keeps its own counters, so the limits
- *    below are a floor per instance, not a global cap. A global cap needs a
- *    shared store (the `landing_leads`-style Postgres limiter already used by
- *    the demo-lead Edge Function, or Redis).
- *  - Memory is bounded: expired windows are swept, and once `maxKeys` distinct
- *    callers exist the limiter rejects new keys instead of growing without
- *    limit, so it can never become the reason the process runs out of memory.
+ * Failure policy: when the shared store is configured but the claim fails,
+ * the route answers 503 (fail closed) and the caller gets Retry-After — an
+ * AI/payment endpoint must not run unlimited because the limiter blinked.
  */
-
 export interface RateLimitResult {
   allowed: boolean;
   limit: number;
@@ -39,7 +37,9 @@ export interface RateLimitStore {
 }
 
 /**
- * Creates a bounded fixed-window counter.
+ * Creates a bounded fixed-window counter. This is the local development /
+ * test fallback used when the shared Postgres store is not configured (see
+ * the module header); production budgets come from `rateLimit()` instead.
  *
  * @param windowMs length of the window
  * @param max allowed requests per key per window
@@ -141,18 +141,54 @@ function respondLimited(res: Response, name: string, result: RateLimitResult): v
  * The key is the verified user id when `res.locals.authUser` was set by the auth
  * middleware, otherwise the caller's address. Verified users get the higher
  * ceiling so one shared IP (office, campus, mobile carrier NAT) does not starve
- * a signed-in owner.
+ * a signed-in owner. The bucket identity is hashed before it reaches Postgres.
  */
 export function rateLimit(options: RateLimitOptions): RequestHandler {
+  const windowSeconds = Math.max(1, Math.round(options.windowMs / 1000));
   const anonymousStore = createRateLimitStore(options.windowMs, options.max, options.maxKeys, options.now);
   const userMax = Math.max(options.authenticatedMax ?? options.max, options.max);
   const userStore = createRateLimitStore(options.windowMs, userMax, options.maxKeys, options.now);
+  let warnedFallback = false;
 
-  return (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
     const user = (res.locals?.authUser ?? null) as { id?: string } | null;
-    const store = user?.id ? userStore : anonymousStore;
-    const key = user?.id ? `user:${user.id}` : `ip:${clientKey(req)}`;
-    const result = store.hit(`${options.name}:${key}`);
+    const limit = user?.id ? userMax : options.max;
+    const identity = user?.id ? `user:${user.id}` : `ip:${clientKey(req)}`;
+    let result: RateLimitResult | null = null;
+    try {
+      const claimed = await claimDistributedRateLimit(
+        hashBucketKey(options.name, identity),
+        { windowSeconds, maxAttempts: limit },
+      );
+      if (claimed !== 'unconfigured') {
+        result = {
+          allowed: claimed.allowed,
+          limit,
+          remaining: claimed.remaining,
+          resetAfterSeconds: claimed.retryAfterSeconds,
+        };
+      }
+    } catch {
+      // Shared store configured but unavailable: fail closed, never open.
+      res.setHeader('Retry-After', '30');
+      res.status(503).json({
+        error: 'This service is temporarily unavailable. Try again shortly.',
+        code: 'rate_limit_unavailable',
+        retryAfterSeconds: 30,
+      });
+      return;
+    }
+    if (!result) {
+      if (!warnedFallback) {
+        warnedFallback = true;
+        console.warn(
+          `[rate-limit] '${options.name}' is using the per-process budget because the shared ` +
+            'store is not configured. Set SUPABASE_SERVICE_ROLE_KEY for a global ceiling.',
+        );
+      }
+      const store = user?.id ? userStore : anonymousStore;
+      result = store.hit(`${options.name}:${identity}`);
+    }
 
     res.setHeader('RateLimit-Limit', String(result.limit));
     res.setHeader('RateLimit-Remaining', String(result.remaining));

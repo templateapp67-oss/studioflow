@@ -3,6 +3,8 @@ import React,{useState} from 'react';import {act,create} from 'react-test-render
 import {defaultGalleryCategory,photoGallery,standardGallery,withPhotoGallery} from '../src/lib/photoGallery';
 import {PhotoGalleryManager} from '../src/components/PhotoGalleryManager';import {CustomerSalonWebsite} from '../src/components/CustomerSalonWebsite';
 import {normalizeWorkspace} from '../src/lib/normalizeWorkspace';import {applyTemplateDesign} from '../src/lib/templateSelection';import {CATEGORY_TEMPLATES} from '../src/categoryTemplates';import {INITIAL_SALON_PROFILE} from '../src/mockData';import {supabase} from '../src/lib/supabase';
+import {jpegBytes,jpegFile} from './fakeImages';
+const JPEG_DATA_URL='data:image/jpeg;base64,'+Buffer.from(jpegBytes(2048)).toString('base64');
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;(globalThis as any).window={addEventListener(){},removeEventListener(){},matchMedia:()=>({matches:false,addEventListener(){},removeEventListener(){}})};(globalThis as any).document={hidden:false,body:{style:{}},addEventListener(){},removeEventListener(){}};
 for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')){
  const profile={...INITIAL_SALON_PROFILE,businessType:template.id};const samples=standardGallery(template.id);const gallerySize=template.id==='hair_salon'?9:5;assert.equal(samples.length,gallerySize);assert.equal(new Set(samples.map(p=>p.url)).size,gallerySize);assert.equal(photoGallery(profile).length,gallerySize);assert.ok(samples.every(p=>p.id.includes(template.id)));
@@ -152,11 +154,11 @@ await act(async()=>replace().props.onClick());await act(async()=>input('url').pr
 await act(async()=>replace().props.onClick());await act(async()=>input('url').props.onChange({target:{value:'javascript:alert(1)'}}));await act(async()=>root().findByType('form').props.onSubmit({preventDefault(){}}));assert.ok(root().findByProps({role:'alert'}));await act(async()=>button('Cancel').props.onClick());assert.ok(!savedGallery.some(url=>url.startsWith('javascript:')));
 // Browser resize and storage are mocked: verify deferred upload, failure, retry, and preserved aspect ratio.
 let uploads=0,fail=true,dimensions:number[][]=[];
-(globalThis as any).FileReader=class{onload:any;readAsDataURL(){queueMicrotask(()=>this.onload({target:{result:'data:image/jpeg;base64,YWJj'}}))}};
+(globalThis as any).FileReader=class{onload:any;readAsDataURL(){queueMicrotask(()=>this.onload({target:{result:JPEG_DATA_URL}}))}};
 (globalThis as any).Image=class{width=4000;height=3000;onload:any;set src(_:string){queueMicrotask(()=>this.onload())}};
-(globalThis as any).document.createElement=()=>{const c:any={width:0,height:0,getContext:()=>({drawImage(){dimensions.push([c.width,c.height])}}),toDataURL:()=> 'data:image/jpeg;base64,YWJj'};return c;};
+(globalThis as any).document.createElement=()=>{const c:any={width:0,height:0,getContext:()=>({drawImage(){dimensions.push([c.width,c.height])}}),toDataURL:()=> JPEG_DATA_URL};return c;};
 (supabase.auth as any).getUser=async()=>({data:{user:{id:'gallery-owner'}},error:null});(supabase.storage as any).from=(bucket:string)=>({upload:async(path:string,file:File)=>{assert.equal(bucket,'studioflow-media');assert.match(path,/^gallery-owner\//);uploads++;return {error:fail?new Error('Upload failed'):null}},getPublicUrl:()=>({data:{publicUrl:'https://example.com/uploaded-gallery.jpg'}})});
-await act(async()=>replace().props.onClick());await act(async()=>input('file').props.onChange({target:{files:[new File(['photo'],'photo.jpg',{type:'image/jpeg'})]}}));assert.equal(uploads,0);
+await act(async()=>replace().props.onClick());await act(async()=>input('file').props.onChange({target:{files:[jpegFile('photo.jpg')]}}));assert.equal(uploads,0);
 await act(async()=>root().findByType('form').props.onSubmit({preventDefault(){}}));assert.ok(root().findByProps({role:'alert'}));assert.ok(!savedGallery.includes('https://example.com/uploaded-gallery.jpg'));fail=false;
 await act(async()=>root().findByType('form').props.onSubmit({preventDefault(){}}));assert.ok(savedGallery.includes('https://example.com/uploaded-gallery.jpg'));assert.ok(dimensions.some(([w,h])=>w===1600&&h===1200));await act(async()=>editor.unmount());
 console.log('PASS: all 14 templates have only five selected-template samples; URL/device replacement, owner-only controls, delete, empty persistence, theme switches, retained personal photos, resize, storage ownership and retry.');

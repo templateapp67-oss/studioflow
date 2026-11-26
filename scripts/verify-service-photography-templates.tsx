@@ -137,7 +137,7 @@ assert.equal(SERVICE_CARD_HEIGHT,800);
 assert.equal(typeof fitServicePhotoToCard,'function','uploads/URL imports run through the 3:2 auto-fit');
 const photoSource=readFileSync('src/lib/servicePhoto.ts','utf8');
 assert.ok(photoSource.includes('fitServicePhotoToCard(file)'),'uploadServicePhoto auto-fits before resizing and uploading');
-assert.ok(photoSource.includes("throw new Error('Choose a service photo smaller than 20 MB.')"),'service photos accept up to 20 MB');
+assert.ok(photoSource.includes('SOURCE_IMAGE_MAX_BYTES'),'service photos enforce a 20 MB source cap');assert.ok(photoSource.includes('validateUploadFile'),'service photo uploads verify magic bytes, not just extension');
 assert.ok(/image\/jpeg','image\/png','image\/webp/.test(photoSource),'JPG, PNG and WebP are the accepted formats');
 assert.ok(photoSource.includes("credentials:'omit'"),'URL import never forwards owner credentials');
 assert.ok(readFileSync('src/components/ServiceImageCropper.tsx','utf8').includes('3:2 card'),'the cropper edits the 3:2 card frame');

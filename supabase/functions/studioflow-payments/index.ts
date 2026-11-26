@@ -3,12 +3,8 @@ import { protectSession, protectedResponse } from '../_shared/sessionProtection.
 import {createClient} from 'npm:@supabase/supabase-js@2.117.3';
 import {signatureMatches,depositPaise,sameSecret} from './payment-security.ts';
 import {paymentLinkOrderKey,verifiedLinkPaymentId,verifyLinkPayment} from './payment-link-security.ts';
-
-const cors={
-  'Access-Control-Allow-Origin':'*',
-  'Access-Control-Allow-Headers':'authorization,apikey,content-type,x-client-info,x-razorpay-signature,x-worker-token',
-  'Access-Control-Allow-Methods':'GET,POST,OPTIONS'
-};
+import { browserCorsHeaders, isAllowedBrowserOrigin } from '../_shared/browserCors.ts';
+const PAYMENT_CORS_HEADERS = 'authorization,apikey,content-type,x-client-info,x-razorpay-signature,x-worker-token';
 
 function env(name:string){
   const value=Deno.env.get(name);
@@ -22,8 +18,11 @@ function razorpayCredentials(){
 }
 
 Deno.serve(async(req:Request)=>{
+  const origin=req.headers.get('origin');
+  if(origin&&!isAllowedBrowserOrigin(origin))return new Response(JSON.stringify({error:'Origin not allowed'}),{status:403,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}});
+  const cors=browserCorsHeaders(origin,PAYMENT_CORS_HEADERS,'GET,POST,OPTIONS');
   const respond=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{...cors,'Content-Type':'application/json'}});
-  if(req.method==='OPTIONS')return new Response('ok',{headers:cors});
+  if(req.method==='OPTIONS')return new Response(null,{status:204,headers:cors});
   const creds=razorpayCredentials();
   if(req.method==='GET')return respond({configured:creds.configured,webhookConfigured:!!creds.webhookSecret,mode:creds.mode});
   if(req.method!=='POST')return respond({error:'POST required'},405);

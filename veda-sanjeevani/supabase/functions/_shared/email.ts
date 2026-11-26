@@ -4,6 +4,7 @@ import { logWarning } from "./response.ts";
 import type { Fetcher } from "./supabase.ts";
 import { email as emailSchema, parseOutput } from "./validate.ts";
 import { escapeHtml } from "./sanitize.ts";
+import { safeOutboundFetch } from "./safeOutbound.ts";
 
 const receipt = z.object({ id: z.string().min(1).max(200) });
 export type EmailResult = { sent: boolean; skipped: boolean; code?: string };
@@ -48,7 +49,7 @@ export async function sendEmail(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetcher("https://api.resend.com/emails", {
+    const response = await safeOutboundFetch("https://api.resend.com/emails", {
       method: "POST",
       signal: controller.signal,
       headers: {
@@ -63,7 +64,7 @@ export async function sendEmail(
         html: emailHtml(message),
         text: [message.heading, ...message.lines, message.link ?? ""].join("\n\n"),
       }),
-    });
+    }, fetcher);
     if (!response.ok) {
       await response.body?.cancel();
       return { sent: false, skipped: false, code: "EMAIL_UPSTREAM" };

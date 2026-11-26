@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { supabase } from '../../lib/supabase';
+import { buildStorageFileName, validateUploadFile } from '../../utils/fileSignature';
 import { IRON_INK_CATEGORIES, ironInkDurationMinutes } from '../../lib/ironInk';
 import type { SalonProfile,SalonService,Stylist } from '../../types';
 import type { InkAvailableSlot,InkSitePayload } from './database.types';
@@ -54,10 +55,12 @@ export async function submitInkEnquiry(input:InkEnquiryInput){
   return data as string;
 }
 export async function uploadInkReference(siteId:string,file:File){
-  if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>5*1024*1024)throw new Error('Choose a JPG, PNG or WebP image under 5 MB.');
-  const extension=file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg';
-  const path=`${siteId}/${crypto.randomUUID()}.${extension}`;
-  const {error}=await supabase.storage.from('ink-references').upload(path,file,{contentType:file.type,upsert:false});
+ // siteId becomes a storage path segment: bound it to a safe shape.
+ if(!/^[A-Za-z0-9_-]{4,80}$/.test(siteId))throw new Error('Could not verify the studio media folder.');
+ const check=await validateUploadFile(file,{maxBytes:5*1024*1024,allowed:['jpeg','png','webp']});
+ const path=buildStorageFileName(check.signature,siteId);
+ const contentType=check.signature==='jpeg'?'image/jpeg':`image/${check.signature}`;
+ const {error}=await supabase.storage.from('ink-references').upload(path,file,{contentType,upsert:false});
   if(error)throw error;
   return path;
 }
