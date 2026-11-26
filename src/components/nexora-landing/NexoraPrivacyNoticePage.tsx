@@ -42,6 +42,11 @@ export function NexoraPrivacyNoticePage() {
     upsertMeta('property', 'og:description', PAGE_DESCRIPTION);
     upsertMeta('property', 'og:url', `${NEXORA_PUBLIC_ORIGIN}/privacy`);
     upsertMeta('property', 'og:image', `${NEXORA_PUBLIC_ORIGIN}/nexora-homepage-og.jpg`);
+    upsertMeta('property', 'og:image:width', '1200');
+    upsertMeta('property', 'og:image:height', '630');
+    upsertMeta('property', 'og:image:alt', 'NEXORA SALONOS salon management software');
+    upsertMeta('name', 'twitter:image', `${NEXORA_PUBLIC_ORIGIN}/nexora-homepage-og.jpg`);
+    upsertMeta('name', 'twitter:image:alt', 'NEXORA SALONOS salon management software');
     upsertMeta('name', 'twitter:card', 'summary_large_image');
     upsertMeta('name', 'twitter:title', PAGE_TITLE);
     upsertMeta('name', 'twitter:description', PAGE_DESCRIPTION);

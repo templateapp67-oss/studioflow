@@ -1,3 +1,13 @@
+# Public landing-page lead endpoint. It is reachable without a Supabase session
+# (browser form POST) and validates input via honeypot + Turnstile + a salted
+# shared rate-limit store, not a Supabase JWT. The gateway JWT check must stay
+# disabled: a browser form submit carries no Authorization header, and enabling
+# it would reject every genuine lead. Omitting this block would silently deploy
+# with the gateway default (verify_jwt = true) and break the endpoint, so it is
+# required for this function.
+[functions.submit-landing-lead]
+verify_jwt = false
+
 # Owner connection uses a valid Supabase JWT and performs an explicit Auth getUser() check.
 [functions.nexora-whatsapp-connect]
 verify_jwt = true
@@ -26,3 +36,46 @@ verify_jwt = false
 # Tawk owner connection validates the Supabase user with Auth getUser() in the handler.
 [functions.studioflow-tawk-connect]
 verify_jwt = false
+
+# Keep gateway JWT verification for these signed-in endpoints. Each
+# handler also verifies the authenticated user and enforces its own scope.
+[functions.nexora-mobile-qr]
+verify_jwt = true
+
+[functions.studioflow-service-ai-images]
+verify_jwt = true
+
+[functions.studioflow-campaign-whatsapp]
+verify_jwt = true
+
+[functions.studioflow-welcome-whatsapp]
+verify_jwt = true
+
+# Public map-location lookup. The handler validates the project's public API
+# key (apikey header) itself; no user JWT is involved, so the gateway JWT check
+# must stay disabled or every browser call would be rejected.
+[functions.studioflow-map-locations]
+verify_jwt = false
+
+# Public Template 12 read surface for external consumers. Authorization is
+# decided by RLS and validated RPCs using the anon key; no user JWT is required,
+# so gateway JWT verification stays disabled.
+[functions.iron-ink-public]
+verify_jwt = false
+
+# Account snapshot triggered by the daily_snapshot.sql pg_net job. The handler
+# authenticates a dedicated service-role bearer token (not a user JWT), so the
+# gateway JWT check must stay disabled.
+[functions.snapshot-accounts]
+verify_jwt = false
+
+[auth]
+minimum_password_length = 12
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+[auth.rate_limit]
+sign_in_sign_ups = 25
+token_verifications = 20

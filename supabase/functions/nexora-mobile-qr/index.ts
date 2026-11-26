@@ -1,3 +1,4 @@
+import { protectSession, protectedResponse } from '../_shared/sessionProtection.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.117.3';
 const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-client-info','Access-Control-Allow-Methods':'POST,OPTIONS'};
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{...cors,'Content-Type':'application/json'}});
@@ -10,6 +11,8 @@ Deno.serve(async(req:Request)=>{
   if(!token)return json({error:'Sign in required'},401);
   const {data:auth,error:authError}=await service.auth.getUser(token);
   if(authError||!auth.user)return json({error:'Session expired'},401);
+  const protection = await protectSession(service, token, auth.user, 'nexora-mobile-qr', 80);
+  if (protection) return protectedResponse(json({ error: protection.error }, protection.status), protection);
   const text=await req.text();if(text.length>5000)return json({error:'Request too large'},413);
   const body=JSON.parse(text);if(!['create','reconcile','mode'].includes(body.action)||typeof body.bookingId!=='string')return json({error:'Invalid payment request'},400);
   const {data:booking,error}=await service.from('studioflow_bookings').select('*').eq('id',body.bookingId).eq('customer_id',auth.user.id).single();

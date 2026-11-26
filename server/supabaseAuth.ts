@@ -18,10 +18,7 @@ import { readServerEnvironment } from './nexoraEnv.js';
  *  - A missing or malformed token is rejected (401) as soon as the project is
  *    configured, so an expired session fails visibly instead of silently
  *    consuming quota.
- *  - If no publishable key can be resolved, verification is impossible. The
- *    route then falls back to the strict anonymous rate limit instead of failing
- *    every request closed — a configuration gap must not cause an outage — and
- *    the condition is logged once with its remediation.
+ *  - Routes requiring authentication fail closed when Auth is unavailable.
  */
 
 /** Public publishable key already shipped to browsers by `src/lib/supabase.ts`. */
@@ -32,6 +29,7 @@ export interface AuthUser {
   email?: string;
   /** Supabase role from the token, e.g. `authenticated`. */
   role?: string;
+  mfaRequired: boolean;
 }
 
 export interface AuthConfiguration {
@@ -98,7 +96,7 @@ export async function verifyAccessToken(
   fetchImpl: typeof fetch = fetch,
 ): Promise<AuthUser | null | undefined> {
   if (!config.configured) return undefined;
-  const key = digest(token);
+  const key = digest(`${config.url}:${token}`);
   const cached = userCache.get(key);
   if (cached && cached.expiresAt > Date.now()) return cached.user;
 
@@ -114,15 +112,24 @@ export async function verifyAccessToken(
     if (response.status === 401 || response.status === 403) return null;
     if (!response.ok) return undefined;
 
-    const body = (await response.json()) as { id?: unknown; email?: unknown; role?: unknown };
-    if (typeof body?.id !== 'string' || !body.id) return null;
+    const body = (await response.json()) as {
+      id?: unknown; email?: unknown; role?: unknown; factors?: { status?: string }[]; is_anonymous?: boolean;
+    };
+    if (typeof body?.id !== 'string' || !body.id || body.is_anonymous) return null;
+    // Auth validated this exact token before any claims are read.
+    let claims: { aal?: string; exp?: number } = {};
+    try { claims = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8')); } catch { /* Malformed claims cannot satisfy MFA. */ }
     const user: AuthUser = {
       id: body.id,
       email: typeof body.email === 'string' ? body.email : undefined,
       role: typeof body.role === 'string' ? body.role : undefined,
+      mfaRequired: (body.factors ?? []).some(factor => factor.status === 'verified') && claims.aal !== 'aal2',
     };
     if (userCache.size >= CACHE_MAX_ENTRIES) userCache.clear();
-    userCache.set(key, { user, expiresAt: Date.now() + CACHE_TTL_MS });
+    // Cache only AAL2. Verification of an AAL1 token must see newly enrolled factors.
+    if (claims.aal === 'aal2' && Number.isFinite(claims.exp)) {
+      userCache.set(key, { user, expiresAt: Math.min(Date.now() + CACHE_TTL_MS, claims.exp! * 1000) });
+    }
     return user;
   } catch {
     // Timeout, DNS failure or provider outage: cannot decide, do not deny.
@@ -137,7 +144,7 @@ function warnUnconfiguredOnce(): void {
   warnedUnconfigured = true;
   console.warn(
     '[ai-auth] Supabase Auth verification is unavailable (no publishable key resolved). ' +
-      'AI routes fall back to the strict anonymous rate limit. Set SUPABASE_PUBLISHABLE_KEY to enforce sign-in.',
+      'Set SUPABASE_PUBLISHABLE_KEY to restore authentication on protected routes.',
   );
 }
 
@@ -162,7 +169,7 @@ export function requireVerifiedUser(options: RequireUserOptions = {}): RequestHa
         warnUnconfiguredOnce();
         options.onWarning?.();
         res.setHeader('X-AI-Auth', 'unconfigured');
-        next();
+        res.status(503).json({ error: 'Sign-in verification is temporarily unavailable.', code: 'auth_unavailable' });
         return;
       }
       const token = readBearerToken(req.headers);
@@ -175,9 +182,8 @@ export function requireVerifiedUser(options: RequireUserOptions = {}): RequestHa
       }
       const user = await verifyAccessToken(token, config, options.fetchImpl ?? fetch);
       if (user === undefined) {
-        // Provider unreachable: do not deny a signed-in user because of our outage.
         res.setHeader('X-AI-Auth', 'unverified');
-        next();
+        res.status(503).json({ error: 'Sign-in verification is temporarily unavailable.', code: 'auth_unavailable' });
         return;
       }
       if (user === null) {
@@ -185,6 +191,10 @@ export function requireVerifiedUser(options: RequireUserOptions = {}): RequestHa
           error: 'Your session has expired. Sign in again to use this AI feature.',
           code: 'invalid_session',
         });
+        return;
+      }
+      if (user.mfaRequired) {
+        res.status(403).json({ error: 'Verify your authenticator before continuing.', code: 'mfa_required' });
         return;
       }
       res.locals.authUser = user;
@@ -213,7 +223,7 @@ export function optionalVerifiedUser(options: RequireUserOptions = {}): RequestH
         return;
       }
       const user = await verifyAccessToken(token, config, options.fetchImpl ?? fetch);
-      if (user) res.locals.authUser = user;
+      if (user && !user.mfaRequired) res.locals.authUser = user;
       next();
     } catch {
       // Anonymous is a valid outcome for this route.

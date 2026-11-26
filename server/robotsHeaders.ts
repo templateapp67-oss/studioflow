@@ -5,7 +5,7 @@
  * Precedence matches `vercel.json` exactly:
  *   1. Private prefixes (`/api`, `/admin`, `/owner`, `/staff` + subpaths)
  *      -> `noindex, nofollow`.
- *   2. Any URL carrying an app/session query key (`app`, `customer`, `owner`,
+ *   2. Any URL carrying an app/session query key (`app`, `customer`, `customer_ref`, `owner`,
  *      `panel`, `create`, `module`, `invite`, `recovery`, case-insensitive)
  *      -> `noindex, nofollow` (takes precedence even when combined with
  *      `?site=<slug>` or `/login`).

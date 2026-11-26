@@ -34,7 +34,7 @@ requires('base-uri', ["'self'"]);
 requires('object-src', ["'none'"]);
 requires('frame-ancestors', ["'self'"]);
 requires('form-action', ["'self'", 'https://*.supabase.co', 'https://*.razorpay.com']);
-requires('script-src', ["'self'", 'https://checkout.razorpay.com', 'https://unpkg.com']);
+requires('script-src', ["'self'", 'https://checkout.razorpay.com', 'https://unpkg.com', 'https://embed.tawk.to']);
 forbids('script-src', ["'unsafe-inline'", "'unsafe-eval'", '*']);
 requires('script-src-attr', ["'none'"]);
 requires('style-src', ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://unpkg.com']);
@@ -42,7 +42,7 @@ requires('style-src-attr', ["'unsafe-inline'"]);
 requires('font-src', ["'self'", 'data:', 'https://fonts.gstatic.com', 'https://unpkg.com']);
 requires('connect-src', [
   "'self'", 'https://*.supabase.co', 'wss://*.supabase.co', 'https://*.razorpay.com',
-  'https://nominatim.openstreetmap.org', 'https://images.unsplash.com',
+  'https://nominatim.openstreetmap.org', 'https://images.unsplash.com', 'https://*.tawk.to', 'wss://*.tawk.to',
   'https://raw.githubusercontent.com', 'https://*.pexels.com',
   'https://img.youtube.com', 'https://i.ytimg.com', 'https://*.fbcdn.net', 'https://*.cdninstagram.com',
 ]);
@@ -51,7 +51,7 @@ requires('img-src', [
   'https://raw.githubusercontent.com', 'https://*.pexels.com', 'https://img.youtube.com',
   'https://i.ytimg.com', 'https://*.fbcdn.net', 'https://*.cdninstagram.com', 'https://*.instagram.com',
   'https://tile.openstreetmap.org', 'https://*.tile.openstreetmap.org', 'https://unpkg.com',
-  'https://www.google.com', 'https://maps.google.com',
+  'https://www.google.com', 'https://maps.google.com', 'https://*.tawk.to',
 ]);
 requires('media-src', [
   "'self'", 'data:', 'blob:', 'https://*.supabase.co', 'https://*.fbcdn.net',
@@ -61,7 +61,7 @@ requires('media-src', [
 requires('frame-src', [
   "'self'", 'https://*.razorpay.com', 'https://www.youtube.com', 'https://www.youtube-nocookie.com',
   'https://www.facebook.com', 'https://web.facebook.com', 'https://staticxx.facebook.com', 'https://www.instagram.com', 'https://player.vimeo.com',
-  'https://www.google.com', 'https://maps.google.com', 'https://www.openstreetmap.org',
+  'https://www.google.com', 'https://maps.google.com', 'https://www.openstreetmap.org', 'https://*.tawk.to',
 ]);
 requires('worker-src', ["'self'", 'blob:']);
 requires('manifest-src', ["'self'"]);
@@ -71,6 +71,16 @@ const whatsAppPanel = readFileSync('src/components/NexoraWhatsAppPanel.tsx', 'ut
 const metaSdkUrl = whatsAppPanel.match(/script\.src = '(https:\/\/connect\.facebook\.net\/[^']*sdk\.js)'/)?.[1];
 assert.ok(metaSdkUrl, 'owner signup uses the first-party Meta SDK');
 requires('script-src', [new URL(metaSdkUrl).origin]);
+
+const nexoraTawk = readFileSync('src/components/NexoraTawkWidget.tsx', 'utf8');
+const nexoraTawkUrl = nexoraTawk.match(/NEXORA_TAWK_WIDGET_URL\s*=\s*['"]([^'"]+)['"]/)?.[1];
+assert.ok(nexoraTawkUrl, 'NEXORA public Tawk widget loader URL exists');
+assert.equal(new URL(nexoraTawkUrl).origin, 'https://embed.tawk.to');
+requires('script-src', [new URL(nexoraTawkUrl).origin]);
+requires('frame-src', ['https://*.tawk.to']);
+requires('connect-src', ['https://*.tawk.to', 'wss://*.tawk.to']);
+requires('img-src', ['https://*.tawk.to']);
+
 const leaflet = readFileSync('src/lib/loadLeaflet.ts', 'utf8');
 assert.ok(leaflet.includes('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'));
 assert.ok(leaflet.includes('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'));
@@ -83,21 +93,22 @@ assert.ok(fonts.includes('https://fonts.gstatic.com'));
 
 // Prerendered SEO data blocks are allowed; executable inline scripts are not.
 const prerender = readFileSync('scripts/prerender-public.tsx', 'utf8');
-for (const match of prerender.matchAll(/<script([^>]*)>/g)) {
-  // The entry-script matcher is source code, not an inline script.
-  if (match[1].includes('type="module"')) continue;
-  assert.ok(match[1].includes('type="application/ld+json"'), 'prerendered pages may only inline JSON-LD data blocks');
+for (const match of prerender.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
+  const attributes = match[1];
+  // The source text includes a regular expression that matches the external
+  // Vite module entry; it is not an inline script in the prerendered page.
+  if (/\btype\s*=\s*["']module["']/i.test(attributes)) continue;
+  // External scripts are controlled by script-src in the enforcing CSP.
+  if (/\bsrc\s*=/i.test(attributes)) continue;
+  const isJsonLd = /\btype\s*=\s*["']application\/ld\+json["']/i.test(attributes);
+  assert.ok(isJsonLd, 'prerendered pages may only inline JSON-LD data blocks');
 }
 
 // Deployment must keep auth, sitemap, static assets and legacy Node APIs intact.
-assert.deepEqual(config.rewrites.map((entry) => [entry.source, entry.destination]), [
+const requiredRewrites = [
   ['/login', '/login.html'],
-  // `/sign-in` and `/sign-up` are aliases of the same login document, so the
-  // canonical, `noindex` login head is what those URLs receive.
   ['/sign-in', '/login.html'],
   ['/sign-up', '/login.html'],
-  // Staff entry points are app-shell routes: the invite token and the staff
-  // session are resolved by the client router, never by a rewrite.
   ['/staff', '/index.html'],
   ['/staff/login', '/index.html'],
   ['/staff/accept', '/index.html'],
@@ -108,10 +119,57 @@ assert.deepEqual(config.rewrites.map((entry) => [entry.source, entry.destination
   ['/salon-onboarding', '/salon-onboarding/index.html'],
   ['/salon-growth', '/salon-growth/index.html'],
   ['/growth-partner-rewards', '/growth-partner-rewards/index.html'],
-  ['/(.*\\..*)', '/$1'],
   ['/partner-rewards', '/partner-rewards/index.html'],
-  ['/(.*)', '/index.html'],
-]);
+];
+for (const [source, destination] of requiredRewrites) {
+  assert.ok(
+    config.rewrites.some((entry) => entry.source === source && entry.destination === destination),
+    `required route rewrite must remain: ${source} -> ${destination}`,
+  );
+}
+
+const assetPassthrough = config.rewrites.find((entry) => entry.destination === '/$1' && entry.source.includes('..'));
+assert.ok(assetPassthrough, 'static file asset passthrough rewrite must remain');
+assert.equal(assetPassthrough.source, '/(.*\\..*)', 'asset passthrough must match dotted file paths only');
+const storefrontRootFallback = config.rewrites.find((entry) => entry.source === '/' && entry.destination === '/api/storefront?path=/');
+assert.ok(storefrontRootFallback, 'the bare platform root must route to the storefront shell handler');
+const storefrontFallback = config.rewrites.find((entry) => entry.source.startsWith('/:path(('));
+assert.ok(storefrontFallback, 'non-file salon paths must be handled by the storefront SSR function');
+assert.equal(storefrontFallback.destination, '/api/storefront?path=/:path*');
+assert.ok(storefrontFallback.source.includes('(?:api|admin|owner|staff|login|sign-in|sign-up|assets|fonts|templates|template-pages)'), 'SSR fallback must exclude private, API, auth and static path prefixes');
+assert.ok(storefrontFallback.source.includes('(?!.*\\.[^/]+$)'), 'SSR fallback must leave extension-bearing asset paths to static-file routing');
+assert.equal(config.rewrites.at(-1), storefrontFallback, 'the storefront fallback must remain last');
+
+for (const key of ['app', 'customer', 'customer_ref']) {
+  assert.ok(
+    config.rewrites.some((entry) => entry.source === '/' && entry.destination === '/index.html' &&
+      (entry.has || []).some((condition) => condition.type === 'query' && condition.key === key)),
+    `root ${key} entry must keep serving the normal application shell`,
+  );
+}
+assert.ok(
+  !config.rewrites.some((entry) => entry.source === '/' &&
+    (entry.has || []).some((condition) => condition.type === 'query' && ['site', 's', 'subdomain'].includes(condition.key))),
+  'published salon root query URLs must be intercepted before the root index.html filesystem match',
+);
+
+// Exercise the actual Vercel Routing Middleware contract without a network call.
+const { default: routeStorefrontRequest } = await import('../middleware.js');
+const queryResponse = routeStorefrontRequest(new Request('https://preview.example/?site=Salon-Preview-01'));
+const rewriteTarget = queryResponse.headers.get('x-middleware-rewrite');
+assert.ok(rewriteTarget, 'a published salon root URL must rewrite to the SSR function');
+const rewriteUrl = new URL(rewriteTarget);
+assert.equal(rewriteUrl.pathname, '/api/storefront');
+assert.equal(rewriteUrl.searchParams.get('path'), '/');
+assert.equal(rewriteUrl.searchParams.get('site'), 'salon-preview-01');
+
+for (const query of ['?app=1&site=salon-preview-01', '?customer=1&site=salon-preview-01', '?customer_ref=abc&site=salon-preview-01']) {
+  const response = routeStorefrontRequest(new Request(`https://preview.example/${query}`));
+  assert.equal(response.headers.get('x-middleware-next'), '1', `customer/app route must not be intercepted: ${query}`);
+}
+const invalidSlugResponse = routeStorefrontRequest(new Request('https://preview.example/?site=bad%2Fslug'));
+assert.equal(invalidSlugResponse.headers.get('x-middleware-next'), '1', 'invalid selectors must not reach the SSR function');
+
 // `www` must 308 to the canonical origin instead of serving a duplicate host.
 const wwwRedirect = (config.redirects || []).find((entry) =>
   (entry.has || []).some((condition) => condition.type === 'host' && condition.value === 'www.nexorasalon.online'));
@@ -163,6 +221,8 @@ for (const [sampleUrl, expectedRobots] of [
   ['/?app=1', 'noindex, nofollow'],
   ['/?site=glow&app=1', 'noindex, nofollow'],
   ['/?site=glow&customer=1', 'noindex, nofollow'],
+  ['/?customer_ref=abc', 'noindex, nofollow'],
+  ['/?site=glow&customer_ref=abc', 'noindex, nofollow'],
   ['/?site=glow&owner=glow', 'noindex, nofollow'],
   ['/?site=glow&panel=demo', 'noindex, nofollow'],
   ['/?site=glow&create=1', 'noindex, nofollow'],
@@ -203,4 +263,14 @@ for (const route of [
 assert.ok(server.includes('app.get("/sitemap.xml", sitemapHandler)'));
 assert.ok(server.includes('app.all("/api/*"'), 'unknown API paths must stay JSON 404s, not SPA HTML');
 
-console.log('PASS: enforcing CSP matches runtime integrations; login/sitemap/static/SPA rewrites and legacy API registrations are preserved. Browser/provider smoke tests remain required.');
+const sitemapFunction = readFileSync('api/sitemap.ts', 'utf8');
+assert.ok(sitemapFunction.includes("sitemapHandler"), 'Vercel sitemap route must reuse the shared sitemap handler');
+assert.ok(sitemapFunction.includes("export { sitemapHandler as default }"), 'Vercel sitemap route must expose the shared handler as its default function');
+
+const storefrontSource = readFileSync('api/storefront.ts', 'utf8');
+assert.ok(storefrontSource.includes('id="studioflow-seo-jsonld"'), 'SSR JSON-LD must reuse the client SEO updater node');
+const seoUpdater = readFileSync('src/lib/useSeoMetadata.ts', 'utf8');
+assert.ok(seoUpdater.includes('let existingSchema:'), 'client SEO updater must parse the existing server schema');
+assert.ok(seoUpdater.includes('...existingSchema'), 'client SEO updater must preserve SSR business subtype and offers');
+
+console.log('PASS: enforcing CSP matches runtime integrations; legacy routes remain intact; root salon selectors reach SSR before index.html while app/customer routes stay on the SPA shell.');

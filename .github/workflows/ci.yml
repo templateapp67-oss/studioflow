@@ -38,6 +38,38 @@ jobs:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
 
+  windows-powershell-release-mode:
+    name: Production release-mode and deploy contract (Windows PowerShell)
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked dependencies for Windows build
+        shell: pwsh
+        run: npm.cmd ci
+
+      - name: Run production release-mode and PowerShell deploy verification
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & .\scripts\verify-production-release-modes.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Build application with Windows toolchain
+        shell: pwsh
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+        run: npm.cmd run build
+
   supabase-free-plan:
     name: Supabase Free Plan migration validation
     runs-on: ubuntu-latest

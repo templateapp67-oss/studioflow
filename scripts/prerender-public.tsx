@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { createServer } from 'vite';
 import { NEXORA_CATEGORIES, NEXORA_TEMPLATE_META, nexoraTemplatePagePath } from '../src/lib/nexoraTemplateCatalogue';
 import { NEXORA_PUBLIC_ORIGIN } from '../src/lib/publicSeo';
+import { normalizeSeoDescription, normalizeSeoTitle } from '../src/lib/seoText';
 import { NEXORA_PUBLIC_TEMPLATES_BY_ID } from '../src/lib/nexoraPublicTemplates';
 import { NEXORA_LANDING_SEO, nexoraSalonLandingSchema } from '../src/lib/nexoraLandingContent';
 import { NEXORA_PRICING_SEO, nexoraPricingSchema } from '../src/lib/nexoraPricingSeo';
@@ -22,6 +23,50 @@ const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (character) => (
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 }[character]!));
 const safeJson = (value: unknown) => JSON.stringify(value).replace(/</g, '\\u003c');
+const NO_SCRIPT_HEADER_FALLBACK = `<noscript><style>
+@media (max-width: 1399px) {
+  .nexora-site-header:not(.has-measured-layout) .nexora-site-header__inner {
+    align-items: stretch !important;
+    flex-direction: column !important;
+    flex-wrap: wrap !important;
+    gap: var(--nx-space-2) !important;
+  }
+  .nexora-site-header:not(.has-measured-layout) .nexora-site-header__brand {
+    align-self: flex-start !important;
+  }
+  .nexora-site-header:not(.has-measured-layout) .nexora-site-header__toggle {
+    display: none !important;
+  }
+  .nexora-site-header:not(.has-measured-layout) .nexora-site-header__menu {
+    position: static !important;
+    top: auto;
+    right: auto;
+    left: auto;
+    z-index: auto;
+    display: flex !important;
+    align-items: stretch;
+    flex-direction: column;
+    gap: var(--nx-space-2);
+    width: 100%;
+    max-height: none;
+    overflow: visible;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .nexora-site-header:not(.has-measured-layout) .nexora-site-header__nav,
+  .nexora-site-header:not(.has-measured-layout) .nexora-site-header__actions {
+    width: 100%;
+  }
+  .nexora-site-header:not(.has-measured-layout) .nexora-site-header__nav-list,
+  .nexora-site-header:not(.has-measured-layout) .nexora-site-header__actions {
+    flex-wrap: wrap;
+  }
+}
+</style></noscript>`;
 const renderBreadcrumbHtml = (items: readonly NexoraBreadcrumbItem[]) => {
   const listItems = items.map((item, index) => {
     const current = index === items.length - 1;
@@ -70,13 +115,15 @@ try {
 }
 const rootMarker = '<div id="root"></div>';
 if (!indexHtml.includes(rootMarker)) throw new Error('Expected an empty #root in Vite index.html before prerendering.');
-await writeFile(indexPath, indexHtml.replace(rootMarker, `<div id="root">${renderedHomepage}</div>`));
+const indexHtmlWithNoScriptFallback = indexHtml.replace("</head>", `${NO_SCRIPT_HEADER_FALLBACK}\n</head>`);
+await writeFile(indexPath, indexHtmlWithNoScriptFallback.replace(rootMarker, `<div id="root">${renderedHomepage}</div>`));
 
 // The SalonOS landing page is prerendered into its own document so crawlers
 // receive the full page content instead of an empty client-only shell.
 const moduleScript = indexHtml.match(/<script type="module"[^>]*><\/script>/)?.[0] ?? '';
+const clarityScript = indexHtml.match(/<script async src="\/clarity\.js"><\/script>/)?.[0] ?? '';
 const stylesheet = indexHtml.match(/<link rel="stylesheet"[^>]*>/)?.[0] ?? '';
-if (!moduleScript || !stylesheet) throw new Error('Expected the built entry script and stylesheet in dist/index.html.');
+if (!moduleScript || !clarityScript || !stylesheet) throw new Error('Expected the built entry script, async Clarity loader and stylesheet in dist/index.html.');
 const landingCanonical = `${NEXORA_PUBLIC_ORIGIN}${NEXORA_LANDING_SEO.canonicalPath}`;
 const landingHtml = `<!doctype html>
 <html lang="en">
@@ -108,8 +155,10 @@ const landingHtml = `<!doctype html>
 <meta name="twitter:description" content="${escapeHtml(NEXORA_LANDING_SEO.description)}" />
 <meta name="twitter:image" content="${escapeHtml(`${NEXORA_PUBLIC_ORIGIN}${NEXORA_LANDING_SEO.ogImagePath}`)}" />
 <script type="application/ld+json">${safeJson(nexoraSalonLandingSchema(NEXORA_PUBLIC_ORIGIN))}</script>
+${clarityScript}
 ${moduleScript}
 ${stylesheet}
+${NO_SCRIPT_HEADER_FALLBACK}
 </head>
 <body>
 <div id="root">${renderedLanding}</div>
@@ -152,8 +201,10 @@ const pricingHtml = `<!doctype html>
 <meta name="twitter:description" content="${escapeHtml(NEXORA_PRICING_SEO.description)}" />
 <meta name="twitter:image" content="${escapeHtml(`${NEXORA_PUBLIC_ORIGIN}${NEXORA_PRICING_SEO.ogImagePath}`)}" />
 <script type="application/ld+json">${safeJson(nexoraPricingSchema(NEXORA_PUBLIC_ORIGIN))}</script>
+${clarityScript}
 ${moduleScript}
 ${stylesheet}
+${NO_SCRIPT_HEADER_FALLBACK}
 </head>
 <body>
 <div id="root">${renderedPricing}</div>
@@ -165,9 +216,10 @@ await writeFile(join(dist, 'pricing', 'index.html'), pricingHtml);
 // The public privacy notice is prerendered as well, so the demo form can
 // link to a real policy document instead of a dead anchor.
 const privacyCanonical = `${NEXORA_PUBLIC_ORIGIN}/privacy`;
-const privacyTitle = 'Privacy notice \u2014 Nexora SalonOS demo requests';
-const privacyDescription =
-  'How Nexora SalonOS collects, stores, uses and deletes the details you send with a demo request.';
+const privacyTitle = normalizeSeoTitle('Privacy notice | NEXORA SalonOS');
+const privacyDescription = normalizeSeoDescription(
+  'How NEXORA SalonOS collects, stores, uses and deletes the details you send with a demo request.',
+);
 const privacyHtml = `<!doctype html>
 <html lang="en">
 <head>
@@ -194,8 +246,12 @@ const privacyHtml = `<!doctype html>
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="${escapeHtml(privacyTitle)}" />
 <meta name="twitter:description" content="${escapeHtml(privacyDescription)}" />
+<meta name="twitter:image" content="${escapeHtml(`${NEXORA_PUBLIC_ORIGIN}/nexora-homepage-og.jpg`)}" />
+<meta name="twitter:image:alt" content="NEXORA SALONOS salon management software" />
+${clarityScript}
 ${moduleScript}
 ${stylesheet}
+${NO_SCRIPT_HEADER_FALLBACK}
 </head>
 <body>
 <div id="root">${renderedPrivacy}</div>
@@ -247,8 +303,10 @@ for (const path of NEXORA_ECOSYSTEM_ROUTES) {
 <meta name="twitter:image" content="${escapeHtml(ogImage)}" />
 <meta name="twitter:image:alt" content="${escapeHtml(seo.ogImageAlt)}" />
 <script type="application/ld+json">${safeJson(nexoraEcosystemSchema(path))}</script>
+${clarityScript}
 ${moduleScript}
 ${stylesheet}
+${NO_SCRIPT_HEADER_FALLBACK}
 </head>
 <body>
 <div id="root">${rendered}</div>
@@ -268,7 +326,8 @@ for (const meta of NEXORA_TEMPLATE_META) {
   const imageType = image.toLowerCase().endsWith('.webp') ? 'image/webp' : image.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
   const templatePath = nexoraTemplatePagePath(meta.templateId);
   const canonical = `${NEXORA_PUBLIC_ORIGIN}${templatePath}`;
-  const description = `${meta.shortDescription} Explore the ${meta.categoryName.toLowerCase()} design and start with this editable NEXORA website template.`;
+  const title = normalizeSeoTitle(`${meta.displayName} Website Template | NEXORA`);
+  const description = normalizeSeoDescription(`${meta.shortDescription} Explore the ${meta.categoryName.toLowerCase()} design and start with this editable NEXORA website template.`);
   const category = NEXORA_CATEGORIES.find((entry) => entry.categoryId === meta.categoryId);
   const signupUrl = `/login?auth=signup&template=${encodeURIComponent(meta.templateId)}&create=1`;
   const breadcrumbs = nexoraTemplateBreadcrumbs(meta.categoryName, meta.displayName);
@@ -276,6 +335,8 @@ for (const meta of NEXORA_TEMPLATE_META) {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
     name: meta.displayName,
+    author: { '@id': `${NEXORA_PUBLIC_ORIGIN}/about#editorial-team` },
+    publisher: { '@id': `${NEXORA_PUBLIC_ORIGIN}/#organization` },
     description,
     url: canonical,
     isPartOf: { '@type': 'WebSite', name: 'NEXORA Salon OS', url: `${NEXORA_PUBLIC_ORIGIN}/` },
@@ -289,7 +350,7 @@ for (const meta of NEXORA_TEMPLATE_META) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#2A1E4A">
-<title>${escapeHtml(meta.displayName)} Website Template | NEXORA Salon OS</title>
+<title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(description)}">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="${escapeHtml(canonical)}">
@@ -298,16 +359,17 @@ for (const meta of NEXORA_TEMPLATE_META) {
 <link rel="preload" href="${escapeHtml(image)}" as="image" type="${imageType}" fetchpriority="high">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="NEXORA Salon OS">
-<meta property="og:title" content="${escapeHtml(meta.displayName)} Website Template | NEXORA">
+<meta property="og:title" content="${escapeHtml(title)}">
 <meta property="og:description" content="${escapeHtml(description)}">
 <meta property="og:url" content="${escapeHtml(canonical)}">
 <meta property="og:image" content="${escapeHtml(`${NEXORA_PUBLIC_ORIGIN}${image}`)}">
 <meta property="og:image:alt" content="${escapeHtml(`${meta.shortName} salon website template preview`)}">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="${escapeHtml(meta.displayName)} Website Template | NEXORA">
+<meta name="twitter:title" content="${escapeHtml(title)}">
 <meta name="twitter:description" content="${escapeHtml(description)}">
 <meta name="twitter:image" content="${escapeHtml(`${NEXORA_PUBLIC_ORIGIN}${image}`)}">
 <script type="application/ld+json">${safeJson(schema)}</script>
+${clarityScript}
 </head>
 <body>
 <a class="skip-link" href="#main-content">Skip to main content</a>

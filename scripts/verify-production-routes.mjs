@@ -11,7 +11,7 @@ const probe = createServer();
 await new Promise((resolve, reject) => probe.once('error', reject).listen(0, '127.0.0.1', resolve));
 const port = probe.address().port;
 await new Promise(resolve => probe.close(resolve));
-const child = spawn(process.execPath, ['dist/server.cjs', '--port', String(port)], {
+const child = spawn(process.execPath, ['--import', './scripts/fixtures/storefront-offline-fetch.mjs', 'dist/server.cjs', '--port', String(port)], {
   env: { ...process.env, NODE_ENV: 'production', RESEND_API_KEY: '' },
   detached: true,
   stdio: ['ignore', 'pipe', 'pipe'],
@@ -47,6 +47,16 @@ try {
   const httpApexRes = await rawGet('/partner-rewards', { Host: 'nexorasalon.online', 'X-Forwarded-Proto': 'http' });
   assert.equal(httpApexRes.status, 308, 'plain HTTP apex request returns HTTP 308');
   assert.equal(httpApexRes.headers.location, 'https://nexorasalon.online/partner-rewards');
+
+  const vercelConfig = JSON.parse(readFileSync('vercel.json', 'utf8'));
+  const baselineHeaders = vercelConfig.headers.find(({ source }) => source === '/(.*)').headers;
+  const homeResponse = await rawGet('/');
+  for (const name of ['X-Content-Type-Options', 'X-Frame-Options', 'Referrer-Policy']) {
+    const value = baselineHeaders.find(({ key }) => key === name)?.value;
+    assert.ok(value, name + ' is set in Vercel');
+    assert.equal(homeResponse.headers[name.toLowerCase()], value, name + ' matches Vercel in Express');
+  }
+  assert.equal(homeResponse.headers['x-powered-by'], undefined);
 
   // Verify live /robots.txt and /sitemap.xml responses.
   let route = await get('/robots.txt');
@@ -109,6 +119,25 @@ try {
     if (path === '/?site=demo-salon') assert.equal(route.robots, null, 'published ?site= storefront stays indexable');
     if (path === '/?app=1') assert.equal(route.robots, 'noindex, nofollow', '?app= flow returns X-Robots-Tag: noindex, nofollow');
   }
+  // Offline mock DB: exercise the actual production Express-to-SSR path for
+  // query aliases and vanity URLs, including crawler HEAD and outage handling.
+  for (const path of ['/?site=not-published', '/?s=not-published', '/?subdomain=not-published', '/not-published', '/apiary-salon', '/ap']) {
+    const response = await fetch(base + path);
+    assert.equal(response.status, 404, `${path}: unpublished SSR status`);
+    assert.match(response.headers.get('x-robots-tag') || '', /noindex/i, `${path}: noindex header`);
+    assert.match(await response.text(), /<meta name="robots" content="noindex">/i, `${path}: noindex HTML`);
+    const head = await fetch(base + path, { method: 'HEAD' });
+    assert.equal(head.status, 404, `${path}: HEAD status`);
+    assert.match(head.headers.get('x-robots-tag') || '', /noindex/i, `${path}: HEAD noindex header`);
+    assert.equal(await head.text(), '', `${path}: HEAD has no body`);
+  }
+  route = await get('/fixture-db-error');
+  assert.equal(route.status, 503, 'database failures remain unavailable rather than unpublished');
+  assert.match(route.robots || '', /noindex/i, 'database errors carry noindex');
+  route = await get('/demo-salon');
+  assert.equal(route.status, 200, 'published vanity renders');
+  assert.ok(route.body.includes('Fixture Salon'), 'published vanity SSR renders fixture content');
+  assert.equal(route.robots, null, 'published vanity remains indexable');
   for (const combo of [
     '/?site=demo-salon&app=1',
     '/?site=demo-salon&APP=1',

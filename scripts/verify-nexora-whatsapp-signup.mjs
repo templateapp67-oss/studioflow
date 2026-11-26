@@ -26,6 +26,7 @@ const key = Buffer.alloc(32).fill(Buffer.from([251, 255, 255])).toString('base64
 const edgePath = 'supabase/functions/nexora-whatsapp-connect/index.ts';
 const base = 'https://fixture.invalid';
 const web = { AbortSignal, Headers, Request, Response, URL, URLSearchParams, TextEncoder, TextDecoder, atob, btoa, crypto: webcrypto };
+const sessionProtection = evaluate('supabase/functions/_shared/sessionProtection.ts', web, '({ protectSession, protectedResponse })');
 const env = {
   SUPABASE_URL: base, SUPABASE_SERVICE_ROLE_KEY: 'fixture-service-role',
   META_APP_ID: appId, META_WHATSAPP_EMBEDDED_SIGNUP_CONFIG_ID: configId,
@@ -38,7 +39,8 @@ function backend({
   const states = [], graphCalls = [], saved = [];
   const db = {
     auth: { getUser: async (session) => ({ data: { user: ownerSessions.has(session) ? { id: ownerSessions.get(session) } : null } }) },
-    rpc: async (name, args) => ({ data: name === 'nexora_whatsapp_token_key' ? key
+    rpc: async (name, args) => ({ data: name === 'studioflow_edge_rate_limit_claim' ? { allowed: true }
+      : name === 'nexora_whatsapp_token_key' ? key
       : args?.p_secret_name === 'nexora_whatsapp_meta_app_secret' ? appSecret
       : args?.p_secret_name === 'nexora_whatsapp_webhook_verify_token' ? 'fixture-verify-token' : null }),
     from(table) {
@@ -122,7 +124,7 @@ function backend({
     return Response.json(subscriptionResult ?? { success: true });
   };
   let handler;
-  evaluate(edgePath, { ...web, fetch, createClient: () => db, Deno: { env: { get: (name) => env[name] }, serve: (fn) => { handler = fn; } } }, 'null');
+  evaluate(edgePath, { ...web, ...sessionProtection, fetch, createClient: () => db, Deno: { env: { get: (name) => env[name] }, serve: (fn) => { handler = fn; } } }, 'null');
   const call = (body, session = 'fixture-session') => handler(new Request(base, {
     method: 'POST', headers: { Authorization: 'Bearer ' + session, Origin: 'https://nexorasalon.online' },
     body: typeof body === 'string' ? body : JSON.stringify(body),

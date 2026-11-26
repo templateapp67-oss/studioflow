@@ -6,6 +6,7 @@ import {serviceOrigin} from './serviceCatalogue';
 import {clientExperiences,lookbookPhotos} from './demoWebsiteContent';
 import { showcaseVideos } from './showcaseVideos';
 import { INITIAL_SALON_PROFILE } from '../mockData';
+import { hasManualTagline } from './copyProvenance';
 import { DEFAULT_LOYALTY_CONFIG } from '../loyaltyData';
 import { DEFAULT_EXTRAS } from './workspaceDefaults';
 import { CATEGORY_TEMPLATES } from '../categoryTemplates';
@@ -27,18 +28,18 @@ const list=(value:any)=>Array.isArray(value)?value.filter(item=>item&&typeof ite
 export function normalizeWorkspace(value:unknown, identity:Record<string,any>={}) {
  const draft=record(value);const raw=record(draft.profile);
  const base:SalonProfile={...INITIAL_SALON_PROFILE,businessName:identity.salon_name||'',ownerName:identity.full_name||'',phone:identity.phone_number||'',whatsapp:identity.whatsapp||'',email:identity.email||'',city:identity.city||'',postalCode:identity.postal_code||'',address:'',about:'',tagline:'',ownerPhotoUrl:'',subdomain:'',instagramHandle:'',requireDeposit:true,depositPercentage:25};
- const profile={...base,...raw,requireDeposit:true,depositPercentage:25};
+ const profile={...base,onboardingGeneratedTagline:undefined,onboardingSeededAbout:undefined,...raw,requireDeposit:true,depositPercentage:25};
  for(const [key,fallback] of Object.entries(base)) if(typeof fallback==='string'&&typeof profile[key]!=='string') profile[key]=fallback;
  if(!CATEGORY_TEMPLATES[profile.businessType])profile.businessType='hair_salon';
  if(profile.businessType==='beauty_parlour'){
   if(isLegacyRoopStockCover(profile.coverImageUrl))profile.coverImageUrl=CATEGORY_TEMPLATES.beauty_parlour.coverImageUrl;
   if(isLegacyRoopStockOwnerPhoto(profile.ownerPhotoUrl))profile.ownerPhotoUrl=CATEGORY_TEMPLATES.beauty_parlour.ownerPhotoUrl;
-  if(isLegacyRoopStockTagline(profile.tagline))profile.tagline=CATEGORY_TEMPLATES.beauty_parlour.tagline;
+  if(!hasManualTagline(profile) && isLegacyRoopStockTagline(profile.tagline)) { profile.tagline=CATEGORY_TEMPLATES.beauty_parlour.tagline; profile.onboardingGeneratedTagline=profile.tagline; }
  }
  if(profile.businessType==='nail_studio'){
   if(!profile.coverImageUrl||isLegacyNailStudioStockImage(profile.coverImageUrl))profile.coverImageUrl=CATEGORY_TEMPLATES.nail_studio.coverImageUrl;
   if(!profile.ownerPhotoUrl||isLegacyNailStudioStockImage(profile.ownerPhotoUrl))profile.ownerPhotoUrl=CATEGORY_TEMPLATES.nail_studio.ownerPhotoUrl;
-  if(!profile.tagline||isLegacyNailStudioStockTagline(profile.tagline))profile.tagline=CATEGORY_TEMPLATES.nail_studio.tagline;
+  if(!profile.tagline||(!hasManualTagline(profile) && isLegacyNailStudioStockTagline(profile.tagline))) { profile.tagline=CATEGORY_TEMPLATES.nail_studio.tagline; profile.onboardingGeneratedTagline=profile.tagline; }
  }
  if(profile.businessType==='makeup_studio'){
   if(!profile.coverImageUrl||isLegacyMakeupStudioStockUrl(profile.coverImageUrl))profile.coverImageUrl=CATEGORY_TEMPLATES.makeup_studio.coverImageUrl;
@@ -63,7 +64,7 @@ export function normalizeWorkspace(value:unknown, identity:Record<string,any>={}
  if(profile.businessType==='lash_brow'){
   if(!profile.coverImageUrl||isLegacyLashStockUrl(profile.coverImageUrl))profile.coverImageUrl=CATEGORY_TEMPLATES.lash_brow.coverImageUrl;
   if(!profile.ownerPhotoUrl||isLegacyLashStockUrl(profile.ownerPhotoUrl))profile.ownerPhotoUrl=CATEGORY_TEMPLATES.lash_brow.ownerPhotoUrl;
-  if(!profile.tagline||isLegacyLashStockTagline(profile.tagline))profile.tagline=CATEGORY_TEMPLATES.lash_brow.tagline;
+  if(!profile.tagline||(!hasManualTagline(profile) && isLegacyLashStockTagline(profile.tagline))) { profile.tagline=CATEGORY_TEMPLATES.lash_brow.tagline; profile.onboardingGeneratedTagline=profile.tagline; }
   // Offers are ordinary editable records: a workspace that has never had an offer
   // list is seeded with the six bundled sample offers, while an owner's own list
   // — including an empty one after deleting every offer — is kept exactly as
@@ -72,6 +73,9 @@ export function normalizeWorkspace(value:unknown, identity:Record<string,any>={}
   if(savedOffers)profile.promoOffers=savedOffers;
  }
  if(profile.businessType==='mens_hair_studio'){profile.mensStudio=mensConfig(profile);profile.websiteTestimonials=[];profile.photoGallery=[];profile.photoGalleryInitialized=true;profile.photoGalleryType='mens_hair_studio';profile.promoOffers=[];profile.comparisonPhotos=[];}
+ // Mark only copy seeded from a genuinely empty profile; legacy nonempty
+ // values have unknown provenance and must not be assumed to be defaults.
+ if (!raw.tagline && profile.tagline && raw.taglineEditedByOwner !== true) profile.onboardingGeneratedTagline=profile.tagline;
  profile.socialVideos=showcaseVideos(profile as SalonProfile);profile.demoVideosInitialized=true;
  const loyalty=record(draft.loyaltyConfig),extras=record(draft.extras);
  profile.websiteTestimonials=clientExperiences(profile as SalonProfile);profile.demoTestimonialsInitialized=true;

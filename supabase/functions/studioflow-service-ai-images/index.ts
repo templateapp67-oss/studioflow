@@ -1,3 +1,4 @@
+import { protectSession, protectedResponse } from '../_shared/sessionProtection.ts';
 // @ts-ignore pinned Deno dependency
 import {createClient} from 'npm:@supabase/supabase-js@2.117.3';
 import {imageInput,imageRequest,providerError} from './core.ts';
@@ -35,6 +36,8 @@ Deno.serve(async(req:Request)=>{
  try{
   const bearer=req.headers.get('authorization')?.replace(/^Bearer\s+/i,'')||'';
   const auth=await db.auth.getUser(bearer);if(auth.error||!auth.data.user)return json({error:'Sign in required'},401,origin);owner=auth.data.user.id;
+  const protection = await protectSession(db, bearer, auth.data.user, 'studioflow-service-ai-images', 30);
+  if (protection) return protectedResponse(json({ error: protection.error }, protection.status, origin), protection);
   const raw=await req.text();if(raw.length>16000)return json({error:'Request too large'},413,origin);const body=JSON.parse(raw),input=imageInput(body.input);
   if(!input||typeof body.requestId!=='string'||!/^[a-f0-9-]{36}$/i.test(body.requestId))return json({error:'Select a service, category and description first'},400,origin);
   const claim=await db.rpc('studioflow_service_ai_images_claim',{p_owner:owner,p_request:body.requestId});if(claim.error)return json({error:claim.error.message},429,origin);

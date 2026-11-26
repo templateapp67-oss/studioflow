@@ -65,7 +65,7 @@ import {clientExperiences} from '../lib/demoWebsiteContent';
 import React,{useEffect,useMemo,useState} from 'react';
 import {CalendarCheck,MapPin,MessageCircle,ShieldCheck,Clock,ArrowUpRight,Check,ChevronLeft,ChevronRight,X} from 'lucide-react';
 import type {SalonWebsitePreviewProps} from './SalonWebsitePreview';
-import type {SalonService,Stylist} from '../types';
+import type {SalonProfile,SalonService,Stylist} from '../types';
 import {CATEGORY_TEMPLATES} from '../categoryTemplates';
 import {ACCENT_PALETTES,DEFAULT_CATEGORY_ACCENTS,AccentPaletteKey,getContrastTextColor} from '../themeAccents';
 import {websiteSections} from '../lib/websiteContent';
@@ -98,8 +98,17 @@ function SalonWhatsAppFloatingButton({profile}:{profile:SalonWebsitePreviewProps
   <span>WhatsApp Booking</span>
  </a>;
 }
+function storefrontCanonicalUrl(profile:SalonProfile):string|undefined{
+ const configured=profile.seo?.canonicalUrl?.trim();
+ if(configured)return configured;
+ if(typeof window==='undefined'||typeof window.location?.href!=='string'||!window.location.href)return undefined;
+ let current:URL;
+ try{current=new URL(window.location.href);}catch{return undefined;}
+ const selector=current.searchParams.get('site')||current.searchParams.get('s')||current.searchParams.get('subdomain');
+ return selector?current.origin+'/?site='+encodeURIComponent(selector):current.origin+current.pathname;
+}
 function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGallery=[],policies,branding,loyaltyConfig,onManageDashboard,onCustomerAccount,customerSignedIn,customerName,customerPhotoUrl,onAddAppointment,readOnly,live}:SalonWebsitePreviewProps){
- useSeoMetadata(profile,undefined,Boolean(live));
+ useSeoMetadata(profile,storefrontCanonicalUrl(profile),Boolean(live));
  const {t}=useWebsiteLanguage();
  const [consultation,setConsultation]=useState<ConsultationDetails|undefined>();
  const [directSlot,setDirectSlot]=useState<DirectBookingSlot|undefined>();

@@ -11,7 +11,7 @@ export const rpcResponses: Record<string, RpcResult> = {};
  * user. When it is set, the session belongs to a salon owner — the case the
  * accept page must refuse to bind to a staff record.
  */
-export const state: { session: any; ownerAccount: any } = { session: null, ownerAccount: null };
+export const state: { session: any; ownerAccount: any; mfaRequired?: boolean } = { session: null, ownerAccount: null };
 
 const queryBuilder: any = {
   select: () => queryBuilder,
@@ -30,6 +30,9 @@ export const supabase = {
   },
   from: () => queryBuilder,
   auth: {
+    mfa: { getAuthenticatorAssuranceLevel: async () => ({
+      data: { currentLevel: 'aal1', nextLevel: state.mfaRequired ? 'aal2' : 'aal1' }, error: null,
+    }) },
     getSession: async () => ({ data: { session: state.session }, error: null }),
     getUser: async () => ({ data: { user: state.session?.user ?? null }, error: null }),
     onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),

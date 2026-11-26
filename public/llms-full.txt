@@ -1,0 +1,52 @@
+# NEXORA Salon OS — full AI and search reference
+
+> NEXORA Salon OS is a web-based salon website builder and business-management platform for salons, spas and beauty businesses.
+
+## Official organisation
+- Public name: NEXORA Salon OS
+- Website: https://nexorasalon.online/
+- Product: salon website templates, website publishing, appointments, customer records, staff, billing, inventory, marketing and reports.
+- Customer support: WhatsApp +91 7852877721 — https://wa.me/917852877721
+- Help centre: https://nexorasalonos.tawk.help/
+- Organisation profile: https://nexorasalon.online/nexora-directory-profile.json
+- Editorial profile: https://nexorasalon.online/about#editorial-team
+- Publisher / author identity: NEXORA Editorial Team (organisation, not an individual person).
+
+## Main public pages
+- https://nexorasalon.online/
+- https://nexorasalon.online/about
+- https://nexorasalon.online/salon-os
+- https://nexorasalon.online/pricing
+- https://nexorasalon.online/salon-onboarding
+- https://nexorasalon.online/salon-growth
+- https://nexorasalon.online/growth-partner-rewards
+- https://nexorasalon.online/partner-rewards
+- https://nexorasalon.online/privacy
+- Sitemap: https://nexorasalon.online/sitemap.xml
+
+## Public template pages
+- https://nexorasalon.online/template-pages/hair-salon.html
+- https://nexorasalon.online/template-pages/barber.html
+- https://nexorasalon.online/template-pages/beauty-parlour.html
+- https://nexorasalon.online/template-pages/nail-studio.html
+- https://nexorasalon.online/template-pages/unisex-salon.html
+- https://nexorasalon.online/template-pages/hair-spa.html
+- https://nexorasalon.online/template-pages/skincare-clinic.html
+- https://nexorasalon.online/template-pages/makeup-studio.html
+- https://nexorasalon.online/template-pages/massage-wellness.html
+- https://nexorasalon.online/template-pages/hair-coloring.html
+- https://nexorasalon.online/template-pages/bridal-lounge.html
+- https://nexorasalon.online/template-pages/tattoo-studio.html
+- https://nexorasalon.online/template-pages/lash-brow.html
+- https://nexorasalon.online/template-pages/ayurvedic-spa.html
+- https://nexorasalon.online/template-pages/mens-hair-studio.html
+- https://nexorasalon.online/template-pages/aurelia-beauty-parlour.html
+
+## Editorial scope
+The NEXORA Editorial Team reviews product explanations, setup guidance and published documentation against the product catalogue and current workflows. Plan-dependent, configuration-dependent and third-party integrations are described with their limitations. No individual credentials, professional licences, review scores or unverified claims are attributed to the team.
+
+## Crawl and index handling
+Public product, about and template pages are intended to be crawlable. Auth, owner, staff, admin and app/session routes must remain noindex. API routes are disallowed in robots.txt. See https://nexorasalon.online/robots.txt for current bot-specific rules.
+
+## Directory and identity accuracy
+The public site identifies NEXORA as a software/platform organisation. No physical office address, local walk-in location, legal entity name or social profile is published here because those details have not been verified. External directory submissions must use verified ownership, legal and contact information; this reference does not claim that any external directory listing has been created.

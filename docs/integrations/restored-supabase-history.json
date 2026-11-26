@@ -2097,6 +2097,15 @@
   ],
   "post_export_applied_versions": [
     {
+      "version": "20261125100000",
+      "file": "20261125100000_studioflow_auth_access_hardening.sql",
+      "name": "studioflow_auth_access_hardening",
+      "observed_at": "2026-11-26",
+      "evidence": "Confirmed in the remote supabase_migrations.schema_migrations history for project zilwgiuiygqqardzutxi; the remote history now contains this version, so the local-only pending set is empty. The corresponding local SQL source exists in main.",
+      "purpose": "Scoped staff invite delivery, private table and storage MFA policies, an authenticated Data API assurance check, and immutable booking identity on direct updates; applied to the remote production project and reconciled into the reviewed applied-history ledger.",
+      "git_blob_sha": "37f68184fc6b3194dae42936431b8d4f25b6e0da"
+    },
+    {
       "version": "20261116100000",
       "file": "20261116100000_nexora_whatsapp_optional_profiles.sql",
       "name": "nexora_whatsapp_optional_profiles",
@@ -2410,6 +2419,15 @@
       "evidence": "Applied to App project zilwgiuiygqqardzutxi on 2026-11-24 and verified live: view is security_invoker, anon lacks table-wide/owner_id access, and published-only RLS remains.",
       "purpose": "Switches public_salon_websites to SECURITY INVOKER, grants anon only projected columns, and restricts anon rows to published sites without exposing owner_id.",
       "git_blob_sha": "1a0a038ccf2f67f61ab267be33efe7be9732e5b3"
+    },
+    {
+      "version": "20261125090000",
+      "file": "20261125090000_nexora_lead_rate_limit_rpc.sql",
+      "name": "nexora_lead_rate_limit_rpc",
+      "observed_at": "2026-11-25",
+      "evidence": "Production workflow run 45672308803, job 139412576712, listed this exact version in both local and remote columns for project zilwgiuiygqqardzutxi.",
+      "purpose": "Records the applied shared lead rate-limit RPC in the repository ledger.",
+      "git_blob_sha": "4366729c0a672cabfbbfe09795b9f03e22909e2d"
     }
   ],
   "retimestamped_applied_migrations": [
