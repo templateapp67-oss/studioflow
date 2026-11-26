@@ -23,10 +23,6 @@ permissions:
   checks: write
   issues: write
 
-env:
-  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-
 jobs:
   prepare-assets:
     name: Convert remaining template heroes and verify PR
@@ -164,6 +160,8 @@ jobs:
         shell: bash
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
           set -euo pipefail
           missing=()
@@ -204,6 +202,8 @@ jobs:
         if: steps.vercel-config.outputs.available == 'true'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
         run: vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
 
       - name: Verify linked Vercel project
@@ -233,6 +233,8 @@ jobs:
         if: steps.vercel-config.outputs.available == 'true'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
         run: vercel build --token="$VERCEL_TOKEN"
 
       - name: Deploy preview
@@ -240,6 +242,8 @@ jobs:
         if: steps.vercel-config.outputs.available == 'true'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
           set -euo pipefail
           deploy_log="$(mktemp)"
@@ -343,6 +347,8 @@ jobs:
           MANUAL_PREVIEW_URL: ${{ inputs.preview_url }}
           SECRET_BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
         run: |
           set -euo pipefail
           url="${DEPLOYED_PREVIEW_URL:-${MANUAL_PREVIEW_URL:-}}"

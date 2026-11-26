@@ -23,6 +23,14 @@ assert(previewDeploy && !previewDeploy.includes('continue-on-error: true'), 'a f
 assert(workflows.preview.includes("if: always() && steps.vercel-config.outputs.available == 'true' && steps.deploy.outcome == 'failure'"), 'deployment failure diagnostics still run');
 assert(workflows.preview.indexOf('- name: Capture Vercel runtime logs after failed Preview audits') > workflows.preview.indexOf('- name: Run NEXORA responsive marketing and owner-route browser audit'), 'capture runtime logs after responsive failures too');
 
+for (const name of ['Pull Vercel environment (preview)', 'Build preview', 'Deploy preview']) {
+  const block = workflows.preview.split(`- name: ${name}\n`)[1]?.split('\n      - name:')[0];
+  for (const variable of ['VERCEL_TOKEN', 'VERCEL_ORG_ID', 'VERCEL_PROJECT_ID']) {
+    assert(block?.includes(variable + ': ${{ secrets.' + variable + ' }}'),
+      `${name} must receive ${variable} in its own environment`);
+  }
+}
+
 assert(!previewDeploy.includes('cat "$deploy_log"'), 'raw deployment output must not reach workflow logs');
 const runtimeCapture = workflows.preview.split('- name: Capture Vercel runtime logs after failed Preview audits')[1]?.split('\n      - name:')[0];
 assert(runtimeCapture?.includes('>"$runtime_log" 2>"$runtime_error"') && runtimeCapture.includes('node scripts/summarize-preview-runtime-logs.mjs "$runtime_log"'), 'runtime diagnostics must suppress raw stdout and stderr');
