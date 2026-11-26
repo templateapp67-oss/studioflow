@@ -374,9 +374,10 @@ assert(credStep.includes('SUPABASE_PROJECT_REF_SECRET: ${{ secrets.SUPABASE_PROJ
 
 const credShell=credStep.split('        run: |\n')[1].split('\n').map(line=>line.replace(/^          /,'')).join('\n');
 
+assert.doesNotMatch(migrateJob, /\bsupabase\s+link\b/, 'Hosted commands use explicit project refs from a clean checkout');
 const hostedSteps=[
-  'Link production Supabase project',
   'Verify local and remote Supabase migration history',
+  'Preflight required private StudioFlow schemas',
   'Migration dry-run (remote production database)',
   'Apply production migrations (manual apply_and_deploy only)',
   'Deploy reviewed Edge Functions (manual apply_and_deploy only)',
@@ -507,6 +508,9 @@ fs.appendFileSync(process.env.MOCK_SUPABASE_LOG, JSON.stringify({
   argv,
   envRef: process.env.SUPABASE_PROJECT_REF,
 }) + '\\n');
+if(argv[0] === 'db' && argv[1] === 'query'){
+  process.stdout.write('schema_preflight\\nPASS: required private schemas exist\\n');
+}
 if(argv[0] === 'migration' && argv[1] === 'list'){
   const versions = fs.readdirSync('supabase/migrations')
     .filter(name => /^\\d{14}_.+\\.sql$/.test(name))
@@ -602,8 +606,9 @@ exec "$STUDIOFLOW_NODE_BIN" "$@"
       assert.equal(call.envRef,EXPECTED_REF,'propagated SUPABASE_PROJECT_REF env has zero whitespace');
     }
 
-    assert.deepEqual(calls[0].argv,['link','--project-ref',EXPECTED_REF]);
-    assert.deepEqual(calls[1].argv,['migration','list',`--remote=${EXPECTED_REF}`,'--password',PASS_SENTINEL]);
+    assert.deepEqual(calls[0].argv,['migration','list',`--remote=${EXPECTED_REF}`,'--password',PASS_SENTINEL]);
+    assert.deepEqual(calls[1].argv.slice(0,2),['db','query']);
+    assert.deepEqual(calls[1].argv.slice(3),[`--remote=${EXPECTED_REF}`,'--read-only','--output=csv']);
     assert.deepEqual(calls[2].argv,['db','push','--dry-run',`--remote=${EXPECTED_REF}`,'--password',PASS_SENTINEL]);
     assert.deepEqual(calls[3].argv,['db','push',`--remote=${EXPECTED_REF}`,'--password',PASS_SENTINEL,'--yes']);
     assert.deepEqual(calls[4].argv,[
