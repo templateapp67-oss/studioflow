@@ -1,3 +1,4 @@
+import { patchOwnerCopy } from '../lib/copyProvenance';
 import {photoGallery,type PhotoCategory} from '../lib/photoGallery';
 import {updateInlineService} from '../lib/serviceCatalogue';
 
@@ -1036,7 +1037,10 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
                 <div className="relative group shrink-0">
                   <img 
                     src={activeProfile.logoUrl} 
-                    alt={activeProfile.businessName} 
+                    alt={activeProfile.businessName || 'Salon logo'}
+                    width={170}
+                    height={44}
+                    decoding="async"
                     className="h-11 max-w-[170px] object-contain rounded-xl shadow-xs transition-transform group-hover:scale-105" 
                   />
                 </div>
@@ -1116,7 +1120,12 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
             <div className="absolute inset-0 z-0 overflow-hidden">
               <img
                 src={activeProfile.coverImageUrl}
-                alt={activeProfile.businessName}
+                alt={activeProfile.businessName ? `${activeProfile.businessName} salon interior and services` : 'Salon interior and services'}
+                width={1200}
+                height={800}
+                loading="eager"
+                fetchPriority="high"
+                decoding="async"
                 className={`w-full h-full object-cover object-center ${heroAIStyling.imageFilterClass} transition-all duration-700 hover:scale-105`}
               />
               {/* Dynamic Overlay Ambient Tint (Gentle ~15-25% mask max) */}
@@ -1174,7 +1183,7 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
                 >
                   <InlineEditable
                     value={activeProfile.tagline}
-                    onSave={(val) => setProfile((p) => ({ ...p, tagline: String(val) }))}
+                    onSave={(val) => setProfile((p) => patchOwnerCopy(p, { tagline: String(val) }))}
                     isEditingActive={isEditMode}
                     label="Hero Tagline"
                     tag="span"
@@ -1191,7 +1200,7 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
                 >
                   <InlineEditable
                     value={activeProfile.about}
-                    onSave={(val) => setProfile((p) => ({ ...p, about: String(val) }))}
+                    onSave={(val) => setProfile((p) => patchOwnerCopy(p, { about: String(val) }))}
                     isEditingActive={isEditMode}
                     type="textarea"
                     label="Hero Story"
@@ -1339,7 +1348,11 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
                   <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 shadow-sm" style={{ borderColor: activeAccent.primaryHex }}>
                     <img
                       src={activeProfile.ownerPhotoUrl || undefined}
-                      alt={activeProfile.ownerName}
+                      alt={activeProfile.ownerName ? `${activeProfile.ownerName}, salon owner` : 'Salon owner'}
+                       width={320}
+                       height={320}
+                       loading="lazy"
+                       decoding="async"
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -1725,7 +1738,11 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
                     <div className="relative shrink-0">
                       <img
                         src={st.avatarUrl || undefined}
-                        alt={st.name}
+                        alt={st.name ? `${st.name}, salon team member` : 'Salon team member'}
+                        width={64}
+                        height={64}
+                        loading="lazy"
+                        decoding="async"
                         className="w-16 h-16 rounded-2xl object-cover border border-slate-100 shadow-xs"
                       />
                       <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full" />
@@ -1897,7 +1914,11 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
                           {activeReviews[testimonialIndex % activeReviews.length].avatarUrl ? (
                             <img 
                               src={activeReviews[testimonialIndex % activeReviews.length].avatarUrl}
-                              alt={activeReviews[testimonialIndex % activeReviews.length].name}
+                              alt={activeReviews[testimonialIndex % activeReviews.length].name ? `Photo of ${activeReviews[testimonialIndex % activeReviews.length].name}` : 'Customer'}
+                              width={240}
+                              height={240}
+                              loading="lazy"
+                              decoding="async"
                               className="w-full h-full object-cover"
                               referrerPolicy="no-referrer"
                             />
@@ -1984,7 +2005,11 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
                 >
                   <img
                     src={photo.url}
-                    alt={photo.title || 'Salon Gallery Photo'}
+                    alt={photo.title || 'Salon gallery photo'}
+                    width={900}
+                    height={700}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
                     referrerPolicy="no-referrer"
                   />
@@ -2340,7 +2365,10 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
               >
                 <img 
                   src={selectedGalleryPhoto} 
-                  alt={currentPhoto?.title || 'Gallery Zoom'} 
+                  alt={currentPhoto?.title || 'Enlarged salon gallery photo'}
+                  width={1200}
+                  height={900}
+                  decoding="async"
                   className="max-h-[60vh] md:max-h-[68vh] object-contain w-full rounded-2xl"
                 />
               </div>
@@ -2377,7 +2405,7 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
                     >
                       <img 
                         src={photo.url} 
-                        alt="thumbnail" 
+                        alt="Salon gallery thumbnail" 
                         className="w-full h-full object-cover"
                       />
                     </button>

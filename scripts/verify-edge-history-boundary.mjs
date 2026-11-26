@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { writeFileSync, unlinkSync } from 'node:fs';
+import { rmSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { historicalEdgeReferences } from './lib/historicalEdgeReferences.mjs';
 
@@ -27,17 +27,44 @@ assert.throws(() => historicalEdgeReferences({ ...history, historical_edge_refer
 
 // Run the real scanner as well: the same historical endpoint is forbidden in
 // active code and new migrations, even though its original recorded SQL passes.
-for (const fixture of [
-  `src/edge-history-negative-${process.pid}.mjs`,
-  `supabase/migrations/20990101000000_edge_history_negative_${process.pid}.sql`,
-]) {
-  try {
-    writeFileSync(fixture, "'" + 'functions' + "/v1/nexora-job-push';\n", { flag: 'wx' });
-    const result = spawnSync(process.execPath, ['scripts/verify-edge-functions.mjs'], { encoding: 'utf8' });
-    assert.notEqual(result.status, 0, `${fixture} must fail the real Edge guard`);
-    assert(result.stderr.includes('but that function has no source folder'), result.stderr);
-  } finally {
-    unlinkSync(fixture);
+const runSuffix = `${process.pid}-${Date.now()}`;
+const createdFixtures = new Set();
+const cleanupFixtures = () => {
+  for (const fixture of [...createdFixtures]) {
+    rmSync(fixture, { force: true });
+    createdFixtures.delete(fixture);
   }
+};
+const handleSignal = (signal) => {
+  cleanupFixtures();
+  process.exit(signal === 'SIGINT' ? 130 : 143);
+};
+process.once('SIGINT', handleSignal);
+process.once('SIGTERM', handleSignal);
+
+try {
+  for (const fixture of [
+    `src/edge-history-negative-${runSuffix}.mjs`,
+    `supabase/migrations/20990101000000_edge_history_negative_${runSuffix}.sql`,
+  ]) {
+    let created = false;
+    try {
+      writeFileSync(fixture, "'" + 'functions' + "/v1/nexora-job-push';\n", { flag: 'wx' });
+      created = true;
+      createdFixtures.add(fixture);
+      const result = spawnSync(process.execPath, ['scripts/verify-edge-functions.mjs'], { encoding: 'utf8' });
+      assert.notEqual(result.status, 0, `${fixture} must fail the real Edge guard`);
+      assert(result.stderr.includes('but that function has no source folder'), result.stderr);
+    } finally {
+      if (created) {
+        rmSync(fixture, { force: true });
+        createdFixtures.delete(fixture);
+      }
+    }
+  }
+} finally {
+  cleanupFixtures();
+  process.off('SIGINT', handleSignal);
+  process.off('SIGTERM', handleSignal);
 }
 console.log('PASS: exact applied SQL dependency accepted; active callers, new migrations, unlisted endpoints, edited SQL, unrecorded versions and stale inventories rejected.');

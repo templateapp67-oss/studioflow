@@ -294,8 +294,11 @@ assert.equal(Number(quoteZiya15.discountAmount), 142.5);
 assert.equal(Number(quoteZiya15.finalPrice), 807.5);
 assert.equal(Number(quoteZiya15.advanceAmount), 201.88);
 
-// 5d. Confirm booking with ZIYA15 via studioflow_coupon_book
-const futureDate = '2026-11-18';
+// 5d. Confirm booking with ZIYA15 via studioflow_coupon_book.
+// Use next week's Wednesday in salon time so the fixture never expires.
+const { rows: [{ date: futureDate }] } = await db.query(`
+  select (date_trunc('week', now() at time zone 'Asia/Kolkata')::date + 9)::text as date
+`);
 const bookedZiya15Row = await asUser(customerA, 'authenticated', async () => {
   const res = await db.query(
     `select public.studioflow_coupon_book('ziya-hair-studio', $1::jsonb) as booking`,
@@ -467,7 +470,9 @@ const enqRes = await asUser(null, 'anon', async () => {
       p_email => 'ananya@example.com',
       p_service_name => 'Butterfly Haircut',
       p_message => 'My hair is waist-length wavy — looking for face-framing butterfly layers.',
-      p_preferred_date => '2026-11-20'::date
+      -- Relative, not pinned: the RPC only accepts today..today+120, so a
+      -- hard-coded date turns this suite red once that day passes.
+      p_preferred_date => (current_date + 3)::date
     ) as enquiry`,
   );
   return res.rows[0].enquiry;

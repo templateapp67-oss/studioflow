@@ -1315,11 +1315,37 @@
   align-self: end;
   background: #4b4131;
 }
-.kk-chat-prompts {
+.kk-chat-note-row {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
   flex-wrap: wrap;
-  gap: 7px;
-  margin-top: 15px;
+  gap: 8px 12px;
+}
+.kk-chat-note-row .kk-dialog-note {
+  flex: 1 1 270px;
+}
+.kk-chat-new-conversation {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #8d9277;
+  border-radius: 5px;
+  background: none;
+  color: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.kk-chat-prompts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 15px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.kk-chat-prompts li {
+  min-width: 0;
 }
 .kk-chat-prompts button,
 .kk-waitlist-summary button {
@@ -1331,6 +1357,16 @@
   font-size: 11px;
   min-height: 44px;
   cursor: pointer;
+}
+.kk-chat-prompts button {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: auto;
+  text-align: left;
+  line-height: 1.45;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .kk-barber-actions {
   display: flex;
@@ -1459,6 +1495,9 @@
   }
 }
 @media (max-width: 760px) {
+  .kk-chat-prompts {
+    grid-template-columns: 1fr;
+  }
   .kk-live-chat {
     left: 14px;
     bottom: 15px;

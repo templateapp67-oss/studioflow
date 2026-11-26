@@ -23,7 +23,21 @@ export function FeatureComparisonTable({
 
   return (
     <>
-      <div className="nx-compare__wrap" role="region" aria-label={scrollLabel} tabIndex={0}>
+      <div
+        className="nx-compare__wrap"
+        role="region"
+        aria-label={scrollLabel}
+        tabIndex={0}
+        style={{
+          width: '100%',
+          maxWidth: '100%',
+          minWidth: 0,
+          boxSizing: 'border-box',
+          overflowX: 'auto',
+          overscrollBehaviorX: 'contain',
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
         <table className="nx-compare" data-feature-count="87" data-category-count="9">
           <caption className="nx-visually-hidden">{caption}</caption>
           <colgroup>

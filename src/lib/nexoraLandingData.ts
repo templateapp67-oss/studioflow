@@ -1,3 +1,4 @@
+import { LeadSubmissionError } from './nexoraLeadSubmission';
 /**
  * Central data service for the NEXORA SALONOS landing page.
  *
@@ -318,6 +319,8 @@ export interface LandingLeadInput {
    * two leads for one enquiry.
    */
   idempotency_key?: string;
+  /** Client elapsed time is a heuristic only, not an authenticated proof. */
+  form_elapsed_ms?: number;
 }
 
 export interface LandingLeadResponse {
@@ -332,11 +335,12 @@ export interface LandingLeadResponse {
 export async function submitLandingLead(input: LandingLeadInput): Promise<LandingLeadResponse> {
   const { data, error } = await supabase.functions.invoke('submit-landing-lead', { body: input });
   if (error) {
-    throw new Error(error.message || 'We could not send your request. Please try again later.');
+    const status = Number((error as { context?: { status?: unknown } }).context?.status);
+    throw new LeadSubmissionError(status === 429 ? 'Too many demo requests. Please try again later.' : 'We could not send your request. Please try again later.', Number.isInteger(status) ? status : 0);
   }
   const result = (data ?? {}) as LandingLeadResponse;
   if (!result.ok) {
-    throw new Error(result.message || 'We could not send your request. Please try again later.');
+    throw new LeadSubmissionError(result.message || 'We could not send your request. Please try again later.');
   }
   return result;
 }

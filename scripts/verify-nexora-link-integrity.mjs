@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 
 /**
  * Internal link and anchor integrity for the public marketing pages.
@@ -9,7 +9,7 @@ import { existsSync, readFileSync } from 'node:fs';
  * every same-page anchor must resolve to a rendered element id.
  */
 
-const ROUTES = new Set(['/', '/pricing', '/salon-os', '/privacy', '/admin/demo-leads', '/login', '/index.html', '/salon-onboarding', '/salon-growth', '/growth-partner-rewards', '/partner-rewards']);
+const ROUTES = new Set(['/', '/about', '/pricing', '/salon-os', '/privacy', '/admin/demo-leads', '/login', '/index.html', '/salon-onboarding', '/salon-growth', '/growth-partner-rewards', '/partner-rewards']);
 
 const DOCUMENTS = [
   { path: '/', file: 'dist/index.html' },
@@ -20,6 +20,8 @@ const DOCUMENTS = [
   { path: '/salon-growth', file: 'dist/salon-growth/index.html' },
   { path: '/growth-partner-rewards', file: 'dist/growth-partner-rewards/index.html' },
   { path: '/partner-rewards', file: 'dist/partner-rewards/index.html' },
+  { path: '/about', file: 'dist/about/index.html' },
+  ...readdirSync('dist/template-pages').filter((name) => name.endsWith('.html')).map((name) => ({ path: '/template-pages/' + name, file: 'dist/template-pages/' + name })),
 ];
 
 /** Prerendered document that owns a route, used to resolve cross-page anchors. */
@@ -79,9 +81,13 @@ for (const document of DOCUMENTS) {
       ROUTES.has(target) ||
         target.startsWith('/templates/') ||
         target.startsWith('/template-pages/') ||
-        target.startsWith('/login'),
+        target.startsWith('/login') ||
+        existsSync('public' + target),
       `${document.path} links to ${target}, which is not a known route`,
     );
+    if (target.startsWith('/template-pages/')) {
+      assert.ok(DOCUMENT_BY_ROUTE.has(target), `${document.path} links to missing template document ${target}`);
+    }
     if (hash) {
       // A cross-page anchor is only meaningful when the target page renders it.
       const targetFile = DOCUMENT_BY_ROUTE.get(target) ?? null;
@@ -96,6 +102,32 @@ for (const document of DOCUMENTS) {
   }
 }
 
+/* Every public marketing/template document must be reachable from the public homepage. */
+const routeGraph = new Map(DOCUMENTS.map((document) => [document.path, new Set()]));
+for (const document of DOCUMENTS) {
+  const html = readFileSync(document.file, 'utf8');
+  for (const href of linksOf(html)) {
+    if (!href.startsWith('/')) continue;
+    let target;
+    try {
+      target = new URL(href, 'https://nexorasalon.online').pathname;
+      if (target.length > 1 && target.endsWith('/')) target = target.slice(0, -1);
+    } catch { continue; }
+    if (routeGraph.has(target)) routeGraph.get(document.path).add(target);
+  }
+}
+const reachable = new Set(['/']);
+const pending = ['/'];
+while (pending.length) {
+  const current = pending.shift();
+  for (const target of routeGraph.get(current) ?? []) {
+    if (!reachable.has(target)) { reachable.add(target); pending.push(target); }
+  }
+}
+for (const document of DOCUMENTS) {
+  assert.ok(reachable.has(document.path), document.path + ' is reachable from the homepage and is not an orphan page');
+}
+
 /* The demo dialog and the plan hand-off must only use real destinations. */
 const demoProvider = readFileSync('src/components/nexora-pricing/DemoProvider.tsx', 'utf8');
 assert.ok(demoProvider.includes("postLeadToServerRoute('/api/nexora-demo-lead'"), 'The demo form posts to the real lead route');
@@ -108,7 +140,7 @@ for (const route of ['/login?auth=signup', '/login', '/salon-os', '/privacy']) {
 
 /* The router must keep every public marketing route outside the owner app. */
 const router = readFileSync('src/AppRouter.tsx', 'utf8');
-for (const route of ['/salon-os', '/pricing', '/privacy', '/admin/demo-leads']) {
+for (const route of ['/about', '/salon-os', '/pricing', '/privacy', '/admin/demo-leads']) {
   assert.ok(router.includes(`'${route}'`), `The router serves ${route}`);
 }
 

@@ -1,1 +1,1 @@
-export { bookingDepositHandler as default } from '../server/bookingDeposit';
+export { bookingDepositHandler as default } from '../server/bookingDeposit.js';

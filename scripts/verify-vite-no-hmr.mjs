@@ -47,5 +47,8 @@ try {
   assert.equal(runtime.injectQuery('/src/file.css?x=1#part', 'direct'), '/src/file.css?direct&x=1#part');
   console.log('PASS: DISABLE_HMR serves modules and CSS without a WebSocket client.');
 } finally {
-  try { process.kill(-child.pid, 'SIGTERM'); } catch { /* already exited */ }
+  try {
+    if (process.platform === 'win32') child.kill('SIGTERM');
+    else process.kill(-child.pid, 'SIGTERM');
+  } catch { /* already exited */ }
 }

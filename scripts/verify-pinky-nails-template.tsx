@@ -564,6 +564,7 @@ const legacyDraft = normalizeWorkspace({
     coverImageUrl: 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?auto=format&fit=crop&w=1200&q=80',
     ownerPhotoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=500&q=80',
     tagline: 'Glossy Chrome Gel Nails, Sculpted Extensions, Lash Lifts & Laminated Brows',
+    onboardingGeneratedTagline: 'Glossy Chrome Gel Nails, Sculpted Extensions, Lash Lifts & Laminated Brows',
     photoGalleryInitialized: true,
     photoGalleryType: 'nail_studio',
     photoGallery: [

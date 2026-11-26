@@ -14,6 +14,16 @@
  * surface that submits a Nexora lead, so the behaviour cannot drift.
  */
 
+/** Client elapsed times deter naive bots but can be forged; server limits remain essential. */
+export const LEAD_MIN_ELAPSED_MS = 2000;
+export const isLeadTooFast = (startedAt: number, now = Date.now()) => now < startedAt || now - startedAt < LEAD_MIN_ELAPSED_MS;
+
+export class LeadSubmissionError extends Error {
+  constructor(message: string, public readonly status: number = 0) { super(message); }
+}
+// A definitive 4xx (including 429) must not be retried via another route.
+export const shouldFallbackLead = (error: unknown) => !(error instanceof LeadSubmissionError && error.status >= 400 && error.status < 500);
+
 /** Hard limit for one submission attempt. */
 export const LEAD_SUBMISSION_TIMEOUT_MS = 15_000;
 

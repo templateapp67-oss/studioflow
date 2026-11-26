@@ -1,1 +1,1 @@
-export { nexoraDemoLeadHandler as default } from "../server/nexoraDemoLead";
+export { nexoraDemoLeadHandler as default } from "../server/nexoraDemoLead.js";

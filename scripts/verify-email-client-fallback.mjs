@@ -11,7 +11,7 @@ const result = await build({
   plugins: [{
     name: 'stub-supabase-client',
     setup(build) {
-      build.onLoad({ filter: /src\/lib\/supabase\.ts$/ }, () => ({
+      build.onLoad({ filter: /src[/\\]lib[/\\]supabase\.ts$/ }, () => ({
         contents: `export const supabase = {
           auth: { getSession: (...args) => globalThis.__emailGetSession(...args) },
           functions: { invoke: (...args) => globalThis.__emailInvoke(...args) },
