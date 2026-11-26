@@ -51,16 +51,21 @@ verify_jwt = true
 [functions.studioflow-welcome-whatsapp]
 verify_jwt = true
 
-# Public map lookup uses the project API key. Template 12 reads use RLS and
-# validated RPCs. Neither depends on a signed-in user's JWT.
+# Public map-location lookup. The handler validates the project's public API
+# key (apikey header) itself; no user JWT is involved, so the gateway JWT check
+# must stay disabled or every browser call would be rejected.
 [functions.studioflow-map-locations]
 verify_jwt = false
 
+# Public Template 12 read surface for external consumers. Authorization is
+# decided by RLS and validated RPCs using the anon key; no user JWT is required,
+# so gateway JWT verification stays disabled.
 [functions.iron-ink-public]
 verify_jwt = false
 
-# The snapshot handler compares the supplied bearer to the service-role
-# credential before reading or writing any account data.
+# Account snapshot triggered by the daily_snapshot.sql pg_net job. The handler
+# authenticates a dedicated service-role bearer token (not a user JWT), so the
+# gateway JWT check must stay disabled.
 [functions.snapshot-accounts]
 verify_jwt = false
 
