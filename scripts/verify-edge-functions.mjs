@@ -94,7 +94,7 @@ for (const file of walk('.').filter((file) => /\.(ts|tsx|mjs|js|json|md)$/.test(
 assert.deepEqual(offenders, [], `stale backend/functions references:\n  ${offenders.join('\n  ')}`);
 
 // --- 4b. every function validates its own caller --------------------------
-// These deploy with --no-verify-jwt, so an entrypoint that never reads a
+// Some routes use handler-side authentication, so an entrypoint that never reads a
 // credential header is open to anyone holding the public anon key. Merely
 // *using* the service-role key does not count: `snapshot-accounts` did exactly
 // that with no caller check, letting any signed-in user queue a full copy of
@@ -197,7 +197,7 @@ for (const path of entrypoints) {
 }
 
 console.log(
-  `ok edge functions: ${folders.length} deployed, ${invoked.size} invoked from the app,`
+  `ok edge functions: ${folders.length} source entrypoints, ${invoked.size} invoked from the app,`
   + ` ${urlCallers.length - historicalDependencies} raw /functions/v1 call sites resolved,`
   + ` ${historicalDependencies} recorded historical dependencies (deployment unverified),`
   + ` ${PUBLIC_BY_DESIGN.size} public by design`,

@@ -51,6 +51,19 @@ verify_jwt = true
 [functions.studioflow-welcome-whatsapp]
 verify_jwt = true
 
+# Public map lookup uses the project API key. Template 12 reads use RLS and
+# validated RPCs. Neither depends on a signed-in user's JWT.
+[functions.studioflow-map-locations]
+verify_jwt = false
+
+[functions.iron-ink-public]
+verify_jwt = false
+
+# The snapshot handler compares the supplied bearer to the service-role
+# credential before reading or writing any account data.
+[functions.snapshot-accounts]
+verify_jwt = false
+
 [auth]
 minimum_password_length = 12
 

@@ -29,38 +29,90 @@ env:
 
 jobs:
   prepare-assets:
-    name: Convert remaining template heroes and verify PR #162
-    if: github.event_name == 'pull_request' && github.event.pull_request.number == 162 && github.event.pull_request.head.ref == 'seo/technical-seo-checklist' && github.event.pull_request.head.repo.full_name == github.repository
+    name: Convert remaining template heroes and verify PR
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
-      contents: write
+      contents: read
     outputs:
-      source_sha: ${{ steps.commit-assets.outputs.sha }}
+      source_sha: ${{ steps.scope.outputs.sha }}
     steps:
       - uses: actions/checkout@v5
+        if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          persist-credentials: true
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
+
+      - name: Determine hero verification scope
+        id: scope
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          SAME_REPO: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          echo "sha=$SOURCE_SHA" >> "$GITHUB_OUTPUT"
+
+          if [[ "$EVENT_NAME" == pull_request && "$SAME_REPO" != true ]]; then
+            echo "required=false" >> "$GITHUB_OUTPUT"
+            echo "reason=Fork PR. Hero validation on this workflow is limited to same-repository PRs." >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ "$EVENT_NAME" != pull_request && "$EVENT_NAME" != push ]]; then
+            echo "required=false" >> "$GITHUB_OUTPUT"
+            echo "reason=Manual preview run." >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          [[ "$BASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          if [[ "$EVENT_NAME" == pull_request ]]; then
+            comparison="$BASE_SHA...${SOURCE_SHA}"
+          elif [[ "$BASE_SHA" == 0000000000000000000000000000000000000000 ]]; then
+            comparison="refs/remotes/origin/$DEFAULT_BRANCH...${SOURCE_SHA}"
+          else
+            comparison="$BASE_SHA..${SOURCE_SHA}"
+          fi
+
+          # Fail visibly if Git cannot compare the revisions.
+          required="$(node scripts/convert-nexora-preview-heroes.mjs --scope "$comparison")"
+          [[ "$required" == true || "$required" == false ]]
+          echo "required=$required" >> "$GITHUB_OUTPUT"
+          if [[ "$required" == false ]]; then
+            echo "reason=No hero source, target, converter or workflow changes." >> "$GITHUB_OUTPUT"
+          fi
 
       - uses: actions/setup-node@v5
+        if: steps.scope.outputs.required == 'true'
         with:
           node-version: 22
           cache: npm
 
       - name: Install locked project dependencies
+        if: steps.scope.outputs.required == 'true'
         run: npm ci
 
       - name: Install temporary Sharp image tooling
+        if: steps.scope.outputs.required == 'true'
         run: npm install --no-save --no-package-lock --no-audit --no-fund sharp@0.34.4
 
-      - name: Convert and verify the remaining four NEXORA hero images
-        run: node scripts/convert-nexora-preview-heroes.mjs
+      - name: Verify the four NEXORA hero images against the converter
+        id: verify-heroes
+        if: steps.scope.outputs.required == 'true'
+        run: node scripts/convert-nexora-preview-heroes.mjs --check
 
       - name: Run lint, typecheck, production build and offline verification suite
+        if: steps.scope.outputs.required == 'true'
         run: npm test
 
       - name: Run offline Supabase migration and publish validation
+        if: steps.scope.outputs.required == 'true'
         run: |
           set -euo pipefail
           node scripts/verify-supabase-migration-history.mjs
@@ -70,31 +122,31 @@ jobs:
           node scripts/verify-sql-migrations.mjs
           node scripts/verify-publish-e2e.mjs
 
-      - name: Commit generated WebP assets to PR #162
-        id: commit-assets
+      - name: Summarize hero verification
+        if: ${{ !cancelled() }}
+        shell: bash
         env:
-          GITHUB_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          SCOPE_OUTCOME: ${{ steps.scope.outcome }}
+          REQUIRED: ${{ steps.scope.outputs.required }}
+          REASON: ${{ steps.scope.outputs.reason }}
+          VERIFY_OUTCOME: ${{ steps.verify-heroes.outcome }}
         run: |
           set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
-            public/templates/barber/hero.webp \
-            public/templates/kesh-prakriti/hero-reference.webp \
-            public/templates/12/media/studio-practice.webp \
-            public/templates/13/preview.webp
-          if git diff --cached --quiet; then
-            echo "No generated WebP changes to commit."
+          if [[ "$SCOPE_OUTCOME" != success ]]; then
+            summary="FAILED: could not determine hero verification scope."
+          elif [[ "$REQUIRED" == false ]]; then
+            summary="NOT REQUIRED: $REASON"
+          elif [[ "$VERIFY_OUTCOME" == success ]]; then
+            summary="VERIFIED: required hero check executed. All four checked-in WebPs were already up to date."
           else
-            git commit -m "optimize remaining NEXORA template preview heroes as WebP"
-            git push origin "HEAD:refs/heads/${GITHUB_HEAD_REF}"
+            summary="FAILED: required hero verification did not pass. See the failed step for details."
           fi
-          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          printf '### NEXORA template heroes\n\n%s\n' "$summary" | tee -a "$GITHUB_STEP_SUMMARY"
 
   preview:
     name: Deploy preview
     needs: [prepare-assets]
-    if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    if: ${{ !cancelled() && needs.prepare-assets.result == 'success' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     outputs:
@@ -104,7 +156,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ needs.prepare-assets.outputs.source_sha || github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ needs.prepare-assets.outputs.source_sha }}
           persist-credentials: false
 
       - name: Check optional Vercel preview credentials
@@ -248,13 +300,13 @@ jobs:
   browser-e2e:
     name: Preview Browser E2E (Playwright)
     needs: [preview, prepare-assets]
-    if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    if: ${{ !cancelled() && needs.prepare-assets.result == 'success' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ needs.prepare-assets.outputs.source_sha || github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ needs.prepare-assets.outputs.source_sha }}
           persist-credentials: false
 
       - uses: actions/setup-node@v5
@@ -416,7 +468,7 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_TEAM_SLUG: templateapp67-oss-projects
-          VERCEL_HEAD_SHA: ${{ needs.prepare-assets.outputs.source_sha || github.event.pull_request.head.sha || github.sha }}
+          VERCEL_HEAD_SHA: ${{ needs.prepare-assets.outputs.source_sha }}
         run: |
           set -euo pipefail
           node --input-type=module <<'NODE'
