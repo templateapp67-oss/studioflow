@@ -161,7 +161,7 @@ export interface SharedRateLimitOptions {
  */
 export async function claimSharedRateLimit(options: SharedRateLimitOptions): Promise<RateLimitResult> {
   const bucketKey = `server:${createHash('sha256').update(options.key).digest('hex')}`;
-  const endpoint = `${options.supabaseUrl.replace(/\\/$/, '')}/rest/v1/rpc/studioflow_edge_rate_limit_claim`;
+  const endpoint = `${options.supabaseUrl.replace(/\/$/, '')}/rest/v1/rpc/studioflow_edge_rate_limit_claim`;
   const fetchImpl = options.fetchImpl ?? fetch;
   const response = await fetchImpl(endpoint, {
     method: 'POST',
