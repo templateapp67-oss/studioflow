@@ -113,6 +113,7 @@
   background:
     radial-gradient(120% 90% at 8% 0%, #241a38 0%, rgba(36, 26, 56, 0) 58%),
     linear-gradient(143deg, #1b1428 0%, #150f20 42%, #0d0b12 100%);
+  color: #eee9f8;
 }
 
 .nxh-hero__glow {
@@ -851,6 +852,7 @@
   }
 
   .nxh-hero__visual {
+    grid-column: 1 / -1;
     min-height: 0;
     padding-bottom: 8px;
   }
@@ -881,7 +883,18 @@
   }
 
   .nxh-hero__title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    width: 100%;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
     font-size: clamp(2.1rem, 9vw, 2.9rem);
+  }
+
+  .nxh-hero__word-mask {
+    max-width: 100%;
   }
 
   .nxh-hero__lead {

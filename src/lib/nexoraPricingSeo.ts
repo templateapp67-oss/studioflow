@@ -1,4 +1,6 @@
 import { PRICING_FAQS, PRICING_PLANS } from './nexoraPricing';
+import { NEXORA_BREADCRUMB_TRAILS, nexoraBreadcrumbListSchema } from './nexoraBreadcrumbs';
+import { nexoraOrganizationSchema } from './nexoraOrganization';
 
 /**
  * Public metadata for the complete NEXORA SALONOS landing page published at
@@ -6,9 +8,9 @@ import { PRICING_FAQS, PRICING_PLANS } from './nexoraPricing';
  * two never drift apart. Only verifiable facts are described.
  */
 export const NEXORA_PRICING_SEO = {
-  title: 'NEXORA SalonOS | Salon Management Software, Pricing & Features',
+  title: 'NEXORA SalonOS | Pricing & Features',
   description:
-    'Explore NEXORA SalonOS: salon appointment, customer, billing, staff, inventory and marketing tools, with clear annual pricing for Lite, Grow, Standard and Premium plans.',
+    'Explore NEXORA SalonOS plans and tools for salon appointments, customers, billing, staff, inventory and marketing, with annual pricing in INR.',
   canonicalPath: '/pricing',
   ogImagePath: '/nexora-homepage-og.jpg',
   themeColor: '#FF2323',
@@ -25,6 +27,7 @@ export function nexoraPricingSchema(origin: string) {
   return {
     '@context': 'https://schema.org',
     '@graph': [
+      nexoraOrganizationSchema(origin),
       {
         '@type': 'SoftwareApplication',
         name: 'NEXORA SALONOS',
@@ -48,6 +51,11 @@ export function nexoraPricingSchema(origin: string) {
           acceptedAnswer: { '@type': 'Answer', text: answer },
         })),
       },
+      nexoraBreadcrumbListSchema(
+        origin,
+        NEXORA_PRICING_SEO.canonicalPath,
+        NEXORA_BREADCRUMB_TRAILS[NEXORA_PRICING_SEO.canonicalPath],
+      ),
     ],
   };
 }

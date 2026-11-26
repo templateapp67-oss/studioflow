@@ -40,7 +40,7 @@ Added:
 
 * `backend/prism-chroma-template-10.sql` — the idempotent migration
 * `backend/prism-chroma-template-10-seed.sql` — demo catalogue + optional demo salon rows
-* `supabase/migrations/202610300002_prism_chroma_template_10.sql` — byte-identical copy for the Supabase CLI
+* `supabase/pending-features/202610300002_prism_chroma_template_10.sql` — byte-identical copy for the Supabase CLI
 * `supabase/seed/prism_chroma_demo.sql` — byte-identical seed copy
 * `src/lib/prismSite.ts` — typed payload parser, `usePrismSite`, live adapters, validators, mutations, owner inbox reader
 * `src/components/prism-chroma/LiveStates.tsx` — skeleton / error / empty / notice states

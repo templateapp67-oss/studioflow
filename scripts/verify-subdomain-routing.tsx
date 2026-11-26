@@ -21,6 +21,10 @@ const cases: Array<[string, any, string | null]> = [
   ['ChatGPT Site explicit site query wins', {search: '?site=vijaysalojaipur', hostname: 'nexora-one-white-label.templateapp67.chatgpt.site'}, 'vijaysalojaipur'],
   ['Nexora salon wildcard domain', {search: '', hostname: 'vijaysalojaipur.nexorasalon.online'}, 'vijaysalojaipur'],
   ['Nexora apex serves owner app', {search: '', hostname: 'nexorasalon.online'}, null],
+  ['canonical login path skipped', '/login', null],
+  ['sign-in alias path skipped', '/sign-in', null],
+  ['sign-up alias path skipped', {pathname: '/sign-up/', search: '', hostname: 'owner.test'}, null],
+  ['salon path slug preserved', '/glow-studio', 'glow-studio'],
   ['missing location', undefined, null],
   ['empty stub', {}, null],
 ];

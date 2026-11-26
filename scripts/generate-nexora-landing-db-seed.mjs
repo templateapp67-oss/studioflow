@@ -436,7 +436,7 @@ push('-- moderation approval, so no row is inserted and nothing is published.');
 push('-- landing_leads: never seeded. Real leads arrive through the');
 push('-- `submit-landing-lead` Edge Function only.');
 
-const target = 'supabase/migrations/202611070002_nexora_salon_landing_seed.sql';
+const target = 'supabase/pending-features/202611070002_nexora_salon_landing_seed.sql';
 writeFileSync(target, `${sql.join('\n')}\n`);
 console.log(`Wrote ${target} (${sql.length} lines).`);
 console.log(`Sections: ${sections.length}, nav rows: ${navRows.length}, categories: ${content.NEXORA_BUSINESS_TYPES.length}, feature groups: ${content.NEXORA_LANDING_COMPARISON_GROUPS.length}, features: ${featureRows.length}, plans: ${content.PRICING_PLANS.length}, confirmed entitlements: ${confirmedEntitlements.length}, faqs: ${content.NEXORA_LANDING_FAQS.length}.`);

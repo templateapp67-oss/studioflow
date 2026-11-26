@@ -18,6 +18,7 @@ import {
   landingFeatureItems,
 } from '../src/lib/nexoraLandingContent';
 import { FEATURE_CATEGORIES, FEATURE_PLAN_ENTITLEMENTS, PRICING_PLANS } from '../src/lib/nexoraPricing';
+import { NEXORA_PUBLIC_ORIGIN } from '../src/lib/publicSeo';
 
 const html = renderToStaticMarkup(<NexoraSalonLandingPage />);
 const strip = (value: string) =>
@@ -43,7 +44,13 @@ assert.ok(html.includes('id="sl-hero-title"'), 'The H1 is the hero headline');
 assert.ok(priceText.includes('Run Your Salon. Grow Your Business. All From One Place.'), 'Hero headline copy renders');
 assert.ok(html.includes('<main id="sl-main">'), 'A main landmark exists');
 assert.ok(html.includes('href="#sl-main"'), 'A skip link targets the main landmark');
-assert.ok(html.includes('<header class="sl-header'), 'A banner landmark exists');
+const breadcrumbNav = html.match(/<nav class="nx-breadcrumbs" aria-label="Breadcrumb">([\s\S]*?)<\/nav>/)?.[0] ?? '';
+assert.ok(breadcrumbNav, 'A labeled breadcrumb navigation is present');
+assert.ok(html.indexOf(breadcrumbNav) < html.indexOf('<h1'), 'Breadcrumbs appear above the page title');
+assert.equal((breadcrumbNav.match(/<a\b/g) ?? []).length, 1, 'The home ancestor is linked');
+assert.match(breadcrumbNav, /aria-current="page"/, 'The current page is marked in the breadcrumb');
+assert.match(html, /<header\b(?=[^>]*\brole="banner")(?=[^>]*\bclass="[^"]*nexora-site-header)[^>]*>/, 'The shared header exposes a banner landmark');
+assert.ok(html.indexOf('<header') < html.indexOf('<main id="sl-main">'), 'The banner landmark precedes the main landmark');
 assert.ok(html.includes('<footer class="sl-footer"'), 'A contentinfo landmark exists');
 
 const sectionOrder = [
@@ -258,6 +265,12 @@ if (existsSync(prerendered)) {
   assert.ok(document.includes('<link rel="canonical" href="https://nexorasalon.online/salon-os"'), 'The prerendered page owns its canonical URL');
   assert.ok(document.includes('Run Your Salon. Grow Your Business. All From One Place.'), 'The prerendered page contains the hero copy for crawlers');
   assert.ok(document.includes('application/ld+json'), 'The prerendered page ships structured data');
+  const jsonLd = document.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)?.[1];
+  assert.ok(jsonLd, 'The prerendered page has a JSON-LD block');
+  const schema = JSON.parse(jsonLd);
+  const breadcrumb = schema['@graph']?.find((node: { '@type'?: string }) => node['@type'] === 'BreadcrumbList');
+  assert.ok(breadcrumb, 'The page adds breadcrumbs to its existing structured data');
+  assert.deepEqual(breadcrumb.itemListElement.map((item: { name: string }) => item.name), ['Home', 'Salon OS']);
   assert.ok(document.includes('poppins-latin-400-normal.woff2'), 'The prerendered page preloads its local font');
   assert.ok(!document.includes('fonts.googleapis.com'), 'The prerendered page has no third-party font request');
 }

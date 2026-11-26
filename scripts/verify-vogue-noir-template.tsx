@@ -387,7 +387,7 @@ await db.exec(`
 const sqlMigration = readFileSync('backend/vogue-noir-template-08.sql', 'utf8');
 await db.exec(sqlMigration);
 await db.exec(sqlMigration); // idempotent rerun
-const cityMigration = readFileSync('supabase/migrations/202610290001_vogue_noir_academy_city.sql', 'utf8');
+const cityMigration = readFileSync('supabase/pending-features/202610290001_vogue_noir_academy_city.sql', 'utf8');
 await db.exec(cityMigration);
 await db.exec(cityMigration);
 

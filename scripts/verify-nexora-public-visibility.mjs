@@ -38,7 +38,7 @@ insert into public.staff values
  ('30000000-0000-0000-0000-000000000004','10000000-0000-0000-0000-000000000003',true,true,null),
  ('30000000-0000-0000-0000-000000000005','10000000-0000-0000-0000-000000000001',true,true,now());
 `);
-const migration = readFileSync('supabase/migrations/202611070007_nexora_public_visibility_reconcile.sql','utf8');
+const migration = readFileSync('supabase/pending-features/202611070007_nexora_public_visibility_reconcile.sql','utf8');
 await db.exec(migration); await db.exec(migration);
 await db.exec('set role anon');
 for (const table of ['salons','services','staff']) {

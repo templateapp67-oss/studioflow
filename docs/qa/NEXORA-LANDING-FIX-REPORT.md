@@ -50,7 +50,7 @@ browser ──POST /api/nexora-demo-lead──▶ shared handler (server/nexoraD
 |---|---|
 | Manager view (list, filter, detail, notes, status, audit trail, CSV export, erasure) | `src/components/nexora-landing/admin/NexoraDemoLeadsAdmin.tsx`, route `/admin/demo-leads` |
 | Privileged list / export / erase with JWT + `app_metadata.site_role` authorisation | `server/nexoraDemoLeads.ts`, `api/nexora-demo-leads.ts`, `server.ts` |
-| Audit trail written by a trigger in the private `nexora_private` schema | `supabase/migrations/202611070004_nexora_demo_lead_operations.sql` |
+| Audit trail written by a trigger in the private `nexora_private` schema | `supabase/migrations/20261107082654_nexora_demo_lead_operations.sql` |
 
 ## 4. Route and SEO work
 
@@ -65,12 +65,12 @@ browser ──POST /api/nexora-demo-lead──▶ shared handler (server/nexoraD
 
 | Migration | Purpose | Applied |
 |---|---|---|
-| `202611070001_nexora_salon_landing_database.sql` | 12 tables, 4 enums, RLS, grants, policies | live |
+| `20261107070508_nexora_salon_landing_database.sql` | 12 tables, 4 enums, RLS, grants, policies | live |
 | `202611070002_nexora_salon_landing_seed.sql` | Published marketing content | live |
-| `202611070003_nexora_salon_landing_rate_limits.sql` | Shared rate-limit counters | live |
-| `202611070004_nexora_demo_lead_operations.sql` | Idempotency, CRM state, retention, audit trail, private schema | live |
-| `202611070005_nexora_demo_lead_retention_default.sql` | Default retention window for new leads | live |
-| `202611070006_nexora_landing_privacy_link.sql` | Footer link to the privacy notice | live |
+| `20261107071230_nexora_salon_landing_rate_limits.sql` | Shared rate-limit counters | live |
+| `20261107082654_nexora_demo_lead_operations.sql` | Idempotency, CRM state, retention, audit trail, private schema | live |
+| `20261107082952_nexora_demo_lead_retention_default.sql` | Default retention window for new leads | live |
+| `20261107083327_nexora_landing_privacy_link.sql` | Footer link to the privacy notice | live |
 
 No table, column or policy of an existing application table was dropped or rewritten; every change is additive and
 re-appliable. `public.landing_leads` keeps its `anon`-free grants and its manager policies.

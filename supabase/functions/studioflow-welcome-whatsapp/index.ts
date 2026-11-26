@@ -1,3 +1,4 @@
+import { protectSession, protectedResponse } from '../_shared/sessionProtection.ts';
 // @ts-ignore Pinned Deno runtime import.
 import {createClient} from 'npm:@supabase/supabase-js@2.117.3';
 import {sendWelcome,type WelcomeJob} from './core.ts';
@@ -33,6 +34,8 @@ Deno.serve(async(req:Request)=>{
  const db=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false,autoRefreshToken:false}});let customer:string|null=null;
  const worker=req.headers.get('x-worker-token');if(worker){const {data,error}=await db.rpc('studioflow_welcome_verify_worker',{p_token:worker});if(error||!data)return json({error:'Unauthorized'},401,origin)}else{
   const token=req.headers.get('authorization')?.replace(/^Bearer\s+/i,'');if(!token)return json({error:'Sign in required'},401,origin);const {data,error}=await db.auth.getUser(token);if(error||!data.user||!data.user.email_confirmed_at)return json({error:'Confirmed customer account required'},401,origin);customer=data.user.id;
+  const protection = await protectSession(db, token, data.user, 'studioflow-welcome-whatsapp', 20);
+  if (protection) return protectedResponse(json({ error: protection.error }, protection.status, origin), protection);
  }
  const token=Deno.env.get('NEXORA_WA_ACCESS_TOKEN'),phoneId=Deno.env.get('NEXORA_WA_PHONE_NUMBER_ID'),template=Deno.env.get('NEXORA_WA_WELCOME_TEMPLATE'),language=Deno.env.get('NEXORA_WA_TEMPLATE_LANGUAGE'),version=Deno.env.get('NEXORA_WA_GRAPH_VERSION');
  if(!token||!phoneId||!/^\d+$/.test(phoneId)||!template||!language||!version||!/^v\d+\.\d+$/.test(version))return json({status:'setup_required',error:'WhatsApp sender and approved welcome template are not configured'},503,origin);

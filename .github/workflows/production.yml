@@ -5,16 +5,15 @@ on:
     branches: [main]
   workflow_dispatch:
     inputs:
-      apply:
-        description: Apply production DB migrations, then deploy (use only when migrations are ready)
-        type: boolean
+      release_mode:
+        description: Choose one operation (dry_run checks only; apply_and_deploy releases DB, functions and website)
+        type: choice
         required: true
-        default: false
-      deploy_only:
-        description: Deploy current main without running or applying DB migrations (use only for code-only releases)
-        type: boolean
-        required: true
-        default: false
+        default: dry_run
+        options:
+          - dry_run
+          - apply_and_deploy
+          - deploy_only
 
 concurrency:
   group: production
@@ -30,12 +29,22 @@ jobs:
 
   changes:
     name: Detect Supabase migration changes
-    needs: ci
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     outputs:
       migrations_changed: ${{ steps.detect.outputs.migrations_changed }}
     steps:
+      - name: Validate manual release mode
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          RELEASE_MODE: ${{ inputs.release_mode }}
+        run: |
+          set -euo pipefail
+          case "$RELEASE_MODE" in
+            dry_run|apply_and_deploy|deploy_only) ;;
+            *) echo "::error::Choose dry_run, apply_and_deploy, or deploy_only."; exit 1 ;;
+          esac
+
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
@@ -58,40 +67,43 @@ jobs:
             echo "Initial push: require the Supabase migration safety job."
             exit 0
           fi
-          if git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA" -- supabase/migrations/ | grep -q .; then
+          # Capture separately so a failed git diff cannot be mistaken for
+          # an empty change list and accidentally allow a code-only deploy.
+          changed_files="$(git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA" -- \
+            supabase/migrations/ \
+            supabase/config.toml \
+            docs/integrations/restored-supabase-history.json \
+            scripts/verify-whatsapp-release-plan.mjs \
+            scripts/verify-supabase-migration-history.mjs)"
+          if [[ -n "$changed_files" ]]; then
             echo "migrations_changed=true" >> "$GITHUB_OUTPUT"
-            echo "This push changes Supabase migration files."
+            echo "This push changes migration sources or migration history evidence; run remote history validation and dry-run."
           else
             echo "migrations_changed=false" >> "$GITHUB_OUTPUT"
-            echo "No Supabase migration files changed; this is a code-only release."
+            echo "No migration sources or history evidence changed; this is a code-only release."
           fi
 
   migrate:
     name: Supabase v3 migration dry-run / approved apply
     needs: [ci, changes]
+    # Run the remote history check and dry-run on every main push. This makes
+    # drift detection continuous, including ordinary code-only releases.
     if: >-
+      always() &&
+      needs.changes.result == 'success' &&
       github.ref == 'refs/heads/main' &&
       (
-        (github.event_name == 'push' && needs.changes.outputs.migrations_changed == 'true') ||
-        (github.event_name == 'workflow_dispatch' && inputs.apply == true)
+        github.event_name == 'push' ||
+        (github.event_name == 'workflow_dispatch' &&
+          (inputs.release_mode == 'dry_run' || inputs.release_mode == 'apply_and_deploy'))
       )
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment:
       name: production-db
+    env:
+      REVIEWED_SUPABASE_PROJECT_REF: zilwgiuiygqqardzutxi
     steps:
-      - name: Reject conflicting release modes
-        if: github.event_name == 'workflow_dispatch'
-        env:
-          APPLY_MIGRATIONS: ${{ inputs.apply }}
-          DEPLOY_ONLY: ${{ inputs.deploy_only }}
-        run: |
-          set -euo pipefail
-          if [[ "$APPLY_MIGRATIONS" == "true" && "$DEPLOY_ONLY" == "true" ]]; then
-            echo "::error::Choose either apply=true or deploy_only=true, not both."
-            exit 1
-          fi
-
       - uses: actions/checkout@v5
         with:
           persist-credentials: false
@@ -102,45 +114,249 @@ jobs:
           version: 3.0.0
 
       - name: Validate Supabase migration credentials
+        id: supabase_credentials
         shell: bash
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_PROJECT_REF_VAR: ${{ vars.SUPABASE_PROJECT_REF }}
+          SUPABASE_PROJECT_REF_SECRET: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: |
           set -euo pipefail
-          for name in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD SUPABASE_PROJECT_REF; do
+          # Byte-oriented character classes so only ASCII whitespace is trimmed
+          # and the project-ref comparison is never locale-dependent.
+          export LC_ALL=C
+
+          for name in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD; do
             if [[ -z "${!name:-}" ]]; then
               echo "::error::The production-db environment did not provide $name."
               exit 1
             fi
           done
-          echo "All three Supabase credential fields are present."
 
-      - name: Link production Supabase project
+          describe_ws() {
+            local s="$1"
+            local parts=()
+            if [[ "$s" == *$'\t'* ]]; then parts+=("tab"); fi
+            if [[ "$s" == *$'\r'* ]]; then parts+=("CR"); fi
+            if [[ "$s" == *$'\n'* ]]; then parts+=("LF"); fi
+            if [[ "$s" == *' '* ]]; then parts+=("space"); fi
+            if (( ${#parts[@]} == 0 )) && [[ -n "$s" ]]; then
+              parts+=("whitespace")
+            fi
+            local IFS=,
+            printf '%s' "${parts[*]}"
+          }
+
+          NORMALIZED_REF=""
+          validate_ref_source() {
+            local source_name="$1"
+            local raw="$2"
+            local conflict_hint="${3:-}"
+            local leading="${raw%%[![:space:]]*}"
+            local trimmed="${raw#"$leading"}"
+            local trailing="${trimmed##*[![:space:]]}"
+            trimmed="${trimmed%"$trailing"}"
+
+            local ws_summary=""
+            if [[ -n "$leading" && -n "$trailing" ]]; then
+              ws_summary="leading $(describe_ws "$leading") and trailing $(describe_ws "$trailing")"
+            elif [[ -n "$leading" ]]; then
+              ws_summary="leading $(describe_ws "$leading")"
+            elif [[ -n "$trailing" ]]; then
+              ws_summary="trailing $(describe_ws "$trailing")"
+            fi
+
+            if [[ -z "$trimmed" ]]; then
+              echo "::error::SUPABASE_PROJECT_REF in $source_name contains only whitespace (${ws_summary:-whitespace}) and no project reference. Expected the reviewed StudioFlow project reference declared in REVIEWED_SUPABASE_PROJECT_REF.$conflict_hint"
+              exit 1
+            fi
+
+            if [[ "$trimmed" =~ [[:space:]] ]]; then
+              echo "::error::SUPABASE_PROJECT_REF in $source_name contains internal whitespace after trimming surrounding whitespace. Expected one exact single-token project reference with no spaces, tabs, CR or LF.$conflict_hint"
+              exit 1
+            fi
+
+            if [[ "$trimmed" != "zilwgiuiygqqardzutxi" ]]; then
+              local format_hint=""
+              if [[ "$trimmed" == http://* || "$trimmed" == https://* || "$trimmed" == *".supabase.co"* ]]; then
+                format_hint=" Configure only the 20-character project reference ID, not a Supabase URL or hostname."
+              fi
+              if [[ -n "$ws_summary" ]]; then
+                echo "::error::SUPABASE_PROJECT_REF in $source_name does not match this repository's reviewed StudioFlow project, even after trimming $ws_summary. Stored value is a different reference, not merely surrounding whitespace.$format_hint$conflict_hint"
+              else
+                echo "::error::SUPABASE_PROJECT_REF in $source_name does not match this repository's reviewed StudioFlow project, and no surrounding whitespace was found; the stored value is a different reference.$format_hint$conflict_hint"
+              fi
+              exit 1
+            fi
+
+            if [[ -n "$ws_summary" ]]; then
+              echo "::warning::Trimmed $ws_summary from $source_name; the normalized project reference matches the reviewed StudioFlow project. Re-save Settings -> Environments -> production-db -> Environment secrets -> SUPABASE_PROJECT_REF without surrounding whitespace to silence this warning."
+            fi
+            NORMALIZED_REF="$trimmed"
+          }
+
+          ref_source="reviewed workflow configuration (REVIEWED_SUPABASE_PROJECT_REF)"
+          SUPABASE_PROJECT_REF="${REVIEWED_SUPABASE_PROJECT_REF:-}"
+
+          if [[ -n "${SUPABASE_PROJECT_REF_VAR:-}" ]]; then
+            validate_ref_source "vars.SUPABASE_PROJECT_REF" "$SUPABASE_PROJECT_REF_VAR"
+            SUPABASE_PROJECT_REF="$NORMALIZED_REF"
+            ref_source="vars.SUPABASE_PROJECT_REF"
+          fi
+
+          if [[ -n "${SUPABASE_PROJECT_REF_SECRET:-}" ]]; then
+            conflict_note=""
+            if [[ -n "${SUPABASE_PROJECT_REF_VAR:-}" ]]; then
+              conflict_note=" vars.SUPABASE_PROJECT_REF is valid, but secrets.SUPABASE_PROJECT_REF conflicts; update or delete secrets.SUPABASE_PROJECT_REF in Settings -> Environments -> production-db (or Repository secrets)."
+            fi
+            validate_ref_source "secrets.SUPABASE_PROJECT_REF" "$SUPABASE_PROJECT_REF_SECRET" "$conflict_note"
+            SUPABASE_PROJECT_REF="$NORMALIZED_REF"
+            if [[ -n "${SUPABASE_PROJECT_REF_VAR:-}" ]]; then
+              ref_source="vars.SUPABASE_PROJECT_REF (verified consistent with secrets.SUPABASE_PROJECT_REF)"
+            else
+              ref_source="secrets.SUPABASE_PROJECT_REF"
+            fi
+          fi
+
+          if [[ -z "$SUPABASE_PROJECT_REF" || "$SUPABASE_PROJECT_REF" =~ [[:space:]] ]]; then
+            echo "::error::Resolved SUPABASE_PROJECT_REF is empty or contains whitespace."
+            exit 1
+          fi
+
+          if [[ "$SUPABASE_PROJECT_REF" != "zilwgiuiygqqardzutxi" ]]; then
+            echo "::error::SUPABASE_PROJECT_REF does not match this repository's reviewed StudioFlow project."
+            exit 1
+          fi
+
+          printf 'project_ref=%s\n' "$SUPABASE_PROJECT_REF" >> "$GITHUB_OUTPUT"
+          echo "Supabase migration credentials validated and the reviewed target project was confirmed via $ref_source."
+
+      # Every hosted command receives the validated project ref via --remote.
+      # Supabase CLI v3 compares migration timestamps in local files with the
+      # remote supabase_migrations.schema_migrations table. This check is read-only.
+      - name: Verify local and remote Supabase migration history
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
-        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+          SUPABASE_PROJECT_REF: ${{ steps.supabase_credentials.outputs.project_ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # supabase migration list --remote is a read-only remote call. The
+          # remote Supabase API/DB can return transient 5xx / network errors,
+          # so retry with backoff (mirroring the private-schema preflight below)
+          # instead of failing the whole dry-run on a single flaky call. Auth
+          # and configuration errors (4xx, unauthorized, project-not-found) do
+          # not match the transient pattern and still fail fast.
+          attempt=1
+          max_attempts=3
+          migration_list=""
+          while true; do
+            if migration_list="$(supabase migration list --remote="$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD" 2>&1)"; then
+              break
+            else
+              list_status=$?
+            fi
+
+            printf '%s\n' "$migration_list"
+            if ! grep -Eqi 'unexpected status 5[0-9]{2}|status[[:space:]:=]+5[0-9]{2}|HTTP(/[0-9.]+)?[[:space:]]+5[0-9]{2}|rate.?limit|ECONNRESET|ECONNREFUSED|ETIMEDOUT|connection reset|connection refused|timed out|timeout|service unavailable|bad gateway|gateway timeout' <<<"$migration_list" || (( attempt >= max_attempts )); then
+              echo "::error::Supabase migration list --remote could not complete after $attempt attempt(s); refusing migration dry-run."
+              exit "$list_status"
+            fi
+
+            echo "::warning::Supabase migration list returned a transient remote error (attempt $attempt/$max_attempts); retrying the read-only remote history check."
+            sleep $((attempt * 5))
+            attempt=$((attempt + 1))
+          done
+
+          printf '%s\n' "$migration_list"
+          SUPABASE_MIGRATION_LIST_OUTPUT="$migration_list" node scripts/verify-supabase-migration-history.mjs
+
+      - name: Preflight required private StudioFlow schemas
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ steps.supabase_credentials.outputs.project_ref }}
+        run: |
+          set -euo pipefail
+          attempt=1
+          max_attempts=3
+          while true; do
+            if result="$(supabase db query "select case
+              when count(*) = 2 then 'PASS: required private schemas exist'
+              else 'FAIL: one or more required private schemas are missing'
+            end as schema_preflight
+            from pg_namespace
+            where nspname in ('studioflow_private','studioflow_android_private')" \
+              --remote="$SUPABASE_PROJECT_REF" --read-only --output=csv 2>&1)"; then
+              break
+            else
+              query_status=$?
+            fi
+
+            printf '%s\n' "$result"
+            if ! grep -Eqi 'unexpected status 5[0-9]{2}|status[[:space:]:=]+5[0-9]{2}|HTTP(/[0-9.]+)?[[:space:]]+5[0-9]{2}|rate.?limit|ECONNRESET|ECONNREFUSED|ETIMEDOUT|connection reset|connection refused|timed out|timeout|service unavailable|bad gateway|gateway timeout' <<<"$result" || (( attempt >= max_attempts )); then
+              echo "::error::Supabase private-schema preflight could not complete; refusing migration dry-run."
+              exit "$query_status"
+            fi
+
+            echo "::warning::Supabase SQL query API returned a transient remote error (attempt $attempt/$max_attempts); retrying the read-only preflight."
+            sleep $((attempt * 5))
+            attempt=$((attempt + 1))
+          done
+
+          printf '%s\n' "$result"
+          if ! grep -Fq 'PASS: required private schemas exist' <<<"$result"; then
+            echo "::error::Required private schemas are missing; refusing migration dry-run."
+            exit 1
+          fi
 
       - name: Migration dry-run (remote production database)
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_PROJECT_REF: ${{ steps.supabase_credentials.outputs.project_ref }}
         run: supabase db push --dry-run --remote="$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
 
-      - name: Apply production migrations (manual apply=true only)
-        if: github.event_name == 'workflow_dispatch' && inputs.apply == true
+      # Read-only validation may run even if app CI failed. Never mutate the
+      # production database unless the full required CI job passed.
+      - name: Require CI success before production apply
+        if: github.event_name == 'workflow_dispatch' && inputs.release_mode == 'apply_and_deploy' && needs.ci.result != 'success'
+        shell: bash
+        run: |
+          echo "::error::Required CI did not pass; the migration dry-run completed but production apply is blocked."
+          exit 1
+
+      - name: Apply production migrations (manual apply_and_deploy only)
+        if: github.event_name == 'workflow_dispatch' && inputs.release_mode == 'apply_and_deploy'
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_PROJECT_REF: ${{ steps.supabase_credentials.outputs.project_ref }}
         run: supabase db push --remote="$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD" --yes
 
+      - name: Deploy reviewed Edge Functions (manual apply_and_deploy only)
+        if: github.event_name == 'workflow_dispatch' && inputs.release_mode == 'apply_and_deploy'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ steps.supabase_credentials.outputs.project_ref }}
+        # Per-function JWT settings come from config.toml. Never globally
+        # disable JWT verification or prune unrelated shared-project functions.
+        # The protected manual release confirms the deploy before the CI job runs.
+        # Keep this allowlist aligned with the tracked Edge Function entrypoints.
+        run: >-
+          supabase functions deploy
+          submit-landing-lead
+          nexora-whatsapp-connect nexora-whatsapp-webhook
+          studioflow-payments studioflow-whatsapp-booking studioflow-booking-emails
+          nexora-mobile-qr studioflow-service-ai-images studioflow-campaign-whatsapp
+          studioflow-welcome-whatsapp studioflow-tawk-connect
+          studioflow-map-locations iron-ink-public snapshot-accounts
+          --remote="$SUPABASE_PROJECT_REF" --use-api --yes
+
   deploy:
-    name: Deploy to Vercel (production)
+    name: Deploy to Vercel (Windows PowerShell)
     needs: [ci, changes, migrate]
     if: >-
       always() &&
@@ -150,17 +366,20 @@ jobs:
       (
         (github.event_name == 'push' &&
           needs.changes.outputs.migrations_changed == 'false' &&
-          needs.migrate.result == 'skipped') ||
-        (github.event_name == 'workflow_dispatch' &&
-          inputs.apply == true &&
           needs.migrate.result == 'success') ||
         (github.event_name == 'workflow_dispatch' &&
-          inputs.deploy_only == true &&
-          inputs.apply != true &&
+          inputs.release_mode == 'apply_and_deploy' &&
+          needs.migrate.result == 'success') ||
+        (github.event_name == 'workflow_dispatch' &&
+          inputs.release_mode == 'deploy_only' &&
+          inputs.release_mode != 'apply_and_deploy' &&
           needs.migrate.result == 'skipped')
       )
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
+    runs-on: windows-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+      checks: write
     environment:
       name: production
       url: ${{ steps.deploy.outputs.url }}
@@ -173,72 +392,56 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Validate Vercel deployment credentials
-        shell: bash
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        run: |
-          set -euo pipefail
-          for name in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
-            if [[ -z "${!name:-}" ]]; then
-              echo "::error::The production environment did not provide $name."
-              exit 1
-            fi
-          done
-          echo "All three Vercel credential fields are present."
-
       - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
 
       - name: Install locked dependencies
-        run: npm ci
+        shell: pwsh
+        run: npm.cmd ci
 
-      - name: Install Vercel CLI
-        run: npm install --global vercel@65.14.0
+      - name: Install pinned Vercel CLI
+        shell: pwsh
+        run: npm.cmd install --global vercel@65.14.0
 
-      - name: Pull Vercel production environment
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
-
-      - name: Verify linked Vercel project
-        env:
-          EXPECTED_VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          EXPECTED_VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        run: |
-          node <<'NODE'
-          const fs = require('node:fs');
-          const file = '.vercel/project.json';
-          if (!fs.existsSync(file)) {
-            console.error('Vercel pull did not create .vercel/project.json.');
-            process.exit(1);
-          }
-          const linked = JSON.parse(fs.readFileSync(file, 'utf8'));
-          if (linked.orgId !== process.env.EXPECTED_VERCEL_ORG_ID ||
-              linked.projectId !== process.env.EXPECTED_VERCEL_PROJECT_ID) {
-            console.error('The downloaded Vercel project does not match the configured GitHub IDs.');
-            process.exit(1);
-          }
-          console.log('Downloaded Vercel project identity matches the configured GitHub IDs.');
-          NODE
-
-      - name: Build production deployment
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: vercel build --prod --token="$VERCEL_TOKEN"
-
-      - name: Deploy production
+      - name: Run production deployment with native Windows PowerShell
         id: deploy
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        shell: pwsh
         run: |
-          set -euo pipefail
-          url="$(vercel deploy --prebuilt --prod --yes --token="$VERCEL_TOKEN" --project "$VERCEL_PROJECT_ID")"
-          test -n "$url"
-          echo "url=$url" >> "$GITHUB_OUTPUT"
+          $ErrorActionPreference = 'Stop'
+          $result = & .\scripts\deploy-production.ps1
+          if (-not $result -or [string]::IsNullOrWhiteSpace($result.DeploymentUrl)) {
+            throw 'PowerShell production deploy did not return a verified production URL.'
+          }
+          [System.IO.File]::AppendAllText(
+            $env:GITHUB_OUTPUT,
+            ('url=' + $result.DeploymentUrl + [Environment]::NewLine),
+            (New-Object System.Text.UTF8Encoding($false))
+          )
+
+      - name: Publish Production Live SEO Check Run summary
+        uses: actions/github-script@v8
+        if: always()
+        continue-on-error: true
+        with:
+          script: |
+            const fs = require('node:fs');
+            const reportPath = 'test-results/production-live-seo-report.json';
+            if (!fs.existsSync(reportPath)) return;
+            const reportRaw = fs.readFileSync(reportPath, 'utf8').slice(0, 60000);
+            let status = 'UNKNOWN';
+            try { status = JSON.parse(reportRaw).overallStatus || 'UNKNOWN'; } catch {}
+            await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'Production Live SEO Verification',
+              head_sha: context.sha,
+              status: 'completed',
+              conclusion: status === 'PASS' ? 'success' : 'failure',
+              output: {
+                title: 'Production Live SEO Verification: ' + status,
+                summary: 'Production SEO HTTP check status: **' + status + '**',
+                text: reportRaw,
+              },
+            });

@@ -208,7 +208,13 @@ assert.equal(byLabel('Cover image URL'), undefined, 'URL input hidden in upload 
 
 const fileInput = byLabel('Choose cover image file');
 await act(async () => fileInput.props.onChange({ target: { value: '', files: [new File(['note'], 'cover.txt', { type: 'text/plain' })] } }));
-assert.ok(text(root.findAll((node: any) => node.props?.role === 'alert')[0]).includes('JPG, PNG or WebP'), 'non-image files are rejected with a clear message');
+// Match the message, not alert[0]: unrelated alerts (e.g. the offline harness's
+// failed Edge Function request) can precede the validation message.
+assert.ok(
+  root.findAll((node: any) => node.props?.role === 'alert')
+    .some((node: any) => text(node).includes('JPG, PNG or WebP')),
+  'non-image files are rejected with a clear message'
+);
 assert.equal(root.findAll((node: any) => node.props?.alt === 'Cover image preview').length, 0, 'no preview for a rejected file');
 
 const pngFile = new File([new Uint8Array(2048)], 'cover.png', { type: 'image/png' });
@@ -234,7 +240,11 @@ await act(async () => change(root.findAll((node: any) => node.props?.id === 'soc
 const beforeCount = profile.socialVideos.length;
 await act(async () => submitForm());
 assert.equal(profile.socialVideos.length, beforeCount, 'invalid Facebook link is not saved');
-assert.ok(text(root.findAll((node: any) => node.props?.role === 'alert')[0]).includes('Facebook Video/Reel'), 'error explains the accepted Facebook formats');
+assert.ok(
+  root.findAll((node: any) => node.props?.role === 'alert')
+    .some((node: any) => text(node).includes('Facebook Video/Reel')),
+  'error explains the accepted Facebook formats'
+);
 await act(async () => button('Cancel').props.onClick());
 assert.equal(root.findAll((node: any) => node.props?.role === 'dialog').length, 0, 'Cancel closes the dialog');
 

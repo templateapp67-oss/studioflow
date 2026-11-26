@@ -1,6 +1,6 @@
 # NEXORA SALONOS landing page — performance report
 
-**Scope:** the public marketing routes (`/`, `/pricing`, `/salon-os`, `/privacy`) and the demo-request endpoint.
+**Scope:** the public marketing routes (`/`, `/about`, `/pricing`, `/salon-os`, `/privacy`) and the demo-request endpoint.
 
 > **Scope note (updated).** A **headless Chromium 153.0.8010.0** run (puppeteer-core 25.16.0) *was* executed
 > against the built preview server (`node dist/server.cjs`, port 3210) with the `PerformanceObserver` API for

@@ -1,11 +1,13 @@
 import React, { useState, useId } from 'react';
 import {captureCustomerReferral,rememberCustomerReferral,clearCustomerReferral} from '../lib/customerReferral';
-import { cleanCustomerAppReturnPath, clearOAuthIntent, readAuthUrlError, saveOAuthIntent } from '../lib/authEntry';
+import { cleanCustomerAppReturnPath, clearOAuthIntent, isSafeRelativePath, readAuthUrlError, saveOAuthIntent } from '../lib/authEntry';
+import { isPlatformRootHost, isStorefrontRootHost } from '../lib/resolveSite';
 import {whatsappNational,validCustomerWhatsApp,customerWhatsApp} from '../lib/customerWhatsApp';
 import {customerToday,validCustomerBirthDate} from '../lib/customerBirthDate';
 import { requestedTemplate } from '../lib/templateEntry';
 import { saveGoogleOAuthIntent, clearGoogleOAuthIntent } from '../lib/googleOAuth';
 import { isBillingInterval, isPricingPlanId, pricingResumePath } from '../lib/nexoraPricing';
+import { authCallbackPath, authModeForPath, isAuthEntryPath, isPlainOwnerAuthLocation } from '../lib/authRoutes';
 import { Eye, EyeOff } from 'lucide-react';
 import { supabase, captureReferral } from '../lib/supabase';
 
@@ -23,14 +25,17 @@ export function AuthPage({ compact = false, recovery = false, onRecovered, custo
   const pricingBilling=loginParams.get('billing_interval');
   const pricingReturnPath=isPricingPlanId(pricingPlanId)?pricingResumePath({planId:pricingPlanId,billingInterval:isBillingInterval(pricingBilling)?pricingBilling:'annual'}):'';
   const pathname = typeof location === 'undefined' ? '' : (location.pathname || '');
-  const safePathname = pathname.startsWith('/') && !pathname.startsWith('//') ? pathname : '/login';
-  const safeRedirectPathOverride = redirectPathOverride && redirectPathOverride.startsWith('/') && !redirectPathOverride.startsWith('//') ? redirectPathOverride : '';
-  const cleanCustomerReturn = customerReturn && (/^[a-z0-9-]+$/i.test(customerReturn) || (customerReturn.startsWith('/') && !customerReturn.startsWith('//'))) ? customerReturn : '';
+  const safePathname = isSafeRelativePath(pathname) ? pathname : '/login';
+  // `/sign-in` and `/sign-up` are first-class aliases of the same document;
+  // their path selects the mode when no explicit `?auth=` override is present.
+  const pathAuthMode = authModeForPath(safePathname);
+  const safeRedirectPathOverride = isSafeRelativePath(redirectPathOverride) ? redirectPathOverride : '';
+  const cleanCustomerReturn = customerReturn && (/^[a-z0-9-]+$/i.test(customerReturn) || isSafeRelativePath(customerReturn)) ? customerReturn : '';
   const pendingCustomerRef=customer?captureCustomerReferral():'';
   const customerAppReturn=loginParams.has('app')?cleanCustomerAppReturnPath(search,''):'';
   const baseRedirectPath=loginParams.has('app')?customerAppReturn:safeRedirectPathOverride?safeRedirectPathOverride:customer?`/?customer=1${cleanCustomerReturn?'&return='+encodeURIComponent(cleanCustomerReturn):''}`:selectedTemplate?`/?template=${encodeURIComponent(selectedTemplate.id)}&create=1`:pricingReturnPath||'/';
   const redirectPath=baseRedirectPath+(pendingCustomerRef?(baseRedirectPath.includes('?')?'&':'?')+'customer_ref='+encodeURIComponent(pendingCustomerRef):'');
-  const [mode, setMode] = useState<'signin'|'signup'|'forgot'>((loginParams.get('auth') === 'forgot' ? 'forgot' : loginParams.get('auth')==='signin'?'signin':initialMode) || (loginParams.get('auth')==='signup' || (customer?pendingCustomerRef:captureReferral()) ? 'signup' : 'signin'));
+  const [mode, setMode] = useState<'signin'|'signup'|'forgot'>((loginParams.get('auth') === 'forgot' ? 'forgot' : loginParams.get('auth')==='signin'?'signin':pathAuthMode||initialMode) || (loginParams.get('auth')==='signup' || (customer?pendingCustomerRef:captureReferral()) ? 'signup' : 'signin'));
   const signup = mode === 'signup';
   const [welcomeWhatsApp,setWelcomeWhatsApp]=useState(false);
   const [birthDate,setBirthDate]=useState('');const [whatsapp,setWhatsapp]=useState('');
@@ -48,13 +53,15 @@ export function AuthPage({ compact = false, recovery = false, onRecovered, custo
     const s = q.toString();
     return s ? '?' + s : '';
   })();
-  const preserveOwnerAuthEntry = !customer && !loginParams.has('app') && (safePathname === '/login' || loginParams.has('auth') || loginParams.has('owner') || loginParams.has('panel'));
+  const preserveOwnerAuthEntry = !customer && !loginParams.has('app') && (isAuthEntryPath(safePathname) || loginParams.has('auth') || loginParams.has('owner') || loginParams.has('panel'));
   const oauthFallbackPath = customer && signup ? baseRedirectPath : redirectPath;
-  const authReturnPath = pricingReturnPath || (selectedTemplate ? redirectPath : preserveOwnerAuthEntry ? safePathname + cleanOwnerAuthSearch : oauthFallbackPath);
+  const authReturnPath = pricingReturnPath || (selectedTemplate ? redirectPath : preserveOwnerAuthEntry ? authCallbackPath(safePathname, cleanOwnerAuthSearch) : oauthFallbackPath);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setBusy(true); setMessage('');
     try {
+      if ((signup || recovery) && password.length < 12) throw new Error('Use at least 12 characters for your password.');
+      if ((signup || recovery) && new TextEncoder().encode(password).length > 72) throw new Error('Use a password of at most 72 bytes.');
       if (recovery) {
         if (password !== confirm) throw new Error('Passwords do not match.');
         const { error } = await supabase.auth.updateUser({ password }); if (error) throw error;
@@ -81,10 +88,34 @@ export function AuthPage({ compact = false, recovery = false, onRecovered, custo
         if (normalizedRef) localStorage.setItem('studioflow_pending_ref', normalizedRef);
       }
       if(invitationMode&&signup){const current=await supabase.auth.getSession();if(current.error)throw new Error(current.error.message);if(current.data.session){const out=await supabase.auth.signOut({scope:'local'});if(out.error)throw new Error(out.error.message);}}
+      clearGoogleOAuthIntent();
+      clearOAuthIntent();
       const result = signup ? await supabase.auth.signUp({ email: email.trim(), password, options: { emailRedirectTo: `${origin}${invitationMode?'/?app=1&tab=rewards':customer?baseRedirectPath+(normalizedRef?(baseRedirectPath.includes('?')?'&':'?')+'customer_ref='+encodeURIComponent(normalizedRef):''):redirectPath}`, data: { full_name: name.trim(), salon_name: salon.trim(), ...(customer?{customer_referral_code:normalizedRef,date_of_birth:birthDate||null,whatsapp_number:customerWhatsApp(whatsapp),whatsapp_welcome_opt_in:welcomeWhatsApp}:{referral_code:normalizedRef}), source: 'studioflow' } } }) : await supabase.auth.signInWithPassword({ email: email.trim(), password });
       if (result.error) throw new Error(result.error.message);
+      const replaceLocation = (target: string) => {
+        if (typeof location.replace === 'function') location.replace(target);
+        else location.assign(target);
+      };
       if(invitationMode&&result.data.session){clearCustomerReferral();location.assign('/?app=1&tab=rewards');return;}
       if(result.data.session&&pricingReturnPath){location.assign(pricingReturnPath);return;}
+      // Auto-confirmed owner sign-up with a chosen template but without ?create=1
+      // normalises onto the template creation entry so OnboardingWizard seeds it.
+      if(signup&&result.data.session&&!compact&&!customer&&!invitationMode&&selectedTemplate&&loginParams.get('create')!=='1'){replaceLocation(redirectPath);return;}
+      // Owner sign-in from the plain /login, /sign-in or /sign-up entry on a platform host
+      // replaces history with the home page (no Back-button loop). Storefront subdomains,
+      // customer, invitation, template, pricing, workspace deep-link and ?app flows keep their targets.
+      const currentLocation = typeof location === 'undefined' ? undefined : location;
+      const storefrontHost = isStorefrontRootHost(currentLocation);
+      const platformHost = isPlatformRootHost(currentLocation);
+      if (!signup && result.data.session && !compact && !customer && !invitationMode && !selectedTemplate
+        && !returnSlug && !safeRedirectPathOverride && platformHost && !storefrontHost
+        && isPlainOwnerAuthLocation(safePathname, search)) {
+        const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel(result.data.session.access_token);
+        if (!assurance.error && (assurance.data.nextLevel !== 'aal2' || assurance.data.currentLevel === 'aal2')) {
+          replaceLocation('/');
+        }
+        return;
+      }
       if (signup && !result.data.session) { setConfirmationPending(true); setMessage('Check your email to confirm your account, then sign in. If you already have an account, use Sign in or Forgot password.'); }
     } catch (error) { setMessage(error instanceof Error ? error.message : (typeof (error as { message?: unknown })?.message === 'string' && (error as { message: string }).message) || 'Could not complete this request. Please try again.'); }
     finally { setBusy(false); }
@@ -168,7 +199,7 @@ export function AuthPage({ compact = false, recovery = false, onRecovered, custo
     <section className="workspace-card w-full max-w-lg">
       <p className="eyebrow">NEXORA · Salon OS</p><h1 className="text-3xl font-bold mb-2">{pageHeading}</h1>
       <p className="muted mb-5">{pageDescription}</p>
-      {!recovery && mode !== 'forgot' && <div className="flex gap-3 mb-5"><button disabled={busy} type="button" className={signup ? 'secondary-action' : 'primary-action'} onClick={() => { setMode('signin'); setMessage(''); }}>Sign in</button><button disabled={busy} type="button" className={signup ? 'primary-action' : 'secondary-action'} onClick={() => { setMode('signup'); setMessage(''); }}>Sign up</button></div>}
+      {!recovery && mode !== 'forgot' && <div className="flex gap-3 mb-5"><button data-testid="auth-mode-signin" disabled={busy} type="button" className={signup ? 'secondary-action' : 'primary-action'} onClick={() => { setMode('signin'); setMessage(''); }}>Sign in</button><button data-testid="auth-mode-signup" disabled={busy} type="button" className={signup ? 'primary-action' : 'secondary-action'} onClick={() => { setMode('signup'); setMessage(''); }}>Sign up</button></div>}
       {!recovery && loginParams.has('passwordUpdated') && <p role="status" className="mb-4 rounded-lg bg-green-50 p-3 text-green-900">Password updated successfully. Sign in with your new password.</p>}
       {!recovery && mode !== 'forgot' && !signup && <>
         <button type="button" disabled={busy} onClick={() => void signInWithGoogle()} className="secondary-action w-full justify-center mb-3">
@@ -178,15 +209,15 @@ export function AuthPage({ compact = false, recovery = false, onRecovered, custo
         <p className="text-center text-xs text-slate-500 mb-4">or use email</p>
       </>}
       <form onSubmit={submit} className="space-y-4">
-        {signup && !recovery && <><label className="block">Full name<input className="workspace-input" autoComplete="name" maxLength={150} value={name} onChange={e => setName(e.target.value)} required /></label>{!customer && <label className="block">Salon name<input className="workspace-input" maxLength={150} value={salon} onChange={e => setSalon(e.target.value)} required /></label>}</>}
-        {signup&&customer&&!recovery&&<label className="block">Date of Birth<input className="workspace-input" type="date" required autoComplete="bday" min="1900-01-01" max={customerToday()} value={birthDate} onChange={e=>setBirthDate(e.target.value)}/><small>Your date of birth stays private and is not shared with your inviter.</small></label>}
-        {signup&&customer&&!recovery&&<label className="block">WhatsApp number<div className="flex items-center gap-2"><span aria-label="India country code" className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 font-semibold">+91</span><input className="workspace-input flex-1 min-w-0" type="tel" required minLength={10} pattern="[1-9][0-9]{9}" inputMode="numeric" autoComplete="tel-national" placeholder="10-digit WhatsApp number" aria-label="WhatsApp number" maxLength={16} value={whatsapp} onChange={e=>setWhatsapp(whatsappNational(e.target.value))}/></div><small>Your number stays private and is not shared with your inviter.</small></label>}
-        {!recovery && <label className="block">Email<input className="workspace-input" type="email" autoComplete="email" required value={email} onChange={e => { setEmail(e.target.value); setResetSent(false); }} /></label>}
+        {signup && !recovery && <><label className="block">Full name<input data-testid="auth-full-name" className="workspace-input" autoComplete="name" maxLength={150} value={name} onChange={e => setName(e.target.value)} required /></label>{!customer && <label className="block">Salon name<input data-testid="auth-salon-name" className="workspace-input" maxLength={150} value={salon} onChange={e => setSalon(e.target.value)} required /></label>}</>}
+        {signup&&customer&&!recovery&&<label className="block">Date of Birth<input data-testid="auth-dob" className="workspace-input" type="date" required autoComplete="bday" min="1900-01-01" max={customerToday()} value={birthDate} onChange={e=>setBirthDate(e.target.value)}/><small>Your date of birth stays private and is not shared with your inviter.</small></label>}
+        {signup&&customer&&!recovery&&<label className="block">WhatsApp number<div className="flex items-center gap-2"><span aria-label="India country code" className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 font-semibold">+91</span><input data-testid="auth-whatsapp" className="workspace-input flex-1 min-w-0" type="tel" required minLength={10} pattern="[1-9][0-9]{9}" inputMode="numeric" autoComplete="tel-national" placeholder="10-digit WhatsApp number" aria-label="WhatsApp number" maxLength={16} value={whatsapp} onChange={e=>setWhatsapp(whatsappNational(e.target.value))}/></div><small>Your number stays private and is not shared with your inviter.</small></label>}
+        {!recovery && <label className="block">Email<input data-testid="auth-email" className="workspace-input" type="email" autoComplete="email" required value={email} onChange={e => { setEmail(e.target.value); setResetSent(false); }} /></label>}
         {(recovery || mode !== 'forgot') && <div>
           <div className="flex items-center justify-between gap-3"><label htmlFor={passwordId}>{recovery ? 'New password' : 'Password'}</label>{!recovery && mode === 'signin' && <button type="button" disabled={busy} className="text-sm font-semibold text-violet-700 underline underline-offset-4 py-2" onClick={() => { setMode('forgot'); setMessage(''); setResetSent(false); }}>Forgot password?</button>}</div>
-          <div className="relative"><input id={passwordId} className="workspace-input" style={{paddingRight:52}} type={visible ? 'text' : 'password'} minLength={6} autoComplete={signup || recovery ? 'new-password' : 'current-password'} required value={password} onChange={e => setPassword(e.target.value)} /><button type="button" aria-label={visible ? 'Hide password' : 'Show password'} aria-pressed={visible} aria-controls={passwordId} title={visible ? 'Hide password' : 'Show password'} className="absolute right-1 top-1/2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-lg text-slate-500 hover:text-violet-700 focus-visible:outline-2 focus-visible:outline-violet-600" onClick={() => setVisible(v => !v)}>{visible ? <EyeOff size={20} aria-hidden="true"/> : <Eye size={20} aria-hidden="true"/>}</button></div>
+          <div className="relative"><input data-testid="auth-password" id={passwordId} className="workspace-input" style={{paddingRight:52}} type={visible ? 'text' : 'password'} minLength={signup || recovery ? 12 : undefined} autoComplete={signup || recovery ? 'new-password' : 'current-password'} required value={password} onChange={e => setPassword(e.target.value)} /><button type="button" aria-label={visible ? 'Hide password' : 'Show password'} aria-pressed={visible} aria-controls={passwordId} title={visible ? 'Hide password' : 'Show password'} className="absolute right-1 top-1/2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-lg text-slate-500 hover:text-violet-700 focus-visible:outline-2 focus-visible:outline-violet-600" onClick={() => setVisible(v => !v)}>{visible ? <EyeOff size={20} aria-hidden="true"/> : <Eye size={20} aria-hidden="true"/>}</button></div>
         </div>}
-        {recovery && <div><label htmlFor={confirmId}>Confirm new password</label><div className="relative"><input id={confirmId} className="workspace-input" style={{paddingRight:52}} type={confirmVisible ? 'text' : 'password'} minLength={6} autoComplete="new-password" required value={confirm} onChange={e => setConfirm(e.target.value)} /><button type="button" aria-label={confirmVisible ? 'Hide confirm password' : 'Show confirm password'} aria-pressed={confirmVisible} aria-controls={confirmId} title={confirmVisible ? 'Hide confirm password' : 'Show confirm password'} className="absolute right-1 top-1/2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-lg text-slate-500 hover:text-violet-700 focus-visible:outline-2 focus-visible:outline-violet-600" onClick={() => setConfirmVisible(v => !v)}>{confirmVisible ? <EyeOff size={20} aria-hidden="true"/> : <Eye size={20} aria-hidden="true"/>}</button></div></div>}
+        {recovery && <div><label htmlFor={confirmId}>Confirm new password</label><div className="relative"><input id={confirmId} className="workspace-input" style={{paddingRight:52}} type={confirmVisible ? 'text' : 'password'} minLength={12} autoComplete="new-password" required value={confirm} onChange={e => setConfirm(e.target.value)} /><button type="button" aria-label={confirmVisible ? 'Hide confirm password' : 'Show confirm password'} aria-pressed={confirmVisible} aria-controls={confirmId} title={confirmVisible ? 'Hide confirm password' : 'Show confirm password'} className="absolute right-1 top-1/2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-lg text-slate-500 hover:text-violet-700 focus-visible:outline-2 focus-visible:outline-violet-600" onClick={() => setConfirmVisible(v => !v)}>{confirmVisible ? <EyeOff size={20} aria-hidden="true"/> : <Eye size={20} aria-hidden="true"/>}</button></div></div>}
         {signup && !recovery && <label className="block">Referral code <span className="text-gray-400">(optional)</span><input className="workspace-input" maxLength={32} value={ref} onChange={e => setRef(e.target.value.toUpperCase())} /><small>{customer?'Your name, join date and referral progress will be visible to your inviter. Email, phone and photos stay private.':'Referral attribution is saved after you sign in.'}</small></label>}
         {signup&&customer&&!recovery&&<label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={welcomeWhatsApp} onChange={e=>setWelcomeWhatsApp(e.target.checked)} className="mt-1"/><span>Request my Nexora welcome message on WhatsApp after email confirmation, with my User ID, login link and referral link. My password will not be sent.</span></label>}
       {!recovery && mode !== 'forgot' && signup && <>
@@ -196,8 +227,8 @@ export function AuthPage({ compact = false, recovery = false, onRecovered, custo
         </button>
         <p className="text-center text-xs text-slate-500 mb-4">or use email</p>
       </>}
-        {message && <p role="status" className="text-sm p-3 rounded-lg bg-amber-50 text-amber-900">{message}</p>}
-        <button disabled={busy || (mode === 'forgot' && resetSent)} className="primary-action w-full justify-center disabled:opacity-60">{busy ? 'Please wait…' : recovery ? 'Save new password' : mode === 'forgot' ? resetSent ? 'Reset link requested — check email' : 'Send reset link' : signup ? 'Create account' : 'Sign in'}</button>
+        {message && <p data-testid="auth-message" role="status" className="text-sm p-3 rounded-lg bg-amber-50 text-amber-900">{message}</p>}
+        <button data-testid="auth-submit" disabled={busy || (mode === 'forgot' && resetSent)} className="primary-action w-full justify-center disabled:opacity-60">{busy ? 'Please wait…' : recovery ? 'Save new password' : mode === 'forgot' ? resetSent ? 'Reset link requested — check email' : 'Send reset link' : signup ? 'Create account' : 'Sign in'}</button>
         {!recovery && mode === 'forgot' && <button type="button" disabled={busy} className="secondary-action w-full justify-center" onClick={() => { setMode('signin'); setMessage(''); setResetSent(false); }}>Back to sign in</button>}
         {confirmationPending && signup && <button type="button" disabled={busy} className="secondary-action" onClick={() => void resend()}>Resend confirmation email</button>}
       </form>

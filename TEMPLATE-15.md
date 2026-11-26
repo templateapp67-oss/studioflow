@@ -67,7 +67,7 @@ Reused:
 - `studioflow_reviews`: existing customer review system; Template 15 never displays customer photos.
 - `studioflow-media`: existing owner-folder upload helper and storage policies. No new public-write bucket.
 
-Migration: `supabase/migrations/202611030003_template15_keshkraft.sql`.
+Migration: `supabase/pending-features/202611030003_template15_keshkraft.sql`.
 
 Additive RPCs:
 

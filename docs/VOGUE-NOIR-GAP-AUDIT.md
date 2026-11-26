@@ -16,7 +16,7 @@ The existing template is `makeup_studio`, with `08` aliases. Do not register a s
 ## Deployment sequence (staging first)
 
 1. Confirm the base schema and `backend/vogue-noir-template-08.sql` are already applied. Follow the repository's existing Supabase change process; do not blindly rerun old catalog-sync SQL against production.
-2. Apply `supabase/migrations/202610290001_vogue_noir_academy_city.sql` before the frontend. It is additive and preserves the original RPC and RLS policy.
+2. Apply `supabase/pending-features/202610290001_vogue_noir_academy_city.sql` before the frontend. It is additive and preserves the original RPC and RLS policy.
 3. Deploy this branch's frontend. Sign in as a customer, select Jaipur or Online and a preferred batch, submit, and confirm city and status are visible only to the correct owner. Check that a different owner cannot read or update the record and that the old RPC still works.
 4. Enter actual studio details, schedule, tax disclosures and licensed owner imagery. Verify all public demo claims and pricing. Test existing single-location booking, Razorpay verification and refunds in test mode. Do not claim multi-branch booking or GST invoicing until implemented.
 5. Run lint, build and the relevant template and database verifications. Test mobile/desktop and other templates against staging before production deployment.
