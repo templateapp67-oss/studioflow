@@ -65,7 +65,7 @@ export function AuthPage({ compact = false, recovery = false, onRecovered, custo
     try {
       if (mfaEnrollment) {
         const code = mfaCode.trim();
-        if (!/^\\d{6,8}$/.test(code)) throw new Error('Enter the 6–8 digit code from your authenticator app.');
+        if (!/^\d{6,8}$/.test(code)) throw new Error('Enter the 6–8 digit code from your authenticator app.');
         const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: mfaEnrollment.factorId });
         if (challengeError) throw challengeError;
         const { error: verifyError } = await supabase.auth.mfa.verify({
