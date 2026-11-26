@@ -17,6 +17,11 @@ assert.match(auth, /const redirectTo = location\.origin \+ \(invitationMode \? '
 assert.match(customer, /<AuthPage compact customerMode/, 'The Customer App login modal must use customer-mode authentication');
 assert.match(app, /if\(customerApp\)return <CustomerApp session=\{session\}\/?>/, 'The app=1 OAuth callback must render the Customer App, not the owner website');
 assert.match(auth, /const authReturnPath = pricingReturnPath \|\| \(selectedTemplate \? redirectPath : preserveOwnerAuthEntry/, 'Google signup must resume selected pricing/template journeys before preserving a generic auth entry');
+assert.match(auth, /supabase\.auth\.mfa\.getAuthenticatorAssuranceLevel\(\)/, 'email sign-in checks whether the session must reach AAL2');
+assert.match(auth, /supabase\.auth\.mfa\.challenge\(/, 'an enrolled TOTP factor is challenged before completing sign-in');
+assert.match(auth, /supabase\.auth\.mfa\.verify\(/, 'the TOTP code is verified by Supabase Auth, not trusted client-side');
+assert.match(auth, /password\.length < 12/, 'new and reset passwords require at least 12 characters in the UI flow');
+assert.match(auth, /minLength=\{signup \|\| recovery \? 12 : 6\}/, 'existing sign-ins are not blocked by the new signup password rule');
 
 assert.match(auth, /studioflow_customer_validate_ref/, 'Customer and owner signup referral codes must be validated');
 const googleSignupHandler = auth.slice(auth.indexOf('const signInWithGoogle'), auth.indexOf('const resend'));
