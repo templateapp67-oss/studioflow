@@ -35,6 +35,15 @@ const IRON_INK_TEMPLATE_IMAGE_IDENTITY = {
   categoryName: "Tattoo & Body Art",
 } as const;
 
+function ironInkEditorCategories(saved: NonNullable<SalonProfile["ironInk"]>["categories"] = []) {
+  return [
+    ...IRON_INK_CATEGORIES.map(
+      (category) => saved.find((item) => item.slug === category.slug) || category,
+    ),
+    ...saved.filter((item) => !IRON_INK_CATEGORIES.some((category) => category.slug === item.slug)),
+  ];
+}
+
 type SocialKey = "instagramHandle" | "facebookPage" | "youtubeChannel";
 const SOCIAL_FIELDS: Array<{
   key: SocialKey;
@@ -80,15 +89,7 @@ export function IronInkEditor({
   setLoyaltyConfig?: React.Dispatch<React.SetStateAction<LoyaltyConfig>>;
 }) {
   const config = profile.ironInk || {};
-  const savedCategories = config.categories || [];
-  const categories = [
-    ...IRON_INK_CATEGORIES.map(
-      (category) => savedCategories.find((saved) => saved.slug === category.slug) || category,
-    ),
-    ...savedCategories.filter(
-      (saved) => !IRON_INK_CATEGORIES.some((category) => category.slug === saved.slug),
-    ),
-  ];
+  const categories = ironInkEditorCategories(config.categories);
   const patch = (value: Partial<NonNullable<SalonProfile["ironInk"]>>) =>
     setProfile((previous) => ({
       ...previous,
@@ -100,11 +101,15 @@ export function IronInkEditor({
     value: boolean | number | string,
   ) => {
     const target = categories.find((category) => category.slug === slug);
-    patch({
-      categories: categories.map((category) =>
-        category.slug === slug ? { ...category, [key]: value } : category,
-      ),
-    });
+    setProfile((previous) => ({
+      ...previous,
+      ironInk: {
+        ...previous.ironInk,
+        categories: ironInkEditorCategories(previous.ironInk?.categories).map((category) =>
+          category.slug === slug ? { ...category, [key]: value } : category,
+        ),
+      },
+    }));
     if (target && setServices && key !== "enabled")
       setServices((current) =>
         current.map((service) =>
@@ -194,9 +199,15 @@ export function IronInkEditor({
     key: "title" | "caption" | "posterUrl" | "href" | "isDemo",
     value: string | boolean,
   ) =>
-    patchMedia(
-      media.map((topic) => (topic.id === id ? { ...topic, [key]: value } : topic)),
-    );
+    setProfile((previous) => ({
+      ...previous,
+      ironInk: {
+        ...previous.ironInk,
+        media: ironInkMediaTopics(previous.ironInk?.media).map((topic) =>
+          topic.id === id ? { ...topic, [key]: value } : topic,
+        ),
+      },
+    }));
   const addMedia = () =>
     patchMedia([
       ...media,

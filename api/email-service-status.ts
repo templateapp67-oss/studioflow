@@ -1,1 +1,1 @@
-export { emailStatusHandler as default } from "../server/bookingEmail";
+export { emailStatusHandler as default } from "../server/bookingEmail.js";

@@ -1,0 +1,253 @@
+import assert from 'node:assert/strict';
+import { existsSync, readFileSync } from 'node:fs';
+import { build } from 'esbuild';
+
+/**
+ * NEXORA marketing route wiring (release gate).
+ *
+ * `/salon-onboarding`, `/salon-growth` and `/growth-partner-rewards` are three
+ * different pages rendered by one shared component. Before this suite existed
+ * they were routed in `AppRouter.tsx` but had no document of their own, so every
+ * URL answered with the homepage shell: one title, one description and one
+ * canonical shared by three pages, none of them in the sitemap.
+ *
+ * The suite asserts the emitted artefacts — not the source — so it fails if the
+ * prerenderer, the deployment rewrites or the sitemap ever stop agreeing:
+ *   1. each route ships its own document with a unique head;
+ *   2. the document contains that route's copy and no sibling's copy;
+ *   3. the structured data describes the same URL as the canonical;
+ *   4. Vercel rewrites the route to its document instead of the SPA shell;
+ *   5. the sitemap lists each route exactly once, next to the old ones.
+ */
+
+/** Bundles a TypeScript module to a self-contained ESM data URL. */
+async function loadModule(options) {
+  const result = await build({
+    bundle: true,
+    platform: 'node',
+    format: 'esm',
+    packages: 'external',
+    write: false,
+    logLevel: 'silent',
+    ...options,
+  });
+  const source = result.outputFiles[0].text;
+  return import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+}
+
+const seo = await loadModule({
+  stdin: {
+    contents: [
+      "export * from './src/lib/nexoraEcosystemSeo.ts';",
+      "export { NEXORA_PUBLIC_ORIGIN, NEXORA_HOME_SEO } from './src/lib/publicSeo.ts';",
+      "export { NEXORA_BREADCRUMB_TRAILS } from './src/lib/nexoraBreadcrumbs.ts';",
+    ].join('\n'),
+    resolveDir: process.cwd(),
+    loader: 'ts',
+  },
+});
+const { sitemapXml } = await loadModule({ entryPoints: ['server/sitemap.ts'] });
+
+const {
+  NEXORA_ECOSYSTEM_ROUTES,
+  NEXORA_ECOSYSTEM_SEO,
+  NEXORA_PUBLIC_ORIGIN,
+  NEXORA_HOME_SEO,
+  NEXORA_BREADCRUMB_TRAILS,
+} = seo;
+
+assert.deepEqual(
+  [...NEXORA_ECOSYSTEM_ROUTES],
+  ['/about', '/salon-onboarding', '/salon-growth', '/growth-partner-rewards', '/partner-rewards'],
+  'All routed NEXORA marketing pages are covered by the metadata source',
+);
+assert.equal(new URL(NEXORA_HOME_SEO.canonicalUrl).origin, NEXORA_PUBLIC_ORIGIN);
+
+/* The head is HTML-escaped when written, so compare decoded values. */
+const decode = (value) =>
+  value?.replace(/&(amp|lt|gt|quot|#39);/g, (_, entity) => ({
+    amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'",
+  })[entity]);
+
+const attribute = (html, name) =>
+  decode(html.match(new RegExp(`<meta name="${name}" content="([^"]*)"`))?.[1]);
+const property = (html, name) =>
+  decode(html.match(new RegExp(`<meta property="${name}" content="([^"]*)"`))?.[1]);
+const titleOf = (html) => decode(html.match(/<title>([^<]*)<\/title>/)?.[1]);
+const canonicalOf = (html) => decode(html.match(/<link rel="canonical" href="([^"]*)"/)?.[1]);
+const jsonLdOf = (html) =>
+  Array.from(html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)).map((match) => match[1]);
+
+const seenTitles = new Map();
+const seenDescriptions = new Map();
+const seenCanonicals = new Map();
+
+for (const path of NEXORA_ECOSYSTEM_ROUTES) {
+  const meta = NEXORA_ECOSYSTEM_SEO[path];
+  const file = `dist${path}/index.html`;
+
+  assert.ok(existsSync(file), `${path} must ship its own prerendered document at ${file}`);
+  const html = readFileSync(file, 'utf8');
+
+  /* 1. The head is owned by this route, not by the homepage shell. */
+  assert.equal(titleOf(html), meta.title, `${path} serves its own <title>`);
+  assert.equal(attribute(html, 'description'), meta.description, `${path} serves its own description`);
+  assert.equal(attribute(html, 'robots'), 'index,follow', `${path} is indexable`);
+  assert.equal(canonicalOf(html), `${NEXORA_PUBLIC_ORIGIN}${path}`, `${path} canonicalises to itself`);
+  assert.equal(property(html, 'og:url'), `${NEXORA_PUBLIC_ORIGIN}${path}`, `${path} shares its own URL`);
+  assert.equal(property(html, 'og:title'), meta.title, `${path} shares its own title`);
+  assert.equal(property(html, 'og:description'), meta.description, `${path} shares its own description`);
+  assert.equal(property(html, 'og:image'), `${NEXORA_PUBLIC_ORIGIN}${meta.ogImagePath}`, `${path} shares the approved card`);
+  assert.equal(attribute(html, 'twitter:card'), 'summary_large_image', `${path} declares a Twitter card`);
+  assert.equal(attribute(html, 'twitter:title'), meta.title, `${path} declares its own Twitter title`);
+  assert.equal(attribute(html, 'theme-color'), meta.themeColor, `${path} mirrors the page brand colour`);
+  assert.notEqual(titleOf(html), NEXORA_HOME_SEO.title, `${path} must not inherit the homepage title`);
+  assert.notEqual(canonicalOf(html), NEXORA_HOME_SEO.canonicalUrl, `${path} must not canonicalise to the homepage`);
+
+  /* 2. Keyboard users can bypass the shared header and land at route content. */
+  const skipLink = html.match(/<a class="(?:ngr-skip|nexora-site-skip)" href="([^"]+)">([^<]+)<\/a>/);
+  assert.ok(skipLink, `${path} provides a visible-on-focus skip link`);
+  const skipTarget = decode(skipLink[1]);
+  assert.ok(skipTarget.startsWith('#') && html.includes(`id="${skipTarget.slice(1)}"`), `${path} skip link resolves to an existing content target`);
+
+  /* 3. The document really is this route's page, and only this route's page. */
+  assert.ok(html.includes(meta.contentMarker), `${path} document contains its own hero copy`);
+  for (const sibling of NEXORA_ECOSYSTEM_ROUTES.filter((entry) => entry !== path)) {
+    assert.ok(
+      !html.includes(NEXORA_ECOSYSTEM_SEO[sibling].contentMarker),
+      `${path} document must not contain the ${sibling} copy`,
+    );
+  }
+
+  /* 3. Structured data describes the same page the canonical points at. */
+  const blocks = jsonLdOf(html);
+  assert.equal(blocks.length, 1, `${path} ships exactly one JSON-LD block`);
+  const schema = JSON.parse(blocks[0]);
+  const graph = schema['@graph'] ?? [schema];
+  const page = graph.find((node) => node['@type'] === 'WebPage');
+  const breadcrumb = graph.find((node) => node['@type'] === 'BreadcrumbList');
+  assert.ok(page, `${path} declares a WebPage node`);
+  assert.equal(page.url, `${NEXORA_PUBLIC_ORIGIN}${path}`, `${path} WebPage url matches the canonical`);
+  assert.equal(page.name, meta.title, `${path} WebPage name matches the title`);
+  assert.ok(breadcrumb, `${path} declares a breadcrumb`);
+  const expectedTrail = NEXORA_BREADCRUMB_TRAILS[path];
+  assert.deepEqual(
+    breadcrumb.itemListElement.map(({ position, name, item }) => ({ position, name, item })),
+    expectedTrail.map((crumb, index) => ({
+      position: index + 1,
+      name: crumb.label,
+      item: crumb.href ? new URL(crumb.href, `${NEXORA_PUBLIC_ORIGIN}/`).toString() : `${NEXORA_PUBLIC_ORIGIN}${path}`,
+    })),
+    `${path} structured breadcrumb follows the authored route hierarchy`,
+  );
+  assert.equal(expectedTrail.at(-1)?.label, meta.label, `${path} breadcrumb label matches the shared route label`);
+
+  const breadcrumbMarkup = html.match(/<nav class="nx-breadcrumbs" aria-label="Breadcrumb">([\s\S]*?)<\/nav>/)?.[0];
+  assert.ok(breadcrumbMarkup, `${path} renders the accessible breadcrumb navigation`);
+  const breadcrumbItems = Array.from(breadcrumbMarkup.matchAll(/<li class="nx-breadcrumbs__item[^\"]*">([\s\S]*?)<\/li>/g));
+  assert.equal(breadcrumbItems.length, expectedTrail.length, `${path} renders every authored breadcrumb item`);
+  assert.equal((breadcrumbMarkup.match(/<a\b/g) ?? []).length, expectedTrail.length - 1, `${path} links every ancestor and no current page`);
+  assert.match(breadcrumbItems.at(-1)?.[1] ?? '', /aria-current="page"/, `${path} marks its current breadcrumb`);
+  assert.doesNotMatch(breadcrumbItems.at(-1)?.[1] ?? '', /<a\b/, `${path} keeps the current breadcrumb as plain text`);
+  assert.match(breadcrumbMarkup, /aria-hidden="true">›<\/span>/, `${path} hides separators from assistive technology`);
+
+  /* The prerendered shell must still boot the app so the page hydrates. */
+  assert.match(html, /<script type="module"[^>]*src="\/assets\/[^"]+\.js"/, `${path} loads the built entry script`);
+  assert.match(html, /<link rel="stylesheet"[^>]*href="\/assets\/[^"]+\.css"/, `${path} loads the built stylesheet`);
+
+  // Keep a built-CSS regression guard for Rewards. The page once shipped as
+  // visible HTML without its background and layout styles. It now takes them
+  // from the stylesheet its component imports (growth-rewards/growthRewards.css),
+  // so the guard looks for that stylesheet's hero and page background colours.
+  // verify-growth-partner-rewards.mjs checks every class of the page.
+  if (path === '/partner-rewards') {
+    const stylesheetPaths = Array.from(
+      html.matchAll(/<link rel="stylesheet"[^>]*href="([^"]+\.css)"/g),
+      (match) => `dist/${match[1].replace(/^\//, '')}`,
+    );
+    assert.ok(stylesheetPaths.length > 0, 'Partner Rewards emits at least one stylesheet');
+    const stylesheet = stylesheetPaths.map((assetPath) => {
+      assert.ok(existsSync(assetPath), `Built stylesheet exists: ${assetPath}`);
+      return readFileSync(assetPath, 'utf8');
+    }).join('\n');
+    assert.ok(stylesheet.includes('.npa-page'), 'Partner Rewards page styles are present in the built CSS');
+    assert.ok(stylesheet.includes('.npa-hero'), 'Partner Rewards hero styles are present in the built CSS');
+    assert.ok(stylesheet.includes('.npa-my-progress'), 'Partner Rewards live progress styles are present in the built CSS');
+  }
+  if (path === '/growth-partner-rewards') {
+    const stylesheetPaths = Array.from(
+      html.matchAll(/<link rel="stylesheet"[^>]*href="([^"]+\.css)"/g),
+      (match) => `dist/${match[1].replace(/^\//, '')}`,
+    );
+    assert.ok(stylesheetPaths.length > 0, 'Growth Partner Rewards emits at least one stylesheet');
+    const stylesheet = stylesheetPaths.map((assetPath) => {
+      assert.ok(existsSync(assetPath), `Built stylesheet exists: ${assetPath}`);
+      return readFileSync(assetPath, 'utf8');
+    }).join('\n');
+    assert.ok(
+      stylesheet.includes('#101827') && stylesheet.includes('#f8fafc'),
+      'Growth Partner Rewards hero and page background colours are included in the built CSS',
+    );
+  }
+  assert.ok(html.includes(`<div id="root">`), `${path} hydrates into the root element`);
+
+  for (const [map, value, label] of [
+    [seenTitles, titleOf(html), 'title'],
+    [seenDescriptions, attribute(html, 'description'), 'description'],
+    [seenCanonicals, canonicalOf(html), 'canonical'],
+  ]) {
+    assert.ok(!map.has(value), `${path} shares its ${label} with ${map.get(value)}`);
+    map.set(value, path);
+  }
+}
+
+/* 4. Every marketing route is served before the final dynamic salon fallback. */
+const vercel = JSON.parse(readFileSync('vercel.json', 'utf8'));
+const rewrites = vercel.rewrites.map((entry) => [entry.source, entry.destination]);
+const storefrontFallbackSource = '/:path((';
+const fallbackIndex = rewrites.findIndex(([source]) => source.startsWith(storefrontFallbackSource));
+assert.ok(fallbackIndex >= 0, 'The path-parameter storefront SSR fallback must exist');
+assert.equal(fallbackIndex, rewrites.length - 1, 'The storefront SSR fallback must stay the last rewrite');
+assert.ok(!rewrites.some(([source]) => source === '/(.*)'), 'A broad SPA catch-all must not shadow dynamic salon storefront URLs');
+for (const path of NEXORA_ECOSYSTEM_ROUTES) {
+  const index = rewrites.findIndex(([source]) => source === path);
+  assert.ok(index >= 0, `${path} must be served by its own rewrite`);
+  assert.equal(rewrites[index][1], `${path}/index.html`, `${path} rewrites to its document`);
+  assert.ok(index < fallbackIndex, `${path} must be resolved before the dynamic storefront fallback`);
+}
+
+/* 5. The sitemap lists each route once, without dropping the existing ones. */
+const sitemap = sitemapXml(NEXORA_PUBLIC_ORIGIN, []);
+const locations = Array.from(sitemap.matchAll(/<loc>([^<]*)<\/loc>/g)).map((match) => match[1]);
+for (const path of [...NEXORA_ECOSYSTEM_ROUTES, '/', '/salon-os', '/pricing', '/privacy']) {
+  const url = `${NEXORA_PUBLIC_ORIGIN}${path}`;
+  assert.equal(locations.filter((entry) => entry === url).length, 1, `${path} is listed exactly once`);
+}
+assert.equal(
+  new Set(locations).size,
+  locations.length,
+  'The sitemap contains no duplicate URL',
+);
+assert.ok(!sitemap.includes('vercel.app') && !sitemap.includes('localhost'), 'No preview host leaks into the sitemap');
+
+/* The routes stay outside the owner application and its API surface. */
+const router = readFileSync('src/AppRouter.tsx', 'utf8');
+for (const path of NEXORA_ECOSYSTEM_ROUTES) {
+  assert.ok(router.includes(`'${path}'`), `The router serves ${path} as a public route`);
+}
+
+/* The client renderer must own the same head as the build, from one source. */
+const page = readFileSync('src/components/nexora-landing/NexoraEcosystemPage.tsx', 'utf8');
+assert.ok(
+  page.includes('<NexoraEcosystemSeoHead path={path} />'),
+  'The shared marketing page applies its route metadata on the client, so the development server and a client entry agree with the built document',
+);
+const head = readFileSync('src/components/nexora-landing/NexoraEcosystemSeoHead.tsx', 'utf8');
+assert.ok(
+  head.includes('NEXORA_ECOSYSTEM_SEO[path]') && !/title:\s*['"]/.test(head),
+  'The client head reads the shared metadata source instead of duplicating route copy',
+);
+
+console.log(
+  `PASS: ${NEXORA_ECOSYSTEM_ROUTES.length} NEXORA marketing routes ship their own prerendered documents with unique titles, descriptions and canonicals, route-correct structured data, deployment rewrites ahead of the SPA fallback and single sitemap entries; the existing public routes are unchanged.`,
+);

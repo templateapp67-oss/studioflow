@@ -20,7 +20,7 @@ export function withTemplateDemos(published:Salon[],templates:CustomerTemplate[]
   const t=Object.hasOwn(CATEGORY_TEMPLATES,meta.id)?CATEGORY_TEMPLATES[meta.id]:null;
   if(!t||occupied.has(meta.id)||seen.has(meta.id))return [];
   seen.add(meta.id);
-  return [{slug:DEMO_TEMPLATE_PREFIX+meta.id,owner_id:'template:'+meta.id,demoTemplateId:meta.id,content:{
+  return [{slug:DEMO_TEMPLATE_PREFIX+meta.id,demoTemplateId:meta.id,content:{
    profile:{businessName:meta.title||t.title,businessType:t.id,tagline:meta.tagline||t.tagline,
     about:t.about,city:meta.defaultCity||t.defaultCity,coverImageUrl:meta.coverImageUrl||t.coverImageUrl,promoCampaign:meta.demoOffer,promoOffers:demoSalonOffers(t.id)},
    services:meta.services?.length?meta.services:t.services,stylists:(meta.stylists?.length?meta.stylists:t.stylists).map(s=>({...s,rating:undefined})),gallery:[],

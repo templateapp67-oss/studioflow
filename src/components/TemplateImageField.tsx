@@ -142,20 +142,17 @@ export type TemplateImageFieldProps = {
   templateValue?: string;
   hint?: string;
   compact?: boolean;
-  onBusyChange?: (busy: boolean) => void;
 };
 
 /** Shared NEXORA image field: template identity, client-side crop/compression and authenticated Storage upload. */
 export function TemplateImageField({
   templateId, templateName, templateNumber, categoryName, sectionLabel,
-  value = '', onChange, frame, templateValue, hint, compact = false, onBusyChange,
+  value = '', onChange, frame, templateValue, hint, compact = false,
 }: TemplateImageFieldProps) {
   const id = useId();
   const fileInput = useRef<HTMLInputElement>(null);
   const mounted = useRef(true);
   const busyRef = useRef(false);
-  const fieldIdentity = useRef(`${templateId}:${sectionLabel}`);
-  fieldIdentity.current = `${templateId}:${sectionLabel}`;
   const [busy, setBusy] = useState(false);
   const [urlInput, setUrlInput] = useState(value || '');
   const [error, setError] = useState('');
@@ -176,7 +173,6 @@ export function TemplateImageField({
   const setBusyState = (next: boolean) => {
     busyRef.current = next;
     setBusy(next);
-    onBusyChange?.(next);
   };
 
   const handleFile = async (file?: File) => {
@@ -192,18 +188,17 @@ export function TemplateImageField({
       setError('Choose an image up to 20 MB.');
       return;
     }
-    const identityAtStart = fieldIdentity.current;
     setBusyState(true);
     try {
       const processed = await processTemplateImage(file, frame);
       // uploadSalonImage requires a signed-in user and stores under studioflow-media/{auth.uid()}.
       const uploadedUrl = await uploadSalonImage(processed.file);
-      if (!mounted.current || fieldIdentity.current !== identityAtStart) return;
+      if (!mounted.current) return;
       onChange(uploadedUrl);
       setUrlInput(uploadedUrl);
       setNotice(`Uploaded and framed · ${processed.width} × ${processed.height}px · ${preset.label}.`);
     } catch (uploadError) {
-      if (mounted.current && fieldIdentity.current === identityAtStart) {
+      if (mounted.current) {
         setError(uploadError instanceof Error ? uploadError.message : 'The image could not be uploaded. Please try again.');
       }
     } finally {
@@ -216,7 +211,7 @@ export function TemplateImageField({
     if (busyRef.current) return;
     const next = urlInput.trim();
     if (!isSafeImageUrl(next)) {
-      setError('Use an HTTPS image URL or a same-site image path such as /templates/13/image.webp.');
+      setError('Use an HTTPS image URL or a same-site image path such as /templates/12/image.webp.');
       setNotice('');
       return;
     }
@@ -247,7 +242,7 @@ export function TemplateImageField({
       </div>
 
       <div className="tif-field-heading">
-        <label htmlFor={`${id}-url`}>{sectionLabel} image</label>
+        <label htmlFor={`${id}-url`}>{sectionLabel} URL</label>
         <span>{preset.label}</span>
       </div>
       <div className="tif-frame" data-frame={frame} style={{ aspectRatio: String(preset.ratio) }}>
@@ -275,8 +270,8 @@ export function TemplateImageField({
           inputMode="url"
           value={urlInput}
           disabled={busy}
-          placeholder="https://… or /templates/13/image.webp"
-          aria-label={`${sectionLabel} image URL`}
+          placeholder="https://… or /templates/12/image.webp"
+          aria-invalid={Boolean(error) && !isSafeImageUrl(urlInput)}
           onChange={(event) => { setUrlInput(event.target.value); setError(''); setNotice(''); }}
         />
         <button type="button" onClick={applyUrl} disabled={busy}>Apply URL</button>

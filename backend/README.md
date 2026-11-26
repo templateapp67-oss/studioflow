@@ -100,3 +100,45 @@ Bookings are unchanged: Template 10 books through `studioflow_available_slots` /
 Seed: `prism-chroma-template-10-seed.sql` refreshes the public `studioflow_templates` row (`hair_coloring`) with 13 services (8 colour services + 5 packages), 4 colourists, the `PRISM20` demo offer, and — when a published salon exists at `studioflow.demo_slug` (default `prism-chroma-demo`) — three dated offers and one approved studio-introduction review. Existing owner rows are matched by title/code and never overwritten.
 
 Verification: `node scripts/verify-prism-chroma-live.mjs` (offline, renders the live review/offer/enquiry/newsletter surfaces and asserts the migration/seed contract). The migration is also applied by `node scripts/verify-sql-migrations.mjs`.
+
+## Edge Functions: source and deployment
+
+Every Edge Function lives in `supabase/functions/<name>/` — the only folder the Supabase CLI
+deploys from. That single copy is both the deployment source and the source the offline
+verification scripts import, so the two can never drift apart.
+
+| Function | Auth boundary | Deploy |
+| --- | --- | --- |
+| `studioflow-booking-emails` | Own JWT check, then reads the booking through RLS; recipient comes from the stored booking | `--no-verify-jwt` (GET status + OPTIONS must answer unauthenticated) |
+| `studioflow-payments` | Own check: `getUser`, `x-worker-token` worker RPC, or `x-razorpay-signature` webhook | `--no-verify-jwt` (webhook + worker + GET status) |
+| `studioflow-welcome-whatsapp` | Own check: confirmed-user JWT or `x-worker-token` worker RPC | `--no-verify-jwt` |
+| `studioflow-map-locations` | Public by design: validates this project's anon/`apikey` header, not a user | `--no-verify-jwt` |
+| `studioflow-service-ai-images` | Own check: any signed-in user via `getUser` | `--no-verify-jwt` |
+| `studioflow-campaign-whatsapp` | Own check: signed-in salon owner + origin allowlist + `STUDIOFLOW_MARKETING_OWNER_ID` | `--no-verify-jwt` |
+| `submit-landing-lead` | Own check: service-role bearer for the server path, rate-limited public form path | `--no-verify-jwt` |
+| `nexora-mobile-qr` | Own check: `getUser` (service client) | `--no-verify-jwt` |
+| `iron-ink-public` | Public read surface; anon key + RLS and validated RPCs. Never add a service-role key | `--no-verify-jwt` |
+| `snapshot-accounts` | Own check: constant-time compare against `SUPABASE_SERVICE_ROLE_KEY` of the bearer `pg_cron` sends | `--no-verify-jwt` (the service-role bearer is not a user JWT, so the gateway cannot validate it) |
+
+Every function above validates its own caller, so `--no-verify-jwt` does not widen access: the
+JWT, origin, worker-token, signature or service-role check inside the function is what decides.
+Deploying `snapshot-accounts` *with* gateway verification would break the cron, because the
+service-role key is not a user JWT — its own check is the authorization boundary.
+`scripts/verify-edge-functions.mjs` asserts that every function has an authorization check, so a
+new public function cannot slip in without one.
+
+```bash
+supabase functions deploy <name> --project-ref <ref> --no-verify-jwt
+supabase secrets set --env-file .env   # values listed in .env.example
+```
+
+Secrets come from `.env.example` (`RESEND_*`, `RAZORPAY_*`, `NEXORA_WA_*`,
+`STUDIOFLOW_MARKETING_*`, `STUDIOFLOW_GEOCODER_URL`). `SUPABASE_URL`, `SUPABASE_ANON_KEY` and
+`SUPABASE_SERVICE_ROLE_KEY` are supplied by the Edge runtime. After deploy, confirm each function
+shows ACTIVE in the Supabase dashboard and that `GET` on the function URL returns
+`{"status":"ok",...}` where the function supports it; the browser calls all of them through
+`supabase.functions.invoke`.
+
+Guard: `node scripts/verify-edge-functions.mjs` fails the build if a function folder is missing,
+if an app-invoked function has no source, or if any file starts pointing at the retired
+backend functions tree again.

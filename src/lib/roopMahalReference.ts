@@ -155,12 +155,14 @@ export function hasOwnerCustomPhoto(profile: SalonProfile): boolean {
 
 export function hasOwnerCustomTagline(profile: SalonProfile): boolean {
   const tagline = profile.tagline?.trim();
+  if (tagline && profile.taglineEditedByOwner === true) return true;
   if (!tagline || isLegacyRoopStockTagline(tagline)) return false;
   return !Object.values(CATEGORY_TEMPLATES).some((t) => t.tagline === tagline);
 }
 
 export function hasOwnerCustomAbout(profile: SalonProfile): boolean {
   const about = profile.about?.trim();
+  if (about && profile.aboutEditedByOwner === true) return true;
   if (!about) return false;
   return !Object.values(CATEGORY_TEMPLATES).some(
     (t) => t.id !== 'beauty_parlour' && t.about === about,

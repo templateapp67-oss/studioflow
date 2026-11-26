@@ -19,6 +19,7 @@ import { workspaceSnapshot } from '../src/lib/workspaceSync';
 import { supabase } from '../src/lib/supabase';
 import {
   VOGUE_NOIR_BRAND_NAME,
+  VOGUE_NOIR_HERO_HEADING,
   VOGUE_NOIR_DEFAULT_COLORS,
   upcomingAcademyBatchDates,
   parseAcademySchedules,
@@ -131,7 +132,7 @@ for (const token of expectedSectionOrder) {
 for (const colorHex of Object.values(VOGUE_NOIR_DEFAULT_COLORS)) {
   assert.ok(html.includes(colorHex), `Default theme color ${colorHex} must be applied via CSS custom properties`);
 }
-assert.ok(html.includes('Luxury Makeup, Made For Every Indian Bride'));
+assert.ok(html.includes(VOGUE_NOIR_HERO_HEADING), 'the current plain-language hero heading renders');
 assert.ok(html.includes('Book Appointment') && html.includes('Join Academy'));
 for (const stat of ['8+', '5,000+', '1,200+', '11']) assert.ok(html.includes(stat), `Missing stat ${stat}`);
 for (const tier of ['Classic Dulhan', 'Signature Dulhan', 'Royal Dulhan', 'Most Popular', '₹35,000', '₹60,000', '₹1,25,000']) {
@@ -386,7 +387,7 @@ await db.exec(`
 const sqlMigration = readFileSync('backend/vogue-noir-template-08.sql', 'utf8');
 await db.exec(sqlMigration);
 await db.exec(sqlMigration); // idempotent rerun
-const cityMigration = readFileSync('supabase/migrations/202610290001_vogue_noir_academy_city.sql', 'utf8');
+const cityMigration = readFileSync('supabase/pending-features/202610290001_vogue_noir_academy_city.sql', 'utf8');
 await db.exec(cityMigration);
 await db.exec(cityMigration);
 

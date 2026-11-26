@@ -6,6 +6,7 @@ const db = new PGlite();
 await db.exec(`
 create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls;
 create schema auth;
+create table public.app_admins(user_id uuid primary key);
 create table auth.users(id uuid primary key,email text,raw_user_meta_data jsonb,raw_app_meta_data jsonb,banned_until timestamptz,deleted_at timestamptz,is_anonymous boolean);
 create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
 create function auth.role() returns text language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claim.role',true),''),current_user)$$;
@@ -89,12 +90,16 @@ for (let round = 0; round < 12 && pending.size; round++) {
 }
 assert.equal(pending.size, 0, 'Backend migrations converged');
 
-await db.exec(readFileSync('supabase/migrations/202610300003_template12_iron_ink.sql', 'utf8'));
-await db.exec(readFileSync('supabase/migrations/202610300004_multibranch_support.sql', 'utf8'));
-await db.exec(readFileSync('supabase/migrations/202611020001_ziya_promotions_and_loyalty.sql', 'utf8'));
+// Match timestamp order: shared multibranch support and social videos,
+// then Ziya's migration, followed by the reconciled Template 12 version.
+await db.exec(readFileSync('supabase/pending-features/202610300004_multibranch_support.sql', 'utf8'));
+await db.exec(readFileSync('supabase/pending-features/202610300005_iron_ink_social_videos.sql', 'utf8'));
+await db.exec(readFileSync('supabase/pending-features/202611020001_ziya_promotions_and_loyalty.sql', 'utf8'));
+await db.exec(readFileSync('supabase/migrations/20261113120946_template12_iron_ink.sql', 'utf8'));
+await db.exec(readFileSync('supabase/pending-features/20261113120947_multibranch_template12_support.sql', 'utf8'));
 
 // 1. Idempotency: re-applying the Ziya migration a second time must succeed cleanly
-await db.exec(readFileSync('supabase/migrations/202611020001_ziya_promotions_and_loyalty.sql', 'utf8'));
+await db.exec(readFileSync('supabase/pending-features/202611020001_ziya_promotions_and_loyalty.sql', 'utf8'));
 
 // 2. Verify RLS is enabled on all 5 Ziya tables
 const rlsRes = await db.query(`
@@ -289,8 +294,11 @@ assert.equal(Number(quoteZiya15.discountAmount), 142.5);
 assert.equal(Number(quoteZiya15.finalPrice), 807.5);
 assert.equal(Number(quoteZiya15.advanceAmount), 201.88);
 
-// 5d. Confirm booking with ZIYA15 via studioflow_coupon_book
-const futureDate = '2026-11-18';
+// 5d. Confirm booking with ZIYA15 via studioflow_coupon_book.
+// Use next week's Wednesday in salon time so the fixture never expires.
+const { rows: [{ date: futureDate }] } = await db.query(`
+  select (date_trunc('week', now() at time zone 'Asia/Kolkata')::date + 9)::text as date
+`);
 const bookedZiya15Row = await asUser(customerA, 'authenticated', async () => {
   const res = await db.query(
     `select public.studioflow_coupon_book('ziya-hair-studio', $1::jsonb) as booking`,
@@ -462,7 +470,9 @@ const enqRes = await asUser(null, 'anon', async () => {
       p_email => 'ananya@example.com',
       p_service_name => 'Butterfly Haircut',
       p_message => 'My hair is waist-length wavy — looking for face-framing butterfly layers.',
-      p_preferred_date => '2026-11-20'::date
+      -- Relative, not pinned: the RPC only accepts today..today+120, so a
+      -- hard-coded date turns this suite red once that day passes.
+      p_preferred_date => (current_date + 3)::date
     ) as enquiry`,
   );
   return res.rows[0].enquiry;

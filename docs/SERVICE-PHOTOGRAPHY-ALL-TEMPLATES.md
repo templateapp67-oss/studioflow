@@ -60,7 +60,7 @@ copyable ChatGPT brief and the in-app API request:
 2. **Generate 3 AI images** — `ServiceImageTemplates` calls the
    `studioflow-service-ai-images` edge function with
    `{name, category, description, businessType}`. The backend
-   (`backend/functions/studioflow-service-ai-images/core.ts`) carries its own
+   (`supabase/functions/studioflow-service-ai-images/core.ts`) carries its own
    copy of the 16 category toolkits and composes the same mandatory rules, so
    API renders stay category-accurate. Billing, network and pending states are
    surfaced explicitly; no stock photo is ever substituted.

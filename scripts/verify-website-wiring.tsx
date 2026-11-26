@@ -35,6 +35,9 @@ import {Header} from '../src/components/Header';
 import {socialUrl, WEBSITE_SECTIONS} from '../src/lib/websiteContent';
 import { applyTemplateDesign } from '../src/lib/templateSelection';
 import { normalizeWorkspace } from '../src/lib/normalizeWorkspace';
+import { LUXURY_EDITORIAL_COPY } from '../src/lib/luxuryEditorial';
+import { VOGUE_NOIR_HERO_HEADING } from '../src/lib/vogueNoir';
+import { ARCH_FLUTTER_HERO_KICKER } from '../src/lib/archFlutter';
 import { WebsiteSections } from '../src/components/WebsiteSections';
 import { InlineEditable } from '../src/components/InlineEditable';
 import { DEFAULT_LOYALTY_CONFIG } from '../src/loyaltyData';
@@ -189,8 +192,9 @@ for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_h
   assert.ok(!html.includes('data-layout="dock"'),'Arch & Flutter keeps one navigation in the sticky header');
   for(const leak of ['Rich warm mood','Verified checkout','Verified client','Choose for online booking'])assert.ok(!html.includes(leak),`Arch & Flutter must not leak shared design-reference copy: ${leak}`);
   assert.ok(html.includes('Test Studio'),'Arch & Flutter hero shows the saved salon name');
-  assert.ok(html.includes('af-hero-title')&&html.includes('Confidence.'),'Arch & Flutter hero keeps its brand headline');
-  assert.ok(html.includes('Lash &amp; Brow Atelier'),'Arch & Flutter hero keeps its atelier kicker');
+  const heroTitle=html.match(/<h1[^>]*id="af-hero-title"[^>]*>([\s\S]*?)<\/h1>/)?.[1]||'';
+  assert.ok(heroTitle.includes('Lash')&&heroTitle.includes('brow')&&heroTitle.includes('you'),'Arch & Flutter current animated headline renders');
+  assert.ok(html.includes(ARCH_FLUTTER_HERO_KICKER.replace('&','&amp;')),'Arch & Flutter renders its current studio kicker');
   assert.ok(html.includes('GST included · UPI accepted'),'Arch & Flutter publishes GST-inclusive ₹ pricing and UPI');
   const nav=html.match(/<nav class="af-nav-links"[\s\S]*?<\/nav>/)?.[0]||'';
   for(const label of ['Services','Packages','Gallery','Team','Offers','Journal','About','Contact'])assert.ok(nav.includes(label),`Arch & Flutter nav shows ${label}`);
@@ -295,7 +299,7 @@ if(['hair_salon','unisex_salon','hair_spa','makeup_studio','massage_wellness','h
 }else assert.ok(html.includes('Rich warm mood'));
 if(['hair_salon','unisex_salon','hair_spa','makeup_studio','massage_wellness','hair_coloring'].includes(template.id))assert.ok(!html.includes('Verified checkout'),'Editorial demo must not imply an active verified checkout');else assert.ok(html.includes('Verified checkout'));assert.ok(html.includes('Service categories'));
  // Templates 06 and 08 name their booking action in the studio's own words.
- if(template.id==='hair_salon'){assert.ok(html.includes('Book Haircut'),'Ziya Women’s Hair Studio service cards expose the booking action');assert.ok(html.includes('Book Appointment'),'Ziya Women’s Hair Studio header carries the booking CTA');assert.ok(html.includes('Your Hair, Your Style, Your Confidence')&&html.includes('Specialists in Women’s Haircuts'));}
+ if(template.id==='hair_salon'){assert.ok(html.includes('Book Haircut'),'Ziya Women’s Hair Studio service cards expose the booking action');assert.ok(html.includes(LUXURY_EDITORIAL_COPY.heroPrimaryCta),'Ziya header carries its configured booking CTA');assert.ok(html.includes(LUXURY_EDITORIAL_COPY.heroHeadline)&&html.includes(LUXURY_EDITORIAL_COPY.aboutTitle),'Ziya renders its current hero and about copy');}
  else if(template.id==='unisex_salon'){assert.ok(html.includes('Book Now'),'Aura service cards expose the booking action in simple words');assert.ok(html.includes('Book Appointment'),'Aura header carries the booking CTA');}
  else if(template.id==='hair_spa')assert.ok(html.includes('Book this service'),'hair spa service cards expose the booking action');else if(template.id==='makeup_studio')assert.ok(html.includes('>Book<')&&html.includes('Book Appointment'),'Vogue Noir service cards expose the booking action');else if(template.id==='massage_wellness')assert.ok(html.includes('Book Now'),'Bodhi Tree service cards expose the booking action in simple words');else if(template.id==='hair_coloring')assert.ok(html.includes('Book Now'),'Prism & Chroma service cards expose the booking action in simple words');else if(template.id==='bridal_lounge'){assert.ok(html.includes('aria-label="Book '),'Shringaar Royal ritual tiles expose a book action');assert.ok(html.includes('Book Consultation'),'Shringaar Royal hero and header carry the consultation CTA');}else assert.ok(html.includes('Choose for online booking'));
  assert.ok(!html.includes('Verified client'),'Owner-entered reviews must not be labelled verified by default');
@@ -356,13 +360,13 @@ try{
 
 for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')) {
  const initial=normalizeWorkspace({profile:{...INITIAL_SALON_PROFILE,businessType:template.id,websiteTestimonials:[]},extras:{gallery:[]}});
- if(template.id==='hair_spa'){ // Template 06 ships no bundled testimonials: reviews only appear once real ones are published.
-  assert.equal(initial.profile.websiteTestimonials.length,0,'hair_spa must not seed demo reviews');
+ if(template.id==='hair_spa'||template.id==='aurelia_beauty_parlour'){ // These templates ship no seeded testimonials; only owner-published stories may appear.
+  assert.equal(initial.profile.websiteTestimonials.length,0,`${template.id} must not seed demo reviews`);
  }else{
   assert.equal(initial.profile.websiteTestimonials.length,3,template.id);assert.ok(initial.profile.websiteTestimonials.every(r=>r.isDemo&&!r.verified));
  }
  assert.ok(initial.extras.gallery.length>=4,template.id);
- const html=renderToStaticMarkup(<SalonWebsitePreview profile={initial.profile} services={[]} stylists={[]} gallery={initial.extras.gallery} readOnly onAddAppointment={async apt=>apt}/>);if(template.id==='hair_spa'){assert.ok(html.includes('Rooted in'),'hair spa renders its own philosophy copy');assert.ok(html.includes('THE SERVICE MENU'),'hair spa owns a single service catalogue');assert.ok(!html.includes('Demo testimonial'),'Hair spa never presents sample reviews as authentic');assert.ok(html.includes('Demo / sample'));assert.ok(!html.includes('4.97')&&!html.includes('390 experiences'),'hair_spa must not print an invented average rating or review count');assert.ok(!html.includes('id="testimonials"'),'no empty testimonials section without published reviews');}else if(template.id==='skincare_clinic'){assert.ok(!html.includes('Demo testimonial'));assert.ok(!html.includes('PATIENT EXPERIENCES'));}else if(template.id==='makeup_studio'){assert.ok(html.includes('Luxury Makeup, Made For Every Indian Bride'),'Vogue Noir renders its current default hero heading');assert.ok(html.includes('id="portfolio"'));assert.ok(!html.includes('Verified client'));}else if(template.id==='massage_wellness'){
+ const html=renderToStaticMarkup(<SalonWebsitePreview profile={initial.profile} services={[]} stylists={[]} gallery={initial.extras.gallery} readOnly onAddAppointment={async apt=>apt}/>);if(template.id==='hair_spa'){assert.ok(html.includes('Rooted in'),'hair spa renders its own philosophy copy');assert.ok(html.includes('THE SERVICE MENU'),'hair spa owns a single service catalogue');assert.ok(!html.includes('Demo testimonial'),'Hair spa never presents sample reviews as authentic');assert.ok(html.includes('Demo / sample'));assert.ok(!html.includes('4.97')&&!html.includes('390 experiences'),'hair_spa must not print an invented average rating or review count');assert.ok(!html.includes('id="testimonials"'),'no empty testimonials section without published reviews');}else if(template.id==='skincare_clinic'){assert.ok(!html.includes('Demo testimonial'));assert.ok(!html.includes('PATIENT EXPERIENCES'));}else if(template.id==='aurelia_beauty_parlour'){assert.ok(!html.includes('Demo testimonial'),'Aurelia never presents sample testimonials as real client feedback');assert.ok(!html.includes('Verified client'));}else if(template.id==='makeup_studio'){ assert.ok(html.includes(VOGUE_NOIR_HERO_HEADING),'Vogue Noir renders its current default hero heading');assert.ok(html.includes('id="portfolio"'));assert.ok(!html.includes('Verified client'));}else if(template.id==='massage_wellness'){
 // Template 09 (Bodhi Tree) renders its own Jaipur guest reviews and gallery,
 // never the generic demo labels or verified-client claims.
 assert.ok(!html.includes('Demo testimonial'),'Bodhi Tree never prints the generic demo testimonial label');

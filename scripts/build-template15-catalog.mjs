@@ -25,7 +25,7 @@ const run = spawnSync(process.execPath, ["--input-type=module"], {
 });
 if (run.status !== 0) throw new Error(run.stderr);
 const cfg = JSON.stringify(JSON.parse(run.stdout));
-const path = "supabase/migrations/202611030003_template15_keshkraft.sql";
+const path = "supabase/pending-features/202611030003_template15_keshkraft.sql";
 const sql = readFileSync(path, "utf8");
 const seed = `insert into public.studioflow_templates(id,title,config,active) values('mens_hair_studio','KeshKraft Men''s Hair Studio','${cfg.replaceAll("'", "''")}'::jsonb,true) on conflict(id) do nothing;`;
 writeFileSync(

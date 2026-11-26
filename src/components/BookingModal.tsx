@@ -268,7 +268,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     if(!isOpen)return;let active=true;setSlotsLoading(true);setSlotsError('');setBookingTime('');
     if(!bookingServiceIds.length||!specialistsReady||!eligibleStylists.length||(branchChoices.length>1&&!selectedBranchId)){setSlotsLoading(false);setAvailableSlots([]);return()=>{active=false;};}
     const slotStylist=selectedStylist.id;
-    const slotsRequest=profile.businessType==='mens_hair_studio'&&bookingServiceIds.length===1?supabase.rpc('studioflow_mens_slots',{p_slug:profile.subdomain,p_service_id:selectedService?.id,p_date:bookingDate,p_stylist_id:slotStylist}):selectedBranchId
+    const slotsRequest=profile.businessType==='mens_hair_studio'&&bookingServiceIds.length===1?supabase.rpc('studioflow_mens_slots',{p_slug:profile.subdomain,p_service_id:selectedService?.id,p_date:bookingDate,p_stylist_id:slotStylist,p_branch:selectedBranchId||null}):selectedBranchId
       ? (bookingServiceIds.length>1
         ? supabase.rpc('studioflow_branch_android_slots',{p_slug:profile.subdomain,p_services:bookingServiceIds,p_date:bookingDate,p_stylist:slotStylist,p_branch:selectedBranchId})
         : supabase.rpc('studioflow_branch_available_slots',{p_slug:profile.subdomain,p_service_id:selectedService?.id,p_date:bookingDate,p_stylist:slotStylist,p_branch:selectedBranchId}))
@@ -630,7 +630,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         initial={reducedMotion ? false : { opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={reducedMotion ? undefined : { opacity: 0, scale: 0.95, y: 15 }}
-        ref={dialogRef} role="dialog" aria-modal="true" aria-label="Book an appointment" className="sf-booking-dialog bg-white text-slate-800"
+        ref={dialogRef} data-testid="booking-modal" role="dialog" aria-modal="true" aria-label="Book an appointment" className="sf-booking-dialog bg-white text-slate-800"
       >
         {/* MODAL HEADER */}
         <div className="sf-booking-header border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
@@ -888,6 +888,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   <div className="flex-1">
                     <input
                       type="date" aria-label="Appointment date"
+                      data-testid="booking-date-input"
                       value={bookingDate}
                       min={todayStr}
                       max={maxDateStr}
@@ -922,6 +923,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       <button
                         type="button"
                         key={slot.time}
+                        data-testid="booking-slot-btn"
+                        data-slot-time={slot.time}
+                        data-slot-available={String(slot.available)}
                         onClick={() => setBookingTime(slot.time)}
                         disabled={!slot.available || slotsLoading}
                         className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
@@ -1018,6 +1022,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   <input
                     type="text"
                     required
+                    data-testid="booking-guest-name"
                     value={guestName}
                     onChange={(e) => {setGuestName(e.target.value);if (guestNameError) setGuestNameError('');}}
                     placeholder="e.g. Aarti Sharma"
@@ -1050,6 +1055,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     <input
                       type="tel"
                       required
+                      data-testid="booking-guest-phone"
                       maxLength={14}
                       value={guestPhone}
                       onChange={(e) => {
@@ -1085,6 +1091,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                   <input
                     type="email"
+                    data-testid="booking-guest-email"
                     value={guestEmail}
                     onChange={(e) => setGuestEmail(e.target.value)}
                     placeholder="name@example.in"
@@ -1169,9 +1176,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
               <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-sm"><strong>Secure platform checkout · 25% advance</strong><p className="mt-2">Pay ₹{advanceTokenAmount.toLocaleString('en-IN')} now via Razorpay. Balance ₹{(totalPrice-advanceTokenAmount).toLocaleString('en-IN')} {taxExcluded ? 'before GST ' : ''}is due at the salon.</p><p className="mt-2 text-xs">Your appointment confirms after the platform verifies payment. Unpaid reservations expire after 15 minutes.</p></div>
               {taxExcluded && <p role="note" className="p-3 rounded-xl bg-amber-50 text-amber-900 text-sm">GST is not included in the amount shown or calculated by this checkout. Please confirm the final tax and balance with the studio.</p>}
-              {gatewayError&&<p role="alert" className="p-3 rounded-xl bg-amber-50 text-amber-900 text-sm">{gatewayError}</p>}
+              {gatewayError&&<p data-testid="booking-gateway-error" role="alert" className="p-3 rounded-xl bg-amber-50 text-amber-900 text-sm">{gatewayError}</p>}
 
-              {submitError && <p role="alert" className="rounded-xl bg-red-50 p-3 text-red-700 text-sm">{submitError}</p>}
+              {submitError && <p data-testid="booking-submit-error" role="alert" className="rounded-xl bg-red-50 p-3 text-red-700 text-sm">{submitError}</p>}
               {reservedBooking.current&&<button type="button" disabled={isSubmitting} className="text-sm underline" onClick={async()=>{setIsSubmitting(true);setSubmitError('');try{const saved=await reconcileBookingPayment(reservedBooking.current!.id);setServerStatus(saved.status);setPaidAmount(saved.amountPaid);setBookingRef(saved.id);setCurrentStep('confirmed');}catch(error){setSubmitError(error instanceof Error?error.message:'Could not verify payment');}finally{setIsSubmitting(false);}}}>Recheck payment status</button>}
               </motion.div>
           )}
@@ -1226,7 +1233,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 <div className="flex justify-between items-center">
                   <span className="text-slate-500 font-sans">Booking Reference:</span>
                   <div className="flex items-center gap-1.5">
-                    <strong className="text-slate-900 bg-white px-2.5 py-1 rounded-lg border border-slate-300 font-bold text-sm tracking-wider">
+                    <strong data-testid="booking-confirmed-ref" className="text-slate-900 bg-white px-2.5 py-1 rounded-lg border border-slate-300 font-bold text-sm tracking-wider">
                       {bookingRef}
                     </strong>
                     <button
@@ -1359,6 +1366,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         {currentStep!=='confirmed'&&<footer className="sf-booking-actions">{currentStep === 'service' && (<>{/* Step Navigation Action */}
               <button
                 type="button"
+                data-testid="booking-next-datetime"
                 onClick={() => setCurrentStep('datetime')}
                 disabled={!bookingServiceIds.length||!specialistsReady||!eligibleStylists.length}
                 className="w-full py-3 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95 active:scale-[0.99] mt-2"
@@ -1379,6 +1387,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </button>
                 <button
                   type="button"
+                  data-testid="booking-next-guest"
                   onClick={() => setCurrentStep('guest')}
                   disabled={!bookingTime || slotsLoading || !specialistsReady || !eligibleStylists.length}
                   className="flex-1 py-3 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95"
@@ -1400,6 +1409,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </button>
                 <button
                   type="submit" form={guestFormId}
+                  data-testid="booking-next-payment"
                   className="flex-1 py-3 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95"
                   style={actionStyle}
                 >
@@ -1420,6 +1430,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </button>
                 <button
                   type="button"
+                  data-testid="booking-pay-submit"
                   onClick={handleFinalSubmitBooking}
                   disabled={!bookingServiceIds.length || !bookingTime || !specialistsReady || !eligibleStylists.length || isSubmitting || !gatewayReady || coupon.busy || (!reservedBooking.current && !!coupon.code.trim() && !coupon.quote)}
                   className="flex-1 py-3.5 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95"

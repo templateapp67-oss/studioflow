@@ -1,0 +1,341 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "NEXORA WhatsApp Booking — Test Mode",
+    "version": "1.0.0",
+    "description": "Connect Tawk AI Assist to NEXORA's published service catalogue and live slot availability. The test-booking operation writes only to a private QA table. It does not create or reserve a real appointment, send a payment request, or award loyalty points."
+  },
+  "servers": [
+    {
+      "url": "https://zilwgiuiygqqardzutxi.supabase.co/functions/v1/studioflow-whatsapp-booking"
+    }
+  ],
+  "security": [
+    {
+      "NexoraBookingKey": []
+    }
+  ],
+  "paths": {
+    "/catalogue": {
+      "post": {
+        "operationId": "getNexoraSalonCatalogue",
+        "summary": "Get salon services and specialists",
+        "description": "Use this to read current published services, prices, duration, available specialists and active branches. Do not invent services or prices.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "slug"
+                ],
+                "properties": {
+                  "slug": {
+                    "type": "string",
+                    "example": "vijaysalojaipur"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Published salon catalogue",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogueResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/availability": {
+      "post": {
+        "operationId": "checkNexoraLiveAvailability",
+        "summary": "Check real calendar availability",
+        "description": "Reads actual available times from NEXORA's existing live calendar and staff/branch rules. It does not reserve a slot. Call again immediately before the test-booking operation.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilityRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Available times read from the live calendar",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Service is no longer available"
+          }
+        }
+      }
+    },
+    "/test-booking": {
+      "post": {
+        "operationId": "saveNexoraWhatsAppTestBooking",
+        "summary": "Save an isolated WhatsApp booking test",
+        "description": "Only call after the customer explicitly agrees to the displayed salon, services, date, time and specialist and customerConfirmed is true. This saves a TEST-ONLY simulation record after rechecking live availability. It does NOT book the appointment, reserve the time, create a calendar entry, send a payment request or award points. Always tell the customer it is a test and no real booking has been made.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestBookingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Test record saved only; no real appointment created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestBookingResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Requested live slot is no longer available or request ID conflicts"
+          },
+          "429": {
+            "description": "Test request rate limit reached"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "NexoraBookingKey": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "NEXORA Tawk API key"
+      }
+    },
+    "schemas": {
+      "CatalogueResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "test_only"
+            ]
+          },
+          "salon": {
+            "type": "object"
+          },
+          "services": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "specialists": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "branches": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "notice": {
+            "type": "string"
+          }
+        }
+      },
+      "AvailabilityRequest": {
+        "type": "object",
+        "required": [
+          "slug",
+          "serviceIds",
+          "date"
+        ],
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "serviceIds": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 10,
+            "items": {
+              "type": "string"
+            }
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "stylistId": {
+            "type": "string",
+            "default": "any"
+          },
+          "branchId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "AvailabilityResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "test_only"
+            ]
+          },
+          "salon": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "durationMinutes": {
+            "type": "integer"
+          },
+          "totalPriceINR": {
+            "type": "number"
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "notice": {
+            "type": "string"
+          }
+        }
+      },
+      "TestBookingRequest": {
+        "type": "object",
+        "required": [
+          "slug",
+          "serviceIds",
+          "date",
+          "time",
+          "stylistId",
+          "customerName",
+          "customerPhone",
+          "requestId",
+          "customerConfirmed"
+        ],
+        "properties": {
+          "slug": {
+            "type": "string",
+            "example": "vijaysalojaipur"
+          },
+          "serviceIds": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 10,
+            "items": {
+              "type": "string"
+            }
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "time": {
+            "type": "string",
+            "pattern": "^(?:[01]\\d|2[0-3]):[0-5]\\d$"
+          },
+          "stylistId": {
+            "type": "string",
+            "description": "Use the exact stylistId returned by availability; do not send a guessed name."
+          },
+          "branchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customerName": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 100
+          },
+          "customerPhone": {
+            "type": "string",
+            "description": "WhatsApp number in international format. Ten-digit Indian numbers are normalized to +91."
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "requestId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Generate once per customer confirmation and reuse unchanged for retries."
+          },
+          "customerConfirmed": {
+            "type": "boolean",
+            "enum": [
+              true
+            ],
+            "description": "Set true only after the customer explicitly confirms the full appointment summary in this chat."
+          }
+        }
+      },
+      "TestBookingResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "test_only"
+            ]
+          },
+          "idempotentRetry": {
+            "type": "boolean"
+          },
+          "testBooking": {
+            "type": "object"
+          },
+          "calendarReserved": {
+            "type": "boolean",
+            "enum": [
+              false
+            ]
+          },
+          "customerMessage": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
