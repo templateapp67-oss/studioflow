@@ -16,6 +16,10 @@ const appliedVersions=new Set([
 ]);
 const listedPending=(history.release_pending_migrations||[])
   .map(record=>record.file.split('_',1)[0]).sort();
+for (const pending of history.release_pending_migrations || []) {
+  assert.equal(pending.approval, 'pending_owner_review',
+    'Pending migration must remain behind explicit owner review: ' + pending.file);
+}
 const localNotApplied=[...localSet].filter(version=>!appliedVersions.has(version)).sort();
 const appliedWithoutSource=[...appliedVersions].filter(version=>!localSet.has(version)).sort();
 assert.deepEqual(localNotApplied,listedPending,
