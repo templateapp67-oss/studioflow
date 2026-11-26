@@ -350,8 +350,7 @@ jobs:
         # Per-function JWT settings come from config.toml. Never globally
         # disable JWT verification or prune unrelated shared-project functions.
         # The protected manual release confirms the deploy before the CI job runs.
-        # submit-landing-lead carries the PR #163 lead rate-limit/salt changes,
-        # so it must be redeployed alongside the reviewed WhatsApp/payment set.
+        # Keep this allowlist aligned with the tracked Edge Function entrypoints.
         run: >-
           supabase functions deploy
           submit-landing-lead

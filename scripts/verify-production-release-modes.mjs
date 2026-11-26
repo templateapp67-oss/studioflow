@@ -680,21 +680,24 @@ const deployedFunctions = deployRun
   .map((line) => line.trim())
   .filter((line) => /^[a-z0-9-]+(\s+[a-z0-9-]+)*$/.test(line) && !line.startsWith('supabase'))
   .flatMap((line) => line.split(/\s+/));
-assert(deployedFunctions.length >= 5, `expected the reviewed function set, parsed ${deployedFunctions.length}`);
+const trackedFunctions = readdirSync('supabase/functions', { withFileTypes: true })
+  .filter(entry => entry.isDirectory() && existsSync(join('supabase/functions', entry.name, 'index.ts')))
+  .map(entry => entry.name);
+assert.deepEqual([...deployedFunctions].sort(), trackedFunctions.sort(),
+  'Production must deploy every tracked Edge Function exactly once');
 for (const name of deployedFunctions) {
-  const block = supabaseConfig.split(`[functions.${name}]`)[1];
-  assert(block, `Production deploys ${name} but supabase/config.toml has no [functions.${name}] entry; the CLI would deploy it with the gateway default verify_jwt = true`);
-  const verifyJwt = block.split('\n').map((line) => line.trim()).find((line) => line.startsWith('verify_jwt'));
-  assert(verifyJwt, `[functions.${name}] must state verify_jwt explicitly`);
+  const block = supabaseConfig.split(`[functions.${name}]`)[1]?.split(/^\s*\[/m)[0];
+  assert.match(block ?? '', /^\s*verify_jwt\s*=\s*(?:true|false)\s*$/m,
+    `[functions.${name}] must state verify_jwt explicitly in its own config block`);
 }
 // The container's last entry must not bleed into the next function.
 assert(!/[^#]\n\[functions\./.test(supabaseConfig.slice(0, supabaseConfig.indexOf('[functions.') + 1)),
   'config.toml must start function blocks at column 0');
 
-// These two are public by design and must never gain a gateway JWT check.
-for (const name of ['nexora-whatsapp-webhook', 'studioflow-whatsapp-booking']) {
+// These routes authenticate in their handlers or provide public, scoped access.
+for (const name of ['nexora-whatsapp-webhook', 'studioflow-whatsapp-booking', 'submit-landing-lead', 'studioflow-map-locations', 'iron-ink-public', 'snapshot-accounts']) {
   const block = supabaseConfig.split(`[functions.${name}]`)[1].split('[')[0];
-  assert(block.includes('verify_jwt = false'), `${name} must keep verify_jwt = false (provider signature / dedicated API key in handler)`);
+  assert(block.includes('verify_jwt = false'), `${name} must keep verify_jwt = false (the handler owns the access check)`);
 }
 // The owner connect endpoint must keep gateway JWT verification.
 assert(supabaseConfig.split('[functions.nexora-whatsapp-connect]')[1].split('[')[0].includes('verify_jwt = true'),
