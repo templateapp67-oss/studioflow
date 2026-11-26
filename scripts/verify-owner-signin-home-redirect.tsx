@@ -171,6 +171,17 @@ const profileUpdates: any[] = [];
   }
   return Promise.resolve({ data: { session: mockSession }, error: null });
 };
+// AuthPage now checks AAL after password sign-in. Keep these deterministic
+// component tests on the non-MFA session path; dedicated MFA behavior is
+// covered separately by the auth hardening suite.
+(supabase.auth as any).mfa.getAuthenticatorAssuranceLevel = async () => ({
+  data: { currentLevel: 'aal1', nextLevel: 'aal1' },
+  error: null,
+});
+(supabase.auth as any).mfa.listFactors = async () => ({
+  data: { all: [], totp: [], phone: [] },
+  error: null,
+});
 (supabase.auth as any).signInWithPassword = async ({ email }: { email: string; password: string }) => {
   const session = { user: { id: 'owner-email-1', email, created_at: '2025-01-01T00:00:00Z', user_metadata: {} } };
   mockSession = session;

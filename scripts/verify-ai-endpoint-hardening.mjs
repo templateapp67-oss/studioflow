@@ -119,6 +119,55 @@ const auth = await loadModule('server/supabaseAuth.ts');
   for (let i = 0; i < 500; i += 1) bounded.hit(`k${i}`);
   assert.ok(bounded.size() <= 20, `limiter keeps at most maxKeys windows (got ${bounded.size()})`);
 
+  // The production limiter uses the already-provisioned service-role RPC and
+  // sends only a digest of the identity bucket, never the raw user id or IP.
+  let sharedRequest;
+  const shared = await limiter.claimSharedRateLimit({
+    key: 'generate-bio:user:private-user-id',
+    windowMs: 60_000,
+    max: 8,
+    supabaseUrl: 'https://example.supabase.co',
+    serviceRoleKey: 'sb_secret_mock-server-key',
+    fetchImpl: async (url, init) => {
+      sharedRequest = { url, init, body: JSON.parse(init.body) };
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ allowed: true, remaining: 7, retryAfterSeconds: 60 }),
+      };
+    },
+  });
+  assert.equal(shared.allowed, true, 'shared rate-limit RPC allows an in-budget request');
+  assert.equal(shared.remaining, 7, 'shared rate-limit RPC returns its remaining budget');
+  assert.match(sharedRequest.url, /rpc\/studioflow_edge_rate_limit_claim$/);
+  assert.equal(sharedRequest.body.p_window_seconds, 60);
+  assert.equal(sharedRequest.body.p_max_attempts, 8);
+  assert.match(sharedRequest.body.p_bucket_key, /^server:[a-f0-9]{64}$/);
+  assert.ok(!sharedRequest.body.p_bucket_key.includes('private-user-id'), 'raw user identity is not persisted');
+  assert.equal(sharedRequest.init.headers.apikey, 'sb_secret_mock-server-key');
+  assert.equal(sharedRequest.init.headers.Authorization, undefined, 'opaque Supabase secret keys are never sent as bearer JWTs');
+  await assert.rejects(
+    limiter.claimSharedRateLimit({
+      key: 'bucket', windowMs: 60_000, max: 8,
+      supabaseUrl: 'https://example.supabase.co', serviceRoleKey: 'sb_secret_mock-server-key',
+      fetchImpl: async () => ({ ok: false, status: 500 }),
+    }),
+    /Shared rate-limit RPC returned HTTP 500/,
+    'shared limiter errors are not treated as an allowed request',
+  );
+
+  let legacyHeaders;
+  await limiter.claimSharedRateLimit({
+    key: 'legacy-bucket', windowMs: 60_000, max: 8,
+    supabaseUrl: 'https://example.supabase.co',
+    serviceRoleKey: 'legacy-service-role-jwt',
+    fetchImpl: async (_url, init) => {
+      legacyHeaders = init.headers;
+      return { ok: true, status: 200, json: async () => ({ allowed: true, remaining: 7, retryAfterSeconds: 60 }) };
+    },
+  });
+  assert.equal(legacyHeaders.Authorization, 'Bearer legacy-service-role-jwt', 'legacy service_role JWT retains its Authorization bearer header');
+
   // Bearer parsing accepts only a well-formed header.
   assert.equal(auth.readBearerToken({ authorization: 'Bearer abc.def-ghi' }), 'abc.def-ghi');
   assert.equal(auth.readBearerToken({ authorization: 'bearer token_123' }), 'token_123');
@@ -178,8 +227,9 @@ const auth = await loadModule('server/supabaseAuth.ts');
     auth.requireVerifiedUser({ config, fetchImpl: async () => { throw new Error('offline'); } }),
     { headers: { authorization: 'Bearer token' } },
   );
-  assert.equal(authOutage.next, true, 'an unreachable Auth server does not deny a signed-in caller');
-  assert.equal(authOutage.headers['x-ai-auth'], 'unverified');
+  assert.equal(authOutage.status, 503, 'an unreachable Auth server fails closed');
+  assert.equal(authOutage.body.code, 'auth_verification_unavailable');
+  assert.equal(authOutage.next, false, 'an unverified caller never reaches the handler');
 
   const accepted = await run(
     auth.requireVerifiedUser({
@@ -195,8 +245,9 @@ const auth = await loadModule('server/supabaseAuth.ts');
     auth.requireVerifiedUser({ config: { url: '', publishableKey: '', configured: false } }),
     { headers: {} },
   );
-  assert.equal(unconfigured.next, true, 'a configuration gap degrades to the strict anonymous budget');
-  assert.equal(unconfigured.headers['x-ai-auth'], 'unconfigured');
+  assert.equal(unconfigured.status, 503, 'missing Auth configuration fails closed');
+  assert.equal(unconfigured.body.code, 'auth_unavailable');
+  assert.equal(unconfigured.next, false, 'an unconfigured protected route never reaches the handler');
 
   const optional = await run(auth.optionalVerifiedUser({ config }), { headers: {} });
   assert.equal(optional.next, true, 'the customer route allows anonymous visitors');
@@ -307,16 +358,11 @@ const alive = async () => (await fetch(`http://127.0.0.1:${port}/api/health`)).o
       assert.equal(anonymous.status, 401, `${route} requires a session`);
       assert.equal((await anonymous.json()).code, 'auth_required', `${route} reports auth_required`);
     }
-    // A token is verified against Supabase Auth. When this environment cannot
-    // reach Auth, the documented policy applies: the request proceeds as
-    // unverified rather than denying a signed-in owner during an outage.
+    // The protected route may continue only after positive Auth verification.
     const withToken = await post('/api/generate-bio', { businessName: 'Test' }, { authorization: 'Bearer expired.token.here' });
-    if (withToken.status === 401) {
-      assert.equal((await withToken.json()).code, 'invalid_session', 'an unusable token reports invalid_session');
-    } else {
-      assert.equal(withToken.status, 200, 'an unverifiable token falls back to the template draft');
-      assert.equal(withToken.headers.get('x-ai-auth'), 'unverified', 'the unverified state is reported');
-    }
+    assert.ok([401, 503].includes(withToken.status), 'an invalid or unverifiable token is denied');
+    const tokenResult = await withToken.json();
+    assert.ok(['invalid_session', 'auth_verification_unavailable'].includes(tokenResult.code), 'the denial identifies invalid session or Auth outage');
 
     // P1: the anonymous recommendation budget is a real ceiling.
     let limited = null;
@@ -348,21 +394,21 @@ const alive = async () => (await fetch(`http://127.0.0.1:${port}/api/health`)).o
       { offer: 12, serviceName: {}, city: [] },
     ]) {
       const response = await post('/api/generate-promo-copy', hostile, headers);
-      assert.equal(response.status, 200, 'the copy route answers instead of crashing');
-      const payload = await response.json();
-      assert.equal(typeof payload.whatsapp, 'string', 'the fallback copy is still produced');
-      assert.ok(await alive(), 'the server survived a hostile offer value');
+      assert.equal(response.status, 503, 'the route fails closed while Supabase Auth is unreachable');
+      assert.equal((await response.json()).code, 'auth_verification_unavailable');
+      assert.ok(await alive(), 'the server survives a request while Auth is unavailable');
     }
 
     for (const hostile of [{ businessName: {}, ownerName: [], specialties: 7 }, { vibe: { a: 1 } }]) {
       const response = await post('/api/generate-bio', hostile, headers);
-      assert.equal(response.status, 200, 'the bio route answers instead of crashing');
-      assert.equal((await response.json()).source, 'template', 'the bio fallback is labelled honestly');
-      assert.ok(await alive(), 'the server survived a hostile bio body');
+      assert.equal(response.status, 503, 'the route fails closed while Supabase Auth is unreachable');
+      assert.equal((await response.json()).code, 'auth_verification_unavailable');
+      assert.ok(await alive(), 'the server survives a request while Auth is unavailable');
     }
 
     const unverified = await post('/api/generate-bio', { businessName: 'Test' }, headers);
-    assert.equal(unverified.headers.get('x-ai-auth'), 'unverified', 'an unverifiable token is reported in the header');
+    assert.equal(unverified.status, 503, 'an unverifiable token is blocked at the HTTP boundary');
+    assert.equal((await unverified.json()).code, 'auth_verification_unavailable');
   } finally {
     stop(server.child);
   }
