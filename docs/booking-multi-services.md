@@ -11,7 +11,7 @@
 
 ## Database deployment (required)
 
-Apply `supabase/migrations/202611050001_booking_multi_services.sql` **before deploying the UI**. It depends on the existing backend booking-add-ons / booking-specialist-eligibility scripts, multibranch migration, and Template 15 migration. No production database was modified as part of this change.
+Apply `supabase/pending-features/202611050001_booking_multi_services.sql` **before deploying the UI**. It depends on the existing backend booking-add-ons / booking-specialist-eligibility scripts, multibranch migration, and Template 15 migration. No production database was modified as part of this change.
 
 The migration:
 

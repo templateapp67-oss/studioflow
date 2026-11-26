@@ -1,6 +1,13 @@
 import { useEffect } from 'react';
-import { NEXORA_PUBLIC_ORIGIN } from '../../lib/publicSeo';
+import {
+  clearRouteJsonLd,
+  NEXORA_PUBLIC_ORIGIN,
+  setCanonicalLink,
+  setRobotsMeta,
+} from '../../lib/publicSeo';
 import { NEXORA_PRIVACY_NOTICE_VERSION } from '../../lib/nexoraPrivacyNotice';
+import { SiteHeader } from './sections/SiteHeader';
+import { NexoraBreadcrumbs } from './sections/NexoraBreadcrumbs';
 import './nexoraLanding.css';
 
 const PAGE_TITLE = 'Privacy notice — Nexora SalonOS demo requests';
@@ -28,24 +35,24 @@ export function NexoraPrivacyNoticePage() {
       node.setAttribute('content', content);
     };
     upsertMeta('name', 'description', PAGE_DESCRIPTION);
-    upsertMeta('name', 'robots', 'index,follow');
+    setRobotsMeta('index,follow');
     upsertMeta('property', 'og:type', 'website');
     upsertMeta('property', 'og:site_name', 'NEXORA SALONOS');
     upsertMeta('property', 'og:title', PAGE_TITLE);
     upsertMeta('property', 'og:description', PAGE_DESCRIPTION);
     upsertMeta('property', 'og:url', `${NEXORA_PUBLIC_ORIGIN}/privacy`);
     upsertMeta('property', 'og:image', `${NEXORA_PUBLIC_ORIGIN}/nexora-homepage-og.jpg`);
+    upsertMeta('property', 'og:image:width', '1200');
+    upsertMeta('property', 'og:image:height', '630');
+    upsertMeta('property', 'og:image:alt', 'NEXORA SALONOS salon management software');
+    upsertMeta('name', 'twitter:image', `${NEXORA_PUBLIC_ORIGIN}/nexora-homepage-og.jpg`);
+    upsertMeta('name', 'twitter:image:alt', 'NEXORA SALONOS salon management software');
     upsertMeta('name', 'twitter:card', 'summary_large_image');
     upsertMeta('name', 'twitter:title', PAGE_TITLE);
     upsertMeta('name', 'twitter:description', PAGE_DESCRIPTION);
 
-    let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
-    if (!canonical) {
-      canonical = document.createElement('link');
-      canonical.rel = 'canonical';
-      document.head.appendChild(canonical);
-    }
-    canonical.href = `${NEXORA_PUBLIC_ORIGIN}/privacy`;
+    setCanonicalLink(`${NEXORA_PUBLIC_ORIGIN}/privacy`);
+    clearRouteJsonLd();
   }, []);
 
   return (
@@ -53,34 +60,32 @@ export function NexoraPrivacyNoticePage() {
       <a className="sl-skip" href="#sl-main">
         Skip to main content
       </a>
-      <header className="sl-header">
-        <div className="sl-container sl-header__inner">
-          <a className="sl-brand" href="/">
-            <span className="sl-brand__mark" aria-hidden="true">
-              N
-            </span>
+      <SiteHeader
+        currentPath="/privacy"
+        links={[
+          { label: 'Pricing', href: '/pricing', external: true },
+          { label: 'Product', href: '/salon-os', external: true },
+          { label: 'Sign in', href: '/login', external: true },
+        ]}
+        showLogin={false}
+        showPrimaryAction={false}
+        showHelpCentre={false}
+        brand={(
+          <span className="sl-brand">
+            <span className="sl-brand__mark" aria-hidden="true">N</span>
             <span className="sl-brand__text">
               <strong>NEXORA</strong>
               <span>SALONOS</span>
             </span>
-          </a>
-          <nav className="sl-header__nav" aria-label="Primary">
-            <a className="sl-header__link" href="/pricing">
-              Pricing
-            </a>
-            <a className="sl-header__link" href="/salon-os">
-              Product
-            </a>
-            <a className="sl-header__link" href="/login">
-              Sign in
-            </a>
-          </nav>
-        </div>
-      </header>
+          </span>
+        )}
+        brandLabel="NEXORA Salon OS home"
+      />
 
       <main id="sl-main" className="sl-main">
         <section className="sl-section">
           <div className="sl-container">
+            <NexoraBreadcrumbs path="/privacy" />
             <span className="sl-section-kicker">LEGAL</span>
             <h1 className="sl-section__title">Privacy notice for demo requests</h1>
             <p className="sl-section__lead">

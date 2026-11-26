@@ -1,0 +1,2453 @@
+{
+  "source": "Owner-exported supabase_migrations.schema_migrations on 2026-11-16",
+  "applied_versions_in_export": 167,
+  "restored": [
+    {
+      "version": "20260928010916",
+      "name": "reset_empty_public_schema_20260928",
+      "file_sha256": "68fb75dc1dedf03b5241dbfe3be934d3ddb35e3a5534f1345dd9bb731c3844da",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928010949",
+      "name": "nexora_legacy_operational_baseline_20260928",
+      "file_sha256": "7bbf3f834dd7a5a9404cb7b849032384a3e2174dff3c5b96a49c9ed0fa4a6bdb",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928011007",
+      "name": "nexora_owner_workspace_baseline_20260928",
+      "file_sha256": "ad7fe74f264c4e92826c2361ab5af829365b7c7dea978c8b4868fbd8b98c8ecd",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928011117",
+      "name": "nexora_profile_persistence_clean_reset_20260928",
+      "file_sha256": "a6668bc0e333e7ac58b84ac354523cb315aa5b2f46cf07fa80304d694cdb1e96",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928011211",
+      "name": "nexora_clean_reset_security_hardening_20260928",
+      "file_sha256": "0e7044d977bd196931178eaa2024947b960fb87b90a21d5ecfc889cf82f7eb52",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928011308",
+      "name": "nexora_clean_reset_fk_indexes_20260928",
+      "file_sha256": "03a9d92ca8f49917f5b5ca1b3f958b80c72df4d2782405774da355a8d966c76d",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928011846",
+      "name": "nexora_growth_partner_onboarding_baseline_20260928",
+      "file_sha256": "d679bfd1e93132ea0f31087f98c975dc2898c20a576550aad62771907ac8c27f",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928012033",
+      "name": "nexora_growth_partner_profile_accounts_20260928",
+      "file_sha256": "3f1cd9229c62aa189287bc3ece1aeb835734b2ac325dd04b48c7c87cffbc0179",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928013304",
+      "name": "nexora_admin_bootstrap_allowlist_20260928",
+      "file_sha256": "2cc821177ad817839ec1aee7c5252f5af4ffc7712d06b79ad5d7e9450091e9d7",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928014248",
+      "name": "nexora_growth_partner_rewards_commission_20260928",
+      "file_sha256": "fc15fc1d354adfab8d6395d5230e81e91f2c83e0676edfcb732661dc63665f3b",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928014844",
+      "name": "nexora_reward_compliance_enforcement_20260928",
+      "file_sha256": "f3df1a7b42a431222362dc8b038a8591d188aefb98e1080da89fc8fb33dc1139",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928015027",
+      "name": "nexora_reward_claim_timeline_20260928",
+      "file_sha256": "d7f26c3da41c6561d70c8ea78ff12c1ff81650c5ea9b66d58f4274f80e50a691",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928015700",
+      "name": "nexora_growth_partner_operations_complete_20260928",
+      "file_sha256": "a69842c6913e9b9964e7b76e16eab3798aace0e7ca3bfaa6dec427b5d6e4589c",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928015856",
+      "name": "nexora_growth_partner_dashboard_reads_20260928",
+      "file_sha256": "93ffeda5fbbd689ac8943d41426f43133ab5874f11bca3c80f6f94151ec76fdc",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928015937",
+      "name": "nexora_growth_partner_admin_shop_actions_20260928",
+      "file_sha256": "5ff0bb14a8d9e668e07515bb3fc23148caba6a31449beb5384a8c7936725aac9",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928020004",
+      "name": "nexora_growth_partner_referral_list_20260928",
+      "file_sha256": "30fb3724befc41a744449bfb731a5fd662bf75ff27420ae1fb9b5862d1f39218",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928020105",
+      "name": "nexora_growth_partner_security_index_cleanup_20260928",
+      "file_sha256": "a4ac1cb947b58c0656c6860bceeeb62064c22118331c9aa92e75a85f361c0402",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928020834",
+      "name": "complete_profile_settings_contract_20260928",
+      "file_sha256": "02792c3e706d93fe27e06db0759087f50463318574687c26ad2ab13fc35fdb98",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928021713",
+      "name": "template_data_backend_completion_20260928",
+      "file_sha256": "572c3dd197e000460ee387b0b8c9f01c708f9825a36896fba540f9937524fee9",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928022417",
+      "name": "restore_owner_website_provisioning_20260928",
+      "file_sha256": "c07ef6bca77cf587258fc047b1f417f3d26aee90d5320dc29aa291c9ce2fd1e9",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928022500",
+      "name": "restore_onboarding_contract_20260928",
+      "file_sha256": "262005bc2c911a793be8ed6a8161e3571622ffce1c338b8654743d0ad09416f7",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928023439",
+      "name": "normalized_template_catalogue_core_20260928",
+      "file_sha256": "5daaa8f0034b30f365effa38f802aa9a55f4cb94eac0280b5ce94840019d736b",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928065929",
+      "name": "profiles_authenticated_grants_and_rls",
+      "file_sha256": "43005cfa5c21fe03b2ad3f66d33c563aa8950c771efb9a8accf13c52a2d8ba55",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928075049",
+      "name": "profile_metadata_backfill",
+      "file_sha256": "f22a21e27649beadccd4838256d06231ee9c68eb6236db5ecee1b5dd567ce09e",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928180103",
+      "name": "require_partner_application_approval",
+      "file_sha256": "61045dc91992b387feb1cc36d33e2f55ae6a0e1e3347de8ed4b41a8141baef06",
+      "statement_count": 1
+    },
+    {
+      "version": "20260930043417",
+      "name": "partner_application_kyc_status_alignment",
+      "file_sha256": "81d303bf711fee90a6fb74eef92db3dac61dcbeb7af100d53812141dd62501b6",
+      "statement_count": 1
+    },
+    {
+      "version": "20260930044910",
+      "name": "growth_partner_instant_enrollment",
+      "file_sha256": "2db4b2dd36b0da929e732b33576f49c7e3db23f58e7d02ca4245512e0d88b224",
+      "statement_count": 1
+    },
+    {
+      "version": "20260930045857",
+      "name": "partner_dashboard_helper_permissions",
+      "file_sha256": "06fd8e74e518bc2c17999e52cfe5b91195fce58d57fa58f31fec9b3e48e4f8ee",
+      "statement_count": 1
+    },
+    {
+      "version": "20260930050715",
+      "name": "partner_dashboard_referral_code_payload",
+      "file_sha256": "b1c6900ac6dcc9a6be4f517f042c500b2c3dc8b86a8ea5e8772157b4743463d1",
+      "statement_count": 1
+    },
+    {
+      "version": "20260930050936",
+      "name": "partner_canonical_referral_code_rpc",
+      "file_sha256": "364d4f325a5e52c777e60f928bc2e0ac41fcb891d9786af0687bf7c7af0f1035",
+      "statement_count": 1
+    },
+    {
+      "version": "20260930052358",
+      "name": "partner_referrals_rpc_compatibility",
+      "file_sha256": "d63832c97284353329cc9252b651902c85a3abec0ded8753b513c961969a7234",
+      "statement_count": 1
+    },
+    {
+      "version": "20260930053251",
+      "name": "partner_notification_preferences_compatibility",
+      "file_sha256": "5bd1444bb2ebd0092fb502a877feb9c7c301b5f5b5642d1ee7cfd3eaafe6492a",
+      "statement_count": 1
+    },
+    {
+      "version": "20260930053816",
+      "name": "partner_profile_validation_patterns",
+      "file_sha256": "bb6abb7b838057b887540ae96f129700a2636e61f8dfa9c777cd423a937424db",
+      "statement_count": 1
+    },
+    {
+      "version": "20260930062217",
+      "name": "partner_marketing_asset_library",
+      "file_sha256": "fc5606043c367db90b431f21791bc96f974e81dbaa9971f6fba8b92070aae009",
+      "statement_count": 1
+    },
+    {
+      "version": "20260930065521",
+      "name": "owner_workspace_staff_editor_key",
+      "file_sha256": "19f78e00ad4804bdad99beb71f5eacc197daf4c60b0bf21c6d1fa49745abd107",
+      "statement_count": 1
+    },
+    {
+      "version": "20260930070818",
+      "name": "owner_workspace_empty_staff_drafts",
+      "file_sha256": "14c328d595efc410770ee7364bd6fb1d07e32ce043366d858aa35e875cd8de01",
+      "statement_count": 1
+    },
+    {
+      "version": "20261010002255",
+      "name": "nexora_growth_partner_landing_applications",
+      "file_sha256": "c9bdd3cfdf7b65c804f20204b90d2ef51a1e9ef81204367977bcbe7fd0f801b1",
+      "statement_count": 1
+    },
+    {
+      "version": "20261010012441",
+      "name": "studioflow_secure_workspace_backend",
+      "file_sha256": "bebe4a790b364b6296663d15def338143ae0cce874362a520df82e181fa1c18c",
+      "statement_count": 1
+    },
+    {
+      "version": "20261010012931",
+      "name": "studioflow_validation_and_referral_progress",
+      "file_sha256": "22fa54cbbd91aeb0457c69675d0847333692d7d2c617979c1f8f352b54e3579f",
+      "statement_count": 1
+    },
+    {
+      "version": "20261010012933",
+      "name": "studioflow_storage_and_booking_status",
+      "file_sha256": "911b43441ac762f62307fae9e62b7fa02e76de29a6af3ee66795759042832a46",
+      "statement_count": 1
+    },
+    {
+      "version": "20261010013231",
+      "name": "studioflow_realtime_availability",
+      "file_sha256": "f46b68369e6745d0b50ba1862bb8f9e27bd4ba6c9ba84dcda3dc0e29da1eadd8",
+      "statement_count": 1
+    },
+    {
+      "version": "20261010013234",
+      "name": "studioflow_authoritative_available_slot_booking",
+      "file_sha256": "08de97343bd6a76bbee98ad0f85027dbf53059f4add32087328a85993bd098ff",
+      "statement_count": 1
+    },
+    {
+      "version": "20261010013336",
+      "name": "studioflow_any_specialist_availability",
+      "file_sha256": "214bec1a70b38c2baa0639091617daee351cddba4dd60c4728576cdcf34195c9",
+      "statement_count": 1
+    },
+    {
+      "version": "20261010013736",
+      "name": "studioflow_return_non_retryable_save_conflicts",
+      "file_sha256": "6789bfa1430a5df7a83082dd070daa47b348e99ce0b63678469f9446b64e0d92",
+      "statement_count": 1
+    },
+    {
+      "version": "20261010020138",
+      "name": "restore_missing_signup_attribution",
+      "file_sha256": "8c490aff0bdf63fa2d724b49418920491c57b7259d6e379f32df2d5e23891b3b",
+      "statement_count": 1
+    },
+    {
+      "version": "20261010042936",
+      "name": "nexora_job_portal_core",
+      "file_sha256": "efbfd658832d40f2087c8fb8ac499a184fdb46cfdc9ba42e7f90fcbc4b70c27c",
+      "statement_count": 1
+    },
+    {
+      "version": "20261010100539",
+      "name": "nexora_recruitment_complete",
+      "file_sha256": "b9836d18292606060e5a6409fdd354fc99182b24e930bd489a288f251a0ea881",
+      "statement_count": 1
+    },
+    {
+      "version": "20261010102636",
+      "name": "nexora_recruitment_hardening",
+      "file_sha256": "72374cee21f07b4f88b450350fa0e83797c57d4fafb28018e7e8573a4fea0d94",
+      "statement_count": 1
+    },
+    {
+      "version": "20261010102840",
+      "name": "nexora_recruitment_application_lock",
+      "file_sha256": "87da91914e091baed654255448f2cf75e35c5dc6b2e9d736d9dfbf1f4ebd4f4e",
+      "statement_count": 1
+    },
+    {
+      "version": "20261010103949",
+      "name": "nexora_recruitment_trigger_record_fix",
+      "file_sha256": "8558c5608422e057b9c41dd85f2acfdb2d3182b207cb81e363c01b4eb53391a0",
+      "statement_count": 1
+    },
+    {
+      "version": "20261010111903",
+      "name": "nexora_profile_photos",
+      "file_sha256": "14e30ee7024280793727526e288936ad57149b7c21479ca80dc805473fe57953",
+      "statement_count": 1
+    },
+    {
+      "version": "20261010112959",
+      "name": "nexora_private_profile_edit_guard",
+      "file_sha256": "7afc71b4242154be821a9dfe1419bc2f8bb4159acd60e11e5ebc78dd68a9d514",
+      "statement_count": 1
+    },
+    {
+      "version": "20261010114642",
+      "name": "nexora_fifteen_profiles_primary_job_title",
+      "file_sha256": "8e4b1d05728a6759972a7d1fbc1fb80d8de08975a572d46e85116a919a9c39ff",
+      "statement_count": 1
+    },
+    {
+      "version": "20261010114825",
+      "name": "nexora_category_history_upsert",
+      "file_sha256": "3e5dc11b81431115faa01cb98acfc0af229a6712be309f7ca8c53790d15dc801",
+      "statement_count": 1
+    },
+    {
+      "version": "20261010122404",
+      "name": "nexora_form_role_options",
+      "file_sha256": "fe8f2a551b95bb7033cd220d3842c88d4ac8a477edddc1af1cac54cfcd43af0b",
+      "statement_count": 1
+    },
+    {
+      "version": "20261011005801",
+      "name": "studioflow_auth_and_booking_audit_fixes",
+      "file_sha256": "3cf0c6c4a8a2c84d056db206c7bce81c3678960e550aa0854d883797f20581c3",
+      "statement_count": 1
+    },
+    {
+      "version": "20261011015904",
+      "name": "studioflow_shared_dashboard_website_content",
+      "file_sha256": "4e327faf812551cce1ec6dccb7d36af7da716816c0eca0aeff8e434d66fa6140",
+      "statement_count": 1
+    },
+    {
+      "version": "20261011080053",
+      "name": "nexora_food_shared_backend",
+      "file_sha256": "f1333f04ba35448dbed9d6292f0c2e0f4886fb6a1dd96e10225b6d6729bf5d84",
+      "statement_count": 1
+    },
+    {
+      "version": "20261011080405",
+      "name": "nexora_food_launch_hardening",
+      "file_sha256": "e85ac303fa1ed81f46a51b6c1f03039d8c272dc0522b30e86a59d70dbdd16899",
+      "statement_count": 1
+    },
+    {
+      "version": "20261011081131",
+      "name": "nexora_food_location_validation",
+      "file_sha256": "1f1842963bee7ad4e250a1418c17c652174ffd5742df23dd8e1097534c534419",
+      "statement_count": 1
+    },
+    {
+      "version": "20261011082011",
+      "name": "nexora_food_access_management",
+      "file_sha256": "3092ba3f336c27f31f9022e1c08aaa7e4dc5fb2cf68a55864371c9835c705b50",
+      "statement_count": 1
+    },
+    {
+      "version": "20261011092020",
+      "name": "nexora_food_restaurant_images",
+      "file_sha256": "ba740578c86b13262d7759c3dbf79e7666fd7d0574949dd5fed51715d438c57a",
+      "statement_count": 1
+    },
+    {
+      "version": "20261011102132",
+      "name": "food_cod_only_checkout",
+      "file_sha256": "2b7d36d4eb97ce2c146ddb53e395ea6d423aae6414544f1a9db2b0f15e3df9cf",
+      "statement_count": 1
+    },
+    {
+      "version": "20261011112722",
+      "name": "food_jaipur_locality_catalog",
+      "file_sha256": "1e348d51426b84520458a0464b27f81e22da8295fb6554f60431159d506a52dd",
+      "statement_count": 1
+    },
+    {
+      "version": "20261011114938",
+      "name": "food_profile_phone_validation",
+      "file_sha256": "8b1ad6ad4acf6d99ced872cfdbdc2f6fe58bb1ad03a821851d15cecc1c4702b7",
+      "statement_count": 1
+    },
+    {
+      "version": "20261011160504",
+      "name": "food_operations_dashboards",
+      "file_sha256": "784859f3d98a5d3a08484dc5af94a2207f0b4b353d47540e0d3e18a8f3b19cd0",
+      "statement_count": 1
+    },
+    {
+      "version": "20261011161314",
+      "name": "food_operations_hardening",
+      "file_sha256": "bafd292f3d795bfb1c413541771e967656de634ad821b3ae4bd16d285ebc2e41",
+      "statement_count": 1
+    },
+    {
+      "version": "20261011162055",
+      "name": "food_documents_uploader_index",
+      "file_sha256": "046faa4cf6939d5871112fabede17e78daf9ba3023430774b139f0ef2f0a6712",
+      "statement_count": 1
+    },
+    {
+      "version": "20261011162254",
+      "name": "food_rider_lifecycle_guards",
+      "file_sha256": "b6447d770271bc6d024cd4fbf498ca414a106fa4cdcbeddc9d0fa8b3f0614596",
+      "statement_count": 1
+    },
+    {
+      "version": "20261011173847",
+      "name": "food_multi_role_onboarding",
+      "file_sha256": "f77f3e45717b7940cc7b433d242b47d4224424e9cc404a0f0b1a057a5c97f818",
+      "statement_count": 1
+    },
+    {
+      "version": "20261011174206",
+      "name": "food_existing_partner_redirect",
+      "file_sha256": "fc2dbc393506567f89a0cefe4539a4c27e25218e9e57539895fe9b8f15fc48be",
+      "statement_count": 1
+    },
+    {
+      "version": "20261012033418",
+      "name": "food_restaurant_approvals",
+      "file_sha256": "602347d5667f83f12958ee264e4a911f38576379ee661ad12a37505392a2a627",
+      "statement_count": 1
+    },
+    {
+      "version": "20261012041505",
+      "name": "food_required_fssai_image",
+      "file_sha256": "1b50aa0779b7290e21d3f6cce218403840c2c943897ebcd18b1cfc764472ecfb",
+      "statement_count": 1
+    },
+    {
+      "version": "20261012044447",
+      "name": "food_platform_experience_mode",
+      "file_sha256": "8dd3414efc02e4919ae2752c6ad3ee91606832bfe4d93d62f7d2274e3e72b329",
+      "statement_count": 1
+    },
+    {
+      "version": "20261012053839",
+      "name": "food_manual_delivery_addresses",
+      "file_sha256": "3cf34f1c428a7888e747f202518f1380f4d6bacbba44a944f2feec9ed5f01e6a",
+      "statement_count": 1
+    },
+    {
+      "version": "20261012062113",
+      "name": "food_mode_reason_guard",
+      "file_sha256": "77bd626a217875e5981909c74f706a92b27c104c1ee84078890301289c89ecb8",
+      "statement_count": 1
+    },
+    {
+      "version": "20261012084446",
+      "name": "food_push_delivery",
+      "file_sha256": "8e5cc8022943951dbd82e0760b8e8a6fddd79f27bb604ffa4a11ef55f864f008",
+      "statement_count": 1
+    },
+    {
+      "version": "20261012085331",
+      "name": "food_account_deletion",
+      "file_sha256": "08ab646d8601099ee62c7923a014421f49261ec7272812012bb2ddc3e70c23c0",
+      "statement_count": 1
+    },
+    {
+      "version": "20261012085431",
+      "name": "food_public_deletion",
+      "file_sha256": "ed5f9dc634095e0026d909917e6d2392f69b468358016f3a0c38672bfe2b2d6c",
+      "statement_count": 1
+    },
+    {
+      "version": "20261012085433",
+      "name": "food_worker_scheduler",
+      "file_sha256": "d68e39ccb9911f027b8c778a1b721fe7740cef536c6502c39f1007dcf6808b4f",
+      "statement_count": 1
+    },
+    {
+      "version": "20261012090808",
+      "name": "food_deletion_receipts",
+      "file_sha256": "fb95e261a360fec29bc95b2bfd39f618d0a7a1cab2134d9b3de364a5bbc40199",
+      "statement_count": 1
+    },
+    {
+      "version": "20261012102252",
+      "name": "food_push_receipt_isolation",
+      "file_sha256": "06628886283107381a190aee2966788bb2c9bc683a176506292f3ee795b1fed9",
+      "statement_count": 1
+    },
+    {
+      "version": "20261012131953",
+      "name": "food_deletion_cleanup_metadata",
+      "file_sha256": "484bf1b680de89ab81ea0094f2f66485bfd9fa1c341c0c174f523e8592bcbfb0",
+      "statement_count": 1
+    },
+    {
+      "version": "20261014123207",
+      "name": "studioflow_customer_reviews",
+      "file_sha256": "a3193cd6adace7e7068d707f469c7d949520cd525fb7426274282249b3a20811",
+      "statement_count": 1
+    },
+    {
+      "version": "20261014124327",
+      "name": "studioflow_owner_review_update",
+      "file_sha256": "af04044babc42655967d4a410db240eed499be8c084574f76bee146da66e9183",
+      "statement_count": 1
+    },
+    {
+      "version": "20261014144551",
+      "name": "studioflow_business_services_custom_offerings",
+      "file_sha256": "7739171decd16cf429c9700ecbde7aaa4d4110860d809ba714f46df286ab9482",
+      "statement_count": 1
+    },
+    {
+      "version": "20261014145706",
+      "name": "studioflow_service_images_owner_scoped",
+      "file_sha256": "40db485a15cd1d53de1fa2e7a78a7db328330bb45aa0215e5a879dbac848cd22",
+      "statement_count": 1
+    },
+    {
+      "version": "20261014222748",
+      "name": "nexora_android_companion_profiles_storage_devices",
+      "file_sha256": "bb4ef02b68e2d154e0d3d9dae9e159a9c784bb8bbf20706366e6dcdbc9716287",
+      "statement_count": 1
+    },
+    {
+      "version": "20261015055952",
+      "name": "nexora_job_web_push_notifications",
+      "file_sha256": "e6d46f2373edf61c15af1e9264f9b6acc15b6a60f6122989fe61fcc9a8340f90",
+      "statement_count": 1
+    },
+    {
+      "version": "20261015060321",
+      "name": "nexora_job_notification_routes",
+      "file_sha256": "09593b42409c6c44749cb0717835c491031762938d402b1ae1c1bdcad3745f4c",
+      "statement_count": 1
+    },
+    {
+      "version": "20261015060558",
+      "name": "nexora_job_push_service_policies",
+      "file_sha256": "0bb771292b29213850b6b419a5ca3822f321712b903d2abe3aee15a20fed62c1",
+      "statement_count": 1
+    },
+    {
+      "version": "20261015061937",
+      "name": "nexora_job_firebase_fcm",
+      "file_sha256": "8882dac3340925e828d2c86ba7d3836e572ef4223038ef571395ae962bc72e6e",
+      "statement_count": 1
+    },
+    {
+      "version": "20261015064926",
+      "name": "nexora_job_realtime_sync",
+      "file_sha256": "5fe738cca1511fde98c4f2d4d344b4c620d869c90025dc67ad8614f01f0c87ff",
+      "statement_count": 1
+    },
+    {
+      "version": "20261015065214",
+      "name": "nexora_job_realtime_cascade_guard",
+      "file_sha256": "6f4918ad6ab15bbdbc7d162bb7ecd61e5dc38dc383afac859574b86d155da843",
+      "statement_count": 1
+    },
+    {
+      "version": "20261015065323",
+      "name": "nexora_job_realtime_owner_guard",
+      "file_sha256": "ab847eae9dd179326809b11e8b97848dc3453e035eeccde0688b605fe417b71d",
+      "statement_count": 1
+    },
+    {
+      "version": "20261015091351",
+      "name": "nexora_job_realtime_opaque_identity",
+      "file_sha256": "8533acc549d5b09cf3fa9aebae897100ef35bc6a3c2f361fbc4bed4a00eb8c7c",
+      "statement_count": 1
+    },
+    {
+      "version": "20261015103459",
+      "name": "nexora_job_admin_review_alert",
+      "file_sha256": "e3014833cca348b08cd2572c0e84d84e3dc640a11c2113b47c619210e2e0d7c0",
+      "statement_count": 1
+    },
+    {
+      "version": "20261015150903",
+      "name": "studioflow_native_customer_app",
+      "file_sha256": "51f41744ed3cc8ef8586289b738dc9067a42592b43bb0328c0bea722efc65bb7",
+      "statement_count": 1
+    },
+    {
+      "version": "20261015151721",
+      "name": "studioflow_android_reschedule",
+      "file_sha256": "e2b1d274dbf8a3189a4f80c8ee92d10cd2a91eba9e945594bcd3c24a47640eb2",
+      "statement_count": 1
+    },
+    {
+      "version": "20261016025920",
+      "name": "align_website_staff_service_availability",
+      "file_sha256": "49f67bbdee88c59fd99c068edc90950f1533802094f68f0fd96ab48af195ac57",
+      "statement_count": 1
+    },
+    {
+      "version": "20261016040046",
+      "name": "isolated_customer_demo_bookings",
+      "file_sha256": "3aff86817453691b801c9c44001a4d4eb68f517f7d21d7f5f4faa4103b3aed20",
+      "statement_count": 1
+    },
+    {
+      "version": "20261016040759",
+      "name": "owner_receives_isolated_demo_bookings",
+      "file_sha256": "b2868f2da0a9fc1ccdc8de319abc6982fd36b500ebeaada044609db296d1a411",
+      "statement_count": 1
+    },
+    {
+      "version": "20261016061745",
+      "name": "customer_discovery_template_offers",
+      "file_sha256": "2fd1c1d4e66403230f1194cf952b5c93da589b6a4c58b09aaa596a225d974530",
+      "statement_count": 1
+    },
+    {
+      "version": "20261016061953",
+      "name": "customer_catalog_public_template_staff",
+      "file_sha256": "239c1b6017a7d11673ae47ef607aa6257a97136740e7e25fa1ee1b68a22c607f",
+      "statement_count": 1
+    },
+    {
+      "version": "20261016084936",
+      "name": "cached_public_business_map_locations",
+      "file_sha256": "bf2111346686922307cbcafc7d27172b50de576ef793cb139dc21c4d4f5be1cb",
+      "statement_count": 1
+    },
+    {
+      "version": "20261016085046",
+      "name": "public_template_map_city",
+      "file_sha256": "a07dfdfeff99e08a65d412cf0d0b3b452c6710b668b3d7fa86b64e9b9877700c",
+      "statement_count": 1
+    },
+    {
+      "version": "20261017034620",
+      "name": "customer_referral_attribution_and_loyalty",
+      "file_sha256": "fccd065b0e14dca2c41c3f8e562956f09e1e25a8fd090a69a0657f5cafad4606",
+      "statement_count": 1
+    },
+    {
+      "version": "20261017035712",
+      "name": "customer_referral_member_dashboard",
+      "file_sha256": "aabc812090f931a1b529875ec4760c6fda7bad15c2c2a90fc882c132fa4eda14",
+      "statement_count": 1
+    },
+    {
+      "version": "20261017040940",
+      "name": "customer_signup_private_birth_date",
+      "file_sha256": "9924f8d07ff7be9953dd5cb509142176841269343f2b57cf4a552cee6dfce83f",
+      "statement_count": 1
+    },
+    {
+      "version": "20261017041553",
+      "name": "customer_signup_private_whatsapp_number",
+      "file_sha256": "a26bdcff26fc2cdf4f4212a09051181c8b07d77fca0c814a7b764f88a9c14462",
+      "statement_count": 1
+    },
+    {
+      "version": "20261017042005",
+      "name": "require_customer_signup_birth_date_and_whatsapp",
+      "file_sha256": "a5cf8e065d9b7025fb503cbda80634a3085a131e53c7f4d9b572673286dc4b5b",
+      "statement_count": 1
+    },
+    {
+      "version": "20261017042516",
+      "name": "salon_contacts_consent_and_campaign_drafts",
+      "file_sha256": "2f37fc80ecb938a165385198bb284e755589b648d5e7b2a82bda855edfdb1f8a",
+      "statement_count": 1
+    },
+    {
+      "version": "20261017042716",
+      "name": "contact_campaign_publication_and_lookup_indexes",
+      "file_sha256": "a9050b5a56b04b1c6b25e83855b2146be2e11a1a089bb9b2c96935605a2f4abd",
+      "statement_count": 1
+    },
+    {
+      "version": "20261017043936",
+      "name": "consented_customer_welcome_whatsapp_queue",
+      "file_sha256": "fdea029cc149d859e17fdc6b608bc5d380b07f6233f56e648b8a5f2c03ed70d3",
+      "statement_count": 1
+    },
+    {
+      "version": "20261017101349",
+      "name": "staff_profile_verified_reviews",
+      "file_sha256": "0ccf4de9ccd7a024ab5f041fd224751aba624d1730a2066d469dc52f048cbb30",
+      "statement_count": 1
+    },
+    {
+      "version": "20261017105841",
+      "name": "customer_account_settings",
+      "file_sha256": "d4e408d14d5cbfd1965309a56a6d6fa36b481be9e19d9ffa459d01a4af66e807",
+      "statement_count": 1
+    },
+    {
+      "version": "20261017115000",
+      "name": "customer_campaign_media_delivery",
+      "file_sha256": "d0a9052a1c492e7fd536cf6e5a72595fc9fc7856e51355ba5689c449be70d86f",
+      "statement_count": 1
+    },
+    {
+      "version": "20261017115107",
+      "name": "campaign_claim_scope_fix",
+      "file_sha256": "92570628ffd43b98b834f2494d526b31cdb692df128f4f59b99965e551595dc6",
+      "statement_count": 1
+    },
+    {
+      "version": "20261017115208",
+      "name": "campaign_worker_schema_access",
+      "file_sha256": "c5817080bc6006a84749b69e05a011118535d60157abac7fcd0c50a474b40017",
+      "statement_count": 1
+    },
+    {
+      "version": "20261017153840",
+      "name": "service_ai_images",
+      "file_sha256": "f6f06e4b7247526c0992a6f88fd95a154351c90e20653a99f0fecb7926606ded",
+      "statement_count": 1
+    },
+    {
+      "version": "20261017161225",
+      "name": "starter_packages_all_templates",
+      "file_sha256": "d9333148eb782899cb2e86c5557139bc53b810e81948add070d8a3e9bab6ab60",
+      "statement_count": 1
+    },
+    {
+      "version": "20261017161321",
+      "name": "starter_packages_onboarding_guard",
+      "file_sha256": "e503615ae44e8d84702edd57323c78538e679d59e22508f73c93ab20c157b3c9",
+      "statement_count": 1
+    },
+    {
+      "version": "20261017193341",
+      "name": "booking_specialist_eligibility",
+      "file_sha256": "215348fe16878a76c892ae40422e26019f8cbed154c6c4c4c5a590ce5bdc6533",
+      "statement_count": 1
+    },
+    {
+      "version": "20261018044936",
+      "name": "website_booking_addons",
+      "file_sha256": "e092dd4126936975da0244c046a13ed8ae71e20b85d82bef16b639084e4de7c2",
+      "statement_count": 1
+    },
+    {
+      "version": "20261018045040",
+      "name": "website_addon_retry_safety",
+      "file_sha256": "5a651121b4fb1f5a9de7579b005f0d0c11c51f9cfbc9f14556069beb5efc4b3a",
+      "statement_count": 1
+    },
+    {
+      "version": "20261018045140",
+      "name": "website_addon_payload_assignment",
+      "file_sha256": "2453f938a815a315a6ad7e4cf490d225f4f64ad36da8b8556bfa8f628b721be0",
+      "statement_count": 1
+    },
+    {
+      "version": "20261018052057",
+      "name": "booking_reward_coupons",
+      "file_sha256": "55e6aeba3c2c0f19708801bc691e8014ebdf1ea579bdf7394b5d36d76b68d9d1",
+      "statement_count": 1
+    },
+    {
+      "version": "20261018052232",
+      "name": "booking_coupon_scope_fix",
+      "file_sha256": "16ef887d8d4ad408f5b926110c35a4e4553d92f2fdef9d6ae44b896406ca0504",
+      "statement_count": 1
+    },
+    {
+      "version": "20261018052343",
+      "name": "coupon_quote_price_revalidation",
+      "file_sha256": "33ea0c3900b067aebed273c79d565f6e47ebdf29a4f9c22d7b8955aa5ed83ff7",
+      "statement_count": 1
+    },
+    {
+      "version": "20261018081012",
+      "name": "staff_work_gallery_and_expertise",
+      "file_sha256": "08d8f280c1aee50940df7cbe15e842e9127602ecf0633fb0cace37d01144c99e",
+      "statement_count": 1
+    },
+    {
+      "version": "20261018135545",
+      "name": "booking_availability_recovery",
+      "file_sha256": "038eda3fc8fd8c4e0bfc4429fac1e6c3f9c6e5652140e02c8175b9c3caf81207",
+      "statement_count": 1
+    },
+    {
+      "version": "20261018161754",
+      "name": "customer_profile_registration_hydration",
+      "file_sha256": "7542b2e5f62215a330f41bd55a1cc6d0b94f3b3066232fb35ea586d82e376498",
+      "statement_count": 1
+    },
+    {
+      "version": "20261019102742",
+      "name": "studioflow_primary_salon_domain",
+      "file_sha256": "18798af75dc496342ca56987f64b10c4fbc2822a33575255bdab429997538037",
+      "statement_count": 1
+    },
+    {
+      "version": "20261024030349",
+      "name": "studioflow_customer_engagement",
+      "file_sha256": "2c3a91935e20f153cbb3665bc6ff41cd9ffd86872e8d32226ae6f903cdc857ac",
+      "statement_count": 1
+    },
+    {
+      "version": "20261024030527",
+      "name": "studioflow_reminder_subscription_account_scope",
+      "file_sha256": "676eb02946a234a2cf764c2b74576253a7249ce61788fdd3702a2e17105cc2b0",
+      "statement_count": 1
+    },
+    {
+      "version": "20261031103659",
+      "name": "iron_ink_social_videos",
+      "file_sha256": "70acda939e8e48776f07daf8d54d4e1096b09520a9a4044126148f210048f877",
+      "statement_count": 1
+    },
+    {
+      "version": "20261031104338",
+      "name": "sync_latest_template_catalogue_11_13",
+      "file_sha256": "7ab4266ba3bc94215d9264df927e7bc4f4296f47e1594be7ad59b0f97ed76be9",
+      "statement_count": 1
+    },
+    {
+      "version": "20261103133437",
+      "name": "template15_16_catalogue_sync",
+      "file_sha256": "42875807903a60682d9cfa674ee52e1e8905cfd5ba1e9ab9b3ed788d725df92a",
+      "statement_count": 1
+    },
+    {
+      "version": "20261107070508",
+      "name": "nexora_salon_landing_database",
+      "file_sha256": "8821db45dec1bb397c62b2cbccd290c9e85adc0353a96fb54f0e4cd56633d98b",
+      "statement_count": 1
+    },
+    {
+      "version": "20261107070729",
+      "name": "nexora_salon_landing_seed",
+      "file_sha256": "8975abcb93fb4c30ba976cb2a82c179876945c80754d3492b82e382206e12105",
+      "statement_count": 1
+    },
+    {
+      "version": "20261107071230",
+      "name": "nexora_salon_landing_rate_limits",
+      "file_sha256": "11446bf508b76b1a64b5fcd7fb6dcbbdd35c84e8fdd70874dc1d81b2ae43a4b2",
+      "statement_count": 1
+    },
+    {
+      "version": "20261107082654",
+      "name": "nexora_demo_lead_operations",
+      "file_sha256": "b4e28d45d96e64d62a7c3abd1b391b274af11c9295181f6e1926a3323aaee210",
+      "statement_count": 1
+    },
+    {
+      "version": "20261107082952",
+      "name": "nexora_demo_lead_retention_default",
+      "file_sha256": "cd505664da56412a0ac64e4b15ce9b5d043430883ce1c89b9f9ac5e089341150",
+      "statement_count": 1
+    },
+    {
+      "version": "20261107083327",
+      "name": "nexora_landing_privacy_link",
+      "file_sha256": "5bbd62838e7d9e7e1ed82bae33b4dc71a72870b47ef031e7eddf19d34e4e6faf",
+      "statement_count": 1
+    },
+    {
+      "version": "20261113053832",
+      "name": "nexora_jaipur_competition_reward_fulfilment",
+      "file_sha256": "23ff3c819a86c30a9e39be5dbc3972a4d8913c5fe295a50abc2f865cef5a1690",
+      "statement_count": 1
+    },
+    {
+      "version": "20261113053925",
+      "name": "secure_template_catalogue_backup_table",
+      "file_sha256": "564bb8f8dd39f4ec952d2cf4c24e4b639cfcdcd1bbb35cbcfd0bbdd952facf29",
+      "statement_count": 1
+    },
+    {
+      "version": "20261114115141",
+      "name": "studioflow_branch_android_slots",
+      "file_sha256": "e9fabb52f9c8f969d4fade5a15891653fe655eb972f1067ba5d3340b3cbd9dae",
+      "statement_count": 1
+    },
+    {
+      "version": "20261115131821",
+      "name": "studioflow_whatsapp_test_booking_api",
+      "file_sha256": "aff7658fe6288b31ea6fd873a5e1ddf9927684623d60c0a98a7ea64aa88201f4",
+      "statement_count": 1
+    },
+    {
+      "version": "20261115145202",
+      "name": "private_whatsapp_test_rate_limit",
+      "file_sha256": "874b5ff090948f1202b4d69c25c655a2fc0c2fcfd00ea1e30b3efe06434ebebf",
+      "statement_count": 1
+    },
+    {
+      "version": "20261116015750",
+      "name": "nexora_whatsapp_booking_payment_engine",
+      "file_sha256": "13fbec0f2798109473d74db4fa4cc27e7cbfeb5c6d3a3748056e6f4d204b95f8",
+      "statement_count": 1
+    },
+    {
+      "version": "20261116020027",
+      "name": "nexora_whatsapp_embedded_signup_v5",
+      "file_sha256": "76eaac5cd800c4c3d3470a7c4c2517eb0f21c11cb98422365c0994a9c60346ac",
+      "statement_count": 1
+    },
+    {
+      "version": "20261116021507",
+      "name": "nexora_whatsapp_refund_ledger",
+      "file_sha256": "58e553b717f6e0fdf50874d54aa3f45ed2da5c76e0a9be466fb0c174ab332259",
+      "statement_count": 1
+    },
+    {
+      "version": "20261116022103",
+      "name": "nexora_whatsapp_vault_key_access",
+      "file_sha256": "9b8cb3ffcdb04399c05ffcea638d144ac710bb3d1a00f29cffbc7548e53e6090",
+      "statement_count": 1
+    },
+    {
+      "version": "20261116022906",
+      "name": "nexora_whatsapp_profile_phone_match",
+      "file_sha256": "1f4bdd2ba523cfd153f9db277199ca681667854ed69ab63a141c597a3bf353ae",
+      "statement_count": 1
+    }
+  ],
+  "applied_versions": [
+    "20260928010916",
+    "20260928010949",
+    "20260928011007",
+    "20260928011117",
+    "20260928011211",
+    "20260928011308",
+    "20260928011846",
+    "20260928012033",
+    "20260928013304",
+    "20260928014248",
+    "20260928014844",
+    "20260928015027",
+    "20260928015700",
+    "20260928015856",
+    "20260928015937",
+    "20260928020004",
+    "20260928020105",
+    "20260928020834",
+    "20260928021713",
+    "20260928022417",
+    "20260928022500",
+    "20260928023439",
+    "20260928065929",
+    "20260928075049",
+    "20260928180103",
+    "20260930043417",
+    "20260930044910",
+    "20260930045857",
+    "20260930050715",
+    "20260930050936",
+    "20260930052358",
+    "20260930053251",
+    "20260930053816",
+    "20260930062217",
+    "20260930065521",
+    "20260930070818",
+    "20261010002255",
+    "20261010012441",
+    "20261010012931",
+    "20261010012933",
+    "20261010013231",
+    "20261010013234",
+    "20261010013336",
+    "20261010013736",
+    "20261010020138",
+    "20261010042936",
+    "20261010100539",
+    "20261010102636",
+    "20261010102840",
+    "20261010103949",
+    "20261010111903",
+    "20261010112959",
+    "20261010114642",
+    "20261010114825",
+    "20261010122404",
+    "20261011005801",
+    "20261011015904",
+    "20261011080053",
+    "20261011080405",
+    "20261011081131",
+    "20261011082011",
+    "20261011092020",
+    "20261011102132",
+    "20261011112722",
+    "20261011114938",
+    "20261011160504",
+    "20261011161314",
+    "20261011162055",
+    "20261011162254",
+    "20261011173847",
+    "20261011174206",
+    "20261012033418",
+    "20261012041505",
+    "20261012044447",
+    "20261012053839",
+    "20261012062113",
+    "20261012084446",
+    "20261012085331",
+    "20261012085431",
+    "20261012085433",
+    "20261012090808",
+    "20261012102252",
+    "20261012131953",
+    "20261014123207",
+    "20261014124327",
+    "20261014144551",
+    "20261014145706",
+    "20261014222748",
+    "20261015055952",
+    "20261015060321",
+    "20261015060558",
+    "20261015061937",
+    "20261015064926",
+    "20261015065214",
+    "20261015065323",
+    "20261015091351",
+    "20261015103459",
+    "20261015150903",
+    "20261015151721",
+    "20261016025920",
+    "20261016040046",
+    "20261016040759",
+    "20261016061745",
+    "20261016061953",
+    "20261016084936",
+    "20261016085046",
+    "20261017034620",
+    "20261017035712",
+    "20261017040940",
+    "20261017041553",
+    "20261017042005",
+    "20261017042516",
+    "20261017042716",
+    "20261017043936",
+    "20261017101349",
+    "20261017105841",
+    "20261017115000",
+    "20261017115107",
+    "20261017115208",
+    "20261017153840",
+    "20261017161225",
+    "20261017161321",
+    "20261017193341",
+    "20261018044936",
+    "20261018045040",
+    "20261018045140",
+    "20261018052057",
+    "20261018052232",
+    "20261018052343",
+    "20261018081012",
+    "20261018135545",
+    "20261018161754",
+    "20261019102742",
+    "20261024030349",
+    "20261024030527",
+    "20261031103659",
+    "20261031104338",
+    "20261103133437",
+    "20261107070508",
+    "20261107070729",
+    "20261107071230",
+    "20261107082654",
+    "20261107082952",
+    "20261107083327",
+    "20261113053832",
+    "20261113053925",
+    "20261113120946",
+    "20261114115141",
+    "20261115131821",
+    "20261115145202",
+    "20261115173757",
+    "20261115174514",
+    "20261116015750",
+    "20261116020027",
+    "20261116021507",
+    "20261116022103",
+    "20261116022906",
+    "20261116040038",
+    "20261116042553",
+    "20261116042624",
+    "20261116044828",
+    "20261116045316",
+    "20261116045536",
+    "20261116063243",
+    "20261116064723",
+    "20261116071644",
+    "20261116085953"
+  ],
+  "local_versions_not_in_export": [
+    "20261116100000_nexora_whatsapp_optional_profiles.sql",
+    "20261117061129_studioflow_shared_edge_rate_limits.sql"
+  ],
+  "historical_edge_references": [
+    {
+      "path": "supabase/migrations/20261012085433_food_worker_scheduler.sql",
+      "functions": [
+        "nexora-food-send-notification",
+        "nexora-food-process-deletion"
+      ],
+      "reason": "Recorded food notification/deletion worker dependencies; their source and live deployment are not established by this repository."
+    },
+    {
+      "path": "supabase/migrations/20261015055952_nexora_job_web_push_notifications.sql",
+      "functions": [
+        "nexora-job-push"
+      ],
+      "reason": "Recorded recruitment push worker dependency; its source and live deployment are not established by this repository."
+    },
+    {
+      "path": "supabase/migrations/20261024030349_studioflow_customer_engagement.sql",
+      "functions": [
+        "studioflow-customer-services"
+      ],
+      "reason": "Recorded legacy customer engagement worker dependency; its source and live deployment are not established by this repository."
+    }
+  ],
+  "reconciled_aliases": [
+    {
+      "removed_file": "202611030004_template15_16_catalogue_sync.sql",
+      "canonical_file": "20261103133437_template15_16_catalogue_sync.sql",
+      "removed_file_sha256": "42875807903a60682d9cfa674ee52e1e8905cfd5ba1e9ab9b3ed788d725df92a",
+      "equivalent_statement_count": 1,
+      "verification": "PostgreSQL statement parsing and token comparison, including dollar-quoted function bodies; comments and formatting excluded, quoted values preserved."
+    },
+    {
+      "removed_file": "202611070001_nexora_salon_landing_database.sql",
+      "canonical_file": "20261107070508_nexora_salon_landing_database.sql",
+      "removed_file_sha256": "8821db45dec1bb397c62b2cbccd290c9e85adc0353a96fb54f0e4cd56633d98b",
+      "equivalent_statement_count": 141,
+      "verification": "PostgreSQL statement parsing and token comparison, including dollar-quoted function bodies; comments and formatting excluded, quoted values preserved."
+    },
+    {
+      "removed_file": "202611070003_nexora_salon_landing_rate_limits.sql",
+      "canonical_file": "20261107071230_nexora_salon_landing_rate_limits.sql",
+      "removed_file_sha256": "11446bf508b76b1a64b5fcd7fb6dcbbdd35c84e8fdd70874dc1d81b2ae43a4b2",
+      "equivalent_statement_count": 11,
+      "verification": "PostgreSQL statement parsing and token comparison, including dollar-quoted function bodies; comments and formatting excluded, quoted values preserved."
+    },
+    {
+      "removed_file": "202611070004_nexora_demo_lead_operations.sql",
+      "canonical_file": "20261107082654_nexora_demo_lead_operations.sql",
+      "removed_file_sha256": "1f30f945e6ef1b67363a4e5bf3353a8288fc987b03ad65b7a78592d1cb799d73",
+      "equivalent_statement_count": 25,
+      "verification": "PostgreSQL statement parsing and token comparison, including dollar-quoted function bodies; comments and formatting excluded, quoted values preserved."
+    },
+    {
+      "removed_file": "202611070005_nexora_demo_lead_retention_default.sql",
+      "canonical_file": "20261107082952_nexora_demo_lead_retention_default.sql",
+      "removed_file_sha256": "99970a7a1f698e81cb4a3c084095f0b58ba0afdb190398ba16480303f465f982",
+      "equivalent_statement_count": 2,
+      "verification": "PostgreSQL statement parsing and token comparison, including dollar-quoted function bodies; comments and formatting excluded, quoted values preserved."
+    },
+    {
+      "removed_file": "202611070006_nexora_landing_privacy_link.sql",
+      "canonical_file": "20261107083327_nexora_landing_privacy_link.sql",
+      "removed_file_sha256": "79070c5c02647197a70e313854065b5a8d1335094a4ae918c5bf97baff8a3df9",
+      "equivalent_statement_count": 1,
+      "verification": "PostgreSQL statement parsing and token comparison, including dollar-quoted function bodies; comments and formatting excluded, quoted values preserved."
+    },
+    {
+      "removed_file": "202611140001_studioflow_branch_android_slots.sql",
+      "canonical_file": "20261114115141_studioflow_branch_android_slots.sql",
+      "removed_file_sha256": "e9fabb52f9c8f969d4fade5a15891653fe655eb972f1067ba5d3340b3cbd9dae",
+      "equivalent_statement_count": 100,
+      "verification": "PostgreSQL statement parsing and token comparison, including dollar-quoted function bodies; comments and formatting excluded, quoted values preserved."
+    },
+    {
+      "removed_file": "20261115133000_private_whatsapp_test_rate_limit.sql",
+      "canonical_file": "20261115145202_private_whatsapp_test_rate_limit.sql",
+      "removed_file_sha256": "874b5ff090948f1202b4d69c25c655a2fc0c2fcfd00ea1e30b3efe06434ebebf",
+      "equivalent_statement_count": 1,
+      "verification": "PostgreSQL statement parsing and token comparison, including dollar-quoted function bodies; comments and formatting excluded, quoted values preserved."
+    },
+    {
+      "removed_file": "20261122065000_branch_service_android_wrapper_grants.sql",
+      "canonical_file": "20261122064912_branch_service_android_wrapper_grants.sql",
+      "archived_file": "supabase/reconciled-migrations/20261122065000_branch_service_android_wrapper_grants.sql",
+      "removed_file_sha256": "b15467fb5415ad8a14da6adec44cfe3409d28df2eaacf20e7491cc08cb045b5b",
+      "equivalent_statement_count": 1,
+      "verification": "Compared parsed SQL operations: REVOKE/GRANT operations are identical; differences are comments only. Archived source retained outside the active migration directory to prevent duplicate execution."
+    }
+  ],
+  "retimestamped_unapplied_migrations": [
+    {
+      "old_file": "202611120001_studioflow_edge_rate_limits.sql",
+      "new_file": "20261117061129_studioflow_shared_edge_rate_limits.sql",
+      "sha256": "1a6959c61a16ebe7bb63bce6ec770719a95cbbccf88036324e23d6fc79d0acc8",
+      "reason": "Live export confirms the shared Edge rate-limit table and functions are absent. Existing booking-email handler requires this service-only additive store."
+    }
+  ],
+  "superseded_unapplied_migrations": [
+    {
+      "original_file": "20261115132100_studioflow_whatsapp_test_booking_api.sql",
+      "path": "supabase/pending-features/20261115132100_studioflow_whatsapp_test_booking_api.sql",
+      "sha256": "8515dd15e6fc1b4883d406d98073e91aadba90913d545b3c8dc0824b3fb4e0d5",
+      "canonical_files": [
+        "20261115131821_studioflow_whatsapp_test_booking_api.sql",
+        "20261115145202_private_whatsapp_test_rate_limit.sql"
+      ],
+      "reason": "Live private_whatsapp_test_rate_limit already exists, is service-only and uses the original studioflow_whatsapp_test_rate_limits table. Do not introduce a second counter table or overwrite the applied SECURITY DEFINER helper."
+    },
+    {
+      "original_file": "20261123093000_studioflow_publish_slug_case_and_compat.sql",
+      "path": "supabase/superseded-migrations/20261123093000_studioflow_publish_slug_case_and_compat.sql",
+      "sha256": "009c9c9269b6aa814b4f29164215abd1594eea49d72489a48be84dbdbb106135",
+      "canonical_files": [
+        "20261124095131_studioflow_publish_optional_tracking_isolation.sql"
+      ],
+      "reason": "Not present in remote migration history. Its slug normalization and compatibility changes are included in the applied optional-tracking isolation migration; original source retained for audit and not scheduled separately."
+    }
+  ],
+  "deferred_feature_migrations": [
+    {
+      "original_file": "202610290001_vogue_noir_academy_city.sql",
+      "path": "supabase/pending-features/202610290001_vogue_noir_academy_city.sql",
+      "sha256": "aced8d0754bd61c643e7999c952496dd78a2fa483b2493f2937d624389a22852",
+      "reason": "Unapplied feature SQL outside this WhatsApp release; live catalog comparison shows missing dependencies or different/newer contracts. Preserve for a separate feature rollout.",
+      "live_comparison": {
+        "file": "202610290001_vogue_noir_academy_city.sql",
+        "functions": [
+          {
+            "name": "studioflow_private.academy_enquire_with_city",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.studioflow_academy_enquire_with_city",
+            "status": "MISSING"
+          }
+        ],
+        "tables": [],
+        "statement_kinds": {
+          "TransactionStmt": 2,
+          "AlterTableStmt": 1,
+          "CreateFunctionStmt": 2,
+          "GrantStmt": 4
+        }
+      }
+    },
+    {
+      "original_file": "202610300002_prism_chroma_template_10.sql",
+      "path": "supabase/pending-features/202610300002_prism_chroma_template_10.sql",
+      "sha256": "6e596609246ccb73eb7d3cccbf27fbeb2f5392b3db65205ce119cb0ab7bfbd1e",
+      "reason": "Unapplied feature SQL outside this WhatsApp release; live catalog comparison shows missing dependencies or different/newer contracts. Preserve for a separate feature rollout.",
+      "live_comparison": {
+        "file": "202610300002_prism_chroma_template_10.sql",
+        "functions": [
+          {
+            "name": "studioflow_prism_private.touch_updated_at",
+            "status": "MISSING"
+          },
+          {
+            "name": "studioflow_prism_private.site",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.studioflow_prism_site",
+            "status": "MISSING"
+          },
+          {
+            "name": "studioflow_prism_private.enquire",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.studioflow_prism_enquire",
+            "status": "MISSING"
+          },
+          {
+            "name": "studioflow_prism_private.newsletter",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.studioflow_prism_newsletter",
+            "status": "MISSING"
+          },
+          {
+            "name": "studioflow_review_private.review_json",
+            "status": "BODY_DIFF"
+          },
+          {
+            "name": "studioflow_review_private.list_reviews",
+            "status": "BODY_DIFF"
+          },
+          {
+            "name": "studioflow_review_private.submit_review",
+            "status": "BODY_DIFF"
+          },
+          {
+            "name": "public.studioflow_list_reviews",
+            "status": "BODY_SAME"
+          },
+          {
+            "name": "public.studioflow_submit_review",
+            "status": "BODY_SAME"
+          },
+          {
+            "name": "studioflow_prism_private.moderate_review",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.studioflow_prism_moderate_review",
+            "status": "MISSING"
+          }
+        ],
+        "tables": [
+          {
+            "name": "public.studioflow_offers",
+            "exists": false
+          },
+          {
+            "name": "public.studioflow_enquiries",
+            "exists": false
+          },
+          {
+            "name": "public.studioflow_newsletter_subscribers",
+            "exists": false
+          }
+        ],
+        "statement_kinds": {
+          "CreateSchemaStmt": 1,
+          "GrantStmt": 38,
+          "CreateFunctionStmt": 14,
+          "CreateStmt": 3,
+          "IndexStmt": 7,
+          "DropStmt": 13,
+          "CreateTrigStmt": 3,
+          "AlterTableStmt": 10,
+          "CreatePolicyStmt": 10,
+          "UpdateStmt": 1,
+          "DoStmt": 2,
+          "InsertStmt": 1,
+          "NotifyStmt": 1
+        }
+      }
+    },
+    {
+      "original_file": "202610300004_multibranch_support.sql",
+      "path": "supabase/pending-features/202610300004_multibranch_support.sql",
+      "sha256": "3936bc69df51f0dd71854f30f479b4dc470c20ecea93f01f0ab8d072e530fe69",
+      "reason": "Unapplied feature SQL outside this WhatsApp release; live catalog comparison shows missing dependencies or different/newer contracts. Preserve for a separate feature rollout.",
+      "live_comparison": {
+        "file": "202610300004_multibranch_support.sql",
+        "functions": [
+          {
+            "name": "studioflow_private.sync_branches_from_workspace",
+            "status": "BODY_SAME"
+          },
+          {
+            "name": "studioflow_private.branch_is_open",
+            "status": "BODY_DIFF"
+          },
+          {
+            "name": "studioflow_private.validate_studioflow_booking_branch",
+            "status": "BODY_SAME"
+          },
+          {
+            "name": "studioflow_private.branch_slots",
+            "status": "BODY_DIFF"
+          },
+          {
+            "name": "studioflow_private.availability",
+            "status": "BODY_SAME"
+          },
+          {
+            "name": "studioflow_android_private.slots",
+            "status": "BODY_DIFF"
+          },
+          {
+            "name": "public.studioflow_public_branches",
+            "status": "BODY_SAME"
+          },
+          {
+            "name": "public.studioflow_branch_specialists",
+            "status": "BODY_DIFF"
+          },
+          {
+            "name": "public.studioflow_branch_available_slots",
+            "status": "BODY_SAME"
+          },
+          {
+            "name": "public.studioflow_branch_android_slots",
+            "status": "BODY_SAME"
+          },
+          {
+            "name": "public.studioflow_branch_book",
+            "status": "BODY_SAME"
+          },
+          {
+            "name": "public.studioflow_branch_android_book",
+            "status": "BODY_SAME"
+          },
+          {
+            "name": "public.studioflow_branch_coupon_book",
+            "status": "BODY_SAME"
+          },
+          {
+            "name": "public.studioflow_owner_walk_in",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.studioflow_android_reschedule",
+            "status": "BODY_SAME"
+          }
+        ],
+        "tables": [
+          {
+            "name": "public.branches",
+            "exists": true
+          },
+          {
+            "name": "public.studioflow_branch_staff_members",
+            "exists": true
+          },
+          {
+            "name": "public.studioflow_staff_branch_schedules",
+            "exists": true
+          },
+          {
+            "name": "public.studioflow_branch_inventory",
+            "exists": true
+          }
+        ],
+        "statement_kinds": {
+          "TransactionStmt": 2,
+          "CreateStmt": 4,
+          "IndexStmt": 5,
+          "AlterTableStmt": 7,
+          "GrantStmt": 33,
+          "DropStmt": 11,
+          "CreatePolicyStmt": 9,
+          "InsertStmt": 1,
+          "CreateFunctionStmt": 15,
+          "CreateTrigStmt": 2,
+          "DoStmt": 2,
+          "UpdateStmt": 1
+        }
+      }
+    },
+    {
+      "original_file": "202610300005_iron_ink_social_videos.sql",
+      "path": "supabase/pending-features/202610300005_iron_ink_social_videos.sql",
+      "sha256": "f9e8e4e869e05fde0ca95cc767cbddfb527539482c96ffbf099a5cce31dfd54f",
+      "reason": "Unapplied feature SQL outside this WhatsApp release; live catalog comparison shows missing dependencies or different/newer contracts. Preserve for a separate feature rollout.",
+      "live_comparison": {
+        "file": "202610300005_iron_ink_social_videos.sql",
+        "functions": [
+          {
+            "name": "public.salon_social_videos_touch",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.salon_social_videos_limit",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.get_salon_social_videos",
+            "status": "BODY_DIFF"
+          }
+        ],
+        "tables": [
+          {
+            "name": "public.salon_social_videos",
+            "exists": true
+          }
+        ],
+        "statement_kinds": {
+          "TransactionStmt": 2,
+          "CreateStmt": 1,
+          "IndexStmt": 2,
+          "CreateFunctionStmt": 3,
+          "GrantStmt": 7,
+          "DropStmt": 4,
+          "CreateTrigStmt": 2,
+          "AlterTableStmt": 1,
+          "CreatePolicyStmt": 2
+        }
+      }
+    },
+    {
+      "original_file": "202611020001_ziya_promotions_and_loyalty.sql",
+      "path": "supabase/pending-features/202611020001_ziya_promotions_and_loyalty.sql",
+      "sha256": "465e5502f33d4bda4fcfa8ef94caf1e4b4ebf561032d3ecac5580bf7d075afe0",
+      "reason": "Unapplied feature SQL outside this WhatsApp release; live catalog comparison shows missing dependencies or different/newer contracts. Preserve for a separate feature rollout.",
+      "live_comparison": {
+        "file": "202611020001_ziya_promotions_and_loyalty.sql",
+        "functions": [
+          {
+            "name": "studioflow_private.ziya_touch_updated_at",
+            "status": "MISSING"
+          },
+          {
+            "name": "studioflow_private.ziya_normalize_promotion",
+            "status": "MISSING"
+          },
+          {
+            "name": "studioflow_private.can_manage_salon",
+            "status": "MISSING"
+          },
+          {
+            "name": "studioflow_private.can_view_salon_staff",
+            "status": "MISSING"
+          },
+          {
+            "name": "studioflow_private.seed_ziya_salon_defaults",
+            "status": "MISSING"
+          },
+          {
+            "name": "studioflow_private.auto_seed_ziya_on_account_save",
+            "status": "MISSING"
+          },
+          {
+            "name": "studioflow_private.coupon_quote",
+            "status": "BODY_DIFF"
+          },
+          {
+            "name": "studioflow_private.coupon_book",
+            "status": "BODY_DIFF"
+          },
+          {
+            "name": "studioflow_private.credit_booking_loyalty_points",
+            "status": "MISSING"
+          },
+          {
+            "name": "studioflow_private.reverse_booking_loyalty_points",
+            "status": "MISSING"
+          },
+          {
+            "name": "studioflow_private.ziya_booking_lifecycle_trg_fn",
+            "status": "MISSING"
+          },
+          {
+            "name": "studioflow_private.ziya_payment_refund_trg_fn",
+            "status": "MISSING"
+          },
+          {
+            "name": "studioflow_private.ziya_public_offers_and_loyalty",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.studioflow_ziya_public_offers_and_loyalty",
+            "status": "MISSING"
+          },
+          {
+            "name": "studioflow_private.ziya_redeem_loyalty_reward",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.studioflow_ziya_redeem_loyalty_reward",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.studioflow_ziya_submit_enquiry",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.studioflow_ziya_admin_dashboard",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.studioflow_ziya_admin_save_promotion",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.studioflow_ziya_admin_delete_promotion",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.studioflow_ziya_admin_save_loyalty_settings",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.studioflow_ziya_admin_save_loyalty_reward",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.studioflow_ziya_admin_delete_loyalty_reward",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.studioflow_ziya_admin_adjust_points",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.studioflow_ziya_admin_restore_demos",
+            "status": "MISSING"
+          }
+        ],
+        "tables": [
+          {
+            "name": "public.salon_promotions",
+            "exists": false
+          },
+          {
+            "name": "public.promotion_redemptions",
+            "exists": false
+          },
+          {
+            "name": "public.loyalty_program_settings",
+            "exists": false
+          },
+          {
+            "name": "public.loyalty_rewards",
+            "exists": true
+          },
+          {
+            "name": "public.loyalty_points_ledger",
+            "exists": false
+          }
+        ],
+        "statement_kinds": {
+          "TransactionStmt": 2,
+          "UpdateStmt": 1,
+          "CreateFunctionStmt": 25,
+          "GrantStmt": 53,
+          "CreateStmt": 5,
+          "IndexStmt": 9,
+          "DropStmt": 23,
+          "CreateTrigStmt": 7,
+          "AlterTableStmt": 5,
+          "CreatePolicyStmt": 16,
+          "DoStmt": 2
+        }
+      }
+    },
+    {
+      "original_file": "202611030001_aura_template03_content.sql",
+      "path": "supabase/pending-features/202611030001_aura_template03_content.sql",
+      "sha256": "82b6d0c4d8917cd8c89740701fd0681eaf5d6ccafb54ac422377223cf9d52397",
+      "reason": "Unapplied feature SQL outside this WhatsApp release; live catalog comparison shows missing dependencies or different/newer contracts. Preserve for a separate feature rollout.",
+      "live_comparison": {
+        "file": "202611030001_aura_template03_content.sql",
+        "functions": [
+          {
+            "name": "studioflow_private.aura_can_manage_salon",
+            "status": "MISSING"
+          },
+          {
+            "name": "studioflow_private.aura_validate_template_section",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.get_aura_editable_salon_id",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.get_aura_template_sections",
+            "status": "MISSING"
+          },
+          {
+            "name": "studioflow_private.aura_section_projection",
+            "status": "MISSING"
+          },
+          {
+            "name": "studioflow_private.aura_sync_published_sections",
+            "status": "MISSING"
+          }
+        ],
+        "tables": [
+          {
+            "name": "public.studioflow_template_sections",
+            "exists": false
+          }
+        ],
+        "statement_kinds": {
+          "TransactionStmt": 2,
+          "CreateSchemaStmt": 1,
+          "GrantStmt": 18,
+          "CreateFunctionStmt": 6,
+          "CreateStmt": 1,
+          "IndexStmt": 2,
+          "AlterTableStmt": 2,
+          "DropStmt": 15,
+          "CreatePolicyStmt": 13,
+          "CreateTrigStmt": 2,
+          "UpdateStmt": 1,
+          "InsertStmt": 1,
+          "DoStmt": 1,
+          "NotifyStmt": 1
+        }
+      }
+    },
+    {
+      "original_file": "202611030002_aura_unisex_promotions.sql",
+      "path": "supabase/pending-features/202611030002_aura_unisex_promotions.sql",
+      "sha256": "6d000434169271dbbb7cef5fcceb4d5848023aceff144d1fe77eb2aea7f59555",
+      "reason": "Unapplied feature SQL outside this WhatsApp release; live catalog comparison shows missing dependencies or different/newer contracts. Preserve for a separate feature rollout.",
+      "live_comparison": {
+        "file": "202611030002_aura_unisex_promotions.sql",
+        "functions": [
+          {
+            "name": "studioflow_private.aura_can_manage_salon",
+            "status": "MISSING"
+          },
+          {
+            "name": "studioflow_private.aura_is_template03_salon",
+            "status": "MISSING"
+          },
+          {
+            "name": "studioflow_private.aura_normalize_promotion",
+            "status": "MISSING"
+          },
+          {
+            "name": "studioflow_private.aura_touch_updated_at",
+            "status": "MISSING"
+          },
+          {
+            "name": "studioflow_private.aura_seed_demo_offers",
+            "status": "MISSING"
+          },
+          {
+            "name": "studioflow_private.aura_auto_seed_on_account_save",
+            "status": "MISSING"
+          },
+          {
+            "name": "studioflow_private.aura_public_offers",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.studioflow_aura_public_offers",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.studioflow_aura_admin_offers",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.studioflow_aura_admin_save_offer",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.studioflow_aura_admin_delete_offer",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.studioflow_aura_admin_toggle_offer",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.studioflow_aura_admin_approve_demo",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.studioflow_aura_admin_restore_demos",
+            "status": "MISSING"
+          },
+          {
+            "name": "studioflow_private.aura_coupon_quote",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.studioflow_aura_coupon_quote",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.studioflow_aura_coupon_book",
+            "status": "MISSING"
+          },
+          {
+            "name": "studioflow_private.aura_booking_amounts",
+            "status": "MISSING"
+          },
+          {
+            "name": "studioflow_private.aura_promotion_redemption_trg_fn",
+            "status": "MISSING"
+          }
+        ],
+        "tables": [
+          {
+            "name": "public.salon_promotions",
+            "exists": false
+          },
+          {
+            "name": "public.promotion_redemptions",
+            "exists": false
+          },
+          {
+            "name": "public.aura_promotion_redemptions",
+            "exists": false
+          },
+          {
+            "name": "studioflow_private.aura_promotion_seeds",
+            "exists": false
+          }
+        ],
+        "statement_kinds": {
+          "TransactionStmt": 2,
+          "CreateSchemaStmt": 1,
+          "GrantStmt": 40,
+          "CreateFunctionStmt": 19,
+          "CreateStmt": 4,
+          "AlterTableStmt": 19,
+          "IndexStmt": 8,
+          "DropStmt": 13,
+          "CreateTrigStmt": 4,
+          "CreatePolicyStmt": 9,
+          "DoStmt": 3
+        }
+      }
+    },
+    {
+      "original_file": "202611030003_template15_keshkraft.sql",
+      "path": "supabase/pending-features/202611030003_template15_keshkraft.sql",
+      "sha256": "e4354a929ca8d5636645fae7712b91faf0b4a7eca9268458db856f615e9a759f",
+      "reason": "Unapplied feature SQL outside this WhatsApp release; live catalog comparison shows missing dependencies or different/newer contracts. Preserve for a separate feature rollout.",
+      "live_comparison": {
+        "file": "202611030003_template15_keshkraft.sql",
+        "functions": [
+          {
+            "name": "studioflow_private.mens_service",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.studioflow_mens_slots",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.studioflow_mens_coupon_quote",
+            "status": "MISSING"
+          },
+          {
+            "name": "studioflow_private.mens_booking_guard",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.studioflow_mens_book",
+            "status": "MISSING"
+          },
+          {
+            "name": "studioflow_private.mens_points_snapshot",
+            "status": "MISSING"
+          },
+          {
+            "name": "studioflow_private.mens_points",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.studioflow_mens_rewards",
+            "status": "MISSING"
+          },
+          {
+            "name": "studioflow_private.mens_reward_guard",
+            "status": "MISSING"
+          }
+        ],
+        "tables": [],
+        "statement_kinds": {
+          "TransactionStmt": 2,
+          "CreateFunctionStmt": 9,
+          "GrantStmt": 13,
+          "DropStmt": 3,
+          "CreateTrigStmt": 3,
+          "IndexStmt": 1,
+          "InsertStmt": 1
+        }
+      }
+    },
+    {
+      "original_file": "202611050001_booking_multi_services.sql",
+      "path": "supabase/pending-features/202611050001_booking_multi_services.sql",
+      "sha256": "46afd6764a4f14fbf1b3c43f8ac654213d194bdd1f182521c523420cac382cfb",
+      "reason": "Unapplied feature SQL outside this WhatsApp release; live catalog comparison shows missing dependencies or different/newer contracts. Preserve for a separate feature rollout.",
+      "live_comparison": {
+        "file": "202611050001_booking_multi_services.sql",
+        "functions": [
+          {
+            "name": "studioflow_private.booking_staff_profiles",
+            "status": "BODY_SAME"
+          },
+          {
+            "name": "public.studioflow_booking_specialists",
+            "status": "BODY_SAME"
+          },
+          {
+            "name": "public.studioflow_branch_specialists",
+            "status": "BODY_SAME"
+          },
+          {
+            "name": "studioflow_private.booking_bundle_window_allowed",
+            "status": "BODY_DIFF"
+          },
+          {
+            "name": "studioflow_android_private.slots_unbranched",
+            "status": "BODY_DIFF"
+          },
+          {
+            "name": "studioflow_private.branch_slots",
+            "status": "BODY_DIFF"
+          },
+          {
+            "name": "studioflow_private.book_with_addons",
+            "status": "BODY_DIFF"
+          },
+          {
+            "name": "public.studioflow_book",
+            "status": "BODY_SAME"
+          },
+          {
+            "name": "public.studioflow_mens_coupon_quote",
+            "status": "MISSING"
+          },
+          {
+            "name": "studioflow_private.mens_booking_guard",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.studioflow_mens_book",
+            "status": "MISSING"
+          }
+        ],
+        "tables": [],
+        "statement_kinds": {
+          "TransactionStmt": 2,
+          "CreateFunctionStmt": 11,
+          "GrantStmt": 17
+        }
+      }
+    },
+    {
+      "original_file": "202611060001_studioflow_public_access_hardening.sql",
+      "path": "supabase/pending-features/202611060001_studioflow_public_access_hardening.sql",
+      "sha256": "4f806401fab2a4b658f6e45fae39275f7f1e75b7a2dcefbcacbb615f4db86b2e",
+      "reason": "Unapplied feature SQL outside this WhatsApp release; live catalog comparison shows missing dependencies or different/newer contracts. Preserve for a separate feature rollout.",
+      "live_comparison": {
+        "file": "202611060001_studioflow_public_access_hardening.sql",
+        "functions": [],
+        "tables": [],
+        "statement_kinds": {
+          "TransactionStmt": 2,
+          "GrantStmt": 9,
+          "DropStmt": 6,
+          "CreatePolicyStmt": 3
+        }
+      }
+    },
+    {
+      "original_file": "202611070002_nexora_salon_landing_seed.sql",
+      "path": "supabase/pending-features/202611070002_nexora_salon_landing_seed.sql",
+      "sha256": "e4c4f9386530f8a531eeb10cc1c33c413d6307bfd3424eb7a53de7da7bae7d82",
+      "reason": "Unapplied feature SQL outside this WhatsApp release; live catalog comparison shows missing dependencies or different/newer contracts. Preserve for a separate feature rollout.",
+      "live_comparison": {
+        "file": "202611070002_nexora_salon_landing_seed.sql",
+        "functions": [],
+        "tables": [],
+        "statement_kinds": {
+          "InsertStmt": 11
+        }
+      }
+    },
+    {
+      "original_file": "202611070007_nexora_public_visibility_reconcile.sql",
+      "path": "supabase/pending-features/202611070007_nexora_public_visibility_reconcile.sql",
+      "sha256": "c42657297915f5007e99af13e52e79480013e430c117e48a8e2813ac262ada85",
+      "reason": "Unapplied feature SQL outside this WhatsApp release; live catalog comparison shows missing dependencies or different/newer contracts. Preserve for a separate feature rollout.",
+      "live_comparison": {
+        "file": "202611070007_nexora_public_visibility_reconcile.sql",
+        "functions": [],
+        "tables": [],
+        "statement_kinds": {
+          "TransactionStmt": 2,
+          "AlterTableStmt": 3,
+          "DropStmt": 6,
+          "CreatePolicyStmt": 3
+        }
+      }
+    },
+    {
+      "original_file": "202611070008_remove_nexora_promotion_studio.sql",
+      "path": "supabase/pending-features/202611070008_remove_nexora_promotion_studio.sql",
+      "sha256": "b5b50a229404fb129a099711528a680258e2c2ba8a04df39d3427e1ad9096a1b",
+      "reason": "Unapplied feature SQL outside this WhatsApp release; live catalog comparison shows missing dependencies or different/newer contracts. Preserve for a separate feature rollout.",
+      "live_comparison": {
+        "file": "202611070008_remove_nexora_promotion_studio.sql",
+        "functions": [],
+        "tables": [],
+        "statement_kinds": {
+          "DeleteStmt": 2
+        }
+      }
+    },
+    {
+      "original_file": "202611070009_remove_nexora_product_preview.sql",
+      "path": "supabase/pending-features/202611070009_remove_nexora_product_preview.sql",
+      "sha256": "ff7b19ce970764d4c6c9e312fb5b8071bc1cc4dee1ef979ea65331c813041f36",
+      "reason": "Unapplied feature SQL outside this WhatsApp release; live catalog comparison shows missing dependencies or different/newer contracts. Preserve for a separate feature rollout.",
+      "live_comparison": {
+        "file": "202611070009_remove_nexora_product_preview.sql",
+        "functions": [],
+        "tables": [],
+        "statement_kinds": {
+          "DeleteStmt": 2
+        }
+      }
+    },
+    {
+      "original_file": "20261113120947_multibranch_template12_support.sql",
+      "path": "supabase/pending-features/20261113120947_multibranch_template12_support.sql",
+      "sha256": "17eca63bbd3e8a42a9e802ff95dacd1a5fa314ba20b9ad1b568af2e6f090f921",
+      "reason": "Unapplied feature SQL outside this WhatsApp release; live catalog comparison shows missing dependencies or different/newer contracts. Preserve for a separate feature rollout.",
+      "live_comparison": {
+        "file": "20261113120947_multibranch_template12_support.sql",
+        "functions": [
+          {
+            "name": "studioflow_private.validate_ink_booking_branch",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.get_branch_available_slots",
+            "status": "MISSING"
+          },
+          {
+            "name": "studioflow_ink_private.validate_booking_write",
+            "status": "BODY_DIFF"
+          },
+          {
+            "name": "public.create_branch_booking",
+            "status": "MISSING"
+          },
+          {
+            "name": "public.get_template12_site",
+            "status": "BODY_DIFF"
+          }
+        ],
+        "tables": [],
+        "statement_kinds": {
+          "TransactionStmt": 2,
+          "AlterTableStmt": 11,
+          "DropStmt": 2,
+          "CreatePolicyStmt": 1,
+          "UpdateStmt": 1,
+          "IndexStmt": 5,
+          "CreateFunctionStmt": 5,
+          "GrantStmt": 8,
+          "CreateTrigStmt": 1
+        }
+      }
+    }
+  ],
+  "live_catalog_evidence": {
+    "captured_at": "2026-11-17T06:05:08.989382+00:00",
+    "export_sha256": "85dda055f2d7edc2e46eae2de83a0ff743b570829b8026de3e424ec05d415f2b",
+    "applied_versions": 167,
+    "functions": 391,
+    "relations": 273,
+    "assessment": "Read-only owner-supplied live catalog; not a live migration dry-run or deployment."
+  },
+  "release_pending_migrations": [],
+  "reviewed_feature_migrations": [
+    {
+      "file": "20261117130000_reconcile_template15_multiservice_booking.sql",
+      "purpose": "Reviewed Template 15 men-only booking guards and multi-service branch/unbranched booking RPC reconciliation; retained behind the protected manual production migration workflow."
+    },
+    {
+      "file": "20261118155850_add_tawk_widget_connection.sql",
+      "purpose": "Historical, comment-only compatibility marker for the per-salon Tawk widget migration chain; no DDL is applied by this file."
+    },
+    {
+      "file": "20261118160249_separate_tawk_widget_connections.sql",
+      "purpose": "Historical, comment-only marker documenting the isolated widget_connections table; final DDL is consolidated in the reviewed 20261118203000 migration."
+    },
+    {
+      "file": "20261118203000_add_tawk_widget_connection.sql",
+      "purpose": "Reviewed per-salon Tawk.to live chat feature: creates private property_mappings and widget_connections prerequisites before ALTER/RPC DDL, enforces private RLS/service-role-only access, exposes only public widget IDs for published sites, and accepts the standard default widget ID. Retain behind the protected manual production migration workflow."
+    },
+    {
+      "file": "20261119080000_staff_role_permissions.sql",
+      "purpose": "Role-level permissions: canonical staff access-role normalizer, server-side permission matrix mirroring src/lib/staffPermissions.ts, caller branch-role helper, and a pinned branch role CHECK constraint with legacy value normalization. Additive and read-only; no RLS policy is widened."
+    },
+    {
+      "file": "20261119120000_staff_invites_and_staff_login.sql",
+      "purpose": "Staff invites, staff memberships and separate staff sign-in with hashed tokens and fail-closed grants."
+    },
+    {
+      "file": "20261119140000_staff_access_hardening.sql",
+      "purpose": "Staff access hardening: explicit all_branches grant (empty branch scope now means no branch data), stale branch filtering on every read, atomic invite acceptance, reusable SECURITY DEFINER authorization helpers so RLS cannot recurse, and an owner-only RPC to change a live login's role/branch scope."
+    },
+    {
+      "file": "20261121120000_domain_tables_fail_closed_rls.sql",
+      "purpose": "Fail-closed owner + branch-scoped staff RLS for branches, services and bookings, adapted to the real schema (branches.site_id, studioflow_services, studioflow_bookings): staff reads are scoped through studioflow_is_assigned_branch so a stranger or a branch-less login sees nothing, staff create/update bookings only inside their own branch and role (service providers read-only), and public catalogue reads are narrowed from a blanket is_active rule to bookable + published-salon rows. Customer CRM tables stay owner-only."
+    },
+    {
+      "file": "20261121130000_hide_owner_id_on_public_services.sql",
+      "purpose": "Column privacy for the public service catalogue: the table-wide SELECT grant to anon on public.services is replaced by explicit column grants that exclude owner_id, so a signed-out visitor can no longer read a salon's owner UUID. Row visibility still comes from services_public_read. The proposed security_invoker view was rejected because it depends on the very grant it revokes and therefore denies every anonymous read."
+    },
+    {
+      "file": "20261121130001_public_storefront_view.sql",
+      "purpose": "Storefront column privacy for the published-site catalogue: public_salon_websites projects only slug/content/published_at (never owner_id, the base table's primary key), anon loses its direct read of studioflow_websites, and studioflow_customer_catalog() is rewritten to project the view instead of embedding owner_id. Also stamps the public salon slug onto booking payloads via trigger + backfill so the customer app joins on slug rather than owner_id. The view is deliberately SECURITY DEFINER, the opposite of the public.services fix, because it exists to be readable by a role that cannot read the base table."
+    }
+  ],
+  "post_export_applied_versions": [
+    {
+      "version": "20261125100000",
+      "file": "20261125100000_studioflow_auth_access_hardening.sql",
+      "name": "studioflow_auth_access_hardening",
+      "observed_at": "2026-11-26",
+      "evidence": "Confirmed in the remote supabase_migrations.schema_migrations history for project zilwgiuiygqqardzutxi; the remote history now contains this version, so the local-only pending set is empty. The corresponding local SQL source exists in main.",
+      "purpose": "Scoped staff invite delivery, private table and storage MFA policies, an authenticated Data API assurance check, and immutable booking identity on direct updates; applied to the remote production project and reconciled into the reviewed applied-history ledger.",
+      "git_blob_sha": "37f68184fc6b3194dae42936431b8d4f25b6e0da"
+    },
+    {
+      "version": "20261116100000",
+      "file": "20261116100000_nexora_whatsapp_optional_profiles.sql",
+      "name": "nexora_whatsapp_optional_profiles",
+      "observed_at": "2026-11-19",
+      "evidence": "Confirmed in the remote supabase_migrations.schema_migrations history for project zilwgiuiygqqardzutxi; the corresponding local SQL source exists in main.",
+      "purpose": "Optional profile keys and service-role Vault helper grants; additive WhatsApp runtime repair.",
+      "git_blob_sha": "1c077c73a9888d4bf0750c4a5cd8ca917fcc06e1"
+    },
+    {
+      "version": "20261117061129",
+      "file": "20261117061129_studioflow_shared_edge_rate_limits.sql",
+      "name": "studioflow_shared_edge_rate_limits",
+      "observed_at": "2026-11-19",
+      "evidence": "Confirmed in the remote supabase_migrations.schema_migrations history for project zilwgiuiygqqardzutxi; the corresponding local SQL source exists in main.",
+      "purpose": "Service-only shared booking-email rate limiter; confirmed absent in the earlier captured live export.",
+      "git_blob_sha": "458e105c0cd8a5553ed4b62b346c92bb8dd47353"
+    },
+    {
+      "version": "20261117130000",
+      "file": "20261117130000_reconcile_template15_multiservice_booking.sql",
+      "name": "reconcile_template15_multiservice_booking",
+      "observed_at": "2026-11-19",
+      "evidence": "Confirmed in the remote supabase_migrations.schema_migrations history for project zilwgiuiygqqardzutxi; the corresponding local SQL source exists in main.",
+      "purpose": "Reviewed Template 15 men-only booking guards and multi-service branch/unbranched booking RPC reconciliation.",
+      "git_blob_sha": "6af78dfe0cd7c25d30a095a3d7a2a55dc97ca0ea"
+    },
+    {
+      "version": "20261118155850",
+      "file": "20261118155850_add_tawk_widget_connection.sql",
+      "name": "add_tawk_widget_connection",
+      "observed_at": "2026-11-19",
+      "evidence": "Confirmed in the remote supabase_migrations.schema_migrations history for project zilwgiuiygqqardzutxi; the corresponding local SQL source exists in main.",
+      "purpose": "Historical comment-only compatibility marker for the per-salon Tawk widget migration chain.",
+      "git_blob_sha": "6a096dc13b5b4ff5f49105143b7446c2214ad6de"
+    },
+    {
+      "version": "20261118160249",
+      "file": "20261118160249_separate_tawk_widget_connections.sql",
+      "name": "separate_tawk_widget_connections",
+      "observed_at": "2026-11-19",
+      "evidence": "Confirmed in the remote supabase_migrations.schema_migrations history for project zilwgiuiygqqardzutxi; the corresponding local SQL source exists in main.",
+      "purpose": "Historical comment-only marker documenting the isolated widget_connections table.",
+      "git_blob_sha": "e88ba341cbfab4b91427ec909e0811264bc0c97b"
+    },
+    {
+      "version": "20261118185200",
+      "file": "20261118185200_create_tawk_api_backend.sql",
+      "name": "create_tawk_api_backend",
+      "observed_at": "2026-11-19",
+      "evidence": "Confirmed in the remote supabase_migrations.schema_migrations history for project zilwgiuiygqqardzutxi; the corresponding local SQL source exists in main.",
+      "purpose": "Tawk read-only API private-schema, API-key and rate-limit backend migration; source restored to main.",
+      "git_blob_sha": "e07bedadbc631556ebba612c7130fba6b84e752b"
+    },
+    {
+      "version": "20261118203000",
+      "file": "20261118203000_add_tawk_widget_connection.sql",
+      "name": "add_tawk_widget_connection",
+      "observed_at": "2026-11-19",
+      "evidence": "Confirmed in the remote supabase_migrations.schema_migrations history for project zilwgiuiygqqardzutxi; the corresponding local SQL source exists in main.",
+      "purpose": "Reviewed per-salon Tawk.to live chat migration; isolated mappings/widget connections, private RLS and public widget ID resolution.",
+      "git_blob_sha": "29901239635b72fd43f2402dd0ffef78a4e5f56c"
+    },
+    {
+      "version": "20261119080000",
+      "file": "20261119080000_staff_role_permissions.sql",
+      "name": "staff_role_permissions",
+      "observed_at": "2026-11-19",
+      "evidence": "Applied to project zilwgiuiygqqardzutxi on 2026-11-19 (role matrix functions, permission check helper, branch role constraint) and recorded in the remote supabase_migrations.schema_migrations history.",
+      "purpose": "Role-level permissions: canonical staff access-role normalizer, server-side permission matrix mirroring src/lib/staffPermissions.ts, caller branch-role helper, and a pinned branch role CHECK constraint with legacy value normalization. Additive and read-only; no RLS policy is widened.",
+      "git_blob_sha": "d1fc8a79337e024878c082a59e75149221db6135"
+    },
+    {
+      "version": "20261119070000",
+      "file": "20261119070000_unified_salon_crm.sql",
+      "name": "unified_salon_crm",
+      "observed_at": "2026-11-19",
+      "evidence": "Confirmed against the live supabase_migrations.schema_migrations history (top of list) for project zilwgiuiygqqardzutxi; local SQL source already exists in the repo.",
+      "purpose": "Additive unified salon CRM tables (crm_tasks, crm_contacts, crm_activities) in studioflow_android_private, owner-only RLS, with the owner CRM RPCs consumed by src.",
+      "git_blob_sha": "7534812d812d8f127bd84dbd7a604546c3128e6f"
+    },
+    {
+      "version": "20261119120000",
+      "file": "20261119120000_staff_invites_and_staff_login.sql",
+      "name": "staff_invites_and_staff_login",
+      "observed_at": "2026-11-19",
+      "evidence": "Applied to project zilwgiuiygqqardzutxi on 2026-11-19: staff_invites + staff_members tables, invite lifecycle RPCs, role/branch-filtered staff workspace projection and an additive branch-scoped staff booking read policy. Verified live that anon can execute only the token lookup, every other RPC is authenticated-only, and the owner ledger exposes no token hash.",
+      "purpose": "Staff invite + separate staff login layer: hashed invite tokens, one identity per staff record, role/branch scope enforced in SQL, and additive RLS for staff booking visibility. No existing owner policy is dropped or widened.",
+      "git_blob_sha": "70f83746c8822524525c0ef161f483fecab2e4ab"
+    },
+    {
+      "version": "20261119140000",
+      "file": "20261119140000_staff_access_hardening.sql",
+      "name": "staff_access_hardening",
+      "observed_at": "2026-11-19",
+      "evidence": "Applied to project zilwgiuiygqqardzutxi on 2026-11-19: all_branches columns, SECURITY DEFINER helpers (studioflow_is_salon_owner / active_branch_ids / staff_scope / staff_scope_view / current_staff_can / current_staff_id / is_assigned_branch), rewritten branch-scoped staff booking policy, fail-closed invite create/accept/lookup/workspace/context, owner-only studioflow_staff_member_update_access, and the superseded 6-argument invite creator dropped so anon retains exactly one executable function (the token lookup).",
+      "purpose": "Fail-closed multi-branch scope and token hardening for staff access.",
+      "git_blob_sha": "2eab19923e14c4ec2cd0d4c78bed3dbda4e7cb98"
+    },
+    {
+      "version": "20261121120000",
+      "file": "20261121120000_domain_tables_fail_closed_rls.sql",
+      "name": "domain_tables_fail_closed_rls",
+      "observed_at": "2026-11-21",
+      "evidence": "Applied to project zilwgiuiygqqardzutxi on 2026-11-21. Replaces the wide services_public_read policy with a bookable + published-salon predicate, adds staff branch-scoped reads on branches and studioflow_services, and adds staff booking write policies scoped by studioflow_is_assigned_branch and studioflow_current_staff_can.",
+      "purpose": "Domain-table RLS hardening for branches, services and bookings; behaviour is measured by scripts/verify-domain-rls.mjs.",
+      "git_blob_sha": "ca160b7cd8dca5a84228d1066b7d2f40c21eb382"
+    },
+    {
+      "version": "20261121130000",
+      "file": "20261121130000_hide_owner_id_on_public_services.sql",
+      "name": "hide_owner_id_on_public_services",
+      "observed_at": "2026-11-21",
+      "evidence": "Applied to project zilwgiuiygqqardzutxi on 2026-11-21. Verified live: has_column_privilege('anon','public.services','owner_id','SELECT') is false while name/price stay readable, anon holds 19 of 20 columns, authenticated keeps owner_id, and services_public_read is still installed.",
+      "purpose": "Remove owner_id from anonymous reads of the public service catalogue; behaviour measured by scripts/verify-service-column-privacy.mjs.",
+      "git_blob_sha": "b0711a0d641379b8daed7fa95c447a8620d1a148"
+    },
+    {
+      "version": "20261121130001",
+      "file": "20261121130001_public_storefront_view.sql",
+      "name": "public_storefront_view",
+      "observed_at": "2026-11-21",
+      "evidence": "Applied to project zilwgiuiygqqardzutxi on 2026-11-21. Verified live: anon has no SELECT on public.studioflow_websites, public_salon_websites exposes no owner_id column, studioflow_customer_catalog() returns salons without owner_id, and booking payloads carry salonSlug.",
+      "purpose": "Anonymous storefront reads no longer carry a salon's owner UUID; bookings join on the public slug instead.",
+      "git_blob_sha": "8389139eee2c78041896bb0cfaa9e930b8cbc2e4"
+    },
+    {
+      "version": "20261123082445",
+      "file": "20261123082445_studioflow_robust_website_publish.sql",
+      "name": "studioflow_robust_website_publish",
+      "observed_at": "2026-11-23",
+      "evidence": "Confirmed in supabase_migrations.schema_migrations on project zilwgiuiygqqardzutxi on 2026-11-23.",
+      "purpose": "Hardens studioflow_private.publish() checklist validation, collision-safe slug locking, and non-blocking partner_referrals/growth_onboarding updates.",
+      "git_blob_sha": "681fd451d9fb67eb24b3b531f304edcc27ffef57"
+    },
+    {
+      "version": "20261122043650",
+      "file": "20261122043650_staff_crm_branch_scope.sql",
+      "name": "staff_crm_branch_scope",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "60791781f4710f394f76aa77971f6b4bb8aa37df"
+    },
+    {
+      "version": "20261122045445",
+      "file": "20261122045445_studioflow_refund_queue_rpc.sql",
+      "name": "studioflow_refund_queue_rpc",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "9c955368d9310f0887c45d7d8bc1046a23ba6d19"
+    },
+    {
+      "version": "20261122052119",
+      "file": "20261122052119_staff_salon_context_and_booking_completion.sql",
+      "name": "staff_salon_context_and_booking_completion",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "3ef4ca6c393e2c2d1673f2579d4dc416e98b0b94"
+    },
+    {
+      "version": "20261122052400",
+      "file": "20261122052400_staff_inventory_membership_access.sql",
+      "name": "staff_inventory_membership_access",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "de66dd4756e0156742498f5ee33eaa4b51298d2c"
+    },
+    {
+      "version": "20261122063603",
+      "file": "20261122063603_branch_service_catalogue_scope.sql",
+      "name": "branch_service_catalogue_scope",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "49e2b25ad04133570ab56da103f47b503bb5df0f"
+    },
+    {
+      "version": "20261122063610",
+      "file": "20261122063610_branch_scoped_manual_crm_contacts.sql",
+      "name": "branch_scoped_manual_crm_contacts",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "83d6c42ddac26c0d34364c3bbae9d9a689f1c9fe"
+    },
+    {
+      "version": "20261122063834",
+      "file": "20261122063834_branch_assignment_read_models.sql",
+      "name": "branch_assignment_read_models",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "b08033e2df81bc92cd7243030a8fb57c959b3db0"
+    },
+    {
+      "version": "20261122064427",
+      "file": "20261122064427_branch_crm_contact_update_duplicate_fix.sql",
+      "name": "branch_crm_contact_update_duplicate_fix",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "d25a5a54d9a5eb6b3c34dd509c01295b638c7636"
+    },
+    {
+      "version": "20261122064912",
+      "file": "20261122064912_branch_service_android_wrapper_grants.sql",
+      "name": "branch_service_android_wrapper_grants",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "d889c14ae18d209ce5ba0ac606dc11607432c558"
+    },
+    {
+      "version": "20261122065342",
+      "file": "20261122065342_branch_scope_private_booking_guards.sql",
+      "name": "branch_scope_private_booking_guards",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "cdea21df1391f4740a20f17b4c8811c8f225263f"
+    },
+    {
+      "version": "20261122065816",
+      "file": "20261122065816_branch_manual_crm_email_read_projection.sql",
+      "name": "branch_manual_crm_email_read_projection",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "b8015aa8ece98a51f21a1ff9d5470f0ca5067c7f"
+    },
+    {
+      "version": "20261122070326",
+      "file": "20261122070326_branch_mapping_redundant_index_cleanup.sql",
+      "name": "branch_mapping_redundant_index_cleanup",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "7c3f2a292fac0357a1e8a9972fc498d11253d9a5"
+    },
+    {
+      "version": "20261122070445",
+      "file": "20261122070445_public_branch_list_published_guard.sql",
+      "name": "public_branch_list_published_guard",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "e52f5b276bc771e046ab5ace90cdb834ae860ccf"
+    },
+    {
+      "version": "20261122072341",
+      "file": "20261122072341_harden_active_branch_ids_acl.sql",
+      "name": "harden_active_branch_ids_acl",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "ae85e0130cfa0caa1fd8e55c13d6b9c560d4dcdd"
+    },
+    {
+      "version": "20261122072714",
+      "file": "20261122072714_android_request_insert_explicit_columns.sql",
+      "name": "android_request_insert_explicit_columns",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "21c88e6adf0ba7b34c7fd38f076abbbb8c342b69"
+    },
+    {
+      "version": "20261122072823",
+      "file": "20261122072823_correct_android_request_fingerprint_builder.sql",
+      "name": "correct_android_request_fingerprint_builder",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "6080231177bc7c6b800e16943c812d8a385bd25b"
+    },
+    {
+      "version": "20261123081235",
+      "file": "20261123081235_studioflow_branch_name_collision_canonical_ids.sql",
+      "name": "studioflow_branch_name_collision_canonical_ids",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "317d7f62df064326806f3500f5fde587547d7867"
+    },
+    {
+      "version": "20261124095101",
+      "file": "20261124095101_studioflow_bookings_hold_expires_at_compat.sql",
+      "name": "studioflow_bookings_hold_expires_at_compat",
+      "observed_at": "2026-11-24",
+      "evidence": "Applied to App project zilwgiuiygqqardzutxi on 2026-11-24 and verified in remote migration history; the column already existed.",
+      "purpose": "Idempotent compatibility migration. hold_expires_at already existed on production, so application made no table or customer-data change.",
+      "git_blob_sha": "2276b7624b64cf44aa3e4205441f7ab78e63b970"
+    },
+    {
+      "version": "20261124095131",
+      "file": "20261124095131_studioflow_publish_optional_tracking_isolation.sql",
+      "name": "studioflow_publish_optional_tracking_isolation",
+      "observed_at": "2026-11-24",
+      "evidence": "Applied to App project zilwgiuiygqqardzutxi on 2026-11-24 and verified live: core publish no longer invokes optional tracking; separately authorized tracking RPC exists.",
+      "purpose": "Separates optional referral/onboarding tracking from core website publishing while preserving checklist validation, normalized/collision-safe slugs, and persisted website response.",
+      "git_blob_sha": "f4df53b9411e6e5429d80acd7621d3e354fb03fa"
+    },
+    {
+      "version": "20261124095142",
+      "file": "20261124095142_public_storefront_security_invoker.sql",
+      "name": "public_storefront_security_invoker",
+      "observed_at": "2026-11-24",
+      "evidence": "Applied to App project zilwgiuiygqqardzutxi on 2026-11-24 and verified live: view is security_invoker, anon lacks table-wide/owner_id access, and published-only RLS remains.",
+      "purpose": "Switches public_salon_websites to SECURITY INVOKER, grants anon only projected columns, and restricts anon rows to published sites without exposing owner_id.",
+      "git_blob_sha": "1a0a038ccf2f67f61ab267be33efe7be9732e5b3"
+    },
+    {
+      "version": "20261125090000",
+      "file": "20261125090000_nexora_lead_rate_limit_rpc.sql",
+      "name": "nexora_lead_rate_limit_rpc",
+      "observed_at": "2026-11-25",
+      "evidence": "Production workflow run 45672308803, job 139412576712, listed this exact version in both local and remote columns for project zilwgiuiygqqardzutxi.",
+      "purpose": "Records the applied shared lead rate-limit RPC in the repository ledger.",
+      "git_blob_sha": "4366729c0a672cabfbbfe09795b9f03e22909e2d"
+    }
+  ],
+  "retimestamped_applied_migrations": [
+    {
+      "old_file": "20261123100000_studioflow_bookings_hold_expires_at_compat.sql",
+      "archived_file": "supabase/reconciled-migrations/20261123100000_studioflow_bookings_hold_expires_at_compat.sql",
+      "applied_file": "20261124095101_studioflow_bookings_hold_expires_at_compat.sql",
+      "reason": "Supabase MCP assigned this actual version when the SQL was applied. The former local filename is retained outside supabase/migrations to prevent duplicate pending execution."
+    },
+    {
+      "old_file": "20261124062248_studioflow_publish_optional_tracking_isolation.sql",
+      "archived_file": "supabase/reconciled-migrations/20261124062248_studioflow_publish_optional_tracking_isolation.sql",
+      "applied_file": "20261124095131_studioflow_publish_optional_tracking_isolation.sql",
+      "reason": "Supabase MCP assigned this actual version when the SQL was applied. The former local filename is retained outside supabase/migrations to prevent duplicate pending execution."
+    },
+    {
+      "old_file": "20261124080000_public_storefront_security_invoker.sql",
+      "archived_file": "supabase/reconciled-migrations/20261124080000_public_storefront_security_invoker.sql",
+      "applied_file": "20261124095142_public_storefront_security_invoker.sql",
+      "reason": "Supabase MCP assigned this actual version when the SQL was applied. The former local filename is retained outside supabase/migrations to prevent duplicate pending execution."
+    }
+  ]
+}

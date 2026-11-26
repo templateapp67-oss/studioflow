@@ -13,7 +13,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 
-const MIGRATION = 'supabase/migrations/202611120001_studioflow_edge_rate_limits.sql';
+const MIGRATION = 'supabase/migrations/20261117061129_studioflow_shared_edge_rate_limits.sql';
 const sql = readFileSync(MIGRATION, 'utf8');
 
 const db = await new PGlite();

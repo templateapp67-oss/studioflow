@@ -13,7 +13,7 @@ import {
   type NexoraTemplateMeta,
 } from '../../lib/nexoraTemplateCatalogue';
 import { NexoraLogo, NexoraBrandMark, CategoryIconTile } from './NexoraBrand';
-import { nexoraPreviewImage } from '../../lib/nexoraPreviewImages';
+import { nexoraPreviewImage, nexoraPreviewImageFallback } from '../../lib/nexoraPreviewImages';
 
 export interface NexoraTemplateLibraryProps {
   /** Templates to show. Always re-sorted into the fixed NEXORA priority order. */
@@ -276,9 +276,18 @@ export const NexoraTemplateCard: React.FC<{
             <img
               src={nexoraPreviewImage(template)}
               data-registry-cover={template.coverImageUrl}
+              width={280}
+              height={176}
               alt={`${meta.displayName} template preview`}
               loading="lazy"
               decoding="async"
+              onError={(event) => {
+                const image = event.currentTarget;
+                const fallback = nexoraPreviewImageFallback(template);
+                if (!fallback || image.dataset.fallbackAttempted === 'true') return;
+                image.dataset.fallbackAttempted = 'true';
+                image.src = fallback;
+              }}
               className="h-full w-full object-cover object-top motion-safe:transition-transform motion-safe:duration-500 motion-safe:group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#14101F]/85 via-[#14101F]/25 to-transparent" />

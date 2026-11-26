@@ -7,6 +7,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import assert from 'node:assert/strict';
+import { historicalEdgeReferences } from './lib/historicalEdgeReferences.mjs';
 
 const FUNCTIONS_DIR = 'supabase/functions';
 // `veda-sanjeevani/` is a separate nested application with its own
@@ -21,7 +22,7 @@ const walk = (dir) => readdirSync(dir, { withFileTypes: true })
 
 // --- 1. every deployment folder has an entrypoint -------------------------
 const folders = readdirSync(FUNCTIONS_DIR, { withFileTypes: true })
-  .filter((entry) => entry.isDirectory())
+  .filter((entry) => entry.isDirectory() && entry.name !== '_shared')
   .map((entry) => entry.name);
 assert.ok(folders.length >= 10, `expected the full function set, found ${folders.length}`);
 for (const name of folders) {
@@ -49,15 +50,24 @@ for (const name of invoked) {
 // pg_net jobs, the shared server handler and the docs call
 // /functions/v1/<name> directly, so .invoke alone would miss a broken name.
 const urlCallers = [];
+const isHistoricalReference = historicalEdgeReferences(
+  JSON.parse(readFileSync('docs/integrations/restored-supabase-history.json', 'utf8')),
+  (file) => readFileSync(file, 'utf8'),
+);
 for (const file of walk('.').filter((file) => /\.(ts|tsx|mjs|js|sql|md)$/.test(file))) {
   if (file.endsWith('verify-edge-functions.mjs')) continue;
   readFileSync(file, 'utf8').split('\n').forEach((line, index) => {
     for (const match of line.matchAll(/functions\/v1\/([a-z0-9-]+)/g)) {
-      urlCallers.push({ name: match[1], where: `${file}:${index + 1}` });
+      urlCallers.push({ name: match[1], file, where: `${file}:${index + 1}` });
     }
   });
 }
-for (const { name, where } of urlCallers) {
+let historicalDependencies = 0;
+for (const { name, file, where } of urlCallers) {
+  if (!folders.includes(name) && isHistoricalReference(file.replaceAll('\\', '/'), name)) {
+    historicalDependencies++;
+    continue;
+  }
   assert.ok(
     folders.includes(name),
     `${where} calls /functions/v1/${name} but that function has no source folder`,
@@ -84,7 +94,7 @@ for (const file of walk('.').filter((file) => /\.(ts|tsx|mjs|js|json|md)$/.test(
 assert.deepEqual(offenders, [], `stale backend/functions references:\n  ${offenders.join('\n  ')}`);
 
 // --- 4b. every function validates its own caller --------------------------
-// These deploy with --no-verify-jwt, so an entrypoint that never reads a
+// Some routes use handler-side authentication, so an entrypoint that never reads a
 // credential header is open to anyone holding the public anon key. Merely
 // *using* the service-role key does not count: `snapshot-accounts` did exactly
 // that with no caller check, letting any signed-in user queue a full copy of
@@ -116,6 +126,65 @@ for (const name of PUBLIC_BY_DESIGN.keys()) {
   assert.ok(folders.includes(name), `PUBLIC_BY_DESIGN lists "${name}", which no longer exists`);
 }
 
+// --- 4c. Tawk.to owner/public tenant boundary ------------------------------
+const tawkConnectSource = readFileSync(
+  join(FUNCTIONS_DIR, 'studioflow-tawk-connect', 'index.ts'),
+  'utf8',
+);
+assert.match(tawkConnectSource, /admin\.auth\.getUser\(token\)/,
+  'Tawk owner connection validates the caller token with Supabase Auth getUser()');
+
+assert.match(tawkConnectSource, /const PUBLISHED_WEBSITE_SLUG = \/\^\[a-z0-9\]\[a-z0-9-\]\{2,62\}\$\//,
+  'Tawk slug validation matches studioflow_publish: 3–63 lowercase letters, digits or hyphens');
+assert.match(tawkConnectSource, /PUBLISHED_WEBSITE_SLUG\.test\(slug\)/,
+  'Tawk connect and disconnect use the published website slug rule');
+const publishedWebsiteSlugRule = /^[a-z0-9][a-z0-9-]{2,62}$/;
+assert.equal(publishedWebsiteSlugRule.test('salon-'), true,
+  'a valid published website slug ending in a hyphen remains connectable');
+assert.equal(publishedWebsiteSlugRule.test('-salon'), false,
+  'published website slugs still cannot start with a hyphen');
+assert.equal(publishedWebsiteSlugRule.test('ab'), false,
+  'published website slugs must remain at least three characters');
+
+assert.match(tawkConnectSource, /const TAWK_PROPERTY_ID = \/\^\[A-Za-z0-9_-\]\{8,64\}\$\//,
+  'Tawk Property ID keeps its existing 8–64 character format');
+assert.match(tawkConnectSource, /const TAWK_WIDGET_ID = \/\^\(\?:default\|\[A-Za-z0-9_-\]\{8,64\}\)\$\/i/,
+  'Tawk Widget ID accepts standard IDs and the special default value case-insensitively');
+assert.match(tawkConnectSource, /TAWK_WIDGET_ID\.test\(widgetId\)/,
+  'Tawk connect uses the Widget ID validator');
+const tawkWidgetIdRule = /^(?:default|[A-Za-z0-9_-]{8,64})$/i;
+assert.equal(tawkWidgetIdRule.test('default'), true, 'Tawk accepts its standard default widget ID');
+assert.equal(tawkWidgetIdRule.test('DEFAULT'), true, 'Tawk accepts default case-insensitively');
+assert.equal(tawkWidgetIdRule.test('widget123'), true, 'Tawk accepts regular widget IDs');
+assert.equal(tawkWidgetIdRule.test('bad'), false, 'Tawk rejects malformed non-default widget IDs');
+assert.match(tawkConnectSource, /auth\.user\.is_anonymous/,
+  'Tawk owner connection rejects anonymous sessions');
+assert.match(tawkConnectSource, /studioflow_accounts[\s\S]*?eq\('user_id', ownerId\)/,
+  'Tawk owner connection requires an owner workspace');
+assert.match(tawkConnectSource, /admin\.rpc\(['"]studioflow_tawk_owner_connection['"]/,
+  'Tawk owner connection uses the private service-role RPC');
+assert.match(tawkConnectSource, /SUPABASE_SERVICE_ROLE_KEY/,
+  'Tawk owner RPC is called from the server-side service-role client');
+assert.match(tawkConnectSource, /['"]Cache-Control['"]\s*:\s*['"]no-store/i,
+  'Tawk owner responses are not cached');
+const tawkConfig = readFileSync('supabase/config.toml', 'utf8');
+assert.match(tawkConfig, /\[functions\.studioflow-tawk-connect\]\s*verify_jwt\s*=\s*false/,
+  'Tawk function uses handler-side JWT validation rather than gateway-only JWT validation');
+
+const tawkPanelSource = readFileSync('src/components/TawkConnectionPanel.tsx', 'utf8');
+assert.match(tawkPanelSource, /functions\.invoke\(['"]studioflow-tawk-connect['"]/,
+  'Tawk owner panel invokes the dedicated owner function');
+assert.doesNotMatch(tawkPanelSource, /SUPABASE_SERVICE_ROLE_KEY|sb_secret_[A-Za-z0-9_-]+|tawk_api_key/i,
+  'Tawk service-role and API secrets are not exposed to browser code');
+
+const tawkPublicSource = readFileSync('src/components/TawkPublicWidget.tsx', 'utf8');
+assert.match(tawkPublicSource, /studioflow_tawk_public_config/,
+  'Published salon widget reads its own public widget configuration');
+assert.match(tawkPublicSource, /embed\.tawk\.to\//,
+  'Published salon widget builds the Tawk embed URL from public IDs');
+assert.match(readFileSync('src/App.tsx', 'utf8'), /<TawkPublicWidget\s+slug=\{slug\}\s*\/>/,
+  'The shared published-site renderer attaches the salon-specific widget');
+
 // --- 5. each entrypoint actually starts a server --------------------------
 // `snapshot-accounts` still uses the legacy std/http `serve` helper, so accept
 // either style rather than forcing an out-of-scope rewrite of that function.
@@ -127,8 +196,44 @@ for (const path of entrypoints) {
   assert.ok(startsServer, `${path} is not an Edge Function entrypoint`);
 }
 
+// --- 6. deploy-list coverage --------------------------------------------
+// A function with source on disk is not deployed unless it is named in the
+// `supabase functions deploy` list in production.yml AND has a config.toml
+// entry (the config.toml block sets verify_jwt; without it the gateway default
+// verify_jwt = true silently applies and can break public/handler-authenticated
+// endpoints). This caught studioflow-map-locations / iron-ink-public /
+// snapshot-accounts living on disk but never deployed.
+const workflow = readFileSync('.github/workflows/production.yml', 'utf8')
+  .replace(/\r\n?/g, '\n');
+const deployMatch = workflow.match(
+  /supabase functions deploy([\s\S]*?)--remote=[^ \n]+/,
+);
+assert.ok(deployMatch, 'production.yml must contain a supabase functions deploy step');
+const deployList = deployMatch[1]
+  .split(/\s+/)
+  .map((s) => s.trim())
+  .filter((s) => /^[a-z0-9-]+$/.test(s));
+const notDeployed = folders.filter((name) => !deployList.includes(name));
+assert.deepEqual(
+  notDeployed,
+  [],
+  `functions on disk but missing from the production.yml deploy list:\n  ${notDeployed.join('\n  ')}`,
+);
+
+const configToml = readFileSync('supabase/config.toml', 'utf8')
+  .replace(/\r\n?/g, '\n');
+const notConfigured = folders.filter(
+  (name) => !new RegExp(`^\\[functions\\.${name.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}\\]`, 'm').test(configToml),
+);
+assert.deepEqual(
+  notConfigured,
+  [],
+  `functions on disk but missing a config.toml [functions.<name>] block:\n  ${notConfigured.join('\n  ')}`,
+);
+
 console.log(
-  `ok edge functions: ${folders.length} deployed, ${invoked.size} invoked from the app,`
-  + ` ${urlCallers.length} raw /functions/v1 call sites resolved,`
+  `ok edge functions: ${folders.length} source entrypoints, ${invoked.size} invoked from the app,`
+  + ` ${urlCallers.length - historicalDependencies} raw /functions/v1 call sites resolved,`
+  + ` ${historicalDependencies} recorded historical dependencies (deployment unverified),`
   + ` ${PUBLIC_BY_DESIGN.size} public by design`,
 );

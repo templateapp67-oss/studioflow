@@ -1,4 +1,4 @@
-import React,{createContext,useContext,useState} from 'react';
+import React,{createContext,useContext,useEffect,useState} from 'react';
 import type {WebsiteLanguage} from '../lib/conversionFeatures';
 const copy:Record<string,[string,string]>={
  'Home':['होम','Home'],'Services':['सेवाएँ','Services'],'Packages':['पैकेज','Packages'],'Gallery':['गैलरी','Gallery'],'About':['हमारे बारे में','Hamare baare mein'],'Contact':['संपर्क','Sampark'],'My Bookings':['मेरी बुकिंग','Meri bookings'],'Bookings':['बुकिंग','Bookings'],
@@ -9,7 +9,18 @@ const copy:Record<string,[string,string]>={
 };
 const LanguageContext=createContext({language:'en' as WebsiteLanguage,setLanguage:(_v:WebsiteLanguage)=>{},t:(s:string)=>s});
 export function WebsiteLanguageProvider({children,defaultLanguage='en'}:{key?:React.Key;children:React.ReactNode;defaultLanguage?:WebsiteLanguage}){
- const [language,setLanguageState]=useState<WebsiteLanguage>(()=>{try{const saved=localStorage.getItem('nexora-website-language');if(saved==='en'||saved==='hi'||saved==='hinglish')return saved;}catch{}return defaultLanguage;});
+ // Keep the first client render identical to SSR. Reading localStorage in
+ // the state initializer can produce different HTML for returning visitors
+ // who previously selected Hindi or Hinglish.
+ const [language,setLanguageState]=useState<WebsiteLanguage>(defaultLanguage);
+ useEffect(()=>{
+  try{
+   const saved=localStorage.getItem('nexora-website-language');
+   if(saved==='en'||saved==='hi'||saved==='hinglish')setLanguageState(saved);
+  }catch{
+   // Storage may be disabled; the salon's configured default remains active.
+  }
+ },[]);
  const setLanguage=(value:WebsiteLanguage)=>{setLanguageState(value);try{localStorage.setItem('nexora-website-language',value)}catch{}};
  const t=(text:string)=>language==='en'?text:copy[text]?.[language==='hi'?0:1]||text;
  return <LanguageContext.Provider value={{language,setLanguage,t}}><div lang={language==='hi'?'hi':language==='hinglish'?'hi-Latn':'en'}>{children}</div></LanguageContext.Provider>;

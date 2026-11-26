@@ -22,7 +22,7 @@ export const OWNER_BUSINESS_TOOLS = [
  {id:18,label:'Business overview',icon:'monitoring'},
  {id:20,label:'Bookings & calendar',icon:'calendar_month'},
  {id:21,label:'Payments & revenue',icon:'payments'},
- {id:26,label:'Customers & WhatsApp',icon:'contacts'},
+ {id:26,label:'Customer CRM',icon:'contacts'},
  {id:22,label:'Marketing campaigns',icon:'campaign'},
  {id:24,label:'Share & referral',icon:'redeem'},
  {id:25,label:'Platform branding',icon:'verified'},

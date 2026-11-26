@@ -69,9 +69,9 @@ export function CustomerBookings({ session,embedded=false,onClose }: { key?:Reac
 
   return <main className={embedded?'sf-customer-bookings':'min-h-screen bg-[#f9f9ff] p-4 sm:p-8'}><section className={embedded?'sf-customer-bookings-content':'workspace-card max-w-4xl mx-auto'}>
     {!embedded&&<p className="eyebrow">NEXORA · Customer account</p>}{!embedded&&<h1 className="text-3xl font-bold">My bookings</h1>}<p className="muted my-3">{session.user.email}</p>
-    <div className="flex gap-3 flex-wrap mb-6">{embedded?<button className="secondary-action" onClick={onClose}>Back to salon</button>:returnSlug && <a className="primary-action" href={websiteLink(returnSlug)}>Return to salon / Book appointment</a>}<button className="secondary-action" onClick={() => void refresh()}>Refresh</button><BusinessNotificationLink/><button className="secondary-action" onClick={() => void supabase.auth.signOut()}>Sign out</button></div>
+    <div className="flex gap-3 flex-wrap mb-6">{embedded?<button className="secondary-action" onClick={onClose}>Back to salon</button>:returnSlug && <a className="primary-action" href={websiteLink(returnSlug)}>Return to salon / Book appointment</a>}<button className="secondary-action" onClick={() => void refresh()}>Refresh</button><BusinessNotificationLink/><a className="secondary-action" href="/login?security=1&amp;from=customer">Account security</a><button className="secondary-action" onClick={() => void supabase.auth.signOut()}>Sign out</button></div>
     {error && <p role="alert" className="text-red-700 my-4">{error}</p>}
-    {loading ? <p role="status">Loading bookings…</p> : error ? null : !bookings.length ? <p>You have no bookings yet. Choose a service at the salon to book your first appointment.</p> : <div className="space-y-4">{bookings.map(({ id, status, payload: b,hold_expires_at }) => <article key={id} className="border rounded-xl p-4 bg-white shadow-xs">
+    {loading ? <p role="status">Loading bookings…</p> : error ? null : !bookings.length ? <p>You have no bookings yet. Choose a service at the salon to book your first appointment.</p> : <div data-testid="customer-bookings-list" className="space-y-4">{bookings.map(({ id, status, payload: b,hold_expires_at }) => <article key={id} data-testid="customer-booking-card" data-booking-id={id} data-booking-status={status} className="border rounded-xl p-4 bg-white shadow-xs">
       <div className="flex justify-between gap-3"><h2 className="font-bold text-base text-slate-900">{b.serviceName}</h2><span className="capitalize font-semibold text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700">{status}</span></div><p className="text-sm text-slate-600 mt-1">{b.date} · {b.time} IST · Specialist: {b.stylistName}</p><p className="text-sm font-medium text-slate-800 mt-0.5">₹{b.servicePrice} · Paid: ₹{b.amountPaid || 0}</p>
       {emailFeedback[id] && (
         <div className="mt-2.5 p-2 bg-indigo-50 border border-indigo-100 text-indigo-900 text-xs rounded-lg flex items-center gap-1.5">
@@ -96,7 +96,7 @@ export function CustomerBookings({ session,embedded=false,onClose }: { key?:Reac
           {sendingEmailId === id ? 'Sending…' : '⏰ Email Reminder'}
         </button>
         {['pending', 'confirmed'].includes(status) && (
-          <button disabled={!!busy} className="text-xs px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg font-medium transition-colors cursor-pointer ml-auto" onClick={() => void cancel(id)}>
+          <button data-testid="customer-booking-cancel" disabled={!!busy} className="text-xs px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg font-medium transition-colors cursor-pointer ml-auto" onClick={() => void cancel(id)}>
             {busy === id ? 'Cancelling…' : 'Cancel appointment'}
           </button>
         )}

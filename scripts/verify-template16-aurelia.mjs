@@ -16,7 +16,7 @@ const videos=read('src/lib/showcaseVideos.ts');
 const data=read('src/lib/aureliaBeauty.ts');
 const site=read('src/components/aurelia/AureliaBeautyWebsite.tsx');
 const editor=read('src/components/aurelia/AureliaBeautyEditor.tsx');
-const migration=read('supabase/migrations/202611030004_template15_16_catalogue_sync.sql');
+const migration=read('supabase/migrations/20261103133437_template15_16_catalogue_sync.sql');
 const reviewPanel=read('src/components/CustomerReviewPanel.tsx');
 const reviewDisplay=read('src/lib/aureliaReviewDisplay.ts');
 

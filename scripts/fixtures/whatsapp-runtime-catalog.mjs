@@ -32,6 +32,10 @@ export async function verifyWhatsAppRuntimeCatalog(db) {
   `);
   const files=readdirSync('supabase/migrations').filter(name=>/^20261116.*nexora_whatsapp_.*\.sql$/.test(name)).sort();
   for (const name of files) await db.exec(readFileSync('supabase/migrations/'+name,'utf8'));
+  // Real deployments need not have these optional attributes. Execute both
+  // customer lookup and booking after removing them, not merely CREATE FUNCTION.
+  await db.exec(`alter table profiles drop column phone, drop column phone_number, drop column whatsapp;
+    alter table studioflow_android_profiles drop column phone, drop column whatsapp_number;`);
   const owner='00000000-0000-4000-8000-000000000001';
   await db.query('update auth.users set phone=$1 where id=$2',['+919999999999',owner]);
   await db.exec(`insert into vault.secrets(name,secret) values('nexora_whatsapp_meta_app_secret','fixture-app-secret');

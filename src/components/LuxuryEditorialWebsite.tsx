@@ -609,11 +609,11 @@ export const LuxuryEditorialWebsite: React.FC<LuxuryEditorialWebsiteProps> = ({
   const heroTitle =
     String(profile.sectionHeadings?.heroTitle || '').trim() || LUXURY_EDITORIAL_COPY.heroHeadline;
   const heroSubtitle =
-    profile.tagline && !isLegacyHairSalonTagline(profile.tagline)
+    profile.tagline && (profile.taglineEditedByOwner === true || !isLegacyHairSalonTagline(profile.tagline))
       ? profile.tagline
       : LUXURY_EDITORIAL_COPY.heroSubheadline;
   const aboutBody =
-    profile.about && !isLegacyHairSalonAbout(profile.about)
+    profile.about && (profile.aboutEditedByOwner === true || !isLegacyHairSalonAbout(profile.about))
       ? profile.about
       : LUXURY_EDITORIAL_COPY.aboutBody;
 

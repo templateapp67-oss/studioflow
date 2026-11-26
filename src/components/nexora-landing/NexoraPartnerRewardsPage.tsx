@@ -3,6 +3,8 @@ import type { FormEvent } from 'react';
 import { ArrowRight, CalendarDays, CheckCircle2, Clock3, ExternalLink, Eye, EyeOff, ShieldCheck, Store, Users } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { NexoraEcosystemSeoHead } from './NexoraEcosystemSeoHead';
+import { SiteHeader } from './sections/SiteHeader';
+import { NexoraBreadcrumbs } from './sections/NexoraBreadcrumbs';
 import './nexoraPartnerRewards.css';
 
 type Cycle = { id:string; cycleCode:string; name:string; city:string; timezone:string; registrationOpensAt:string; registrationClosesAt:string; startDate:string; endDate:string; durationDays:number; status:string; registrationOpen:boolean; phase:string };
@@ -26,6 +28,12 @@ const REWARDS = [
  * outcome — the eligibility and verification terms elsewhere on this page
  * still apply.
  */
+const PARTNER_REWARDS_NAV = [
+ {label:'Home',href:'/'},
+ {label:'Growth Partner Rewards',href:'/growth-partner-rewards'},
+ {label:'Owner Login',href:'/login'},
+];
+
 const TOP_FIVE_BENEFITS = [
   'Better Digital Visibility',
   'More Customer Enquiries',
@@ -211,9 +219,20 @@ export function NexoraPartnerRewardsPage() {
 
  return <div className="npa-page">
   <NexoraEcosystemSeoHead path="/partner-rewards"/>
-  <header className="npa-header"><a href="/" className="npa-brand"><span className="npa-brand-mark">N</span><span><strong>NEXORA</strong><small>PARTNER REWARDS & RECOGNITION</small></span></a><nav><a href="/">Home</a><a href="/growth-partner-rewards">Growth Partner Rewards</a><a href="/login">Owner Login</a></nav></header>
-  <main>
-   <section className="npa-hero"><div className="npa-hero-copy"><span className="npa-kicker">NEXORA SALON OS · PARTNER PROGRAMME</span><h1>Your Growth Deserves <em>Recognition.</em></h1><p>Earn co-branded rewards, put your salon in the spotlight and compete for the NEXORA Top Salon Jaipur Awards.</p><div className="npa-hero-actions"><a className="npa-button npa-button-gold" href="#npa-registration">Apply for Top Salon Jaipur Awards <ArrowRight size={17}/></a><a className="npa-button npa-button-outline" href="#npa-rewards">Explore rewards</a></div><div className="npa-hero-proof"><span><ShieldCheck size={16}/> Verified NEXORA participants</span><span><CalendarDays size={16}/> One fixed 90-day cycle</span></div></div><div className="npa-hero-art"><img src="/nexora-jaipur-awards/top-salon-jaipur-awards.svg" alt="NEXORA Top Salon Jaipur Awards poster"/></div></section>
+  <a className="nexora-site-skip" href="#npa-main-content">Skip to main content</a>
+  <SiteHeader
+   currentPath="/partner-rewards"
+   links={PARTNER_REWARDS_NAV}
+   mobileLinks={PARTNER_REWARDS_NAV}
+   showLogin={false}
+   showPrimaryAction={false}
+   showHelpCentre={false}
+   appearance="partner"
+   brand={<span className="npa-brand"><span className="npa-brand-mark">N</span><span><strong>NEXORA</strong><small>PARTNER REWARDS & RECOGNITION</small></span></span>}
+   brandLabel="NEXORA Partner Rewards home"
+  />
+  <main id="npa-main-content">
+   <section className="npa-hero"><div className="npa-hero-copy"><NexoraBreadcrumbs path="/partner-rewards"/><span className="npa-kicker">NEXORA SALON OS · PARTNER PROGRAMME</span><h1>Your Growth Deserves <em>Recognition.</em></h1><p>Earn co-branded rewards, put your salon in the spotlight and compete for the NEXORA Top Salon Jaipur Awards.</p><div className="npa-hero-actions"><a className="npa-button npa-button-gold" href="#npa-registration">Apply for Top Salon Jaipur Awards <ArrowRight size={17}/></a><a className="npa-button npa-button-outline" href="#npa-rewards">Explore rewards</a></div><div className="npa-hero-proof"><span><ShieldCheck size={16}/> Verified NEXORA participants</span><span><CalendarDays size={16}/> One fixed 90-day cycle</span></div></div><div className="npa-hero-art"><img src="/nexora-jaipur-awards/top-salon-jaipur-awards.svg" alt="NEXORA Top Salon Jaipur Awards poster"/></div></section>
 
    <section className="npa-section" aria-labelledby="npa-cycle-title"><div className="npa-section-heading"><span className="npa-kicker">ONE CITY · ONE SHARED START DATE</span><h2 id="npa-cycle-title">The NEXORA 90-Day Competition</h2><p>NEXORA sets one registration window and one fixed start and finish date. All approved salons compete over the same 90 calendar days.</p></div>
     {loading?<div className="npa-empty">Loading competition schedule…</div>:cycle?<div className="npa-cycle-card"><div className="npa-cycle-dates"><div><small>Registration closes</small><strong>{dateLabel(cycle.registrationClosesAt)}</strong></div><div><small>Competition starts</small><strong>{dateLabel(cycle.startDate)}</strong></div><div><small>Competition ends</small><strong>{dateLabel(cycle.endDate)}</strong></div></div>{cycle.phase==='completed'?<div className="npa-countdown"><div><CheckCircle2 size={19}/><span>Competition completed — final report cards are locked.</span></div><span className="npa-cycle-status">Final results</span></div>:<div className="npa-countdown"><div><Clock3 size={19}/><span>{countdown?.label}</span></div><div className="npa-countdown-units"><strong>{countdown?.days}<small>Days</small></strong><strong>{countdown?.hours}<small>Hours</small></strong><strong>{countdown?.minutes}<small>Minutes</small></strong><strong>{countdown?.seconds}<small>Seconds</small></strong></div><span className="npa-cycle-status">{cycle.phase.replace('_',' ')}</span></div>}<p className="npa-cycle-note">All dates use India Standard Time. Countdown follows NEXORA's configured dates, never the individual registration date.</p></div>:<div className="npa-empty"><CalendarDays size={30}/><strong>The next NEXORA competition dates will be announced here.</strong><p>NEXORA Admin will publish the registration deadline, shared start date and fixed 90-day end date before entries open.</p><span>No live dates have been configured yet.</span></div>}

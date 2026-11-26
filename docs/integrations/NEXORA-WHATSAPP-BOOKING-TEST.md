@@ -14,7 +14,7 @@ This is intentionally a test stage. Real WhatsApp booking creation needs a verif
 
 ## Deploy requirements
 
-1. Apply migrations `20261115132100_studioflow_whatsapp_test_booking_api.sql` and `20261115133000_private_whatsapp_test_rate_limit.sql` in timestamp order. The second migration safely renames the already-deployed server-only rate-limit RPC.
+1. Apply migrations `20261115131821_studioflow_whatsapp_test_booking_api.sql` and `20261115145202_private_whatsapp_test_rate_limit.sql` in timestamp order. The second migration safely renames the already-deployed server-only rate-limit RPC.
 2. Deploy Supabase Edge Function `studioflow-whatsapp-booking` with `verify_jwt = false`. The handler performs its own API-key authentication.
 3. In Supabase Dashboard → Edge Functions → Secrets, create `NEXORA_TAWK_BOOKING_API_KEY` with a random value of at least 32 characters. Do not put the value in GitHub, this file, client-side code, or chat.
 4. In Tawk AI Assist → Tools / Integrations → Add custom API, import the OpenAPI file at:

@@ -1,0 +1,17 @@
+# StudioFlow authentication and access rollout
+
+The source targets Supabase project `zilwgiuiygqqardzutxi`. Existing owners, staff and customers keep their Supabase identities. Supabase Auth stores salted bcrypt hashes. StudioFlow delegates signup, login and resets to Supabase Auth. New and changed passwords require at least 12 characters in the web UI and local Auth configuration. Existing passwords remain valid under Supabase Auth's login behavior.
+
+Owners, staff and customers can enroll a TOTP authenticator under **Account security**. Once a factor is verified, the user must complete two-step verification to access private data and protected operations. Enrollment is optional. The recovery UI uses the same MFA challenge for an enrolled account. An account holder who loses their authenticator should contact the project's support operator for identity-verified recovery.
+
+## Deploy to the linked project
+
+1. Compare the project's migration history to the ZIP before applying pending migrations. The new migration is `20261125100000_studioflow_auth_access_hardening.sql`. It depends on the existing Staff Access and shared Edge rate-limit migrations. Check any existing `pgrst.db_pre_request` setting for the `authenticator` role before rollout. If present, preserve its checks alongside the new hook.
+2. In hosted Supabase Auth, enable TOTP enrollment and verification. Set the hosted minimum password length to 12. Configure Auth rate limits for sign-up/sign-in and token verification to match the ZIP’s configured values of 25 and 20. Hosted Auth settings are separate from the SQL migration and local `config.toml`.
+3. Coordinate the migration with deployment of the web app and API. The staff invite mail handler uses the new scoped RPC. Set the existing server-side Supabase service credential for the shared quota counter. For custom storefront origins that send staff invite email, list the HTTPS origins in `STUDIOFLOW_STAFF_INVITE_ORIGINS`, separated by commas.
+4. After merging, run the GitHub Production workflow on main with `apply_and_deploy`. Its protected release applies pending migrations, deploys the changed Edge Functions with their shared helper, and releases the website. The changed functions are `studioflow-payments`, `nexora-mobile-qr`, `studioflow-service-ai-images`, `studioflow-campaign-whatsapp`, `studioflow-welcome-whatsapp`, `nexora-whatsapp-connect` and `studioflow-tawk-connect`.
+5. Check that password login and reset, staff invite creation and email, owner/staff/customer access, and booking and payments work for the expected accounts. Verify that an enrolled account completes the TOTP challenge, other tenants' objects stay inaccessible, and quota exhaustion returns HTTP 429. All clients that use the same Data API need to handle AAL2 for enrolled users, including any separately deployed mobile clients.
+
+Shared endpoint quotas are fixed 10-minute windows per verified user. Staff invite email has separate owner-wide and per-invite quotas. The project-wide Data API check covers authenticated REST and RPC requests. Private account, booking, staff and payment-order tables also have restrictive RLS policies so their checks combine with existing owner, staff and customer policies.
+
+[Supabase password security](https://supabase.com/docs/guides/auth/password-security) · [TOTP setup](https://supabase.com/docs/guides/auth/auth-mfa/totp) · [Auth rate limits](https://supabase.com/docs/guides/auth/rate-limits)

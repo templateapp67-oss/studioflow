@@ -893,3 +893,14 @@
 .sf-booking-profile-toggle{width:100%;padding:10px;border-top:1px solid #e2e8f0;font-size:12px;font-weight:700;color:#0f172a;cursor:pointer;background:#f8fafc}
 .sf-booking-profile-preview{margin-top:12px;padding:16px;border:1px solid #cbd5e1;border-radius:12px;background:#f8fafc;color:#334155;font-size:13px;line-height:1.6}.sf-booking-profile-preview header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}.sf-booking-profile-preview h3{font-size:14px;font-weight:700;color:#0f172a}.sf-booking-profile-preview header button{text-decoration:underline;cursor:pointer;padding:8px 0}.sf-booking-profile-preview section{margin-top:12px}.sf-booking-profile-preview p{margin:8px 0}
 .sf-booking-dialog button:disabled{cursor:not-allowed;opacity:.5}.sf-booking-dialog button:focus-visible{outline:2px solid #2563eb;outline-offset:3px}
+
+
+/* Public salon template WhatsApp: use the shared salon-owner button only. */
+[data-salon-whatsapp-site] .af-wa-float,
+[data-salon-whatsapp-site] .bt-lift.fixed.bottom-5.right-5,
+[data-salon-whatsapp-site] .vn-whatsapp-float,
+[data-salon-whatsapp-site] .sr-whatsapp-float,
+[data-salon-whatsapp-site] .vd-float-wa,
+[data-salon-whatsapp-site] .aurelia-whatsapp {
+  display: none !important;
+}

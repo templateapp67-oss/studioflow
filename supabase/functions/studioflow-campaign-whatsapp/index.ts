@@ -1,3 +1,4 @@
+import { protectSession, protectedResponse } from '../_shared/sessionProtection.ts';
 // @ts-ignore Supabase Edge runtime pinned npm import.
 import { createClient } from 'npm:@supabase/supabase-js@2.117.3';
 import { sendCampaign, type CampaignJob } from './core.ts';
@@ -26,6 +27,8 @@ Deno.serve(async (req: Request) => {
     const { data: auth, error } = await db.auth.getUser(bearer);
     if (error || !auth.user) return json({ error: 'Sign in required' }, 401);
 
+    const protection = await protectSession(db, bearer, auth.user, 'studioflow-campaign-whatsapp', 70);
+    if (protection) return protectedResponse(json({ error: protection.error }, protection.status), protection);
     const owner = auth.user.id;
     const exists = await db.from('studioflow_accounts').select('user_id').eq('user_id', owner).maybeSingle();
     if (exists.error || !exists.data) return json({ error: 'Salon owner access required' }, 403);

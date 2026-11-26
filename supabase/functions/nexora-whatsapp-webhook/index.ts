@@ -47,7 +47,7 @@ async function vaultSecret(db: any, name: string) {
 async function decryptConnectionToken(db: any, connection: Json) {
   const keyResult = await db.rpc('nexora_whatsapp_token_key');
   if (keyResult.error || typeof keyResult.data !== 'string' || !keyResult.data) throw new Error('WhatsApp token encryption key is unavailable.');
-  const keyBytes = decodeBase64(keyResult.data);
+  const keyBytes = decodeBase64(keyResult.data.replace(/-/g, '+').replace(/_/g, '/'));
   if (keyBytes.length !== 32) throw new Error('WhatsApp token encryption key must decode to 32 bytes.');
   const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'AES-GCM' }, false, ['decrypt']);
   const plaintext = await crypto.subtle.decrypt(
@@ -71,12 +71,17 @@ async function graphSend(phoneNumberId: string, token: string, recipient: string
     signal: AbortSignal.timeout(15000),
   });
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(safeText(payload?.error?.message, 300) || 'WhatsApp message could not be sent.');
+  if (!response.ok) {
+    const error = payload?.error;
+    const code = Number.isInteger(error?.code) ? ', code ' + error.code : '';
+    const subcode = Number.isInteger(error?.error_subcode) ? ', subcode ' + error.error_subcode : '';
+    throw new Error('Meta Graph API rejected the WhatsApp message (HTTP ' + response.status + code + subcode + ').');
+  }
   return payload as Json;
 }
 async function getConnection(db: any, phoneNumberId: string) {
   const result = await db.from('salon_whatsapp_connections').select('*')
-    .eq('phone_number_id', phoneNumberId).eq('connection_status', 'connected')
+    .eq('phone_number_id', phoneNumberId).in('connection_status', ['pending', 'connected'])
     .eq('webhook_subscribed', true).maybeSingle();
   return result.error || !result.data ? null : result.data as Json;
 }
@@ -119,6 +124,19 @@ async function sendSalonText(db: any, connection: Json, ownerId: string, recipie
   const token = await decryptConnectionToken(db, connection);
   const result = await graphSend(connection.phone_number_id, token, recipient, text);
   const messageId = result.messages?.[0]?.id;
+  if (typeof messageId !== 'string' || !messageId) throw new Error('Meta did not accept the outbound message.');
+  // A signed inbound webhook plus a successful outbound reply is the sender-readiness check.
+  if (connection.connection_status === 'pending') {
+    const activated = await db.from('salon_whatsapp_connections').update({
+      connection_status: 'connected',
+      connected_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }).eq('owner_id', ownerId)
+      .eq('phone_number_id', connection.phone_number_id)
+      .eq('connection_status', 'pending');
+    if (activated.error) throw new Error('WhatsApp sender readiness could not be saved.');
+    connection.connection_status = 'connected';
+  }
   await logMessage(db, {
     owner_id: ownerId,
     booking_id: bookingId,
@@ -151,7 +169,8 @@ function getServices(content: Json) {
   return items.filter((item: Json) =>
     item && item.id && item.name && item.isActive !== false && item.isAvailable !== false &&
     Number.isFinite(Number(item.price)) && Number(item.price) >= 0 &&
-    Number.isFinite(Number(item.durationMinutes)) && Number(item.durationMinutes) > 0
+    Number.isFinite(Number(item.durationMinutes)) && Number(item.durationMinutes) > 0 &&
+    Math.ceil(Number(item.price) * 25) >= 100
   ).slice(0, 30) as Json[];
 }
 function formatServices(services: Json[]) {
@@ -303,7 +322,7 @@ async function processBooking(db: any, connection: Json, conversation: Json, flo
 async function handleInbound(db: any, connection: Json, message: Json, contact: Json | null) {
   const sender = digits(message.from);
   const messageId = safeText(message.id, 200);
-  if (!sender || !messageId) return;
+  if (!/^[1-9][0-9]{9,14}$/.test(sender) || !messageId) return;
   const providerEventId = 'message:' + messageId;
   const event = await db.from('salon_whatsapp_webhook_events').insert({
     provider_event_id: providerEventId,
@@ -331,9 +350,11 @@ async function handleInbound(db: any, connection: Json, message: Json, contact: 
     throw new Error('Could not save inbound WhatsApp event.');
   }
 
-  const receivedAt = message.timestamp
-    ? new Date(Number(message.timestamp) * 1000).toISOString()
-    : new Date().toISOString();
+  const providerTime = Number(message.timestamp) * 1000;
+  if (!/^[0-9]{1,12}$/.test(String(message.timestamp)) || !Number.isSafeInteger(providerTime) || providerTime <= 0 || providerTime > Date.now() + 60_000) {
+    throw new Error('Invalid WhatsApp message timestamp.');
+  }
+  const receivedAt = new Date(providerTime).toISOString();
   const contactName = safeText(contact?.profile?.name, 100);
   const previous = await db.from('salon_whatsapp_conversations').select('*')
     .eq('owner_id', connection.owner_id).eq('customer_wa_id', sender).maybeSingle();
@@ -404,7 +425,7 @@ async function handleInbound(db: any, connection: Json, message: Json, contact: 
     return;
   }
   if (upper === 'START') flow = { step: 'menu', optOut: false };
-  if (upper === '3') {
+  if ((upper === '3' && (!flow.step || flow.step === 'menu')) || upper === 'HELP') {
     await saveConversation(db, conversation, { step: 'handoff' }, 'handed_off');
     await sendSalonText(db, connection, connection.owner_id, sender,
       'I have passed your message to ' + salonName + '. The salon team will reply here.', 'human_handoff');
@@ -454,7 +475,7 @@ async function handleInbound(db: any, connection: Json, message: Json, contact: 
     return;
   }
   if (flow.step === 'choose_service') {
-    const index = Number.parseInt(text, 10) - 1;
+    const index = /^\d{1,2}$/.test(text.trim()) ? Number(text.trim()) - 1 : -1;
     const service = Number.isInteger(index) ? services[index] : null;
     if (!service) {
       await sendSalonText(db, connection, connection.owner_id, sender,
@@ -511,7 +532,7 @@ async function handleInbound(db: any, connection: Json, message: Json, contact: 
   }
   if (flow.step === 'choose_branch') {
     const options = Array.isArray(flow.branches) ? flow.branches as Json[] : [];
-    const index = Number.parseInt(text, 10) - 1;
+    const index = /^\d{1,2}$/.test(text.trim()) ? Number(text.trim()) - 1 : -1;
     const selected = Number.isInteger(index) ? options[index] : null;
     if (!selected) {
       await sendSalonText(db, connection, connection.owner_id, sender,
@@ -579,7 +600,7 @@ async function handleInbound(db: any, connection: Json, message: Json, contact: 
   }
   if (flow.step === 'choose_time') {
     const slots = Array.isArray(flow.slots) ? flow.slots as Json[] : [];
-    const index = Number.parseInt(text, 10) - 1;
+    const index = /^\d{1,2}$/.test(text.trim()) ? Number(text.trim()) - 1 : -1;
     const selected = Number.isInteger(index) && slots[index] ? slots[index] : slots.find((slot) => slot.time === text.trim());
     if (!selected) {
       await sendSalonText(db, connection, connection.owner_id, sender,
@@ -666,9 +687,11 @@ async function updateStatuses(db: any, connection: Json, statuses: Json[]) {
     });
     if (inserted.error?.code === '23505') continue;
     if (inserted.error) throw new Error('Could not record WhatsApp delivery status.');
+    const providerCode = status.errors?.[0]?.code;
+    const errorCode = Number.isInteger(providerCode) ? String(providerCode) : safeText(providerCode, 50);
     await db.from('salon_whatsapp_message_log').update({
       delivery_status: delivery,
-      error_code: delivery === 'failed' ? safeText(status.errors?.[0]?.code, 50) : null,
+      error_code: delivery === 'failed' ? errorCode || null : null,
       updated_at: new Date().toISOString(),
     }).eq('provider_message_id', messageId).eq('owner_id', connection.owner_id);
   }
@@ -679,6 +702,26 @@ async function notifyPayment(db: any, bookingId: string, paymentId: string) {
     .eq('id', bookingId).eq('booking_source', 'whatsapp').maybeSingle();
   const booking = bookingResult.data;
   if (bookingResult.error || !booking) return { sent: false, reason: 'booking_not_found' };
+
+  const ledger = await db.from('studioflow_payment_orders')
+    .select('payment_id,status,amount_paise,currency')
+    .eq('booking_id', booking.id).maybeSingle();
+  if (ledger.error || booking.status !== 'confirmed' || booking.payload?.paymentStatus !== 'paid_deposit' ||
+      ledger.data?.status !== 'captured' || ledger.data?.payment_id !== paymentId ||
+      ledger.data?.currency !== 'INR' || !Number.isSafeInteger(Number(ledger.data?.amount_paise)) ||
+      Number(ledger.data?.amount_paise) !== Math.ceil(Number(booking.payload?.servicePrice) * 25)) {
+    return { sent: false, reason: 'payment_not_verified' };
+  }
+
+  const prior = await db.from('salon_whatsapp_message_log').select('id')
+    .eq('owner_id', booking.owner_id)
+    .eq('booking_id', booking.id)
+    .eq('message_kind', 'payment_success')
+    .in('delivery_status', ['sent', 'delivered', 'read'])
+    .limit(1);
+  if (prior.error) throw new Error('Payment receipt history is unavailable.');
+  if (prior.data?.length) return { sent: true, deduplicated: true };
+
   const connectionResult = await db.from('salon_whatsapp_connections').select('*')
     .eq('owner_id', booking.owner_id).eq('connection_status', 'connected')
     .eq('webhook_subscribed', true).maybeSingle();
@@ -691,6 +734,8 @@ async function notifyPayment(db: any, bookingId: string, paymentId: string) {
     .eq('owner_id', booking.owner_id)
     .eq('customer_wa_id', recipient)
     .maybeSingle();
+  if (conversation.error) throw new Error('WhatsApp conversation could not be loaded.');
+
   if (conversation.data?.flow_state?.optOut === true) {
     await logMessage(db, {
       owner_id: booking.owner_id,
@@ -704,7 +749,8 @@ async function notifyPayment(db: any, bookingId: string, paymentId: string) {
     });
     return { sent: false, reason: 'customer_opted_out' };
   }
-  const amount = Number(booking.payload?.amountPaid || 0);
+
+  const amount = Number(ledger.data.amount_paise) / 100;
   const website = await getWebsite(db, booking.owner_id);
   const salonName = safeText(website?.content?.profile?.businessName, 100) || 'our salon';
   const text = 'Payment received successfully. ✅\n\nYour appointment is confirmed:\n' +
@@ -712,11 +758,15 @@ async function notifyPayment(db: any, bookingId: string, paymentId: string) {
     safeText(booking.payload?.date, 20) + ' at ' + safeText(booking.payload?.time, 10) +
     '\nAdvance received: ₹' + amount.toLocaleString('en-IN') +
     '\nPayment reference: ' + safeText(paymentId, 40) + '\n\nThank you for booking with ' + salonName + '!';
-  await db.from('salon_whatsapp_conversations').update({
-    conversation_status: 'booked',
-    flow_state: { step: 'booked', bookingId: booking.id },
-    updated_at: new Date().toISOString(),
-  }).eq('owner_id', booking.owner_id).eq('customer_wa_id', recipient);
+
+  if (conversation.data?.flow_state?.bookingId === booking.id) {
+    await db.from('salon_whatsapp_conversations').update({
+      conversation_status: 'booked',
+      flow_state: { step: 'booked', bookingId: booking.id },
+      updated_at: new Date().toISOString(),
+    }).eq('owner_id', booking.owner_id).eq('customer_wa_id', recipient)
+      .eq('flow_state', conversation.data.flow_state);
+  }
   return await sendSalonText(db, connection, booking.owner_id, recipient, text, 'payment_success', booking.id);
 }
 
@@ -739,7 +789,9 @@ Deno.serve(async (req: Request) => {
     const token = requestUrl.searchParams.get('hub.verify_token') || '';
     const challenge = requestUrl.searchParams.get('hub.challenge') || '';
     if (mode !== 'subscribe' || !challenge) return json({ error: 'Invalid webhook verification request.' }, 400);
-    const expected = await vaultSecret(db, 'nexora_whatsapp_webhook_verify_token');
+    let expected: string;
+    try { expected = await vaultSecret(db, 'nexora_whatsapp_webhook_verify_token'); }
+    catch { return json({ error: 'Webhook verification is not configured.' }, 503); }
     if (!constantTimeEqual(token, expected)) return json({ error: 'Webhook verification token did not match.' }, 403);
     return new Response(challenge, { status: 200, headers: { 'Content-Type': 'text/plain' } });
   }

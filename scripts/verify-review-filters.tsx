@@ -131,6 +131,51 @@ assert.equal(withPhotos[0].id, 'r1');
 console.log('PASS: Review filter utilities and algorithms verified.');
 
 // 3. Test CustomerSalon Component with review filter interactions
+//
+// CustomerSalon uses `Date.now()` inside filterSalonReviews, so the sample data
+// for the component test must be relative to the runtime clock — the fixed
+// October 2026 dates used for the unit tests above will age out of the 30-day
+// window as the calendar advances, causing the recency assertions to flake.
+const SALON_TEST_NOW = Date.now();
+const salonSampleReviews: SalonReviewItem[] = [
+  {
+    id: 'r1',
+    name: 'Aarav Kumar',
+    rating: 5,
+    comment: 'Exceptional haircut and styling.',
+    date: new Date(SALON_TEST_NOW - 1 * MS_DAY).toISOString(), // 1 day ago → inside 30d
+    imageUrl: 'https://example.test/pic1.jpg',
+  },
+  {
+    id: 'r2',
+    name: 'Bhavna Roy',
+    rating: 4,
+    comment: 'Great relaxing spa session.',
+    date: new Date(SALON_TEST_NOW - 17 * MS_DAY).toISOString(), // 17 days ago → inside 30d
+  },
+  {
+    id: 'r3',
+    name: 'Chirag Sethi',
+    rating: 5,
+    comment: 'Consistent precision styling.',
+    date: new Date(SALON_TEST_NOW - 78 * MS_DAY).toISOString(), // ~78 days ago → outside 30d
+  },
+  {
+    id: 'r4',
+    name: 'Deepa Sen',
+    rating: 3,
+    comment: 'Average service, wait was slightly long.',
+    date: new Date(SALON_TEST_NOW - 170 * MS_DAY).toISOString(),
+  },
+  {
+    id: 'r5',
+    name: 'Esha Verma',
+    rating: 2,
+    comment: 'Not quite what I asked for.',
+    date: new Date(SALON_TEST_NOW - 400 * MS_DAY).toISOString(),
+  },
+];
+
 const fakeSalon: any = {
   slug: 'test-salon-filters',
   content: {
@@ -149,7 +194,7 @@ const originalRpc = supabase.rpc;
   if (name === 'studioflow_list_reviews') {
     return {
       data: {
-        reviews: sampleReviews,
+        reviews: salonSampleReviews,
         ownReview: null,
         canReview: true
       },
@@ -253,7 +298,7 @@ await act(async () => {
           name: 'Recent 5 Star',
           rating: 5,
           comment: 'Remarkable styling experience.',
-          date: '2026-10-17T10:00:00Z',
+          date: new Date(SALON_TEST_NOW - 2 * MS_DAY).toISOString(),
           serviceName: 'Cut',
           location: 'Bangalore',
           avatarUrl: ''
@@ -263,7 +308,7 @@ await act(async () => {
           name: 'Older 4 Star',
           rating: 4,
           comment: 'Good attention to detail.',
-          date: '2026-05-10T10:00:00Z',
+          date: new Date(SALON_TEST_NOW - 200 * MS_DAY).toISOString(),
           serviceName: 'Trim',
           location: 'Bangalore',
           avatarUrl: ''

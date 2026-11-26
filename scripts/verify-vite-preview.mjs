@@ -8,7 +8,7 @@ const probe = createServer();
 await new Promise((resolve, reject) => probe.once('error', reject).listen(0, '127.0.0.1', resolve));
 const port = probe.address().port;
 await new Promise(resolve => probe.close(resolve));
-const child = spawn(process.execPath, ['node_modules/tsx/dist/cli.mjs', 'server.ts', '--port', String(port)], {
+const child = spawn(process.execPath, ['--import', 'tsx', 'server.ts', '--port', String(port)], {
   env: { ...process.env, NODE_ENV: 'development' }, detached: true, stdio: ['ignore', 'pipe', 'pipe'],
 });
 let output = '';
@@ -41,5 +41,8 @@ try {
   });
   console.log('PASS: affected imports transform and HMR connects on the HTTP preview port.');
 } finally {
-  try { process.kill(-child.pid, 'SIGTERM'); } catch { /* already exited */ }
+  try {
+    if (process.platform === 'win32') child.kill('SIGTERM');
+    else process.kill(-child.pid, 'SIGTERM');
+  } catch { /* already exited */ }
 }

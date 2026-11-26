@@ -3,6 +3,7 @@ import { Eyebrow } from '../ui';
 import { useLandingModel } from '../LandingContentProvider';
 import { WorkspaceIllustration } from './WorkspaceIllustration';
 import { useDemoDialog } from '../../nexora-pricing/DemoProvider';
+import { NexoraBreadcrumbs } from './NexoraBreadcrumbs';
 
 const HERO_POINTS = [
   'Appointments from your own salon website',
@@ -34,6 +35,7 @@ export function HeroSection({
     <section className="sl-hero" aria-labelledby="sl-hero-title">
       <div className="sl-container sl-hero__inner">
         <div className="sl-hero__copy">
+          <NexoraBreadcrumbs path="/salon-os" />
           <Eyebrow>{copy.heroEyebrow}</Eyebrow>
           <h1 id="sl-hero-title">{copy.heroTitle}</h1>
           <p className="sl-hero__lead">{copy.heroDescription}</p>

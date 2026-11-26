@@ -7,7 +7,7 @@ import { PGlite } from '@electric-sql/pglite';
 // not the obsolete intermediate table names or documentation wording.
 const db = new PGlite();
 await db.exec(`
-  create role anon; create role authenticated; create role service_role;
+  create role anon; create role authenticated; create role service_role bypassrls;
   create schema auth;
   create table auth.users(id uuid primary key);
   create table public.salons(id uuid primary key);
@@ -60,9 +60,17 @@ await assert.rejects(db.query(`insert into salon_whatsapp_connections(owner_id,w
   values($1,'waba','duplicate','duplicate','cipher','iv')`, [ownerA]), /unique/i);
 await assert.rejects(db.query(`insert into salon_whatsapp_message_log(owner_id,booking_id,direction,recipient_wa_id,message_kind)
   values($1,'00000000-0000-4000-8000-000000000099','inbound','919999999999','conversation')`, [ownerA]), /foreign key/i);
-const guide = readFileSync('docs/integrations/nexora-salon-owned-whatsapp-booking.md', 'utf8');
-assert.match(guide, /X-Hub-Signature-256/);
-assert.match(guide, /booking_source = 'whatsapp'/);
+await db.exec('grant usage on schema public to anon, authenticated, service_role');
+for (const role of ['anon', 'authenticated']) {
+  await db.exec('set role ' + role);
+  for (const table of tables) {
+    await assert.rejects(db.query('select * from public.' + table), /permission denied/i);
+  }
+  await db.exec('reset role');
+}
+await db.exec('set role service_role');
+for (const table of tables) await db.query('select * from public.' + table);
+await db.exec('reset role');
 const {verifyWhatsAppRuntimeCatalog}=await import('./fixtures/whatsapp-runtime-catalog.mjs');
 await verifyWhatsAppRuntimeCatalog(db);
 await db.close();
