@@ -167,7 +167,11 @@ export async function claimSharedRateLimit(options: SharedRateLimitOptions): Pro
     method: 'POST',
     headers: {
       apikey: options.serviceRoleKey,
-      Authorization: `Bearer ${options.serviceRoleKey}`,
+      // Supabase's newer sb_secret_* keys are opaque API keys, not JWTs.
+      // Only legacy service_role JWTs may be sent as Authorization Bearer.
+      ...(/^sb_secret_/.test(options.serviceRoleKey)
+        ? {}
+        : { Authorization: `Bearer ${options.serviceRoleKey}` }),
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
