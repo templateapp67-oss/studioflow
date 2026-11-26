@@ -1,3 +1,4 @@
+import { OwnerDraftBookingPreview } from '../../lib/ownerBookingPreview';
 import React, {useMemo, useState} from 'react';
 import {ArrowDown, ArrowRight, ChevronRight, Clock, MapPin, Menu, MessageCircle, Sparkles, Star, X} from 'lucide-react';
 import {BookingModal} from '../BookingModal';
@@ -37,7 +38,8 @@ export function AureliaBeautyWebsite(props:SalonWebsitePreviewProps){
  const [profileStylist,setProfileStylist]=useState<Stylist|undefined>();
  const [activePhoto,setActivePhoto]=useState<string|null>(null);
  const [galleryCategory,setGalleryCategory]=useState('All');
- const bookingAvailable=Boolean(props.onAddAppointment && profile.subdomain && (profile as typeof profile & {bookingEnabled?:boolean}).bookingEnabled!==false && services.length>0);
+ const ownerDraftPreview=React.useContext(OwnerDraftBookingPreview);
+ const bookingAvailable=Boolean(props.onAddAppointment && (ownerDraftPreview || profile.subdomain) && (profile as typeof profile & {bookingEnabled?:boolean}).bookingEnabled!==false && services.length>0);
  const wa=profile.whatsapp?.replace(/\D/g,'')||'';
  const waUrl=wa?'https://wa.me/'+wa+'?text='+encodeURIComponent('Hello '+profile.businessName+', I would like to book an appointment.'):'';
  const book=(service?:SalonService,stylist?:Stylist)=>{
