@@ -76,6 +76,27 @@ const branches=(await db.query('select public.studioflow_public_branches($1) dat
 assert.equal(branches.length,2);
 const schedule=(await db.query('select count(*)::int n from public.studioflow_staff_branch_schedules where site_id=$1 and branch_id=$2 and staff_id=$3 and is_active',[siteId,branchB,'staff-a'])).rows[0].n;
 assert.equal(schedule,6,'branch-specific working days are projected from the workspace');
+
+await db.exec(readFileSync('supabase/migrations/20261123081235_studioflow_branch_name_collision_canonical_ids.sql','utf8'));
+const staleBranchId='66666666-6666-4666-8666-666666666666';
+const staleDraft=structuredClone(accountDraft);
+staleDraft.profile.branches[1].id=staleBranchId;
+staleDraft.profile.branches[1].address='3 North Road';
+staleDraft.stylists[0].branchSchedules[1]={
+  branchId:staleBranchId,
+  schedule:hours('12:30','16:00'),
+};
+await db.query('update public.studioflow_accounts set draft=$2 where user_id=$1',[siteId,staleDraft]);
+const northBranches=(await db.query("select id,address from public.branches where site_id=$1 and name='North'",[siteId])).rows;
+assert.deepEqual(northBranches,[{id:branchB,address:'3 North Road'}],'the existing branch keeps its canonical ID and receives the update');
+const staleBranch=(await db.query('select id from public.branches where id=$1',[staleBranchId])).rows;
+assert.deepEqual(staleBranch,[],'the stale draft ID does not create a second branch');
+const canonicalSchedule=(await db.query(
+  'select distinct starts_at::text as start from public.studioflow_staff_branch_schedules where site_id=$1 and branch_id=$2 and staff_id=$3 and is_active',
+  [siteId,branchB,'staff-a'],
+)).rows;
+assert.deepEqual(canonicalSchedule,[{start:'12:30:00'}],'the stale-ID staff schedule is projected to the canonical branch');
+console.log('PASS: a workspace with a stale branch ID preserves the existing branch and remaps staff schedules.');
 const monday=(await db.query(`select (current_date+7+((1-extract(dow from current_date+7)::int+7)%7))::date d`)).rows[0].d;
 const sharedSlots=(await db.query('select public.studioflow_branch_available_slots($1,$2,$3,$4,$5) data',[ 'iron-ink-multibranch-test','svc',monday,'any',branchB ])).rows[0].data;
 assert.ok(sharedSlots.length>0,'shared web branch slots use location and staff hours');
