@@ -2057,6 +2057,11 @@
       "file": "20261125090000_nexora_lead_rate_limit_rpc.sql",
       "approval": "pending_owner_review",
       "purpose": "Pending branch implementation of the shared lead-rate-limit RPC; production apply requires the protected manual release and explicit owner approval."
+    },
+    {
+      "file": "20261126040000_harden_unpublished_storefront_rpcs.sql",
+      "approval": "pending_owner_review",
+      "purpose": "Restricts three public storefront RPCs to published websites; production apply requires the protected manual migration release and explicit owner approval."
     }
   ],
   "reviewed_feature_migrations": [
