@@ -196,6 +196,41 @@ for (const path of entrypoints) {
   assert.ok(startsServer, `${path} is not an Edge Function entrypoint`);
 }
 
+// --- 6. deploy-list coverage --------------------------------------------
+// A function with source on disk is not deployed unless it is named in the
+// `supabase functions deploy` list in production.yml AND has a config.toml
+// entry (the config.toml block sets verify_jwt; without it the gateway default
+// verify_jwt = true silently applies and can break public/handler-authenticated
+// endpoints). This caught studioflow-map-locations / iron-ink-public /
+// snapshot-accounts living on disk but never deployed.
+const workflow = readFileSync('.github/workflows/production.yml', 'utf8')
+  .replace(/\r\n?/g, '\n');
+const deployMatch = workflow.match(
+  /supabase functions deploy([\s\S]*?)--remote=[^ \n]+/,
+);
+assert.ok(deployMatch, 'production.yml must contain a supabase functions deploy step');
+const deployList = deployMatch[1]
+  .split(/\s+/)
+  .map((s) => s.trim())
+  .filter((s) => /^[a-z0-9-]+$/.test(s));
+const notDeployed = folders.filter((name) => !deployList.includes(name));
+assert.deepEqual(
+  notDeployed,
+  [],
+  `functions on disk but missing from the production.yml deploy list:\n  ${notDeployed.join('\n  ')}`,
+);
+
+const configToml = readFileSync('supabase/config.toml', 'utf8')
+  .replace(/\r\n?/g, '\n');
+const notConfigured = folders.filter(
+  (name) => !new RegExp(`^\\[functions\\.${name.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}\\]`, 'm').test(configToml),
+);
+assert.deepEqual(
+  notConfigured,
+  [],
+  `functions on disk but missing a config.toml [functions.<name>] block:\n  ${notConfigured.join('\n  ')}`,
+);
+
 console.log(
   `ok edge functions: ${folders.length} deployed, ${invoked.size} invoked from the app,`
   + ` ${urlCallers.length - historicalDependencies} raw /functions/v1 call sites resolved,`
