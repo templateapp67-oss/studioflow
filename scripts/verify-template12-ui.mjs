@@ -24,7 +24,7 @@ for (const [name, source] of [['storefront', storefront], ['onboarding editor', 
   assert.match(source, /description/, `${name} must surface category description`);
 }
 assert.match(editor, /rows=\{3\}/, 'owner editor should allow multi-line service descriptions');
-assert.match(editor, /savedCategories\.find/, 'older saved profiles should retain all 30 default categories');
+assert.match(editor, /IRON_INK_CATEGORIES\.map\([\s\S]*?saved\.find\(\(item\) => item\.slug === category\.slug\) \|\| category/, 'older saved profiles should retain all 30 default categories');
 assert.match(api, /duration_label:category\.duration/, 'category duration labels must sync to Supabase');
 assert.match(storefront, /useInkAvailability/, 'booking must query live availability');
 assert.match(storefront, /uploadInkReference/, 'reference images must use the private upload path');
