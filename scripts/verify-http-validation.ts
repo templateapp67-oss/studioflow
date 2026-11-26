@@ -56,7 +56,9 @@ expectBlocked('http:// example.com', 'http://example.com/');
 expectBlocked('ftp:// example.com', 'ftp://example.com/');
 expectBlocked('file:// descriptor path', 'file:///etc/passwd');
 expectBlocked('gopher://', 'gopher://example.com/');
-expectBlocked('ws:// websocket scheme', 'ws://example.com/');
+// The guard must reject this URL without making a WebSocket connection.
+// nosemgrep: javascript.lang.security.detect-insecure-websocket.detect-insecure-websocket
+expectBlocked('insecure WebSocket scheme', 'ws://example.com/');
 expectBlocked('https:// with no host', 'https://');
 
 section('SSRF guard: credentials in the URL');
