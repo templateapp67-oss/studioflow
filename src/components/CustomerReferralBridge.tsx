@@ -18,7 +18,7 @@ export function CustomerReferralBridge(){
    const result=uid?await supabase.rpc('studioflow_customer_claim_ref',{p_code:code}):await supabase.rpc('studioflow_customer_validate_ref',{p_code:code});if(!active)return;
    if(result.error){setStatus(result.error.message||'Invitation could not be saved. Please retry.');setFailed(true);return}
    if(!result.data){setStatus('This invitation code is invalid or unavailable.');return}
-   setStatus('Invitation ready. The sender’s code is already filled in your signup form.');if(uid){clearCustomerReferral();setCode('')}
+   setStatus('Invitation ready. The sender’s code is already filled in your signup form.');if(uid){clearCustomerReferral();setCode('');window.dispatchEvent(new Event('nexora-customer-rewards-updated'))}
   })();return()=>{active=false}
  },[code,uid,ready,retry,inviteEntry]);
  async function differentAccount(){

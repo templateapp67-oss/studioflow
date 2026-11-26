@@ -2,12 +2,13 @@ import {ClinicEnquiries} from './dermacure/ClinicEnquiries';
 import {AcademyEnquiriesPanel} from './vogue-noir/AcademyEnquiriesPanel';
 import {clinicPriceIsVerified,clinicPublicServices} from '../lib/dermacureContent';
 import {OwnerCustomerContacts} from './OwnerCustomerContacts';
+import { SalonCRM } from './SalonCRM';
 import {OwnerDemoBookings} from './OwnerDemoBookings';
 import { WebsiteContentManager } from './WebsiteContentManager';
 import { uploadSalonImage, websiteLink } from '../lib/supabase';
 import React, { useState, useEffect } from 'react';
-import { downloadClientsCsv } from '../lib/clientExports';
 import { sendBookingConfirmationEmail, sendBookingReminderEmail } from '../lib/emailService';
+import { bookingEmailFeedback } from '../lib/emailFeedback';
 import { SalonProfile, SalonService, Stylist, Appointment, ClientRecord, LoyaltyConfig, CategoryTemplateConfig, BusinessTypeId } from '../types';
 import { ACCENT_PALETTES, AccentPaletteKey, applyPrimaryAccentCssVar, getContrastTextColor, getLuminance } from '../themeAccents';
 import { validateAndReadImageFile, compressAndResizeImage } from '../utils/imageUploadHelper';
@@ -26,6 +27,7 @@ import { ZiyaAdminPanel } from './ziya/ZiyaAdminPanel';
 import { AuraPromotionsAdmin } from './aura/AuraPromotionsAdmin';
 import { NexoraTemplateGallery } from './nexora/NexoraTemplateGallery';
 import { CATEGORY_TEMPLATES } from '../categoryTemplates';
+import { patchOwnerCopy } from '../lib/copyProvenance';
 
 interface SaaSDashboardProps {
   ownerId?:string;
@@ -96,7 +98,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
         to: targetEmail,
         clientName: apt.clientName || 'Valued Guest',
         clientPhone: apt.clientPhone || '',
-        bookingRef: apt.id.slice(0, 8).toUpperCase(),
+        bookingRef: apt.id,
         serviceName: apt.serviceName,
         servicePrice: apt.servicePrice,
         amountPaid: apt.amountPaid || 0,
@@ -113,14 +115,8 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
       const res = type === 'confirmation'
         ? await sendBookingConfirmationEmail(payload)
         : await sendBookingReminderEmail(payload);
-      if (res.success) {
-        setAptEmailFeedback(prev => ({
-          ...prev,
-          [apt.id]: res.delivered ? `Email sent to ${targetEmail}` : `Email dispatched to ${targetEmail}`,
-        }));
-      } else {
-        setAptEmailFeedback(prev => ({ ...prev, [apt.id]: res.error || 'Failed to dispatch email' }));
-      }
+      const feedback = bookingEmailFeedback(res, targetEmail, type === 'reminder' ? 'Reminder' : 'Confirmation');
+      setAptEmailFeedback(prev => ({ ...prev, [apt.id]: feedback }));
     } catch (err: any) {
       setAptEmailFeedback(prev => ({ ...prev, [apt.id]: err?.message || 'Email delivery failed' }));
     } finally {
@@ -260,7 +256,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
             { id: 'demo', label: '₹0 Demo Bookings', icon: 'science' },
             { id: 'services', label: 'Business Services & Custom Offerings', icon: 'spa' },
             { id: 'team', label: 'Team Management', icon: 'badge' },
-            { id: 'clients', label: 'Clients CRM', icon: 'group' },
+            { id: 'clients', label: 'Customer CRM', icon: 'group' },
             { id:'contacts',label:'Customers & WhatsApp',icon:'contacts' },
             { id: 'loyalty', label: 'Loyalty & Rewards', icon: 'military_tech' },
             { id: 'marketing', label: 'Promo Image & Social', icon: 'photo_camera_back' },
@@ -546,139 +542,8 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
           />
         )}
 
-        {/* TAB CONTENT: CLIENTS */}
-        {activeTab === 'clients' && (
-          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-xs flex flex-col gap-5">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-gray-100 pb-4">
-              <div>
-                <h2 className="font-display font-bold text-xl text-gray-900">
-                  Client CRM & Visit History
-                </h2>
-                <p className="text-xs text-gray-500">
-                  Manage customer profiles, visit records, preferences, and automated loyalty reward progression.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => downloadClientsCsv(clients, `${profile.subdomain || 'salon'}-clients.csv`)}
-                  className="text-xs font-bold px-4 py-2 rounded-xl border border-gray-300 bg-white text-gray-700 shadow-xs flex items-center gap-1.5 cursor-pointer hover:bg-gray-50 active:scale-[0.98] transition-all"
-                  aria-label="Export clients to CSV"
-                >
-                  <span className="material-symbols-outlined text-sm">download</span>
-                  <span>Export Clients CSV</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('loyalty')}
-                  className="text-xs font-bold px-4 py-2 rounded-xl text-white shadow-xs flex items-center gap-1.5 cursor-pointer hover:opacity-95"
-                  style={{ backgroundColor: currentPrimaryColor }}
-                >
-                  <span className="material-symbols-outlined text-sm">military_tech</span>
-                  <span>Open Loyalty & Rewards Hub</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {clients.length === 0 && (
-                <div className="col-span-full py-12 text-center text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                  <span className="material-symbols-outlined text-3xl text-gray-400 mb-1">group_off</span>
-                  <p className="text-sm font-semibold text-gray-700">No client records found</p>
-                  <p className="text-xs text-gray-400 mt-1">Bookings and completed salon appointments will automatically populate client CRM entries.</p>
-                </div>
-              )}
-              {clients.map((cli) => {
-                const tier = cli.loyaltyTier || calculateLoyaltyTier(cli.lifetimePoints || 0, loyaltyConfig.tierThresholds);
-                const tierMeta = TIER_METADATA[tier];
-                const { nextReward, pointsNeeded, progressPercentage, unlockedRewards } = calculateRewardProgress(
-                  cli.points || 0,
-                  loyaltyConfig.rewards
-                );
-
-                return (
-                  <div 
-                    key={cli.id} 
-                    className="p-4 rounded-xl border border-gray-200 bg-white hover:border-gray-300 shadow-xs flex flex-col justify-between gap-3 text-xs"
-                  >
-                    <div>
-                      {/* Top identity & Tier */}
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <span className="font-bold text-sm text-gray-900">{cli.name}</span>
-                          <div className="text-gray-500 text-[11px] font-mono mt-0.5">{cli.phone}</div>
-                        </div>
-                        <div className="flex flex-col items-end">
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-mono-caps font-bold border ${tierMeta.badgeBg} ${tierMeta.borderColor} flex items-center gap-1`}
-                          >
-                            <span className="material-symbols-outlined text-xs">{tierMeta.icon}</span>
-                            <span>{tierMeta.name.split(' ')[0]}</span>
-                          </span>
-                          <span className="font-mono text-emerald-700 font-bold text-xs mt-1">
-                            ₹{cli.totalSpent.toLocaleString('en-IN')}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Notes */}
-                      {cli.notes && (
-                        <div className="text-gray-600 italic bg-gray-50 p-2 rounded-lg border border-gray-100 text-[11px] mt-2">
-                          "{cli.notes}"
-                        </div>
-                      )}
-
-                      {/* Loyalty Progress Card */}
-                      <div className="mt-3 p-2.5 rounded-lg border border-amber-200 bg-amber-50/50 flex flex-col gap-1.5">
-                        <div className="flex justify-between items-center text-[11px]">
-                          <span className="font-bold text-amber-900 flex items-center gap-1">
-                            <span className="material-symbols-outlined text-xs text-amber-600">stars</span>
-                            <span>{cli.points || 0} pts balance</span>
-                          </span>
-                          <span className="text-[10px] font-mono text-gray-500">
-                            {progressPercentage}% to next reward
-                          </span>
-                        </div>
-
-                        {/* Progress Bar */}
-                        <div className="w-full bg-amber-200/60 h-1.5 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-amber-500 to-purple-600 rounded-full"
-                            style={{ width: `${progressPercentage}%` }}
-                          />
-                        </div>
-
-                        <div className="flex justify-between items-center text-[10px]">
-                          <span className="text-gray-600 truncate max-w-[180px]">
-                            {nextReward ? `Next: ${nextReward.title}` : '⭐ Max Tier Achieved'}
-                          </span>
-                          {nextReward && (
-                            <span className="font-bold text-amber-800 font-mono">
-                              +{pointsNeeded} pts
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Footer Info & Quick Link */}
-                    <div className="flex justify-between items-center text-[11px] text-gray-400 pt-2 border-t border-gray-100">
-                      <span>Visits: {cli.totalVisits} | {cli.favoriteStylist}</span>
-                      <button
-                        onClick={() => setActiveTab('loyalty')}
-                        className="text-purple-700 hover:text-purple-900 font-bold flex items-center gap-0.5 cursor-pointer"
-                      >
-                        <span>Loyalty Hub</span>
-                        <span className="material-symbols-outlined text-xs">chevron_right</span>
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        {/* Shared CRM workspace is available to every salon template. */}
+        {activeTab === 'clients' && <SalonCRM profile={profile} />}
 
         {(activeTab==='clients'||activeTab==='marketing')&&<section className="workspace-card mb-5"><h2>Customer exports & WhatsApp campaigns</h2><p className="muted">Manage real customer contacts, CSV/Excel/phone exports and permission-based campaign drafts.</p><button className="primary-action" onClick={()=>setActiveTab('contacts')}>Open Customers & WhatsApp</button></section>}
         {activeTab==='contacts'&&<OwnerCustomerContacts profile={profile}/>}
@@ -1206,7 +1071,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
                 <input
                   type="text"
                   value={profile.tagline}
-                  onChange={(e) => setProfile((prev) => ({ ...prev, tagline: e.target.value }))}
+                  onChange={(e) => setProfile((prev) => patchOwnerCopy(prev, { tagline: e.target.value }))}
                   className="w-full p-2.5 rounded-xl border border-gray-300 text-xs focus:ring-2 focus:ring-gray-400 outline-none"
                 />
               </div>

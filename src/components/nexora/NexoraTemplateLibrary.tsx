@@ -1,25 +1,35 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Search, X, Eye, Wand2, MapPin, ArrowUpRight, Check, LayoutGrid } from 'lucide-react';
-import type { CategoryTemplateConfig } from '../../types';
+import type { BusinessTypeId, CategoryTemplateConfig } from '../../types';
+import type { NexoraTemplateCardData } from '../../lib/nexoraPublicTemplates';
 import {
   NEXORA_CATEGORIES,
   nexoraCategoryFilters,
   nexoraSearchIndex,
   nexoraMatchesSearch,
   nexoraTemplateMeta,
+  nexoraTemplatePagePath,
   sortTemplatesByPriority,
   type NexoraTemplateMeta,
 } from '../../lib/nexoraTemplateCatalogue';
 import { NexoraLogo, NexoraBrandMark, CategoryIconTile } from './NexoraBrand';
+import { nexoraPreviewImage, nexoraPreviewImageFallback } from '../../lib/nexoraPreviewImages';
 
 export interface NexoraTemplateLibraryProps {
   /** Templates to show. Always re-sorted into the fixed NEXORA priority order. */
-  templates: CategoryTemplateConfig[];
-  onPreview: (id: CategoryTemplateConfig['id']) => void;
+  templates: NexoraTemplateCardData[];
+  onPreview: (id: BusinessTypeId) => void;
   /** Opens the owner editor for exactly this template. */
-  onCustomize: (id: CategoryTemplateConfig['id']) => void;
+  onCustomize: (id: BusinessTypeId) => void;
   /** Highlights the template already applied to the signed-in salon. */
   activeTemplateId?: string;
+  /** Optional controlled category state, shared with public category shortcuts. */
+  activeCategory?: string;
+  onCategoryChange?: (categoryId: string) => void;
+  /** Backward-compatible aliases used by the interim public page on main. */
+  activeCategoryId?: string;
+  onActiveCategoryChange?: (categoryId: string) => void;
+  showCategoryFilters?: boolean;
 }
 
 const money = (value: number) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
@@ -36,8 +46,19 @@ export const NexoraTemplateLibrary: React.FC<NexoraTemplateLibraryProps> = ({
   onPreview,
   onCustomize,
   activeTemplateId,
+  activeCategory: controlledCategory,
+  onCategoryChange,
+  activeCategoryId,
+  onActiveCategoryChange,
+  showCategoryFilters = true,
 }) => {
-  const [activeCategory, setActiveCategory] = useState('all');
+  const [internalCategory, setInternalCategory] = useState('all');
+  const activeCategory = controlledCategory ?? activeCategoryId ?? internalCategory;
+  const setActiveCategory = useCallback((categoryId: string) => {
+    setInternalCategory(categoryId);
+    onCategoryChange?.(categoryId);
+    onActiveCategoryChange?.(categoryId);
+  }, [onCategoryChange, onActiveCategoryChange]);
   const [query, setQuery] = useState('');
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -68,7 +89,7 @@ export const NexoraTemplateLibrary: React.FC<NexoraTemplateLibraryProps> = ({
 
   return (
     <section id="nexora-template-library" data-nexora-template-library aria-labelledby="nexora-library-title" className="flex flex-col gap-5 scroll-mt-24">
-      <div className="rounded-2xl border border-[#E4DCCB] bg-gradient-to-br from-[#FBF8F2] via-white to-[#F6F1E6] p-5 sm:p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="rounded-2xl border border-[#E4DCCB] bg-[#FBF8F2] p-5 sm:p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-col gap-2">
             <NexoraLogo size="md" withTagline />
@@ -83,10 +104,10 @@ export const NexoraTemplateLibrary: React.FC<NexoraTemplateLibraryProps> = ({
             {[
               { label: 'Templates', value: '16' },
               { label: 'Categories', value: String(NEXORA_CATEGORIES.length) },
-              { label: 'Services', value: `${new Set(ordered.flatMap((t) => t.services.map((s) => s.name))).size}+` },
+              { label: 'Example services', value: `${new Set(ordered.flatMap((t) => nexoraTemplateMeta(t.id)?.services || [])).size}+` },
             ].map((stat) => (
-              <div key={stat.label} className="rounded-xl border border-[#E4DCCB] bg-white/80 px-3 py-2">
-                <dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8A7F98]">{stat.label}</dt>
+              <div key={stat.label} className="rounded-xl border border-[#E4DCCB] bg-white px-3 py-2">
+                <dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#6B5E7A]">{stat.label}</dt>
                 <dd className="font-display text-lg font-extrabold text-[#1B1630]">{stat.value}</dd>
               </div>
             ))}
@@ -97,7 +118,7 @@ export const NexoraTemplateLibrary: React.FC<NexoraTemplateLibraryProps> = ({
       {/* Search */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
-          <Search size={16} aria-hidden="true" className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8A7F98]" />
+          <Search size={16} aria-hidden="true" className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6B5E7A]" />
           <input
             id="nexora-template-search"
             type="search"
@@ -125,7 +146,7 @@ export const NexoraTemplateLibrary: React.FC<NexoraTemplateLibraryProps> = ({
       </div>
 
       {/* Category filters */}
-      <div role="group" aria-label="Filter templates by category" className="flex flex-wrap gap-2">
+      {showCategoryFilters && <div role="group" aria-label="Filter templates by category" className="flex flex-wrap gap-2">
         {filters.map((filter) => {
           const selected = filter.id === activeCategory;
           return (
@@ -145,14 +166,14 @@ export const NexoraTemplateLibrary: React.FC<NexoraTemplateLibraryProps> = ({
               <CategoryIconTile icon={filter.icon} color={selected ? '#FFFFFF' : filter.color} tint={selected ? 'rgba(255,255,255,0.18)' : filter.tint} size="sm" />
               <span>{filter.label}</span>
               <span
-                className={`rounded-full px-1.5 py-0.5 text-[10px] font-extrabold tabular-nums ${selected ? 'bg-white/25' : 'bg-[#F1ECDF] text-[#6B5E7A]'}`}
+                className={`rounded-full px-1.5 py-0.5 text-[10px] font-extrabold tabular-nums ${selected ? 'bg-white text-[#1B1630]' : 'bg-[#F1ECDF] text-[#6B5E7A]'}`}
               >
                 {filter.count}
               </span>
             </button>
           );
         })}
-      </div>
+      </div>}
 
       {/* Active filter summary */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#E4DCCB] bg-white px-4 py-3">
@@ -219,17 +240,18 @@ export const NexoraTemplateLibrary: React.FC<NexoraTemplateLibraryProps> = ({
  * best for, main services and its own preview artwork.
  */
 export const NexoraTemplateCard: React.FC<{
-  template: CategoryTemplateConfig;
+  template: NexoraTemplateCardData;
   meta: NexoraTemplateMeta;
   isActive?: boolean;
-  onPreview: (id: CategoryTemplateConfig['id']) => void;
-  onCustomize: (id: CategoryTemplateConfig['id']) => void;
+  onPreview: (id: BusinessTypeId) => void;
+  onCustomize: (id: BusinessTypeId) => void;
   compact?: boolean;
 }> = ({ template, meta, isActive = false, onPreview, onCustomize, compact = false }) => {
   const category = NEXORA_CATEGORIES.find((entry) => entry.categoryId === meta.categoryId);
   const color = category?.color || '#7A4E8F';
   const tint = category?.tint || '#F3EEE4';
-  const from = template.services.length ? Math.min(...template.services.map((service) => service.price)) : 0;
+  const samplePrices = (template.services || []).map((service) => Number(service.price)).filter(Number.isFinite);
+  const from = samplePrices.length ? Math.min(...samplePrices) : 0;
   const articleId = `nexora-template-${meta.templateNumber}`;
 
   return (
@@ -252,15 +274,25 @@ export const NexoraTemplateCard: React.FC<{
         >
           <div className="relative h-44 w-full overflow-hidden bg-[#221B34]">
             <img
-              src={template.coverImageUrl}
+              src={nexoraPreviewImage(template)}
+              data-registry-cover={template.coverImageUrl}
+              width={280}
+              height={176}
               alt={`${meta.displayName} template preview`}
               loading="lazy"
               decoding="async"
+              onError={(event) => {
+                const image = event.currentTarget;
+                const fallback = nexoraPreviewImageFallback(template);
+                if (!fallback || image.dataset.fallbackAttempted === 'true') return;
+                image.dataset.fallbackAttempted = 'true';
+                image.src = fallback;
+              }}
               className="h-full w-full object-cover object-top motion-safe:transition-transform motion-safe:duration-500 motion-safe:group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#14101F]/85 via-[#14101F]/25 to-transparent" />
             {/* NEXORA brand mark on every card */}
-            <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-white/92 px-2 py-1 shadow-sm backdrop-blur">
+            <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-white px-2 py-1 shadow-sm backdrop-blur">
               <NexoraBrandMark size="xs" />
               <span className="text-[9px] font-black uppercase tracking-[0.14em] text-[#2A1E4A]">NEXORA</span>
             </div>
@@ -271,7 +303,7 @@ export const NexoraTemplateCard: React.FC<{
               {meta.templateNumber}
             </span>
             <div className="absolute inset-x-3 bottom-3">
-              <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[10px] font-extrabold uppercase tracking-[0.1em] text-white" style={{ backgroundColor: `${color}E6` }}>
+              <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[10px] font-extrabold uppercase tracking-[0.1em] text-white" style={{ backgroundColor: color }}>
                 <CategoryIconTile icon={meta.icon} color="#FFFFFF" tint="transparent" size="sm" className="!h-4 !w-4 !rounded-md" />
                 {meta.categoryName}
               </span>
@@ -284,7 +316,9 @@ export const NexoraTemplateCard: React.FC<{
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <h3 id={`${articleId}-title`} className="font-display text-[15px] font-extrabold leading-snug text-[#1B1630]">
-              {meta.displayName}
+              <a href={nexoraTemplatePagePath(template.id)} className="rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A4E8F] hover:underline">
+                {meta.displayName}
+              </a>
             </h3>
             <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] font-semibold text-[#6B5E7A]">
               <span className="uppercase tracking-[0.12em]">Category:</span>
@@ -310,7 +344,7 @@ export const NexoraTemplateCard: React.FC<{
 
         {!compact && (
           <div>
-            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#8A7F98]">Main services</p>
+            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#6B5E7A]">Main services</p>
             <ul className="flex flex-wrap gap-1.5">
               {meta.services.map((service) => (
                 <li key={service} className="rounded-md border border-[#EDE6D8] bg-white px-1.5 py-1 text-[10px] font-semibold text-[#4A4058]">
@@ -323,10 +357,10 @@ export const NexoraTemplateCard: React.FC<{
 
         <div className="mt-auto flex flex-col gap-2 pt-1">
           <div className="flex items-center justify-between gap-2 text-[11px] font-semibold text-[#6B5E7A]">
-            <span className="inline-flex items-center gap-1">
-              <MapPin size={11} aria-hidden="true" /> {template.defaultCity}
+            <span className="inline-flex min-w-0 items-center gap-1 truncate">
+              {template.defaultCity ? <><MapPin size={11} aria-hidden="true" /> {template.defaultCity}</> : 'Sample website preview'}
             </span>
-            <span className="font-mono text-[#1B1630]">{from ? `From ${money(from)}` : 'View menu'}</span>
+            <span className="shrink-0 font-mono text-[#1B1630]">{from ? `From ${money(from)}` : 'Prices are customisable'}</span>
           </div>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <button

@@ -21,6 +21,8 @@ import {
   BODHI_TREE_DEFAULT_PALACE_COLLECTION,
   BODHI_TREE_DEFAULT_REVIEWS,
   BODHI_TREE_IMAGES,
+  BODHI_TREE_HERO_HEADING,
+  BODHI_TREE_TAGLINE,
   BODHI_TREE_TEMPLATE_SERVICES,
   bodhiFormatInr,
   buildBodhiTreeSeo,
@@ -163,8 +165,8 @@ console.log(`PASS: ${imagePaths.length} bundled Bodhi Tree assets exist under pu
 const home = renderPage();
 assert.ok(home.includes('bt-site'), 'Bodhi Tree theme scope renders');
 assert.ok(home.includes('--bt-sage:#4E6E58'), 'default sage brand colour is inlined');
-assert.ok(home.includes('Rest Well. Feel Light.'), 'hero heading');
-assert.ok(home.includes('Padharo, Jaipur'), 'tagline on the page');
+assert.ok(home.includes(BODHI_TREE_HERO_HEADING), 'current plain-language hero heading');
+assert.ok(home.includes(BODHI_TREE_TAGLINE), 'current Jaipur studio tagline renders in the footer');
 assert.ok(home.includes('bt-phone'), 'hero DeviceMockup phone');
 assert.ok(home.includes('booking screen preview'), 'mockup is a live booking screen');
 assert.ok(home.includes('25,000+'), 'central glass stats card');

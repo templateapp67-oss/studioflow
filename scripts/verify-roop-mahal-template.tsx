@@ -917,5 +917,5 @@ assert.equal(customOwnerDraft.profile.ownerPhotoUrl, 'https://cdn.example.com/re
 assert.equal(customOwnerDraft.profile.tagline, 'Bespoke Bridal & Herbal Parlour in Connaught Place');
 
 console.log(
-  'PASS: Template 04 (Roop Mahal) design + Explicit Section Visibility Rules + stale Supabase catalog & legacy draft upgrades verified with Templates 01–03 & 05–16 unchanged.',
+  'PASS: Template 04 (Roop Mahal) design + Explicit Section Visibility Rules + stale Supabase catalog & legacy draft upgrades verified with Templates 01–03 & 05–14 unchanged.',
 );

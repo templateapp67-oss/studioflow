@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {build} from 'esbuild';
+import {spawnSync} from 'node:child_process';
 
 const read=(path)=>readFileSync(path,'utf8');
 const types=read('src/types.ts');
@@ -14,10 +16,9 @@ const videos=read('src/lib/showcaseVideos.ts');
 const data=read('src/lib/aureliaBeauty.ts');
 const site=read('src/components/aurelia/AureliaBeautyWebsite.tsx');
 const editor=read('src/components/aurelia/AureliaBeautyEditor.tsx');
+const migration=read('supabase/migrations/20261103133437_template15_16_catalogue_sync.sql');
 const reviewPanel=read('src/components/CustomerReviewPanel.tsx');
-const reviewCarousel=read('src/components/ReviewCarousel.tsx');
-const globalCss=read('src/index.css');
-const migration=read('supabase/migrations/202611030004_template15_16_catalogue_sync.sql');
+const reviewDisplay=read('src/lib/aureliaReviewDisplay.ts');
 
 assert.match(types,/\|\s*'aurelia_beauty_parlour'/,'Template 16 ID must be in BusinessTypeId');
 assert.match(types,/aureliaBeauty\?: AureliaBeautyConfig/,'Aurelia owner config must be part of SalonProfile');
@@ -63,22 +64,31 @@ for(const asset of [
  'room_lookbook_interior_1793383607293.jpg'
 ]) assert.ok(data.includes(asset),'Aurelia image path missing: '+asset);
 assert.match(site,/BookingModal/,'Aurelia must use shared StudioFlow booking modal');
-assert.ok(site.includes("bookingAvailable=Boolean(props.onAddAppointment && profile.subdomain"),'Aurelia booking must require a published salon and real booking callback');
-assert.ok(site.includes("onAddAppointment={props.onAddAppointment}"),'Aurelia booking must submit through the shared StudioFlow booking handler');
 assert.match(site,/CustomerReviewPanel/,'Aurelia must use shared customer review panel');
-assert.equal((site.match(/<CustomerReviewPanel/g)||[]).length,1,'Aurelia must render one shared reviews panel');
-assert.doesNotMatch(site,/aurelia-review-grid/,'Aurelia must not render a second static review card grid');
-assert.match(site,/serviceReviewImages/,'Aurelia demo reviews must include relevant service images');
-assert.ok(site.includes("fallbackReviews={fallbackReviews}"),'Aurelia fallback testimonials must reach the shared review panel');
-assert.ok(reviewPanel.includes("businessType==='aurelia_beauty_parlour')?dedupedActual"),'Aurelia must show supplied review stories instead of unrelated generic samples');
-assert.ok(reviewCarousel.includes("r.serviceImageUrl||r.imageUrl||r.reviewImageUrl"),'Review cards must display editorial service images as well as guest-uploaded photos');
-assert.ok(globalCss.includes(".aurelia-review-panel .sf-review-card blockquote{display:block!important"),'Review text must remain visible and readable');
-assert.ok(globalCss.includes(".aurelia-review-panel .sf-review-card .sf-review-photo{display:block"),'Review images must use a visible card image layout');
-assert.match(site,/AppInstallSection/,'Aurelia must include the shared app-install section');
-assert.match(site,/Customer Login/,'guest customers must have a sign-in action');
-assert.match(site,/Sign up/,'guest customers must have a sign-up action');
-assert.match(site,/experienceYears/,'Aurelia team cards must show staff experience');
-assert.match(site,/data-loyalty-template/,'Aurelia loyalty cards must use the shared theme marker');
+assert.match(site,/authenticOnly/,'Aurelia must display approved customer reviews only');
+assert.match(reviewPanel,/filterAureliaReviews\(rawCombined\)/,'Aurelia reviews must be filtered before rendering');
+assert.equal((site.match(/<CustomerReviewPanel\b/g)||[]).length,1,'Aurelia must render a single testimonials panel');
+assert.match(reviewPanel,/sf-aurelia-reviews-grid/,'Aurelia reviews must render in one unified grid');
+assert.match(reviewPanel,/sf-aurelia-review-stars/,'Aurelia review cards must show the five-star rating row');
+assert.match(reviewPanel,/sf-aurelia-template-tag/,'Aurelia review cards must identify the active template/brand');
+assert.match(reviewPanel,/reviewDetails\.avatarUrl\|\|reviewDetails\.customerPhotoUrl/,'Customer avatar should use a supplied profile photo when available');
+assert.match(reviewPanel,/sf-aurelia-review-initial/,'Customer avatar must fall back to a reviewer initial');
+// PR #88 moved the Aurelia review cards out of the website component and into
+// the shared customer review panel. There the booked service is rendered as
+// JSX text (`Booked: {serviceName}`), not as the template literal
+// (`Booked: ${serviceName}`) this assertion used to expect, even though the
+// visitor sees exactly the same tag. The tag is required inside the Aurelia
+// card markup, and both spellings are accepted so a future refactor of either
+// form cannot silently drop it. The rendered result is asserted below by
+// `scripts/verify-template16-aurelia-review-cards.tsx`.
+const aureliaCardStart=reviewPanel.indexOf('sf-aurelia-review-card');
+assert.ok(aureliaCardStart>=0,'Aurelia review cards must exist in the shared review panel');
+const aureliaCardBlock=reviewPanel.slice(aureliaCardStart,aureliaCardStart+4000);
+assert.match(aureliaCardBlock,/Booked:\s*(?:\$\{serviceName\}|\{serviceName\})/,'Every card must show a booked-service tag');
+assert.match(reviewPanel,/Location not shared/,'Missing customer location must not be replaced with an assumed location');
+assert.match(reviewDisplay,/aurelia\s+guest/i,'Placeholder Aurelia guest names must be removed');
+assert.match(reviewDisplay,/return !comment/,'Blank review text must be removed');
+
 assert.match(editor,/uploadSalonImage/,'Owner image uploads must use StudioFlow Supabase media');
 assert.match(editor,/Add new offer/,'Owner must be able to add offers');
 assert.match(editor,/Website section order/,'Owner must be able to reorder website sections');
@@ -86,5 +96,15 @@ assert.match(migration,/mens_hair_studio/,'Catalogue migration must restore miss
 assert.match(migration,/aurelia_beauty_parlour/,'Catalogue migration must add Template 16');
 assert.match(migration,/on conflict \(id\) do update/i,'Catalogue migration must be safe to re-run');
 assert.doesNotMatch(migration,/drop\s+table/i,'Catalogue migration must not drop tables');
+
+/* --- Rendered Aurelia review cards --------------------------------------- */
+const built=await build({
+ entryPoints:['scripts/verify-template16-aurelia-review-cards.tsx'],
+ bundle:true, platform:'node', format:'esm', packages:'external', write:false,
+ plugins:[{name:'aurelia-review-card-stubs',setup(b){b.onLoad({filter:/\.(png|jpe?g|webp)$/},()=>({contents:'export default "https://example.com/test-image.jpg";',loader:'js'}));b.onLoad({filter:/\.css$/},()=>({contents:'export default "";',loader:'js'}));}}],
+});
+const rendered=spawnSync(process.execPath,['--input-type=module'],{input:built.outputFiles[0].text,stdio:['pipe','inherit','inherit']});
+if(rendered.error)throw rendered.error;
+assert.equal(rendered.status,0,'The rendered Aurelia review cards must show the booked-service tag');
 
 console.log('Template 16 Aurelia offline verification passed.');

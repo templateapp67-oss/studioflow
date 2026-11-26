@@ -1,0 +1,114 @@
+/*
+ * NEXORA SALONOS — central design tokens.
+ *
+ * Every colour, type scale, spacing step, radius, shadow, motion duration and
+ * layer used by the Nexora SalonOS landing page resolves back to this file.
+ * Component styles must reference these variables instead of one-off values.
+ */
+:root {
+  /* ---- Colour ---------------------------------------------------------- */
+  --nx-color-primary: #ff2323;
+  --nx-color-primary-dark: #cc1c1c;
+  --nx-color-text: #000000;
+  --nx-color-text-secondary: #4b4f58;
+  --nx-color-surface: #ffffff;
+  --nx-color-surface-secondary: #f5f5f5;
+  --nx-color-surface-elevated: #e7e7e7;
+  --nx-color-border: #e7e7e7;
+  --nx-color-border-strong: #101010;
+  --nx-color-dark: #101010;
+  --nx-color-on-dark: #ffffff;
+  --nx-color-success: #168a45;
+  --nx-color-danger: #d92d20;
+  --nx-color-primary-soft: #fff1f1;
+  --nx-color-dark-soft: #1c1c1c;
+
+  /* ---- Typography ------------------------------------------------------ */
+  --nx-font-family: 'Poppins', Arial, sans-serif;
+  --nx-type-h1: 36px;
+  --nx-type-h1-display: clamp(32px, 4.9vw, 54px);
+  --nx-type-h2: 48px;
+  --nx-type-h3: 24px;
+  --nx-type-body: 15px;
+  --nx-type-small: 13px;
+  --nx-weight-regular: 400;
+  --nx-weight-medium: 500;
+  --nx-weight-semibold: 600;
+  --nx-weight-bold: 700;
+  --nx-leading-tight: 1.06;
+  --nx-leading-heading: 1.3;
+  --nx-leading-body: 1.65;
+  --nx-leading-small: 1.5;
+  --nx-tracking-wide: 0.16em;
+
+  /* ---- Spacing (4px rhythm) -------------------------------------------- */
+  --nx-space-1: 4px;
+  --nx-space-2: 8px;
+  --nx-space-3: 12px;
+  --nx-space-4: 16px;
+  --nx-space-5: 20px;
+  --nx-space-6: 24px;
+  --nx-space-7: 64px;
+
+  /* ---- Layout ---------------------------------------------------------- */
+  --nx-container-max: 1287px;
+  --nx-page-gutter: 20px;
+  --nx-section-space: 64px;
+  --nx-content-max: 760px;
+
+  /* ---- Radius ---------------------------------------------------------- */
+  --nx-radius-input: 6px;
+  --nx-radius-card: 10px;
+  --nx-radius-panel: 30px;
+  --nx-radius-pill: 50px;
+  --nx-radius-full: 999px;
+
+  /* ---- Elevation ------------------------------------------------------- */
+  --nx-shadow-subtle: 0 1px 2px rgba(14, 17, 37, 0.14);
+  --nx-shadow-medium: 0 0 20px rgba(0, 0, 0, 0.12);
+  --nx-shadow-focus: 0 0 0 3px rgba(255, 35, 35, 0.32);
+
+  /* ---- Motion ---------------------------------------------------------- */
+  --nx-motion-fast: 0.2s linear;
+  --nx-motion-base: 0.3s ease;
+  --nx-motion-slow: 0.4s ease;
+
+  /* ---- Layers ---------------------------------------------------------- */
+  --nx-z-base: 0;
+  --nx-z-content: 1;
+  --nx-z-sticky: 20;
+  --nx-z-dropdown: 30;
+  --nx-z-overlay: 40;
+  --nx-z-modal: 50;
+  --nx-z-toast: 60;
+}
+
+@media (max-width: 1024px) {
+  :root {
+    --nx-type-h2: 40px;
+    --nx-type-h3: 22px;
+  }
+}
+
+@media (max-width: 767px) {
+  :root {
+    --nx-type-h2: 32px;
+    --nx-type-h3: 20px;
+    --nx-section-space: 56px;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --nx-type-h2: 28px;
+    --nx-type-h3: 19px;
+    --nx-type-h1-display: 30px;
+  }
+}
+
+@media (max-width: 360px) {
+  :root {
+    --nx-type-h2: 25px;
+    --nx-type-h1-display: 27px;
+  }
+}

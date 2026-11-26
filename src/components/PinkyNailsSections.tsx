@@ -1,3 +1,4 @@
+import '../pinkyNails.css';
 import React, { useEffect, useState } from 'react';
 import {
   ArrowUpRight,
@@ -41,6 +42,7 @@ import {
   pinkyNailsContactSummary,
 } from '../lib/pinkyNails';
 import { ServicePhoto } from './ServicePhoto';
+import { ServiceMerchTags, ServiceTerms } from './ServiceMerchandising';
 import { useWebsiteLanguage } from './WebsiteLanguage';
 
 const money = (value: number) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
@@ -282,11 +284,13 @@ export function PinkyNailsServiceCard({
       </div>
       <div className="sf-pn-service-body">
         <h3 tabIndex={0}>{service.name.trim()}</h3>
+        <ServiceMerchTags service={service} className="sf-merch-inline" />
         {description && (
           <p tabIndex={0} aria-label={`Description of ${service.name}`}>
             {description}
           </p>
         )}
+        <ServiceTerms service={service} className="sf-merch-inline" />
         {(validPrice || validDuration) && (
           <div className="sf-pn-service-meta">
             {validPrice && <strong>{money(service.price)}</strong>}
@@ -597,9 +601,9 @@ export function PinkyNailsTeamCard({
 
   return (
     <article className={`sf-pn-team-card${selected ? ' is-selected' : ''}${showPhoto ? '' : ' is-no-photo'}`}>
-      <button type="button" className="sf-pn-team-portrait" onClick={onView} aria-label={`${t('View profile & reviews')}: ${name}`}>
+      <button type="button" className="sf-pn-team-portrait h-80 w-full aspect-[3/4] overflow-hidden" onClick={onView} aria-label={`${t('View profile & reviews')}: ${name}`}>
         {showPhoto ? (
-          <img src={avatar} alt={name} loading="lazy" onError={() => setFailed(true)} />
+          <img src={avatar} alt={name} loading="lazy" className="w-full h-full object-cover" onError={() => setFailed(true)} />
         ) : (
           <span className="sf-pn-team-initials" aria-hidden="true">
             {initials || 'PN'}

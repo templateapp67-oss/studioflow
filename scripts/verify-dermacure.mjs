@@ -7,6 +7,7 @@ const result = await build({
   format: "esm",
   packages: "external",
   write: false,
+  loader: { '.css': 'empty' },
   plugins: [
     {
       name: "test-image-stubs",

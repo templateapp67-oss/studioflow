@@ -1,12 +1,14 @@
 import React from 'react';
 import { SalonProfile, SalonService } from '../types';
 import { CheckCircle, XCircle } from 'lucide-react';
+import { publishingReadiness } from '../lib/publishing';
 
 export function PublishingStatusIndicator({ profile, services }: { profile: SalonProfile; services: SalonService[] }) {
+  const readiness = publishingReadiness(profile, services);
   const requirements = [
-    { label: 'Business name added', met: !!profile.businessName },
-    { label: 'At least one service added', met: services.length > 0 },
-    { label: 'Salon template selected', met: !!profile.serviceCatalogueInitialized },
+    { label: 'Business name added', met: readiness.businessName },
+    { label: 'At least one service added', met: readiness.services },
+    { label: 'Salon template selected', met: readiness.template },
   ];
 
   const allMet = requirements.every(r => r.met);

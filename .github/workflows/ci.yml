@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_call:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Lint, typecheck, test and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      # package.json's mandatory "test" script runs lint, edge type checks,
+      # the Vite/server build, and the complete project verification suite.
+      - name: Run required tests, type checks and build
+        run: npm test
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+
+  windows-powershell-release-mode:
+    name: Production release-mode and deploy contract (Windows PowerShell)
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked dependencies for Windows build
+        shell: pwsh
+        run: npm.cmd ci
+
+      - name: Run production release-mode and PowerShell deploy verification
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & .\scripts\verify-production-release-modes.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Build application with Windows toolchain
+        shell: pwsh
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+        run: npm.cmd run build
+
+  supabase-free-plan:
+    name: Supabase Free Plan migration validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      # Free Plan has no GitHub PR preview database. Validate the same
+      # migration, release-ledger, publish E2E, and Edge Function contracts
+      # offline with PGlite; this job never creates a Supabase branch or
+      # connects to production.
+      - name: Verify migration ledger alignment
+        run: node scripts/verify-supabase-migration-history.mjs && node scripts/verify-whatsapp-release-plan.mjs
+
+      - name: Verify WhatsApp test-mode contract
+        run: node scripts/verify-whatsapp-booking-api.mjs
+
+      - name: Verify Edge Function security boundaries
+        run: node scripts/verify-edge-functions.mjs
+
+      - name: Apply and verify SQL migrations offline
+        run: node scripts/verify-sql-migrations.mjs
+
+      - name: Verify StudioFlow publish website E2E (PGlite + UI)
+        run: node scripts/verify-publish-e2e.mjs

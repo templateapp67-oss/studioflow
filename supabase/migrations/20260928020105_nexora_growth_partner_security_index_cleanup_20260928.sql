@@ -1,0 +1,15 @@
+begin;
+create policy admin_email_allowlist_no_client_access on public.admin_email_allowlist for select to authenticated using(false);
+create index if not exists idx_gp_applications_reviewed_by on public.growth_partner_applications(reviewed_by);
+create index if not exists idx_gp_audit_actor on public.growth_partner_audit_logs(actor_id);
+create index if not exists idx_gp_documents_reviewed_by on public.growth_partner_documents(reviewed_by);
+create index if not exists idx_gp_grievances_claim on public.growth_partner_grievances(claim_id);
+create index if not exists idx_gp_grievances_reviewed_by on public.growth_partner_grievances(reviewed_by);
+create index if not exists idx_gp_qr_recorded_by on public.growth_partner_qr_daily_transactions(recorded_by);
+create index if not exists idx_gp_shops_salon on public.growth_partner_referred_shops(salon_id);
+create index if not exists idx_gp_claims_milestone on public.growth_partner_reward_claims(qualifying_shops);
+create index if not exists idx_gp_claims_reviewed_by on public.growth_partner_reward_claims(reviewed_by);
+create index if not exists idx_gp_fulfilment_vendor on public.growth_partner_reward_fulfilments(vendor_id);
+create index if not exists idx_gp_selection_catalogue on public.growth_partner_reward_selections(catalogue_item_id);
+create index if not exists idx_gp_selection_selected_by on public.growth_partner_reward_selections(selected_by);
+commit;

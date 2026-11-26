@@ -1,0 +1,138 @@
+name: Supabase Preview
+
+# In-repo Supabase preview support.
+#
+# The Supabase GitHub App posts a "Supabase Preview" check on every PR. On the
+# Supabase Free Plan there is no GitHub PR preview database, so that external
+# check is silently skipped. This workflow provides a repo-controlled
+# "Supabase Preview" check that is never silent: it either runs real preview-DB
+# validation when branch previews are enabled, or skips with an explicit,
+# documented reason so the skip is attributable to a repo configuration choice
+# rather than an unexplained external skip.
+#
+# Enable real preview-DB validation (when the project is on a plan that
+# supports branch previews) by setting:
+#   - Repository variable SUPABASE_PREVIEW_ENABLED = true
+#   - Secrets SUPABASE_PREVIEW_PROJECT_REF, SUPABASE_PREVIEW_ACCESS_TOKEN,
+#     SUPABASE_PREVIEW_DB_PASSWORD (preview-scoped, never production)
+# Until then the job skips with a clear explanation and does not block CI.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+  push:
+    branches:
+      - 'arena/**'
+  workflow_dispatch:
+
+concurrency:
+  group: supabase-preview-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  supabase-preview:
+    name: Supabase Preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Evaluate Supabase preview availability
+        id: availability
+        env:
+          SUPABASE_PREVIEW_ENABLED: ${{ vars.SUPABASE_PREVIEW_ENABLED }}
+          SUPABASE_PREVIEW_PROJECT_REF: ${{ secrets.SUPABASE_PREVIEW_PROJECT_REF }}
+          SUPABASE_PREVIEW_ACCESS_TOKEN: ${{ secrets.SUPABASE_PREVIEW_ACCESS_TOKEN }}
+          SUPABASE_PREVIEW_DB_PASSWORD: ${{ secrets.SUPABASE_PREVIEW_DB_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [[ "${SUPABASE_PREVIEW_ENABLED:-false}" != "true" ]]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "reason=preview-not-enabled" >> "$GITHUB_OUTPUT"
+            echo "::warning::Supabase preview is not enabled (repo variable SUPABASE_PREVIEW_ENABLED is not 'true')."
+            {
+              echo "## Supabase Preview — skipped (not enabled)"
+              echo ""
+              echo "Branch-preview validation is disabled by repository configuration."
+              echo "The Supabase Free Plan has no GitHub PR preview database, so no branch"
+              echo "preview is provisioned by default."
+              echo ""
+              echo "To enable real preview-DB validation on a plan that supports branch previews:"
+              echo "1. Set repository variable **SUPABASE_PREVIEW_ENABLED** to `true`."
+              echo "2. Add preview-scoped secrets **SUPABASE_PREVIEW_PROJECT_REF**,"
+              echo "   **SUPABASE_PREVIEW_ACCESS_TOKEN** and **SUPABASE_PREVIEW_DB_PASSWORD**."
+              echo ""
+              echo "Migration, ledger, publish E2E and Edge Function contracts are still"
+              echo "validated offline by the CI **Supabase Free Plan migration validation** job."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          missing=()
+          for name in SUPABASE_PREVIEW_PROJECT_REF SUPABASE_PREVIEW_ACCESS_TOKEN SUPABASE_PREVIEW_DB_PASSWORD; do
+            if [[ -z "${!name:-}" ]]; then
+              missing+=("$name")
+            fi
+          done
+          if (( ${#missing[@]} > 0 )); then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "reason=missing-secrets" >> "$GITHUB_OUTPUT"
+            echo "::warning::Supabase preview is enabled but secrets are missing: ${missing[*]}."
+            {
+              echo "## Supabase Preview — skipped (missing secrets)"
+              echo ""
+              echo "SUPABASE_PREVIEW_ENABLED is \`true\` but these secrets are not set:"
+              echo "${missing[*]}."
+              echo ""
+              echo "Add them to enable preview-DB validation."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+          echo "reason=ready" >> "$GITHUB_OUTPUT"
+          echo "Supabase preview is enabled and all required secrets are present."
+
+      - uses: actions/setup-node@v5
+        if: steps.availability.outputs.enabled == 'true'
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked dependencies
+        if: steps.availability.outputs.enabled == 'true'
+        run: npm ci
+
+      - name: Install Supabase CLI
+        if: steps.availability.outputs.enabled == 'true'
+        run: |
+          set -euo pipefail
+          curl -fsSL https://supabase.com/install.sh | bash
+          supabase --version
+
+      - name: Pull and validate Supabase preview database
+        if: steps.availability.outputs.enabled == 'true'
+        env:
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PREVIEW_PROJECT_REF }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_PREVIEW_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_PREVIEW_DB_PASSWORD }}
+        run: |
+          set -euo pipefail
+          # Pull the preview branch database schema/data so migration and Edge
+          # Function contracts can be validated against the real preview DB.
+          supabase db pull --remote="$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Verify migration ledger and Edge Function contracts on preview DB
+        if: steps.availability.outputs.enabled == 'true'
+        run: |
+          set -euo pipefail
+          node scripts/verify-supabase-migration-history.mjs
+          node scripts/verify-whatsapp-release-plan.mjs
+          node scripts/verify-edge-functions.mjs

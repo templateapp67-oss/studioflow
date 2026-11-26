@@ -1075,11 +1075,11 @@ export function defaultVedaConfig(): VedaConfig {
     },
     hero: {
       eyebrow: 'Ayurvedic wellness & spa · Kota',
-      headline: 'Return to your\nnatural rhythm.',
+      headline: 'Feel at ease,\none visit at a time.',
       description:
-        'Warm oils, unhurried hands and rooms that stay quiet. Veda Sanjeevani is a small Ayurvedic sanctuary in Kota where every ritual begins with a conversation, not a menu.',
-      primaryCta: 'Book a ritual',
-      secondaryCta: 'Explore therapies',
+        'Veda Sanjeevani offers Ayurvedic therapies in Kota. Each visit starts with a conversation, so our team can suggest a treatment that suits you.',
+      primaryCta: 'Book a treatment',
+      secondaryCta: 'View treatments',
       image: VEDA_IMAGES.hero,
       caption: 'The Shirodhara room, 7:40 am',
       stats: VEDA_STATS,

@@ -1,3 +1,4 @@
+import './appInstallSection.css';
 /**
  * AppInstallSection — the one app-install banner used by all 14 website
  * templates.

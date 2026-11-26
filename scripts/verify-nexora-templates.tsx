@@ -33,23 +33,23 @@ import {templateDraft} from '../src/lib/templateEntry';
  * 1 · The exact brief: 16 names, 15 categories, 1–16 priority
  * ------------------------------------------------------------------ */
 const EXPECTED = [
-  ['hair_salon', 'NEXORA Ziya Women’s Haircut Studio', 'Haircut Studio', "Specialist women's haircut services and modern hairstyles."],
-  ['barber', 'NEXORA Royal Blade Men’s Barber Shop', 'Barber Shop', "Men's haircuts, beard grooming and classic barber services."],
-  ['unisex_salon', 'NEXORA Aura Unisex Salon', 'Unisex Salon', 'Hair, skin, grooming and salon services for men and women.'],
-  ['beauty_parlour', 'NEXORA Roop Mahal Beauty Parlour', 'Beauty Parlour', 'Beauty services, facials and makeover services.'],
-  ['nail_studio', 'NEXORA Pinky Nails Studio', 'Nail Studio', 'Nail art, nail care and nail design services.'],
-  ['hair_spa', 'NEXORA Kesh Prakriti Hair Spa', 'Hair Spa & Hair Care', 'Hair spa, hair care and related services.'],
-  ['skincare_clinic', 'NEXORA Dermacure Aesthetic Clinic', 'Skin & Aesthetic Clinic', 'Skincare, aesthetic and clinic services.'],
-  ['makeup_studio', 'NEXORA Vogue Noir Makeup Studio', 'Makeup Studio', 'Professional makeup, occasion looks and makeup academy.'],
-  ['massage_wellness', 'NEXORA Bodhi Tree Massage & Wellness', 'Massage & Wellness', 'Massage, wellness and relaxation services.'],
-  ['hair_coloring', 'NEXORA Prism & Chroma Hair Colour Studio', 'Hair Colour Studio', 'Hair colouring, highlights, balayage and colour services.'],
-  ['bridal_lounge', 'NEXORA Shringaar Royal Bridal Lounge', 'Bridal Makeup', 'Bridal makeup, wedding looks and bridal styling.'],
-  ['tattoo_studio', 'NEXORA Iron & Ink Tattoo Studio', 'Tattoo & Body Art', 'Tattoo designs, custom tattoos and body art.'],
-  ['lash_brow', 'NEXORA Arch & Flutter Lash & Brow Bar', 'Lash & Brow', 'Eyelash, eyebrow and beauty services.'],
-  ['ayurvedic_spa', 'NEXORA Veda Sanjeevani Ayurvedic Spa', 'Ayurvedic Wellness', 'Ayurvedic wellness and spa services.'],
-  ['mens_hair_studio', 'NEXORA KeshKraft Men’s Hair Studio', "Men's Hair Studio", "Men's haircuts and men's hair colour only."],
-  ['aurelia_beauty_parlour', 'NEXORA Aurelia Beauty Parlour', 'Beauty Parlour', 'A complete beauty studio with hair, colour, skin, bridal, nails and spa services.'],
-] as const;;
+  ['hair_salon', 'NEXORA Ziya Women’s Haircut Studio', 'Haircut Studio', 'Easy-to-maintain haircuts and styles, chosen to suit you.'],
+  ['barber', 'NEXORA Royal Blade Men’s Barber Shop', 'Barber Shop', 'Smart haircuts, beard care and a good old-fashioned shave.'],
+  ['beauty_parlour', 'NEXORA Roop Mahal Beauty Parlour', 'Beauty Parlour', 'Everyday beauty, facials and makeovers, all in one place.'],
+  ['nail_studio', 'NEXORA Pinky Nails Studio', 'Nail Studio', 'Nail care, neat manicures and nail art for every occasion.'],
+  ['unisex_salon', 'NEXORA Aura Unisex Salon', 'Unisex Salon', 'Hair, skin and grooming services for the whole family.'],
+  ['mens_hair_studio', 'NEXORA KeshKraft Men’s Hair Studio', "Men's Hair Studio", 'Men’s haircuts and colour, with advice that suits your style.'],
+  ['hair_spa', 'NEXORA Kesh Prakriti Hair Spa', 'Hair Spa & Hair Care', 'Relaxing hair spa and care for a healthier-feeling scalp and hair.'],
+  ['skincare_clinic', 'NEXORA Dermacure Aesthetic Clinic', 'Skin & Aesthetic Clinic', 'Skin consultations and care, with clear guidance at every step.'],
+  ['makeup_studio', 'NEXORA Vogue Noir Makeup Studio', 'Makeup Studio', 'Makeup for special occasions, plus classes for aspiring artists.'],
+  ['bridal_lounge', 'NEXORA Shringaar Royal Bridal Lounge', 'Bridal Makeup', 'Bridal makeup and styling for every celebration around your wedding.'],
+  ['hair_coloring', 'NEXORA Prism & Chroma Hair Colour Studio', 'Hair Colour Studio', 'Hair colour, highlights and balayage, planned around your look.'],
+  ['massage_wellness', 'NEXORA Bodhi Tree Massage & Wellness', 'Massage & Wellness', 'A welcoming space to unwind with massages and wellness therapies.'],
+  ['tattoo_studio', 'NEXORA Iron & Ink Tattoo Studio', 'Tattoo & Body Art', 'Custom tattoos and body art, created with you and your idea in mind.'],
+  ['lash_brow', 'NEXORA Arch & Flutter Lash & Brow Bar', 'Lash & Brow', 'Lash and brow services to bring out your natural features.'],
+  ['ayurvedic_spa', 'NEXORA Veda Sanjeevani Ayurvedic Spa', 'Ayurvedic Wellness', 'Traditional Ayurvedic therapies and spa care for everyday wellbeing.'],
+  ['aurelia_beauty_parlour', 'NEXORA Aurelia Beauty Parlour', 'Beauty Parlour', 'Hair, skin, bridal, nails and spa services in one friendly studio.'],
+] as const;
 
 assert.equal(NEXORA_TEMPLATE_META.length, 16, 'exactly sixteen NEXORA templates');
 assert.equal(Object.keys(CATEGORY_TEMPLATES).length, 16, 'the template registry holds sixteen templates');
@@ -74,9 +74,8 @@ for (const [index, [id, displayName, categoryName, description]] of EXPECTED.ent
 assert.deepEqual(NEXORA_TEMPLATE_META.map((meta) => meta.templateId), EXPECTED.map(([id]) => id), 'master priority order');
 assert.equal(NEXORA_TEMPLATE_META[0].templateId, 'hair_salon', 'Haircut Studio first');
 assert.equal(NEXORA_TEMPLATE_META[1].templateId, 'barber', 'Barber Shop second');
-assert.equal(NEXORA_TEMPLATE_META[2].templateId, 'unisex_salon', 'Aura Unisex Salon third');
-assert.equal(NEXORA_TEMPLATE_META[3].templateId, 'beauty_parlour', 'Roop Mahal Beauty Parlour fourth');
-assert.equal(NEXORA_TEMPLATE_META[4].templateId, 'nail_studio', 'Pinky Nails Studio fifth');
+assert.equal(NEXORA_TEMPLATE_META[2].templateId, 'beauty_parlour', 'Beauty Parlour third');
+assert.equal(NEXORA_TEMPLATE_META[3].templateId, 'nail_studio', 'Nail Studio fourth');
 
 /* Categories: 15 clear business categories. Beauty Parlour intentionally has two templates. */
 assert.equal(NEXORA_CATEGORIES.length, 15, 'fifteen categories, no duplicates');
@@ -200,7 +199,7 @@ assert.deepEqual(cardIds(), ['barber'], 'search and filter work together');
 await act(async () => searchBox().props.onChange({target: {value: 'nails'}}));
 assert.deepEqual(cardIds(), [], 'a template from another category never leaks through the filter');
 await act(async () => filterButton('all').props.onClick());
-assert.deepEqual(cardIds(), ['nail_studio','aurelia_beauty_parlour'], 'the search survives a filter change and includes Aurelia nail services');
+assert.deepEqual(cardIds(), ['nail_studio', 'aurelia_beauty_parlour'], 'the search survives a filter change and finds every matching nail service');
 await act(async () => searchBox().props.onChange({target: {value: 'zzz'}}));
 assert.deepEqual(cardIds(), [], 'no matches shows the empty state');
 assert.ok(page.root.findAll((node: any) => String(node.props?.children).includes('No template matches')).length > 0, 'the empty state is explicit');
@@ -345,7 +344,7 @@ for (const file of ['src/components/nexora/NexoraTemplateLibrary.tsx', 'src/comp
   const source = readFileSync(file, 'utf8');
   for (const wrong of ['Nexorra', 'NEXORAA', 'Nexora Salon']) assert.ok(!source.includes(wrong), `${file}: no misspelt brand ${wrong}`);
 }
-assert.ok(readFileSync('src/components/TemplatePreviewCards.tsx', 'utf8').includes('nexoraDisplayName'), 'the preview modal titles use the NEXORA names');
+assert.ok(readFileSync('src/components/TemplatePreviewModal.tsx', 'utf8').includes('nexoraDisplayName'), 'the preview modal titles use the NEXORA names');
 assert.ok(readFileSync('src/components/SalonWebsitePreview.tsx', 'utf8').includes('nexoraName'), 'the in-editor template switcher uses the NEXORA names');
 assert.ok(readFileSync('src/components/SidePanelCustomizer.tsx', 'utf8').includes('nexoraName'), 'the side-panel category switcher uses the NEXORA names');
 assert.ok(readFileSync('index.html', 'utf8').includes('NEXORA'), 'the document title is NEXORA');

@@ -1,3 +1,4 @@
+import { patchOwnerCopy } from '../../lib/copyProvenance';
 import React, { useState } from 'react';
 import {
   Building2,
@@ -98,7 +99,7 @@ export function BodhiTreeEditor({
   };
 
   const patchProfileField = (key: 'businessName' | 'tagline' | 'phone' | 'whatsapp' | 'email' | 'address' | 'city' | 'postalCode' | 'logoUrl', value: string) =>
-    setProfile((prev) => ({ ...prev, [key]: value }));
+    setProfile((prev) => key === 'tagline' ? patchOwnerCopy(prev, { tagline: value }) : ({ ...prev, [key]: value }));
 
   const resetSection = (key: EditorTab) => {
     if (key === 'colors') patchBodhiTree(() => ({ colors: { ...BODHI_TREE_DEFAULT_COLORS } }));

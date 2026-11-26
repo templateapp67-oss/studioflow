@@ -45,9 +45,11 @@ for (const topic of ['balayage', 'pastel', 'money piece', 'correction', 'keratin
 assert.ok(!/beard|manicure|facial|massage/.test(colourCopy), 'no generic beard / nail / facial clips in Template 10');
 console.log('PASS: Template 10 defaults to five colour Shorts (balayage, fashion/pastel, money piece, correction, keratin + gloss) with real channels and hqdefault posters.');
 
-/* 2 — The other 11 templates keep the generic list untouched (Templates 01, 10
-   and 13 get their own category-true references). */
-for (const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')) {
+/* 2 — The other 11 generic templates keep the shared list untouched
+   (Templates 01, 10 and 13 have category-true references; Aurelia and the
+   men's studio intentionally seed no generic reels). */
+assert.deepEqual(createDemoVideos('aurelia_beauty_parlour'),[], 'Aurelia never receives unrelated generic demo reels');
+for (const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio'&&t.id!=='aurelia_beauty_parlour')) {
   const videos = createDemoVideos(template.id);
   assert.equal(videos.length, 5, `${template.id} keeps five demo reels`);
   if (template.id === 'hair_salon') assert.deepEqual(videos.map((video) => video.videoId), WOMENS_HAIRCUT_SHORTS);

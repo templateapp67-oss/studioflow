@@ -2,64 +2,36 @@
 <html lang="en" class="light">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/customer-icon-192.png" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=2" />
+    <link rel="shortcut icon" href="/favicon.ico?v=2" />
     <link rel="manifest" href="/customer.webmanifest" />
-    <meta name="theme-color" content="#5841e8" />
+    <meta name="theme-color" content="#cc1c1c" />
     <link rel="apple-touch-icon" href="/customer-icon-192.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>NEXORA — Salon Website Builder &amp; Template Library</title>
-    <meta name="description" content="NEXORA is an AI-powered salon website builder with 15 template categories for Indian salons, spas and beauty businesses." />
-    <meta property="og:title" content="NEXORA — Salon Website Builder &amp; Template Library" />
-    <meta property="og:description" content="15 NEXORA template categories for every Indian salon, spa and beauty business." />
-    <script>
-      (function() {
-        try {
-          var desc = Object.getOwnPropertyDescriptor(window, 'fetch');
-          if (!desc || !desc.set) {
-            var currentFetch = window.fetch;
-            Object.defineProperty(window, 'fetch', {
-              get: function() {
-                return currentFetch;
-              },
-              set: function(fn) {
-                currentFetch = fn;
-              },
-              configurable: true,
-              enumerable: true
-            });
-          }
-        } catch (e) {
-          try {
-            var protoDesc = Object.getOwnPropertyDescriptor(Window.prototype, 'fetch');
-            if (protoDesc && !protoDesc.set) {
-              var protoFetch = Window.prototype.fetch;
-              Object.defineProperty(Window.prototype, 'fetch', {
-                get: function() {
-                  return protoFetch;
-                },
-                set: function(fn) {
-                  protoFetch = fn;
-                },
-                configurable: true,
-                enumerable: true
-              });
-            }
-          } catch (e2) {}
-        }
-
-        window.addEventListener('error', function(event) {
-          if (event && event.message && event.message.indexOf('fetch') !== -1 && event.message.indexOf('getter') !== -1) {
-            event.preventDefault();
-          }
-        });
-      })();
-    </script>
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Great+Vibes&family=Hanken+Grotesk:ital,wght@0,300..800;1,300..800&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
-    <!-- Google Material Symbols -->
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <link rel="preload" href="/fonts/hanken-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/manrope-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/templates/luxury-editorial/hero-960.webp" as="image" type="image/webp" fetchpriority="high" />
+    <title>NEXORA SalonOS | Salon Website Builder</title>
+    <meta name="description" content="Create a salon website with 16 NEXORA templates and manage appointments, customers, billing, staff, inventory and marketing." />
+    <meta name="robots" content="index,follow" />
+    <link rel="canonical" href="https://nexorasalon.online/" />
+    <script async src="/clarity.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="NEXORA Salon OS" />
+    <meta property="og:title" content="NEXORA SalonOS | Salon Website Builder" />
+    <meta property="og:description" content="Create a salon website with 16 NEXORA templates and manage appointments, customers, billing, staff, inventory and marketing." />
+    <meta property="og:url" content="https://nexorasalon.online/" />
+    <meta property="og:image" content="https://nexorasalon.online/nexora-homepage-og.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="NEXORA Salon OS salon website template preview" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="NEXORA SalonOS | Salon Website Builder" />
+    <meta name="twitter:description" content="Create a salon website with 16 NEXORA templates and manage appointments, customers, billing, staff, inventory and marketing." />
+    <meta name="twitter:image" content="https://nexorasalon.online/nexora-homepage-og.jpg" />
+    <meta name="twitter:image:alt" content="NEXORA Salon OS salon website template preview" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://nexorasalon.online/#organization","name":"NEXORA Salon OS","url":"https://nexorasalon.online/","description":"A salon website builder and business-management platform for salons, spas and beauty businesses.","contactPoint":{"@type":"ContactPoint","contactType":"customer support","telephone":"+91 7852877721","url":"https://wa.me/917852877721"}},{"@type":"SoftwareApplication","name":"NEXORA Salon OS","applicationCategory":"BusinessApplication","operatingSystem":"Web","url":"https://nexorasalon.online/","description":"Create and manage a salon website with customisable salon, spa and beauty-business templates."},{"@type":"BreadcrumbList","@id":"https://nexorasalon.online/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://nexorasalon.online/"}]}]}</script>
   </head>
   <body class="bg-[#f9f9ff] text-[#151c27] antialiased min-h-screen selection:bg-[#d81b60] selection:text-white">
     <div id="root"></div>

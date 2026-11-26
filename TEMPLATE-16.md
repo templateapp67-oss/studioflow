@@ -56,7 +56,7 @@ Aurelia sample offers are persisted as part of the owner workspace profile and c
 
 ## Database migration
 
-`supabase/migrations/202611030004_template15_16_catalogue_sync.sql`
+`supabase/migrations/20261103133437_template15_16_catalogue_sync.sql`
 
 This migration safely upserts the missing Template 15 registry entry and the new Template 16 entry into `public.studioflow_templates`. It does not create or drop tables, modify RLS, or alter existing salon/customer/booking records. Owner content continues to be stored in StudioFlow workspaces.
 

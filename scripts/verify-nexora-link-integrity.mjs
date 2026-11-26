@@ -1,0 +1,149 @@
+import assert from 'node:assert/strict';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+
+/**
+ * Internal link and anchor integrity for the public marketing pages.
+ *
+ * The check runs against the prerendered documents, so it covers exactly what
+ * a crawler sees: every internal link must point at a route that exists and
+ * every same-page anchor must resolve to a rendered element id.
+ */
+
+const ROUTES = new Set(['/', '/about', '/pricing', '/salon-os', '/privacy', '/admin/demo-leads', '/login', '/index.html', '/salon-onboarding', '/salon-growth', '/growth-partner-rewards', '/partner-rewards']);
+
+const DOCUMENTS = [
+  { path: '/', file: 'dist/index.html' },
+  { path: '/pricing', file: 'dist/pricing/index.html' },
+  { path: '/salon-os', file: 'dist/salon-os/index.html' },
+  { path: '/privacy', file: 'dist/privacy/index.html' },
+  { path: '/salon-onboarding', file: 'dist/salon-onboarding/index.html' },
+  { path: '/salon-growth', file: 'dist/salon-growth/index.html' },
+  { path: '/growth-partner-rewards', file: 'dist/growth-partner-rewards/index.html' },
+  { path: '/partner-rewards', file: 'dist/partner-rewards/index.html' },
+  { path: '/about', file: 'dist/about/index.html' },
+  ...readdirSync('dist/template-pages').filter((name) => name.endsWith('.html')).map((name) => ({ path: '/template-pages/' + name, file: 'dist/template-pages/' + name })),
+];
+
+/** Prerendered document that owns a route, used to resolve cross-page anchors. */
+const DOCUMENT_BY_ROUTE = new Map(DOCUMENTS.map((document) => [document.path, document.file]));
+
+for (const document of DOCUMENTS) {
+  assert.ok(existsSync(document.file), `The prerendered document ${document.file} must exist`);
+}
+
+const idsOf = (html) => {
+  const ids = new Set();
+  for (const match of html.matchAll(/\sid="([^"]+)"/g)) ids.add(match[1]);
+  return ids;
+};
+
+const linksOf = (html) =>
+  Array.from(html.matchAll(/<a\b[^>]*\shref="([^"]*)"/g)).map((match) => match[1]);
+
+let checkedLinks = 0;
+let checkedAnchors = 0;
+
+for (const document of DOCUMENTS) {
+  const html = readFileSync(document.file, 'utf8');
+  const ids = idsOf(html);
+  const links = linksOf(html);
+
+  assert.ok(links.length > 0, `${document.path} must contain links`);
+
+  for (const href of links) {
+    const value = href.trim();
+    assert.ok(value.length > 0, `${document.path} contains a link without a destination`);
+    assert.ok(value !== '#', `${document.path} contains a placeholder link`);
+    assert.ok(!value.toLowerCase().startsWith('javascript:'), `${document.path} contains a javascript link`);
+    assert.ok(!value.toLowerCase().startsWith('mailto:') || value.length > 8, `${document.path} contains an empty mail link`);
+
+    if (value.startsWith('http://') || value.startsWith('https://')) {
+      // External links are allowed, but they must point at a real host.
+      assert.ok(/^https?:\/\/[a-z0-9.-]+\.[a-z]{2,}/i.test(value), `${document.path} contains a malformed external link`);
+      continue;
+    }
+
+    if (value.startsWith('#')) {
+      const anchor = value.slice(1);
+      if (!anchor) continue; // a bare "#" is handled above
+      assert.ok(ids.has(anchor), `${document.path} links to #${anchor}, which is not rendered on the page`);
+      checkedAnchors += 1;
+      continue;
+    }
+
+    const [path, hash] = value.split('#');
+    const target = path.replace(/\/+$/, '') || '/';
+    if (target.startsWith('/?')) {
+      // A query on the public homepage is a real route of the application.
+      continue;
+    }
+    assert.ok(
+      ROUTES.has(target) ||
+        target.startsWith('/templates/') ||
+        target.startsWith('/template-pages/') ||
+        target.startsWith('/login') ||
+        existsSync('public' + target),
+      `${document.path} links to ${target}, which is not a known route`,
+    );
+    if (target.startsWith('/template-pages/')) {
+      assert.ok(DOCUMENT_BY_ROUTE.has(target), `${document.path} links to missing template document ${target}`);
+    }
+    if (hash) {
+      // A cross-page anchor is only meaningful when the target page renders it.
+      const targetFile = DOCUMENT_BY_ROUTE.get(target) ?? null;
+      if (targetFile && existsSync(targetFile)) {
+        assert.ok(
+          idsOf(readFileSync(targetFile, 'utf8')).has(hash),
+          `${document.path} links to ${target}#${hash}, which the target page does not render`,
+        );
+      }
+    }
+    checkedLinks += 1;
+  }
+}
+
+/* Every public marketing/template document must be reachable from the public homepage. */
+const routeGraph = new Map(DOCUMENTS.map((document) => [document.path, new Set()]));
+for (const document of DOCUMENTS) {
+  const html = readFileSync(document.file, 'utf8');
+  for (const href of linksOf(html)) {
+    if (!href.startsWith('/')) continue;
+    let target;
+    try {
+      target = new URL(href, 'https://nexorasalon.online').pathname;
+      if (target.length > 1 && target.endsWith('/')) target = target.slice(0, -1);
+    } catch { continue; }
+    if (routeGraph.has(target)) routeGraph.get(document.path).add(target);
+  }
+}
+const reachable = new Set(['/']);
+const pending = ['/'];
+while (pending.length) {
+  const current = pending.shift();
+  for (const target of routeGraph.get(current) ?? []) {
+    if (!reachable.has(target)) { reachable.add(target); pending.push(target); }
+  }
+}
+for (const document of DOCUMENTS) {
+  assert.ok(reachable.has(document.path), document.path + ' is reachable from the homepage and is not an orphan page');
+}
+
+/* The demo dialog and the plan hand-off must only use real destinations. */
+const demoProvider = readFileSync('src/components/nexora-pricing/DemoProvider.tsx', 'utf8');
+assert.ok(demoProvider.includes("postLeadToServerRoute('/api/nexora-demo-lead'"), 'The demo form posts to the real lead route');
+assert.ok(demoProvider.includes('href="/privacy"'), 'The demo form links to the published privacy notice');
+
+const pricingPage = readFileSync('src/components/nexora-landing/NexoraPricingLandingPage.tsx', 'utf8');
+for (const route of ['/login?auth=signup', '/login', '/salon-os', '/privacy']) {
+  assert.ok(pricingPage.includes(route), `The pricing page links to ${route}`);
+}
+
+/* The router must keep every public marketing route outside the owner app. */
+const router = readFileSync('src/AppRouter.tsx', 'utf8');
+for (const route of ['/about', '/salon-os', '/pricing', '/privacy', '/admin/demo-leads']) {
+  assert.ok(router.includes(`'${route}'`), `The router serves ${route}`);
+}
+
+console.log(
+  `PASS: ${checkedLinks} internal links and ${checkedAnchors} in-page anchors across ${DOCUMENTS.length} prerendered documents resolve to real routes and rendered ids; no placeholder, empty or javascript link exists.`,
+);

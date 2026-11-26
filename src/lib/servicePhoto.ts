@@ -1,9 +1,50 @@
 import {compressAndResizeImage} from '../utils/imageUploadHelper';
 import {supabase} from './supabase';
+/** Every service card photo is framed at 3:2 (1200 × 800) like the AI brief. */
+export const SERVICE_CARD_RATIO=3/2;
+export const SERVICE_CARD_WIDTH=1200;
+export const SERVICE_CARD_HEIGHT=800;
+
+/**
+ * Auto-fit an upload or URL import into the 3:2 service-card frame: centre-crop
+ * the longest axis, then draw at 1200 × 800. If the browser cannot decode the
+ * image we return the original file and the existing resize/upload fallback
+ * still runs, so a photo is never silently lost.
+ */
+export async function fitServicePhotoToCard(file:File):Promise<File>{
+ if(typeof document==='undefined'||typeof Image==='undefined'||typeof URL==='undefined'||typeof URL.createObjectURL!=='function')return file;
+ const objectUrl=URL.createObjectURL(file);
+ try{
+  const image=await new Promise<HTMLImageElement>((resolve,reject)=>{
+   const img=new Image();
+   img.onload=()=>resolve(img);
+   img.onerror=()=>reject(new Error('Could not read this image. Please choose a different photo.'));
+   img.src=objectUrl;
+  });
+  const canvas=document.createElement('canvas');
+  canvas.width=SERVICE_CARD_WIDTH;canvas.height=SERVICE_CARD_HEIGHT;
+  const context=canvas.getContext('2d');
+  if(!context)return file;
+  const width=image.naturalWidth||image.width,height=image.naturalHeight||image.height;
+  if(!width||!height)return file;
+  const naturalRatio=width/height;
+  let sourceX=0,sourceY=0,sourceWidth=width,sourceHeight=height;
+  if(naturalRatio>SERVICE_CARD_RATIO){sourceWidth=Math.round(height*SERVICE_CARD_RATIO);sourceX=Math.round((width-sourceWidth)/2);}
+  else if(naturalRatio<SERVICE_CARD_RATIO){sourceHeight=Math.round(width/SERVICE_CARD_RATIO);sourceY=Math.round((height-sourceHeight)/2);}
+  context.fillStyle='#ffffff';context.fillRect(0,0,canvas.width,canvas.height);
+  context.drawImage(image,sourceX,sourceY,sourceWidth,sourceHeight,0,0,canvas.width,canvas.height);
+  const blob=await new Promise<Blob|null>(resolve=>canvas.toBlob(resolve,'image/jpeg',.92));
+  if(!blob||!blob.size)return file;
+  const baseName=file.name.replace(/\.[^./\\]+$/,'')||'service-photo';
+  return new File([blob],`${baseName}-3x2.jpg`,{type:'image/jpeg'});
+ }catch{return file;}finally{URL.revokeObjectURL(objectUrl);}
+}
+
 export async function uploadServicePhoto(file:File):Promise<{imageUrl:string;imagePath:string}>{
  if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw new Error('Choose a JPG, PNG or WebP service photo.');
  if(file.size>20*1024*1024)throw new Error('Choose a service photo smaller than 20 MB.');
- const resized=await compressAndResizeImage(file,1200,2*1024*1024);
+ const cardFile=await fitServicePhotoToCard(file);
+ const resized=await compressAndResizeImage(cardFile,1200,2*1024*1024);
  if(!resized.isValid||!resized.dataUrl)throw new Error(resized.errorMessage||'Could not resize this service photo.');
  const blob=await (await fetch(resized.dataUrl)).blob();
  if(!blob.size||blob.size>2*1024*1024)throw new Error('This photo could not be optimized. Please choose a different image.');

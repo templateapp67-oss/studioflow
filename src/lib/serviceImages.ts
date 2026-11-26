@@ -8,6 +8,7 @@ import {VOGUE_NOIR_IMAGES,vogueNoirServiceImage} from './vogueNoir';
 import {SHRINGAAR_IMAGES,shringaarServiceImage} from './shringaarRoyal';
 import {ARCH_FLUTTER_IMAGES,archFlutterServicePhoto} from './archFlutter';
 import {LUXURY_EDITORIAL_IMAGES,luxuryEditorialServiceImage} from './luxuryEditorial';
+import {AURELIA_IMAGES} from './aureliaBeauty';
 
 /** Category-matched image templates shared by the editor and storefront. */
 export function serviceImageTemplates(service:Pick<SalonService,'id'|'name'|'category'>,type:BusinessTypeId='hair_salon'):Array<{id:string;url:string;label:string}> {
@@ -23,12 +24,24 @@ export function serviceImageTemplates(service:Pick<SalonService,'id'|'name'|'cat
  // Template 06 ships its own local spa photography, so hair-spa menu cards never
  // borrow unrelated stock portraits from another category.
  if(type==='hair_spa'){
-  const local=Array.from(new Set([keshPrakritiServiceImage(service),KESH_PRAKRITI_IMAGES.sanctuary,KESH_PRAKRITI_IMAGES.botanical]));
+  const local=Array.from(new Set([keshPrakritiServiceImage(service),KESH_PRAKRITI_IMAGES.oils,KESH_PRAKRITI_IMAGES.steam,KESH_PRAKRITI_IMAGES.headSpa,KESH_PRAKRITI_IMAGES.sanctuary,KESH_PRAKRITI_IMAGES.botanical]));
   return local.slice(0,3).map((url,index)=>({id:`hair_spa-${index+1}`,url,label:`Image template ${index+1}`}));
  }
  if(type==='bridal_lounge'){
-  const local=Array.from(new Set([shringaarServiceImage({...service,imageUrl:''}),SHRINGAAR_IMAGES.services.makeup,SHRINGAAR_IMAGES.services.draping]));
+  const local=Array.from(new Set([shringaarServiceImage({...service,imageUrl:''}),SHRINGAAR_IMAGES.services.makeup,SHRINGAAR_IMAGES.services.draping,SHRINGAAR_IMAGES.services.hair,SHRINGAAR_IMAGES.services.prebridal,SHRINGAAR_IMAGES.services.mehendi]));
   return local.slice(0,3).map((url,index)=>({id:`bridal_lounge-${index+1}`,url,label:`Image template ${index+1}`}));
+ }
+ // Template 16 (Aurelia Beauty Parlour) has its own considered-beauty photography,
+ // so its service cards never borrow imagery from an unrelated category.
+ if(type==='aurelia_beauty_parlour'){
+  const preferred=/nail|manicure|pedicure/.test(text)?AURELIA_IMAGES.nails
+   :/bridal|makeup|make-up|mehendi/.test(text)?AURELIA_IMAGES.bridal
+   :/skin|facial|clean-?up|d-?tan|thread|wax/.test(text)?AURELIA_IMAGES.skin
+   :/spa|massage|body|scalp/.test(text)?AURELIA_IMAGES.spa
+   :/colour|color|balayage|highlight|gloss/.test(text)?AURELIA_IMAGES.colour
+   :AURELIA_IMAGES.hair;
+  const local=Array.from(new Set([preferred,AURELIA_IMAGES.hair,AURELIA_IMAGES.colour,AURELIA_IMAGES.skin,AURELIA_IMAGES.bridal,AURELIA_IMAGES.nails,AURELIA_IMAGES.spa,AURELIA_IMAGES.galleryStudio]));
+  return local.slice(0,3).map((url,index)=>({id:`aurelia_beauty_parlour-${index+1}`,url,label:`Image template ${index+1}`}));
  }
  // Template 13 keeps every lash & brow menu card on the atelier's own imagery:
  // the category-matched photo first, then two bundled art plates as safety nets.
@@ -50,10 +63,14 @@ export function serviceImageTemplates(service:Pick<SalonService,'id'|'name'|'cat
  if(type==='barber')source='barber';
  if(type==='beauty_parlour')source='beauty_parlour';
  if(type==='nail_studio')source='nail_studio';
- const gallery=CATEGORY_STANDARDIZED_DATA[source].gallery.filter(p=>!p.url.includes('1517832606589'));
+ // Never throw for a template without standardised data: fall back to the
+ // category gallery, then to the curated haircut-studio gallery.
+ const standard=CATEGORY_STANDARDIZED_DATA[source]||CATEGORY_STANDARDIZED_DATA.hair_salon;
+ const gallery=standard.gallery.filter(p=>!p.url.includes('1517832606589'));
  const words=text.match(/[a-z]{4,}/g)||[];
  const ranked=gallery.map((p,index)=>({p,index,score:words.filter(word=>`${p.tag} ${p.title}`.toLowerCase().includes(word)).length})).sort((a,b)=>b.score-a.score||a.index-b.index);
- const urls=Array.from(new Set([...(type==='barber'?[barberServiceImage(text)]:type==='beauty_parlour'?[roopMahalServiceImage(service)]:type==='nail_studio'?[pinkyNailsServiceImage(service)]:[]),...ranked.map(item=>item.p.url)]));
+ const safetyNet=CATEGORY_STANDARDIZED_DATA.hair_salon.gallery.filter(p=>!p.url.includes('1517832606589')).map(p=>p.url);
+ const urls=Array.from(new Set([...(type==='barber'?[barberServiceImage(text)]:type==='beauty_parlour'?[roopMahalServiceImage(service)]:type==='nail_studio'?[pinkyNailsServiceImage(service)]:[]),...ranked.map(item=>item.p.url),...safetyNet]));
  return urls.slice(0,3).map((url,index)=>({id:`${source}-${index+1}`,url,label:`Image template ${index+1}`}));
 }
 export function defaultServiceImage(service:Pick<SalonService,'id'|'name'|'category'>,type:BusinessTypeId='hair_salon'):string{return serviceImageTemplates(service,type)[0].url;}

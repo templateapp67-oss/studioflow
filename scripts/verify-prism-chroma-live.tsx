@@ -327,7 +327,7 @@ const prismLib = readFileSync('src/lib/prismSite.ts', 'utf8');
 assert.ok(prismLib.includes('source?: \'template_10\' | \'website\' | \'glowslot\''), 'PrismEnquiryInput accepts source');
 assert.ok(prismLib.includes('p_source: input.source || \'template_10\''), 'submitPrismEnquiry passes p_source to RPC');
 
-const t11Migration = readFileSync('supabase/migrations/202610300002_prism_chroma_template_10.sql', 'utf8');
+const t11Migration = readFileSync('supabase/pending-features/202610300002_prism_chroma_template_10.sql', 'utf8');
 assert.ok(t11Migration.includes('p_source text default \'template_10\''), 'enquire RPC accepts p_source');
 assert.ok(t11Migration.includes("not in ('template_10', 'website', 'glowslot')"), 'p_source is validated');
 
