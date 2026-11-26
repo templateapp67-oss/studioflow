@@ -171,6 +171,9 @@ const profileUpdates: any[] = [];
   }
   return Promise.resolve({ data: { session: mockSession }, error: null });
 };
+(supabase.auth.mfa as any).getAuthenticatorAssuranceLevel = async () => ({
+  data: { currentLevel: 'aal1', nextLevel: 'aal1' }, error: null,
+});
 (supabase.auth as any).signInWithPassword = async ({ email }: { email: string; password: string }) => {
   const session = { user: { id: 'owner-email-1', email, created_at: '2025-01-01T00:00:00Z', user_metadata: {} } };
   mockSession = session;

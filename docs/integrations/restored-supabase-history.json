@@ -2054,9 +2054,9 @@
   },
   "release_pending_migrations": [
     {
-      "file": "20261125090000_nexora_lead_rate_limit_rpc.sql",
+      "file": "20261125100000_studioflow_auth_access_hardening.sql",
       "approval": "pending_owner_review",
-      "purpose": "Pending branch implementation of the shared lead-rate-limit RPC; production apply requires the protected manual release and explicit owner approval."
+      "purpose": "Add scoped staff invite delivery, private table and storage MFA policies, an authenticated Data API assurance check, and immutable booking identity on direct updates."
     }
   ],
   "reviewed_feature_migrations": [
@@ -2416,6 +2416,15 @@
       "evidence": "Applied to App project zilwgiuiygqqardzutxi on 2026-11-24 and verified live: view is security_invoker, anon lacks table-wide/owner_id access, and published-only RLS remains.",
       "purpose": "Switches public_salon_websites to SECURITY INVOKER, grants anon only projected columns, and restricts anon rows to published sites without exposing owner_id.",
       "git_blob_sha": "1a0a038ccf2f67f61ab267be33efe7be9732e5b3"
+    },
+    {
+      "version": "20261125090000",
+      "file": "20261125090000_nexora_lead_rate_limit_rpc.sql",
+      "name": "nexora_lead_rate_limit_rpc",
+      "observed_at": "2026-11-25",
+      "evidence": "Production workflow run 45672308803, job 139412576712, listed this exact version in both local and remote columns for project zilwgiuiygqqardzutxi.",
+      "purpose": "Records the applied shared lead rate-limit RPC in the repository ledger.",
+      "git_blob_sha": "4366729c0a672cabfbbfe09795b9f03e22909e2d"
     }
   ],
   "retimestamped_applied_migrations": [
