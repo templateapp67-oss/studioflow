@@ -20,9 +20,9 @@ assert.match(auth, /const authReturnPath = pricingReturnPath \|\| \(selectedTemp
 assert.match(auth, /supabase\.auth\.mfa\.getAuthenticatorAssuranceLevel\(\)/, 'email sign-in checks whether the session must reach AAL2');
 assert.match(auth, /supabase\.auth\.mfa\.challenge\(/, 'an enrolled TOTP factor is challenged before completing sign-in');
 assert.match(auth, /supabase\.auth\.mfa\.verify\(/, 'the TOTP code is verified by Supabase Auth, not trusted client-side');
-assert.match(auth, /supabase\\.auth\\.mfa\\.enroll\\(/, 'users without a verified factor can enroll a TOTP factor when AAL2 is required');
+assert.match(auth, /supabase\.auth\.mfa\.enroll\\(/, 'users without a verified factor can enroll a TOTP factor when AAL2 is required');
 assert.match(auth, /auth-mfa-qr/, 'the enrollment UI displays the Supabase-generated QR code');
-assert.match(auth, /mfaEnrollment\\.secret/, 'the enrollment UI provides the manual setup secret as an alternative to QR scanning');
+assert.match(auth, /mfaEnrollment\.secret/, 'the enrollment UI provides the manual setup secret as an alternative to QR scanning');
 assert.match(auth, /password\.length < 12/, 'new and reset passwords require at least 12 characters in the UI flow');
 assert.match(auth, /minLength=\{signup \|\| recovery \? 12 : 6\}/, 'existing sign-ins are not blocked by the new signup password rule');
 
