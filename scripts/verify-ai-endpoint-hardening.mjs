@@ -127,7 +127,7 @@ const auth = await loadModule('server/supabaseAuth.ts');
     windowMs: 60_000,
     max: 8,
     supabaseUrl: 'https://example.supabase.co',
-    serviceRoleKey: 'server-only-key',
+    serviceRoleKey: 'sb_secret_mock-server-key',
     fetchImpl: async (url, init) => {
       sharedRequest = { url, init, body: JSON.parse(init.body) };
       return {
@@ -144,16 +144,29 @@ const auth = await loadModule('server/supabaseAuth.ts');
   assert.equal(sharedRequest.body.p_max_attempts, 8);
   assert.match(sharedRequest.body.p_bucket_key, /^server:[a-f0-9]{64}$/);
   assert.ok(!sharedRequest.body.p_bucket_key.includes('private-user-id'), 'raw user identity is not persisted');
-  assert.equal(sharedRequest.init.headers.apikey, 'server-only-key');
+  assert.equal(sharedRequest.init.headers.apikey, 'sb_secret_mock-server-key');
+  assert.equal(sharedRequest.init.headers.Authorization, undefined, 'opaque Supabase secret keys are never sent as bearer JWTs');
   await assert.rejects(
     limiter.claimSharedRateLimit({
       key: 'bucket', windowMs: 60_000, max: 8,
-      supabaseUrl: 'https://example.supabase.co', serviceRoleKey: 'server-only-key',
+      supabaseUrl: 'https://example.supabase.co', serviceRoleKey: 'sb_secret_mock-server-key',
       fetchImpl: async () => ({ ok: false, status: 500 }),
     }),
     /Shared rate-limit RPC returned HTTP 500/,
     'shared limiter errors are not treated as an allowed request',
   );
+
+  let legacyHeaders;
+  await limiter.claimSharedRateLimit({
+    key: 'legacy-bucket', windowMs: 60_000, max: 8,
+    supabaseUrl: 'https://example.supabase.co',
+    serviceRoleKey: 'legacy-service-role-jwt',
+    fetchImpl: async (_url, init) => {
+      legacyHeaders = init.headers;
+      return { ok: true, status: 200, json: async () => ({ allowed: true, remaining: 7, retryAfterSeconds: 60 }) };
+    },
+  });
+  assert.equal(legacyHeaders.Authorization, 'Bearer legacy-service-role-jwt', 'legacy service_role JWT retains its Authorization bearer header');
 
   // Bearer parsing accepts only a well-formed header.
   assert.equal(auth.readBearerToken({ authorization: 'Bearer abc.def-ghi' }), 'abc.def-ghi');
