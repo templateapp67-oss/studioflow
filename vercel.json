@@ -18,6 +18,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/payments/razorpay/webhook",
+      "destination": "https://zilwgiuiygqqardzutxi.supabase.co/functions/v1/studioflow-payments"
+    },
+    {
       "source": "/owner",
       "destination": "/index.html"
     },
