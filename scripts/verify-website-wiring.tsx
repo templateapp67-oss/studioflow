@@ -725,7 +725,7 @@ const customerSession:any={user:{id:'customer-a',email:'customer-a@example.test'
 let authListener:any;const bookingFilters:any[]=[];let bookingsResponse:any={data:[{id:'own-booking',status:'confirmed',payload:{serviceName:'My haircut',date:'2026-10-20',time:'10:00',stylistName:'My stylist',servicePrice:500}}],error:null};
 (supabase as any).from=(table:string)=>({select:()=>({eq:(column:string,id:string)=>{bookingFilters.push({table,column,id});return {order:async()=>bookingsResponse};}})});
 (supabase as any).channel=()=>({on:()=>({subscribe:()=>({})})});(supabase as any).removeChannel=async()=>{};
-(supabase as any).rpc=async()=>({data:{reviews:[],canReview:true},error:null});
+(supabase as any).rpc=async (name:string)=>({data:name==='studioflow_list_reviews'?{reviews:[],canReview:true}:[],error:null});
 (supabase.auth as any).getSession=async()=>({data:{session:customerSession},error:null});
 (supabase.auth as any).onAuthStateChange=(_callback:any)=>{authListener=_callback;return {data:{subscription:{unsubscribe(){}}}};};
 try {
@@ -741,6 +741,32 @@ try {
   assert.equal(site.root.findAllByType(SalonBookingsDialog).length,0);
   await act(async()=>site.unmount());
  }
+ const aurelia = CATEGORY_TEMPLATES.aurelia_beauty_parlour;
+ const service = aurelia.services[0];
+ let aureliaSite: ReturnType<typeof create>;
+ const saveAureliaBooking = async (appointment: any) => appointment;
+ await act(async () => {
+  aureliaSite = create(<CustomerSalonWebsite
+   profile={{...INITIAL_SALON_PROFILE,businessType:aurelia.id,subdomain:'aurelia-qa'}}
+   services={aurelia.services}
+   stylists={aurelia.stylists}
+   customerSignedIn
+   onAddAppointment={saveAureliaBooking}
+  />);
+ });
+ try {
+  await act(async () => aureliaSite.root.findByProps({'aria-label':`Book ${service.name}`}).props.onClick());
+  const checkout = aureliaSite!.root.findByType(BookingModal);
+  assert.equal(checkout.props.isOpen,true,'Aurelia opens the shared booking modal');
+  assert.equal(checkout.props.initialService.id,service.id,'Aurelia passes the selected service to checkout');
+  assert.equal(checkout.props.onAddAppointment,saveAureliaBooking,'Aurelia uses the shared appointment save callback');
+  await act(async () => checkout.props.onClose());
+  assert.equal(checkout.props.isOpen,false,'Closing checkout returns to the Aurelia storefront');
+ } finally {
+  await act(async () => aureliaSite!.unmount());
+ }
+ console.log('PASS: a published Aurelia service opens and closes the shared checkout with the selected service.');
+
  let opens=0,header:any;
  await act(async()=>{header=create(<CustomerWebsiteHeader profile={{...INITIAL_SALON_PROFILE,subdomain:'nav-studio'}} onAccount={()=>{}} onMyBookings={()=>opens++}/>);});
  await act(async()=>header.root.findByProps({'aria-label':'Open website menu'}).props.onClick());
