@@ -139,7 +139,7 @@ const auth = await loadModule('server/supabaseAuth.ts');
   });
   assert.equal(shared.allowed, true, 'shared rate-limit RPC allows an in-budget request');
   assert.equal(shared.remaining, 7, 'shared rate-limit RPC returns its remaining budget');
-  assert.match(sharedRequest.url, /rpc\\/studioflow_edge_rate_limit_claim$/);
+  assert.match(sharedRequest.url, /rpc\/studioflow_edge_rate_limit_claim$/);
   assert.equal(sharedRequest.body.p_window_seconds, 60);
   assert.equal(sharedRequest.body.p_max_attempts, 8);
   assert.match(sharedRequest.body.p_bucket_key, /^server:[a-f0-9]{64}$/);
