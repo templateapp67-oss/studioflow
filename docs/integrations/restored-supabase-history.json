@@ -2052,13 +2052,7 @@
     "relations": 273,
     "assessment": "Read-only owner-supplied live catalog; not a live migration dry-run or deployment."
   },
-  "release_pending_migrations": [
-    {
-      "file": "20261125100000_studioflow_auth_access_hardening.sql",
-      "approval": "pending_owner_review",
-      "purpose": "Add scoped staff invite delivery, private table and storage MFA policies, an authenticated Data API assurance check, and immutable booking identity on direct updates."
-    }
-  ],
+  "release_pending_migrations": [],
   "reviewed_feature_migrations": [
     {
       "file": "20261117130000_reconcile_template15_multiservice_booking.sql",
@@ -2425,6 +2419,15 @@
       "evidence": "Production workflow run 45672308803, job 139412576712, listed this exact version in both local and remote columns for project zilwgiuiygqqardzutxi.",
       "purpose": "Records the applied shared lead rate-limit RPC in the repository ledger.",
       "git_blob_sha": "4366729c0a672cabfbbfe09795b9f03e22909e2d"
+    },
+    {
+      "version": "20261125100000",
+      "file": "20261125100000_studioflow_auth_access_hardening.sql",
+      "name": "studioflow_auth_access_hardening",
+      "observed_at": "2026-11-26",
+      "evidence": "Production project zilwgiuiygqqardzutxi migration history records this exact version as applied. Read-only live catalog verification confirmed mfa_session_allowed, studioflow_check_rest_session, studioflow_staff_invite_delivery, the authenticator pre-request hook, restrictive MFA policies on all five StudioFlow tables, the Storage MFA policy, and the booking identity trigger.",
+      "purpose": "Records the already-applied StudioFlow authentication and tenant-access hardening migration in the post-export applied ledger. Ledger reconciliation only; the SQL migration is not re-executed.",
+      "git_blob_sha": "37f68184fc6b3194dae42936431b8d4f25b6e0da"
     }
   ],
   "retimestamped_applied_migrations": [
