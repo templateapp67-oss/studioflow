@@ -7,7 +7,7 @@ import {AboutDraftBuilder} from '../src/components/AboutDraftBuilder';
 import type {SalonProfile} from '../src/types';
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;
 let calls=0;globalThis.fetch=async()=>{calls++;throw Error('No network allowed');};
-const templates=Object.values(CATEGORY_TEMPLATES);assert.equal(templates.length,15);
+const templates=Object.values(CATEGORY_TEMPLATES);assert.equal(templates.length,16);
 for(const template of templates){
  const p={businessType:template.id,businessName:'Owner Brand',ownerName:'Owner Person',city:'Test City',about:'Keep this text'} as SalonProfile;
  for(const language of ['English','Hindi','Hinglish'] as const)for(const tone of ['Warm','Elegant','Simple'] as const){
@@ -29,4 +29,4 @@ await act(async()=>button('Apply reviewed About').props.onClick());assert.ok(app
 await act(async()=>button('Generate About draft').props.onClick());
 profile={...profile,businessName:'Changed Brand'};await act(async()=>ui.update(<AboutDraftBuilder profile={profile} onApply={s=>{applied=s;}}/>));assert.equal(button('Apply reviewed About').props.disabled,true,'Stale salon context must not apply');
 await act(async()=>button('Discard draft').props.onClick());assert.equal(ui.root.findAllByType('textarea').length,2);
-await act(async()=>ui.unmount());assert.equal(calls,0);console.log('PASS: 14 templates × 3 languages × 3 tones, supplied facts only, no network, explicit application/replacement, stale-draft protection and discard.');
+await act(async()=>ui.unmount());assert.equal(calls,0);console.log('PASS: 16 templates × 3 languages × 3 tones, supplied facts only, no network, explicit application/replacement, stale-draft protection and discard.');

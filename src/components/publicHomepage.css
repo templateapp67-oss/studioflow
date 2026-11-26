@@ -1,0 +1,127 @@
+/* Public marketing surface only — existing NEXORA tokens, fonts and palette stay unchanged. */
+.public-skip-link {
+  position: fixed;
+  top: -5rem;
+  left: 1rem;
+  z-index: 100;
+  border-radius: 0.5rem;
+  background: #211a2e;
+  padding: 0.75rem 1rem;
+  color: #fff;
+  font-weight: 800;
+}
+
+.public-skip-link:focus {
+  top: 1rem;
+  outline: 3px solid #c9a66b;
+  outline-offset: 3px;
+}
+
+.public-homepage {
+  overflow-x: hidden;
+  overflow-x: clip;
+}
+
+.public-homepage h1,
+.public-homepage h2,
+.public-homepage h3 {
+  text-shadow: none;
+}
+
+.public-homepage img {
+  max-width: 100%;
+}
+
+.public-homepage section[id],
+.public-homepage [id="nexora-template-library"] {
+  scroll-margin-top: 92px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .public-homepage *,
+  .public-homepage *::before,
+  .public-homepage *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Premium homepage hero: stable media box, responsive composition and no layout shift. */
+.public-homepage .public-hero-photo {
+  aspect-ratio: 4 / 3;
+  min-height: 260px;
+  isolation: isolate;
+}
+
+.public-homepage .public-hero-photo picture,
+.public-homepage .public-hero-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.public-homepage .public-hero-photo img {
+  position: absolute;
+  inset: 0;
+  object-fit: cover;
+  object-position: 50% 44%;
+}
+
+@media (min-width: 640px) {
+  .public-homepage .public-hero-photo {
+    aspect-ratio: 5 / 4;
+  }
+}
+
+@media (min-width: 1024px) {
+  .public-homepage .public-hero-photo {
+    aspect-ratio: 4 / 5;
+    min-height: 520px;
+  }
+}
+
+@media (max-width: 639px) {
+  .public-homepage .public-hero-photo {
+    border-radius: 20px;
+  }
+}
+
+
+/* NEXORA support shortcut — stays clear of the sticky header and preview modal. */
+.public-homepage .nexora-whatsapp-fab {
+  position: fixed;
+  right: max(1rem, env(safe-area-inset-right, 0px));
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  z-index: 40;
+  display: inline-flex;
+  width: 3.5rem;
+  height: 3.5rem;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid #fff;
+  border-radius: 9999px;
+  background: #25d366;
+  color: #103b20;
+  box-shadow: 0 8px 24px rgba(19, 64, 38, 0.24);
+  transition: transform 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+}
+
+.public-homepage .nexora-whatsapp-fab:hover {
+  transform: translateY(-2px);
+  background: #58e68a;
+  box-shadow: 0 12px 28px rgba(19, 64, 38, 0.3);
+}
+
+.public-homepage .nexora-whatsapp-fab:focus-visible {
+  outline: 3px solid #3e2a63;
+  outline-offset: 4px;
+}
+
+@media (max-width: 639px) {
+  .public-homepage .nexora-whatsapp-fab {
+    right: calc(0.875rem + env(safe-area-inset-right, 0px));
+    bottom: calc(0.875rem + env(safe-area-inset-bottom, 0px));
+    width: 3.25rem;
+    height: 3.25rem;
+  }
+}

@@ -35,9 +35,8 @@ await db.exec(`
 await db.query('insert into auth.users(id,email) values($1,$2),($3,$4),($5,$6)',[siteId,'owner@example.test',customerId,'customer@example.test',staffUserId,'staff@example.test']);
 await db.query('insert into public.studioflow_accounts(user_id,draft) values($1,$2)',[siteId,JSON.stringify({profile:{businessName:'Ink Studio',businessType:'tattoo_studio'}})]);
 await db.query("insert into public.studioflow_websites(owner_id,slug,content) values($1,'iron-ink-multibranch-test',$2)",[siteId,JSON.stringify({profile:{businessType:'tattoo_studio'},services:[{id:'svc',name:'Consult',durationMinutes:60}],stylists:[{id:'staff-a',name:'Artist A',status:'Available'}]})]);
-await db.exec(readFileSync('supabase/migrations/202610300003_template12_iron_ink.sql','utf8'));
-await db.query("select set_config('request.jwt.claim.sub',$1,false)",[siteId]);
-await db.query('select public.seed_template12($1)',[siteId]);
+// The shared branch migration must apply before Template 12 exists on a
+// fresh database. Keep the helper stubs needed by its shared booking wrappers.
 await db.exec(`
  create schema if not exists studioflow_private;
  create schema if not exists studioflow_android_private;
@@ -49,9 +48,18 @@ await db.exec(`
  create function studioflow_android_private.reschedule(uuid,date,text,text) returns jsonb language sql as $$select jsonb_build_object('branchId',nullif(current_setting('studioflow.branch_id',true),''))$$;
  create function studioflow_android_private.book(text,jsonb,date,text,text,text,text,text,uuid) returns jsonb language sql as $$select jsonb_build_object('branchId',nullif(current_setting('studioflow.branch_id',true),''))$$;
 `);
-const migration=readFileSync('supabase/migrations/202610300004_multibranch_support.sql','utf8');
+const migration=readFileSync('supabase/pending-features/202610300004_multibranch_support.sql','utf8');
 try { await db.exec(migration); } catch (error) { console.error('multibranch migration failure:', error.message, error.position, error.where, migration.slice(Number(error.position)-200,Number(error.position)+200)); throw error; }
 try { await db.exec(migration); } catch (error) { console.error('multibranch rerun failure:', error.message); throw error; } // verify additive idempotence
+
+// Template 12 is installed only after the shared multibranch schema. Its
+// branch-specific columns, policies and RPCs live in the later dependent file.
+await db.exec(readFileSync('supabase/migrations/20261113120946_template12_iron_ink.sql','utf8'));
+await db.query("select set_config('request.jwt.claim.sub',$1,false)",[siteId]);
+await db.query('select public.seed_template12($1)',[siteId]);
+const inkBranchMigration=readFileSync('supabase/pending-features/20261113120947_multibranch_template12_support.sql','utf8');
+try { await db.exec(inkBranchMigration); } catch (error) { console.error('Template 12 branch migration failure:', error.message, error.position, error.where); throw error; }
+try { await db.exec(inkBranchMigration); } catch (error) { console.error('Template 12 branch migration rerun failure:', error.message); throw error; } // verify additive idempotence
 const defaults=(await db.query('select id,name from public.branches where site_id=$1 and is_active',[siteId])).rows;
 assert.equal(defaults.length,1,'existing account receives a primary branch');
 
@@ -68,6 +76,27 @@ const branches=(await db.query('select public.studioflow_public_branches($1) dat
 assert.equal(branches.length,2);
 const schedule=(await db.query('select count(*)::int n from public.studioflow_staff_branch_schedules where site_id=$1 and branch_id=$2 and staff_id=$3 and is_active',[siteId,branchB,'staff-a'])).rows[0].n;
 assert.equal(schedule,6,'branch-specific working days are projected from the workspace');
+
+await db.exec(readFileSync('supabase/migrations/20261123081235_studioflow_branch_name_collision_canonical_ids.sql','utf8'));
+const staleBranchId='66666666-6666-4666-8666-666666666666';
+const staleDraft=structuredClone(accountDraft);
+staleDraft.profile.branches[1].id=staleBranchId;
+staleDraft.profile.branches[1].address='3 North Road';
+staleDraft.stylists[0].branchSchedules[1]={
+  branchId:staleBranchId,
+  schedule:hours('12:30','16:00'),
+};
+await db.query('update public.studioflow_accounts set draft=$2 where user_id=$1',[siteId,staleDraft]);
+const northBranches=(await db.query("select id,address from public.branches where site_id=$1 and name='North'",[siteId])).rows;
+assert.deepEqual(northBranches,[{id:branchB,address:'3 North Road'}],'the existing branch keeps its canonical ID and receives the update');
+const staleBranch=(await db.query('select id from public.branches where id=$1',[staleBranchId])).rows;
+assert.deepEqual(staleBranch,[],'the stale draft ID does not create a second branch');
+const canonicalSchedule=(await db.query(
+  'select distinct starts_at::text as start from public.studioflow_staff_branch_schedules where site_id=$1 and branch_id=$2 and staff_id=$3 and is_active',
+  [siteId,branchB,'staff-a'],
+)).rows;
+assert.deepEqual(canonicalSchedule,[{start:'12:30:00'}],'the stale-ID staff schedule is projected to the canonical branch');
+console.log('PASS: a workspace with a stale branch ID preserves the existing branch and remaps staff schedules.');
 const monday=(await db.query(`select (current_date+7+((1-extract(dow from current_date+7)::int+7)%7))::date d`)).rows[0].d;
 const sharedSlots=(await db.query('select public.studioflow_branch_available_slots($1,$2,$3,$4,$5) data',[ 'iron-ink-multibranch-test','svc',monday,'any',branchB ])).rows[0].data;
 assert.ok(sharedSlots.length>0,'shared web branch slots use location and staff hours');

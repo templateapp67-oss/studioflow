@@ -30,7 +30,7 @@ import { PHOTO_CATEGORIES, type PhotoCategory } from '../lib/photoGallery';
 import { clientExperiences } from '../lib/demoWebsiteContent';
 import { socialUrl } from '../lib/websiteContent';
 import { showcaseVideos } from '../lib/showcaseVideos';
-import { reelSource } from '../lib/socialVideoSource';
+import { reelSource, socialVideoEmbedUrl, socialVideoSource } from '../lib/socialVideoSource';
 import { supabase } from '../lib/supabase';
 import {
   LUXURY_EDITORIAL_COPY,
@@ -66,6 +66,7 @@ import {
   useZiyaPublicStorefrontData,
 } from './ziya/ZiyaStorefrontSections';
 import './luxuryEditorial.css';
+import { ServiceMerchTags, ServiceTerms } from './ServiceMerchandising';
 
 type SharedWebsiteProps = React.ComponentProps<typeof WebsiteSections>;
 
@@ -608,11 +609,11 @@ export const LuxuryEditorialWebsite: React.FC<LuxuryEditorialWebsiteProps> = ({
   const heroTitle =
     String(profile.sectionHeadings?.heroTitle || '').trim() || LUXURY_EDITORIAL_COPY.heroHeadline;
   const heroSubtitle =
-    profile.tagline && !isLegacyHairSalonTagline(profile.tagline)
+    profile.tagline && (profile.taglineEditedByOwner === true || !isLegacyHairSalonTagline(profile.tagline))
       ? profile.tagline
       : LUXURY_EDITORIAL_COPY.heroSubheadline;
   const aboutBody =
-    profile.about && !isLegacyHairSalonAbout(profile.about)
+    profile.about && (profile.aboutEditedByOwner === true || !isLegacyHairSalonAbout(profile.about))
       ? profile.about
       : LUXURY_EDITORIAL_COPY.aboutBody;
 
@@ -1229,6 +1230,8 @@ export const LuxuryEditorialWebsite: React.FC<LuxuryEditorialWebsiteProps> = ({
                           {service.description ||
                             'Precision women’s haircut customized to your face shape and hair texture.'}
                         </p>
+                        <ServiceMerchTags service={service} className="sf-merch-inline" />
+                        <ServiceTerms service={service} className="sf-merch-inline" />
                         <div className="le-service-footer">
                           <strong className="le-service-price">
                             {formatInr(service.price, profile.currency || '₹')}
@@ -1393,14 +1396,23 @@ export const LuxuryEditorialWebsite: React.FC<LuxuryEditorialWebsiteProps> = ({
                                 playsInline
                                 className="le-video-embed"
                               />
-                            ) : (
+                            ) : socialVideoEmbedUrl(socialVideoSource(vid.youtubeUrl), { autoplay: true, muted: videoMuted, controls: true }) ? (
                               <iframe
-                                src={`https://www.youtube-nocookie.com/embed/${vid.videoId}?autoplay=1&mute=${videoMuted ? 1 : 0}&controls=1&playsinline=1&rel=0&modestbranding=1`}
+                                src={socialVideoEmbedUrl(socialVideoSource(vid.youtubeUrl), { autoplay: true, muted: videoMuted, controls: true })}
                                 title={vid.title}
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                 allowFullScreen
                                 className="le-video-embed"
                               />
+                            ) : (
+                              <a
+                                href={vid.youtubeUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="le-video-embed flex items-center justify-center bg-black text-white text-sm font-semibold"
+                              >
+                                Open this reel on {socialVideoSource(vid.youtubeUrl)?.platform || 'the original post'}
+                              </a>
                             )}
                             <div className="le-video-live-bar">
                               <button
@@ -1496,8 +1508,8 @@ export const LuxuryEditorialWebsite: React.FC<LuxuryEditorialWebsiteProps> = ({
                 const firstName = stylist.name.split(' ')[0] || 'Stylist';
                 const expYears = stylist.experienceYears || [9, 7, 6, 6][index % 4];
                 return (
-                  <article key={stylist.id} className="le-stylist-card">
-                    <div className="le-stylist-media">
+                  <article key={stylist.id} className="le-stylist-card h-80 w-full aspect-[3/4] overflow-hidden">
+                    <div className="le-stylist-media h-80 w-full aspect-[3/4] overflow-hidden">
                       <img
                         src={photo.src}
                         srcSet={photo.srcSet || undefined}
@@ -1506,58 +1518,59 @@ export const LuxuryEditorialWebsite: React.FC<LuxuryEditorialWebsiteProps> = ({
                         height={photo.height}
                         alt={photo.alt}
                         loading="lazy"
+                        className="w-full h-full object-cover"
                       />
                       <span className="le-exp-badge">{expYears}+ Yrs Experience</span>
                     </div>
 
-                    <div className="le-stylist-body">
-                      <div className="le-stylist-top">
-                        <span className="le-stylist-role">
-                          {stylist.role || 'Women’s Haircut Specialist'}
-                        </span>
-                        {stylist.rating && (
-                          <span className="le-stylist-rating">
-                            <Star size={13} fill="currentColor" aria-hidden="true" />
-                            {Number(stylist.rating).toFixed(2)}
+                      <div className="le-stylist-body">
+                        <div className="le-stylist-top">
+                          <span className="le-stylist-role">
+                            {stylist.role || 'Women’s Haircut Specialist'}
                           </span>
+                          {stylist.rating && (
+                            <span className="le-stylist-rating">
+                              <Star size={13} fill="currentColor" aria-hidden="true" />
+                              {Number(stylist.rating).toFixed(2)}
+                            </span>
+                          )}
+                        </div>
+
+                        <h3 className="le-stylist-name">{stylist.name}</h3>
+
+                        {stylist.bio && <p className="le-stylist-bio">{stylist.bio}</p>}
+
+                        {Array.isArray(stylist.specialties) && stylist.specialties.length > 0 && (
+                          <ul className="le-specialty-tags" aria-label={`${stylist.name} haircut specialties`}>
+                            {stylist.specialties.slice(0, 3).map((spec) => (
+                              <li key={spec}>{spec}</li>
+                            ))}
+                          </ul>
                         )}
-                      </div>
 
-                      <h3 className="le-stylist-name">{stylist.name}</h3>
-
-                      {stylist.bio && <p className="le-stylist-bio">{stylist.bio}</p>}
-
-                      {Array.isArray(stylist.specialties) && stylist.specialties.length > 0 && (
-                        <ul className="le-specialty-tags" aria-label={`${stylist.name} haircut specialties`}>
-                          {stylist.specialties.slice(0, 3).map((spec) => (
-                            <li key={spec}>{spec}</li>
-                          ))}
-                        </ul>
-                      )}
-
-                      <div className="le-stylist-actions">
-                        {bookingAvailable && (
+                        <div className="le-stylist-actions">
+                          {bookingAvailable && (
+                            <button
+                              type="button"
+                              className="le-btn le-btn-primary le-btn-sm le-btn-block"
+                              onClick={() => {
+                                setSelectedStylistId(stylist.id);
+                                onBook(undefined, stylist);
+                              }}
+                            >
+                              Book with {firstName}
+                            </button>
+                          )}
                           <button
                             type="button"
-                            className="le-btn le-btn-primary le-btn-sm le-btn-block"
-                            onClick={() => {
-                              setSelectedStylistId(stylist.id);
-                              onBook(undefined, stylist);
-                            }}
+                            className="le-stylist-profile-link"
+                            onClick={() => onViewSpecialist(stylist.id)}
                           >
-                            Book with {firstName}
+                            View profile &amp; reviews
                           </button>
-                        )}
-                        <button
-                          type="button"
-                          className="le-stylist-profile-link"
-                          onClick={() => onViewSpecialist(stylist.id)}
-                        >
-                          View profile &amp; reviews
-                        </button>
+                        </div>
                       </div>
-                    </div>
-                  </article>
+                    </article>
                 );
               })}
             </div>

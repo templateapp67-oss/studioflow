@@ -1,0 +1,599 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Comparison crop</title>
+<style>/* Self-hosted Poppins (SIL Open Font License 1.1).
+   The license text ships with the font files in public/fonts/poppins/OFL-Poppins.txt.
+   Self-hosting keeps the marketing pages independent of a third-party font CDN
+   and removes a render-blocking cross-origin request. */
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/poppins/poppins-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/poppins/poppins-latin-500-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/poppins/poppins-latin-600-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/poppins/poppins-latin-700-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('/fonts/poppins/poppins-latin-800-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  src: url('/fonts/poppins/poppins-latin-ext-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  src: url('/fonts/poppins/poppins-latin-ext-600-normal.woff2') format('woff2');
+}
+
+/*
+ * NEXORA SALONOS — central design tokens.
+ *
+ * Every colour, type scale, spacing step, radius, shadow, motion duration and
+ * layer used by the Nexora SalonOS landing page resolves back to this file.
+ * Component styles must reference these variables instead of one-off values.
+ */
+:root {
+  /* ---- Colour ---------------------------------------------------------- */
+  --nx-color-primary: #ff2323;
+  --nx-color-primary-dark: #cc1c1c;
+  --nx-color-text: #000000;
+  --nx-color-text-secondary: #4b4f58;
+  --nx-color-surface: #ffffff;
+  --nx-color-surface-secondary: #f5f5f5;
+  --nx-color-surface-elevated: #e7e7e7;
+  --nx-color-border: #e7e7e7;
+  --nx-color-border-strong: #101010;
+  --nx-color-dark: #101010;
+  --nx-color-on-dark: #ffffff;
+  --nx-color-success: #168a45;
+  --nx-color-danger: #d92d20;
+  --nx-color-primary-soft: #fff1f1;
+  --nx-color-dark-soft: #1c1c1c;
+
+  /* ---- Typography ------------------------------------------------------ */
+  --nx-font-family: 'Poppins', Arial, sans-serif;
+  --nx-type-h1: 36px;
+  --nx-type-h1-display: clamp(32px, 4.9vw, 54px);
+  --nx-type-h2: 48px;
+  --nx-type-h3: 24px;
+  --nx-type-body: 15px;
+  --nx-type-small: 13px;
+  --nx-weight-regular: 400;
+  --nx-weight-medium: 500;
+  --nx-weight-semibold: 600;
+  --nx-weight-bold: 700;
+  --nx-leading-tight: 1.06;
+  --nx-leading-heading: 1.3;
+  --nx-leading-body: 1.65;
+  --nx-leading-small: 1.5;
+  --nx-tracking-wide: 0.16em;
+
+  /* ---- Spacing (4px rhythm) -------------------------------------------- */
+  --nx-space-1: 4px;
+  --nx-space-2: 8px;
+  --nx-space-3: 12px;
+  --nx-space-4: 16px;
+  --nx-space-5: 20px;
+  --nx-space-6: 24px;
+  --nx-space-7: 64px;
+
+  /* ---- Layout ---------------------------------------------------------- */
+  --nx-container-max: 1287px;
+  --nx-page-gutter: 20px;
+  --nx-section-space: 64px;
+  --nx-content-max: 760px;
+
+  /* ---- Radius ---------------------------------------------------------- */
+  --nx-radius-input: 6px;
+  --nx-radius-card: 10px;
+  --nx-radius-panel: 30px;
+  --nx-radius-pill: 50px;
+  --nx-radius-full: 999px;
+
+  /* ---- Elevation ------------------------------------------------------- */
+  --nx-shadow-subtle: 0 1px 2px rgba(14, 17, 37, 0.14);
+  --nx-shadow-medium: 0 0 20px rgba(0, 0, 0, 0.12);
+  --nx-shadow-focus: 0 0 0 3px rgba(255, 35, 35, 0.32);
+
+  /* ---- Motion ---------------------------------------------------------- */
+  --nx-motion-fast: 0.2s linear;
+  --nx-motion-base: 0.3s ease;
+  --nx-motion-slow: 0.4s ease;
+
+  /* ---- Layers ---------------------------------------------------------- */
+  --nx-z-base: 0;
+  --nx-z-content: 1;
+  --nx-z-sticky: 20;
+  --nx-z-dropdown: 30;
+  --nx-z-overlay: 40;
+  --nx-z-modal: 50;
+  --nx-z-toast: 60;
+}
+
+@media (max-width: 1024px) {
+  :root {
+    --nx-type-h2: 40px;
+    --nx-type-h3: 22px;
+  }
+}
+
+@media (max-width: 767px) {
+  :root {
+    --nx-type-h2: 32px;
+    --nx-type-h3: 20px;
+    --nx-section-space: 56px;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --nx-type-h2: 28px;
+    --nx-type-h3: 19px;
+    --nx-type-h1-display: 30px;
+  }
+}
+
+@media (max-width: 360px) {
+  :root {
+    --nx-type-h2: 25px;
+    --nx-type-h1-display: 27px;
+  }
+}
+
+/* ==========================================================================
+   NEXORA SALONOS — pricing comparison table.
+   Shared by /pricing (nexora-landing ComparisonSection) and the legacy
+   nexora-pricing FeatureMatrix, so the two surfaces cannot drift apart.
+
+   Every colour below is an approved token from the redesign brief. Nothing in
+   this file may hard-code a colour outside the token block.
+   ========================================================================== */
+
+.nx-compare-tokens,
+.nx-compare,
+.nx-compare__wrap,
+.nx-legend {
+  --nx-table-bg: #ffffff;
+  --nx-table-text: #000000;
+  --nx-table-category: #ff2323;
+  --nx-table-primary: #ff2323;
+  --nx-table-included: #00c853;
+  --nx-table-excluded: #ff2323;
+  --nx-table-standard-bg: #ffe9ea;
+  --nx-table-divider: #eeeeee;
+  --nx-table-description: #4b4f58;
+  --nx-table-info: #4b4f58;
+  --nx-table-info-border: #d7d9dd;
+  --nx-table-hover: #fafafa;
+}
+
+/* ---- scroll port --------------------------------------------------------- */
+
+.nx-compare__wrap {
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  /* Paint containment keeps the wide table out of the root scroll width, so the
+     page itself never scrolls sideways on mobile. */
+  contain: paint;
+  border: 1px solid var(--nx-table-divider);
+  border-radius: 14px;
+  background: var(--nx-table-bg);
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+/* ---- table --------------------------------------------------------------- */
+
+.nx-compare {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--nx-table-bg);
+  color: var(--nx-table-text);
+  font-family: 'Poppins', sans-serif;
+  table-layout: fixed;
+}
+
+.nx-compare__col-feature {
+  width: 38%;
+}
+
+.nx-compare__col-plan {
+  width: 15.5%;
+}
+
+/* ---- header -------------------------------------------------------------- */
+
+.nx-compare thead th {
+  padding: 20px 16px;
+  background: var(--nx-table-bg);
+  border-bottom: 1px solid var(--nx-table-divider);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--nx-table-text);
+  text-align: center;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.nx-compare thead th.nx-compare__feature-head {
+  text-align: left;
+  padding-left: 22px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--nx-table-description);
+}
+
+/* The Standard column is highlighted continuously, header included. */
+.nx-compare thead th.is-recommended,
+.nx-compare__cell.is-recommended,
+.nx-compare tbody tr:hover td.is-recommended {
+  background: var(--nx-table-standard-bg);
+}
+
+.nx-compare thead th.is-recommended .nx-planhead__name {
+  color: var(--nx-table-primary);
+}
+
+.nx-planhead__name {
+  display: block;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.nx-planhead__flag {
+  display: block;
+  margin-top: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--nx-table-primary);
+}
+
+/* ---- category separator -------------------------------------------------- */
+
+.nx-cat__cell {
+  padding: 26px 22px 10px !important;
+  background: var(--nx-table-bg);
+  border-bottom: 1px solid var(--nx-table-divider);
+  text-align: left;
+}
+
+.nx-cat__name {
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--nx-table-category);
+}
+
+.nx-cat__count {
+  margin-left: 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--nx-table-description);
+}
+
+/* ---- feature rows -------------------------------------------------------- */
+
+.nx-compare tbody th,
+.nx-compare tbody td {
+  padding: 15px 16px;
+  border-bottom: 1px solid var(--nx-table-divider);
+  background: var(--nx-table-bg);
+  vertical-align: middle;
+}
+
+.nx-compare__feature {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  text-align: left;
+  padding-left: 22px !important;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--nx-table-text);
+}
+
+.nx-compare__feature-label {
+  display: inline;
+}
+
+.nx-compare__cell {
+  text-align: center;
+  font-size: 15px;
+}
+
+.nx-compare tbody tr:hover th.nx-compare__feature,
+.nx-compare tbody tr:hover td:not(.is-recommended) {
+  background: var(--nx-table-hover);
+}
+
+/* ---- status icons (the highest-priority part of the design) -------------- */
+
+.nx-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 24px;
+  background: transparent;
+  line-height: 0;
+}
+
+.nx-status svg {
+  display: block;
+  /* Lucide draws with currentColor; the stroke colour is therefore the token. */
+  stroke: currentColor;
+  background: transparent;
+}
+
+.nx-status--included {
+  color: var(--nx-table-included);
+}
+
+.nx-status--excluded {
+  color: var(--nx-table-excluded);
+}
+
+.nx-status[data-status='review'] {
+  color: var(--nx-table-description);
+}
+
+/* ---- information tooltip ------------------------------------------------- */
+
+.nx-info {
+  position: relative;
+  display: inline-flex;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.nx-info__trigger {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid var(--nx-table-info-border);
+  border-radius: 50%;
+  background: var(--nx-table-bg);
+  color: var(--nx-table-info);
+  cursor: help;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.nx-info__trigger:hover,
+.nx-info__trigger[aria-expanded='true'],
+.nx-info__trigger:focus-visible {
+  color: var(--nx-table-text);
+  border-color: var(--nx-table-text);
+}
+
+.nx-info__trigger:focus-visible {
+  outline: 2px solid var(--nx-table-text);
+  outline-offset: 2px;
+}
+
+/* The panel hangs under the label and is capped in width so it never reaches
+   the adjacent plan-status column. */
+.nx-info__panel {
+  position: absolute;
+  z-index: 12;
+  top: calc(100% + 8px);
+  left: -6px;
+  width: max-content;
+  max-width: 260px;
+  padding: 10px 12px;
+  border: 1px solid var(--nx-table-divider);
+  border-radius: 8px;
+  background: var(--nx-table-bg);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.12);
+  color: var(--nx-table-description);
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.55;
+  text-align: left;
+  white-space: normal;
+}
+
+/* Keep the last rows' tooltips inside the scroll port. */
+.nx-compare tbody tr:nth-last-child(-n + 2) .nx-info__panel {
+  top: auto;
+  bottom: calc(100% + 8px);
+}
+
+/* ---- hint + legend ------------------------------------------------------- */
+
+.nx-compare__hint {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 0 0;
+  color: var(--nx-table-description);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.nx-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--nx-table-description);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.nx-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nx-legend .nx-status {
+  width: auto;
+  min-height: 0;
+}
+
+.nx-compare__empty {
+  margin: 0;
+  padding: 22px;
+  border: 1px dashed var(--nx-table-divider);
+  border-radius: 14px;
+  color: var(--nx-table-description);
+  font-size: 14px;
+}
+
+.nx-visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---- responsive ---------------------------------------------------------- */
+
+@media (max-width: 1024px) {
+  .nx-compare__col-feature {
+    width: 40%;
+  }
+
+  .nx-compare thead th,
+  .nx-planhead__name {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 760px) {
+  .nx-compare {
+    min-width: 640px;
+  }
+
+  .nx-compare__col-feature {
+    width: 46%;
+  }
+
+  /* Let the four plan columns share the remaining width equally instead of
+     keeping the desktop percentage split. */
+  .nx-compare__col-plan {
+    width: auto;
+  }
+
+  .nx-compare thead th {
+    padding: 15px 10px;
+    font-size: 16px;
+  }
+
+  .nx-planhead__name {
+    font-size: 16px;
+  }
+
+  .nx-compare thead th.nx-compare__feature-head {
+    font-size: 16px;
+    padding-left: 14px;
+  }
+
+  .nx-compare__feature {
+    padding-left: 14px !important;
+    font-size: 14px;
+    max-width: 230px;
+  }
+
+  .nx-compare tbody th,
+  .nx-compare tbody td {
+    padding: 13px 10px;
+  }
+
+  .nx-cat__cell {
+    padding: 20px 14px 8px !important;
+  }
+
+  .nx-cat__name {
+    font-size: 18px;
+  }
+
+  .nx-compare__hint {
+    display: flex;
+  }
+
+  /* Touch-first tooltip: the panel spans the feature column and sits above the
+     row so it cannot cover the status icons below it on a narrow screen. */
+  .nx-info__panel {
+    left: 0;
+    max-width: min(240px, 72vw);
+  }
+}
+
+@media (max-width: 480px) {
+  .nx-compare {
+    min-width: 560px;
+  }
+
+  .nx-compare__col-feature {
+    width: 50%;
+  }
+
+  .nx-compare__feature {
+    font-size: 13.5px;
+    max-width: 200px;
+  }
+
+  .nx-info {
+    margin-left: 6px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nx-info__trigger {
+    transition: none;
+  }
+}
+
+body{margin:0;background:#fff;font-family:'Poppins',sans-serif;color:#000}
+.wrap{padding:34px 26px;max-width:1240px;margin:0 auto}
+h1{font-size:22px;margin:0 0 6px}
+p.lead{color:#4b4f58;font-size:13px;margin:0 0 22px;max-width:760px;line-height:1.6}
+</style></head><body><div class="wrap"><h1>Plan comparison — reference crop</h1><p class="lead">First two categories, matching the reference screenshot's crop.</p><div class="nx-compare__wrap" role="region" aria-label="Feature comparison by plan. Scroll horizontally on small screens." tabindex="0"><table class="nx-compare"><caption class="nx-visually-hidden">Feature comparison for the Lite, Grow, Standard and Premium Nexora SalonOS plans.</caption><colgroup><col class="nx-compare__col-feature"/><col class="nx-compare__col-plan"/><col class="nx-compare__col-plan"/><col class="nx-compare__col-plan is-recommended"/><col class="nx-compare__col-plan"/></colgroup><thead><tr><th scope="col" class="nx-compare__feature-head">Features</th><th scope="col" class="nx-planhead" id="snap2-lite" aria-label="Lite plan"><span class="nx-planhead__name">Lite</span></th><th scope="col" class="nx-planhead" id="snap2-grow" aria-label="Grow plan"><span class="nx-planhead__name">Grow</span></th><th scope="col" class="nx-planhead is-recommended" id="snap2-standard" aria-label="Standard plan"><span class="nx-planhead__name">Standard</span><span class="nx-planhead__flag">Popular</span></th><th scope="col" class="nx-planhead" id="snap2-premium" aria-label="Premium plan"><span class="nx-planhead__name">Premium</span></th></tr></thead><tbody><tr class="nx-cat" data-category="presence"><th scope="colgroup" colSpan="5" class="nx-cat__cell"><span class="nx-cat__name">Online Presence</span><span class="nx-cat__count">11 features</span></th></tr><tr class="nx-compare__row"><th scope="row" class="nx-compare__feature"><span class="nx-compare__feature-label">Mini Website</span><span class="nx-info"><button type="button" class="nx-info__trigger" data-nx-tip-trigger="true" aria-label="What Mini Website includes" aria-expanded="false"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-info" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button><span class="nx-info__panel" id="nx-tip-_R_28ph_" role="tooltip" hidden="">Published salon website experience.</span></span></th><td class="nx-compare__cell" data-plan="lite"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Mini Website: Included in Lite"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="grow"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Mini Website: Included in Grow"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell is-recommended" data-plan="standard"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Mini Website: Included in Standard"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="premium"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Mini Website: Included in Premium"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td></tr><tr class="nx-compare__row"><th scope="row" class="nx-compare__feature"><span class="nx-compare__feature-label">Custom Business Profile</span><span class="nx-info"><button type="button" class="nx-info__trigger" data-nx-tip-trigger="true" aria-label="What Custom Business Profile includes" aria-expanded="false"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-info" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button><span class="nx-info__panel" id="nx-tip-_R_299h_" role="tooltip" hidden="">Business details and brand profile.</span></span></th><td class="nx-compare__cell" data-plan="lite"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Custom Business Profile: Included in Lite"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="grow"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Custom Business Profile: Included in Grow"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell is-recommended" data-plan="standard"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Custom Business Profile: Included in Standard"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="premium"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Custom Business Profile: Included in Premium"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td></tr><tr class="nx-compare__row"><th scope="row" class="nx-compare__feature"><span class="nx-compare__feature-label">Salon Services Display</span><span class="nx-info"><button type="button" class="nx-info__trigger" data-nx-tip-trigger="true" aria-label="What Salon Services Display includes" aria-expanded="false"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-info" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button><span class="nx-info__panel" id="nx-tip-_R_29ph_" role="tooltip" hidden="">Service catalogue and descriptions.</span></span></th><td class="nx-compare__cell" data-plan="lite"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Salon Services Display: Included in Lite"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="grow"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Salon Services Display: Included in Grow"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell is-recommended" data-plan="standard"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Salon Services Display: Included in Standard"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="premium"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Salon Services Display: Included in Premium"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td></tr><tr class="nx-compare__row"><th scope="row" class="nx-compare__feature"><span class="nx-compare__feature-label">Service Pricing Display</span><span class="nx-info"><button type="button" class="nx-info__trigger" data-nx-tip-trigger="true" aria-label="What Service Pricing Display includes" aria-expanded="false"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-info" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button><span class="nx-info__panel" id="nx-tip-_R_2a9h_" role="tooltip" hidden="">Published prices for salon services.</span></span></th><td class="nx-compare__cell" data-plan="lite"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Service Pricing Display: Included in Lite"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="grow"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Service Pricing Display: Included in Grow"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell is-recommended" data-plan="standard"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Service Pricing Display: Included in Standard"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="premium"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Service Pricing Display: Included in Premium"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td></tr><tr class="nx-compare__row"><th scope="row" class="nx-compare__feature"><span class="nx-compare__feature-label">Photo Gallery</span><span class="nx-info"><button type="button" class="nx-info__trigger" data-nx-tip-trigger="true" aria-label="What Photo Gallery includes" aria-expanded="false"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-info" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button><span class="nx-info__panel" id="nx-tip-_R_2aph_" role="tooltip" hidden="">Salon imagery and work gallery.</span></span></th><td class="nx-compare__cell" data-plan="lite"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Photo Gallery: Included in Lite"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="grow"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Photo Gallery: Included in Grow"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell is-recommended" data-plan="standard"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Photo Gallery: Included in Standard"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="premium"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Photo Gallery: Included in Premium"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td></tr><tr class="nx-compare__row"><th scope="row" class="nx-compare__feature"><span class="nx-compare__feature-label">Location and Contact Details</span><span class="nx-info"><button type="button" class="nx-info__trigger" data-nx-tip-trigger="true" aria-label="What Location and Contact Details includes" aria-expanded="false"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-info" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button><span class="nx-info__panel" id="nx-tip-_R_2b9h_" role="tooltip" hidden="">Salon location and contact details.</span></span></th><td class="nx-compare__cell" data-plan="lite"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Location and Contact Details: Included in Lite"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="grow"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Location and Contact Details: Included in Grow"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell is-recommended" data-plan="standard"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Location and Contact Details: Included in Standard"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="premium"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Location and Contact Details: Included in Premium"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td></tr><tr class="nx-compare__row"><th scope="row" class="nx-compare__feature"><span class="nx-compare__feature-label">Social Media Links</span><span class="nx-info"><button type="button" class="nx-info__trigger" data-nx-tip-trigger="true" aria-label="What Social Media Links includes" aria-expanded="false"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-info" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button><span class="nx-info__panel" id="nx-tip-_R_2bph_" role="tooltip" hidden="">Links configured by the salon.</span></span></th><td class="nx-compare__cell" data-plan="lite"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Social Media Links: Included in Lite"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="grow"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Social Media Links: Included in Grow"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell is-recommended" data-plan="standard"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Social Media Links: Included in Standard"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="premium"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Social Media Links: Included in Premium"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td></tr><tr class="nx-compare__row"><th scope="row" class="nx-compare__feature"><span class="nx-compare__feature-label">Website Sharing</span><span class="nx-info"><button type="button" class="nx-info__trigger" data-nx-tip-trigger="true" aria-label="What Website Sharing includes" aria-expanded="false"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-info" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button><span class="nx-info__panel" id="nx-tip-_R_2c9h_" role="tooltip" hidden="">Shareable public salon website.</span></span></th><td class="nx-compare__cell" data-plan="lite"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Website Sharing: Included in Lite"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="grow"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Website Sharing: Included in Grow"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell is-recommended" data-plan="standard"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Website Sharing: Included in Standard"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="premium"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Website Sharing: Included in Premium"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td></tr><tr class="nx-compare__row"><th scope="row" class="nx-compare__feature"><span class="nx-compare__feature-label">Online Booking</span><span class="nx-info"><button type="button" class="nx-info__trigger" data-nx-tip-trigger="true" aria-label="What Online Booking includes" aria-expanded="false"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-info" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button><span class="nx-info__panel" id="nx-tip-_R_2cph_" role="tooltip" hidden="">Appointment booking from a salon website.</span></span></th><td class="nx-compare__cell" data-plan="lite"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Online Booking: Included in Lite"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="grow"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Online Booking: Included in Grow"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell is-recommended" data-plan="standard"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Online Booking: Included in Standard"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="premium"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Online Booking: Included in Premium"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td></tr><tr class="nx-compare__row"><th scope="row" class="nx-compare__feature"><span class="nx-compare__feature-label">Booking Availability</span><span class="nx-info"><button type="button" class="nx-info__trigger" data-nx-tip-trigger="true" aria-label="What Booking Availability includes" aria-expanded="false"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-info" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button><span class="nx-info__panel" id="nx-tip-_R_2d9h_" role="tooltip" hidden="">Availability and slot handling.</span></span></th><td class="nx-compare__cell" data-plan="lite"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Booking Availability: Included in Lite"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="grow"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Booking Availability: Included in Grow"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell is-recommended" data-plan="standard"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Booking Availability: Included in Standard"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="premium"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Booking Availability: Included in Premium"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td></tr><tr class="nx-compare__row"><th scope="row" class="nx-compare__feature"><span class="nx-compare__feature-label">Booking Management</span><span class="nx-info"><button type="button" class="nx-info__trigger" data-nx-tip-trigger="true" aria-label="What Booking Management includes" aria-expanded="false"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-info" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button><span class="nx-info__panel" id="nx-tip-_R_2dph_" role="tooltip" hidden="">Owner-side appointment management.</span></span></th><td class="nx-compare__cell" data-plan="lite"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Booking Management: Included in Lite"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="grow"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Booking Management: Included in Grow"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell is-recommended" data-plan="standard"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Booking Management: Included in Standard"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="premium"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Booking Management: Included in Premium"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td></tr><tr class="nx-cat" data-category="customers"><th scope="colgroup" colSpan="5" class="nx-cat__cell"><span class="nx-cat__name">Customer Management</span><span class="nx-cat__count">9 features</span></th></tr><tr class="nx-compare__row"><th scope="row" class="nx-compare__feature"><span class="nx-compare__feature-label">Customer Database</span><span class="nx-info"><button type="button" class="nx-info__trigger" data-nx-tip-trigger="true" aria-label="What Customer Database includes" aria-expanded="false"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-info" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button><span class="nx-info__panel" id="nx-tip-_R_28qh_" role="tooltip" hidden="">Customer records associated with a salon.</span></span></th><td class="nx-compare__cell" data-plan="lite"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Customer Database: Included in Lite"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="grow"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Customer Database: Included in Grow"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell is-recommended" data-plan="standard"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Customer Database: Included in Standard"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="premium"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Customer Database: Included in Premium"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td></tr><tr class="nx-compare__row"><th scope="row" class="nx-compare__feature"><span class="nx-compare__feature-label">Customer Profiles</span><span class="nx-info"><button type="button" class="nx-info__trigger" data-nx-tip-trigger="true" aria-label="What Customer Profiles includes" aria-expanded="false"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-info" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button><span class="nx-info__panel" id="nx-tip-_R_29ah_" role="tooltip" hidden="">Customer account and profile information.</span></span></th><td class="nx-compare__cell" data-plan="lite"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Customer Profiles: Included in Lite"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="grow"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Customer Profiles: Included in Grow"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell is-recommended" data-plan="standard"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Customer Profiles: Included in Standard"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="premium"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Customer Profiles: Included in Premium"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td></tr><tr class="nx-compare__row"><th scope="row" class="nx-compare__feature"><span class="nx-compare__feature-label">Booking History</span><span class="nx-info"><button type="button" class="nx-info__trigger" data-nx-tip-trigger="true" aria-label="What Booking History includes" aria-expanded="false"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-info" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button><span class="nx-info__panel" id="nx-tip-_R_29qh_" role="tooltip" hidden="">Past and upcoming salon bookings.</span></span></th><td class="nx-compare__cell" data-plan="lite"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Booking History: Included in Lite"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="grow"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Booking History: Included in Grow"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell is-recommended" data-plan="standard"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Booking History: Included in Standard"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="premium"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Booking History: Included in Premium"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td></tr><tr class="nx-compare__row"><th scope="row" class="nx-compare__feature"><span class="nx-compare__feature-label">Customer CRM</span><span class="nx-info"><button type="button" class="nx-info__trigger" data-nx-tip-trigger="true" aria-label="What Customer CRM includes" aria-expanded="false"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-info" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button><span class="nx-info__panel" id="nx-tip-_R_2aah_" role="tooltip" hidden="">Customer management tools.</span></span></th><td class="nx-compare__cell" data-plan="lite"><span class="nx-status nx-status--excluded" data-status="excluded" role="img" aria-label="Customer CRM: Not included in Lite"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-x" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m15 9-6 6"></path><path d="m9 9 6 6"></path></svg></span></td><td class="nx-compare__cell" data-plan="grow"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Customer CRM: Included in Grow"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell is-recommended" data-plan="standard"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Customer CRM: Included in Standard"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="premium"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Customer CRM: Included in Premium"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td></tr><tr class="nx-compare__row"><th scope="row" class="nx-compare__feature"><span class="nx-compare__feature-label">Customer Notes</span><span class="nx-info"><button type="button" class="nx-info__trigger" data-nx-tip-trigger="true" aria-label="What Customer Notes includes" aria-expanded="false"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-info" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button><span class="nx-info__panel" id="nx-tip-_R_2aqh_" role="tooltip" hidden="">Salon-side customer notes.</span></span></th><td class="nx-compare__cell" data-plan="lite"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Customer Notes: Included in Lite"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="grow"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Customer Notes: Included in Grow"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell is-recommended" data-plan="standard"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Customer Notes: Included in Standard"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="premium"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Customer Notes: Included in Premium"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td></tr><tr class="nx-compare__row"><th scope="row" class="nx-compare__feature"><span class="nx-compare__feature-label">Customer Segmentation</span><span class="nx-info"><button type="button" class="nx-info__trigger" data-nx-tip-trigger="true" aria-label="What Customer Segmentation includes" aria-expanded="false"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-info" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button><span class="nx-info__panel" id="nx-tip-_R_2bah_" role="tooltip" hidden="">Audience grouping tools.</span></span></th><td class="nx-compare__cell" data-plan="lite"><span class="nx-status nx-status--excluded" data-status="excluded" role="img" aria-label="Customer Segmentation: Not included in Lite"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-x" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m15 9-6 6"></path><path d="m9 9 6 6"></path></svg></span></td><td class="nx-compare__cell" data-plan="grow"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Customer Segmentation: Included in Grow"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell is-recommended" data-plan="standard"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Customer Segmentation: Included in Standard"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="premium"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Customer Segmentation: Included in Premium"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td></tr><tr class="nx-compare__row"><th scope="row" class="nx-compare__feature"><span class="nx-compare__feature-label">Repeat Customer Management</span><span class="nx-info"><button type="button" class="nx-info__trigger" data-nx-tip-trigger="true" aria-label="What Repeat Customer Management includes" aria-expanded="false"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-info" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button><span class="nx-info__panel" id="nx-tip-_R_2bqh_" role="tooltip" hidden="">Tools to manage returning customers.</span></span></th><td class="nx-compare__cell" data-plan="lite"><span class="nx-status nx-status--excluded" data-status="excluded" role="img" aria-label="Repeat Customer Management: Not included in Lite"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-x" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m15 9-6 6"></path><path d="m9 9 6 6"></path></svg></span></td><td class="nx-compare__cell" data-plan="grow"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Repeat Customer Management: Included in Grow"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell is-recommended" data-plan="standard"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Repeat Customer Management: Included in Standard"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="premium"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Repeat Customer Management: Included in Premium"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td></tr><tr class="nx-compare__row"><th scope="row" class="nx-compare__feature"><span class="nx-compare__feature-label">Customer Retention Tools</span><span class="nx-info"><button type="button" class="nx-info__trigger" data-nx-tip-trigger="true" aria-label="What Customer Retention Tools includes" aria-expanded="false"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-info" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button><span class="nx-info__panel" id="nx-tip-_R_2cah_" role="tooltip" hidden="">Retention and follow-up workflows.</span></span></th><td class="nx-compare__cell" data-plan="lite"><span class="nx-status nx-status--excluded" data-status="excluded" role="img" aria-label="Customer Retention Tools: Not included in Lite"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-x" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m15 9-6 6"></path><path d="m9 9 6 6"></path></svg></span></td><td class="nx-compare__cell" data-plan="grow"><span class="nx-status nx-status--excluded" data-status="excluded" role="img" aria-label="Customer Retention Tools: Not included in Grow"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-x" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m15 9-6 6"></path><path d="m9 9 6 6"></path></svg></span></td><td class="nx-compare__cell is-recommended" data-plan="standard"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Customer Retention Tools: Included in Standard"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="premium"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Customer Retention Tools: Included in Premium"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td></tr><tr class="nx-compare__row"><th scope="row" class="nx-compare__feature"><span class="nx-compare__feature-label">Loyalty and Rewards</span><span class="nx-info"><button type="button" class="nx-info__trigger" data-nx-tip-trigger="true" aria-label="What Loyalty and Rewards includes" aria-expanded="false"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-info" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button><span class="nx-info__panel" id="nx-tip-_R_2cqh_" role="tooltip" hidden="">Rewards and loyalty capabilities.</span></span></th><td class="nx-compare__cell" data-plan="lite"><span class="nx-status nx-status--excluded" data-status="excluded" role="img" aria-label="Loyalty and Rewards: Not included in Lite"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-x" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m15 9-6 6"></path><path d="m9 9 6 6"></path></svg></span></td><td class="nx-compare__cell" data-plan="grow"><span class="nx-status nx-status--excluded" data-status="excluded" role="img" aria-label="Loyalty and Rewards: Not included in Grow"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-x" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m15 9-6 6"></path><path d="m9 9 6 6"></path></svg></span></td><td class="nx-compare__cell is-recommended" data-plan="standard"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Loyalty and Rewards: Included in Standard"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td><td class="nx-compare__cell" data-plan="premium"><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Loyalty and Rewards: Included in Premium"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span></td></tr></tbody></table></div><p class="nx-compare__hint"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg> Swipe to compare plans.</p><ul class="nx-legend"><li><span class="nx-status nx-status--included" data-status="included" role="img" aria-label="Legend example: Included in any plan"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span><span>Included</span></li><li><span class="nx-status nx-status--excluded" data-status="excluded" role="img" aria-label="Legend example: Not included in any plan"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-x" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="m15 9-6 6"></path><path d="m9 9 6 6"></path></svg></span><span>Not included</span></li></ul></div></body></html>

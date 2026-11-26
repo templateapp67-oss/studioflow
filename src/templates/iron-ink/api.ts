@@ -93,7 +93,9 @@ export async function syncIronInkWorkspace(siteId:string,profile:SalonProfile,se
   if(categoryError)throw categoryError;
   const artistRows=stylists.map((artist,index)=>({site_id:siteId,template_key:'iron-ink',name:artist.name,photo_url:artist.avatarUrl||'',bio:artist.bio||artist.role||'',specialties:artist.specialties||[],instagram:'',experience_years:artist.experienceYears||0,is_active:artist.status!=='Inactive',sort_order:index+1}));
   if(artistRows.length){const {error}=await supabase.from('ink_artists').upsert(artistRows,{onConflict:'site_id,name'});if(error)throw error;}
-  const categoryIds=(await supabase.from('ink_categories').select('id,slug').eq('site_id',siteId)).data||[];
+  const {data:categoryIdsData,error:categoryLookupError}=await supabase.from('ink_categories').select('id,slug').eq('site_id',siteId);
+  if(categoryLookupError)throw categoryLookupError;
+  const categoryIds=categoryIdsData||[];
   const portfolioRows=galleryUrls.filter(Boolean).map((url,index)=>({site_id:siteId,template_key:'iron-ink',category_id:categoryIds[index%Math.max(categoryIds.length,1)]?.id||null,image_url:url,title:`Studio portfolio ${index+1}`,placement:'Custom placement',is_featured:index<4,is_published:true,sort_order:index+1}));
   if(portfolioRows.length){const {error}=await supabase.from('ink_portfolio').upsert(portfolioRows,{onConflict:'site_id,image_url,title'});if(error)throw error;}
   return {settings:settingsError===null,categories:categoryRows.length,artists:artistRows.length,portfolio:portfolioRows.length};

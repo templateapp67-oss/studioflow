@@ -2,7 +2,7 @@ import React from 'react';import {act,create} from 'react-test-renderer';import 
 import {STAFF_TITLES,staffCrop,prepareStaffPhoto,validStaffUrl} from '../src/lib/staffProfile';
 import {AddStaffModal} from '../src/components/AddStaffModal';import {StaffTitleField,StaffPhotoField} from '../src/components/StaffProfileFields';import {supabase} from '../src/lib/supabase';
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;
-assert.equal(Object.keys(STAFF_TITLES).length,15);assert.deepEqual(staffCrop(1600,900),{x:350,y:0,side:900});assert.deepEqual(staffCrop(900,1600),{x:0,y:350,side:900});assert.throws(()=>staffCrop(0,10));assert.equal(validStaffUrl('javascript:alert(1)'),false);assert.equal(validStaffUrl('https://example.com/a.jpg'),true);
+assert.equal(Object.keys(STAFF_TITLES).length,16);assert.deepEqual(staffCrop(1600,900),{x:350,y:0,side:900});assert.deepEqual(staffCrop(900,1600),{x:0,y:350,side:900});assert.throws(()=>staffCrop(0,10));assert.equal(validStaffUrl('javascript:alert(1)'),false);assert.equal(validStaffUrl('https://example.com/a.jpg'),true);
 let revoked=0,draw:any[]=[],canvas:any;
 const originalCreate=URL.createObjectURL,originalRevoke=URL.revokeObjectURL;URL.createObjectURL=()=> 'blob:test';URL.revokeObjectURL=()=>{revoked++};
 (globalThis as any).Image=class{naturalWidth=1600;naturalHeight=900;onload:any;set src(_:string){queueMicrotask(()=>this.onload())}};

@@ -991,6 +991,7 @@
   transition: border-color 240ms ease, transform 240ms ease;
 }
 .vd-offer:hover { border-color: var(--vd-gold); transform: translateY(-2px); }
+.vd-offer__media { overflow: hidden; }
 .vd-offer__media img { width: 100%; height: 100%; min-height: 132px; object-fit: cover; }
 .vd-offer__body { padding: 16px 18px 16px 0; display: grid; gap: 6px; align-content: start; }
 .vd-offer__badge { font-size: 0.64rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--vd-gold); font-weight: 700; }

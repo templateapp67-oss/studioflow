@@ -6,6 +6,7 @@ import {
   MensWaitlistMonitor,
 } from "./KeshKraftInteractions";
 import type { DirectBookingSlot } from "../SpecialistWeek";
+import { ServiceMerchTags, ServiceTerms } from '../ServiceMerchandising';
 import React, { useEffect, useState } from "react";
 import {
   ArrowUpRight,
@@ -46,6 +47,7 @@ export function MensImage({
   eager = false,
   width,
   height,
+  className,
 }: {
   src?: string;
   alt: string;
@@ -53,6 +55,7 @@ export function MensImage({
   eager?: boolean;
   width?: number;
   height?: number;
+  className?: string;
 }) {
   return (
     <img
@@ -60,6 +63,7 @@ export function MensImage({
       alt={alt}
       width={width}
       height={height}
+      className={className}
       loading={eager ? "eager" : "lazy"}
       decoding="async"
       onError={(e) => {
@@ -448,6 +452,8 @@ export function KeshKraftWebsite(props: SalonWebsitePreviewProps) {
                   <div className="kk-service-body">
                     <h3>{s.name}</h3>
                     <p>{s.description}</p>
+                    <ServiceMerchTags service={s} className="sf-merch-inline" />
+                    <ServiceTerms service={s} className="sf-merch-inline" />
                     <div className="kk-service-meta">
                       <b>{inr(s.price)}</b>
                       <span>
@@ -519,12 +525,13 @@ export function KeshKraftWebsite(props: SalonWebsitePreviewProps) {
             </div>
             <div className="kk-team-grid">
               {team.map((person) => (
-                <article className="kk-team-card" key={person.id}>
+                <article className="kk-team-card h-80 w-full aspect-[3/4] overflow-hidden" key={person.id}>
                   <MensImage
                     src={person.avatarUrl}
                     alt={`${person.name}, male barber portrait`}
                     width={896}
                     height={1200}
+                    className="w-full h-full object-cover"
                     config={c}
                   />
                   <div>

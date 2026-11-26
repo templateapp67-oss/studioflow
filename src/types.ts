@@ -122,10 +122,17 @@ export interface CategoryTemplateConfig {
 
 export type VideoCategoryTag = 'SHOWCASE' | 'SHORT' | 'LONG';
 
+/** Presentation format chosen in Step 06's Add Social Video modal. */
+export type SocialVideoFormat = 'SHORT' | 'REEL' | 'FACEBOOK';
+
 export interface SocialVideo {
   id: string;
   isDemo?:boolean;
-  youtubeUrl: string; // Source link: YouTube or Instagram (legacy field name).
+  youtubeUrl: string; // Source link: YouTube, Instagram or Facebook (legacy field name).
+  /** Facebook reel/watch/video link when the source is Facebook (mirrors youtubeUrl). */
+  facebookUrl?: string;
+  /** Format picked in the Add Social Video modal — display tag only; all three stay in the reel feed. */
+  videoFormat?: SocialVideoFormat;
   previewVideoUrl?: string; // Optional owner-provided playable MP4/WebM preview.
   videoId: string;
   title: string;
@@ -305,7 +312,15 @@ export interface SalonProfile {
   whatsapp: string;
   email: string;
   tagline: string;
+  /** Explicit onboarding edits stay protected across wizard remounts. */
+  taglineEditedByOwner?: boolean;
+  /** Last known seeded or AI value; a different value is protected as owner copy. */
+  onboardingGeneratedTagline?: string;
   about: string;
+  /** Explicit story edits must survive category changes. */
+  aboutEditedByOwner?: boolean;
+  /** Known template story, distinguishable from unknown or owner copy. */
+  onboardingSeededAbout?: string;
   ownerPhotoUrl: string;
   coverImageUrl: string;
   logoUrl?: string;
@@ -343,6 +358,8 @@ export interface SalonProfile {
 export interface SalonService {
   mensTemplateId?: 'mens_hair_studio';
   mensHidden?: boolean;
+  /** Template-wise titles, badges, offers, description and terms for this service. */
+  merchandising?: ServiceMerchandising;
   /** Template 07 starter data only: never represent these illustrative values as a clinic-confirmed offer. */
   clinicDemoData?: boolean;
   /** Template 07 only: explicit clinic confirmation, never inferred from template or edits. */
@@ -368,7 +385,12 @@ export interface SalonService {
   showDuration?: boolean; // Defaults to true if undefined. When false, duration is hidden on public website menu.
 }
 
-export type StaffAccessRole = 'Service Provider (Assigned)' | 'Manager (Full Access)' | 'Receptionist (Frontdesk)';
+/**
+ * App access role for a staff member. Canonical values and the permission
+ * matrix live in `src/lib/staffPermissions.ts` (single source of truth);
+ * this alias is kept so existing imports keep working.
+ */
+export type StaffAccessRole = 'Service Provider (Assigned)' | 'Receptionist (Frontdesk)' | 'Manager (Full Access)';
 export type StaffStatus = 'Available' | 'Busy' | 'On Leave' | 'Inactive';
 
 export interface DaySchedule {
@@ -408,6 +430,8 @@ export interface Stylist {
 }
 
 export interface Appointment {
+  serviceIds?: string[];
+  durationMinutes?: number;
   branchId?: string;
   branchName?: string;
   consultationMessage?: string;
@@ -1186,6 +1210,59 @@ export interface ArchFlutterOffer {
 
 /** How a promotion reduces the price. */
 export type SalonOfferType = 'percent' | 'flat' | 'combo' | 'free_addon';
+
+/**
+ * Template-wise service merchandising.
+ *
+ * `none` means the service has no offer — the salon-level "Promotions & offers"
+ * records stay completely separate. A template only ever offers the subset of
+ * these types that suits its salon type (see `lib/serviceTemplateSetup.ts`), so
+ * nothing is invented for the service and no discount value is ever guessed.
+ */
+export type ServiceOfferType =
+  | 'none'
+  | 'percent'
+  | 'flat'
+  | 'combo'
+  | 'bogo'
+  | 'seasonal'
+  | 'festive'
+  | 'first_visit'
+  | 'membership'
+  | 'package'
+  | 'limited_time';
+
+/**
+ * One service's template-specific copy and merchandising.
+ *
+ * Every field is additive and optional at the `SalonService` level, so services
+ * saved before this feature keep loading exactly as they are. The owner-facing
+ * values (`badges`, `offerType`, `offerDetails`, `tags`, `terms`) are what the
+ * website renders. The `suggestions` block is the untouched automatic output and
+ * is never rendered publicly — it lets the editor show what the template would
+ * recommend without overwriting anything the owner edited.
+ */
+export interface ServiceMerchandising {
+  /** Template this copy was prepared for. A mismatch means "template changed". */
+  templateId: BusinessTypeId;
+  badges: string[];
+  offerType: ServiceOfferType;
+  /** Free text the owner confirms, e.g. "₹200 off on weekday bookings". */
+  offerDetails: string;
+  tags: string[];
+  terms: string;
+  /** Prepare-only suggestions, kept separate from the confirmed values above. */
+  suggestions: {
+    badges: string[];
+    offerType: ServiceOfferType;
+    offerDetails: string;
+    description: string;
+    terms: string;
+    generatedAt: string;
+  };
+  /** Fields the owner typed or chose by hand; regeneration must not overwrite them. */
+  edited: Partial<Record<'description' | 'terms' | 'badges' | 'offerType' | 'offerDetails', boolean>>;
+}
 
 /**
  * One editable "Promotions & offers" record, stored on the salon profile so it

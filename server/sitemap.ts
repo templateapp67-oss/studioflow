@@ -1,3 +1,52 @@
+import { NEXORA_PUBLIC_ORIGIN } from "../src/lib/publicSeo.js";
+import { NEXORA_ECOSYSTEM_ROUTES } from "../src/lib/nexoraEcosystemSeo.js";
+import { NEXORA_TEMPLATE_META, nexoraTemplatePagePath } from "../src/lib/nexoraTemplateCatalogue.js";
+import { CANONICAL_ALIAS_HOSTS } from "./canonicalHost.js";
+import { robotsTagForRequest } from "./robotsHeaders.js";
+
+const CANONICAL_ALIAS_HOST_SET = new Set(
+  CANONICAL_ALIAS_HOSTS.map((host) => host.toLowerCase()),
+);
+
+const RESERVED_SITEMAP_SLUGS = new Set([
+  "api",
+  "admin",
+  "owner",
+  "staff",
+  "login",
+  "sign-in",
+  "sign-up",
+  "app",
+  "customer",
+  "pricing",
+  "privacy",
+  "salon-os",
+  "partner-rewards",
+  "salon-onboarding",
+  "salon-growth",
+  "growth-partner-rewards",
+]);
+
+function normaliseCanonicalAliasOrigin(origin: string): string {
+  const cleaned = origin.replace(/\/+$/, "");
+  try {
+    const host = new URL(cleaned).hostname.toLowerCase();
+    if (CANONICAL_ALIAS_HOST_SET.has(host)) {
+      return canonicalOrigin(NEXORA_PUBLIC_ORIGIN);
+    }
+  } catch {
+    // Non-URL inputs fall through to the caller's validation.
+  }
+  return cleaned;
+}
+
+export function isPublicSitemapSlug(slug: string): boolean {
+  if (!/^[a-z0-9][a-z0-9-]{2,62}$/.test(slug)) return false;
+  if (slug.startsWith("studioflow-qa-")) return false;
+  if (RESERVED_SITEMAP_SLUGS.has(slug)) return false;
+  return true;
+}
+
 export function canonicalOrigin(value: string | undefined): string {
   if (!value) throw new Error("SITE_URL must be configured");
   const url = new URL(value);
@@ -12,24 +61,6 @@ export function canonicalOrigin(value: string | undefined): string {
     throw new Error("SITE_URL must be an HTTPS origin without a path");
   return url.origin;
 }
-const NEXORA_TEMPLATE_IDS = [
-  "hair_salon",
-  "barber",
-  "beauty_parlour",
-  "nail_studio",
-  "unisex_salon",
-  "mens_hair_studio",
-  "hair_spa",
-  "skincare_clinic",
-  "makeup_studio",
-  "bridal_lounge",
-  "hair_coloring",
-  "massage_wellness",
-  "tattoo_studio",
-  "lash_brow",
-  "ayurvedic_spa",
-  "aurelia_beauty_parlour",
-] as const;
 const xml = (value: string) =>
   value.replace(
     /[&<>"']/g,
@@ -42,17 +73,33 @@ const xml = (value: string) =>
         "'": "&apos;",
       })[c]!,
   );
-export function sitemapXml(origin: string, slugs: string[]) {
-  // Apex root is an auth/owner screen; deliberately exclude it and account routes.
-  const urls = [
-    origin + "/?app=1",
-    ...NEXORA_TEMPLATE_IDS.map((id) => origin + "/?template=" + encodeURIComponent(id)),
+export function sitemapXml(rawOrigin: string, slugs: string[]) {
+  const origin = normaliseCanonicalAliasOrigin(rawOrigin);
+  // Public marketing and template pages are crawlable; app/auth/private routes are not.
+  const candidates = [
+    origin + "/",
+    origin + "/salon-os",
+    origin + "/pricing",
+    origin + "/privacy",
+    ...NEXORA_ECOSYSTEM_ROUTES.map((path) => origin + path),
+    ...NEXORA_TEMPLATE_META.map((meta) => origin + nexoraTemplatePagePath(meta.templateId)),
     ...new Set(
       slugs
-        .filter((s) => /^[a-z0-9][a-z0-9-]{2,62}$/.test(s) && !s.toLowerCase().startsWith('studioflow-qa-'))
+        .filter(isPublicSitemapSlug)
         .map((s) => origin + "/?site=" + encodeURIComponent(s)),
     ),
   ];
+  const urls = candidates.filter((candidate) => {
+    try {
+      const parsed = new URL(candidate);
+      return (
+        parsed.protocol === "https:" &&
+        robotsTagForRequest(parsed.pathname, parsed.search) === null
+      );
+    } catch {
+      return false;
+    }
+  });
   if (urls.length > 50000)
     throw new Error("Sitemap index required for this catalogue size");
   return (
@@ -61,35 +108,86 @@ export function sitemapXml(origin: string, slugs: string[]) {
     "</urlset>"
   );
 }
+/**
+ * Hosts that must never become an SEO canonical: ephemeral preview deployments
+ * and local development. A preview URL leaking into <loc> tells search engines
+ * to index a throwaway domain instead of the real site.
+ */
+const EPHEMERAL_HOST_SUFFIXES = [
+  "vercel.app",
+  "netlify.app",
+  "pages.dev",
+  "github.io",
+  "e2b.app",
+  "localhost",
+  "127.0.0.1",
+  "nip.io",
+  "sslip.io",
+];
+
+/** True for preview/local hosts whose URLs must not be published as canonicals. */
+export function isEphemeralOrigin(origin: string): boolean {
+  const host = new URL(origin).hostname.toLowerCase();
+  return EPHEMERAL_HOST_SUFFIXES.some(
+    (suffix) => host === suffix || host.endsWith("." + suffix),
+  );
+}
+
+/**
+ * Resolves the sitemap origin.
+ *
+ * A real custom domain configured through SITE_URL / VITE_SITE_URL is honoured —
+ * published salon sites are served on their own domains, so the sitemap has to
+ * be able to describe them. Preview and local hosts are rejected and fall back
+ * to the production canonical, and canonical redirect aliases such as
+ * `www.nexorasalon.online` normalize to the non-www apex origin, so a Vercel
+ * preview or misconfigured `www` override can never pollute `/sitemap.xml`.
+ */
+export function sitemapOrigin(env: NodeJS.ProcessEnv = process.env): string {
+  for (const candidate of [env.SITE_URL, env.VITE_SITE_URL]) {
+    if (!candidate) continue;
+    const origin = canonicalOrigin(candidate);
+    if (!isEphemeralOrigin(origin)) return normaliseCanonicalAliasOrigin(origin);
+  }
+  return canonicalOrigin(NEXORA_PUBLIC_ORIGIN);
+}
+
 export async function generateSitemap(
   env: NodeJS.ProcessEnv = process.env,
   fetcher: typeof fetch = fetch,
 ) {
-  const origin = canonicalOrigin(env.SITE_URL || env.VITE_SITE_URL || 'https://nexorasalon.online');
+  const origin = sitemapOrigin(env);
   const endpoint =
-    env.SUPABASE_URL || env.VITE_SUPABASE_URL || "https://zilwgiuiygqqardzutxi.supabase.co";
+    env.SUPABASE_URL || "https://zilwgiuiygqqardzutxi.supabase.co";
   const key =
-    env.SUPABASE_ANON_KEY || env.VITE_SUPABASE_ANON_KEY || "sb_publishable_Xck8H8PcTCCnEwkvBfiSLw_c973vJkH";
+    env.SUPABASE_ANON_KEY || "sb_publishable_Xck8H8PcTCCnEwkvBfiSLw_c973vJkH";
   const slugs: string[] = [];
-  for (let offset = 0; offset < 50000; offset += 1000) {
-    const url = new URL("/rest/v1/studioflow_websites", endpoint);
-    url.searchParams.set("select", "slug");
-    url.searchParams.set("order", "slug.asc");
-    url.searchParams.set("offset", String(offset));
-    url.searchParams.set("limit", "1000");
-    const response = await fetcher(url, {
-      headers: { apikey: key },
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!response.ok) throw new Error("Published-site catalogue unavailable");
-    const data = await response.json();
-    if (
-      !Array.isArray(data) ||
-      data.some((row) => typeof row?.slug !== "string")
-    )
-      throw new Error("Invalid public catalogue");
-    slugs.push(...data.map((row) => row.slug));
-    if (data.length < 1000) return sitemapXml(origin, slugs);
+  try {
+    for (let offset = 0; offset < 50000; offset += 1000) {
+      const url = new URL("/rest/v1/studioflow_websites", endpoint);
+      url.searchParams.set("select", "slug");
+      url.searchParams.set("order", "slug.asc");
+      url.searchParams.set("offset", String(offset));
+      url.searchParams.set("limit", "1000");
+      const response = await fetcher(url, {
+        headers: { apikey: key },
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!response.ok) throw new Error("Published-site catalogue unavailable");
+      const data = await response.json();
+      if (
+        !Array.isArray(data) ||
+        data.some((row) => typeof row?.slug !== "string")
+      )
+        throw new Error("Invalid public catalogue");
+      slugs.push(...data.map((row) => row.slug));
+      if (data.length < 1000) return sitemapXml(origin, slugs);
+    }
+  } catch {
+    // Keep the public marketing and template pages crawlable if the optional
+    // published-site catalogue is temporarily unavailable. The dynamic site
+    // URLs return automatically when that catalogue is reachable again.
+    return sitemapXml(origin, []);
   }
   throw new Error("Sitemap index required for this catalogue size");
 }

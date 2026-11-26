@@ -16,7 +16,7 @@ export const STAFF_SKILLS:Record<BusinessTypeId,string[]>={
  tattoo_studio:['Fine-Line Tattoo','Portrait Tattoo','Geometric Tattoo','Tattoo Cover-up','Body Piercing'],
  lash_brow:['Lash Extensions','Brow Lamination','Microblading','Lash Lift','Brow Shaping'],
  ayurvedic_spa:['Ayurvedic Massage','Abhyangam','Shirodhara','Herbal Kizhi','Panchakarma','Dosha Consultation'],
- aurelia_beauty_parlour:['Hair Cutting','Hair Styling','Hair Coloring','Balayage','Facial Treatments','Hydration Facial','Nail Art','Gel Manicure','Aromatherapy Massage','Hair Spa','Bridal Makeup']
+ aurelia_beauty_parlour:['Hair Stylist','Hair Colour','Radiance Facial','Gel Manicure','Aromatherapy Massage','Bridal Styling']
 };
 const key=(s:string)=>s.trim().toLowerCase();
 const templateSkills=(category:BusinessTypeId)=>CATEGORY_TEMPLATES[category].stylists.flatMap(st=>st.specialties||[]);

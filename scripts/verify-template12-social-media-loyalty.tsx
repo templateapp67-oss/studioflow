@@ -375,7 +375,7 @@ for (const marker of [
   "Not configured — this card will be hidden.",
   "aria-invalid",
   "ironInkMediaTopics",
-  "Poster image URL",
+  'frame="guide"',
   "Caption",
   "Video or reel link (optional)",
   "isDemo",
@@ -400,7 +400,7 @@ const editorHtml = renderToStaticMarkup(
 assert.ok(editorHtml.includes("Social profiles"));
 assert.ok(editorHtml.includes("Featured videos &amp; reels"));
 assert.ok(editorHtml.includes("aria-label=\"Guide 1 title\""));
-assert.ok(editorHtml.includes("aria-label=\"Guide 1 poster URL\""));
+assert.ok(editorHtml.includes(">Guide 1 poster URL</label>"));
 assert.ok(editorHtml.includes("aria-label=\"Perk 1 title\""));
 assert.ok(editorHtml.includes("USE THIS EXAMPLE"));
 assert.ok(editorHtml.includes("ADD A BLANK PERK"));

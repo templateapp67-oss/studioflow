@@ -1,21 +1,9 @@
-import {KeshKraftEditor} from './keshkraft/KeshKraftEditor';
-import {AureliaBeautyEditor} from './aurelia/AureliaBeautyEditor';
+import { patchOwnerCopy } from '../lib/copyProvenance';
 import {photoGallery,type PhotoCategory} from '../lib/photoGallery';
 import {updateInlineService} from '../lib/serviceCatalogue';
-import {ServiceManagement} from './ServiceManagement';
-import {TeamManagement} from './TeamManagement';
-import {WebsiteContentManager} from './WebsiteContentManager';
-import {ClinicTechnologyEditor} from './dermacure/ClinicTechnologyEditor';
-import {VogueNoirEditor} from './vogue-noir/VogueNoirEditor';
-import {BodhiTreeEditor} from './bodhi-tree/BodhiTreeEditor';
-import {PrismChromaEditor} from './prism-chroma/PrismChromaEditor';
-import {ShringaarRoyalEditor} from './shringaar-royal/ShringaarRoyalEditor';
-import {IronInkEditor} from './iron-ink/IronInkEditor';
-import {ArchFlutterEditor} from './arch-flutter/ArchFlutterEditor';
-import {ZiyaAdminPanel} from './ziya/ZiyaAdminPanel';
-import {AuraPromotionsAdmin} from './aura/AuraPromotionsAdmin';
+
 import {vedaConfigFor} from '../lib/vedaSanjeevaniCustomizer';
-import {AcademyEnquiriesPanel} from './vogue-noir/AcademyEnquiriesPanel';
+
 import { AppInstallSection } from './AppInstallSection';
 import {CustomerSalonWebsite} from './CustomerSalonWebsite';
 import { WebsiteSections } from './WebsiteSections';
@@ -23,6 +11,7 @@ import { websiteSections, socialUrl } from '../lib/websiteContent';
 import type { LoyaltyConfig } from '../types';
 import { websiteLink } from '../lib/supabase';
 import React, { useState, useEffect } from 'react';
+
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   CheckCircle2, 
@@ -73,11 +62,30 @@ import { INITIAL_SALON_PROFILE } from '../mockData';
 import { BookingModal } from './BookingModal';
 import { InlineEditable } from './InlineEditable';
 import { SidePanelCustomizer, SectionVisibilityState, DEFAULT_SECTION_VISIBILITY } from './SidePanelCustomizer';
-import { PinkyNailsFaqEditor } from './PinkyNailsFaqEditor';
+
 import { PINKY_NAILS_AI_PRESETS, pinkyNailsAiRewrite } from '../lib/pinkyNails';
-import { InteractiveMapSetup } from './InteractiveMapSetup';
+
 import { computeHeroAIStyling, extractImageMoodAsync, HeroAIStyling } from '../utils/heroImageMood';
-import { TestimonialModal } from './ClientTestimonials';
+
+// Load editing-only modules after the owner opens the editor, not with the first website preview.
+const KeshKraftEditor = React.lazy(() => import('./keshkraft/KeshKraftEditor').then((module) => ({ default: module.KeshKraftEditor })));
+const AureliaBeautyEditor = React.lazy(() => import('./aurelia/AureliaBeautyEditor').then((module) => ({ default: module.AureliaBeautyEditor })));
+const ServiceManagement = React.lazy(() => import('./ServiceManagement').then((module) => ({ default: module.ServiceManagement })));
+const TeamManagement = React.lazy(() => import('./TeamManagement').then((module) => ({ default: module.TeamManagement })));
+const WebsiteContentManager = React.lazy(() => import('./WebsiteContentManager').then((module) => ({ default: module.WebsiteContentManager })));
+const ClinicTechnologyEditor = React.lazy(() => import('./dermacure/ClinicTechnologyEditor').then((module) => ({ default: module.ClinicTechnologyEditor })));
+const VogueNoirEditor = React.lazy(() => import('./vogue-noir/VogueNoirEditor').then((module) => ({ default: module.VogueNoirEditor })));
+const BodhiTreeEditor = React.lazy(() => import('./bodhi-tree/BodhiTreeEditor').then((module) => ({ default: module.BodhiTreeEditor })));
+const PrismChromaEditor = React.lazy(() => import('./prism-chroma/PrismChromaEditor').then((module) => ({ default: module.PrismChromaEditor })));
+const ShringaarRoyalEditor = React.lazy(() => import('./shringaar-royal/ShringaarRoyalEditor').then((module) => ({ default: module.ShringaarRoyalEditor })));
+const IronInkEditor = React.lazy(() => import('./iron-ink/IronInkEditor').then((module) => ({ default: module.IronInkEditor })));
+const ArchFlutterEditor = React.lazy(() => import('./arch-flutter/ArchFlutterEditor').then((module) => ({ default: module.ArchFlutterEditor })));
+const ZiyaAdminPanel = React.lazy(() => import('./ziya/ZiyaAdminPanel').then((module) => ({ default: module.ZiyaAdminPanel })));
+const AuraPromotionsAdmin = React.lazy(() => import('./aura/AuraPromotionsAdmin').then((module) => ({ default: module.AuraPromotionsAdmin })));
+const AcademyEnquiriesPanel = React.lazy(() => import('./vogue-noir/AcademyEnquiriesPanel').then((module) => ({ default: module.AcademyEnquiriesPanel })));
+const PinkyNailsFaqEditor = React.lazy(() => import('./PinkyNailsFaqEditor').then((module) => ({ default: module.PinkyNailsFaqEditor })));
+const InteractiveMapSetup = React.lazy(() => import('./InteractiveMapSetup').then((module) => ({ default: module.InteractiveMapSetup })));
+const TestimonialModal = React.lazy(() => import('./ClientTestimonials').then((module) => ({ default: module.TestimonialModal })));
 
 export interface SalonWebsitePreviewProps {
   profile: SalonProfile;
@@ -112,7 +120,7 @@ type DeviceMode = 'desktop' | 'tablet' | 'mobile';
 export const SalonWebsitePreview: React.FC<SalonWebsitePreviewProps> = props => {
  const [editing,setEditing]=useState(false);
  if(props.readOnly)return <CustomerSalonWebsite {...props}/>;
- return <><div className="pt-28 px-4 pb-4 flex flex-wrap gap-3 bg-white text-slate-900"><button className="secondary-action" onClick={()=>setEditing(value=>!value)}>{editing?'Show redesigned website':props.profile.businessType==='mens_hair_studio'?'Customize':'Open owner editing tools'}</button><button className="secondary-action" onClick={props.onEnterClientPreview}>Customer device preview</button></div>{editing?(props.profile.businessType==='aurelia_beauty_parlour'?<AureliaBeautyEditor {...props}/>:props.profile.businessType==='mens_hair_studio'?<KeshKraftEditor workspace={{profile:props.profile,services:props.services,stylists:props.stylists,loyaltyConfig:props.loyaltyConfig}} onSave={next=>{props.setProfile?.(next.profile);props.setServices?.(next.services);props.setStylists?.(next.stylists);props.onMensLoyaltyChange?.(next.loyaltyConfig!);}} onClose={()=>setEditing(false)}/>:props.profile.businessType==='hair_salon'?<ZiyaPreviewEditor {...props}/>:props.profile.businessType==='unisex_salon'?<AuraPreviewEditor {...props}/>:props.profile.businessType==='ayurvedic_spa'?<VedaSanjeevaniPreviewEditor {...props}/>:props.profile.businessType==='skincare_clinic'?<ClinicPreviewEditor {...props}/>:props.profile.businessType==='makeup_studio'?<VogueNoirPreviewEditor {...props}/>:props.profile.businessType==='massage_wellness'?<BodhiTreePreviewEditor {...props}/>:props.profile.businessType==='hair_coloring'?<PrismChromaPreviewEditor {...props}/>:props.profile.businessType==='bridal_lounge'?<ShringaarRoyalPreviewEditor {...props}/>:props.profile.businessType==='tattoo_studio'?<IronInkPreviewEditor {...props}/>:props.profile.businessType==='lash_brow'?<ArchFlutterPreviewEditor {...props}/>:<SalonWebsiteEditor {...props}/>):<CustomerSalonWebsite {...props} readOnly/>}</>;
+ return <><div className="pt-28 px-4 pb-4 flex flex-wrap gap-3 bg-white text-slate-900"><button className="secondary-action" onClick={()=>setEditing(value=>!value)}>{editing?'Show redesigned website':(props.profile.businessType==='mens_hair_studio'||props.profile.businessType==='aurelia_beauty_parlour')?'Customize':'Open owner editing tools'}</button><button className="secondary-action" onClick={props.onEnterClientPreview}>Customer device preview</button></div>{editing?<React.Suspense fallback={<div role="status" className="p-6 text-sm text-slate-600">Loading template editor…</div>}>{(props.profile.businessType==='aurelia_beauty_parlour'?<AureliaBeautyEditor {...props}/>:props.profile.businessType==='mens_hair_studio'?<KeshKraftEditor workspace={{profile:props.profile,services:props.services,stylists:props.stylists,loyaltyConfig:props.loyaltyConfig}} onSave={next=>{props.setProfile?.(next.profile);props.setServices?.(next.services);props.setStylists?.(next.stylists);props.onMensLoyaltyChange?.(next.loyaltyConfig!);}} onClose={()=>setEditing(false)}/>:props.profile.businessType==='hair_salon'?<ZiyaPreviewEditor {...props}/>:props.profile.businessType==='unisex_salon'?<AuraPreviewEditor {...props}/>:props.profile.businessType==='ayurvedic_spa'?<VedaSanjeevaniPreviewEditor {...props}/>:props.profile.businessType==='skincare_clinic'?<ClinicPreviewEditor {...props}/>:props.profile.businessType==='makeup_studio'?<VogueNoirPreviewEditor {...props}/>:props.profile.businessType==='massage_wellness'?<BodhiTreePreviewEditor {...props}/>:props.profile.businessType==='hair_coloring'?<PrismChromaPreviewEditor {...props}/>:props.profile.businessType==='bridal_lounge'?<ShringaarRoyalPreviewEditor {...props}/>:props.profile.businessType==='tattoo_studio'?<IronInkPreviewEditor {...props}/>:props.profile.businessType==='lash_brow'?<ArchFlutterPreviewEditor {...props}/>:<SalonWebsiteEditor {...props}/>)}</React.Suspense>:<CustomerSalonWebsite {...props} readOnly/>}</>;
 };
 
 function ZiyaPreviewEditor(props:SalonWebsitePreviewProps) {
@@ -121,7 +129,7 @@ function ZiyaPreviewEditor(props:SalonWebsitePreviewProps) {
   <p>Edit your Ziya Women’s Hair Studio website — hero, women’s haircut menu &amp; ₹ prices, female hairstylist team, haircut style gallery, video showcase, verified coupon promotions, Ziya Style Rewards, client reviews, and haircut consultation enquiries.</p>
   <ZiyaAdminPanel profile={props.profile} services={props.services}/>
   {props.setProfile?<WebsiteContentManager profile={props.profile} setProfile={props.setProfile} services={props.services} gallery={props.gallery}/>:<p role="status">Content editing requires a connected owner workspace.</p>}
-  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
+  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent} policies={props.policies}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
   {props.setStylists?<TeamManagement stylists={props.stylists} setStylists={props.setStylists} services={props.services} setServices={props.setServices} businessType="hair_salon" primaryAccentColor={accent}/>:null}
  </main>;
 }
@@ -145,7 +153,7 @@ function VedaSanjeevaniPreviewEditor(props:SalonWebsitePreviewProps) {
    <div className="p-4 rounded-xl border bg-white"><p className="text-xs uppercase tracking-wide text-slate-500">Bundled imagery</p><p className="text-sm mt-1">17 local WebP slots, {config.gallery.images.length} gallery photos, {props.stylists.length} therapist portraits</p><p className="text-xs text-slate-500 mt-2">Uploads are cropped, resized and compressed automatically.</p></div>
   </div>
   {props.setProfile?<WebsiteContentManager profile={props.profile} setProfile={props.setProfile} services={props.services} gallery={props.gallery} showGallery={false}/>:<p role="status">Content editing requires a connected owner workspace.</p>}
-  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent}/>:<p role="status">Therapy editing requires a connected owner workspace.</p>}
+  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent} policies={props.policies}/>:<p role="status">Therapy editing requires a connected owner workspace.</p>}
   {props.setStylists?<TeamManagement stylists={props.stylists} setStylists={props.setStylists} services={props.services} setServices={props.setServices} businessType="ayurvedic_spa" primaryAccentColor={accent}/>:null}
  </main>;
 }
@@ -156,14 +164,14 @@ function ArchFlutterPreviewEditor(props:SalonWebsitePreviewProps) {
   <p>Edit your Arch &amp; Flutter Lash &amp; Brow Bar website — hero, the fifteen eye-area categories, ₹ menu and packages, featured video and reels, artists, before &amp; after, offers, aftercare journal, reviews and contact details. Services, prices, team and gallery save with your connected workspace.</p>
   {props.onOpenCustomizer?<div className="p-4 rounded-2xl border border-[#C9A66B]/60 bg-[#FBF6F1] text-[#2B1B17] flex flex-wrap items-center gap-3"><span className="text-xs font-bold tracking-[0.18em] uppercase text-[#8A6A2F]">Template 13 customizer</span><span className="text-sm flex-1 min-w-[220px]">Brand, colours &amp; fonts, hero, section order, menu, offers, reels, gallery, team, testimonials &amp; FAQ, contact, booking and SEO — with a live preview and undo.</span><button type="button" className="primary-action" onClick={props.onOpenCustomizer}>Open the template customizer</button></div>:null}
   {props.setProfile?<><ArchFlutterEditor profile={props.profile} setProfile={props.setProfile}/><WebsiteContentManager profile={props.profile} setProfile={props.setProfile} services={props.services} gallery={props.gallery} showGallery={false}/></>:<p role="status">Content editing requires a connected owner workspace.</p>}
-  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
+  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent} policies={props.policies}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
   {props.setStylists?<TeamManagement stylists={props.stylists} setStylists={props.setStylists} services={props.services} setServices={props.setServices} businessType="lash_brow" primaryAccentColor={accent}/>:null}
  </main>;
 }
 
 function IronInkPreviewEditor(props:SalonWebsitePreviewProps) {
  const accent=props.profile.customAccentColor||'#E11D48';
- return <main className="max-w-6xl mx-auto p-4 space-y-6" aria-label="Iron and Ink owner editing tools"><p>Customize the Template 12 tattoo category catalog, image direction, prices, booking deposit and FAQs. Studio profile, artists and uploaded gallery content flow through automatically.</p>{props.setProfile?<><IronInkEditor profile={props.profile} setProfile={props.setProfile} services={props.services} setServices={props.setServices}/><WebsiteContentManager profile={props.profile} setProfile={props.setProfile} services={props.services} gallery={props.gallery} showGallery={false}/></>:<p role="status">Content editing requires a connected owner workspace.</p>}{props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent}/>:null}{props.setStylists?<TeamManagement stylists={props.stylists} setStylists={props.setStylists} services={props.services} setServices={props.setServices} businessType="tattoo_studio" primaryAccentColor={accent}/>:null}</main>;
+ return <main className="max-w-6xl mx-auto p-4 space-y-6" aria-label="Iron and Ink owner editing tools"><p>Customize the Template 12 tattoo category catalog, image direction, prices, booking deposit and FAQs. Studio profile, artists and uploaded gallery content flow through automatically.</p>{props.setProfile?<><IronInkEditor profile={props.profile} setProfile={props.setProfile} services={props.services} setServices={props.setServices}/><WebsiteContentManager profile={props.profile} setProfile={props.setProfile} services={props.services} gallery={props.gallery} showGallery={false}/></>:<p role="status">Content editing requires a connected owner workspace.</p>}{props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent} policies={props.policies}/>:null}{props.setStylists?<TeamManagement stylists={props.stylists} setStylists={props.setStylists} services={props.services} setServices={props.setServices} businessType="tattoo_studio" primaryAccentColor={accent}/>:null}</main>;
 }
 
 function VogueNoirPreviewEditor(props:SalonWebsitePreviewProps) {
@@ -171,7 +179,7 @@ function VogueNoirPreviewEditor(props:SalonWebsitePreviewProps) {
  return <main className="max-w-6xl mx-auto p-4 space-y-6" aria-label="Vogue Noir owner editing tools">
   <p>Edit your Vogue Noir Makeup Studio &amp; Academy website, Bridal Packages, optional Academy module, services, artists, and enquiries. Changes save with your connected workspace.</p>
   {props.setProfile?<><VogueNoirEditor profile={props.profile} setProfile={props.setProfile} showBrandIdentityFields/><WebsiteContentManager profile={props.profile} setProfile={props.setProfile} services={props.services} gallery={props.gallery} showGallery={false}/></>:<p role="status">Content editing requires a connected owner workspace.</p>}
-  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
+  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent} policies={props.policies}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
   {props.setStylists?<TeamManagement stylists={props.stylists} setStylists={props.setStylists} services={props.services} setServices={props.setServices} businessType="makeup_studio" primaryAccentColor={accent}/>:null}
   <AcademyEnquiriesPanel/>
  </main>;
@@ -182,7 +190,7 @@ function ShringaarRoyalPreviewEditor(props:SalonWebsitePreviewProps) {
  return <main className="max-w-6xl mx-auto p-4 space-y-6" aria-label="Shringaar Royal owner editing tools">
   <p>Edit your Shringaar Royal Indian Bridal Lounge website — hero, signature collections, lookbook, heirloom packages, bridal journey, bride reviews, offer banner and booking card. Services, ₹ prices, team and gallery save with your connected workspace.</p>
   {props.setProfile?<><ShringaarRoyalEditor profile={props.profile} setProfile={props.setProfile}/><WebsiteContentManager profile={props.profile} setProfile={props.setProfile} services={props.services} gallery={props.gallery} showGallery={false}/></>:<p role="status">Content editing requires a connected owner workspace.</p>}
-  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
+  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent} policies={props.policies}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
   {props.setStylists?<TeamManagement stylists={props.stylists} setStylists={props.setStylists} services={props.services} setServices={props.setServices} businessType="bridal_lounge" primaryAccentColor={accent}/>:null}
  </main>;
 }
@@ -192,7 +200,7 @@ function PrismChromaPreviewEditor(props:SalonWebsitePreviewProps) {
  return <main className="max-w-6xl mx-auto p-4 space-y-6" aria-label="Prism and Chroma owner editing tools">
   <p>Edit your Prism &amp; Chroma Hair Color Atelier website — hero, Shade Studio, branches, services, colour experts and reviews. Changes save with your connected workspace.</p>
   {props.setProfile?<><PrismChromaEditor profile={props.profile} setProfile={props.setProfile} showBrandIdentityFields/><WebsiteContentManager profile={props.profile} setProfile={props.setProfile} services={props.services} gallery={props.gallery} showGallery={false}/></>:<p role="status">Content editing requires a connected owner workspace.</p>}
-  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
+  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent} policies={props.policies}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
   {props.setStylists?<TeamManagement stylists={props.stylists} setStylists={props.setStylists} services={props.services} setServices={props.setServices} businessType="hair_coloring" primaryAccentColor={accent}/>:null}
  </main>;
 }
@@ -202,7 +210,7 @@ function BodhiTreePreviewEditor(props:SalonWebsitePreviewProps) {
  return <main className="max-w-6xl mx-auto p-4 space-y-6" aria-label="Bodhi Tree owner editing tools">
   <p>Edit your Bodhi Tree Massage &amp; Wellness Sanctuary website — hero, Jaipur Palace Collection, branches, services, therapists and reviews. Changes save with your connected workspace.</p>
   {props.setProfile?<><BodhiTreeEditor profile={props.profile} setProfile={props.setProfile} showBrandIdentityFields/><WebsiteContentManager profile={props.profile} setProfile={props.setProfile} services={props.services} gallery={props.gallery} showGallery={false}/></>:<p role="status">Content editing requires a connected owner workspace.</p>}
-  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
+  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent} policies={props.policies}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
   {props.setStylists?<TeamManagement stylists={props.stylists} setStylists={props.setStylists} services={props.services} setServices={props.setServices} businessType="massage_wellness" primaryAccentColor={accent}/>:null}
  </main>;
 }
@@ -213,7 +221,7 @@ function ClinicPreviewEditor(props:SalonWebsitePreviewProps) {
  return <main className="max-w-6xl mx-auto p-4 space-y-6" aria-label="Clinic owner editing tools">
   <p>These are the existing workspace editors. Changes use your connected workspace save; verify service details and fees before publication.</p>
   {props.setProfile?<><WebsiteContentManager profile={props.profile} setProfile={props.setProfile} services={props.services} gallery={props.gallery} showGallery={false}/><section className="workspace-card"><ClinicTechnologyEditor profile={props.profile} setProfile={props.setProfile}/></section></>:<p role="status">Content editing requires a connected owner workspace.</p>}
-  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
+  {props.setServices?<ServiceManagement services={props.services} setServices={props.setServices} profile={props.profile} primaryAccentColor={accent} policies={props.policies}/>:<p role="status">Service editing requires a connected owner workspace.</p>}
   {props.setStylists?<TeamManagement stylists={props.stylists} setStylists={props.setStylists} services={props.services} setServices={props.setServices} businessType="skincare_clinic" primaryAccentColor={accent}/>:null}
  </main>;
 }
@@ -1029,7 +1037,10 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
                 <div className="relative group shrink-0">
                   <img 
                     src={activeProfile.logoUrl} 
-                    alt={activeProfile.businessName} 
+                    alt={activeProfile.businessName || 'Salon logo'}
+                    width={170}
+                    height={44}
+                    decoding="async"
                     className="h-11 max-w-[170px] object-contain rounded-xl shadow-xs transition-transform group-hover:scale-105" 
                   />
                 </div>
@@ -1109,7 +1120,12 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
             <div className="absolute inset-0 z-0 overflow-hidden">
               <img
                 src={activeProfile.coverImageUrl}
-                alt={activeProfile.businessName}
+                alt={activeProfile.businessName ? `${activeProfile.businessName} salon interior and services` : 'Salon interior and services'}
+                width={1200}
+                height={800}
+                loading="eager"
+                fetchPriority="high"
+                decoding="async"
                 className={`w-full h-full object-cover object-center ${heroAIStyling.imageFilterClass} transition-all duration-700 hover:scale-105`}
               />
               {/* Dynamic Overlay Ambient Tint (Gentle ~15-25% mask max) */}
@@ -1167,7 +1183,7 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
                 >
                   <InlineEditable
                     value={activeProfile.tagline}
-                    onSave={(val) => setProfile((p) => ({ ...p, tagline: String(val) }))}
+                    onSave={(val) => setProfile((p) => patchOwnerCopy(p, { tagline: String(val) }))}
                     isEditingActive={isEditMode}
                     label="Hero Tagline"
                     tag="span"
@@ -1184,7 +1200,7 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
                 >
                   <InlineEditable
                     value={activeProfile.about}
-                    onSave={(val) => setProfile((p) => ({ ...p, about: String(val) }))}
+                    onSave={(val) => setProfile((p) => patchOwnerCopy(p, { about: String(val) }))}
                     isEditingActive={isEditMode}
                     type="textarea"
                     label="Hero Story"
@@ -1332,7 +1348,11 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
                   <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 shadow-sm" style={{ borderColor: activeAccent.primaryHex }}>
                     <img
                       src={activeProfile.ownerPhotoUrl || undefined}
-                      alt={activeProfile.ownerName}
+                      alt={activeProfile.ownerName ? `${activeProfile.ownerName}, salon owner` : 'Salon owner'}
+                       width={320}
+                       height={320}
+                       loading="lazy"
+                       decoding="async"
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -1718,7 +1738,11 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
                     <div className="relative shrink-0">
                       <img
                         src={st.avatarUrl || undefined}
-                        alt={st.name}
+                        alt={st.name ? `${st.name}, salon team member` : 'Salon team member'}
+                        width={64}
+                        height={64}
+                        loading="lazy"
+                        decoding="async"
                         className="w-16 h-16 rounded-2xl object-cover border border-slate-100 shadow-xs"
                       />
                       <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full" />
@@ -1890,7 +1914,11 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
                           {activeReviews[testimonialIndex % activeReviews.length].avatarUrl ? (
                             <img 
                               src={activeReviews[testimonialIndex % activeReviews.length].avatarUrl}
-                              alt={activeReviews[testimonialIndex % activeReviews.length].name}
+                              alt={activeReviews[testimonialIndex % activeReviews.length].name ? `Photo of ${activeReviews[testimonialIndex % activeReviews.length].name}` : 'Customer'}
+                              width={240}
+                              height={240}
+                              loading="lazy"
+                              decoding="async"
                               className="w-full h-full object-cover"
                               referrerPolicy="no-referrer"
                             />
@@ -1977,7 +2005,11 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
                 >
                   <img
                     src={photo.url}
-                    alt={photo.title || 'Salon Gallery Photo'}
+                    alt={photo.title || 'Salon gallery photo'}
+                    width={900}
+                    height={700}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
                     referrerPolicy="no-referrer"
                   />
@@ -2333,7 +2365,10 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
               >
                 <img 
                   src={selectedGalleryPhoto} 
-                  alt={currentPhoto?.title || 'Gallery Zoom'} 
+                  alt={currentPhoto?.title || 'Enlarged salon gallery photo'}
+                  width={1200}
+                  height={900}
+                  decoding="async"
                   className="max-h-[60vh] md:max-h-[68vh] object-contain w-full rounded-2xl"
                 />
               </div>
@@ -2370,7 +2405,7 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
                     >
                       <img 
                         src={photo.url} 
-                        alt="thumbnail" 
+                        alt="Salon gallery thumbnail" 
                         className="w-full h-full object-cover"
                       />
                     </button>

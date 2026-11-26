@@ -32,7 +32,7 @@ const bytes=new Uint8Array(await crypto.subtle.sign('HMAC',key,new TextEncoder()
 assert.equal(await signatureMatches(secret,message,signature),true);assert.equal(await signatureMatches(secret,message+'tampered',signature),false);assert.equal(await signatureMatches(secret,message,'wrong'),false);
 // Booking flow uses the real component with isolated provider/API fixtures.
 const functionsPrototype=Object.getPrototypeOf(supabase.functions);const oldRpc=supabase.rpc,oldInvoke=functionsPrototype.invoke;
-(supabase as any).rpc=async()=>({data:[{time:'11:00',label:'11:00 AM',available:true,stylistId:'stylist'}],error:null});
+(supabase as any).rpc=async(name:string)=>name==='studioflow_booking_specialists'?{data:{published:true,specialistIds:['stylist']},error:null}:name==='studioflow_public_branches'?{data:[],error:null}:{data:[{time:'11:00',label:'11:00 AM',available:true,stylistId:'stylist'}],error:null};
 let reservationCount=0;let capturedOrder:any;const paid={id:'fixture-booking',status:'confirmed',amountPaid:249.75,paymentStatus:'paid_deposit'};
 functionsPrototype.invoke=async(_name:string,{body}:any)=>({data:body.action==='status'?{configured:true}:body.action==='create'?{keyId:'rzp_test_fixture',orderId:'order_fixture',amount:24975,currency:'INR'}:{booking:paid},error:null});
 (globalThis as any).window={addEventListener(){},removeEventListener(){},Razorpay:class{constructor(options:any){capturedOrder=options;}on(){}open(){void capturedOrder.handler({razorpay_order_id:'order_fixture',razorpay_payment_id:'pay_fixture',razorpay_signature:'signature'});}}};
@@ -44,6 +44,8 @@ try{
  await act(async()=>{modal=create(<BookingModal isOpen onClose={()=>{}} profile={{...INITIAL_SALON_PROFILE,subdomain:'fixture-salon'}} initialService={services[0]} services={services} stylists={[{...CATEGORY_TEMPLATES.hair_salon.stylists[0],id:'stylist'}]} onAddAppointment={async apt=>{reservationCount++;return {...apt,id:'fixture-booking'};}}/>);});
  const option=modal.root.findAll((node:any)=>node.type==='button'&&node.props.onClick&&text(node).includes('Second Service')).at(-1);
  await act(async()=>option.props.onClick());
+ // Multi-select preserves the first service until explicitly deselected.
+ await act(async()=>modal.root.findByProps({'aria-label':'Select service First Service'}).props.onClick());
  await act(async()=>button(modal.root,'Continue to Date').props.onClick());
  assert.ok(text(modal.toJSON()).includes('Second Service'),'Customer service selection must survive rerender');
  const dateInput=modal.root.findAll((node:any)=>node.type==='input'&&node.props.type==='date')[0];

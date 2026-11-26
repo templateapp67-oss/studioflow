@@ -2,7 +2,7 @@
 import React from 'react';import {renderToStaticMarkup} from 'react-dom/server';import assert from 'node:assert/strict';
 import {loyaltyTheme,LOYALTY_THEMES} from '../src/lib/loyaltyTheme';import {getLuminance} from '../src/themeAccents';import {CATEGORY_TEMPLATES} from '../src/categoryTemplates';import {INITIAL_SALON_PROFILE} from '../src/mockData';import {DEFAULT_LOYALTY_CONFIG} from '../src/loyaltyData';import {WebsiteSections} from '../src/components/WebsiteSections';import {CustomerSalonWebsite} from '../src/components/CustomerSalonWebsite';
 const contrast=(a:string,b:string)=>{const l=[getLuminance(a),getLuminance(b)].sort((a,b)=>b-a);return (l[0]+.05)/(l[1]+.05)};
-assert.equal(Object.keys(LOYALTY_THEMES).length,15);
+assert.equal(Object.keys(LOYALTY_THEMES).length,16);
 for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')){
  const profile={...INITIAL_SALON_PROFILE,businessType:template.id};const theme=loyaltyTheme(profile),v=theme.style;
  assert.ok(contrast(v['--loyalty-card'],v['--loyalty-text'])>=4.5,template.id+' title contrast');assert.ok(contrast(v['--loyalty-card'],v['--loyalty-muted'])>=4.5,template.id+' description contrast');assert.ok(contrast(v['--loyalty-accent'],v['--loyalty-accent-text'])>=4.5,template.id+' points badge contrast');

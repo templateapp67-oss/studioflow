@@ -1,0 +1,52 @@
+import { readFileSync } from 'node:fs';
+import assert from 'node:assert/strict';
+import { build } from 'esbuild';
+import { spawnSync } from 'node:child_process';
+
+const auth = readFileSync('src/components/AuthPage.tsx', 'utf8');
+const app = readFileSync('src/App.tsx', 'utf8');
+const customer = readFileSync('src/components/CustomerApp.tsx', 'utf8');
+const helper = readFileSync('src/lib/googleOAuth.ts', 'utf8');
+
+assert.match(auth, /signInWithOAuth\(\{[\s\S]*provider:\s*'google'/, 'Google OAuth must use Supabase Google provider');
+assert.match(auth, /saveGoogleOAuthIntent\(/, 'OAuth must persist short-lived owner/customer onboarding intent');
+assert.ok(auth.includes("!recovery && mode !== 'forgot' && !signup"), 'Google sign-in must be visible in the existing sign-in mode');
+assert.ok(auth.includes("!recovery && mode !== 'forgot' && signup"), 'Google sign-up must be visible in the signup mode');
+assert.match(auth, /const customerAppReturn=loginParams\.has\('app'\)/, 'Customer App login must preserve its app route across OAuth');
+assert.match(auth, /const redirectTo = location\.origin \+ \(invitationMode \? '\/\?app=1&tab=rewards' : authReturnPath\)/, 'Customer invitation OAuth must return to the Rewards tab');
+assert.match(customer, /<AuthPage compact customerMode/, 'The Customer App login modal must use customer-mode authentication');
+assert.match(app, /if\(customerApp\)return <CustomerApp session=\{session\}\/?>/, 'The app=1 OAuth callback must render the Customer App, not the owner website');
+assert.match(auth, /const authReturnPath = pricingReturnPath \|\| \(selectedTemplate \? redirectPath : preserveOwnerAuthEntry/, 'Google signup must resume selected pricing/template journeys before preserving a generic auth entry');
+
+assert.match(auth, /studioflow_customer_validate_ref/, 'Customer and owner signup referral codes must be validated');
+const googleSignupHandler = auth.slice(auth.indexOf('const signInWithGoogle'), auth.indexOf('const resend'));
+assert.match(googleSignupHandler, /clearCustomerReferral\(\)/, 'Customer OAuth signup must clear stale referral attribution');
+assert.doesNotMatch(googleSignupHandler, /rememberCustomerReferral\(/, 'Customer OAuth signup must not expose referral code to the early referral bridge');
+assert.match(app, /studioflow_customer_update_details/, 'Google customer signup must save mandatory details through the existing customer RPC');
+assert.match(app, /isNewGoogleAccount\(intent,session\.user\.created_at\)/, 'Existing Google identities must not receive signup profile updates');
+assert.match(app, /studioflow_customer_claim_ref/, 'Google customer signup must claim a validated referral through the existing RPC');
+assert.ok(app.includes('function clearReferralAuthQueryParams()'), 'App must define URL cleanup for auth/referral callback parameters');
+assert.ok(app.includes('useEffect(()=>{captureReferral();clearReferralAuthQueryParams();},[]);'), 'Capture the pending referral before cleaning ref/auth from history');
+assert.match(app, /localStorage\.removeItem\('studioflow_pending_ref'\);}\s*catch\{\}\}\s*clearReferralAuthQueryParams\(\);/, 'Existing Google identities must clear both stored and URL referral attribution');
+assert.match(app, /profiles'\)\.update\(\{full_name:fullName,salon_name:/, 'Google owner signup must update the owner profile');
+assert.match(customer, /One last step/, 'First-time Google customers without required details must be prompted to complete their profile');
+assert.match(customer, /studioflow_customer_update_details|saveDetails\(/, 'Customer details completion must use the existing authenticated profile update');
+assert.match(helper, /MAX_AGE_MS/, 'Temporary OAuth intent must expire');
+assert.match(helper, /isNewGoogleAccount/, 'Google signup metadata must be applied only to newly created users');
+assert.match(helper, /sessionStorage\.removeItem/, 'Temporary OAuth intent must be cleared');
+
+const built = await build({
+  entryPoints: ['scripts/verify-google-oauth.tsx'],
+  bundle: true,
+  platform: 'node',
+  format: 'esm',
+  packages: 'external',
+  write: false,
+  loader: { '.css': 'empty', '.jpg': 'dataurl', '.png': 'dataurl', '.webp': 'dataurl' },
+});
+const result = spawnSync(process.execPath, ['--input-type=module'], {
+  input: built.outputFiles[0].text,
+  stdio: ['pipe', 'inherit', 'inherit'],
+});
+if (result.error) throw result.error;
+process.exitCode = result.status ?? 1;

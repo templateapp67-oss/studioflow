@@ -17,10 +17,12 @@ import {
   MENS_SERVICES,
   mensMediaVisible,
 } from "../src/lib/keshkraft";
+import { MENS_SUPPORT_STARTER_PROMPTS } from "../src/lib/mensSupportContent";
 import { CATEGORY_TEMPLATES } from "../src/categoryTemplates";
 import { INITIAL_SALON_PROFILE } from "../src/mockData";
 import {
   MensBookingSection,
+  MensLiveChat,
   MensPortfolio,
   MensStylistChat,
 } from "../src/components/keshkraft/KeshKraftInteractions";
@@ -110,6 +112,8 @@ assert.throws(() => addMensWaitlist({ ...entry, slug: "capacity" }, storage));
 assert.match(mensSupportReply("haircut prices"), /INR/);
 assert.match(mensSupportReply("waitlist full slots"), /does not reserve/);
 assert.match(mensSupportReply("hello"), /simulated/);
+assert.ok(MENS_SUPPORT_STARTER_PROMPTS.length >= 3 && MENS_SUPPORT_STARTER_PROMPTS.length <= 6);
+assert.ok(MENS_SUPPORT_STARTER_PROMPTS.every((prompt) => /^[A-Z].*[.!?]$/.test(prompt)), "each configured chat starter is a full sentence");
 const profile = {
   ...INITIAL_SALON_PROFILE,
   ...CATEGORY_TEMPLATES.mens_hair_studio.profile,
@@ -194,6 +198,42 @@ const inquiry = renderToStaticMarkup(
 assert.match(inquiry, /handed off to WhatsApp/);
 assert.ok(!inquiry.includes("https://wa.me/"), "empty inquiry cannot send");
 
+// Starter prompts are configurable, populate the composer and reset cleanly.
+const configuredChatPrompts = [
+  "Can I book a consultation before choosing a haircut?",
+  "Which styles work well with thick hair?",
+  "Where can I view your barbers' portfolios?",
+];
+let chatTree: any;
+await act(async () => {
+  chatTree = create(<MensLiveChat starterPrompts={configuredChatPrompts} />);
+});
+await act(async () => {
+  chatTree.root.findAllByType("button")[0].props.onClick();
+});
+const starterList = chatTree.root.findByProps({ className: "kk-chat-prompts" });
+assert.equal(starterList.type, "ul");
+assert.equal(starterList.props["aria-label"], "Suggested starter requests");
+assert.deepEqual(
+  starterList.findAllByType("button").map((button: any) => button.children.join("")),
+  configuredChatPrompts,
+);
+const composerInput = () =>
+  chatTree.root.findAllByType("input").find((input: any) => input.props.placeholder === "How can we help?");
+await act(async () => starterList.findAllByType("button")[0].props.onClick());
+assert.equal(composerInput()?.props.value, configuredChatPrompts[0]);
+assert.equal(chatTree.root.findAllByProps({ className: "kk-chat-customer" }).length, 0, "prompt selection does not send a message");
+await act(async () => {
+  chatTree.root.findByType("form").props.onSubmit({ preventDefault() {} });
+});
+assert.equal(chatTree.root.findAllByProps({ className: "kk-chat-prompts" }).length, 0, "starter prompts hide after sending");
+await act(async () => {
+  chatTree.root.findByProps({ "aria-label": "Start a new conversation" }).props.onClick();
+});
+assert.equal(chatTree.root.findAllByProps({ className: "kk-chat-prompts" }).length, 1, "new conversation restores starter prompts");
+assert.equal(composerInput()?.props.value, "");
+await act(async () => chatTree.unmount());
+
 // Delayed availability responses must not overwrite a newly selected day.
 const pending: ((result: any) => void)[] = [];
 const originalRpc = supabase.rpc;
@@ -267,7 +307,7 @@ try {
 }
 assert.ok(
   readFileSync("src/components/BookingModal.tsx", "utf8").includes(
-    "profile.businessType==='mens_hair_studio'&&!slotsLoading&&!slotsError",
+    "profile.businessType==='mens_hair_studio'&&selectedService&&bookingServiceIds.length===1&&!slotsLoading&&!slotsError",
   ),
   "shared modal waitlist is men-only and successful-availability-only",
 );

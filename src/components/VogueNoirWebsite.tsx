@@ -1,3 +1,4 @@
+import './vogueNoir.css';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowUpRight,
@@ -35,6 +36,7 @@ import {
   vogueNoirCssVariables,
 } from '../lib/vogueNoir';
 import { ServicePhoto } from './ServicePhoto';
+import { ServiceMerchTags, ServiceTerms } from './ServiceMerchandising';
 import { WebsiteSections } from './WebsiteSections';
 import { AppAnnouncementStrip, AppInstallSection } from './AppInstallSection';
 import { SafeImage } from './vogue-noir/SafeImage';
@@ -767,6 +769,8 @@ export function VogueNoirWebsite({
                         </p>
                         <h3 className="vn-service-title">{service.name}</h3>
                         <p className="vn-service-desc">{service.description}</p>
+                        <ServiceMerchTags service={service} className="sf-merch-inline" />
+                        <ServiceTerms service={service} className="sf-merch-inline" />
                         {service.showDuration !== false && service.durationMinutes > 0 && (
                           <span className="vn-duration-chip">
                             <Clock3 size={13} aria-hidden="true" />
@@ -1010,13 +1014,14 @@ export function VogueNoirWebsite({
               <div className="vn-artists-grid">
                 {displayArtists.map((artist) => (
                   <article key={artist.id} className="vn-artist-card">
-                    <div className="vn-artist-photo">
+                    <div className="vn-artist-photo h-80 w-full aspect-[3/4] overflow-hidden">
                       <SafeImage
                         src={artist.avatarUrl}
                         fallback={VOGUE_NOIR_IMAGES.artists.riya}
                         alt={`${artist.name}, ${artist.role || 'Makeup Artist'}`}
                         width={600}
                         height={750}
+                        className="w-full h-full object-cover"
                       />
                     </div>
                     <div className="vn-artist-body">

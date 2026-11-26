@@ -40,7 +40,7 @@ const profile: SalonProfile = {
 const styles = readFileSync("src/components/ironInk.css", "utf8");
 const storefront = readFileSync("src/components/IronInkWebsite.tsx", "utf8");
 const migration = readFileSync(
-  "supabase/migrations/202610300005_iron_ink_social_videos.sql",
+  "supabase/pending-features/202610300005_iron_ink_social_videos.sql",
   "utf8",
 );
 const rollback = readFileSync(
@@ -357,7 +357,7 @@ assert.match(styles, /@media\(max-width:640px\)\{\.ii-promo-grid\{grid-template-
 assert.match(styles, /\.ii-short-media\{[^}]*aspect-ratio:9\/16/);
 assert.match(styles, /scroll-snap-type:x mandatory/);
 assert.match(styles, /@media\(prefers-reduced-motion:reduce\)\{\.ii-promo-card/);
-assert.ok(existsSync("supabase/migrations/202610300005_iron_ink_social_videos.sql"));
+assert.ok(existsSync("supabase/pending-features/202610300005_iron_ink_social_videos.sql"));
 
 assert.match(migration, /create table if not exists public\.salon_social_videos/);
 for (const column of ["salon_id uuid", "platform text", "url text", "title text", "sort_order integer", "is_active boolean", "created_at timestamptz"]) {

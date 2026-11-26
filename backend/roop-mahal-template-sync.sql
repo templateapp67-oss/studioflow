@@ -13,7 +13,7 @@ set title = 'Roop Mahal Beauty Parlour & Makeover Space',
       'themePreset', 'rose_gold_ivory',
       'layoutStyle', 'curved_elegant',
       'ownerPhotoUrl', '/templates/roop-mahal/staff-sunita.jpg',
-      'coverImageUrl', '/templates/roop-mahal/hero-bridal.jpg',
+      'coverImageUrl', '/templates/roop-mahal/hero-bridal.webp',
       'themeStyle', '{
         "heroBackground": "bg-[#FFF8F1]",
         "heroTextColor": "text-[#352622]",

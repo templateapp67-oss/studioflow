@@ -22,7 +22,7 @@ export const OWNER_BUSINESS_TOOLS = [
  {id:18,label:'Business overview',icon:'monitoring'},
  {id:20,label:'Bookings & calendar',icon:'calendar_month'},
  {id:21,label:'Payments & revenue',icon:'payments'},
- {id:26,label:'Customers & WhatsApp',icon:'contacts'},
+ {id:26,label:'Customer CRM',icon:'contacts'},
  {id:22,label:'Marketing campaigns',icon:'campaign'},
  {id:24,label:'Share & referral',icon:'redeem'},
  {id:25,label:'Platform branding',icon:'verified'},
@@ -30,6 +30,7 @@ export const OWNER_BUSINESS_TOOLS = [
  {id:30,label:'Environment Diagnostics',icon:'bug_report'},
  {id:32,label:'Branches & inventory',icon:'storefront'},
  {id:33,label:'Template 03 Content Management',icon:'edit_note'},
+ {id:34,label:'WhatsApp Booking & Payments',icon:'chat'},
 ] as const;
 export function ownerModule(raw:string|null){
  const n=Number(raw);const canonical=({14:13,15:6,17:4,19:16} as Record<number,number>)[n]||n;

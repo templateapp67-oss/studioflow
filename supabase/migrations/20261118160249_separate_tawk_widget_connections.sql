@@ -1,0 +1,2 @@
+-- Historical production migration superseded by the isolated widget_connections table.
+-- The final schema is defined by 20261118203000_add_tawk_widget_connection.sql.
