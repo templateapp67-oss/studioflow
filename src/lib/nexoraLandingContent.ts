@@ -1,5 +1,7 @@
 import { FEATURE_CATEGORIES, PRICING_PLANS, type FeatureItem } from './nexoraPricing';
 import { NEXORA_TEMPLATE_META } from './nexoraTemplateCatalogue';
+import { nexoraBreadcrumbListSchema, nexoraBreadcrumbsForPath } from './nexoraBreadcrumbs';
+import { nexoraOrganizationSchema } from './nexoraOrganization';
 
 /**
  * Business content for the NEXORA SALONOS landing page.
@@ -523,9 +525,9 @@ export const NEXORA_LANDING_DISCLOSURES = [
 
 /** Route-owned public metadata. Shared by the client renderer and the prerenderer. */
 export const NEXORA_LANDING_SEO = {
-  title: 'NEXORA SALONOS | Salon Management Software for Salons, Spas & Beauty Businesses',
+  title: 'NEXORA SalonOS | Salon Management Software',
   description:
-    'Nexora SalonOS brings appointments, customers, staff, billing, marketing and business reports into one connected platform for salons, spas, nail studios and beauty businesses in India.',
+    'Manage salon appointments, customers, staff, billing, inventory and marketing with NEXORA SalonOS for salons, spas and beauty businesses in India.',
   canonicalPath: '/salon-os',
   ogImagePath: '/nexora-homepage-og.jpg',
   themeColor: '#FF2323',
@@ -553,9 +555,11 @@ export function nexoraSalonLandingSchema(
   const faqs = options?.faqs?.length ? options.faqs : NEXORA_LANDING_FAQS;
   const canonicalPath = options?.canonicalPath ?? NEXORA_LANDING_SEO.canonicalPath;
   const description = options?.description ?? NEXORA_LANDING_SEO.description;
+  const breadcrumbs = nexoraBreadcrumbsForPath(canonicalPath);
   return {
     '@context': 'https://schema.org',
     '@graph': [
+      nexoraOrganizationSchema(origin),
       {
         '@type': 'SoftwareApplication',
         name: 'NEXORA SALONOS',
@@ -579,6 +583,7 @@ export function nexoraSalonLandingSchema(
           acceptedAnswer: { '@type': 'Answer', text: entry.answer },
         })),
       },
+      ...(breadcrumbs ? [nexoraBreadcrumbListSchema(origin, canonicalPath, breadcrumbs)] : []),
     ],
   };
 }

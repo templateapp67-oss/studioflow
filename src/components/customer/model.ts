@@ -1,8 +1,27 @@
 import {isRecord} from '../../lib/normalizeWorkspace';
 export type Service={id:string;name:string;category?:string;price:number;durationMinutes:number;description?:string;imageUrl?:string};
 export type Stylist={workGallery?:import('../../types').StaffWorkPhoto[];expertiseServiceIds?:string[];experienceYears?:number;bio?:string;status?:string;id:string;name:string;role?:string;avatarUrl?:string;specialties?:string[];assignedServices?:string[];rating?:number};
-export type Salon={slug:string;owner_id:string;demoTemplateId?:string;content:{profile:any;services?:Service[];stylists?:Stylist[];gallery?:string[];policies?:Record<string,unknown>;loyaltyConfig?:any}};
-export function isSalon(value: unknown): value is Salon {return isRecord(value)&&typeof value.slug==='string'&&typeof value.owner_id==='string'&&isRecord(value.content)&&isRecord(value.content.profile);}
+export type Salon={slug:string;demoTemplateId?:string;content:{profile:any;services?:Service[];stylists?:Stylist[];gallery?:string[];policies?:Record<string,unknown>;loyaltyConfig?:any}};
+export function isSalon(value: unknown): value is Salon {return isRecord(value)&&typeof value.slug==='string'&&isRecord(value.content)&&isRecord(value.content.profile);}
+/**
+ * Join key between a booking and a salon.
+ *
+ * The public catalogue no longer ships `owner_id` to anonymous readers, so
+ * bookings are matched on the salon slug instead. Bookings created before the
+ * payload carried a slug fall back to the server-resolved `salon_slug` column
+ * (see migration 20261121130001); anything that still cannot be resolved
+ * returns '' and simply does not match a card.
+ */
+export function salonSlugOf(booking:{payload?:any;slug?:string|null}|null|undefined):string{
+  if(!booking)return '';
+  const fromPayload=typeof booking.payload?.salonSlug==='string'?booking.payload.salonSlug:'';
+  const direct=typeof booking.slug==='string'?booking.slug:'';
+  return (fromPayload||direct).trim().toLowerCase();
+}
+export const findSalonForBooking=<T extends Salon>(salons:T[],booking:{payload?:any;slug?:string|null}|null|undefined):T|undefined=>{
+  const slug=salonSlugOf(booking);
+  return slug?salons.find(s=>s.slug.toLowerCase()===slug):undefined;
+};
 export type Booking={id:string;owner_id:string;status:string;branch_id?:string|null;starts_at?:string;ends_at?:string;hold_expires_at?:string;payload:any};
 export type Slot={time:string;label:string;available?:boolean;stylistId:string;branchId?:string;branchName?:string};
 export const menu=(s:Salon)=>Array.isArray(s?.content?.services)?s?.content?.services:[];

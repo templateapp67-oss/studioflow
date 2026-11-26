@@ -201,7 +201,7 @@ PASS: live catalog serves all 89 client RPCs, 42 RLS tables, …
 | Name in the review | What actually implements it | Where |
 |---|---|---|
 | `apply_referral` | `studioflow_customer_validate_ref(text)` (pre-signup check) → `studioflow_customer_claim_ref(text)` (claim after signup, advisory-locked, self-referral rejection) | `backend/customer-referrals.sql` |
-| `reschedule_booking` | `studioflow_android_reschedule(p_booking uuid, p_date date, p_time text, p_stylist text)` (branch-aware, `security invoker`) | `supabase/migrations/202610300004_multibranch_support.sql` |
+| `reschedule_booking` | `studioflow_android_reschedule(p_booking uuid, p_date date, p_time text, p_stylist text)` (branch-aware, `security invoker`) | `supabase/pending-features/202610300004_multibranch_support.sql` |
 
 Adding the requested names would have created a second, competing code path for the same
 operations — including a bypass of the advisory lock and the self-referral guard. What was

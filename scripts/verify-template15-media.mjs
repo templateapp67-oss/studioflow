@@ -40,9 +40,10 @@ const currentServiceRefs = Array.from({length:30}, (_, index) => ({
 const groupedRefs = refs => Object.entries(refs.reduce((groups, ref) => ((groups[ref.path] ||= []).push(ref.serviceIndex), groups), {})).filter(([, ids]) => ids.length > 1);
 let branding = null;
 try { branding = JSON.parse(fs.readFileSync(path.join(root,'nexora-branding.json'),'utf8')); } catch {}
-const localPhotoFiles = fs.readdirSync(root).filter(file => ['.webp','.jpg','.jpeg'].includes(path.extname(file).toLowerCase()));
-const localSvgFiles = fs.readdirSync(root).filter(file => path.extname(file).toLowerCase() === '.svg');
-const localVideoFiles = fs.readdirSync(root).filter(file => path.extname(file).toLowerCase() === '.mp4');
+const rootFiles = fs.readdirSync(root).sort();
+const localPhotoFiles = rootFiles.filter(file => ['.webp','.jpg','.jpeg'].includes(path.extname(file).toLowerCase()));
+const localSvgFiles = rootFiles.filter(file => path.extname(file).toLowerCase() === '.svg');
+const localVideoFiles = rootFiles.filter(file => path.extname(file).toLowerCase() === '.mp4');
 const fileSha = file => crypto.createHash('sha256').update(fs.readFileSync(path.join(root,file))).digest('hex');
 const imageBrandMismatches = branding ? localPhotoFiles.filter(file => branding.images?.[file]?.brandedSha256 !== fileSha(file)) : localPhotoFiles;
 const svgBrandMismatches = branding ? localSvgFiles.filter(file => branding.svgImages?.[file]?.brandedSha256 !== fileSha(file)) : localSvgFiles;
@@ -61,14 +62,21 @@ const manifest = {
     currentServiceImageReferenceCount: currentServiceRefs.length,
     repeatedServiceImagePaths: groupedRefs(currentServiceRefs),
     distinctCurrentServiceImagePaths: [...new Set(currentServiceRefs.map(x=>x.path))].length,
-    placeholderIllustrationFiles: fs.readdirSync(root).filter(file => /^(barber-[0-9]+|style-[0-9]+|placeholder)\.svg$/.test(file)),
+    placeholderIllustrationFiles: rootFiles.filter(file => /^(barber-[0-9]+|style-[0-9]+|placeholder)\.svg$/.test(file)),
     exactDuplicateGroups: exactDuplicates,
     missingImageCount: Object.values(entries).flat().filter(x=>x.status==='missing').length,
     missingProcessVideoCount: missingVideoNames.length,
     visuallySimilarImages: 'Not assessed; no perceptual-hash/image-similarity tooling is installed in this workspace.',
   },
 };
-fs.writeFileSync(path.join(root,'media-manifest.json'), JSON.stringify(manifest,null,2)+'\n');
-console.log(`Template 15 media manifest: ${path.join(root,'media-manifest.json')}`);
+const manifestPath = path.join(root, 'media-manifest.json');
+const serializedManifest = JSON.stringify(manifest, null, 2) + '\n';
+const existingManifest = fs.existsSync(manifestPath) ? fs.readFileSync(manifestPath, 'utf8') : null;
+if (existingManifest !== serializedManifest) {
+  const tempManifestPath = `${manifestPath}.${process.pid}.tmp`;
+  fs.writeFileSync(tempManifestPath, serializedManifest);
+  fs.renameSync(tempManifestPath, manifestPath);
+}
+console.log(`Template 15 media manifest: ${manifestPath}`);
 console.log(`Generated-task image files present: ${Object.values(entries).flat().filter(x=>x.status==='present').length}; requested image files missing: ${manifest.scan.missingImageCount}; requested process videos missing: ${manifest.scan.missingProcessVideoCount}.`);
 console.log(`Exact duplicate file hashes: ${exactDuplicates.length ? JSON.stringify(exactDuplicates) : 'none among present local image references'}`);

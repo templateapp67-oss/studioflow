@@ -91,13 +91,13 @@ assert.equal(pending.size, 0, 'All base migrations converge: ' + [...pending].ma
 const MIGRATIONS = [
   // Match the actual fresh-database migration order. The Template 12 schema
   // now follows every earlier shared, Ziya and Aura migration.
-  'supabase/migrations/202610300004_multibranch_support.sql',
-  'supabase/migrations/202610300005_iron_ink_social_videos.sql',
-  'supabase/migrations/202611020001_ziya_promotions_and_loyalty.sql',
-  'supabase/migrations/202611030001_aura_template03_content.sql',
-  'supabase/migrations/202611030002_aura_unisex_promotions.sql',
+  'supabase/pending-features/202610300004_multibranch_support.sql',
+  'supabase/pending-features/202610300005_iron_ink_social_videos.sql',
+  'supabase/pending-features/202611020001_ziya_promotions_and_loyalty.sql',
+  'supabase/pending-features/202611030001_aura_template03_content.sql',
+  'supabase/pending-features/202611030002_aura_unisex_promotions.sql',
   'supabase/migrations/20261113120946_template12_iron_ink.sql',
-  'supabase/migrations/20261113120947_multibranch_template12_support.sql',
+  'supabase/pending-features/20261113120947_multibranch_template12_support.sql',
 ];
 for (const file of MIGRATIONS) await db.exec(readFileSync(file, 'utf8'));
 // Idempotent: re-applying the Template 03 promotion migration must not duplicate rows.

@@ -72,13 +72,16 @@ let downloadedName = '';
   },
 };
 
-(globalThis as any).URL = {
+// Patch the two static methods but keep URL a real constructor: components
+// rendered below (SalonCRM resolves signed media URLs) call `new URL(...)`.
+const RealURL = URL;
+(globalThis as any).URL = Object.assign(RealURL, {
   createObjectURL: (blob: Blob) => {
     downloadedBlob = blob;
     return 'blob:mock-url';
   },
   revokeObjectURL: () => {},
-};
+});
 
 downloadClientsCsv(testClients, 'custom-salon-clients.csv');
 assert.ok(downloadedBlob !== null, 'downloadClientsCsv must create a Blob');
@@ -118,18 +121,25 @@ await act(async () => {
   );
 });
 
+// The clients tab now renders the CRM workspace (SalonCRM), whose export
+// button is labelled "Export customer CSV". Match the label the UI ships
+// instead of the retired mock-dashboard wording.
 const exportBtn = dashboard.root
   .findAllByType('button')
-  .find((b: any) => getText(b).includes('Export Clients CSV'));
+  .find((b: any) => getText(b).includes('Export customer CSV'));
 
-assert.ok(exportBtn, 'Export Clients CSV button must exist on the clients tab in SaaSDashboard');
+assert.ok(exportBtn, 'Customer CSV export button must exist on the clients tab in SaaSDashboard');
 
-// Click export button in dashboard
+// Click export button in dashboard. The stubbed dashboard RPC returns one
+// customer, so export must be enabled and must emit a real CSV.
+assert.equal(exportBtn.props.disabled, false, 'Customer export is enabled when the CRM has rows');
 downloadedBlob = null;
 await act(async () => {
   exportBtn.props.onClick();
 });
-assert.ok(downloadedBlob !== null, 'Clicking Export Clients CSV in SaaSDashboard must trigger download');
+assert.ok(downloadedBlob !== null, 'Clicking the customer CSV export in SaaSDashboard must trigger download');
+assert.ok(downloadedName.endsWith('-crm-customers.csv'), `CRM export filename: ${downloadedName}`);
+assert.ok((await (downloadedBlob as any).text()).includes('Priya Sharma'), 'CRM export contains the customer row');
 
 await act(async () => {
   dashboard.unmount();
@@ -165,4 +175,4 @@ await act(async () => {
   loyalty.unmount();
 });
 
-console.log('PASS: ClientRecord CSV export formatting, injection safety, SaaSDashboard button, and LoyaltyManagement button verified successfully.');
+console.log('PASS: ClientRecord CSV export formatting, injection safety, CRM export button on the dashboard clients tab, and LoyaltyManagement button verified successfully.');

@@ -5,6 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 /**
  * Access-control regression tests for the demo-request register.
@@ -26,7 +27,7 @@ const bundle = await build({
 const directory = mkdtempSync(join(tmpdir(), 'nexora-admin-'));
 const modulePath = join(directory, 'nexoraDemoLeads.mjs');
 writeFileSync(modulePath, bundle.outputFiles[0].text);
-const { nexoraDemoLeadsAdminHandler } = await import(modulePath);
+const { nexoraDemoLeadsAdminHandler } = await import(pathToFileURL(modulePath).href);
 
 const captured = [];
 const respond = () => ({
@@ -124,7 +125,7 @@ try {
 }
 
 /* 10. The database keeps the register private. */
-const migration = readFileSync('supabase/migrations/202611070004_nexora_demo_lead_operations.sql', 'utf8');
+const migration = readFileSync('supabase/migrations/20261107082654_nexora_demo_lead_operations.sql', 'utf8');
 assert.ok(migration.includes('revoke all on table public.landing_lead_audit from anon'), 'the audit table is revoked from anon');
 assert.ok(migration.includes('grant select on table public.landing_lead_audit to authenticated'), 'managers may read the audit trail');
 assert.ok(migration.includes('alter table public.landing_lead_audit enable row level security'), 'the audit table has RLS');

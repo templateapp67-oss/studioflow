@@ -912,7 +912,7 @@ const cssImporters = readdirSync('src/components', { recursive: true })
   .map((name) => String(name))
   .filter((name) => name.endsWith('.tsx') || name.endsWith('.ts'))
   .filter((name) => read(`src/components/${name}`).includes("customizer.css"));
-assert.deepEqual(cssImporters.sort(), ['arch-flutter-customizer/ArchFlutterCustomizer.tsx'], 'only the drawer imports the customizer stylesheet');
+assert.deepEqual(cssImporters.map((name) => name.replaceAll('\\', '/')).sort(), ['arch-flutter-customizer/ArchFlutterCustomizer.tsx'], 'only the drawer imports the customizer stylesheet');
 
 /* The customizer never reaches into another template's code. */
 const customizerFiles = [

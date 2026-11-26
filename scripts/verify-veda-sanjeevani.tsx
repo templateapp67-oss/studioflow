@@ -614,7 +614,7 @@ assert.ok(/reduce \|\| !canObserveViewport/.test(parts), 'reveals render instant
 const sections = readFileSync('src/components/veda-sanjeevani/VedaSections.tsx', 'utf8');
 assert.ok((sections.match(/variant="glass"/g) || []).length >= 6, 'therapy, package, expert, offer and quote grids all stagger glass cards');
 assert.ok((sections.match(/<VedaPageHead/g) || []).length >= 5, 'every inner page uses the animated header');
-assert.ok(sections.includes('<VedaPageHead\n        crumb="Therapies"'), 'the therapies page header animates');
+assert.ok(/<VedaPageHead\s+crumb="Therapies"/.test(sections), 'the therapies page header animates');
 const bookingSource = readFileSync('src/components/veda-sanjeevani/VedaBooking.tsx', 'utf8');
 assert.ok(bookingSource.includes('<VedaPageHead'), 'the booking page header animates');
 assert.ok(bookingSource.includes('VedaGlassCard className="vd-summary"'), 'the booking summary is a glass card');

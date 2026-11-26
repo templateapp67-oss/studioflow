@@ -1,7 +1,7 @@
 const BUILD_ID = typeof __APP_BUILD_ID__ !== 'undefined' ? __APP_BUILD_ID__ : import.meta.env?.VITE_SCREEN_BUILD;
 export const CURRENT_BUILD = BUILD_ID || 'development';
 export async function latestAppVersion():Promise<string|null>{
- const response=await fetch('/app-version.json?t='+Date.now(),{cache:'no-store',credentials:'omit'});
+ const response=await fetch('/app-version.json?t='+Date.now(),{cache:'no-store',credentials:'same-origin'});
  if(!response.ok)return null;
  const data=await response.json();return typeof data.version==='string'&&/^[a-z0-9-]{16,80}$/i.test(data.version)?data.version:null;
 }

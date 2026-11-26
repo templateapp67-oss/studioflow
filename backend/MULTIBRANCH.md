@@ -1,6 +1,6 @@
 # Multi-branch support
 
-The additive migration is `supabase/migrations/202610300004_multibranch_support.sql`. Apply it only after the shared StudioFlow account/booking/availability RPCs and `202610300003_template12_iron_ink.sql` are installed. Do not apply it to a live Supabase project without explicit authorization and a verified target.
+The additive migration is `supabase/pending-features/202610300004_multibranch_support.sql`. Apply it only after the shared StudioFlow account/booking/availability RPCs and `202610300003_template12_iron_ink.sql` are installed. Do not apply it to a live Supabase project without explicit authorization and a verified target.
 
 ## Data and workspace flow
 

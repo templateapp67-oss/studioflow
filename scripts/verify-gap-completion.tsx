@@ -126,11 +126,13 @@ assert.ok(
 const publicSitemap = sitemapXml("https://clinic.example", ["abc"]);
 assert.ok(publicSitemap.includes("https://clinic.example/template-pages/hair-salon.html"));
 assert.ok(!publicSitemap.includes("/?app=1"), "customer-app entry is excluded from search indexing");
-await assert.rejects(() =>
-  generateSitemap({ SITE_URL: "https://clinic.example" }, (async () => ({
-    ok: false,
-  })) as any),
+const fallbackSitemap = await generateSitemap(
+  { SITE_URL: "https://clinic.example" },
+  (async () => ({ ok: false })) as any,
 );
+assert.ok(fallbackSitemap.startsWith('<?xml version="1.0" encoding="UTF-8"?>'));
+assert.ok(fallbackSitemap.includes("https://clinic.example/"));
+assert.ok(!fallbackSitemap.includes("?site="), "catalogue failure falls back to fixed public pages only");
 const prior = process.env.SITE_URL;
 const priorViteSite = process.env.VITE_SITE_URL;
 const priorFetch = globalThis.fetch;
@@ -149,9 +151,12 @@ const res: any = {
 };
 globalThis.fetch = (async () => ({ ok: false, status: 503 }) as Response) as typeof fetch;
 await sitemapHandler({}, res);
-assert.equal(status, 503);
-assert.equal(headers["Cache-Control"], "no-store");
-assert.ok(!body.includes("<html"));
+assert.equal(status, 200, "a catalogue outage still serves the fixed public sitemap");
+assert.equal(headers["Content-Type"], "application/xml; charset=utf-8");
+assert.equal(headers["Cache-Control"], "public, max-age=300, s-maxage=300");
+assert.ok(body.startsWith('<?xml version="1.0" encoding="UTF-8"?>'));
+assert.ok(body.includes("<url><loc>https://nexorasalon.online/</loc></url>"));
+assert.ok(body.endsWith("</urlset>"));
 if (prior === undefined) delete process.env.SITE_URL;
 else process.env.SITE_URL = prior;
 if (priorViteSite === undefined) delete process.env.VITE_SITE_URL;
@@ -169,5 +174,5 @@ const pkg = JSON.parse(readFileSync("package.json", "utf8")),
   lock = JSON.parse(readFileSync("package-lock.json", "utf8"));
 assert.deepEqual(lock.packages[""].dependencies, pkg.dependencies);
 console.log(
-  "PASS: announcement lifecycle, dismissal/remount, expired campaigns, safe actions; sitemap canonical URLs/public-only catalogue/error handling; target CSS order; manifest-lock consistency. No browser sizing or live provider claims.",
+  "PASS: announcement lifecycle, dismissal/remount, expired campaigns, safe actions; sitemap canonical URLs, public-only catalogue and XML fallback; target CSS order; manifest-lock consistency. No browser sizing or live provider claims.",
 );

@@ -8,8 +8,7 @@
  *   * persist the enquiry in the configured NEXORA Supabase project through
  *     the `submit-landing-lead` Edge Function (the private `landing_leads`
  *     table is never written to directly);
- *   * rely on the Edge Function's shared, database-backed rate limiter so the
- *     limit holds across serverless instances;
+ *   * claim a shared Postgres per-address budget before the trusted Edge call;
  *   * optionally forward to a CRM sink without ever losing a stored lead;
  *   * answer 2xx only after the request is safely stored — never a fake
  *     success;
@@ -17,11 +16,18 @@
  *     data and never a credential.
  */
 
-import { readServerEnvironment } from './nexoraEnv';
+import { readServerEnvironment } from './nexoraEnv.js';
+import { createHash } from 'node:crypto';
+import { isIP } from 'node:net';
+import { parseLeadBudget, type LeadBudget } from '../supabase/functions/submit-landing-lead/landingLeadRateLimit.js';
 
 const PRIVACY_NOTICE_VERSION = '2026-11';
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const PHONE = /^[+()\d\s.-]{7,20}$/;
+/** Must match the Edge Function's honeypot field set so neither path can be bypassed. */
+const HONEYPOT_FIELDS = ['website', 'company_website', 'fax_number'];
+const RATE_LIMIT_WINDOW_SECONDS = 600;
+const RATE_LIMIT_MAX = 5;
 
 type JsonResponder = {
   status: (code: number) => JsonResponder;
@@ -42,7 +48,7 @@ function env(name: string): string {
 }
 
 function cleanText(value: unknown, max = 200): string {
-  return String(value ?? '')
+  return (typeof value === 'string' ? value : '')
     .replace(/[\u0000-\u001f\u007f]/g, ' ')
     .trim()
     .slice(0, max);
@@ -66,7 +72,7 @@ async function postJson(
   headers: Record<string, string>,
   payload: unknown,
   timeoutMs = 8000,
-): Promise<{ ok: boolean; status: number; body: any }> {
+): Promise<{ ok: boolean; status: number; body: any; retryAfter: number | null }> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -77,12 +83,55 @@ async function postJson(
       body: JSON.stringify(payload),
     });
     const body = await response.json().catch(() => ({}));
-    return { ok: response.ok, status: response.status, body };
+    // Forward the upstream's actual Retry-After when present so a 429 from
+    // the Edge Function reports the true remaining window, not the maximum.
+    const retryAfterRaw = response.headers?.get?.('retry-after');
+    const retryAfter = Number(retryAfterRaw);
+    return {
+      ok: response.ok,
+      status: response.status,
+      body,
+      retryAfter: Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : null,
+    };
   } catch {
-    return { ok: false, status: 0, body: {} };
+    return { ok: false, status: 0, body: {}, retryAfter: null };
   } finally {
     clearTimeout(timer);
   }
+}
+
+// Express supplies req.ip according to its trust-proxy configuration. Vercel
+// overwrites its own forwarding header; do not trust arbitrary forwarded headers
+// outside that runtime. Missing/invalid identity shares one conservative bucket.
+export function leadClientIp(req: DemoLeadRequest, vercel = process.env.VERCEL === '1'): string {
+  const raw = vercel ? req.headers?.['x-vercel-forwarded-for'] : req.ip;
+  const value = (Array.isArray(raw) ? raw[0] : raw || '').split(',')[0].trim();
+  if (!isIP(value)) return 'unknown';
+  return value.startsWith('::ffff:') && isIP(value.slice(7)) === 4 ? value.slice(7) : value;
+}
+
+async function claimLeadBudget(req: DemoLeadRequest): Promise<LeadBudget | null> {
+  const serviceKey = env('SUPABASE_SERVICE_ROLE_KEY') || env('SUPABASE_SECRET_KEY');
+  if (!serviceKey) return null;
+  const salt = (process.env.LANDING_LEAD_RATE_LIMIT_SALT || 'nexora-landing-rate-limit-v1').trim();
+  const hash = createHash('sha256').update(`${salt}:${leadClientIp(req)}`).digest('hex');
+  const url = readServerEnvironment(process.env, false).supabaseUrl;
+  const result = await postJson(`${url.replace(/\/+$/, '')}/rest/v1/rpc/claim_landing_lead_rate_limit`,
+    { 'Content-Type': 'application/json', Accept: 'application/json', apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
+    { p_bucket_key: hash, p_window_seconds: RATE_LIMIT_WINDOW_SECONDS, p_max_attempts: RATE_LIMIT_MAX });
+  const budget = result.ok ? parseLeadBudget(result.body, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_SECONDS) : null;
+  if (!budget) return null;
+  // Best effort; unlike an in-memory counter this remains effective when most
+  // serverless instances are cold. A scheduled cleanup is still advisable.
+  if (Math.random() < 0.04) await postJson(`${url.replace(/\/+$/, '')}/rest/v1/rpc/prune_landing_lead_rate_limits`,
+    { 'Content-Type': 'application/json', apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, {}, 2000);
+  return budget;
+}
+
+// This client-supplied timing signal is a frictionless heuristic, not proof
+// of human interaction; omitted elapsed times remain valid for older clients.
+export function isTooFast(elapsed: unknown): boolean {
+  return elapsed !== undefined && (typeof elapsed !== 'number' || !Number.isSafeInteger(elapsed) || elapsed < 2000);
 }
 
 /**
@@ -105,13 +154,14 @@ async function storeLead(payload: Record<string, unknown>) {
     },
     payload,
   );
-  return {
-    configured: true as const,
-    status: result.status,
-    ok: result.ok && result.body?.ok === true,
-    leadId: typeof result.body?.leadId === 'string' ? result.body.leadId : null,
-    idempotent: result.body?.idempotent === true,
-  };
+    return {
+      configured: true as const,
+      status: result.status,
+      ok: result.ok && result.body?.ok === true,
+      retryAfter: result.retryAfter,
+      leadId: typeof result.body?.leadId === 'string' ? result.body.leadId : null,
+      idempotent: result.body?.idempotent === true,
+    };
 }
 
 /**
@@ -161,10 +211,18 @@ export async function nexoraDemoLeadHandler(req: DemoLeadRequest, res: JsonRespo
 
   const body = req.body && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body : {};
   // Honeypot submissions are acknowledged without storing or forwarding them.
-  if (cleanText(body.website, 200)) {
+  // The field set matches the Edge Function so a bot cannot bypass the trap
+  // by using an alternate field on the direct server route. The answer is a
+  // plain success so the outcome is not distinguishable from a stored lead.
+  if (HONEYPOT_FIELDS.some((field) => cleanText(body[field], 200))) {
     console.warn(`[nexora-demo-lead] id=${id} honeypot acknowledged`);
-    return res.status(202).json({ ok: true, requestId: id });
+    return res.status(201).json({ ok: true, requestId: id });
   }
+
+  // Check both the client (camelCase) and Edge (snake_case) field names so a
+  // direct bot cannot skip the timing heuristic by reusing the Edge spelling.
+  // Absent values still pass, keeping legacy callers compatible.
+  if (isTooFast(body.formElapsedMs) || isTooFast(body.form_elapsed_ms)) return fail(res, 400, 'Please wait a moment, then try again.', id);
 
   const name = cleanText(body.name, 100);
   const email = cleanText(body.email, 254).toLowerCase();
@@ -180,8 +238,15 @@ export async function nexoraDemoLeadHandler(req: DemoLeadRequest, res: JsonRespo
   if (name.length < 2) return fail(res, 400, 'Enter your name.', id);
   if (!EMAIL.test(email)) return fail(res, 400, 'Enter a valid work email address.', id);
   if (!salonName) return fail(res, 400, 'Enter your salon or business name.', id);
-  if (phone && !PHONE.test(phone)) return fail(res, 400, 'Enter a valid phone number or leave it blank.', id);
+  if (phone && (!PHONE.test(phone) || phone.replace(/\D/g, '').length < 6 || phone.replace(/\D/g, '').length > 15)) return fail(res, 400, 'Enter a valid phone number or leave it blank.', id);
   if (body.consent !== true) return fail(res, 400, 'Please confirm that Nexora may contact you.', id);
+
+  const budget = await claimLeadBudget(req);
+  if (budget && !budget.allowed) {
+    res.setHeader?.('Retry-After', String(budget.retryAfterSeconds));
+    return fail(res, 429, 'Too many demo requests. Please try again later.', id);
+  }
+  if (!budget) return fail(res, 503, 'Demo requests are temporarily unavailable. No request was sent; please try again later.', id);
 
   const stored = await storeLead({
     lead_type: 'demo_request',
@@ -195,6 +260,7 @@ export async function nexoraDemoLeadHandler(req: DemoLeadRequest, res: JsonRespo
     consent_given: true,
     privacy_notice_version: PRIVACY_NOTICE_VERSION,
     idempotency_key: idempotencyKey,
+    form_elapsed_ms: body.formElapsedMs,
   });
 
   if (!stored.configured) {
@@ -204,6 +270,9 @@ export async function nexoraDemoLeadHandler(req: DemoLeadRequest, res: JsonRespo
     return fail(res, 503, 'Demo requests are not configured yet. No request was sent; please try again later.', id);
   }
   if (stored.status === 429) {
+    // Report the Edge Function's actual remaining window; fall back to the
+    // configured window only when the upstream did not send one.
+    res.setHeader?.('Retry-After', String(stored.retryAfter ?? RATE_LIMIT_WINDOW_SECONDS));
     console.warn(`[nexora-demo-lead] id=${id} rate limited`);
     return fail(res, 429, 'Too many demo requests. Please try again later.', id);
   }

@@ -312,7 +312,15 @@ export interface SalonProfile {
   whatsapp: string;
   email: string;
   tagline: string;
+  /** Explicit onboarding edits stay protected across wizard remounts. */
+  taglineEditedByOwner?: boolean;
+  /** Last known seeded or AI value; a different value is protected as owner copy. */
+  onboardingGeneratedTagline?: string;
   about: string;
+  /** Explicit story edits must survive category changes. */
+  aboutEditedByOwner?: boolean;
+  /** Known template story, distinguishable from unknown or owner copy. */
+  onboardingSeededAbout?: string;
   ownerPhotoUrl: string;
   coverImageUrl: string;
   logoUrl?: string;
@@ -377,7 +385,12 @@ export interface SalonService {
   showDuration?: boolean; // Defaults to true if undefined. When false, duration is hidden on public website menu.
 }
 
-export type StaffAccessRole = 'Service Provider (Assigned)' | 'Manager (Full Access)' | 'Receptionist (Frontdesk)';
+/**
+ * App access role for a staff member. Canonical values and the permission
+ * matrix live in `src/lib/staffPermissions.ts` (single source of truth);
+ * this alias is kept so existing imports keep working.
+ */
+export type StaffAccessRole = 'Service Provider (Assigned)' | 'Receptionist (Frontdesk)' | 'Manager (Full Access)';
 export type StaffStatus = 'Available' | 'Busy' | 'On Leave' | 'Inactive';
 
 export interface DaySchedule {

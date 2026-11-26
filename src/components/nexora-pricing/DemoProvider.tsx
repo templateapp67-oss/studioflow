@@ -4,6 +4,8 @@ import { NEXORA_PRIVACY_NOTICE_VERSION, submitLandingLead } from '../../lib/nexo
 import {
   createLeadIdempotencyKey,
   isLeadSubmissionSuccess,
+  isLeadTooFast,
+  shouldFallbackLead,
   postLeadToServerRoute,
 } from '../../lib/nexoraLeadSubmission';
 
@@ -17,6 +19,11 @@ export function useDemoDialog() {
   const context = useContext(DemoContext);
   if (!context) throw new Error('useDemoDialog must be used inside DemoProvider');
   return context;
+}
+
+/** Optional accessor for shared marketing UI that is also used without a demo provider. */
+export function useOptionalDemoDialog(): (() => void) | null {
+  return useContext(DemoContext)?.openDemo ?? null;
 }
 
 export function DemoProvider({ children }: { children: ReactNode }) {
@@ -35,6 +42,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   const returnFocusRef = useRef<HTMLElement | null>(null);
   // Stable per submission so a retry collapses onto the same stored lead.
   const idempotencyKeyRef = useRef<string>(createLeadIdempotencyKey());
+  const formStartedAt = useRef(0);
 
   const openDemo = useCallback(() => {
     returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -42,6 +50,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     setMessage('');
     setSubmitted(false);
     idempotencyKeyRef.current = createLeadIdempotencyKey();
+    formStartedAt.current = Date.now();
     setOpen(true);
   }, []);
   const closeDemo = useCallback(() => {
@@ -58,7 +67,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       if (event.key === 'Escape') closeDemo();
       if (event.key !== 'Tab') return;
       const dialog = document.getElementById('nexora-demo-dialog');
-      const focusable = dialog?.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), a[href]');
+      const focusable = dialog?.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]):not([tabindex="-1"]), a[href]');
       if (!focusable?.length) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
@@ -83,6 +92,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   const submitLead = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (submitting) return;
+    if (isLeadTooFast(formStartedAt.current)) { setMessage('Please wait a moment, then try again.'); return; }
     setSubmitting(true);
     setMessage('');
     const pagePath = typeof window === 'undefined' ? '/salon-os' : window.location.pathname;
@@ -103,10 +113,15 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         privacy_notice_version: NEXORA_PRIVACY_NOTICE_VERSION,
         website: lead.website,
         idempotency_key: idempotencyKey,
+        form_elapsed_ms: Math.max(0, Date.now() - formStartedAt.current),
       });
       setSubmitted(true);
       setMessage(successMessage);
     } catch (primaryError) {
+      if (!shouldFallbackLead(primaryError)) {
+        setMessage(primaryError instanceof Error ? primaryError.message : 'We could not send your request. Please try again later.');
+        return;
+      }
       // The Edge Function could not be reached. The same-origin server route
       // forwards to the very same lead service; its answer is validated with
       // the shared contract, so an HTML or empty response can never be shown
@@ -115,6 +130,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         ...lead,
         pagePath,
         idempotencyKey,
+        formElapsedMs: Math.max(0, Date.now() - formStartedAt.current),
       });
       if (!isLeadSubmissionSuccess(outcome)) {
         const reason =
@@ -146,7 +162,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
             <label htmlFor={emailId}>Work email<input id={emailId} type="email" autoComplete="email" maxLength={254} required value={lead.email} onChange={event => setLead({ ...lead, email: event.target.value })}/></label>
             <label htmlFor={salonId}>Salon or business name<input id={salonId} autoComplete="organization" maxLength={120} required value={lead.salonName} onChange={event => setLead({ ...lead, salonName: event.target.value })}/></label>
             <div className="np-demo-form-row"><label htmlFor={phoneId}>Phone <span>(optional)</span><input id={phoneId} type="tel" autoComplete="tel" inputMode="tel" maxLength={20} value={lead.phone} onChange={event => setLead({ ...lead, phone: event.target.value })}/></label><label htmlFor={cityId}>City <span>(optional)</span><input id={cityId} autoComplete="address-level2" maxLength={80} value={lead.city} onChange={event => setLead({ ...lead, city: event.target.value })}/></label></div>
-            <label className="np-demo-honeypot" aria-hidden="true">Leave this field empty<input tabIndex={-1} autoComplete="off" value={lead.website} onChange={event => setLead({ ...lead, website: event.target.value })}/></label>
+            <label className="np-demo-honeypot" aria-hidden="true">Leave this field empty<input name="website" tabIndex={-1} autoComplete="off" value={lead.website} onChange={event => setLead({ ...lead, website: event.target.value })}/></label>
             <label className="np-demo-consent" htmlFor={consentId}><input id={consentId} type="checkbox" required checked={lead.consent} onChange={event => setLead({ ...lead, consent: event.target.checked })}/><span>I agree that Nexora may use these details to respond to my demo request.</span></label>
             {message && <p className="np-demo-message" role="status">{message}</p>}
             <button className="np-demo-submit" type="submit" disabled={submitting}>{submitting ? 'Sending request…' : 'Request a demo'}</button>

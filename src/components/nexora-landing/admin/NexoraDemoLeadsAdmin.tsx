@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
-import { NEXORA_PUBLIC_ORIGIN } from '../../../lib/publicSeo';
+import { applyNoIndexMetadata, NEXORA_PUBLIC_ORIGIN } from '../../../lib/publicSeo';
 import '../nexoraLanding.css';
 
 type LeadStatus = 'new' | 'contacted' | 'qualified' | 'closed' | 'spam';
@@ -68,6 +68,10 @@ export function NexoraDemoLeadsAdmin() {
 
   const role = session?.user?.app_metadata?.site_role;
   const isManager = role === 'site_admin' || role === 'sales';
+
+  useEffect(() => {
+    applyNoIndexMetadata('Demo leads admin — NEXORA SalonOS');
+  }, []);
 
   useEffect(() => {
     let active = true;

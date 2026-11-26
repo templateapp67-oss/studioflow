@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
  * is `studioflow_customer_validate_ref` / `studioflow_customer_claim_ref`
  * (`backend/customer-referrals.sql`) and the customer reschedule is
  * `studioflow_android_reschedule`
- * (`supabase/migrations/202610300004_multibranch_support.sql`). Creating the
+ * (`supabase/pending-features/202610300004_multibranch_support.sql`). Creating the
  * requested names would have added a second, competing implementation of the
  * same operation, so the correct fix is to prove the existing contract instead:
  *
