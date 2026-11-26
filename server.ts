@@ -46,6 +46,8 @@ import {
   BOOKING_DEPOSIT_SCHEMA,
 } from "./server/httpValidation";
 import { canonicalHostRedirect } from "./server/canonicalHost";
+import { securityHeaders } from "./server/httpSecurityHeaders";
+import { isForbiddenStaticAsset } from "./server/staticGuard";
 import { robotsHeaderMiddleware, robotsTagForRequest } from "./server/robotsHeaders";
 import storefrontHandler, { resolveStorefrontSlug } from "./api/storefront";
 import { bookingDepositHandler } from "./server/bookingDeposit";
@@ -126,6 +128,13 @@ async function startServer() {
   // (`.vercel.app`, `.e2b.app`, localhost, IPs) are never redirected.
   app.use(canonicalHostRedirect());
   app.use(robotsHeaderMiddleware());
+  // Baseline security headers on every response — API JSON, prerendered HTML,
+  // static assets. vercel.json enforces the same values at the edge; the CSP
+  // here omits `upgrade-insecure-requests` so plain-http localhost keeps working.
+  app.use((_req, res, next) => {
+    for (const [name, value] of Object.entries(securityHeaders())) res.setHeader(name, value);
+    next();
+  });
 
   // Defence in depth behind asyncHandler: a stray rejection is logged instead of
   // taking the API down. See server/httpSafety.ts for the full rationale.
@@ -674,11 +683,18 @@ Return strictly valid JSON in this format:
           url.searchParams.has('customer_ref') || !resolveStorefrontSlug(url, 'localhost')) return next();
       void storefrontHandler(req, res).catch(next);
     });
-    // Source maps are build artifacts, not deployable assets. The build no
+    // Source maps, TypeScript sources, CommonJS output and server bundles are
+    // build artifacts / server-only files, never public assets. The build no
     // longer emits them (see `npm run build` and scripts/build-storefront-ssr.mjs);
     // this guard also covers a stale dist/ that still contains them.
-    app.use(/\.map$/, (_req, res) => {
-      res.status(404).type('text/plain').send('Not found');
+    app.use((req, res, next) => {
+      if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+      const pathname = (req.originalUrl.split('?')[0] || '').split('#')[0];
+      if (isForbiddenStaticAsset(pathname)) {
+        res.status(404).type('text/plain').send('Not found');
+        return;
+      }
+      next();
     });
     // `redirect: false` keeps the marketing documents on their canonical,
     // slash-free URLs. Without it `express.static` answers `/pricing` with a

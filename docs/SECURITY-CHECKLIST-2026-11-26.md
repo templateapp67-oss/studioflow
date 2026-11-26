@@ -553,6 +553,85 @@ Code-level follow-ups that close the remaining gaps called out in items 7 and 9:
    flow; it is recorded here because it is the one path that bypasses the
    normal AAL2 gate, time-boxed to 10 minutes and single-use per code.
 
+## Addendum 2026-11-27 (fourth pass): webhook replay/idempotency, strict headers, static bundle lockdown
+
+**Items 13 and 14 strengthened.**
+
+1. **Webhook replay protection + idempotency.** Signature verification on both
+   public webhooks is unchanged, but a signature proves the sender — not
+   freshness. Both webhooks now pass through the new
+   `public.processed_webhook_events` ledger (release-pending migration
+   `20261127090000_processed_webhook_events.sql`; **not applied from here**):
+   - `studioflow_claim_webhook_event()` runs **after** signature verification
+     and **before** any side effect. `(provider, event_id)` is unique; an
+     already-`processed` delivery is acknowledged as a duplicate without being
+     re-processed, a crashed `claimed` row is reclaimable only after 10
+     minutes, and a `failed` row may be retried.
+   - Event ids come from `x-razorpay-event-id` when present (Razorpay) else
+     `sha256(exact raw body)` — content addressing deduplicates identical
+     redeliveries without trusting any unsigned header (Meta has no event-id
+     header at all). Both are capped at 256 chars; body size caps (1 MB Meta,
+     20 KB payments) already bound the hash input.
+   - The **signed** `created_at` (Razorpay, root of the event body) and the
+     per-item signed `timestamp` (Meta messages/statuses) are checked against
+     `WEBHOOK_REPLAY_TOLERANCE_SECONDS` (default **300 s**, clamped
+     1..86400; documented in `.env.example`). Refused deliveries are recorded
+     as `stale` for audit and get a **400** — before any booking/payment/WhatsApp
+     side effect. Deliveries with `created_at` in the future beyond the same
+     tolerance are refused the same way. There is intentionally **no** check
+     on unsigned transport headers, and no deduplication is required from the
+     browser.
+   - `x-razorpay-event-id` was added to the `STUDIOFLOW` payments
+     preflight allow-header list (`x-razorpay-event-id`) so automated clients
+     sending it are not blocked by CORS preflight.
+   - Meta `whatsapp_business_account` batches whose freshest signed item is
+     stale are refused before iteration; an unprocessable batch is marked
+     `failed` in the ledger so Razorpay/Meta retries reach a retryable state.
+   - Ledger access is fail-closed: RLS enabled with **no policies**, **no
+     table grants** to any role; only `service_role` may execute the two RPCs.
+2. **Strict HTTP security headers in both edge and Node deployments.** Both
+   `vercel.json` (edge) and `server.ts` (Express, via the new
+   `server/httpSecurityHeaders.ts` shared with `scripts/verify-webhook-security.mjs`)
+   now enforce on every response: `Strict-Transport-Security: max-age=63072000;
+   includeSubDomains; preload`, `X-Content-Type-Options: nosniff`,
+   `X-Frame-Options: DENY` (upgraded from `SAMEORIGIN`; `frame-ancestors 'none'`
+   in CSP), `Referrer-Policy: strict-origin-when-cross-origin`,
+   `Permissions-Policy` (camera/microphone/geolocation/browsing-topics off;
+   fullscreen/autoplay limited to self + the YouTube/Vimeo embeds in the
+   CSP allowlist; `payment` delegated to `self` + Razorpay checkout origins),
+   and the same tight `Content-Security-Policy` in both places. The Express CSP
+   omits only `upgrade-insecure-requests` so plain-http localhost keeps working.
+3. **Static bundle exposure closed.** The previous guard 404'd only `*.map`.
+   The production static path now 404s, before `express.static`, any URL whose
+   path (case-insensitive) ends in `.ts`, `.tsx`, `.cts`, `.mts` (covers
+   `.d.ts`), `.cjs` or `.map`, plus `server.*` / `middleware.js` /
+   `vercel.json` / `vite.config.*` / `eslint.config.*` / `playwright.config.*` /
+   `tailwind.config.*` / `postcss.config.*`, any `dist-server/` or
+   `server-bundles/` segment, and `.env*` files. Public assets (`assets/*`,
+   `index.html`, icons, manifests) are unaffected; the guard is a pure
+   predicate in `server/staticGuard.ts`, unit-tested below. `veda-sanjeevani`
+   ships its own headers and is unaffected.
+4. **Tests.** `scripts/verify-webhook-security.mjs` covers the ledger RPC
+   semantics against PGlite (exactly-once claim, duplicate stays duplicate after
+   `processed`, stale/future refused and recorded, failed rows reclaimable,
+   crashed `claimed` rows reclaimable only after 10 minutes, RLS/grants/RPC
+   fail-closed contract, invalid provider rejected), the `webhookSecurity.ts`
+   helper (tolerance clamp, event-id resolution, RPC argument mapping,
+   fail-closed errors), vercel.json ↔ Express header parity and required-header
+   values, the static-guard predicate, webhook source ordering (signature
+   before claim, claim before any side effect), and the release-pending
+   manifest. `scripts/verify-security-policy.mjs` updated for DENY +
+   `frame-ancestors 'none'` + HSTS + Permissions-Policy. The BOLA/RLS offline
+   replay applies the new migration.
+   The offline runner picked up the new suite automatically; results are in the
+   final report.
+5. **Operator actions (hosted only):** apply the pending migration via the
+   protected manual workflow (it is registered in
+   `docs/integrations/restored-supabase-history.json` `release_pending_migrations`);
+   set `WEBHOOK_REPLAY_TOLERANCE_SECONDS` (default 300) if the default window is
+   not desired; complete external dashboard checks from item 13; request
+   `https://<host>/server.cjs` and `.map` after the next deploy to confirm 404.
+
 ## Not run / out of scope
 
 - `npm run test:live` (live Supabase; creates disposable accounts) — not run,

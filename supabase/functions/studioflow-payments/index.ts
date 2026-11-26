@@ -4,7 +4,8 @@ import {createClient} from 'npm:@supabase/supabase-js@2.117.3';
 import {signatureMatches,depositPaise,sameSecret} from './payment-security.ts';
 import {paymentLinkOrderKey,verifiedLinkPaymentId,verifyLinkPayment} from './payment-link-security.ts';
 import { browserCorsHeaders, isAllowedBrowserOrigin } from '../_shared/browserCors.ts';
-const PAYMENT_CORS_HEADERS = 'authorization,apikey,content-type,x-client-info,x-razorpay-signature,x-worker-token';
+import { claimWebhookEvent, finishWebhookEvent, resolveWebhookEventId, safeWebhookEventType, webhookReplayToleranceSeconds } from '../_shared/webhookSecurity.ts';
+const PAYMENT_CORS_HEADERS = 'authorization,apikey,content-type,x-client-info,x-razorpay-signature,x-razorpay-event-id,x-worker-token';
 
 function env(name:string){
   const value=Deno.env.get(name);
@@ -100,6 +101,28 @@ Deno.serve(async(req:Request)=>{
     if(webhookSignature){
       if(!creds.configured||!creds.webhookSecret)return respond({error:'Webhook configuration missing'},503);
       if(!await signatureMatches(creds.webhookSecret,raw,webhookSignature))return respond({error:'Invalid webhook signature'},401);
+      // Replay protection: the signature proves Razorpay sent the bytes, not that
+      // they are fresh. `created_at` is signed inside the body, so it cannot be
+      // refreshed by a replayer. Deliveries older than the tolerance are recorded
+      // as 'stale' and refused; identical redeliveries resolve to the same event id
+      // (x-razorpay-event-id, else sha256 of the raw body) and are never processed twice.
+      const tolerance = webhookReplayToleranceSeconds(env('WEBHOOK_REPLAY_TOLERANCE_SECONDS'));
+      const createdAtSeconds = Number(body?.created_at);
+      if(!Number.isSafeInteger(createdAtSeconds) || createdAtSeconds <= 0){
+        return respond({error:'Missing or invalid webhook timestamp (created_at).'},400);
+      }
+      const eventId = await resolveWebhookEventId(req.headers.get('x-razorpay-event-id'), raw);
+      let claim;
+      try {
+        claim = await claimWebhookEvent(service, { provider:'razorpay', eventId, eventType: safeWebhookEventType(body?.event), eventCreatedAtSeconds: createdAtSeconds, toleranceSeconds: tolerance });
+      } catch {
+        return respond({error:'Webhook idempotency ledger unavailable'},503);
+      }
+      if(!claim.claimed){
+        if(claim.reason==='duplicate')return respond({received:true,duplicate:true});
+        return respond({error:'Stale webhook event.',reason:claim.reason??'stale'},400);
+      }
+      try {
       if(body.event==='payment_link.paid'){
         const eventLink=body.payload?.payment_link?.entity;
         if(eventLink?.id&&eventLink.status==='paid'){
@@ -159,7 +182,12 @@ Deno.serve(async(req:Request)=>{
           if(order)await service.rpc('studioflow_complete_refund',{p_order:order.order_id,p_refund:refund.id||null,p_ok:body.event==='refund.processed',p_error:body.event==='refund.failed'?'refund.failed':null});
         }
       }
+      await finishWebhookEvent(service,'razorpay',eventId,'processed').catch(()=>{});
       return respond({received:true});
+      } catch (processingError) {
+        await finishWebhookEvent(service,'razorpay',eventId,'failed').catch(()=>{});
+        throw processingError;
+      }
     }
 
     const worker=req.headers.get('x-worker-token');

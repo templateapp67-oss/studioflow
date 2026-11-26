@@ -496,6 +496,10 @@ export async function createOfflineMigratedDb() {
   assert.equal(publishGrants.anon_private_publish,false,'anon cannot execute studioflow_private.publish()');
   assert.equal(publishGrants.auth_private_publish,true,'authenticated can execute studioflow_private.publish() via SECURITY INVOKER wrapper');
 
+  // Webhook replay protection ledger + claim/finish RPCs (service-role only).
+  const webhookLedgerFile='supabase/migrations/20261127090000_processed_webhook_events.sql';
+  await applySqlText(readFileSync(webhookLedgerFile,'utf8'),webhookLedgerFile);
+
   // NEXORA WhatsApp test mode: apply its private QA ledger and the follow-up
   // rename migration before the live-catalog scan. The limiter is intentionally
   // server-only (service_role grant only) and is not a browser-facing RPC.

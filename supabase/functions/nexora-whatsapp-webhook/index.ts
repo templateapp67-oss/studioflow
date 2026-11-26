@@ -2,6 +2,7 @@
 // Meta's signature is checked over the exact raw body before parsing.
 import { createClient } from 'npm:@supabase/supabase-js@2.117.3';
 import { browserCorsHeaders, isAllowedBrowserOrigin } from '../_shared/browserCors.ts';
+import { claimWebhookEvent, finishWebhookEvent, resolveWebhookEventId, webhookReplayToleranceSeconds } from '../_shared/webhookSecurity.ts';
 
 type Json = Record<string, any>;
 const GRAPH_VERSION = (Deno.env.get('META_GRAPH_API_VERSION') || 'v27.0').trim();
@@ -863,7 +864,40 @@ Deno.serve(async (req: Request) => {
       return json({ received: true, ignored: true });
     }
 
+    // Replay protection: the signature proves Meta sent the bytes, not that they
+    // are fresh. Meta has no event-id header, so the delivery is addressed by
+    // sha256(raw body) — an identical retry hashes identically and is never
+    // processed twice. The signed per-item timestamps drive the staleness gate;
+    // a delivery whose newest signed timestamp is older than the tolerance is
+    // recorded as 'stale' and refused before any side effect.
+    const eventTimestamps: number[] = [];
+    for (const entry of payload.entry as Json[]) {
+      for (const change of (Array.isArray(entry?.changes) ? entry.changes : []) as Json[]) {
+        const value = change?.value || {};
+        for (const m of (Array.isArray(value?.messages) ? value.messages : []) as Json[]) {
+          const t2 = Number(m?.timestamp); if (Number.isSafeInteger(t2) && t2 > 0) eventTimestamps.push(t2);
+        }
+        for (const s of (Array.isArray(value?.statuses) ? value.statuses : []) as Json[]) {
+          const t2 = Number(s?.timestamp); if (Number.isSafeInteger(t2) && t2 > 0) eventTimestamps.push(t2);
+        }
+      }
+    }
+    const freshest = eventTimestamps.length ? Math.max(...eventTimestamps) : null;
+    const tolerance = webhookReplayToleranceSeconds(env('WEBHOOK_REPLAY_TOLERANCE_SECONDS'));
+    const eventId = await resolveWebhookEventId(null, raw);
+    let claim;
+    try {
+      claim = await claimWebhookEvent(db, { provider: 'meta_whatsapp', eventId, eventType: 'whatsapp_webhook', eventCreatedAtSeconds: freshest, toleranceSeconds: tolerance });
+    } catch {
+      return json({ error: 'Webhook idempotency ledger unavailable.' }, 503);
+    }
+    if (!claim.claimed) {
+      if (claim.reason === 'duplicate') return json({ received: true, duplicate: true });
+      return json({ error: 'Stale WhatsApp webhook event.', reason: claim.reason ?? 'stale' }, 400);
+    }
+
     let processed = 0;
+    try {
     for (const entry of payload.entry as Json[]) {
       for (const change of (Array.isArray(entry.changes) ? entry.changes : []) as Json[]) {
         if (change.field !== 'messages') continue;
@@ -889,7 +923,12 @@ Deno.serve(async (req: Request) => {
         }
       }
     }
+    await finishWebhookEvent(db, 'meta_whatsapp', eventId, 'processed').catch(() => {});
     return json({ received: true, processed });
+    } catch (processingError) {
+      await finishWebhookEvent(db, 'meta_whatsapp', eventId, 'failed').catch(() => {});
+      throw processingError;
+    }
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : 'WhatsApp webhook processing failed.' }, 500);
   }

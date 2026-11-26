@@ -2064,6 +2064,10 @@
     {
       "file": "20261126143000_studioflow_mfa_recovery_codes.sql",
       "purpose": "Security hardening (2026-11-26): SHA-256 + per-code salt table for single-use MFA backup recovery codes, issue/count RPCs granted to authenticated with an AAL2 assertion (issue replaces the prior batch atomically), service-role-only consume/active RPCs for the Node recovery route (AAL1 callers are blocked by the pre-request hook), a per-account throttle of 10 attempts per 10 minutes via the shared studioflow_edge_rate_limit_claim limiter, a 30-day prune helper, and studioflow_private.mfa_session_allowed() replaced so that a 10-minute recovery window opened by a consumed code also satisfies the Data API pre-request hook and every AAL2 RLS policy. Consuming a code is the only supported way back into an account whose authenticator is lost. Retain behind the protected manual production migration workflow; do not auto-apply."
+    },
+    {
+      "file": "20261127090000_processed_webhook_events.sql",
+      "purpose": "Webhook replay protection (2026-11-27): service-role-only ledger public.processed_webhook_events that makes the Razorpay and Meta WhatsApp webhooks exactly-once at the delivery layer. studioflow_claim_webhook_event() atomically records the provider event id (or sha256 of the exact raw body when no provider id header is present), enforces the signed-timestamp staleness window (default 300s; refused deliveries recorded as 'stale'), reclaims crashed 'claimed' rows only after 10 minutes, and never re-claims a row that reached 'processed'. studioflow_finish_webhook_event() marks claimed rows processed/failed. RLS is enabled with no policies and no anon/authenticated/service_role table grants; only the two security-definer RPCs are executable, by service_role only. No production data is read, moved or modified. Retain behind the protected manual production migration workflow; do not auto-apply."
     }
   ],
   "reviewed_feature_migrations": [
