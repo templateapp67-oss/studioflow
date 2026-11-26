@@ -7,7 +7,7 @@ const probe = createServer();
 await new Promise((resolve, reject) => probe.once('error', reject).listen(0, '127.0.0.1', resolve));
 const port = probe.address().port;
 await new Promise(resolve => probe.close(resolve));
-const child = spawn(process.execPath, ['node_modules/tsx/dist/cli.mjs', 'server.ts', '--port', String(port)], {
+const child = spawn(process.execPath, ['--import', 'tsx', 'server.ts', '--port', String(port)], {
   env: { ...process.env, NODE_ENV: 'development', DISABLE_HMR: 'true' }, detached: true, stdio: ['ignore', 'pipe', 'pipe'],
 });
 let output = '';
@@ -47,5 +47,8 @@ try {
   assert.equal(runtime.injectQuery('/src/file.css?x=1#part', 'direct'), '/src/file.css?direct&x=1#part');
   console.log('PASS: DISABLE_HMR serves modules and CSS without a WebSocket client.');
 } finally {
-  try { process.kill(-child.pid, 'SIGTERM'); } catch { /* already exited */ }
+  try {
+    if (process.platform === 'win32') child.kill('SIGTERM');
+    else process.kill(-child.pid, 'SIGTERM');
+  } catch { /* already exited */ }
 }

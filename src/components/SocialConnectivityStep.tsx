@@ -3,6 +3,7 @@ import {createDemoVideos,showcaseVideos} from '../lib/showcaseVideos';
 import { socialUrl } from '../lib/websiteContent';
 import { uploadSalonImage } from '../lib/supabase';
 import { SocialVideoCoverField, type SocialVideoCoverMode } from './SocialVideoCoverField';
+import { TawkConnectionPanel } from './TawkConnectionPanel';
 import React, { useEffect, useState } from 'react';
 import { SalonProfile, SocialVideo, SocialVideoFormat, VideoCategoryTag } from '../types';
 
@@ -484,7 +485,10 @@ export const SocialConnectivityStep: React.FC<SocialConnectivityStepProps> = ({
             </div>
           </div>
 
-          {/* SUB-SECTION 2: SHOW YOUR WORK */}
+          {/* SUB-SECTION 2: SALON LIVE CHAT */}
+          <TawkConnectionPanel />
+
+          {/* SUB-SECTION 3: SHOW YOUR WORK */}
           <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white border border-purple-800/40 rounded-2xl p-5 sm:p-6 shadow-md flex flex-col gap-4 relative overflow-hidden">
             <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
               <span className="material-symbols-outlined text-9xl text-white">movie</span>

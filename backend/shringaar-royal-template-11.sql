@@ -24,7 +24,7 @@ set title = 'Shringaar Royal Indian Bridal Lounge',
       'ownerName', 'Anuradha Rathore',
       'ownerRole', 'Founder & Bridal Couture Director',
       'ownerPhotoUrl', '/templates/11/artist-anuradha.jpg',
-      'coverImageUrl', '/templates/11/hero-bride.jpg',
+      'coverImageUrl', '/templates/11/hero-bride.webp',
       'instagramHandle', '@shringaarroyal.jaipur',
       'subCategories', '["Bridal Makeup","Bridal Hair","Draping & Styling","Mehendi","Pre-Bridal Rituals"]'::jsonb,
       'themeStyle', '{

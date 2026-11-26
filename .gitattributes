@@ -1,0 +1,4 @@
+# Unified-diff patch files carry a single space on blank context lines. That
+# whitespace is required by `git apply`, so it must not be flagged or stripped.
+*.patch -whitespace
+*.diff -whitespace

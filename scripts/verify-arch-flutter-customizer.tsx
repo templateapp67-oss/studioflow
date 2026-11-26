@@ -861,7 +861,7 @@ console.log('PASS 7 · Drawer: 13 tabs, sticky Save/Discard/Undo/Redo/Reset/devi
  * 8 · Wiring + isolation from every other template
  * ================================================================== */
 const read = (path: string) => readFileSync(path, 'utf8');
-const cards = read('src/components/TemplatePreviewCards.tsx');
+const cards = read('src/components/TemplatePreviewModal.tsx');
 const landing = read('src/components/LandingPage.tsx');
 const app = read('src/App.tsx');
 const previewShell = read('src/components/SalonWebsitePreview.tsx');
@@ -912,7 +912,7 @@ const cssImporters = readdirSync('src/components', { recursive: true })
   .map((name) => String(name))
   .filter((name) => name.endsWith('.tsx') || name.endsWith('.ts'))
   .filter((name) => read(`src/components/${name}`).includes("customizer.css"));
-assert.deepEqual(cssImporters.sort(), ['arch-flutter-customizer/ArchFlutterCustomizer.tsx'], 'only the drawer imports the customizer stylesheet');
+assert.deepEqual(cssImporters.map((name) => name.replaceAll('\\', '/')).sort(), ['arch-flutter-customizer/ArchFlutterCustomizer.tsx'], 'only the drawer imports the customizer stylesheet');
 
 /* The customizer never reaches into another template's code. */
 const customizerFiles = [

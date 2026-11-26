@@ -1,1 +1,1 @@
-export { sitemapHandler as default } from "../server/sitemap";
+export { sitemapHandler as default } from "../server/sitemap.js";

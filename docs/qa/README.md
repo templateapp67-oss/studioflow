@@ -1,5 +1,15 @@
 # NEXORA public homepage QA
 
+Latest: [Pricing comparison table redesign — 2026-11-07](pricing-comparison-table-redesign-2026-11-07.md) (approved binary plan-entitlement matrix, green circled check / red circled cross status system, pale-red Standard column, accessible feature tooltips, shared table component for both pricing surfaces, 131/131 suites).
+
+Previous continuation: [PR #81 production hardening + quality gate — 2026-11-06](pr81-production-hardening-2026-11-06.md) (SEO origin pinned to nexorasalon.online, lazy owner editors, public-access-hardening migration file, sitemap custom-domain fix, quality-gate workflow, 120/120 suites, no deployment).
+
+Previous: [Accessibility contrast fix — 2026-11-06](accessibility-contrast-fix-2026-11-06.md) (BrowserStack `color-contrast` export: 17 confirmed + 69 indeterminate SC 1.4.3 findings fixed, new contrast regression suite, 120/120 suites, no deployment).
+
+Earlier: [End-to-end fix report — 2026-11-06](end-to-end-fix-2026-11-06.md) (auth/email/CSP/route fixes, 119/119 suites, no deployment).
+
+Earlier: [Production audit — 2026-11-06](production-audit-2026-11-06.md) (PR #79 baseline, Vercel rate-limit investigation, no deployment).
+
 Verified on 2026-11-05 against the signed-out `/`, `/login`, public template preview and template-aware signup handoff.
 
 ## Screenshots

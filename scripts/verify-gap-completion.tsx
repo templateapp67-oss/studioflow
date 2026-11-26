@@ -9,7 +9,7 @@ import {
   canonicalOrigin,
   generateSitemap,
   sitemapXml,
-  createSitemapHandler,
+  sitemapHandler,
 } from "../server/sitemap";
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 const store = new Map<string, string>();
@@ -90,8 +90,8 @@ assert.equal(
   canonicalOrigin("https://clinic.example/"),
   "https://clinic.example",
 );
-assert.equal(canonicalOrigin(undefined), "https://nexorasalon.online");
 for (const origin of [
+  undefined,
   "http://clinic.example",
   "https://user:pass@clinic.example",
   "https://clinic.example/path",
@@ -123,16 +123,21 @@ assert.ok(
     !xml.includes("module=") &&
     !xml.includes("recovery="),
 );
-assert.ok(sitemapXml("https://clinic.example", ["abc"]).includes("/?app=1"));
-const outageXml = await generateSitemap(
+const publicSitemap = sitemapXml("https://clinic.example", ["abc"]);
+assert.ok(publicSitemap.includes("https://clinic.example/template-pages/hair-salon.html"));
+assert.ok(!publicSitemap.includes("/?app=1"), "customer-app entry is excluded from search indexing");
+const fallbackSitemap = await generateSitemap(
   { SITE_URL: "https://clinic.example" },
-  (async () => ({ ok: false, status: 503 })) as any,
+  (async () => ({ ok: false })) as any,
 );
-assert.ok(outageXml.includes("https://clinic.example/"));
-assert.ok(outageXml.includes("https://clinic.example/?app=1"));
-assert.ok(!outageXml.includes("site=real-clinic"));
+assert.ok(fallbackSitemap.startsWith('<?xml version="1.0" encoding="UTF-8"?>'));
+assert.ok(fallbackSitemap.includes("https://clinic.example/"));
+assert.ok(!fallbackSitemap.includes("?site="), "catalogue failure falls back to fixed public pages only");
 const prior = process.env.SITE_URL;
+const priorViteSite = process.env.VITE_SITE_URL;
+const priorFetch = globalThis.fetch;
 delete process.env.SITE_URL;
+delete process.env.VITE_SITE_URL;
 let status = 200,
   body = "";
 const headers: Record<string, string> = {};
@@ -144,18 +149,19 @@ const res: any = {
   setHeader: (k: string, v: string) => (headers[k] = v),
   send: (s: string) => (body = s),
 };
-const simulatedHandler = createSitemapHandler({}, (async () => {
-  throw new Error("simulated public catalogue outage");
-}) as any);
-await simulatedHandler({}, res);
-assert.equal(status, 200);
+globalThis.fetch = (async () => ({ ok: false, status: 503 }) as Response) as typeof fetch;
+await sitemapHandler({}, res);
+assert.equal(status, 200, "a catalogue outage still serves the fixed public sitemap");
 assert.equal(headers["Content-Type"], "application/xml; charset=utf-8");
 assert.equal(headers["Cache-Control"], "public, max-age=300, s-maxage=300");
-assert.ok(body.startsWith('<?xml'));
-assert.ok(body.includes("https://nexorasalon.online/"));
-assert.ok(!body.includes("<html"));
+assert.ok(body.startsWith('<?xml version="1.0" encoding="UTF-8"?>'));
+assert.ok(body.includes("<url><loc>https://nexorasalon.online/</loc></url>"));
+assert.ok(body.endsWith("</urlset>"));
 if (prior === undefined) delete process.env.SITE_URL;
 else process.env.SITE_URL = prior;
+if (priorViteSite === undefined) delete process.env.VITE_SITE_URL;
+else process.env.VITE_SITE_URL = priorViteSite;
+globalThis.fetch = priorFetch;
 const css = readFileSync("src/components/customer/touch-targets.css", "utf8");
 assert.ok(css.includes("min-height:44px"));
 assert.ok(css.includes(".cr-app.cr-zip-ui .cr-dots button"));
@@ -168,5 +174,5 @@ const pkg = JSON.parse(readFileSync("package.json", "utf8")),
   lock = JSON.parse(readFileSync("package-lock.json", "utf8"));
 assert.deepEqual(lock.packages[""].dependencies, pkg.dependencies);
 console.log(
-  "PASS: announcement lifecycle, dismissal/remount, expired campaigns, safe actions; sitemap canonical URLs/public-only catalogue/error handling; target CSS order; manifest-lock consistency. No browser sizing or live provider claims.",
+  "PASS: announcement lifecycle, dismissal/remount, expired campaigns, safe actions; sitemap canonical URLs, public-only catalogue and XML fallback; target CSS order; manifest-lock consistency. No browser sizing or live provider claims.",
 );

@@ -19,7 +19,7 @@ export const PINKY_NAILS_PALETTE = {
 } as const;
 
 export const PINKY_NAILS_IMAGES = {
-  heroArtist: '/templates/pinky-nails/hero-nail-artist.jpg',
+  heroArtist: '/templates/pinky-nails/hero-nail-artist.webp',
   nailArtCloseup: '/templates/pinky-nails/nail-art-closeup.jpg',
   manicureTreatment: '/templates/pinky-nails/manicure-treatment.jpg',
   studioInterior: '/templates/pinky-nails/studio-interior.jpg',
@@ -96,10 +96,10 @@ export const PINKY_NAILS_COPY = {
   gallerySubtitle: 'Take a look at nail designs, colours and finishes.',
   teamTitle: 'Meet Our Nail Artists',
   teamSubtitle: 'Meet the team that helps you get the nail look you love.',
-  reviewsTitle: 'Love from Our Clients',
-  reviewsSubtitle: 'Real reviews shared by clients of the studio.',
-  bookingEyebrow: 'READY FOR YOUR NEXT NAIL LOOK?',
-  bookingTitle: "Let's Make Your Nails Beautiful",
+  reviewsTitle: 'Kind words from our clients',
+  reviewsSubtitle: 'See what our clients say about their visits.',
+  bookingEyebrow: 'READY FOR A FRESH NAIL LOOK?',
+  bookingTitle: 'Let’s find your next nail look',
   bookingDescription: 'Book your favourite nail service and give yourself a little care.',
   contactTitle: 'Visit Pinky Nails Studio',
   contactSubtitle: 'We look forward to welcoming you to our studio.',
@@ -151,12 +151,14 @@ export function hasOwnerCustomNailPhoto(profile: SalonProfile): boolean {
 
 export function hasOwnerCustomNailTagline(profile: SalonProfile): boolean {
   const tagline = profile.tagline?.trim();
+  if (tagline && profile.taglineEditedByOwner === true) return true;
   if (!tagline || isLegacyNailStudioStockTagline(tagline)) return false;
   return !Object.values(CATEGORY_TEMPLATES).some((t) => (t.tagline || '').trim() === tagline);
 }
 
 export function hasOwnerCustomNailAbout(profile: SalonProfile): boolean {
   const about = profile.about?.trim();
+  if (about && profile.aboutEditedByOwner === true) return true;
   if (!about) return false;
   return !Object.values(CATEGORY_TEMPLATES).some(
     (t) => t.id !== 'nail_studio' && (t.about || '').trim() === about,

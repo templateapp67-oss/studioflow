@@ -1,0 +1,19 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "@id": "https://nexorasalon.online/#organization",
+  "name": "NEXORA Salon OS",
+  "url": "https://nexorasalon.online/",
+  "description": "A salon website builder and business-management platform for salons, spas and beauty businesses.",
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "contactType": "customer support",
+    "telephone": "+91 7852877721",
+    "url": "https://wa.me/917852877721"
+  },
+  "editorialProfile": "https://nexorasalon.online/about#editorial-team",
+  "helpCentre": "https://nexorasalonos.tawk.help/",
+  "physicalAddress": null,
+  "socialProfiles": [],
+  "directoryListingStatus": "Not submitted; profile prepared from verified public details only."
+}

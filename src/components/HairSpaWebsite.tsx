@@ -1,3 +1,5 @@
+import './hairSpaWebsite.css';
+import '../keshPrakriti.css';
 import { useEffect, useRef, useState } from "react";
 import { useReducedMotion, useScroll, useTransform } from "motion/react";
 import type { SalonProfile, SalonService, Stylist } from "../types";

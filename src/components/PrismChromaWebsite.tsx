@@ -1,3 +1,4 @@
+import './prismChroma.css';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from 'framer-motion';
 import {

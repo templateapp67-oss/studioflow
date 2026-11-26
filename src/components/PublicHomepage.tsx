@@ -9,16 +9,16 @@ import {
   Images,
   IndianRupee,
   LayoutTemplate,
-  Menu,
+  MessageCircle,
   MonitorSmartphone,
   Rocket,
   Sparkles,
   Star,
   UsersRound,
   WandSparkles,
-  X,
 } from 'lucide-react';
-import { CATEGORY_TEMPLATES } from '../categoryTemplates';
+import { NEXORA_PUBLIC_TEMPLATES, NEXORA_PUBLIC_TEMPLATES_BY_ID } from '../lib/nexoraPublicTemplates';
+import { applyPublicSeoMetadata, NEXORA_HOME_SEO } from '../lib/publicSeo';
 import {
   NEXORA_CATEGORIES,
   nexoraCategoryFilters,
@@ -28,9 +28,15 @@ import {
 import type { BusinessTypeId } from '../types';
 import { NexoraTemplateLibrary } from './nexora/NexoraTemplateLibrary';
 import { CategoryIconTile, NexoraBrandMark } from './nexora/NexoraBrand';
-const TemplatePreviewModal = lazy(() => import('./TemplatePreviewCards').then((module) => ({ default: module.TemplatePreviewModal })));
+import { SiteHeader } from './nexora-landing/sections/SiteHeader';
+import { NexoraBreadcrumbs } from './nexora-landing/sections/NexoraBreadcrumbs';
+import { HoverCard } from './nexora-pricing/table/FeatureInfoTooltip';
+import { NEXORA_OFFICIAL_WHATSAPP_URL } from '../lib/whatsappContact';
+import { NEXORA_KNOWLEDGE_BASE_URL } from '../lib/nexoraSupport';
 import { LUXURY_EDITORIAL_IMAGES } from '../lib/luxuryEditorial';
 import './publicHomepage.css';
+
+const TemplatePreviewModal = lazy(() => import('./TemplatePreviewModal').then((module) => ({ default: module.TemplatePreviewModal })));
 
 export const PUBLIC_SIGNUP_PATH = '/login?auth=signup';
 
@@ -41,11 +47,40 @@ export function templateSignupPath(templateId?: BusinessTypeId) {
 }
 
 const navigation = [
+  { label: 'Partner Rewards', href: '/partner-rewards' },
+  { label: 'Salon OS', href: '/salon-os' },
+  { label: 'Privacy', href: '/privacy' },
+  { label: 'About NEXORA', href: '/about' },
   { label: 'Categories', href: '#salon-categories' },
   { label: '16 Templates', href: '#nexora-template-library' },
   { label: 'How It Works', href: '#how-it-works' },
   { label: 'Features', href: '#features' },
+  { label: 'Pricing', href: '/pricing' },
+  { label: 'Help Centre', href: NEXORA_KNOWLEDGE_BASE_URL },
 ];
+
+const moreLinks = [
+  { label: 'Salon Onboarding', href: '/salon-onboarding' },
+  { label: 'Salon Growth', href: '/salon-growth' },
+  { label: 'Growth Partner Rewards', href: '/growth-partner-rewards' },
+  { label: 'Partner Rewards & Recognition', href: '/partner-rewards' },
+];
+
+const homepageWhatsAppAction = {
+  label: 'WhatsApp',
+  compactLabel: 'Chat with NEXORA on WhatsApp',
+  className: 'nexora-site-header__secondary--whatsapp',
+  href: NEXORA_OFFICIAL_WHATSAPP_URL,
+  ariaLabel: 'Chat with NEXORA on WhatsApp',
+  target: '_blank',
+  rel: 'noopener noreferrer',
+  icon: <MessageCircle size={16} aria-hidden="true" />,
+  dataAttribute: {
+    name: 'data-nexora-whatsapp-cta',
+    desktopValue: 'desktop-header',
+    compactValue: 'mobile-menu',
+  },
+};
 
 const steps = [
   {
@@ -125,21 +160,42 @@ function PublicBrand() {
 
 /** Public marketing homepage, also shown to authenticated owners at the site root. All template content comes from the existing registry. */
 export function PublicHomepage({ authenticated = false }: { authenticated?: boolean } = {}) {
-  const templates = sortTemplatesByPriority(Object.values(CATEGORY_TEMPLATES));
+  const templates = sortTemplatesByPriority(NEXORA_PUBLIC_TEMPLATES);
   const categoryFilters = nexoraCategoryFilters(templates).slice(1);
   const [activeCategory, setActiveCategory] = useState('all');
   const [previewId, setPreviewId] = useState<BusinessTypeId | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [footerVisible, setFooterVisible] = useState(false);
   const closePreview = useCallback(() => setPreviewId(null), []);
 
   useEffect(() => {
-    if (!menuOpen) return;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setMenuOpen(false);
-    };
-    window.addEventListener('keydown', closeOnEscape);
-    return () => window.removeEventListener('keydown', closeOnEscape);
-  }, [menuOpen]);
+    applyPublicSeoMetadata(NEXORA_HOME_SEO);
+  }, []);
+
+  useEffect(() => {
+    const footer = document.querySelector('.public-homepage footer');
+    if (!footer) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setFooterVisible(Boolean(entry?.isIntersecting)),
+      { threshold: 0.08 },
+    );
+    observer.observe(footer);
+    return () => observer.disconnect();
+  }, []);
+
+  // AiSensy website widget for the NEXORA public homepage only.
+  // Keep this out of published salon sites, auth flows and the customer app.
+  useEffect(() => {
+    if (window.location.hostname !== 'nexorasalon.online') return;
+    if (document.getElementById('aisensy-wa-widget')) return;
+
+    const script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.src = 'https://d3mkw6s8thqya7.cloudfront.net/integration-plugin.js';
+    script.id = 'aisensy-wa-widget';
+    script.setAttribute('widget-id', 'aabu3u');
+    document.body.appendChild(script);
+  }, []);
 
   const scrollToLibrary = useCallback(() => {
     const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -163,61 +219,33 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
     setPreviewId(templateId);
   }, []);
 
-  const heroTemplate = CATEGORY_TEMPLATES.hair_salon;
+  const heroTemplate = NEXORA_PUBLIC_TEMPLATES_BY_ID.hair_salon;
 
   return (
     <div className="public-homepage min-h-screen bg-surface font-body-md text-on-surface antialiased">
-      <header className="sticky top-0 z-50 border-b border-[#E4DCCB]/80 bg-white/95 backdrop-blur-xl">
-        <div className="mx-auto flex min-h-[76px] max-w-[1440px] items-center gap-4 px-4 py-3 sm:px-6 lg:px-10">
-          <a href="/" aria-label="NEXORA Salon OS home" className="shrink-0 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#7A4E8F]">
-            <PublicBrand />
-          </a>
+      <a className="public-skip-link" href="#public-main-content">Skip to main content</a>
+      <SiteHeader
+        appearance="homepage"
+        brand={<PublicBrand />}
+        links={navigation}
+        mobileLinks={navigation}
+        overflowLinks={moreLinks}
+        overflowLabel="MORE"
+        secondaryAction={homepageWhatsAppAction}
+        currentPath="/"
+        primaryAction={{
+          label: authenticated ? 'Open Workspace' : 'Get Started',
+          href: authenticated ? '/login' : PUBLIC_SIGNUP_PATH,
+        }}
+        showLogin
+        loginHref="/login"
+        loginLabel={authenticated ? 'Owner Workspace' : 'Sign In'}
+        authenticated={authenticated}
+        menuOpen={menuOpen}
+        onMenuOpenChange={setMenuOpen}
+      />
 
-          <nav aria-label="Main navigation" className="ml-auto hidden items-center gap-1 lg:flex">
-            {navigation.map((item) => (
-              <a key={item.href} href={item.href} className="rounded-lg px-3 py-2.5 text-sm font-semibold text-[#4A4058] transition hover:bg-[#F6F1E6] hover:text-[#2A1E4A] focus-visible:outline-2 focus-visible:outline-[#7A4E8F]">
-                {item.label}
-              </a>
-            ))}
-          </nav>
-
-          <div className="ml-auto flex items-center gap-2 lg:ml-3">
-            <a href="/login" className="hidden min-h-[44px] items-center rounded-xl px-4 text-sm font-bold text-[#2A1E4A] transition hover:bg-[#F6F1E6] focus-visible:outline-2 focus-visible:outline-[#7A4E8F] sm:inline-flex">
-              {authenticated ? 'Owner Workspace' : 'Sign In'}
-            </a>
-            <a href={authenticated ? '/login' : PUBLIC_SIGNUP_PATH} className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl bg-primary px-4 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition hover:bg-primary-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:px-5">
-              {authenticated ? 'Open Workspace' : 'Get Started'} <ArrowRight size={15} aria-hidden="true" />
-            </a>
-            <button
-              type="button"
-              aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
-              aria-expanded={menuOpen}
-              aria-controls="public-mobile-navigation"
-              onClick={() => setMenuOpen((open) => !open)}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#E4DCCB] bg-white text-[#2A1E4A] transition hover:bg-[#FBF8F2] focus-visible:outline-2 focus-visible:outline-[#7A4E8F] lg:hidden"
-            >
-              {menuOpen ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
-            </button>
-          </div>
-        </div>
-
-        {menuOpen && (
-          <nav id="public-mobile-navigation" aria-label="Mobile navigation" className="border-t border-[#E4DCCB] bg-white px-4 py-4 shadow-xl lg:hidden">
-            <div className="mx-auto grid max-w-[1440px] gap-1">
-              {navigation.map((item) => (
-                <a key={item.href} href={item.href} onClick={() => setMenuOpen(false)} className="flex min-h-[46px] items-center justify-between rounded-xl px-3 text-sm font-bold text-[#3F3550] hover:bg-[#F6F1E6]">
-                  {item.label} <ArrowRight size={15} aria-hidden="true" />
-                </a>
-              ))}
-              <a href="/login" className="mt-2 inline-flex min-h-[46px] items-center justify-center rounded-xl border border-[#D9CFBC] px-4 text-sm font-bold text-[#2A1E4A] hover:bg-[#FBF8F2] sm:hidden">
-                {authenticated ? 'Owner Workspace' : 'Sign In'}
-              </a>
-            </div>
-          </nav>
-        )}
-      </header>
-
-      <main>
+      <main id="public-main-content">
         {/* 1 · Premium hero — keeps the real NEXORA template and signup flows */}
         <section aria-labelledby="public-home-title" className="relative isolate overflow-hidden border-b border-[#E9DED5] bg-[#FBF7F3]">
           <div aria-hidden="true" className="pointer-events-none absolute -right-32 -top-36 h-[460px] w-[460px] rounded-full bg-[#EBCFC9]/35 blur-3xl" />
@@ -228,20 +256,50 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
                 <Sparkles size={14} aria-hidden="true" className="text-[#9C566F]" />
                 Your salon. Your website. Your brand.
               </div>
+              <NexoraBreadcrumbs path="/" />
               <h1 id="public-home-title" className="max-w-[680px] font-display text-[2.35rem] font-extrabold leading-[1.08] tracking-[-0.035em] text-[#251A24] sm:text-5xl lg:text-[3.3rem] xl:text-[3.7rem]" style={{ textWrap: 'balance' }}>
-                NEXORA Salon Website Builder & Management Software
+                Build your salon website and manage appointments, customers, billing and more.
               </h1>
               <p className="mt-5 max-w-xl text-base leading-7 text-[#51434D] sm:text-lg sm:leading-8">
                 Choose a ready-made NEXORA design, add your services and business details, and give customers a simple way to explore your salon and book appointments.
               </p>
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                <a href="#nexora-template-library" className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-[#302033] px-6 text-sm font-bold text-white shadow-lg shadow-[#302033]/15 transition hover:-translate-y-0.5 hover:bg-[#48304A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8C4D67]">
-                  Explore 16 Templates <ArrowRight size={17} aria-hidden="true" />
-                </a>
+                <HoverCard
+                  label="NEXORA Template Library link preview"
+                  className="public-homepage__template-preview"
+                  trigger={(
+                    <a href="#nexora-template-library" className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-[#302033] px-6 text-sm font-bold text-white shadow-lg shadow-[#302033]/15 transition hover:-translate-y-0.5 hover:bg-[#48304A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8C4D67]">
+                      Explore 16 Templates <ArrowRight size={17} aria-hidden="true" />
+                    </a>
+                  )}
+                >
+                  <div className="public-homepage__template-preview-card">
+                    <span className="nx-hover-card__eyebrow">This page · section preview</span>
+                    <h2 className="nx-hover-card__title">NEXORA Template Library</h2>
+                    <p className="nx-hover-card__summary">Browse salon, spa and beauty-business website designs before choosing a template.</p>
+                    <div className="nx-hover-card__meta" aria-label="Library contents">
+                      <span>16 templates</span>
+                      <span>15 categories</span>
+                    </div>
+                    <a className="nx-hover-card__action" href="#nexora-template-library">
+                      Browse the library <ArrowRight size={14} aria-hidden="true" />
+                    </a>
+                  </div>
+                </HoverCard>
                 <a href={authenticated ? '/login' : PUBLIC_SIGNUP_PATH} className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl border border-[#A96A7E] bg-white px-6 text-sm font-bold text-[#39263A] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#FFF9F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8C4D67]">
                   {authenticated ? 'Open Workspace' : 'Get Started'} <Rocket size={16} aria-hidden="true" />
                 </a>
               </div>
+              <a
+                data-nexora-whatsapp-cta="hero"
+                href={NEXORA_OFFICIAL_WHATSAPP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-4 inline-flex min-h-[40px] self-start items-center gap-2 rounded-lg px-1 text-sm font-semibold text-[#623D4D] transition hover:text-[#2A1E4A] hover:underline hover:underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8C4D67] sm:mt-2"
+              >
+                <MessageCircle size={17} aria-hidden="true" />
+                Questions? Chat with NEXORA on WhatsApp
+              </a>
               <ul className="mt-7 flex flex-wrap gap-x-5 gap-y-3 text-xs font-semibold text-[#51434D]" aria-label="NEXORA product features">
                 <li className="inline-flex items-center gap-1.5">
                   <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#F1E1E4] text-[#743D55]"><Check size={12} strokeWidth={3} aria-hidden="true" /></span>
@@ -272,8 +330,8 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
                   <img
                     src="/templates/luxury-editorial/hero-fallback.jpg"
                     alt={LUXURY_EDITORIAL_IMAGES.hero.alt}
-                    width={LUXURY_EDITORIAL_IMAGES.hero.width}
-                    height={LUXURY_EDITORIAL_IMAGES.hero.height}
+                    width={288}
+                    height={360}
                     loading="eager"
                     fetchPriority="high"
                     decoding="async"
@@ -281,16 +339,19 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
                   />
                 </picture>
                 <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#241820]/75 via-[#241820]/5 to-transparent" />
-                <div className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-full border border-white/65 bg-white/95 px-3 py-2 text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#39263A] shadow-md sm:left-5 sm:top-5">
+                <div className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-full border border-[#E5D5CD] bg-white px-3 py-2 text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#39263A] shadow-md sm:left-5 sm:top-5">
                   <span className="h-2 w-2 rounded-full bg-[#9C566F]" aria-hidden="true" />
                   NEXORA · Featured design
                 </div>
-                <div className="absolute inset-x-4 bottom-5 text-white sm:inset-x-6 sm:bottom-7">
+                {/* Opaque caption panel: text over a photo scrim can never be measured
+                    by axe-core, and the scrim alone cannot guarantee 4.5:1 on every
+                    image. A solid panel makes the contrast fixed and verifiable. */}
+                <div className="absolute inset-x-3 bottom-3 rounded-2xl bg-[#241820] px-4 py-3 text-white shadow-lg sm:inset-x-4 sm:bottom-4 sm:px-5 sm:py-4">
                   <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#F5DDE4]">Haircut Studio · Template 01</p>
                   <h2 className="mt-1 max-w-[520px] font-display text-2xl font-bold leading-tight sm:text-3xl">
                     {nexoraDisplayName('hair_salon', heroTemplate.title)}
                   </h2>
-                  <p className="mt-2 max-w-md text-sm leading-6 text-white/95">
+                  <p className="mt-2 max-w-md text-sm leading-6 text-[#F0E7EB]">
                     A real website design to preview, personalise and make your own.
                   </p>
                 </div>
@@ -305,7 +366,10 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
                   <Eye size={15} aria-hidden="true" /> Open interactive preview
                 </button>
               </div>
-              <div className="pointer-events-none absolute -right-2 -top-3 hidden items-center gap-2 rounded-2xl border border-[#E5D5CD] bg-white px-3.5 py-3 shadow-xl sm:flex lg:-right-4">
+              {/* z-10 keeps this badge in its own layer above the isolated hero photo —
+                  without it axe-core treats the photo as painting over the badge text
+                  and reports the background as overlapped. */}
+              <div className="pointer-events-none absolute -right-2 -top-3 z-10 hidden items-center gap-2 rounded-2xl border border-[#E5D5CD] bg-white px-3.5 py-3 shadow-xl sm:flex lg:-right-4">
                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-[#F7E9EB] text-[#743D55]"><Clock3 size={17} aria-hidden="true" /></span>
                 <span><strong className="block text-xs text-[#251A24]">Simple guided setup</strong><span className="text-[10px] text-[#62515B]">No code needed</span></span>
               </div>
@@ -413,13 +477,28 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
                 </article>
               ))}
             </div>
-            <div className="mt-10 flex flex-col items-center justify-between gap-5 rounded-2xl border border-[#E4DCCB] bg-gradient-to-r from-[#F6F1E6] to-[#FBF8F2] p-6 sm:flex-row sm:p-7">
+            <div className="mt-10 flex flex-col items-center justify-between gap-5 rounded-2xl border border-[#E4DCCB] bg-[#F6F1E6] p-6 sm:flex-row sm:p-7">
               <div className="flex items-start gap-3 text-center sm:text-left">
                 <span className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-primary shadow-sm sm:inline-flex"><Star size={21} aria-hidden="true" /></span>
                 <div><p className="font-display text-lg font-extrabold text-[#1B1630]">Your next salon website starts here.</p><p className="mt-1 text-sm text-[#5B5470]">Explore every template freely, then customise when you are ready.</p></div>
               </div>
               <a href="#nexora-template-library" className="inline-flex min-h-[46px] shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary-container">Explore Templates <ArrowRight size={15} aria-hidden="true" /></a>
             </div>
+          </div>
+        </section>
+        <section className="border-y border-[#E9DED5] bg-[#FBF7F3] px-4 py-14 sm:px-6 lg:px-10" aria-labelledby="ecosystem-heading">
+          <div className="mx-auto max-w-[1440px]">
+            <div className="rounded-2xl bg-[#FBF7F3] p-4 sm:p-5">
+            <p className="text-xs font-extrabold uppercase tracking-[.2em] text-[#8C4D67]">NEXORA SALONOS</p>
+            <h2 id="ecosystem-heading" className="mt-3 max-w-3xl font-display text-3xl font-black text-[#1B1630] sm:text-4xl">Apne Business Ko Next Level Par Le Jaiye.</h2>
+            <p className="mt-4 max-w-3xl leading-7 text-[#5B5470]">Nexora SalonOS helps Indian salons build their digital identity, manage customer relationships and organise their business through one connected platform.</p>
+            <div className="mt-7 flex flex-wrap gap-3"><a href="/salon-growth" className="rounded-xl bg-[#302033] px-5 py-3 text-sm font-bold text-white">Explore Salon Growth</a><a href="#nexora-template-library" className="rounded-xl border border-[#A96A7E] bg-white px-5 py-3 text-sm font-bold text-[#39263A]">Explore Salon Website Templates</a><a href={authenticated ? '/login' : PUBLIC_SIGNUP_PATH} className="rounded-xl border border-[#D9CFBC] px-5 py-3 text-sm font-bold text-[#39263A]">{authenticated ? 'Open Workspace' : 'Get Started'}</a></div>
+            </div>
+            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{[
+              ['Digital salon branding', '/salon-onboarding'], ['Online booking & availability', '/salon-growth'], ['Customer management & recall', '/salon-growth'], ['Birthday and loyalty workflows', '/salon-growth'], ['Salon QR experience', '/salon-growth'], ['Customer discovery', '/salon-growth'], ['Salon business growth', '/salon-growth'], ['Growth Partner rewards', '/growth-partner-rewards'], ['NEXORA Partner Rewards & Jaipur Awards', '/partner-rewards'],
+            ].map(([label, href]) => <a key={label} href={href} className="rounded-xl border border-[#E4DCCB] bg-white p-5 font-bold text-[#3F3550] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">{label} <span aria-hidden="true">↗</span></a>)}</div>
+            <div className="mt-8 rounded-2xl bg-white p-6 shadow-sm"><div className="flex flex-wrap items-center justify-between gap-4"><div><h3 className="text-xl font-extrabold text-[#1B1630]">Growth Partner Rewards</h3><p className="mt-1 text-sm text-[#5B5470]">Explore programme milestones and eligibility terms.</p></div><a href="/growth-partner-rewards" className="rounded-xl bg-[#F6F1E6] px-5 py-3 text-sm font-bold text-[#2A1E4A]">Explore Growth Partner Rewards →</a></div></div>
+            <div className="mt-5 grid grid-cols-1 min-w-0 gap-6 overflow-hidden rounded-3xl border border-[#E6D8E4] bg-[#24172D] p-5 text-white shadow-xl lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:p-8"><div className="rounded-2xl bg-[#24172D] p-2"><p className="text-xs font-black uppercase tracking-[.22em] text-[#F0C77E]">NEXORA TOP SALON JAIPUR AWARDS</p><h3 className="mt-3 max-w-2xl text-2xl font-black sm:text-3xl">Your Growth Deserves Recognition.</h3><p className="mt-3 max-w-2xl text-sm leading-6 text-[#F0E5EF]">Earn NEXORA-branded partner rewards, register for the fixed 90-day Jaipur salon competition and view verified competitor report cards.</p><a href="/partner-rewards" className="mt-5 inline-flex min-h-[46px] items-center gap-2 rounded-xl bg-[#E9C17A] px-5 py-3 text-sm font-black text-[#24172D] shadow-lg hover:bg-[#F5D69B]">Explore Partner Rewards & Recognition <ArrowRight size={15} aria-hidden="true" /></a></div><img className="w-full rounded-2xl border border-white/20" style={{ width: '100%', maxWidth: '100%', height: 'auto' }} src="/nexora-jaipur-awards/top-salon-jaipur-awards.svg" alt="NEXORA Top Salon Jaipur Awards poster" width="1600" height="1000" loading="lazy" decoding="async" /></div>
           </div>
         </section>
       </main>
@@ -459,12 +538,53 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
               </div>
             </nav>
           </div>
-          <div className="flex flex-col gap-3 pt-7 text-xs text-[#AFA5BC] sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-8 flex flex-col gap-3 rounded-2xl border border-white/15 bg-white/5 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-extrabold uppercase tracking-[0.15em] text-[#E9C98E]">Contact NEXORA</p>
+            <p className="mt-1 text-sm font-semibold text-white">Questions about NEXORA Salon OS? Chat with our team.</p>
+            <p className="mt-1 text-xs text-[#C8C0D3]">+91 7852877721</p>
+          </div>
+          <a
+            href={NEXORA_KNOWLEDGE_BASE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-[46px] shrink-0 items-center justify-center rounded-xl border border-white/25 px-5 text-sm font-bold text-white transition hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E9C98E]"
+          >
+            Help Centre
+          </a>
+          <a
+            data-nexora-whatsapp-cta="footer"
+            href={NEXORA_OFFICIAL_WHATSAPP_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-[46px] shrink-0 items-center justify-center gap-2 self-start rounded-xl bg-[#25D366] px-5 text-sm font-extrabold text-[#103B20] shadow-sm transition hover:bg-[#58E68A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E9C98E] sm:self-auto"
+          >
+            <MessageCircle size={18} aria-hidden="true" />
+            WhatsApp Support
+            <ArrowRight size={15} aria-hidden="true" />
+          </a>
+        </div>
+        <div className="flex flex-col gap-3 pt-7 text-xs text-[#AFA5BC] sm:flex-row sm:items-center sm:justify-between">
             <p>© 2026 NEXORA Salon OS. Your brand, your business.</p>
             <p>Made for salons, spas and beauty professionals.</p>
           </div>
         </div>
       </footer>
+
+      {!menuOpen && !previewId && !footerVisible && (
+        <a
+          data-nexora-whatsapp-cta="floating"
+          className="nexora-whatsapp-fab"
+          href={NEXORA_OFFICIAL_WHATSAPP_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Chat with NEXORA on WhatsApp"
+          title="Chat with NEXORA on WhatsApp"
+        >
+          <MessageCircle size={25} strokeWidth={2.2} aria-hidden="true" />
+          <span className="sr-only">Chat with NEXORA on WhatsApp</span>
+        </a>
+      )}
 
       {previewId && (
         <Suspense fallback={<div role="status" aria-live="polite" className="sr-only">Loading interactive template preview…</div>}>

@@ -24,6 +24,9 @@ import {
   MENS_CATEGORIES,
   MENS_DEFAULTS,
   MENS_LOYALTY,
+  MENS_HERO,
+  MENS_HERO_MOBILE,
+  MENS_INTERIOR,
 } from "../src/lib/keshkraft";
 import { seedTemplatePackages } from "../src/lib/packageCatalogue";
 import { normalizeWorkspace } from "../src/lib/normalizeWorkspace";
@@ -69,6 +72,17 @@ for (const s of MENS_SERVICES) {
   assert.ok(s.durationMinutes > 0);
   assert.ok(existsSync("public" + s.imageUrl));
 }
+// Inventory requests are not all live URLs. Guard every shipped default hero,
+// staff image, visible gallery item, and visible reference video/thumbnail.
+for (const url of [
+  MENS_HERO, MENS_HERO_MOBILE, MENS_INTERIOR,
+  ...MENS_STAFF.map((staff) => staff.avatarUrl),
+  ...MENS_DEFAULTS.gallery.filter((item) => item.visible).map((item) => item.url),
+  ...MENS_DEFAULTS.videos.filter((item) => item.visible).flatMap((item) => [item.url, item.thumbnail]),
+]) {
+  assert.ok(url && url.startsWith('/templates/15/') && existsSync('public' + url), `Template 15 visible default asset exists: ${url}`);
+}
+assert.ok(MENS_DEFAULTS.videos.filter((item) => !item.isAnimatedReference).every((item) => !item.visible && !item.url), 'unavailable process footage stays hidden and has no URL');
 const contaminated = [
   ...MENS_SERVICES,
   ...CATEGORY_TEMPLATES.hair_salon.services,
@@ -175,7 +189,7 @@ const html = renderToStaticMarkup(
     onAddAppointment={async (a) => a}
   />,
 );
-assert.ok(html.includes("Own Your Look. Own Your Style."));
+assert.ok(html.includes(MENS_DEFAULTS.heroHeading), 'the current KeshKraft hero heading renders');
 assert.ok(html.includes("Demo prices"));
 assert.ok(html.includes("DEMO OFFER"));
 assert.ok(html.includes("DEMO REVIEW"));
@@ -252,7 +266,7 @@ await act(async () => button("Rewards").props.onClick());
 assert.ok(text(tree.root).includes("Points per ₹100"));
 await act(async () => tree.unmount());
 const migration = readFileSync(
-  "supabase/migrations/202611030003_template15_keshkraft.sql",
+  "supabase/pending-features/202611030003_template15_keshkraft.sql",
   "utf8",
 );
 assert.ok(migration.includes("pg_advisory_xact_lock"));

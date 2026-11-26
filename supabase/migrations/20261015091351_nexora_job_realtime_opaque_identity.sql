@@ -1,0 +1,1 @@
+alter table public.nexora_job_live_revision drop constraint nexora_job_live_revision_pkey; alter table public.nexora_job_live_revision add primary key(revision); alter table public.nexora_job_live_revision add constraint nexora_job_live_revision_scope_key unique(scope);

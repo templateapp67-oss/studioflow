@@ -1,4 +1,22 @@
 /* Public marketing surface only — existing NEXORA tokens, fonts and palette stay unchanged. */
+.public-skip-link {
+  position: fixed;
+  top: -5rem;
+  left: 1rem;
+  z-index: 100;
+  border-radius: 0.5rem;
+  background: #211a2e;
+  padding: 0.75rem 1rem;
+  color: #fff;
+  font-weight: 800;
+}
+
+.public-skip-link:focus {
+  top: 1rem;
+  outline: 3px solid #c9a66b;
+  outline-offset: 3px;
+}
+
 .public-homepage {
   overflow-x: hidden;
   overflow-x: clip;
@@ -65,5 +83,45 @@
 @media (max-width: 639px) {
   .public-homepage .public-hero-photo {
     border-radius: 20px;
+  }
+}
+
+
+/* NEXORA support shortcut — stays clear of the sticky header and preview modal. */
+.public-homepage .nexora-whatsapp-fab {
+  position: fixed;
+  right: max(1rem, env(safe-area-inset-right, 0px));
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  z-index: 40;
+  display: inline-flex;
+  width: 3.5rem;
+  height: 3.5rem;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid #fff;
+  border-radius: 9999px;
+  background: #25d366;
+  color: #103b20;
+  box-shadow: 0 8px 24px rgba(19, 64, 38, 0.24);
+  transition: transform 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+}
+
+.public-homepage .nexora-whatsapp-fab:hover {
+  transform: translateY(-2px);
+  background: #58e68a;
+  box-shadow: 0 12px 28px rgba(19, 64, 38, 0.3);
+}
+
+.public-homepage .nexora-whatsapp-fab:focus-visible {
+  outline: 3px solid #3e2a63;
+  outline-offset: 4px;
+}
+
+@media (max-width: 639px) {
+  .public-homepage .nexora-whatsapp-fab {
+    right: calc(0.875rem + env(safe-area-inset-right, 0px));
+    bottom: calc(0.875rem + env(safe-area-inset-bottom, 0px));
+    width: 3.25rem;
+    height: 3.25rem;
   }
 }

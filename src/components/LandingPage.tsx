@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { TemplatePreviewModal } from './TemplatePreviewCards';
+import { TemplatePreviewModal } from './TemplatePreviewModal';
 import { NexoraTemplateLibrary } from './nexora/NexoraTemplateLibrary';
 import { NexoraLogo, NexoraBrandMark } from './nexora/NexoraBrand';
 import { AppView, BusinessTypeId, SalonProfile, SalonService, Stylist } from '../types';

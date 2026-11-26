@@ -7,7 +7,7 @@ import { SalonProfile, SalonService, Stylist, BusinessTypeId, CategoryTemplateCo
 import { nexoraName, nexoraCategoryLabel } from './nexora/NexoraBrand';
 import { sortTemplatesByPriority, nexoraTemplateMeta } from '../lib/nexoraTemplateCatalogue';
 import { CATEGORY_TEMPLATES } from '../categoryTemplates';
-import { AIBioModal } from './AIBioModal';
+import { useOnboardingCopy } from '../lib/useOnboardingCopy';
 import { SocialConnectivityStep } from './SocialConnectivityStep';
 import { uploadSalonImage } from '../lib/supabase';
 import { TeamManagement } from './TeamManagement';
@@ -42,7 +42,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
 }) => {
   const [currentStep, setCurrentStep] = useState<number>(2); // Start at Step 2 (Business Type)
   const [photoError, setPhotoError] = useState('');
-  const [isBioModalOpen, setIsBioModalOpen] = useState<boolean>(false);
+  const copy = useOnboardingCopy(profile, setProfile, currentStep === 3);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [generationProgress, setGenerationProgress] = useState<number>(0);
 
@@ -53,8 +53,10 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
     const tmpl = templates.find(t => t.id === typeId);
     if (!tmpl) return;
 
+    copy.cancelTagline();
+    copy.cancelAbout();
     setServices(servicesForTemplate(services,profile,tmpl));
-    setProfile(prev=>({...applyTemplateDesign(prev,tmpl),serviceCatalogueInitialized:true}));
+    setProfile(prev=>({...applyTemplateDesign(prev,tmpl), ...(copy.manualTagline.current ? { tagline: prev.tagline } : {}), serviceCatalogueInitialized:true}));
     // Add your actual team in the next steps; sample identities are not imported.
   };
 
@@ -77,18 +79,6 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
 
   return (
     <div className="min-h-screen pt-24 pb-16 flex flex-col items-center justify-start bg-[#f9f9ff] text-[#151c27]">
-      {/* Bio Modal */}
-      <AIBioModal
-        isOpen={isBioModalOpen}
-        onClose={() => setIsBioModalOpen(false)}
-        businessName={profile?.businessName || 'Our Salon'}
-        businessType={profile?.businessType || 'hair_salon'}
-        ownerName={profile?.ownerName || 'Owner'}
-        onApply={(bio, tagline) => {
-          setProfile((prev) => ({ ...prev, about: bio, tagline }));
-        }}
-      />
-
       <div className={`${currentStep === 6 || currentStep === 7 || (currentStep === 4 && profile.businessType === 'makeup_studio') ? 'max-w-7xl' : 'max-w-4xl'} w-full px-4 sm:px-6 transition-all duration-300`}>
         {/* Progress Header */}
         <div className="mb-8 bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
@@ -162,7 +152,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                 </span>
                 <h2 className="font-display text-3xl font-bold mt-1">Select your salon category</h2>
                 <p className="text-gray-600 text-sm mt-1">
-                  This helps us auto-generate the perfect layout, service list, and aesthetic for your brand.
+                  Your category guides the website layout, service list and AI copy. Visual palettes are chosen separately.
                 </p>
               </div>
 
@@ -173,6 +163,8 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                     <button
                       type="button"
                       key={bt.id}
+                      data-template-id={bt.id}
+                      data-testid={`wizard-template-${bt.id}`}
                       aria-pressed={isSelected}
                       onClick={() => handleBusinessTypeSelect(bt.id)}
                       className={`text-left p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 relative ${
@@ -211,7 +203,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
               </div>
               {profile.businessType === 'bridal_lounge' && (
                 <a href="/?template=11" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-3 rounded-xl border border-[#C9A24B]/60 bg-[#FBF4E6] p-2 text-sm font-semibold text-[#5A0F1E] hover:border-[#5A0F1E]">
-                  <img src="/templates/11/hero-bride.jpg" alt="" width={96} height={54} style={{ borderTopLeftRadius: 999, borderTopRightRadius: 999 }} className="h-14 w-24 object-cover object-top" />
+                  <img src="/templates/11/hero-bride.webp" alt="" width={96} height={54} style={{ borderTopLeftRadius: 999, borderTopRightRadius: 999 }} className="h-14 w-24 object-cover object-top" />
                   Preview Shringaar Royal (11) in a new tab ↗
                 </a>
               )}
@@ -276,9 +268,12 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                     <label className="font-bold text-gray-700">Salon Name</label>
                     <input
                       type="text"
+                      data-testid="wizard-salon-name"
+                      maxLength={120}
                       value={profile?.businessName || ''}
                       onChange={(e) => {
                         const val = e.target.value;
+                        copy.cancelTagline(); copy.cancelAbout();
                         setProfile((prev) => ({ ...prev, businessName: val }));
                       }}
                       className="w-full mt-1 p-2.5 rounded-lg border border-gray-300 bg-gray-50 text-gray-900"
@@ -289,9 +284,11 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                     <label className="font-bold text-gray-700">Owner / Lead Stylist Name</label>
                     <input
                       type="text"
+                      maxLength={80}
                       value={profile.ownerName}
                       onChange={(e) => {
                         const val = e.target.value;
+                        copy.cancelAbout();
                         setProfile((prev) => ({ ...prev, ownerName: val }));
                       }}
                       className="w-full mt-1 p-2.5 rounded-lg border border-gray-300 bg-gray-50 text-gray-900"
@@ -312,7 +309,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                   </div>
 
                   <div>
-                    <label className="font-bold text-gray-700">WhatsApp / Booking Line</label>
+                    <label className="font-bold text-gray-700">Your Salon WhatsApp Number (customers will book here)</label>
                     <input
                       type="text"
                       value={profile.whatsapp}
@@ -322,6 +319,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                       }}
                       className="w-full mt-1 p-2.5 rounded-lg border border-gray-300 bg-gray-50 text-gray-900"
                     />
+                    <p className="mt-1 text-xs text-gray-500">Customers will contact your salon directly on this number. NEXORA will not receive these chats.</p>
                   </div>
 
                   <div>
@@ -352,25 +350,22 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
 
                   <div className="sm:col-span-2">
                     <div className="flex justify-between items-center mb-1">
-                      <label className="font-bold text-gray-700">Salon Story / Bio</label>
-                      <button
-                        type="button"
-                        onClick={() => setIsBioModalOpen(true)}
-                        className="text-[#b0004a] font-bold text-xs hover:underline flex items-center gap-1"
-                      >
-                        <span className="material-symbols-outlined text-sm">auto_awesome</span>
-                        <span>Compose salon story</span>
-                      </button>
+                      <label htmlFor="wizard-tagline" className="font-bold text-gray-700">Business Tagline</label>
+                      <button type="button" onClick={copy.regenerateTagline} disabled={!profile.businessName?.trim() || !profile.businessType || copy.taglineStatus === 'loading'} className="text-[#b0004a] font-bold hover:underline disabled:opacity-50">Regenerate tagline</button>
                     </div>
-                    <textarea
-                      rows={3}
-                      value={profile.about}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setProfile((prev) => ({ ...prev, about: val }));
-                      }}
-                      className="w-full p-2.5 rounded-lg border border-gray-300 bg-gray-50 text-gray-900"
-                    />
+                    <input id="wizard-tagline" type="text" maxLength={160} value={profile.tagline || ''} onChange={e => copy.editTagline(e.target.value)} className="w-full p-2.5 rounded-lg border border-gray-300 bg-gray-50 text-gray-900" />
+                    {copy.taglineStatus === 'loading' && <p role="status" className="mt-1 text-gray-600">Generating tagline…</p>}
+                    {copy.taglineStatus === 'error' && <p role="alert" className="mt-1 text-red-700">Could not generate a tagline. You can write one or try again.</p>}
+                  </div>
+                  <div className="sm:col-span-2">
+                    <div className="flex justify-between items-center mb-1">
+                      <label htmlFor="wizard-about" className="font-bold text-gray-700">Tell customers about your business</label>
+                      <button type="button" onClick={() => void copy.writeAbout()} disabled={copy.aboutStatus === 'loading'} className="text-[#b0004a] font-bold text-xs hover:underline disabled:opacity-50">{copy.aboutStatus === 'loading' ? 'Writing…' : 'Write with AI'}</button>
+                    </div>
+                    <textarea id="wizard-about" rows={5} maxLength={5000} value={profile.about || ''} onChange={e => copy.editAbout(e.target.value)} className="w-full p-2.5 rounded-lg border border-gray-300 bg-gray-50 text-gray-900" />
+                    {copy.aboutStatus === 'loading' && <p role="status" className="mt-1 text-gray-600">Writing your description…</p>}
+                    {copy.aboutStatus === 'error' && <p role="alert" className="mt-1 text-red-700">Could not write a description. Please try again or write your own.</p>}
+                    <p className="mt-1 text-gray-500">AI uses these business details and sends them to Google for generation. Review the draft for accuracy before publishing.</p>
                   </div>
                 </div>
               </div>
@@ -387,7 +382,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                 </span>
                 <h2 className="font-display text-3xl font-bold mt-1">Choose your website aesthetic</h2>
                 <p className="text-gray-600 text-sm mt-1">
-                  Select a color palette and visual atmosphere that matches your salon vibe.
+                  Select a color palette and visual atmosphere. This changes the design, not the AI copy category.
                 </p>
               </div>
 
@@ -489,6 +484,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                   <div className="flex items-center gap-2">
                     <input
                       type="text"
+                      data-testid="wizard-subdomain"
                       value={profile.subdomain}
                       onChange={(e) => {
                         const val = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
@@ -611,6 +607,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
               <div className="flex items-center gap-3">
                 <button
                   type="button"
+                  data-testid="wizard-continue"
                   onClick={nextStep}
                   className="bg-[#b0004a] hover:bg-[#d81b60] text-white text-xs font-bold px-7 py-3 rounded-lg shadow-md shadow-[#b0004a]/20 hover:shadow-lg flex items-center gap-1.5 transition-all cursor-pointer"
                 >

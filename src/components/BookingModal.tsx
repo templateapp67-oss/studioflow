@@ -8,6 +8,7 @@ import type {DirectBookingSlot} from './SpecialistWeek';
 import { paymentRequest, payBookingDeposit, reconcileBookingPayment } from '../lib/platformPayments';
 import { supabase } from '../lib/supabase';
 import { sendBookingConfirmationEmail, sendBookingReminderEmail } from '../lib/emailService';
+import { bookingEmailFeedback } from '../lib/emailFeedback';
 import {getContrastTextColor} from '../themeAccents';
 import { ServiceTerms } from './ServiceMerchandising';
 import React, { useState, useEffect, useRef, useId } from 'react';
@@ -267,7 +268,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     if(!isOpen)return;let active=true;setSlotsLoading(true);setSlotsError('');setBookingTime('');
     if(!bookingServiceIds.length||!specialistsReady||!eligibleStylists.length||(branchChoices.length>1&&!selectedBranchId)){setSlotsLoading(false);setAvailableSlots([]);return()=>{active=false;};}
     const slotStylist=selectedStylist.id;
-    const slotsRequest=profile.businessType==='mens_hair_studio'&&bookingServiceIds.length===1?supabase.rpc('studioflow_mens_slots',{p_slug:profile.subdomain,p_service_id:selectedService?.id,p_date:bookingDate,p_stylist_id:slotStylist}):selectedBranchId
+    const slotsRequest=profile.businessType==='mens_hair_studio'&&bookingServiceIds.length===1?supabase.rpc('studioflow_mens_slots',{p_slug:profile.subdomain,p_service_id:selectedService?.id,p_date:bookingDate,p_stylist_id:slotStylist,p_branch:selectedBranchId||null}):selectedBranchId
       ? (bookingServiceIds.length>1
         ? supabase.rpc('studioflow_branch_android_slots',{p_slug:profile.subdomain,p_services:bookingServiceIds,p_date:bookingDate,p_stylist:slotStylist,p_branch:selectedBranchId})
         : supabase.rpc('studioflow_branch_available_slots',{p_slug:profile.subdomain,p_service_id:selectedService?.id,p_date:bookingDate,p_stylist:slotStylist,p_branch:selectedBranchId}))
@@ -284,7 +285,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [guestName, setGuestName] = useState<string>('');
   const [guestPhone, setGuestPhone] = useState<string>('');
   const [guestEmail, setGuestEmail] = useState<string>('');
-  const [accountEmail, setAccountEmail] = useState<string>('');
   const [guestPhoneError, setGuestPhoneError] = useState<string>('');
   const [guestNameError, setGuestNameError] = useState<string>('');
   const [rememberGuest, setRememberGuest] = useState<boolean>(true);
@@ -308,6 +308,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [copiedRef, setCopiedRef] = useState<boolean>(false);
   const [emailStatusMessage, setEmailStatusMessage] = useState<string>('');
   const [isSendingEmail, setIsSendingEmail] = useState<boolean>(false);
+  const [recipientEmailInput, setRecipientEmailInput] = useState<string>('');
 
   // Load persistent guest details from localStorage
   useEffect(() => {
@@ -324,23 +325,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       // Ignore parsing errors
     }
   }, []);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    let active = true;
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!active) return;
-      const email = user?.email?.trim() || '';
-      setAccountEmail(email);
-      if (email) {
-        setGuestEmail(email);
-        setIsPrefilled(true);
-      }
-    }).catch(() => {
-      if (active) setAccountEmail('');
-    });
-    return () => { active = false; };
-  }, [isOpen]);
 
   // Initialize the chosen service only when opening or when the parent launches
   // a different service. Never undo the customer's own selections.
@@ -462,11 +446,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     setBookingRef(saved.id);setServerStatus(saved.status);setPaidAmount(saved.amountPaid);setServerTotal(saved.servicePrice??totalPrice);setSelectedStylist(prev=>({...prev,name:saved.stylistName||prev.name}));
     setCurrentStep('confirmed');
 
-    // Send the booking confirmation only to the authenticated account email.
-    const { data: { user: emailUser } } = await supabase.auth.getUser();
-    const targetEmail = emailUser?.email?.trim() || accountEmail.trim();
-    if (targetEmail) setAccountEmail(targetEmail);
+    // Trigger automated booking confirmation email if guest provided email address
+    const targetEmail = (guestEmail || '').trim();
     if (targetEmail && targetEmail.includes('@')) {
+      setRecipientEmailInput(targetEmail);
       setIsSendingEmail(true);
       setEmailStatusMessage(`Sending confirmation email to ${targetEmail}…`);
       void sendBookingConfirmationEmail({
@@ -488,17 +471,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         salonSlug: profile.subdomain,
       }).then(res => {
         setIsSendingEmail(false);
-        if (res.success) {
-          setEmailStatusMessage(res.delivered ? `Confirmation email delivered to ${targetEmail}!` : `Confirmation email prepared for ${targetEmail}`);
-        } else {
-          setEmailStatusMessage(res.error || 'Automated confirmation email queued.');
-        }
+        setEmailStatusMessage(bookingEmailFeedback(res, targetEmail, 'Confirmation'));
       }).catch(err => {
         setIsSendingEmail(false);
         setEmailStatusMessage(err instanceof Error ? err.message : 'Email delivery failed');
       });
-    } else {
-      setEmailStatusMessage('Add an email address to your customer account to receive booking confirmations.');
     }
 
     if (onShowToast) {
@@ -517,10 +494,14 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     finally { setIsSubmitting(false); }
   };
 
-  const handleSendManualConfirmationEmail = async () => {
-    const to = accountEmail.trim();
+  const handleSendManualConfirmationEmail = async (overrideEmail?: string) => {
+    const to = (overrideEmail || recipientEmailInput || guestEmail).trim();
+    if (!bookingRef) {
+      setEmailStatusMessage('Booking reference unavailable. Refresh the confirmation and try again.');
+      return;
+    }
     if (!to || !to.includes('@')) {
-      setEmailStatusMessage('Add an email address to your customer account to send booking emails.');
+      setEmailStatusMessage('Please enter a valid email address.');
       return;
     }
     setIsSendingEmail(true);
@@ -530,7 +511,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         to,
         clientName: guestName.trim() || 'Valued Guest',
         clientPhone: guestPhone,
-        bookingRef: bookingRef || 'NX-BOOKING',
+        bookingRef,
         serviceName,
         servicePrice: totalPrice,
         amountPaid: paidAmount,
@@ -544,11 +525,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         salonWhatsapp: profile.whatsapp,
         salonSlug: profile.subdomain,
       });
-      if (res.success) {
-        setEmailStatusMessage(res.delivered ? `Confirmation email delivered to ${to}!` : `Confirmation email sent to ${to}`);
-      } else {
-        setEmailStatusMessage(res.error || 'Failed to dispatch email');
-      }
+      setEmailStatusMessage(bookingEmailFeedback(res, to, 'Confirmation'));
     } catch (err: any) {
       setEmailStatusMessage(err?.message || 'Email delivery failed');
     } finally {
@@ -557,7 +534,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   };
 
   const handleSendManualReminderEmail = async () => {
-    const to = accountEmail.trim();
+    const to = (recipientEmailInput || guestEmail).trim();
+    if (!bookingRef) {
+      setEmailStatusMessage('Booking reference unavailable. Refresh the confirmation and try again.');
+      return;
+    }
     if (!to || !to.includes('@')) {
       setEmailStatusMessage('Please enter a valid email address.');
       return;
@@ -569,7 +550,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         to,
         clientName: guestName.trim() || 'Valued Guest',
         clientPhone: guestPhone,
-        bookingRef: bookingRef || 'NX-BOOKING',
+        bookingRef,
         serviceName,
         servicePrice: totalPrice,
         amountPaid: paidAmount,
@@ -583,11 +564,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         salonWhatsapp: profile.whatsapp,
         salonSlug: profile.subdomain,
       });
-      if (res.success) {
-        setEmailStatusMessage(res.delivered ? `Reminder email delivered to ${to}!` : `Reminder email prepared for ${to}`);
-      } else {
-        setEmailStatusMessage(res.error || 'Failed to dispatch reminder');
-      }
+      setEmailStatusMessage(bookingEmailFeedback(res, to, 'Reminder'));
     } catch (err: any) {
       setEmailStatusMessage(err?.message || 'Reminder delivery failed');
     } finally {
@@ -653,7 +630,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         initial={reducedMotion ? false : { opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={reducedMotion ? undefined : { opacity: 0, scale: 0.95, y: 15 }}
-        ref={dialogRef} role="dialog" aria-modal="true" aria-label="Book an appointment" className="sf-booking-dialog bg-white text-slate-800"
+        ref={dialogRef} data-testid="booking-modal" role="dialog" aria-modal="true" aria-label="Book an appointment" className="sf-booking-dialog bg-white text-slate-800"
       >
         {/* MODAL HEADER */}
         <div className="sf-booking-header border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
@@ -911,6 +888,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   <div className="flex-1">
                     <input
                       type="date" aria-label="Appointment date"
+                      data-testid="booking-date-input"
                       value={bookingDate}
                       min={todayStr}
                       max={maxDateStr}
@@ -945,6 +923,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       <button
                         type="button"
                         key={slot.time}
+                        data-testid="booking-slot-btn"
+                        data-slot-time={slot.time}
+                        data-slot-available={String(slot.available)}
                         onClick={() => setBookingTime(slot.time)}
                         disabled={!slot.available || slotsLoading}
                         className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
@@ -1041,6 +1022,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   <input
                     type="text"
                     required
+                    data-testid="booking-guest-name"
                     value={guestName}
                     onChange={(e) => {setGuestName(e.target.value);if (guestNameError) setGuestNameError('');}}
                     placeholder="e.g. Aarti Sharma"
@@ -1073,6 +1055,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     <input
                       type="tel"
                       required
+                      data-testid="booking-guest-phone"
                       maxLength={14}
                       value={guestPhone}
                       onChange={(e) => {
@@ -1094,7 +1077,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   </p>
                 ) : (
                   <p className="text-[11px] text-slate-400 mt-1">
-                    {accountEmail ? "Booking confirmations use your signed-in account email." : "Email receipts require an email address on your customer account; this optional address is only for calendar details."}
+                    Use your WhatsApp number for booking contact details. Sign in or create a customer account when saving your booking.
                   </p>
                 )}
               </div>
@@ -1102,14 +1085,14 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               {/* Email Address (Optional) */}
               <div>
                 <label className="text-xs font-bold font-mono-caps text-slate-700 block mb-1">
-                  Email Address <span className="text-slate-400 font-normal">{accountEmail ? "(Signed-in account email)" : "(Optional for calendar invite)"}</span>
+                  Email Address <span className="text-slate-400 font-normal">(Optional for calendar invite)</span>
                 </label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                   <input
                     type="email"
-                    value={accountEmail || guestEmail}
-                    readOnly={!!accountEmail}
+                    data-testid="booking-guest-email"
+                    value={guestEmail}
                     onChange={(e) => setGuestEmail(e.target.value)}
                     placeholder="name@example.in"
                     className="w-full pl-9 pr-3 py-2.5 text-xs rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-slate-900 outline-none"
@@ -1193,9 +1176,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
               <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-sm"><strong>Secure platform checkout · 25% advance</strong><p className="mt-2">Pay ₹{advanceTokenAmount.toLocaleString('en-IN')} now via Razorpay. Balance ₹{(totalPrice-advanceTokenAmount).toLocaleString('en-IN')} {taxExcluded ? 'before GST ' : ''}is due at the salon.</p><p className="mt-2 text-xs">Your appointment confirms after the platform verifies payment. Unpaid reservations expire after 15 minutes.</p></div>
               {taxExcluded && <p role="note" className="p-3 rounded-xl bg-amber-50 text-amber-900 text-sm">GST is not included in the amount shown or calculated by this checkout. Please confirm the final tax and balance with the studio.</p>}
-              {gatewayError&&<p role="alert" className="p-3 rounded-xl bg-amber-50 text-amber-900 text-sm">{gatewayError}</p>}
+              {gatewayError&&<p data-testid="booking-gateway-error" role="alert" className="p-3 rounded-xl bg-amber-50 text-amber-900 text-sm">{gatewayError}</p>}
 
-              {submitError && <p role="alert" className="rounded-xl bg-red-50 p-3 text-red-700 text-sm">{submitError}</p>}
+              {submitError && <p data-testid="booking-submit-error" role="alert" className="rounded-xl bg-red-50 p-3 text-red-700 text-sm">{submitError}</p>}
               {reservedBooking.current&&<button type="button" disabled={isSubmitting} className="text-sm underline" onClick={async()=>{setIsSubmitting(true);setSubmitError('');try{const saved=await reconcileBookingPayment(reservedBooking.current!.id);setServerStatus(saved.status);setPaidAmount(saved.amountPaid);setBookingRef(saved.id);setCurrentStep('confirmed');}catch(error){setSubmitError(error instanceof Error?error.message:'Could not verify payment');}finally{setIsSubmitting(false);}}}>Recheck payment status</button>}
               </motion.div>
           )}
@@ -1250,7 +1233,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 <div className="flex justify-between items-center">
                   <span className="text-slate-500 font-sans">Booking Reference:</span>
                   <div className="flex items-center gap-1.5">
-                    <strong className="text-slate-900 bg-white px-2.5 py-1 rounded-lg border border-slate-300 font-bold text-sm tracking-wider">
+                    <strong data-testid="booking-confirmed-ref" className="text-slate-900 bg-white px-2.5 py-1 rounded-lg border border-slate-300 font-bold text-sm tracking-wider">
                       {bookingRef}
                     </strong>
                     <button
@@ -1312,15 +1295,14 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   </div>
                 )}
 
-                {/* Booking email is always sent to the signed-in customer account. */}
+                {/* Email address input if missing or to override */}
                 <div className="flex items-center gap-2">
                   <div className="relative flex-1">
                     <input
                       type="email"
-                      value={accountEmail}
-                      readOnly
-                      disabled={!accountEmail}
-                      placeholder="No email on your customer account"
+                      value={recipientEmailInput || guestEmail}
+                      onChange={(e) => setRecipientEmailInput(e.target.value)}
+                      placeholder="client@example.com"
                       className="w-full text-xs px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                   </div>
@@ -1329,7 +1311,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    disabled={isSendingEmail || !accountEmail}
+                    disabled={isSendingEmail || !(recipientEmailInput || guestEmail)}
                     onClick={() => { void handleSendManualConfirmationEmail(); }}
                     className="py-2 px-3 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 disabled:opacity-50 text-slate-700 font-medium text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
@@ -1338,7 +1320,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   </button>
                   <button
                     type="button"
-                    disabled={isSendingEmail || !accountEmail}
+                    disabled={isSendingEmail || !(recipientEmailInput || guestEmail)}
                     onClick={handleSendManualReminderEmail}
                     className="py-2 px-3 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 disabled:opacity-50 text-slate-700 font-medium text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
@@ -1384,6 +1366,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         {currentStep!=='confirmed'&&<footer className="sf-booking-actions">{currentStep === 'service' && (<>{/* Step Navigation Action */}
               <button
                 type="button"
+                data-testid="booking-next-datetime"
                 onClick={() => setCurrentStep('datetime')}
                 disabled={!bookingServiceIds.length||!specialistsReady||!eligibleStylists.length}
                 className="w-full py-3 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95 active:scale-[0.99] mt-2"
@@ -1404,6 +1387,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </button>
                 <button
                   type="button"
+                  data-testid="booking-next-guest"
                   onClick={() => setCurrentStep('guest')}
                   disabled={!bookingTime || slotsLoading || !specialistsReady || !eligibleStylists.length}
                   className="flex-1 py-3 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95"
@@ -1425,6 +1409,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </button>
                 <button
                   type="submit" form={guestFormId}
+                  data-testid="booking-next-payment"
                   className="flex-1 py-3 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95"
                   style={actionStyle}
                 >
@@ -1445,6 +1430,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </button>
                 <button
                   type="button"
+                  data-testid="booking-pay-submit"
                   onClick={handleFinalSubmitBooking}
                   disabled={!bookingServiceIds.length || !bookingTime || !specialistsReady || !eligibleStylists.length || isSubmitting || !gatewayReady || coupon.busy || (!reservedBooking.current && !!coupon.code.trim() && !coupon.quote)}
                   className="flex-1 py-3.5 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95"

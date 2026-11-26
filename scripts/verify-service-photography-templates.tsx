@@ -16,7 +16,7 @@ import {
 import {serviceImagePrompt} from '../src/lib/serviceImagePrompt';
 import {defaultServiceImage,serviceImageTemplates} from '../src/lib/serviceImages';
 import {SERVICE_CARD_HEIGHT,SERVICE_CARD_RATIO,SERVICE_CARD_WIDTH,fitServicePhotoToCard} from '../src/lib/servicePhoto';
-import {categoryToolkit,imageInput,imageRequest} from '../backend/functions/studioflow-service-ai-images/core';
+import {categoryToolkit,imageInput,imageRequest} from '../supabase/functions/studioflow-service-ai-images/core';
 import type {BusinessTypeId} from '../src/types';
 import type {GeneratedServiceImage} from '../src/components/ServiceImageTemplates';
 

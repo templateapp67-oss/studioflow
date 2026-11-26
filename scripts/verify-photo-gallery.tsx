@@ -98,16 +98,6 @@ for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_h
   assert.ok(savedHtml.includes('https://cdn.example.com/saved-lash-set.jpg'),'saved lash photograph appears in the Template 13 lookbook');
   assert.ok(savedHtml.includes('Our own lash set'),'saved lash photograph keeps its caption');
   assert.ok(!savedHtml.includes('Demo lookbook'),'an owner lookbook is never labelled as demo');
- }else if(template.id==='aurelia_beauty_parlour'){
-  const counts=samples.reduce((map,photo)=>map.set(photo.category,(map.get(photo.category)||0)+1),new Map<string,number>());
-  assert.ok(html.includes(`Lookbook (${samples.length})`),'Aurelia shows the total lookbook count');
-  for(const [category,count] of counts)assert.ok(html.includes(`${category} (${count})`),`Aurelia counts its ${category} photographs`);
-  assert.equal((html.match(/aria-label="View salon look /g)||[]).length,5,'Aurelia has five accessible gallery controls');
-  for(const sample of samples)assert.ok(html.includes(sample.url),`Aurelia gallery keeps ${sample.id}`);
-  assert.ok(!html.includes('Delete photo')&&!html.includes('Replace / Edit'));
-  const savedHtml=renderToStaticMarkup(<CustomerSalonWebsite profile={{...profile,photoGalleryInitialized:true,photoGalleryType:'aurelia_beauty_parlour',photoGallery:[{id:'au-own-1',category:'Skin' as const,url:'https://cdn.example.com/saved-aurelia-photo.jpg',title:'Our own beauty work',isDemo:false}]}} services={[]} stylists={[]} readOnly onAddAppointment={async a=>a}/>);
-  assert.ok(savedHtml.includes('https://cdn.example.com/saved-aurelia-photo.jpg'),'Aurelia shows the saved owner photograph');
-  assert.ok(savedHtml.includes('Skin (1)'),'Aurelia reports the saved photo category');
  }else if(template.id==='unisex_salon'){
   // Template 03 (Aura Unisex Salon & Wellness Lounge) renders its own mixed
   // gallery — one large plate plus four smaller ones — from the same saved-photo
@@ -133,6 +123,14 @@ for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_h
   assert.ok(savedHtml.includes('Our own gloss finish'),'the saved look keeps its caption');
   assert.ok(!savedHtml.includes('Sample lookbook imagery'),'an owner lookbook is never labelled as a sample');
   assert.ok(!savedHtml.includes('Delete photo')&&!savedHtml.includes('Replace / Edit'));
+ }else if(template.id==='aurelia_beauty_parlour'){
+  assert.equal((html.match(/aria-label="View salon look /g)||[]).length,5,'Aurelia renders all five normalized lookbook photos');
+  for(const sample of samples){assert.ok(html.includes(sample.url),`Aurelia lookbook keeps ${sample.id}`);assert.ok(html.includes(sample.title.replaceAll('&','&amp;')),`Aurelia lookbook captions ${sample.id}`);}
+  assert.ok(html.includes('Photo gallery categories'),'Aurelia lookbook can filter its mixed beauty categories');
+  const savedHtml=renderToStaticMarkup(<CustomerSalonWebsite profile={{...profile,photoGalleryInitialized:true,photoGalleryType:'aurelia_beauty_parlour',photoGallery:[{id:'aur-own-1',category:'Skin' as const,url:'https://cdn.example.com/saved-aurelia-photo.jpg',title:'Our own studio work',isDemo:false}]}} services={[]} stylists={[]} readOnly onAddAppointment={async a=>a}/>);
+  assert.ok(savedHtml.includes('https://cdn.example.com/saved-aurelia-photo.jpg')&&savedHtml.includes('Our own studio work'),'saved Aurelia photo and caption are rendered');
+  assert.ok(!savedHtml.includes(samples[0].url),'saved Aurelia photos replace the demo lookbook');
+  assert.ok(!html.includes('Delete photo')&&!html.includes('Replace / Edit'));
  }else{
   assert.ok(html.includes(`${defaultGalleryCategory(template.id)} (5)`));assert.equal((html.match(/aria-label="View salon look /g)||[]).length,5);assert.ok(!html.includes('Delete photo')&&!html.includes('Replace / Edit'));
  }
@@ -161,4 +159,4 @@ let uploads=0,fail=true,dimensions:number[][]=[];
 await act(async()=>replace().props.onClick());await act(async()=>input('file').props.onChange({target:{files:[new File(['photo'],'photo.jpg',{type:'image/jpeg'})]}}));assert.equal(uploads,0);
 await act(async()=>root().findByType('form').props.onSubmit({preventDefault(){}}));assert.ok(root().findByProps({role:'alert'}));assert.ok(!savedGallery.includes('https://example.com/uploaded-gallery.jpg'));fail=false;
 await act(async()=>root().findByType('form').props.onSubmit({preventDefault(){}}));assert.ok(savedGallery.includes('https://example.com/uploaded-gallery.jpg'));assert.ok(dimensions.some(([w,h])=>w===1600&&h===1200));await act(async()=>editor.unmount());
-console.log('PASS: all 15 customer-facing templates have only five selected-template samples; URL/device replacement, owner-only controls, delete, empty persistence, theme switches, retained personal photos, resize, storage ownership and retry.');
+console.log('PASS: all 14 templates have only five selected-template samples; URL/device replacement, owner-only controls, delete, empty persistence, theme switches, retained personal photos, resize, storage ownership and retry.');

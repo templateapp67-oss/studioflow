@@ -35,6 +35,9 @@ import {Header} from '../src/components/Header';
 import {socialUrl, WEBSITE_SECTIONS} from '../src/lib/websiteContent';
 import { applyTemplateDesign } from '../src/lib/templateSelection';
 import { normalizeWorkspace } from '../src/lib/normalizeWorkspace';
+import { LUXURY_EDITORIAL_COPY } from '../src/lib/luxuryEditorial';
+import { VOGUE_NOIR_HERO_HEADING } from '../src/lib/vogueNoir';
+import { ARCH_FLUTTER_HERO_KICKER } from '../src/lib/archFlutter';
 import { WebsiteSections } from '../src/components/WebsiteSections';
 import { InlineEditable } from '../src/components/InlineEditable';
 import { DEFAULT_LOYALTY_CONFIG } from '../src/loyaltyData';
@@ -125,8 +128,9 @@ console.log('PASS: live customer signup uses customer fields; login includes pas
 // Demo seeding covers new and already-published empty profiles without replacing owner videos.
 for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')) {
  const raw={...INITIAL_SALON_PROFILE,businessType:template.id,socialVideos:[],demoVideosInitialized:undefined};
- const initialized=normalizeWorkspace({profile:raw});assert.equal(initialized.profile.socialVideos.length,5);assert.ok(initialized.profile.socialVideos.every(v=>v.isDemo&&!v.isOwnerVideo));assert.equal(new Set(initialized.profile.socialVideos.map(v=>v.videoId)).size,5);
- const html=renderToStaticMarkup(<WebsiteSections profile={initialized.profile} services={[]} onBook={()=>{}} readOnly/>);assert.equal((html.match(/class="sf-reel-media"/g)||[]).length,5);assert.equal((html.match(/<iframe/g)||[]).length,0);assert.ok(html.includes('DEMO / REFERENCE'));
+ const expectedDemos=template.id==='aurelia_beauty_parlour'?0:5;
+ const initialized=normalizeWorkspace({profile:raw});assert.equal(initialized.profile.socialVideos.length,expectedDemos);assert.ok(initialized.profile.socialVideos.every(v=>v.isDemo&&!v.isOwnerVideo));assert.equal(new Set(initialized.profile.socialVideos.map(v=>v.videoId)).size,expectedDemos);
+ const html=renderToStaticMarkup(<WebsiteSections profile={initialized.profile} services={[]} onBook={()=>{}} readOnly/>);assert.equal((html.match(/class="sf-reel-media"/g)||[]).length,expectedDemos);assert.equal((html.match(/<iframe/g)||[]).length,0);if(expectedDemos)assert.ok(html.includes('DEMO / REFERENCE'));
  const removed=normalizeWorkspace({profile:{...initialized.profile,socialVideos:[]}});assert.equal(showcaseVideos(removed.profile).length,0,'Deleted demos must not return');
 }
 let demoProfile:any,demoEditor:any;
@@ -152,7 +156,7 @@ for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_h
  const header=(html.match(/<header[\s\S]*?<\/header>/g)||[]).find(h=>h.includes('Customer account'));assert.ok(header,template.id);
  for(const label of ['Manage your customer account','My Bookings'])assert.ok(header.includes(label),`${template.id}: ${label} must be inside salon header`);assert.ok(!header.includes('Customer Login')&&!header.includes('Sign up'),`${template.id}: signed-in header must hide guest buttons`);
  for(const label of ['Replace / Manage video','Edit this section','owner-content','Edit featured client experiences','The salon owner can replace'])assert.ok(!html.includes(label),`${template.id}: public page must hide ${label}`);
- const genericReelCount=template.id==='hair_salon'||template.id==='skincare_clinic'||template.id==='tattoo_studio'||template.id==='lash_brow'?0:5;assert.equal((html.match(/class="sf-reel-media"/g)||[]).length,genericReelCount);
+ const genericReelCount=template.id==='hair_salon'||template.id==='skincare_clinic'||template.id==='tattoo_studio'||template.id==='lash_brow'||template.id==='aurelia_beauty_parlour'?0:5;assert.equal((html.match(/class="sf-reel-media"/g)||[]).length,genericReelCount);
  if(template.id==='hair_salon'){assert.ok((html.match(/class="le-video-card/g)||[]).length>=10,'Ziya Women’s Hair Studio shows its dedicated women’s haircut video gallery');assert.ok(!header.includes('app-install-strip'),'App Install strip stays out of the header');}
  if(template.id==='tattoo_studio'){assert.ok((html.match(/class="ii-reel-card/g)||[]).length>=5,'Iron & Ink shows its own editorial media cards');assert.ok(html.includes('DEMO POSTER'));}
  if(template.id==='lash_brow'){assert.ok((html.match(/class="af-reel"/g)||[]).length>=5,'Arch & Flutter shows its own featured video and reel rail');assert.ok(html.includes('af-featured'),'Arch & Flutter keeps a main featured film beside the rail');}
@@ -188,8 +192,9 @@ for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_h
   assert.ok(!html.includes('data-layout="dock"'),'Arch & Flutter keeps one navigation in the sticky header');
   for(const leak of ['Rich warm mood','Verified checkout','Verified client','Choose for online booking'])assert.ok(!html.includes(leak),`Arch & Flutter must not leak shared design-reference copy: ${leak}`);
   assert.ok(html.includes('Test Studio'),'Arch & Flutter hero shows the saved salon name');
-  assert.ok(html.includes('af-hero-title')&&html.includes('Confidence.'),'Arch & Flutter hero keeps its brand headline');
-  assert.ok(html.includes('Lash &amp; Brow Atelier'),'Arch & Flutter hero keeps its atelier kicker');
+  const heroTitle=html.match(/<h1[^>]*id="af-hero-title"[^>]*>([\s\S]*?)<\/h1>/)?.[1]||'';
+  assert.ok(heroTitle.includes('Lash')&&heroTitle.includes('brow')&&heroTitle.includes('you'),'Arch & Flutter current animated headline renders');
+  assert.ok(html.includes(ARCH_FLUTTER_HERO_KICKER.replace('&','&amp;')),'Arch & Flutter renders its current studio kicker');
   assert.ok(html.includes('GST included · UPI accepted'),'Arch & Flutter publishes GST-inclusive ₹ pricing and UPI');
   const nav=html.match(/<nav class="af-nav-links"[\s\S]*?<\/nav>/)?.[0]||'';
   for(const label of ['Services','Packages','Gallery','Team','Offers','Journal','About','Contact'])assert.ok(nav.includes(label),`Arch & Flutter nav shows ${label}`);
@@ -232,6 +237,16 @@ for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_h
    assert.ok(html.includes(name),`Veda Sanjeevani home previews ${service.name}`);
    assert.ok(html.includes(`₹${service.price.toLocaleString('en-IN')}`),`Veda Sanjeevani shows the ₹ price for ${service.name}`);
   }
+  continue;
+ }
+ if(template.id==='aurelia_beauty_parlour'){
+  const order=['aurelia-home','aurelia-services','salon-packages','aurelia-story','aurelia-team','aurelia-gallery','aurelia-videos','aurelia-offers','aurelia-reviews','salon-loyalty','aurelia-contact'];let previous=-1;
+  for(const section of order){const at=html.indexOf(`id="${section}"`);assert.ok(at>previous,`Aurelia: ${section} must appear in its editorial order`);previous=at;}
+  assert.ok(html.includes('class="aurelia-site"')&&html.includes('Test Studio'),'Aurelia keeps its themed customer shell and saved salon brand');
+  assert.ok(html.includes('id="salon-packages"')&&html.includes('View profile &amp; reviews'),'Aurelia publishes starter packages and specialist profiles');
+  assert.ok(html.includes('data-loyalty-template="aurelia_beauty_parlour"'),'Aurelia includes the shared loyalty programme');
+  assert.ok(html.includes('Nexora app announcement')&&html.includes('id="nexora-customer-app"'),'Aurelia includes the shared app campaign');
+  assert.equal((html.match(/<iframe/g)||[]).length,0,'Aurelia keeps media click-to-open without eager embeds');
   continue;
  }
  // Templates 06 and 08 are editorial single-page sites: the sticky header is the only
@@ -284,7 +299,7 @@ if(['hair_salon','unisex_salon','hair_spa','makeup_studio','massage_wellness','h
 }else assert.ok(html.includes('Rich warm mood'));
 if(['hair_salon','unisex_salon','hair_spa','makeup_studio','massage_wellness','hair_coloring'].includes(template.id))assert.ok(!html.includes('Verified checkout'),'Editorial demo must not imply an active verified checkout');else assert.ok(html.includes('Verified checkout'));assert.ok(html.includes('Service categories'));
  // Templates 06 and 08 name their booking action in the studio's own words.
- if(template.id==='hair_salon'){assert.ok(html.includes('Book Haircut'),'Ziya Women’s Hair Studio service cards expose the booking action');assert.ok(html.includes('Book Appointment'),'Ziya Women’s Hair Studio header carries the booking CTA');assert.ok(html.includes('Your Hair, Your Style, Your Confidence')&&html.includes('Specialists in Women’s Haircuts'));}
+ if(template.id==='hair_salon'){assert.ok(html.includes('Book Haircut'),'Ziya Women’s Hair Studio service cards expose the booking action');assert.ok(html.includes(LUXURY_EDITORIAL_COPY.heroPrimaryCta),'Ziya header carries its configured booking CTA');assert.ok(html.includes(LUXURY_EDITORIAL_COPY.heroHeadline)&&html.includes(LUXURY_EDITORIAL_COPY.aboutTitle),'Ziya renders its current hero and about copy');}
  else if(template.id==='unisex_salon'){assert.ok(html.includes('Book Now'),'Aura service cards expose the booking action in simple words');assert.ok(html.includes('Book Appointment'),'Aura header carries the booking CTA');}
  else if(template.id==='hair_spa')assert.ok(html.includes('Book this service'),'hair spa service cards expose the booking action');else if(template.id==='makeup_studio')assert.ok(html.includes('>Book<')&&html.includes('Book Appointment'),'Vogue Noir service cards expose the booking action');else if(template.id==='massage_wellness')assert.ok(html.includes('Book Now'),'Bodhi Tree service cards expose the booking action in simple words');else if(template.id==='hair_coloring')assert.ok(html.includes('Book Now'),'Prism & Chroma service cards expose the booking action in simple words');else if(template.id==='bridal_lounge'){assert.ok(html.includes('aria-label="Book '),'Shringaar Royal ritual tiles expose a book action');assert.ok(html.includes('Book Consultation'),'Shringaar Royal hero and header carry the consultation CTA');}else assert.ok(html.includes('Choose for online booking'));
  assert.ok(!html.includes('Verified client'),'Owner-entered reviews must not be labelled verified by default');
@@ -345,13 +360,13 @@ try{
 
 for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')) {
  const initial=normalizeWorkspace({profile:{...INITIAL_SALON_PROFILE,businessType:template.id,websiteTestimonials:[]},extras:{gallery:[]}});
- if(template.id==='hair_spa'){ // Template 06 ships no bundled testimonials: reviews only appear once real ones are published.
-  assert.equal(initial.profile.websiteTestimonials.length,0,'hair_spa must not seed demo reviews');
+ if(template.id==='hair_spa'||template.id==='aurelia_beauty_parlour'){ // These templates ship no seeded testimonials; only owner-published stories may appear.
+  assert.equal(initial.profile.websiteTestimonials.length,0,`${template.id} must not seed demo reviews`);
  }else{
   assert.equal(initial.profile.websiteTestimonials.length,3,template.id);assert.ok(initial.profile.websiteTestimonials.every(r=>r.isDemo&&!r.verified));
  }
  assert.ok(initial.extras.gallery.length>=4,template.id);
- const html=renderToStaticMarkup(<SalonWebsitePreview profile={initial.profile} services={[]} stylists={[]} gallery={initial.extras.gallery} readOnly onAddAppointment={async apt=>apt}/>);if(template.id==='hair_spa'){assert.ok(html.includes('Rooted in'),'hair spa renders its own philosophy copy');assert.ok(html.includes('THE SERVICE MENU'),'hair spa owns a single service catalogue');assert.ok(!html.includes('Demo testimonial'),'Hair spa never presents sample reviews as authentic');assert.ok(html.includes('Demo / sample'));assert.ok(!html.includes('4.97')&&!html.includes('390 experiences'),'hair_spa must not print an invented average rating or review count');assert.ok(!html.includes('id="testimonials"'),'no empty testimonials section without published reviews');}else if(template.id==='skincare_clinic'){assert.ok(!html.includes('Demo testimonial'));assert.ok(!html.includes('PATIENT EXPERIENCES'));}else if(template.id==='makeup_studio'){assert.ok(html.includes('Luxury Makeup, Made For Every Indian Bride'),'Vogue Noir renders its current default hero heading');assert.ok(html.includes('id="portfolio"'));assert.ok(!html.includes('Verified client'));}else if(template.id==='massage_wellness'){
+ const html=renderToStaticMarkup(<SalonWebsitePreview profile={initial.profile} services={[]} stylists={[]} gallery={initial.extras.gallery} readOnly onAddAppointment={async apt=>apt}/>);if(template.id==='hair_spa'){assert.ok(html.includes('Rooted in'),'hair spa renders its own philosophy copy');assert.ok(html.includes('THE SERVICE MENU'),'hair spa owns a single service catalogue');assert.ok(!html.includes('Demo testimonial'),'Hair spa never presents sample reviews as authentic');assert.ok(html.includes('Demo / sample'));assert.ok(!html.includes('4.97')&&!html.includes('390 experiences'),'hair_spa must not print an invented average rating or review count');assert.ok(!html.includes('id="testimonials"'),'no empty testimonials section without published reviews');}else if(template.id==='skincare_clinic'){assert.ok(!html.includes('Demo testimonial'));assert.ok(!html.includes('PATIENT EXPERIENCES'));}else if(template.id==='aurelia_beauty_parlour'){assert.ok(!html.includes('Demo testimonial'),'Aurelia never presents sample testimonials as real client feedback');assert.ok(!html.includes('Verified client'));}else if(template.id==='makeup_studio'){ assert.ok(html.includes(VOGUE_NOIR_HERO_HEADING),'Vogue Noir renders its current default hero heading');assert.ok(html.includes('id="portfolio"'));assert.ok(!html.includes('Verified client'));}else if(template.id==='massage_wellness'){
 // Template 09 (Bodhi Tree) renders its own Jaipur guest reviews and gallery,
 // never the generic demo labels or verified-client claims.
 assert.ok(!html.includes('Demo testimonial'),'Bodhi Tree never prints the generic demo testimonial label');
@@ -422,6 +437,15 @@ assert.ok(html.includes('Aditi Sharma'),'Aura shows its seeded unisex salon revi
 assert.ok(html.includes('/templates/aura-unisex/'),'Aura shows its own salon photography');
 assert.ok(!html.includes('Verified client'));
 assert.ok(!html.includes('Client experiences will appear here'));
+}else if(template.id==='aurelia_beauty_parlour'){
+// Template 16 (Aurelia) labels its bundled lookbook and sample guest stories,
+// while keeping saved customer reviews and owner photos distinct from samples.
+assert.ok(html.includes('Aurelia Guest 1'),'Aurelia renders its template-specific sample reviews');
+assert.ok(html.includes('Sample review — replace with a real guest review.'),'Aurelia identifies sample review copy honestly');
+assert.ok(html.includes('Demo lookbook · Sample imagery.'),'Aurelia labels its bundled lookbook plates');
+assert.ok(html.includes('Signature Hair Styling'),'Aurelia shows its own beauty lookbook');
+assert.ok(!html.includes('Verified client'));
+assert.ok(!html.includes('Client experiences will appear here'));
 }else{assert.ok(html.includes('Demo testimonial'));assert.ok(html.includes('Demo lookbook'));assert.ok(!html.includes('Client experiences will appear here'));}
  const deleted=normalizeWorkspace({profile:{...initial.profile,websiteTestimonials:[]},extras:{gallery:[]}});assert.equal(clientExperiences(deleted.profile).length,0);assert.equal(lookbookPhotos(deleted.profile,deleted.extras.gallery).length,0);
  const real={...initial.profile.websiteTestimonials[0],id:'real-review',isDemo:false,name:'Actual client',comment:'Actual client experience'};
@@ -479,7 +503,7 @@ const customService:SalonService={clinicServiceApproved:true,clinicPublicationSt
 for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')){
  const profile={...INITIAL_SALON_PROFILE,businessType:template.id,serviceCatalogueInitialized:true};
  const html=renderToStaticMarkup(<CustomerSalonWebsite profile={profile} services={[customService]} stylists={[]} onAddAppointment={async apt=>apt}/>);
- assert.ok(html.includes(template.id==='skincare_clinic'?'dc-directory-item':template.id==='bridal_lounge'?'sr-service ':template.id==='tattoo_studio'?'ii-category-card':template.id==='lash_brow'?'af-menu-card':template.id==='ayurvedic_spa'?'vd-card':template.id==='unisex_salon'?'au-service-card':template.id==='hair_salon'?'le-feature':'sf-service-row'));assert.ok(html.includes(customService.name));assert.ok(html.includes(customService.description));assert.ok(html.includes(customService.category));assert.ok(html.includes('₹1,250.5'));assert.ok(!html.includes('55 min'));
+ assert.ok(html.includes(template.id==='skincare_clinic'?'dc-directory-item':template.id==='bridal_lounge'?'sr-service ':template.id==='tattoo_studio'?'ii-category-card':template.id==='lash_brow'?'af-menu-card':template.id==='ayurvedic_spa'?'vd-card':template.id==='unisex_salon'?'au-service-card':template.id==='hair_salon'?'le-feature':template.id==='aurelia_beauty_parlour'?'aurelia-service-card':'sf-service-row'));assert.ok(html.includes(customService.name));assert.ok(html.includes(customService.description));assert.ok(html.includes(customService.category));assert.ok(html.includes('₹1,250.5'));assert.ok(!html.includes('55 min'));
  const normalized=normalizeWorkspace(JSON.parse(JSON.stringify({profile,services:[customService]})));
  assert.deepEqual(normalized.services,[customService]);
  const switched=servicesForTemplate(normalized.services,normalized.profile,template);assert.deepEqual(switched,[customService]);
@@ -569,7 +593,7 @@ for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_h
   for(const id of ['home','about','treatments','technology','results','contact']){assert.ok(nav.includes(`href="#${id}"`));assert.ok(html.includes(`id="${id}"`));}
   continue;
  }
- const nav=template.id==='hair_salon'?(html.match(/<nav class="le-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='unisex_salon'?(html.match(/<nav class="au-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='hair_spa'?(html.match(/<nav class="kp-desktop-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='makeup_studio'?(html.match(/<nav class="vn-desktop-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='massage_wellness'?(html.match(/<nav class="bt-desktop-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='hair_coloring'?(html.match(/<nav[^>]*aria-label="Website navigation"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='bridal_lounge'?(html.match(/<nav class="sr-nav-links"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='tattoo_studio'?(html.match(/<nav class="ii-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='lash_brow'?(html.match(/<nav class="af-nav-links"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='ayurvedic_spa'?(html.match(/<nav class="vd-nav"[\s\S]*?<\/nav>/)?.[0]||''):html.match(/<nav class="sf-header-links"[\s\S]*?<\/nav>/)![0];
+ const nav=template.id==='hair_salon'?(html.match(/<nav class="le-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='unisex_salon'?(html.match(/<nav class="au-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='hair_spa'?(html.match(/<nav class="kp-desktop-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='makeup_studio'?(html.match(/<nav class="vn-desktop-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='massage_wellness'?(html.match(/<nav class="bt-desktop-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='hair_coloring'?(html.match(/<nav[^>]*aria-label="Website navigation"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='bridal_lounge'?(html.match(/<nav class="sr-nav-links"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='tattoo_studio'?(html.match(/<nav class="ii-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='lash_brow'?(html.match(/<nav class="af-nav-links"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='ayurvedic_spa'?(html.match(/<nav class="vd-nav"[\s\S]*?<\/nav>/)?.[0]||''):template.id==='aurelia_beauty_parlour'?(html.match(/<nav id="aurelia-main-nav"[\s\S]*?<\/nav>/)?.[0]||''):html.match(/<nav class="sf-header-links"[\s\S]*?<\/nav>/)![0];
  if(template.id==='hair_salon'){
   // The editorial header lists only sections that actually have content: with no
   // specialists passed here the Team link (present on seeded sites) is omitted.
@@ -601,6 +625,11 @@ for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_h
   assert.ok(!nav.includes('href="#"'),'Veda Sanjeevani page navigation uses working buttons, never dead anchors');
   assert.ok(html.includes('Book Appointment'),'Veda Sanjeevani header keeps the booking CTA');
   assert.ok(html.includes('vd-header__phone'),'Veda Sanjeevani header keeps a real phone link');
+ }
+ else if(template.id==='aurelia_beauty_parlour'){
+  for(const label of ['Services','Packages','Our story','Our artists','Gallery','Offers','Visit us'])assert.ok(nav.includes(label),`Aurelia: missing header link ${label}`);
+  for(const href of ['#aurelia-services','#salon-packages','#aurelia-story','#aurelia-team','#aurelia-gallery','#aurelia-offers','#aurelia-contact'])assert.ok(html.includes(`href="${href}"`),`Aurelia: broken anchor ${href}`);
+  assert.ok(!nav.includes('href="#"'),'Aurelia navigation uses working anchors, never dead links');
  }
  else{for(const [,label] of HEADER_LINKS)assert.ok(nav.includes(label),`${template.id}: missing header link ${label}`);for(const link of headerLinks(profile))if(link.href.startsWith('#'))assert.ok(html.includes(`id="${link.href.slice(1)}"`),`${template.id}: broken anchor ${link.href}`);}
  const hidden={...profile,websiteSections:{gallery:false,packages:false,about:false}};
@@ -663,7 +692,7 @@ await act(async()=>carousel.update(<ReviewCarousel items={tenDemoTestimonials('h
 assert.equal(carousel.root.findAll(n=>n.type==='article'&&!n.props['aria-hidden']).length,10);
 await act(async()=>carousel.unmount());
 const {readFileSync}=await import('node:fs');
-const carouselCss=readFileSync('src/index.css','utf8');
+const carouselCss=readFileSync('src/index.css','utf8')+'\n'+readFileSync('src/app.css','utf8');
 assert.ok(carouselCss.includes('@keyframes sf-review-marquee'));
 assert.ok(carouselCss.includes('calc(-50% - var(--sf-review-gap,16px)/2)'));
 assert.ok(carouselCss.includes('animation-timing-function:linear; animation-iteration-count:infinite'));
@@ -702,8 +731,8 @@ let authListener:any;const bookingFilters:any[]=[];let bookingsResponse:any={dat
 try {
  for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')){
   let site:any;let prevented=false;
-  await act(async()=>{site=create(<CustomerSalonWebsite profile={{...INITIAL_SALON_PROFILE,businessType:template.id,subdomain:'nav-studio'}} services={template.services} stylists={[]} onAddAppointment={async apt=>apt}/>);});
-  if(template.id==='tattoo_studio'||template.id==='ayurvedic_spa'||template.id==='hair_salon'||template.id==='unisex_salon'){const button=site.root.findAllByType('button').find((item:any)=>demoText(item)==='My Bookings');assert.ok(button,`${template.id} exposes a native My Bookings action`);await act(async()=>button.props.onClick());}
+  await act(async()=>{site=create(<CustomerSalonWebsite profile={{...INITIAL_SALON_PROFILE,businessType:template.id,subdomain:'nav-studio'}} services={template.services} stylists={[]} customerSignedIn={template.id==='aurelia_beauty_parlour'} onAddAppointment={async apt=>apt}/>);});
+  if(template.id==='tattoo_studio'||template.id==='ayurvedic_spa'||template.id==='hair_salon'||template.id==='unisex_salon'||template.id==='aurelia_beauty_parlour'){const button=site.root.findAllByType('button').find((item:any)=>demoText(item)==='My Bookings');assert.ok(button,`${template.id} exposes a native My Bookings action`);await act(async()=>button.props.onClick());}
   else{const link=site.root.findByProps({'aria-label':'Website navigation'}).findByProps({href:'/?customer=1&return=nav-studio'});await act(async()=>link.props.onClick({preventDefault(){prevented=true;}}));assert.ok(prevented,template.id+': My Bookings must prevent redirect');}
   assert.equal(site.root.findAllByType(SalonBookingsDialog).length,1);
   assert.ok(demoText(site.root.findByProps({role:'dialog'})).includes('My haircut'));
@@ -787,11 +816,17 @@ for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_h
  const legacy={...ownerFull,id:`demo-${template.id}-1`,videoId:'ulbjW3JyK8E',youtubeUrl:'https://www.youtube.com/watch?v=ulbjW3JyK8E',isDemo:true,isOwnerVideo:false};
  const profile={...INITIAL_SALON_PROFILE,businessType:template.id,socialVideos:[legacy,ownerFull],demoVideosInitialized:true};
  const migrated=showcaseVideos(profile);
- assert.equal(migrated.length,2);assert.equal(migrated[0].id,legacy.id);assert.ok(reelSource(migrated[0]));assert.equal(migrated[1],ownerFull);
+ assert.equal(migrated.length,2);assert.equal(migrated[0].id,legacy.id);assert.equal(migrated[1],ownerFull);
  const html=renderToStaticMarkup(<WebsiteSections profile={profile} services={[]} onBook={()=>{}} readOnly/>);
- assert.ok(!html.includes(ownerFull.title));assert.ok(!html.includes('ulbjW3JyK8E'));assert.ok(html.includes('/shorts/'));
+ assert.ok(!html.includes(ownerFull.title));assert.ok(!html.includes('ulbjW3JyK8E'));
+ if(template.id==='aurelia_beauty_parlour'){
+  assert.equal(reelSource(migrated[0]),null,'Aurelia retains saved video data but never publishes an unverified full-length legacy URL as a reel');
+  assert.ok(!html.includes('/shorts/'),'Aurelia does not receive unrelated demo reels');
+ }else{
+  assert.ok(reelSource(migrated[0]));assert.ok(html.includes('/shorts/'));
+ }
  const demos=showcaseVideos({...profile,socialVideos:[],demoVideosInitialized:false});
- assert.equal(demos.length,5);assert.ok(demos.every(video=>video.categoryTag==='SHORT'&&!!reelSource(video)));
+ assert.equal(demos.length,template.id==='aurelia_beauty_parlour'?0:5);assert.ok(demos.every(video=>video.categoryTag==='SHORT'&&!!reelSource(video)));
 }
 await act(async()=>{demoEditor=create(<DemoHarness/>);});
 await act(async()=>demoButton('MANAGE / REPLACE').props.onClick());await act(async()=>demoButton('Replace video / Edit URL & title').props.onClick());

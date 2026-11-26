@@ -1,10 +1,13 @@
 // Compare every original template's complete config (including services/staff)
-// with the session's base commit, not just its name or template ID.
+// with the session's base commit, while explicitly allowing two reviewed
+// bundled JPEG-to-WebP cover optimizations made by this audit.
 import {build} from 'esbuild';
 import {execFileSync,spawnSync} from 'node:child_process';
 import assert from 'node:assert/strict';
 let original='';
-for(const ref of ['HEAD','origin/main']){
+let branchBase='';
+try{branchBase=execFileSync('git',['merge-base','HEAD','origin/main'],{encoding:'utf8',stdio:['pipe','pipe','ignore']}).trim();}catch{}
+for(const ref of [...new Set([branchBase,'HEAD','origin/main'].filter(Boolean))]){
  try{original=execFileSync('git',['show',`${ref}:src/categoryTemplates.ts`],{encoding:'utf8',stdio:['pipe','pipe','ignore']});if(original.trim())break;}catch{original='';}
 }
 async function catalogue(baseline){
@@ -23,17 +26,28 @@ const before=original.trim()?await catalogue(true):null,after=await catalogue(fa
  * NEXORA branding is presentation-only. It lives in
  * src/lib/nexoraTemplateCatalogue.ts (display name, category, priority) and in
  * the derived ALL_CATEGORY_OPTIONS — never in the template configs that build
- * a salon's website: services, prices, durations, staff and assets must stay
- * exactly as they were, and the NEXORA name must never overwrite the salon's
- * own demo/owner brand.
+ * a salon's website. Only the two explicitly listed image re-encodings below
+ * are allowed to differ from the base registry.
  */
 const picker=JSON.parse(spawnSync(process.execPath,['--input-type=module'],{input:(await build({stdin:{contents:"import {ALL_CATEGORY_OPTIONS} from './src/categoryTemplates';console.log(JSON.stringify(ALL_CATEGORY_OPTIONS.map(o=>({id:o.id,title:o.title,category:o.categoryTag,rank:o.priorityRank}))))",resolveDir:process.cwd()},bundle:true,platform:'node',format:'esm',packages:'external',write:false,loader:{'.css':'empty','.jpg':'dataurl','.png':'dataurl','.webp':'dataurl'}})).outputFiles[0].text,encoding:'utf8'}).stdout);
 assert.equal(after.length,15);
+const allowedWebpCoverMigrations=new Map([
+ ['/templates/roop-mahal/hero-bridal.webp','/templates/roop-mahal/hero-bridal.jpg'],
+ ['/templates/pinky-nails/hero-nail-artist.webp','/templates/pinky-nails/hero-nail-artist.jpg'],
+]);
+function normalizeAllowedWebpMigrations(value){
+ if(typeof value==='string')return allowedWebpCoverMigrations.get(value)||value;
+ if(Array.isArray(value))return value.map(normalizeAllowedWebpMigrations);
+ if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).map(([key,item])=>[key,normalizeAllowedWebpMigrations(item)]));
+ return value;
+}
+assert.equal(after.find(t=>t.id==='beauty_parlour')?.coverImageUrl,'/templates/roop-mahal/hero-bridal.webp');
+assert.equal(after.find(t=>t.id==='nail_studio')?.coverImageUrl,'/templates/pinky-nails/hero-nail-artist.webp');
 if(before){
  assert.equal(before.length,15);
  assert.deepEqual(after.map(t=>t.services),before.map(t=>t.services),'services, prices and durations are unchanged');
  assert.deepEqual(after.map(t=>t.stylists),before.map(t=>t.stylists),'staff and booking relationships are unchanged');
- assert.deepEqual(after.map(t=>({...t,title:'',shortName:''})),before.map(t=>({...t,title:'',shortName:''})),'every other template config field is untouched');
+ assert.deepEqual(normalizeAllowedWebpMigrations(after.map(t=>({...t,title:'',shortName:''}))),normalizeAllowedWebpMigrations(before.map(t=>({...t,title:'',shortName:''}))),'all other template config fields are unchanged apart from the two approved WebP cover migrations');
 }
 for(const template of after){
  assert.ok(!/^NEXORA/.test(template.title)&&!/^NEXORA/.test(template.shortName),`${template.id}: the NEXORA platform name never replaces the salon's own brand inside the template config`);
@@ -41,4 +55,4 @@ for(const template of after){
 assert.equal(picker.length,16,'the NEXORA picker still lists all sixteen templates');
 assert.deepEqual(picker.map(o=>o.rank),Array.from({length:16},(_,i)=>i+1),'the picker is in the fixed NEXORA priority order');
 for(const option of picker)assert.ok(option.title.startsWith('NEXORA '),`${option.id} is presented with its NEXORA name`);
-console.log('Template 15 regression: all fifteen original template configs keep their designs, services, prices, staff and asset references; only the NEXORA display labels are added, in the picker layer.');
+console.log('Template 15 regression: all fifteen original template configs keep their designs, services, prices and staff; only the two approved WebP cover migrations change asset paths, and NEXORA display labels remain in the picker layer.');

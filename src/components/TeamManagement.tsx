@@ -10,7 +10,8 @@ import {validStaffUrl} from '../lib/staffProfile';
 import {uploadSalonImage} from '../lib/supabase';
 import type {BusinessTypeId} from '../types';
 import React, { useState, useRef } from 'react';
-import { Stylist, SalonService } from '../types';
+import { Stylist, SalonService, StaffAccessRole } from '../types';
+import { STAFF_ACCESS_ROLES, ROLE_SHORT_LABELS, ROLE_DESCRIPTIONS, ROLE_PERMISSIONS, PERMISSION_LABELS, normalizeAccessRole, DEFAULT_ACCESS_ROLE } from '../lib/staffPermissions';
 import { 
   UserPlus, 
   Trash2, 
@@ -125,6 +126,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     workGallery:StaffWorkPhoto[];
     name: string;
     role: string;
+    accessRole: StaffAccessRole;
     experienceYears:string;
     avatarUrl: string;
     rating: number;
@@ -140,6 +142,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     workGallery:[],
     name: '',
     role: '',
+    accessRole: DEFAULT_ACCESS_ROLE,
     experienceYears:'',
     avatarUrl: avatarPresets[0].url,
     rating: 4.9,
@@ -167,6 +170,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
       workGallery:[],
       name: '',
       role: 'Senior Hair Stylist',
+      accessRole: DEFAULT_ACCESS_ROLE,
       experienceYears:'',
       avatarUrl: avatarPresets[Math.floor(Math.random() * avatarPresets.length)].url,
       rating: 4.9,
@@ -189,6 +193,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
       workGallery:(st.workGallery||[]).map(p=>({...p})),
       name: st.name,
       role: st.role,
+      accessRole: normalizeAccessRole(st.accessRole),
       experienceYears:st.experienceYears===undefined?'':String(st.experienceYears),
       avatarUrl: st.avatarUrl,
       rating: st.rating,
@@ -264,6 +269,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
       name: formData.name.trim(),
       experienceYears:formData.experienceYears===''?undefined:Number(formData.experienceYears),
       role: formData.role.trim() || 'Stylist Specialist',
+      accessRole: normalizeAccessRole(formData.accessRole),
       avatarUrl: photoUrl,
       rating: Number.isFinite(Number(formData.rating))?Math.max(0,Math.min(5,Number(formData.rating))):0,
       assignedServices: templateStaffAssignments(formData.assignedServices,bookingServices),
@@ -366,13 +372,45 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
           <button
             onClick={handleOpenAddModal}
             className="sf-staff-save-button text-xs font-bold px-4 py-2.5 rounded-xl text-white flex items-center gap-2 shadow-sm cursor-pointer"
-            type="button" aria-label="Add new staff profile" id="add-new-stylist-btn"
+            type="button" aria-label="Add new staff profile" id="add-new-stylist-btn" data-testid="team-add-staff-btn"
           >
             <UserPlus className="w-4 h-4" />
             <span>Add new staff profile</span>
           </button>
         </div>
       </div>
+
+      {/* Role-level permissions matrix */}
+      <section aria-label="Role-level permissions" className="rounded-2xl border border-gray-200 bg-gray-50/60 p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Shield className="w-4 h-4 text-[#900C3F]" />
+          <h3 className="font-bold text-sm text-gray-900">Role-level permissions</h3>
+          <span className="text-[11px] text-gray-500">App Access Role controls what each team member can do in the portal. The owner account always has full access.</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {STAFF_ACCESS_ROLES.map((role, index) => {
+            const count = stylists.filter((st) => normalizeAccessRole(st.accessRole) === role).length;
+            return (
+              <div key={role} className="rounded-xl border border-gray-200 bg-white p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-bold text-xs text-gray-900">{index + 1}. {ROLE_SHORT_LABELS[role]}</span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-100">{count} {count === 1 ? 'member' : 'members'}</span>
+                </div>
+                <p className="text-[11px] text-gray-500 mt-1">{ROLE_DESCRIPTIONS[role]}</p>
+                <ul className="mt-2 space-y-0.5">
+                  {ROLE_PERMISSIONS[role].map((permission) => (
+                    <li key={permission} className="flex items-center gap-1.5 text-[11px] text-gray-600">
+                      <Check className="w-3 h-3 text-emerald-600 shrink-0" />
+                      <span>{PERMISSION_LABELS[permission]}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
+        </div>
+        <p className="text-[11px] text-gray-500 mt-3">Change a member's role from their Edit profile. Staff without a saved role default to Service Provider (least privilege).</p>
+      </section>
 
       {/* Search & Filter Controls */}
       <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
@@ -501,8 +539,8 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
                   {/* Metadata Row: Access Role, Status, Commission */}
                   <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-100">
-                      {st.accessRole || 'Service Provider'}
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-100" title={normalizeAccessRole(st.accessRole)}>
+                      {ROLE_SHORT_LABELS[normalizeAccessRole(st.accessRole)]}
                     </span>
 
                     {st.commissionRate !== undefined && (
@@ -719,6 +757,32 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                   className="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 focus:border-gray-500 outline-none"
                 />
               </div>
+              {/* App Access Role (software permissions) */}
+              <div className="p-3 rounded-xl border border-gray-200 bg-gray-50/60">
+                <label className="block text-xs font-bold text-gray-700 mb-1" htmlFor="edit-access-role">
+                  App Access Role <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  id="edit-access-role"
+                  value={formData.accessRole}
+                  onChange={(e) => setFormData(prev => ({ ...prev, accessRole: normalizeAccessRole(e.target.value) }))}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 bg-white focus:border-gray-500 focus:ring-2 focus:ring-gray-200 outline-none"
+                >
+                  {STAFF_ACCESS_ROLES.map((role) => (
+                    <option key={role} value={role}>{role}</option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-gray-500 mt-1.5">{ROLE_DESCRIPTIONS[formData.accessRole]}</p>
+                <ul className="mt-1.5 space-y-0.5" aria-label={`Permissions for ${formData.accessRole}`}>
+                  {ROLE_PERMISSIONS[formData.accessRole].map((permission) => (
+                    <li key={permission} className="flex items-center gap-1.5 text-[11px] text-gray-600">
+                      <Check className="w-3 h-3 text-emerald-600 shrink-0" />
+                      <span>{PERMISSION_LABELS[permission]}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
               {/* Role / Designation & Rating */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <StaffTitleField businessType={formData.businessType} onCategoryChange={category=>{setEditError('');setFormData(prev=>({...prev,businessType:category,role:['Salon Manager','Receptionist',...STAFF_TITLES[category]].includes(prev.role)?prev.role:STAFF_TITLES[category][0],assignedServices:[],specialties:categorySkills(prev.specialties,category),customSpecialtyInput:'',workGallery:prev.workGallery.map(photo=>({...photo,serviceId:staffBookingServices(services,category).some(s=>s.id===photo.serviceId)?photo.serviceId:''}))}))}} value={formData.role} onChange={role=>setFormData(prev=>({...prev,role}))}/>

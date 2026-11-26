@@ -1,50 +1,84 @@
-// Ensure window.fetch has both getter and setter in iframe environments
-try {
-  const desc = Object.getOwnPropertyDescriptor(window, 'fetch');
-  if (!desc || !desc.set) {
-    let currentFetch = window.fetch;
-    Object.defineProperty(window, 'fetch', {
-      get() {
-        return currentFetch;
-      },
-      set(fn) {
-        currentFetch = fn;
-      },
-      configurable: true,
-      enumerable: true,
-    });
-  }
-} catch {
-  // Ignore descriptor errors
-}
-
-import React, { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import App from './App';
-import { AppUpdateManager } from './components/AppUpdateManager';
+import React, { StrictMode, Suspense, lazy, useEffect, useState } from 'react';
+import { createRoot, hydrateRoot } from 'react-dom/client';
+import { AppRouter, requiresFullApplication } from './AppRouter';
 import { DebugBoundary } from './components/DebugBoundary';
 import { installScreenRecovery } from './lib/loadScreen';
 import { registerCustomerPwa } from './lib/customerPwa';
 import './index.css';
-import './components/dermacure.css';
-import './components/vogueNoir.css';
-import './components/bodhiTree.css';
-import './components/prismChroma.css';
-import './components/shringaarRoyal.css';
-import './components/archFlutter.css';
+
+const AppUpdateManager = lazy(() =>
+  import('./components/AppUpdateManager').then((module) => ({ default: module.AppUpdateManager })),
+);
+
+/** Mount client-only update polling after hydration, without dropping it on public routes. */
+function AppUpdateManagerAfterHydration() {
+  const [ready, setReady] = useState(false);
+  useEffect(() => setReady(true), []);
+
+  return ready ? (
+    <Suspense fallback={null}>
+      <AppUpdateManager />
+    </Suspense>
+  ) : null;
+}
 
 installScreenRecovery();
 registerCustomerPwa();
 
 const rootElement = document.getElementById('root');
 if (rootElement) {
-  createRoot(rootElement).render(
+  const hasPublishedSalonSsr = Boolean(document.getElementById('nexora-published-site-data'));
+  const canHydrate = rootElement.hasChildNodes()
+    && (!requiresFullApplication(window.location) || hasPublishedSalonSsr);
+
+  const content = (
     <StrictMode>
-      {/* DebugBoundary sits above App so a render failure can never leave a blank page. */}
       <DebugBoundary>
-        <App />
+        <AppRouter />
       </DebugBoundary>
-      <AppUpdateManager />
-    </StrictMode>,
+      <AppUpdateManagerAfterHydration />
+    </StrictMode>
   );
+
+  if (hasPublishedSalonSsr) {
+    // Hydrate only the storefront component tree emitted by the server.
+    // The default App adds global Suspense/referral wrappers that do not exist
+    // in the SSR document and cause React to recover from a root mismatch.
+    void import('./PublishedSalonHydrationApp')
+      .then(({ PublishedSalonHydrationApp }) => {
+        if (!rootElement.isConnected || document.getElementById('root') !== rootElement) return;
+        hydrateRoot(
+          rootElement,
+          <StrictMode>
+            <DebugBoundary>
+              <PublishedSalonHydrationApp />
+            </DebugBoundary>
+            <AppUpdateManagerAfterHydration />
+          </StrictMode>,
+          {
+            onRecoverableError(error, errorInfo) {
+              // Preserve the component tree in CI logs so a future SSR mismatch
+              // can be fixed at its source rather than hidden or ignored.
+              console.error('[NEXORA] Recoverable SSR hydration error', {
+                message: error instanceof Error ? error.message : String(error),
+                componentStack: errorInfo.componentStack || '',
+                cause: error instanceof Error ? error.cause : undefined,
+              });
+            },
+          },
+        );
+      })
+      .catch((error) => {
+        console.error('[NEXORA] Published salon hydration failed; mounting the client app.', error);
+        if (rootElement.isConnected && document.getElementById('root') === rootElement) {
+          rootElement.replaceChildren();
+          createRoot(rootElement).render(content);
+        }
+      });
+  } else if (canHydrate) {
+    hydrateRoot(rootElement, content);
+  } else {
+    if (rootElement.hasChildNodes()) rootElement.replaceChildren();
+    createRoot(rootElement).render(content);
+  }
 }

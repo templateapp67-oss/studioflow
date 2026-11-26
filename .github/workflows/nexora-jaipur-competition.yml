@@ -1,0 +1,46 @@
+name: NEXORA Jaipur Competition CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "src/components/nexora-landing/NexoraPartnerRewardsPage.tsx"
+      - "src/components/nexora-landing/nexoraPartnerRewards.css"
+      - "src/lib/nexoraEcosystemSeo.ts"
+      - "src/AppRouter.tsx"
+      - "src/components/PublicHomepage.tsx"
+      - "backend/nexora-jaipur-competition.sql"
+      - "scripts/verify-nexora-jaipur-competition.mjs"
+      - "scripts/verify-nexora-ecosystem-routes.mjs"
+      - "scripts/prerender-public.tsx"
+      - "vercel.json"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/nexora-jaipur-competition.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nexora-jaipur-competition-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  full-verification:
+    name: TypeScript, build and offline verification suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Run complete project test command
+        run: npm test
