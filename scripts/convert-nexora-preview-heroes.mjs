@@ -1,8 +1,7 @@
 import assert from 'node:assert/strict';
-import { readFile, stat } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
-import { mkdir } from 'node:fs/promises';
-import sharp from 'sharp';
+import { spawnSync } from 'node:child_process';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { dirname } from 'node:path';
 
 const targets = [
   ['public/templates/barber/hero.jpg', 'public/templates/barber/hero.webp'],
@@ -11,59 +10,77 @@ const targets = [
   ['public/templates/13/preview.jpg', 'public/templates/13/preview.webp'],
 ];
 
-const minimumBytesSaved = 1;
-for (const [sourcePath, outputPath] of targets) {
-  const source = resolve(sourcePath);
-  const output = resolve(outputPath);
-  const input = await readFile(source);
-  const sourceMetadata = await sharp(input, { failOn: 'error' }).metadata();
-  assert.ok(sourceMetadata.width >= 280 && sourceMetadata.height >= 176,
-    sourcePath + ' source dimensions are too small (' + sourceMetadata.width + 'x' + sourceMetadata.height + ')');
+const [mode = '--write', ...args] = process.argv.slice(2);
+if (mode === '--scope') {
+  assert.equal(args.length, 1, 'Usage: --scope <git-diff-range>');
+  assert.match(args[0], /^(?:[0-9a-f]{40}|refs\/remotes\/origin\/[\w./-]+)\.{2,3}[0-9a-f]{40}$/);
+  const result = spawnSync('git', ['diff', '--quiet', args[0], '--', ...targets.flat(),
+    'scripts/convert-nexora-preview-heroes.mjs', '.github/workflows/preview.yml'], {
+    stdio: ['ignore', 'ignore', 'inherit'],
+  });
+  if (result.error) throw result.error;
+  assert.ok(result.status === 0 || result.status === 1, 'Could not determine hero verification scope from Git');
+  console.log(result.status === 1 ? 'true' : 'false');
+} else {
+  assert.ok(args.length === 0 && (mode === '--check' || mode === '--write'),
+    'Usage: --check or --write');
+  const { default: sharp } = await import('sharp');
+  let stale = 0;
 
-  await mkdir(dirname(output), { recursive: true });
-  let encoded;
-  let usedQuality = 80;
-  for (const attempt of [
-    { width: 1280, height: 960, quality: 80 },
-    { width: 1120, height: 840, quality: 72 },
-    { width: 960, height: 720, quality: 64 },
-  ]) {
-    usedQuality = attempt.quality;
-    encoded = await sharp(input, { failOn: 'error' })
-      .rotate()
-      .resize({
-        width: attempt.width,
-        height: attempt.height,
-        fit: 'inside',
-        withoutEnlargement: true,
-      })
-      .webp({
-        quality: attempt.quality,
-        effort: 6,
-        smartSubsample: true,
-        nearLossless: false,
-      })
-      .toBuffer();
-    if (encoded.byteLength < input.byteLength - minimumBytesSaved) break;
+  for (const [sourcePath, outputPath] of targets) {
+    const input = await readFile(sourcePath);
+    const source = await sharp(input, { failOn: 'error' }).metadata();
+    assert.ok(source.width >= 280 && source.height >= 176, `${sourcePath} source dimensions are too small`);
+
+    let encoded;
+    for (const { width, height, quality } of [
+      { width: 1280, height: 960, quality: 80 },
+      { width: 1120, height: 840, quality: 72 },
+      { width: 960, height: 720, quality: 64 },
+    ]) {
+      encoded = await sharp(input, { failOn: 'error' })
+        .rotate()
+        .resize({ width, height, fit: 'inside', withoutEnlargement: true })
+        .webp({ quality, effort: 6, smartSubsample: true, nearLossless: false })
+        .toBuffer();
+      if (encoded.byteLength < input.byteLength - 1) break;
+    }
+
+    assert.ok(encoded.byteLength < input.byteLength, `${outputPath} must be smaller than its source JPEG`);
+    const image = sharp(encoded, { failOn: 'error' });
+    const metadata = await image.metadata();
+    await image.stats();
+    assert.equal(metadata.format, 'webp', `${outputPath} must be WebP`);
+    assert.ok(metadata.width >= 280 && metadata.height >= 176, `${outputPath} dimensions are too small`);
+    assert.equal(encoded.subarray(0, 4).toString('ascii'), 'RIFF');
+    assert.equal(encoded.subarray(8, 12).toString('ascii'), 'WEBP');
+
+    const current = await readFile(outputPath).catch(error => {
+      if (error.code !== 'ENOENT') throw error;
+      return null;
+    });
+    let status = 'verified';
+    if (!current?.equals(encoded)) {
+      stale += 1;
+      if (mode === '--check') {
+        console.error(`FAIL ${outputPath}: ${current ? 'does not match its source and conversion settings' : 'missing'}`);
+        continue;
+      }
+      await mkdir(dirname(outputPath), { recursive: true });
+      await writeFile(outputPath, encoded);
+      status = 'converted';
+    }
+
+    const saved = (100 * (input.byteLength - encoded.byteLength) / input.byteLength).toFixed(1);
+    console.log(`PASS ${outputPath} ${status}: ${metadata.width}x${metadata.height}, ${input.byteLength}B -> ${encoded.byteLength}B (${saved}% smaller)`);
   }
 
-  assert.ok(encoded && encoded.byteLength < input.byteLength,
-    outputPath + ' could not be made smaller than its original JPEG without enlarging or cropping the image');
-  await (await import('node:fs/promises')).writeFile(output, encoded);
-
-  const metadata = await sharp(encoded, { failOn: 'error' }).metadata();
-  assert.equal(metadata.format, 'webp', outputPath + ' is encoded as WebP');
-  assert.ok(metadata.width >= 280 && metadata.height >= 176,
-    outputPath + ' retains useful intrinsic dimensions (' + metadata.width + 'x' + metadata.height + ')');
-  const signature = encoded.subarray(0, 12).toString('ascii');
-  assert.equal(signature.slice(0, 4), 'RIFF', outputPath + ' has a RIFF signature');
-  assert.equal(signature.slice(8, 12), 'WEBP', outputPath + ' has a WEBP signature');
-
-  const saved = input.byteLength - encoded.byteLength;
-  const percent = (saved / input.byteLength * 100).toFixed(1);
-  console.log('PASS ' + outputPath + ' ' + metadata.width + 'x' + metadata.height
-    + ' q=' + usedQuality + ' ' + input.byteLength + 'B -> ' + encoded.byteLength
-    + 'B (' + percent + '% smaller)');
+  if (mode === '--check' && stale > 0) {
+    console.error('Hero conversion required. Run node scripts/convert-nexora-preview-heroes.mjs --write and commit the generated WebPs.');
+    process.exitCode = 1;
+  } else {
+    console.log(stale > 0
+      ? `PASS: conversion executed for ${stale} WebP(s). All 4 heroes verified.`
+      : 'PASS: all 4 WebP heroes already up to date and verified.');
+  }
 }
-
-console.log('PASS: all four remaining NEXORA preview heroes converted, dimension-checked and smaller than their source JPEGs.');
