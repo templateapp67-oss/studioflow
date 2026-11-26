@@ -3,6 +3,7 @@ import {Sparkles,Clock,Scissors,ArrowRight,RefreshCw} from 'lucide-react';
 import {Salon,Booking,Service,menu,rupees} from './model';
 import {DiscoveryPhoto} from './DiscoverySections';
 import {barberServiceImage,BARBER_REFERENCE_IMAGES} from '../../lib/barberReference';
+import { aiRequestHeaders } from '../../lib/aiRequestAuth';
 
 interface AIRecommendationsProps {
   salons: Salon[];
@@ -35,7 +36,7 @@ export function CustomerAIRecommendations({salons,favorites,bookings,open,book}:
 
       const res = await fetch('/api/ai-recommendations', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: await aiRequestHeaders(),
         body: JSON.stringify({
           bookingHistory: bookings.map(b => ({
             status: b.status,

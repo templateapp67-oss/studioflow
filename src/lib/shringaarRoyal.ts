@@ -33,8 +33,9 @@ import type {
  *
  * This is a Vite + React SPA (not Next.js), so photography is served from
  * bundled local files under /public/templates/11/ through the shared
- * <SafeImage> component (plain <img loading="lazy">, fixed width/height,
- * descriptive alt text) — no external stock hotlinks and no empty frames.
+ * <SafeImage> component (below-the-fold images lazy-loaded; the LCP hero is
+ * eager/high-priority; all images have fixed dimensions and descriptive alt
+ * text) — no external stock hotlinks and no empty frames.
  */
 
 export const SHRINGAAR_TEMPLATE_CODE = '11';
@@ -42,13 +43,13 @@ export const SHRINGAAR_SLUG = 'shringaar-royal';
 export const SHRINGAAR_SELECTOR_LABEL = 'Shringaar Royal (11)';
 export const SHRINGAAR_BRAND_NAME = 'Shringaar Royal Indian Bridal Lounge';
 export const SHRINGAAR_TAGLINE =
-  'Royal Rajputana Trousseaus · Sabyasachi Aesthetic · Heirloom Makeover Packages';
-export const SHRINGAAR_HERO_HEADING = 'Where Every Bride Becomes Royalty';
+  'Rajputana bridal trousseaus · heirloom jewellery styling · complete wedding packages';
+export const SHRINGAAR_HERO_HEADING = 'Your wedding look, planned with care';
 export const SHRINGAAR_HERO_SCRIPT = 'Shringaar';
 export const SHRINGAAR_HERO_SUBTEXT =
-  'Heirloom bridal makeovers, hand-draped Rajputana trousseaus and heirloom jewellery styling — crafted in Jaipur for the bride who wants to be remembered.';
+  'Bridal makeup, hair and draping in Jaipur. We’ll plan your look with you, from the first trial to the wedding day.';
 export const SHRINGAAR_DEFAULT_ABOUT =
-  'Shringaar is a bridal lounge, not a parlour. For eleven wedding seasons our Jaipur atelier has dressed Rajputana brides in hand-worked lehengas, kundan heirlooms and a makeover that survives a fourteen-hour wedding day. Every bride is styled in her own private chamber — with a trial, a written look book and a pre-bridal ritual plan.';
+  'Shringaar Royal is a Jaipur bridal studio for makeup, hair and draping. We plan each look with you, with a trial and a clear schedule for your wedding celebrations.';
 export const SHRINGAAR_DEFAULT_CITY = 'Jaipur, Rajasthan';
 export const SHRINGAAR_DEFAULT_ADDRESS = 'MI Road, Near Panch Batti & Raj Mandir';
 export const SHRINGAAR_DEFAULT_POSTAL_CODE = '302001';
@@ -74,11 +75,11 @@ export const SHRINGAAR_IMAGES = {
   logoSvg: R('logo.svg'),
   faviconSvg: R('favicon.svg'),
   ogImage: R('og-image.jpg'),
-  hero: R('hero-bride.jpg'),
+  hero: R('hero-bride.webp'),
   about: R('venue.jpg'),
-  booking: R('hero-bride.jpg'),
+  booking: R('hero-bride.webp'),
   offer: R('venue.jpg'),
-  preview: R('hero-bride.jpg'),
+  preview: R('hero-bride.webp'),
   owner: R('artist-anuradha.jpg'),
   collections: {
     lehenga: R('collections/lehenga.jpg'),
@@ -659,11 +660,11 @@ export function resolveShringaarRoyalConfig(profile: SalonProfile): ResolvedShri
     aboutHeading: (raw.aboutHeading || '').trim() || 'A Bridal Atelier, Not a Beauty Parlour',
     aboutStory: (raw.aboutStory || '').trim() || (profile.about || '').trim() || SHRINGAAR_DEFAULT_ABOUT,
     aboutImageUrl: (raw.aboutImageUrl || '').trim() || SHRINGAAR_IMAGES.about,
-    collectionsHeading: (raw.collectionsHeading || '').trim() || 'Royal Rajputana Trousseaus',
+    collectionsHeading: (raw.collectionsHeading || '').trim() || 'Rajputana Bridal Trousseaus',
     collectionsSubtext:
       (raw.collectionsSubtext || '').trim() ||
       'Six heirloom edits — hand-worked lehengas, poshaks and kundan — styled for the Rajputana bride.',
-    looksHeading: (raw.looksHeading || '').trim() || 'The Sabyasachi Aesthetic',
+    looksHeading: (raw.looksHeading || '').trim() || 'Our Signature Bridal Look',
     looksSubtext:
       (raw.looksSubtext || '').trim() ||
       'Old-world richness, modern restraint. Gold on oxblood, kohl-lined eyes, and jewellery that has a story.',
@@ -671,13 +672,13 @@ export function resolveShringaarRoyalConfig(profile: SalonProfile): ResolvedShri
     packagesHeading: (raw.packagesHeading || '').trim() || 'Heirloom Makeover Packages',
     packageEyebrow: (raw.packageEyebrow || '').trim() || 'Three Journeys',
     processHeading: (raw.processHeading || '').trim() || 'Your Bridal Journey',
-    reviewsHeading: (raw.reviewsHeading || '').trim() || 'Brides Who Became Royalty',
+    reviewsHeading: (raw.reviewsHeading || '').trim() || 'Kind words from our brides',
     galleryHeading: (raw.galleryHeading || '').trim() || 'From Our Bridal Diaries',
     offerHeading: (raw.offerHeading || '').trim() || 'Wedding Season 2026',
     offerText:
       (raw.offerText || '').trim() ||
       'Book your bridal date this month and receive a complimentary trial look book, a pre-bridal glow consultation and ₹5,000 off the Maharani Heirloom package.',
-    bookingHeading: (raw.bookingHeading || '').trim() || 'Book Your Bridal Consultation',
+    bookingHeading: (raw.bookingHeading || '').trim() || 'Plan your bridal look',
     announcementText: (raw.announcementText || '').trim() || SHRINGAAR_DEFAULT_ANNOUNCEMENT,
     bookingImageUrl: (raw.bookingImageUrl || '').trim() || SHRINGAAR_IMAGES.booking,
     offerImageUrl: (raw.offerImageUrl || '').trim() || SHRINGAAR_IMAGES.offer,

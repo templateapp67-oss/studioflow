@@ -4,6 +4,7 @@ import { ArrowDown, ArrowUpRight, Clock3 } from "lucide-react";
 import { motion } from "motion/react";
 import { Reveal } from "./Reveal";
 import { ServicePhoto } from "../ServicePhoto";
+import { ServiceMerchTags, ServiceTerms } from '../ServiceMerchandising';
 import type { SalonService } from "../../types";
 import { keshSignatureServices } from "../../lib/keshPrakriti";
 import {
@@ -228,6 +229,8 @@ export function ServicesSection() {
                     <p className="kp-service-description flex-1">
                       {item.description}
                     </p>
+                    <ServiceMerchTags service={item} className="sf-merch-inline" />
+                    <ServiceTerms service={item} className="sf-merch-inline" />
                   </div>
                   <div className="mt-4">
                     <ServiceMeta service={item} />

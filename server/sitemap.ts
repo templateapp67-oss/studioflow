@@ -1,27 +1,55 @@
-export const DEFAULT_SITEMAP_ORIGIN = "https://nexorasalon.online";
+import { NEXORA_PUBLIC_ORIGIN } from "../src/lib/publicSeo.js";
+import { NEXORA_ECOSYSTEM_ROUTES } from "../src/lib/nexoraEcosystemSeo.js";
+import { NEXORA_TEMPLATE_META, nexoraTemplatePagePath } from "../src/lib/nexoraTemplateCatalogue.js";
+import { CANONICAL_ALIAS_HOSTS } from "./canonicalHost.js";
+import { robotsTagForRequest } from "./robotsHeaders.js";
 
-const NEXORA_TEMPLATE_IDS = [
-  "hair_salon",
-  "barber",
-  "beauty_parlour",
-  "nail_studio",
-  "unisex_salon",
-  "mens_hair_studio",
-  "hair_spa",
-  "skincare_clinic",
-  "makeup_studio",
-  "bridal_lounge",
-  "hair_coloring",
-  "massage_wellness",
-  "tattoo_studio",
-  "lash_brow",
-  "ayurvedic_spa",
-  "aurelia_beauty_parlour",
-] as const;
+const CANONICAL_ALIAS_HOST_SET = new Set(
+  CANONICAL_ALIAS_HOSTS.map((host) => host.toLowerCase()),
+);
+
+const RESERVED_SITEMAP_SLUGS = new Set([
+  "api",
+  "admin",
+  "owner",
+  "staff",
+  "login",
+  "sign-in",
+  "sign-up",
+  "app",
+  "customer",
+  "pricing",
+  "privacy",
+  "salon-os",
+  "partner-rewards",
+  "salon-onboarding",
+  "salon-growth",
+  "growth-partner-rewards",
+]);
+
+function normaliseCanonicalAliasOrigin(origin: string): string {
+  const cleaned = origin.replace(/\/+$/, "");
+  try {
+    const host = new URL(cleaned).hostname.toLowerCase();
+    if (CANONICAL_ALIAS_HOST_SET.has(host)) {
+      return canonicalOrigin(NEXORA_PUBLIC_ORIGIN);
+    }
+  } catch {
+    // Non-URL inputs fall through to the caller's validation.
+  }
+  return cleaned;
+}
+
+export function isPublicSitemapSlug(slug: string): boolean {
+  if (!/^[a-z0-9][a-z0-9-]{2,62}$/.test(slug)) return false;
+  if (slug.startsWith("studioflow-qa-")) return false;
+  if (RESERVED_SITEMAP_SLUGS.has(slug)) return false;
+  return true;
+}
 
 export function canonicalOrigin(value: string | undefined): string {
-  const candidate = value?.trim() || DEFAULT_SITEMAP_ORIGIN;
-  const url = new URL(candidate);
+  if (!value) throw new Error("SITE_URL must be configured");
+  const url = new URL(value);
   if (
     url.protocol !== "https:" ||
     url.username ||
@@ -29,75 +57,111 @@ export function canonicalOrigin(value: string | undefined): string {
     url.search ||
     url.hash ||
     url.pathname !== "/"
-  ) {
+  )
     throw new Error("SITE_URL must be an HTTPS origin without a path");
-  }
   return url.origin;
 }
-
 const xml = (value: string) =>
   value.replace(
     /[&<>"']/g,
-    (character) =>
+    (c) =>
       ({
         "&": "&amp;",
         "<": "&lt;",
         ">": "&gt;",
         '"': "&quot;",
         "'": "&apos;",
-      })[character]!,
+      })[c]!,
   );
-
-export function sitemapXml(origin: string, slugs: string[]) {
-  const salonUrls = [
+export function sitemapXml(rawOrigin: string, slugs: string[]) {
+  const origin = normaliseCanonicalAliasOrigin(rawOrigin);
+  // Public marketing and template pages are crawlable; app/auth/private routes are not.
+  const candidates = [
+    origin + "/",
+    origin + "/salon-os",
+    origin + "/pricing",
+    origin + "/privacy",
+    ...NEXORA_ECOSYSTEM_ROUTES.map((path) => origin + path),
+    ...NEXORA_TEMPLATE_META.map((meta) => origin + nexoraTemplatePagePath(meta.templateId)),
     ...new Set(
       slugs
-        .filter((slug) => /^[a-z0-9][a-z0-9-]{2,62}$/.test(slug))
-        .map((slug) => origin + "/?site=" + encodeURIComponent(slug)),
+        .filter(isPublicSitemapSlug)
+        .map((s) => origin + "/?site=" + encodeURIComponent(s)),
     ),
   ];
-
-  // The public marketing homepage is now the root URL. Include the existing
-  // customer app, all public template previews, and published salon entries.
-  const urls = [
-    origin + "/",
-    origin + "/?app=1",
-    ...NEXORA_TEMPLATE_IDS.map(
-      (id) => origin + "/?template=" + encodeURIComponent(id),
-    ),
-    ...salonUrls,
-  ];
-
-  if (urls.length > 50000) {
+  const urls = candidates.filter((candidate) => {
+    try {
+      const parsed = new URL(candidate);
+      return (
+        parsed.protocol === "https:" &&
+        robotsTagForRequest(parsed.pathname, parsed.search) === null
+      );
+    } catch {
+      return false;
+    }
+  });
+  if (urls.length > 50000)
     throw new Error("Sitemap index required for this catalogue size");
-  }
-
   return (
-    '<?xml version="1.0" encoding="UTF-8"?>\n' +
-    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' +
+    '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' +
     urls.map((url) => "<url><loc>" + xml(url) + "</loc></url>").join("") +
-    "</urlset>\n"
+    "</urlset>"
   );
+}
+/**
+ * Hosts that must never become an SEO canonical: ephemeral preview deployments
+ * and local development. A preview URL leaking into <loc> tells search engines
+ * to index a throwaway domain instead of the real site.
+ */
+const EPHEMERAL_HOST_SUFFIXES = [
+  "vercel.app",
+  "netlify.app",
+  "pages.dev",
+  "github.io",
+  "e2b.app",
+  "localhost",
+  "127.0.0.1",
+  "nip.io",
+  "sslip.io",
+];
+
+/** True for preview/local hosts whose URLs must not be published as canonicals. */
+export function isEphemeralOrigin(origin: string): boolean {
+  const host = new URL(origin).hostname.toLowerCase();
+  return EPHEMERAL_HOST_SUFFIXES.some(
+    (suffix) => host === suffix || host.endsWith("." + suffix),
+  );
+}
+
+/**
+ * Resolves the sitemap origin.
+ *
+ * A real custom domain configured through SITE_URL / VITE_SITE_URL is honoured —
+ * published salon sites are served on their own domains, so the sitemap has to
+ * be able to describe them. Preview and local hosts are rejected and fall back
+ * to the production canonical, and canonical redirect aliases such as
+ * `www.nexorasalon.online` normalize to the non-www apex origin, so a Vercel
+ * preview or misconfigured `www` override can never pollute `/sitemap.xml`.
+ */
+export function sitemapOrigin(env: NodeJS.ProcessEnv = process.env): string {
+  for (const candidate of [env.SITE_URL, env.VITE_SITE_URL]) {
+    if (!candidate) continue;
+    const origin = canonicalOrigin(candidate);
+    if (!isEphemeralOrigin(origin)) return normaliseCanonicalAliasOrigin(origin);
+  }
+  return canonicalOrigin(NEXORA_PUBLIC_ORIGIN);
 }
 
 export async function generateSitemap(
   env: NodeJS.ProcessEnv = process.env,
   fetcher: typeof fetch = fetch,
 ) {
-  // Match the canonical homepage, robots.txt, and public static sitemap.
-  const origin = canonicalOrigin(env.SITE_URL || env.VITE_SITE_URL || DEFAULT_SITEMAP_ORIGIN);
-
+  const origin = sitemapOrigin(env);
   const endpoint =
-    env.SUPABASE_URL ||
-    env.VITE_SUPABASE_URL ||
-    "https://zilwgiuiygqqardzutxi.supabase.co";
+    env.SUPABASE_URL || "https://zilwgiuiygqqardzutxi.supabase.co";
   const key =
-    env.SUPABASE_ANON_KEY ||
-    env.VITE_SUPABASE_ANON_KEY ||
-    "sb_publishable_Xck8H8PcTCCnEwkvBfiSLw_c973vJkH";
-
+    env.SUPABASE_ANON_KEY || "sb_publishable_Xck8H8PcTCCnEwkvBfiSLw_c973vJkH";
   const slugs: string[] = [];
-
   try {
     for (let offset = 0; offset < 50000; offset += 1000) {
       const url = new URL("/rest/v1/studioflow_websites", endpoint);
@@ -105,62 +169,48 @@ export async function generateSitemap(
       url.searchParams.set("order", "slug.asc");
       url.searchParams.set("offset", String(offset));
       url.searchParams.set("limit", "1000");
-
       const response = await fetcher(url, {
-        headers: {
-          apikey: key,
-          accept: "application/json",
-        },
+        headers: { apikey: key },
         signal: AbortSignal.timeout(10000),
       });
-
-      if (!response.ok) {
-        throw new Error(
-          "Published-site catalogue unavailable (" + response.status + ")",
-        );
-      }
-
+      if (!response.ok) throw new Error("Published-site catalogue unavailable");
       const data = await response.json();
       if (
         !Array.isArray(data) ||
         data.some((row) => typeof row?.slug !== "string")
-      ) {
-        throw new Error("Invalid public salon catalogue");
-      }
-
+      )
+        throw new Error("Invalid public catalogue");
       slugs.push(...data.map((row) => row.slug));
-      if (data.length < 1000) {
-        return sitemapXml(origin, slugs);
-      }
+      if (data.length < 1000) return sitemapXml(origin, slugs);
     }
-
-    throw new Error("Sitemap index required for more than 50,000 salon URLs");
-  } catch (error) {
-    // Keep the XML response usable during a temporary Supabase outage. The
-    // returned fallback still lists the homepage and all known template URLs.
-    console.error("[SITEMAP] Could not load published salon URLs:", error);
+  } catch {
+    // Keep the public marketing and template pages crawlable if the optional
+    // published-site catalogue is temporarily unavailable. The dynamic site
+    // URLs return automatically when that catalogue is reachable again.
     return sitemapXml(origin, []);
   }
+  throw new Error("Sitemap index required for this catalogue size");
 }
-
-// Express and Vercel share this handler. Never trust the request Host as canonical.
+// Express and Vercel share the exact handler. No request Host is trusted as canonical.
 export async function sitemapHandler(
   _req: unknown,
   res: {
-    status: (statusCode: number) => any;
-    setHeader: (name: string, value: string) => unknown;
-    send: (body: string) => unknown;
+    status: (n: number) => any;
+    setHeader: (k: string, v: string) => unknown;
+    send: (text: string) => unknown;
   },
 ) {
-  let body: string;
   try {
-    body = await generateSitemap();
-  } catch (error) {
-    console.error("[SITEMAP] Generation failed; returning the static URL set:", error);
-    body = sitemapXml(DEFAULT_SITEMAP_ORIGIN, []);
+    const body = await generateSitemap();
+    res.setHeader("Content-Type", "application/xml; charset=utf-8");
+    res.setHeader("Cache-Control", "public, max-age=300, s-maxage=300");
+    res.send(body);
+  } catch {
+    res.setHeader("Cache-Control", "no-store");
+    res
+      .status(503)
+      .send(
+        "Sitemap temporarily unavailable. Check canonical-domain configuration and public catalogue connectivity.",
+      );
   }
-
-  res.setHeader("Content-Type", "application/xml; charset=utf-8");
-  res.setHeader("Cache-Control", "public, max-age=300, s-maxage=300");
-  res.send(body);
 }

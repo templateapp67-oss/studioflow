@@ -3,6 +3,7 @@ import { Bell, MessageCircle, Send, X } from "lucide-react";
 import type { SalonProfile, SalonService, Stylist } from "../../types";
 import type { DirectBookingSlot } from "../SpecialistWeek";
 import { mensConfig, mensImage, mensMediaVisible } from "../../lib/keshkraft";
+import { MENS_SUPPORT_STARTER_PROMPTS, MENS_SUPPORT_WELCOME_MESSAGE } from "../../lib/mensSupportContent";
 import { supabase } from "../../lib/supabase";
 import {
   addMensWaitlist,
@@ -86,27 +87,54 @@ export function MensDialog({
     </div>
   );
 }
-export function MensLiveChat() {
+type MensChatMessage = { role: "assistant" | "customer"; text: string };
+
+export function MensLiveChat({
+  starterPrompts = MENS_SUPPORT_STARTER_PROMPTS,
+}: {
+  /** Let the page, plan or attached context provide its own 3–6 ready-to-send prompts. */
+  starterPrompts?: readonly string[];
+} = {}) {
   const [open, setOpen] = useState(false),
     [message, setMessage] = useState(""),
-    [messages, setMessages] = useState([
-      {
-        role: "assistant",
-        text: "Welcome to KeshKraft. I’m a simulated support assistant. Ask about services, prices, barbers or the waitlist.",
-      },
-    ]);
+    [messages, setMessages] = useState<MensChatMessage[]>([
+      { role: "assistant", text: MENS_SUPPORT_WELCOME_MESSAGE },
+    ]),
+    [focusComposerAfterPrompt, setFocusComposerAfterPrompt] = useState(false);
   const end = useRef<HTMLDivElement>(null);
+  const composer = useRef<HTMLInputElement>(null);
+  const configuredPrompts = starterPrompts
+    .filter((prompt) => typeof prompt === "string" && prompt.trim().length > 0)
+    .slice(0, 6);
+  const prompts = configuredPrompts.length >= 3
+    ? configuredPrompts
+    : MENS_SUPPORT_STARTER_PROMPTS;
+  const hasCustomerMessage = messages.some((item) => item.role === "customer");
+
   useEffect(() => {
     end.current?.scrollIntoView?.({ block: "nearest" });
   }, [messages]);
+  useEffect(() => {
+    if (!focusComposerAfterPrompt || !composer.current) return;
+    composer.current.focus();
+    composer.current.setSelectionRange(message.length, message.length);
+    setFocusComposerAfterPrompt(false);
+  }, [focusComposerAfterPrompt, message]);
+
   const send = (text: string) => {
-    if (!text.trim()) return;
-    setMessages((m) => [
-      ...m.slice(-37),
-      { role: "customer", text: text.trim() },
-      { role: "assistant", text: mensSupportReply(text) },
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    setMessages((current) => [
+      ...current.slice(-37),
+      { role: "customer", text: trimmed },
+      { role: "assistant", text: mensSupportReply(trimmed) },
     ]);
     setMessage("");
+  };
+  const startNewConversation = () => {
+    setMessages([{ role: "assistant", text: MENS_SUPPORT_WELCOME_MESSAGE }]);
+    setMessage("");
+    setFocusComposerAfterPrompt(false);
   };
   return (
     <>
@@ -121,49 +149,68 @@ export function MensLiveChat() {
       </button>
       {open && (
         <MensDialog title="KeshKraft Live Chat" onClose={() => setOpen(false)}>
-          <p className="kk-dialog-note">
-            Simulated customer support · No live agent · Messages are not sent
-            or saved.
-          </p>
+          <div className="kk-chat-note-row">
+            <p className="kk-dialog-note">
+              Simulated customer support · No live agent · Messages are not sent
+              or saved.
+            </p>
+            {hasCustomerMessage && (
+              <button
+                type="button"
+                className="kk-chat-new-conversation"
+                aria-label="Start a new conversation"
+                onClick={startNewConversation}
+              >
+                New conversation
+              </button>
+            )}
+          </div>
           <div
             className="kk-chat-messages"
             role="log"
             aria-live="polite"
             aria-label="Support conversation"
           >
-            {messages.map((m, i) => (
-              <p key={i} className={`kk-chat-${m.role}`}>
+            {messages.map((item, index) => (
+              <p key={index} className={`kk-chat-${item.role}`}>
                 <small>
-                  {m.role === "assistant" ? "Style assistant · Demo" : "You"}
+                  {item.role === "assistant" ? "Style assistant · Demo" : "You"}
                 </small>
-                {m.text}
+                {item.text}
               </p>
             ))}
             <div ref={end} />
           </div>
-          <div className="kk-chat-prompts">
-            {[
-              "Haircut prices",
-              "Hair colour advice",
-              "How does the waitlist work?",
-            ].map((q) => (
-              <button key={q} onClick={() => send(q)}>
-                {q}
-              </button>
-            ))}
-          </div>
+          {!hasCustomerMessage && (
+            <ul className="kk-chat-prompts" aria-label="Suggested starter requests">
+              {prompts.map((prompt) => (
+                <li key={prompt}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMessage(prompt);
+                      setFocusComposerAfterPrompt(true);
+                    }}
+                  >
+                    {prompt}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
           <form
-            onSubmit={(e) => {
-              e.preventDefault();
+            onSubmit={(event) => {
+              event.preventDefault();
               send(message);
             }}
           >
             <label>
               Your support question
               <input
+                ref={composer}
                 value={message}
                 maxLength={500}
-                onChange={(e) => setMessage(e.target.value)}
+                onChange={(event) => setMessage(event.target.value)}
                 placeholder="How can we help?"
               />
             </label>

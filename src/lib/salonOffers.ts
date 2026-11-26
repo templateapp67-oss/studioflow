@@ -68,7 +68,9 @@ const plusDays = (value: number, days: number) => offerDateStamp(new Date(value 
 export function nextFestiveWeekEnd(now = Date.now()): string {
   for (const stamp of DEEPAVALI_DATES) {
     const day = parseOfferDate(stamp);
-    if (Number.isFinite(day) && day + 6 * DAY >= startOfDay(new Date(now))) return plusDays(day, 6);
+    if (!Number.isFinite(day)) continue;
+    const endStamp = plusDays(day, 6);
+    if (day + 6 * DAY > startOfDay(new Date(now)) && new Date(endStamp).getTime() > now) return endStamp;
   }
   return plusDays(now, 45);
 }

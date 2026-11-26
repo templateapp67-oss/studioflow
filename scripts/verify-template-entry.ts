@@ -5,7 +5,7 @@ for(const t of Object.values(CATEGORY_TEMPLATES)){assert.equal(requestedTemplate
 const roop=CATEGORY_TEMPLATES.beauty_parlour;
 assert.equal(roop.title,'Roop Mahal Beauty Parlour & Makeover Space');
 assert.equal(roop.paletteLabel,'Warm Cream, Soft Rose, Deep Maroon & Champagne Gold');
-assert.equal(roop.coverImageUrl,'/templates/roop-mahal/hero-bridal.jpg');
+assert.equal(roop.coverImageUrl,'/templates/roop-mahal/hero-bridal.webp');
 assert.equal(roop.ownerPhotoUrl,'/templates/roop-mahal/staff-sunita.jpg');
 assert.deepEqual(roop.stylists.map(s=>s.avatarUrl),['/templates/roop-mahal/staff-sunita.jpg','/templates/roop-mahal/staff-meenakshi.jpg','/templates/roop-mahal/staff-pooja.jpg']);
 assert.equal(requestedTemplate('?template=beauty_parlour')?.coverImageUrl,roop.coverImageUrl);

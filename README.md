@@ -23,7 +23,10 @@ reports `"source": "ai"`.
 ### Production deployment (Vercel)
 
 `vercel.json` serves the SPA for every non-file route with immutable caching for `/assets/*`
-and must-revalidate caching for `index.html`, plus baseline security headers. Tenant
+and must-revalidate caching for `index.html`, plus baseline security headers. `/login`,
+`/sign-in` and `/sign-up` all serve the same prerendered login document, and the `www` host
+308-redirects to the canonical `https://nexorasalon.online` origin (never from preview or
+`.e2b.app` hosts). See `docs/UNIFIED-WIRING.md`. Tenant
 routing resolves in this order: `?site=<slug>` (share links, QR codes), then the first
 hostname label as a subdomain alias (`<slug>.your-domain.com` — requires a wildcard `*`
 DNS record plus the wildcard domain in the Vercel project settings). Apex domains, `www`,
@@ -38,6 +41,9 @@ back to honest local results.
 - `npm test` — app + edge TypeScript checks, then every offline `scripts/verify-*.mjs` suite.
 - `npm run test:live` — live Supabase integration (needs network + a configured test project with
   email autoconfirm; uses disposable accounts, cleans up media; delete its test users/rows after).
+- `npm run test:wiring` — every template: storefront rendering, editor persistence and bookings.
+- `npm run test:unified` — auth aliases, Google profile-completion gate, canonical 308 redirects
+  and the server-side 25% deposit guard (`GET|POST /api/booking-deposit`).
 - `npm run build` — production bundle; also emits `dist/app-version.json` for the update manager.
 
 Backend migrations, RLS model and publish flow: `backend/README.md`. Remaining external

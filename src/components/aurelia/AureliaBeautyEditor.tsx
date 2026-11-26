@@ -1,3 +1,4 @@
+import { patchOwnerCopy } from '../../lib/copyProvenance';
 import React, {useMemo, useState} from 'react';
 import {ChevronDown, ChevronUp, Plus, Save, Trash2, Video} from 'lucide-react';
 import {ServiceManagement} from '../ServiceManagement';
@@ -20,7 +21,7 @@ export function AureliaBeautyEditor(props:SalonWebsitePreviewProps){
  const config=aureliaConfigFor(profile);
  const offers=useMemo(()=>profile.promoOffers===undefined?AURELIA_DEFAULT_OFFERS:profile.promoOffers,[profile.promoOffers]);
  const accent=profile.customAccentColor||'#9b7652';
- const updateProfile=(patch:Partial<SalonProfile>)=>props.setProfile?.(current=>({...current,...patch}));
+ const updateProfile=(patch:Partial<SalonProfile>)=>props.setProfile?.(current=>patchOwnerCopy({...current,...patch}, patch));
  const updateConfig=(patch:Partial<AureliaBeautyConfig>)=>props.setProfile?.(current=>({...current,aureliaBeauty:{...aureliaConfigFor(current),...patch}}));
  const updateOffer=(id:string,patch:Partial<SalonOffer>)=>updateProfile({promoOffers:offers.map(offer=>offer.id===id?{...offer,...patch,isDemo:false}:offer)});
  const addOffer=()=>{
@@ -60,9 +61,9 @@ export function AureliaBeautyEditor(props:SalonWebsitePreviewProps){
   finally{setUploading('');}
  };
  const saveVideoLinks=()=>{
-  const items:SocialVideo[]=videoLines.split('\n').map((line,index):SocialVideo=>{
+  const items:SocialVideo[]=videoLines.split('\n').map((line,index)=>{
    const parts=line.split('|');const title=(parts[0]||'Studio video').trim();const url=(parts.slice(1).join('|')||'').trim();
-   return {id:'aurelia-owner-video-'+index+'-'+Date.now(),title,description:'Video added by the salon owner.',youtubeUrl:url,previewVideoUrl:/\.(mp4|webm)(\?|$)/i.test(url)?url:undefined,videoId:'',thumbnailUrl:AURELIA_IMAGES.galleryStudio,categoryTag:'SHOWCASE',isOwnerVideo:true,views:'',isDemo:false};
+   return {id:'aurelia-owner-video-'+index+'-'+Date.now(),title,description:'Video added by the salon owner.',youtubeUrl:url,previewVideoUrl:/\.(mp4|webm)(\?|$)/i.test(url)?url:undefined,videoId:'',thumbnailUrl:AURELIA_IMAGES.galleryStudio,categoryTag:'SHOWCASE' as const,isOwnerVideo:true,views:'',isDemo:false};
   }).filter(video=>video.youtubeUrl.startsWith('https://')||video.youtubeUrl.startsWith('http://'));
   updateProfile({socialVideos:items,demoVideosInitialized:true});
   setMessage(items.length+' video link(s) saved.');

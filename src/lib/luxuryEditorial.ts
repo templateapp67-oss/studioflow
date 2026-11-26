@@ -424,9 +424,9 @@ export function matchGalleryStyleMeta(title: string, index: number): ZiyaStyleLo
 
 export const LUXURY_EDITORIAL_SELECTOR_LABEL = 'Ziya Women’s Hair Studio';
 export const LUXURY_EDITORIAL_TAGLINE =
-  'Professional women’s haircuts designed around your face shape, hair type and personal style.';
+  'Women’s haircuts shaped around your face, your hair and how you actually style it.';
 export const LUXURY_EDITORIAL_ABOUT =
-  'Ziya Women’s Hair Studio is a dedicated women’s haircutting studio built exclusively around precision scissor work, face-shape matching, and modern women’s haircut silhouettes — from cascading layers, butterfly cuts and curtain bangs to sculpted bobs, pixies and curl-by-curl dry cuts.';
+  'Ziya is a women-only hair studio built around good scissor work and shapes that suit your face — soft layers, butterfly cuts and curtain bangs, or clean bobs, pixies and dry cuts done curl by curl.';
 
 const LEGACY_HAIR_SALON_URLS = [
   '1560066984-138dadb4c035',
@@ -527,12 +527,12 @@ export function luxuryEditorialCssVariables(profile: Pick<SalonProfile, 'customA
 export const LUXURY_EDITORIAL_COPY = {
   brandName: 'Ziya Women’s Hair Studio',
   brandSublabel: 'Women’s Haircut Specialist Salon',
-  heroEyebrow: 'Ziya Women’s Hair Studio · Specialist Cut Atelier',
-  heroHeadline: 'Your Hair, Your Style, Your Confidence',
+  heroEyebrow: 'ZIYA WOMEN’S HAIR STUDIO · BENGALURU',
+  heroHeadline: 'A haircut that feels like you',
   heroSubheadline:
-    'Professional women’s haircuts designed around your face shape, hair type and personal style.',
-  heroPrimaryCta: 'Book Your Haircut',
-  heroSecondaryCta: 'Explore Haircut Styles',
+    'Thoughtful haircuts for women, shaped around your face, hair and everyday style.',
+  heroPrimaryCta: 'Book an appointment',
+  heroSecondaryCta: 'See our styles',
   heroHighlights: [
     'Face-Shape Matched Cuts',
     '100% Female Hairstylist Team',

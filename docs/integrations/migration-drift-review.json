@@ -1,0 +1,303 @@
+{
+  "source": "Owner applied migration export of 2026-11-16; 167 applied versions",
+  "comparison": "PostgreSQL parsed statements, normalized SQL tokens; string literals retained; function bodies tokenized recursively",
+  "reconciled_aliases": [
+    {
+      "removed_file": "202611030004_template15_16_catalogue_sync.sql",
+      "canonical_file": "20261103133437_template15_16_catalogue_sync.sql",
+      "removed_file_sha256": "42875807903a60682d9cfa674ee52e1e8905cfd5ba1e9ab9b3ed788d725df92a",
+      "equivalent_statement_count": 1,
+      "verification": "PostgreSQL statement parsing and token comparison, including dollar-quoted function bodies; comments and formatting excluded, quoted values preserved."
+    },
+    {
+      "removed_file": "202611070001_nexora_salon_landing_database.sql",
+      "canonical_file": "20261107070508_nexora_salon_landing_database.sql",
+      "removed_file_sha256": "8821db45dec1bb397c62b2cbccd290c9e85adc0353a96fb54f0e4cd56633d98b",
+      "equivalent_statement_count": 141,
+      "verification": "PostgreSQL statement parsing and token comparison, including dollar-quoted function bodies; comments and formatting excluded, quoted values preserved."
+    },
+    {
+      "removed_file": "202611070003_nexora_salon_landing_rate_limits.sql",
+      "canonical_file": "20261107071230_nexora_salon_landing_rate_limits.sql",
+      "removed_file_sha256": "11446bf508b76b1a64b5fcd7fb6dcbbdd35c84e8fdd70874dc1d81b2ae43a4b2",
+      "equivalent_statement_count": 11,
+      "verification": "PostgreSQL statement parsing and token comparison, including dollar-quoted function bodies; comments and formatting excluded, quoted values preserved."
+    },
+    {
+      "removed_file": "202611070004_nexora_demo_lead_operations.sql",
+      "canonical_file": "20261107082654_nexora_demo_lead_operations.sql",
+      "removed_file_sha256": "1f30f945e6ef1b67363a4e5bf3353a8288fc987b03ad65b7a78592d1cb799d73",
+      "equivalent_statement_count": 25,
+      "verification": "PostgreSQL statement parsing and token comparison, including dollar-quoted function bodies; comments and formatting excluded, quoted values preserved."
+    },
+    {
+      "removed_file": "202611070005_nexora_demo_lead_retention_default.sql",
+      "canonical_file": "20261107082952_nexora_demo_lead_retention_default.sql",
+      "removed_file_sha256": "99970a7a1f698e81cb4a3c084095f0b58ba0afdb190398ba16480303f465f982",
+      "equivalent_statement_count": 2,
+      "verification": "PostgreSQL statement parsing and token comparison, including dollar-quoted function bodies; comments and formatting excluded, quoted values preserved."
+    },
+    {
+      "removed_file": "202611070006_nexora_landing_privacy_link.sql",
+      "canonical_file": "20261107083327_nexora_landing_privacy_link.sql",
+      "removed_file_sha256": "79070c5c02647197a70e313854065b5a8d1335094a4ae918c5bf97baff8a3df9",
+      "equivalent_statement_count": 1,
+      "verification": "PostgreSQL statement parsing and token comparison, including dollar-quoted function bodies; comments and formatting excluded, quoted values preserved."
+    },
+    {
+      "removed_file": "202611140001_studioflow_branch_android_slots.sql",
+      "canonical_file": "20261114115141_studioflow_branch_android_slots.sql",
+      "removed_file_sha256": "e9fabb52f9c8f969d4fade5a15891653fe655eb972f1067ba5d3340b3cbd9dae",
+      "equivalent_statement_count": 100,
+      "verification": "PostgreSQL statement parsing and token comparison, including dollar-quoted function bodies; comments and formatting excluded, quoted values preserved."
+    },
+    {
+      "removed_file": "20261115133000_private_whatsapp_test_rate_limit.sql",
+      "canonical_file": "20261115145202_private_whatsapp_test_rate_limit.sql",
+      "removed_file_sha256": "874b5ff090948f1202b4d69c25c655a2fc0c2fcfd00ea1e30b3efe06434ebebf",
+      "equivalent_statement_count": 1,
+      "verification": "PostgreSQL statement parsing and token comparison, including dollar-quoted function bodies; comments and formatting excluded, quoted values preserved."
+    }
+  ],
+  "requires_live_catalog": [
+    {
+      "file": "202610290001_vogue_noir_academy_city.sql",
+      "statement_count": 7,
+      "already_recorded_statements": 0,
+      "different_statements": 7,
+      "closest_recorded_files": []
+    },
+    {
+      "file": "202610300002_prism_chroma_template_10.sql",
+      "statement_count": 104,
+      "already_recorded_statements": 10,
+      "different_statements": 94,
+      "closest_recorded_files": [
+        [
+          "20261014123207_studioflow_customer_reviews.sql",
+          10
+        ],
+        [
+          "20261014124327_studioflow_owner_review_update.sql",
+          2
+        ],
+        [
+          "20260928011007_nexora_owner_workspace_baseline_20260928.sql",
+          1
+        ]
+      ]
+    },
+    {
+      "file": "202610300004_multibranch_support.sql",
+      "statement_count": 90,
+      "already_recorded_statements": 81,
+      "different_statements": 9,
+      "closest_recorded_files": [
+        [
+          "20261114115141_studioflow_branch_android_slots.sql",
+          81
+        ]
+      ]
+    },
+    {
+      "file": "202610300005_iron_ink_social_videos.sql",
+      "statement_count": 22,
+      "already_recorded_statements": 4,
+      "different_statements": 18,
+      "closest_recorded_files": [
+        [
+          "20261031103659_iron_ink_social_videos.sql",
+          4
+        ]
+      ]
+    },
+    {
+      "file": "202611020001_ziya_promotions_and_loyalty.sql",
+      "statement_count": 146,
+      "already_recorded_statements": 5,
+      "different_statements": 141,
+      "closest_recorded_files": [
+        [
+          "20261018052057_booking_reward_coupons.sql",
+          4
+        ],
+        [
+          "20261018052232_booking_coupon_scope_fix.sql",
+          4
+        ],
+        [
+          "20261018052343_coupon_quote_price_revalidation.sql",
+          4
+        ]
+      ]
+    },
+    {
+      "file": "202611030001_aura_template03_content.sql",
+      "statement_count": 64,
+      "already_recorded_statements": 7,
+      "different_statements": 57,
+      "closest_recorded_files": [
+        [
+          "20261010012441_studioflow_secure_workspace_backend.sql",
+          3
+        ],
+        [
+          "20261010012933_studioflow_storage_and_booking_status.sql",
+          3
+        ],
+        [
+          "20260928011007_nexora_owner_workspace_baseline_20260928.sql",
+          1
+        ]
+      ]
+    },
+    {
+      "file": "202611030002_aura_unisex_promotions.sql",
+      "statement_count": 120,
+      "already_recorded_statements": 3,
+      "different_statements": 117,
+      "closest_recorded_files": [
+        [
+          "20261010012441_studioflow_secure_workspace_backend.sql",
+          3
+        ]
+      ]
+    },
+    {
+      "file": "202611030003_template15_keshkraft.sql",
+      "statement_count": 30,
+      "already_recorded_statements": 0,
+      "different_statements": 30,
+      "closest_recorded_files": []
+    },
+    {
+      "file": "202611050001_booking_multi_services.sql",
+      "statement_count": 28,
+      "already_recorded_statements": 11,
+      "different_statements": 17,
+      "closest_recorded_files": [
+        [
+          "20261114115141_studioflow_branch_android_slots.sql",
+          11
+        ],
+        [
+          "20261018044936_website_booking_addons.sql",
+          3
+        ],
+        [
+          "20261018045040_website_addon_retry_safety.sql",
+          3
+        ]
+      ]
+    },
+    {
+      "file": "202611060001_studioflow_public_access_hardening.sql",
+      "statement_count": 18,
+      "already_recorded_statements": 0,
+      "different_statements": 18,
+      "closest_recorded_files": []
+    },
+    {
+      "file": "202611070002_nexora_salon_landing_seed.sql",
+      "statement_count": 11,
+      "already_recorded_statements": 7,
+      "different_statements": 4,
+      "closest_recorded_files": [
+        [
+          "20261107070729_nexora_salon_landing_seed.sql",
+          7
+        ]
+      ]
+    },
+    {
+      "file": "202611070007_nexora_public_visibility_reconcile.sql",
+      "statement_count": 12,
+      "already_recorded_statements": 2,
+      "different_statements": 10,
+      "closest_recorded_files": [
+        [
+          "20260928010949_nexora_legacy_operational_baseline_20260928.sql",
+          1
+        ],
+        [
+          "20260928023439_normalized_template_catalogue_core_20260928.sql",
+          1
+        ]
+      ]
+    },
+    {
+      "file": "202611070008_remove_nexora_promotion_studio.sql",
+      "statement_count": 2,
+      "already_recorded_statements": 0,
+      "different_statements": 2,
+      "closest_recorded_files": []
+    },
+    {
+      "file": "202611070009_remove_nexora_product_preview.sql",
+      "statement_count": 2,
+      "already_recorded_statements": 0,
+      "different_statements": 2,
+      "closest_recorded_files": []
+    },
+    {
+      "file": "202611120001_studioflow_edge_rate_limits.sql",
+      "statement_count": 12,
+      "already_recorded_statements": 0,
+      "different_statements": 12,
+      "closest_recorded_files": []
+    },
+    {
+      "file": "20261113120947_multibranch_template12_support.sql",
+      "statement_count": 34,
+      "already_recorded_statements": 3,
+      "different_statements": 31,
+      "closest_recorded_files": [
+        [
+          "20261113120946_template12_iron_ink.sql",
+          3
+        ]
+      ]
+    },
+    {
+      "file": "20261115132100_studioflow_whatsapp_test_booking_api.sql",
+      "statement_count": 13,
+      "already_recorded_statements": 6,
+      "different_statements": 7,
+      "closest_recorded_files": [
+        [
+          "20261115131821_studioflow_whatsapp_test_booking_api.sql",
+          6
+        ]
+      ]
+    },
+    {
+      "file": "20261116100000_nexora_whatsapp_optional_profiles.sql",
+      "statement_count": 7,
+      "already_recorded_statements": 5,
+      "different_statements": 2,
+      "closest_recorded_files": [
+        [
+          "20261116085953_nexora_whatsapp_runtime_contract_fix.sql",
+          5
+        ],
+        [
+          "20261116022103_nexora_whatsapp_vault_key_access.sql",
+          2
+        ],
+        [
+          "20261116040038_nexora_whatsapp_guest_booking.sql",
+          2
+        ]
+      ]
+    }
+  ],
+  "live_catalog_review": {
+    "captured_at": "2026-11-17T06:05:08.989382+00:00",
+    "remaining_unclassified": 0,
+    "applied_aliases_removed": 8,
+    "deferred_feature_files": 15,
+    "superseded_test_draft_files": 1,
+    "pending_additive_runtime_migrations": 2,
+    "notes": "Classification is complete. Production dry-run, application of the two pending migrations, and real provider integration checks are separate release steps."
+  }
+}

@@ -1,3 +1,4 @@
+import './shringaarRoyal.css';
 import React, { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from 'framer-motion';
 import {
@@ -23,6 +24,7 @@ import {
   X,
   Youtube,
 } from 'lucide-react';
+import { ServiceMerchTags, ServiceTerms } from './ServiceMerchandising';
 import type { SalonProfile, SalonService, Stylist } from '../types';
 import type { SalonGalleryPhoto } from '../lib/photoGallery';
 import { isPackage } from '../lib/packageCatalogue';
@@ -360,7 +362,7 @@ export function ShringaarRoyalWebsite({
             {[0, 1].map((copy) => (
               <span key={copy} style={{ display: 'inline-flex', gap: 44 }}>
                 <span>✦ {config.announcementText}</span>
-                <span>✦ Royal Rajputana Trousseaus</span>
+                <span>✦ Rajputana Bridal Trousseaus</span>
                 <span>✦ Hand-draped in Jaipur</span>
                 <span>✦ Complimentary trial look book</span>
               </span>
@@ -766,7 +768,7 @@ export function ShringaarRoyalWebsite({
             <div className="sr-shell">
               <Reveal className="sr-section-head">
                 <div>
-                  <p className="sr-eyebrow">The Sabyasachi Aesthetic</p>
+                  <p className="sr-eyebrow">Our Signature Bridal Look</p>
                   <h2 id="sr-looks-heading" className="sr-h2" style={{ marginTop: 12 }}>
                     {config.looksHeading}
                   </h2>
@@ -905,6 +907,8 @@ export function ShringaarRoyalWebsite({
                           <span className="sr-service-cat">{service.category}</span>
                           <span className="sr-service-name">{service.name}</span>
                           <span className="sr-service-desc">{service.description}</span>
+                          <ServiceMerchTags service={service} className="sf-merch-inline" />
+                          <ServiceTerms service={service} className="sf-merch-inline" />
                           <span className="sr-service-meta">
                             <b>{shringaarFormatInr(service.price)}</b>
                             {service.showDuration !== false && service.durationMinutes > 0 ? (
@@ -968,7 +972,7 @@ export function ShringaarRoyalWebsite({
                   <RevealItem as="article" className="sr-artist" key={artist.id}>
                     <div className="sr-artist-arch">
                       <div className="sr-arch">
-                        <div className="sr-arch-inner">
+                        <div className="sr-arch-inner h-80 w-full aspect-[3/4] overflow-hidden">
                           <button
                             type="button"
                             onClick={() => onViewSpecialist(artist.id)}
@@ -982,7 +986,7 @@ export function ShringaarRoyalWebsite({
                               width={560}
                               height={700}
                               loading="lazy"
-                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              className="w-full h-full object-cover"
                             />
                           </button>
                         </div>

@@ -23,7 +23,7 @@ create function studioflow_private.coupon_quote(text,jsonb,text) returns jsonb l
 create function studioflow_private.coupon_book(text,jsonb) returns jsonb language plpgsql as $$begin raise exception 'Fixture does not implement shared voucher checkout';end$$;
 `);
 const sql = readFileSync(
-  "supabase/migrations/202611030003_template15_keshkraft.sql",
+  "supabase/pending-features/202611030003_template15_keshkraft.sql",
   "utf8",
 );
 await db.exec(sql);

@@ -1,3 +1,5 @@
+import { isAuthEntryPath } from './authRoutes';
+
 export function trimSlashes(s: unknown): string {
   if (typeof s !== 'string') return '';
   return s.replace(/^\/+|\/+$/g, "");
@@ -113,6 +115,7 @@ export function resolveSiteSlug(
         first !== 'app' &&
         first !== 'invite' &&
         first !== 'api' &&
+        !isAuthEntryPath(`/${first}`) &&
         first.length > 1 &&
         /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(first)
       ) {
@@ -122,4 +125,55 @@ export function resolveSiteSlug(
   }
 
   return null;
+}
+
+/** True when `search` explicitly targets a salon storefront via `?site`, `?s` or `?subdomain`. */
+export function hasExplicitSiteQuery(search = ''): boolean {
+  if (!search) return false;
+  try {
+    const params = new URLSearchParams(search);
+    return Boolean((params.get('site') || params.get('s') || params.get('subdomain') || '').trim());
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * True when navigating to `/` on this host resolves to a published salon
+ * storefront rather than the main NEXORA platform homepage.
+ */
+export function isStorefrontRootHost(
+  input?: { hostname?: string; href?: string; origin?: string } | null,
+): boolean {
+  if (!input) return false;
+  return Boolean(
+    resolveSiteSlug({
+      hostname: input.hostname || '',
+      href: input.href || '',
+      origin: input.origin || '',
+      pathname: '/',
+      search: '',
+    }),
+  );
+}
+
+/**
+ * Only known platform hosts may use the plain-owner `/` landing redirect.
+ * Unknown hosts can be salon custom domains; staying in the app on that same
+ * origin avoids sending a signed-in owner to a storefront or losing the
+ * origin-scoped Supabase session by hopping to the apex domain.
+ */
+export function isPlatformRootHost(
+  input?: { hostname?: string; href?: string; origin?: string } | null,
+): boolean {
+  if (!input) return false;
+  let hostname = input.hostname || '';
+  if (!hostname && (input.href || input.origin)) {
+    try { hostname = new URL(input.href || input.origin || '').hostname; } catch { return false; }
+  }
+  const host = hostname.toLowerCase().replace(/\.$/, '');
+  return host === 'nexorasalon.online' || host === 'www.nexorasalon.online' ||
+    host === 'nexora.app' || host === 'www.nexora.app' || host === 'localhost' ||
+    host === '127.0.0.1' || host.endsWith('.e2b.app') || host.endsWith('.vercel.app') ||
+    host.endsWith('.chatgpt.site');
 }

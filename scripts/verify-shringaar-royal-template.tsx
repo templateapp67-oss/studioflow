@@ -18,6 +18,7 @@ import {
   SHRINGAAR_DEFAULT_COLLECTIONS,
   SHRINGAAR_DEFAULT_COLORS,
   SHRINGAAR_IMAGES,
+  SHRINGAAR_HERO_HEADING,
   SHRINGAAR_SERVICES,
   SHRINGAAR_TEMPLATE_SERVICES,
   buildShringaarSeo,
@@ -113,7 +114,7 @@ for (const path of ['logo.svg', 'favicon.svg', 'og-image.jpg']) {
 /* ---------- 3. Resolver: demo defaults + onboarding overrides ---------- */
 const demoProfile = { ...INITIAL_SALON_PROFILE, businessType: 'bridal_lounge' as const };
 const defaults = resolveShringaarRoyalConfig(demoProfile);
-assert.equal(defaults.heroHeading, 'Where Every Bride Becomes Royalty');
+assert.equal(defaults.heroHeading, SHRINGAAR_HERO_HEADING);
 assert.equal(defaults.heroImageUrl, SHRINGAAR_IMAGES.hero);
 assert.deepEqual(defaults.collections, SHRINGAAR_DEFAULT_COLLECTIONS);
 assert.deepEqual(defaults.colors, SHRINGAAR_DEFAULT_COLORS);
@@ -274,16 +275,16 @@ for (const order of ['hero', 'services', 'team', 'experiences', 'location', 'foo
 }
 const text = html.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&#x27;/g, "'").replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ');
 for (const copy of [
-  'Where Every Bride Becomes Royalty',
-  'Royal Rajputana Trousseaus',
-  'The Sabyasachi Aesthetic',
-  'Heirloom Makeover Packages',
-  'The Bridal Menu',
-  'Your Bridal Journey',
-  'Brides Who Became Royalty',
-  'From Our Bridal Diaries',
-  'Wedding Season 2026',
-  'Book Your Bridal Consultation',
+  SHRINGAAR_HERO_HEADING,
+  defaults.collectionsHeading,
+  defaults.looksHeading,
+  defaults.packagesHeading,
+  defaults.servicesHeading,
+  defaults.processHeading,
+  defaults.reviewsHeading,
+  defaults.galleryHeading,
+  defaults.offerHeading,
+  'Book Consultation',
 ]) {
   assert.ok(text.includes(copy), `Template 11 copy renders: ${copy}`);
 }
@@ -315,9 +316,12 @@ for (const tag of imgTags) {
   assert.ok(src.startsWith('/templates/11/') || src.startsWith('data:') || platformAsset, `unexpected image source ${src}`);
   if (platformAsset) continue;
   assert.ok(/alt="[^"]*"/.test(tag), `image without alt text: ${tag.slice(0, 80)}`);
-  if (!src.includes('hero-bride.jpg')) assert.ok(tag.includes('loading="lazy"'), `image must lazy-load: ${src}`);
+  if (src === '/templates/11/hero-bride.webp' && tag.includes('kundan jewellery')) {
+    assert.ok(tag.includes('loading="eager"'), `the above-the-fold hero must not be lazy-loaded: ${tag}`);
+    assert.ok(tag.includes('fetchPriority="high"'), 'the above-the-fold hero is requested at high priority');
+  } else assert.ok(tag.includes('loading="lazy"'), `below-the-fold image must lazy-load: ${src}`);
 }
-assert.ok(html.includes('/templates/11/hero-bride.jpg'), 'hero uses the bundled bridal portrait');
+assert.ok(html.includes('/templates/11/hero-bride.webp'), 'hero uses the optimized bundled bridal portrait');
 
 /* Customer account affordances stay inside the storefront header. */
 const header = (html.match(/<header[\s\S]*?<\/header>/g) || []).find((block) => block.includes('Customer account'));

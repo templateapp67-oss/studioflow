@@ -4,6 +4,7 @@ import { ArrowUpRight, Search, BookOpen, Clock, X, ArrowLeft, Tag, ShieldCheck, 
 import { useDermacure } from './context';
 import { EditorialImage } from './EditorialImage';
 import type { ClinicArticle } from '../../types';
+import { JournalInlineText } from './JournalInlineText';
 
 export const DEFAULT_CLINIC_ARTICLES: ClinicArticle[] = [
   {
@@ -424,7 +425,7 @@ export function ClinicJournal() {
                         <ul key={idx} className="list-disc list-inside space-y-1.5 pl-2 text-gray-700">
                           {items.map((item, itemIdx) => (
                             <li key={itemIdx} className="leading-relaxed">
-                              <span dangerouslySetInnerHTML={{ __html: item.replace('- ', '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                              <JournalInlineText value={item.replace('- ', '')} />
                             </li>
                           ))}
                         </ul>
@@ -432,7 +433,7 @@ export function ClinicJournal() {
                     }
                     return (
                       <p key={idx} className="leading-relaxed">
-                        <span dangerouslySetInnerHTML={{ __html: paragraph.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>') }} />
+                        <JournalInlineText value={paragraph} />
                       </p>
                     );
                   })}

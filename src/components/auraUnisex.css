@@ -1424,7 +1424,7 @@
 }
 .au-site .au-team-portrait {
   position: relative;
-  aspect-ratio: 4 / 4.4;
+  aspect-ratio: 3 / 4;
   background: var(--au-beige);
   overflow: hidden;
 }

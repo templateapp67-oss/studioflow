@@ -1,4 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
+import './appUpdate.css';
 import {CURRENT_BUILD,latestAppVersion,applyAppVersion,alreadyTriedVersion,updateReadiness} from '../lib/appUpdates';
 import {notifyAppUpdate} from '../lib/updateNotifications';
 import {UpdateNotificationSettings} from './UpdateNotificationSettings';

@@ -1,144 +1,84 @@
-// Ensure window.fetch has both getter and setter in iframe environments
-try {
-  const desc = Object.getOwnPropertyDescriptor(window, 'fetch');
-  if (!desc || !desc.set) {
-    let currentFetch = window.fetch;
-    Object.defineProperty(window, 'fetch', {
-      get() {
-        return currentFetch;
-      },
-      set(fn) {
-        currentFetch = fn;
-      },
-      configurable: true,
-      enumerable: true,
-    });
-  }
-} catch {
-  // Ignore descriptor errors
-}
-
-import React, { StrictMode } from 'react';
+import React, { StrictMode, Suspense, lazy, useEffect, useState } from 'react';
 import { createRoot, hydrateRoot } from 'react-dom/client';
-import App from './App';
-import { PublicHomePage } from './components/PublicHomePage';
-import { supabase } from './lib/supabase';
-import { AppUpdateManager } from './components/AppUpdateManager';
+import { AppRouter, requiresFullApplication } from './AppRouter';
 import { DebugBoundary } from './components/DebugBoundary';
 import { installScreenRecovery } from './lib/loadScreen';
 import { registerCustomerPwa } from './lib/customerPwa';
 import './index.css';
-import './components/dermacure.css';
-import './components/vogueNoir.css';
-import './components/bodhiTree.css';
-import './components/prismChroma.css';
-import './components/shringaarRoyal.css';
-import './components/archFlutter.css';
+
+const AppUpdateManager = lazy(() =>
+  import('./components/AppUpdateManager').then((module) => ({ default: module.AppUpdateManager })),
+);
+
+/** Mount client-only update polling after hydration, without dropping it on public routes. */
+function AppUpdateManagerAfterHydration() {
+  const [ready, setReady] = useState(false);
+  useEffect(() => setReady(true), []);
+
+  return ready ? (
+    <Suspense fallback={null}>
+      <AppUpdateManager />
+    </Suspense>
+  ) : null;
+}
 
 installScreenRecovery();
 registerCustomerPwa();
 
 const rootElement = document.getElementById('root');
+if (rootElement) {
+  const hasPublishedSalonSsr = Boolean(document.getElementById('nexora-published-site-data'));
+  const canHydrate = rootElement.hasChildNodes()
+    && (!requiresFullApplication(window.location) || hasPublishedSalonSsr);
 
-function mountApplication() {
-  if (!rootElement) return;
-  createRoot(rootElement).render(
+  const content = (
     <StrictMode>
-      {/* DebugBoundary sits above App so a render failure can never leave a blank page. */}
       <DebugBoundary>
-        <App />
+        <AppRouter />
       </DebugBoundary>
-      <AppUpdateManager />
-    </StrictMode>,
-  );
-}
-
-const appEntryQueryKeys = [
-  'app',
-  'customer',
-  'site',
-  's',
-  'subdomain',
-  'template',
-  'category',
-  'create',
-  'owner',
-  'panel',
-  'auth',
-  'recovery',
-  'ref',
-  'customer_ref',
-  'return',
-  'passwordUpdated',
-  'code',
-  'error',
-  'error_description',
-  'tab',
-  'type',
-  'token_hash',
-  'access_token',
-  'refresh_token',
-  'provider_token',
-  'provider_refresh_token',
-  'expires_in',
-  'expires_at',
-  'scope',
-];
-
-const query = new URLSearchParams(window.location.search);
-const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-const hasAppEntryQuery = appEntryQueryKeys.some((key) => query.has(key));
-const hasAuthCallback = [
-  'type',
-  'access_token',
-  'refresh_token',
-  'error',
-  'error_description',
-].some((key) => hash.has(key));
-
-if (
-  rootElement?.dataset.prerendered === 'true' &&
-  window.location.pathname === '/' &&
-  !hasAppEntryQuery &&
-  !hasAuthCallback
-) {
-  // Hydrate the same public homepage markup sent in the initial HTML response.
-  const hydratedRoot = hydrateRoot(
-    rootElement,
-    <StrictMode>
-      <PublicHomePage />
-    </StrictMode>,
+      <AppUpdateManagerAfterHydration />
+    </StrictMode>
   );
 
-  let applicationMounted = false;
-  let authSubscription: { unsubscribe: () => void } | undefined;
-
-  const switchToAuthenticatedApplication = () => {
-    if (applicationMounted) return;
-    applicationMounted = true;
-    authSubscription?.unsubscribe();
-    hydratedRoot.unmount();
-    mountApplication();
-  };
-
-  const authListener = supabase.auth.onAuthStateChange(
-    (_event, session) => {
-      if (session) switchToAuthenticatedApplication();
-    },
-  );
-  authSubscription = authListener.data.subscription;
-  // Supabase may emit an initial signed-in session before the assignment above.
-  if (applicationMounted) authSubscription.unsubscribe();
-
-  // Signed-in owners still reach their existing workspace from the root URL.
-  void supabase.auth.getSession().then(({ data, error }) => {
-    if (!error && data.session) {
-      switchToAuthenticatedApplication();
-    }
-  }).catch((error) => {
-    console.error('[NEXORA] Could not check the existing session:', error);
-  });
-} else {
-  // All app/query routes keep the existing React application entry point.
-  mountApplication();
+  if (hasPublishedSalonSsr) {
+    // Hydrate only the storefront component tree emitted by the server.
+    // The default App adds global Suspense/referral wrappers that do not exist
+    // in the SSR document and cause React to recover from a root mismatch.
+    void import('./PublishedSalonHydrationApp')
+      .then(({ PublishedSalonHydrationApp }) => {
+        if (!rootElement.isConnected || document.getElementById('root') !== rootElement) return;
+        hydrateRoot(
+          rootElement,
+          <StrictMode>
+            <DebugBoundary>
+              <PublishedSalonHydrationApp />
+            </DebugBoundary>
+            <AppUpdateManagerAfterHydration />
+          </StrictMode>,
+          {
+            onRecoverableError(error, errorInfo) {
+              // Preserve the component tree in CI logs so a future SSR mismatch
+              // can be fixed at its source rather than hidden or ignored.
+              console.error('[NEXORA] Recoverable SSR hydration error', {
+                message: error instanceof Error ? error.message : String(error),
+                componentStack: errorInfo.componentStack || '',
+                cause: error instanceof Error ? error.cause : undefined,
+              });
+            },
+          },
+        );
+      })
+      .catch((error) => {
+        console.error('[NEXORA] Published salon hydration failed; mounting the client app.', error);
+        if (rootElement.isConnected && document.getElementById('root') === rootElement) {
+          rootElement.replaceChildren();
+          createRoot(rootElement).render(content);
+        }
+      });
+  } else if (canHydrate) {
+    hydrateRoot(rootElement, content);
+  } else {
+    if (rootElement.hasChildNodes()) rootElement.replaceChildren();
+    createRoot(rootElement).render(content);
+  }
 }

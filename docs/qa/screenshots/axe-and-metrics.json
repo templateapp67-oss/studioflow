@@ -1,0 +1,110 @@
+[
+  {
+    "page": "/pricing",
+    "viewport": "desktop",
+    "metrics": {
+      "lcp": 448,
+      "cls": 0,
+      "fcp": 244,
+      "domContentLoaded": 180,
+      "load": 189,
+      "transferSize": 264586,
+      "resources": 32
+    },
+    "overflow": {
+      "scrollWidth": 1440,
+      "clientWidth": 1440
+    },
+    "axe": []
+  },
+  {
+    "page": "/salon-os",
+    "viewport": "desktop",
+    "metrics": {
+      "lcp": 344,
+      "cls": 0.006,
+      "fcp": 168,
+      "domContentLoaded": 186,
+      "load": 188,
+      "transferSize": 105968,
+      "resources": 33
+    },
+    "overflow": {
+      "scrollWidth": 1440,
+      "clientWidth": 1440
+    },
+    "axe": []
+  },
+  {
+    "page": "/privacy",
+    "viewport": "desktop",
+    "metrics": {
+      "lcp": 132,
+      "cls": 0,
+      "fcp": 100,
+      "domContentLoaded": 87,
+      "load": 88,
+      "transferSize": 5859,
+      "resources": 11
+    },
+    "overflow": {
+      "scrollWidth": 1440,
+      "clientWidth": 1440
+    },
+    "axe": []
+  },
+  {
+    "page": "/pricing",
+    "viewport": "mobile",
+    "metrics": {
+      "lcp": 348,
+      "cls": 0,
+      "fcp": 168,
+      "domContentLoaded": 190,
+      "load": 195,
+      "transferSize": 264586,
+      "resources": 32
+    },
+    "overflow": {
+      "scrollWidth": 390,
+      "clientWidth": 390
+    },
+    "axe": []
+  },
+  {
+    "page": "/salon-os",
+    "viewport": "mobile",
+    "metrics": {
+      "lcp": 320,
+      "cls": 0,
+      "fcp": 140,
+      "domContentLoaded": 181,
+      "load": 185,
+      "transferSize": 105968,
+      "resources": 33
+    },
+    "overflow": {
+      "scrollWidth": 390,
+      "clientWidth": 390
+    },
+    "axe": []
+  },
+  {
+    "page": "/privacy",
+    "viewport": "mobile",
+    "metrics": {
+      "lcp": 100,
+      "cls": 0,
+      "fcp": 68,
+      "domContentLoaded": 79,
+      "load": 79,
+      "transferSize": 5859,
+      "resources": 11
+    },
+    "overflow": {
+      "scrollWidth": 390,
+      "clientWidth": 390
+    },
+    "axe": []
+  }
+]

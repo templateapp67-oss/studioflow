@@ -1,3 +1,4 @@
+import { ServiceMerchTags } from './ServiceMerchandising';
 import React, { useEffect, useMemo, useState } from "react";
 import {
   AnimatePresence,
@@ -655,6 +656,7 @@ export function IronInkWebsite({
                           </div>
                           <h3>{item.name}</h3>
                           {actualServices.find(service=>safeLower(service.category)===safeLower(item.name))?.name!==item.name&&<small>{actualServices.find(service=>safeLower(service.category)===safeLower(item.name))?.name}</small>}
+                          {(() => { const matched = actualServices.find(service=>safeLower(service.category)===safeLower(item.name)) || actualServices.find(service=>safeLower(service.name)===safeLower(item.name)); return matched ? <ServiceMerchTags service={matched} inline /> : null; })()}
                           <p>{item.description}</p>
                           <span className="ii-price">
                             FROM {money(item.price)}
@@ -692,7 +694,7 @@ export function IronInkWebsite({
                     <div className="ii-artist-grid">
                       {artistList.slice(0, 4).map((artist, index) => (
                         <button
-                          className="ii-artist-card"
+                          className="ii-artist-card h-80 w-full aspect-[3/4] overflow-hidden"
                           key={artist.id}
                           onClick={() => {
                             setArtistView(artist);
@@ -704,6 +706,7 @@ export function IronInkWebsite({
                               siteProfile.ownerPhotoUrl ||
                               fallback,
                             `${artist.name}, tattoo artist`,
+                            "w-full h-full object-cover",
                           )}
                           <span className="ii-artist-no">
                             View artist profile ↗ · ARTIST 0{index + 1}
@@ -1211,13 +1214,14 @@ export function IronInkWebsite({
                       <div className="ii-artist-grid">
                         {artistList.map((artist) => (
                           <button
-                            className="ii-artist-card"
+                            className="ii-artist-card h-80 w-full aspect-[3/4] overflow-hidden"
                             key={artist.id}
                             onClick={() => setArtistView(artist)}
                           >
                             {img(
                               artist.avatarUrl || fallback,
                               `${artist.name}, tattoo artist`,
+                              "w-full h-full object-cover",
                             )}
                             <span className="ii-artist-no">
                               View artist profile ↗

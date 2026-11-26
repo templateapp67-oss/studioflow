@@ -1,3 +1,4 @@
+import './prismChroma.css';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from 'framer-motion';
 import {
@@ -73,6 +74,7 @@ import {
   usePrismSite,
 } from '../lib/prismSite';
 import { PrismEmptyState, PrismSectionError } from './prism-chroma/LiveStates';
+import { ServiceMerchTags, ServiceTerms } from './ServiceMerchandising';
 
 const MARQUEE_WORDS = ['Balayage', 'Highlights', 'Fashion Colours', 'Gloss', 'Keratin', 'Colour Correction', 'Global Colour', 'Pastel Shades'];
 
@@ -522,6 +524,8 @@ export function PrismChromaWebsite({
                             <p className="pc-eyebrow" style={{ fontSize: '0.62rem' }}>{service.category}</p>
                             <h3 className="mt-2 text-lg font-bold leading-snug">{service.name}</h3>
                             <p className="pc-muted mt-2 flex-1 text-sm leading-relaxed">{service.description}</p>
+                            <ServiceMerchTags service={service} className="sf-merch-inline" />
+                            <ServiceTerms service={service} className="sf-merch-inline" />
                             <details className="pc-includes">
                               <summary>What&apos;s included</summary>
                               <ul>
@@ -752,9 +756,9 @@ export function PrismChromaWebsite({
               <FadeInGroup className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
                 {team.map((member, idx) => (
                   <FadeIn key={member.id}>
-                    <article className="pc-glass pc-glass-hover h-full overflow-hidden text-left">
+                    <article className="pc-glass pc-glass-hover h-80 overflow-hidden aspect-[3/4] text-left">
                       <button type="button" className="block w-full cursor-pointer" onClick={() => onViewSpecialist(member.id)} aria-label={`View profile & reviews: ${member.name}`}>
-                        <SafeImage src={member.avatarUrl} fallback={[PRISM_CHROMA_IMAGES.team.aarushi, PRISM_CHROMA_IMAGES.team.kiara, PRISM_CHROMA_IMAGES.team.priya, PRISM_CHROMA_IMAGES.team.tara][idx % 4]} alt={`Portrait of ${member.name}, ${member.role} at ${brandName}`} width={600} height={640} className="pc-team-img pc-img-zoom h-60 w-full" />
+                        <SafeImage src={member.avatarUrl} fallback={[PRISM_CHROMA_IMAGES.team.aarushi, PRISM_CHROMA_IMAGES.team.kiara, PRISM_CHROMA_IMAGES.team.priya, PRISM_CHROMA_IMAGES.team.tara][idx % 4]} alt={`Portrait of ${member.name}, ${member.role} at ${brandName}`} width={600} height={640} className="pc-team-img pc-img-zoom w-full h-full object-cover" />
                       </button>
                       <div className="p-5">
                         <h3 className="text-lg font-bold">{member.name}</h3>

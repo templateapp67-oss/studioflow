@@ -1,3 +1,4 @@
+import './bodhiTree.css';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import {
@@ -57,6 +58,7 @@ import { AppAnnouncementStrip, AppInstallSection } from './AppInstallSection';
 import { SafeImage } from './bodhi-tree/SafeImage';
 import { DeviceMockup } from './bodhi-tree/DeviceMockup';
 import { PalaceCollectionGrid } from './bodhi-tree/PalaceCollectionSection';
+import { ServiceMerchTags, ServiceTerms } from './ServiceMerchandising';
 
 type BodhiPage =
   | 'home'
@@ -397,6 +399,8 @@ export function BodhiTreeWebsite({
         <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[color:var(--bt-sage)]">{service.category}</p>
         <h3 className="bt-serif pt-1 text-[1.4rem] font-semibold leading-snug">{service.name}</h3>
         <p className="pt-1.5 text-sm leading-relaxed text-[color:var(--bt-muted)]">{service.description}</p>
+        <ServiceMerchTags service={service} className="sf-merch-inline" />
+        <ServiceTerms service={service} className="sf-merch-inline" />
         <div className="mt-auto flex items-end justify-between gap-3 pt-4">
           <div>
             <span className="bt-price text-[1.55rem] leading-none">{bodhiFormatInr(service.price)}</span>
@@ -1268,14 +1272,14 @@ export function BodhiTreeWebsite({
                   {team.length > 0 ? (
                     <motion.div variants={stagger} initial={canObserveViewport ? 'hidden' : 'visible'} whileInView={canObserveViewport ? 'visible' : undefined} viewport={revealViewport} className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
                       {team.map((member) => (
-                        <motion.article key={member.id} variants={staggerItem} className="bt-glass-cream bt-lift flex flex-col overflow-hidden">
+                        <motion.article key={member.id} variants={staggerItem} className="bt-glass-cream bt-lift flex flex-col overflow-hidden h-80 w-full aspect-[3/4]">
                           <SafeImage
                             src={member.avatarUrl}
                             fallback={BODHI_TREE_IMAGES.team.kavita}
                             alt={`Photo of ${member.name}, ${member.role}`}
                             width={600}
                             height={600}
-                            className="aspect-square w-full object-cover"
+                            className="aspect-square w-full h-full object-cover"
                           />
                           <div className="flex flex-1 flex-col p-5">
                             <h3 className="bt-serif text-[1.45rem] font-semibold leading-snug">{member.name}</h3>

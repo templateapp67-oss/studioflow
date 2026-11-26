@@ -39,7 +39,7 @@ const signIn=booking.root.findAllByType('button').find((b:any)=>b.props.children
 let salonTree:any;await act(async()=>{salonTree=create(<CustomerSalon salon={salon} salons={[salon]} saved={false} savedSlugs={[]} back={()=>{}} save={()=>{}} open={()=>{}} book={()=>{}} signedIn={false} onSignIn={()=>{}}/>)});
 for(const tab of ['Services','Stylists','Packages','Reviews','About'])assert.ok(salonTree.root.findAllByProps({role:'tab'}).some((n:any)=>n.props.children===tab));
 const reviews=salonTree.root.findAllByProps({role:'tab'}).find((b:any)=>b.props.children==='Reviews');await act(async()=>reviews.props.onClick());assert.ok(JSON.stringify(salonTree.toJSON()).includes('No customer reviews yet'));await act(async()=>salonTree.unmount());
-const bookings=renderToStaticMarkup(<CustomerAppointments bookings={[{id:'booking1',owner_id:'owner',status:'confirmed',payload:{serviceName:'Published Haircut',servicePrice:249,date:istDate(),time:'11:00',amountPaid:62.25}}]} salons={[salon]} loading={false} error="" refresh={()=>{}} rebook={()=>{}} pay={()=>{}} signIn={()=>{}} signedIn/>);
+const bookings=renderToStaticMarkup(<CustomerAppointments bookings={[{id:'booking1',owner_id:'owner',status:'confirmed',payload:{serviceName:'Published Haircut',servicePrice:249,date:istDate(),time:'11:00',amountPaid:62.25,salonSlug:'real-published-salon'}}]} salons={[salon]} loading={false} error="" refresh={()=>{}} rebook={()=>{}} pay={()=>{}} signIn={()=>{}} signedIn/>);
 for(const value of ['My Salon Appointments','Upcoming','Completed','Cancelled','All Log','Published Salon','62.25'])assert.ok(bookings.includes(value),value);
 assert.equal(advance(259),64.75);assert.equal(advance(249.01),62.26);
 console.log('PASS: reference home sections and service CTA; five salon tabs and honest reviews; multi-service live-slot request; seven summary cards and 25% calculation; guest auth preserves selection without reserving; real booking filters and payment amounts.');
@@ -104,14 +104,14 @@ const spaKeyword=renderToStaticMarkup(<CustomerHome salons={[{...salon,content:{
 
 const templateMeta=Object.values(CATEGORY_TEMPLATES).map(t=>({id:t.id,title:t.title,shortName:t.shortName,displayName:nexoraTemplateMeta(t.id)!.displayName,tagline:t.tagline,coverImageUrl:t.coverImageUrl}));
 const demoCatalogue=withTemplateDemos([],templateMeta);
-assert.equal(demoCatalogue.length,15);
+assert.equal(demoCatalogue.length,16);
 for(const t of templateMeta){const s=demoCatalogue.find(s=>s.demoTemplateId===t.id)!;assert.ok(s);assert.ok(s.content.services?.length);assert.ok(s.content.profile.coverImageUrl);const detail=renderToStaticMarkup(<TemplateDemoSalon salon={s} back={()=>{}}/>);assert.ok(detail.includes('/?template='+t.id));assert.ok(detail.includes('SAMPLE CONTENT'));assert.ok(!detail.includes('Write Review'));assert.ok(!detail.includes('Book Appointment'));assert.ok(!detail.includes('tel:'));}
 for(const group of CUSTOMER_CATEGORY_GROUPS)assert.ok(demoCatalogue.some(s=>matchesCustomerCategory(s,group.id)));
 let demoHome:any;await act(async()=>{demoHome=create(<CustomerHome templates={templateMeta} salons={demoCatalogue} favorites={[]} query="" setQuery={()=>{}} open={()=>{}} book={()=>{}} save={()=>{}} refresh={()=>{}}/>)});
 for(const t of templateMeta){const tile=demoHome.root.findAllByType('button').find((b:any)=>b.findAllByType('strong').some((n:any)=>n.props.children===t.displayName));assert.ok(tile,t.id);await act(async()=>tile.props.onClick());const cards=demoHome.root.findAllByProps({className:'cr-salon-card'});assert.equal(cards.length,1,t.id);assert.ok(cards[0].findAllByProps({className:'cr-cover-offer'}).some((n:any)=>n.props.children==='TEMPLATE DEMO'));}
 await act(async()=>demoHome.unmount());
 const realHair={...salon,content:{...salon.content,profile:{...salon.content.profile,businessType:'hair_salon'}}};
-const replacement=withTemplateDemos([realHair],templateMeta);assert.equal(replacement.length,15);assert.equal(replacement[0],realHair);assert.equal(replacement.some(s=>s.demoTemplateId==='hair_salon'),false);assert.equal(replacement.filter(s=>s.demoTemplateId).length,14);
+const replacement=withTemplateDemos([realHair],templateMeta);assert.equal(replacement.length,16);assert.equal(replacement[0],realHair);assert.equal(replacement.some(s=>s.demoTemplateId==='hair_salon'),false);assert.equal(replacement.filter(s=>s.demoTemplateId).length,15);
 const allReal=templateMeta.map(t=>({...realHair,slug:t.id,content:{...realHair.content,profile:{...realHair.content.profile,businessType:t.id}}}));assert.deepEqual(withTemplateDemos(allReal,templateMeta),allReal);
 assert.equal(withTemplateDemos([],templateMeta.filter(t=>t.id!=='tattoo_studio')).some(s=>s.demoTemplateId==='tattoo_studio'),false,'Inactive templates must not reappear');
 console.log('PASS: all 14 demo categories contain services/images and safe website links; category filters stay populated; real publication replaces only its own template demo, all-real catalogue removes all demos; inactive templates excluded.');

@@ -1,12 +1,11 @@
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
+import { resolve } from 'node:path';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
-
-const projectRoot = path.dirname(fileURLToPath(import.meta.url));
+import { getAppBuildId } from './scripts/buildId';
 
 export default defineConfig({
+  define: { __APP_BUILD_ID__: JSON.stringify(getAppBuildId()) },
   plugins: [react(), tailwindcss()],
   // The hosted preview proxy serves the app from a *.e2b.app host.
   server: { host: '0.0.0.0', allowedHosts: ['.e2b.app', 'localhost', '127.0.0.1'] },
@@ -14,8 +13,8 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        main: path.resolve(projectRoot, 'index.html'),
-        app: path.resolve(projectRoot, 'app.html'),
+        main: resolve(__dirname, 'index.html'),
+        login: resolve(__dirname, 'login.html'),
       },
       onwarn(warning, warn) {
         if (

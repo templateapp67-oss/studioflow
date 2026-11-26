@@ -22,6 +22,7 @@ import {
   Youtube,
   X,
 } from 'lucide-react';
+import { ServiceMerchTags, ServiceTerms } from '../ServiceMerchandising';
 import type { SalonProfile, SalonService, Stylist } from '../../types';
 import {
   VEDA_DISCLAIMER,
@@ -279,6 +280,8 @@ function TherapyCard({
         <p className="vd-card__cat">{String(index + 1).padStart(2, '0')} · {service.category}</p>
         <h3 className="vd-card__title">{service.name}</h3>
         <p className="vd-card__desc">{service.description}</p>
+        <ServiceMerchTags service={service} className="sf-merch-inline" />
+        <ServiceTerms service={service} className="sf-merch-inline" />
         {benefits.length ? (
           <ul className="vd-benefits">
             {benefits.map((benefit) => (
@@ -514,8 +517,8 @@ export function VedaExperts({ config, stylists, navigate, onBook, onViewSpeciali
         <VedaRevealGroup className="vd-grid vd-grid--3" style={{ marginTop: 34 }} variant="glass">
           {stylists.map((person) => (
             <VedaRevealItem key={person.id} className="vd-expert" as="article" variant="glass">
-              <div className="vd-expert__media">
-                <VedaImage slot="therapist-ananya" src={person.avatarUrl} alt={person.name} ratio="3 / 4" sizes="(max-width: 760px) 100vw, 30vw" />
+              <div className="vd-expert__media h-80 w-full aspect-[3/4] overflow-hidden">
+                <VedaImage slot="therapist-ananya" src={person.avatarUrl} alt={person.name} ratio="3 / 4" sizes="(max-width: 760px) 100vw, 30vw" className="w-full h-full object-cover" />
               </div>
               <div className="vd-expert__body">
                 <p className="vd-expert__role">{person.role}</p>

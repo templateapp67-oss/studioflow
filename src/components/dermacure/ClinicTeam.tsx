@@ -208,12 +208,12 @@ export function ClinicTeam({
             return (
               <article
                 key={s.id}
-                className="dc-team-card-wrapper"
+                className="dc-team-card-wrapper h-80 w-full aspect-[3/4] overflow-hidden"
                 onClick={() => handleOpenProfile(s)}
                 style={{ cursor: "pointer" }}
               >
                 <div
-                  className="dc-staff-photo"
+                  className="dc-staff-photo h-80 w-full aspect-[3/4] overflow-hidden"
                   data-portrait={portrait.isDemo ? "demo" : "saved"}
                 >
                   {usable ? (
@@ -228,6 +228,7 @@ export function ClinicTeam({
                       decoding="async"
                       width={768}
                       height={1024}
+                      className="w-full h-full object-cover"
                       onError={() =>
                         setFailed((urls) => [...urls, portrait.src])
                       }
