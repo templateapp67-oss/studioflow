@@ -18,10 +18,9 @@ import { readServerEnvironment } from './nexoraEnv.js';
  *  - A missing or malformed token is rejected (401) as soon as the project is
  *    configured, so an expired session fails visibly instead of silently
  *    consuming quota.
- *  - If no publishable key can be resolved, verification is impossible. The
- *    route then falls back to the strict anonymous rate limit instead of failing
- *    every request closed — a configuration gap must not cause an outage — and
- *    the condition is logged once with its remediation.
+ *  - Protected routes fail closed when verification is unavailable or
+ *    misconfigured. Falling back to anonymous access would turn an Auth outage
+ *    into an authentication bypass.
  */
 
 /** Public publishable key already shipped to browsers by `src/lib/supabase.ts`. */
@@ -149,7 +148,9 @@ export interface RequireUserOptions {
 }
 
 /**
- * Rejects a request that has no valid Supabase session.
+ * Rejects a request unless its Supabase session can be positively verified.
+ * Configuration or Auth-provider failures return 503; they never downgrade a
+ * protected route to anonymous access.
  *
  * Attaches the verified user to `res.locals.authUser` so `rateLimit` can key the
  * budget per user instead of per address.
@@ -161,8 +162,10 @@ export function requireVerifiedUser(options: RequireUserOptions = {}): RequestHa
       if (!config.configured) {
         warnUnconfiguredOnce();
         options.onWarning?.();
-        res.setHeader('X-AI-Auth', 'unconfigured');
-        next();
+        res.status(503).json({
+          error: 'Authentication is temporarily unavailable. Please try again later.',
+          code: 'auth_unavailable',
+        });
         return;
       }
       const token = readBearerToken(req.headers);
@@ -175,9 +178,11 @@ export function requireVerifiedUser(options: RequireUserOptions = {}): RequestHa
       }
       const user = await verifyAccessToken(token, config, options.fetchImpl ?? fetch);
       if (user === undefined) {
-        // Provider unreachable: do not deny a signed-in user because of our outage.
-        res.setHeader('X-AI-Auth', 'unverified');
-        next();
+        // Fail closed: a protected action must never proceed on an unverified token.
+        res.status(503).json({
+          error: 'Authentication could not be verified. Please try again later.',
+          code: 'auth_verification_unavailable',
+        });
         return;
       }
       if (user === null) {
