@@ -349,6 +349,7 @@ jobs:
           SUPABASE_PROJECT_REF: ${{ steps.supabase_credentials.outputs.project_ref }}
         # Per-function JWT settings come from config.toml. Never globally
         # disable JWT verification or prune unrelated shared-project functions.
+        # The protected manual release confirms the deploy before the CI job runs.
         # submit-landing-lead carries the PR #163 lead rate-limit/salt changes,
         # so it must be redeployed alongside the reviewed WhatsApp/payment set.
         run: >-
@@ -358,7 +359,7 @@ jobs:
           studioflow-payments studioflow-whatsapp-booking studioflow-booking-emails
           nexora-mobile-qr studioflow-service-ai-images studioflow-campaign-whatsapp
           studioflow-welcome-whatsapp studioflow-tawk-connect
-          --remote="$SUPABASE_PROJECT_REF" --use-api
+          --remote="$SUPABASE_PROJECT_REF" --use-api --yes
 
   deploy:
     name: Deploy to Vercel (Windows PowerShell)

@@ -613,7 +613,7 @@ exec "$STUDIOFLOW_NODE_BIN" "$@"
       'studioflow-payments','studioflow-whatsapp-booking','studioflow-booking-emails',
       'nexora-mobile-qr','studioflow-service-ai-images','studioflow-campaign-whatsapp',
       'studioflow-welcome-whatsapp','studioflow-tawk-connect',
-      `--remote=${EXPECTED_REF}`,'--use-api',
+      `--remote=${EXPECTED_REF}`,'--use-api','--yes',
     ]);
   } finally {
     rmSync(tempRoot,{recursive:true,force:true});
