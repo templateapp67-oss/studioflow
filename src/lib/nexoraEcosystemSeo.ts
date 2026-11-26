@@ -1,5 +1,6 @@
-import { NEXORA_PUBLIC_ORIGIN } from './publicSeo';
-import { NEXORA_BREADCRUMB_TRAILS, nexoraBreadcrumbListSchema } from './nexoraBreadcrumbs';
+import { NEXORA_PUBLIC_ORIGIN } from './publicSeo.js';
+import { NEXORA_BREADCRUMB_TRAILS, nexoraBreadcrumbListSchema } from './nexoraBreadcrumbs.js';
+import { nexoraOrganizationSchema, nexoraEditorialTeamSchema } from './nexoraOrganization.js';
 
 /**
  * Public metadata for the three NEXORA SALONOS marketing routes that share the
@@ -17,6 +18,7 @@ import { NEXORA_BREADCRUMB_TRAILS, nexoraBreadcrumbListSchema } from './nexoraBr
  * page, which states the programme conditions itself.
  */
 export type NexoraEcosystemPath =
+  | '/about'
   | '/salon-onboarding'
   | '/salon-growth'
   | '/growth-partner-rewards'
@@ -48,12 +50,18 @@ export interface NexoraEcosystemSeo {
 }
 
 export const NEXORA_ECOSYSTEM_SEO: Readonly<Record<NexoraEcosystemPath, NexoraEcosystemSeo>> = {
+  '/about': {
+    path: '/about', label: 'About NEXORA', title: 'About NEXORA Salon OS',
+    description: 'Learn about NEXORA Salon OS, its salon website and business tools, the team behind its product guidance, and verified support contacts.',
+    ogImagePath: '/nexora-homepage-og.jpg', ogImageAlt: 'NEXORA Salon OS platform and salon website templates',
+    themeColor: '#312347', contentMarker: 'NEXORA Editorial Team',
+  },
   '/salon-onboarding': {
     path: '/salon-onboarding',
     label: 'Salon Onboarding',
-    title: 'Salon Website Onboarding | Build Your Salon Brand with NEXORA SalonOS',
+    title: 'Salon Website Onboarding | NEXORA SalonOS',
     description:
-      'Choose a salon website template, add your own branding, services, staff and contact details, then preview, publish and share your salon website with NEXORA SalonOS.',
+      'Choose a salon template, add branding, services, staff and contact details, then preview and publish your website with NEXORA SalonOS.',
     ogImagePath: '/nexora-homepage-og.jpg',
     ogImageAlt: 'NEXORA SalonOS salon website templates and branding options',
     themeColor: '#312347',
@@ -62,9 +70,9 @@ export const NEXORA_ECOSYSTEM_SEO: Readonly<Record<NexoraEcosystemPath, NexoraEc
   '/salon-growth': {
     path: '/salon-growth',
     label: 'Salon Growth',
-    title: 'Salon Customer Growth & Retention | NEXORA SalonOS',
+    title: 'Salon Growth & Retention | NEXORA SalonOS',
     description:
-      'How NEXORA SalonOS supports organised customer records, booking workflows, recall and reporting for salons, with limits, consent and configuration dependencies stated plainly.',
+      'Organise salon customer records, booking, recall and reporting with NEXORA SalonOS. Features depend on setup and customer consent.',
     ogImagePath: '/nexora-homepage-og.jpg',
     ogImageAlt: 'NEXORA SalonOS salon customer and booking tools',
     themeColor: '#312347',
@@ -73,9 +81,9 @@ export const NEXORA_ECOSYSTEM_SEO: Readonly<Record<NexoraEcosystemPath, NexoraEc
   '/growth-partner-rewards': {
     path: '/growth-partner-rewards',
     label: 'Growth Partner Rewards',
-    title: 'NEXORA Growth Partner Programme — Reward Journey & Eligibility',
+    title: 'NEXORA Growth Partner Programme',
     description:
-      'NEXORA Growth Partner milestones from 25 to 1000+ eligible shops, with the verification, approval and fulfilment terms that apply. Eligibility follows the current programme policy.',
+      'Explore NEXORA Growth Partner milestones, with qualifying-shop verification, approval and reward fulfilment subject to programme terms.',
     ogImagePath: '/nexora-homepage-og.jpg',
     ogImageAlt: 'NEXORA Growth Partner reward programme',
     themeColor: '#312347',
@@ -84,10 +92,11 @@ export const NEXORA_ECOSYSTEM_SEO: Readonly<Record<NexoraEcosystemPath, NexoraEc
   '/partner-rewards': {
     path: '/partner-rewards',
     label: 'Partner Rewards & Recognition',
-    title: 'NEXORA Partner Rewards & Recognition | Top Salon Jaipur Awards',
+    title: 'NEXORA Partner Rewards | Top Salon Jaipur',
     description: 'Explore NEXORA salon partner rewards, a fixed 90-day Top Salon Jaipur competition, approved participant report cards and owner-controlled public salon profiles.',
-    ogImagePath: '/nexora-jaipur-awards/top-salon-jaipur-awards.svg',
-    ogImageAlt: 'NEXORA Top Salon Jaipur Awards and Partner Rewards',
+    // Use the raster social card: many social crawlers do not support SVG images.
+    ogImagePath: '/nexora-homepage-og.jpg',
+    ogImageAlt: 'NEXORA SALONOS salon management software',
     themeColor: '#24172d',
     contentMarker: 'Your Growth Deserves',
   },
@@ -95,6 +104,7 @@ export const NEXORA_ECOSYSTEM_SEO: Readonly<Record<NexoraEcosystemPath, NexoraEc
 
 /** Stable render order, shared by the prerenderer, the sitemap and the tests. */
 export const NEXORA_ECOSYSTEM_ROUTES: readonly NexoraEcosystemPath[] = [
+  '/about',
   '/salon-onboarding',
   '/salon-growth',
   '/growth-partner-rewards',
@@ -114,9 +124,12 @@ export function nexoraEcosystemCanonicalUrl(path: NexoraEcosystemPath): string {
 export function nexoraEcosystemSchema(path: NexoraEcosystemPath) {
   const seo = NEXORA_ECOSYSTEM_SEO[path];
   const url = nexoraEcosystemCanonicalUrl(path);
+  const about = path === '/about';
   return {
     '@context': 'https://schema.org',
     '@graph': [
+      nexoraOrganizationSchema(NEXORA_PUBLIC_ORIGIN),
+      ...(about ? [nexoraEditorialTeamSchema(NEXORA_PUBLIC_ORIGIN)] : []),
       {
         '@type': 'WebPage',
         '@id': `${url}#webpage`,
@@ -138,6 +151,8 @@ export function nexoraEcosystemSchema(path: NexoraEcosystemPath) {
           '@type': 'ImageObject',
           contentUrl: `${NEXORA_PUBLIC_ORIGIN}${seo.ogImagePath}`,
         },
+        publisher: { '@id': `${NEXORA_PUBLIC_ORIGIN}/#organization` },
+        ...(about ? { author: { '@id': `${NEXORA_PUBLIC_ORIGIN}/about#editorial-team` } } : {}),
       },
       nexoraBreadcrumbListSchema(NEXORA_PUBLIC_ORIGIN, path, NEXORA_BREADCRUMB_TRAILS[path]),
     ],

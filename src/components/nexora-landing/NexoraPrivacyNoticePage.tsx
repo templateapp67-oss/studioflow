@@ -1,5 +1,10 @@
 import { useEffect } from 'react';
-import { NEXORA_PUBLIC_ORIGIN } from '../../lib/publicSeo';
+import {
+  clearRouteJsonLd,
+  NEXORA_PUBLIC_ORIGIN,
+  setCanonicalLink,
+  setRobotsMeta,
+} from '../../lib/publicSeo';
 import { NEXORA_PRIVACY_NOTICE_VERSION } from '../../lib/nexoraPrivacyNotice';
 import { SiteHeader } from './sections/SiteHeader';
 import { NexoraBreadcrumbs } from './sections/NexoraBreadcrumbs';
@@ -30,24 +35,24 @@ export function NexoraPrivacyNoticePage() {
       node.setAttribute('content', content);
     };
     upsertMeta('name', 'description', PAGE_DESCRIPTION);
-    upsertMeta('name', 'robots', 'index,follow');
+    setRobotsMeta('index,follow');
     upsertMeta('property', 'og:type', 'website');
     upsertMeta('property', 'og:site_name', 'NEXORA SALONOS');
     upsertMeta('property', 'og:title', PAGE_TITLE);
     upsertMeta('property', 'og:description', PAGE_DESCRIPTION);
     upsertMeta('property', 'og:url', `${NEXORA_PUBLIC_ORIGIN}/privacy`);
     upsertMeta('property', 'og:image', `${NEXORA_PUBLIC_ORIGIN}/nexora-homepage-og.jpg`);
+    upsertMeta('property', 'og:image:width', '1200');
+    upsertMeta('property', 'og:image:height', '630');
+    upsertMeta('property', 'og:image:alt', 'NEXORA SALONOS salon management software');
+    upsertMeta('name', 'twitter:image', `${NEXORA_PUBLIC_ORIGIN}/nexora-homepage-og.jpg`);
+    upsertMeta('name', 'twitter:image:alt', 'NEXORA SALONOS salon management software');
     upsertMeta('name', 'twitter:card', 'summary_large_image');
     upsertMeta('name', 'twitter:title', PAGE_TITLE);
     upsertMeta('name', 'twitter:description', PAGE_DESCRIPTION);
 
-    let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
-    if (!canonical) {
-      canonical = document.createElement('link');
-      canonical.rel = 'canonical';
-      document.head.appendChild(canonical);
-    }
-    canonical.href = `${NEXORA_PUBLIC_ORIGIN}/privacy`;
+    setCanonicalLink(`${NEXORA_PUBLIC_ORIGIN}/privacy`);
+    clearRouteJsonLd();
   }, []);
 
   return (

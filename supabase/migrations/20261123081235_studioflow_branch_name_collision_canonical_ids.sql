@@ -27,8 +27,6 @@ declare
   branch_ids uuid[] := '{}';
   branch_id_map jsonb := '{}'::jsonb;
 begin
-  -- Serialize branch reconciliation for this owner, including the "no row yet"
-  -- case where SELECT ... FOR UPDATE alone cannot lock an absent name.
   perform pg_advisory_xact_lock(
     hashtextextended(new.user_id::text || ':studioflow-branches', 0)
   );
@@ -51,8 +49,6 @@ begin
         raise exception 'Each location needs a name';
       end if;
 
-      -- Prefer the row already owning this unique (site_id, name). Its ID is
-      -- canonical even when the draft still contains a different older UUID.
       branch_key := null;
       select b.id
         into branch_key
@@ -72,8 +68,6 @@ begin
         where site_id = new.user_id
           and id = branch_key;
       else
-        -- No row has this name. Keep the supplied ID unless that ID already
-        -- exists for this owner (in which case it is an ordinary branch rename).
         branch_key := supplied_branch_key;
         insert into public.branches(
           id, site_id, name, city, address, phone, is_active,
@@ -98,9 +92,6 @@ begin
               updated_at = now();
       end if;
 
-      -- Retain both the original draft ID and canonical ID as aliases. This
-      -- allows staff.branchSchedules still keyed by the old ID to be projected
-      -- onto the actual database branch row.
       branch_id_map := branch_id_map
         || jsonb_build_object(supplied_branch_key::text, branch_key::text)
         || jsonb_build_object(branch_key::text, branch_key::text);

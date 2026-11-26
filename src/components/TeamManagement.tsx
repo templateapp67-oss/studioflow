@@ -372,7 +372,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
           <button
             onClick={handleOpenAddModal}
             className="sf-staff-save-button text-xs font-bold px-4 py-2.5 rounded-xl text-white flex items-center gap-2 shadow-sm cursor-pointer"
-            type="button" aria-label="Add new staff profile" id="add-new-stylist-btn"
+            type="button" aria-label="Add new staff profile" id="add-new-stylist-btn" data-testid="team-add-staff-btn"
           >
             <UserPlus className="w-4 h-4" />
             <span>Add new staff profile</span>

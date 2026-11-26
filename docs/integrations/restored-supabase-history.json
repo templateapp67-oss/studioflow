@@ -1180,6 +1180,14 @@
       "removed_file_sha256": "874b5ff090948f1202b4d69c25c655a2fc0c2fcfd00ea1e30b3efe06434ebebf",
       "equivalent_statement_count": 1,
       "verification": "PostgreSQL statement parsing and token comparison, including dollar-quoted function bodies; comments and formatting excluded, quoted values preserved."
+    },
+    {
+      "removed_file": "20261122065000_branch_service_android_wrapper_grants.sql",
+      "canonical_file": "20261122064912_branch_service_android_wrapper_grants.sql",
+      "archived_file": "supabase/reconciled-migrations/20261122065000_branch_service_android_wrapper_grants.sql",
+      "removed_file_sha256": "b15467fb5415ad8a14da6adec44cfe3409d28df2eaacf20e7491cc08cb045b5b",
+      "equivalent_statement_count": 1,
+      "verification": "Compared parsed SQL operations: REVOKE/GRANT operations are identical; differences are comments only. Archived source retained outside the active migration directory to prevent duplicate execution."
     }
   ],
   "retimestamped_unapplied_migrations": [
@@ -1200,6 +1208,15 @@
         "20261115145202_private_whatsapp_test_rate_limit.sql"
       ],
       "reason": "Live private_whatsapp_test_rate_limit already exists, is service-only and uses the original studioflow_whatsapp_test_rate_limits table. Do not introduce a second counter table or overwrite the applied SECURITY DEFINER helper."
+    },
+    {
+      "original_file": "20261123093000_studioflow_publish_slug_case_and_compat.sql",
+      "path": "supabase/superseded-migrations/20261123093000_studioflow_publish_slug_case_and_compat.sql",
+      "sha256": "009c9c9269b6aa814b4f29164215abd1594eea49d72489a48be84dbdbb106135",
+      "canonical_files": [
+        "20261124095131_studioflow_publish_optional_tracking_isolation.sql"
+      ],
+      "reason": "Not present in remote migration history. Its slug normalization and compatibility changes are included in the applied optional-tracking isolation migration; original source retained for audit and not scheduled separately."
     }
   ],
   "deferred_feature_migrations": [
@@ -2035,12 +2052,7 @@
     "relations": 273,
     "assessment": "Read-only owner-supplied live catalog; not a live migration dry-run or deployment."
   },
-  "release_pending_migrations": [
-    {
-      "file": "20261122065000_branch_service_android_wrapper_grants.sql",
-      "purpose": "Restrict the Android booking wrapper to authenticated and service_role after the branch guard. Added on main after the captured applied-history baseline; remains pending for the protected manual release workflow."
-    }
-  ],
+  "release_pending_migrations": [],
   "reviewed_feature_migrations": [
     {
       "file": "20261117130000_reconcile_template15_multiservice_booking.sql",
@@ -2084,6 +2096,15 @@
     }
   ],
   "post_export_applied_versions": [
+    {
+      "version": "20261125100000",
+      "file": "20261125100000_studioflow_auth_access_hardening.sql",
+      "name": "studioflow_auth_access_hardening",
+      "observed_at": "2026-11-26",
+      "evidence": "Confirmed in the remote supabase_migrations.schema_migrations history for project zilwgiuiygqqardzutxi; the remote history now contains this version, so the local-only pending set is empty. The corresponding local SQL source exists in main.",
+      "purpose": "Scoped staff invite delivery, private table and storage MFA policies, an authenticated Data API assurance check, and immutable booking identity on direct updates; applied to the remote production project and reconciled into the reviewed applied-history ledger.",
+      "git_blob_sha": "37f68184fc6b3194dae42936431b8d4f25b6e0da"
+    },
     {
       "version": "20261116100000",
       "file": "20261116100000_nexora_whatsapp_optional_profiles.sql",
@@ -2209,6 +2230,224 @@
       "evidence": "Applied to project zilwgiuiygqqardzutxi on 2026-11-21. Verified live: anon has no SELECT on public.studioflow_websites, public_salon_websites exposes no owner_id column, studioflow_customer_catalog() returns salons without owner_id, and booking payloads carry salonSlug.",
       "purpose": "Anonymous storefront reads no longer carry a salon's owner UUID; bookings join on the public slug instead.",
       "git_blob_sha": "8389139eee2c78041896bb0cfaa9e930b8cbc2e4"
+    },
+    {
+      "version": "20261123082445",
+      "file": "20261123082445_studioflow_robust_website_publish.sql",
+      "name": "studioflow_robust_website_publish",
+      "observed_at": "2026-11-23",
+      "evidence": "Confirmed in supabase_migrations.schema_migrations on project zilwgiuiygqqardzutxi on 2026-11-23.",
+      "purpose": "Hardens studioflow_private.publish() checklist validation, collision-safe slug locking, and non-blocking partner_referrals/growth_onboarding updates.",
+      "git_blob_sha": "681fd451d9fb67eb24b3b531f304edcc27ffef57"
+    },
+    {
+      "version": "20261122043650",
+      "file": "20261122043650_staff_crm_branch_scope.sql",
+      "name": "staff_crm_branch_scope",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "60791781f4710f394f76aa77971f6b4bb8aa37df"
+    },
+    {
+      "version": "20261122045445",
+      "file": "20261122045445_studioflow_refund_queue_rpc.sql",
+      "name": "studioflow_refund_queue_rpc",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "9c955368d9310f0887c45d7d8bc1046a23ba6d19"
+    },
+    {
+      "version": "20261122052119",
+      "file": "20261122052119_staff_salon_context_and_booking_completion.sql",
+      "name": "staff_salon_context_and_booking_completion",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "3ef4ca6c393e2c2d1673f2579d4dc416e98b0b94"
+    },
+    {
+      "version": "20261122052400",
+      "file": "20261122052400_staff_inventory_membership_access.sql",
+      "name": "staff_inventory_membership_access",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "de66dd4756e0156742498f5ee33eaa4b51298d2c"
+    },
+    {
+      "version": "20261122063603",
+      "file": "20261122063603_branch_service_catalogue_scope.sql",
+      "name": "branch_service_catalogue_scope",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "49e2b25ad04133570ab56da103f47b503bb5df0f"
+    },
+    {
+      "version": "20261122063610",
+      "file": "20261122063610_branch_scoped_manual_crm_contacts.sql",
+      "name": "branch_scoped_manual_crm_contacts",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "83d6c42ddac26c0d34364c3bbae9d9a689f1c9fe"
+    },
+    {
+      "version": "20261122063834",
+      "file": "20261122063834_branch_assignment_read_models.sql",
+      "name": "branch_assignment_read_models",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "b08033e2df81bc92cd7243030a8fb57c959b3db0"
+    },
+    {
+      "version": "20261122064427",
+      "file": "20261122064427_branch_crm_contact_update_duplicate_fix.sql",
+      "name": "branch_crm_contact_update_duplicate_fix",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "d25a5a54d9a5eb6b3c34dd509c01295b638c7636"
+    },
+    {
+      "version": "20261122064912",
+      "file": "20261122064912_branch_service_android_wrapper_grants.sql",
+      "name": "branch_service_android_wrapper_grants",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "d889c14ae18d209ce5ba0ac606dc11607432c558"
+    },
+    {
+      "version": "20261122065342",
+      "file": "20261122065342_branch_scope_private_booking_guards.sql",
+      "name": "branch_scope_private_booking_guards",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "cdea21df1391f4740a20f17b4c8811c8f225263f"
+    },
+    {
+      "version": "20261122065816",
+      "file": "20261122065816_branch_manual_crm_email_read_projection.sql",
+      "name": "branch_manual_crm_email_read_projection",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "b8015aa8ece98a51f21a1ff9d5470f0ca5067c7f"
+    },
+    {
+      "version": "20261122070326",
+      "file": "20261122070326_branch_mapping_redundant_index_cleanup.sql",
+      "name": "branch_mapping_redundant_index_cleanup",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "7c3f2a292fac0357a1e8a9972fc498d11253d9a5"
+    },
+    {
+      "version": "20261122070445",
+      "file": "20261122070445_public_branch_list_published_guard.sql",
+      "name": "public_branch_list_published_guard",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "e52f5b276bc771e046ab5ace90cdb834ae860ccf"
+    },
+    {
+      "version": "20261122072341",
+      "file": "20261122072341_harden_active_branch_ids_acl.sql",
+      "name": "harden_active_branch_ids_acl",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "ae85e0130cfa0caa1fd8e55c13d6b9c560d4dcdd"
+    },
+    {
+      "version": "20261122072714",
+      "file": "20261122072714_android_request_insert_explicit_columns.sql",
+      "name": "android_request_insert_explicit_columns",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "21c88e6adf0ba7b34c7fd38f076abbbb8c342b69"
+    },
+    {
+      "version": "20261122072823",
+      "file": "20261122072823_correct_android_request_fingerprint_builder.sql",
+      "name": "correct_android_request_fingerprint_builder",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "6080231177bc7c6b800e16943c812d8a385bd25b"
+    },
+    {
+      "version": "20261123081235",
+      "file": "20261123081235_studioflow_branch_name_collision_canonical_ids.sql",
+      "name": "studioflow_branch_name_collision_canonical_ids",
+      "observed_at": "2026-11-24",
+      "evidence": "Recovered verbatim from statements in the remote supabase_migrations.schema_migrations row on project zilwgiuiygqqardzutxi; the remote migration list also records this version as applied.",
+      "purpose": "Restored canonical SQL source for an already-applied remote migration; recovery only, not re-execution.",
+      "git_blob_sha": "317d7f62df064326806f3500f5fde587547d7867"
+    },
+    {
+      "version": "20261124095101",
+      "file": "20261124095101_studioflow_bookings_hold_expires_at_compat.sql",
+      "name": "studioflow_bookings_hold_expires_at_compat",
+      "observed_at": "2026-11-24",
+      "evidence": "Applied to App project zilwgiuiygqqardzutxi on 2026-11-24 and verified in remote migration history; the column already existed.",
+      "purpose": "Idempotent compatibility migration. hold_expires_at already existed on production, so application made no table or customer-data change.",
+      "git_blob_sha": "2276b7624b64cf44aa3e4205441f7ab78e63b970"
+    },
+    {
+      "version": "20261124095131",
+      "file": "20261124095131_studioflow_publish_optional_tracking_isolation.sql",
+      "name": "studioflow_publish_optional_tracking_isolation",
+      "observed_at": "2026-11-24",
+      "evidence": "Applied to App project zilwgiuiygqqardzutxi on 2026-11-24 and verified live: core publish no longer invokes optional tracking; separately authorized tracking RPC exists.",
+      "purpose": "Separates optional referral/onboarding tracking from core website publishing while preserving checklist validation, normalized/collision-safe slugs, and persisted website response.",
+      "git_blob_sha": "f4df53b9411e6e5429d80acd7621d3e354fb03fa"
+    },
+    {
+      "version": "20261124095142",
+      "file": "20261124095142_public_storefront_security_invoker.sql",
+      "name": "public_storefront_security_invoker",
+      "observed_at": "2026-11-24",
+      "evidence": "Applied to App project zilwgiuiygqqardzutxi on 2026-11-24 and verified live: view is security_invoker, anon lacks table-wide/owner_id access, and published-only RLS remains.",
+      "purpose": "Switches public_salon_websites to SECURITY INVOKER, grants anon only projected columns, and restricts anon rows to published sites without exposing owner_id.",
+      "git_blob_sha": "1a0a038ccf2f67f61ab267be33efe7be9732e5b3"
+    },
+    {
+      "version": "20261125090000",
+      "file": "20261125090000_nexora_lead_rate_limit_rpc.sql",
+      "name": "nexora_lead_rate_limit_rpc",
+      "observed_at": "2026-11-25",
+      "evidence": "Production workflow run 45672308803, job 139412576712, listed this exact version in both local and remote columns for project zilwgiuiygqqardzutxi.",
+      "purpose": "Records the applied shared lead rate-limit RPC in the repository ledger.",
+      "git_blob_sha": "4366729c0a672cabfbbfe09795b9f03e22909e2d"
+    }
+  ],
+  "retimestamped_applied_migrations": [
+    {
+      "old_file": "20261123100000_studioflow_bookings_hold_expires_at_compat.sql",
+      "archived_file": "supabase/reconciled-migrations/20261123100000_studioflow_bookings_hold_expires_at_compat.sql",
+      "applied_file": "20261124095101_studioflow_bookings_hold_expires_at_compat.sql",
+      "reason": "Supabase MCP assigned this actual version when the SQL was applied. The former local filename is retained outside supabase/migrations to prevent duplicate pending execution."
+    },
+    {
+      "old_file": "20261124062248_studioflow_publish_optional_tracking_isolation.sql",
+      "archived_file": "supabase/reconciled-migrations/20261124062248_studioflow_publish_optional_tracking_isolation.sql",
+      "applied_file": "20261124095131_studioflow_publish_optional_tracking_isolation.sql",
+      "reason": "Supabase MCP assigned this actual version when the SQL was applied. The former local filename is retained outside supabase/migrations to prevent duplicate pending execution."
+    },
+    {
+      "old_file": "20261124080000_public_storefront_security_invoker.sql",
+      "archived_file": "supabase/reconciled-migrations/20261124080000_public_storefront_security_invoker.sql",
+      "applied_file": "20261124095142_public_storefront_security_invoker.sql",
+      "reason": "Supabase MCP assigned this actual version when the SQL was applied. The former local filename is retained outside supabase/migrations to prevent duplicate pending execution."
     }
   ]
 }

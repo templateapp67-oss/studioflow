@@ -5,9 +5,9 @@ import { REWARD_IMAGE_BASE } from './content';
 /** Variants written by `scripts/build-growth-rewards-assets.mjs`. */
 const VARIANTS = {
   /** 4:3 studio frame used by the reward cards. */
-  card: { suffix: '', widths: [480, 720, 960], fallbackWidth: 720, ratio: 4 / 3 },
+  card: { suffix: '', widths: [480, 720, 960], fallbackWidth: 720, displayWidth: 220, ratio: 4 / 3 },
   /** 1:1 frame used by the medallions of the hero illustration. */
-  thumb: { suffix: '-thumb', widths: [128, 256], fallbackWidth: 256, ratio: 1 },
+  thumb: { suffix: '-thumb', widths: [128, 256], fallbackWidth: 256, displayWidth: 128, ratio: 1 },
 } as const;
 
 export type RewardImageVariant = keyof typeof VARIANTS;
@@ -38,7 +38,7 @@ interface RewardImageProps {
 export function RewardImage({ slug, alt, sizes, variant = 'card', eager = false }: RewardImageProps) {
   const image = useRef<HTMLImageElement>(null);
   const [failed, setFailed] = useState(false);
-  const { widths, fallbackWidth, ratio } = VARIANTS[variant];
+  const { widths, fallbackWidth, displayWidth, ratio } = VARIANTS[variant];
 
   useEffect(() => {
     const node = image.current;
@@ -64,9 +64,10 @@ export function RewardImage({ slug, alt, sizes, variant = 'card', eager = false 
       src={rewardImageUrl(slug, variant, fallbackWidth)}
       srcSet={widths.map((width) => `${rewardImageUrl(slug, variant, width)} ${width}w`).join(', ')}
       sizes={sizes}
-      width={fallbackWidth}
-      height={Math.round(fallbackWidth / ratio)}
+      width={displayWidth}
+      height={Math.round(displayWidth / ratio)}
       alt={alt}
+      aria-hidden={alt ? undefined : true}
       loading={eager ? 'eager' : 'lazy'}
       decoding={eager ? 'sync' : 'async'}
       onError={() => setFailed(true)}

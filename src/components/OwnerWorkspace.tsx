@@ -30,6 +30,7 @@ import { EnvironmentDiagnostic } from './EnvironmentDiagnostic';
 import { PromoStudio } from './PromoStudio';
 import {servicesForTemplate} from '../lib/serviceCatalogue';
 import { applyTemplateDesign } from '../lib/templateSelection';
+import { patchOwnerCopy } from '../lib/copyProvenance';
 import { upgradeLegacyBeautyParlourStylists } from '../lib/roopMahalReference';
 import { CATEGORY_TEMPLATES } from '../categoryTemplates';
 import { SocialConnectivityStep } from './SocialConnectivityStep';
@@ -53,6 +54,7 @@ import { nexoraName, nexoraCategoryLabel } from './nexora/NexoraBrand';
 import { sortTemplatesByPriority, nexoraTemplateMeta } from '../lib/nexoraTemplateCatalogue';
 import { SyncIndicator } from './SyncIndicator';
 import { NexoraWhatsAppPanel } from './NexoraWhatsAppPanel';
+import { formatPublishingError, isPublishingReady, normalizeWebsiteSlug } from '../lib/publishing';
 
 type Props = {
   profile: SalonProfile;
@@ -128,6 +130,9 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
   useEffect(()=>{const back=()=>setActive(ownerModule(new URLSearchParams(location.search).get('module')));window.addEventListener('popstate',back);return()=>window.removeEventListener('popstate',back);},[]);
   useEffect(()=>{headingRef.current?.focus({preventScroll:true});headingRef.current?.scrollIntoView({block:'start'});},[active]);
   const [notice, setNotice] = useState('');
+  const [headerPublishing, setHeaderPublishing] = useState(false);
+  const [headerPublishError, setHeaderPublishError] = useState('');
+  const headerPublishBusy = useRef(false);
   // "View as role" lets the salon owner audit exactly what each App Access
   // Role can reach. Real staff sessions pass their role in through the
   // `accessRole` prop instead and cannot change it here.
@@ -156,8 +161,24 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
   const revenue = appointments.reduce((sum, item) => sum + item.amountPaid, 0);
   const completion = useMemo(() => Math.round(([profile.businessName, profile.phone, profile.email, profile.address, profile.coverImageUrl, services.length, stylists.length].filter(Boolean).length / 7) * 100), [profile, services.length, stylists.length]);
   const flash = (message: string) => { setNotice(message); window.setTimeout(() => setNotice(''), 2600); };
+  const handleHeaderPublish = async () => {
+    if (headerPublishBusy.current || !isPublishingReady(profile, services)) return;
+    headerPublishBusy.current = true;
+    setHeaderPublishing(true);
+    setHeaderPublishError('');
+    try {
+      await onPublish();
+      flash('Website published successfully.');
+    } catch (error) {
+      console.error('[StudioFlow] Header publish action failed', error);
+      setHeaderPublishError(formatPublishingError(error));
+    } finally {
+      headerPublishBusy.current = false;
+      setHeaderPublishing(false);
+    }
+  };
   const saveExtras = (next: Extras) => setExtras(next);
-  const patchProfile = (key: keyof SalonProfile, value: unknown) => setProfile((prev) => ({ ...prev, [key]: value }));
+  const patchProfile = (key: keyof SalonProfile, value: unknown) => setProfile((prev) => key === 'tagline' || key === 'about' ? patchOwnerCopy(prev, { [key]: String(value ?? '') }) : ({ ...prev, [key]: value }));
   const chooseTemplate = (id: BusinessTypeId) => { const template = templates.find(t => t.id === id) || CATEGORY_TEMPLATES[id]; if (!template) return; setServices(servicesForTemplate(services,profile,template)); setProfile((prev) => ({...applyTemplateDesign(prev, template),serviceCatalogueInitialized:true})); if(!stylists.length)setStylists(template.stylists); else if(id==='beauty_parlour')setStylists(prev=>upgradeLegacyBeautyParlourStylists(prev,'beauty_parlour')); else if(id==='makeup_studio')setStylists(prev=>upgradeLegacyMakeupStudioStylists(prev,'makeup_studio')); flash(`${template.shortName} template applied`); };
 
 
@@ -182,7 +203,7 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
     if(active===26)return <SalonCRM profile={profile}/>;
     if (active === 22) return <div className="stack"><PromoStudio profile={profile} setProfile={setProfile} services={services} onAdReady={setCampaignAd}/><OwnerCustomerContacts profile={profile} ad={campaignAd}/></div>;
     if (active === 1) return <section className="workspace-card"><p className="eyebrow">Secure owner access</p><h2>Signed in</h2><p className="muted">{sessionEmail}</p><p>Your profile and dashboard are saved to your Supabase account.</p></section>;
-    if (active === 2) return <section className="workspace-card"><p className="eyebrow">Website editor</p><h2>Business details</h2><div className="form-grid"><Field label="Website address (3–63 lowercase letters, numbers or hyphens)" value={profile.subdomain} onChange={(v) => patchProfile('subdomain', v.toLowerCase().replace(/[^a-z0-9-]/g, ''))} /><Field label="Business name" value={profile.businessName} onChange={(v) => patchProfile('businessName', v)} /><Field label="Owner name" value={profile.ownerName} onChange={(v) => patchProfile('ownerName', v)} /><Field label="Business email" value={profile.email} onChange={(v) => patchProfile('email', v)} /><Field label="Phone" value={profile.phone} onChange={(v) => patchProfile('phone', v)} /><Field label="Tagline" value={profile.tagline} onChange={(v) => patchProfile('tagline', v)} /></div><p className="muted mt-4">Salon ki story aur owner photo ke liye next steps mein About our studio kholein.</p></section>;
+    if (active === 2) return <section className="workspace-card"><p className="eyebrow">Website editor</p><h2>Business details</h2><div className="form-grid"><Field label="Website address (3–63 lowercase letters, numbers or hyphens)" value={profile.subdomain} onChange={(v) => patchProfile('subdomain', normalizeWebsiteSlug(v))} /><Field label="Business name" value={profile.businessName} onChange={(v) => patchProfile('businessName', v)} /><Field label="Owner name" value={profile.ownerName} onChange={(v) => patchProfile('ownerName', v)} /><Field label="Business email" value={profile.email} onChange={(v) => patchProfile('email', v)} /><Field label="Phone" value={profile.phone} onChange={(v) => patchProfile('phone', v)} /><Field label="Tagline" value={profile.tagline} onChange={(v) => patchProfile('tagline', v)} /></div><p className="muted mt-4">Salon ki story aur owner photo ke liye next steps mein About our studio kholein.</p></section>;
     if (active === 3) return <div className="stack"><AddOnEditor profile={profile} setProfile={setProfile} services={services}/><ServiceManagement services={services} setServices={setServices} primaryAccentColor={accent} profile={profile} onNavigateToPreview={onOpenPreview} /></div>;
     if (active === 4) return <div className="stack"><TeamManagement setServices={setServices} businessType={profile.businessType} stylists={stylists} setStylists={setStylists} services={services} primaryAccentColor={accent} onNavigateToPreview={onOpenPreview} /><StaffAccessPanel stylists={stylists} profile={profile} ownerEmail={sessionEmail} /><BranchStaffScheduleEditor branches={profile.branches || []} stylists={stylists} setStylists={setStylists}/></div>;
     if (active === 5) return <section className="workspace-card"><PhotoGalleryManager profile={profile} setProfile={setProfile} gallery={extras.gallery} setGallery={gallery=>setExtras(prev=>({...prev,gallery}))}/><ComparisonEditor profile={profile} setProfile={setProfile}/></section>;
@@ -224,7 +245,7 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
   const stepCountLabel=visibleStepIndex>=0?`Step ${visibleStepIndex+1} / ${visibleSteps.length}`:'Business tools';
   const firstAllowedModule=defaultModuleFor(actorRole);
   // Publishing the live website is a Manager-level action.
-  const canPublish=can(actorRole==='owner'?'Manager (Full Access)':actorRole,'publish_website');
+  const canPublish=can(actorRole==='owner'?'Manager (Full Access)':actorRole,'publish_website') && isPublishingReady(profile, services);
 
   return <>
   <main className="min-h-screen bg-slate-50 text-slate-900 flex flex-col antialiased">
@@ -270,10 +291,11 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
           {canPublish && (
             <button
               type="button"
-              className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer active:scale-95"
-              onClick={onPublish}
+              disabled={headerPublishing}
+              className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer active:scale-95"
+              onClick={() => void handleHeaderPublish()}
             >
-              Publish Website
+              {headerPublishing ? 'Publishing…' : 'Publish Website'}
             </button>
           )}
           <button
@@ -337,6 +359,18 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
             <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-xs font-semibold flex items-center gap-2 shadow-xs" role="status">
               <span className="material-symbols-outlined text-base text-emerald-600">check_circle</span>
               <span>{notice}</span>
+            </div>
+          )}
+          {headerPublishError && (
+            <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-900 text-xs font-semibold flex items-center justify-between gap-3 shadow-xs" role="alert">
+              <span>{headerPublishError}</span>
+              <button
+                type="button"
+                className="text-red-700 hover:text-red-950 font-bold underline shrink-0 cursor-pointer"
+                onClick={() => setHeaderPublishError('')}
+              >
+                Dismiss
+              </button>
             </div>
           )}
 

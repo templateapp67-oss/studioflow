@@ -18,6 +18,7 @@ import {
   WandSparkles,
 } from 'lucide-react';
 import { NEXORA_PUBLIC_TEMPLATES, NEXORA_PUBLIC_TEMPLATES_BY_ID } from '../lib/nexoraPublicTemplates';
+import { applyPublicSeoMetadata, NEXORA_HOME_SEO } from '../lib/publicSeo';
 import {
   NEXORA_CATEGORIES,
   nexoraCategoryFilters,
@@ -47,6 +48,9 @@ export function templateSignupPath(templateId?: BusinessTypeId) {
 
 const navigation = [
   { label: 'Partner Rewards', href: '/partner-rewards' },
+  { label: 'Salon OS', href: '/salon-os' },
+  { label: 'Privacy', href: '/privacy' },
+  { label: 'About NEXORA', href: '/about' },
   { label: 'Categories', href: '#salon-categories' },
   { label: '16 Templates', href: '#nexora-template-library' },
   { label: 'How It Works', href: '#how-it-works' },
@@ -165,6 +169,10 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
   const closePreview = useCallback(() => setPreviewId(null), []);
 
   useEffect(() => {
+    applyPublicSeoMetadata(NEXORA_HOME_SEO);
+  }, []);
+
+  useEffect(() => {
     const footer = document.querySelector('.public-homepage footer');
     if (!footer) return;
     const observer = new IntersectionObserver(
@@ -250,7 +258,7 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
               </div>
               <NexoraBreadcrumbs path="/" />
               <h1 id="public-home-title" className="max-w-[680px] font-display text-[2.35rem] font-extrabold leading-[1.08] tracking-[-0.035em] text-[#251A24] sm:text-5xl lg:text-[3.3rem] xl:text-[3.7rem]" style={{ textWrap: 'balance' }}>
-                A beautiful salon website, made for your brand
+                Build your salon website and manage appointments, customers, billing and more.
               </h1>
               <p className="mt-5 max-w-xl text-base leading-7 text-[#51434D] sm:text-lg sm:leading-8">
                 Choose a ready-made NEXORA design, add your services and business details, and give customers a simple way to explore your salon and book appointments.
@@ -322,8 +330,8 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
                   <img
                     src="/templates/luxury-editorial/hero-fallback.jpg"
                     alt={LUXURY_EDITORIAL_IMAGES.hero.alt}
-                    width={LUXURY_EDITORIAL_IMAGES.hero.width}
-                    height={LUXURY_EDITORIAL_IMAGES.hero.height}
+                    width={288}
+                    height={360}
                     loading="eager"
                     fetchPriority="high"
                     decoding="async"
@@ -490,7 +498,7 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
               ['Digital salon branding', '/salon-onboarding'], ['Online booking & availability', '/salon-growth'], ['Customer management & recall', '/salon-growth'], ['Birthday and loyalty workflows', '/salon-growth'], ['Salon QR experience', '/salon-growth'], ['Customer discovery', '/salon-growth'], ['Salon business growth', '/salon-growth'], ['Growth Partner rewards', '/growth-partner-rewards'], ['NEXORA Partner Rewards & Jaipur Awards', '/partner-rewards'],
             ].map(([label, href]) => <a key={label} href={href} className="rounded-xl border border-[#E4DCCB] bg-white p-5 font-bold text-[#3F3550] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">{label} <span aria-hidden="true">↗</span></a>)}</div>
             <div className="mt-8 rounded-2xl bg-white p-6 shadow-sm"><div className="flex flex-wrap items-center justify-between gap-4"><div><h3 className="text-xl font-extrabold text-[#1B1630]">Growth Partner Rewards</h3><p className="mt-1 text-sm text-[#5B5470]">Explore programme milestones and eligibility terms.</p></div><a href="/growth-partner-rewards" className="rounded-xl bg-[#F6F1E6] px-5 py-3 text-sm font-bold text-[#2A1E4A]">Explore Growth Partner Rewards →</a></div></div>
-            <div className="mt-5 grid gap-6 overflow-hidden rounded-3xl border border-[#E6D8E4] bg-[#24172D] p-5 text-white shadow-xl lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:p-8"><div className="rounded-2xl bg-[#24172D] p-2"><p className="text-xs font-black uppercase tracking-[.22em] text-[#F0C77E]">NEXORA TOP SALON JAIPUR AWARDS</p><h3 className="mt-3 max-w-2xl text-2xl font-black sm:text-3xl">Your Growth Deserves Recognition.</h3><p className="mt-3 max-w-2xl text-sm leading-6 text-[#F0E5EF]">Earn NEXORA-branded partner rewards, register for the fixed 90-day Jaipur salon competition and view verified competitor report cards.</p><a href="/partner-rewards" className="mt-5 inline-flex min-h-[46px] items-center gap-2 rounded-xl bg-[#E9C17A] px-5 py-3 text-sm font-black text-[#24172D] shadow-lg hover:bg-[#F5D69B]">Explore Partner Rewards & Recognition <ArrowRight size={15} aria-hidden="true" /></a></div><img className="w-full rounded-2xl border border-white/20" src="/nexora-jaipur-awards/top-salon-jaipur-awards.svg" alt="NEXORA Top Salon Jaipur Awards poster" loading="lazy" /></div>
+            <div className="mt-5 grid grid-cols-1 min-w-0 gap-6 overflow-hidden rounded-3xl border border-[#E6D8E4] bg-[#24172D] p-5 text-white shadow-xl lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:p-8"><div className="rounded-2xl bg-[#24172D] p-2"><p className="text-xs font-black uppercase tracking-[.22em] text-[#F0C77E]">NEXORA TOP SALON JAIPUR AWARDS</p><h3 className="mt-3 max-w-2xl text-2xl font-black sm:text-3xl">Your Growth Deserves Recognition.</h3><p className="mt-3 max-w-2xl text-sm leading-6 text-[#F0E5EF]">Earn NEXORA-branded partner rewards, register for the fixed 90-day Jaipur salon competition and view verified competitor report cards.</p><a href="/partner-rewards" className="mt-5 inline-flex min-h-[46px] items-center gap-2 rounded-xl bg-[#E9C17A] px-5 py-3 text-sm font-black text-[#24172D] shadow-lg hover:bg-[#F5D69B]">Explore Partner Rewards & Recognition <ArrowRight size={15} aria-hidden="true" /></a></div><img className="w-full rounded-2xl border border-white/20" style={{ width: '100%', maxWidth: '100%', height: 'auto' }} src="/nexora-jaipur-awards/top-salon-jaipur-awards.svg" alt="NEXORA Top Salon Jaipur Awards poster" width="1600" height="1000" loading="lazy" decoding="async" /></div>
           </div>
         </section>
       </main>

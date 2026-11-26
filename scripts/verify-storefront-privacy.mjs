@@ -9,22 +9,23 @@
  *   2. `public.studioflow_customer_catalog()`, SECURITY INVOKER, which
  *      republished the same UUID inside its salon objects.
  *
- * This suite runs the shipped migration against a PGlite fixture that mirrors
- * the real schema, then measures behaviour per role:
+ * This suite runs the historical view migration and the current hardening
+ * migration against a PGlite fixture that mirrors the real schema, then measures behaviour per role:
  *   - anon cannot read owner_id from the table, directly or via the view;
  *   - the view still renders published salons (storefront regression guard);
  *   - the catalog RPC still works for anon and no longer carries owner_id;
- *   - authenticated keeps its direct table read (customizer access gates);
+ *   - authenticated sees published sites and its own drafts under RLS;
  *   - unpublished sites stay invisible.
  *
- * It also keeps the rejected `security_invoker` proposal as a live
- * reproduction, so that shortcut cannot be reintroduced silently.
+ * It also keeps the unsafe broad-revoke `security_invoker` proposal as a live
+ * reproduction, then verifies the corrected column-grant and RLS design.
  */
 import { PGlite } from '@electric-sql/pglite';
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 
-const MIGRATION = 'supabase/migrations/20261121130001_public_storefront_view.sql';
+const LEGACY = 'supabase/migrations/20261121130001_public_storefront_view.sql';
+const MIGRATION = 'supabase/migrations/20261124095142_public_storefront_security_invoker.sql';
 const PREVIOUS = 'supabase/migrations/20261121130000_hide_owner_id_on_public_services.sql';
 
 const OWNER_A = '11111111-1111-4111-8111-111111111111';
@@ -112,10 +113,11 @@ grant execute on function public.studioflow_customer_catalog() to anon, authenti
 `;
 
 function makeRunner(db) {
-  return async function as(role, sql, params = []) {
+  return async function as(role, sql, params = [], userId = null) {
     await db.exec('begin');
     try {
       await db.query(`select set_config('role', $1, true)`, [role]);
+      if (userId) await db.query(`select set_config('request.jwt.claim.sub', $1, true)`, [userId]);
       const result = await db.query(sql, params);
       await db.exec('commit');
       return { rows: result.rows };
@@ -191,6 +193,7 @@ console.log('\n2. The security_invoker shortcut, reproduced');
 /* ================================================================== */
 console.log('\n3. Shipped migration applied');
 
+const legacySql = readFileSync(LEGACY, 'utf8');
 const sql = readFileSync(MIGRATION, 'utf8');
 assert.ok(sql.length > 500, 'migration file is not empty');
 assert.match(sql, /create or replace view public\.public_salon_websites/i);
@@ -208,6 +211,7 @@ assert.match(projection, /select\s+w\.slug,\s*w\.content,\s+w\.published_at/i,
 
 {
   const db = await seeded();
+  await db.exec(legacySql);
   await db.exec(sql);
   const as = makeRunner(db);
 
@@ -242,10 +246,12 @@ assert.match(projection, /select\s+w\.slug,\s*w\.content,\s+w\.published_at/i,
   assert.ok(salons.every((s) => typeof s.slug === 'string'), 'catalog keeps slug as the public join key');
   assert.ok(salons.every((s) => s.content?.profile?.businessName), 'catalog keeps the salon content');
 
-  // 3f. authenticated keeps its direct read (customizer access gates need it).
+  // 3f. Authenticated sees public rows; drafts require an owner claim.
   const authRead = await as('authenticated', 'select owner_id, slug from public.studioflow_websites');
-  assert.equal(authRead.rows.length, 3, 'authenticated still reads the base table, drafts included');
+  assert.equal(authRead.rows.length, 2, 'authenticated sees published rows without an owner claim');
   assert.ok(authRead.rows.every((r) => typeof r.owner_id === 'string'), 'authenticated keeps owner_id');
+  const ownerDraft = await as('authenticated', `select slug from public.studioflow_websites where slug='draft-salon'`, [], OWNER_DRAFT);
+  assert.equal(ownerDraft.rows.length, 1, 'authenticated owner can read its own draft');
 
   // 3g. This migration does not touch the published service catalogue. The
   // column narrowing below is 20261121130000's job and is asserted in section 6
@@ -271,6 +277,7 @@ console.log('\n3h. Booking slug stamping + backfill');
   await db.query(`insert into public.studioflow_demo_bookings(customer_id, owner_id, payload)
     values ($1, $2, '{"demo":true}'::jsonb)`, [OWNER_B, OWNER_A]);
 
+  await db.exec(legacySql);
   await db.exec(sql); // backfills the two rows above
 
   const backfilled = await db.query(`select payload->>'salonSlug' as slug from public.studioflow_bookings`);
@@ -310,6 +317,7 @@ console.log('\n4. Re-apply is a no-op');
 
 {
   const db = await seeded();
+  await db.exec(legacySql);
   await db.exec(sql);
   await db.exec(sql); // must not raise (create or replace + repeated grants)
   const as = makeRunner(db);
@@ -326,6 +334,7 @@ console.log('\n5. Projection guard is load-bearing');
 
 {
   const db = await seeded();
+  await db.exec(legacySql);
   await db.exec(sql);
   await assert.rejects(
     () => db.exec(`
@@ -356,6 +365,7 @@ console.log('\n6. Stacks on the previous column-privacy migration');
 {
   const db = await seeded();
   await db.exec(readFileSync(PREVIOUS, 'utf8'));
+  await db.exec(legacySql);
   await db.exec(sql);
   const as = makeRunner(db);
   const services = await as('anon', 'select id, name, price from public.services');
@@ -369,4 +379,4 @@ console.log('\n6. Stacks on the previous column-privacy migration');
   console.log('   both migrations apply in order without conflict');
 }
 
-console.log('\nPASS: anon reads the published storefront without any owner identifier, authenticated keeps its table access, and the rejected security_invoker shortcut is still demonstrably broken.');
+console.log('\nPASS: anon reads published storefront columns without owner identifiers; authenticated reads are RLS-scoped; unsafe broad-revoke invoker access remains denied.');

@@ -16,8 +16,7 @@ const DEFAULT_SUPABASE_URL = 'https://zilwgiuiygqqardzutxi.supabase.co';
 const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_Xck8H8PcTCCnEwkvBfiSLw_c973vJkH';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TOKEN = /^[a-f0-9]{64}$/i;
-const WINDOW_MS = 10 * 60 * 1000;
-const MAX_PER_WINDOW = 12;
+const WINDOW_SECONDS = 600;
 
 type JsonResponder = {
   status: (code: number) => JsonResponder;
@@ -31,8 +30,6 @@ type InviteRequest = {
   headers?: Record<string, string | string[] | undefined>;
   get?: (name: string) => string | undefined;
 };
-
-const windows = new Map<string, { count: number; resetAt: number }>();
 
 function env(name: string): string {
   return (process.env[name] || '').trim().replace(/^['"]|['"]$/g, '');
@@ -55,19 +52,20 @@ function escapeHtml(value: unknown, max = 200): string {
   }[character]!));
 }
 
-function consumeQuota(key: string): boolean {
-  const now = Date.now();
-  for (const [candidate, window] of windows) {
-    if (window.resetAt <= now) windows.delete(candidate);
-  }
-  const current = windows.get(key);
-  if (!current) {
-    windows.set(key, { count: 1, resetAt: now + WINDOW_MS });
-    return true;
-  }
-  if (current.count >= MAX_PER_WINDOW) return false;
-  current.count += 1;
-  return true;
+async function claimInviteQuota(key: string, maxAttempts: number) {
+  const { url } = supabaseBase();
+  const serviceKey = env('SUPABASE_SERVICE_ROLE_KEY') || env('SUPABASE_SECRET_KEY');
+  if (!serviceKey) throw new Error('Invite rate limiting is unavailable.');
+  const response = await fetch(`${url}/rest/v1/rpc/studioflow_edge_rate_limit_claim`, {
+    method: 'POST',
+    headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ p_bucket_key: key, p_window_seconds: WINDOW_SECONDS, p_max_attempts: maxAttempts }),
+    signal: AbortSignal.timeout(5000),
+  });
+  if (!response.ok) throw new Error('Invite rate limiting is unavailable.');
+  const decision = await response.json();
+  if (typeof decision?.allowed !== 'boolean') throw new Error('Invite quota returned an invalid response.');
+  return decision.allowed ? 0 : Math.max(1, Number(decision.retryAfterSeconds) || WINDOW_SECONDS);
 }
 
 function json(res: JsonResponder, status: number, body: unknown) {
@@ -85,9 +83,16 @@ export function safeInviteOrigin(value: unknown): string | null {
   if (!raw) return null;
   try {
     const url = new URL(raw);
-    if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
-    if (url.hostname.includes('supabase.co')) return null;
-    return url.origin;
+    const allowed = new Set([
+      'https://nexorasalon.online', 'https://www.nexorasalon.online',
+      'https://studioflow-ashen-pi.vercel.app',
+      'https://nexora-one-white-label.templateapp67.chatgpt.site',
+      ...env('STUDIOFLOW_STAFF_INVITE_ORIGINS').split(',').map(origin => origin.trim()),
+    ]);
+    if (url.protocol === 'https:' && allowed.has(url.origin)) return url.origin;
+    if (process.env.NODE_ENV !== 'production' && ['http:', 'https:'].includes(url.protocol)
+      && ['localhost', '127.0.0.1'].includes(url.hostname)) return url.origin;
+    return null;
   } catch {
     return null;
   }
@@ -147,14 +152,6 @@ function supabaseBase(): { url: string; key: string } {
   };
 }
 
-async function supabaseFetch(path: string, token: string): Promise<Response> {
-  const { url, key } = supabaseBase();
-  return fetch(`${url}${path}`, {
-    headers: { apikey: key, Authorization: `Bearer ${token}` },
-    signal: AbortSignal.timeout(8000),
-  });
-}
-
 /** Calls one of the owner's own RPCs; a failure here is logged, not fatal. */
 async function supabaseRpc(name: string, token: string, args: Record<string, unknown>): Promise<boolean> {
   try {
@@ -198,21 +195,24 @@ export async function staffInviteEmailHandler(req: InviteRequest, res: JsonRespo
   if (!UUID.test(inviteId)) return json(res, 400, { success: false, error: 'Invite id is missing or invalid.' });
   if (!TOKEN.test(inviteToken)) return json(res, 400, { success: false, error: 'Invite token is missing or invalid.' });
 
-  if (!consumeQuota(inviteId)) {
-    return json(res, 429, { success: false, error: 'Too many invite emails for this staff member. Wait a few minutes and retry.' });
+  const { url, key } = supabaseBase();
+  let invite;
+  try {
+    const response = await fetch(`${url}/rest/v1/rpc/studioflow_staff_invite_delivery`, {
+      method: 'POST',
+      headers: { apikey: key, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_invite_id: inviteId, p_token: inviteToken }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (response.status === 401) return json(res, 401, { success: false, error: 'Your session expired. Sign in again.' });
+    if (response.status === 403) return json(res, 403, { success: false, error: 'Verify your session before sending an invite.' });
+    if (!response.ok) throw new Error('Invite lookup failed.');
+    invite = await response.json();
+  } catch {
+    return json(res, 503, { success: false, error: 'Invite could not be verified. Try again shortly.' });
   }
 
-  // Verify the caller and read the invite through RLS: an invite belonging to
-  // another salon simply is not returned.
-  const inviteResponse = await supabaseFetch(
-    `/rest/v1/studioflow_staff_invites?select=id,owner_id,staff_name,email,role,expires_at,status&id=eq.${inviteId}`,
-    token,
-  );
-  if (inviteResponse.status === 401) return json(res, 401, { success: false, error: 'Your session expired. Sign in again.' });
-  if (!inviteResponse.ok) return json(res, 502, { success: false, error: 'Invite could not be verified.' });
-  const rows = await inviteResponse.json().catch(() => null);
-  const invite = Array.isArray(rows) ? rows[0] : null;
-  if (!invite) return json(res, 404, { success: false, error: 'Invite not found for this salon.' });
+  if (!invite?.owner_id) return json(res, 404, { success: false, error: 'Invite or token not found for this salon.' });
   if (invite.status !== 'pending') return json(res, 409, { success: false, error: 'Only a pending invite can be emailed.' });
   if (new Date(invite.expires_at).getTime() <= Date.now()) {
     return json(res, 409, { success: false, error: 'This invite has expired. Resend it to create a fresh link.' });
@@ -223,8 +223,19 @@ export async function staffInviteEmailHandler(req: InviteRequest, res: JsonRespo
   const origin = safeInviteOrigin(body.origin);
   if (!origin) return json(res, 400, { success: false, error: 'A valid site origin is required to build the invite link.' });
 
-  const salonName = cleanText(body.salonName, 120);
-  const ownerEmail = cleanText(body.ownerEmail, 160);
+  try {
+    const retryAfter = await claimInviteQuota(`staff-invite-owner:${invite.owner_id}`, 20)
+      || await claimInviteQuota(`staff-invite-object:${inviteId.toLowerCase()}`, 5);
+    if (retryAfter) {
+      res.setHeader?.('Retry-After', String(retryAfter));
+      return json(res, 429, { success: false, error: 'Invite email limit reached. Try again shortly.' });
+    }
+  } catch {
+    return json(res, 503, { success: false, error: 'Invite email is temporarily unavailable.' });
+  }
+
+  const salonName = cleanText(invite.salon_name, 120);
+  const ownerEmail = cleanText(invite.owner_email, 160);
   const inviteUrl = buildInviteUrl(origin, inviteToken);
 
   const apiKey = env('RESEND_API_KEY');

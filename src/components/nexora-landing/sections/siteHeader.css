@@ -767,38 +767,47 @@
 }
 
 /*
- * Before React measures the content (or when scripts are unavailable), keep
- * the server-rendered navigation usable at tablet/mobile widths. The JS
- * measurement replaces this wrapped fallback with the compact drawer as soon
- * as the actual row width is known.
+ * Keep the server-rendered tablet/mobile header in the same one-row shape as
+ * the measured compact state. The previous multi-row fallback collapsed after
+ * ResizeObserver ran, moving the entire page and producing a large CLS spike.
+ * The menu starts closed (and is inert/hidden after measurement); no navigation
+ * link or CTA is removed, only presented inside the same compact drawer.
  */
 @media (max-width: 1399px) {
   .nexora-site-header:not(.has-measured-layout) .nexora-site-header__inner {
-    align-items: stretch;
-    flex-direction: column;
-    gap: var(--nx-space-2);
+    align-items: center;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: var(--nsh-compact-gap);
   }
 
   .nexora-site-header:not(.has-measured-layout) .nexora-site-header__brand {
-    align-self: flex-start;
+    align-self: auto;
+  }
+
+  .nexora-site-header:not(.has-measured-layout) .nexora-site-header__toggle {
+    display: inline-flex;
   }
 
   .nexora-site-header:not(.has-measured-layout) .nexora-site-header__menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    z-index: 1;
+    display: none;
     align-items: stretch;
     flex-direction: column;
-    gap: var(--nx-space-2);
-    width: 100%;
-    margin-left: 0;
-  }
-
-  .nexora-site-header:not(.has-measured-layout) .nexora-site-header__nav,
-  .nexora-site-header:not(.has-measured-layout) .nexora-site-header__actions {
-    width: 100%;
-  }
-
-  .nexora-site-header:not(.has-measured-layout) .nexora-site-header__nav-list,
-  .nexora-site-header:not(.has-measured-layout) .nexora-site-header__actions {
-    flex-wrap: wrap;
+    gap: var(--nx-space-4);
+    max-height: min(72vh, 34rem);
+    overflow-y: auto;
+    margin: 0;
+    padding: var(--nx-space-4);
+    border: 1px solid var(--nsh-border);
+    border-top: 0;
+    border-radius: 0 0 var(--nx-radius-card) var(--nx-radius-card);
+    background: var(--nsh-panel-bg);
+    box-shadow: var(--nx-shadow-medium);
   }
 }
 

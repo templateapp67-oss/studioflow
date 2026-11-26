@@ -27,6 +27,7 @@ import { ZiyaAdminPanel } from './ziya/ZiyaAdminPanel';
 import { AuraPromotionsAdmin } from './aura/AuraPromotionsAdmin';
 import { NexoraTemplateGallery } from './nexora/NexoraTemplateGallery';
 import { CATEGORY_TEMPLATES } from '../categoryTemplates';
+import { patchOwnerCopy } from '../lib/copyProvenance';
 
 interface SaaSDashboardProps {
   ownerId?:string;
@@ -1070,7 +1071,7 @@ export const SaaSDashboard: React.FC<SaaSDashboardProps> = ({
                 <input
                   type="text"
                   value={profile.tagline}
-                  onChange={(e) => setProfile((prev) => ({ ...prev, tagline: e.target.value }))}
+                  onChange={(e) => setProfile((prev) => patchOwnerCopy(prev, { tagline: e.target.value }))}
                   className="w-full p-2.5 rounded-xl border border-gray-300 text-xs focus:ring-2 focus:ring-gray-400 outline-none"
                 />
               </div>

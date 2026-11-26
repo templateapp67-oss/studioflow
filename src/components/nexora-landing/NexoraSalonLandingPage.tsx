@@ -1,6 +1,11 @@
 import { useEffect } from 'react';
 import { DemoProvider } from '../nexora-pricing/DemoProvider';
-import { NEXORA_PUBLIC_ORIGIN } from '../../lib/publicSeo';
+import {
+  clearRouteJsonLd,
+  NEXORA_PUBLIC_ORIGIN,
+  setCanonicalLink,
+  setRobotsMeta,
+} from '../../lib/publicSeo';
 import { nexoraSalonLandingSchema } from '../../lib/nexoraLandingContent';
 import { LandingContentProvider, useLandingModel } from './LandingContentProvider';
 import { SiteHeader } from './sections/SiteHeader';
@@ -51,7 +56,7 @@ function LandingDocument() {
       node.content = content;
     };
     upsertMeta('meta[name="description"]', 'name', 'description', pageDescription);
-    upsertMeta('meta[name="robots"]', 'name', 'robots', 'index,follow');
+    setRobotsMeta('index,follow');
     upsertMeta('meta[property="og:type"]', 'property', 'og:type', 'website');
     upsertMeta('meta[property="og:site_name"]', 'property', 'og:site_name', 'NEXORA SALONOS');
     upsertMeta('meta[property="og:title"]', 'property', 'og:title', pageTitle);
@@ -64,14 +69,9 @@ function LandingDocument() {
     upsertMeta('meta[name="twitter:description"]', 'name', 'twitter:description', pageDescription);
     upsertMeta('meta[name="twitter:image"]', 'name', 'twitter:image', ogImage);
 
-    let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
-    if (!canonical) {
-      canonical = document.createElement('link');
-      canonical.rel = 'canonical';
-      document.head.appendChild(canonical);
-    }
-    canonical.href = canonicalUrl;
+    setCanonicalLink(canonicalUrl);
 
+    clearRouteJsonLd('nexora-salonos-jsonld');
     let script = document.getElementById('nexora-salonos-jsonld') as HTMLScriptElement | null;
     if (!script) {
       script = document.createElement('script');

@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import { AuthMfaChallenge } from '../AuthMfa';
+import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuthSession } from '../../lib/useAuthSession';
 import {
@@ -10,6 +11,7 @@ import {
   type StaffContext,
 } from '../../lib/staffInvites';
 import { ROLE_SHORT_LABELS, normalizeAccessRole } from '../../lib/staffPermissions';
+import { applyNoIndexMetadata } from '../../lib/publicSeo';
 
 const inputClass =
   'w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#900c3f] focus:ring-2 focus:ring-[#900c3f]/15 disabled:bg-slate-100';
@@ -22,7 +24,7 @@ const inputClass =
  * plainly instead of being dropped into someone else's workspace.
  */
 export function StaffLoginPage() {
-  const { session, ready } = useAuthSession();
+  const { session, ready, mfa, retryMfa } = useAuthSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -30,21 +32,44 @@ export function StaffLoginPage() {
   const [notice, setNotice] = useState('');
   const [context, setContext] = useState<StaffContext | null>(null);
   const [checking, setChecking] = useState(false);
+  const continueAfterSignIn = useRef(false);
   // An owner signed in on this browser must be told, not silently swapped.
   const [ownerSession, setOwnerSession] = useState('');
 
   useEffect(() => {
+    applyNoIndexMetadata('Staff sign in — NEXORA SalonOS');
+  }, []);
+
+  useEffect(() => {
     if (!ready) return;
-    if (!session) { setContext(null); setOwnerSession(''); return; }
+    if (!session) {
+      continueAfterSignIn.current = false;
+      setContext(null);
+      setOwnerSession('');
+      return;
+    }
     let active = true;
     setChecking(true);
     void loadMyStaffContext()
       .then(async (row) => {
         if (!active) return;
         setContext(row);
+        if (continueAfterSignIn.current) {
+          continueAfterSignIn.current = false;
+          if (row) {
+            location.replace(safeStaffRedirect(STAFF_WORKSPACE_PATH));
+            return;
+          }
+          await signOutLocal();
+          if (active) setError('This email does not have an active staff login. Ask the salon owner to invite you, or use your invite link.');
+          return;
+        }
         if (row) { setOwnerSession(''); return; }
         const conflict = await detectSessionConflict().catch(() => null);
         if (active) setOwnerSession(conflict?.isSalonOwner ? conflict.email : '');
+      })
+      .catch(() => {
+        if (active) setError('Could not check your staff access. Please try again.');
       })
       .finally(() => { if (active) setChecking(false); });
     return () => { active = false; };
@@ -64,15 +89,11 @@ export function StaffLoginPage() {
       if (signedInEmail && signedInEmail.toLowerCase() !== email.trim().toLowerCase()) {
         await signOutLocal();
       }
+      continueAfterSignIn.current = true;
       const { error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-      if (signInError) throw new Error(signInError.message);
-      const row = await loadMyStaffContext();
-      if (!row) {
-        await supabase.auth.signOut();
-        throw new Error('This email does not have an active staff login. Ask the salon owner to invite you, or use your invite link.');
-      }
-      location.replace(safeStaffRedirect(STAFF_WORKSPACE_PATH));
+      if (signInError) throw signInError;
     } catch (caught) {
+      continueAfterSignIn.current = false;
       setError(caught instanceof Error ? caught.message : 'Sign-in failed. Please retry.');
     } finally {
       setBusy(false);
@@ -89,6 +110,7 @@ export function StaffLoginPage() {
     else setNotice('Password reset link sent. Check your inbox (and spam folder).');
   };
 
+  if (mfa) return <AuthMfaChallenge error={mfa.error} retry={retryMfa} />;
   if (!ready) {
     return <main className="grid min-h-screen place-items-center bg-slate-50 px-4"><p role="status" className="text-sm font-semibold text-slate-600">Checking your session…</p></main>;
   }

@@ -17,6 +17,8 @@ import { StaffLoginPage } from './components/staff/StaffLoginPage';
 import { StaffWorkspacePage } from './components/staff/StaffWorkspacePage';
 import { resolveSiteSlug } from './lib/resolveSite';
 
+const AccountSecurityPage = lazy(() => import('./components/AccountSecurityPage').then(module => ({ default: module.AccountSecurityPage })));
+
 const FullApplication = lazy(() =>
   loadScreen(() => import('./App').then((module) => ({ default: module.default }))),
 );
@@ -32,7 +34,7 @@ const APP_QUERY_KEYS = [
  * outside the owner application so the landing page can be indexed and
  * hydrated without booting the workspace bundle.
  */
-const PUBLIC_MARKETING_ROUTES = new Set(['/salon-os', '/pricing', '/privacy', '/salon-onboarding', '/salon-growth', '/growth-partner-rewards', '/partner-rewards']);
+const PUBLIC_MARKETING_ROUTES = new Set(['/about', '/salon-os', '/pricing', '/privacy', '/salon-onboarding', '/salon-growth', '/growth-partner-rewards', '/partner-rewards']);
 
 export function requiresFullApplication(location: Pick<Location, 'pathname' | 'search' | 'hash' | 'hostname'>): boolean {
   // Staff routes own their own screens: /staff/accept works signed out (invite
@@ -73,9 +75,7 @@ function withNexoraPublicSupport(content: React.ReactNode) {
 }
 
 export function AppRouter() {
-  const [showApplication] = useState(() =>
-    typeof window !== 'undefined' && requiresFullApplication(window.location),
-  );
+  const [, setLocationTick] = useState(0);
   // Keep the first client render identical to the prerendered public homepage.
   // A stored owner session is reflected immediately after hydration, not during
   // hydrateRoot, so the owner-specific CTA cannot cause a server/client mismatch.
@@ -83,12 +83,22 @@ export function AppRouter() {
 
   useEffect(() => {
     const refreshAuthentication = () => setAuthenticated(hasPersistedOwnerSession());
+    const handlePopState = () => setLocationTick((tick) => tick + 1);
     refreshAuthentication();
     window.addEventListener('storage', refreshAuthentication);
-    return () => window.removeEventListener('storage', refreshAuthentication);
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('storage', refreshAuthentication);
+      window.removeEventListener('popstate', handlePopState);
+    };
   }, []);
 
-  const publicPath = typeof window !== 'undefined' ? window.location.pathname.replace(/\/$/, '') : '';
+  const showApplication = typeof window !== 'undefined' && requiresFullApplication(window.location);
+  const publicPath = typeof window !== 'undefined' ? window.location.pathname.replace(/\/+$/, '') : '';
+
+  if (publicPath === '/login' && new URLSearchParams(window.location.search).get('security') === '1') {
+    return <Suspense fallback={<p role="status">Loading account security…</p>}><AccountSecurityPage /></Suspense>;
+  }
 
   // Staff entry points are rendered here, read-only and independent from the
   // owner bootstrap: no account load, no workspace fetch, no draft save.
@@ -102,7 +112,7 @@ export function AppRouter() {
   if (publicPath === '/pricing') return withNexoraPublicSupport(<NexoraPricingLandingPage />);
   if (publicPath === '/privacy') return withNexoraPublicSupport(<NexoraPrivacyNoticePage />);
   if (publicPath === '/partner-rewards') return withNexoraPublicSupport(<NexoraPartnerRewardsPage />);
-  if (publicPath === '/salon-onboarding' || publicPath === '/salon-growth' || publicPath === '/growth-partner-rewards') {
+  if (publicPath === '/about' || publicPath === '/salon-onboarding' || publicPath === '/salon-growth' || publicPath === '/growth-partner-rewards') {
     return withNexoraPublicSupport(<NexoraEcosystemPage path={publicPath} />);
   }
   if (publicPath === '/admin/demo-leads') return <NexoraDemoLeadsAdmin />;

@@ -1,3 +1,4 @@
+import { AuthMfaChallenge } from '../AuthMfa';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuthSession } from '../../lib/useAuthSession';
@@ -16,6 +17,7 @@ import {
   type SessionConflict,
 } from '../../lib/staffInvites';
 import { ROLE_SHORT_LABELS, normalizeAccessRole, PERMISSION_LABELS, type StaffPermission } from '../../lib/staffPermissions';
+import { applyNoIndexMetadata } from '../../lib/publicSeo';
 
 type Mode = 'signup' | 'signin';
 
@@ -60,7 +62,7 @@ function RoleCard({ lookup }: { lookup: InviteLookup }) {
 }
 
 export function StaffInviteAcceptPage({ token }: { token: string }) {
-  const { session, ready } = useAuthSession();
+  const { session, ready, mfa, retryMfa } = useAuthSession();
   const [lookup, setLookup] = useState<InviteLookup | null>(null);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<Mode>('signup');
@@ -75,6 +77,10 @@ export function StaffInviteAcceptPage({ token }: { token: string }) {
   const acceptLock = useRef(false);
 
   const valid = isValidInviteToken(token);
+
+  useEffect(() => {
+    applyNoIndexMetadata('Accept staff invitation — NEXORA SalonOS');
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -94,6 +100,7 @@ export function StaffInviteAcceptPage({ token }: { token: string }) {
       });
       return;
     }
+    if (!ready) return;
     void lookupStaffInvite(token)
       .then((result) => {
         if (!active) return;
@@ -108,7 +115,7 @@ export function StaffInviteAcceptPage({ token }: { token: string }) {
       })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [token, valid]);
+  }, [token, valid, ready]);
 
   const canAccept = lookup?.status === 'pending';
   const branchMissing = lookup?.branchMissing === true;
@@ -158,7 +165,8 @@ export function StaffInviteAcceptPage({ token }: { token: string }) {
     if (!canAccept) return setError('This invite is no longer active. Ask the salon owner to resend it.');
     if (mode === 'signup') {
       if (fullName.trim().length < 2) return setError('Enter your full name.');
-      if (password.length < 8) return setError('Use at least 8 characters for your password.');
+      if (password.length < 12) return setError('Use at least 12 characters for your password.');
+      if (new TextEncoder().encode(password).length > 72) return setError('Use a password of at most 72 bytes.');
       if (password !== confirm) return setError('Both passwords must match.');
     } else if (!email.trim() || !password) {
       return setError('Enter the email and password of your existing staff account.');
@@ -186,14 +194,11 @@ export function StaffInviteAcceptPage({ token }: { token: string }) {
           setMode('signin');
           throw new Error('Check your inbox to confirm your email, then open the invite link again to finish.');
         }
-        const result = await acceptStaffInvite(token);
-        location.replace(safeStaffRedirect(result.redirectTo));
         return;
       }
       const { error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
       if (signInError) throw new Error(signInError.message);
-      const result = await acceptStaffInvite(token);
-      location.replace(safeStaffRedirect(result.redirectTo));
+      // The verified-session effect accepts the invite after any MFA challenge.
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Something went wrong. Please retry.');
     } finally {
@@ -218,6 +223,7 @@ export function StaffInviteAcceptPage({ token }: { token: string }) {
     }
   };
 
+  if (mfa) return <AuthMfaChallenge error={mfa.error} retry={retryMfa} />;
   if (loading) {
     return <Shell><p role="status" className="py-10 text-center text-sm font-semibold text-slate-600">Checking your invite…</p></Shell>;
   }

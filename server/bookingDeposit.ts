@@ -17,7 +17,7 @@ import {
   assertDepositSatisfied,
   quoteDeposit,
   type DepositQuote,
-} from './depositGuard';
+} from './depositGuard.js';
 
 type DepositRequest = {
   method?: string;

@@ -22,6 +22,7 @@ import './nexoraEcosystemHero.css';
  */
 
 const NAV_LINKS = [
+  { label: 'About NEXORA', href: '/about' },
   { label: 'Salon Onboarding', href: '/salon-onboarding' },
   { label: 'Salon Growth', href: '/salon-growth' },
   { label: 'Growth Partner Rewards', href: '/growth-partner-rewards' },
@@ -146,6 +147,16 @@ export function NexoraEcosystemHero({
             id="nxe-hero-title"
             tabIndex={-1}
             ref={titleRef}
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'baseline',
+              justifyContent: 'flex-start',
+              width: '100%',
+              maxWidth: '100%',
+              whiteSpace: 'normal',
+              overflowWrap: 'anywhere',
+            }}
           >
             <span className="nxh-hero__prefix" aria-hidden="true">
               {tagNumber} /
@@ -214,9 +225,9 @@ export function NexoraEcosystemHero({
                   <img
                     src="/templates/luxury-editorial/hero-680.webp"
                     srcSet="/templates/luxury-editorial/hero-480.webp 480w, /templates/luxury-editorial/hero-680.webp 680w"
-                    sizes="300px"
-                    width={680}
-                    height={850}
+                    sizes="(max-width: 640px) 212px, 248px"
+                    width={248}
+                    height={310}
                     alt="Ziya Women's Hair Studio template hero: a stylist finishing a layered haircut in a rose-ivory studio"
                     loading="eager"
                     decoding="async"

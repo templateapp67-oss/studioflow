@@ -15,7 +15,10 @@ function load(path, names, db = {}, fakeFetch = async () => { throw new Error('U
     Deno: { env: { get: key => ({ SUPABASE_URL: 'https://test.invalid', SUPABASE_SERVICE_ROLE_KEY: 'test-only-service' })[key] }, serve: fn => { handler = fn; } },
     createClient: () => db,
   });
-  const source = readFileSync(path, 'utf8').replace(/^import .*from .*;\s*$/mg, '').replace(/^export /mg, '');
+  const entry = readFileSync(path, 'utf8');
+  const shared = entry.includes('../_shared/sessionProtection.ts')
+    ? readFileSync('supabase/functions/_shared/sessionProtection.ts', 'utf8') : '';
+  const source = (shared + '\n' + entry).replace(/^import .*from .*;\s*$/mg, '').replace(/^export /mg, '');
   const js = ts.transpileModule(source + '\nthis.testApi = {' + names.join(',') + '};', {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
   }).outputText;
@@ -86,6 +89,7 @@ function fakeDb(flow = {}, branches = []) {
       return q;
     },
     async rpc(name,args){
+      if(name==='studioflow_edge_rate_limit_claim')return {data:{allowed:true}};
       if(name==='nexora_whatsapp_meta_secret')return {data:args.p_secret_name==='nexora_whatsapp_webhook_verify_token'
         ? 'fixture-verify-token' : 'fixture-meta-secret'};
       if(name==='nexora_whatsapp_token_key')return {data:Buffer.alloc(32).toString('base64')};
