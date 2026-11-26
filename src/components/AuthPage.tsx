@@ -45,6 +45,7 @@ export function AuthPage({ compact = false, recovery = false, onRecovered, custo
   const [ref, setRef] = useState(()=>customer?captureCustomerReferral():captureReferral()); const [busy, setBusy] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const [mfaChallenge, setMfaChallenge] = useState<{ factorId: string; challengeId: string } | null>(null);
+  const [mfaEnrollment, setMfaEnrollment] = useState<{ factorId: string; qrCode: string; secret: string } | null>(null);
   const [mfaCode, setMfaCode] = useState('');
   const [message, setMessage] = useState(() => readAuthUrlError(search, hash) || (loginParams.has('recovery') && !recovery ? 'Reset link expired or could not be verified. Request a new link using Forgot password.' : '')); const [confirmationPending, setConfirmationPending] = useState(false);
 
@@ -62,6 +63,22 @@ export function AuthPage({ compact = false, recovery = false, onRecovered, custo
   const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setBusy(true); setMessage('');
     try {
+      if (mfaEnrollment) {
+        const code = mfaCode.trim();
+        if (!/^\\d{6,8}$/.test(code)) throw new Error('Enter the 6–8 digit code from your authenticator app.');
+        const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: mfaEnrollment.factorId });
+        if (challengeError) throw challengeError;
+        const { error: verifyError } = await supabase.auth.mfa.verify({
+          factorId: mfaEnrollment.factorId,
+          challengeId: challenge.id,
+          code,
+        });
+        if (verifyError) throw verifyError;
+        setMfaEnrollment(null);
+        setMfaCode('');
+        location.assign(authReturnPath);
+        return;
+      }
       if (mfaChallenge) {
         const code = mfaCode.trim();
         if (!/^\d{6,8}$/.test(code)) throw new Error('Enter the 6–8 digit code from your authenticator app.');
@@ -72,6 +89,7 @@ export function AuthPage({ compact = false, recovery = false, onRecovered, custo
         });
         if (error) throw error;
         setMfaChallenge(null);
+        setMfaEnrollment(null);
         setMfaCode('');
         location.assign(authReturnPath);
         return;
@@ -114,7 +132,20 @@ export function AuthPage({ compact = false, recovery = false, onRecovered, custo
           const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors();
           if (factorsError) throw factorsError;
           const verifiedTotp = factors?.totp?.find((factor) => factor.status === 'verified');
-          if (!verifiedTotp) throw new Error('This account requires multi-factor authentication, but has no verified authenticator. Contact your account administrator to complete MFA setup.');
+          if (!verifiedTotp) {
+            const { data: enrollment, error: enrollmentError } = await supabase.auth.mfa.enroll({
+              factorType: 'totp',
+              friendlyName: 'NEXORA authenticator',
+            });
+            if (enrollmentError) throw enrollmentError;
+            setMfaEnrollment({
+              factorId: enrollment.id,
+              qrCode: enrollment.totp.qr_code,
+              secret: enrollment.totp.secret,
+            });
+            setMessage('Scan this QR code with an authenticator app, then enter its current code to finish setting up MFA.');
+            return;
+          }
           const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: verifiedTotp.id });
           if (challengeError) throw challengeError;
           setMfaChallenge({ factorId: verifiedTotp.id, challengeId: challenge.id });
@@ -250,9 +281,10 @@ export function AuthPage({ compact = false, recovery = false, onRecovered, custo
         </button>
         <p className="text-center text-xs text-slate-500 mb-4">or use email</p>
       </>}
-        {mfaChallenge && <label className="block">Authenticator code<input data-testid="auth-mfa-code" className="workspace-input" type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6,8}" maxLength={8} required value={mfaCode} onChange={e => setMfaCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 8))} /><small>Enter the current code from your authenticator app.</small></label>}
+        {mfaEnrollment && <div className="space-y-2 rounded-lg border p-3"><p className="text-sm font-medium">Set up authenticator app</p><img data-testid="auth-mfa-qr" src={mfaEnrollment.qrCode} alt="Authenticator enrollment QR code" className="mx-auto h-44 w-44" /><p className="text-xs text-slate-500">Can't scan the QR? Enter this setup key manually:</p><code className="block break-all text-sm">{mfaEnrollment.secret}</code></div>}
+        {(mfaChallenge || mfaEnrollment) && <label className="block">Authenticator code<input data-testid="auth-mfa-code" className="workspace-input" type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6,8}" maxLength={8} required value={mfaCode} onChange={e => setMfaCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 8))} /><small>Enter the current code from your authenticator app.</small></label>}
         {message && <p data-testid="auth-message" role="status" className="text-sm p-3 rounded-lg bg-amber-50 text-amber-900">{message}</p>}
-        <button data-testid="auth-submit" disabled={busy || (mode === 'forgot' && resetSent)} className="primary-action w-full justify-center disabled:opacity-60">{busy ? 'Please wait…' : mfaChallenge ? 'Verify code' : recovery ? 'Save new password' : mode === 'forgot' ? resetSent ? 'Reset link requested — check email' : 'Send reset link' : signup ? 'Create account' : 'Sign in'}</button>
+        <button data-testid="auth-submit" disabled={busy || (mode === 'forgot' && resetSent)} className="primary-action w-full justify-center disabled:opacity-60">{busy ? 'Please wait…' : (mfaChallenge || mfaEnrollment) ? 'Verify code' : recovery ? 'Save new password' : mode === 'forgot' ? resetSent ? 'Reset link requested — check email' : 'Send reset link' : signup ? 'Create account' : 'Sign in'}</button>
         {!recovery && mode === 'forgot' && <button type="button" disabled={busy} className="secondary-action w-full justify-center" onClick={() => { setMode('signin'); setMessage(''); setResetSent(false); }}>Back to sign in</button>}
         {confirmationPending && signup && <button type="button" disabled={busy} className="secondary-action" onClick={() => void resend()}>Resend confirmation email</button>}
       </form>
