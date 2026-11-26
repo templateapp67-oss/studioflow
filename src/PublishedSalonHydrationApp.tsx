@@ -1,3 +1,4 @@
+import { AuthMfaChallenge } from './components/AuthMfa';
 import React, { useCallback, useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { AuthPage } from './components/AuthPage';
@@ -27,7 +28,7 @@ export function PublishedSalonHydrationApp() {
     try { sessionStorage.setItem('studioflow_recovery', '1'); } catch { /* storage may be unavailable */ }
     setRecovery(true);
   }, []);
-  const { session } = useAuthSession(onRecovery);
+  const { session, mfa, retryMfa } = useAuthSession(onRecovery);
 
   let slug = '';
   try {
@@ -41,6 +42,7 @@ export function PublishedSalonHydrationApp() {
     // A malformed or missing SSR payload leaves the route to the app fallback.
   }
 
+  if (mfa) return <AuthMfaChallenge error={mfa.error} retry={retryMfa} />;
   if (!slug) return null;
   if (recovery && session) {
     return (

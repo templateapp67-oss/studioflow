@@ -74,7 +74,7 @@ assert.equal(history.live_catalog_evidence.applied_versions,history.applied_vers
   'The catalog evidence count must remain tied to its original export date');
 assert(history.live_catalog_evidence.captured_at);
 const workflow=readFileSync('.github/workflows/production.yml','utf8');
-const edgeStep=workflow.split('- name: Deploy reviewed WhatsApp Edge Functions')[1]?.split('\n  deploy:')[0];
+const edgeStep=workflow.split('- name: Deploy reviewed Edge Functions')[1]?.split('\n  deploy:')[0];
 assert(edgeStep,'Missing Edge deployment step after approved migrations');
 assert(edgeStep.includes("github.event_name == 'workflow_dispatch' && inputs.release_mode == 'apply_and_deploy'"));
 assert(edgeStep.includes('--remote="$SUPABASE_PROJECT_REF" --use-api'));
@@ -83,4 +83,4 @@ assert(workflow.includes('$SUPABASE_PROJECT_REF" != "zilwgiuiygqqardzutxi"'));
 const config=readFileSync('supabase/config.toml','utf8');
 assert(/\[functions\.nexora-whatsapp-connect\]\s*verify_jwt\s*=\s*true/.test(config));
 assert(/\[functions\.studioflow-whatsapp-booking\]\s*verify_jwt\s*=\s*false/.test(config));
-console.log(`PASS: ${applied.size} applied migration versions (captured export plus ${postExportApplied.length} post-export records), ${pending.length} explicitly approved pending migrations, ${reviewedFiles.size} reviewed feature records; 15 deferred feature drafts and the superseded test draft remain preserved. Live apply is not tested.`);
+console.log(`PASS: ${applied.size} applied migration versions (captured export plus ${postExportApplied.length} post-export records), ${pending.length} listed pending migrations (production approval remains separate), ${reviewedFiles.size} reviewed feature records; 15 deferred feature drafts and the superseded test draft remain preserved. Live apply is not tested.`);

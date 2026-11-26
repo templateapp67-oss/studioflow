@@ -1,3 +1,4 @@
+import { AuthMfaChallenge } from './components/AuthMfa';
 import './app.css';
 import {KeshKraftEditor,type MensWorkspace} from './components/keshkraft/KeshKraftEditor';
 import {MENS_LOYALTY,MENS_STAFF} from './lib/keshkraft';
@@ -179,7 +180,7 @@ function Application() {
  const pricingPlanId=pricingParams.get('pricing_plan');
  const pricingBilling=pricingParams.get('billing_interval');
  const onRecovery=useCallback(()=>{try{sessionStorage.setItem('studioflow_recovery','1');}catch{}setRecovery(true);},[]);
- const {session,ready:authReady,error:authError}=useAuthSession(onRecovery);
+ const {session,ready:authReady,error:authError,mfa,retryMfa}=useAuthSession(onRecovery);
  const pricingRedirectTarget=session&&!recovery&&isPricingPlanId(pricingPlanId)?pricingResumePath({planId:pricingPlanId,billingInterval:isBillingInterval(pricingBilling)?pricingBilling:'annual'}):'';
  // Google owner sign-in returning to a plain platform /login, /sign-in or /sign-up callback
  // replaces history with `/` once the OAuth intent is consumed. Storefront subdomains (where `/`
@@ -345,6 +346,7 @@ function Application() {
   if(active){setTemplates(catalogue.templates.some(t=>t.id==='mens_hair_studio')?catalogue.templates:[...catalogue.templates,CATEGORY_TEMPLATES.mens_hair_studio]);setAccount({...bootstrap.account,identity:identity.error?null:identity.data});try{localStorage.removeItem('studioflow_pending_ref');}catch{}}
  })().catch(e=>{if(active)setError(e.message||'Could not load your account');});return()=>{active=false;};
  },[session?.user?.id,retry,slug,customer,customerApp,recovery,skipReferral,ownerSlug,publicHomeRoute,oauthIntentPending,pricingRedirectTarget,ownerSignInRedirectTarget,googleOAuthStatus]);
+  if (mfa) return <AuthMfaChallenge error={mfa.error} retry={retryMfa} />;
  if(oauthIntentPending||pricingRedirectTarget||ownerSignInRedirectTarget)return <Loading text="Continuing to your destination…" />;
  if(googleOAuthStatus==='incomplete'&&googleProfileGate){
   // The session exists but Google did not carry every mandatory detail back.
@@ -675,6 +677,7 @@ export function Workspace({session,account,templates}:{key?:React.Key;session:Se
       Refresh bookings
     </button>
     <BusinessNotificationLink />
+    <a className="secondary-action" href="/login?security=1">Account security</a>
     <a
       href="/?recovery=1"
       className="px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg font-medium transition-colors"

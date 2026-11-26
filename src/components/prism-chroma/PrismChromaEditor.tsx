@@ -1,3 +1,4 @@
+import { patchOwnerCopy } from '../../lib/copyProvenance';
 import React, { useState } from 'react';
 import { HelpCircle, Images, ListChecks, MapPin, MessageSquareQuote, Palette, Plus, RotateCcw, Sparkles, Trash2 } from 'lucide-react';
 import type {
@@ -116,7 +117,7 @@ export function PrismChromaEditor({
           {showBrandIdentityFields && (
             <>
               <TextField label="Salon name" value={profile.businessName} onChange={(v) => setProfile((p) => ({ ...p, businessName: v }))} />
-              <TextField label="Tagline" value={profile.tagline} onChange={(v) => setProfile((p) => ({ ...p, tagline: v }))} />
+              <TextField label="Tagline" value={profile.tagline} onChange={(v) => setProfile((p) => patchOwnerCopy(p, { tagline: v }))} />
               <TextField label="Phone" value={profile.phone} onChange={(v) => setProfile((p) => ({ ...p, phone: v }))} />
               <TextField label="City" value={profile.city} onChange={(v) => setProfile((p) => ({ ...p, city: v }))} />
             </>

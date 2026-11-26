@@ -1,6 +1,7 @@
 // NEXORA per-salon WhatsApp connection service.
 // The browser submits Meta's short-lived code and session identifiers.
 // The code exchange, business access token and app secret stay server-side.
+import { protectSession, protectedResponse } from '../_shared/sessionProtection.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.117.3';
 
 const ALLOWED_ORIGINS = new Set([
@@ -145,6 +146,8 @@ Deno.serve(async (req: Request) => {
     if (authError || !authData.user || authData.user.is_anonymous) {
       return respond({ error: 'Your owner login has expired. Sign in again.' }, 401);
     }
+    const protection = await protectSession(admin, bearer, authData.user, 'nexora-whatsapp-connect', 100);
+    if (protection) return protectedResponse(respond({ error: protection.error }, protection.status), protection);
     const ownerId = authData.user.id;
     const { data: account, error: accountError } = await admin
       .from('studioflow_accounts').select('user_id').eq('user_id', ownerId).maybeSingle();

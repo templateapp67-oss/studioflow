@@ -27,6 +27,7 @@
 // automatically. No credential is ever shipped to the browser.
 // =============================================================================
 import { createClient } from 'npm:@supabase/supabase-js@2.117.3';
+import { parseLeadBudget, type LeadBudget } from './landingLeadRateLimit.ts';
 
 const ALLOWED_ORIGINS = new Set([
   'https://nexorasalon.online',
@@ -61,6 +62,7 @@ const corsHeaders = (origin: string | null) => {
   const headers: Record<string, string> = {
     'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Expose-Headers': 'Retry-After',
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': 'no-store',
     // The response carries a per-request origin, so a shared cache must never
@@ -71,8 +73,8 @@ const corsHeaders = (origin: string | null) => {
   return headers;
 };
 
-const json = (payload: unknown, status: number, origin: string | null) =>
-  new Response(JSON.stringify(payload), { status, headers: corsHeaders(origin) });
+const json = (payload: unknown, status: number, origin: string | null, retryAfterSeconds?: number) =>
+  new Response(JSON.stringify(payload), { status, headers: { ...corsHeaders(origin), ...(retryAfterSeconds ? { 'Retry-After': String(retryAfterSeconds) } : {}) } });
 
 const SUCCESS = { ok: true, message: 'Your request has been received.' };
 const INVALID = { ok: false, message: 'Please check the required fields and try again.' };
@@ -121,12 +123,10 @@ const sanitiseUtm = (value: string): string => value.replace(/[^\w.\-: ]/g, '').
 /* --------------------------------------------------------------------------
  * Trusted server-to-server calls
  * ------------------------------------------------------------------------
- * The first-party Nexora server posts to this function as well. Those calls
- * carry the server-side credential and are governed by the server's own
- * per-visitor rate limit, so they are not counted against the public
- * per-IP bucket (every public request would otherwise share one server IP).
- * An untrusted caller can neither skip the limit nor reach the database: the
- * insert always uses the function's own privileged client.
+ * The first-party Nexora server uses a server-side credential, so those calls
+ * skip the Edge public per-IP bucket; the first-party server claims the same
+ * shared database budget before forwarding. See release QA notes for rollout.
+ * Only the function itself uses the privileged client to insert a lead.
  * ------------------------------------------------------------------------ */
 const isTrustedServerCall = async (request: Request): Promise<boolean> => {
   const expected = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SUPABASE_SECRET_KEY');
@@ -179,17 +179,20 @@ interface LeadService {
   };
 }
 
-const isRateLimited = async (service: LeadService, bucketKey: string): Promise<boolean> => {
-  const { data, error } = await service.rpc('register_landing_lead_attempt', {
-    p_bucket_key: bucketKey,
-    p_window_seconds: RATE_LIMIT_WINDOW_SECONDS,
-    p_max_attempts: RATE_LIMIT_MAX,
-  });
-  if (error || typeof data !== 'number') {
-    // Fail closed for the caller: if the limiter cannot be reached, refuse the
-    // request rather than leaving the endpoint unprotected.
-    console.error('submit-landing-lead: rate limiter unavailable', error?.code ?? 'unknown');
-    return true;
+const checkRateLimit = async (service: LeadService, bucketKey: string): Promise<LeadBudget | null> => {
+  let budget: LeadBudget | null;
+  try {
+    const result = await service.rpc('claim_landing_lead_rate_limit', {
+      p_bucket_key: bucketKey,
+      p_window_seconds: RATE_LIMIT_WINDOW_SECONDS,
+      p_max_attempts: RATE_LIMIT_MAX,
+    });
+    budget = result.error ? null : parseLeadBudget(result.data, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_SECONDS);
+    if (!budget) throw new Error('limiter unavailable');
+  } catch {
+    // Upstream errors can contain PII or credentials; emit only a static event.
+    console.error('submit-landing-lead: rate limiter unavailable');
+    return null;
   }
   pruneCounter = (pruneCounter + 1) % 25;
   if (pruneCounter === 0) {
@@ -199,7 +202,7 @@ const isRateLimited = async (service: LeadService, bucketKey: string): Promise<b
       // Housekeeping only — a failure here must never fail the request.
     }
   }
-  return data > RATE_LIMIT_MAX;
+  return budget;
 };
 
 /* --------------------------------------------------------------------------
@@ -271,6 +274,11 @@ Deno.serve(async (request: Request) => {
     return json(SUCCESS, 200, origin);
   }
 
+  // Untrusted client time is only a low-friction heuristic; legacy callers
+  // without an elapsed value remain compatible during rollout.
+  const elapsed = body.form_elapsed_ms;
+  if (elapsed !== undefined && (typeof elapsed !== 'number' || !Number.isSafeInteger(elapsed) || elapsed < 2000)) return json({ ok: false, message: 'Please wait a moment, then try again.' }, 400, origin);
+
   const url = Deno.env.get('SUPABASE_URL');
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SUPABASE_SECRET_KEY');
   if (!url || !serviceKey) {
@@ -282,9 +290,9 @@ Deno.serve(async (request: Request) => {
   const trustedServerCall = await isTrustedServerCall(request);
   if (!trustedServerCall) {
     const bucketKey = await hashKey(clientKey(request));
-    if (await isRateLimited(service, bucketKey)) {
-      return json({ ok: false, message: 'Too many requests. Please try again later.' }, 429, origin);
-    }
+    const budget = await checkRateLimit(service, bucketKey);
+    if (budget && !budget.allowed) return json({ ok: false, message: 'Too many requests. Please try again later.' }, 429, origin, budget.retryAfterSeconds);
+    if (!budget) return json({ ok: false, message: 'The request service is temporarily unavailable. Please try again later.' }, 503, origin);
   }
 
   const turnstileToken = asString(body.turnstile_token, 2048);
@@ -303,7 +311,9 @@ Deno.serve(async (request: Request) => {
   if (fullName.length < 2) return json(INVALID, 400, origin);
 
   const email = asString(body.email, 254).toLowerCase();
-  const phone = normalisePhone(asString(body.phone, 32));
+  const rawPhone = asString(body.phone, 32);
+  const phone = normalisePhone(rawPhone);
+  if (rawPhone && !phone) return json(INVALID, 400, origin);
   if (!email && !phone) return json(INVALID, 400, origin);
   if (email && !isEmail(email)) return json(INVALID, 400, origin);
   if (asString(body.email, 254) && !email) return json(INVALID, 400, origin);
@@ -353,14 +363,14 @@ Deno.serve(async (request: Request) => {
         return json(trustedServerCall ? { ...SUCCESS, idempotent: true } : SUCCESS, 200, origin);
       }
       // Operational log only — never log the submitted personal data.
-      console.error('submit-landing-lead: insert failed', { code: error.code, message: error.message });
+      console.error('submit-landing-lead: insert failed');
       return json({ ok: false, message: 'We could not record your request. Please try again later.' }, 500, origin);
     }
     // The lead id is only handed to a trusted first-party server call so it can
     // record the CRM delivery state. Public callers never receive identifiers.
     return json(trustedServerCall && data?.id ? { ...SUCCESS, leadId: data.id } : SUCCESS, 200, origin);
-  } catch (error) {
-    console.error('submit-landing-lead: unexpected failure', error instanceof Error ? error.message : 'unknown error');
+  } catch {
+    console.error('submit-landing-lead: unexpected failure');
     return json({ ok: false, message: 'We could not record your request. Please try again later.' }, 500, origin);
   }
 });

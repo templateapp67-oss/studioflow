@@ -94,8 +94,9 @@ export const NEXORA_ECOSYSTEM_SEO: Readonly<Record<NexoraEcosystemPath, NexoraEc
     label: 'Partner Rewards & Recognition',
     title: 'NEXORA Partner Rewards | Top Salon Jaipur',
     description: 'Explore NEXORA salon partner rewards, a fixed 90-day Top Salon Jaipur competition, approved participant report cards and owner-controlled public salon profiles.',
-    ogImagePath: '/nexora-jaipur-awards/top-salon-jaipur-awards.svg',
-    ogImageAlt: 'NEXORA Top Salon Jaipur Awards and Partner Rewards',
+    // Use the raster social card: many social crawlers do not support SVG images.
+    ogImagePath: '/nexora-homepage-og.jpg',
+    ogImageAlt: 'NEXORA SALONOS salon management software',
     themeColor: '#24172d',
     contentMarker: 'Your Growth Deserves',
   },

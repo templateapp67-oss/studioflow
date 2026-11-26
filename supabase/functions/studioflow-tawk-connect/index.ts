@@ -1,3 +1,4 @@
+import { protectSession, protectedResponse } from '../_shared/sessionProtection.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.117.3';
 
 const PUBLISHED_WEBSITE_SLUG = /^[a-z0-9][a-z0-9-]{2,62}$/;
@@ -40,6 +41,8 @@ Deno.serve(async (req: Request) => {
     const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data: auth, error: authError } = await admin.auth.getUser(token);
     if (authError || !auth.user || auth.user.is_anonymous) return response({ error: 'Your owner login has expired. Sign in again.' }, 401, origin);
+    const protection = await protectSession(admin, token, auth.user, 'studioflow-tawk-connect', 40);
+    if (protection) return protectedResponse(response({ error: protection.error }, protection.status, origin), protection);
     const ownerId = auth.user.id;
     const { data: account, error: accountError } = await admin.from('studioflow_accounts')
       .select('user_id').eq('user_id', ownerId).maybeSingle();

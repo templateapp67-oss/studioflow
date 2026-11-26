@@ -271,8 +271,8 @@ const expression=(job)=>{
 };
 // GitHub's expressions here deliberately use the JS-compatible comparison
 // subset. Exercise the actual folded job conditions, not a separate model.
-const run=(job,event,mode,changed,migrate='success',ci='success',changes='success')=>{
-  const github={ref:'refs/heads/main',event_name:event};
+const run=(job,event,mode,changed,migrate='success',ci='success',changes='success',ref='refs/heads/main')=>{
+  const github={ref,event_name:event};
   const inputs={release_mode:mode};
   const needs={ci:{result:ci},changes:{result:changes,outputs:{migrations_changed:String(changed)}},migrate:{result:migrate}};
   return new Function('github','inputs','needs','always',`return (${expression(job)});`)(github,inputs,needs,()=>true);
@@ -285,6 +285,11 @@ assert(!run('deploy','workflow_dispatch','apply_and_deploy',false,'failure'));
 assert(!run('deploy','workflow_dispatch','apply_and_deploy',false,'success','failure'));
 assert(!run('migrate','workflow_dispatch','deploy_only',false));
 assert(run('deploy','workflow_dispatch','deploy_only',false,'skipped'));
+assert(!run('deploy','workflow_dispatch','deploy_only',false,'skipped','failure'), 'deploy_only must require passing CI');
+assert(!run('deploy','workflow_dispatch','deploy_only',false,'skipped','success','failure'), 'deploy_only must require successful change detection');
+assert(!run('deploy','workflow_dispatch','deploy_only',false,'failure'), 'deploy_only must not bypass a failed migration job');
+assert(!run('deploy','workflow_dispatch','deploy_only',false,'skipped','success','success','refs/heads/arena/test'), 'manual release must never deploy a non-main ref');
+assert(!run('migrate','workflow_dispatch','apply_and_deploy',false,'success','success','success','refs/heads/arena/test'), 'manual apply must never run on a non-main ref');
 assert(!run('migrate','workflow_dispatch','invalid',false));
 assert(!run('deploy','workflow_dispatch','invalid',false,'skipped'));
 assert(run('migrate','push',undefined,true));
@@ -299,7 +304,32 @@ assert(run('migrate','push',undefined,false));
 assert(run('deploy','push',undefined,false,'success'));
 assert(!run('deploy','push',undefined,false,'failure'));
 
-for(const label of ['Apply production migrations','Deploy reviewed WhatsApp Edge Functions']){
+// Run the actual change-detection shell with a mocked git command. A failed
+// diff must fail the changes job, not masquerade as a code-only release.
+if(bashRuntime.bin){
+  const detectStep=workflow.split('- name: Detect changed migration files')[1].split('\n  migrate:')[0];
+  const detectShell=detectStep.split('        run: |\n')[1].split('\n').map(line=>line.replace(/^          /,'')).join('\n');
+  const tempDir=mkdtempSync(join(tmpdir(),'studioflow-detect-'));
+  try{
+    const outputPath=join(tempDir,'output');
+    for(const [label,gitBody,expectedStatus,expectedOutput] of [
+      ['unchanged', 'return 0', 0, 'migrations_changed=false'],
+      ['changed', "printf '%s\\n' supabase/migrations/example.sql", 0, 'migrations_changed=true'],
+      ['git failure', 'return 128', 128, ''],
+    ]){
+      writeFileSync(outputPath,'');
+      const result=runBash(bashRuntime,['-euo','pipefail','-c',`git() { ${gitBody}; }\n${detectShell}`],
+        {BEFORE_SHA:'before',GITHUB_SHA:'after',GITHUB_OUTPUT:bashRuntime.toBashPath(outputPath)},
+        {wslEnvKeys:['BEFORE_SHA','GITHUB_SHA','GITHUB_OUTPUT']});
+      const output=readFileSync(outputPath,'utf8');
+      assert.equal(result.status,expectedStatus,`${label}: ${formatSpawnFailure(result)}`);
+      if(expectedOutput) assert(output.includes(expectedOutput),`${label} must output ${expectedOutput}`);
+      else assert(!output.includes('migrations_changed=false'), 'git failure must never report a code-only change');
+    }
+  } finally { rmSync(tempDir,{recursive:true,force:true}); }
+}
+
+for(const label of ['Apply production migrations','Deploy reviewed Edge Functions']){
   const step=workflow.split('- name: '+label)[1].split('\n      - ')[0].split('\n  deploy:')[0];
   assert(step.includes("if: github.event_name == 'workflow_dispatch' && inputs.release_mode == 'apply_and_deploy'"));
 }
@@ -344,12 +374,13 @@ assert(credStep.includes('SUPABASE_PROJECT_REF_SECRET: ${{ secrets.SUPABASE_PROJ
 
 const credShell=credStep.split('        run: |\n')[1].split('\n').map(line=>line.replace(/^          /,'')).join('\n');
 
+assert.doesNotMatch(migrateJob, /\bsupabase\s+link\b/, 'Hosted commands use explicit project refs from a clean checkout');
 const hostedSteps=[
-  'Link production Supabase project',
   'Verify local and remote Supabase migration history',
+  'Preflight required private StudioFlow schemas',
   'Migration dry-run (remote production database)',
   'Apply production migrations (manual apply_and_deploy only)',
-  'Deploy reviewed WhatsApp Edge Functions (manual apply_and_deploy only)',
+  'Deploy reviewed Edge Functions (manual apply_and_deploy only)',
 ];
 for(const stepName of hostedSteps){
   assert(migrateJob.indexOf('Validate Supabase migration credentials')<migrateJob.indexOf(stepName),
@@ -477,6 +508,9 @@ fs.appendFileSync(process.env.MOCK_SUPABASE_LOG, JSON.stringify({
   argv,
   envRef: process.env.SUPABASE_PROJECT_REF,
 }) + '\\n');
+if(argv[0] === 'db' && argv[1] === 'query'){
+  process.stdout.write('schema_preflight\\nPASS: required private schemas exist\\n');
+}
 if(argv[0] === 'migration' && argv[1] === 'list'){
   const versions = fs.readdirSync('supabase/migrations')
     .filter(name => /^\\d{14}_.+\\.sql$/.test(name))
@@ -572,15 +606,20 @@ exec "$STUDIOFLOW_NODE_BIN" "$@"
       assert.equal(call.envRef,EXPECTED_REF,'propagated SUPABASE_PROJECT_REF env has zero whitespace');
     }
 
-    assert.deepEqual(calls[0].argv,['link','--project-ref',EXPECTED_REF]);
-    assert.deepEqual(calls[1].argv,['migration','list',`--remote=${EXPECTED_REF}`,'--password',PASS_SENTINEL]);
+    assert.deepEqual(calls[0].argv,['migration','list',`--remote=${EXPECTED_REF}`,'--password',PASS_SENTINEL]);
+    assert.deepEqual(calls[1].argv.slice(0,2),['db','query']);
+    assert.deepEqual(calls[1].argv.slice(3),[`--remote=${EXPECTED_REF}`,'--read-only','--output=csv']);
     assert.deepEqual(calls[2].argv,['db','push','--dry-run',`--remote=${EXPECTED_REF}`,'--password',PASS_SENTINEL]);
     assert.deepEqual(calls[3].argv,['db','push',`--remote=${EXPECTED_REF}`,'--password',PASS_SENTINEL,'--yes']);
     assert.deepEqual(calls[4].argv,[
       'functions','deploy',
+      'submit-landing-lead',
       'nexora-whatsapp-connect','nexora-whatsapp-webhook',
       'studioflow-payments','studioflow-whatsapp-booking','studioflow-booking-emails',
-      `--remote=${EXPECTED_REF}`,'--use-api',
+      'nexora-mobile-qr','studioflow-service-ai-images','studioflow-campaign-whatsapp',
+      'studioflow-welcome-whatsapp','studioflow-tawk-connect',
+      'studioflow-map-locations','iron-ink-public','snapshot-accounts',
+      `--remote=${EXPECTED_REF}`,'--use-api','--yes',
     ]);
   } finally {
     rmSync(tempRoot,{recursive:true,force:true});
@@ -638,7 +677,7 @@ console.log('PASS: one release dropdown; all main pushes run remote migration-hi
 // contract -- exactly how studioflow-booking-emails would have shipped with a
 // gateway JWT check that breaks its CORS preflight and GET status probe.
 const supabaseConfig = readFileSync('supabase/config.toml', 'utf8').replace(/\r\n?/g, '\n');
-const deployStepBlock = getMigrateStep('Deploy reviewed WhatsApp Edge Functions (manual apply_and_deploy only)');
+const deployStepBlock = getMigrateStep('Deploy reviewed Edge Functions (manual apply_and_deploy only)');
 const deployRun = deployStepBlock.split('        run: >-\n')[1];
 assert(deployRun, 'Edge Function deploy step must use a folded run block');
 const deployedFunctions = deployRun
@@ -646,21 +685,24 @@ const deployedFunctions = deployRun
   .map((line) => line.trim())
   .filter((line) => /^[a-z0-9-]+(\s+[a-z0-9-]+)*$/.test(line) && !line.startsWith('supabase'))
   .flatMap((line) => line.split(/\s+/));
-assert(deployedFunctions.length >= 5, `expected the reviewed function set, parsed ${deployedFunctions.length}`);
+const trackedFunctions = readdirSync('supabase/functions', { withFileTypes: true })
+  .filter(entry => entry.isDirectory() && existsSync(join('supabase/functions', entry.name, 'index.ts')))
+  .map(entry => entry.name);
+assert.deepEqual([...deployedFunctions].sort(), trackedFunctions.sort(),
+  'Production must deploy every tracked Edge Function exactly once');
 for (const name of deployedFunctions) {
-  const block = supabaseConfig.split(`[functions.${name}]`)[1];
-  assert(block, `Production deploys ${name} but supabase/config.toml has no [functions.${name}] entry; the CLI would deploy it with the gateway default verify_jwt = true`);
-  const verifyJwt = block.split('\n').map((line) => line.trim()).find((line) => line.startsWith('verify_jwt'));
-  assert(verifyJwt, `[functions.${name}] must state verify_jwt explicitly`);
+  const block = supabaseConfig.split(`[functions.${name}]`)[1]?.split(/^\s*\[/m)[0];
+  assert.match(block ?? '', /^\s*verify_jwt\s*=\s*(?:true|false)\s*$/m,
+    `[functions.${name}] must state verify_jwt explicitly in its own config block`);
 }
 // The container's last entry must not bleed into the next function.
 assert(!/[^#]\n\[functions\./.test(supabaseConfig.slice(0, supabaseConfig.indexOf('[functions.') + 1)),
   'config.toml must start function blocks at column 0');
 
-// These two are public by design and must never gain a gateway JWT check.
-for (const name of ['nexora-whatsapp-webhook', 'studioflow-whatsapp-booking']) {
+// These routes authenticate in their handlers or provide public, scoped access.
+for (const name of ['nexora-whatsapp-webhook', 'studioflow-whatsapp-booking', 'submit-landing-lead', 'studioflow-map-locations', 'iron-ink-public', 'snapshot-accounts']) {
   const block = supabaseConfig.split(`[functions.${name}]`)[1].split('[')[0];
-  assert(block.includes('verify_jwt = false'), `${name} must keep verify_jwt = false (provider signature / dedicated API key in handler)`);
+  assert(block.includes('verify_jwt = false'), `${name} must keep verify_jwt = false (the handler owns the access check)`);
 }
 // The owner connect endpoint must keep gateway JWT verification.
 assert(supabaseConfig.split('[functions.nexora-whatsapp-connect]')[1].split('[')[0].includes('verify_jwt = true'),

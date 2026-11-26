@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { submitLandingLead } from '../src/lib/nexoraLandingData';
 import {
   createLeadIdempotencyKey,
+  LeadSubmissionError, isLeadTooFast, shouldFallbackLead,
   isLeadSubmissionSuccess,
   postLeadToServerRoute,
   readLeadSubmissionResponse,
@@ -117,11 +119,27 @@ const second = createLeadIdempotencyKey();
 assert.ok(first.length >= 16, 'the idempotency key is not empty');
 assert.notEqual(first, second, 'each submission gets its own idempotency key');
 
+assert.equal(isLeadTooFast(1000, 2999), true); assert.equal(isLeadTooFast(1000, 3000), false);
+assert.equal(shouldFallbackLead(new LeadSubmissionError('limited', 429)), false);
+assert.equal(shouldFallbackLead(new LeadSubmissionError('invalid', 400)), false);
+assert.equal(shouldFallbackLead(new LeadSubmissionError('unavailable', 503)), true);
+assert.equal(shouldFallbackLead(new Error('network')), true);
+
+// Exercise the actual Supabase invocation adapter, not just the decision helper.
+const priorFetchForEdge = globalThis.fetch;
+globalThis.fetch = async () => new Response('{}', { status: 429, headers: { 'content-type': 'application/json' } });
+try {
+  await assert.rejects(() => submitLandingLead({ lead_type: 'demo_request', full_name: 'Test', consent_given: true }),
+    error => error instanceof LeadSubmissionError && error.status === 429 && !shouldFallbackLead(error) && /too many/i.test(error.message));
+} finally { globalThis.fetch = priorFetchForEdge; }
+
 /* 13. The dialog uses the shared contract and never the loose fallback. */
 const demoProvider = readFileSync('src/components/nexora-pricing/DemoProvider.tsx', 'utf8');
 assert.ok(demoProvider.includes('postLeadToServerRoute'), 'the dialog posts through the validated contract');
 assert.ok(!demoProvider.includes("response.json().catch(() => ({}))"), 'the dialog no longer accepts a parsed-empty body');
 assert.ok(demoProvider.includes('idempotency_key: idempotencyKey'), 'the dialog sends an idempotency key');
+assert.ok(demoProvider.includes('form_elapsed_ms: Math.max(0, Date.now() - formStartedAt.current)') && demoProvider.includes('formElapsedMs: Math.max(0, Date.now() - formStartedAt.current)'), 'both submission paths receive the same timer');
+assert.ok(demoProvider.includes('name="website"') && demoProvider.includes('aria-hidden="true"') && demoProvider.includes('tabIndex={-1}'), 'honeypot is named and excluded from the accessible tab order');
 assert.ok(demoProvider.includes('createLeadIdempotencyKey'), 'the dialog creates an idempotency key');
 
 console.log(

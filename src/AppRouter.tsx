@@ -17,6 +17,8 @@ import { StaffLoginPage } from './components/staff/StaffLoginPage';
 import { StaffWorkspacePage } from './components/staff/StaffWorkspacePage';
 import { resolveSiteSlug } from './lib/resolveSite';
 
+const AccountSecurityPage = lazy(() => import('./components/AccountSecurityPage').then(module => ({ default: module.AccountSecurityPage })));
+
 const FullApplication = lazy(() =>
   loadScreen(() => import('./App').then((module) => ({ default: module.default }))),
 );
@@ -93,6 +95,10 @@ export function AppRouter() {
 
   const showApplication = typeof window !== 'undefined' && requiresFullApplication(window.location);
   const publicPath = typeof window !== 'undefined' ? window.location.pathname.replace(/\/+$/, '') : '';
+
+  if (publicPath === '/login' && new URLSearchParams(window.location.search).get('security') === '1') {
+    return <Suspense fallback={<p role="status">Loading account security…</p>}><AccountSecurityPage /></Suspense>;
+  }
 
   // Staff entry points are rendered here, read-only and independent from the
   // owner bootstrap: no account load, no workspace fetch, no draft save.

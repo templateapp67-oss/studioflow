@@ -142,6 +142,12 @@ assert.ok(!hasText(ui, 'Accept invite & create login'), 'no staff accept form wh
 assert.equal(rpcCalls.filter((call) => call.name === 'studioflow_staff_invite_accept').length, acceptCallsBefore,
   'the invite is never accepted into the owner auth.uid()');
 await act(async () => ui.unmount());
+stubState.mfaRequired = true;
+ui = await render(<StaffInviteAcceptPage token={TOKEN} />);
+assert.ok(hasText(ui, 'Two-step verification'), 'enrolled staff must complete MFA before accepting');
+assert.equal(rpcCalls.filter(call => call.name === 'studioflow_staff_invite_accept').length, acceptCallsBefore);
+await act(async () => ui.unmount());
+stubState.mfaRequired = false;
 stubState.ownerAccount = null;
 
 // 7. Branch closed between invite and accept: refuse instead of granting an

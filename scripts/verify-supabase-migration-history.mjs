@@ -14,11 +14,11 @@ const appliedVersions=new Set([
   ...history.applied_versions,
   ...(history.post_export_applied_versions||[]).map(record=>record.version)
 ]);
-const approvedPending=(history.release_pending_migrations||[])
+const listedPending=(history.release_pending_migrations||[])
   .map(record=>record.file.split('_',1)[0]).sort();
 const localNotApplied=[...localSet].filter(version=>!appliedVersions.has(version)).sort();
 const appliedWithoutSource=[...appliedVersions].filter(version=>!localSet.has(version)).sort();
-assert.deepEqual(localNotApplied,approvedPending,
+assert.deepEqual(localNotApplied,listedPending,
   'Local migration files differ from the reviewed applied/pending migration ledger.');
 assert.deepEqual(appliedWithoutSource,[],
   'Migration ledger contains applied versions without local SQL source.');
@@ -72,11 +72,11 @@ const remoteSet=new Set(cliRemote);
 const remoteOnly=cliRemote.filter(version=>!localSet.has(version));
 const localOnly=uniqueSorted(localVersions.filter(version=>!remoteSet.has(version)));
 
-assert.deepEqual(localOnly,approvedPending,
+assert.deepEqual(localOnly,listedPending,
   [
     'Local/remote migration history is not aligned with the reviewed release plan.',
     'Local-only (pending) versions: '+(localOnly.join(', ')||'(none)'),
-    'Explicitly approved pending versions: '+(approvedPending.join(', ')||'(none)')
+    'Listed pending versions (not evidence of production approval): '+(listedPending.join(', ')||'(none)')
   ].join('\n'));
 
 assert.deepEqual(remoteOnly,[],
@@ -97,5 +97,5 @@ for(const record of postExport){
 
 console.log(
   'PASS: '+localSet.size+' local migration sources match '+remoteSet.size+
-  ' remote applied versions; '+localOnly.length+' approved pending migrations.'
+  ' remote applied versions; '+localOnly.length+' listed pending migrations (production approval remains separate).'
 );

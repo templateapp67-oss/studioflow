@@ -151,12 +151,14 @@ export function hasOwnerCustomNailPhoto(profile: SalonProfile): boolean {
 
 export function hasOwnerCustomNailTagline(profile: SalonProfile): boolean {
   const tagline = profile.tagline?.trim();
+  if (tagline && profile.taglineEditedByOwner === true) return true;
   if (!tagline || isLegacyNailStudioStockTagline(tagline)) return false;
   return !Object.values(CATEGORY_TEMPLATES).some((t) => (t.tagline || '').trim() === tagline);
 }
 
 export function hasOwnerCustomNailAbout(profile: SalonProfile): boolean {
   const about = profile.about?.trim();
+  if (about && profile.aboutEditedByOwner === true) return true;
   if (!about) return false;
   return !Object.values(CATEGORY_TEMPLATES).some(
     (t) => t.id !== 'nail_studio' && (t.about || '').trim() === about,

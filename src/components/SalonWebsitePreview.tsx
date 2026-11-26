@@ -1,3 +1,4 @@
+import { patchOwnerCopy } from '../lib/copyProvenance';
 import {photoGallery,type PhotoCategory} from '../lib/photoGallery';
 import {updateInlineService} from '../lib/serviceCatalogue';
 
@@ -1182,7 +1183,7 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
                 >
                   <InlineEditable
                     value={activeProfile.tagline}
-                    onSave={(val) => setProfile((p) => ({ ...p, tagline: String(val) }))}
+                    onSave={(val) => setProfile((p) => patchOwnerCopy(p, { tagline: String(val) }))}
                     isEditingActive={isEditMode}
                     label="Hero Tagline"
                     tag="span"
@@ -1199,7 +1200,7 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
                 >
                   <InlineEditable
                     value={activeProfile.about}
-                    onSave={(val) => setProfile((p) => ({ ...p, about: String(val) }))}
+                    onSave={(val) => setProfile((p) => patchOwnerCopy(p, { about: String(val) }))}
                     isEditingActive={isEditMode}
                     type="textarea"
                     label="Hero Story"
