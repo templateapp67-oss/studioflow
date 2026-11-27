@@ -40,13 +40,14 @@ requires('base-uri', ["'self'"]);
 requires('object-src', ["'none'"]);
 requires('frame-ancestors', ["'none'"]);
 requires('form-action', ["'self'", 'https://*.supabase.co', 'https://*.razorpay.com']);
-requires('script-src', ["'self'", 'https://checkout.razorpay.com', 'https://unpkg.com', 'https://embed.tawk.to']);
-forbids('script-src', ["'unsafe-inline'", "'unsafe-eval'", '*']);
+requires('script-src', ["'self'", 'https://checkout.razorpay.com', 'https://unpkg.com', 'https://embed.tawk.to', 'https://cdn.jsdelivr.net/emojione/2.2.7/lib/js/emojione.min.js']);
+forbids('script-src', ["'unsafe-inline'", "'unsafe-eval'", '*', 'https:', 'https://cdn.jsdelivr.net']);
 requires('script-src-attr', ["'none'"]);
 requires('style-src', ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://unpkg.com', 'https://embed.tawk.to/_s/v4/app/']);
 forbids('style-src', ['https:', '*', 'https://*.tawk.to', 'https://embed.tawk.to']);
 requires('style-src-attr', ["'unsafe-inline'"]);
-requires('font-src', ["'self'", 'data:', 'https://fonts.gstatic.com', 'https://unpkg.com']);
+requires('font-src', ["'self'", 'data:', 'https://fonts.gstatic.com', 'https://unpkg.com', 'https://embed.tawk.to/_s/v4/assets/fonts/']);
+forbids('font-src', ['https:', '*', 'https://*.tawk.to', 'https://embed.tawk.to']);
 requires('connect-src', [
   "'self'", 'https://*.supabase.co', 'wss://*.supabase.co', 'https://*.razorpay.com',
   'https://nominatim.openstreetmap.org', 'https://images.unsplash.com', 'https://*.tawk.to', 'wss://*.tawk.to',
