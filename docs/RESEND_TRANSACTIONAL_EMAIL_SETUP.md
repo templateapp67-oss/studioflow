@@ -4,11 +4,11 @@ This feature is implemented on `feat/nexora-resend-transactional-email`. It is d
 
 ## target Supabase project
 
-Use the separate target Supabase project only:
+Use the existing NEXORA application backend:
 
 - Project ref: `zilwgiuiygqqardzutxi`
 - Edge Function base: `https://zilwgiuiygqqardzutxi.supabase.co/functions/v1`
-- Application: build/test against target Supabase URL and QA publishable key. Do not point test browser builds at production.
+- Application project URL: https://zilwgiuiygqqardzutxi.supabase.co. The existing application already uses this project's publishable key. Do not substitute the separate NEXORA-QA project or expose service-role credentials in browser builds.
 
 ## 1. Sending domain DNS
 
@@ -66,7 +66,7 @@ In Supabase Dashboard → **NEW FINAL TEMLETE APP** → Project Settings → Edg
 
 Do not paste API keys or signing secrets into this chat, GitHub, SQL, frontend `VITE_*` variables, or screenshots. Add them directly in the Supabase Dashboard.
 
-Supabase normally provides `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` to Edge Functions. Keep the service-role key server-only. Existing QA Razorpay test credentials must also remain test-mode; do not copy live payment credentials into QA.
+Supabase normally provides `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` to Edge Functions. Keep the service-role key server-only. Do not replace, rotate, or copy the existing production Razorpay credentials. The payment function update must retain the current live Razorpay configuration; a separate test environment must use its own test credentials.
 
 Two more secrets are added only after their respective hooks are created:
 
@@ -92,9 +92,9 @@ Generate the hook secret in Supabase, then save that exact value as `SEND_EMAIL_
 
 ## 5. Resend webhook on the target project
 
-After `resend-webhook` has been deployed, create a **separate new webhook** in Resend. Do not edit or delete the existing production/root endpoint yet.
+After `resend-webhook` has been deployed, create a **separate new webhook** in Resend for the new transactional-email handler. Leave the existing endpoint unchanged during rollout.
 
-QA endpoint:
+Webhook endpoint:
 
 `https://zilwgiuiygqqardzutxi.supabase.co/functions/v1/resend-webhook`
 
@@ -105,7 +105,20 @@ Subscribe to exactly:
 - `email.failed`
 - `email.complained`
 
-Copy the new new webhook's signing secret into the target Supabase secret `RESEND_WEBHOOK_SECRET`. The existing production webhook currently points to `https://nexorasalon.online/` and subscribes only to `email.delivered`; leave it unchanged until QA is proven.
+Copy the new webhook's signing secret into the target Supabase secret `RESEND_WEBHOOK_SECRET`. The existing production webhook currently points to `https://nexorasalon.online/` and subscribes only to `email.delivered`; leave it unchanged until QA is proven.
+
+## Deployment safety for the existing live project
+
+The target project is active and already serves the application. It currently has active functions named `studioflow-booking-emails` (version 7) and `studioflow-payments` (version 91).
+
+Deploying a function with either existing name replaces the live version immediately. Therefore:
+
+- Do not deploy either modified function until the owner explicitly approves the production cutover.
+- Deploy the new uniquely named functions only after their secrets and SQL objects are ready, and only with approval.
+- Preserve the existing Razorpay credentials, WhatsApp integrations, payment webhooks, booking records and current email behavior until the cutover is approved.
+- The source changes are on the feature branch only; no merge or live deployment has occurred.
+
+The target project's migration history was read-only checked through `20261127130400`; the proposed migration version `20261127140000` sorts after it. The three proposed email tables were absent at the time of that check. Recheck migration history and table existence immediately before applying the SQL.
 
 ## 6. Retry schedule
 
