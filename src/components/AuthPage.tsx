@@ -61,7 +61,7 @@ export function AuthPage({ compact = false, recovery = false, onRecovered, custo
     e.preventDefault(); setBusy(true); setMessage('');
     try {
       if (otpPending) {
-        if (!/^\\d{6}$/.test(otpToken)) throw new Error('Enter the six-digit verification code.');
+        if (!/^\d{6}$/.test(otpToken)) throw new Error('Enter the six-digit verification code.');
         const { data, error } = await supabase.auth.verifyOtp({
           email: email.trim(),
           token: otpToken,
@@ -240,12 +240,12 @@ export function AuthPage({ compact = false, recovery = false, onRecovered, custo
               maxLength={6}
               required
               value={otpToken}
-              onChange={e=>setOtpToken(e.target.value.replace(/\\D/g,'').slice(0,6))}
+              onChange={e=>setOtpToken(e.target.value.replace(/\D/g,'').slice(0,6))}
               aria-label="Six-digit email verification code"
             />
           </label>
           {message && <p data-testid="auth-message" role="status" className="text-sm p-3 rounded-lg bg-amber-50 text-amber-900">{message}</p>}
-          <button data-testid="auth-submit" type="submit" disabled={busy || !/^\\d{6}$/.test(otpToken)} className="primary-action w-full justify-center disabled:opacity-60">{busy ? 'Verifying…' : 'Verify email'}</button>
+          <button data-testid="auth-submit" type="submit" disabled={busy || !/^\d{6}$/.test(otpToken)} className="primary-action w-full justify-center disabled:opacity-60">{busy ? 'Verifying…' : 'Verify email'}</button>
           <button type="button" disabled={busy} className="secondary-action w-full justify-center" onClick={() => void resend()}>Resend verification code</button>
           <button type="button" disabled={busy} className="text-sm text-violet-700 underline" onClick={() => { setOtpPending(false); setOtpToken(''); setConfirmationPending(false); setMessage(''); }}>Change email address</button>
         </> : <>
