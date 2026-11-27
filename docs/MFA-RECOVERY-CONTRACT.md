@@ -52,10 +52,29 @@ Express (`req.ip`) and the platform-owned forwarding header on Vercel
 trusted outside those runtimes. Anything unparseable shares one conservative
 `unknown` bucket, so a forged chain of headers cannot move the budget.
 
+## Re-issue and input limits
+
+- **Re-issue invalidates silently by design.** `studioflow_mfa_recovery_codes_issue(jsonb)`
+  atomically deletes all of the caller's unconsumed codes before inserting the new batch.
+  Any codes saved from a previous batch stop working the moment a new batch is issued.
+- **The UI asks first.** `AccountSecurityPage` shows a confirmation (role=`alertdialog`)
+  naming the count of unused codes that will be invalidated; the first-ever batch issues
+  without the extra step. Cancelling keeps the current batch.
+- **Input limit.** The consume input carries `maxLength={48}` and
+  `RECOVERY_CONSUME_SCHEMA` caps the transport at 48 characters (code alphabets are
+  16–32 alphanumerics once separators are stripped). Longer input is rejected client-side
+  before a network call; server validation remains authoritative.
+- **Regeneration resets the audit budget, not history.** After re-issue, the per-account
+  10-attempts/10-minute budget applies to the new batch; prior audit rows are retained
+  (90 days, pruneable) and are never used to gate the new batch.
+
 ## Verify it yourself
 
 - `node scripts/verify-rate-limit-mfa.mjs` — throttles, MFA window, consume
   semantics (run against the disposable PGlite harness).
+- `node scripts/verify-recovery-roundtrip.mjs` — browser-side generator ↔ the
+  SQL issue/consume RPCs end to end: AAL1 rejected, batch issue → count →
+  single-use consume → atomic re-issue (old batch dead) → SHA-256 parity.
 - `node scripts/verify-route-parity.mjs` — both runtimes mount the same
   handler, `RECOVERY_CONSUME_SCHEMA` on the consume route, Vercel entry is a
   thin action map.

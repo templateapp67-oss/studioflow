@@ -93,7 +93,7 @@ Deno.test("safeOutboundFetch: guard runs before fetch and forces redirect manual
 });
 
 Deno.test("safeOutboundFetch: a redirect response comes back, never followed", async () => {
-  const redirecting = ((_input: unknown, _init?: RequestInit) =>
+  const redirecting = (() =>
     Promise.resolve(
       new Response(null, { status: 301, headers: { Location: "https://169.254.169.254/" } }),
     )) as typeof fetch;

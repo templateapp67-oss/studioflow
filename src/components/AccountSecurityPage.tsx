@@ -11,6 +11,7 @@ type Enrollment = { id: string; qr: string; secret: string };
 function RecoveryCodesPanel() {
   const [remaining, setRemaining] = useState<number | null>(null);
   const [codes, setCodes] = useState<RecoveryCodeEntry[] | null>(null);
+  const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [copied, setCopied] = useState(false);
@@ -29,6 +30,7 @@ function RecoveryCodesPanel() {
     setBusy(true);
     setFeedback('');
     setCopied(false);
+    setConfirming(false);
     try {
       const entries = await generateRecoveryCodes(8);
       const { data, error } = await supabase.rpc('studioflow_mfa_recovery_codes_issue', { p_codes: issuePayload(entries) });
@@ -71,7 +73,18 @@ function RecoveryCodesPanel() {
         <>
           <p className="text-sm">Use a recovery code to sign in if you lose your authenticator. Each code is single-use; generating a new batch replaces every unused code you already have.</p>
           <p className="text-sm" role="status">{remaining === null ? 'Checking…' : `${remaining} unused ${remaining === 1 ? 'code' : 'codes'} remaining.`}</p>
-          <button type="button" className="secondary-action" disabled={busy} onClick={() => void issue()}>{busy ? 'Generating…' : remaining ? 'Generate new recovery codes' : 'Generate recovery codes'}</button>
+          {confirming && remaining ? (
+            <div className="grid gap-2 border border-amber-300 bg-amber-50 p-3 text-sm" role="alertdialog" aria-labelledby="recovery-reissue-title" aria-describedby="recovery-reissue-body">
+              <p id="recovery-reissue-title" className="font-semibold">Replace all unused codes?</p>
+              <p id="recovery-reissue-body">Generating a new batch permanently invalidates every unused code you saved earlier ({remaining} {remaining === 1 ? 'code' : 'codes'}). This cannot be undone.</p>
+              <div className="mt-1 flex flex-wrap gap-2">
+                <button type="button" className="primary-action" disabled={busy} onClick={() => void issue()}>{busy ? 'Generating…' : 'Replace my codes'}</button>
+                <button type="button" className="secondary-action" disabled={busy} onClick={() => setConfirming(false)}>Keep my current codes</button>
+              </div>
+            </div>
+          ) : (
+            <button type="button" className="secondary-action" disabled={busy} onClick={() => (remaining ? setConfirming(true) : void issue())}>{busy ? 'Generating…' : remaining ? 'Generate new recovery codes' : 'Generate recovery codes'}</button>
+          )}
         </>
       )}
       {feedback && <p role="alert">{feedback}</p>}

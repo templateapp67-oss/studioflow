@@ -93,7 +93,7 @@ export function AuthMfaChallenge({ error, retry }: { error: string; retry: () =>
           <form onSubmit={consumeRecovery} className="grid gap-3">
             <p>Enter one of your backup recovery codes (for example, <code>XXXX-XXXX-XXXX-XXXX</code>). Each code works once.</p>
             <label htmlFor="mfa-recovery-code">Recovery code</label>
-            <input id="mfa-recovery-code" className="workspace-input" autoComplete="one-time-code" autoCapitalize="characters" spellCheck={false} value={recoveryCode} onChange={event => setRecoveryCode(event.target.value.toUpperCase())} required />
+            <input id="mfa-recovery-code" className="workspace-input" autoComplete="one-time-code" autoCapitalize="characters" spellCheck={false} maxLength={48} value={recoveryCode} onChange={event => setRecoveryCode(event.target.value.toUpperCase())} required />
             {feedback && <p role="alert">{feedback}</p>}
             <button className="primary-action" disabled={busy}>{busy ? 'Checking…' : 'Use recovery code'}</button>
             <button type="button" className="secondary-action" onClick={() => { setMode('totp'); setFeedback(''); }}>Back to authenticator code</button>
