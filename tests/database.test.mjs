@@ -3,7 +3,8 @@ import { readFile, readdir } from 'node:fs/promises';
 
 const moduleUrl = process.env.NEXORA_PGLITE_MODULE ?? '@electric-sql/pglite';
 const { PGlite } = await import(moduleUrl);
-const db = new PGlite();
+const { pgcrypto } = await import('@electric-sql/pglite/contrib/pgcrypto');
+const db = new PGlite({ extensions: { pgcrypto } });
 const owner = '11111111-1111-4111-8111-111111111111';
 const other = '22222222-2222-4222-8222-222222222222';
 const admin = '33333333-3333-4333-8333-333333333333';
