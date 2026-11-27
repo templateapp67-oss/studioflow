@@ -16,6 +16,7 @@ import { StaffInviteAcceptPage } from './components/staff/StaffInviteAcceptPage'
 import { StaffLoginPage } from './components/staff/StaffLoginPage';
 import { StaffWorkspacePage } from './components/staff/StaffWorkspacePage';
 import { resolveSiteSlug } from './lib/resolveSite';
+import { StudioFlowSecurityCenterRoute } from './components/security/StudioFlowSecurityCenterRoute';
 
 const AccountSecurityPage = lazy(() => import('./components/AccountSecurityPage').then(module => ({ default: module.AccountSecurityPage })));
 
@@ -115,6 +116,9 @@ export function AppRouter() {
   if (publicPath === '/about' || publicPath === '/salon-onboarding' || publicPath === '/salon-growth' || publicPath === '/growth-partner-rewards') {
     return withNexoraPublicSupport(<NexoraEcosystemPage path={publicPath} />);
   }
+  if (publicPath === '/owner/security-center') return <StudioFlowSecurityCenterRoute mode="owner" />;
+  if (publicPath === '/admin/security-center') return <StudioFlowSecurityCenterRoute mode="admin" />;
+
   if (publicPath === '/admin/demo-leads') return <NexoraDemoLeadsAdmin />;
   if (!showApplication) return withNexoraPublicSupport(<PublicHomepage authenticated={authenticated} />);
 

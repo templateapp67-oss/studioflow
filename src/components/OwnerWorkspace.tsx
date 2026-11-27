@@ -337,6 +337,13 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
               {visibleBusinessTools.map(tool=><Nav key={tool.id} {...tool} active={active} onClick={navigate}/>)}
             </nav>
           </details>
+          {actorRole === 'owner' && (
+            <a href="/owner/security-center" className="mt-4 flex items-center gap-2.5 rounded-xl border border-sky-800 bg-sky-950/50 px-3 py-2.5 text-xs font-bold text-sky-200 hover:bg-sky-900/70">
+              <span className="material-symbols-outlined text-base" aria-hidden="true">shield</span>
+              Security Center
+            </a>
+          )}
+
         </aside>
 
         {/* Mobile Section Dropdown Selector */}
@@ -352,6 +359,13 @@ export const OwnerWorkspace: React.FC<Props> = ({ profile, setProfile, services,
             <optgroup label="Business tools">{visibleBusinessTools.map(tool=><option key={tool.id} value={tool.id}>{tool.label}</option>)}</optgroup>
           </select>
         </div>
+
+        {actorRole === 'owner' && (
+          <a href="/owner/security-center" className="lg:hidden inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-xs font-bold text-sky-900">
+            <span className="material-symbols-outlined text-base" aria-hidden="true">shield</span>
+            Security Center
+          </a>
+        )}
 
         {/* Main Content Area */}
         <div className="min-w-0 space-y-6">
