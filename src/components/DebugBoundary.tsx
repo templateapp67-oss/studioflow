@@ -98,10 +98,26 @@ function isDebugEnabled(): boolean {
   }
 }
 
-// Catches errors outside React (async, promises, event handlers) so they show up
-// in the console next to boundary failures. Installed once, module-level.
+// Browser extensions already report their own errors in DevTools.
+const extensionUrl = /^(?:chrome|moz|safari-web)-extension:\/\//;
+
+function isExtensionError(reason: unknown): boolean {
+  const stack = (reason as { stack?: unknown } | null)?.stack;
+  if (typeof stack !== 'string') return false;
+  const firstFrame = stack.split('\n').find(line => /^\s*at\s|@[a-z][\w+.-]*:\/\//i.test(line));
+  const source = firstFrame?.match(/(?:\(|@|^\s*at\s+)((?:chrome|moz|safari-web)-extension:\/\/[^\s)]+)/)?.[1];
+  return Boolean(source && extensionUrl.test(source));
+}
+
+// Report application errors outside React. Keep the browser's own reporting intact.
 if (typeof window !== 'undefined' && !(window as any).__studioflowDebugHooks) {
   (window as any).__studioflowDebugHooks = true;
-  window.addEventListener('error', (e) => console.error('[window.error]', e.message, e.error));
-  window.addEventListener('unhandledrejection', (e) => console.error('[unhandledrejection]', e.reason));
+  window.addEventListener('error', (event) => {
+    if (extensionUrl.test(event.filename) || isExtensionError(event.error)) return;
+    console.error('[window.error]', event.message, event.error);
+  });
+  window.addEventListener('unhandledrejection', (event) => {
+    if (isExtensionError(event.reason)) return;
+    console.error('[unhandledrejection]', event.reason);
+  });
 }

@@ -183,20 +183,6 @@ export function PublicHomepage({ authenticated = false }: { authenticated?: bool
     return () => observer.disconnect();
   }, []);
 
-  // AiSensy website widget for the NEXORA public homepage only.
-  // Keep this out of published salon sites, auth flows and the customer app.
-  useEffect(() => {
-    if (window.location.hostname !== 'nexorasalon.online') return;
-    if (document.getElementById('aisensy-wa-widget')) return;
-
-    const script = document.createElement('script');
-    script.type = 'text/javascript';
-    script.src = 'https://d3mkw6s8thqya7.cloudfront.net/integration-plugin.js';
-    script.id = 'aisensy-wa-widget';
-    script.setAttribute('widget-id', 'aabu3u');
-    document.body.appendChild(script);
-  }, []);
-
   const scrollToLibrary = useCallback(() => {
     const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     document.getElementById('nexora-template-library')?.scrollIntoView({

@@ -156,12 +156,12 @@
     <div class="bigimg"><img id="shadeImg" src="shades/violet.jpg" alt="Shade on model hair" style="height:430px"/></div>
     <div>
       <div class="swatches">
-        <button class="sw on" style="background:#7C5CFF" onclick="setShade(this,'shades/violet.jpg','Violet Storm','₹4,999','Deep violet with a soft shine. Bold, but easy to carry every day.')" aria-label="Violet Storm"></button>
-        <button class="sw" style="background:#FF4FD8" onclick="setShade(this,'shades/magenta.jpg','Magenta Muse','₹4,999','Bright pink-magenta that pops in photos and in real life.')" aria-label="Magenta Muse"></button>
-        <button class="sw" style="background:#FF8A5B" onclick="setShade(this,'shades/coral.jpg','Coral Sunset','₹4,499','Warm coral-peach tones, like sunset light in your hair.')" aria-label="Coral Sunset"></button>
-        <button class="sw" style="background:#35E0F0" onclick="setShade(this,'shades/cyan.jpg','Cyan Ice','₹4,999','Cool blue-cyan shades for a fresh, fearless look.')" aria-label="Cyan Ice"></button>
-        <button class="sw" style="background:#F2A7C3" onclick="setShade(this,'shades/rose-gold.jpg','Rose Gold','₹5,499','Soft pink-gold shine. Sweet, classy and very popular.')" aria-label="Rose Gold"></button>
-        <button class="sw" style="background:#E8B06A" onclick="setShade(this,'shades/honey.jpg','Honey Balayage','₹5,499','Warm honey light pieces. Natural, sunny and low care.')" aria-label="Honey Balayage"></button>
+        <button class="sw on" style="background:#7C5CFF" data-shade-image="shades/violet.jpg" data-shade-price="₹4,999" data-shade-blurb="Deep violet with a soft shine. Bold, but easy to carry every day." aria-pressed="true" aria-label="Violet Storm"></button>
+        <button class="sw" style="background:#FF4FD8" data-shade-image="shades/magenta.jpg" data-shade-price="₹4,999" data-shade-blurb="Bright pink-magenta that pops in photos and in real life." aria-pressed="false" aria-label="Magenta Muse"></button>
+        <button class="sw" style="background:#FF8A5B" data-shade-image="shades/coral.jpg" data-shade-price="₹4,499" data-shade-blurb="Warm coral-peach tones, like sunset light in your hair." aria-pressed="false" aria-label="Coral Sunset"></button>
+        <button class="sw" style="background:#35E0F0" data-shade-image="shades/cyan.jpg" data-shade-price="₹4,999" data-shade-blurb="Cool blue-cyan shades for a fresh, fearless look." aria-pressed="false" aria-label="Cyan Ice"></button>
+        <button class="sw" style="background:#F2A7C3" data-shade-image="shades/rose-gold.jpg" data-shade-price="₹5,499" data-shade-blurb="Soft pink-gold shine. Sweet, classy and very popular." aria-pressed="false" aria-label="Rose Gold"></button>
+        <button class="sw" style="background:#E8B06A" data-shade-image="shades/honey.jpg" data-shade-price="₹5,499" data-shade-blurb="Warm honey light pieces. Natural, sunny and low care." aria-pressed="false" aria-label="Honey Balayage"></button>
       </div>
       <h3 id="shadeName" style="font-size:30px;margin-top:20px">Violet Storm</h3>
       <p class="muted" id="shadeBlurb">Deep violet with a soft shine. Bold, but easy to carry every day.</p>
@@ -224,15 +224,6 @@
   © 2026 Prism &amp; Chroma · All prices in ₹ (INR) · Template 10 — StudioFlow
 </div></footer>
 
-<script>
-function setShade(el, src, name, price, blurb){
-  document.getElementById('shadeImg').src = src;
-  document.getElementById('shadeName').textContent = name;
-  document.getElementById('shadePrice').textContent = price;
-  document.getElementById('shadeBlurb').textContent = blurb;
-  document.querySelectorAll('.sw').forEach(function(s){s.classList.remove('on')});
-  el.classList.add('on');
-}
-</script>
+<script type="module" src="shade-studio.js"></script>
 </body>
 </html>

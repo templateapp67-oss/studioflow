@@ -5,6 +5,9 @@ import { IRON_INK_CATEGORIES, ironInkDurationMinutes } from '../../lib/ironInk';
 import type { SalonProfile,SalonService,Stylist } from '../../types';
 import type { InkAvailableSlot,InkSitePayload } from './database.types';
 
+// Keep validation compatible with the production CSP, which disallows eval.
+z.config({ jitless: true });
+
 const phoneSchema=z.string().trim().min(10).max(24).refine(value=>value.replace(/\D/g,'').length>=10&&value.replace(/\D/g,'').length<=15,'Enter a valid phone number.');
 const emailSchema=z.string().trim().email().max(254).or(z.literal(''));
 export const inkBookingSchema=z.object({

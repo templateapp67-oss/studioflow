@@ -113,4 +113,16 @@ listeners.get('unhandledrejection')({ reason: new Error('promise failed') });
 assert.ok(logged.some(args => args[0] === '[window.error]'));
 assert.ok(logged.some(args => args[0] === '[unhandledrejection]'));
 
+// Extension-origin failures are left to DevTools. A matching error message
+// from application code must still be reported by the global listener.
+logged.length = 0;
+const extensionFailure = new Error("Cannot read properties of undefined (reading 'M_ID')");
+extensionFailure.stack = `TypeError: ${extensionFailure.message}\n    at h (chrome-extension://example/executors/200.js:1:761)`;
+listeners.get('error')({ filename: 'chrome-extension://example/executors/200.js', error: extensionFailure });
+listeners.get('unhandledrejection')({ reason: extensionFailure });
+assert.equal(logged.length, 0);
+extensionFailure.stack = `TypeError: ${extensionFailure.message}\n    at h (https://nexorasalon.online/assets/main.js:1:761)\n    at browserExtension (chrome-extension://example/executors/200.js:1:800)`;
+listeners.get('unhandledrejection')({ reason: extensionFailure });
+assert.equal(logged.length, 1);
+
 console.log('PASS: DebugBoundary renders children untouched, shows the raw stack only in debug mode, keeps production free of stack/message leaks, reloads and recovers on demand, and logs async failures alongside render failures.');
