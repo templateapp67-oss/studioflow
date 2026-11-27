@@ -457,6 +457,8 @@ export interface Appointment {
   time: string; // HH:MM
   status: 'confirmed' | 'completed' | 'cancelled' | 'pending';
   paymentStatus: 'paid_deposit' | 'paid_full' | 'pay_at_salon';
+  paymentId?: string;
+  orderId?: string;
   amountPaid: number;
   createdAt: string;
   walkIn?: boolean;

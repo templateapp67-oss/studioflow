@@ -1,4 +1,5 @@
 import {BusinessNotificationLink} from './BusinessNotificationLink';
+import {BookingReceiptActions} from './customer/BookingReceiptActions';
 import {payBookingDeposit,reconcileBookingPayment} from '../lib/platformPayments';
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import type { Session } from '@supabase/supabase-js';
@@ -15,13 +16,13 @@ export function CustomerBookings({ session,embedded=false,onClose }: { key?:Reac
   const requests=useRef(0);
   const refresh = useCallback(async () => {
     const ticket=++requests.current;setError(''); setLoading(true);setBookings([]);
-    try {const { data, error } = await supabase.from('studioflow_bookings').select('id,status,payload,owner_id,branch_id,hold_expires_at').eq('customer_id', session.user.id).order('starts_at', { ascending: false });
+    try {const { data, error } = await supabase.from('studioflow_bookings').select('id,status,payload,owner_id,branch_id,hold_expires_at,web_checkout_method').eq('customer_id', session.user.id).order('starts_at', { ascending: false });
     if(ticket!==requests.current)return;
     if (error) setError('Could not load your bookings. Please try again.'); else setBookings(data || []); setLoading(false);
     } catch {if(ticket===requests.current){setError('Could not load your bookings. Please try again.');setLoading(false);}}
   }, [session.user.id]);
   useEffect(() => { const channel=supabase.channel(`studioflow-customer-${session.user.id}`).on('postgres_changes',{event:'*',schema:'public',table:'studioflow_bookings',filter:`customer_id=eq.${session.user.id}`},()=>void refresh()).subscribe();void refresh(); const focus = () => void refresh(); window.addEventListener('focus', focus); return () => {requests.current++;window.removeEventListener('focus', focus);void supabase.removeChannel(channel);}; }, [refresh]);
-  const payment=async(id:string,payload:any,recheck=false)=>{setBusy(id);setError('');try{if(recheck)await reconcileBookingPayment(id);else await payBookingDeposit({...payload,id});await refresh();}catch(error){setError(error instanceof Error?error.message:'Payment could not complete');}finally{setBusy('');}};
+  const payment=async(id:string,payload:any,recheck=false,full=false)=>{setBusy(id);setError('');try{if(recheck)await reconcileBookingPayment(id);else await payBookingDeposit({...payload,id},full);await refresh();}catch(error){setError(error instanceof Error?error.message:'Payment could not complete');}finally{setBusy('');}};
   const cancel = async (id: string) => {
     setBusy(id); setError('');
     const { error } = await supabase.rpc('studioflow_update_booking', { p_id: id, p_status: 'cancelled' });
@@ -29,7 +30,7 @@ export function CustomerBookings({ session,embedded=false,onClose }: { key?:Reac
   };
 
   const handleSendEmail = async (bookingId: string, b: any, type: 'confirmation' | 'reminder') => {
-    const to = session.user.email || b.clientEmail || b.email;
+    const to = b.clientEmail || session.user.email || b.email;
     if (!to) {
       setEmailFeedback(prev => ({ ...prev, [bookingId]: 'No email address found on account' }));
       return;
@@ -71,15 +72,16 @@ export function CustomerBookings({ session,embedded=false,onClose }: { key?:Reac
     {!embedded&&<p className="eyebrow">NEXORA · Customer account</p>}{!embedded&&<h1 className="text-3xl font-bold">My bookings</h1>}<p className="muted my-3">{session.user.email}</p>
     <div className="flex gap-3 flex-wrap mb-6">{embedded?<button className="secondary-action" onClick={onClose}>Back to salon</button>:returnSlug && <a className="primary-action" href={websiteLink(returnSlug)}>Return to salon / Book appointment</a>}<button className="secondary-action" onClick={() => void refresh()}>Refresh</button><BusinessNotificationLink/><a className="secondary-action" href="/login?security=1&amp;from=customer">Account security</a><button className="secondary-action" onClick={() => void supabase.auth.signOut()}>Sign out</button></div>
     {error && <p role="alert" className="text-red-700 my-4">{error}</p>}
-    {loading ? <p role="status">Loading bookings…</p> : error ? null : !bookings.length ? <p>You have no bookings yet. Choose a service at the salon to book your first appointment.</p> : <div data-testid="customer-bookings-list" className="space-y-4">{bookings.map(({ id, status, payload: b,hold_expires_at }) => <article key={id} data-testid="customer-booking-card" data-booking-id={id} data-booking-status={status} className="border rounded-xl p-4 bg-white shadow-xs">
+    {loading ? <p role="status">Loading bookings…</p> : error ? null : !bookings.length ? <p>You have no bookings yet. Choose a service at the salon to book your first appointment.</p> : <div data-testid="customer-bookings-list" className="space-y-4">{bookings.map(({ id, status, payload: b,hold_expires_at,web_checkout_method }) => <article key={id} data-testid="customer-booking-card" data-booking-id={id} data-booking-status={status} className="border rounded-xl p-4 bg-white shadow-xs">
       <div className="flex justify-between gap-3"><h2 className="font-bold text-base text-slate-900">{b.serviceName}</h2><span className="capitalize font-semibold text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700">{status}</span></div><p className="text-sm text-slate-600 mt-1">{b.date} · {b.time} IST · Specialist: {b.stylistName}</p><p className="text-sm font-medium text-slate-800 mt-0.5">₹{b.servicePrice} · Paid: ₹{b.amountPaid || 0}</p>
+      {status==='confirmed'&&web_checkout_method&&<BookingReceiptActions booking={{...b,id}}/>}
       {emailFeedback[id] && (
         <div className="mt-2.5 p-2 bg-indigo-50 border border-indigo-100 text-indigo-900 text-xs rounded-lg flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
           <span>{emailFeedback[id]}</span>
         </div>
       )}
-      {status === 'pending' && <div className="mt-3"><p className="text-amber-800 text-sm">{hold_expires_at&&new Date(hold_expires_at).getTime()>Date.now()?'Reserved for payment. A verified 25% advance confirms your appointment.':'Payment reservation expired. Choose a new slot if you have not paid.'}</p>{hold_expires_at&&new Date(hold_expires_at).getTime()>Date.now()&&<button disabled={!!busy} className="primary-action mt-2 mr-2" onClick={()=>void payment(id,b)}>Pay 25% deposit</button>}<button disabled={!!busy} className="secondary-action mt-2" onClick={()=>void payment(id,b,true)}>Recheck payment status</button></div>}
+      {status === 'pending' && <div className="mt-3"><p className="text-amber-800 text-sm">{hold_expires_at&&new Date(hold_expires_at).getTime()>Date.now()?'Reserved until payment is verified.':'Payment reservation expired. Choose a new slot if you have not paid.'}</p>{hold_expires_at&&new Date(hold_expires_at).getTime()>Date.now()&&<button disabled={!!busy} className="primary-action mt-2 mr-2" onClick={()=>void payment(id,b,false,web_checkout_method==='online')}>{web_checkout_method==='online'?'Retry payment':'Pay 25% deposit'}</button>}<button disabled={!!busy} className="secondary-action mt-2" onClick={()=>void payment(id,b,true)}>Recheck payment status</button></div>}
       <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-slate-100">
         <button 
           disabled={sendingEmailId === id} 

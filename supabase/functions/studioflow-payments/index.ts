@@ -5,6 +5,7 @@ import {signatureMatches,depositPaise,sameSecret} from './payment-security.ts';
 import {paymentLinkOrderKey,verifiedLinkPaymentId,verifyLinkPayment} from './payment-link-security.ts';
 import { browserCorsHeaders, isAllowedBrowserOrigin } from '../_shared/browserCors.ts';
 import { claimWebhookEvent, finishWebhookEvent, resolveWebhookEventId, safeWebhookEventType, webhookReplayToleranceSeconds } from '../_shared/webhookSecurity.ts';
+import { sendBookingReceipts } from './booking-receipts.ts';
 const PAYMENT_CORS_HEADERS = 'authorization,apikey,content-type,x-client-info,x-razorpay-signature,x-razorpay-event-id,x-worker-token';
 
 function env(name:string){
@@ -25,7 +26,11 @@ Deno.serve(async(req:Request)=>{
   const respond=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{...cors,'Content-Type':'application/json'}});
   if(req.method==='OPTIONS')return new Response(null,{status:204,headers:cors});
   const creds=razorpayCredentials();
-  if(req.method==='GET')return respond({configured:creds.configured,webhookConfigured:!!creds.webhookSecret,mode:creds.mode});
+  const expectedWebMode=env('BOOKING_RAZORPAY_MODE')||'test';
+  const webOnline=creds.configured&&creds.key.startsWith(`rzp_${expectedWebMode}_`)&&['test','live'].includes(expectedWebMode);
+  const webVenue=env('BOOKING_PAY_AT_VENUE_ENABLED')==='true';
+  if(req.method==='GET')return respond({configured:creds.configured,webhookConfigured:!!creds.webhookSecret,mode:creds.mode,
+    webCheckout:{online:webOnline,venue:webVenue,mode:expectedWebMode}});
   if(req.method!=='POST')return respond({error:'POST required'},405);
   try {
     const url=env('SUPABASE_URL')||Deno.env.get('SUPABASE_URL')||'';
@@ -75,6 +80,10 @@ Deno.serve(async(req:Request)=>{
       }
       return {processed:jobs.length,results};
     };
+    const dispatchReceipts=async(bookingId:string)=>{
+      try{await sendBookingReceipts(service,env,bookingId);}
+      catch{console.error('Booking receipt dispatch failed; queued receipts remain available to the worker.');}
+    };
     const settle=async(orderId:string,paymentId:string)=>{
       const {data:order,error}=await service.from('studioflow_payment_orders').select('*').eq('order_id',orderId).single();
       if(error)throw new Error('Payment order not found');
@@ -95,6 +104,7 @@ Deno.serve(async(req:Request)=>{
         const refund=await refundPayment(orderId,paymentId,order.amount_paise);
         return {...result.data,...refund};
       }
+      if(result.data?.status==='confirmed'&&order.order_id.startsWith('order_'))await dispatchReceipts(order.booking_id);
       return result.data;
     };
 
@@ -238,7 +248,7 @@ Deno.serve(async(req:Request)=>{
         return respond({error:'The appointment hold expired. Please choose another slot.'},409);
       }
       const amount=depositPaise(Number(booking.payload?.servicePrice||0));
-      if(amount<100)return respond({error:'Service price is too low for an online advance'},400);
+      if(!Number.isSafeInteger(amount)||amount<100)return respond({error:'Service price is too low for an online advance'},400);
       const {data:existingOrder,error:existingError}=await service.from('studioflow_payment_orders')
         .select('*').eq('booking_id',booking.id).maybeSingle();
       if(existingError)return respond({error:'Payment record could not be loaded.'},503);
@@ -307,21 +317,37 @@ Deno.serve(async(req:Request)=>{
         amountPaise:amount,orderId:registered.data?.order_id,reused:false},201);
     }
 
-    if(body.action==='refunds'){
+    if(body.action==='refunds'||body.action==='bookingReceipts'){
       if(worker){
         const verified=await service.rpc('studioflow_payments_verify_worker',{p_token:worker});
         if(verified.error||!verified.data)return respond({error:'Unauthorized'},401);
       }else if(!sameSecret(token,serviceKey)){
         return respond({error:'Unauthorized'},401);
       }
-      if(!creds.configured)return respond({error:'Platform payment gateway is not configured. The platform owner must add Razorpay credentials.'},503);
-      return respond(await processRefundQueue());
+      if(body.action==='bookingReceipts')return respond({processed:await sendBookingReceipts(service,env)});
+      const receipts=await sendBookingReceipts(service,env).catch(()=>0);
+      if(!creds.configured)return respond({refundsConfigured:false,receipts});
+      return respond({...await processRefundQueue(),receipts});
     }
 
     if(!token)return respond({error:'Sign in before checkout'},401);
     const auth=await service.auth.getUser(token);if(auth.error||!auth.data.user)return respond({error:'Your session expired. Sign in again.'},401);
     const protection = await protectSession(service, token, auth.data.user, 'studioflow-payments', 100);
     if (protection) return protectedResponse(respond({ error: protection.error }, protection.status), protection);
+    if(body.action==='prepareWebCheckout'){
+      if(typeof body.bookingId!=='string'||!/^[\da-f]{8}(-[\da-f]{4}){3}-[\da-f]{12}$/i.test(body.bookingId)||
+        typeof body.email!=='string'||body.email.length>254||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)||
+        !['online','venue'].includes(body.method))return respond({error:'Enter a valid email and payment method.'},400);
+      if(body.method==='online'&&!webOnline)return respond({error:'Online checkout is unavailable in the configured payment mode.'},503);
+      if(body.method==='venue'&&!webVenue)return respond({error:'Pay at Venue is unavailable.'},409);
+      const {data,error}=await service.rpc('studioflow_prepare_web_checkout',{
+        p_booking:body.bookingId,p_customer:auth.data.user.id,p_email:body.email,p_method:body.method,
+        p_whatsapp:body.whatsapp===true
+      });
+      if(error)return respond({error:'Could not prepare checkout. Check your contact details and slot, or reopen the reservation.'},409);
+      if(data?.status==='confirmed')await dispatchReceipts(data.id);
+      return respond({booking:data});
+    }
     if(body.action==='status')return respond({configured:creds.configured,webhookConfigured:!!creds.webhookSecret,mode:creds.mode});
     if(!creds.configured)return respond({error:'Platform payment gateway is not configured. The platform owner must add Razorpay credentials.'},503);
 
@@ -345,8 +371,10 @@ Deno.serve(async(req:Request)=>{
     if(error||!booking)return respond({error:'Booking not found for this account'},404);
     if(body.action==='create'){
       if(booking.status!=='pending'||!booking.hold_expires_at||new Date(booking.hold_expires_at).getTime()<=Date.now())return respond({error:'Reservation expired. Choose another slot.'},409);
-      const amount=depositPaise(booking.payload.servicePrice);
-      if(amount<100)return respond({error:'Service price is too low for online payment'},400);
+      const full=booking.web_checkout_method==='online';
+      if(full&&!webOnline)return respond({error:'Online checkout is unavailable in the configured payment mode.'},503);
+      const amount=full?Math.round(Number(booking.payload.servicePrice)*100):depositPaise(booking.payload.servicePrice);
+      if(!Number.isSafeInteger(amount)||amount<100)return respond({error:'Service price is too low for online payment'},400);
       let {data:order}=await service.from('studioflow_payment_orders').select('*').eq('booking_id',booking.id).maybeSingle();
       if(order&&['refund_required','refunding','refunded','refund_failed'].includes(order.status)){
         return respond({error:'This reservation can no longer accept a new payment. Choose another slot.'},409);
@@ -356,10 +384,12 @@ Deno.serve(async(req:Request)=>{
           amount,currency:'INR',receipt:String(booking.id).replace(/-/g,'').slice(0,40),payment_capture:1,
           notes:{studioflow_booking:String(booking.id)}
         })});
-        const result=await service.rpc('studioflow_register_payment',{p_booking:booking.id,p_order:created.id,p_amount:amount});
+        const result=await service.rpc(full?'studioflow_register_full_web_payment':'studioflow_register_payment',{p_booking:booking.id,p_order:created.id,p_amount:amount});
         if(result.error)throw new Error('Reservation changed. Choose another slot before paying.');
         order=result.data;
       }
+      if(!order||!/^order_[a-zA-Z0-9]+$/.test(order.order_id)||order.amount_paise!==amount)
+        return respond({error:'A different payment already exists for this booking. Recheck its payment status.'},409);
       return respond({keyId:creds.key,orderId:order.order_id,amount:order.amount_paise,currency:'INR',bookingId:booking.id,mode:creds.mode});
     }
     const {data:order}=await service.from('studioflow_payment_orders').select('*').eq('booking_id',booking.id).single();if(!order)return respond({error:'Payment order not found'},404);
@@ -368,7 +398,7 @@ Deno.serve(async(req:Request)=>{
       return respond({booking:await settle(order.order_id,body.paymentId)});
     }
     if(body.action==='reconcile'){
-      if(order.status==='captured')return respond({booking:booking.payload});
+      if(order.status==='captured'){if(booking.web_checkout_method==='online')await dispatchReceipts(booking.id);return respond({booking:booking.payload});}
       if(order.status==='refunded'||booking.payload?.refund_required)return respond({booking:{...booking.payload,refund_required:true},refunded:order.status==='refunded'});
       const payments=await provider(`orders/${encodeURIComponent(order.order_id)}/payments`);
       const payment=payments.items?.find((p:any)=>p.status==='captured');
