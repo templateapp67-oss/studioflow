@@ -8,7 +8,7 @@ Use the existing NEXORA application backend:
 
 - Project ref: `zilwgiuiygqqardzutxi`
 - Edge Function base: `https://zilwgiuiygqqardzutxi.supabase.co/functions/v1`
-- Application project URL: https://zilwgiuiygqqardzutxi.supabase.co. The existing application already uses this project's publishable key. Do not substitute the separate NEXORA-QA project or expose service-role credentials in browser builds.
+- Application project URL: https://zilwgiuiygqqardzutxi.supabase.co. The existing application already uses this project's publishable key. Do not change the application's project URL or expose service-role credentials in browser builds.
 
 ## 1. Sending domain DNS
 
@@ -105,7 +105,7 @@ Subscribe to exactly:
 - `email.failed`
 - `email.complained`
 
-Copy the new webhook's signing secret into the target Supabase secret `RESEND_WEBHOOK_SECRET`. The existing production webhook currently points to `https://nexorasalon.online/` and subscribes only to `email.delivered`; leave it unchanged until QA is proven.
+Copy the new webhook's signing secret into the target Supabase secret `RESEND_WEBHOOK_SECRET`. The existing production webhook currently points to `https://nexorasalon.online/` and subscribes only to `email.delivered`; leave it unchanged until the new endpoint is verified and the owner approves the production cutover.
 
 ## Deployment safety for the existing live project
 
@@ -131,9 +131,9 @@ The retry function is protected by `EMAIL_RETRY_WORKER_TOKEN` in the `x-email-wo
 
 Do not expose this token in browser code. Deploy the retry function with JWT verification disabled only because it authenticates using this independent server-only token.
 
-## 7. Verification before production
+## 7. Verification plan
 
-Run the following end-to-end checks on the target project:
+Because this is the live application project, do not create test bookings or trigger real payment attempts until the owner approves a controlled test window. Validate templates, webhook signatures, idempotency and retry logic locally first; then perform controlled live-project checks using an owner-approved test account and no customer-impacting payment.
 
 1. Booking confirmation for an ordinary salon appointment.
 2. Booking confirmation for home service (address and instructions).
@@ -146,6 +146,6 @@ Run the following end-to-end checks on the target project:
 
 The current payment schema supports the existing booking advance/payment order. It does not provide a multi-payment split ledger for a booking; the receipt will report the actual recorded amount paid and remaining balance rather than invent split/payout data.
 
-## 8. Production
+## 8. Production cutover
 
-Do not merge or deploy until verification is green and the owner explicitly approves the rollout. The configured project is `zilwgiuiygqqardzutxi`; treat it as production and preserve existing data and active functions.
+The configured project `zilwgiuiygqqardzutxi` is the live application project. The SQL migration and deployment will affect it. Do not merge, apply the SQL, replace an active Edge Function, enable the Auth hook, or change webhooks until the owner explicitly approves the production cutover. Preserve existing data, payment credentials, WhatsApp integrations and active functions.
