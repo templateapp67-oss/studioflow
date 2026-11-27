@@ -2052,12 +2052,7 @@
     "relations": 273,
     "assessment": "Read-only owner-supplied live catalog; not a live migration dry-run or deployment."
   },
-  "release_pending_migrations": [
-    {
-      "file": "20261127140000_studioflow_resend_transactional_email.sql",
-      "purpose": "PR #190 transactional email outbox, Resend webhook ledger and suppression controls. This is a local-only pending migration for the configured project zilwgiuiygqqardzutxi; it is not applied to the live database. CI may validate it offline, but production application remains owner-approved and manual."
-    }
-  ],
+  "release_pending_migrations": [],
   "reviewed_feature_migrations": [
     {
       "file": "20261117130000_reconcile_template15_multiservice_booking.sql",
@@ -2532,6 +2527,14 @@
       "evidence": "Production workflow run 45984700148, job 140459416626, listed this version in both local and remote migration history for the reviewed production project.",
       "purpose": "Security Center evidence and report retention controls with bounded purge operations.",
       "git_blob_sha": "e2c900d63e3debd970d1ca516135a0e315b27f43"
+    },
+    {
+      "version": "20261127140000",
+      "file": "20261127140000_studioflow_resend_transactional_email.sql",
+      "name": "studioflow_resend_transactional_email",
+      "observed_at": "2026-11-27",
+      "evidence": "Confirmed applied on production project zilwgiuiygqqardzutxi by the read-only Supabase migration history and supabase migration list --remote on 2026-11-27; the transactional email outbox, Resend webhook events, suppression tables, required RPCs, RLS, table grants and service-role-only RPC grants were independently verified read-only.",
+      "purpose": "Records the already-applied transactional email outbox, Resend webhook ledger and suppression controls in the production migration history; this reconciliation does not re-run the migration."
     }
   ],
   "retimestamped_applied_migrations": [
