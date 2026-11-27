@@ -44,8 +44,11 @@ try {
     alter table storage.objects enable row level security;
     create function storage.foldername(p_name text) returns text[]
       language sql immutable strict parallel safe
-      as $ select case when position('/' in p_name)>0
-        then string_to_array(regexp_replace(p_name, '/[^/]*    create table public.studioflow_websites(owner_id uuid primary key references auth.users, published_at timestamptz);
+      as 'select case when strpos(p_name, chr(47)) > 0
+        then string_to_array(left(p_name, length(p_name) - strpos(reverse(p_name), chr(47))), chr(47))
+        else array[]::text[] end';
+    grant usage on schema storage to authenticated, service_role, anon;
+    create table public.studioflow_websites(owner_id uuid primary key references auth.users, published_at timestamptz);
     insert into auth.users values ('${owner}'),('${other}'),('${admin}');
     insert into public.studioflow_websites values ('${owner}',now()),('${other}',now());
   `);
