@@ -2534,7 +2534,8 @@
       "name": "studioflow_resend_transactional_email",
       "observed_at": "2026-11-27",
       "evidence": "Confirmed applied on production project zilwgiuiygqqardzutxi by the read-only Supabase migration history and supabase migration list --remote on 2026-11-27; the transactional email outbox, Resend webhook events, suppression tables, required RPCs, RLS, table grants and service-role-only RPC grants were independently verified read-only.",
-      "purpose": "Records the already-applied transactional email outbox, Resend webhook ledger and suppression controls in the production migration history; this reconciliation does not re-run the migration."
+      "purpose": "Records the already-applied transactional email outbox, Resend webhook ledger and suppression controls in the production migration history; this reconciliation does not re-run the migration.",
+      "git_blob_sha": "730ed202f4fce9371a078b9d3028c76d22fa1cd5"
     }
   ],
   "retimestamped_applied_migrations": [
