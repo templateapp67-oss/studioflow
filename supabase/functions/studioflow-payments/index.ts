@@ -6,6 +6,7 @@ import {paymentLinkOrderKey,verifiedLinkPaymentId,verifyLinkPayment} from './pay
 import { browserCorsHeaders, isAllowedBrowserOrigin } from '../_shared/browserCors.ts';
 import { claimWebhookEvent, finishWebhookEvent, resolveWebhookEventId, safeWebhookEventType, webhookReplayToleranceSeconds } from '../_shared/webhookSecurity.ts';
 import { paymentReceiptTemplate, sendTransactionalEmail } from '../_shared/resendEmail.ts';
+import { safeLogger } from '../_shared/safeLogger.ts';
 const PAYMENT_CORS_HEADERS = 'authorization,apikey,content-type,x-client-info,x-razorpay-signature,x-razorpay-event-id,x-worker-token';
 
 function env(name:string){
@@ -92,7 +93,7 @@ Deno.serve(async(req:Request)=>{
           recipient=String(userData?.user?.email||'').trim().toLowerCase();
         }
         if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)||recipient.endsWith('@guest.in')){
-          console.info('payment_receipt_skipped_no_customer_email',{bookingId:booking.id});
+          safeLogger.info('payment_receipt_skipped_no_customer_email',{bookingId:booking.id});
           return;
         }
 
@@ -146,7 +147,7 @@ Deno.serve(async(req:Request)=>{
           content:receipt,
         });
         if(!result.success){
-          console.error('payment_receipt_enqueue_failed',{
+          safeLogger.error('payment_receipt_enqueue_failed',{
             bookingId:booking.id,
             paymentId,
             code:result.suppressed?'recipient_suppressed':'email_send_failed',
@@ -154,7 +155,7 @@ Deno.serve(async(req:Request)=>{
         }
       }catch{
         // Payment settlement is authoritative; an email error must never undo it.
-        console.error('payment_receipt_enqueue_failed',{bookingId:order.booking_id,paymentId});
+        safeLogger.error('payment_receipt_enqueue_failed',{bookingId:order.booking_id,paymentId});
       }
     };
 
@@ -172,7 +173,7 @@ Deno.serve(async(req:Request)=>{
       if((!order.payment_link_id&&payment.order_id!==orderId)||payment.currency!=='INR'||payment.amount!==order.amount_paise||payment.status!=='captured'){
         throw new Error('Payment capture is pending or does not match the booking. Recheck payment status shortly.');
       }
-      const result=await service.rpc('studioflow_settle_payment',{p_order:orderId,p_payment:paymentId,p_amount:payment.amount});
+      const result=await service.rpc('studioflow_settle_payment',{p_order:orderId,p_payment:paymentId,p_amount:Number(payment.amount)});
       if(result.error)throw new Error('Could not finalize payment. Recheck payment status; do not pay again.');
       if(result.data?.refund_required){
         const refund=await refundPayment(orderId,paymentId,order.amount_paise);

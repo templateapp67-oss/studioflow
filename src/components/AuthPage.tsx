@@ -134,7 +134,7 @@ export function AuthPage({ compact = false, recovery = false, onRecovered, custo
         }
         return;
       }
-      if (signup && !result.data.session) { setConfirmationPending(true); setOtpPending(true); setOtpToken(''); setMessage('A six-digit verification code has been sent. Enter it below to verify your email and finish creating your account.'); }
+      if (signup && !result.data.session) { setConfirmationPending(true); setOtpPending(true); setOtpToken(''); setMessage('A six-digit verification code has been sent. Check your email and enter it below to verify and finish creating your account.'); }
     } catch (error) { setMessage(error instanceof Error ? error.message : (typeof (error as { message?: unknown })?.message === 'string' && (error as { message: string }).message) || 'Could not complete this request. Please try again.'); }
     finally { setBusy(false); }
   };
