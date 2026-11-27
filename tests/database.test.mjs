@@ -7,6 +7,7 @@ const { pgcrypto } = await import('@electric-sql/pglite/contrib/pgcrypto');
 const { uuid_ossp } = await import('@electric-sql/pglite/contrib/uuid_ossp');
 const { pg_trgm } = await import('@electric-sql/pglite/contrib/pg_trgm');
 const { citext } = await import('@electric-sql/pglite/contrib/citext');
+// @electric-sql/pglite-postgis@0.2.8 requires the test-only PGlite 0.5.8 peer.
 const { postgis } = await import('@electric-sql/pglite-postgis');
 const db = new PGlite({ extensions: { pgcrypto, uuid_ossp, pg_trgm, citext, postgis } });
 const owner = '11111111-1111-4111-8111-111111111111';
