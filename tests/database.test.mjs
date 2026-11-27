@@ -82,6 +82,11 @@ try {
       `);
     }
   }
+  const postgisInstalled = await db.query(
+    "select exists (select 1 from pg_extension where extname='postgis') as installed",
+  );
+  assert.equal(postgisInstalled.rows[0].installed, true, 'PostGIS migration installs the extension');
+
   await db.exec(`
     insert into studioflow_security.admin_grants(user_id,permission,expires_at)
     select '${admin}', item, now()+interval '1 day' from unnest(array['stop','approve','report','inventory']) item;
