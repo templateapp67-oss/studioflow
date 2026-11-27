@@ -157,10 +157,20 @@ begin
     raise exception 'Resend email id is required' using errcode = '22023';
   end if;
 
-  update public.studioflow_transactional_email_outbox
-     set status = 'sent',
+  update public.studioflow_transactional_email_outbox o
+     set status = case
+           when exists (select 1 from public.studioflow_resend_webhook_events e where e.resend_email_id = p_resend_email_id and e.event_type = 'email.complained') then 'complained'
+           when exists (select 1 from public.studioflow_resend_webhook_events e where e.resend_email_id = p_resend_email_id and e.event_type = 'email.bounced') then 'bounced'
+           when exists (select 1 from public.studioflow_resend_webhook_events e where e.resend_email_id = p_resend_email_id and e.event_type = 'email.delivered') then 'delivered'
+           when exists (select 1 from public.studioflow_resend_webhook_events e where e.resend_email_id = p_resend_email_id and e.event_type = 'email.failed') then 'failed'
+           else 'sent'
+         end,
          resend_email_id = p_resend_email_id,
-         sent_at = now(),
+         sent_at = coalesce(sent_at, now()),
+         delivered_at = case
+           when exists (select 1 from public.studioflow_resend_webhook_events e where e.resend_email_id = p_resend_email_id and e.event_type = 'email.delivered') then coalesce(delivered_at, now())
+           else delivered_at
+         end,
          retryable = false,
          next_attempt_at = null,
          last_error_code = null,
