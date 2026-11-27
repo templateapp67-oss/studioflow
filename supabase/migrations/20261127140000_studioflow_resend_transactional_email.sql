@@ -276,12 +276,13 @@ begin
   with due as (
     select id
       from public.studioflow_transactional_email_outbox
-     where status = 'failed'
-       and retryable = true
-       and next_attempt_at <= now()
-       and attempts < 5
+     where attempts < 5
        and created_at > now() - interval '20 hours'
-     order by next_attempt_at, created_at
+       and (
+         (status = 'failed' and retryable = true and next_attempt_at <= now())
+         or (status = 'sending' and updated_at < now() - interval '2 minutes')
+       )
+     order by coalesce(next_attempt_at, updated_at), created_at
      limit greatest(1, least(coalesce(p_limit, 20), 100))
      for update skip locked
   )
