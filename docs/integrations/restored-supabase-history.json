@@ -2052,7 +2052,12 @@
     "relations": 273,
     "assessment": "Read-only owner-supplied live catalog; not a live migration dry-run or deployment."
   },
-  "release_pending_migrations": [],
+  "release_pending_migrations": [
+    {
+      "file": "20261127140000_studioflow_resend_transactional_email.sql",
+      "purpose": "PR #190 transactional email outbox, Resend webhook ledger and suppression controls. This is a local-only pending migration for the configured project zilwgiuiygqqardzutxi; it is not applied to the live database. CI may validate it offline, but production application remains owner-approved and manual."
+    }
+  ],
   "reviewed_feature_migrations": [
     {
       "file": "20261117130000_reconcile_template15_multiservice_booking.sql",

@@ -1,6 +1,7 @@
 -- StudioFlow / Nexora transactional email outbox and Resend webhook ledger.
--- Apply this migration to NEXORA-QA first. It intentionally does not modify
--- bookings, payment balances, Razorpay ledgers, or Auth OTP storage.
+-- Apply only to project zilwgiuiygqqardzutxi after explicit production cutover approval.
+-- CI validates this migration offline; it intentionally leaves bookings, payment balances,
+-- Razorpay ledgers, and Auth OTP storage unchanged.
 
 begin;
 

@@ -138,7 +138,9 @@ Deno.serve(async (req: Request) => {
 
   let hook: any;
   try {
-    hook = verifier.verify(raw, Object.fromEntries(req.headers));
+    const signatureHeaders: Record<string, string> = {};
+    req.headers.forEach((value, name) => { signatureHeaders[name] = value; });
+    hook = verifier.verify(raw, signatureHeaders);
   } catch {
     return new Response("Invalid Auth Hook signature", { status: 401 });
   }
