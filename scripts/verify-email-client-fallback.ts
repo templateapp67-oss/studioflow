@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { sendBookingEmail, checkEmailServiceStatus } from '../src/lib/emailService';
 
-const params: any = {
+const params = {
   to: 'customer@example.com',
   clientName: 'Guest',
   bookingRef: '11111111-1111-4111-8111-111111111111',
@@ -12,68 +12,82 @@ const params: any = {
   salonName: 'Salon',
 };
 
-const originalFetch = globalThis.fetch;
-let session: any = { access_token: 'token-1' };
-let invokeCalls: any[] = [];
-let invokeImpl: any = async () => ({ data: { success: true, delivered: true }, error: null });
-let fetchImpl: any = async () => new Response(JSON.stringify({ success: true, delivered: true }), { headers: { 'content-type': 'application/json' } });
+let session: { access_token: string } | null = { access_token: 'token-1' };
+const invokeCalls: Array<[string, Record<string, unknown> | undefined]> = [];
+let invokeImpl: (name: string, options?: Record<string, unknown>) => Promise<any> = async () => ({
+  data: { success: true, accepted: true, delivered: false, emailId: 're_1234567890' },
+  error: null,
+});
 
 (globalThis as any).__emailGetSession = async () => ({ data: { session }, error: null });
-(globalThis as any).__emailInvoke = async (...args: any[]) => { invokeCalls.push(args); return invokeImpl(...args); };
-globalThis.fetch = ((...args: any[]) => fetchImpl(...args)) as any;
+(globalThis as any).__emailInvoke = async (name: string, options?: Record<string, unknown>) => {
+  invokeCalls.push([name, options]);
+  return invokeImpl(name, options);
+};
 
-try {
-  session = null;
-  let result = await sendBookingEmail(params);
-  assert.equal(result.success, false);
-  assert.match(result.error || '', /Sign in/);
+const countInvokes = () => invokeCalls.length;
+const assertSingleInvocation = (before: number, message: string) => {
+  assert.equal(countInvokes(), before + 1, message);
+  assert.equal(invokeCalls.at(-1)?.[0], 'studioflow-booking-emails');
+};
 
-  session = { access_token: 'token-1' };
-  let authorization = '';
-  fetchImpl = async (_url: string, init: any) => {
-    authorization = init.headers.Authorization;
-    return new Response(JSON.stringify({ success: true, delivered: true, emailId: 'e1' }), { headers: { 'content-type': 'application/json' } });
-  };
-  invokeCalls = [];
-  result = await sendBookingEmail(params);
-  assert.equal(result.delivered, true, 'successful proxy response is delivered');
-  assert.equal(authorization, 'Bearer token-1');
-  assert.equal(invokeCalls.length, 0, 'successful proxy must not double-send through Edge');
+session = null;
+let result = await sendBookingEmail(params);
+assert.equal(result.success, false);
+assert.match(result.error || '', /Sign in/);
+assert.equal(countInvokes(), 0, 'unauthenticated callers never invoke the Edge Function');
 
-  fetchImpl = async () => new Response('<html>SPA</html>', { headers: { 'content-type': 'text/html' } });
-  invokeImpl = async () => ({ data: { success: true, delivered: true }, error: null });
-  invokeCalls = [];
-  result = await sendBookingEmail(params);
-  assert.equal(result.delivered, true, 'static HTML proxy response falls back to Edge delivery');
-  assert.equal(invokeCalls.length, 1, 'static HTML proxy response must fall back once');
+session = { access_token: 'token-1' };
+let before = countInvokes();
+result = await sendBookingEmail(params);
+assert.equal(result.success, true);
+assert.equal(result.accepted, true);
+assert.equal(result.delivered, false, 'Resend acceptance must not be misreported as delivery');
+assert.equal(result.emailId, 're_1234567890');
+assertSingleInvocation(before, 'successful sends use exactly one Edge Function request');
+assert.deepEqual(invokeCalls.at(-1)?.[1], { body: params });
 
-  fetchImpl = async () => new Response(JSON.stringify({ success: false, error: 'Recipient mismatch' }), { status: 403, headers: { 'content-type': 'application/json' } });
-  invokeCalls = [];
-  result = await sendBookingEmail(params);
-  assert.equal(result.success, false);
-  assert.equal(result.error, 'Recipient mismatch');
-  assert.equal(invokeCalls.length, 0, 'authorization failures must not be bypassed via fallback');
+invokeImpl = async () => ({
+  data: null,
+  error: {
+    message: 'FunctionsHttpError',
+    context: { json: async () => ({ error: 'Booking not found for this account.' }) },
+  },
+});
+before = countInvokes();
+result = await sendBookingEmail(params);
+assert.equal(result.success, false);
+assert.equal(result.error, 'Booking not found for this account.');
+assertSingleInvocation(before, 'authoritative authorization errors are returned without retry');
 
-  fetchImpl = async () => new Response(JSON.stringify({ success: false, error: 'Unconfigured' }), { status: 503, headers: { 'content-type': 'application/json' } });
-  invokeImpl = async () => ({ data: { success: true, delivered: true }, error: null });
-  invokeCalls = [];
-  result = await sendBookingEmail(params);
-  assert.equal(result.delivered, true, 'unconfigured proxy falls back to Edge delivery');
-  assert.equal(invokeCalls.length, 1, 'unconfigured proxy may fall back to configured Edge');
+invokeImpl = async () => ({ data: null, error: { message: 'network request outcome unknown' } });
+before = countInvokes();
+result = await sendBookingEmail(params);
+assert.equal(result.success, false);
+assert.match(result.error || '', /network request outcome unknown/);
+assertSingleInvocation(before, 'uncertain network outcomes must never trigger a second send');
 
-  fetchImpl = async () => { throw new Error('network'); };
-  invokeImpl = async () => ({ data: null, error: { message: 'FunctionsHttpError', context: { json: async () => ({ error: 'Booking not found for this account.' }) } } });
-  result = await sendBookingEmail(params);
-  assert.equal(result.success, false);
-  assert.equal(result.error, 'Booking not found for this account.');
+invokeImpl = async () => ({ data: { success: false, error: 'Email service unavailable' }, error: null });
+before = countInvokes();
+result = await sendBookingEmail(params);
+assert.equal(result.success, false);
+assert.equal(result.error, 'Email service unavailable');
+assertSingleInvocation(before, 'provider failures are returned without duplicate fallback requests');
 
-  fetchImpl = async () => new Response('<html>SPA</html>', { headers: { 'content-type': 'text/html' } });
-  invokeImpl = async () => ({ data: { status: 'ok', configured: false, provider: 'resend', mode: 'unconfigured' }, error: null });
-  const status = await checkEmailServiceStatus();
-  assert.equal(status.configured, false);
-  assert.equal(status.mode, 'unconfigured');
+invokeImpl = async () => ({
+  data: { status: 'ok', configured: false, provider: 'resend', mode: 'unconfigured' },
+  error: null,
+});
+before = countInvokes();
+const status = await checkEmailServiceStatus();
+assert.equal(status.configured, false);
+assert.equal(status.mode, 'unconfigured');
+assert.equal(countInvokes(), before + 1);
+assert.deepEqual(invokeCalls.at(-1)?.[1], { method: 'GET' }, 'status uses the Edge Function GET endpoint');
 
-  console.log('PASS: email client sends JWT, avoids double delivery, falls back only from missing/static/unconfigured proxies, preserves authoritative 4xx errors and reports honest status.');
-} finally {
-  globalThis.fetch = originalFetch;
-}
+invokeImpl = async () => ({ data: null, error: { message: 'status unavailable' } });
+const unavailable = await checkEmailServiceStatus();
+assert.equal(unavailable.configured, false);
+assert.equal(unavailable.mode, 'unconfigured');
+
+console.log('PASS: email client requires a session, invokes the Edge Function once, distinguishes accepted from delivered, preserves authoritative errors, never retries uncertain sends, and reports honest service status.');

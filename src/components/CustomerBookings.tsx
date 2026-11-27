@@ -41,7 +41,7 @@ export function CustomerBookings({ session,embedded=false,onClose }: { key?:Reac
         to,
         clientName: b.clientName || 'Valued Guest',
         clientPhone: b.clientPhone || '',
-        bookingRef: b.bookingRef || bookingId,
+        bookingRef: bookingId,
         serviceName: b.serviceName || 'Salon Service',
         servicePrice: b.servicePrice || 0,
         amountPaid: b.amountPaid || 0,
@@ -86,7 +86,7 @@ export function CustomerBookings({ session,embedded=false,onClose }: { key?:Reac
           className="text-xs px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors cursor-pointer"
           onClick={() => void handleSendEmail(id, b, 'confirmation')}
         >
-          {sendingEmailId === id ? 'Sending…' : '✉ Email Receipt'}
+          {sendingEmailId === id ? 'Sending…' : '✉ Email Confirmation'}
         </button>
         <button 
           disabled={sendingEmailId === id} 

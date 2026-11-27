@@ -76,7 +76,7 @@ await db.query('insert into public.branches(id,site_id,name,is_active,operating_
 await db.query("insert into public.studioflow_staff_branch_schedules(site_id,branch_id,staff_id,day_of_week,starts_at,ends_at,is_active) values($1,$2,'unknown','Saturday','11:00','12:00',true),($1,$2,'personal','Saturday','11:00','12:00',true)",[legacyOwner,legacyBranch]);
 // Add a real booking trigger after installing the migration. The private
 // functions and wrappers have the same security boundary as production.
-const migration=readFileSync('supabase/migrations/20261127140000_booking_slot_availability_repair.sql','utf8');
+const migration=readFileSync('supabase/migrations/20261127140001_booking_slot_availability_repair.sql','utf8');
 await db.exec(migration);
 await db.exec(migration); // re-applicable, no data changes
 // Check ACLs immediately after the migration, before fixture-only grants.

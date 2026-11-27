@@ -166,7 +166,7 @@ assert.ok(payload.branches.every(branch=>branch.is_active));
 
 // The newer availability repair must also work when the optional Iron Ink
 // branch schema is installed. Reuse its actual helper definitions, not stubs.
-const repair=readFileSync('supabase/migrations/20261127140000_booking_slot_availability_repair.sql','utf8');
+const repair=readFileSync('supabase/migrations/20261127140001_booking_slot_availability_repair.sql','utf8');
 for(const name of ['booking_weekday','booking_time','booking_hours_enabled']){
  const body=repair.match(new RegExp(`create or replace function studioflow_private\\.${name}\\([\\s\\S]*?\\$\\$;`));
  assert.ok(body,`missing real helper ${name}`);await db.exec(body[0]);

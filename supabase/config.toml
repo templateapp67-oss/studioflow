@@ -33,6 +33,18 @@ verify_jwt = false
 [functions.studioflow-booking-emails]
 verify_jwt = false
 
+# Resend and Supabase Auth send-email webhooks verify signed webhook headers in-handler.
+# The retry worker verifies its dedicated x-email-worker-token header in-handler.
+# Gateway JWT verification must be disabled for these non-user webhook/scheduler callers.
+[functions.resend-webhook]
+verify_jwt = false
+
+[functions.studioflow-auth-email-hook]
+verify_jwt = false
+
+[functions.studioflow-email-retry]
+verify_jwt = false
+
 # Tawk owner connection validates the Supabase user with Auth getUser() in the handler.
 [functions.studioflow-tawk-connect]
 verify_jwt = false
