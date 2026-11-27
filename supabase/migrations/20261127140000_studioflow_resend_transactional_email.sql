@@ -340,6 +340,27 @@ begin
 end;
 $$;
 
+create or replace function public.studioflow_email_mark_suppressed(
+  p_event_key text
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $
+begin
+  update public.studioflow_transactional_email_outbox
+     set status = 'suppressed',
+         retryable = false,
+         next_attempt_at = null,
+         last_error_code = 'recipient_suppressed',
+         updated_at = now()
+   where event_key = btrim(p_event_key)
+     and status = 'sending';
+  return found;
+end;
+$;
+
 revoke all on function public.studioflow_email_claim(text,text,text,jsonb,uuid,text)
   from public, anon, authenticated;
 revoke all on function public.studioflow_email_mark_sent(text,text)
