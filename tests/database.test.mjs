@@ -21,14 +21,14 @@ try {
     create role anon;
     create role service_role bypassrls;
     create schema auth;
-    create table auth.users(id uuid primary key);
+    create table auth.users(id uuid primary key, email text);
     create function auth.jwt() returns jsonb language sql stable
       as $$ select nullif(current_setting('request.jwt.claims',true),'')::jsonb $$;
     create function auth.uid() returns uuid language sql stable
       as $$ select (auth.jwt()->>'sub')::uuid $$;
     grant usage on schema auth to authenticated, service_role, anon;
     create table public.studioflow_websites(owner_id uuid primary key references auth.users, published_at timestamptz);
-    insert into auth.users values ('${owner}'),('${other}'),('${admin}');
+    insert into auth.users(id) values ('${owner}'),('${other}'),('${admin}');
     insert into public.studioflow_websites values ('${owner}',now()),('${other}',now());
   `);
   await db.exec([
