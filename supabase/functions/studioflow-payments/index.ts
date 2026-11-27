@@ -5,6 +5,7 @@ import {signatureMatches,depositPaise,sameSecret} from './payment-security.ts';
 import {paymentLinkOrderKey,verifiedLinkPaymentId,verifyLinkPayment} from './payment-link-security.ts';
 import { browserCorsHeaders, isAllowedBrowserOrigin } from '../_shared/browserCors.ts';
 import { claimWebhookEvent, finishWebhookEvent, resolveWebhookEventId, safeWebhookEventType, webhookReplayToleranceSeconds } from '../_shared/webhookSecurity.ts';
+import { paymentReceiptTemplate, sendTransactionalEmail } from '../_shared/resendEmail.ts';
 const PAYMENT_CORS_HEADERS = 'authorization,apikey,content-type,x-client-info,x-razorpay-signature,x-razorpay-event-id,x-worker-token';
 
 function env(name:string){
@@ -75,6 +76,86 @@ Deno.serve(async(req:Request)=>{
       }
       return {processed:jobs.length,results};
     };
+    const queuePaymentReceipt=async(order:any,payment:any,settledBookingPayload:any)=>{
+      try{
+        const {data:booking,error:bookingError}=await service.from('studioflow_bookings')
+          .select('id,owner_id,customer_id,payload,status')
+          .eq('id',order.booking_id).single();
+        if(bookingError||!booking)return;
+
+        const payload=booking.payload&&typeof booking.payload==='object'?booking.payload:{};
+        let recipient=String(payload.clientEmail||'').trim().toLowerCase();
+        if((!recipient||recipient.endsWith('@guest.in'))&&booking.customer_id){
+          const {data:userData}=await service.auth.admin.getUserById(booking.customer_id);
+          recipient=String(userData?.user?.email||'').trim().toLowerCase();
+        }
+        if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(recipient)||recipient.endsWith('@guest.in')){
+          console.info('payment_receipt_skipped_no_customer_email',{bookingId:booking.id});
+          return;
+        }
+
+        let salonName=String(payload.salonName||payload.businessName||'').trim();
+        let depositPercent=Number(payload.depositPercentage||payload.deposit_percentage||0);
+        if(!salonName||!depositPercent){
+          let profile:any=null;
+          const byId=await service.from('profiles')
+            .select('salon_name,deposit_percentage')
+            .eq('id',booking.owner_id).maybeSingle();
+          profile=byId.data;
+          if(!profile){
+            const byUser=await service.from('profiles')
+              .select('salon_name,deposit_percentage')
+              .eq('user_id',booking.owner_id).maybeSingle();
+            profile=byUser.data;
+          }
+          if(!salonName)salonName=String(profile?.salon_name||'NEXORA Salon');
+          if(!depositPercent)depositPercent=Number(profile?.deposit_percentage||0);
+        }
+
+        const totalAmount=Number(payload.servicePrice||0);
+        const amountPaidToDate=Number(settledBookingPayload?.amountPaid??payload.amountPaid??(Number(order.amount_paise)/100));
+        const safeTotal=Number.isFinite(totalAmount)&&totalAmount>0?totalAmount:Number(order.amount_paise)/100;
+        const safePaid=Number.isFinite(amountPaidToDate)&&amountPaidToDate>=0?amountPaidToDate:Number(order.amount_paise)/100;
+        const createdAt=Number(payment.created_at||0);
+        const paymentDate=createdAt>0
+          ? new Date(createdAt*1000).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',dateStyle:'medium',timeStyle:'short'})
+          : new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata',dateStyle:'medium',timeStyle:'short'});
+        const receipt=paymentReceiptTemplate({
+          bookingId:booking.id,
+          paymentId,
+          recipientEmail:recipient,
+          customerName:String(payload.clientName||'Customer'),
+          salonName:salonName||'NEXORA Salon',
+          bookingReference:String(payload.bookingReference||payload.bookingRef||booking.id),
+          paymentDate,
+          paymentMethod:String(payment.method||'Online'),
+          transactionAmount:Number(order.amount_paise)/100,
+          totalAmount:safeTotal,
+          amountPaidToDate:safePaid,
+          balanceDue:Math.max(0,safeTotal-safePaid),
+          depositPercent:depositPercent>0?depositPercent:undefined,
+        });
+        const result=await sendTransactionalEmail(service,{
+          eventKey:`payment-receipt:${paymentId}`,
+          kind:'payment_receipt',
+          recipientEmail:recipient,
+          bookingId:booking.id,
+          paymentId,
+          content:receipt,
+        });
+        if(!result.success){
+          console.error('payment_receipt_enqueue_failed',{
+            bookingId:booking.id,
+            paymentId,
+            code:result.suppressed?'recipient_suppressed':'email_send_failed',
+          });
+        }
+      }catch{
+        // Payment settlement is authoritative; an email error must never undo it.
+        console.error('payment_receipt_enqueue_failed',{bookingId:order.booking_id,paymentId});
+      }
+    };
+
     const settle=async(orderId:string,paymentId:string)=>{
       const {data:order,error}=await service.from('studioflow_payment_orders').select('*').eq('order_id',orderId).single();
       if(error)throw new Error('Payment order not found');
@@ -95,6 +176,9 @@ Deno.serve(async(req:Request)=>{
         const refund=await refundPayment(orderId,paymentId,order.amount_paise);
         return {...result.data,...refund};
       }
+      // Receipt is queued only after the database confirms the captured payment
+      // and booking. The stable payment ID is the idempotency key for split/replayed flows.
+      await queuePaymentReceipt(order,payment,result.data);
       return result.data;
     };
 
@@ -138,12 +222,9 @@ Deno.serve(async(req:Request)=>{
             const paymentId=verifiedLinkPaymentId(liveLink,known,eventPaymentId);
             const payment=await provider('payments/'+encodeURIComponent(paymentId));
             verifyLinkPayment(payment,liveLink,known,paymentId);
-            const settled=await service.rpc('studioflow_settle_payment',{
-              p_order:known.order_id,p_payment:paymentId,p_amount:Number(payment.amount)
-            });
-            if(settled.error)throw new Error('Could not settle the verified WhatsApp payment link.');
-            if(settled.data?.refund_required){
-              await refundPayment(known.order_id,paymentId,Number(known.amount_paise));
+            const settled=await settle(known.order_id,paymentId);
+            if(settled?.refund_required){
+              // settle() already requested/recorded the required refund.
             }else{
               await service.from('studioflow_payment_orders')
                 .update({payment_link_status:'paid'}).eq('booking_id',known.booking_id);
