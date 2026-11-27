@@ -91,7 +91,7 @@ Deno.serve(async(req:Request)=>{
           const {data:userData}=await service.auth.admin.getUserById(booking.customer_id);
           recipient=String(userData?.user?.email||'').trim().toLowerCase();
         }
-        if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(recipient)||recipient.endsWith('@guest.in')){
+        if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)||recipient.endsWith('@guest.in')){
           console.info('payment_receipt_skipped_no_customer_email',{bookingId:booking.id});
           return;
         }
