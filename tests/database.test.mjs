@@ -82,6 +82,7 @@ try {
       `);
     }
   }
+  // The shared Food schema migration must install PostGIS before the fixture continues.
   const postgisInstalled = await db.query(
     "select exists (select 1 from pg_extension where extname='postgis') as installed",
   );
