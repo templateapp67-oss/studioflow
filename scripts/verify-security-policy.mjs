@@ -59,8 +59,9 @@ requires('img-src', [
   'https://raw.githubusercontent.com', 'https://*.pexels.com', 'https://img.youtube.com',
   'https://i.ytimg.com', 'https://*.fbcdn.net', 'https://*.cdninstagram.com', 'https://*.instagram.com',
   'https://tile.openstreetmap.org', 'https://*.tile.openstreetmap.org', 'https://unpkg.com',
-  'https://www.google.com', 'https://maps.google.com', 'https://*.tawk.to',
+  'https://www.google.com', 'https://maps.google.com', 'https://*.tawk.to', 'https://cdn.jsdelivr.net/emojione/assets/png/',
 ]);
+forbids('img-src', ['https:', '*', 'https://cdn.jsdelivr.net']);
 requires('media-src', [
   "'self'", 'data:', 'blob:', 'https://*.supabase.co', 'https://*.fbcdn.net',
   'https://*.cdninstagram.com', 'https://*.googlevideo.com', 'https://www.youtube.com',
