@@ -39,7 +39,6 @@ try {
       is_sso_user boolean not null default false,
       is_anonymous boolean not null default false,
       banned_until timestamptz,
-      banned_at timestamptz,
       deleted_at timestamptz
     );
     create function auth.jwt() returns jsonb language sql stable
@@ -63,6 +62,9 @@ try {
   const folder = new URL('../supabase/migrations/', import.meta.url);
   for (const file of (await readdir(folder)).sort()) {
     await db.exec(await readFile(new URL(file, folder), 'utf8'));
+    if (file === '20260928011846_nexora_growth_partner_onboarding_baseline_20260928.sql') {
+      await db.exec('alter table public.growth_partners add column if not exists banned_at timestamptz, add column if not exists deleted_at timestamptz;');
+    }
     if (file === '20260928010916_reset_empty_public_schema_20260928.sql') {
       await db.exec("create function public.nexora_save_owner_workspace(p_payload jsonb)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = public, pg_temp\nas $fn$\ndeclare\n  v_staff jsonb;\nbegin\n  for v_staff in\n    select value\n    from jsonb_array_elements(coalesce(p_payload->'staff','[]'::jsonb))\n  loop\n    raise exception 'Staff name is required' using errcode = '22023';\n  end loop;\n  return coalesce(p_payload,'{}'::jsonb);\nend;\n$fn$;");
     }
