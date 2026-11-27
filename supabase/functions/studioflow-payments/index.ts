@@ -186,7 +186,10 @@ Deno.serve(async(req:Request)=>{
       return respond({received:true});
       } catch (processingError) {
         await finishWebhookEvent(service,'razorpay',eventId,'failed').catch(()=>{});
-        throw processingError;
+        // 5xx, never 4xx: a transient settle/receipt/provider failure must be
+        // retried by Razorpay. The ledger row stays 'failed' so the redelivery
+        // reclaims it. Internal/provider error text is never echoed.
+        return respond({error:'Webhook processing failed. The provider will retry.'},500);
       }
     }
 

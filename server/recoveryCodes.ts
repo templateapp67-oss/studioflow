@@ -16,16 +16,24 @@
  *  - Base authentication is mandatory (401 otherwise); AAL2 is deliberately
  *    NOT required here — that is the whole point of a recovery code.
  *  - The user id comes from the verified token, never from the body.
- *  - Consumption is single-use, throttled per account (10 attempts /
- *    10 minutes) inside the database function itself.
+ *  - Consumption is single-use (atomic compare-and-flip in the database) and
+ *    throttled twice: per account (10 attempts / 10 minutes, inside the
+ *    database function) and per caller IP (30 attempts / 10 minutes, enforced
+ *    here before any database work — a spray across many accounts from one
+ *    address cannot farm the per-account budgets).
+ *  - Attempt outcomes that pass the per-account throttle are recorded in
+ *    public.studioflow_mfa_recovery_audit (user id + outcome + timestamp only;
+ *    never code material). No client role may read the audit table.
  *  - Codes are stored only as SHA-256(salt || ':' || normalized code) — the
  *    database never sees a plaintext code.
  *  - No endpoint reveals whether a code exists beyond the consume result.
  */
 
+import { isIP } from 'node:net';
+
 import { RECOVERY_CONSUME_SCHEMA, safeOutboundFetch, validateBody } from './httpValidation.js';
 import { resolveAuthConfiguration, verifyAccessToken } from './supabaseAuth.js';
-import { resolveServiceRoleConfiguration } from './distributedRateLimit.js';
+import { claimDistributedRateLimit, hashBucketKey, resolveServiceRoleConfiguration } from './distributedRateLimit.js';
 
 type JsonResponder = {
   status: (code: number) => JsonResponder;
@@ -38,7 +46,51 @@ type RecoveryRequest = {
   body?: unknown;
   headers?: Record<string, string | string[] | undefined>;
   get?: (name: string) => string | undefined;
+  ip?: string;
+  socket?: { remoteAddress?: string };
 };
+
+/**
+ * The caller's network identity for the per-IP budget. Vercel overwrites its
+ * own forwarding header and Express supplies req.ip honouring `trust proxy`;
+ * arbitrary forwarded headers are never trusted outside those runtimes.
+ * Anything unparseable shares one conservative 'unknown' bucket.
+ */
+export function recoveryClientIp(req: RecoveryRequest, vercel = process.env.VERCEL === '1'): string {
+  const raw = vercel ? req.headers?.['x-vercel-forwarded-for'] : req.ip ?? req.socket?.remoteAddress;
+  const value = (Array.isArray(raw) ? raw[0] : raw || '').split(',')[0].trim();
+  if (!isIP(value)) return 'unknown';
+  return value.startsWith('::ffff:') && isIP(value.slice(7)) === 4 ? value.slice(7) : value;
+}
+
+/** Bounded per-process fallback for environments without the shared store. */
+const LOCAL_IP_WINDOW_MS = 10 * 60 * 1000;
+const LOCAL_IP_MAX = 30;
+const LOCAL_IP_MAX_KEYS = 512;
+const localIpBudgets = new Map<string, { count: number; resetAt: number }>();
+
+export function claimLocalRecoveryIpBudget(identity: string, now: () => number = Date.now) {
+  const current = now();
+  if (localIpBudgets.size >= LOCAL_IP_MAX_KEYS) {
+    for (const [key, entry] of localIpBudgets) {
+      if (entry.resetAt <= current) localIpBudgets.delete(key);
+    }
+    if (localIpBudgets.size >= LOCAL_IP_MAX_KEYS) localIpBudgets.clear();
+  }
+  const entry = localIpBudgets.get(identity);
+  if (!entry || entry.resetAt <= current) {
+    localIpBudgets.set(identity, { count: 1, resetAt: current + LOCAL_IP_WINDOW_MS });
+    return { allowed: true, retryAfterSeconds: Math.ceil(LOCAL_IP_WINDOW_MS / 1000) };
+  }
+  entry.count += 1;
+  return {
+    allowed: entry.count <= LOCAL_IP_MAX,
+    retryAfterSeconds: Math.max(1, Math.ceil((entry.resetAt - current) / 1000)),
+  };
+}
+
+const IP_WINDOW_SECONDS = 600;
+const IP_MAX_ATTEMPTS = 30;
 
 function json(res: JsonResponder, status: number, body: unknown, retryAfter?: number) {
   res.status(status);
@@ -102,6 +154,39 @@ export async function recoveryConsumeHandler(req: RecoveryRequest, res: JsonResp
       return json(res, 401, { consumed: false, error: 'Your session expired. Sign in again.', code: 'invalid_session' });
     }
     return json(res, 503, { consumed: false, error: 'Sign-in verification is temporarily unavailable.', code: 'auth_unavailable' });
+  }
+  // Per-IP budget across all accounts. Fails closed when the shared store is
+  // configured but unreachable — a recovery spray must never fail open.
+  const clientIp = recoveryClientIp(req);
+  let ipAllowed = true;
+  let ipRetryAfter = IP_WINDOW_SECONDS;
+  try {
+    const claimed = await claimDistributedRateLimit(
+      hashBucketKey('mfa-recovery-ip', clientIp),
+      { windowSeconds: IP_WINDOW_SECONDS, maxAttempts: IP_MAX_ATTEMPTS },
+    );
+    if (claimed === 'unconfigured') {
+      const local = claimLocalRecoveryIpBudget(clientIp);
+      ipAllowed = local.allowed;
+      ipRetryAfter = local.retryAfterSeconds;
+    } else {
+      ipAllowed = claimed.allowed;
+      ipRetryAfter = claimed.retryAfterSeconds;
+    }
+  } catch {
+    return json(res, 503, {
+      consumed: false,
+      error: 'Recovery is temporarily unavailable. Try again shortly.',
+      code: 'recovery_unavailable',
+    }, 30);
+  }
+  if (!ipAllowed) {
+    return json(res, 429, {
+      consumed: false,
+      error: `Too many recovery attempts. Try again in ${Math.ceil(ipRetryAfter / 60)} minutes.`,
+      code: 'rate_limited',
+      retryAfterSeconds: ipRetryAfter,
+    }, ipRetryAfter);
   }
   const bodyResult = validateBody(req.body, RECOVERY_CONSUME_SCHEMA, 4 * 1024);
   if (bodyResult.ok === false) {

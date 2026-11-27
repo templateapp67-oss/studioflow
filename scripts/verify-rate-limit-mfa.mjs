@@ -346,8 +346,12 @@ const b64url = (obj) => Buffer.from(JSON.stringify(obj)).toString('base64url');
   assert.match(migration, /delete from public\.studioflow_mfa_recovery_codes\s*\n\s*where user_id = v_user and consumed_at is null/);
 
   // Consume: per-account throttle BEFORE any hash comparison, atomic single-use spend.
+  // The throttle bucket key must be an opaque digest of the user id — a raw id
+  // never lands in the shared rate-limit store (same privacy contract as the Node side).
   const consumeFn = migration.slice(migration.indexOf('studioflow_mfa_recovery_codes_consume(p_user_id'));
-  assert.match(consumeFn, /studioflow_edge_rate_limit_claim\('mfa-recovery:'/);
+  assert.match(consumeFn, /studioflow_edge_rate_limit_claim\(/);
+  assert.match(consumeFn, /encode\(extensions\.digest\('studioflow-rate-limit:mfa-recovery-account:' \|\| p_user_id::text, 'sha256'\), 'hex'\)/);
+  assert.ok(!/rate_limit_claim\('mfa-recovery:' \|\| p_user_id::text/.test(consumeFn), 'the raw user id must not be the bucket key');
   assert.match(consumeFn, /extensions\.digest\(salt \|\| ':' \|\| v_code, 'sha256'\)/);
   assert.match(consumeFn, /set consumed_at = now\(\)\s*\n\s*where id = v_match\s*\n\s*and consumed_at is null/, 'the spend is atomic — only one concurrent request wins');
 

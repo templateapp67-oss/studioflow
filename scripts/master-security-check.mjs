@@ -24,8 +24,11 @@ const steps = [
   ['Storage upload signature hygiene (magic bytes)', 'scripts/verify-upload-signatures.mjs'],
   ['Browser token/session storage hygiene', 'scripts/verify-auth-storage.mjs'],
   ['BOLA / RLS tenant isolation (offline migrated DB, 178 probes)', 'scripts/verify-bola-and-rls.mjs'],
+  ['Admin bootstrap allowlist revoke migration (idempotent · audit-logged)', 'scripts/verify-admin-bootstrap-revoke.mjs'],
   ['Meta WhatsApp webhook replay/idempotency (VM-executed handler)', 'scripts/verify-nexora-whatsapp-runtime.mjs'],
   ['Rate limiting + MFA fail-closed (429/Retry-After · AAL1 403 · ledger)', 'scripts/verify-rate-limit-mfa.mjs'],
+  ['MFA recovery hardening (audit-log RPC · per-IP budget 429/503 · wire parity)', 'scripts/verify-mfa-recovery-hardening.mjs'],
+  ['Route & sub-app parity (Express ≡ Vercel mounts · SSRF twin guards · veda auth matrix · documented contracts)', 'scripts/verify-route-parity.mjs'],
   ['AI endpoint hardening (schema + auth + fail-closed)', 'scripts/verify-ai-endpoint-hardening.mjs'],
 ];
 

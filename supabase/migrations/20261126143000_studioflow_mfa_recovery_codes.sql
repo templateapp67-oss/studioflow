@@ -163,7 +163,14 @@ begin
   end if;
 
   -- Per-account attempt budget: 10 per 10 minutes, shared across instances.
-  v_budget := public.studioflow_edge_rate_limit_claim('mfa-recovery:' || p_user_id::text, 600, 10);
+  -- Bucket key is an opaque digest of the user id — a raw user id is never
+  -- written into the shared rate-limit store (same contract as the Node side,
+  -- see server/distributedRateLimit.ts hashBucketKey).
+  v_budget := public.studioflow_edge_rate_limit_claim(
+    'mfa-recovery-account:' || encode(extensions.digest('studioflow-rate-limit:mfa-recovery-account:' || p_user_id::text, 'sha256'), 'hex'),
+    600,
+    10
+  );
   v_allowed := coalesce((v_budget->>'allowed')::boolean, false);
   if not v_allowed then
     return jsonb_build_object(

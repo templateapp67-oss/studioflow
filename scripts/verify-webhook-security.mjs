@@ -216,8 +216,8 @@ ok('payments and WhatsApp webhooks: signature verified first, event claimed befo
 // ---------------------------------------------------------------------------
 section = 'Razorpay webhook: VM-executed replay protection'
 // ---------------------------------------------------------------------------
-function loadPaymentsHandler(envOverrides = {}, claimNext = null) {
-  const state = { rpc: [], fetch: [], from: [], claimNext };
+function loadPaymentsHandler(envOverrides = {}, claimNext = null, options = {}) {
+  const state = { rpc: [], fetch: [], from: [], claimNext, settleThrows: options.settleThrows === true };
   const db = {
     from(table) {
       let op = 'select', columns = '', values, filters = [];
@@ -252,7 +252,10 @@ function loadPaymentsHandler(envOverrides = {}, claimNext = null) {
         return { data: { claimed: true, reason: null }, error: null };
       }
       if (name === 'studioflow_finish_webhook_event') return { data: null, error: null };
-      if (name === 'studioflow_settle_payment') return { data: { refund_required: false }, error: null };
+      if (name === 'studioflow_settle_payment') {
+        if (state.settleThrows) throw new Error('settle exploded: relation "internal_secret" does not exist');
+        return { data: { refund_required: false }, error: null };
+      }
       throw new Error('Unexpected RPC ' + name);
     },
   };
@@ -387,7 +390,28 @@ async function post(handler, raw, headers = {}) {
   assert.equal(state.rpc.length, 0, 'an invalid signature must never touch the ledger');
 }
 
-ok('Razorpay webhook handler: fresh 200/settle, duplicate short-circuit, stale 400, missing created_at 400, hash fallback, 401 precedes ledger');
+{
+  // Settle failure: retryable 500, ledger 'failed', zero internal detail leaked.
+  const { handler, state } = loadPaymentsHandler({}, null, { settleThrows: true });
+  const raw = JSON.stringify(capturedEvent({ id: 'evt_settle_fail' }));
+  const response = await post(handler, raw, { 'x-razorpay-event-id': 'evt_settle_fail' });
+  assert.equal(response.status, 500, 'a settle failure must be a retryable 500 — a 400 tells Razorpay to stop retrying');
+  const body = await response.json();
+  assert.ok(!JSON.stringify(body).includes('settle exploded'), 'no internal/provider error text leaks to the caller');
+  assert.ok(!JSON.stringify(body).includes('internal_secret'));
+  const finish = state.rpc.find(([name]) => name === 'studioflow_finish_webhook_event');
+  assert.ok(finish && finish[1].p_status === 'failed', 'the ledger marks the delivery failed so a redelivery reclaims it');
+}
+{
+  // The reclaim path: a previously failed delivery is processed on redelivery.
+  const { handler, state } = loadPaymentsHandler({}, { claimed: true, reason: 'reclaimed' });
+  const raw = JSON.stringify(capturedEvent({ id: 'evt_settle_fail' }));
+  const response = await post(handler, raw, { 'x-razorpay-event-id': 'evt_settle_fail' });
+  assert.equal(response.status, 200, 'a reclaimed delivery settles on retry');
+  const finish = state.rpc.find(([name]) => name === 'studioflow_finish_webhook_event');
+  assert.ok(finish && finish[1].p_status === 'processed', 'the retry is marked processed');
+}
+ok('Razorpay webhook handler: fresh 200/settle, duplicate short-circuit, stale 400, missing created_at 400, hash fallback, 401 precedes ledger, settle-failure 500 + failed ledger + reclaim');
 
 const pending = JSON.parse(readFileSync('docs/integrations/restored-supabase-history.json', 'utf8')).release_pending_migrations.map((m) => m.file);
 assert.ok(pending.includes('20261127090000_processed_webhook_events.sql'), 'pending-migration manifest must list the new ledger migration');

@@ -124,11 +124,13 @@ assert.ok(!/\bdrop\b/i.test(revoke), 'revoke migration contains no destructive s
 // The personal bootstrap address may only exist in: the applied admin
 // allowlist migration (documented, historical), the applied nexora_food
 // bootstrap (kept verbatim as applied history), and the scoped revoke
-// migration. Any other mention — especially a fresh grant — fails the suite.
+// migrations (nexora_food super_admin and app_admin allowlist). Any other
+// mention — especially a fresh grant — fails the suite.
 const ALLOWED_EMAIL_FILES = new Set([
   '20260928013304_nexora_admin_bootstrap_allowlist_20260928.sql',
   '20261011080053_nexora_food_shared_backend.sql',
   '20261126130000_revoke_nexora_food_super_admin_bootstrap.sql',
+  '20261127120000_revoke_app_admin_bootstrap_allowlist.sql',
 ]);
 for (const file of readdirSync('supabase/migrations').filter((name) => name.endsWith('.sql'))) {
   const source = readFileSync(join('supabase/migrations', file), 'utf8');
@@ -142,15 +144,25 @@ for (const file of readdirSync('supabase/migrations').filter((name) => name.ends
   }
 }
 
-/* --- 3c. The ledger lists the revoke as release-pending ------------------ */
+/* --- 3c. The ledger lists the revokes as release-pending ----------------- */
 const history = JSON.parse(readFileSync('docs/integrations/restored-supabase-history.json', 'utf8'));
 const pendingFiles = (history.release_pending_migrations || []).map((record) => record.file);
 assert.ok(pendingFiles.includes('20261126130000_revoke_nexora_food_super_admin_bootstrap.sql'),
-  'the revoke migration is recorded as release-pending, not auto-applied');
+  'the nexora_food super_admin revoke migration is recorded as release-pending, not auto-applied');
+assert.ok(pendingFiles.includes('20261127120000_revoke_app_admin_bootstrap_allowlist.sql'),
+  'the app_admin allowlist revoke migration is recorded as release-pending, not auto-applied');
+assert.ok(pendingFiles.includes('20261127130000_mfa_recovery_audit_log.sql'),
+  'the MFA recovery audit-log migration is recorded as release-pending, not auto-applied');
+assert.ok(pendingFiles.includes('20261127090000_processed_webhook_events.sql'),
+  'the webhook ledger migration is recorded as release-pending, not auto-applied');
 assert.ok(!pendingFiles.some((file) => file.startsWith('20261011080053')),
   'the applied bootstrap migration is not re-listed as pending');
 const postExport = (history.post_export_applied_versions || []).map((record) => String(record.version));
 assert.ok(!postExport.some((version) => version.startsWith('2026112613')),
   'the revoke migration is not recorded as applied');
+assert.ok(!postExport.some((version) => version.startsWith('2026112712')),
+  'the app_admin allowlist revoke migration is not recorded as applied');
+assert.ok(!postExport.some((version) => version.startsWith('2026112713')),
+  'the MFA recovery audit-log migration is not recorded as applied');
 
-console.log('PASS: no public salt fallback anywhere in source, the Edge module fails fast without a bucket salt, Turnstile is fail-closed (403, unconfigured secret included), and the super_admin bootstrap for the personal account is revoked by an idempotent release-pending migration scoped to exactly that grant.');
+console.log('PASS: no public salt fallback anywhere in source, the Edge module fails fast without a bucket salt, Turnstile is fail-closed (403, unconfigured secret included), and both personal-account bootstrap grants are revoked by idempotent release-pending migrations scoped to exactly those grants.');

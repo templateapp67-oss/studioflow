@@ -599,9 +599,12 @@ Return strictly valid JSON in this format:
 
   // MFA recovery codes — the one path allowed at AAL1 with an enrolled
   // authenticator (lost-device recovery). The caller's bearer token is
-  // verified server-side; consumption is single-use and throttled inside the
-  // database function; issuing/re-issuing codes happens in the browser via a
-  // user-context RPC that demands an AAL2 session.
+  // verified server-side; consumption is single-use (atomic spend in the
+  // database), throttled per account inside the database function AND per
+  // caller IP by the handler itself, and every outcome that passes the
+  // per-account throttle is recorded in studioflow_mfa_recovery_audit.
+  // Issuing/re-issuing codes happens in the browser via a user-context RPC
+  // that demands an AAL2 session.
   app.post("/api/account/recovery-codes/consume", strictBody(RECOVERY_CONSUME_SCHEMA, { maxBytes: 4 * 1024 }), recoveryConsumeHandler);
   app.get("/api/account/recovery-codes/active", recoveryActiveHandler);
 

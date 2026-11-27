@@ -228,7 +228,9 @@ async function ensureWhatsAppCustomer(db: any, phoneDigits: string, customerName
   if (created.error) {
     const retry = await db.rpc('nexora_whatsapp_find_customer', { p_phone: phone });
     if (typeof retry.data === 'string') return retry.data;
-    throw new Error(safeText(created.error.message, 250) || 'Customer account could not be created.');
+    // Never echo the auth admin error: it can carry account details. The
+    // delivery is retried by the caller when the thrown error surfaces.
+    throw new Error('Customer account could not be created.');
   }
   const customerId = created.data?.user?.id;
   if (typeof customerId !== 'string') throw new Error('Customer account was not returned by Supabase Auth.');
@@ -930,6 +932,10 @@ Deno.serve(async (req: Request) => {
       throw processingError;
     }
   } catch (error) {
+    // 500 so Meta retries the delivery; the ledger row stays 'failed' and the
+    // redelivery reclaims it. Messages thrown anywhere on this path are crafted
+    // to carry only status and numeric codes — raw provider text never reaches
+    // the wire. The webhook replay branch does not rely on this fallback.
     return json({ error: error instanceof Error ? error.message : 'WhatsApp webhook processing failed.' }, 500);
   }
 });

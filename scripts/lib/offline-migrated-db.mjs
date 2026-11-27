@@ -627,5 +627,19 @@ export async function createOfflineMigratedDb() {
   // must carry them. Applied last so it also replaces the pre-request assurance
   // helper in dependency order.
   await applySqlText(readFileSync('supabase/migrations/20261126143000_studioflow_mfa_recovery_codes.sql','utf8'),'supabase/migrations/20261126143000_studioflow_mfa_recovery_codes.sql');
+  // MFA recovery audit log: applied twice so the offline replay itself proves
+  // the release-pending hardening is a no-op-safe re-run.
+  const mfaAuditFile='supabase/migrations/20261127130000_mfa_recovery_audit_log.sql';
+  await applySqlText(readFileSync(mfaAuditFile,'utf8'),mfaAuditFile);
+  await applySqlText(readFileSync(mfaAuditFile,'utf8'),mfaAuditFile);
+  // Release-pending admin bootstrap revoke (2026-11-27): replayed in the chain
+  // exactly as production would apply it, on top of the historical bootstrap it
+  // disarms. The revoke is applied twice so the offline replay itself proves
+  // the in-chain path is no-op safe on re-run.
+  const bootstrapAllowlistFile='supabase/migrations/20260928013304_nexora_admin_bootstrap_allowlist_20260928.sql';
+  await applySqlText(readFileSync(bootstrapAllowlistFile,'utf8'),bootstrapAllowlistFile);
+  const adminRevokeFile='supabase/migrations/20261127120000_revoke_app_admin_bootstrap_allowlist.sql';
+  await applySqlText(readFileSync(adminRevokeFile,'utf8'),adminRevokeFile);
+  await applySqlText(readFileSync(adminRevokeFile,'utf8'),adminRevokeFile);
   return {db, applied, applySqlText, applyFile, clientRpc, src};
 }
