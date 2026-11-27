@@ -1,4 +1,4 @@
-import type {SalonService, Stylist} from '../types';
+import type {BusinessTypeId,SalonService, Stylist} from '../types';
 
 export const MAX_BOOKING_SERVICES = 10;
 
@@ -58,4 +58,20 @@ export function specialistExpertise(staff: Stylist, services: SalonService[]): s
     return name ? [name] : [];
   });
   return names.length ? names : (staff.specialties ?? []).filter(Boolean);
+}
+
+/**
+ * Select the salon owner's real staff for an unpublished website preview.
+ * This never creates staff from template/demo defaults and follows the same
+ * service, branch and availability rules as the local booking fallback.
+ */
+export function previewDraftSpecialists(
+  stylists: Stylist[],
+  serviceIds: string[],
+  businessType: BusinessTypeId,
+  branchId = '',
+): Stylist[] {
+  if (!serviceIds.length || !Array.isArray(stylists)) return [];
+  const sameTemplate = stylists.filter(staff => staff?.isTemplateSeed !== true && (!staff?.businessType || staff.businessType === businessType));
+  return localEligibleSpecialists(sameTemplate, serviceIds, branchId);
 }

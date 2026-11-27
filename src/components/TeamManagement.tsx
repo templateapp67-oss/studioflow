@@ -263,6 +263,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
     const updated: Stylist = {
       ...editingStylist,
+      isTemplateSeed:false,
       businessType:formData.businessType,
       ...(formData.businessType==='mens_hair_studio'?{mensMaleOnly:maleConfirmed}:{}),
       workGallery:formData.workGallery.filter(p=>p.imageUrl),

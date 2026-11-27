@@ -1,3 +1,7 @@
+# Historical Supabase publishable key used by the public sitemap.
+# The identical browser-safe value is present in server/sitemap.ts.
+d8be31172ead5305bb64f3776a3d8a1b54f66754:scripts/generate-sitemap.mjs:generic-api-key:9
+
 # Synthetic fixtures in the original safe-logger test commit. The current tests use runtime fixtures.
 3babfcda89fc1cfc860ae1f0d70f4d7e5e122f28:scripts/verify-safe-logger.mjs:stripe-access-token:22
 3babfcda89fc1cfc860ae1f0d70f4d7e5e122f28:scripts/verify-safe-logger.mjs:jwt:48

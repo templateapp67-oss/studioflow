@@ -119,6 +119,13 @@ async function startServer() {
   if (trustProxy) app.set('trust proxy', trustProxy);
   app.disable('x-powered-by');
 
+  app.use((_req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    next();
+  });
+
   // AI prompts are small; capping the body keeps a large payload from reaching
   // the provider or the JSON parser's memory.
   app.use(express.json({ limit: '256kb' }));

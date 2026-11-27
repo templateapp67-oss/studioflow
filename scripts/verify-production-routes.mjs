@@ -48,6 +48,16 @@ try {
   assert.equal(httpApexRes.status, 308, 'plain HTTP apex request returns HTTP 308');
   assert.equal(httpApexRes.headers.location, 'https://nexorasalon.online/partner-rewards');
 
+  const vercelConfig = JSON.parse(readFileSync('vercel.json', 'utf8'));
+  const baselineHeaders = vercelConfig.headers.find(({ source }) => source === '/(.*)').headers;
+  const homeResponse = await rawGet('/');
+  for (const name of ['X-Content-Type-Options', 'X-Frame-Options', 'Referrer-Policy']) {
+    const value = baselineHeaders.find(({ key }) => key === name)?.value;
+    assert.ok(value, name + ' is set in Vercel');
+    assert.equal(homeResponse.headers[name.toLowerCase()], value, name + ' matches Vercel in Express');
+  }
+  assert.equal(homeResponse.headers['x-powered-by'], undefined);
+
   // Verify live /robots.txt and /sitemap.xml responses.
   let route = await get('/robots.txt');
   assert.equal(route.status, 200, '/robots.txt serves HTTP 200');

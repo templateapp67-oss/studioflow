@@ -1,3 +1,4 @@
+import { OwnerDraftBookingPreview } from '../lib/ownerBookingPreview';
 import {KeshKraftWebsite} from './keshkraft/KeshKraftWebsite';
 import {AureliaBeautyWebsite} from './aurelia/AureliaBeautyWebsite';
 import { clinicPriceIsVerified, clinicPublicServices, normalizeServices } from '../lib/dermacureContent';
@@ -173,8 +174,9 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
  const activeCategory=categories.includes(category)?category:'All';
  const team=roopMahal?stylists.filter(isValidRoopStaff):pinkyNails?stylists.filter(isValidNailStaff):stylists.filter(s=>s.status!=='Inactive');
  // Bundled demo identities and credentials are never published as clinic staff.
+ const ownerDraftPreview=React.useContext(OwnerDraftBookingPreview);
  const clinicTeam=profile.subdomain?team.filter(s=>!['sk-st-1','sk-st-2','sk-st-3'].includes(s.id)).map(s=>s.avatarUrl?.toLowerCase().includes('images.unsplash.com')?{...s,avatarUrl:''}:s):team;
- const clinicBookingAvailable=Boolean(visible.bookings && profile.subdomain && clinicBookable.length && clinicTeam.length && onAddAppointment && (profile as typeof profile & {bookingEnabled?:boolean}).bookingEnabled!==false);
+ const clinicBookingAvailable=Boolean(visible.bookings && (ownerDraftPreview || profile.subdomain) && clinicBookable.length && clinicTeam.length && onAddAppointment && (profile as typeof profile & {bookingEnabled?:boolean}).bookingEnabled!==false);
  const pinkyCoreServices=pinkyNails?pinkyServices:pinkyServices;
  const nailCategories=pinkyNails?Array.from(new Set(pinkyCoreServices.map(s=>(s.category||'').trim()).filter(Boolean))):[];
  const reviews=clientExperiences(profile);
@@ -382,7 +384,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
   {/* Template 06 renders all of its sections through HairSpaWebsite. Online
       booking is only offered once the site is published (a real slug exists),
       so a template preview never fabricates availability. */}
-  <HairSpaWebsite profile={profile} services={keshServices} stylists={team} galleryPhotos={galleryEntries} shared={shared} bookingAvailable={Boolean(profile.subdomain)} /* Social profiles are rendered by the Template 06 footer, and the page
+  <HairSpaWebsite profile={profile} services={keshServices} stylists={team} galleryPhotos={galleryEntries} shared={shared} bookingAvailable={Boolean(ownerDraftPreview || profile.subdomain)} /* Social profiles are rendered by the Template 06 footer, and the page
       hides any owner section that has no saved content. */
   enabledSections={['hero','services','about','stylists','gallery','testimonials','location','promo','videos','social','loyalty','policies','share'].filter(section=>visible[section])} showPackages={visible.packages} customerSignedIn={customerSignedIn} customerName={customerName} customerPhotoUrl={customerPhotoUrl} onBook={(selected,specialist)=>book(selected,specialist)} onAccount={mode=>customer(mode||'signin')} onMyBookings={()=>setMyBookings(true)} onViewSpecialist={id=>setViewStaff(id)}/>
   {myBookings&&<SalonBookingsDialog profile={profile} onClose={()=>setMyBookings(false)}/>}

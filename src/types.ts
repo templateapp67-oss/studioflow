@@ -402,6 +402,8 @@ export interface DaySchedule {
 
 export interface StaffWorkPhoto {id:string;imageUrl:string;caption:string;serviceId?:string;consented:boolean;}
 export interface Stylist {
+  /** True while this row is a template's demo staff seed, not an owner-managed team member. */
+  isTemplateSeed?: boolean;
   mensMaleOnly?: boolean;
   businessType?:BusinessTypeId;
   workGallery?:StaffWorkPhoto[];
