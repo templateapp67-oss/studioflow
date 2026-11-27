@@ -39,6 +39,7 @@ try {
       is_sso_user boolean not null default false,
       is_anonymous boolean not null default false,
       banned_until timestamptz,
+      banned_at timestamptz,
       deleted_at timestamptz
     );
     create function auth.jwt() returns jsonb language sql stable
