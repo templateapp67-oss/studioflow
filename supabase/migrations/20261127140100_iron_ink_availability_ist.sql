@@ -81,7 +81,35 @@ begin
   if new.status<>'cancelled' or (to_jsonb(new)-'status'-'updated_at') is distinct from (to_jsonb(old)-'status'-'updated_at') then raise exception 'Customers may only cancel their own booking'; end if;
   return new;
  end if;
+ -- An owner moving or reopening a request must serialize with guest inserts,
+ -- including overlapping durations at a different start time or location.
+ -- Keep ordinary owner status/notes edits and customer cancellations unchanged.
+ if tg_op='UPDATE' then
+  if new.status<>'cancelled' and (old.status='cancelled'
+    or (new.site_id,new.artist_id,new.booking_date,new.start_time,new.category_id)
+       is distinct from (old.site_id,old.artist_id,old.booking_date,old.start_time,old.category_id)
+    or (to_jsonb(new)->>'branch_id') is distinct from (to_jsonb(old)->>'branch_id')) then
+   if current_setting('transaction_isolation')<>'read committed' then
+    raise exception 'Tattoo appointment writes require READ COMMITTED isolation for conflict checks' using errcode='25001';
+   end if;
+   select * into cat from public.ink_categories where site_id=new.site_id and id=new.category_id and is_active;
+   if cat.id is null or not exists(select 1 from public.ink_artists where site_id=new.site_id and id=new.artist_id and is_active) then
+    raise exception 'Choose an active tattoo category and artist';
+   end if;
+   duration:=greatest(coalesce(cat.duration_min,60),30);
+   perform pg_advisory_xact_lock(hashtextextended(new.site_id::text||new.artist_id::text||new.booking_date::text,12));
+   if exists(select 1 from public.ink_bookings b where b.id<>old.id and b.site_id=new.site_id and b.artist_id=new.artist_id and b.booking_date=new.booking_date and b.status<>'cancelled'
+    and tsrange(new.booking_date+new.start_time,(new.booking_date+new.start_time)+make_interval(mins=>duration),'[)')
+     && tsrange(b.booking_date+b.start_time,(b.booking_date+b.start_time)+make_interval(mins=>greatest(coalesce((select c.duration_min from public.ink_categories c where c.site_id=b.site_id and c.id=b.category_id),60),30)),'[)')) then
+    raise exception 'This artist already has a booking at that time' using errcode='23P01';
+   end if;
+  end if;
+  return new;
+ end if;
  if tg_op='INSERT' then
+  if current_setting('transaction_isolation')<>'read committed' then
+   raise exception 'Tattoo appointment writes require READ COMMITTED isolation for conflict checks' using errcode='25001';
+  end if;
   digits:=regexp_replace(new.phone,'[^0-9]','','g');
   if length(digits)<10 or length(digits)>15 then raise exception 'Enter a valid phone number'; end if;
   if new.email<>'' and new.email !~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+[.][A-Z]{2,}$' then raise exception 'Enter a valid email address'; end if;

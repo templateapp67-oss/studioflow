@@ -255,6 +255,41 @@ begin
  return new;
 end $$;
 
+-- Every writer of the canonical appointment ledger, including service-role
+-- imports and owner-side changes, must participate in the same lock protocol as
+-- website, Android, WhatsApp and rescheduling RPCs. The branch guard above is
+-- about working hours; it did not itself prevent two direct writes overlapping.
+-- A statement started at REPEATABLE READ can retain a pre-lock snapshot, so do
+-- not silently accept a write that cannot recheck the winner's commit.
+create or replace function studioflow_private.guard_booking_conflict()
+returns trigger language plpgsql security definer set search_path='' as $$
+begin
+ if new.status not in ('pending','confirmed')
+  or (new.status='pending' and new.hold_expires_at is not null and new.hold_expires_at<=now()) then
+  return new;
+ end if;
+ if current_setting('transaction_isolation')<>'read committed' then
+  raise exception 'Appointment writes require READ COMMITTED isolation for conflict checks' using errcode='25001';
+ end if;
+ if new.owner_id is null or nullif(new.stylist_id,'') is null or new.starts_at is null
+  or new.ends_at is null or new.ends_at<=new.starts_at then
+  raise exception 'Appointment requires a specialist and valid time range' using errcode='22023';
+ end if;
+ perform pg_advisory_xact_lock(hashtextextended(new.owner_id::text||new.stylist_id,0));
+ if exists(select 1 from public.studioflow_bookings b
+  where b.id is distinct from new.id and b.owner_id=new.owner_id and b.stylist_id=new.stylist_id
+   and b.status in ('pending','confirmed')
+   and (b.status='confirmed' or b.hold_expires_at is null or b.hold_expires_at>now())
+   and b.starts_at<new.ends_at and b.ends_at>new.starts_at) then
+  raise exception 'This specialist already has a booking at that time' using errcode='23P01';
+ end if;
+ return new;
+end $$;
+revoke all on function studioflow_private.guard_booking_conflict() from public,anon,authenticated;
+drop trigger if exists studioflow_booking_conflict_guard on public.studioflow_bookings;
+create trigger studioflow_booking_conflict_guard before insert or update of owner_id,stylist_id,starts_at,ends_at,status,hold_expires_at
+ on public.studioflow_bookings for each row execute function studioflow_private.guard_booking_conflict();
+
 -- Template 15 keeps its additional service, holiday, leave and break rules;
 -- only its weekday parsing is shared with the other templates.
 create or replace function studioflow_private.booking_bundle_window_allowed(p_slug text,p_services jsonb,p_date date,p_staff text,p_start time)
@@ -881,36 +916,236 @@ end $$;
 revoke all on function public.studioflow_mens_book(text,jsonb) from public,anon,authenticated;
 grant execute on function public.studioflow_mens_book(text,jsonb) to authenticated;
 
--- A separate, older directory RPC exists on some installations only. It uses
--- UUID assignments in staff_services -> salon_services, rather than the JSON
--- website catalogue above. Preserve its existing schedule/booking behavior and
--- privileges, but count only active same-salon assignments. Never infer an ID
--- from a service name or from the unrelated public.services table. An unexpected
--- version fails the migration rather than silently dropping an intentional rule.
+-- The separately deployed normalized storefront returns salon_services IDs;
+-- staff_services also has a foreign key to salon_services, not services. Keep
+-- that catalogue authoritative for price, duration, eligibility and assignments.
+-- Legacy services IDs are accepted only when the same salon has exactly one
+-- explicit editor_key provenance link; names and cross-tenant guesses never map.
+-- Both optional legacy functions retain their existing owners and EXECUTE ACLs.
 do $normalized$
-declare original text; patched text;
+declare original text; patched text; missing text;
 begin
- if to_regprocedure('public.nexora_customer_booking_options(uuid,uuid[],date,uuid)') is not null then
-  select pg_get_functiondef('public.nexora_customer_booking_options(uuid,uuid[],date,uuid)'::regprocedure) into original;
-  if position('booking_active_assignment_service' in original)=0 or position('booking_active_count_service' in original)=0 then
-   if position('booking_active_assignment_service' in original)>0 or position('booking_active_count_service' in original)>0
-    or position('where ss_any.staff_id = st.id' in original)=0 or position('where ss.staff_id = st.id' in original)=0 then
-    raise exception 'Unexpected nexora_customer_booking_options definition: review normalized staff assignment repair';
+ if to_regprocedure('public.nexora_customer_booking_options(uuid,uuid[],date,uuid)') is not null
+    or to_regprocedure('public.nexora_save_owner_workspace(jsonb)') is not null then
+  if to_regprocedure('public.nexora_catalog_uuid(uuid,text,text)') is null
+    or to_regclass('public.services') is null or to_regclass('public.salon_services') is null then
+   raise exception 'Normalized catalogue prerequisites are missing; review booking repair';
+  end if;
+  execute $definition$
+   create or replace function studioflow_private.normalized_booking_service_ids(p_salon_id uuid,p_service_ids uuid[])
+   returns uuid[] language sql stable set search_path='' as $function$
+    with requested as (select x.id from unnest(coalesce(p_service_ids,'{}'::uuid[])) x(id)),
+    candidates as (
+     select r.id requested_id,s.id actual_id
+      from requested r join public.salon_services s on s.id=r.id and s.salon_id=p_salon_id
+      where s.is_active=true and s.status='active' and s.is_bookable_online=true
+     union
+     select r.id,s.id
+      from requested r join public.services old on old.id=r.id and old.salon_id=p_salon_id
+       and old.is_active=true and old.is_bookable_online=true
+      join public.salon_services s on s.salon_id=p_salon_id and left(s.editor_key,8)='service:'
+       and length(s.editor_key)>8
+       and public.nexora_catalog_uuid(p_salon_id,'service',substring(s.editor_key from 9))=old.id
+      where s.is_active=true and s.status='active' and s.is_bookable_online=true
+    ), resolved as (
+     select r.id,count(c.actual_id) matches,min(c.actual_id::text)::uuid actual_id
+     from requested r left join candidates c on c.requested_id=r.id group by r.id
+    )
+    select case
+     when coalesce(cardinality(p_service_ids),0) not between 1 and 10
+       or cardinality(p_service_ids)<>(select count(distinct id) from requested)
+       or exists(select 1 from resolved where matches<>1)
+       or cardinality(p_service_ids)<>(select count(distinct actual_id) from resolved)
+      then null
+     else (select array_agg(actual_id order by actual_id) from resolved) end
+   $function$
+  $definition$;
+  execute 'revoke all on function studioflow_private.normalized_booking_service_ids(uuid,uuid[]) from public,anon,authenticated';
+
+  -- The owner workspace writes services before its after-save catalogue sync.
+  -- Materialize the exact editor-key row for a newly assigned service first;
+  -- otherwise the old writer tries to insert a services UUID into a foreign key
+  -- targeting salon_services. Existing unmatched IDs fail closed. This helper
+  -- is private and is only invoked after the owner RPC has authorized target.
+  execute $definition$
+   create or replace function studioflow_private.normalized_editor_assignment_id(p_salon_id uuid,p_raw text,p_state jsonb)
+   returns uuid language plpgsql set search_path='' as $function$
+   declare item jsonb; result uuid; matches integer;
+   begin
+    if nullif(p_raw,'') is null or not exists(select 1 from public.services s
+      where s.salon_id=p_salon_id and s.id=public.nexora_catalog_uuid(p_salon_id,'service',p_raw) and s.is_active=true) then
+     raise exception 'Assigned service is not available in this salon' using errcode='22023';
+    end if;
+    select count(*) into matches from jsonb_array_elements(case when jsonb_typeof(p_state->'services')='array' then p_state->'services' else '[]'::jsonb end) v
+     where v->>'id'=p_raw;
+    if matches>1 then raise exception 'Duplicate editor service ID' using errcode='22023'; end if;
+    if matches=1 then
+     select v into item from jsonb_array_elements(p_state->'services') v where v->>'id'=p_raw;
+     insert into public.salon_services(salon_id,name,category,description,price,price_paise,duration_minutes,icon,is_active,is_bookable_online,is_featured,display_order,editor_key)
+     values(p_salon_id,btrim(item->>'name'),coalesce(nullif(item->>'category',''),'General'),nullif(item->>'description',''),
+      greatest(0,coalesce((item->>'price')::numeric,0)),round(greatest(0,coalesce((item->>'price')::numeric,0))*100)::bigint,
+      greatest(1,coalesce((item->>'durationMinutes')::int,45)),coalesce(nullif(item->>'icon',''),'sparkles'),
+      true,coalesce((item->>'isBookableOnline')::boolean,true),coalesce((item->>'popular')::boolean,false),
+      coalesce((item->>'sortOrder')::int,0),'service:'||p_raw)
+     on conflict(salon_id,editor_key) do update set name=excluded.name,category=excluded.category,description=excluded.description,
+      price=excluded.price,price_paise=excluded.price_paise,duration_minutes=excluded.duration_minutes,icon=excluded.icon,
+      is_active=excluded.is_active,is_bookable_online=excluded.is_bookable_online,is_featured=excluded.is_featured,
+      display_order=excluded.display_order,updated_at=now();
+    end if;
+    select s.id into result from public.salon_services s
+     where s.salon_id=p_salon_id and s.editor_key='service:'||p_raw and s.is_active=true and s.status='active';
+    if result is null then
+     raise exception 'Assigned service has no active same-salon catalogue entry; save and review the service first' using errcode='22023';
+    end if;
+    return result;
+   end $function$
+  $definition$;
+  execute 'revoke all on function studioflow_private.normalized_editor_assignment_id(uuid,text,jsonb) from public,anon,authenticated';
+ end if;
+
+ -- The existing catalogue sync updates price without updating price_paise.
+ -- On the reviewed schema the BEFORE UPDATE money trigger then restores the
+ -- old price, so an unassigned service can keep a stale public/booking price.
+ -- Preserve the rest of the deployed sync body and its privileges.
+ if (to_regprocedure('public.nexora_customer_booking_options(uuid,uuid[],date,uuid)') is not null
+     or to_regprocedure('public.nexora_save_owner_workspace(jsonb)') is not null)
+    and to_regprocedure('public.sync_owner_template_catalogue()') is not null then
+  select pg_get_functiondef('public.sync_owner_template_catalogue()'::regprocedure) into original;
+  if position('price_paise=round(excluded.price*100)::bigint' in original)=0 then
+   if position('price=excluded.price,duration_minutes=excluded.duration_minutes' in original)=0 then
+    raise exception 'Unexpected sync_owner_template_catalogue definition: review normalized price synchronization';
    end if;
-   patched:=replace(original,'where ss_any.staff_id = st.id', $clause$where ss_any.staff_id = st.id
-            and exists (select 1 from public.salon_services booking_active_assignment_service
-              where booking_active_assignment_service.id=ss_any.service_id
-                and booking_active_assignment_service.salon_id=p_salon_id
-                and booking_active_assignment_service.is_active=true
-                and coalesce(booking_active_assignment_service.status,'active')='active')$clause$);
-   patched:=replace(patched,'where ss.staff_id = st.id', $clause$where ss.staff_id = st.id
-            and exists (select 1 from public.salon_services booking_active_count_service
-              where booking_active_count_service.id=ss.service_id
-                and booking_active_count_service.salon_id=p_salon_id
-                and booking_active_count_service.is_active=true
-                and coalesce(booking_active_count_service.status,'active')='active')$clause$);
+   patched:=replace(original,'price=excluded.price,duration_minutes=excluded.duration_minutes',
+    'price=excluded.price,price_paise=round(excluded.price*100)::bigint,duration_minutes=excluded.duration_minutes');
    execute patched;
   end if;
+  -- A workspace save includes its authorized target salon. The old trigger
+  -- ignored it and projected into the owner's newest salon instead, including
+  -- another salon's service IDs. Honor the explicit target; an owner with
+  -- several salons must choose one instead of projecting into the newest.
+  select pg_get_functiondef('public.sync_owner_template_catalogue()'::regprocedure) into original;
+  if position('booking_selected_salon_guard' in original)=0 then
+   if position('select s.id into sid from public.salons s join public.organization_members m' in original)=0
+      or position('and s.deleted_at is null order by s.created_at desc limit 1;' in original)=0
+      or position('if sid is null then return new; end if;' in original)=0 then
+    raise exception 'Unexpected sync_owner_template_catalogue definition: review normalized tenant targeting';
+   end if;
+   patched:=replace(original,'select s.id into sid from public.salons s join public.organization_members m', $target$
+    if nullif(btrim(new.state->>'salonId'),'') is null and
+     (select count(distinct s.id) from public.salons s join public.organization_members m on m.organization_id=s.organization_id
+      where m.user_id=new.owner_id and m.status='active' and m.role in ('owner','manager') and s.deleted_at is null)>1 then
+     raise exception 'Select a salon before saving this workspace' using errcode='22023';
+    end if;
+    select s.id into sid from public.salons s join public.organization_members m$target$);
+   patched:=replace(patched,'and s.deleted_at is null order by s.created_at desc limit 1;',
+    'and s.deleted_at is null and (nullif(btrim(new.state->>''salonId''),'''') is null or s.id::text=lower(btrim(new.state->>''salonId''))) order by s.created_at desc limit 1; -- booking_selected_salon_guard');
+   patched:=replace(patched,'if sid is null then return new; end if;',
+    'if sid is null and nullif(btrim(new.state->>''salonId''),'''') is not null then raise exception ''Selected salon is not available to this owner'' using errcode=''42501''; end if; if sid is null then return new; end if;');
+   execute patched;
+  end if;
+ end if;
+
+ if to_regprocedure('public.nexora_save_owner_workspace(jsonb)') is not null then
+  select pg_get_functiondef('public.nexora_save_owner_workspace(jsonb)'::regprocedure) into original;
+  if position('studioflow_private.normalized_editor_assignment_id' in original)=0 then
+   if position('values (local_id, svc_id, true)' in original)=0
+      or position('public.nexora_catalog_uuid(target, ''service''' in original)=0 then
+    raise exception 'Unexpected nexora_save_owner_workspace definition: review normalized service assignments';
+   end if;
+   patched:=replace(original,'values (local_id, svc_id, true)',
+    'values (local_id, studioflow_private.normalized_editor_assignment_id(target, trim(both ''"'' from schedule::text), p_state), true)');
+   execute patched;
+  end if;
+ end if;
+
+ if to_regprocedure('public.nexora_customer_booking_options(uuid,uuid[],date,uuid)') is not null then
+  select pg_get_functiondef('public.nexora_customer_booking_options(uuid,uuid[],date,uuid)'::regprocedure) into original;
+  if position('normalized_booking_service_ids' in original)=0 and
+     (position('from public.services' in original)=0 or position('where ss_any.staff_id = st.id' in original)=0
+      or position('where ss.staff_id = st.id' in original)=0) then
+   raise exception 'Unexpected nexora_customer_booking_options definition: review normalized booking repair';
+  end if;
+  -- The reviewed production function referred to nonexistent bookings columns
+  -- and staff_time_off. Require the actual normalized schema rather than deploy
+  -- an RPC that appears installed but fails or silently ignores conflicts.
+  select string_agg(required.t||'.'||required.c,', ' order by required.t,required.c) into missing
+  from (values ('bookings','salon_id'),('bookings','staff_id'),('bookings','appointment_date'),('bookings','booking_date'),
+    ('bookings','start_time'),('bookings','end_time'),('bookings','status'),('bookings','booking_status'),
+    ('staff_schedules','is_off'),('staff_schedules','is_working'),('staff_leave_requests','staff_id'),
+    ('staff_leave_requests','start_date'),('staff_leave_requests','end_date'),('staff_leave_requests','status')) required(t,c)
+  where not exists(select 1 from information_schema.columns c where c.table_schema='public' and c.table_name=required.t and c.column_name=required.c);
+  if missing is not null then raise exception 'Normalized booking prerequisites missing: %',missing; end if;
+  execute $definition$
+   create or replace function public.nexora_customer_booking_options(p_salon_id uuid,p_service_ids uuid[],p_date date,p_staff_id uuid default null)
+   returns jsonb language plpgsql stable security definer set search_path=public,pg_temp as $function$
+   declare
+    salon public.salons%rowtype; hours public.salon_hours%rowtype; specialist record;
+    candidate timestamp; starts timestamptz; duration integer; price bigint; need integer;
+    service_ids uuid[]; slots jsonb:='[]'::jsonb; specialists jsonb:='[]'::jsonb; free boolean;
+   begin
+    select * into salon from public.salons where id=p_salon_id and is_active=true and is_listed=true
+     and online_booking_enabled=true and deleted_at is null;
+    if not found then return jsonb_build_object('available_slots','[]'::jsonb,'available_staff','[]'::jsonb,'closed',true); end if;
+    service_ids:=studioflow_private.normalized_booking_service_ids(p_salon_id,p_service_ids);
+    if service_ids is null or p_date is null or p_date<(now() at time zone coalesce(nullif(salon.timezone,''),'Asia/Kolkata'))::date
+      or p_date>(now() at time zone coalesce(nullif(salon.timezone,''),'Asia/Kolkata'))::date+90 then
+     return jsonb_build_object('available_slots','[]'::jsonb,'available_staff','[]'::jsonb);
+    end if;
+    select count(*),coalesce(sum(duration_minutes),0),coalesce(sum(price_paise),0) into need,duration,price
+    from public.salon_services where salon_id=p_salon_id and id=any(service_ids) and is_active=true
+     and status='active' and is_bookable_online=true and price_paise is not null and price_paise>=0 and duration_minutes>0
+    having count(*)=cardinality(service_ids);
+    if not found or duration<=0 or duration>1440 then return jsonb_build_object('available_slots','[]'::jsonb,'available_staff','[]'::jsonb); end if;
+    select * into hours from public.salon_hours where salon_id=p_salon_id and day_of_week=extract(dow from p_date)::integer and not is_closed;
+    if not found or hours.opens_at is null or hours.closes_at is null or hours.closes_at<=hours.opens_at then
+     return jsonb_build_object('available_slots','[]'::jsonb,'available_staff','[]'::jsonb,'closed',true);
+    end if;
+    for specialist in
+     select st.id,st.full_name,st.role_title,st.profile_photo_url,sc.start_time,sc.end_time
+     from public.staff st join public.staff_schedules sc on sc.staff_id=st.id and sc.day_of_week=extract(dow from p_date)::integer
+     where st.salon_id=p_salon_id and st.is_active=true and st.is_public=true and st.employment_status='active' and st.deleted_at is null
+      and (p_staff_id is null or st.id=p_staff_id) and sc.is_working=true and not sc.is_off
+      and sc.start_time is not null and sc.end_time is not null and sc.end_time>sc.start_time
+      and not exists(select 1 from public.staff_leave_requests l where l.staff_id=st.id and l.status='approved' and p_date between l.start_date and l.end_date)
+      and (
+       not exists(select 1 from public.staff_services ss_any join public.salon_services a on a.id=ss_any.service_id
+        where ss_any.staff_id=st.id and ss_any.is_active=true and a.salon_id=p_salon_id and a.is_active=true and a.status='active')
+       or (select count(distinct ss.service_id) from public.staff_services ss join public.salon_services a on a.id=ss.service_id
+        where ss.staff_id=st.id and ss.is_active=true and a.salon_id=p_salon_id and a.is_active=true and a.status='active'
+         and ss.service_id=any(service_ids))=need
+      )
+     order by coalesce(st.display_order,0),st.full_name
+    loop
+     specialists:=specialists||jsonb_build_array(jsonb_build_object('id',specialist.id,'name',specialist.full_name,'role_title',specialist.role_title,'photo_url',specialist.profile_photo_url));
+    end loop;
+    candidate:=p_date+hours.opens_at;
+    while candidate+make_interval(mins=>duration)<=p_date+hours.closes_at loop
+     starts:=candidate at time zone coalesce(nullif(salon.timezone,''),'Asia/Kolkata');
+     free:=false;
+     for specialist in
+      select st.id,sc.start_time,sc.end_time from public.staff st join public.staff_schedules sc on sc.staff_id=st.id and sc.day_of_week=extract(dow from p_date)::integer
+      where st.id in (select (value->>'id')::uuid from jsonb_array_elements(specialists))
+     loop
+      if starts>now() and starts<=now()+interval '90 days'
+       and candidate::time>=greatest(hours.opens_at,specialist.start_time)
+       and candidate+make_interval(mins=>duration)<=p_date+least(hours.closes_at,specialist.end_time)
+       and not exists(select 1 from public.bookings b where b.salon_id=p_salon_id
+        and (b.staff_id=specialist.id or b.staff_id is null)
+        -- Unknown legacy states remain blocking; only known terminal states
+        -- release a slot. booking_status takes precedence over legacy status.
+        and lower(coalesce(nullif(btrim(b.booking_status),''),nullif(btrim(b.status),''),'pending')) not in ('cancelled','canceled','completed','no_show','expired')
+        -- Inconsistent dates block both named days rather than guessing.
+        and (b.appointment_date is null and b.booking_date is null or b.appointment_date=p_date or b.booking_date=p_date)
+        and (b.start_time is null or b.end_time is null or b.end_time<=b.start_time
+         or tsrange(p_date+b.start_time,p_date+b.end_time,'[)') && tsrange(candidate,candidate+make_interval(mins=>duration),'[)')))
+      then free:=true; exit; end if;
+     end loop;
+     if free then slots:=slots||jsonb_build_array(jsonb_build_object('time',to_char(candidate,'HH24:MI'),'starts_at',starts,'ends_at',starts+make_interval(mins=>duration))); end if;
+     candidate:=candidate+interval '30 minutes';
+    end loop;
+    return jsonb_build_object('available_slots',slots,'available_staff',specialists,'duration_minutes',duration,'total_paise',price);
+   end $function$
+  $definition$;
  end if;
 end $normalized$;
 

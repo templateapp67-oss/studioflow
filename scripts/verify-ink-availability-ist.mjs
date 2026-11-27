@@ -38,7 +38,7 @@ await assert.rejects(db.query('select * from public.ink_bookings'),/permission d
 await db.exec('reset role');
 for(const zone of ['Pacific/Honolulu','Pacific/Kiritimati']){await db.exec(`set timezone='${zone}'`);assert.deepEqual(await slots(),normal,'database session timezone does not change availability');}
 await db.exec("set timezone='UTC'");
-const today=(await db.query("select (now() at time zone 'Asia/Kolkata')::date value")).rows[0].value;
+const today=(await db.query("select ((now() at time zone 'Asia/Kolkata')::date)::text value")).rows[0].value;
 await db.query("update public.ink_availability set start_time='00:00',end_time='23:59',is_off=false where site_id=$1 and artist_id=$2 and day_of_week=extract(dow from $3::date)::int",[site,artist,today]);
 const todaySlots=await slots(today);
 for(const slot of todaySlots)assert.ok(Date.parse(`${today}T${slot.start_time}+05:30`)>Date.now(),'past times today are not offered');

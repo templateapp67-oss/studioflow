@@ -18,6 +18,8 @@ const OPTIONAL_ENV = new Map([
   ['verify-nexora-responsive-browser.mjs', ['BROWSER_TOOLS_ROOT', 'PREVIEW_URL']],
   ['verify-preview-browser-e2e.mjs', ['PLAYWRIGHT_PACKAGE_ROOT', 'PREVIEW_URL']],
   ['verify-nexora-interaction-responsiveness.mjs', ['PLAYWRIGHT_PACKAGE_ROOT', 'PREVIEW_URL']],
+  // Runs as a dedicated required CI job against a throwaway PostgreSQL service.
+  ['verify-postgres-booking-concurrency.mjs', ['STUDIOFLOW_TEST_POSTGRES_URL', 'STUDIOFLOW_DISPOSABLE_POSTGRES']],
 ]);
 // These suites create/update files inside the repo workspace while running, so
 // they execute serially after the parallel pool to prevent any race.

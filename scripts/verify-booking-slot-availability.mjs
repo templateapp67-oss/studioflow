@@ -21,23 +21,6 @@ await db.exec(`
  create table public.salons(id uuid primary key,organization_id uuid,slug text,is_active boolean,deleted_at timestamptz);
  create table public.organization_members(organization_id uuid,user_id uuid,role text,status text);
  create table public.salon_hours(salon_id uuid,day_of_week smallint,opens_at time,closes_at time,is_closed boolean);
- -- Focused copy of the optional legacy directory RPC's actual normalized
- -- assignment predicate. Its surrounding schedules are tested separately.
- create table public.staff(id uuid primary key,salon_id uuid);
- create table public.salon_services(id uuid primary key,salon_id uuid,is_active boolean,status text);
- create table public.staff_services(staff_id uuid references public.staff(id),service_id uuid references public.salon_services(id) on delete cascade,is_active boolean);
- alter table public.staff_services enable row level security;
- grant select on public.staff_services to anon,authenticated;
- create function public.nexora_customer_booking_options(p_salon_id uuid,p_service_ids uuid[],p_date date,p_staff_id uuid default null) returns jsonb language plpgsql stable security definer set search_path=public,pg_temp as $$
- declare need integer; result jsonb; begin
- select count(distinct id) into need from unnest(p_service_ids) id;
- select coalesce(jsonb_agg(st.id order by st.id),'[]'::jsonb) into result from public.staff st
- where st.salon_id=p_salon_id and (p_staff_id is null or st.id=p_staff_id)
-  and (not exists (select 1 from public.staff_services ss_any
-         where ss_any.staff_id = st.id and ss_any.is_active = true)
-       or (select count(distinct ss.service_id) from public.staff_services ss
-         where ss.staff_id = st.id and ss.is_active = true and ss.service_id = any(p_service_ids)) = need);
- return jsonb_build_object('available_staff',result); end $$;
  create table public.studioflow_services(owner_id uuid,service_id text,branch_ids uuid[]);
  create table public.studioflow_bookings(id uuid primary key default gen_random_uuid(),owner_id uuid,customer_id uuid,stylist_id text,starts_at timestamptz,ends_at timestamptz,status text,payload jsonb,created_at timestamptz default now(),hold_expires_at timestamptz,branch_id uuid);
  create table public.studioflow_android_requests(customer_id uuid,request_id uuid,fingerprint text,booking_id uuid,primary key(customer_id,request_id));
@@ -81,7 +64,7 @@ await db.exec(migration);
 await db.exec(migration); // re-applicable, no data changes
 // Check ACLs immediately after the migration, before fixture-only grants.
 for (const role of ['anon','authenticated']) {
- for (const signature of ['studioflow_private.booking_slots(text,jsonb,date,text,uuid)','studioflow_private.booking_bundle_window_allowed(text,jsonb,date,text,time)','studioflow_private.sync_branches_from_workspace()','studioflow_private.validate_studioflow_booking_branch()']) {
+ for (const signature of ['studioflow_private.booking_slots(text,jsonb,date,text,uuid)','studioflow_private.booking_bundle_window_allowed(text,jsonb,date,text,time)','studioflow_private.sync_branches_from_workspace()','studioflow_private.validate_studioflow_booking_branch()','studioflow_private.guard_booking_conflict()']) {
   assert.equal((await db.query('select has_function_privilege($1,$2,$3) allowed',[role,signature,'EXECUTE'])).rows[0].allowed,false,`${role} cannot execute ${signature}`);
  }
  for (const signature of ['public.studioflow_mens_slots(text,text,date,text,uuid)','public.studioflow_branch_specialists(text,text,uuid)']) {
@@ -159,25 +142,8 @@ await db.query("update public.studioflow_staff_branch_schedules set starts_at='1
 assert.equal(await get("select schedule_source data from public.studioflow_staff_branch_schedules where site_id=$1 and staff_id='unknown'",[legacyOwner]),'direct','an explicit direct edit confirms a shift');
 assert.equal((await legacySlots('unknown'))[0].time,'10:00');
 
-// Exercise the separately deployed normalized staff_services predicate. Its
-// foreign key cascades deleted services; archived, inactive and cross-salon
-// mappings do not count as active restrictions. A mixed mapping stays narrow.
-const normSalon=crypto.randomUUID(),foreignSalon=crypto.randomUUID(),serviceA=crypto.randomUUID(),serviceB=crypto.randomUUID(),archived=crypto.randomUUID(),deleted=crypto.randomUUID(),foreignService=crypto.randomUUID();
-const normStale=crypto.randomUUID(),normMixed=crypto.randomUUID(),normForeign=crypto.randomUUID();
-await db.query('insert into public.staff(id,salon_id) values($1,$4),($2,$4),($3,$4)',[normStale,normMixed,normForeign,normSalon]);
-await db.query("insert into public.salon_services(id,salon_id,is_active,status) values($1,$6,true,'active'),($2,$6,true,'active'),($3,$6,true,'archived'),($4,$6,true,'active'),($5,$7,true,'active')",[serviceA,serviceB,archived,deleted,foreignService,normSalon,foreignSalon]);
-await db.query('insert into public.staff_services values($1,$4,true),($1,$5,true),($2,$4,true),($2,$6,true),($3,$7,true)',[normStale,normMixed,normForeign,archived,deleted,serviceA,foreignService]);
-await db.query('delete from public.salon_services where id=$1',[deleted]);
-await db.exec('set role anon');
-const normalized=async(ids)=>new Set((await get('select public.nexora_customer_booking_options($1,$2::uuid[],$3,null) data',[normSalon,ids,date])).available_staff);
-let norm=await normalized([serviceB]);
-assert.ok(norm.has(normStale),'archived/deleted-only normalized mapping recovers');
-assert.ok(!norm.has(normMixed),'active plus archived normalized mapping remains restrictive');
-assert.ok(norm.has(normForeign),'a different salon cannot supply a valid assignment');
-assert.ok((await normalized([serviceA])).has(normMixed),'active normalized assignment is honored');
-assert.ok(!(await normalized([serviceA,serviceB])).has(normMixed),'normalized bundles require every active assigned service');
-assert.equal(await get('select count(*)::int data from public.staff_services',[]),0,'normalized private assignment rows remain protected by RLS');
-await db.exec('reset role');
+// The full optional normalized RPC and its distinct UUID catalogue are tested
+// against the production-shaped fixture in verify-normalized-booking-ids.mjs.
 
 // Actual guest role, not a privileged test caller. No branch-shift rows: a
 // single location uses the explicitly saved personal schedule, intersected
