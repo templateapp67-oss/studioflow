@@ -40,18 +40,17 @@ export function contentSecurityPolicy(options: { upgradeInsecureRequests?: boole
 /** Permissions-Policy: nothing by default; delegation only to the embed origins the app actually uses. */
 export const PERMISSIONS_POLICY = [
   'accelerometer=()',
-  'autoplay=(self https://www.youtube.com https://player.vimeo.com)',
-  'browsing-topics=()',
+  'autoplay=(self "https://www.youtube.com" "https://player.vimeo.com")',
   'camera=()',
-  'encrypted-media=(self https://www.youtube.com https://player.vimeo.com)',
-  'fullscreen=(self https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com)',
+  'encrypted-media=(self "https://www.youtube.com" "https://player.vimeo.com")',
+  'fullscreen=(self "https://www.youtube.com" "https://www.youtube-nocookie.com" "https://player.vimeo.com")',
   'geolocation=()',
   'gyroscope=()',
   'magnetometer=()',
   'microphone=()',
   'midi=()',
-  'payment=(self https://api.razorpay.com https://checkout.razorpay.com)',
-  'picture-in-picture=(self https://www.youtube.com https://player.vimeo.com)',
+  'payment=(self "https://api.razorpay.com" "https://checkout.razorpay.com")',
+  'picture-in-picture=(self "https://www.youtube.com" "https://player.vimeo.com")',
   'usb=()',
   'xr-spatial-tracking=()',
 ].join(', ');

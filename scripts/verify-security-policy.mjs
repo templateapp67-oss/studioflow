@@ -13,9 +13,19 @@ assert.equal(header('Referrer-Policy'), 'strict-origin-when-cross-origin');
 assert.equal(header('Strict-Transport-Security'), 'max-age=63072000; includeSubDomains; preload');
 const permissionsPolicy = header('Permissions-Policy');
 assert.ok(permissionsPolicy, 'Permissions-Policy must be enforced');
-for (const required of ['camera=()', 'microphone=()', 'geolocation=()', 'browsing-topics=()', 'payment=(self https://api.razorpay.com https://checkout.razorpay.com)']) {
+for (const required of [
+  'camera=()', 'microphone=()', 'geolocation=()',
+  'autoplay=(self "https://www.youtube.com" "https://player.vimeo.com")',
+  'encrypted-media=(self "https://www.youtube.com" "https://player.vimeo.com")',
+  'fullscreen=(self "https://www.youtube.com" "https://www.youtube-nocookie.com" "https://player.vimeo.com")',
+  'payment=(self "https://api.razorpay.com" "https://checkout.razorpay.com")',
+  'picture-in-picture=(self "https://www.youtube.com" "https://player.vimeo.com")',
+]) {
   assert.ok(permissionsPolicy.includes(required), `Permissions-Policy must include ${required}`);
 }
+
+assert.doesNotMatch(permissionsPolicy, /(?:^|[,( ]+)https:\/\//, 'external origins must be double quoted');
+assert.doesNotMatch(permissionsPolicy, /\bbrowsing-topics=/, 'omit the retired Chromium directive');
 
 const csp = header('Content-Security-Policy');
 assert.ok(csp, 'CSP must be enforcing, not report-only');

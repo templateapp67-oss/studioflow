@@ -161,7 +161,14 @@ assert.equal(vercelByKey['X-Frame-Options'], 'DENY');
 assert.equal(vercelByKey['X-Content-Type-Options'], 'nosniff');
 assert.equal(vercelByKey['Referrer-Policy'], 'strict-origin-when-cross-origin');
 assert.equal(vercelByKey['Strict-Transport-Security'], 'max-age=63072000; includeSubDomains; preload');
-for (const token of ['camera=()', 'microphone=()', 'geolocation=()', 'browsing-topics=()', 'payment=(self https://api.razorpay.com https://checkout.razorpay.com)']) {
+for (const token of [
+  'camera=()', 'microphone=()', 'geolocation=()',
+  'autoplay=(self "https://www.youtube.com" "https://player.vimeo.com")',
+  'encrypted-media=(self "https://www.youtube.com" "https://player.vimeo.com")',
+  'fullscreen=(self "https://www.youtube.com" "https://www.youtube-nocookie.com" "https://player.vimeo.com")',
+  'payment=(self "https://api.razorpay.com" "https://checkout.razorpay.com")',
+  'picture-in-picture=(self "https://www.youtube.com" "https://player.vimeo.com")',
+]) {
   assert.ok(vercelByKey['Permissions-Policy'].includes(token), `Permissions-Policy missing ${token}`);
 }
 assert.ok(vercelByKey['Content-Security-Policy'].includes("frame-ancestors 'none'"), "CSP frame-ancestors must be 'none'");
