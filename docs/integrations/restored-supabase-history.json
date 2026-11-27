@@ -2052,28 +2052,7 @@
     "relations": 273,
     "assessment": "Read-only owner-supplied live catalog; not a live migration dry-run or deployment."
   },
-  "release_pending_migrations": [
-    {
-      "file": "20261127130001_studioflow_security_center.sql",
-      "purpose": "StudioFlow Security Center tenant ownership, DNS ownership verification, scoped security jobs and verified job/actor result attribution."
-    },
-    {
-      "file": "20261127130100_studioflow_security_maintenance.sql",
-      "purpose": "Security Center maintenance support, bounded cleanup and retention-safe maintenance routines."
-    },
-    {
-      "file": "20261127130200_studioflow_platform_cases.sql",
-      "purpose": "Admin-only platform security cases with independent closure approval and immutable audit events."
-    },
-    {
-      "file": "20261127130300_studioflow_dns_watch.sql",
-      "purpose": "Verified-domain DNS re-verification, drift detection, scope revocation and resolver-outage alerting."
-    },
-    {
-      "file": "20261127130400_studioflow_platform_retention.sql",
-      "purpose": "Security Center evidence and report retention controls with bounded purge operations."
-    }
-  ],
+  "release_pending_migrations": [],
   "reviewed_feature_migrations": [
     {
       "file": "20261117130000_reconcile_template15_multiservice_booking.sql",
@@ -2503,6 +2482,51 @@
       "evidence": "Production workflow run 45974768444, job 140425268679, listed this version in both local and remote migration history for the reviewed production project.",
       "purpose": "Security hardening (2026-11-27): closes the missing-audit gap in the MFA recovery consume path released with 20261126143000_studioflow_mfa_recovery_codes.sql. Creates public.studioflow_mfa_recovery_audit (user id, outcome invalid/throttled/consumed, created_at; RLS enabled, no client grants, no policies; 90-day prune helper prune_studioflow_mfa_recovery_audit() granted to service_role only) and replaces public.studioflow_mfa_recovery_codes_consume() so it writes one audit row per outcome that passed the per-account throttle. Pre-throttle garbage input never reaches the audit insert, so audit growth is bounded by the 10-per-10-minutes per-account budget. The atomic single-use spend, the per-account throttle, and the service-role-only grant contract are unchanged. Per-IP throttling (30 attempts / 10 minutes) is enforced by the Node/Vercel recovery handler via the shared studioflow_edge_rate_limit_claim store before any database call. Idempotent (CREATE TABLE IF NOT EXISTS + CREATE OR REPLACE).",
       "git_blob_sha": "efba48b166f8e8547f95885bfe68cc7317973948"
+    },
+    {
+      "version": "20261127130001",
+      "file": "20261127130001_studioflow_security_center.sql",
+      "name": "studioflow_security_center",
+      "observed_at": "2026-11-27",
+      "evidence": "Production workflow run 45984700148, job 140459416626, listed this version in both local and remote migration history for the reviewed production project.",
+      "purpose": "StudioFlow Security Center tenant ownership, DNS ownership verification, scoped security jobs and verified job/actor result attribution.",
+      "git_blob_sha": "23b3dc83f2ba9c931094e1add72c8860662b17c5"
+    },
+    {
+      "version": "20261127130100",
+      "file": "20261127130100_studioflow_security_maintenance.sql",
+      "name": "studioflow_security_maintenance",
+      "observed_at": "2026-11-27",
+      "evidence": "Production workflow run 45984700148, job 140459416626, listed this version in both local and remote migration history for the reviewed production project.",
+      "purpose": "Security Center maintenance support, bounded cleanup and retention-safe maintenance routines.",
+      "git_blob_sha": "6b3b6c168e108a0d6f3a5dd9be9ee8155bc27709"
+    },
+    {
+      "version": "20261127130200",
+      "file": "20261127130200_studioflow_platform_cases.sql",
+      "name": "studioflow_platform_cases",
+      "observed_at": "2026-11-27",
+      "evidence": "Production workflow run 45984700148, job 140459416626, listed this version in both local and remote migration history for the reviewed production project.",
+      "purpose": "Admin-only platform security cases with independent closure approval and immutable audit events.",
+      "git_blob_sha": "9518f9391a1027ef59305cdfa38f0bbc54fa35ad"
+    },
+    {
+      "version": "20261127130300",
+      "file": "20261127130300_studioflow_dns_watch.sql",
+      "name": "studioflow_dns_watch",
+      "observed_at": "2026-11-27",
+      "evidence": "Production workflow run 45984700148, job 140459416626, listed this version in both local and remote migration history for the reviewed production project.",
+      "purpose": "Verified-domain DNS re-verification, drift detection, scope revocation and resolver-outage alerting.",
+      "git_blob_sha": "a61556ff22067e0956b555d38059259d9aa34e47"
+    },
+    {
+      "version": "20261127130400",
+      "file": "20261127130400_studioflow_platform_retention.sql",
+      "name": "studioflow_platform_retention",
+      "observed_at": "2026-11-27",
+      "evidence": "Production workflow run 45984700148, job 140459416626, listed this version in both local and remote migration history for the reviewed production project.",
+      "purpose": "Security Center evidence and report retention controls with bounded purge operations.",
+      "git_blob_sha": "e2c900d63e3debd970d1ca516135a0e315b27f43"
     }
   ],
   "retimestamped_applied_migrations": [
