@@ -19,7 +19,7 @@ const { redact, redactText, safeLogger } = await import('data:text/javascript;ba
 const sensitive = redact({
   authorization: 'Bearer super-secret-value',
   Cookie: 'session=abc123',
-  'x-api-key': 'sk_test_abcdefghij',
+  'x-api-key': 'example-key',
   apikey: 'embedded-key',
   token: 'tok-123',
   access_token: 'access-abc',
@@ -45,8 +45,11 @@ ok('denylisted keys are redacted at any depth; benign keys pass through untouche
 // 2. Free-text patterns.
 const urlWithQuery = redactText('https://api.supabase.co/rest/v1/table?access_token=secret123&foo=bar');
 assert.ok(!urlWithQuery.includes('secret123') && urlWithQuery.includes('foo=bar'), 'query credentials must be masked, other params kept');
-const bearer = redactText('Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.signaturepart12345');
-assert.ok(!bearer.includes('signaturepart12345'), 'JWT payload must not survive');
+const jwtHeader = Buffer.from(JSON.stringify({ alg: 'none', typ: 'JWT' })).toString('base64url');
+const jwtPayload = Buffer.from(JSON.stringify({ sub: 'safe-logger-test' })).toString('base64url');
+const unsignedJwtFixture = [jwtHeader, jwtPayload, 'invalid-signature'].join('.');
+assert.equal(redactText(`JWT fixture: ${unsignedJwtFixture}`), 'JWT fixture: [REDACTED]');
+assert.equal(redactText('Bearer example-bearer-value'), 'Bearer [REDACTED]');
 const rzp = redactText('paying via rzp_live_AbCdEfGhIjKlMnOpQr');
 assert.ok(!rzp.includes('AbCdEfGhIjKlMnOpQr'));
 const sbp = redactText('token sbp_t1s2t3a4c5r6t7d8a9b0c1d2e3f4a5b6c7d8a9b0c1 here');
@@ -94,13 +97,14 @@ console.error = (...values) => captured.push(values.map(preview).join(' '));
 console.warn = (...values) => captured.push(values.map(preview).join(' '));
 try {
   safeLogger.error('sync failed for token', { token: 'leak-me-not', safe: 'visible' });
-  safeLogger.log('Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIn0.signpart0000000000000000000000');
+  safeLogger.log(`Bearer ${unsignedJwtFixture}`);
   safeLogger.warn('lead from owner@example.com stored');
 } finally {
   console.log = previous.log; console.error = previous.error; console.warn = previous.warn;
 }
 const blob = captured.join('\n');
-assert.ok(!blob.includes('leak-me-not') && !blob.includes('signpart0000000000000000000000') && !blob.includes('owner@example.com'), 'nothing sensitive may reach the sink');
+assert.ok(!blob.includes('leak-me-not') && !blob.includes('owner@example.com'), 'nothing sensitive may reach the sink');
+assert.equal(captured[1], 'Bearer [REDACTED]');
 assert.ok(blob.includes('visible'), 'non-sensitive values must survive');
 ok('safeLogger routes every line through the redaction engine before printing');
 
