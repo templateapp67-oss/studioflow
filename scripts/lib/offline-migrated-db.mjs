@@ -20,9 +20,9 @@ import {pgcrypto} from '@electric-sql/pglite/contrib/pgcrypto';
 import {readdirSync,readFileSync} from 'node:fs';
 import assert from 'node:assert/strict';
 
-export async function createOfflineMigratedDb() {
+export async function createOfflineMigratedDb({extraExtensions = {}} = {}) {
 
-  const db=new PGlite({extensions:{pgcrypto}});
+  const db=new PGlite({extensions:{pgcrypto,...extraExtensions}});
   await db.exec(`
   create role anon nologin; create role authenticated nologin; create role service_role nologin; create role authenticator nologin;
   create schema auth;

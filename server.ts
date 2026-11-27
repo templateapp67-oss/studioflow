@@ -53,6 +53,7 @@ import { robotsHeaderMiddleware, robotsTagForRequest } from "./server/robotsHead
 import storefrontHandler, { resolveStorefrontSlug } from "./api/storefront";
 import { bookingDepositHandler } from "./server/bookingDeposit";
 import { optionalVerifiedUser, requireVerifiedUser } from "./server/supabaseAuth";
+import { makeSecurityCenterHandler } from './server/securityCenter.mjs';
 
 /** Rejects huge or malformed bodies before they reach the AI provider. */
 function normalizeVedaDetails(input: any): VedaAiDetails | null {
@@ -181,6 +182,13 @@ async function startServer() {
   }
 
   app.get("/sitemap.xml", sitemapHandler);
+
+  // Security Center API remains disabled unless SECURITY_CENTER_ENABLED=true.
+  // Handler validates Supabase bearer session, AAL2 and tenant scope.
+  const securityCenterHandler = makeSecurityCenterHandler();
+  app.post('/api/security-center', asyncHandler(async (req, res) => {
+    await securityCenterHandler(req, res);
+  }));
 
   // API Routes
   app.get("/api/health", (_req, res) => {

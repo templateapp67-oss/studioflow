@@ -2052,7 +2052,28 @@
     "relations": 273,
     "assessment": "Read-only owner-supplied live catalog; not a live migration dry-run or deployment."
   },
-  "release_pending_migrations": [],
+  "release_pending_migrations": [
+    {
+      "file": "20261127130001_studioflow_security_center.sql",
+      "purpose": "StudioFlow Security Center tenant ownership, DNS ownership verification, scoped security jobs and verified job/actor result attribution."
+    },
+    {
+      "file": "20261127130100_studioflow_security_maintenance.sql",
+      "purpose": "Security Center maintenance support, bounded cleanup and retention-safe maintenance routines."
+    },
+    {
+      "file": "20261127130200_studioflow_platform_cases.sql",
+      "purpose": "Admin-only platform security cases with independent closure approval and immutable audit events."
+    },
+    {
+      "file": "20261127130300_studioflow_dns_watch.sql",
+      "purpose": "Verified-domain DNS re-verification, drift detection, scope revocation and resolver-outage alerting."
+    },
+    {
+      "file": "20261127130400_studioflow_platform_retention.sql",
+      "purpose": "Security Center evidence and report retention controls with bounded purge operations."
+    }
+  ],
   "reviewed_feature_migrations": [
     {
       "file": "20261117130000_reconcile_template15_multiservice_booking.sql",

@@ -193,7 +193,13 @@ ok('veda Edge tree contains zero direct global fetch() calls (all outbound traff
 
 /* -------- D. Node mounts: recovery-codes action & storefront SSR --------- */
 {
-  const vercelEntry = readFileSync('api/account/recovery-codes/[action].ts', 'utf8');
+  const vercelEntry = readFileSync('api/account/[...action].ts', 'utf8');
+  const vercelConfig = JSON.parse(readFileSync('vercel.json', 'utf8'));
+  assert.deepEqual(vercelConfig.rewrites.find(({ source }) => source === '/api/security-center'), {
+    source: '/api/security-center',
+    destination: '/api/account/security-center',
+  });
+  assert.match(vercelEntry, /case '\/api\/account\/security-center':\s+return securityCenterHandler/);
   assert.match(vercelEntry, /case '\/api\/account\/recovery-codes\/active'/);
   assert.match(vercelEntry, /case '\/api\/account\/recovery-codes\/consume'/);
   assert.doesNotMatch(vercelEntry, /verifyAccessToken|validateBody|SUPABASE_SERVICE_ROLE_KEY/,

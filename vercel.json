@@ -18,6 +18,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/security-center",
+      "destination": "/api/account/security-center"
+    },
+    {
       "source": "/api/payments/razorpay/webhook",
       "destination": "https://zilwgiuiygqqardzutxi.supabase.co/functions/v1/studioflow-payments"
     },

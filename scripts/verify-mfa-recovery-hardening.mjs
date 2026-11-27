@@ -332,7 +332,7 @@ console.log('PASS (handler): the per-IP budget is claimed before any database wo
   assert.ok(expressMount.includes('app.post("/api/account/recovery-codes/consume"'), 'server mounts the consume route');
   const mountStart = expressMount.indexOf('app.post("/api/account/recovery-codes/consume"');
   assert.ok(expressMount.slice(mountStart, mountStart + 400).includes('recoveryConsumeHandler'), 'the mount routes to the shared handler');
-  const vercelEntry = readFileSync('api/account/recovery-codes/[action].ts', 'utf8');
+  const vercelEntry = readFileSync('api/account/[...action].ts', 'utf8');
   assert.match(vercelEntry, /recoveryConsumeHandler/);
   const handlerSource = readFileSync('server/recoveryCodes.ts', 'utf8');
   assert.match(handlerSource, /claimDistributedRateLimit\(/, 'the handler itself claims the per-IP budget');

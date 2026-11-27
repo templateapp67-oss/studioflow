@@ -1,0 +1,28 @@
+[Unit]
+Description=NEXORA enrolled domain proof monitor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=nexora-dns-watch
+Group=nexora-dns-watch
+WorkingDirectory=/opt/nexora-security
+EnvironmentFile=/etc/nexora-security/dns-watch.env
+ExecStart=/usr/bin/node /opt/nexora-security/ops/run-dns-watch.mjs
+TimeoutStartSec=150
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+UMask=0077
+
+# Configure host/vpc egress independently before enabling. Allow only the
+# reviewed database endpoint and approved recursive DNS resolvers.
