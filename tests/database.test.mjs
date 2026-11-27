@@ -21,7 +21,26 @@ try {
     create role anon;
     create role service_role bypassrls;
     create schema auth;
-    create table auth.users(id uuid primary key, email text);
+    create table auth.users (
+      id uuid primary key,
+      email text,
+      phone text,
+      raw_user_meta_data jsonb not null default '{}'::jsonb,
+      raw_app_meta_data jsonb not null default '{}'::jsonb,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now(),
+      email_confirmed_at timestamptz,
+      phone_confirmed_at timestamptz,
+      last_sign_in_at timestamptz,
+      confirmed_at timestamptz,
+      encrypted_password text,
+      aud text,
+      role text,
+      is_sso_user boolean not null default false,
+      is_anonymous boolean not null default false,
+      banned_until timestamptz,
+      deleted_at timestamptz
+    );
     create function auth.jwt() returns jsonb language sql stable
       as $$ select nullif(current_setting('request.jwt.claims',true),'')::jsonb $$;
     create function auth.uid() returns uuid language sql stable
