@@ -1,0 +1,44 @@
+name: Integrate Security Center V2 (staging)
+on:
+  push:
+    branches:
+      - feat/studioflow-security-center-staging-v2
+permissions:
+  contents: write
+jobs:
+  integrate-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/studioflow-security-center-staging-v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Wire StudioFlow application
+        run: python3 .staging/integrate.py
+      - name: Refresh lockfile and install dependencies
+        run: |
+          npm install --package-lock-only --no-audit --no-fund
+          npm ci --no-audit --no-fund
+      - name: Run typecheck, build, repository tests and V2 tests
+        id: verify
+        continue-on-error: true
+        run: |
+          npm test
+          printf '{"code":"dns_proof_present"}' | python3 -B RISK/normalizer.py
+      - name: Commit integrated source to staging branch
+        if: always()
+        run: |
+          rm -rf .staging
+          rm -f .github/workflows/integrate-security-center-v2.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'feat: wire StudioFlow Security Center V2 into app' || true
+          git push origin HEAD:feat/studioflow-security-center-staging-v2
+      - name: Preserve verification result
+        if: steps.verify.outcome != 'success'
+        run: exit 1
