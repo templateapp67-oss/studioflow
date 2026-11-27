@@ -31,6 +31,8 @@ export interface EmailServiceStatus {
 export interface EmailSendResult {
   success: boolean;
   delivered?: boolean;
+  accepted?: boolean;
+  duplicate?: boolean;
   simulated?: boolean;
   emailId?: string;
   error?: string;
@@ -41,7 +43,10 @@ export interface EmailSendResult {
 function normalizeResult(data: any): EmailSendResult {
   return {
     success: Boolean(data?.success),
-    delivered: Boolean(data?.delivered),
+    // Resend acceptance is not delivery; only the signed webhook confirms delivery.
+    delivered: data?.delivered === true,
+    accepted: data?.accepted === true,
+    duplicate: data?.duplicate === true,
     simulated: Boolean(data?.simulated),
     emailId: typeof data?.emailId === 'string' ? data.emailId : undefined,
     error: typeof data?.error === 'string' ? data.error : undefined,
@@ -50,36 +55,31 @@ function normalizeResult(data: any): EmailSendResult {
   };
 }
 
-async function jsonOrNull(response: Response): Promise<any | null> {
-  const type = response.headers.get('content-type') || '';
-  if (!type.includes('application/json')) return null;
-  return response.json().catch(() => null);
+async function invokeErrorMessage(error: any): Promise<string> {
+  const context = error?.context;
+  if (context && typeof context.json === 'function') {
+    const body = await context.json().catch(() => null);
+    if (typeof body?.error === 'string') return body.error;
+  }
+  return typeof error?.message === 'string' ? error.message : 'Email delivery failed';
 }
 
-/** Check the legacy proxy first, then the Edge fallback. Never claim preview delivery. */
+/** Single send path: never fall back after an uncertain Resend request. */
 export async function checkEmailServiceStatus(): Promise<EmailServiceStatus> {
   try {
-    const res = await fetch('/api/email-service-status', { signal: AbortSignal.timeout(5000) });
-    const data = await jsonOrNull(res);
-    if (res.ok && data && typeof data.configured === 'boolean') return data as EmailServiceStatus;
-  } catch {
-    // Fall back to the Edge function.
-  }
-
-  try {
     const { data, error } = await supabase.functions.invoke('studioflow-booking-emails', { method: 'GET' });
-    if (!error && data && typeof (data as any).configured === 'boolean') return data as EmailServiceStatus;
+    if (!error && data && typeof (data as any).configured === 'boolean') {
+      return data as EmailServiceStatus;
+    }
   } catch {
-    // Honest unconfigured default below.
+    // Honest unconfigured response below.
   }
-
-  return { status: 'ok', configured: false, provider: 'resend', mode: 'unconfigured' };
+  return { status: 'unavailable', configured: false, provider: 'resend', mode: 'unconfigured' };
 }
 
 /**
- * Send a booking confirmation/reminder through the legacy API path, falling
- * back to the Supabase Edge Function on static hosts. Both paths require the
- * signed-in owner/customer of the stored booking and bind the recipient server-side.
+ * The Edge Function validates booking ownership and binds the recipient to
+ * stored booking data. Durable event-key claiming prevents repeat sends.
  */
 export async function sendBookingEmail(params: BookingEmailParams): Promise<EmailSendResult> {
   if (!params.to || !params.to.includes('@')) {
@@ -87,53 +87,39 @@ export async function sendBookingEmail(params: BookingEmailParams): Promise<Emai
   }
 
   const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-  const token = sessionData.session?.access_token;
-  if (sessionError || !token) {
-    return { success: false, error: 'Sign in before sending booking email.' };
+  if (sessionError || !sessionData.session?.access_token) {
+    return { success: false, delivered: false, error: 'Sign in before sending booking email.' };
   }
 
   try {
-    const response = await fetch('/api/send-booking-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify(params),
-      signal: AbortSignal.timeout(12000),
+    const { data, error } = await supabase.functions.invoke('studioflow-booking-emails', {
+      body: params,
     });
-    const data = await jsonOrNull(response);
-    if (response.ok && data?.success) return normalizeResult(data);
-    // Authorization/validation/rate-limit failures are authoritative; do not
-    // bypass them through the fallback. Missing/static/unconfigured proxies may
-    // still fall back to a configured Edge Function.
-    if ([400, 401, 403, 409, 429].includes(response.status)) {
-      return { success: false, delivered: false, error: data?.error || 'Booking email request was rejected.' };
-    }
-  } catch {
-    // Network/static hosting fallback below.
-  }
-
-  try {
-    const { data, error } = await supabase.functions.invoke('studioflow-booking-emails', { body: params });
     if (error) {
-      let message = error.message || 'Email delivery failed';
-      const context = (error as any).context;
-      if (context && typeof context.json === 'function') {
-        const body = await context.json().catch(() => null);
-        if (typeof body?.error === 'string') message = body.error;
-      }
-      return { success: false, delivered: false, error: message };
+      return { success: false, delivered: false, error: await invokeErrorMessage(error) };
     }
     const result = normalizeResult(data);
-    if (!result.success) return { ...result, error: result.error || result.notice || 'Email delivery failed' };
+    if (!result.success) {
+      return { ...result, error: result.error || result.notice || 'Email delivery failed' };
+    }
     return result;
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : 'Failed to send automated email' };
+    return {
+      success: false,
+      delivered: false,
+      error: err instanceof Error ? err.message : 'Failed to send automated email',
+    };
   }
 }
 
-export async function sendBookingConfirmationEmail(params: Omit<BookingEmailParams, 'type'>): Promise<EmailSendResult> {
+export async function sendBookingConfirmationEmail(
+  params: Omit<BookingEmailParams, 'type'>,
+): Promise<EmailSendResult> {
   return sendBookingEmail({ ...params, type: 'confirmation' });
 }
 
-export async function sendBookingReminderEmail(params: Omit<BookingEmailParams, 'type'>): Promise<EmailSendResult> {
+export async function sendBookingReminderEmail(
+  params: Omit<BookingEmailParams, 'type'>,
+): Promise<EmailSendResult> {
   return sendBookingEmail({ ...params, type: 'reminder' });
 }
