@@ -13,7 +13,7 @@ assert.ok(['postgres:','postgresql:'].includes(url.protocol),'a PostgreSQL URL i
 assert.ok(['127.0.0.1','localhost','[::1]'].includes(url.hostname),'refusing a non-loopback PostgreSQL host');
 assert.equal(url.pathname,'/postgres','connect to the postgres maintenance DB on a disposable server');
 assert.equal(process.env.STUDIOFLOW_DISPOSABLE_POSTGRES,'yes','explicitly acknowledge the entire server is disposable');
-const dbName='studioflow_race_'+crypto.randomUUID().replaceAll('-','');
+const dbName='studioflow_race_'+crypto.randomUUID().replace(/-/g,'');
 const dbUrl=new URL(url); dbUrl.pathname='/'+dbName;
 const admin=new pg.Client({connectionString:url.toString()});
 const clients=[]; const createdRoles=[]; let createdDb=false;
