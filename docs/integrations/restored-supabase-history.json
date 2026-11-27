@@ -2052,32 +2052,7 @@
     "relations": 273,
     "assessment": "Read-only owner-supplied live catalog; not a live migration dry-run or deployment."
   },
-  "release_pending_migrations": [
-    {
-      "file": "20261126120000_accounts_backup_table_rls.sql",
-      "purpose": "Security hardening review (2026-11-26): idempotent guard that enables row level security on public.studioflow_accounts_backup when the runbook script supabase/migrations/daily_snapshot.sql was used, revokes anon/authenticated/public grants, and leaves access to service_role. No-op when the backup table was never created. Retain behind the protected manual production migration workflow; apply before or after daily_snapshot.sql is executed."
-    },
-    {
-      "file": "20261126130000_revoke_nexora_food_super_admin_bootstrap.sql",
-      "purpose": "Security hardening review (2026-11-26): idempotent revoke of the standing super_admin grant that migration 20261011080053_nexora_food_shared_backend bootstrapped for the personal account templateapp67@gmail.com. Deletes only the matching nexora_food_user_roles rows, writes a compensating revoke-super-admin-bootstrap audit entry only when a row was actually removed, and is a no-op when the grant or the account is absent. Retain behind the protected manual production migration workflow; not requested for auto-apply."
-    },
-    {
-      "file": "20261126143000_studioflow_mfa_recovery_codes.sql",
-      "purpose": "Security hardening (2026-11-26): SHA-256 + per-code salt table for single-use MFA backup recovery codes, issue/count RPCs granted to authenticated with an AAL2 assertion (issue replaces the prior batch atomically), service-role-only consume/active RPCs for the Node recovery route (AAL1 callers are blocked by the pre-request hook), a per-account throttle of 10 attempts per 10 minutes via the shared studioflow_edge_rate_limit_claim limiter, a 30-day prune helper, and studioflow_private.mfa_session_allowed() replaced so that a 10-minute recovery window opened by a consumed code also satisfies the Data API pre-request hook and every AAL2 RLS policy. Consuming a code is the only supported way back into an account whose authenticator is lost. Retain behind the protected manual production migration workflow; do not auto-apply."
-    },
-    {
-      "file": "20261127090000_processed_webhook_events.sql",
-      "purpose": "Webhook replay protection (2026-11-27): service-role-only ledger public.processed_webhook_events that makes the Razorpay and Meta WhatsApp webhooks exactly-once at the delivery layer. studioflow_claim_webhook_event() atomically records the provider event id (or sha256 of the exact raw body when no provider id header is present), enforces the signed-timestamp staleness window (default 300s; refused deliveries recorded as 'stale'), reclaims crashed 'claimed' rows only after 10 minutes, and never re-claims a row that reached 'processed'. studioflow_finish_webhook_event() marks claimed rows processed/failed. RLS is enabled with no policies and no anon/authenticated/service_role table grants; only the two security-definer RPCs are executable, by service_role only. No production data is read, moved or modified. Retain behind the protected manual production migration workflow; do not auto-apply."
-    },
-    {
-      "file": "20261127120000_revoke_app_admin_bootstrap_allowlist.sql",
-      "purpose": "Security hardening (2026-11-27): idempotent guard that removes the standing app_admin bootstrap installed by 20260928013304_nexora_admin_bootstrap_allowlist_20260928.sql for the personal account templateapp67@gmail.com. Deletes the seeded admin_email_allowlist entry (any casing/whitespace), deletes every app_admins row belonging to auth users registered with that address, drops the security-definer trigger public.trg_profiles_assign_allowlisted_admin on public.profiles and the security-definer function public.assign_allowlisted_admin() so no profile insert can ever auto-grant app_admins again, and re-asserts fail-closed grants (owner-only; authenticated keeps self-select on app_admins). Creates audit table public.app_admin_audit_logs (RLS enabled, no client grants) and writes compensating audit rows ONLY for objects actually removed; a clean re-run writes nothing. public.is_my_app_admin() is left in place as the authorization gate for growth-partner/reward routes and simply returns false until an operator grants app_admins explicitly. Object-absent environments are skipped via to_regclass guards. Retain behind the protected manual production migration workflow; do not auto-apply."
-    },
-    {
-      "file": "20261127130000_mfa_recovery_audit_log.sql",
-      "purpose": "Security hardening (2026-11-27): closes the missing-audit gap in the MFA recovery consume path released with 20261126143000_studioflow_mfa_recovery_codes.sql. Creates public.studioflow_mfa_recovery_audit (user id, outcome invalid/throttled/consumed, created_at; RLS enabled, no client grants, no policies; 90-day prune helper prune_studioflow_mfa_recovery_audit() granted to service_role only) and replaces public.studioflow_mfa_recovery_codes_consume() so it writes one audit row per outcome that passed the per-account throttle. Pre-throttle garbage input never reaches the audit insert, so audit growth is bounded by the 10-per-10-minutes per-account budget. The atomic single-use spend, the per-account throttle, and the service-role-only grant contract are unchanged. Per-IP throttling (30 attempts / 10 minutes) is enforced by the Node/Vercel recovery handler via the shared studioflow_edge_rate_limit_claim store before any database call. Idempotent (CREATE TABLE IF NOT EXISTS + CREATE OR REPLACE). Retain behind the protected manual production migration workflow; do not auto-apply."
-    }
-  ],
+  "release_pending_migrations": [],
   "reviewed_feature_migrations": [
     {
       "file": "20261117130000_reconcile_template15_multiservice_booking.sql",
@@ -2453,6 +2428,60 @@
       "evidence": "Production workflow run 45672308803, job 139412576712, listed this exact version in both local and remote columns for project zilwgiuiygqqardzutxi.",
       "purpose": "Records the applied shared lead rate-limit RPC in the repository ledger.",
       "git_blob_sha": "4366729c0a672cabfbbfe09795b9f03e22909e2d"
+    },
+    {
+      "version": "20261126120000",
+      "file": "20261126120000_accounts_backup_table_rls.sql",
+      "name": "accounts_backup_table_rls",
+      "observed_at": "2026-11-27",
+      "evidence": "Production workflow run 45974768444, job 140425268679, listed this version in both local and remote migration history for the reviewed production project.",
+      "purpose": "Security hardening review (2026-11-26): idempotent guard that enables row level security on public.studioflow_accounts_backup when the runbook script supabase/migrations/daily_snapshot.sql was used, revokes anon/authenticated/public grants, and leaves access to service_role. No-op when the backup table was never created.",
+      "git_blob_sha": "d50cf0c63d1bd5e8a4f7575a2c1f55599a90bef6"
+    },
+    {
+      "version": "20261126130000",
+      "file": "20261126130000_revoke_nexora_food_super_admin_bootstrap.sql",
+      "name": "revoke_nexora_food_super_admin_bootstrap",
+      "observed_at": "2026-11-27",
+      "evidence": "Production workflow run 45974768444, job 140425268679, listed this version in both local and remote migration history for the reviewed production project.",
+      "purpose": "Security hardening review (2026-11-26): idempotent revoke of the standing super_admin grant that migration 20261011080053_nexora_food_shared_backend bootstrapped for the personal account templateapp67@gmail.com. Deletes only the matching nexora_food_user_roles rows, writes a compensating revoke-super-admin-bootstrap audit entry only when a row was actually removed, and is a no-op when the grant or the account is absent.",
+      "git_blob_sha": "466087f5ecd22730b7d851b6a6fe7852a2377a86"
+    },
+    {
+      "version": "20261126143000",
+      "file": "20261126143000_studioflow_mfa_recovery_codes.sql",
+      "name": "studioflow_mfa_recovery_codes",
+      "observed_at": "2026-11-27",
+      "evidence": "Production workflow run 45974768444, job 140425268679, listed this version in both local and remote migration history for the reviewed production project.",
+      "purpose": "Security hardening (2026-11-26): SHA-256 + per-code salt table for single-use MFA backup recovery codes, issue/count RPCs granted to authenticated with an AAL2 assertion (issue replaces the prior batch atomically), service-role-only consume/active RPCs for the Node recovery route (AAL1 callers are blocked by the pre-request hook), a per-account throttle of 10 attempts per 10 minutes via the shared studioflow_edge_rate_limit_claim limiter, a 30-day prune helper, and studioflow_private.mfa_session_allowed() replaced so that a 10-minute recovery window opened by a consumed code also satisfies the Data API pre-request hook and every AAL2 RLS policy. Consuming a code is the only supported way back into an account whose authenticator is lost.",
+      "git_blob_sha": "0889799f0a4a8e4d9463ae35edbe8f4518b7c8f2"
+    },
+    {
+      "version": "20261127090000",
+      "file": "20261127090000_processed_webhook_events.sql",
+      "name": "processed_webhook_events",
+      "observed_at": "2026-11-27",
+      "evidence": "Production workflow run 45974768444, job 140425268679, listed this version in both local and remote migration history for the reviewed production project.",
+      "purpose": "Webhook replay protection (2026-11-27): service-role-only ledger public.processed_webhook_events that makes the Razorpay and Meta WhatsApp webhooks exactly-once at the delivery layer. studioflow_claim_webhook_event() atomically records the provider event id (or sha256 of the exact raw body when no provider id header is present), enforces the signed-timestamp staleness window (default 300s; refused deliveries recorded as 'stale'), reclaims crashed 'claimed' rows only after 10 minutes, and never re-claims a row that reached 'processed'. studioflow_finish_webhook_event() marks claimed rows processed/failed. RLS is enabled with no policies and no anon/authenticated/service_role table grants; only the two security-definer RPCs are executable, by service_role only. No production data is read, moved or modified.",
+      "git_blob_sha": "4ef28d78e58fe873b9719c1a0037e5c4cec3a87f"
+    },
+    {
+      "version": "20261127120000",
+      "file": "20261127120000_revoke_app_admin_bootstrap_allowlist.sql",
+      "name": "revoke_app_admin_bootstrap_allowlist",
+      "observed_at": "2026-11-27",
+      "evidence": "Production workflow run 45974768444, job 140425268679, listed this version in both local and remote migration history for the reviewed production project.",
+      "purpose": "Security hardening (2026-11-27): idempotent guard that removes the standing app_admin bootstrap installed by 20260928013304_nexora_admin_bootstrap_allowlist_20260928.sql for the personal account templateapp67@gmail.com. Deletes the seeded admin_email_allowlist entry (any casing/whitespace), deletes every app_admins row belonging to auth users registered with that address, drops the security-definer trigger public.trg_profiles_assign_allowlisted_admin on public.profiles and the security-definer function public.assign_allowlisted_admin() so no profile insert can ever auto-grant app_admins again, and re-asserts fail-closed grants (owner-only; authenticated keeps self-select on app_admins). Creates audit table public.app_admin_audit_logs (RLS enabled, no client grants) and writes compensating audit rows ONLY for objects actually removed; a clean re-run writes nothing. public.is_my_app_admin() is left in place as the authorization gate for growth-partner/reward routes and simply returns false until an operator grants app_admins explicitly. Object-absent environments are skipped via to_regclass guards.",
+      "git_blob_sha": "1b33046531f1a2c6f1e8593fde39e62b8f2216f0"
+    },
+    {
+      "version": "20261127130000",
+      "file": "20261127130000_mfa_recovery_audit_log.sql",
+      "name": "mfa_recovery_audit_log",
+      "observed_at": "2026-11-27",
+      "evidence": "Production workflow run 45974768444, job 140425268679, listed this version in both local and remote migration history for the reviewed production project.",
+      "purpose": "Security hardening (2026-11-27): closes the missing-audit gap in the MFA recovery consume path released with 20261126143000_studioflow_mfa_recovery_codes.sql. Creates public.studioflow_mfa_recovery_audit (user id, outcome invalid/throttled/consumed, created_at; RLS enabled, no client grants, no policies; 90-day prune helper prune_studioflow_mfa_recovery_audit() granted to service_role only) and replaces public.studioflow_mfa_recovery_codes_consume() so it writes one audit row per outcome that passed the per-account throttle. Pre-throttle garbage input never reaches the audit insert, so audit growth is bounded by the 10-per-10-minutes per-account budget. The atomic single-use spend, the per-account throttle, and the service-role-only grant contract are unchanged. Per-IP throttling (30 attempts / 10 minutes) is enforced by the Node/Vercel recovery handler via the shared studioflow_edge_rate_limit_claim store before any database call. Idempotent (CREATE TABLE IF NOT EXISTS + CREATE OR REPLACE).",
+      "git_blob_sha": "efba48b166f8e8547f95885bfe68cc7317973948"
     }
   ],
   "retimestamped_applied_migrations": [

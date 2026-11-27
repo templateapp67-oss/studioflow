@@ -144,25 +144,18 @@ for (const file of readdirSync('supabase/migrations').filter((name) => name.ends
   }
 }
 
-/* --- 3c. The ledger lists the revokes as release-pending ----------------- */
+/* --- 3c. The production ledger records the observed hardening migrations --- */
 const history = JSON.parse(readFileSync('docs/integrations/restored-supabase-history.json', 'utf8'));
-const pendingFiles = (history.release_pending_migrations || []).map((record) => record.file);
-assert.ok(pendingFiles.includes('20261126130000_revoke_nexora_food_super_admin_bootstrap.sql'),
-  'the nexora_food super_admin revoke migration is recorded as release-pending, not auto-applied');
-assert.ok(pendingFiles.includes('20261127120000_revoke_app_admin_bootstrap_allowlist.sql'),
-  'the app_admin allowlist revoke migration is recorded as release-pending, not auto-applied');
-assert.ok(pendingFiles.includes('20261127130000_mfa_recovery_audit_log.sql'),
-  'the MFA recovery audit-log migration is recorded as release-pending, not auto-applied');
-assert.ok(pendingFiles.includes('20261127090000_processed_webhook_events.sql'),
-  'the webhook ledger migration is recorded as release-pending, not auto-applied');
-assert.ok(!pendingFiles.some((file) => file.startsWith('20261011080053')),
+const appliedFiles = new Set(history.post_export_applied_versions.map((record) => record.file));
+for (const file of [
+  '20261126130000_revoke_nexora_food_super_admin_bootstrap.sql',
+  '20261127120000_revoke_app_admin_bootstrap_allowlist.sql',
+  '20261127130000_mfa_recovery_audit_log.sql',
+  '20261127090000_processed_webhook_events.sql',
+]) {
+  assert.ok(appliedFiles.has(file), `Production history must record ${file} as applied`);
+}
+assert.ok(!history.release_pending_migrations.some((record) => record.file.startsWith('20261011080053')),
   'the applied bootstrap migration is not re-listed as pending');
-const postExport = (history.post_export_applied_versions || []).map((record) => String(record.version));
-assert.ok(!postExport.some((version) => version.startsWith('2026112613')),
-  'the revoke migration is not recorded as applied');
-assert.ok(!postExport.some((version) => version.startsWith('2026112712')),
-  'the app_admin allowlist revoke migration is not recorded as applied');
-assert.ok(!postExport.some((version) => version.startsWith('2026112713')),
-  'the MFA recovery audit-log migration is not recorded as applied');
 
-console.log('PASS: no public salt fallback anywhere in source, the Edge module fails fast without a bucket salt, Turnstile is fail-closed (403, unconfigured secret included), and both personal-account bootstrap grants are revoked by idempotent release-pending migrations scoped to exactly those grants.');
+console.log('PASS: no public salt fallback anywhere in source, the Edge module fails fast without a bucket salt, Turnstile is fail-closed (403, unconfigured secret included), and both personal-account bootstrap revokes are scoped to the recorded grants.');

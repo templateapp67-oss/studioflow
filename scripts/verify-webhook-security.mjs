@@ -413,8 +413,11 @@ async function post(handler, raw, headers = {}) {
 }
 ok('Razorpay webhook handler: fresh 200/settle, duplicate short-circuit, stale 400, missing created_at 400, hash fallback, 401 precedes ledger, settle-failure 500 + failed ledger + reclaim');
 
-const pending = JSON.parse(readFileSync('docs/integrations/restored-supabase-history.json', 'utf8')).release_pending_migrations.map((m) => m.file);
-assert.ok(pending.includes('20261127090000_processed_webhook_events.sql'), 'pending-migration manifest must list the new ledger migration');
-ok('release-pending migration manifest lists the webhook ledger');
+const history = JSON.parse(readFileSync('docs/integrations/restored-supabase-history.json', 'utf8'));
+assert.ok(
+  history.post_export_applied_versions.some((record) => record.file === '20261127090000_processed_webhook_events.sql'),
+  'production migration history must record the webhook ledger migration as applied',
+);
+ok('production migration history records the webhook ledger');
 
 console.log(`\nAll webhook security checks passed (${checks.length} sections).`);
