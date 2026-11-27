@@ -43,7 +43,8 @@ requires('form-action', ["'self'", 'https://*.supabase.co', 'https://*.razorpay.
 requires('script-src', ["'self'", 'https://checkout.razorpay.com', 'https://unpkg.com', 'https://embed.tawk.to']);
 forbids('script-src', ["'unsafe-inline'", "'unsafe-eval'", '*']);
 requires('script-src-attr', ["'none'"]);
-requires('style-src', ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://unpkg.com']);
+requires('style-src', ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://unpkg.com', 'https://embed.tawk.to/_s/v4/app/']);
+forbids('style-src', ['https:', '*', 'https://*.tawk.to', 'https://embed.tawk.to']);
 requires('style-src-attr', ["'unsafe-inline'"]);
 requires('font-src', ["'self'", 'data:', 'https://fonts.gstatic.com', 'https://unpkg.com']);
 requires('connect-src', [

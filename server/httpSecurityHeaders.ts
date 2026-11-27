@@ -23,7 +23,7 @@ export function contentSecurityPolicy(options: { upgradeInsecureRequests?: boole
     "form-action 'self' https://*.supabase.co https://*.razorpay.com",
     "script-src 'self' https://checkout.razorpay.com https://unpkg.com https://connect.facebook.net https://www.clarity.ms https://*.clarity.ms https://c.bing.com https://embed.tawk.to",
     "script-src-attr 'none'",
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://embed.tawk.to/_s/v4/app/",
     "style-src-attr 'unsafe-inline'",
     "font-src 'self' data: https://fonts.gstatic.com https://unpkg.com",
     "img-src 'self' data: blob: https://*.supabase.co https://*.clarity.ms https://c.bing.com https://images.unsplash.com https://raw.githubusercontent.com https://*.pexels.com https://img.youtube.com https://i.ytimg.com https://*.fbcdn.net https://*.cdninstagram.com https://*.instagram.com https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://unpkg.com https://www.google.com https://maps.google.com https://*.tawk.to",
