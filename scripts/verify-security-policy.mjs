@@ -69,9 +69,10 @@ requires('img-src', [
   'https://raw.githubusercontent.com', 'https://*.pexels.com', 'https://img.youtube.com',
   'https://i.ytimg.com', 'https://*.fbcdn.net', 'https://*.cdninstagram.com', 'https://*.instagram.com',
   'https://tile.openstreetmap.org', 'https://*.tile.openstreetmap.org', 'https://unpkg.com',
-  'https://www.google.com', 'https://maps.google.com', 'https://*.tawk.to', 'https://cdn.jsdelivr.net/emojione/assets/png/',
+  'https://www.google.com', 'https://maps.google.com', 'https://*.tawk.to', 'https://cdn.jsdelivr.net/emojione/assets/png/', 'https://tawk.link',
 ]);
-forbids('img-src', ['https:', '*', 'https://cdn.jsdelivr.net']);
+forbids('img-src', ['https:', '*', 'https://cdn.jsdelivr.net', 'https://*.tawk.link', 'https://s3.amazonaws.com']);
+forbids('script-src', ['https://tawk.link']);
 requires('media-src', [
   "'self'", 'data:', 'blob:', 'https://*.supabase.co', 'https://*.fbcdn.net',
   'https://*.cdninstagram.com', 'https://*.googlevideo.com', 'https://www.youtube.com',
