@@ -16,9 +16,10 @@ function load(path, names, db = {}, fakeFetch = async () => { throw new Error('U
     createClient: () => db,
   });
   const entry = readFileSync(path, 'utf8');
-  const shared = entry.includes('../_shared/sessionProtection.ts')
-    ? readFileSync('supabase/functions/_shared/sessionProtection.ts', 'utf8') : '';
-  const source = (shared + '\n' + entry).replace(/^import .*from .*;\s*$/mg, '').replace(/^export /mg, '');
+  const shared = ['../_shared/sessionProtection.ts', '../_shared/webhookSecurity.ts']
+    .filter((name) => entry.includes(name))
+    .map((name) => readFileSync('supabase/functions/_shared/' + name.slice('../_shared/'.length), 'utf8'));
+  const source = (shared.join('\n') + (shared.length ? '\n' : '') + entry).replace(/^import .*from .*;\s*$/mg, '').replace(/^export /mg, '');
   const js = ts.transpileModule(source + '\nthis.testApi = {' + names.join(',') + '};', {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
   }).outputText;
@@ -89,6 +90,11 @@ function fakeDb(flow = {}, branches = []) {
       return q;
     },
     async rpc(name,args){
+      if(name==='studioflow_claim_webhook_event'){
+        if(state.claimNext){const forced=state.claimNext;state.claimNext=null;return {data:forced};}
+        return {data:{claimed:true,reason:null}};
+      }
+      if(name==='studioflow_finish_webhook_event')return {data:null,error:null};
       if(name==='studioflow_edge_rate_limit_claim')return {data:{allowed:true}};
       if(name==='nexora_whatsapp_meta_secret')return {data:args.p_secret_name==='nexora_whatsapp_webhook_verify_token'
         ? 'fixture-verify-token' : 'fixture-meta-secret'};
@@ -247,4 +253,35 @@ assert.ok(!rejectedBody.includes(providerDetail));
 assert.equal(failedReplyDb.state.logs.length, 0, 'a rejected send must not be logged as accepted');
 await failedReply.updateStatuses(failedReplyDb, connection, [{ id: 'wamid.reply', status: 'failed', timestamp: '1', errors: [{ code: 131000 }] }]);
 assert.equal(failedReplyDb.state.logs[0].error_code, '131000', 'delivery status must preserve Meta’s numeric error code');
+// Replay protection wiring: when the idempotency ledger refuses a delivery as a
+// duplicate, the handler must acknowledge without any side effect. When it is
+// refused as stale, the handler must 400 before iteration.
+{
+  async function signedRequest(entry, body, tamper = false) {
+    const raw = JSON.stringify(body);
+    const key = await webcrypto.subtle.importKey('raw', new TextEncoder().encode('fixture-meta-secret'), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    const signature = Buffer.from(await webcrypto.subtle.sign('HMAC', key, new TextEncoder().encode(raw))).toString('hex');
+    return entry.handler(new Request('https://test.invalid', { method: 'POST', body: tamper ? raw + ' ' : raw,
+      headers: { 'x-hub-signature-256': 'sha256=' + signature } }));
+  }
+  const freshBody = payload('123456');
+  for (const [reason, expectedStatus, expectedJson] of [
+    ['duplicate', 200, { received: true, duplicate: true }],
+    ['stale', 400, null],
+  ]) {
+    const ledgerDb = fakeDb();
+    ledgerDb.state.claimNext = { claimed: false, reason };
+    let sends = 0;
+    const refusedEntry = load('supabase/functions/nexora-whatsapp-webhook/index.ts', [], ledgerDb, async () => {
+      sends++;
+      return Response.json({ messages: [{ id: 'wamid.refused' }] });
+    });
+    const response = await signedRequest(refusedEntry, freshBody);
+    assert.equal(response.status, expectedStatus, `replay refused as ${reason} must return ${expectedStatus}`);
+    if (expectedJson) assert.deepEqual(await response.json(), expectedJson);
+    assert.equal(sends, 0, `a ${reason} delivery must not resend or book`);
+    assert.deepEqual(ledgerDb.state.events, [], `a ${reason} delivery must not create webhook events`);
+  }
+}
+
 console.log('PASS: actual WhatsApp handlers: owner inbox routing and validation, signed webhook routing, Graph failure diagnostics, slot 3, exact time, malformed choices, opt-out, preflight, owner auth, payment-link membership and no unverified receipt. No external messages sent.');

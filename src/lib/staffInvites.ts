@@ -388,8 +388,8 @@ export async function loadStaffWorkspace(): Promise<any | null> {
 /**
  * Why a session conflict matters
  * ------------------------------
- * Owner and staff sessions share one `localStorage` bucket (one Supabase auth
- * key). If the owner opens a staff invite link while still signed in, an
+ * Owner and staff sessions share one session-storage bucket (one Supabase
+ * auth key, kept in sessionStorage — never localStorage). If the owner opens a staff invite link while still signed in, an
  * accept would bind the OWNER's `auth.uid()` to a staff record — the exact
  * mistake the URL is supposed to make impossible. So the accept page never
  * accepts for a signed-in visitor who already owns a salon, and instead asks

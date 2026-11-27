@@ -12,7 +12,7 @@ await new Promise((resolve, reject) => probe.once('error', reject).listen(0, '12
 const port = probe.address().port;
 await new Promise(resolve => probe.close(resolve));
 const child = spawn(process.execPath, ['--import', './scripts/fixtures/storefront-offline-fetch.mjs', 'dist/server.cjs', '--port', String(port)], {
-  env: { ...process.env, NODE_ENV: 'production', RESEND_API_KEY: '' },
+  env: { ...process.env, NODE_ENV: 'production', RESEND_API_KEY: '', STUDIOFLOW_DISABLE_DISTRIBUTED_RATE_LIMIT: '1' },
   detached: true,
   stdio: ['ignore', 'pipe', 'pipe'],
 });
@@ -195,6 +195,17 @@ try {
   });
   assert.equal(send.status, 401);
   assert.equal((await send.json()).success, false);
+  // MFA recovery-code endpoints: never reachable without a bearer token.
+  const recoveryPost = await fetch(base + '/api/account/recovery-codes/consume', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ code: 'AAAA-BBBB-CCCC-DDDD' }),
+  });
+  assert.equal(recoveryPost.status, 401, 'recovery consume needs a session');
+  assert.equal((await recoveryPost.json()).consumed, false);
+  const recoveryGet = await get('/api/account/recovery-codes/active');
+  assert.equal(recoveryGet.status, 401, 'recovery-window probe needs a session');
+  assert.equal(JSON.parse(recoveryGet.body).active, false);
   const asset = readdirSync('dist/assets').find(file => /^main-.*\.js$/.test(file));
   assert.ok(asset);
   route = await get('/assets/' + asset);

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "vite build && node --import tsx scripts/prerender-public.tsx && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs && node scripts/build-storefront-ssr.mjs",
+    "build": "vite build && node --import tsx scripts/prerender-public.tsx && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --outfile=dist/server.cjs && node scripts/build-storefront-ssr.mjs",
     "start": "node dist/server.cjs",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
@@ -31,7 +31,8 @@
     "assets:template03": "node scripts/build-template03-assets.mjs",
     "assets:growth-rewards": "node scripts/build-growth-rewards-assets.mjs",
     "media:template15": "node scripts/verify-template15-media.mjs",
-    "brand:template15": "python3 scripts/brand-template15-media.py"
+    "brand:template15": "python3 scripts/brand-template15-media.py",
+    "verify:security": "node scripts/master-security-check.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

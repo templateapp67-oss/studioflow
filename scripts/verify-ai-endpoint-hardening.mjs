@@ -240,7 +240,7 @@ async function startServer(extraEnv = {}, mockAuth = false) {
   const runtimeArgs = mockAuth ? ['--import', `data:text/javascript,${encodeURIComponent(mockModule)}`] : [];
   for (let attempt = 0; attempt < 4; attempt += 1) {
     const child = spawn(process.execPath, [...runtimeArgs, 'dist/server.cjs', '--port', String(port)], {
-      env: { ...process.env, NODE_ENV: 'production', GEMINI_API_KEY: '', ...extraEnv },
+      env: { ...process.env, NODE_ENV: 'production', GEMINI_API_KEY: '', STUDIOFLOW_DISABLE_DISTRIBUTED_RATE_LIMIT: '1', ...extraEnv },
       stdio: ['ignore', 'pipe', 'pipe'],
       detached: true,
     });
@@ -295,17 +295,27 @@ const alive = async () => (await fetch(`http://127.0.0.1:${port}/api/health`)).o
   try {
     await server.ready;
 
-    // P0: the exact body that used to kill the process. Anonymous route, so the
-    // request reaches the handler.
+    // P0: the exact body that used to kill the process. The strict request
+    // validator now rejects malformed shapes with a JSON 400 before the
+    // handler ever sees them — the server stays up either way.
     for (const hostile of [
       { availableServices: 'x' },
       { availableServices: { length: 1 }, bookingHistory: 'nope', favorites: 42 },
       { availableServices: [null, 7, 'x', { serviceName: { nested: true } }] },
+    ]) {
+      const response = await post('/api/ai-recommendations', hostile);
+      assert.equal(response.status, 400, `hostile body ${JSON.stringify(hostile)} is rejected by the strict validator`);
+      assert.equal((await response.json()).code, 'invalid_request');
+      assert.ok(await alive(), 'the server survived a body that previously crashed it');
+    }
+    // Empty-but-valid shapes carry no required fields, so they still reach the
+    // handler's resilient fallback and get a JSON 200.
+    for (const benign of [
       { availableServices: [] },
       { availableServices: null, favorites: null, bookingHistory: null },
     ]) {
-      const response = await post('/api/ai-recommendations', hostile);
-      assert.equal(response.status, 200, `hostile body ${JSON.stringify(hostile)} gets a JSON answer`);
+      const response = await post('/api/ai-recommendations', benign);
+      assert.equal(response.status, 200, `valid body ${JSON.stringify(benign)} reaches the handler`);
       const payload = await response.json();
       assert.ok(Array.isArray(payload.recommendations), 'the response always carries a recommendations array');
       assert.ok(await alive(), 'the server survived a body that previously crashed it');
@@ -354,25 +364,33 @@ const alive = async () => (await fetch(`http://127.0.0.1:${port}/api/health`)).o
     const headers = { authorization: 'Bearer any.signed.token' };
 
     // The crash path in the copy fallback: `offer` was a truthy non-string and
-    // `.toUpperCase()` threw inside `catch`.
+    // `.toUpperCase()` threw inside `catch`. The strict validator now rejects
+    // these shapes with a JSON 400 before the fallback can crash; the handler's
+    // own type-tolerant fallback remains as defence in depth.
     for (const hostile of [
       { offer: { a: 1 }, serviceName: 'Facial', price: { x: 1 } },
       { offer: ['a'], businessName: null, discountPercent: 'abc' },
       { offer: 12, serviceName: {}, city: [] },
     ]) {
       const response = await post('/api/generate-promo-copy', hostile, headers);
-      assert.equal(response.status, 200, 'the copy route answers instead of crashing');
-      const payload = await response.json();
-      assert.equal(typeof payload.whatsapp, 'string', 'the fallback copy is still produced');
+      assert.equal(response.status, 400, 'the strict validator answers instead of crashing');
+      assert.equal((await response.json()).code, 'invalid_request');
       assert.ok(await alive(), 'the server survived a hostile offer value');
     }
+    // A valid offer still reaches the fallback and answers 200.
+    const sane = await post('/api/generate-promo-copy', { offer: 'Diwali special', serviceName: 'Facial', price: 1500 }, headers);
+    assert.equal(sane.status, 200, 'a valid copy request still answers');
+    assert.equal(typeof (await sane.json()).whatsapp, 'string');
 
     for (const hostile of [{ businessName: {}, ownerName: [], specialties: 7 }, { vibe: { a: 1 } }]) {
       const response = await post('/api/generate-bio', hostile, headers);
-      assert.equal(response.status, 200, 'the bio route answers instead of crashing');
-      assert.equal((await response.json()).source, 'template', 'the bio fallback is labelled honestly');
+      assert.equal(response.status, 400, 'the strict validator answers instead of crashing');
+      assert.equal((await response.json()).code, 'invalid_request');
       assert.ok(await alive(), 'the server survived a hostile bio body');
     }
+    const saneBio = await post('/api/generate-bio', { businessName: 'Studio', ownerName: 'Asha' }, headers);
+    assert.equal(saneBio.status, 200, 'a valid bio request still answers');
+    assert.equal((await saneBio.json()).source, 'template', 'the bio fallback is labelled honestly');
 
   } finally {
     stop(server.child);
@@ -394,11 +412,11 @@ assert.ok(serverSource.includes('app.use(apiErrorHandler())'), 'a terminal error
 for (const route of ['/api/generate-bio', '/api/generate-promo-copy', '/api/generate-promo-image', '/api/veda-website-content']) {
   assert.match(
     serverSource,
-    new RegExp(`app\\.post\\("${route}", requireSignedIn, aiLimiters\\.`),
+    new RegExp(`app\\.post\\("${route}", strictBody\\([^)]+\\), requireSignedIn, aiLimiters\\.`),
     `${route} must be behind sign-in and its own budget`,
   );
 }
-assert.match(serverSource, /app\.post\("\/api\/ai-recommendations", identifyCustomer, aiLimiters\.recommendations/, 'the customer route verifies a session when present and stays anonymous-friendly');
+assert.match(serverSource, /app\.post\("\/api\/ai-recommendations", strictBody\([^)]+\), identifyCustomer, aiLimiters\.recommendations/, 'the customer route verifies a session when present and stays anonymous-friendly (behind strictBody)');
 
 // Every browser caller must send the session token, or signing in would not help.
 for (const file of ['src/components/AIBioModal.tsx', 'src/components/PromoStudio.tsx', 'src/lib/vedaSanjeevaniCustomizer.ts', 'src/components/customer/AIRecommendations.tsx']) {

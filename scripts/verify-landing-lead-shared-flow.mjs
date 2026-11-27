@@ -14,7 +14,7 @@ try {
   await db.exec(readFileSync('supabase/migrations/20261107071230_nexora_salon_landing_rate_limits.sql', 'utf8'));
   await db.exec(readFileSync('supabase/migrations/20261125090000_nexora_lead_rate_limit_rpc.sql', 'utf8'));
   const invokeRpc = async (args) => (await db.query('select public.claim_landing_lead_rate_limit($1, $2, $3) as result', [args.p_bucket_key, args.p_window_seconds, args.p_max_attempts])).rows[0].result;
-  globalThis.Deno = { env: { get: name => ({ SUPABASE_URL: 'https://example.test', SUPABASE_SERVICE_ROLE_KEY: 'service-test-secret' })[name] }, serve: fn => { handler = fn; } };
+  globalThis.Deno = { env: { get: name => ({ SUPABASE_URL: 'https://example.test', SUPABASE_SERVICE_ROLE_KEY: 'service-test-secret', LANDING_LEAD_RATE_LIMIT_SALT: 'shared-flow-test-salt', TURNSTILE_SECRET_KEY: 'shared-flow-test-turnstile' })[name] }, serve: fn => { handler = fn; } };
   globalThis.__testSharedLeadService = {
     rpc: async (fn, args) => {
       if (fn === 'claim_landing_lead_rate_limit') return { data: await invokeRpc(args), error: null };
@@ -31,7 +31,7 @@ try {
   await import('data:text/javascript;base64,' + Buffer.from(edge.outputFiles[0].text).toString('base64'));
   const { nexoraDemoLeadHandler } = await import('data:text/javascript;base64,' + Buffer.from(server.outputFiles[0].text).toString('base64'));
   process.env.SUPABASE_URL = 'https://example.test'; process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-test-secret';
-  delete process.env.VERCEL; delete process.env.LANDING_LEAD_RATE_LIMIT_SALT; delete process.env.NEXORA_CRM_LEAD_ENDPOINT;
+  delete process.env.VERCEL; process.env.LANDING_LEAD_RATE_LIMIT_SALT = 'shared-flow-test-salt'; delete process.env.NEXORA_CRM_LEAD_ENDPOINT;
   Math.random = () => 1; // Deterministically skip optional cleanup.
   globalThis.fetch = async (url, init) => {
     const target = String(url);
@@ -41,14 +41,15 @@ try {
       return handler(new Request(target, { method: 'POST', headers: init.headers, body: init.body }));
     }
     if (target.includes('/rest/v1/landing_leads?')) return new Response(null, { status: 204 });
+    if (target.endsWith('challenges.cloudflare.com/turnstile/v0/siteverify')) return Response.json({ success: true });
     throw new Error('Unexpected network in offline test');
   };
-  const payload = { lead_type: 'demo_request', full_name: 'Test Person', email: 'test@example.test', consent_given: true, form_elapsed_ms: 3000 };
+  const payload = { lead_type: 'demo_request', full_name: 'Test Person', email: 'test@example.test', consent_given: true, form_elapsed_ms: 3000, turnstile_token: 'synthetic-token' };
   const direct = async () => handler(new Request('https://edge.example.test/submit', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer public-key', 'x-forwarded-for': '192.0.2.7' }, body: JSON.stringify(payload) }));
   const fallback = async () => {
     let status = 200; const headers = {}; let body;
     const res = { setHeader: (key, value) => { headers[key] = value; }, status: code => { status = code; return res; }, json: data => { body = data; return data; } };
-    await nexoraDemoLeadHandler({ method: 'POST', ip: '192.0.2.7', body: { name: 'Test Person', email: 'test@example.test', salonName: 'Test salon', consent: true, formElapsedMs: 3000 } }, res);
+    await nexoraDemoLeadHandler({ method: 'POST', ip: '192.0.2.7', body: { name: 'Test Person', email: 'test@example.test', salonName: 'Test salon', consent: true, formElapsedMs: 3000, turnstileToken: 'synthetic-token' } }, res);
     return { status, headers, body };
   };
   for (let i = 0; i < 3; i++) assert.equal((await direct()).status, 200);

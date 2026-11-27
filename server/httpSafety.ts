@@ -1,4 +1,5 @@
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
+import { safeLogger } from './safeLogger.js';
 
 /**
  * Async route safety for the Express 4 server.
@@ -139,7 +140,7 @@ export function apiErrorHandler() {
     const status = clientErrorStatus(error);
 
     if (status >= 400 && status < 500) {
-      console.warn(`[api] rejected ${route}: ${status}`);
+      safeLogger.warn(`[api] rejected ${route}: ${status}`);
       if (isResponseOpen(res)) {
         res.status(status).json(clientErrorMessage(status));
         return;
@@ -149,7 +150,7 @@ export function apiErrorHandler() {
     }
 
     const message = error instanceof Error ? error.message : String(error);
-    console.error(`[api] unhandled route error on ${route}: ${message}`);
+    safeLogger.error(`[api] unhandled route error on ${route}: ${message}`);
     if (isResponseOpen(res)) {
       res.status(500).json({ error: 'The request could not be completed.', code: 'internal_error' });
       return;

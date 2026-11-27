@@ -5,11 +5,8 @@
 // function performs its own JWT + booking authorization checks (GET status and
 // OPTIONS must remain reachable); do not expose a service-role bypass here.
 
-const cors = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-};
+import { browserCorsHeaders, isAllowedBrowserOrigin } from '../_shared/browserCors.ts';
+const BOOKING_EMAIL_CORS = 'authorization, apikey, content-type, x-client-info';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -76,15 +73,15 @@ async function claimQuota(
   }
 }
 
-function jsonResponse(body: unknown, status = 200) {
+function jsonResponse(body: unknown, status = 200, origin: string | null = null) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    headers: { ...browserCorsHeaders(origin, BOOKING_EMAIL_CORS, 'GET, POST, OPTIONS'), 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
   });
 }
 
-function fail(status: number, error: string, extra: Record<string, unknown> = {}) {
-  return jsonResponse({ success: false, delivered: false, error, ...extra }, status);
+function fail(status: number, error: string, extra: Record<string, unknown> = {}, origin: string | null = null) {
+  return jsonResponse({ success: false, delivered: false, error, ...extra }, status, origin);
 }
 
 async function supabaseFetch(path: string, token: string): Promise<Response> {
@@ -98,7 +95,11 @@ async function supabaseFetch(path: string, token: string): Promise<Response> {
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
+  const origin = req.headers.get('origin');
+  if (origin && !isAllowedBrowserOrigin(origin)) return jsonResponse({ success: false, delivered: false, error: 'Origin not allowed' }, 403, origin);
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: browserCorsHeaders(origin, BOOKING_EMAIL_CORS, 'GET, POST, OPTIONS') });
+  }
 
   const resendApiKey = getEnv('RESEND_API_KEY');
   const fromEmail = getEnv('RESEND_FROM_EMAIL') || 'StudioFlow <onboarding@resend.dev>';
@@ -111,61 +112,61 @@ Deno.serve(async (req: Request) => {
       provider: 'resend',
       from: fromEmail,
       mode: resendApiKey ? 'live' : 'unconfigured',
-    });
+    }, 200, origin);
   }
-  if (req.method !== 'POST') return fail(405, 'POST method required');
+  if (req.method !== 'POST') return fail(405, 'POST method required', {}, origin);
 
   try {
     const raw = await req.text();
-    if (!raw || raw.length > 50000) return fail(400, 'Request body missing or too large');
+    if (!raw || raw.length > 50000) return fail(400, 'Request body missing or too large', {}, origin);
     let body: any;
-    try { body = JSON.parse(raw); } catch { return fail(400, 'Request body must be valid JSON.'); }
-    if (!body || typeof body !== 'object' || Array.isArray(body)) return fail(400, 'Request body missing or invalid.');
+    try { body = JSON.parse(raw); } catch { return fail(400, 'Request body must be valid JSON.', {}, origin); }
+    if (!body || typeof body !== 'object' || Array.isArray(body)) return fail(400, 'Request body missing or invalid.', {}, origin);
 
     const type = body.type === 'reminder' ? 'reminder' : 'confirmation';
     const bookingRef = cleanText(body.bookingRef, 64);
-    if (!UUID.test(bookingRef)) return fail(400, 'A valid booking reference is required.');
+    if (!UUID.test(bookingRef)) return fail(400, 'A valid booking reference is required.', {}, origin);
 
     const authorization = req.headers.get('authorization') || '';
     const token = /^Bearer\s+\S+/i.test(authorization) ? authorization.replace(/^Bearer\s+/i, '').trim() : '';
-    if (!token) return fail(401, 'Sign in before sending booking email.');
+    if (!token) return fail(401, 'Sign in before sending booking email.', {}, origin);
 
     let user: { id: string; email: string };
     try {
       const response = await supabaseFetch('/auth/v1/user', token);
-      if (!response.ok) return fail(401, 'Your session expired. Sign in again.');
+      if (!response.ok) return fail(401, 'Your session expired. Sign in again.', {}, origin);
       const parsed = await response.json();
-      if (typeof parsed?.id !== 'string' || typeof parsed?.email !== 'string') return fail(401, 'Your session expired. Sign in again.');
+      if (typeof parsed?.id !== 'string' || typeof parsed?.email !== 'string') return fail(401, 'Your session expired. Sign in again.', {}, origin);
       user = { id: parsed.id, email: parsed.email.trim().toLowerCase() };
     } catch {
-      return fail(503, 'Email authorization is temporarily unavailable.');
+      return fail(503, 'Email authorization is temporarily unavailable.', {}, origin);
     }
 
     let booking: any;
     try {
       const response = await supabaseFetch(`/rest/v1/studioflow_bookings?id=eq.${encodeURIComponent(bookingRef)}&select=id,owner_id,customer_id,payload,status`, token);
-      if (!response.ok) return fail(404, 'Booking not found for this account.');
+      if (!response.ok) return fail(404, 'Booking not found for this account.', {}, origin);
       const rows = await response.json();
       booking = Array.isArray(rows) && rows.length === 1 ? rows[0] : null;
     } catch {
-      return fail(503, 'Booking verification is temporarily unavailable.');
+      return fail(503, 'Booking verification is temporarily unavailable.', {}, origin);
     }
-    if (!booking) return fail(404, 'Booking not found for this account.');
-    if (booking.owner_id !== user.id && booking.customer_id !== user.id) return fail(403, 'Booking not found for this account.');
+    if (!booking) return fail(404, 'Booking not found for this account.', {}, origin);
+    if (booking.owner_id !== user.id && booking.customer_id !== user.id) return fail(403, 'Booking not found for this account.', {}, origin);
 
     const payload = booking.payload && typeof booking.payload === 'object' ? booking.payload : {};
     const storedRecipient = cleanText(payload.clientEmail, 254).toLowerCase();
     const recipient = storedRecipient || (booking.customer_id === user.id ? user.email : '');
-    if (!EMAIL.test(recipient)) return fail(409, 'This booking has no verified recipient email address.');
+    if (!EMAIL.test(recipient)) return fail(409, 'This booking has no verified recipient email address.', {}, origin);
     if (body.to !== undefined && cleanText(body.to, 254).toLowerCase() !== recipient) {
-      return fail(403, 'Booking email recipient must match the email saved on the booking.');
+      return fail(403, 'Booking email recipient must match the email saved on the booking.', {}, origin);
     }
 
     const serviceKey = getEnv('SUPABASE_SERVICE_ROLE_KEY');
     if (!serviceKey) {
       return fail(503, 'Email send limit cannot be enforced because the server credential is missing.', {
         notice: 'No email was sent.',
-      });
+      }, origin);
     }
     let quota: QuotaDecision;
     try {
@@ -173,18 +174,18 @@ Deno.serve(async (req: Request) => {
     } catch {
       return fail(503, 'Email send limit is temporarily unavailable. Try again shortly.', {
         notice: 'No email was sent.',
-      });
+      }, origin);
     }
     if (!quota.allowed) {
       return new Response(JSON.stringify({ success: false, delivered: false, error: 'Email send limit reached. Try again in a few minutes.' }), {
         status: 429,
-        headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Retry-After': String(quota.retryAfterSeconds) },
+        headers: { ...browserCorsHeaders(origin, BOOKING_EMAIL_CORS, 'GET, POST, OPTIONS'), 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Retry-After': String(quota.retryAfterSeconds) },
       });
     }
     if (!resendApiKey) {
       return fail(503, 'Email delivery is not configured. Set RESEND_API_KEY before sending customer emails.', {
         notice: 'Email delivery is not configured; no message was sent.',
-      });
+      }, origin);
     }
 
     const salonName = cleanText(body.salonName || payload.salonName || 'StudioFlow Salon', 120);
@@ -234,11 +235,11 @@ Deno.serve(async (req: Request) => {
     const resendData = await resendResponse.json().catch(() => ({}));
     if (!resendResponse.ok) {
       const message = typeof resendData?.message === 'string' ? resendData.message : typeof resendData?.error === 'string' ? resendData.error : 'Failed to send email via Resend API.';
-      return fail(502, message);
+      return fail(502, message, {}, origin);
     }
-    if (typeof resendData?.id !== 'string') return fail(502, 'Email provider returned an incomplete delivery response.');
-    return jsonResponse({ success: true, delivered: true, emailId: resendData.id, to: recipient, type, subject });
+    if (typeof resendData?.id !== 'string') return fail(502, 'Email provider returned an incomplete delivery response.', {}, origin);
+    return jsonResponse({ success: true, delivered: true, emailId: resendData.id, to: recipient, type, subject }, 200, origin);
   } catch {
-    return fail(500, 'Internal email service error');
+    return fail(500, 'Internal email service error', {}, origin);
   }
 });

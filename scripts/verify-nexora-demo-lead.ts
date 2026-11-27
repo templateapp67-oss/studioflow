@@ -89,6 +89,7 @@ async function call(body: unknown, method = 'POST') {
 try {
   process.env.SUPABASE_URL = 'https://zilwgiuiygqqardzutxi.supabase.co';
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-test-key';
+  process.env.LANDING_LEAD_RATE_LIMIT_SALT = 'demo-lead-test-salt';
 
   assert.equal(leadClientIp({ ip: '192.0.2.7', headers: { 'x-forwarded-for': '203.0.113.8' } }, false), '192.0.2.7');
   assert.equal(leadClientIp({ headers: { 'x-vercel-forwarded-for': '203.0.113.8' } }, true), '203.0.113.8');
@@ -116,7 +117,7 @@ try {
   assert.equal(upstreamCalls.length, 1, 'Exactly one upstream call is made');
   assert.equal(budgetCalls.length, 1);
   assert.match(budgetCalls[0].p_bucket_key, /^[a-f0-9]{64}$/);
-  assert.equal(budgetCalls[0].p_bucket_key, createHash('sha256').update('nexora-landing-rate-limit-v1:192.0.2.7').digest('hex'));
+  assert.equal(budgetCalls[0].p_bucket_key, createHash('sha256').update('demo-lead-test-salt:192.0.2.7').digest('hex'));
   // Salt consistency: the configured salt must actually change the bucket key,
   // and a mismatched salt must isolate buckets (the Edge and server share a
   // budget only when both use the same salt).
@@ -128,6 +129,19 @@ try {
   await call(validLead);
   assert.notEqual(budgetCalls[0].p_bucket_key, createHash('sha256').update('custom-salt-alpha:192.0.2.7').digest('hex'), 'a different salt isolates the bucket');
   delete process.env.LANDING_LEAD_RATE_LIMIT_SALT;
+  await assert.rejects(
+    () => call(validLead),
+    /LANDING_LEAD_RATE_LIMIT_SALT/,
+    'a missing bucket salt throws instead of falling back to a public default',
+  );
+  assert.equal(budgetCalls.length, 0, 'no budget claim happens without a salt');
+  assert.equal(upstreamCalls.length, 0, 'no upstream call happens without a salt');
+  process.env.LANDING_LEAD_RATE_LIMIT_SALT = 'demo-lead-test-salt';
+  // Re-issue a submission under the restored salt so the budget/upstream
+  // assertions below observe a fresh, valid call.
+  result = await call(validLead);
+  assert.equal(result.status, 201, 'a submission under a restored salt is stored');
+  assert.equal(budgetCalls.length, 1);
   assert.equal(budgetCalls[0].p_window_seconds, 600);
   assert.ok(!JSON.stringify(budgetCalls).includes('192.0.2.7'), 'IP is never stored in the budget request');
   assert.equal(budgetCalls[0].p_max_attempts, 5);
@@ -152,6 +166,23 @@ try {
     'lead-abc-123-def',
     'The idempotency key is forwarded so a retry collapses onto the same lead',
   );
+
+  /* --- 1c. Turnstile tokens are forwarded, never trusted ------------------- */
+  upstream = { status: 200, body: { ok: true } };
+  result = await call({ ...validLead, turnstileToken: 'visitor-token-abc-123' });
+  assert.equal(result.status, 201, 'A submission with a token is stored');
+  assert.equal(upstreamCalls[0].payload.turnstile_token, 'visitor-token-abc-123', 'The token is forwarded to the Edge Function');
+  result = await call({ ...validLead, turnstile_token: 'snake-case-token-456' });
+  assert.equal(result.status, 201, 'The snake_case spelling is also accepted');
+  assert.equal(upstreamCalls[0].payload.turnstile_token, 'snake-case-token-456', 'The snake_case token is forwarded');
+  result = await call(validLead);
+  assert.equal(result.status, 201, 'Without a token the store decides; the server never trusts it alone');
+  assert.equal(upstreamCalls[0].payload.turnstile_token, null, 'No token forwards as null');
+  upstream = { status: 403, body: { ok: false } };
+  result = await call(validLead);
+  assert.equal(result.status, 403, 'An upstream verification failure answers 403');
+  assert.ok(!result.body.ok, 'A verification failure never reports success');
+  upstream = { status: 200, body: { ok: true } };
 
   /* --- 2. Invalid email ---------------------------------------------------- */
   result = await call({ ...validLead, email: 'not-an-email' });
@@ -261,7 +292,7 @@ try {
   console.warn = originalWarn;
   console.error = originalError;
   console.log(
-    'PASS: demo lead handler stores valid submissions, rejects invalid input, honours the honeypot, maps rate limits and storage failures without faking success, keeps a failing CRM sink from losing a stored lead, and never logs personal data or credentials.',
+    'PASS: demo lead handler stores valid submissions, rejects invalid input, honours the honeypot, maps rate limits and storage failures without faking success, fails fast when the bucket salt is missing, keeps a failing CRM sink from losing a stored lead, and never logs personal data or credentials.',
   );
 } finally {
   globalThis.fetch = originalFetch;

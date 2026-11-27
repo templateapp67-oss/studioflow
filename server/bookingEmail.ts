@@ -5,11 +5,14 @@
  * caller-supplied recipients or booking details.
  */
 
+import { BOOKING_EMAIL_SCHEMA, safeOutboundFetch, validateBody } from './httpValidation.js';
+import { claimDistributedRateLimit, hashBucketKey } from './distributedRateLimit.js';
+
 const DEFAULT_SUPABASE_URL = 'https://zilwgiuiygqqardzutxi.supabase.co';
 const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_Xck8H8PcTCCnEwkvBfiSLw_c973vJkH';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const WINDOW_MS = 10 * 60 * 1000;
+const WINDOW_SECONDS = 600;
 const MAX_PER_WINDOW = 5;
 
 type JsonResponder = {
@@ -25,7 +28,13 @@ type BookingEmailRequest = {
   get?: (name: string) => string | undefined;
 };
 
+// Per-process fallback for local development only (the shared Postgres store
+// is used whenever a service key is configured). Bound the map: an attacker
+// cycling distinct keys must not grow memory without limit. At capacity,
+// unknown callers are refused until a window expires rather than evicting
+// active budgets.
 const windows = new Map<string, { count: number; resetAt: number }>();
+const MAX_TRACKED_KEYS = 10_000;
 
 function env(name: string): string {
   return (process.env[name] || '').trim().replace(/^['"]|['"]$/g, '');
@@ -53,19 +62,36 @@ function money(value: unknown): number {
   return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
 }
 
-function consumeQuota(key: string): boolean {
+function fallbackQuota(key: string): boolean {
   const now = Date.now();
   for (const [candidate, window] of windows) {
     if (window.resetAt <= now) windows.delete(candidate);
   }
   const current = windows.get(key);
   if (!current) {
-    windows.set(key, { count: 1, resetAt: now + WINDOW_MS });
+    if (windows.size >= MAX_TRACKED_KEYS) return false;
+    windows.set(key, { count: 1, resetAt: now + WINDOW_SECONDS * 1000 });
     return true;
   }
   if (current.count >= MAX_PER_WINDOW) return false;
   current.count += 1;
   return true;
+}
+
+/**
+ * Shared store first (survives cold starts and parallel instances); the
+ * bounded per-process budget only engages when no service key is configured.
+ * @returns 0 when the send may proceed, otherwise seconds until the window
+ *          resets. Throws when the configured store is unreachable — callers
+ *          fail closed with 503.
+ */
+async function consumeQuota(key: string): Promise<number> {
+  const claimed = await claimDistributedRateLimit(
+    hashBucketKey('booking-email', key),
+    { windowSeconds: WINDOW_SECONDS, maxAttempts: MAX_PER_WINDOW },
+  );
+  if (claimed === 'unconfigured') return fallbackQuota(key) ? 0 : WINDOW_SECONDS;
+  return claimed.allowed ? 0 : claimed.retryAfterSeconds;
 }
 
 function supabaseConfig() {
@@ -77,7 +103,8 @@ function supabaseConfig() {
 
 async function supabaseFetch(path: string, token: string): Promise<Response> {
   const { url, key } = supabaseConfig();
-  return fetch(`${url}${path}`, {
+  // Outbound guard: HTTPS only, public hosts only, redirects not followed.
+  return safeOutboundFetch(`${url}${path}`, {
     headers: { apikey: key, Authorization: `Bearer ${token}` },
     signal: AbortSignal.timeout(8000),
   });
@@ -130,8 +157,11 @@ export async function emailStatusHandler(_req: BookingEmailRequest, res: JsonRes
 export async function bookingEmailHandler(req: BookingEmailRequest, res: JsonResponder) {
   if (req.method && req.method !== 'POST') return fail(res, 405, 'POST method required.');
   try {
-    const body = req.body;
-    if (!body || typeof body !== 'object' || Array.isArray(body)) return fail(res, 400, 'Request body missing or invalid.');
+    const bodyResult = validateBody(req.body, BOOKING_EMAIL_SCHEMA, 32 * 1024);
+    if (bodyResult.ok === false) {
+      return fail(res, bodyResult.status, bodyResult.status === 413 ? 'The request is too large.' : 'Request body failed validation.');
+    }
+    const body = bodyResult.data;
     const type = body.type === 'reminder' ? 'reminder' : 'confirmation';
     const bookingRef = cleanText(body.bookingRef, 64);
     if (!UUID.test(bookingRef)) return fail(res, 400, 'A valid booking reference is required.');
@@ -158,9 +188,16 @@ export async function bookingEmailHandler(req: BookingEmailRequest, res: JsonRes
       return fail(res, 403, 'Booking email recipient must match the email saved on the booking.');
     }
 
-    if (!consumeQuota(`${user.id}:${bookingRef}:${type}`)) {
-      res.setHeader?.('Retry-After', String(WINDOW_MS / 1000));
-      return fail(res, 429, 'Email send limit reached. Try again in a few minutes.');
+    let quotaRetry = 0;
+    try {
+      quotaRetry = await consumeQuota(`${user.id}:${bookingRef}:${type}`);
+    } catch {
+      res.setHeader?.('Retry-After', '30');
+      return fail(res, 503, 'Email sending is temporarily unavailable. Try again shortly.', { code: 'rate_limit_unavailable', retryAfterSeconds: 30 });
+    }
+    if (quotaRetry > 0) {
+      res.setHeader?.('Retry-After', String(quotaRetry));
+      return fail(res, 429, 'Email send limit reached. Try again in a few minutes.', { code: 'rate_limited', retryAfterSeconds: quotaRetry });
     }
 
     const resendApiKey = env('RESEND_API_KEY');
@@ -209,7 +246,7 @@ export async function bookingEmailHandler(req: BookingEmailRequest, res: JsonRes
       + `Total: Rs. ${price} | Paid: Rs. ${paid} | Balance Due: Rs. ${balance}\n\n`
       + `Please arrive 10 minutes prior to your appointment.\n${phone ? `Phone: ${phone}\n` : ''}`;
 
-    const response = await fetch('https://api.resend.com/emails', {
+    const response = await safeOutboundFetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ from: fromEmail, to: [recipient], subject, html, text }),

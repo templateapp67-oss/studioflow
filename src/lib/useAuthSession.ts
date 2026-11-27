@@ -24,11 +24,25 @@ export function useAuthSession(onRecovery?: () => void) {
   useEffect(() => {
     if (!token) return;
     let active = true;
-    void withTimeout(Promise.resolve().then(() => supabase.auth.mfa.getAuthenticatorAssuranceLevel(token)), 10000, 'Checking two-step verification')
-      .then(({ data, error }) => {
+    void withTimeout(Promise.resolve().then(async (): Promise<{ required: boolean; error: string | null }> => {
+      const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel(token);
+      if (error) return { required: true, error: 'Could not check two-step verification. Try again.' };
+      let required = data.nextLevel === 'aal2' && data.currentLevel !== 'aal2';
+      if (required) {
+        // A recently consumed recovery code opens a short re-enrolment window;
+        // ask the server (it reads service-role-only state at AAL1) whether it
+        // is open before insisting on the authenticator.
+        try {
+          const response = await fetch('/api/account/recovery-codes/active', { headers: { authorization: `Bearer ${token}` } });
+          const body = await response.json().catch(() => null);
+          if (body && body.active === true) required = false;
+        } catch { /* recovery probe unavailable → keep the MFA requirement */ }
+      }
+      return { required, error: null };
+    }), 10000, 'Checking two-step verification')
+      .then(({ required, error }) => {
         if (!active) return;
-        if (error) setAssurance({ key, required: true, error: 'Could not check two-step verification. Try again.' });
-        else setAssurance({ key, required: data.nextLevel === 'aal2' && data.currentLevel !== 'aal2', error: '' });
+        setAssurance({ key, required, error: error ?? '' });
       })
       .catch(() => {
         if (active) setAssurance({ key, required: true, error: 'Could not check two-step verification. Try again.' });

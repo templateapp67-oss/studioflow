@@ -7,6 +7,7 @@ import {INITIAL_SALON_PROFILE} from '../src/mockData';
 import {CustomerSalonWebsite} from '../src/components/CustomerSalonWebsite';
 import {defaultServiceImage} from '../src/lib/serviceImages';
 import {servicePhotoFromUrl} from '../src/lib/servicePhoto';
+import {PNG_HEADER} from './fakeImages';
 for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_hair_studio')){
  const services=template.id==='skincare_clinic'?template.services.map(s=>({...s,clinicServiceApproved:true,clinicPublicationStatus:'published' as const,clinicFeeStatus:'verified' as const,clinicPriceVerified:true})):template.services;
  const html=renderToStaticMarkup(<CustomerSalonWebsite profile={{...INITIAL_SALON_PROFILE,businessType:template.id}} services={services} stylists={[]} onAddAppointment={async a=>a}/>);
@@ -149,8 +150,8 @@ for(const template of Object.values(CATEGORY_TEMPLATES).filter(t=>t.id!=='mens_h
 }
 const original=globalThis.fetch;let calls=0;
 try{
- globalThis.fetch=async(_url,options)=>{calls++;assert.equal(options?.credentials,'omit');return new Response(new Uint8Array([1,2,3]),{headers:{'content-type':'image/png'}})};
- const file=await servicePhotoFromUrl('https://example.com/photo.png');assert.equal(file.type,'image/png');assert.equal(file.size,3);
+ globalThis.fetch=async(_url,options)=>{calls++;assert.equal(options?.credentials,'omit');return new Response(PNG_HEADER,{headers:{'content-type':'image/png'}})};
+ const file=await servicePhotoFromUrl('https://example.com/photo.png');assert.equal(file.type,'image/png');assert.equal(file.size,PNG_HEADER.length);
  const before=calls;await assert.rejects(()=>servicePhotoFromUrl('javascript:alert(1)'),/HTTPS/);assert.equal(calls,before);
  await assert.rejects(()=>servicePhotoFromUrl('https://user:pass@example.com/photo'),/HTTPS/);
  globalThis.fetch=async()=>new Response('html',{headers:{'content-type':'text/html'}});await assert.rejects(()=>servicePhotoFromUrl('https://example.com'),/directly/);

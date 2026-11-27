@@ -1,4 +1,5 @@
 import React from 'react';import {act,create} from 'react-test-renderer';import assert from 'node:assert/strict';
+import {jpegBytes,pngFile} from './fakeImages';
 import {STAFF_TITLES,staffCrop,prepareStaffPhoto,validStaffUrl} from '../src/lib/staffProfile';
 import {AddStaffModal} from '../src/components/AddStaffModal';import {StaffTitleField,StaffPhotoField} from '../src/components/StaffProfileFields';import {supabase} from '../src/lib/supabase';
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;
@@ -6,8 +7,8 @@ assert.equal(Object.keys(STAFF_TITLES).length,16);assert.deepEqual(staffCrop(160
 let revoked=0,draw:any[]=[],canvas:any;
 const originalCreate=URL.createObjectURL,originalRevoke=URL.revokeObjectURL;URL.createObjectURL=()=> 'blob:test';URL.revokeObjectURL=()=>{revoked++};
 (globalThis as any).Image=class{naturalWidth=1600;naturalHeight=900;onload:any;set src(_:string){queueMicrotask(()=>this.onload())}};
-(globalThis as any).document={createElement:()=>{canvas={getContext:()=>({fillRect(){},drawImage(...args:any[]){draw=args}}),toBlob:(fn:any)=>fn(new Blob(['jpeg'],{type:'image/jpeg'}))};return canvas},body:{style:{}},activeElement:null,addEventListener(){},removeEventListener(){}};
-const file=await prepareStaffPhoto(new File(['png'],'input.png',{type:'image/png'}));assert.equal(file.type,'image/jpeg');assert.equal(canvas.width,640);assert.equal(canvas.height,640);assert.deepEqual(draw.slice(1),[350,0,900,900,0,0,640,640]);assert.equal(revoked,1);await assert.rejects(prepareStaffPhoto(new File(['svg'],'bad.svg',{type:'image/svg+xml'})));URL.createObjectURL=originalCreate;URL.revokeObjectURL=originalRevoke;
+(globalThis as any).document={createElement:()=>{canvas={getContext:()=>({fillRect(){},drawImage(...args:any[]){draw=args}}),toBlob:(fn:any)=>fn(new Blob([jpegBytes(320)],{type:'image/jpeg'}))};return canvas},body:{style:{}},activeElement:null,addEventListener(){},removeEventListener(){}};
+const file=await prepareStaffPhoto(pngFile('input.png'));assert.equal(file.type,'image/jpeg');assert.equal(canvas.width,640);assert.equal(canvas.height,640);assert.deepEqual(draw.slice(1),[350,0,900,900,0,0,640,640]);assert.equal(revoked,1);await assert.rejects(prepareStaffPhoto(new File(['svg'],'bad.svg',{type:'image/svg+xml'})));URL.createObjectURL=originalCreate;URL.revokeObjectURL=originalRevoke;
 let uploads=0,fail=true,saved:any;let tree:any;
 (supabase.auth as any).getUser=async()=>({data:{user:{id:'test-owner'}},error:null});
 (supabase.storage as any).from=(bucket:string)=>{assert.equal(bucket,'studioflow-media');return{upload:async(path:string,image:File)=>{assert.match(path,/^test-owner\//);assert.equal(image.type,'image/jpeg');uploads++;return {error:fail?new Error('Upload failed'):null}},getPublicUrl:()=>({data:{publicUrl:'https://example.com/uploaded.jpg'}})}};

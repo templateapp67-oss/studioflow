@@ -109,6 +109,24 @@ export const reviewRows = summaryOutput.replies.map((reply, index) => ({
 }));
 
 export type Route = (url: URL, init: RequestInit, body: unknown) => Response | Promise<Response>;
+const WEBP_HEADER_SIZE = 12;
+/** Minimal WebP-looking buffer ("RIFF" + size + "WEBP") of exactly `size` bytes. */
+export function testImageBytes(size: number): Uint8Array<ArrayBuffer> {
+  const safeSize = Math.max(WEBP_HEADER_SIZE, size);
+  const bytes = new Uint8Array(safeSize);
+  const ascii = (value: string, start: number) => {
+    for (let index = 0; index < value.length; index += 1) bytes[start + index] = value.charCodeAt(index);
+  };
+  ascii("RIFF", 0);
+  const riffSize = safeSize - 8;
+  bytes[4] = riffSize & 0xff;
+  bytes[5] = (riffSize >> 8) & 0xff;
+  bytes[6] = (riffSize >> 16) & 0xff;
+  bytes[7] = (riffSize >> 24) & 0xff;
+  ascii("WEBP", 8);
+  return bytes;
+}
+
 export function fetchMock(
   route: Route,
 ): { fetcher: Fetcher; calls: { url: URL; body: unknown; init: RequestInit }[] } {
@@ -192,7 +210,7 @@ export function fetchMock(
       });
     }
     if (url.pathname.startsWith("/storage/v1/object/public/site-images/")) {
-      return new Response(null, {
+      return new Response(testImageBytes(1000), {
         headers: { "Content-Length": "1000", "Content-Type": "image/webp" },
       });
     }

@@ -13,7 +13,10 @@ const built = await build({
   } }],
 });
 let handler;
-const env = { SUPABASE_URL: 'https://example.test', SUPABASE_SERVICE_ROLE_KEY: 'service-test-secret' };
+// The secret is configured from the start so requests that carry a valid
+// synthetic token can pass verification; the tokenless and failure-mode
+// assertions below exercise the fail-closed paths explicitly.
+const env = { SUPABASE_URL: 'https://example.test', SUPABASE_SERVICE_ROLE_KEY: 'service-test-secret', LANDING_LEAD_RATE_LIMIT_SALT: 'edge-runtime-test-salt', TURNSTILE_SECRET_KEY: 'turnstile-test-secret' };
 globalThis.Deno = { env: { get: (name) => env[name] }, serve: (fn) => { handler = fn; } };
 let rpcMode = 'ok', insertMode = 'ok', rpcCalls = 0, inserts = 0, verificationCalls = 0;
 let rpcArgs;
@@ -40,9 +43,15 @@ const priorFetch = globalThis.fetch, priorError = console.error, priorLog = cons
 const captured = [];
 console.error = (...values) => captured.push(values.map(String).join(' '));
 console.log = (...values) => captured.push(values.map(String).join(' '));
+let verificationMode = 'ok';
 globalThis.fetch = async (url) => {
   assert.equal(String(url), 'https://challenges.cloudflare.com/turnstile/v0/siteverify');
   verificationCalls++;
+  if (verificationMode === 'throw') throw new Error(privateText);
+  if (verificationMode === 'http-error') return new Response('bad gateway', { status: 502 });
+  if (verificationMode === 'success-false') {
+    return new Response(JSON.stringify({ success: false, 'error-codes': [privateText] }), { status: 200 });
+  }
   return new Response(JSON.stringify({ success: true }), { status: 200 });
 };
 try {
@@ -63,7 +72,7 @@ try {
   rpcMode = 'ok';
   for (const mode of ['error', 'throw']) {
     insertMode = mode;
-    const response = await request();
+    const response = await request({ turnstile_token: 'synthetic-token' });
     assert.equal(response.status, 500);
     assert.ok(!(await response.text()).includes(privateText));
   }
@@ -73,9 +82,10 @@ try {
   const quick = await request({ form_elapsed_ms: 100 }); assert.equal(quick.status, 400);
   assert.equal(rpcCalls, quickRpcBefore, 'a fast submission is rejected before the rate limiter, consuming no budget');
   const negative = await request({ form_elapsed_ms: -1 }); assert.equal(negative.status, 400);
-  const invalidPhone = await request({ phone: 'not a number' }); assert.equal(invalidPhone.status, 400);
-  const noSecret = await request({ form_elapsed_ms: 3000 }, 'Bearer public-test-key', { 'x-forwarded-for': '192.0.2.7' }); assert.equal(noSecret.status, 200);
-  assert.equal(rpcArgs.p_bucket_key, createHash('sha256').update('nexora-landing-rate-limit-v1:192.0.2.7').digest('hex'));
+  const invalidPhone = await request({ phone: 'not a number', turnstile_token: 'synthetic-token' }); assert.equal(invalidPhone.status, 400);
+  // A configured secret with no token: fail closed with 403, never fail open.
+  const noTokenPublic = await request({ form_elapsed_ms: 3000 }, 'Bearer public-test-key', { 'x-forwarded-for': '192.0.2.7' }); assert.equal(noTokenPublic.status, 403);
+  assert.equal(rpcArgs.p_bucket_key, createHash('sha256').update('edge-runtime-test-salt:192.0.2.7').digest('hex'));
   assert.equal(rpcArgs.p_max_attempts, 5); assert.equal(rpcArgs.p_window_seconds, 600);
   const trappedBefore = inserts; const trappedRpcBefore = rpcCalls; const trapped = await request({ website: 'spam' }); assert.equal(trapped.status, 200); assert.equal(inserts, trappedBefore);
   // A honeypot submission is dropped before the rate limiter, so it must not
@@ -83,7 +93,7 @@ try {
   assert.equal(rpcCalls, trappedRpcBefore, 'a honeypot submission does not consume the rate-limit budget');
   // The answer must be indistinguishable from a real success: no bot-detection
   // clue in the status or the body.
-  const successShape = await request({ form_elapsed_ms: 3000 });
+  const successShape = await request({ form_elapsed_ms: 3000, turnstile_token: 'synthetic-token' });
   assert.deepEqual(await trapped.json(), await successShape.json(), 'a honeypot answer is identical to a stored-lead answer');
   // All three honeypot fields must trap, not just `website`.
   for (const field of ['company_website', 'fax_number']) {
@@ -94,18 +104,38 @@ try {
   }
   // Legitimate Indian +91 numbers and plus-addressed emails must not be
   // false-positived by the phone/email spam checks.
-  const indiaPhone = await request({ phone: '+91 98765 43210' }); assert.equal(indiaPhone.status, 200, 'a valid +91 phone is accepted');
-  const plusEmail = await request({ email: 'aarav+demo@salonexample.in' }); assert.equal(plusEmail.status, 200, 'a plus-addressed email is accepted');
-  const normalName = await request({ full_name: 'Aarav Sharma', business_name: 'Studio Nine' }); assert.equal(normalName.status, 200, 'a normal name and business are accepted');
-  env.TURNSTILE_SECRET_KEY = 'turnstile-test-secret';
-  const noToken = await request(); assert.equal(noToken.status, 400);
+  const indiaPhone = await request({ phone: '+91 98765 43210', turnstile_token: 'synthetic-token' }); assert.equal(indiaPhone.status, 200, 'a valid +91 phone is accepted');
+  const plusEmail = await request({ email: 'aarav+demo@salonexample.in', turnstile_token: 'synthetic-token' }); assert.equal(plusEmail.status, 200, 'a plus-addressed email is accepted');
+  const normalName = await request({ full_name: 'Aarav Sharma', business_name: 'Studio Nine', turnstile_token: 'synthetic-token' }); assert.equal(normalName.status, 200, 'a normal name and business are accepted');
+  const preTurnstileInserts = inserts;
+  const callsBeforeNoToken = verificationCalls;
+  const noToken = await request(); assert.equal(noToken.status, 403);
   const callsBeforeTrusted = rpcCalls;
-  const noTokenTrusted = await request({}, 'Bearer service-test-secret'); assert.equal(noTokenTrusted.status, 400);
+  const noTokenTrusted = await request({}, 'Bearer service-test-secret'); assert.equal(noTokenTrusted.status, 403);
   assert.equal(rpcCalls, callsBeforeTrusted, 'trusted fallback currently skips the Edge IP limiter');
-  assert.equal(verificationCalls, 0);
+  assert.equal(verificationCalls, callsBeforeNoToken, 'tokenless requests never reach the provider');
+  // Every verification failure mode must fail closed with 403 and store nothing.
+  const beforeFailureCalls = verificationCalls;
+  for (const mode of ['throw', 'http-error', 'success-false']) {
+    verificationMode = mode;
+    const failed = await request({ turnstile_token: 'synthetic-token' });
+    assert.equal(failed.status, 403, `a ${mode} verification rejects with 403`);
+    const failedBody = await failed.text();
+    assert.ok(!failedBody.includes(privateText), `a ${mode} failure leaks no provider detail`);
+  }
+  verificationMode = 'ok';
+  assert.equal(verificationCalls, beforeFailureCalls + 3, 'all three failure modes reached the verifier');
+  assert.equal(inserts, preTurnstileInserts, 'a failed verification never stores a lead');
   const withToken = await request({ turnstile_token: 'synthetic-token' }); assert.equal(withToken.status, 200);
-  assert.equal(verificationCalls, 1);
+  assert.equal(verificationCalls, beforeFailureCalls + 4);
   assert.ok(rpcCalls >= 1);
+  // A missing TURNSTILE_SECRET_KEY must fail closed too (403), never fail open.
+  const insertsBeforeUnconfigured = inserts;
+  delete env.TURNSTILE_SECRET_KEY;
+  const unconfigured = await request({ turnstile_token: 'synthetic-token' });
+  assert.equal(unconfigured.status, 403, 'an unconfigured secret rejects with 403');
+  assert.equal(inserts, insertsBeforeUnconfigured, 'an unconfigured secret stores no lead');
+  env.TURNSTILE_SECRET_KEY = 'turnstile-test-secret';
   assert.ok(!captured.join('\n').includes(privateText));
   assert.ok(!captured.join('\n').includes('service-test-secret'));
   assert.ok(!captured.join('\n').includes('sensitive-visitor@example.test'));
@@ -113,4 +143,4 @@ try {
   globalThis.fetch = priorFetch; console.error = priorError; console.log = priorLog;
   delete globalThis.Deno; delete globalThis.__testLeadService;
 }
-console.log('PASS: mocked Edge lead handler fails closed on limiter errors, redacts upstream details, and documents current Turnstile token compatibility. No live leads or provider calls.');
+console.log('PASS: mocked Edge lead handler fails closed on limiter errors, Turnstile is fail-closed (403, never stores on failure, unconfigured secret included), the bucket salt has no public fallback, and upstream details are redacted. No live leads or provider calls.');

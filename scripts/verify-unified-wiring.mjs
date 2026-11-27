@@ -83,7 +83,7 @@ assert.match(depositGuard, /export const DEPOSIT_PERCENT = 25/, 'the guard enfor
 assert.match(depositGuard, /export const MIN_DEPOSIT_PAISE = 100/, 'the guard mirrors the register_payment minimum');
 assert.match(depositGuard, /BigInt\(value\) \+ 3n\) \/ 4n/, 'the deposit uses an exact integer ceiling');
 assert.match(depositHandler, /assertDepositSatisfied\(quote, \{ enforce \}\)/, 'the endpoint must reject an under-paid deposit');
-assert.match(server, /app\.all\("\/api\/booking-deposit", depositLimiter, bookingDepositHandler\)/, 'the Express server must expose the deposit check');
+assert.match(server, /app\.all\("\/api\/booking-deposit", strictBody\(BOOKING_DEPOSIT_SCHEMA[^)]*\)[^)]*\)?, depositLimiter, bookingDepositHandler\)/, 'the Express server must expose the deposit check behind strictBody');
 assert.match(read('api/booking-deposit.ts'), /bookingDepositHandler/, 'the Vercel function must expose the deposit check');
 assert.match(depositHandler, /'deposit_required'/, 'the endpoint reports a stable deposit error code');
 

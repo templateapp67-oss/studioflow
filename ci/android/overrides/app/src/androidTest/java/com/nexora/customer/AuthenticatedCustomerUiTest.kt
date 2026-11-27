@@ -24,7 +24,7 @@ class AuthenticatedCustomerUiTest {
                 if(h.js(s,"document.body.innerText.includes("+quote(email)+")&&!!document.querySelector('.cr-profile-logout')")=="true") {
                     click("Log Out")
                 }
-                h.until(s,"Guest profile missing","document.body.innerText.includes('Sign in / Create customer account')&&localStorage.getItem('studioflow_supabase_session')===null")
+                h.until(s,"Guest profile missing","document.body.innerText.includes('Sign in / Create customer account')&&localStorage.getItem('studioflow_supabase_session')===null&&sessionStorage.getItem('studioflow_supabase_session')===null")
                 click("Sign in / Create customer account");h.until(s,"Login form missing","!!document.querySelector('input[type=password]')")
                 fill("input[type=email]",email);fill("input[type=password]",password)
                 h.js(s,"document.querySelector('input[type=password]').form.requestSubmit()")

@@ -4,6 +4,7 @@ import { type Dependencies, endpoint } from "../_shared/http.ts";
 import { clientIp, consumeRateLimit } from "../_shared/rateLimit.ts";
 import { AppError, logWarning, ok } from "../_shared/response.ts";
 import { bookingInput, parseInput, parseOutput, readJson, uuid } from "../_shared/validate.ts";
+import { safeOutboundFetch } from "../_shared/safeOutbound.ts";
 
 const bookingRpc = z.discriminatedUnion("ok", [
   z.object({
@@ -72,7 +73,7 @@ export function createHandler(dependencies: Dependencies = {}) {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 15000);
       try {
-        const response = await ctx.fetcher(
+        const response = await safeOutboundFetch(
           `${ctx.env.SUPABASE_URL}/functions/v1/send-booking-notification`,
           {
             method: "POST",
@@ -83,6 +84,7 @@ export function createHandler(dependencies: Dependencies = {}) {
             },
             body: JSON.stringify({ booking_id: result.booking_id }),
           },
+          ctx.fetcher,
         );
         if (!response.ok) logWarning("booking_notification_dispatch", "UPSTREAM_ERROR");
         await response.body?.cancel();

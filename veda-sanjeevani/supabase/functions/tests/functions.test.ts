@@ -17,6 +17,7 @@ import {
   request,
   reviewRows,
   summaryOutput,
+  testImageBytes,
   validBooking,
 } from "./harness.ts";
 import { callGemini, generateSafe } from "../_shared/gemini.ts";
@@ -486,18 +487,57 @@ Deno.test("media validates project paths, actual metadata, size and staff regist
   const base = dependencies();
   const wrongSize = await handlers["register-media"]!(base)(request({ ...mediaInput, bytes: 999 }));
   assertEquals(wrongSize.status, 400);
+  const svgBytes = new TextEncoder().encode("<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>");
   const wrongType = await handlers["register-media"]!({
     ...base,
     fetcher: (input, init) =>
       String(input).startsWith(`${env.SUPABASE_URL}/storage/`)
         ? Promise.resolve(
-          new Response(null, {
-            headers: { "Content-Length": "1000", "Content-Type": "image/svg+xml" },
+          new Response(svgBytes, {
+            headers: { "Content-Length": String(svgBytes.length), "Content-Type": "image/svg+xml" },
           }),
         )
         : base.fetcher!(input, init),
   })(request(mediaInput));
   assertEquals(wrongType.status, 400);
+  // A WebP URL whose stored object is actually text (renamed file) is rejected by
+  // its magic bytes, regardless of the declared Content-Type.
+  const spoofed = await handlers["register-media"]!({
+    ...base,
+    fetcher: (input, init) =>
+      String(input).startsWith(`${env.SUPABASE_URL}/storage/`)
+        ? Promise.resolve(
+          new Response(new TextEncoder().encode("not-a-real-image"), {
+            headers: { "Content-Length": "16", "Content-Type": "image/webp" },
+          }),
+        )
+        : base.fetcher!(input, init),
+  })(request(mediaInput));
+  assertEquals(spoofed.status, 400);
+  // A redirect is never followed: the fetch fails closed instead of landing on
+  // an attacker-chosen URL.
+  const redirected = await handlers["register-media"]!({
+    ...base,
+    fetcher: (_input) =>
+      Promise.resolve(
+        new Response(null, { status: 301, headers: { Location: "https://evil.example/x.webp" } }),
+      ),
+  })(request(mediaInput));
+  assertEquals(redirected.status, 502);
+  // An object larger than 5 MB is refused before its bytes are trusted.
+  const bigBytes = testImageBytes(5 * 1024 * 1024 + 1);
+  const oversized = await handlers["register-media"]!({
+    ...base,
+    fetcher: (input, init) =>
+      String(input).startsWith(`${env.SUPABASE_URL}/storage/`)
+        ? Promise.resolve(
+          new Response(bigBytes, {
+            headers: { "Content-Length": String(bigBytes.length), "Content-Type": "image/webp" },
+          }),
+        )
+        : base.fetcher!(input, init),
+  })(request(mediaInput));
+  assertEquals(oversized.status, 400);
 });
 Deno.test("email HTML and WhatsApp encoding are safe", () => {
   const html = emailHtml({

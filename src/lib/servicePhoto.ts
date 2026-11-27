@@ -1,5 +1,7 @@
 import {compressAndResizeImage} from '../utils/imageUploadHelper';
 import {supabase} from './supabase';
+import {buildStorageFileName,validateUploadFile,SOURCE_IMAGE_MAX_BYTES} from '../utils/fileSignature';
+import {assertSafeOutboundUrl} from '../../server/httpValidation';
 /** Every service card photo is framed at 3:2 (1200 × 800) like the AI brief. */
 export const SERVICE_CARD_RATIO=3/2;
 export const SERVICE_CARD_WIDTH=1200;
@@ -41,16 +43,15 @@ export async function fitServicePhotoToCard(file:File):Promise<File>{
 }
 
 export async function uploadServicePhoto(file:File):Promise<{imageUrl:string;imagePath:string}>{
- if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw new Error('Choose a JPG, PNG or WebP service photo.');
- if(file.size>20*1024*1024)throw new Error('Choose a service photo smaller than 20 MB.');
+ // Magic bytes first: the declared type of a File is just a browser hint.
+ await validateUploadFile(file,{maxBytes:SOURCE_IMAGE_MAX_BYTES,allowed:['jpeg','png','webp']});
  const cardFile=await fitServicePhotoToCard(file);
  const resized=await compressAndResizeImage(cardFile,1200,2*1024*1024);
  if(!resized.isValid||!resized.dataUrl)throw new Error(resized.errorMessage||'Could not resize this service photo.');
  const blob=await (await fetch(resized.dataUrl)).blob();
- if(!blob.size||blob.size>2*1024*1024)throw new Error('This photo could not be optimized. Please choose a different image.');
+ const check=await validateUploadFile(blob,{maxBytes:2*1024*1024,allowed:['jpeg','png','webp']});
  const {data,error}=await supabase.auth.getUser();if(error||!data.user)throw new Error('Sign in before uploading service photos.');
- const extension=blob.type==='image/png'?'png':blob.type==='image/webp'?'webp':'jpg';
- const imagePath=`${data.user.id}/services/${crypto.randomUUID()}.${extension}`;
+ const imagePath=buildStorageFileName(check.signature,`${data.user.id}/services`);
  const result=await supabase.storage.from('studioflow-media').upload(imagePath,blob,{contentType:blob.type,upsert:false});
  if(result.error)throw new Error(result.error.message||'Service photo upload failed. Please try again.');
  const imageUrl=supabase.storage.from('studioflow-media').getPublicUrl(imagePath).data.publicUrl;
@@ -67,9 +68,9 @@ export async function discardServicePhoto(imagePath:string){
 
 /** Import in the browser, then use the same owner-scoped upload and validation. */
 export async function servicePhotoFromUrl(value:string):Promise<File>{
+ // Same outbound guard the API server uses: HTTPS, public hosts only.
  let url:URL;
- try{url=new URL(value);}catch{throw new Error('Enter a valid HTTPS image URL.');}
- if(url.protocol!=='https:'||url.username||url.password)throw new Error('Enter a valid HTTPS image URL.');
+ try{url=assertSafeOutboundUrl(value.trim());}catch{throw new Error('Enter a valid HTTPS image URL.');}
  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),20000);
  try{
   const response=await fetch(url.href,{credentials:'omit',referrerPolicy:'no-referrer',signal:controller.signal});
@@ -81,7 +82,10 @@ export async function servicePhotoFromUrl(value:string):Promise<File>{
   const reader=response.body.getReader();const chunks:Uint8Array[]=[];let size=0;
   while(true){const part=await reader.read();if(part.done)break;size+=part.value.byteLength;if(size>20*1024*1024){await reader.cancel();throw new Error('Choose an image smaller than 20 MB.');}chunks.push(part.value);}
   if(!size)throw new Error('The image is empty.');
-  return new File(chunks as BlobPart[],`service-import.${mime==='image/png'?'png':mime==='image/webp'?'webp':'jpg'}`,{type:mime});
+  const imported=new Blob(chunks as BlobPart[],{type:mime.split(';')[0]});
+  // The bytes are verified as a real image signature before the import proceeds.
+  const check=await validateUploadFile(imported,{maxBytes:20*1024*1024,allowed:['jpeg','png','webp']});
+  return new File(chunks as BlobPart[],`service-import.${check.extension}`,{type:mime.split(';')[0]});
  }catch(error){if(error instanceof TypeError)throw new Error('This host blocks image import. Download the photo and use Upload photo instead.');throw error;}
  finally{clearTimeout(timer);}
 }
