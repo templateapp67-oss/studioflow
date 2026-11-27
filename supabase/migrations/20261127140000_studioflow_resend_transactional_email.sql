@@ -282,8 +282,8 @@ begin
        and attempts < 5
        and created_at > now() - interval '20 hours'
      order by next_attempt_at, created_at
-     for update skip locked
      limit greatest(1, least(coalesce(p_limit, 20), 100))
+     for update skip locked
   )
   update public.studioflow_transactional_email_outbox o
      set status = 'sending',
