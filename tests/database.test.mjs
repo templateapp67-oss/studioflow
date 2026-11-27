@@ -39,7 +39,7 @@ try {
     'alter table storage.objects enable row level security;',
     "create function storage.foldername(p_name text) returns text[] language sql immutable strict parallel safe as 'select case when strpos(p_name, chr(47)) > 0 then string_to_array(left(p_name, length(p_name) - strpos(reverse(p_name), chr(47))), chr(47)) else array[]::text[] end';",
     'grant usage on schema storage to authenticated, service_role, anon;'
-  ].join('\\n'));
+  ].join(' '));
   const folder = new URL('../supabase/migrations/', import.meta.url);
   for (const file of (await readdir(folder)).sort()) await db.exec(await readFile(new URL(file, folder), 'utf8'));
   await db.exec(`
