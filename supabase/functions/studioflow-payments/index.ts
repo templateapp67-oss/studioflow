@@ -5,6 +5,7 @@ import {signatureMatches,depositPaise,sameSecret} from './payment-security.ts';
 import {paymentLinkOrderKey,verifiedLinkPaymentId,verifyLinkPayment} from './payment-link-security.ts';
 import { browserCorsHeaders, isAllowedBrowserOrigin } from '../_shared/browserCors.ts';
 import { claimWebhookEvent, finishWebhookEvent, resolveWebhookEventId, safeWebhookEventType, webhookReplayToleranceSeconds } from '../_shared/webhookSecurity.ts';
+import { safeLogger } from '../_shared/safeLogger.ts';
 import { sendBookingReceipts } from './booking-receipts.ts';
 const PAYMENT_CORS_HEADERS = 'authorization,apikey,content-type,x-client-info,x-razorpay-signature,x-razorpay-event-id,x-worker-token';
 
@@ -82,7 +83,7 @@ Deno.serve(async(req:Request)=>{
     };
     const dispatchReceipts=async(bookingId:string)=>{
       try{await sendBookingReceipts(service,env,bookingId);}
-      catch{console.error('Booking receipt dispatch failed; queued receipts remain available to the worker.');}
+      catch{safeLogger.error('Booking receipt dispatch failed; queued receipts remain available to the worker.');}
     };
     const settle=async(orderId:string,paymentId:string)=>{
       const {data:order,error}=await service.from('studioflow_payment_orders').select('*').eq('order_id',orderId).single();

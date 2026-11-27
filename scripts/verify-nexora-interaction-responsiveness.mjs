@@ -77,17 +77,11 @@ await page.route('**/functions/v1/studioflow-payments', async (route) => {
   if (request.method() === 'OPTIONS') {
     return route.fulfill({ status: 204, headers: previewCorsHeaders, body: '' });
   }
-  let body;
-  try { body = request.postDataJSON(); } catch { body = null; }
-  const keys = body && typeof body === 'object' && !Array.isArray(body)
-    ? Object.keys(body).sort()
-    : [];
-  if (request.method() === 'POST' && body?.action === 'status'
-    && keys.length === 1 && keys[0] === 'action') {
+  if (request.method() === 'GET') {
     return route.fulfill({
-      status: 401,
+      status: 200,
       headers: { ...previewCorsHeaders, 'content-type': 'application/json; charset=utf-8' },
-      body: JSON.stringify({ error: 'Sign in before checkout' }),
+      body: JSON.stringify({ webCheckout: { online: true, venue: true, mode: 'test' } }),
     });
   }
   return route.continue();
@@ -181,10 +175,10 @@ const pageErrors = [];
 
 /**
  * Supabase/PostgREST uses HTTP POST for RPC calls even when the SQL function is
- * read-only. Only three explicitly reviewed read-only operations are exempted:
+ * read-only. Only two explicitly reviewed read-only RPC operations are exempted:
  * - studioflow_booking_specialists is declared LANGUAGE SQL STABLE.
  * - studioflow_available_slots is a read-only availability lookup.
- * - studioflow-payments action=status reads gateway configuration only.
+ * Payment capabilities are read with GET.
  * All other app/Supabase writes are blocked locally before reaching a backend.
  */
 function readOnlyRequestReason(request, requestUrl) {
@@ -196,14 +190,6 @@ function readOnlyRequestReason(request, requestUrl) {
     return '';
   }
   if (!body || typeof body !== 'object' || Array.isArray(body)) return '';
-
-  if (requestUrl.pathname === '/functions/v1/studioflow-payments') {
-    const keys = Object.keys(body).sort();
-    if (body.action === 'status' && keys.length === 1 && keys[0] === 'action') {
-      return 'read-only payment gateway status';
-    }
-    return '';
-  }
 
   if (requestUrl.pathname === '/rest/v1/rpc/studioflow_booking_specialists') {
     const keys = Object.keys(body).sort();
@@ -448,7 +434,7 @@ try {
   const paymentStatusResponsePromise = page.waitForResponse((response) => {
     const requestUrl = new URL(response.url());
     return requestUrl.pathname === '/functions/v1/studioflow-payments'
-      && response.request().method() === 'POST';
+      && response.request().method() === 'GET';
   }, { timeout: 15000 });
   const specialistLookupResponsePromise = page.waitForResponse((response) => {
     const requestUrl = new URL(response.url());
@@ -474,10 +460,8 @@ try {
   ]);
   const paymentStatusHttpStatus = paymentStatusResponse.status();
   const specialistLookupHttpStatus = specialistLookupResponse.status();
-  // An unauthenticated Preview iframe is expected to receive 401 from the
-  // payment-status endpoint; an authenticated session may receive 200.
-  assert.ok([200, 401].includes(paymentStatusHttpStatus),
-    'read-only payment status returns 200 or expected unsigned-preview 401, got ' + paymentStatusHttpStatus);
+  assert.equal(paymentStatusHttpStatus, 200,
+    'read-only payment capabilities return HTTP 200 in the preview');
   assert.equal(specialistLookupHttpStatus, 200,
     'read-only specialist eligibility lookup returns HTTP 200');
   const availabilityReadHttpStatus = availabilityReadResponse.status();
