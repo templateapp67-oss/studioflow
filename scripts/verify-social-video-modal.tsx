@@ -26,6 +26,7 @@ import { parseSocialVideo } from '../src/lib/socialVideoEmbeds';
 import { SocialConnectivityStep, VIDEO_URL_PLACEHOLDER } from '../src/components/SocialConnectivityStep';
 import { FeaturedReels } from '../src/components/FeaturedReels';
 import { supabase } from '../src/lib/supabase';
+import { pngFile as makePngFile } from './fakeImages';
 
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 (globalThis as any).location = { origin: 'https://studioflow.test', search: '', hash: '' };
@@ -217,7 +218,7 @@ assert.ok(
 );
 assert.equal(root.findAll((node: any) => node.props?.alt === 'Cover image preview').length, 0, 'no preview for a rejected file');
 
-const pngFile = new File([new Uint8Array(2048)], 'cover.png', { type: 'image/png' });
+const pngFile = makePngFile('cover.png', 2048);
 await act(async () => byLabel('Choose cover image file').props.onChange({ target: { value: '', files: [pngFile] } }));
 const preview = root.findAll((node: any) => node.props?.alt === 'Cover image preview');
 assert.equal(preview.length, 1, 'instant thumbnail preview for an uploaded file');

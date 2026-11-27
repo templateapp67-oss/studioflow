@@ -5,6 +5,7 @@ import {BrandImageField} from '../src/components/BrandImageField';
 import {HeroBannerEditor} from '../src/components/HeroBannerEditor';
 import {INITIAL_SALON_PROFILE} from '../src/mockData';
 import {supabase} from '../src/lib/supabase';
+import {pngFile} from './fakeImages';
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;
 let uploads=0,fail=false,finish:any,hold=false;
 (supabase.auth as any).getUser=async()=>({data:{user:{id:'brand-owner'}},error:null});
@@ -20,12 +21,12 @@ for(const kind of ['logo','hero','favicon']) {
  const before=uploads;
  await select(new File([new Uint8Array(5*1024*1024+1)],'large.png',{type:'image/png'}));assert.equal(uploads,before);assert.equal(value,'https://example.com/old.png');assert.ok(editor.root.findByProps({role:'alert'}));
  await select(new File(['svg'],'unsafe.svg',{type:'image/svg+xml'}));assert.equal(uploads,before);
- fail=true;await select(new File(['png'],'small.png',{type:'image/png'}));assert.equal(value,'https://example.com/old.png');assert.match(editor.root.findByProps({role:'alert'}).children.join(''),/Network/);
- fail=false;await select(new File([new Uint8Array(5*1024*1024)],'exact.png',{type:'image/png'}));assert.equal(value,'https://example.com/uploaded.png');assert.equal(editor.root.findByType('img').props.src,value);
+ fail=true;await select(pngFile('small.png'));assert.equal(value,'https://example.com/old.png');assert.match(editor.root.findByProps({role:'alert'}).children.join(''),/Network/);
+ fail=false;await select(pngFile('exact.png', 5*1024*1024));assert.equal(value,'https://example.com/uploaded.png');assert.equal(editor.root.findByType('img').props.src,value);
  const url=()=>editor.root.findAllByType('input').find((i:any)=>i.props.type!=='file');
  await act(async()=>url().props.onChange({target:{value:'javascript:alert(1)'}}));await act(async()=>editor.root.findByType('button').props.onClick());assert.equal(value,'https://example.com/uploaded.png');
  await act(async()=>url().props.onChange({target:{value:'https://example.com/from-url.png'}}));await act(async()=>editor.root.findByType('button').props.onClick());assert.equal(value,'https://example.com/from-url.png');
- hold=true;await select(new File(['png'],'pending.png',{type:'image/png'}));assert.equal(fileInput().props.disabled,true);assert.equal(editor.root.findByType('button').props.disabled,true);await act(async()=>{finish();});hold=false;assert.equal(value,'https://example.com/uploaded.png');
+ hold=true;await select(pngFile('pending.png'));assert.equal(fileInput().props.disabled,true);assert.equal(editor.root.findByType('button').props.disabled,true);await act(async()=>{finish();});hold=false;assert.equal(value,'https://example.com/uploaded.png');
  await act(async()=>editor.unmount());
 }
 let profile:any;

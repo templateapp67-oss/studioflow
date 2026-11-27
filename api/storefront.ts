@@ -1,4 +1,6 @@
 import { normalizeCanonicalUrl, normalizeSeoDescription, normalizeSeoTitle } from '../src/lib/seoText.js';
+import { assertSafeOutboundUrl } from '../server/httpValidation.js';
+import { safeLogger } from '../server/safeLogger.js';
 
 type RequestLike = {
   method?: string;
@@ -40,8 +42,9 @@ async function getSupabaseClient(): Promise<any> {
   if (supabaseClient) return supabaseClient;
   if (!supabaseClientPromise) {
     supabaseClientPromise = (async () => {
-      const supabaseUrl = new URL(SUPABASE_URL);
-      if (supabaseUrl.protocol !== 'https:' || supabaseUrl.hostname !== EXPECTED_SUPABASE_HOST) {
+      // Same outbound guard the API routes use: HTTPS, public host, no credentials.
+      const supabaseUrl = assertSafeOutboundUrl(SUPABASE_URL);
+      if (supabaseUrl.hostname !== EXPECTED_SUPABASE_HOST) {
         throw new Error('Published salon SSR must use the reviewed NEXORA production Supabase project.');
       }
       if (!SUPABASE_PUBLISHABLE_KEY || SUPABASE_PUBLISHABLE_KEY.startsWith('sb_secret_')) {
@@ -310,7 +313,7 @@ export default async function storefrontHandler(req: RequestLike, res: ResponseL
     try {
       return await sendPlatformShell(res, method);
     } catch (error) {
-      console.error('[storefront-ssr] platform shell render failed', error);
+      safeLogger.error('[storefront-ssr] platform shell render failed', error);
       res.status(503);
       res.setHeader('X-Robots-Tag', 'noindex');
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -325,7 +328,7 @@ export default async function storefrontHandler(req: RequestLike, res: ResponseL
     supabase = await getSupabaseClient();
   } catch (initializationError) {
     res.setHeader('X-NEXORA-SSR-Stage', 'database-initialization-error');
-    console.error('[storefront-ssr] Supabase client initialization failed', initializationError);
+    safeLogger.error('[storefront-ssr] Supabase client initialization failed', initializationError);
     res.status(503);
     res.setHeader('X-Robots-Tag', 'noindex');
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -342,7 +345,7 @@ export default async function storefrontHandler(req: RequestLike, res: ResponseL
       .maybeSingle();
   } catch (lookupError) {
     res.setHeader('X-NEXORA-SSR-Stage', 'public-database-error');
-    console.error('[storefront-ssr] public salon lookup threw', lookupError);
+    safeLogger.error('[storefront-ssr] public salon lookup threw', lookupError);
     res.status(503);
     res.setHeader('X-Robots-Tag', 'noindex');
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -353,7 +356,7 @@ export default async function storefrontHandler(req: RequestLike, res: ResponseL
 
   if (error) {
     res.setHeader('X-NEXORA-SSR-Stage', 'public-database-error');
-    console.error('[storefront-ssr] public salon lookup failed', error);
+    safeLogger.error('[storefront-ssr] public salon lookup failed', error);
     res.status(503);
     res.setHeader('X-Robots-Tag', 'noindex');
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -376,7 +379,7 @@ export default async function storefrontHandler(req: RequestLike, res: ResponseL
   try {
     rendered = (await getRenderer()).renderPublishedSalonHtml(data.content, slug);
   } catch (error) {
-    console.error('[storefront-ssr] published salon renderer failed', error);
+    safeLogger.error('[storefront-ssr] published salon renderer failed', error);
     res.status(503);
     res.setHeader('X-Robots-Tag', 'noindex');
     res.setHeader('X-NEXORA-SSR-Stage', 'renderer-error');
@@ -395,7 +398,7 @@ export default async function storefrontHandler(req: RequestLike, res: ResponseL
       websiteFavicon: storefrontFavicon,
     }) + '\n' + assetTags + '\n' + rendered.preloadTags.join('\n');
   } catch (headError) {
-    console.error('[storefront-ssr] SEO/asset module initialization failed', headError);
+    safeLogger.error('[storefront-ssr] SEO/asset module initialization failed', headError);
     res.status(503);
     res.setHeader('X-Robots-Tag', 'noindex');
     res.setHeader('X-NEXORA-SSR-Stage', 'head-initialization-error');

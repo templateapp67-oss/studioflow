@@ -1,8 +1,11 @@
 import { GoogleGenAI } from '@google/genai';
 import { readBearerToken, resolveAuthConfiguration, verifyAccessToken, type AuthConfiguration, type AuthUser } from './supabaseAuth.js';
+import { assertSafeOutboundUrl, ONBOARDING_COPY_SCHEMA, validateBody } from './httpValidation.js';
+import { claimDistributedRateLimit, hashBucketKey } from './distributedRateLimit.js';
 
-// Per-instance only: a shared durable limiter is needed for a global quota.
-// At capacity reject new callers rather than evict active budgets.
+// Bounded per-process budget used only when the shared Postgres store is not
+// configured (local dev, CI). At capacity reject new callers rather than
+// evict active budgets. Production goes through claimDistributedRateLimit.
 export function createOnboardingInstanceLimiter(windowMs = 600000, max = 30, maxKeys = 10000, now = Date.now) {
   const windows = new Map<string, { count: number; resetAt: number }>();
   return { hit(userId: string) {
@@ -23,7 +26,21 @@ export function createOnboardingInstanceLimiter(windowMs = 600000, max = 30, max
     return { allowed: true, resetAfterSeconds };
   } };
 }
-const budget = createOnboardingInstanceLimiter();
+const fallbackBudget = createOnboardingInstanceLimiter();
+// Production limiter: the shared Postgres store (survives serverless cold
+// starts and parallel instances). The per-process budget engages only when
+// no service key is configured. A store failure throws — the handler fails
+// closed with 503 rather than handing out unlimited paid generations.
+const budget: OnboardingCopyLimiter = {
+  async hit(userId: string) {
+    const claimed = await claimDistributedRateLimit(
+      hashBucketKey('onboarding-copy', `user:${userId}`),
+      { windowSeconds: 600, maxAttempts: 30 },
+    );
+    if (claimed === 'unconfigured') return fallbackBudget.hit(userId);
+    return { allowed: claimed.allowed, resetAfterSeconds: claimed.retryAfterSeconds };
+  },
+};
 const themes: Record<string, string> = {
   hair_salon: 'haircuts and styling', barber: 'barbering and grooming', unisex_salon: 'hair and beauty',
   beauty_parlour: 'beauty care', nail_studio: 'nails', hair_spa: 'hair spa care',
@@ -81,7 +98,14 @@ export async function verifyWorkspaceOwner(token: string, user: AuthUser, config
     url.searchParams.set('select', 'user_id');
     url.searchParams.set('user_id', `eq.${user.id}`);
     url.searchParams.set('limit', '1');
-    const response = await fetchImpl(url, { headers: { apikey: config.publishableKey, Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(5000) });
+    // The caller's supabase URL may come from the environment; refuse anything
+    // that is not a public HTTPS host. When a custom fetch implementation is
+    // injected (tests) it is called as-is.
+    const requestUrl = fetchImpl === fetch ? assertSafeOutboundUrl(url) : url;
+    // Redirects are never followed: a 3xx surfaces as a failed lookup instead
+    // of bouncing the request at a private address.
+    const init: RequestInit = { headers: { apikey: config.publishableKey, Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(5000), redirect: 'manual' };
+    const response = await fetchImpl(requestUrl, init);
     if (!response.ok) return undefined;
     const rows: unknown = await response.json();
     if (!Array.isArray(rows)) return undefined;
@@ -89,8 +113,9 @@ export async function verifyWorkspaceOwner(token: string, user: AuthUser, config
   } catch { return undefined; }
 }
 
-// Async contract allows a future durable limiter; the default remains explicitly
-// per instance and is not a cross-worker spending cap. Fail closed if it fails.
+// The limiter contract is async so the shared Postgres store can be used.
+// Any failure throws; the handler fails closed (503) rather than allowing
+// unlimited paid generations.
 export interface OnboardingCopyLimiter { hit(userId: string): { allowed: boolean; resetAfterSeconds: number } | Promise<{ allowed: boolean; resetAfterSeconds: number }> }
 type Dependencies = {
   verify?: typeof verifyAccessToken;
@@ -112,7 +137,10 @@ export async function onboardingCopyHandler(req: RequestLike, res: ResponseLike,
   if (user === undefined) return res.status(503).json({ error: 'Authentication is temporarily unavailable.' });
   if (!user) return res.status(401).json({ error: 'Sign in to use AI copywriting.' });
   if (user.mfaRequired) return res.status(403).json({ error: 'Verify your authenticator before continuing.' });
-  const input = parseCopyInput(req.body);
+  const bodyResult = validateBody(req.body, ONBOARDING_COPY_SCHEMA, 32 * 1024);
+  // Same public message for a strict-validation failure and a business-rule
+  // failure; neither leaks which field failed to an unauthenticated caller.
+  const input = bodyResult.ok === true ? parseCopyInput(bodyResult.data) : null;
   if (!input) return res.status(400).json({ error: 'Please check the business details and try again.' });
   const apiKey = (deps.apiKey ?? process.env.GEMINI_API_KEY ?? '').trim();
   if (!apiKey) return res.status(503).json({ error: 'AI copywriting is temporarily unavailable.' });

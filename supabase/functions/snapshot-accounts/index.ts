@@ -7,16 +7,12 @@
 // verifies that bearer itself. Without the check the gateway only proves "some
 // valid JWT" — i.e. any signed-in customer could queue a full account copy.
 import { createClient } from 'npm:@supabase/supabase-js@2.117.3';
+import { browserCorsHeaders, isAllowedBrowserOrigin } from '../_shared/browserCors.ts';
+import { safeLogger } from '../_shared/safeLogger.ts';
 
-const cors = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
-
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
+const json = (body: unknown, status = 200, origin: string | null = null) => new Response(JSON.stringify(body), {
   status,
-  headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+  headers: { ...browserCorsHeaders(origin, 'authorization, apikey, content-type, x-client-info'), 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
 });
 
 // Constant-time comparison so the check cannot be probed byte by byte.
@@ -30,18 +26,21 @@ function sameToken(given: string, expected: string): boolean {
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
-  if (req.method !== 'POST') return json({ error: 'POST required' }, 405);
+  const origin = req.headers.get('origin');
+  if (origin && !isAllowedBrowserOrigin(origin)) return json({ error: 'Origin not allowed' }, 403, origin);
+  const cors = browserCorsHeaders(origin, 'authorization, apikey, content-type, x-client-info');
+  if (req.method === 'OPTIONS') return new Response('ok', { status: 204, headers: cors });
+  if (req.method !== 'POST') return json({ error: 'POST required' }, 405, origin);
 
   const url = Deno.env.get('SUPABASE_URL') || '';
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-  if (!url || !serviceKey) return json({ error: 'Snapshot service is not configured' }, 503);
+  if (!url || !serviceKey) return json({ error: 'Snapshot service is not configured' }, 503, origin);
 
   const authorization = req.headers.get('authorization') || '';
   const token = /^Bearer\s+\S+/i.test(authorization)
     ? authorization.replace(/^Bearer\s+/i, '').trim()
     : '';
-  if (!sameToken(token, serviceKey)) return json({ error: 'Service authorization required' }, 401);
+  if (!sameToken(token, serviceKey)) return json({ error: 'Service authorization required' }, 401, origin);
 
   try {
     const supabase = createClient(url, serviceKey, {
@@ -52,7 +51,7 @@ Deno.serve(async (req: Request) => {
     if (error) throw error;
     const rows = Array.isArray(data) ? data : [];
     if (rows.length === 0) {
-      return json({ message: 'No accounts to snapshot', copied: 0, snapshotDate: null });
+      return json({ message: 'No accounts to snapshot', copied: 0, snapshotDate: null }, 200, origin);
     }
 
     const snapshotDate = new Date().toISOString();
@@ -62,10 +61,10 @@ Deno.serve(async (req: Request) => {
       .insert(backupData);
     if (insertError) throw insertError;
 
-    return json({ message: 'Snapshot created successfully', copied: backupData.length, snapshotDate });
+    return json({ message: 'Snapshot created successfully', copied: backupData.length, snapshotDate }, 200, origin);
   } catch (caught) {
     // Do not echo database/provider internals back to the caller.
-    console.error('snapshot-accounts failed', caught instanceof Error ? caught.name : 'unknown');
-    return json({ error: 'Snapshot could not be completed' }, 500);
+    safeLogger.error('snapshot-accounts failed', caught instanceof Error ? caught.name : 'unknown');
+    return json({ error: 'Snapshot could not be completed' }, 500, origin);
   }
 });

@@ -8,8 +8,14 @@ const globalHeaders = config.headers.find((entry) => entry.source === '/(.*)');
 assert.ok(globalHeaders, 'global security headers must exist');
 const header = (key) => globalHeaders.headers.find((entry) => entry.key.toLowerCase() === key.toLowerCase())?.value;
 assert.equal(header('X-Content-Type-Options'), 'nosniff');
-assert.equal(header('X-Frame-Options'), 'SAMEORIGIN');
+assert.equal(header('X-Frame-Options'), 'DENY');
 assert.equal(header('Referrer-Policy'), 'strict-origin-when-cross-origin');
+assert.equal(header('Strict-Transport-Security'), 'max-age=63072000; includeSubDomains; preload');
+const permissionsPolicy = header('Permissions-Policy');
+assert.ok(permissionsPolicy, 'Permissions-Policy must be enforced');
+for (const required of ['camera=()', 'microphone=()', 'geolocation=()', 'browsing-topics=()', 'payment=(self https://api.razorpay.com https://checkout.razorpay.com)']) {
+  assert.ok(permissionsPolicy.includes(required), `Permissions-Policy must include ${required}`);
+}
 
 const csp = header('Content-Security-Policy');
 assert.ok(csp, 'CSP must be enforcing, not report-only');
@@ -32,7 +38,7 @@ const forbids = (name, values) => {
 requires('default-src', ["'self'"]);
 requires('base-uri', ["'self'"]);
 requires('object-src', ["'none'"]);
-requires('frame-ancestors', ["'self'"]);
+requires('frame-ancestors', ["'none'"]);
 requires('form-action', ["'self'", 'https://*.supabase.co', 'https://*.razorpay.com']);
 requires('script-src', ["'self'", 'https://checkout.razorpay.com', 'https://unpkg.com', 'https://embed.tawk.to']);
 forbids('script-src', ["'unsafe-inline'", "'unsafe-eval'", '*']);
@@ -65,6 +71,7 @@ requires('frame-src', [
 ]);
 requires('worker-src', ["'self'", 'blob:']);
 requires('manifest-src', ["'self'"]);
+assert.ok(csp.includes('upgrade-insecure-requests'), 'CSP must upgrade insecure requests behind Vercel TLS');
 
 // The policy must match the actual runtime loaders, not just a wishlist.
 const whatsAppPanel = readFileSync('src/components/NexoraWhatsAppPanel.tsx', 'utf8');

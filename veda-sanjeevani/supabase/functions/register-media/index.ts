@@ -3,9 +3,10 @@ import { requireStaffOrOwner } from "../_shared/auth.ts";
 import { type Context, type Dependencies, endpoint } from "../_shared/http.ts";
 import { AppError, ok } from "../_shared/response.ts";
 import { mediaInput, parseInput, parseOutput, readJson, uuid } from "../_shared/validate.ts";
+import { MAX_IMAGE_BYTES, sniffImageSignature } from "../_shared/mediaSignature.ts";
+import { safeOutboundFetch } from "../_shared/safeOutbound.ts";
 
 const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/avif"];
-const metadataSchema = z.object({ bytes: z.number().int().min(1).max(5242880), type: z.string() });
 
 export function projectImagePath(value: string, supabaseUrl: string): boolean {
   const url = new URL(value), project = new URL(supabaseUrl);
@@ -33,29 +34,49 @@ async function inspectImage(ctx: Context, value: string, original: boolean): Pro
     );
   }
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 8000);
+  const timer = setTimeout(() => controller.abort(), 10000);
   try {
-    // Metadata only: no image decoding, conversion, sharp, or server-side resizing.
-    const response = await ctx.fetcher(value, { method: "HEAD", signal: controller.signal });
-    await response.body?.cancel();
+    // The actual bytes are fetched and sniffed — a HEAD check would let any
+    // upload through with a forged Content-Type or Content-Length. The URL is
+    // pinned to this project's public site-images prefix by projectImagePath,
+    // and redirects are never followed by the guard.
+    const response = await safeOutboundFetch(value, {
+      method: "GET",
+      signal: controller.signal,
+    }, ctx.fetcher);
     if (response.status === 404) {
       throw new AppError("NOT_FOUND", "Upload the image before registering it.");
     }
+    if (response.status >= 300 && response.status < 400) {
+      throw new AppError("UPSTREAM_ERROR", "Image redirects are not accepted.");
+    }
     if (!response.ok) throw new AppError("UPSTREAM_ERROR", "Could not verify the uploaded image.");
-    const metadata = parseOutput(metadataSchema, {
-      bytes: Number(response.headers.get("Content-Length")),
-      type: response.headers.get("Content-Type")?.split(";")[0]?.trim().toLowerCase(),
-    });
-    if (
-      !metadata || !allowedTypes.includes(metadata.type) ||
-      (!original && metadata.type !== "image/webp")
-    ) {
+    const declaredLength = Number(response.headers.get("Content-Length"));
+    if (Number.isFinite(declaredLength) && declaredLength > MAX_IMAGE_BYTES) {
+      throw new AppError("INVALID_INPUT", "Each image must be at most 5 MB.");
+    }
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (bytes.byteLength === 0) {
+      throw new AppError("INVALID_INPUT", "The uploaded image is empty.");
+    }
+    if (bytes.byteLength > MAX_IMAGE_BYTES) {
+      throw new AppError("INVALID_INPUT", "Each image must be at most 5 MB.");
+    }
+    const sniffed = sniffImageSignature(bytes);
+    if (!sniffed || !allowedTypes.includes(sniffed) || (!original && sniffed !== "image/webp")) {
       throw new AppError(
         "INVALID_INPUT",
         "Use JPEG/PNG/WebP/AVIF originals and WebP variants, each at most 5 MB.",
       );
     }
-    return metadata.bytes;
+    const declaredType = response.headers.get("Content-Type")?.split(";")[0]?.trim().toLowerCase();
+    if (declaredType && declaredType !== sniffed) {
+      throw new AppError(
+        "INVALID_INPUT",
+        "The stored object's content does not match its declared type.",
+      );
+    }
+    return bytes.byteLength;
   } catch (error) {
     if (error instanceof AppError) throw error;
     throw new AppError("UPSTREAM_ERROR", "Could not verify the uploaded image.");

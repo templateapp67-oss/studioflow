@@ -5,6 +5,7 @@ import type { Fetcher } from "./supabase.ts";
 import { sleep as defaultSleep } from "./http.ts";
 import { sanitizeTree, treeClaims } from "./sanitize.ts";
 import { parseOutput } from "./validate.ts";
+import { safeOutboundFetch } from "./safeOutbound.ts";
 
 const part = z.object({ text: z.string().max(100000).optional() });
 const upstreamSchema = z.object({
@@ -52,7 +53,7 @@ async function timedFetch(
   const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
   const request = (async () => {
-    const response = await fetcher(url, { ...init, signal: controller.signal });
+    const response = await safeOutboundFetch(url, { ...init, signal: controller.signal }, fetcher);
     if (!response.ok) {
       const status = response.status;
       await response.body?.cancel();

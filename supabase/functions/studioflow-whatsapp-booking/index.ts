@@ -11,19 +11,14 @@
 
 // @ts-ignore Supabase Edge runtime pinned npm import.
 import { createClient } from 'npm:@supabase/supabase-js@2.117.3';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-};
+import { browserCorsHeaders, isAllowedBrowserOrigin } from '../_shared/browserCors.ts';
 
 type JsonRecord = Record<string, unknown>;
 
-function json(body: unknown, status = 200): Response {
+function json(body: unknown, status = 200, origin: string | null = null): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    headers: { ...browserCorsHeaders(origin, 'authorization, content-type', 'GET, POST, OPTIONS'), 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
   });
 }
 
@@ -191,18 +186,18 @@ async function claimTestQuota(
   return { ok: true };
 }
 
-async function handleCatalogue(db: any, body: JsonRecord) {
+async function handleCatalogue(db: any, body: JsonRecord, origin: string | null) {
   const slug = cleanText(body.slug, 80).toLowerCase();
-  if (!/^[a-z0-9][a-z0-9-]{1,79}$/.test(slug)) return json({ ok: false, error: 'Choose a valid salon.' }, 400);
+  if (!/^[a-z0-9][a-z0-9-]{1,79}$/.test(slug)) return json({ ok: false, error: 'Choose a valid salon.' }, 400, origin);
 
   const salon = await getSalon(db, slug);
-  if (!salon) return json({ ok: false, error: 'Salon not found or not published.' }, 404);
+  if (!salon) return json({ ok: false, error: 'Salon not found or not published.' }, 404, origin);
 
   const services = Array.isArray(salon.content.services) ? salon.content.services as JsonRecord[] : [];
   const stylists = Array.isArray(salon.content.stylists) ? salon.content.stylists as JsonRecord[] : [];
   const branches = await getActiveBranches(db, salon.owner_id);
-  if (!branches) return json({ ok: false, error: 'Salon locations could not be loaded.' }, 503);
-  if (branches.length === 0) return json({ ok: false, error: 'This salon has no active booking location.' }, 409);
+  if (!branches) return json({ ok: false, error: 'Salon locations could not be loaded.' }, 503, origin);
+  if (branches.length === 0) return json({ ok: false, error: 'This salon has no active booking location.' }, 409, origin);
 
   return json({
     ok: true,
@@ -233,26 +228,26 @@ async function handleCatalogue(db: any, body: JsonRecord) {
       city: cleanText(branch.city, 80),
     })),
     notice: 'Testing mode only. No appointment is created by this catalogue lookup.',
-  });
+  }, 200, origin);
 }
 
-async function handleAvailability(db: any, body: JsonRecord) {
+async function handleAvailability(db: any, body: JsonRecord, origin: string | null) {
   const valid = validateBaseInput(body);
-  if ('error' in valid) return json({ ok: false, error: valid.error }, 400);
+  if ('error' in valid) return json({ ok: false, error: valid.error }, 400, origin);
 
   const salon = await getSalon(db, valid.slug);
-  if (!salon) return json({ ok: false, error: 'Salon not found or not published.' }, 404);
+  if (!salon) return json({ ok: false, error: 'Salon not found or not published.' }, 404, origin);
   const branches = await getActiveBranches(db, salon.owner_id);
-  if (!branches) return json({ ok: false, error: 'Salon locations could not be loaded.' }, 503);
-  if (branches.length === 0) return json({ ok: false, error: 'This salon has no active booking location.' }, 409);
+  if (!branches) return json({ ok: false, error: 'Salon locations could not be loaded.' }, 503, origin);
+  if (branches.length === 0) return json({ ok: false, error: 'This salon has no active booking location.' }, 409, origin);
   if (branches.length > 1 && !valid.branchId) {
-    return json({ ok: false, error: 'Choose a salon location before checking times.', requiresBranch: true }, 400);
+    return json({ ok: false, error: 'Choose a salon location before checking times.', requiresBranch: true }, 400, origin);
   }
   const branchId = valid.branchId || (branches.length === 1 ? branches[0].id : undefined);
   const branch = branches.find((item) => item.id === branchId);
-  if (branchId && !branch) return json({ ok: false, error: 'That salon location is not active.' }, 400);
+  if (branchId && !branch) return json({ ok: false, error: 'That salon location is not active.' }, 400, origin);
   const selected = getServiceItems(salon.content, valid.serviceIds);
-  if (!selected) return json({ ok: false, error: 'One of the selected services is no longer available.' }, 409);
+  if (!selected) return json({ ok: false, error: 'One of the selected services is no longer available.' }, 409, origin);
 
   const slots = await getAvailableSlots(db, {
     slug: valid.slug,
@@ -261,7 +256,7 @@ async function handleAvailability(db: any, body: JsonRecord) {
     stylistId: valid.stylistId,
     branchId,
   });
-  if (!slots) return json({ ok: false, error: 'Live availability could not be checked. Please try again.' }, 503);
+  if (!slots) return json({ ok: false, error: 'Live availability could not be checked. Please try again.' }, 503, origin);
 
   const specialists = Array.isArray(salon.content.stylists) ? salon.content.stylists as JsonRecord[] : [];
   return json({
@@ -279,16 +274,17 @@ async function handleAvailability(db: any, body: JsonRecord) {
       branchName: cleanText(slot.branchName || branch?.name || '', 120),
     })),
     notice: 'These times were read from the live NEXORA calendar. Checking availability does not reserve a time.',
-  });
+  }, 200, origin);
 }
 
 async function handleTestBooking(
   db: any,
   body: JsonRecord,
   apiKey: string,
+  origin: string | null,
 ) {
   const valid = validateBaseInput(body);
-  if ('error' in valid) return json({ ok: false, error: valid.error }, 400);
+  if ('error' in valid) return json({ ok: false, error: valid.error }, 400, origin);
 
   const time = body.time;
   const requestedStylist = cleanText(body.stylistId, 120);
@@ -298,27 +294,27 @@ async function handleTestBooking(
   const notes = cleanText(body.notes, 500);
 
   if (body.customerConfirmed !== true) {
-    return json({ ok: false, error: 'Customer confirmation is required before saving a test request.' }, 400);
+    return json({ ok: false, error: 'Customer confirmation is required before saving a test request.' }, 400, origin);
   }
-  if (!isTime(time)) return json({ ok: false, error: 'Choose a valid available time.' }, 400);
-  if (!requestedStylist) return json({ ok: false, error: 'Choose a specialist from the available times.' }, 400);
-  if (!isUuid(requestId)) return json({ ok: false, error: 'A valid requestId is required.' }, 400);
-  if (customerName.length < 2 || !customerPhone) return json({ ok: false, error: 'Enter a valid name and WhatsApp number.' }, 400);
+  if (!isTime(time)) return json({ ok: false, error: 'Choose a valid available time.' }, 400, origin);
+  if (!requestedStylist) return json({ ok: false, error: 'Choose a specialist from the available times.' }, 400, origin);
+  if (!isUuid(requestId)) return json({ ok: false, error: 'A valid requestId is required.' }, 400, origin);
+  if (customerName.length < 2 || !customerPhone) return json({ ok: false, error: 'Enter a valid name and WhatsApp number.' }, 400, origin);
 
   const salon = await getSalon(db, valid.slug);
-  if (!salon) return json({ ok: false, error: 'Salon not found or not published.' }, 404);
+  if (!salon) return json({ ok: false, error: 'Salon not found or not published.' }, 404, origin);
   const branches = await getActiveBranches(db, salon.owner_id);
-  if (!branches) return json({ ok: false, error: 'Salon locations could not be loaded.' }, 503);
-  if (branches.length === 0) return json({ ok: false, error: 'This salon has no active booking location.' }, 409);
+  if (!branches) return json({ ok: false, error: 'Salon locations could not be loaded.' }, 503, origin);
+  if (branches.length === 0) return json({ ok: false, error: 'This salon has no active booking location.' }, 409, origin);
   if (branches.length > 1 && !valid.branchId) {
-    return json({ ok: false, error: 'Choose a salon location before testing the booking.', requiresBranch: true }, 400);
+    return json({ ok: false, error: 'Choose a salon location before testing the booking.', requiresBranch: true }, 400, origin);
   }
   const branchId = valid.branchId || (branches.length === 1 ? branches[0].id : undefined);
   const branch = branches.find((item) => item.id === branchId) || null;
-  if (branchId && !branch) return json({ ok: false, error: 'That salon location is not active.' }, 400);
+  if (branchId && !branch) return json({ ok: false, error: 'That salon location is not active.' }, 400, origin);
 
   const selected = getServiceItems(salon.content, valid.serviceIds);
-  if (!selected) return json({ ok: false, error: 'One of the selected services is no longer available.' }, 409);
+  if (!selected) return json({ ok: false, error: 'One of the selected services is no longer available.' }, 409, origin);
 
   // Re-check the live calendar immediately before writing the test record.
   const phoneHash = await hmacHex(apiKey, customerPhone);
@@ -343,10 +339,10 @@ async function handleTestBooking(
     .eq('owner_id', salon.owner_id)
     .eq('request_id', requestId)
     .maybeSingle();
-  if (priorError) return json({ ok: false, error: 'Could not check the previous test request. No booking was saved.' }, 503);
+  if (priorError) return json({ ok: false, error: 'Could not check the previous test request. No booking was saved.' }, 503, origin);
   if (prior) {
     if (prior.request_fingerprint !== requestFingerprint) {
-      return json({ ok: false, error: 'This request ID was already used with different details. Start a new test request.' }, 409);
+      return json({ ok: false, error: 'This request ID was already used with different details. Start a new test request.' }, 409, origin);
     }
     return json({
       ok: true,
@@ -355,7 +351,7 @@ async function handleTestBooking(
       testBooking: prior,
       calendarReserved: false,
       customerMessage: 'This was a test simulation only. No real appointment was booked and no slot was reserved.',
-    });
+    }, 200, origin);
   }
 
   // Re-check the real calendar only for a new request. Idempotent retries above
@@ -367,24 +363,24 @@ async function handleTestBooking(
     stylistId: requestedStylist,
     branchId,
   });
-  if (!slots) return json({ ok: false, error: 'Live availability could not be checked. No test record was saved.' }, 503);
+  if (!slots) return json({ ok: false, error: 'Live availability could not be checked. No test record was saved.' }, 503, origin);
 
   const chosen = slots.find((slot) => slot.time === time
     && (requestedStylist === 'any' || slot.stylistId === requestedStylist));
-  if (!chosen) return json({ ok: false, error: 'That time is no longer available. Check the latest slots.', refreshAvailability: true }, 409);
+  if (!chosen) return json({ ok: false, error: 'That time is no longer available. Check the latest slots.', refreshAvailability: true }, 409, origin);
 
   const stylistId = chosen.stylistId;
   const stylists = Array.isArray(salon.content.stylists) ? salon.content.stylists as JsonRecord[] : [];
   const stylist = stylists.find((person) => person?.id === stylistId);
-  if (!stylist) return json({ ok: false, error: 'The selected specialist is no longer available.' }, 409);
+  if (!stylist) return json({ ok: false, error: 'The selected specialist is no longer available.' }, 409, origin);
 
   const quota = await claimTestQuota(db, salon.owner_id, phoneHash);
-  if ('error' in quota) return json({ ok: false, error: quota.error }, 429);
+  if ('error' in quota) return json({ ok: false, error: quota.error }, 429, origin);
 
   const startsAt = new Date(valid.date + 'T' + time + ':00+05:30');
   const endsAt = new Date(startsAt.getTime() + selected.durationMinutes * 60_000);
   if (!Number.isFinite(startsAt.getTime()) || !Number.isFinite(endsAt.getTime())) {
-    return json({ ok: false, error: 'Invalid appointment time.' }, 400);
+    return json({ ok: false, error: 'Invalid appointment time.' }, 400, origin);
   }
 
   const payload = {
@@ -445,9 +441,9 @@ async function handleTestBooking(
         testBooking: raced,
         calendarReserved: false,
         customerMessage: 'This was a test simulation only. No real appointment was booked and no slot was reserved.',
-      });
+      }, 200, origin);
     }
-    return json({ ok: false, error: 'The test request could not be saved. Please try once more.' }, 503);
+    return json({ ok: false, error: 'The test request could not be saved. Please try once more.' }, 503, origin);
   }
 
   return json({
@@ -457,11 +453,18 @@ async function handleTestBooking(
     testBooking: saved,
     calendarReserved: false,
     customerMessage: 'Test flow completed. This is not a real appointment: nothing was added to the live calendar and no time was reserved.',
-  }, 201);
+  }, 201, origin);
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  const origin = req.headers.get('origin');
+  if (origin && !isAllowedBrowserOrigin(origin)) return json({ error: 'Origin not allowed' }, 403, origin);
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: browserCorsHeaders(origin, 'authorization, content-type', 'GET, POST, OPTIONS'),
+    });
+  }
 
   const path = new URL(req.url).pathname.replace(/\/+$/, '');
   if (req.method === 'GET' && path.endsWith('/health')) {
@@ -470,33 +473,33 @@ Deno.serve(async (req: Request) => {
       && Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
       && (Deno.env.get('NEXORA_TAWK_BOOKING_API_KEY') || '').length >= 32,
     );
-    return json({ ok: true, service: 'studioflow-whatsapp-booking', mode: 'test_only', configured });
+    return json({ ok: true, service: 'studioflow-whatsapp-booking', mode: 'test_only', configured }, 200, origin);
   }
 
-  if (req.method !== 'POST') return json({ ok: false, error: 'POST required.' }, 405);
+  if (req.method !== 'POST') return json({ ok: false, error: 'POST required.' }, 405, origin);
 
   const expectedKey = Deno.env.get('NEXORA_TAWK_BOOKING_API_KEY') || '';
   const authorization = req.headers.get('authorization') || '';
   const suppliedKey = authorization.replace(/^Bearer\s+/i, '').trim();
-  if (!/^Bearer\s+\S+$/i.test(authorization)) return json({ ok: false, error: 'Unauthorized.' }, 401);
-  if (expectedKey.length < 32) return json({ ok: false, error: 'WhatsApp booking integration is not configured yet.' }, 503);
-  if (!constantTimeEqual(expectedKey, suppliedKey)) return json({ ok: false, error: 'Unauthorized.' }, 401);
+  if (!/^Bearer\s+\S+$/i.test(authorization)) return json({ ok: false, error: 'Unauthorized.' }, 401, origin);
+  if (expectedKey.length < 32) return json({ ok: false, error: 'WhatsApp booking integration is not configured yet.' }, 503, origin);
+  if (!constantTimeEqual(expectedKey, suppliedKey)) return json({ ok: false, error: 'Unauthorized.' }, 401, origin);
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-  if (!supabaseUrl || !serviceKey) return json({ ok: false, error: 'Booking service is not configured.' }, 503);
+  if (!supabaseUrl || !serviceKey) return json({ ok: false, error: 'Booking service is not configured.' }, 503, origin);
 
   try {
     const raw = await req.text();
-    if (!raw || raw.length > 24_000) return json({ ok: false, error: 'Request body missing or too large.' }, 400);
+    if (!raw || raw.length > 24_000) return json({ ok: false, error: 'Request body missing or too large.' }, 400, origin);
     let body: JsonRecord;
     try {
       body = JSON.parse(raw);
     } catch {
-      return json({ ok: false, error: 'Request body must be valid JSON.' }, 400);
+      return json({ ok: false, error: 'Request body must be valid JSON.' }, 400, origin);
     }
     if (!body || Array.isArray(body) || typeof body !== 'object') {
-      return json({ ok: false, error: 'Request body must be a JSON object.' }, 400);
+      return json({ ok: false, error: 'Request body must be a JSON object.' }, 400, origin);
     }
 
     const db = createClient<any>(supabaseUrl, serviceKey, {
@@ -504,12 +507,12 @@ Deno.serve(async (req: Request) => {
       global: { headers: { 'X-NEXORA-Integration': 'tawk-whatsapp-test' } },
     });
 
-    if (path.endsWith('/catalogue')) return await handleCatalogue(db, body);
-    if (path.endsWith('/availability')) return await handleAvailability(db, body);
-    if (path.endsWith('/test-booking')) return await handleTestBooking(db, body, expectedKey);
-    return json({ ok: false, error: 'Unknown integration action.' }, 404);
+    if (path.endsWith('/catalogue')) return await handleCatalogue(db, body, origin);
+    if (path.endsWith('/availability')) return await handleAvailability(db, body, origin);
+    if (path.endsWith('/test-booking')) return await handleTestBooking(db, body, expectedKey, origin);
+    return json({ ok: false, error: 'Unknown integration action.' }, 404, origin);
   } catch {
     // Never log or echo raw customer messages, phone numbers, API keys or DB errors.
-    return json({ ok: false, error: 'The booking test service had a temporary error. Please try again.' }, 500);
+    return json({ ok: false, error: 'The booking test service had a temporary error. Please try again.' }, 500, origin);
   }
 });

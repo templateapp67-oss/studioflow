@@ -18,6 +18,7 @@ import {
   quoteDeposit,
   type DepositQuote,
 } from './depositGuard.js';
+import { BOOKING_DEPOSIT_SCHEMA, validateBody } from './httpValidation.js';
 
 type DepositRequest = {
   method?: string;
@@ -105,6 +106,19 @@ export function bookingDepositHandler(req: DepositRequest, res: DepositResponse)
   if (method !== 'GET' && method !== 'HEAD' && method !== 'POST') {
     setHeader(res, 'Allow', 'GET, POST');
     return res.status(405).json({ error: 'Use GET or POST for the booking deposit check.', code: 'method_not_allowed' });
+  }
+
+  // Strict body validation for POST: scalars are type-checked and unknown
+  // fields are stripped; the deposit domain parser still decides semantics.
+  if (method === 'POST') {
+    const bodyResult = validateBody(req.body, BOOKING_DEPOSIT_SCHEMA, 16 * 1024);
+    if (bodyResult.ok === false) {
+      return res.status(bodyResult.status).json({
+        error: bodyResult.status === 413 ? 'The request is too large.' : 'Request body failed validation.',
+        code: bodyResult.code,
+      });
+    }
+    req.body = bodyResult.data;
   }
 
   const enforce = readFlag(req, 'enforce') ?? readFlag(req, 'requireDeposit') ?? true;

@@ -1,6 +1,8 @@
 // NEXORA salon-owned WhatsApp webhook and booking assistant.
 // Meta's signature is checked over the exact raw body before parsing.
 import { createClient } from 'npm:@supabase/supabase-js@2.117.3';
+import { browserCorsHeaders, isAllowedBrowserOrigin } from '../_shared/browserCors.ts';
+import { claimWebhookEvent, finishWebhookEvent, resolveWebhookEventId, webhookReplayToleranceSeconds } from '../_shared/webhookSecurity.ts';
 
 type Json = Record<string, any>;
 const GRAPH_VERSION = (Deno.env.get('META_GRAPH_API_VERSION') || 'v27.0').trim();
@@ -226,7 +228,9 @@ async function ensureWhatsAppCustomer(db: any, phoneDigits: string, customerName
   if (created.error) {
     const retry = await db.rpc('nexora_whatsapp_find_customer', { p_phone: phone });
     if (typeof retry.data === 'string') return retry.data;
-    throw new Error(safeText(created.error.message, 250) || 'Customer account could not be created.');
+    // Never echo the auth admin error: it can carry account details. The
+    // delivery is retried by the caller when the thrown error surfaces.
+    throw new Error('Customer account could not be created.');
   }
   const customerId = created.data?.user?.id;
   if (typeof customerId !== 'string') throw new Error('Customer account was not returned by Supabase Auth.');
@@ -772,12 +776,16 @@ async function notifyPayment(db: any, bookingId: string, paymentId: string) {
 
 Deno.serve(async (req: Request) => {
   const requestUrl = new URL(req.url);
-  if (req.method === 'OPTIONS') return new Response('ok', {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-hub-signature-256',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    },
+  // Meta's servers call this webhook and never send an Origin header; browsers
+  // from anywhere do. Keep the webhook reachable for Meta and refuse browser
+  // callers from other origins outright instead of reflecting a wildcard.
+  const origin = req.headers.get('origin');
+  if (origin && !isAllowedBrowserOrigin(origin)) {
+    return json({ error: 'Origin not allowed' }, 403);
+  }
+  if (req.method === 'OPTIONS') return new Response(null, {
+    status: 204,
+    headers: browserCorsHeaders(origin, 'authorization, apikey, content-type, x-hub-signature-256', 'GET, POST, OPTIONS'),
   });
   const supabaseUrl = env('SUPABASE_URL');
   const serviceKey = env('SUPABASE_SERVICE_ROLE_KEY');
@@ -858,7 +866,40 @@ Deno.serve(async (req: Request) => {
       return json({ received: true, ignored: true });
     }
 
+    // Replay protection: the signature proves Meta sent the bytes, not that they
+    // are fresh. Meta has no event-id header, so the delivery is addressed by
+    // sha256(raw body) — an identical retry hashes identically and is never
+    // processed twice. The signed per-item timestamps drive the staleness gate;
+    // a delivery whose newest signed timestamp is older than the tolerance is
+    // recorded as 'stale' and refused before any side effect.
+    const eventTimestamps: number[] = [];
+    for (const entry of payload.entry as Json[]) {
+      for (const change of (Array.isArray(entry?.changes) ? entry.changes : []) as Json[]) {
+        const value = change?.value || {};
+        for (const m of (Array.isArray(value?.messages) ? value.messages : []) as Json[]) {
+          const t2 = Number(m?.timestamp); if (Number.isSafeInteger(t2) && t2 > 0) eventTimestamps.push(t2);
+        }
+        for (const s of (Array.isArray(value?.statuses) ? value.statuses : []) as Json[]) {
+          const t2 = Number(s?.timestamp); if (Number.isSafeInteger(t2) && t2 > 0) eventTimestamps.push(t2);
+        }
+      }
+    }
+    const freshest = eventTimestamps.length ? Math.max(...eventTimestamps) : null;
+    const tolerance = webhookReplayToleranceSeconds(env('WEBHOOK_REPLAY_TOLERANCE_SECONDS'));
+    const eventId = await resolveWebhookEventId(null, raw);
+    let claim;
+    try {
+      claim = await claimWebhookEvent(db, { provider: 'meta_whatsapp', eventId, eventType: 'whatsapp_webhook', eventCreatedAtSeconds: freshest, toleranceSeconds: tolerance });
+    } catch {
+      return json({ error: 'Webhook idempotency ledger unavailable.' }, 503);
+    }
+    if (!claim.claimed) {
+      if (claim.reason === 'duplicate') return json({ received: true, duplicate: true });
+      return json({ error: 'Stale WhatsApp webhook event.', reason: claim.reason ?? 'stale' }, 400);
+    }
+
     let processed = 0;
+    try {
     for (const entry of payload.entry as Json[]) {
       for (const change of (Array.isArray(entry.changes) ? entry.changes : []) as Json[]) {
         if (change.field !== 'messages') continue;
@@ -884,8 +925,17 @@ Deno.serve(async (req: Request) => {
         }
       }
     }
+    await finishWebhookEvent(db, 'meta_whatsapp', eventId, 'processed').catch(() => {});
     return json({ received: true, processed });
+    } catch (processingError) {
+      await finishWebhookEvent(db, 'meta_whatsapp', eventId, 'failed').catch(() => {});
+      throw processingError;
+    }
   } catch (error) {
+    // 500 so Meta retries the delivery; the ledger row stays 'failed' and the
+    // redelivery reclaims it. Messages thrown anywhere on this path are crafted
+    // to carry only status and numeric codes — raw provider text never reaches
+    // the wire. The webhook replay branch does not rely on this fallback.
     return json({ error: error instanceof Error ? error.message : 'WhatsApp webhook processing failed.' }, 500);
   }
 });

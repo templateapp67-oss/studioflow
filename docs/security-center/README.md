@@ -41,9 +41,8 @@ Use the restricted `nexora_security_maintenance` role for `nexora_sec_maintenanc
 ## Reproducible local checks
 
 ```bash
-node --test GAP/tests/securityCenter.test.mjs GAP/tests/dnsWatch.test.mjs GAP/tests/reportPdf.test.mjs
-npm install --prefix /tmp/nexora-security-review-tools --ignore-scripts --no-audit --no-fund @electric-sql/pglite@0.6.0
-NEXORA_PGLITE_MODULE=/tmp/nexora-security-review-tools/node_modules/@electric-sql/pglite/dist/index.js node GAP/tests/database.test.mjs
+npm ci
+node --test tests/securityCenter.test.mjs tests/dnsWatch.test.mjs tests/reportPdf.test.mjs tests/database.test.mjs
 printf '%s' '{"code":"dns_proof_present"}' | python3 -B RISK/normalizer.py
 ```
 

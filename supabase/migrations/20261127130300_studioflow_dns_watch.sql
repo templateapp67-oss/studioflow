@@ -125,7 +125,7 @@ begin
     if found then perform studioflow_security.record(w.tenant_id,'dns_alert',w.domain_id,alert); end if;
   end if;
   if w.misses>=2 then
-    perform studioflow_security.revoke_domain(w.tenant_id,w.domain_id);
+    perform studioflow_security.revoke_domain(w.tenant_id,w.domain_id,null);
     perform studioflow_security.record(w.tenant_id,'domain_revoked',w.domain_id,p_kind);
   end if;
   return true;

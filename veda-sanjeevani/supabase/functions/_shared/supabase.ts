@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { AppEnv } from "./env.ts";
 import type { JsonValue } from "./validate.ts";
+import { assertSafeOutboundUrl } from "./safeOutbound.ts";
 
 type Table<Row, Insert = Partial<Row>, Update = Partial<Row>> = {
   Row: Row;
@@ -129,12 +130,18 @@ export type Database = {
 export type AdminClient = SupabaseClient<Database, "public", "public">;
 export type Fetcher = typeof fetch;
 
-/** Bound Auth/PostgREST calls as well as provider calls; no request can hang indefinitely. */
+/**
+ * Bound Auth/PostgREST calls as well as provider calls; no request can hang
+ * indefinitely. Every outbound call is additionally pinned to HTTPS public
+ * hosts and never follows redirects (SSRF guard — the input URL comes from
+ * env, but misconfiguration must fail closed, not reach a metadata service).
+ */
 function databaseFetch(fetcher: Fetcher): Fetcher {
   return (input, init) => {
     const timeout = AbortSignal.timeout(10000);
     const signal = init?.signal ? AbortSignal.any([init.signal, timeout]) : timeout;
-    return fetcher(input, { ...init, signal });
+    const url = assertSafeOutboundUrl(input as string | URL | Request);
+    return fetcher(url, { ...init, signal, redirect: "manual" });
   };
 }
 

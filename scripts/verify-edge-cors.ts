@@ -105,27 +105,31 @@ for (const file of ['src', 'app', 'server', 'api'].flatMap((dir) => {
 assert.ok(invoked.size > 0, 'no .invoke() call sites found; the enumeration is broken');
 
 // Wildcard is acceptable *only* where access is decided by something other than
-// ambient browser credentials: these send a bearer token in an Authorization
-// header, so a wildcard origin cannot grant a caller anything a 401/403 would
-// not already deny. Anything that gates on Origin must allowlist exact origins.
-const WILDCARD_BY_DESIGN = new Map([
-  ['studioflow-booking-emails', 'bearer token in Authorization; denial is 401/403 server-side'],
-  ['studioflow-payments', 'bearer/worker token; denial is 401/403 server-side'],
-  ['studioflow-map-locations', 'public endpoint gated on the project anon key'],
-  ['nexora-mobile-qr', 'bearer token in Authorization; denial is 401/403 server-side'],
-]);
+// ambient browser credentials. Every browser-invoked function now echoes an
+// exact origin from the shared allowlist (supabase/functions/_shared/
+// browserCors.ts); server-to-server callers (pg_cron, Meta/Razorpay webhooks,
+// the Android app) send no Origin and keep working. Iron-ink-public is the one
+// intentionally public wildcard endpoint and is never invoked from the app, so
+// it is not part of this enumeration.
+const WILDCARD_BY_DESIGN = new Map<string, string>([]);
 
 const originGated: string[] = [];
 const wildcard: string[] = [];
 for (const name of invoked) {
-  // The allowlist may live in a sibling module (the campaign sender keeps it in
-  // cors.ts), so the contract is checked across the whole function folder.
+// The allowlist may live in a sibling module (the campaign sender keeps it in
+// cors.ts; the shared browser allowlist lives in _shared/browserCors.ts), so
+// the contract is checked across the whole function folder plus that shared
+// module, without pulling in unrelated functions.
+const SHARED_BROWSER_CORS = 'supabase/functions/_shared/browserCors.ts';
+const sharedBrowserCorsSource = (() => {
+  try { return readFileSync(SHARED_BROWSER_CORS, 'utf8'); } catch { return ''; }
+})();
   let source: string;
   try {
     source = walk(`supabase/functions/${name}`)
       .filter((file) => file.endsWith('.ts'))
       .map((file) => readFileSync(file, 'utf8'))
-      .join('\n');
+      .join('\n') + '\n' + sharedBrowserCorsSource;
   } catch { continue; } // missing source is verify-edge-functions.mjs's job
   // Emitting the header at all is what matters. Gating on "reads the Origin
   // header" missed studioflow-welcome-whatsapp, which answered with one static
@@ -162,7 +166,7 @@ for (const name of invoked) {
   );
 }
 
-assert.ok(originGated.length >= 4, `expected 4 origin-gated functions, found ${originGated.length}: ${originGated.join(', ')}`);
+assert.ok(originGated.length >= 6, `expected at least 6 origin-gated browser-invoked functions, found ${originGated.length}: ${originGated.join(', ')}`);
 for (const [name, reason] of WILDCARD_BY_DESIGN) {
   assert.ok(invoked.has(name), `WILDCARD_BY_DESIGN lists "${name}" (${reason}) but the app no longer invokes it`);
 }

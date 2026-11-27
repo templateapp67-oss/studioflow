@@ -1,15 +1,9 @@
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
+import { postgis } from '@electric-sql/pglite-postgis';
+import { createOfflineMigratedDb } from '../scripts/lib/offline-migrated-db.mjs';
 
-const moduleUrl = process.env.NEXORA_PGLITE_MODULE ?? '@electric-sql/pglite';
-const { PGlite } = await import(moduleUrl);
-const { pgcrypto } = await import('@electric-sql/pglite/contrib/pgcrypto');
-const { uuid_ossp } = await import('@electric-sql/pglite/contrib/uuid_ossp');
-const { pg_trgm } = await import('@electric-sql/pglite/contrib/pg_trgm');
-const { citext } = await import('@electric-sql/pglite/contrib/citext');
-// @electric-sql/pglite-postgis@0.2.8 requires the test-only PGlite 0.5.8 peer.
-const { postgis } = await import('@electric-sql/pglite-postgis');
-const db = new PGlite({ extensions: { pgcrypto, uuid_ossp, pg_trgm, citext, postgis } });
+const { db } = await createOfflineMigratedDb({ extraExtensions: { postgis } });
 const owner = '11111111-1111-4111-8111-111111111111';
 const other = '22222222-2222-4222-8222-222222222222';
 const admin = '33333333-3333-4333-8333-333333333333';
@@ -20,73 +14,26 @@ const key4 = '44444444-4444-4444-8444-444444444444';
 const fqdn = 'fixture-salon.com';
 
 try {
+  // Use the shared StudioFlow baseline, then apply the real staged migrations.
+  // The repository's raw historical export depends on hosted Supabase state.
   await db.exec(`
-    create role authenticated;
-    create role anon;
-    create role service_role bypassrls;
-    create schema auth;
-    create table auth.users (
-      id uuid primary key,
-      email text,
-      phone text,
-      raw_user_meta_data jsonb not null default '{}'::jsonb,
-      raw_app_meta_data jsonb not null default '{}'::jsonb,
-      created_at timestamptz not null default now(),
-      updated_at timestamptz not null default now(),
-      email_confirmed_at timestamptz,
-      phone_confirmed_at timestamptz,
-      last_sign_in_at timestamptz,
-      confirmed_at timestamptz,
-      encrypted_password text,
-      aud text,
-      role text,
-      is_sso_user boolean not null default false,
-      is_anonymous boolean not null default false,
-      banned_until timestamptz,
-      deleted_at timestamptz
-    );
-    create function auth.jwt() returns jsonb language sql stable
-      as $$ select nullif(current_setting('request.jwt.claims',true),'')::jsonb $$;
-    create function auth.uid() returns uuid language sql stable
-      as $$ select (auth.jwt()->>'sub')::uuid $$;
-    grant usage on schema auth to authenticated, service_role, anon;
-    create table public.studioflow_websites(owner_id uuid primary key references auth.users, published_at timestamptz);
+    create extension postgis with schema extensions;
     insert into auth.users(id) values ('${owner}'),('${other}'),('${admin}');
-    insert into public.studioflow_websites values ('${owner}',now()),('${other}',now());
+    insert into public.studioflow_accounts(user_id) values ('${owner}'),('${other}');
+    insert into public.studioflow_websites(owner_id, slug, content)
+    values ('${owner}', 'fixture-owner', '{}'),('${other}', 'fixture-other', '{}');
   `);
-  await db.exec([
-    'create schema storage;',
-    'create table storage.buckets (id text primary key, name text not null, public boolean not null default false, file_size_limit bigint, allowed_mime_types text[]);',
-    'alter table storage.buckets enable row level security;',
-    'create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text not null references storage.buckets(id) on delete cascade, name text not null);',
-    'alter table storage.objects enable row level security;',
-    "create function storage.foldername(p_name text) returns text[] language sql immutable strict parallel safe as 'select case when strpos(p_name, chr(47)) > 0 then string_to_array(left(p_name, length(p_name) - strpos(reverse(p_name), chr(47))), chr(47)) else array[]::text[] end';",
-    'grant usage on schema storage to authenticated, service_role, anon;',
-  ].join(' '));
   const folder = new URL('../supabase/migrations/', import.meta.url);
-  for (const file of (await readdir(folder)).sort()) {
-    await db.exec(await readFile(new URL(file, folder), 'utf8'));
-    if (file === '20260928011846_nexora_growth_partner_onboarding_baseline_20260928.sql') {
-      await db.exec('alter table public.growth_partners add column if not exists banned_at timestamptz, add column if not exists deleted_at timestamptz;');
-    }
-    if (file === '20260928010916_reset_empty_public_schema_20260928.sql') {
-      await db.exec("create function public.nexora_save_owner_workspace(p_payload jsonb)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = public, pg_temp\nas $fn$\ndeclare\n  v_staff jsonb;\nbegin\n  for v_staff in\n    select value\n    from jsonb_array_elements(coalesce(p_payload->'staff','[]'::jsonb))\n  loop\n    raise exception 'Staff name is required' using errcode = '22023';\n  end loop;\n  return coalesce(p_payload,'{}'::jsonb);\nend;\n$fn$;");
-    }
-    if (file === '20260928011846_nexora_growth_partner_onboarding_baseline_20260928.sql') {
-      // Model the Growth Partner lifecycle fields required by the following
-      // StudioFlow secure-workspace migration's fail-closed referral filters.
-      await db.exec(`
-        alter table public.growth_partners
-          add column if not exists banned_at timestamptz,
-          add column if not exists deleted_at timestamptz;
-      `);
+  const files = (await readdir(folder))
+    .filter((file) => /^\d{14}_studioflow_(?:security_(?:center|maintenance)|platform_(?:cases|retention)|dns_watch)\.sql$/.test(file))
+    .sort();
+  for (const file of files) {
+    try {
+      await db.exec(await readFile(new URL(file, folder), 'utf8'));
+    } catch (error) {
+      throw new Error(`Migration ${file} failed in the offline fixture: ${error.message}`);
     }
   }
-  // The shared Food schema migration must install PostGIS before the fixture continues.
-  const postgisInstalled = await db.query(
-    "select exists (select 1 from pg_extension where extname='postgis') as installed",
-  );
-  assert.equal(postgisInstalled.rows[0].installed, true, 'PostGIS migration installs the extension');
 
   await db.exec(`
     insert into studioflow_security.admin_grants(user_id,permission,expires_at)
@@ -95,7 +42,10 @@ try {
 
   async function role(user, aal = 'aal2', name = 'authenticated') {
     await db.exec('reset role');
-    await db.query("select set_config('request.jwt.claims',$1,false)", [JSON.stringify({ sub: user, aal, role: name })]);
+    await db.query(
+      "select set_config('request.jwt.claims',$1,false), set_config('request.jwt.claim.sub',$2,false)",
+      [JSON.stringify({ sub: user, aal, role: name }), user ?? ''],
+    );
     await db.exec('set role ' + name);
   }
   async function call(action, data = {}) {
@@ -120,6 +70,7 @@ try {
   await role(null, '', 'nexora_security_writer');
   assert.equal((await result('verify', domain.id, 'present')).state, 'verified');
   await assert.rejects(db.query('select public.nexora_sec_result($1,$2,$3,$4)', ['verify', domain.id, owner, 'present']));
+  await db.exec('reset role');
   assert.equal((await db.query("select actor_id from studioflow_security.audit where action='domain_verified' and target_id=$1",[domain.id])).rows[0].actor_id,owner);
 
   await role(other);
@@ -153,6 +104,7 @@ try {
   const completedJob = await call('request', { id: scope_id, request_key: key2 });
   await role(null, '', 'nexora_security_writer');
   assert.equal((await result('complete', completedJob.id, 'present')).state, 'completed');
+  await db.exec('reset role');
   assert.equal((await db.query("select actor_id from studioflow_security.audit where action='completed' and target_id=$1",[completedJob.id])).rows[0].actor_id,owner);
   await role(owner);
   assert.equal((await call('report', { id: completedJob.id })).code, 'dns_proof_present');
@@ -185,7 +137,7 @@ try {
     values ('${admin}','platform_read',now()+interval '1 day'),
            ('${admin}','platform_write',now()+interval '1 day'),
            ('${admin}','platform_approve',now()+interval '1 day');
-    insert into auth.users values ('55555555-5555-4555-8555-555555555555');
+    insert into auth.users(id) values ('55555555-5555-4555-8555-555555555555');
     insert into studioflow_security.admin_grants(user_id,permission,expires_at)
     values ('55555555-5555-4555-8555-555555555555','platform_approve',now()+interval '1 day');
   `);
@@ -264,6 +216,26 @@ try {
   assert.equal((await call('list')).domains.find(row=>row.id===watchClaim.id).state,'revoked');
   assert.ok((await inbox('list')).some(alert=>alert.kind==='proof_missing'));
   assert.deepEqual(await lease(),[]);
+
+  await role(owner);
+  const expired = await call('claim', { hostname: 'expired-fixture.com' });
+  const remaining = await call('claim', { hostname: 'deactivate-fixture.com' });
+  await db.exec('reset role');
+  await db.query("update studioflow_security.domains set challenge_until=now()-interval '1 minute' where id=$1", [expired.id]);
+  const { rows: [tenant] } = await db.query(
+    'select id from studioflow_security.tenants where website_owner_id=$1 and active', [owner],
+  );
+  await role(null, '', 'nexora_security_maintenance');
+  await db.query('select public.nexora_sec_maintenance()');
+  const { rows: [deactivation] } = await db.query(
+    'select public.nexora_sec_deactivate_tenant($1,$2) as changed', [tenant.id, 'CASE-EXPIRE'],
+  );
+  assert.equal(deactivation.changed, true);
+  await db.exec('reset role');
+  const { rows: revoked } = await db.query(
+    'select state from studioflow_security.domains where id in ($1,$2)', [expired.id, remaining.id],
+  );
+  assert.deepEqual(revoked.map(({ state }) => state), ['revoked', 'revoked']);
   console.log('Passed: platform authorization, two-person closure, audit separation, DNS leases, expiry alerts, outage preservation, confirmation and inbox tenancy.');
   console.log('Passed: SQL migrations, MFA, roles, challenge, claim conflict, scope, quota, idempotency, tenancy, cancel, reporting, revocation and maintenance.');
 } finally {

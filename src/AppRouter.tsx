@@ -17,6 +17,7 @@ import { StaffLoginPage } from './components/staff/StaffLoginPage';
 import { StaffWorkspacePage } from './components/staff/StaffWorkspacePage';
 import { resolveSiteSlug } from './lib/resolveSite';
 import { StudioFlowSecurityCenterRoute } from './components/security/StudioFlowSecurityCenterRoute';
+import { hasPersistedAuthSession } from './lib/authStorage';
 
 const AccountSecurityPage = lazy(() => import('./components/AccountSecurityPage').then(module => ({ default: module.AccountSecurityPage })));
 
@@ -58,12 +59,10 @@ export function requiresFullApplication(location: Pick<Location, 'pathname' | 's
   return false;
 }
 
+// Session tokens live in sessionStorage now; the helper migrates any legacy
+// localStorage copy before reporting, and never throws.
 function hasPersistedOwnerSession(): boolean {
-  try {
-    return Boolean(window.localStorage.getItem('studioflow_supabase_session'));
-  } catch {
-    return false;
-  }
+  return hasPersistedAuthSession('studioflow_supabase_session');
 }
 
 /**

@@ -18,6 +18,7 @@ import {
 import { nexoraDemoLeadHandler } from "./server/nexoraDemoLead";
 import { onboardingCopyHandler } from "./server/onboardingCopy";
 import { nexoraDemoLeadsAdminHandler } from "./server/nexoraDemoLeads";
+import { recoveryActiveHandler, recoveryConsumeHandler } from "./server/recoveryCodes";
 import {
   apiErrorHandler,
   asArray,
@@ -29,7 +30,25 @@ import {
   sendJson,
 } from "./server/httpSafety";
 import { rateLimit } from "./server/rateLimit";
+import {
+  strictBody,
+  DEMO_LEAD_SCHEMA,
+  DEMO_LEADS_ADMIN_SCHEMA,
+  ONBOARDING_COPY_SCHEMA,
+  GENERATE_BIO_SCHEMA,
+  GENERATE_PROMO_IMAGE_SCHEMA,
+  GENERATE_PROMO_COPY_SCHEMA,
+  VEDA_WEBSITE_CONTENT_SCHEMA,
+  AI_RECOMMENDATIONS_SCHEMA,
+  RECOVERY_CONSUME_SCHEMA,
+  STAFF_INVITE_SCHEMA,
+  BOOKING_EMAIL_SCHEMA,
+  BOOKING_DEPOSIT_SCHEMA,
+} from "./server/httpValidation";
 import { canonicalHostRedirect } from "./server/canonicalHost";
+import { securityHeaders } from "./server/httpSecurityHeaders";
+import { isForbiddenStaticAsset } from "./server/staticGuard";
+import { safeLogger } from "./server/safeLogger";
 import { robotsHeaderMiddleware, robotsTagForRequest } from "./server/robotsHeaders";
 import storefrontHandler, { resolveStorefrontSlug } from "./api/storefront";
 import { bookingDepositHandler } from "./server/bookingDeposit";
@@ -118,6 +137,13 @@ async function startServer() {
   // (`.vercel.app`, `.e2b.app`, localhost, IPs) are never redirected.
   app.use(canonicalHostRedirect());
   app.use(robotsHeaderMiddleware());
+  // Baseline security headers on every response — API JSON, prerendered HTML,
+  // static assets. vercel.json enforces the same values at the edge; the CSP
+  // here omits `upgrade-insecure-requests` so plain-http localhost keeps working.
+  app.use((_req, res, next) => {
+    for (const [name, value] of Object.entries(securityHeaders())) res.setHeader(name, value);
+    next();
+  });
 
   // Defence in depth behind asyncHandler: a stray rejection is logged instead of
   // taking the API down. See server/httpSafety.ts for the full rationale.
@@ -175,7 +201,7 @@ async function startServer() {
   // enquiry is stored by the `submit-landing-lead` Supabase Edge Function in
   // the private `public.landing_leads` table. The fallback claims a shared
   // per-address database budget before its trusted Edge call.
-  app.post("/api/nexora-demo-lead", asyncHandler(async (req, res) => {
+  app.post("/api/nexora-demo-lead", strictBody(DEMO_LEAD_SCHEMA, { maxBytes: 64 * 1024 }), asyncHandler(async (req, res) => {
     await nexoraDemoLeadHandler(
       {
         method: req.method,
@@ -191,7 +217,7 @@ async function startServer() {
   // Manager-only operations on the demo-request register (listing, export and
   // erasure on request). The manager role is taken from the signed JWT's
   // server-controlled `app_metadata.site_role` claim.
-  app.post("/api/nexora-demo-leads", asyncHandler(async (req, res) => {
+  app.post("/api/nexora-demo-leads", strictBody(DEMO_LEADS_ADMIN_SCHEMA, { maxBytes: 16 * 1024 }), asyncHandler(async (req, res) => {
     await nexoraDemoLeadsAdminHandler(
       {
         method: req.method,
@@ -203,12 +229,12 @@ async function startServer() {
     );
   }));
 
-  app.post("/api/onboarding-copy", asyncHandler(async (req, res) => {
+  app.post("/api/onboarding-copy", strictBody(ONBOARDING_COPY_SCHEMA, { maxBytes: 32 * 1024 }), asyncHandler(async (req, res) => {
     await onboardingCopyHandler(req, res);
   }));
 
   // AI Bio Generation Route with Gemini
-  app.post("/api/generate-bio", requireSignedIn, aiLimiters.bio, asyncHandler(async (req, res) => {
+  app.post("/api/generate-bio", strictBody(GENERATE_BIO_SCHEMA, { maxBytes: 32 * 1024 }), requireSignedIn, aiLimiters.bio, asyncHandler(async (req, res) => {
     // Validated once, so neither the prompt nor the fallback can be handed a
     // non-string (an object with `.replace` missing used to throw in `catch`).
     const input = asObject(req.body);
@@ -263,7 +289,7 @@ Return strictly valid JSON in this format:
         throw new Error('Empty AI response');
       }
     } catch (err) {
-      console.error('Gemini generation error:', err);
+      safeLogger.error('Gemini generation error:', err instanceof Error ? err.message : 'unknown');
       // Fallback
       return res.json({
         source: "template",
@@ -274,7 +300,7 @@ Return strictly valid JSON in this format:
   }));
 
   // Promotional Image Generation Endpoint with Gemini
-  app.post("/api/generate-promo-image", requireSignedIn, aiLimiters.promoImage, asyncHandler(async (req, res) => {
+  app.post("/api/generate-promo-image", strictBody(GENERATE_PROMO_IMAGE_SCHEMA, { maxBytes: 16 * 1024 }), requireSignedIn, aiLimiters.promoImage, asyncHandler(async (req, res) => {
     const input = asObject(req.body);
     const prompt = asString(input.prompt, 1200);
     const serviceName = asString(input.serviceName, 120);
@@ -344,7 +370,7 @@ Return strictly valid JSON in this format:
         });
       }
     } catch (err: any) {
-      console.error("Gemini Image generation error:", err?.message || err);
+      safeLogger.error("Gemini Image generation error:", err instanceof Error ? err.message : String(err ?? 'unknown'));
       return res.json({
         success: false,
         imageUrl: null,
@@ -354,7 +380,7 @@ Return strictly valid JSON in this format:
   }));
 
   // Promotional Copy and Caption Generation Endpoint
-  app.post("/api/generate-promo-copy", requireSignedIn, aiLimiters.promoCopy, asyncHandler(async (req, res) => {
+  app.post("/api/generate-promo-copy", strictBody(GENERATE_PROMO_COPY_SCHEMA, { maxBytes: 16 * 1024 }), requireSignedIn, aiLimiters.promoCopy, asyncHandler(async (req, res) => {
     // `offer` used to be interpolated with truthiness checks and then
     // `.toUpperCase()`-d in the fallback: a truthy non-string threw inside the
     // catch block and took the process down. It is a bounded string now.
@@ -415,7 +441,7 @@ Return strictly JSON with the following keys:
       }
       throw new Error("Empty copy response");
     } catch (err) {
-      console.error("Copy generation error:", err);
+      safeLogger.error("Copy generation error:", err instanceof Error ? err.message : String(err ?? 'unknown'));
       return res.json({
         source: "template",
         whatsapp: `✨ *EXCLUSIVE SALON OFFER* ✨\n\nHey beautiful! Treat yourself to *${serviceName || 'our signature treatment'}* at *${businessName || 'our salon'}*.\n\n🎉 *Special Deal*: ${offer || 'Exclusive Discount This Week'}\n💰 *Price*: ₹${price ? price.toLocaleString('en-IN') : 'Special Rate'}\n\n📲 Book your appointment now!`,
@@ -434,7 +460,7 @@ Return strictly JSON with the following keys:
    * honest, brand-specific draft produced by the shared template library, so the
    * "Generate my website content" button always does something useful.
    */
-  app.post("/api/veda-website-content", requireSignedIn, aiLimiters.veda, asyncHandler(async (req, res) => {
+  app.post("/api/veda-website-content", strictBody(VEDA_WEBSITE_CONTENT_SCHEMA, { maxBytes: 128 * 1024 }), requireSignedIn, aiLimiters.veda, asyncHandler(async (req, res) => {
     const body = req.body && typeof req.body === 'object' ? req.body : {};
     const mode = (VEDA_AI_MODE_IDS as readonly string[]).includes(body.mode) ? body.mode : 'all';
     const details = normalizeVedaDetails(body.details);
@@ -475,7 +501,7 @@ Return strictly JSON with the following keys:
         notice: 'Written by AI from the details you supplied. Read it through and edit anything that does not sound like your studio before publishing.',
       });
     } catch (error) {
-      console.error('Veda AI content error:', error);
+      safeLogger.error('Veda AI content error:', error instanceof Error ? error.message : 'unknown');
       const draft = buildVedaFallbackContent(mode as any, details);
       return res.json({
         source: 'template',
@@ -487,7 +513,7 @@ Return strictly JSON with the following keys:
   }));
 
   // AI Personalized Recommendations Endpoint with Gemini
-  app.post("/api/ai-recommendations", identifyCustomer, aiLimiters.recommendations, asyncHandler(async (req, res) => {
+  app.post("/api/ai-recommendations", strictBody(AI_RECOMMENDATIONS_SCHEMA, { maxBytes: 192 * 1024 }), identifyCustomer, aiLimiters.recommendations, asyncHandler(async (req, res) => {
     // Every field is validated before use. A body of `null`, a string or an
     // object where an array is expected used to throw inside this handler and,
     // because the old fallback re-read the same unvalidated value, inside the
@@ -564,7 +590,7 @@ Return strictly valid JSON in this format:
       if (recommendations.length === 0) throw new Error('AI response had no usable recommendations');
       return sendJson(res, 200, { source: 'ai', recommendations });
     } catch (error) {
-      console.error('AI recommendations error:', error instanceof Error ? error.message : error);
+      safeLogger.error('AI recommendations error:', error instanceof Error ? error.message : error);
       return sendJson(res, 200, fallback('Curated recommendation matching your style and beauty preferences.'));
     }
   }));
@@ -579,19 +605,30 @@ Return strictly valid JSON in this format:
   // pretending the email went out.
   const staffInviteLimiter = rateLimit({ name: 'staff-invite-email', windowMs: 10 * 60 * 1000, max: 20 });
   app.get("/api/staff-invite-status", staffInviteStatus);
-  app.post("/api/send-staff-invite", staffInviteLimiter, staffInviteEmailHandler);
+  app.post("/api/send-staff-invite", strictBody(STAFF_INVITE_SCHEMA, { maxBytes: 16 * 1024 }), staffInviteLimiter, staffInviteEmailHandler);
 
   // Automated Booking Email Endpoint (Resend integration). The shared handler
   // authenticates the caller, uses booking RLS and binds the recipient to the
   // stored booking before delivery.
-  app.post("/api/send-booking-email", bookingEmailHandler);
+  app.post("/api/send-booking-email", strictBody(BOOKING_EMAIL_SCHEMA, { maxBytes: 32 * 1024 }), bookingEmailHandler);
+
+  // MFA recovery codes — the one path allowed at AAL1 with an enrolled
+  // authenticator (lost-device recovery). The caller's bearer token is
+  // verified server-side; consumption is single-use (atomic spend in the
+  // database), throttled per account inside the database function AND per
+  // caller IP by the handler itself, and every outcome that passes the
+  // per-account throttle is recorded in studioflow_mfa_recovery_audit.
+  // Issuing/re-issuing codes happens in the browser via a user-context RPC
+  // that demands an AAL2 session.
+  app.post("/api/account/recovery-codes/consume", strictBody(RECOVERY_CONSUME_SCHEMA, { maxBytes: 4 * 1024 }), recoveryConsumeHandler);
+  app.get("/api/account/recovery-codes/active", recoveryActiveHandler);
 
   // Server-authoritative 25% booking deposit. The database (`register_payment`)
   // and the payments edge function remain the money-authoritative layers; this
   // endpoint lets the Node layer quote the mandatory deposit and reject an
   // under-paid booking instead of trusting a browser amount.
   const depositLimiter = rateLimit({ name: 'booking-deposit', windowMs: 10 * 60 * 1000, max: 120 });
-  app.all("/api/booking-deposit", depositLimiter, bookingDepositHandler);
+  app.all("/api/booking-deposit", strictBody(BOOKING_DEPOSIT_SCHEMA, { maxBytes: 16 * 1024 }), depositLimiter, bookingDepositHandler);
 
   // Terminal error handler: an unexpected throw becomes a logged 500 JSON
   // response instead of an unhandled rejection that stops the server.
@@ -665,6 +702,19 @@ Return strictly valid JSON in this format:
           url.searchParams.has('customer_ref') || !resolveStorefrontSlug(url, 'localhost')) return next();
       void storefrontHandler(req, res).catch(next);
     });
+    // Source maps, TypeScript sources, CommonJS output and server bundles are
+    // build artifacts / server-only files, never public assets. The build no
+    // longer emits them (see `npm run build` and scripts/build-storefront-ssr.mjs);
+    // this guard also covers a stale dist/ that still contains them.
+    app.use((req, res, next) => {
+      if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+      const pathname = (req.originalUrl.split('?')[0] || '').split('#')[0];
+      if (isForbiddenStaticAsset(pathname)) {
+        res.status(404).type('text/plain').send('Not found');
+        return;
+      }
+      next();
+    });
     // `redirect: false` keeps the marketing documents on their canonical,
     // slash-free URLs. Without it `express.static` answers `/pricing` with a
     // 301 to `/pricing/`, which contradicts the canonical link in the
@@ -719,7 +769,7 @@ Return strictly valid JSON in this format:
   }
 
   httpServer.listen(PORT, "0.0.0.0", () => {
-    console.log(`StudioFlow Salon OS running on http://0.0.0.0:${PORT}`);
+    safeLogger.log(`StudioFlow Salon OS running on http://0.0.0.0:${PORT}`);
   });
 }
 

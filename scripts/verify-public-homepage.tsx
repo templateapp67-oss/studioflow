@@ -158,7 +158,8 @@ const renderRoutedRoot = (session: string | null) => {
   try {
     (globalThis as any).window = {
       location: { pathname: '/', search: '', hash: '', hostname: 'www.nexora.app' },
-      localStorage: { getItem: (key: string) => key === 'studioflow_supabase_session' ? session : null },
+      sessionStorage: { getItem: (key: string) => key === 'studioflow_supabase_session' ? session : null },
+      localStorage: { getItem: (_key: string) => null, removeItem: (_key: string) => undefined },
       addEventListener: () => undefined,
       removeEventListener: () => undefined,
     };

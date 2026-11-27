@@ -22,7 +22,7 @@ begin
        or (state='verified' and verified_until<=now())
     limit 1000
   loop
-    perform studioflow_security.revoke_domain(expired.tenant_id,expired.id);
+    perform studioflow_security.revoke_domain(expired.tenant_id,expired.id,null);
     perform studioflow_security.record(expired.tenant_id,'domain_expired',expired.id,'maintenance');
   end loop;
   delete from studioflow_security.jobs where id in (
@@ -62,7 +62,7 @@ begin
   if not found then return false; end if;
   for asset in select id from studioflow_security.domains where tenant_id=p_tenant and state<>'revoked'
   loop
-    perform studioflow_security.revoke_domain(p_tenant,asset.id);
+    perform studioflow_security.revoke_domain(p_tenant,asset.id,null);
   end loop;
   perform studioflow_security.record(p_tenant,'tenant_deactivated',null,p_ticket);
   return true;

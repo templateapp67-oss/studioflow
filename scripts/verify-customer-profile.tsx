@@ -1,4 +1,5 @@
 import React from 'react';import {act,create} from 'react-test-renderer';import assert from 'node:assert/strict';import {supabase} from '../src/lib/supabase';
+import {jpegBytes,webpFile} from './fakeImages';
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;
 const loc={origin:'https://salon.test',search:'?app=1',hash:'',href:'https://salon.test/?app=1'};
 (globalThis as any).location=loc;
@@ -7,7 +8,7 @@ const updateUrl=(_a:any,_b:any,url:string)=>{loc.search=url.slice(url.indexOf('?
 const savedLocal=new Map();(globalThis as any).localStorage={getItem:(k:string)=>savedLocal.get(k)||null,setItem:(k:string,v:string)=>savedLocal.set(k,v),removeItem:(k:string)=>savedLocal.delete(k)};
 let cropArgs:any[]=[];
 (globalThis as any).createImageBitmap=async()=>({width:1200,height:800,close(){}});
-(globalThis as any).document={hidden:false,title:'',body:{style:{}},activeElement:null,addEventListener(){},removeEventListener(){},createElement:()=>({width:0,height:0,getContext:()=>({fillRect(){},drawImage(...args:any[]){cropArgs=args}}),toBlob(fn:any,type:string){fn(new Blob(['optimized photo'],{type}))}})};
+(globalThis as any).document={hidden:false,title:'',body:{style:{}},activeElement:null,addEventListener(){},removeEventListener(){},createElement:()=>({width:0,height:0,getContext:()=>({fillRect(){},drawImage(...args:any[]){cropArgs=args}}),toBlob(fn:any,type:string){fn(new Blob([jpegBytes(640)],{type}))}})};
 const user:any={user:{id:'customer-a',email:'customer@example.test',user_metadata:{full_name:'Customer Member'}}};
 let profile:any={customer_id:'customer-a',full_name:'Saved Member',phone:'9876543210',whatsapp_number:'9876543210',date_of_birth:'1995-04-20',photo_path:null};let preferences:any={theme:'light',language:'en'},recordFail=false;let addresses:any[]=[];const uploads:any[]=[],deletes:any[]=[],calls:any[]=[];
 const salons:any[]=[{slug:'published-salon',owner_id:'salon-owner',content:{profile:{businessName:'Published Salon',businessType:'hair_salon',city:'Mumbai',phone:'9876543210'},services:[{id:'cut',name:'Real Haircut',price:249,durationMinutes:30,category:'Hair'}],stylists:[]}}];
@@ -27,7 +28,7 @@ assert.equal(templateTiles().length,templates.length,'All database template cate
 await click('Explore');assert.ok(JSON.stringify(app.toJSON()).includes('Explore & Discover Salons'));assert.equal(app.root.findByProps({'aria-label':'Customer app navigation'}).findAllByType('button').length,6);
 await nav(4);for(const label of ['Booking History','Saved Addresses','Favourite Salons','Loyalty & Points (0 pts)','Refer & Earn','Notifications, Language & Settings','Help & Support','Terms of Service & Privacy'])assert.ok(app.root.findAllByType('button').some((x:any)=>text(x.props.children).trim()===label),label);
 assert.ok(!JSON.stringify(app.toJSON()).includes('My Salon Dashboard'),'Customer must not see owner dashboard');
-const photoFile=new File(['original photo'],'profile.webp',{type:'image/webp'});
+const photoFile=webpFile('profile.webp');
 await act(async()=>{app.root.findByProps({className:'cr-upload-input'}).props.onChange({target:{files:[photoFile],value:'file'}});await new Promise(resolve=>setImmediate(resolve))});
 assert.equal(uploads.length,1);assert.equal(uploads[0].bucket,'nexora-customer-private');assert.match(uploads[0].path,/^customer-a\/photos\/.+\.jpg$/);assert.equal(uploads[0].blob.type,'image/jpeg');assert.equal(uploads[0].options.upsert,false);assert.deepEqual(cropArgs.slice(1),[200,0,800,800,0,0,640,640]);
 let pictures=app.root.findAllByProps({alt:'Your profile photograph'});assert.equal(pictures.length,3,'Saved photo appears in home header, profile card and footer');assert.ok(pictures.every((p:any)=>p.props.src.includes(profile.photo_path)));assert.equal(calls.find(x=>x.kind==='signed').seconds,3600);

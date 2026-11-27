@@ -1,5 +1,8 @@
 # NEXORA SALONOS landing page — deployment report
 
+> **Superseded in part, 2026-11-26:** lead-capture verification is now fail-closed (a missing/invalid Turnstile token, or an unconfigured secret, rejects the request with 403 and nothing is stored) and `LANDING_LEAD_RATE_LIMIT_SALT` is required with no default. The statements below describe the pre-2026-11-26 state and remain for history. See `docs/SECRETS-AND-TOKENS-HARDENING.md` and `docs/SECURITY-CHECKLIST-2026-11-26.md` (addendum).
+
+
 **Branch:** `arena/a4fea2d2-studioflow` · **Base:** `ec061660e61704f190ddb554fe8b524af304f85c`
 **Target runtime:** Vercel (serverless functions in `api/`) with the custom Express server as the alternative runtime.
 

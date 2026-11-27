@@ -1,3 +1,4 @@
+import { safeLogger } from './safeLogger.js';
 /**
  * Server-side environment validation.
  *
@@ -60,7 +61,7 @@ export function readServerEnvironment(
     const message =
       `SUPABASE_URL must be an HTTPS project URL without credentials. Expected host: ${DEFAULT_SUPABASE_URL.replace('https://', '')}.`;
     if (strict) throw new ServerConfigurationError(message);
-    console.warn(`[nexora-env] ${message}`);
+    safeLogger.warn(`[nexora-env] ${message}`);
   }
 
   const serviceKey = readValue(source, 'SUPABASE_SERVICE_ROLE_KEY') || readValue(source, 'SUPABASE_SECRET_KEY');
@@ -92,7 +93,7 @@ export function readServerEnvironment(
  * project host, the presence of a key and the CRM configuration are printed.
  */
 export function logServerEnvironment(report: ServerEnvironmentReport): void {
-  console.log(
+  safeLogger.log(
     `[nexora-env] project=${report.supabaseRef} serviceKey=${report.hasServiceRoleKey ? 'configured' : 'missing'} crm=${report.crmConfigured ? 'configured' : report.crmEndpointInvalid ? 'invalid' : 'not configured'}`,
   );
 }

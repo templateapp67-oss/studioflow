@@ -30,6 +30,7 @@ import { parseSocialVideo } from './socialVideoEmbeds';
 import { secureMediaUrl } from './socialVideoSource';
 import { socialUrl } from './websiteContent';
 import { supabase } from './supabase';
+import { buildStorageFileName, validateUploadFile } from '../utils/fileSignature';
 import type { SalonProfile } from '../types';
 
 export const AURA_TEMPLATE_ID = 'unisex_salon' as const;
@@ -215,13 +216,6 @@ export function auraSafeWhatsApp(value: unknown, fallback = ''): string {
   if (!digits) return auraSafeHref(fallback);
   const international = digits.length === 10 ? `91${digits}` : digits;
   return `https://wa.me/${international}`;
-}
-
-function uniqueId(prefix: string): string {
-  const random = typeof crypto !== 'undefined' && 'randomUUID' in crypto
-    ? crypto.randomUUID().slice(0, 8)
-    : Math.random().toString(36).slice(2, 10);
-  return `${prefix}-${random}`;
 }
 
 function clone<T>(value: T): T {
@@ -1151,8 +1145,29 @@ export async function uploadAuraMedia(
   if (!Number.isFinite(Number(file.size)) || Number(file.size) <= 0) throw new Error('Choose a non-empty media file.');
   if (Number(file.size) > maxBytes) throw new Error(kind === 'image' ? 'Images must be 5 MB or smaller.' : 'Videos must be 50 MB or smaller.');
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(salonId)) throw new Error('Could not verify the salon media folder.');
+  if (kind === 'image') {
+    // Magic bytes decide: the declared MIME type is only a browser hint.
+    const check = await validateUploadFile(file, { maxBytes: AURA_MAX_IMAGE_BYTES, allowed: ['jpeg', 'png', 'webp', 'avif'] });
+    const imagePath = buildStorageFileName(check.signature, `${salonId}/template-03/images`);
+    const imageMimeType = check.signature === 'jpeg' ? 'image/jpeg' : `image/${check.signature}`;
+    const { data, error } = await client.storage.from(AURA_MEDIA_BUCKET).upload(imagePath, file, { contentType: imageMimeType, upsert: false });
+    if (error) throw errorForAura(error, 'Upload failed. Check the studioflow-media Storage policies.');
+    const publicUrl = client.storage.from(AURA_MEDIA_BUCKET).getPublicUrl(imagePath).data?.publicUrl || '';
+    if (!publicUrl) throw new Error('The uploaded file did not return a public URL.');
+    return {
+      url: publicUrl,
+      path: String(data?.path || imagePath),
+      mimeType: imageMimeType,
+      name: cleanAuraText(file.name, 200),
+      size: Number(file.size) || 0,
+      alt: cleanAuraText(file.name, 200),
+      srcSet: '',
+      width: 0,
+      height: 0,
+    };
+  }
   const extension = mimeType === 'image/png' ? 'png' : mimeType === 'image/webp' ? 'webp' : mimeType === 'video/webm' ? 'webm' : mimeType === 'video/quicktime' ? 'mov' : mimeType === 'video/mp4' ? 'mp4' : 'jpg';
-  const path = `${salonId}/template-03/${kind === 'image' ? 'images' : 'videos'}/${uniqueId('asset')}.${extension}`;
+  const path = `${salonId}/template-03/videos/${crypto.randomUUID()}.${extension}`;
   const { data, error } = await client.storage.from(AURA_MEDIA_BUCKET).upload(path, file, { contentType: mimeType, upsert: false });
   if (error) throw errorForAura(error, 'Upload failed. Check the studioflow-media Storage policies.');
   const publicUrl = client.storage.from(AURA_MEDIA_BUCKET).getPublicUrl(path).data?.publicUrl || '';

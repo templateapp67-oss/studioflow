@@ -1,3 +1,5 @@
+import { validateUploadFile, SOURCE_IMAGE_MAX_BYTES } from './fileSignature';
+
 export const MAX_IMAGE_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB limit for input
 export const TARGET_MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024; // 2MB target max limit
 
@@ -28,9 +30,11 @@ export async function validateAndReadImageFile(file: File): Promise<FileValidati
     return { isValid: false, errorMessage: 'No file selected.' };
   }
 
-  // Check file type
-  if (!file.type.startsWith('image/')) {
-    return { isValid: false, errorMessage: 'Please select a valid image file (PNG, JPG, WEBP, SVG).' };
+  // Magic-bytes verification: the declared MIME type is not trusted.
+  try {
+    await validateUploadFile(file, { maxBytes: MAX_IMAGE_FILE_SIZE_BYTES, allowed: ['jpeg', 'png', 'webp'] });
+  } catch (error) {
+    return { isValid: false, errorMessage: error instanceof Error ? error.message : 'Please select a valid image file (PNG, JPG, WEBP).' };
   }
 
   return new Promise((resolve) => {
@@ -73,17 +77,22 @@ export async function compressAndResizeImage(
     };
   }
 
-  if (!file.type.startsWith('image/')) {
-    return { 
-      isValid: false, 
-      errorMessage: 'Please select a valid image file (PNG, JPG, WEBP).', 
-      fileName: file.name, 
-      fileType: file.type, 
-      originalSizeKb: 0, 
-      compressedSizeKb: 0, 
-      width: 0, 
-      height: 0, 
-      compressionRatio: 0 
+  // Magic-bytes verification: the declared MIME type is not trusted. Camera
+  // photos pass through this path before compression, so the source cap is
+  // larger than the final stored-file cap.
+  try {
+    await validateUploadFile(file, { maxBytes: SOURCE_IMAGE_MAX_BYTES, allowed: ['jpeg', 'png', 'webp'] });
+  } catch (error) {
+    return {
+      isValid: false,
+      errorMessage: error instanceof Error ? error.message : 'Please select a valid image file (PNG, JPG, WEBP).',
+      fileName: file.name,
+      fileType: file.type,
+      originalSizeKb: 0,
+      compressedSizeKb: 0,
+      width: 0,
+      height: 0,
+      compressionRatio: 0,
     };
   }
 

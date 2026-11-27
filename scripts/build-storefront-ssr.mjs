@@ -15,7 +15,9 @@ await build({
   // npm packages external can make Vercel's file tracer omit those modules.
   treeShaking: true,
   legalComments: 'none',
-  sourcemap: true,
+  // Server bundle source maps are intentionally not emitted: dist/ is a
+  // public artifact directory and the SSR bundle is loaded dynamically at
+  // runtime by the storefront function.
   assetNames: 'assets/[name]-[hash]',
   publicPath: '/',
   loader: {

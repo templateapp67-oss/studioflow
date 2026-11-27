@@ -38,7 +38,8 @@ back to honest local results.
 
 ## Checks
 
-- `npm test` — app + edge TypeScript checks, then every offline `scripts/verify-*.mjs` suite.
+- `npm test` — app + edge TypeScript checks, then every offline `scripts/verify-*.mjs` suite
+  (includes the secrets/auth-token storage audit, `scripts/verify-auth-storage.mjs`).
 - `npm run test:live` — live Supabase integration (needs network + a configured test project with
   email autoconfirm; uses disposable accounts, cleans up media; delete its test users/rows after).
 - `npm run test:wiring` — every template: storefront rendering, editor persistence and bookings.
