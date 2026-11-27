@@ -68,6 +68,15 @@ try {
     if (file === '20260928010916_reset_empty_public_schema_20260928.sql') {
       await db.exec("create function public.nexora_save_owner_workspace(p_payload jsonb)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = public, pg_temp\nas $fn$\ndeclare\n  v_staff jsonb;\nbegin\n  for v_staff in\n    select value\n    from jsonb_array_elements(coalesce(p_payload->'staff','[]'::jsonb))\n  loop\n    raise exception 'Staff name is required' using errcode = '22023';\n  end loop;\n  return coalesce(p_payload,'{}'::jsonb);\nend;\n$fn$;");
     }
+    if (file === '20260928011846_nexora_growth_partner_onboarding_baseline_20260928.sql') {
+      // Model the Growth Partner lifecycle fields required by the following
+      // StudioFlow secure-workspace migration's fail-closed referral filters.
+      await db.exec(`
+        alter table public.growth_partners
+          add column if not exists banned_at timestamptz,
+          add column if not exists deleted_at timestamptz;
+      `);
+    }
   }
   await db.exec(`
     insert into studioflow_security.admin_grants(user_id,permission,expires_at)
