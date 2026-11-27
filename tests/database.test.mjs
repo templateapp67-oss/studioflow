@@ -63,7 +63,7 @@ try {
   for (const file of (await readdir(folder)).sort()) {
     await db.exec(await readFile(new URL(file, folder), 'utf8'));
     if (file === '20260928010916_reset_empty_public_schema_20260928.sql') {
-      await db.exec("create function public.nexora_save_owner_workspace(p_payload jsonb) returns jsonb language plpgsql security definer set search_path = public, pg_temp as $fn$ declare v_staff jsonb; begin for v_staff in select value from jsonb_array_elements(coalesce(p_payload->'staff','[]'::jsonb)) loop raise exception 'Staff name is required' using errcode = '22023'; end loop; return coalesce(p_payload,'{}'::jsonb); end; $fn$;");
+      await db.exec("create function public.nexora_save_owner_workspace(p_payload jsonb)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = public, pg_temp\nas $fn$\ndeclare\n  v_staff jsonb;\nbegin\n  for v_staff in\n    select value\n    from jsonb_array_elements(coalesce(p_payload->'staff','[]'::jsonb))\n  loop\n    raise exception 'Staff name is required' using errcode = '22023';\n  end loop;\n  return coalesce(p_payload,'{}'::jsonb);\nend;\n$fn$;");
     }
   }
   await db.exec(`
