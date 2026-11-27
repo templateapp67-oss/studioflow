@@ -1,3 +1,4 @@
+import {TemplateBookingPreview} from '../../lib/templateBookingPreview';
 import {
   MensLiveChat,
   MensPortfolio,
@@ -107,6 +108,7 @@ export function KeshKraftWebsite(props: SalonWebsitePreviewProps) {
     { id: string; name: string; serviceName: string; comment: string }[]
   >([]);
   const live = Boolean(props.live && profile.subdomain);
+  const templateBookingPreview = React.useContext(TemplateBookingPreview);
   const account = () => {
     if (props.onCustomerAccount) props.onCustomerAccount("signin");
     else
@@ -185,7 +187,7 @@ export function KeshKraftWebsite(props: SalonWebsitePreviewProps) {
       );
       return;
     }
-    if (!live) {
+    if (!live && !templateBookingPreview) {
       setNotice(
         "This is a demo preview. Live dates, available times and booking confirmation are enabled after the owner approves and publishes the studio. No appointment has been saved.",
       );
@@ -959,7 +961,7 @@ export function KeshKraftWebsite(props: SalonWebsitePreviewProps) {
         <BookingModal
           isOpen
           onClose={() => setBooking(false)}
-          profile={{ ...profile, bookingAddOnServiceIds: [], branches: [] }}
+          profile={{ ...profile, bookingAddOnServiceIds: [] }}
           services={services}
           stylists={team}
           initialSlot={initialSlot}

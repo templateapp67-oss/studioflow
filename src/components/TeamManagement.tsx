@@ -2,6 +2,7 @@ import {MENS_STAFF} from '../lib/keshkraft';
 import {STAFF_SKILLS,categorySkills} from '../lib/staffSkills';
 import {STAFF_TITLES} from '../lib/staffProfile';
 import {staffBookingServices,templateStaffAssignments,addStaffCategoryMenu} from '../lib/staffBookingServices';
+import {isBookingServiceActive} from '../lib/bookingSelection';
 import {CATEGORY_TEMPLATES} from '../categoryTemplates';
 import {StaffPortfolioEditor} from './StaffPortfolioEditor';
 import type {StaffWorkPhoto} from '../types';
@@ -111,6 +112,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
   const [photoBusy,setPhotoBusy]=useState(false);
   const [saving,setSaving]=useState(false);
   const [editError,setEditError]=useState('');
+  const [confirmAllServices,setConfirmAllServices]=useState(false);
   const saveLock=useRef(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpecialtyFilter, setSelectedSpecialtyFilter] = useState<string>('all');
@@ -186,7 +188,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
   };
 
   const handleOpenEditModal = (st: Stylist) => {
-    setPhotoFile(null);setPhotoBusy(false);setEditError('');
+    setPhotoFile(null);setPhotoBusy(false);setEditError('');setConfirmAllServices(false);
     setEditingStylist(st);setMaleConfirmed(st.mensMaleOnly===true);
     setFormData({
       businessType:st.businessType||businessType,
@@ -198,7 +200,9 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
       avatarUrl: st.avatarUrl,
       rating: st.rating,
       specialties: categorySkills(st.specialties||[],st.businessType||businessType),
-      assignedServices: staffBookingServices(services,st.businessType||businessType).filter(s => (st.assignedServices || []).includes(s.id) || (st.assignedServices || []).includes(s.name)).map(s => s.id),
+      // Only exact catalogue IDs are authoritative. A name match can refer to
+      // more than one service and must not silently assign a new ID.
+      assignedServices: staffBookingServices(services,st.businessType||businessType).filter(s => (st.assignedServices || []).includes(s.id)).map(s => s.id),
       customSpecialtyInput: '',
       bio: st.bio || '',
       registrationNumber: st.registrationNumber || '',
@@ -252,6 +256,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
     if(saveLock.current||photoBusy)return;
     if(!bookingServices.length){setEditError('Add a service for this template in Step 5 before saving booking assignments.');return;}
+    if((editingStylist.assignedServices || []).length && !formData.assignedServices.length && !confirmAllServices){setEditError('Select current services or explicitly confirm this specialist can perform all services shown.');return;}
     if(!formData.role.trim()){setEditError('Designation is required.');return}
     if(!photoFile&&formData.avatarUrl!==editingStylist.avatarUrl&&!(businessType==='skincare_clinic'&&!formData.avatarUrl)&&!validStaffUrl(formData.avatarUrl)){setEditError('Enter a valid image URL or select a photo.');return}
     if(formData.experienceYears!==''&&(!Number.isFinite(Number(formData.experienceYears))||Number(formData.experienceYears)<0||Number(formData.experienceYears)>80)){setEditError('Experience must be between 0 and 80 years.');return}
@@ -333,6 +338,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
       </AnimatePresence>
 
       {businessType==='skincare_clinic' && stylists.some(s=>['sk-st-1','sk-st-2','sk-st-3'].includes(s.id)) && <p className="text-sm text-amber-800">Template 07 sample team profiles are drafts and are not published. Remove them and add the clinic’s real team members as new profiles, with their correct details.</p>}
+      {stylists.some(st=>(st.assignedServices||[]).some(id=>!services.some(service=>service.id===id&&isBookingServiceActive(service))))&&<p role="status" className="text-sm text-amber-800">Some specialists have assignments to removed or archived services. When none of their assigned services remains active, they can be offered for all active services. Existing active assignments still restrict eligibility. Review their qualifications and update their profiles if needed.</p>}
       {/* Header section */}
       <div className="sf-team-heading flex flex-col sm:items-start justify-between gap-4 border-b border-gray-100 pb-5">
         <div>
@@ -586,6 +592,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                     <span>{st.assignedServices.length} Assigned Services</span>
                   </div>
                 )}
+                {(st.assignedServices||[]).some(id=>!services.some(service=>service.id===id&&isBookingServiceActive(service)))&&<p className="mt-1 text-xs text-amber-800">Service assignments need review</p>}
               </div>
 
               {/* Card Actions */}
@@ -786,7 +793,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
               {/* Role / Designation & Rating */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <StaffTitleField businessType={formData.businessType} onCategoryChange={category=>{setEditError('');setFormData(prev=>({...prev,businessType:category,role:['Salon Manager','Receptionist',...STAFF_TITLES[category]].includes(prev.role)?prev.role:STAFF_TITLES[category][0],assignedServices:[],specialties:categorySkills(prev.specialties,category),customSpecialtyInput:'',workGallery:prev.workGallery.map(photo=>({...photo,serviceId:staffBookingServices(services,category).some(s=>s.id===photo.serviceId)?photo.serviceId:''}))}))}} value={formData.role} onChange={role=>setFormData(prev=>({...prev,role}))}/>
+                <StaffTitleField businessType={formData.businessType} onCategoryChange={category=>{setEditError('');setConfirmAllServices(false);setFormData(prev=>({...prev,businessType:category,role:['Salon Manager','Receptionist',...STAFF_TITLES[category]].includes(prev.role)?prev.role:STAFF_TITLES[category][0],assignedServices:[],specialties:categorySkills(prev.specialties,category),customSpecialtyInput:'',workGallery:prev.workGallery.map(photo=>({...photo,serviceId:staffBookingServices(services,category).some(s=>s.id===photo.serviceId)?photo.serviceId:''}))}))}} value={formData.role} onChange={role=>setFormData(prev=>({...prev,role}))}/>
 
 
                 <div>
@@ -811,10 +818,12 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
               <fieldset className="border border-gray-200 rounded-xl p-3">
                 <legend className="text-xs font-bold">Assigned booking services</legend>
                 <p className="text-xs text-gray-500 mb-2">Only {templateName} services are listed. No selection assigns all services shown below. Saving removes assignments from other templates.</p>
+                {(editingStylist.assignedServices||[]).some(id=>!bookingServices.some(service=>service.id===id))&&<p role="status" className="text-xs text-amber-800 mb-2">This profile has old or unrecognized service IDs. Select the current services this specialist is qualified to perform; the old IDs will be removed on save.</p>}
                 {!bookingServices.length&&<p className="text-xs text-amber-800">No services for this category in your menu. Add them below, then review prices and duration in Step 5.</p>}{!bookingServices.length&&setServices&&<button type="button" className="secondary-action my-2" onClick={()=>setServices(old=>addStaffCategoryMenu(old,formData.businessType))}>Add {templateName} services to menu</button>}{bookingServices.map(service => <label key={service.id} className="flex items-center gap-2 text-xs py-1.5">
-                  <input type="checkbox" checked={formData.assignedServices.includes(service.id)} onChange={e => setFormData({...formData, assignedServices: e.target.checked ? [...formData.assignedServices, service.id] : formData.assignedServices.filter(id => id !== service.id)})}/>
-                  {service.name}
+                  <input type="checkbox" checked={formData.assignedServices.includes(service.id)} onChange={e => {setConfirmAllServices(false);setFormData({...formData, assignedServices: e.target.checked ? [...formData.assignedServices, service.id] : formData.assignedServices.filter(id => id !== service.id)});}}/>
+                  {service.name} · ₹{service.price} · {service.durationMinutes} min{bookingServices.filter(other=>other.name===service.name).length>1?` · ID ${service.id}`:''}
                 </label>)}
+                {!!editingStylist.assignedServices?.length&&!formData.assignedServices.length&&<label className="mt-2 flex items-start gap-2 text-xs text-amber-900"><input type="checkbox" checked={confirmAllServices} onChange={event=>setConfirmAllServices(event.target.checked)}/>I confirm this specialist can perform every service listed above.</label>}
               </fieldset>
 
               {formData.businessType==='mens_hair_studio'&&<label className="text-sm"><input type="checkbox" checked={maleConfirmed} onChange={e=>setMaleConfirmed(e.target.checked)}/> Confirm male barber / men's hair expert. New photos need review in Customize before public display.</label>}<StaffPhotoField value={formData.avatarUrl} file={photoFile} onBusy={setPhotoBusy} onChange={(avatarUrl,file)=>{setFormData(prev=>({...prev,avatarUrl}));setPhotoFile(file)}}/>

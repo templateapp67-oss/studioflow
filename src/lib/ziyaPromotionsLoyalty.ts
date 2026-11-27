@@ -322,26 +322,13 @@ export function findEligibleServiceForOffer(
   const meetsMin = (s: SalonService) => Number(s.price || 0) >= Number(offer.minBookingAmount || 0);
 
   if (ids.length > 0) {
-    const exact = services.find(
+    return services.find(
       (s) =>
         (ids.includes(s.id) ||
           (ids.includes('__packages__') && /package|combo|bundle/i.test(`${s.category || ''} ${s.name || ''}`))) &&
         meetsMin(s),
     );
-    if (exact) return exact;
-
-    if (offer.couponCode === 'LAYER10') {
-      const layer = services.find((s) => /layer|step/i.test(s.name || '') && meetsMin(s));
-      if (layer) return layer;
-    }
-
-    const fallbackId = services.find(
-      (s) =>
-        ids.includes(s.id) ||
-        (ids.includes('__packages__') && /package|combo|bundle/i.test(`${s.category || ''} ${s.name || ''}`)),
-    );
-    if (fallbackId) return fallbackId;
   }
 
-  return services.find(meetsMin) || services[0];
+  return services.find(meetsMin);
 }

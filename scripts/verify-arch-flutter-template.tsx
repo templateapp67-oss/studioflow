@@ -322,7 +322,7 @@ assert.ok(renderedHeroHeading.includes('Lash') && renderedHeroHeading.includes('
 const homeCards = home.split('class="af-glass af-hover af-offer-card').length - 1;
 assert.ok(homeCards >= 1 && homeCards <= 3, `the home page teases up to three offers (${homeCards} rendered)`);
 assert.ok(home.includes('All offers'), 'the home teaser links to the offers page');
-assert.ok(home.includes('Book this offer'), 'offer cards carry the booking call to action');
+assert.ok(home.includes('Choose service · confirm offer'), 'offer cards select a service without promising an unverified discount');
 assert.ok(home.includes('FLUTTER20'), 'the home teaser shows the coupon code');
 
 const offersPage = render(publishedProfile, '#offers');
@@ -502,7 +502,7 @@ assert.equal(publicSalonOffers(demoSalon!.content.profile, now).length, 6, 'the 
 const salonSource = readFileSync('src/components/customer/Salon.tsx', 'utf8');
 assert.ok(salonSource.includes('offersPanel'), 'the customer salon screen renders an offers panel');
 assert.ok(salonSource.includes("tab==='Packages'&&offersPanel"), 'offers live in the Packages tab');
-assert.ok(salonSource.includes('Book this offer'), 'customer offer cards prefill a booking');
+assert.ok(salonSource.includes('Choose an eligible service'), 'customer offer cards choose an eligible service without silently selecting a bundle');
 const partsSource = readFileSync('src/components/customer/Parts.tsx', 'utf8');
 assert.ok(partsSource.includes('runningOffer'), 'salon cards advertise a running offer');
 const customerCss = readFileSync('src/components/customer-app.css', 'utf8');
@@ -557,4 +557,4 @@ for (const code of ['FLUTTER20', 'HAPPY15', 'BESTIE500']) {
 assert.ok(seedSql.includes('where not exists'), 'the seed is idempotent');
 assert.ok(seedSql.includes("= 'null'::jsonb"), 'the seed never overwrites an owner offer list');
 
-console.log('PASS: Template 13 (Arch & Flutter) — registered in the picker/onboarding/routing, all bundled artwork present, ₹ formatting + resolver + SEO, six editable sample offers with demo flags, expiry/hide rules, home + offers page + empty state, booking prefill at the discounted price, Owner Workspace offers manager, GlowSlot offers panel and demo card badge, scoped glass styles, reduced-motion guards and an idempotent SQL seed.');
+console.log('PASS: Template 13 (Arch & Flutter) — registered in the picker/onboarding/routing, all bundled artwork present, ₹ formatting + resolver + SEO, six editable sample offers with demo flags, expiry/hide rules, home + offers page + empty state, catalogue-priced booking handoff, Owner Workspace offers manager, GlowSlot offers panel and demo card badge, scoped glass styles, reduced-motion guards and an idempotent SQL seed.');

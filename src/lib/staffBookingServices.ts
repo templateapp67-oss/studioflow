@@ -1,5 +1,6 @@
 import {mensServices} from './keshkraft';
 import {CATEGORY_TEMPLATES} from '../categoryTemplates';
+import {isBookingServiceActive} from './bookingSelection';
 import type {BusinessTypeId,SalonService} from '../types';
 const normalize=(value:string)=>value.trim().replace(/\s+/g,' ').toLowerCase();
 /** Staff assignments use actual catalogue IDs, restricted to the selected business template. */
@@ -13,17 +14,21 @@ export function staffBookingServices(services:SalonService[],type:BusinessTypeId
  const foreignNames=new Set(foreign.flatMap(t=>t.services.map(s=>normalize(s.name))).filter(name=>!ownNames.has(name)));
  const seen=new Set<string>();
  return (type==='mens_hair_studio'?mensServices(services):services).filter(service=>{
+  if(!isBookingServiceActive(service))return false;
   const name=normalize(service.name),category=normalize(service.category);
   if(foreignIds.has(service.id)||foreignNames.has(name))return false;
   if(foreign.some(t=>service.id.startsWith('template-pkg-'+t.id+'-')||name.startsWith(normalize(t.shortName)+' ')))return false;
   if(ownIds.has(service.id)&&!categories.has(category))return false;
-  const key=JSON.stringify([name,category,service.price,service.durationMinutes]);
-  if(seen.has(key))return false;seen.add(key);return true;
+  // Distinct catalogue IDs may intentionally have the same name, price and
+  // duration. Hiding either one makes it impossible to assign that service.
+  if(seen.has(service.id))return false;seen.add(service.id);return true;
  });
 }
 /** Empty selection means all eligible template services, never the mixed catalogue. */
 export function templateStaffAssignments(selected:string[],services:SalonService[]):string[]{
- const valid=services.filter(s=>selected.includes(s.id)||selected.includes(s.name)).map(s=>s.id);
+ // Selections contain catalogue IDs. A service name can match another service's
+ // ID (or multiple names), and must not silently grant an extra assignment.
+ const valid=services.filter(s=>selected.includes(s.id)).map(s=>s.id);
  return valid.length?valid:services.map(s=>s.id);
 }
 

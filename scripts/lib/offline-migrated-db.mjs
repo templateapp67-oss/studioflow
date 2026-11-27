@@ -641,5 +641,32 @@ export async function createOfflineMigratedDb({extraExtensions = {}} = {}) {
   const adminRevokeFile='supabase/migrations/20261127120000_revoke_app_admin_bootstrap_allowlist.sql';
   await applySqlText(readFileSync(adminRevokeFile,'utf8'),adminRevokeFile);
   await applySqlText(readFileSync(adminRevokeFile,'utf8'),adminRevokeFile);
+  // The backend-only bootstrap above has older variants of two tables. Align
+  // their empty fixture shape with the already-applied production migrations,
+  // then load the actual branch-catalogue helper rather than a permissive stub.
+  // Replaying the whole historical migration here would overwrite later RPCs.
+  await db.exec(`
+    alter table public.studioflow_services add column if not exists branch_ids uuid[];
+    alter table public.studioflow_android_requests add column if not exists fingerprint text not null;
+    alter table public.studioflow_android_requests drop constraint studioflow_android_requests_pkey;
+    alter table public.studioflow_android_requests add primary key(customer_id,request_id);
+  `);
+  const branchCatalogueSql=readFileSync('supabase/migrations/20261122063603_branch_service_catalogue_scope.sql','utf8');
+  const branchCatalogueHelper=branchCatalogueSql.match(/create or replace function studioflow_private\.service_catalogue_available_at_branch\([\s\S]*?\$function\$;/i)?.[0];
+  assert.ok(branchCatalogueHelper,'existing branch catalogue helper must be present');
+  await db.exec(branchCatalogueHelper);
+  await db.exec(`revoke all on function studioflow_private.service_catalogue_available_at_branch(uuid,jsonb,uuid) from public,anon,authenticated;
+    grant execute on function studioflow_private.service_catalogue_available_at_branch(uuid,jsonb,uuid) to postgres,service_role;`);
+  // Replay the two pending booking repairs after their existing branch, booking
+  // and Iron Ink prerequisites. Re-apply each to test the migration contract;
+  // this offline fixture does not imply that either SQL file is live.
+  for (const file of [
+    'supabase/migrations/20261127140000_booking_slot_availability_repair.sql',
+    'supabase/migrations/20261127140100_iron_ink_availability_ist.sql',
+  ]) {
+    const sql=readFileSync(file,'utf8');
+    await applySqlText(sql,file);
+    await applySqlText(sql,file+' (second application)');
+  }
   return {db, applied, applySqlText, applyFile, clientRpc, src};
 }

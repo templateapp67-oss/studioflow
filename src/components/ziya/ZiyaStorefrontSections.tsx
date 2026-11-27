@@ -213,14 +213,13 @@ export const ZiyaPromotionsSection: React.FC<ZiyaPromotionsSectionProps> = ({
                 <button
                   type="button"
                   className="le-btn le-btn-primary le-btn-sm"
-                  onClick={() =>
-                    onBookOffer(
-                      services.find((s) => s.id === campaign.selectedServiceId) || services[0],
-                      campaign.promoCode || undefined,
-                    )
-                  }
+                  disabled={campaign.selectedServiceId ? !services.some((s) => s.id === campaign.selectedServiceId) : !services.length}
+                  onClick={() => {
+                    const selected = campaign.selectedServiceId ? services.find((s) => s.id === campaign.selectedServiceId) : services[0];
+                    if (selected) onBookOffer(selected, campaign.promoCode || undefined);
+                  }}
                 >
-                  Book Now
+                  {campaign.selectedServiceId && !services.some((s) => s.id === campaign.selectedServiceId) ? 'Offer unavailable online' : 'Book Now'}
                 </button>
               </div>
             </div>
@@ -288,10 +287,10 @@ export const ZiyaPromotionsSection: React.FC<ZiyaPromotionsSectionProps> = ({
                       <button
                         type="button"
                         className="le-btn le-btn-primary le-btn-sm le-btn-full"
-                        disabled={customerLimitReached}
-                        onClick={() => onBookOffer(targetService, offer.couponCode)}
+                        disabled={customerLimitReached || !targetService || Boolean(profile.subdomain && !publicData?.found)}
+                        onClick={() => { if (targetService && (!profile.subdomain || publicData?.found)) onBookOffer(targetService, offer.couponCode); }}
                       >
-                        {customerLimitReached ? 'Offer Already Redeemed' : 'Book Now'}
+                        {customerLimitReached ? 'Offer Already Redeemed' : !targetService ? 'Offer unavailable online' : profile.subdomain && !publicData?.found ? 'Sample offer' : 'Book Now'}
                       </button>
                     </div>
                   </div>

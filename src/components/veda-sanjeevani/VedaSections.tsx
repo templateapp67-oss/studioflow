@@ -628,7 +628,7 @@ export function VedaLightbox({ images, index, onClose }: { images: VedaGalleryIm
  * Packages
  * ------------------------------------------------------------------ */
 
-export function VedaPackages({ config, onBook, navigate }: VedaSectionProps) {
+export function VedaPackages({ config, navigate }: VedaSectionProps) {
   return (
     <section className="vd-section" id="packages" aria-labelledby="vd-packages-title">
       <div className="vd-container">
@@ -665,7 +665,7 @@ export function VedaPackages({ config, onBook, navigate }: VedaSectionProps) {
                     ))}
                   </ul>
                   <div className="vd-package__foot">
-                    <VedaBtn size="sm" onClick={() => onBook()}>Reserve this package</VedaBtn>
+                    <VedaBtn size="sm" onClick={() => navigate('contact')}>Enquire about this package</VedaBtn>
                   </div>
                 </div>
               </div>
@@ -1032,7 +1032,7 @@ back into view." body="Every photograph is hidden right now. Add or show photos 
  * ------------------------------------------------------------------ */
 
 export function VedaPackagesPage(props: VedaSectionProps) {
-  const { config, navigate, onBook } = props;
+  const { config, navigate } = props;
   return (
     <>
       <VedaPageHead
@@ -1068,8 +1068,8 @@ export function VedaPackagesPage(props: VedaSectionProps) {
                     ))}
                   </ul>
                   <div className="vd-package__foot">
-                    <VedaBtn size="sm" onClick={() => onBook()}>Reserve this package</VedaBtn>
-                    <VedaBtn size="sm" variant="quiet" onClick={() => navigate('booking')}>Ask about this plan</VedaBtn>
+                    <VedaBtn size="sm" onClick={() => navigate('contact')}>Enquire about this package</VedaBtn>
+                    <VedaBtn size="sm" variant="quiet" onClick={() => navigate('booking')}>Browse available rituals</VedaBtn>
                   </div>
                 </div>
               </VedaRevealItem>

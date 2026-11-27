@@ -1,6 +1,9 @@
+import {indiaDate} from '../lib/bookingDates';
+import {parseBookingSlots,type BookingSlot} from '../lib/bookingSlots';
+import {TemplateBookingPreview,templatePreviewSlots} from '../lib/templateBookingPreview';
 import { OwnerDraftBookingPreview } from '../lib/ownerBookingPreview';
 import {StaffPortfolio} from './StaffPortfolio';
-import {localEligibleSpecialists, previewDraftSpecialists, resolveBookingSpecialists, specialistExpertise, summarizeBookingServices, toggleBookingService} from '../lib/bookingSelection';
+import {isBookingServiceActive, localEligibleSpecialists, previewDraftSpecialists, resolveBookingSpecialists, specialistExpertise, summarizeBookingServices, toggleBookingService} from '../lib/bookingSelection';
 import {MensJoinWaitlist} from './keshkraft/KeshKraftInteractions';
 import type { ConsultationDetails } from "./dermacure/consultation";
 import {BookingCoupon,useBookingCoupon} from './BookingCoupon';
@@ -131,9 +134,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     businessName: aliasSalonName || INITIAL_SALON_PROFILE.businessName,
     currency: aliasCurrency || INITIAL_SALON_PROFILE.currency || '₹',
   };
-  const services = inputServices || aliasServicesList || INITIAL_SERVICES;
+  const services = React.useMemo(() => (inputServices || aliasServicesList || INITIAL_SERVICES).filter(isBookingServiceActive), [inputServices, aliasServicesList]);
   const stylists = inputStylists || aliasStylistsList || INITIAL_STYLISTS;
-  const initialService = inputInitialService || aliasService;
+  const requestedService = inputInitialService || aliasService;
+  const initialService = requestedService ? services.find(service => service.id === requestedService.id) : undefined;
   const initialStylist = inputInitialStylist || aliasStylist;
   const onAddAppointment = inputOnAddAppointment || (aliasOnConfirmBooking ? (apt: Appointment) => {
     aliasOnConfirmBooking({
@@ -168,7 +172,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   // Step 1: Branch, Service & Specialist
 
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(
-    initialService ? [initialService.id] : services[0] ? [services[0].id] : []
+    initialService ? [initialService.id] : !requestedService && services[0] ? [services[0].id] : []
   );
   const selectedServices = selectedServiceIds.map(id => services.find(service => service.id === id)).filter((service): service is SalonService => !!service);
   const selectedService = selectedServices[0]; // Legacy primary-service contract.
@@ -177,12 +181,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const {serviceName, totalMinutes, subtotal} = summarizeBookingServices(selectedServices);
   const [selectedStylist, setSelectedStylist] = useState<Stylist>(initialStylist || ANY_SPECIALIST);
   const [previewStylistId, setPreviewStylistId] = useState<string | null>(null);
-  const [branchChoices, setBranchChoices] = useState<SalonBranch[]>(profile.branches || []);
-  const [selectedBranchId, setSelectedBranchId] = useState('');
   const isDraft = React.useContext(OwnerDraftBookingPreview);
+  const isTemplatePreview = React.useContext(TemplateBookingPreview);
+  const [branchChoices, setBranchChoices] = useState<SalonBranch[]>(isTemplatePreview ? [] : profile.branches || []);
+  const [selectedBranchId, setSelectedBranchId] = useState('');
   const selectedBranch = branchChoices.find(branch => branch.id === selectedBranchId);
   useEffect(() => {
-    if (!isOpen || isDraft || !profile.subdomain) return;
+    if (!isOpen || isDraft || isTemplatePreview || !profile.subdomain) return;
     let active = true;
     const fallback = profile.branches || [];
     void supabase.rpc('studioflow_public_branches', { p_slug: profile.subdomain }).then(({ data, error }) => {
@@ -192,26 +197,26 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         id: branch.id, name: branch.name, city: branch.city || '', address: branch.address || '', phone: branch.phone || '',
         isActive: branch.isActive !== false, operatingHours: branch.operatingHours || [],
       })) : fallback;
-      setBranchChoices(branches.filter(branch => branch.isActive));
+      setBranchChoices(branches.filter(branch => branch.isActive !== false));
       const requested = initialSlot?.branchId;
       setSelectedBranchId(requested && branches.some(branch => branch.id === requested) ? requested : branches.length === 1 ? branches[0].id : '');
     });
     return () => { active = false; };
-  }, [isOpen, isDraft, profile.subdomain, profile.branches, initialSlot?.branchId]);
+  }, [isOpen, isDraft, isTemplatePreview, profile.subdomain, profile.branches, initialSlot?.branchId]);
   useEffect(() => {
     if (!branchChoices.some(branch => branch.id === selectedBranchId)) setSelectedBranchId(branchChoices.length === 1 ? branchChoices[0].id : '');
   }, [branchChoices, selectedBranchId]);
 
   const [specialistCheck,setSpecialistCheck]=useState<{key:string;ids:string[];stylists:Stylist[];published:boolean;error:string;fallback?:boolean}|null>(null);
   const [specialistRetry,setSpecialistRetry]=useState(0);
-  const specialistKey=JSON.stringify([isDraft,profile.subdomain,profile.businessType,bundleKey,selectedBranchId]);
+  const specialistKey=JSON.stringify([isDraft,isTemplatePreview,profile.subdomain,profile.businessType,bundleKey,selectedBranchId]);
   const specialistsReady=specialistCheck?.key===specialistKey&&!specialistCheck.error;
   // Draft preview must use only the staff records supplied by the salon owner.
   // Never fall back to template/demo staff when an owner has no team yet.
   const draftRoster=inputStylists??aliasStylistsList??[];
   const draftPreviewStylists=React.useMemo(
-    ()=>previewDraftSpecialists(draftRoster,bookingServiceIds,profile.businessType,selectedBranchId),
-    [inputStylists,aliasStylistsList,bundleKey,profile.businessType,selectedBranchId]
+    ()=>previewDraftSpecialists(draftRoster,bookingServiceIds,profile.businessType,selectedBranchId,services),
+    [inputStylists,aliasStylistsList,services,bundleKey,profile.businessType,selectedBranchId]
   );
   // Published booking remains server-authoritative. Unpublished drafts can show the
   // owner's current staff profiles, but those profiles can never enable real slots.
@@ -220,12 +225,19 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       ? resolveBookingSpecialists(specialistCheck!.ids,specialistCheck!.stylists,stylists)
       : draftPreviewStylists
     : [];
-  const canContinueToDateSlot=Boolean(specialistsReady&&specialistCheck!.published&&eligibleStylists.length);
+  const canContinueToDateSlot=Boolean(bookingServiceIds.length&&specialistsReady&&specialistCheck!.published&&eligibleStylists.length);
   const previewStylist=eligibleStylists.find(st=>st.id===previewStylistId);
   useEffect(()=>{
     if(!isOpen)return;let active=true;
     const empty={key:specialistKey,ids:[],stylists:[],published:true,error:''};
     setPreviewStylistId(null);
+    if(isTemplatePreview){
+      const local=localEligibleSpecialists(stylists,bookingServiceIds,'',services);
+      const ids=local.map(st=>st.id);
+      setSpecialistCheck({...empty,ids,stylists:local,published:true});
+      setSelectedStylist(current=>current.id===ANY_SPECIALIST.id||ids.includes(current.id)?current:ANY_SPECIALIST);
+      return()=>{active=false;};
+    }
     if(isDraft){
       const ids=draftPreviewStylists.map(st=>st.id);
       setSpecialistCheck({...empty,ids,stylists:draftPreviewStylists,published:false});
@@ -253,7 +265,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         // server re-validates eligibility on slots and on booking. Demo/seed staff are never
         // used as a fallback, and the customer sees a short notice.
         const roster=[...(inputStylists||[]),...(aliasStylistsList||[])];
-        const local=localEligibleSpecialists(roster,bookingServiceIds,selectedBranchId);
+        const local=localEligibleSpecialists(roster,bookingServiceIds,selectedBranchId,services);
         if(roster.length){
           console.warn('[booking] specialist RPC unavailable, using the salon roster:',error?.message||error);
           const profiles=local.map(st=>roster.find(item=>item.id===st.id)||st);
@@ -265,7 +277,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         setSpecialistCheck({...empty,error:error?.message||'Could not check specialists. Please retry.'});
       });
     return()=>{active=false;};
-  },[isOpen,isDraft,specialistKey,specialistRetry,branchChoices.length,draftPreviewStylists]);
+  },[isOpen,isDraft,isTemplatePreview,specialistKey,specialistRetry,branchChoices.length,draftPreviewStylists]);
   const chooseService=(service:SalonService)=>{
     if(reservedBooking.current||isSubmitting)return;
     setSelectedServiceIds(ids=>toggleBookingService(ids,service.id));
@@ -278,12 +290,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const coupon=useBookingCoupon(profile.subdomain,bookingServiceIds,profile.businessType==='mens_hair_studio'?'studioflow_mens_coupon_quote':isAuraCheckout?'studioflow_aura_coupon_quote':'studioflow_coupon_quote');
   const totalPrice=serverTotal??coupon.quote?.finalPrice??subtotal;
   // Step 2: Date & Time Slot
-  const todayStr = new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
-  const tomorrowStr=new Date(Date.parse(`${todayStr}T12:00:00Z`)+86400000).toISOString().slice(0,10);
-  const maxDateStr=new Date(Date.parse(`${todayStr}T12:00:00Z`)+90*86400000).toISOString().slice(0,10);
+  const todayStr=indiaDate();
+  const tomorrowStr=indiaDate(1);
+  const maxDateStr=indiaDate(90);
   const [bookingDate, setBookingDate] = useState<string>(todayStr);
   const [bookingTime, setBookingTime] = useState<string>('');
-  const [availableSlots,setAvailableSlots]=useState<any[]>([]);
+  const [availableSlots,setAvailableSlots]=useState<BookingSlot[]>([]);
   const [slotsLoading,setSlotsLoading]=useState(false);
   const [slotsError,setSlotsError]=useState('');
   const [slotRetry,setSlotRetry]=useState(0);
@@ -291,6 +303,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     if(!isOpen)return;let active=true;setSlotsLoading(true);setSlotsError('');setBookingTime('');
     if(!bookingServiceIds.length||!specialistsReady||!specialistCheck?.published||!eligibleStylists.length||(branchChoices.length>1&&!selectedBranchId)){setSlotsLoading(false);setAvailableSlots([]);return()=>{active=false;};}
     const slotStylist=selectedStylist.id;
+    if(isTemplatePreview){
+      const rows=templatePreviewSlots(bookingDate,eligibleStylists,slotStylist,totalMinutes);
+      setAvailableSlots(rows);setSlotsLoading(false);
+      if(initialSlot&&bookingServiceIds.length===1&&selectedService?.id===initialService?.id&&bookingDate===initialSlot.date&&selectedStylist.id===initialSlot.stylistId&&rows.some(row=>row.time===initialSlot.time&&row.stylistId===initialSlot.stylistId))setBookingTime(initialSlot.time);
+      return()=>{active=false;};
+    }
     const slotsRequest=profile.businessType==='mens_hair_studio'&&bookingServiceIds.length===1?supabase.rpc('studioflow_mens_slots',{p_slug:profile.subdomain,p_service_id:selectedService?.id,p_date:bookingDate,p_stylist_id:slotStylist,p_branch:selectedBranchId||null}):selectedBranchId
       ? (bookingServiceIds.length>1
         ? supabase.rpc('studioflow_branch_android_slots',{p_slug:profile.subdomain,p_services:bookingServiceIds,p_date:bookingDate,p_stylist:slotStylist,p_branch:selectedBranchId})
@@ -298,9 +316,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       : (bookingServiceIds.length>1
         ? supabase.rpc('studioflow_android_slots',{p_slug:profile.subdomain,p_services:bookingServiceIds,p_date:bookingDate,p_stylist:slotStylist})
         : supabase.rpc('studioflow_available_slots',{p_slug:profile.subdomain,p_service_id:selectedService?.id,p_date:bookingDate,p_stylist_id:slotStylist}));
-    slotsRequest.then(({data,error})=>{if(!active)return;setSlotsLoading(false);if(error){setSlotsError(error.message);setAvailableSlots([]);setBookingTime('');}else{setAvailableSlots((data||[]).map((s:any)=>({...s,available:s.available!==false})));if(initialSlot&&bookingServiceIds.length===1&&selectedService?.id===initialService?.id&&bookingDate===initialSlot.date&&selectedStylist.id===initialSlot.stylistId&&(data||[]).some((s:any)=>s.time===initialSlot.time&&s.available!==false))setBookingTime(initialSlot.time);}});
+    void slotsRequest.then(({data,error})=>{if(!active)return;setSlotsLoading(false);if(error||!Array.isArray(data)){setSlotsError(error?.message||'Could not load availability. Please retry.');setAvailableSlots([]);setBookingTime('');}else{const rows=parseBookingSlots(data);setAvailableSlots(rows);if(initialSlot&&bookingServiceIds.length===1&&selectedService?.id===initialService?.id&&bookingDate===initialSlot.date&&selectedStylist.id===initialSlot.stylistId&&rows.some(s=>s.time===initialSlot.time&&s.stylistId===initialSlot.stylistId&&s.available))setBookingTime(initialSlot.time);}},error=>{if(active){setSlotsLoading(false);setSlotsError(error instanceof Error?error.message:'Could not load availability. Please retry.');setAvailableSlots([]);setBookingTime('');}});
     return()=>{active=false;};
-  },[isOpen,profile.subdomain,selectedService?.id,selectedStylist.id,bookingDate,slotRetry,bundleKey,selectedBranchId,branchChoices.length,specialistsReady,specialistCheck]);
+  },[isOpen,isTemplatePreview,profile.subdomain,selectedService?.id,selectedStylist.id,bookingDate,slotRetry,bundleKey,selectedBranchId,branchChoices.length,specialistsReady,specialistCheck,initialSlot?.date,initialSlot?.time,initialSlot?.stylistId]);
 
 
   // Step 3: Guest Information
@@ -321,7 +339,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [gatewayReady,setGatewayReady]=useState(false);
   const reservedBooking=useRef<Appointment|null>(null);
   const reservedRequest=useRef('');
-  useEffect(()=>{if(!isOpen||isDraft)return;let active=true;setGatewayReady(false);setGatewayError('');paymentRequest('status').then(status=>{if(!active)return;setGatewayReady(status.configured);if(!status.configured)setGatewayError('Online payments need platform Razorpay configuration. Contact platform support.');}).catch(error=>{if(active)setGatewayError(error.message);});return()=>{active=false;};},[isOpen,isDraft]);
+  useEffect(()=>{if(!isOpen||isDraft||isTemplatePreview)return;let active=true;setGatewayReady(false);setGatewayError('');paymentRequest('status').then(status=>{if(!active)return;setGatewayReady(status.configured);if(!status.configured)setGatewayError('Online payments need platform Razorpay configuration. Contact platform support.');}).catch(error=>{if(active)setGatewayError(error.message);});return()=>{active=false;};},[isOpen,isDraft,isTemplatePreview]);
   const [serverStatus, setServerStatus] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'pay_at_salon' | 'pay_advance_token'>('pay_advance_token');
 
@@ -351,7 +369,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   // Initialize the chosen service only when opening or when the parent launches
   // a different service. Never undo the customer's own selections.
-  useEffect(()=>{if(isOpen)setSelectedServiceIds(initialService?[initialService.id]:services[0]?[services[0].id]:[]);},[isOpen,initialService?.id]);
+  useEffect(()=>{if(isOpen)setSelectedServiceIds(initialService?[initialService.id]:!requestedService&&services[0]?[services[0].id]:[]);},[isOpen,requestedService?.id,initialService?.id]);
   useEffect(()=>{if(isOpen)setSelectedStylist(initialStylist||ANY_SPECIALIST);},[isOpen,initialStylist?.id]);
 
   useEffect(()=>{if(isOpen){if(initialCouponCode?.trim())coupon.change(initialCouponCode.trim());else coupon.remove();setPreviewStylistId(null);setServerTotal(null);reservedBooking.current=null;reservedRequest.current='';bookingRequest.current=crypto.randomUUID();if(initialSlot){setBookingDate(initialSlot.date);setSelectedBranchId(initialSlot.branchId||'');setCurrentStep(initialSlot.branchId||(profile.branches||[]).length<2?'datetime':'service');}else setCurrentStep('service');}},[isOpen,initialSlot?.date,initialSlot?.time,initialSlot?.branchId,initialCouponCode]);
@@ -415,6 +433,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   // Confirm booking & generate reference
   const handleFinalSubmitBooking = async () => {
+    if (isTemplatePreview) { setSubmitError('Template preview only. No appointment or payment can be created.'); return; }
     if (isSubmitting) return;
     setIsSubmitting(true); setSubmitError('');
     try {
@@ -638,7 +657,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const handleReset = () => {
     coupon.remove();
     setPreviewStylistId(null);setServerTotal(null);reservedBooking.current=null;reservedRequest.current='';setPaidAmount(0);setSubmitError('');
-    setCurrentStep('service');setSelectedServiceIds(initialService?[initialService.id]:services[0]?[services[0].id]:[]);setSelectedStylist(ANY_SPECIALIST);setBookingTime('');bookingRequest.current=crypto.randomUUID();
+    setCurrentStep('service');setSelectedServiceIds(initialService?[initialService.id]:!requestedService&&services[0]?[services[0].id]:[]);setSelectedStylist(ANY_SPECIALIST);setBookingTime('');bookingRequest.current=crypto.randomUUID();
 
     setBookingRef('');
 
@@ -723,6 +742,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
         {/* MODAL BODY (SCROLLABLE) */}
         <div ref={scrollRef} className="sf-booking-body">
+          {isTemplatePreview&&<p role="status" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">Template demo · Example times (10 AM–6 PM IST). No real slot, appointment or payment.</p>}
 
           {/* ========================================================= */}
           {/* STEP 1: SELECT LOCATION, SERVICE & SPECIALIST */}
@@ -933,7 +953,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     Available appointment times (IST)
                   </label>
                   <span className="text-[10px] text-slate-500 font-mono">
-                    Supabase availability
+                    {isTemplatePreview?'Example times':'Live availability'}
                   </span>
                 </div>
 
@@ -1144,7 +1164,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               </motion.form>
           )}
 
-          {currentStep === 'payment' && <BookingCoupon coupon={coupon} disabled={!!reservedBooking.current||isSubmitting}/>}
+          {currentStep === 'payment' && !isTemplatePreview && <BookingCoupon coupon={coupon} disabled={!!reservedBooking.current||isSubmitting}/>}
           {currentStep === 'payment' && isAuraCheckout && coupon.quote && (
             <p className="sf-aura-final-payable" role="status" data-aura-final-payable={coupon.quote.finalPrice}>
               Final payable amount before booking confirmation: ₹{Number(coupon.quote.finalPrice).toLocaleString('en-IN',{maximumFractionDigits:2})}
@@ -1201,7 +1221,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </div>
               </div>
 
-              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-sm"><strong>Secure platform checkout · 25% advance</strong><p className="mt-2">Pay ₹{advanceTokenAmount.toLocaleString('en-IN')} now via Razorpay. Balance ₹{(totalPrice-advanceTokenAmount).toLocaleString('en-IN')} {taxExcluded ? 'before GST ' : ''}is due at the salon.</p><p className="mt-2 text-xs">Your appointment confirms after the platform verifies payment. Unpaid reservations expire after 15 minutes.</p></div>
+              {!isTemplatePreview&&<div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-sm"><strong>Secure platform checkout · 25% advance</strong><p className="mt-2">Pay ₹{advanceTokenAmount.toLocaleString('en-IN')} now via Razorpay. Balance ₹{(totalPrice-advanceTokenAmount).toLocaleString('en-IN')} {taxExcluded ? 'before GST ' : ''}is due at the salon.</p><p className="mt-2 text-xs">Your appointment confirms after the platform verifies payment. Unpaid reservations expire after 15 minutes.</p></div>}
               {taxExcluded && <p role="note" className="p-3 rounded-xl bg-amber-50 text-amber-900 text-sm">GST is not included in the amount shown or calculated by this checkout. Please confirm the final tax and balance with the studio.</p>}
               {gatewayError&&<p data-testid="booking-gateway-error" role="alert" className="p-3 rounded-xl bg-amber-50 text-amber-900 text-sm">{gatewayError}</p>}
 
@@ -1459,12 +1479,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   type="button"
                   data-testid="booking-pay-submit"
                   onClick={handleFinalSubmitBooking}
-                  disabled={!bookingServiceIds.length || !bookingTime || !specialistsReady || !specialistCheck?.published || !eligibleStylists.length || isSubmitting || !gatewayReady || coupon.busy || (!reservedBooking.current && !!coupon.code.trim() && !coupon.quote)}
+                  disabled={!bookingServiceIds.length || !bookingTime || !specialistsReady || !specialistCheck?.published || !eligibleStylists.length || isSubmitting || isTemplatePreview || !gatewayReady || coupon.busy || (!reservedBooking.current && !!coupon.code.trim() && !coupon.quote)}
                   className="flex-1 py-3.5 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95"
                   style={actionStyle}
                 >
                   <CalendarCheck className="w-4 h-4" />
-                  <span>{isSubmitting ? 'Opening secure payment…' : `Pay ₹${advanceTokenAmount.toLocaleString('en-IN')} & Book`}</span>
+                  <span>{isTemplatePreview ? 'Demo preview — no payment' : isSubmitting ? 'Opening secure payment…' : `Pay ₹${advanceTokenAmount.toLocaleString('en-IN')} & Book`}</span>
                 </button>
               </div>
             </>)}</footer>}

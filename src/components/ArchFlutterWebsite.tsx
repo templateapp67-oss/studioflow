@@ -470,8 +470,8 @@ export function ArchFlutterWebsite({
         ))}
       </ul>
       {item.note && <span className="af-pkg-note">{item.note}</span>}
-      <button type="button" className="af-btn af-btn-gold af-btn-sm" onClick={() => book(packageServices.find((service) => service.id === item.id))} aria-label={`Book ${item.name}`}>
-        Book this package
+      <button type="button" className="af-btn af-btn-gold af-btn-sm" disabled={!bookingAvailable || !packageServices.some((service) => service.id === item.id)} onClick={() => { const selected = packageServices.find((service) => service.id === item.id); if (selected) book(selected); }} aria-label={`Book ${item.name}`}>
+        {packageServices.some((service) => service.id === item.id) ? 'Book this package' : 'Package unavailable online'}
       </button>
     </RevealItem>
   );
@@ -513,10 +513,11 @@ export function ArchFlutterWebsite({
     done();
   };
 
-  /** "Book this offer" prefills the applicable service and its offer price. */
+  /** The catalogue price stays authoritative; an offer is confirmed separately. */
   const bookOffer = (offer: SalonOffer) => {
     const prefill = offerBookingPrefill(offer, services);
-    book(prefill.service, undefined, { note: prefill.note });
+    const selected = services.find((service) => service.id === prefill.service?.id);
+    if (selected) book(selected, undefined, { note: prefill.note });
   };
 
   const offerCard = (offer: SalonOffer, index: number) => {
@@ -588,10 +589,11 @@ export function ArchFlutterWebsite({
             type="button"
             className="af-btn af-btn-gold af-btn-sm"
             style={{ alignSelf: 'flex-start' }}
+            disabled={!bookingAvailable || !applies.length}
             onClick={() => bookOffer(offer)}
-            aria-label={`Book ${offer.title}`}
+            aria-label={`Choose a service for ${offer.title}`}
           >
-            Book this offer <ArrowRight size={14} aria-hidden="true" />
+            {applies.length ? 'Choose service · confirm offer' : 'Offer unavailable online'} <ArrowRight size={14} aria-hidden="true" />
           </button>
         </div>
       </RevealItem>
@@ -1495,7 +1497,7 @@ export function ArchFlutterWebsite({
                     {liveOffers.length > 0 ? (
                       <>
                         <p className="af-lede" style={{ marginBottom: 18 }}>
-                          {liveOffers.length} offer{liveOffers.length === 1 ? '' : 's'} running now. Swipe the cards on a phone; tap “Book this offer” and the service and its offer price are filled into the booking form for you.
+                          {liveOffers.length} offer{liveOffers.length === 1 ? '' : 's'} running now. Choose an eligible service and confirm the offer or apply its code at checkout.
                         </p>
                         <RevealGroup className="af-offers" as="div">
                           {liveOffers.map(offerCard)}

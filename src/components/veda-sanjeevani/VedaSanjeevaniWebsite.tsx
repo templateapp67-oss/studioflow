@@ -9,6 +9,7 @@ import {
   VEDA_FULL_NAME,
   VEDA_SERVICES,
   VEDA_THERAPISTS,
+  vedaAcceptsRequests,
   vedaFontTokens,
   vedaThemeTokens,
   vedaWhatsappLink,
@@ -108,12 +109,12 @@ export function VedaSanjeevaniWebsite(props: VedaSanjeevaniWebsiteProps) {
 
   const services = useMemo(() => {
     const list = (props.services || []).filter((service) => service && service.name);
-    return list.length ? list : VEDA_SERVICES;
-  }, [props.services]);
+    return list.length || profile.subdomain || props.live ? list : VEDA_SERVICES;
+  }, [props.services, profile.subdomain, props.live]);
   const team = useMemo(() => {
     const list = (props.stylists || []).filter((person) => person && person.name && person.status !== 'Inactive');
-    return list.length ? list : VEDA_THERAPISTS;
-  }, [props.stylists]);
+    return list.length || profile.subdomain || props.live ? list : VEDA_THERAPISTS;
+  }, [props.stylists, profile.subdomain, props.live]);
 
   const [internalPage, setInternalPage] = useState<VedaPage>(() => {
     if (props.initialPage && (PAGES as string[]).includes(props.initialPage)) return props.initialPage;
@@ -175,10 +176,16 @@ export function VedaSanjeevaniWebsite(props: VedaSanjeevaniWebsiteProps) {
 
   const startBooking = useCallback(
     (service?: SalonService, stylist?: Stylist) => {
+      if (bookingAvailable && vedaAcceptsRequests(config) && (service || stylist)) {
+        // A card's actual catalogue selection goes straight to the shared
+        // availability sheet; do not substitute an indicative local time.
+        onBook(service, stylist);
+        return;
+      }
       setBookingSeed({ serviceId: service?.id, stylistId: stylist?.id });
       navigate('booking');
     },
-    [navigate],
+    [bookingAvailable, config, navigate, onBook],
   );
 
   const copyCode = useCallback(async (code: string) => {
@@ -276,7 +283,7 @@ export function VedaSanjeevaniWebsite(props: VedaSanjeevaniWebsiteProps) {
     ) : page === 'booking' ? (
       <VedaBookingPage
         {...sectionProps}
-        bookingAvailable={bookingAvailable}
+        bookingAvailable={bookingAvailable && vedaAcceptsRequests(config)}
         initialServiceId={bookingSeed.serviceId}
         initialStylistId={bookingSeed.stylistId}
         onBook={(service, stylist) => onBook(service, stylist)}

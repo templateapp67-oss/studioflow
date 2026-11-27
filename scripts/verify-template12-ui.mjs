@@ -31,7 +31,7 @@ assert.match(storefront, /uploadInkReference/, 'reference images must use the pr
 assert.match(storefront, /depositAcknowledged/, 'customers must acknowledge the unpaid deposit/request state');
 assert.match(storefront, /No payment is taken/, 'the booking UI must not claim a deposit was charged');
 assert.match(storefront, /whatsappLink\(/, 'booking and availability fallback should use the studio WhatsApp link');
-assert.match(storefront, /localDateInput/, 'booking date bounds should use local dates');
+assert.match(storefront, /min=\{indiaDate\(\)\}/, 'booking date bounds should use the salon’s IST calendar date');
 assert.match(storefront, /Demo lookbook/, 'sample gallery imagery must be clearly labelled');
 assert.match(storefront, /!item\.isDemo/, 'demo reviews must never render as customer testimonials');
 assert.doesNotMatch(storefront, /Aarav S\.|Naina K\.|Kabir M\./, 'fictional default reviews must not be published');

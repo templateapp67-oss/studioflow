@@ -197,8 +197,9 @@ export function ShringaarRoyalWebsite({
   const coreServices = useMemo(() => services.filter((service) => !isPackage(service)), [services]);
   const bridalMenu = coreServices.length ? coreServices : services;
   const packages = useMemo(() => resolveShringaarPackages(config.packages, services), [config.packages, services]);
-  const team = stylists && stylists.length ? stylists : SHRINGAAR_DEFAULT_STYLISTS;
-  const firstService = bridalMenu[0] || services[0] || SHRINGAAR_SERVICES[0];
+  const team = stylists && stylists.length ? stylists : profile.subdomain ? [] : SHRINGAAR_DEFAULT_STYLISTS;
+  const firstService = bridalMenu[0] || services[0] || (!profile.subdomain ? SHRINGAAR_SERVICES[0] : undefined);
+  const consultationService = services.find((service) => /consultation/i.test(service.name));
   const openStatus = shringaarOpenStatus(config.openTime, config.closeTime);
   const startingPrice = bridalMenu.reduce<number | undefined>(
     (min, service) => (service.price != null && (min === undefined || service.price < min) ? service.price : min),
@@ -413,8 +414,8 @@ export function ShringaarRoyalWebsite({
                 {openStatus.label}
               </span>
               {bookingAvailable && (
-                <button type="button" className="sr-btn sr-btn--primary sr-btn--sm" onClick={() => onBook(firstService)}>
-                  <CalendarCheck size={14} aria-hidden="true" /> Book Consultation
+                <button type="button" className="sr-btn sr-btn--primary sr-btn--sm" onClick={() => onBook(consultationService || firstService)}>
+                  <CalendarCheck size={14} aria-hidden="true" /> {consultationService ? 'Book Consultation' : 'Book Appointment'}
                 </button>
               )}
               {customerSignedIn ? (
@@ -481,10 +482,10 @@ export function ShringaarRoyalWebsite({
                     className="sr-btn sr-btn--primary sr-btn--sm"
                     onClick={() => {
                       setMenuOpen(false);
-                      onBook(firstService);
+                      onBook(consultationService || firstService);
                     }}
                   >
-                    Book Consultation
+                    {consultationService ? 'Book Consultation' : 'Book Appointment'}
                   </button>
                 )}
                 {waUrl && (
@@ -531,8 +532,8 @@ export function ShringaarRoyalWebsite({
                 </motion.p>
                 <motion.div variants={fadeUp} className="sr-hero-actions">
                   {bookingAvailable && (
-                    <button type="button" className="sr-btn sr-btn--primary" onClick={() => onBook(firstService)}>
-                      <CalendarCheck size={16} aria-hidden="true" /> Book Consultation
+                    <button type="button" className="sr-btn sr-btn--primary" onClick={() => onBook(consultationService || firstService)}>
+                      <CalendarCheck size={16} aria-hidden="true" /> {consultationService ? 'Book Consultation' : 'Book Appointment'}
                     </button>
                   )}
                   <a className="sr-btn sr-btn--ghost" href="#sr-packages">
@@ -842,9 +843,10 @@ export function ShringaarRoyalWebsite({
                           <button
                             type="button"
                             className={pkg.popular ? 'sr-btn sr-btn--gold' : 'sr-btn sr-btn--primary'}
-                            onClick={() => onBook(services.find((service) => service.id === pkg.liveServiceId) || firstService)}
+                            disabled={!pkg.bookable}
+                            onClick={() => { const selected = services.find((service) => service.id === pkg.liveServiceId); if (selected) onBook(selected); }}
                           >
-                            Book {String(pkg.tier || 'this package').split(' ')[0]} <ArrowUpRight size={15} aria-hidden="true" />
+                            {pkg.bookable ? `Book ${String(pkg.tier || 'this package').split(' ')[0]}` : 'Not available to book online'} <ArrowUpRight size={15} aria-hidden="true" />
                           </button>
                         )}
                       </div>
@@ -1163,11 +1165,9 @@ export function ShringaarRoyalWebsite({
                     </h2>
                     <p>{config.offerText}</p>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 20 }}>
-                      {bookingAvailable && (
-                        <button type="button" className="sr-btn sr-btn--gold" onClick={() => onBook(services.find((service) => service.id === 'sr-pkg-maharani') || firstService)}>
-                          Reserve my date <ArrowRight size={15} aria-hidden="true" />
-                        </button>
-                      )}
+                      <a className="sr-btn sr-btn--gold" href="#sr-booking">
+                        Enquire about this offer <ArrowRight size={15} aria-hidden="true" />
+                      </a>
                       {waUrl && (
                         <a className="sr-btn sr-btn--ghost-light" href={waUrl} target="_blank" rel="noreferrer">
                           <MessageCircle size={15} aria-hidden="true" /> WhatsApp the bridal desk

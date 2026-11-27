@@ -4,10 +4,10 @@ import { build } from 'esbuild';
 
 const source = readFileSync('src/components/BookingModal.tsx', 'utf8');
 assert.match(source, /const draftPreviewStylists=React\.useMemo/, 'Draft preview must derive staff from the owner-provided roster.');
-assert.match(source, /previewDraftSpecialists\(draftRoster,bookingServiceIds,profile\.businessType,selectedBranchId\)/, 'Draft preview must use the provenance-aware staff selector.');
+assert.match(source, /previewDraftSpecialists\(draftRoster,bookingServiceIds,profile\.businessType,selectedBranchId,services\)/, 'Draft preview must use the provenance-aware staff selector with its full catalogue.');
 assert.match(source, /if\(isDraft\)[\s\S]*?published:false/, 'Owner drafts must show local staff without making a live specialist RPC call.');
 assert.match(source, /specialistCheck!\.published[\s\S]*?draftPreviewStylists/, 'Unpublished sites must use draft-only staff for display.');
-assert.match(source, /const canContinueToDateSlot=Boolean\(specialistsReady&&specialistCheck!\.published&&eligibleStylists\.length\)/, 'Draft staff must never enable live booking.');
+assert.match(source, /const canContinueToDateSlot=Boolean\(bookingServiceIds\.length&&specialistsReady&&specialistCheck!\.published&&eligibleStylists\.length\)/, 'A selected service and published staff are required to continue.');
 assert.match(source, /!specialistCheck\?\.published/, 'Date slots and booking submission must require a published salon.');
 assert.match(source, /Preview team from the salon dashboard/, 'The owner must see why draft staff are shown.');
 assert.match(source, /View Profile|View full profile/, 'Staff details must remain behind an explicit profile action.');
@@ -33,7 +33,7 @@ const bundle = await build({
   write: false,
 });
 const moduleUrl = 'data:text/javascript;base64,' + Buffer.from(bundle.outputFiles[0].text).toString('base64');
-const { previewDraftSpecialists } = await import(moduleUrl);
+const { previewDraftSpecialists, localEligibleSpecialists } = await import(moduleUrl);
 
 const team = [
   { id: 'all-services', name: 'Asha', businessType: 'hair_salon', status: 'Available', assignedServices: [] },
@@ -52,4 +52,15 @@ assert.deepEqual(previewDraftSpecialists([], ['cut'], 'hair_salon'), [], 'An emp
 assert.deepEqual(previewDraftSpecialists(team, [], 'hair_salon'), [], 'No service selection must not show an arbitrary roster');
 assert.equal(team.length, 9, 'Preview filtering must not mutate the owner roster');
 
-console.log('Booking draft staff preview verification passed.');
+const catalogue = [{id:'cut'}, {id:'colour'}, {id:'old',status:'archived'}, {id:'inactive',isActive:false}];
+const recoverable = [
+  {id:'stale-only',name:'Stale',status:'Available',assignedServices:['missing','old','inactive']},
+  {id:'mixed',name:'Mixed',status:'Available',assignedServices:['missing','cut']},
+  {id:'all',name:'All',status:'Available',assignedServices:[]},
+];
+assert.deepEqual(localEligibleSpecialists(recoverable,['colour'],'',catalogue).map(st=>st.id),['stale-only','all'], 'Stale-only IDs recover; a mixed active mapping remains restrictive');
+assert.deepEqual(localEligibleSpecialists(recoverable,['cut','colour'],'',catalogue).map(st=>st.id),['stale-only','all'], 'A bundle requires every service in a valid restriction');
+assert.deepEqual(localEligibleSpecialists(recoverable,['cut'],'',catalogue).map(st=>st.id),['stale-only','mixed','all']);
+assert.deepEqual(localEligibleSpecialists(recoverable,['colour']).map(st=>st.id),['all'], 'Without the full catalogue do not guess whether IDs are stale');
+
+console.log('Booking draft staff preview and stale-only recovery verification passed.');

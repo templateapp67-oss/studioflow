@@ -1,4 +1,6 @@
 import { ServiceMerchTags } from './ServiceMerchandising';
+import {indiaDate,indiaDateYearsAgo} from '../lib/bookingDates';
+import {TemplateBookingPreview,templatePreviewSlots} from '../lib/templateBookingPreview';
 import React, { useEffect, useMemo, useState } from "react";
 import {
   AnimatePresence,
@@ -28,7 +30,7 @@ import type { SalonProfile, SalonService, Stylist, LoyaltyConfig } from "../type
 import { WebsiteSections } from "./WebsiteSections";
 import { AppAnnouncementStrip, AppInstallSection } from './AppInstallSection';
 import { defaultGalleryCategory, standardGallery } from "../lib/photoGallery";
-import { createIronInkServices, IRON_INK_CATEGORIES, ironInkDefaults } from "../lib/ironInk";
+import { createIronInkServices, IRON_INK_CATEGORIES, ironInkDefaults, ironInkDurationMinutes } from "../lib/ironInk";
 import { ironInkOwnerVideos } from "../lib/ironInkMedia";
 import { ironInkSocialLinks } from "../lib/ironInkSocial";
 import { normalizeServices } from "../lib/dermacureContent";
@@ -77,8 +79,6 @@ const image = (url?: string) => url?.trim() || fallback;
 const safeLower = (value: unknown): string =>
   typeof value === "string" ? value.toLowerCase() : "";
 const money = (n: number) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
-const localDateInput = (date: Date) =>
-  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
 export function IronInkWebsite({
   profile: profileProp,
@@ -162,14 +162,15 @@ export function IronInkWebsite({
   /** Offer chosen from the Promotions section; carried into the booking request. */
   const [activeOffer,setActiveOffer]=useState<PromotionOffer|null>(null);
   const reduced = useReducedMotion();
-  const remote=useInkSite(siteSlug);
+  const isTemplatePreview=React.useContext(TemplateBookingPreview);
+  const remote=useInkSite(isTemplatePreview?undefined:siteSlug);
   const remoteSettings=remote.data?.settings;
   const minimumAge=remoteSettings?.min_age??18;
   const siteProfile={...profile,...(remoteSettings?{businessName:remoteSettings.studio_name,tagline:remoteSettings.tagline,logoUrl:remoteSettings.logo_url||profile.logoUrl,customAccentColor:remoteSettings.brand_color,phone:remoteSettings.phone,whatsapp:remoteSettings.whatsapp,email:remoteSettings.email,address:remoteSettings.address,instagramHandle:remoteSettings.socials?.instagram||profile.instagramHandle,facebookPage:remoteSettings.socials?.facebook||profile.facebookPage,youtubeChannel:remoteSettings.socials?.youtube||profile.youtubeChannel,workingHoursMonFri:remoteSettings.timings?.mon||profile.workingHoursMonFri,workingHoursSat:remoteSettings.timings?.sat||profile.workingHoursSat,workingHoursSun:remoteSettings.timings?.sun||profile.workingHoursSun,coverImageUrl:remoteSettings.hero_images?.[0]||profile.coverImageUrl,ironInk:{...profile.ironInk,bookingDeposit:remoteSettings.deposit_amount,heroImage:remoteSettings.hero_images?.[0]||profile.ironInk?.heroImage}}:{} )};
   const createInk=useCreateInkBooking();
   const enquiry=useInkEnquiry();
   const accent = remote.data?.settings?.brand_color||siteProfile.customAccentColor || "#E11D48";
-  const configured = remote.data?.categories?.length ? remote.data.categories.map((item,index)=>({slug:item.slug,name:item.name,image:item.image_url,description:item.description||IRON_INK_CATEGORIES.find(category=>category.slug===item.slug)?.description||'',price:Number(item.starting_price),duration:item.duration_label||`${item.duration_min} min`,enabled:item.is_active,dbId:item.id})) : (()=>{const saved=siteProfile.ironInk?.categories||[];const base=[...IRON_INK_CATEGORIES.map(category=>saved.find(item=>item.slug===category.slug)||category),...saved.filter(item=>!IRON_INK_CATEGORIES.some(category=>category.slug===item.slug))];const custom=services.filter(service=>service.category&&service.category!=='Signature Packages'&&!base.some(category=>safeLower(category.name)===safeLower(service.category))).map(service=>({slug:safeLower(service.category).replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''),name:service.category,image:service.imageUrl||fallback,description:service.description||'',price:service.price,duration:`${service.durationMinutes} min`,enabled:true}));return [...custom,...base];})();
+  const configured = remote.data ? (remote.data.categories||[]).map((item)=>({slug:item.slug,name:item.name,image:item.image_url,description:item.description||IRON_INK_CATEGORIES.find(category=>category.slug===item.slug)?.description||'',price:Number(item.starting_price),duration:item.duration_label||`${item.duration_min} min`,durationMin:item.duration_min,enabled:item.is_active,dbId:item.id})) : (()=>{const saved=siteProfile.ironInk?.categories||[];const base=siteSlug&&!isTemplatePreview?[]:[...IRON_INK_CATEGORIES.map(category=>saved.find(item=>item.slug===category.slug)||category),...saved.filter(item=>!IRON_INK_CATEGORIES.some(category=>category.slug===item.slug))];const custom=services.filter(service=>service.category&&service.category!=='Signature Packages'&&!base.some(category=>safeLower(category.name)===safeLower(service.category))).map(service=>({slug:safeLower(service.category).replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''),name:service.category,image:service.imageUrl||fallback,description:service.description||'',price:service.price,duration:`${service.durationMinutes} min`,enabled:true}));return [...custom,...base];})();
   const enabledCategories = configured
     .filter((item) => item.enabled)
     .map((item) => {
@@ -177,7 +178,7 @@ export function IronInkWebsite({
         (entry) =>
           entry.id === `ii-${item.slug}` || entry.category === item.name,
       );
-      if(remote.data?.categories?.length)return item;
+      if(remote.data)return item;
       return service
         ? {
             ...item,
@@ -187,7 +188,7 @@ export function IronInkWebsite({
           }
         : item;
     });
-  const actualServices = remote.data?.categories?.length?[]:services.filter((item) =>
+  const actualServices = remote.data?[]:services.filter((item) =>
     enabledCategories.some(
       (category) =>
         category.slug === item.id.replace(/^ii-/, "") ||
@@ -203,7 +204,7 @@ export function IronInkWebsite({
             name: category.name,
             category: category.name,
             price: category.price,
-            durationMinutes: 60,
+            durationMinutes: 'durationMin' in category ? category.durationMin : ironInkDurationMinutes(category.duration),
             description: category.description,
             icon: "brush",
             imageUrl: category.image,
@@ -212,9 +213,10 @@ export function IronInkWebsite({
   const selectedCategory =
     enabledCategories.find((item) => item.slug === pickedCategory) ||
     enabledCategories[0];
-  const activeService =
-    displayServices.find((item) => item.category === selectedCategory?.name) ||
-    displayServices[0];
+  // A category is not a licence to substitute the first unrelated service.
+  const exactService=displayServices.find(item=>item.id===`ii-${selectedCategory?.slug}`);
+  const categoryMatches=displayServices.filter(item=>item.category===selectedCategory?.name);
+  const activeService=exactService||(categoryMatches.length===1?categoryMatches[0]:undefined);
   const categoryRecord=remote.data?.categories?.find(item=>item.slug===selectedCategory?.slug);
   const artistList:Stylist[]=remote.data?(remote.data.artists||[]).filter(item=>item.is_active).map(item=>({id:item.id,name:item.name,role:item.bio||'Tattoo Artist',avatarUrl:item.photo_url,specialties:item.specialties,rating:5,bio:item.bio,experienceYears:item.experience_years,status:'Available'})):stylists.filter(item=>item.status!=='Inactive');
   const inkBranches=(remote.data?.branches||[]).filter(item=>item.is_active);
@@ -226,6 +228,12 @@ export function IronInkWebsite({
   const depositDescription=bookingDeposit>0?`${money(bookingDeposit)} booking deposit`:'any booking deposit';
   const whatsappLink=(message:string)=>{const digits=(siteProfile.whatsapp||'').replace(/\D/g,'');return digits?`https://wa.me/${digits}?text=${encodeURIComponent(message)}`:undefined;};
   const availability=useInkAvailability(inkBranches.length>1&&!pickedBranch?undefined:remote.data?.site_id,chosenArtistId,pickedDate,categoryRecord?.duration_min||activeService?.durationMinutes||60,pickedBranch||undefined);
+  const exampleMinutes=activeService?.durationMinutes||0;
+  const exampleSlots=isTemplatePreview&&activeService?templatePreviewSlots(pickedDate,artistList,chosenArtistId,exampleMinutes).map(slot=>{
+    const [hour,minute]=slot.time.split(':').map(Number);const end=hour*60+minute+exampleMinutes;
+    return {start_time:slot.time,end_time:`${String(Math.floor(end/60)).padStart(2,'0')}:${String(end%60).padStart(2,'0')}`};
+  }):[];
+  const shownSlots=remote.data?availability.data:exampleSlots;
   const pageTitle = page === "HOME" ? "" : page;
   const photos = useMemo(() => {
     const localGallery=galleryPhotos.length?galleryPhotos:standardGallery(siteProfile.businessType).map(item=>item.url);
@@ -293,17 +301,23 @@ export function IronInkWebsite({
   };
   const completeBooking = async () => {
     setBookingError("");
-    if (!bookingAvailable && !remote.data?.site_id) return;
+    if (!bookingAvailable) return;
     if (!depositAcknowledged) {
       setBookingError("Please confirm that this is a booking request and no deposit is collected online.");
       return;
     }
+    if(isTemplatePreview){
+      if(!activeService||!chosenArtistId||!exampleSlots.some(slot=>slot.start_time.slice(0,5)===pickedTime)){setBookingError('Choose a sample service, artist and example time first.');return;}
+      onBook(activeService,stylists.find((item)=>item.id===chosenArtistId),{date:pickedDate,time:pickedTime,placement,size,reference});
+      return;
+    }
     if(remote.data?.site_id){
+      if(availability.loading||availability.error||!availability.data.some(slot=>slot.start_time.slice(0,5)===pickedTime)){setBookingError('Choose a currently available time first.');return;}
       if(!categoryRecord?.id){setBookingError("This category is not available for online requests. Please contact the studio on WhatsApp.");return;}
       if(!chosenArtistId){setBookingError("No artist is available for online booking. Please contact the studio on WhatsApp.");return;}
       try{const numericSize=Number.parseFloat(size.match(/[0-9]+(?:\.[0-9]+)?/)?.[0]||'');const result=await createInk.mutate({siteId:remote.data.site_id,customerName:bookingCustomerName,phone:customerPhone,email:customerEmail,categoryId:categoryRecord.id,artistId:chosenArtistId,branchId:pickedBranch||undefined,bookingDate:pickedDate,startTime:pickedTime,birthDate,sizeCm:Number.isFinite(numericSize)?numericSize:null,placement,description:`${selectedCategory?.name||'Tattoo'} request${size?` · ${size}`:''}${activeOffer?` · Offer: ${activeOffer.title}${activeOffer.couponCode?` (${activeOffer.couponCode})`:''}`:''}`,referenceImages:reference?[reference]:[]});setBookingResult(result as InkBookingRow);return;}catch{return;}
     }
-    onBook(activeService,stylists.find((item)=>item.id===chosenArtistId)||undefined,{date:pickedDate,time:pickedTime,placement,size,reference});
+    setBookingError('Online requests are unavailable. Please contact the studio to arrange an appointment.');
   };
   const reveal = typeof Element === "undefined" ? {} : {
     initial: "hidden",
@@ -1371,9 +1385,9 @@ export function IronInkWebsite({
                                           : ""
                                       }
                                       key={item.slug}
-                                      onClick={() =>
-                                        setPickedCategory(item.slug)
-                                      }
+                                      onClick={() => {
+                                        setPickedCategory(item.slug);setPickedTime('');
+                                      }}
                                     >
                                       {img(item.image, item.name + " example")}
                                       <span className="ii-category-choice-copy">
@@ -1406,7 +1420,7 @@ export function IronInkWebsite({
                                             : ""
                                         }
                                         key={item.id}
-                                        onClick={() => setPickedArtist(item.id)}
+                                        onClick={() => {setPickedArtist(item.id);setPickedTime('');}}
                                       >
                                         {img(
                                           item.avatarUrl || fallback,
@@ -1442,23 +1456,23 @@ export function IronInkWebsite({
                                   <input
                                     type="date"
                                     value={pickedDate}
-                                    onChange={(e) =>
-                                      setPickedDate(e.target.value)
-                                    }
-                                    min={localDateInput(new Date())}
+                                    onChange={(e) => {setPickedDate(e.target.value);setPickedTime('');}}
+                                    min={indiaDate()}
+                                    max={indiaDate(90)}
                                   />
                                 </label>
                                 <label className="ii-field">
-                                  LIVE AVAILABLE TIMES
-                                  <select value={pickedTime} onChange={(e)=>setPickedTime(e.target.value)} disabled={!pickedDate||availability.loading}>
-                                    <option value="">{availability.loading?'Loading live slots…':pickedDate?'Choose an available time':'Choose a date first'}</option>
-                                    {(remote.data?availability.data:[{start_time:'10:00',end_time:'11:00'},{start_time:'11:30',end_time:'12:30'},{start_time:'13:00',end_time:'14:00'},{start_time:'14:30',end_time:'15:30'},{start_time:'16:00',end_time:'17:00'},{start_time:'17:30',end_time:'18:30'}]).map(slot=><option key={slot.start_time} value={slot.start_time.slice(0,5)}>{slot.start_time.slice(0,5)} – {slot.end_time.slice(0,5)}</option>)}
+                                  {isTemplatePreview?'EXAMPLE TIMES (IST)':'LIVE AVAILABLE TIMES (IST)'}
+                                  <select value={pickedTime} onChange={(e)=>setPickedTime(e.target.value)} disabled={!pickedDate||availability.loading||(!isTemplatePreview&&!remote.data)}>
+                                    <option value="">{availability.loading||remote.loading?'Loading live slots…':pickedDate?'Choose a time':'Choose a date first'}</option>
+                                    {shownSlots.map(slot=><option key={slot.start_time} value={slot.start_time.slice(0,5)}>{slot.start_time.slice(0,5)} – {slot.end_time.slice(0,5)}</option>)}
                                   </select>
                                 </label>
+                                {isTemplatePreview?<p className="ii-form-note" role="status">Template demo: example times only. No appointment, request or payment is created.</p>:!remote.data&&!remote.loading?<p className="ii-form-note" role="alert">Online availability could not be loaded. Please contact the studio.</p>:null}
                                 {availability.error&&<p className="ii-form-note" role="alert">Live availability is temporarily unavailable. Please contact the studio to confirm a time.</p>}
                                 {pickedDate&&!availability.loading&&!availability.error&&remote.data&&availability.data.length===0&&<p className="ii-form-note">No live times are open for this date. Choose another date or ask the studio about an alternative.</p>}
                                 {(availability.error||(pickedDate&&!availability.loading&&remote.data&&availability.data.length===0))&&whatsappLink(`Hi, I would like to ask about ${selectedCategory?.name||'a tattoo'} with ${selectedArtistName} on ${pickedDate||'a future date'}${pickedBranch?` at ${inkBranches.find(item=>item.id===pickedBranch)?.name||'the selected studio'}`:''}.` )&&<a className="ii-text-link" target="_blank" rel="noopener noreferrer" href={whatsappLink(`Hi, I would like to ask about ${selectedCategory?.name||'a tattoo'} with ${selectedArtistName} on ${pickedDate||'a future date'}${pickedBranch?` at ${inkBranches.find(item=>item.id===pickedBranch)?.name||'the selected studio'}`:''}.` )}>ASK ABOUT AVAILABILITY ON WHATSAPP <ArrowUpRight size={14}/></a>}
-                                <p className="ii-form-note">Slots are checked live against this artist’s studio schedule and current bookings.</p>
+                                {!isTemplatePreview&&remote.data&&<p className="ii-form-note">Slots are checked live against this artist’s studio schedule and current bookings.</p>}
                               </>
                             )}
                             {bookingStep === 3 && (
@@ -1470,7 +1484,7 @@ export function IronInkWebsite({
                                 <label className="ii-field">YOUR NAME<input autoComplete="name" maxLength={120} value={bookingCustomerName} onChange={e=>setBookingCustomerName(e.target.value)} required placeholder="Full name"/></label>
                                 <label className="ii-field">PHONE<input autoComplete="tel" inputMode="tel" maxLength={30} value={customerPhone} onChange={e=>setCustomerPhone(e.target.value)} required placeholder="Phone number"/></label>
                                 <label className="ii-field">EMAIL (OPTIONAL)<input autoComplete="email" type="email" maxLength={254} value={customerEmail} onChange={e=>setCustomerEmail(e.target.value)} placeholder="you@example.com"/></label>
-                                <label className="ii-field">DATE OF BIRTH<input type="date" max={localDateInput(new Date(new Date().setFullYear(new Date().getFullYear()-minimumAge)))} value={birthDate} onChange={e=>setBirthDate(e.target.value)} required/></label>
+                                <label className="ii-field">DATE OF BIRTH<input type="date" max={indiaDateYearsAgo(minimumAge)} value={birthDate} onChange={e=>setBirthDate(e.target.value)} required/></label>
                                 <p className="ii-form-note">Tattoo bookings are available to adults aged {minimumAge} and over. Please bring valid ID to your appointment.</p>
                                 <label className="ii-field">
                                   SIZE
@@ -1543,6 +1557,7 @@ export function IronInkWebsite({
                                 </label>
                                 <div className="ii-confirm-summary">
                                   <span>{selectedCategory?.name}</span>
+                                  {selectedCategory&&<span>Starting price · {money(selectedCategory.price)} · {selectedCategory.duration}</span>}
                                   {activeOffer&&<span>Offer · {activeOffer.title}{activeOffer.couponCode?` (${activeOffer.couponCode})`:''}</span>}
                                   <span>
                                     {pickedDate || "Date to be discussed"} ·{" "}
@@ -1576,17 +1591,17 @@ export function IronInkWebsite({
                             <button
                               className="ii-primary"
                               onClick={() => setBookingStep(bookingStep + 1)}
-                              disabled={(bookingStep===0&&(!pickedCategory||(inkBranches.length>1&&!pickedBranch)))||(bookingStep===1&&Boolean(remote.data)&&!chosenArtistId)||(bookingStep===2&&(!pickedDate||!pickedTime||(Boolean(remote.data)&&!availability.data.some(slot=>slot.start_time.slice(0,5)===pickedTime))))}
+                              disabled={(bookingStep===0&&(!pickedCategory||(inkBranches.length>1&&!pickedBranch)))||(bookingStep===1&&!chosenArtistId)||(bookingStep===2&&(!pickedDate||!pickedTime||availability.loading||(!isTemplatePreview&&!remote.data)||!shownSlots.some(slot=>slot.start_time.slice(0,5)===pickedTime)))}
                             >
                               CONTINUE <ArrowRight />
                             </button>
                           ) : (
                             <button
                               className="ii-primary"
-                              disabled={(!bookingAvailable&&!remote.data?.site_id)||createInk.loading||referenceUploading||!depositAcknowledged||(Boolean(remote.data)&&(!bookingCustomerName.trim()||customerPhone.replace(/\D/g,'').length<10||!birthDate||new Date(birthDate)>new Date(new Date().setFullYear(new Date().getFullYear()-minimumAge))||!pickedDate||!pickedTime||!chosenArtistId||!categoryRecord?.id||!size||!placement.trim()))}
+                              disabled={!bookingAvailable||(!isTemplatePreview&&!remote.data?.site_id)||createInk.loading||referenceUploading||!depositAcknowledged||(Boolean(remote.data)&&(!bookingCustomerName.trim()||customerPhone.replace(/\D/g,'').length<10||!birthDate||birthDate>indiaDateYearsAgo(minimumAge)||!pickedDate||!pickedTime||!chosenArtistId||!categoryRecord?.id||!size||!placement.trim()))}
                               onClick={completeBooking}
                             >
-                              {createInk.loading?'SENDING REQUEST…':bookingAvailable||remote.data?.site_id?'REQUEST THIS SESSION':'ONLINE BOOKING UNAVAILABLE'}{" "}
+                              {createInk.loading?'SENDING REQUEST…':isTemplatePreview?'CONTINUE DEMO':bookingAvailable&&remote.data?.site_id?'REQUEST THIS SESSION':'ONLINE BOOKING UNAVAILABLE'}{" "}
                               <ArrowUpRight />
                             </button>
                           )}

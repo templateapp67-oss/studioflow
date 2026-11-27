@@ -164,6 +164,30 @@ const payload=(await db.query('select public.get_template12_site($1) data',[site
 assert.equal(payload.branches.length,2,'Template 12 site payload exposes active branches');
 assert.ok(payload.branches.every(branch=>branch.is_active));
 
+// The newer availability repair must also work when the optional Iron Ink
+// branch schema is installed. Reuse its actual helper definitions, not stubs.
+const repair=readFileSync('supabase/migrations/20261127140000_booking_slot_availability_repair.sql','utf8');
+for(const name of ['booking_weekday','booking_time','booking_hours_enabled']){
+ const body=repair.match(new RegExp(`create or replace function studioflow_private\\.${name}\\([\\s\\S]*?\\$\\$;`));
+ assert.ok(body,`missing real helper ${name}`);await db.exec(body[0]);
+}
+const inkRepair=readFileSync('supabase/migrations/20261127140100_iron_ink_availability_ist.sql','utf8');
+await db.exec(inkRepair);await db.exec(inkRepair);
+const nextMonday=(await db.query('select ($1::date+7)::date value',[monday])).rows[0].value;
+const inkAt=(location)=>db.query('select * from public.get_branch_available_slots($1,$2,$3,$4,$5)',[siteId,ink.id,nextMonday,inkCategory.duration_min,location]).then(result=>result.rows);
+assert.deepEqual(await inkAt(branchA),[],'shared tattoo schedules do not assign an artist to several locations');
+await db.query("insert into public.ink_availability(site_id,artist_id,day_of_week,start_time,end_time,is_off,branch_id) values($1,$2,1,'11:00','20:00',false,$3),($1,$2,1,'11:00','20:00',false,$4)",[siteId,ink.id,branchA,branchB]);
+const firstInkA=await inkAt(branchA),firstInkB=await inkAt(branchB);
+const common=firstInkA.find(slot=>firstInkB.some(other=>other.start_time===slot.start_time));assert.ok(common,'explicit artist shifts intersect with both branches’ actual hours');
+await db.query("select set_config('request.jwt.claim.sub',$1,false)",[customerId]);
+await db.query('select * from public.create_branch_booking($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',[siteId,branchA,'Guest Customer','+919876543219','guest@example.test',inkCategory.id,ink.id,nextMonday,common.start_time,'1990-01-01']);
+assert.ok(!(await inkAt(branchB)).some(slot=>slot.start_time===common.start_time),'the same artist cannot be double-booked across branches');
+await assert.rejects(db.query('select * from public.create_branch_booking($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',[siteId,branchB,'Other Customer','+919876543218','guest@example.test',inkCategory.id,ink.id,nextMonday,common.start_time,'1990-01-01']),/unavailable|not available/i);
+console.log('PASS: optional tattoo branch RPC uses explicit shifts, IST and cross-branch conflict protection.');
+// The historical rollback explicitly requires merging branch-specific shifts.
+// Remove only these disposable fixture rows before exercising that rollback.
+await db.query('delete from public.ink_availability where site_id=$1 and artist_id=$2 and branch_id in ($3,$4)',[siteId,ink.id,branchA,branchB]);
+
 const branchColumns=(await db.query("select column_name from information_schema.columns where table_schema='public' and table_name in ('studioflow_bookings','ink_bookings','ink_availability') and column_name='branch_id'")).rows;
 assert.equal(branchColumns.length,3,'shared bookings, Template 12 bookings and schedules are branch-linked');
 await db.exec(readFileSync('supabase/rollback/202610300004_multibranch_support_rollback.sql','utf8'));

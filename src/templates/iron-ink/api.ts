@@ -35,7 +35,9 @@ export async function getInkAvailableSlots(siteId:string,artistId:string,date:st
     ? supabase.rpc('get_branch_available_slots',{p_site_id:siteId,p_artist_id:artistId,p_date:date,p_duration_min:durationMin,p_branch_id:branchId})
     : supabase.rpc('get_available_slots',{p_site_id:siteId,p_artist_id:artistId,p_date:date,p_duration_min:durationMin}));
   if(error)throw error;
-  return (data||[]) as InkAvailableSlot[];
+  if(!Array.isArray(data))throw new Error('Available times could not load. Please retry.');
+  const time=/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/;
+  return data.filter((slot):slot is InkAvailableSlot=>Boolean(slot&&typeof slot.start_time==='string'&&typeof slot.end_time==='string'&&time.test(slot.start_time)&&time.test(slot.end_time)));
 }
 export async function createInkBooking(input:InkBookingInput){
   const value=inkBookingSchema.parse(input);

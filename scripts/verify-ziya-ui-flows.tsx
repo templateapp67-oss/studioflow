@@ -12,6 +12,7 @@ import { LUXURY_EDITORIAL_COPY, isLegacyHairSalonTagline } from '../src/lib/luxu
 import { INITIAL_SALON_PROFILE } from '../src/mockData';
 import { generateSeoDefaults } from '../src/lib/useSeoMetadata';
 import { CustomerSalonWebsite } from '../src/components/CustomerSalonWebsite';
+import { BookingModal } from '../src/components/BookingModal';
 import { LandingPage } from '../src/components/LandingPage';
 import { ZiyaAdminPanel } from '../src/components/ziya/ZiyaAdminPanel';
 import { supabase } from '../src/lib/supabase';
@@ -223,7 +224,7 @@ const origRpc = supabase.rpc.bind(supabase);
     return { data: { id: 'enq-1', status: 'new' }, error: null };
   }
   if (fn === 'studioflow_available_slots' || fn === 'studioflow_android_slots') {
-    return { data: [{ time: '11:00', stylistId: 'st-1' }], error: null };
+    return { data: [{ time: '11:00', available: true, stylistId: 'st-1' }], error: null };
   }
   if (fn === 'studioflow_coupon_quote') {
     return {
@@ -377,11 +378,13 @@ assert.equal(offerBookButtons.length, 3, 'All 3 offer cards render Book Now CTA'
 await act(async () => {
   offerBookButtons[2].props.onClick(); // LAYER10 card
 });
-const treeJsonAfterBook = JSON.stringify(renderer.toJSON());
-assert.ok(
-  treeJsonAfterBook.includes('LAYER10'),
-  'Clicking Offer Book Now pre-fills LAYER10 into booking flow',
-);
+const selectedOfferModal = root.findAllByType(BookingModal).find((node) => node.props.isOpen);
+assert.ok(selectedOfferModal, 'the offer opens the booking sheet');
+assert.equal(selectedOfferModal.props.initialCouponCode, 'LAYER10', 'the offer code reaches checkout');
+const layerService = selectedOfferModal.props.initialService!;
+assert.ok(['hs-1', 'hs-5'].includes(layerService.id), 'only an applicable haircut is preselected');
+assert.ok(layerService.price >= 800, 'the offer minimum is respected');
+assert.equal(layerService.price, ziyaTemplate.services.find((service) => service.id === layerService.id)!.price, 'the catalogue price is retained');
 
 // 2e. Contact Form validation + valid enquiry submission
 const contactForm = root.find(

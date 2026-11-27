@@ -1,3 +1,5 @@
+import {TemplateBookingPreview} from '../lib/templateBookingPreview';
+import {isBookingServiceActive} from '../lib/bookingSelection';
 import { OwnerDraftBookingPreview } from '../lib/ownerBookingPreview';
 import {KeshKraftWebsite} from './keshkraft/KeshKraftWebsite';
 import {AureliaBeautyWebsite} from './aurelia/AureliaBeautyWebsite';
@@ -143,7 +145,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
  const archFlutterServices=(services&&services.length>0)?services:(!profile.subdomain&&!profile.serviceCatalogueInitialized?CATEGORY_TEMPLATES.lash_brow?.services||[]:[]);
  // Template 14 always has a full ritual menu to show: the saved catalogue wins,
  // then the template menu, so a brand-new preview is never an empty page.
- const vedaServices=(services&&services.length>0)?services:(CATEGORY_TEMPLATES.ayurvedic_spa?.services||[]);
+ const vedaServices=(services&&services.length>0)?services:(!profile.subdomain?CATEGORY_TEMPLATES.ayurvedic_spa?.services||[]:[]);
  // Template 03 preview: the bundled unisex menu stands in until the salon saves its own.
  const auraServices=(services&&services.length>0)?services:(!profile.subdomain&&!profile.serviceCatalogueInitialized?CATEGORY_TEMPLATES.unisex_salon?.services||[]:[]);
  const accent=profile.customAccentColor||(barber?'#c49a6c':roopMahal?'#6D2638':pinkyNails?'#702D4B':keshPrakriti?'#183D32':vogueNoir?'#C9A96E':bodhiTree?'#4E6E58':prismChroma?'#7C5CFF':shringaar?'#5A0F1E':archFlutter?'#9A6B73':vedaSanjeevani?'#1F3B2E':palette.primaryHex);
@@ -175,8 +177,9 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
  const team=roopMahal?stylists.filter(isValidRoopStaff):pinkyNails?stylists.filter(isValidNailStaff):stylists.filter(s=>s.status!=='Inactive');
  // Bundled demo identities and credentials are never published as clinic staff.
  const ownerDraftPreview=React.useContext(OwnerDraftBookingPreview);
+ const templateBookingPreview=React.useContext(TemplateBookingPreview);
  const clinicTeam=profile.subdomain?team.filter(s=>!['sk-st-1','sk-st-2','sk-st-3'].includes(s.id)).map(s=>s.avatarUrl?.toLowerCase().includes('images.unsplash.com')?{...s,avatarUrl:''}:s):team;
- const clinicBookingAvailable=Boolean(visible.bookings && (ownerDraftPreview || profile.subdomain) && clinicBookable.length && clinicTeam.length && onAddAppointment && (profile as typeof profile & {bookingEnabled?:boolean}).bookingEnabled!==false);
+ const clinicBookingAvailable=Boolean(visible.bookings && (ownerDraftPreview || templateBookingPreview || profile.subdomain) && clinicBookable.length && clinicTeam.length && onAddAppointment && (profile as typeof profile & {bookingEnabled?:boolean}).bookingEnabled!==false);
  const pinkyCoreServices=pinkyNails?pinkyServices:pinkyServices;
  const nailCategories=pinkyNails?Array.from(new Set(pinkyCoreServices.map(s=>(s.category||'').trim()).filter(Boolean))):[];
  const reviews=clientExperiences(profile);
@@ -377,19 +380,19 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
   <DermacureWebsite shared={shared} customerName={customerName} customerPhotoUrl={customerPhotoUrl} galleryPhotos={galleryEntries} stylists={clinicTeam} onViewStaff={setViewStaff} onBookStaff={clinicBookingAvailable?staff=>{setConsultation(undefined);book(undefined,staff)}:undefined} onAccount={()=>customer('signin')} customerSignedIn={customerSignedIn} onMyBookings={()=>setMyBookings(true)} profile={profile} services={services} policies={policies} bookingAvailable={clinicBookingAvailable} onBook={(selected,details)=>{if(selected&&!clinicBookable.some(item=>item.id===selected.id))return;setConsultation(details);book(selected,details?clinicTeam.find(st=>st.id===details.stylistId):undefined);if(details)setDirectSlot({date:details.date,time:details.time,stylistId:details.stylistId});}}/>
   {myBookings&&<SalonBookingsDialog profile={profile} onClose={()=>setMyBookings(false)}/>}
   {clinicTeam.some(st=>st.id===viewStaff)&&<StylistProfile services={clinicBookable} staff={clinicTeam.find(st=>st.id===viewStaff)!} profile={profile} slug={profile.subdomain} signedIn={customerSignedIn} demo={!profile.subdomain} onLogin={()=>customer('signin')} onClose={()=>setViewStaff('')} onBook={()=>{const specialist=clinicTeam.find(st=>st.id===viewStaff);setViewStaff('');setConsultation(undefined);book(undefined,specialist)}}/>}
-  {booking && service && clinicBookable.some(s=>s.id===service.id && s.price===service.price) && <BookingModal isOpen onClose={()=>setBooking(false)} profile={profile} services={clinicBookable} stylists={clinicTeam} initialService={service} initialStylist={chosen} initialSlot={directSlot} consultation={consultation} onAddAppointment={onAddAppointment} themeAccentHex="#50372D"/>}
+  {booking && service && clinicBookable.some(s=>s.id===service.id && s.price===service.price) && <BookingModal isOpen onClose={()=>{setBooking(false);setChosen(undefined);setDirectSlot(undefined)}} profile={profile} services={clinicBookable} stylists={clinicTeam} initialService={service} initialStylist={chosen} initialSlot={directSlot} consultation={consultation} onAddAppointment={onAddAppointment} themeAccentHex="#50372D"/>}
  </>;
 
  if(profile.businessType==='hair_spa')return <>
   {/* Template 06 renders all of its sections through HairSpaWebsite. Online
       booking is only offered once the site is published (a real slug exists),
       so a template preview never fabricates availability. */}
-  <HairSpaWebsite profile={profile} services={keshServices} stylists={team} galleryPhotos={galleryEntries} shared={shared} bookingAvailable={Boolean(ownerDraftPreview || profile.subdomain)} /* Social profiles are rendered by the Template 06 footer, and the page
+  <HairSpaWebsite profile={profile} services={keshServices} stylists={team} galleryPhotos={galleryEntries} shared={shared} bookingAvailable={Boolean(ownerDraftPreview || templateBookingPreview || profile.subdomain)} /* Social profiles are rendered by the Template 06 footer, and the page
       hides any owner section that has no saved content. */
   enabledSections={['hero','services','about','stylists','gallery','testimonials','location','promo','videos','social','loyalty','policies','share'].filter(section=>visible[section])} showPackages={visible.packages} customerSignedIn={customerSignedIn} customerName={customerName} customerPhotoUrl={customerPhotoUrl} onBook={(selected,specialist)=>book(selected,specialist)} onAccount={mode=>customer(mode||'signin')} onMyBookings={()=>setMyBookings(true)} onViewSpecialist={id=>setViewStaff(id)}/>
   {myBookings&&<SalonBookingsDialog profile={profile} onClose={()=>setMyBookings(false)}/>}
   {team.some(st=>st.id===viewStaff)&&<StylistProfile services={services} onSlot={(selected,slot)=>{setChosen(team.find(st=>st.id===slot.stylistId));setService(selected);setDirectSlot(slot);setViewStaff('');setBooking(true)}} staff={team.find(st=>st.id===viewStaff)!} profile={profile} slug={profile.subdomain} signedIn={customerSignedIn} demo={!profile.subdomain} onLogin={()=>{setViewStaff('');customer('signin')}} onClose={()=>setViewStaff('')} onBook={()=>{const specialist=team.find(st=>st.id===viewStaff);setViewStaff('');book(undefined,specialist)}}/>}
-  <BookingModal isOpen={booking} onClose={()=>setBooking(false)} profile={profile} services={keshServices} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>
+  <BookingModal isOpen={booking} onClose={()=>{setBooking(false);setChosen(undefined);setDirectSlot(undefined)}} profile={profile} services={keshServices} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>
  </>;
 
  if(profile.businessType==='makeup_studio')return <>
@@ -412,7 +415,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
   />
   {myBookings&&<SalonBookingsDialog profile={profile} onClose={()=>setMyBookings(false)}/>}
   {team.some(st=>st.id===viewStaff)&&<StylistProfile services={vogueServices} onSlot={(selected,slot)=>{setChosen(team.find(st=>st.id===slot.stylistId));setService(selected);setDirectSlot(slot);setViewStaff('');setBooking(true)}} staff={team.find(st=>st.id===viewStaff)!} profile={profile} slug={profile.subdomain} signedIn={customerSignedIn} demo={!profile.subdomain} onLogin={()=>{setViewStaff('');customer('signin')}} onClose={()=>setViewStaff('')} onBook={()=>{const specialist=team.find(st=>st.id===viewStaff);setViewStaff('');book(undefined,specialist)}}/>}
-  <BookingModal isOpen={booking} onClose={()=>setBooking(false)} profile={profile} services={vogueServices} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>
+  <BookingModal isOpen={booking} onClose={()=>{setBooking(false);setChosen(undefined);setDirectSlot(undefined)}} profile={profile} services={vogueServices} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>
  </>;
 
  if(profile.businessType==='massage_wellness')return <>
@@ -437,7 +440,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
   />
   {myBookings&&<SalonBookingsDialog profile={profile} onClose={()=>setMyBookings(false)}/>}
   {team.some(st=>st.id===viewStaff)&&<StylistProfile services={bodhiServices} onSlot={(selected,slot)=>{setChosen(team.find(st=>st.id===slot.stylistId));setService(selected);setDirectSlot(slot);setViewStaff('');setBooking(true)}} staff={team.find(st=>st.id===viewStaff)!} profile={profile} slug={profile.subdomain} signedIn={customerSignedIn} demo={!profile.subdomain} onLogin={()=>{setViewStaff('');customer('signin')}} onClose={()=>setViewStaff('')} onBook={()=>{const specialist=team.find(st=>st.id===viewStaff);setViewStaff('');book(undefined,specialist)}}/>}
-  <BookingModal isOpen={booking} onClose={()=>setBooking(false)} profile={profile} services={bodhiServices} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>
+  <BookingModal isOpen={booking} onClose={()=>{setBooking(false);setChosen(undefined);setDirectSlot(undefined)}} profile={profile} services={bodhiServices} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>
  </>;
 
  if(profile.businessType==='hair_coloring')return <>
@@ -464,7 +467,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
   />
   {myBookings&&<SalonBookingsDialog profile={profile} onClose={()=>setMyBookings(false)}/>}
   {team.some(st=>st.id===viewStaff)&&<StylistProfile services={prismServices} onSlot={(selected,slot)=>{setChosen(team.find(st=>st.id===slot.stylistId));setService(selected);setDirectSlot(slot);setViewStaff('');setBooking(true)}} staff={team.find(st=>st.id===viewStaff)!} profile={profile} slug={profile.subdomain} signedIn={customerSignedIn} demo={!profile.subdomain} onLogin={()=>{setViewStaff('');customer('signin')}} onClose={()=>setViewStaff('')} onBook={()=>{const specialist=team.find(st=>st.id===viewStaff);setViewStaff('');book(undefined,specialist)}}/>}
-  <BookingModal isOpen={booking} onClose={()=>setBooking(false)} profile={profile} services={prismServices} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>
+  <BookingModal isOpen={booking} onClose={()=>{setBooking(false);setChosen(undefined);setDirectSlot(undefined)}} profile={profile} services={prismServices} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>
  </>;
 
  if(profile.businessType==='bridal_lounge')return <>
@@ -483,7 +486,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
    customerSignedIn={customerSignedIn}
    customerName={customerName}
    customerPhotoUrl={customerPhotoUrl}
-   bookingAvailable={Boolean(typeof onAddAppointment==='function' && (profile as typeof profile & {bookingEnabled?:boolean}).bookingEnabled!==false)}
+   bookingAvailable={Boolean(shringaarServices.length && typeof onAddAppointment==='function' && (profile as typeof profile & {bookingEnabled?:boolean}).bookingEnabled!==false)}
    onBook={(selected,specialist)=>book(selected,specialist)}
    onAccount={mode=>customer(mode||'signin')}
    onMyBookings={()=>setMyBookings(true)}
@@ -491,7 +494,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
   />
   {myBookings&&<SalonBookingsDialog profile={profile} onClose={()=>setMyBookings(false)}/>}
   {team.some(st=>st.id===viewStaff)&&<StylistProfile services={shringaarServices} onSlot={(selected,slot)=>{setChosen(team.find(st=>st.id===slot.stylistId));setService(selected);setDirectSlot(slot);setViewStaff('');setBooking(true)}} staff={team.find(st=>st.id===viewStaff)!} profile={profile} slug={profile.subdomain} signedIn={customerSignedIn} demo={!profile.subdomain} onLogin={()=>{setViewStaff('');customer('signin')}} onClose={()=>setViewStaff('')} onBook={()=>{const specialist=team.find(st=>st.id===viewStaff);setViewStaff('');book(undefined,specialist)}}/>}
-  <BookingModal isOpen={booking} onClose={()=>setBooking(false)} profile={profile} services={shringaarServices} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>
+  <BookingModal isOpen={booking} onClose={()=>{setBooking(false);setChosen(undefined);setDirectSlot(undefined)}} profile={profile} services={shringaarServices} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>
  </>;
 
  if(profile.businessType==='ayurvedic_spa')return <>
@@ -519,14 +522,14 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
   />
   {myBookings&&<SalonBookingsDialog profile={profile} onClose={()=>setMyBookings(false)}/>}
   {team.some(st=>st.id===viewStaff)&&<StylistProfile services={vedaServices} onSlot={(selected,slot)=>{setChosen(team.find(st=>st.id===slot.stylistId));setService(selected);setDirectSlot(slot);setViewStaff('');setBooking(true)}} staff={team.find(st=>st.id===viewStaff)!} profile={profile} slug={profile.subdomain} signedIn={customerSignedIn} demo={!profile.subdomain} onLogin={()=>{setViewStaff('');customer('signin')}} onClose={()=>setViewStaff('')} onBook={()=>{const specialist=team.find(st=>st.id===viewStaff);setViewStaff('');book(undefined,specialist)}}/>}
-  <BookingModal isOpen={booking} onClose={()=>setBooking(false)} profile={profile} services={vedaServices} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>
+  <BookingModal isOpen={booking} onClose={()=>{setBooking(false);setChosen(undefined);setDirectSlot(undefined)}} profile={profile} services={vedaServices} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>
  </>;
 
  if(profile.businessType==='tattoo_studio')return <>
 
-  <IronInkWebsite profile={profile} services={services.length?services:CATEGORY_TEMPLATES.tattoo_studio.services} stylists={team} galleryPhotos={gallery} siteSlug={profile.subdomain} policies={policies} loyaltyConfig={loyaltyConfig} onManageDashboard={onManageDashboard} onCustomerAccount={onCustomerAccount} customerSignedIn={customerSignedIn} customerName={customerName} customerPhotoUrl={customerPhotoUrl} onMyBookings={()=>setMyBookings(true)} bookingAvailable={Boolean(typeof onAddAppointment==='function'&&(profile as typeof profile & {bookingEnabled?:boolean}).bookingEnabled!==false)} onBook={(selected,specialist,details)=>{setDirectSlot(details?.date&&details.time?{date:details.date,time:details.time,stylistId:specialist?.id||''}:undefined);setIronInkBookingNote([`Style: ${selected?.name||'To be discussed'}`,`Artist: ${specialist?.name||'No preference'}`,`Preferred time: ${details?.date||'Flexible'} ${details?.time||''}`,`Size: ${details?.size||'To be discussed'}`,`Placement: ${details?.placement||'To be discussed'}`,details?.reference?`Reference file selected: ${details.reference}`:''].filter(Boolean).join('\n').slice(0,1000));setService(selected);setChosen(specialist);setBooking(true)}}/>
+  <IronInkWebsite profile={profile} services={services.length?services:(!profile.subdomain?CATEGORY_TEMPLATES.tattoo_studio.services:[])} stylists={team} galleryPhotos={gallery} siteSlug={profile.subdomain} policies={policies} loyaltyConfig={loyaltyConfig} onManageDashboard={onManageDashboard} onCustomerAccount={onCustomerAccount} customerSignedIn={customerSignedIn} customerName={customerName} customerPhotoUrl={customerPhotoUrl} onMyBookings={()=>setMyBookings(true)} bookingAvailable={Boolean(typeof onAddAppointment==='function'&&(profile as typeof profile & {bookingEnabled?:boolean}).bookingEnabled!==false)} onBook={(selected,specialist,details)=>{setDirectSlot(details?.date&&details.time?{date:details.date,time:details.time,stylistId:specialist?.id||''}:undefined);setIronInkBookingNote([`Style: ${selected?.name||'To be discussed'}`,`Artist: ${specialist?.name||'No preference'}`,`Preferred time: ${details?.date||'Flexible'} ${details?.time||''}`,`Size: ${details?.size||'To be discussed'}`,`Placement: ${details?.placement||'To be discussed'}`,details?.reference?`Reference file selected: ${details.reference}`:''].filter(Boolean).join('\n').slice(0,1000));setService(selected);setChosen(specialist);setBooking(true)}}/>
   {myBookings&&<SalonBookingsDialog profile={profile} onClose={()=>setMyBookings(false)}/>}
-  <BookingModal isOpen={booking} onClose={()=>{setBooking(false);setIronInkBookingNote('')}} profile={profile} services={services.length?services:CATEGORY_TEMPLATES.tattoo_studio.services} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} initialBookingNote={ironInkBookingNote} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>
+  <BookingModal isOpen={booking} onClose={()=>{setBooking(false);setChosen(undefined);setDirectSlot(undefined);setIronInkBookingNote('')}} profile={profile} services={services.length?services:(!profile.subdomain?CATEGORY_TEMPLATES.tattoo_studio.services:[])} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} initialBookingNote={ironInkBookingNote} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>
  </>;
 
  if(profile.businessType==='hair_salon')return <>
@@ -553,7 +556,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
   />
   {myBookings&&<SalonBookingsDialog profile={profile} onClose={()=>setMyBookings(false)}/>}
   {team.some(st=>st.id===viewStaff)&&<StylistProfile services={services} onSlot={(selected,slot)=>{setChosen(team.find(st=>st.id===slot.stylistId));setService(selected);setDirectSlot(slot);setViewStaff('');setBooking(true)}} staff={team.find(st=>st.id===viewStaff)!} profile={profile} slug={profile.subdomain} signedIn={customerSignedIn} demo={!profile.subdomain} onLogin={()=>{setViewStaff('');customer('signin')}} onClose={()=>setViewStaff('')} onBook={()=>{const specialist=team.find(st=>st.id===viewStaff);setViewStaff('');book(undefined,specialist)}}/>}
-  <BookingModal isOpen={booking} onClose={()=>{setBooking(false);setZiyaCouponCode('');}} profile={profile} services={services} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} initialCouponCode={ziyaCouponCode} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>
+  <BookingModal isOpen={booking} onClose={()=>{setBooking(false);setChosen(undefined);setDirectSlot(undefined);setZiyaCouponCode('');}} profile={profile} services={services} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} initialCouponCode={ziyaCouponCode} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>
  </>;
 
  if(profile.businessType==='lash_brow')return <>
@@ -578,7 +581,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
   />
   {myBookings&&<SalonBookingsDialog profile={profile} onClose={()=>setMyBookings(false)}/>}
   {team.some(st=>st.id===viewStaff)&&<StylistProfile services={archFlutterServices} onSlot={(selected,slot)=>{setChosen(team.find(st=>st.id===slot.stylistId));setService(selected);setDirectSlot(slot);setViewStaff('');setBooking(true)}} staff={team.find(st=>st.id===viewStaff)!} profile={profile} slug={profile.subdomain} signedIn={customerSignedIn} demo={!profile.subdomain} onLogin={()=>{setViewStaff('');customer('signin')}} onClose={()=>setViewStaff('')} onBook={()=>{const specialist=team.find(st=>st.id===viewStaff);setViewStaff('');book(undefined,specialist)}}/>}
-  <BookingModal isOpen={booking} onClose={()=>{setBooking(false);setArchFlutterOfferNote('')}} profile={profile} services={archFlutterServices} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} initialBookingNote={archFlutterOfferNote} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>
+  <BookingModal isOpen={booking} onClose={()=>{setBooking(false);setChosen(undefined);setDirectSlot(undefined);setArchFlutterOfferNote('')}} profile={profile} services={archFlutterServices} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} initialBookingNote={archFlutterOfferNote} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>
  </>;
 
  if(profile.businessType==='unisex_salon')return <>
@@ -607,7 +610,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
   />
   {myBookings&&<SalonBookingsDialog profile={profile} onClose={()=>setMyBookings(false)}/>}
   {team.some(st=>st.id===viewStaff)&&<StylistProfile services={auraServices} onSlot={(selected,slot)=>{setChosen(team.find(st=>st.id===slot.stylistId));setService(selected);setDirectSlot(slot);setViewStaff('');setBooking(true)}} staff={team.find(st=>st.id===viewStaff)!} profile={profile} slug={profile.subdomain} signedIn={customerSignedIn} demo={!profile.subdomain} onLogin={()=>{setViewStaff('');customer('signin')}} onClose={()=>setViewStaff('')} onBook={()=>{const specialist=team.find(st=>st.id===viewStaff);setViewStaff('');book(undefined,specialist)}}/>}
-  <BookingModal isOpen={booking} onClose={()=>{setBooking(false);setAuraCouponCode('');}} profile={profile} services={auraServices} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} initialCouponCode={auraCouponCode} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>
+  <BookingModal isOpen={booking} onClose={()=>{setBooking(false);setChosen(undefined);setDirectSlot(undefined);setAuraCouponCode('');}} profile={profile} services={auraServices} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} initialCouponCode={auraCouponCode} onAddAppointment={onAddAppointment} themeAccentHex={accent}/>
  </>;
 
  const testimonialsSection=visible.testimonials&&(!pinkyNails||pinkyHasReviews||customerSignedIn)&&(
@@ -852,7 +855,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
  )}
   {myBookings&&<SalonBookingsDialog profile={profile} onClose={()=>setMyBookings(false)}/>}
   {team.some(st=>st.id===viewStaff)&&<StylistProfile services={keshPrakriti?keshServices:roopMahal?roopServices:services} onSlot={(selected,slot)=>{setChosen(team.find(st=>st.id===slot.stylistId));setService(selected);setDirectSlot(slot);setViewStaff('');setBooking(true)}} staff={team.find(st=>st.id===viewStaff)!} profile={profile} slug={profile.subdomain} signedIn={customerSignedIn} demo={!profile.subdomain} onLogin={()=>{setViewStaff('');customer('signin')}} onClose={()=>setViewStaff('')} onBook={()=>{const specialist=team.find(st=>st.id===viewStaff);setViewStaff('');book(undefined,specialist)}}/>}
-  {(!roopMahal||roopBookingFlowAvailable)&&<BookingModal isOpen={booking} onClose={()=>setBooking(false)} profile={profile} services={keshPrakriti?keshServices:roopMahal?roopServices:services} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} onAddAppointment={onAddAppointment} themeAccentHex={keshPrakriti?'#183D32':accent}/>}
+  {(!roopMahal||roopBookingFlowAvailable)&&<BookingModal isOpen={booking} onClose={()=>{setBooking(false);setChosen(undefined);setDirectSlot(undefined)}} profile={profile} services={keshPrakriti?keshServices:roopMahal?roopServices:services} stylists={team} initialService={service} initialStylist={chosen} initialSlot={directSlot} onAddAppointment={onAddAppointment} themeAccentHex={keshPrakriti?'#183D32':accent}/>}
   {photo!==null&&lightboxImages.length>0&&photo<lightboxImages.length&&<div className="sf-lightbox" role="dialog" aria-modal="true" aria-label="Studio lookbook" onClick={()=>setPhoto(null)}><button aria-label="Close lookbook" onClick={()=>setPhoto(null)}><X/></button><img src={lightboxImages[photo]} alt={`Studio look ${photo+1}`} onClick={e=>e.stopPropagation()}/><div><button aria-label="Previous photo" onClick={e=>{e.stopPropagation();setPhoto((photo-1+lightboxImages.length)%lightboxImages.length);}}><ChevronLeft/></button><span>{photo+1} / {lightboxImages.length}</span><button aria-label="Next photo" onClick={e=>{e.stopPropagation();setPhoto((photo+1)%lightboxImages.length);}}><ChevronRight/></button></div></div>}
   <FloatingPromoBanner profile={profile}/>
  </div>;
@@ -862,7 +865,7 @@ export function CustomerSalonWebsite(props:SalonWebsitePreviewProps){
  // Services and stylists can arrive as null, a wrapped API response or a JSON string
  // (cached drafts, Supabase RPCs, template config). Normalise them once here so every
  // template below can rely on real arrays. Existing items are passed through untouched.
- const services=useMemo(()=>normalizeServices<SalonService>(props.services,'CustomerSalonWebsite services'),[props.services]);
+ const services=useMemo(()=>normalizeServices<SalonService>(props.services,'CustomerSalonWebsite services').filter(isBookingServiceActive),[props.services]);
  const stylists=useMemo(()=>Array.isArray(props.stylists)?props.stylists:[],[props.stylists]);
  // The profile can be briefly unavailable while the account or site is still loading.
  if(!props.profile||typeof props.profile!=='object')return <main role="status" aria-live="polite" className="min-h-screen flex items-center justify-center"><p>Loading website… The salon profile is unavailable right now; this page retries automatically.</p></main>;
