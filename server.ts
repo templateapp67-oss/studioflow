@@ -48,6 +48,7 @@ import {
 import { canonicalHostRedirect } from "./server/canonicalHost";
 import { securityHeaders } from "./server/httpSecurityHeaders";
 import { isForbiddenStaticAsset } from "./server/staticGuard";
+import { safeLogger } from "./server/safeLogger";
 import { robotsHeaderMiddleware, robotsTagForRequest } from "./server/robotsHeaders";
 import storefrontHandler, { resolveStorefrontSlug } from "./api/storefront";
 import { bookingDepositHandler } from "./server/bookingDeposit";
@@ -273,7 +274,7 @@ Return strictly valid JSON in this format:
         throw new Error('Empty AI response');
       }
     } catch (err) {
-      console.error('Gemini generation error:', err instanceof Error ? err.message : 'unknown');
+      safeLogger.error('Gemini generation error:', err instanceof Error ? err.message : 'unknown');
       // Fallback
       return res.json({
         source: "template",
@@ -354,7 +355,7 @@ Return strictly valid JSON in this format:
         });
       }
     } catch (err: any) {
-      console.error("Gemini Image generation error:", err instanceof Error ? err.message : String(err ?? 'unknown'));
+      safeLogger.error("Gemini Image generation error:", err instanceof Error ? err.message : String(err ?? 'unknown'));
       return res.json({
         success: false,
         imageUrl: null,
@@ -425,7 +426,7 @@ Return strictly JSON with the following keys:
       }
       throw new Error("Empty copy response");
     } catch (err) {
-      console.error("Copy generation error:", err instanceof Error ? err.message : String(err ?? 'unknown'));
+      safeLogger.error("Copy generation error:", err instanceof Error ? err.message : String(err ?? 'unknown'));
       return res.json({
         source: "template",
         whatsapp: `✨ *EXCLUSIVE SALON OFFER* ✨\n\nHey beautiful! Treat yourself to *${serviceName || 'our signature treatment'}* at *${businessName || 'our salon'}*.\n\n🎉 *Special Deal*: ${offer || 'Exclusive Discount This Week'}\n💰 *Price*: ₹${price ? price.toLocaleString('en-IN') : 'Special Rate'}\n\n📲 Book your appointment now!`,
@@ -485,7 +486,7 @@ Return strictly JSON with the following keys:
         notice: 'Written by AI from the details you supplied. Read it through and edit anything that does not sound like your studio before publishing.',
       });
     } catch (error) {
-      console.error('Veda AI content error:', error instanceof Error ? error.message : 'unknown');
+      safeLogger.error('Veda AI content error:', error instanceof Error ? error.message : 'unknown');
       const draft = buildVedaFallbackContent(mode as any, details);
       return res.json({
         source: 'template',
@@ -574,7 +575,7 @@ Return strictly valid JSON in this format:
       if (recommendations.length === 0) throw new Error('AI response had no usable recommendations');
       return sendJson(res, 200, { source: 'ai', recommendations });
     } catch (error) {
-      console.error('AI recommendations error:', error instanceof Error ? error.message : error);
+      safeLogger.error('AI recommendations error:', error instanceof Error ? error.message : error);
       return sendJson(res, 200, fallback('Curated recommendation matching your style and beauty preferences.'));
     }
   }));
@@ -750,7 +751,7 @@ Return strictly valid JSON in this format:
   }
 
   httpServer.listen(PORT, "0.0.0.0", () => {
-    console.log(`StudioFlow Salon OS running on http://0.0.0.0:${PORT}`);
+    safeLogger.log(`StudioFlow Salon OS running on http://0.0.0.0:${PORT}`);
   });
 }
 

@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import { readServerEnvironment } from './nexoraEnv.js';
 import { resolveServiceRoleConfiguration } from './distributedRateLimit.js';
+import { safeLogger } from './safeLogger.js';
 
 /**
  * Supabase access-token verification for the AI routes.
@@ -236,7 +237,7 @@ let warnedUnconfigured = false;
 function warnUnconfiguredOnce(): void {
   if (warnedUnconfigured) return;
   warnedUnconfigured = true;
-  console.warn(
+  safeLogger.warn(
     '[ai-auth] Supabase Auth verification is unavailable (no publishable key resolved). ' +
       'Set SUPABASE_PUBLISHABLE_KEY to restore authentication on protected routes.',
   );

@@ -8,6 +8,7 @@
 // valid JWT" — i.e. any signed-in customer could queue a full account copy.
 import { createClient } from 'npm:@supabase/supabase-js@2.117.3';
 import { browserCorsHeaders, isAllowedBrowserOrigin } from '../_shared/browserCors.ts';
+import { safeLogger } from '../_shared/safeLogger.ts';
 
 const json = (body: unknown, status = 200, origin: string | null = null) => new Response(JSON.stringify(body), {
   status,
@@ -63,7 +64,7 @@ Deno.serve(async (req: Request) => {
     return json({ message: 'Snapshot created successfully', copied: backupData.length, snapshotDate }, 200, origin);
   } catch (caught) {
     // Do not echo database/provider internals back to the caller.
-    console.error('snapshot-accounts failed', caught instanceof Error ? caught.name : 'unknown');
+    safeLogger.error('snapshot-accounts failed', caught instanceof Error ? caught.name : 'unknown');
     return json({ error: 'Snapshot could not be completed' }, 500, origin);
   }
 });

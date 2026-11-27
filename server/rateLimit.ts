@@ -1,5 +1,6 @@
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import { claimDistributedRateLimit, hashBucketKey } from './distributedRateLimit.js';
+import { safeLogger } from './safeLogger.js';
 
 /**
  * Rate limiting for the cost-bearing Node/Vercel API routes.
@@ -181,7 +182,7 @@ export function rateLimit(options: RateLimitOptions): RequestHandler {
     if (!result) {
       if (!warnedFallback) {
         warnedFallback = true;
-        console.warn(
+        safeLogger.warn(
           `[rate-limit] '${options.name}' is using the per-process budget because the shared ` +
             'store is not configured. Set SUPABASE_SERVICE_ROLE_KEY for a global ceiling.',
         );

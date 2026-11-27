@@ -632,6 +632,54 @@ Code-level follow-ups that close the remaining gaps called out in items 7 and 9:
    not desired; complete external dashboard checks from item 13; request
    `https://<host>/server.cjs` and `.map` after the next deploy to confirm 404.
 
+## Addendum 2026-11-27 (fifth pass): logging hygiene — safeLogger everywhere
+
+Items 15 (sensitive data in logs) and the webhook/static-guard passes above are
+now enforced by construction, not by inspection.
+
+1. **Central safe logger** (`server/safeLogger.ts`, mirrored byte-identical as
+   `supabase/functions/_shared/safeLogger.ts` for Deno — Edge Functions cannot
+   import outside their bundle; `scripts/verify-safe-logger.mjs` and the master
+   runner fail if the twins drift). Every line passes two redaction layers:
+   - **Key denylist** (case/space-insensitive, tail match): `authorization`,
+     `proxy-authorization`, `cookie`, `set-cookie`, `apikey`/`x-api-key`/
+     `api-secret`, `token`, `access_token`, `refresh_token`, `id_token`,
+     `secret`, `client_secret`, `webhook_secret`, `password`/`passwd`/`pwd`,
+     `otp`, `verificationcode`, `phone`/`phonenumber`/`mobile`/`mobilenumber`,
+     `email`/`emailaddress` — values are replaced with `[REDACTED]` at any
+     depth, inside arrays and nested objects.
+   - **Free-text patterns**: JWT shape, Bearer/token schemes, provider key
+     prefixes (`rzp_live_`/`rzp_test_`, `sk_live_`, `sbp_`, `whsec_`, `re_`,
+     `xox[abprs]-`, `ghp_`), `KEY=VALUE` / `KEY: VALUE` (quoted or bare, incl.
+     query strings), e-mail addresses (masked to `first***@domain`), international
+     and Indian phone numbers (masked, last 4 kept). UUIDs and migration
+     timestamps are pattern-safe and untouched; benign keys (`id`, `status`,
+     `count`) pass through unchanged.
+   Errors log as `Name: redacted message (+ code)`; circular structures collapse
+   to `[Circular]`, depth is capped at 6, arrays at 25 items, strings at 4000
+   chars (`…[truncated]`).
+2. **Every raw `console.*` in server-side code is gone** — `server.ts`,
+   `server/*.ts`, `api/storefront.ts`, `supabase/functions/*/index.ts` (and
+   `veda-sanjeevani` edge functions were audited: none found) all route through
+   `safeLogger`. `safeLogger*` prints through the same console sinks, so log
+   capture in existing tooling keeps working; the printed payload is redacted.
+3. **Master security runner** (`scripts/master-security-check.mjs`,
+   `npm run verify:security`): 3 static checks (no secret-shaped files tracked
+   by git; no secret-shaped literals in server/client/edge source — private-key
+   blocks, `sbp_`, `rzp_live_`, `sk_live_`, `whsec_`, `ghp_`, JWT triples;
+   example-env files hold placeholders only) + 11 offline suites (redaction,
+   CSP/edge headers, Express header parity + webhook replay ledger + static
+   guard, SSRF/schema validation, CORS, storage magic-bytes, browser token
+   storage, BOLA/RLS, WhatsApp webhook replay VM harness, rate limit + MFA,
+   AI endpoint hardening). It is deliberately not named `verify-*.mjs` so
+   `run-all-verifications.mjs` never recurses into it.
+4. **Tests.** `scripts/verify-safe-logger.mjs` covers the redaction engine end
+   to end (keys at depth, text patterns, mail/phone shape, Error handling,
+   circular/depth/size guards, sink capture, twin parity, and the no-raw-console
+   invariant). The runner picked it up automatically (192 → 193 suites).
+   Full `lint`, `lint:edge`, `build` and the entire offline verification runner
+   pass — results in the PR.
+
 ## Not run / out of scope
 
 - `npm run test:live` (live Supabase; creates disposable accounts) — not run,

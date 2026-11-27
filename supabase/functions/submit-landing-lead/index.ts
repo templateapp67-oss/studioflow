@@ -28,6 +28,7 @@
 // =============================================================================
 import { createClient } from 'npm:@supabase/supabase-js@2.117.3';
 import { parseLeadBudget, type LeadBudget } from './landingLeadRateLimit.ts';
+import { safeLogger } from '../_shared/safeLogger.ts';
 
 const ALLOWED_ORIGINS = new Set([
   'https://nexorasalon.online',
@@ -203,7 +204,7 @@ const checkRateLimit = async (service: LeadService, bucketKey: string): Promise<
     if (!budget) throw new Error('limiter unavailable');
   } catch {
     // Upstream errors can contain PII or credentials; emit only a static event.
-    console.error('submit-landing-lead: rate limiter unavailable');
+    safeLogger.error('submit-landing-lead: rate limiter unavailable');
     return null;
   }
   pruneCounter = (pruneCounter + 1) % 25;
@@ -228,7 +229,7 @@ const checkRateLimit = async (service: LeadService, bucketKey: string): Promise<
 const verifyTurnstile = async (token: string, ip: string): Promise<boolean> => {
   const secret = Deno.env.get('TURNSTILE_SECRET_KEY');
   if (!secret) {
-    console.error('submit-landing-lead: TURNSTILE_SECRET_KEY is not configured');
+    safeLogger.error('submit-landing-lead: TURNSTILE_SECRET_KEY is not configured');
     return false;
   }
   if (!token) return false;
@@ -302,7 +303,7 @@ Deno.serve(async (request: Request) => {
   const url = Deno.env.get('SUPABASE_URL');
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SUPABASE_SECRET_KEY');
   if (!url || !serviceKey) {
-    console.error('submit-landing-lead: server credentials are not configured');
+    safeLogger.error('submit-landing-lead: server credentials are not configured');
     return json({ ok: false, message: 'We could not record your request. Please try again later.' }, 503, origin);
   }
   const service = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } }) as unknown as LeadService;
@@ -380,18 +381,18 @@ Deno.serve(async (request: Request) => {
       // A retried submission that carries the same idempotency key must not
       // create a second lead: the first one is already stored.
       if (error.code === '23505' && idempotencyKey) {
-        console.log('submit-landing-lead: duplicate submission collapsed onto the stored lead');
+        safeLogger.log('submit-landing-lead: duplicate submission collapsed onto the stored lead');
         return json(trustedServerCall ? { ...SUCCESS, idempotent: true } : SUCCESS, 200, origin);
       }
       // Operational log only — never log the submitted personal data.
-      console.error('submit-landing-lead: insert failed');
+      safeLogger.error('submit-landing-lead: insert failed');
       return json({ ok: false, message: 'We could not record your request. Please try again later.' }, 500, origin);
     }
     // The lead id is only handed to a trusted first-party server call so it can
     // record the CRM delivery state. Public callers never receive identifiers.
     return json(trustedServerCall && data?.id ? { ...SUCCESS, leadId: data.id } : SUCCESS, 200, origin);
   } catch {
-    console.error('submit-landing-lead: unexpected failure');
+    safeLogger.error('submit-landing-lead: unexpected failure');
     return json({ ok: false, message: 'We could not record your request. Please try again later.' }, 500, origin);
   }
 });

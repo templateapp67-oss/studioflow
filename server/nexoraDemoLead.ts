@@ -21,6 +21,7 @@ import { createHash } from 'node:crypto';
 import { isIP } from 'node:net';
 import { parseLeadBudget, type LeadBudget } from '../supabase/functions/submit-landing-lead/landingLeadRateLimit.js';
 import { assertSafeOutboundUrl, DEMO_LEAD_SCHEMA, safeOutboundFetch, validateBody } from './httpValidation.js';
+import { safeLogger } from './safeLogger.js';
 
 const PRIVACY_NOTICE_VERSION = '2026-11';
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -64,7 +65,7 @@ function requestId(): string {
 }
 
 function fail(res: JsonResponder, code: number, message: string, id: string) {
-  console.warn(`[nexora-demo-lead] id=${id} rejected status=${code}`);
+  safeLogger.warn(`[nexora-demo-lead] id=${id} rejected status=${code}`);
   return res.status(code).json({ error: message, requestId: id });
 }
 
@@ -205,10 +206,10 @@ async function recordCrmDeliveryState(
       }),
     });
     if (!response.ok) {
-      console.warn(`[nexora-demo-lead] CRM delivery state could not be recorded status=${response.status}`);
+      safeLogger.warn(`[nexora-demo-lead] CRM delivery state could not be recorded status=${response.status}`);
     }
   } catch {
-    console.warn('[nexora-demo-lead] CRM delivery state could not be recorded');
+    safeLogger.warn('[nexora-demo-lead] CRM delivery state could not be recorded');
   }
 }
 
@@ -233,7 +234,7 @@ export async function nexoraDemoLeadHandler(req: DemoLeadRequest, res: JsonRespo
   // by using an alternate field on the direct server route. The answer is a
   // plain success so the outcome is not distinguishable from a stored lead.
   if (HONEYPOT_FIELDS.some((field) => cleanText(body[field], 200))) {
-    console.warn(`[nexora-demo-lead] id=${id} honeypot acknowledged`);
+    safeLogger.warn(`[nexora-demo-lead] id=${id} honeypot acknowledged`);
     return res.status(201).json({ ok: true, requestId: id });
   }
 
@@ -289,28 +290,28 @@ export async function nexoraDemoLeadHandler(req: DemoLeadRequest, res: JsonRespo
   if (!stored.configured) {
     // No Supabase credentials: the request cannot be stored, so it must not
     // be reported as accepted.
-    console.error(`[nexora-demo-lead] id=${id} storage is not configured`);
+    safeLogger.error(`[nexora-demo-lead] id=${id} storage is not configured`);
     return fail(res, 503, 'Demo requests are not configured yet. No request was sent; please try again later.', id);
   }
   if (stored.status === 429) {
     // Report the Edge Function's actual remaining window; fall back to the
     // configured window only when the upstream did not send one.
     res.setHeader?.('Retry-After', String(stored.retryAfter ?? RATE_LIMIT_WINDOW_SECONDS));
-    console.warn(`[nexora-demo-lead] id=${id} rate limited`);
+    safeLogger.warn(`[nexora-demo-lead] id=${id} rate limited`);
     return fail(res, 429, 'Too many demo requests. Please try again later.', id);
   }
   if (stored.status === 400) {
-    console.warn(`[nexora-demo-lead] id=${id} rejected by validation`);
+    safeLogger.warn(`[nexora-demo-lead] id=${id} rejected by validation`);
     return fail(res, 400, 'Enter your name, a valid email, your business name, and consent to be contacted.', id);
   }
   if (stored.status === 403) {
     // The Edge Function rejected the bot verification; do not store or fake
     // success. The same 403 is relayed so the form can ask for a retry.
-    console.warn(`[nexora-demo-lead] id=${id} rejected by bot verification`);
+    safeLogger.warn(`[nexora-demo-lead] id=${id} rejected by bot verification`);
     return fail(res, 403, 'Please verify that you are a human and try again.', id);
   }
   if (!stored.ok) {
-    console.error(`[nexora-demo-lead] id=${id} storage failed status=${stored.status}`);
+    safeLogger.error(`[nexora-demo-lead] id=${id} storage failed status=${stored.status}`);
     return fail(res, 502, 'The demo request service did not accept your request. No request was confirmed; please try again later.', id);
   }
 
@@ -345,7 +346,7 @@ export async function nexoraDemoLeadHandler(req: DemoLeadRequest, res: JsonRespo
       if (!delivered.ok) {
         // The lead is already stored in the Supabase lead register, so the
         // enquiry is not lost. The CRM delivery failure is logged for retry.
-        console.warn(`[nexora-demo-lead] id=${id} stored; CRM delivery failed status=${delivered.status}`);
+        safeLogger.warn(`[nexora-demo-lead] id=${id} stored; CRM delivery failed status=${delivered.status}`);
         await recordCrmDeliveryState(stored.leadId, idempotencyKey, 'failed', `crm_${delivered.status || 'error'}`);
       } else {
         await recordCrmDeliveryState(stored.leadId, idempotencyKey, 'delivered', null);
@@ -356,6 +357,6 @@ export async function nexoraDemoLeadHandler(req: DemoLeadRequest, res: JsonRespo
     }
   }
 
-  console.log(`[nexora-demo-lead] id=${id} stored`);
+  safeLogger.log(`[nexora-demo-lead] id=${id} stored`);
   return res.status(201).json({ ok: true, requestId: id });
 }
