@@ -6,11 +6,11 @@ const quote={claimId:'claim',code:'GLOW10-TEST123',title:'10% OFF',originalPrice
 supabase.rpc=(async (_:string,args:any)=>{calls++;if(args.p_code==='DELAY')return new Promise(resolve=>{pending=resolve});if(args.p_code==='WRONG')return {error:{message:'Coupon not found for your account at this salon'}};return {data:quote,error:null}}) as any;
 function Harness({ids=['base']}:{ids?:string[]}){latest=useBookingCoupon('qa',ids);return <BookingCoupon coupon={latest}/>}
 const text=(n:any):string=>typeof n==='string'?n:n?.children?.map(text).join('')||'';
-let ui:any;await act(async()=>{ui=create(<Harness/>)});await act(async()=>latest.change('glow10-test123'));await act(async()=>latest.apply());assert.equal(latest.quote?.finalPrice,900);assert.equal(latest.code,quote.code);assert.equal(calls,1);assert.match(text(ui.toJSON()),/₹1,000.*−₹100.*₹900.*₹225.*₹675/);
+let ui:any;await act(async()=>{ui=create(<Harness/>)});await act(async()=>latest.change('glow10-test123'));await act(async()=>latest.apply());assert.equal(latest.quote?.finalPrice,900);assert.equal(latest.code,quote.code);assert.equal(calls,1);assert.match(text(ui.toJSON()),/−₹100.*Final payable amount₹900/);assert.doesNotMatch(text(ui.toJSON()),/25% advance|Balance at salon/);
 await act(async()=>latest.change('wrong'));assert.equal(latest.quote,null);await act(async()=>latest.apply());assert.match(latest.notice,/Coupon not found/);
 await act(async()=>latest.change(quote.code));await act(async()=>latest.apply());await act(async()=>ui.update(<Harness ids={['base','extra']}/>));assert.equal(latest.quote,null);
 await act(async()=>latest.change('delay'));let promise:Promise<void>;await act(async()=>{promise=latest.apply()});await act(async()=>latest.remove());await act(async()=>{pending({data:quote});await promise});assert.equal(latest.quote,null);assert.equal(latest.code,'');await act(async()=>ui.unmount());
-console.log('PASS: 1000 minus 100 = 900, 225 advance, 675 balance; real-code normalization, errors, service invalidation, stale response rejection. No booking or payment created.');
+console.log('PASS: 1000 minus 100 gives one final payable amount of 900; real-code normalization, errors, service invalidation, stale response rejection. No booking or payment created.');
 
 import {BookingModal} from '../src/components/BookingModal';import {INITIAL_SALON_PROFILE} from '../src/mockData';import {CATEGORY_TEMPLATES} from '../src/categoryTemplates';
 globalThis.fetch=async()=>new Response(JSON.stringify({webCheckout:{online:true,venue:true,mode:'test'}}),{headers:{'Content-Type':'application/json'}});
