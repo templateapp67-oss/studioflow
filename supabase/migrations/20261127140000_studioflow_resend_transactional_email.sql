@@ -64,6 +64,9 @@ alter table public.studioflow_email_suppressions enable row level security;
 revoke all on public.studioflow_transactional_email_outbox from public, anon, authenticated;
 revoke all on public.studioflow_resend_webhook_events from public, anon, authenticated;
 revoke all on public.studioflow_email_suppressions from public, anon, authenticated;
+grant all on public.studioflow_transactional_email_outbox to service_role;
+grant all on public.studioflow_resend_webhook_events to service_role;
+grant all on public.studioflow_email_suppressions to service_role;
 
 -- Claims one logical email event. A duplicate event_key never creates a second
 -- outbox row. An uncertain send is reclaimable only during Resend's 24-hour
@@ -367,6 +370,8 @@ revoke all on function public.studioflow_email_mark_sent(text,text)
   from public, anon, authenticated;
 revoke all on function public.studioflow_email_mark_failed(text,text,boolean)
   from public, anon, authenticated;
+revoke all on function public.studioflow_email_mark_suppressed(text)
+  from public, anon, authenticated;
 revoke all on function public.studioflow_email_claim_due(integer)
   from public, anon, authenticated;
 revoke all on function public.studioflow_resend_process_event(text,text,text,text,boolean,jsonb)
@@ -377,6 +382,8 @@ grant execute on function public.studioflow_email_claim(text,text,text,jsonb,uui
 grant execute on function public.studioflow_email_mark_sent(text,text)
   to service_role;
 grant execute on function public.studioflow_email_mark_failed(text,text,boolean)
+  to service_role;
+grant execute on function public.studioflow_email_mark_suppressed(text)
   to service_role;
 grant execute on function public.studioflow_email_claim_due(integer)
   to service_role;
