@@ -57,7 +57,8 @@ try {
     'create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text not null references storage.buckets(id) on delete cascade, name text not null);',
     'alter table storage.objects enable row level security;',
     "create function storage.foldername(p_name text) returns text[] language sql immutable strict parallel safe as 'select case when strpos(p_name, chr(47)) > 0 then string_to_array(left(p_name, length(p_name) - strpos(reverse(p_name), chr(47))), chr(47)) else array[]::text[] end';",
-    'grant usage on schema storage to authenticated, service_role, anon;'
+    'grant usage on schema storage to authenticated, service_role, anon;',
+    "create function public.nexora_save_owner_workspace(p_payload jsonb) returns jsonb language plpgsql security definer set search_path = public, pg_temp as $fn$ declare v_staff jsonb; begin for v_staff in select value from jsonb_array_elements(coalesce(p_payload->'staff','[]'::jsonb)) loop raise exception 'Staff name is required' using errcode = '22023'; end loop; return coalesce(p_payload,'{}'::jsonb); end; $fn$;"
   ].join(' '));
   const folder = new URL('../supabase/migrations/', import.meta.url);
   for (const file of (await readdir(folder)).sort()) await db.exec(await readFile(new URL(file, folder), 'utf8'));
