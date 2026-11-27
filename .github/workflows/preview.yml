@@ -433,6 +433,7 @@ jobs:
           LIVE_SEO_URL: ${{ steps.resolve-preview.outputs.url }}
           SEO_REPORT_PATH: test-results/preview-live-seo-report.json
           SEO_WAIT_RETRY_ATTEMPTS: "3"
+          CHECK_ACCOUNT_SECURITY_ROUTES: "1"
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
           CHECK_WWW_REDIRECT_URL: https://www.nexorasalon.online
           CHECK_HTTP_REDIRECT_ORIGINS: https://nexorasalon.online,https://www.nexorasalon.online

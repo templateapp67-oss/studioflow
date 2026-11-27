@@ -45,6 +45,7 @@ function Invoke-StudioFlowProductionDeployment {
         'VERCEL_PRODUCTION_ENV_FILE',
         'VITE_SUPABASE_URL',
         'LIVE_SEO_URL',
+        'CHECK_ACCOUNT_SECURITY_ROUTES',
         'CHECK_WWW_REDIRECT_URL',
         'CHECK_HTTP_REDIRECT',
         'REQUIRE_PUBLISHED_SITES',
@@ -218,6 +219,7 @@ function Invoke-StudioFlowProductionDeployment {
             }
 
             $env:LIVE_SEO_URL = 'https://nexorasalon.online'
+            $env:CHECK_ACCOUNT_SECURITY_ROUTES = '1'
             $env:CHECK_WWW_REDIRECT_URL = 'https://www.nexorasalon.online'
             $env:CHECK_HTTP_REDIRECT = '1'
             $env:REQUIRE_PUBLISHED_SITES = '1'

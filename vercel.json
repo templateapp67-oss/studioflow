@@ -19,7 +19,7 @@
   "rewrites": [
     {
       "source": "/api/security-center",
-      "destination": "/api/account/security-center"
+      "destination": "/api/account/recovery-codes/security-center"
     },
     {
       "source": "/api/payments/razorpay/webhook",

@@ -8,6 +8,7 @@
 //   CHECK_HTTP_REDIRECT             Set to "1" to verify http:// -> https:// 308 redirects for LIVE_SEO_URL and optional www origin
 //   CHECK_HTTP_REDIRECT_ORIGINS     Optional comma-separated HTTPS origins to verify from their HTTP equivalents
 //   REQUIRE_PUBLISHED_SITES         Set to "1" to assert live Supabase-backed /sitemap.xml includes >=1 ?site=<slug>
+//   CHECK_ACCOUNT_SECURITY_ROUTES   Set to "1" to verify deployed MFA recovery and Security Center routing
 //   SEO_REPORT_PATH                 Optional JSON path to write structured verification evidence (written on pass/fail)
 //   SEO_WAIT_RETRY_ATTEMPTS         Optional retry count for post-deploy CDN propagation (default 1)
 //   SEO_WAIT_RETRY_DELAY_MS         Delay between propagation retries in ms (default 5000)
@@ -27,6 +28,7 @@ const wwwOrigin = (process.env.CHECK_WWW_REDIRECT_URL || '').trim().replace(/\/+
 const checkHttpRedirect = process.env.CHECK_HTTP_REDIRECT === '1';
 const checkHttpRedirectOrigins = (process.env.CHECK_HTTP_REDIRECT_ORIGINS || '').split(',').map(value => value.trim()).filter(Boolean);
 const requirePublishedSites = process.env.REQUIRE_PUBLISHED_SITES === '1';
+const checkAccountSecurityRoutes = process.env.CHECK_ACCOUNT_SECURITY_ROUTES === '1';
 const reportPath = (process.env.SEO_REPORT_PATH || '').trim();
 const maxRunAttempts = Math.max(1, Number.parseInt(process.env.SEO_WAIT_RETRY_ATTEMPTS || '1', 10) || 1);
 const retryDelayMs = Math.max(500, Number.parseInt(process.env.SEO_WAIT_RETRY_DELAY_MS || '5000', 10) || 5000);
@@ -126,6 +128,7 @@ async function runVerification() {
     publicHeaders: [],
     partnerRewards: [],
     authHeaders: [],
+    accountSecurityRoutes: [],
     privateHeaders: [],
     robotsTxt: null,
     llmsTxt: null,
@@ -413,6 +416,20 @@ async function runVerification() {
     report.sitemapXml.publishedSiteUrls = siteUrls;
     if (requirePublishedSites) {
       assert.ok(siteUrls.length > 0, '/sitemap.xml must include published Supabase ?site=<slug> storefront URLs');
+    }
+
+    if (checkAccountSecurityRoutes) {
+      for (const [routePath, status, field, value] of [
+        ['/api/account/recovery-codes/active', 401, 'code', 'auth_required'],
+        ['/api/account/recovery-codes/consume', 405, 'error', 'Method not allowed.'],
+        ['/api/security-center', 405, 'error', 'method_not_allowed'],
+      ]) {
+        const response = await fetchWithRetry(`${rawBase}${routePath}`);
+        report.accountSecurityRoutes.push({ path: routePath, status: response.status });
+        assert.equal(response.status, status, `GET ${routePath} must return HTTP ${status}`);
+        assert.equal((await response.json())[field], value, `GET ${routePath} must reach its API handler`);
+      }
+      console.log('PASS: deployed MFA recovery and Security Center routes return the expected unauthenticated or method-denial responses.');
     }
 
     report.overallStatus = 'PASS';

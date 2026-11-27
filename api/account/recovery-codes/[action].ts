@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
-import { makeSecurityCenterHandler } from '../../server/securityCenter.mjs';
-import { recoveryActiveHandler, recoveryConsumeHandler } from '../../server/recoveryCodes.js';
+import { makeSecurityCenterHandler } from '../../../server/securityCenter.mjs';
+import { recoveryActiveHandler, recoveryConsumeHandler } from '../../../server/recoveryCodes.js';
 
 const securityCenterHandler = makeSecurityCenterHandler();
 
@@ -9,7 +9,7 @@ export default function accountSecurityHandler(req: Request, res: Response) {
 
   switch (path) {
     case '/api/security-center':
-    case '/api/account/security-center':
+    case '/api/account/recovery-codes/security-center':
       return securityCenterHandler(req, res);
     case '/api/account/recovery-codes/active':
       return recoveryActiveHandler(req, res);
