@@ -152,6 +152,9 @@ language plpgsql
 security definer
 set search_path = ''
 as $$
+declare
+  v_recipient text;
+  v_updated boolean;
 begin
   if p_resend_email_id is null or length(btrim(p_resend_email_id)) = 0 then
     raise exception 'Resend email id is required' using errcode = '22023';
@@ -176,9 +179,52 @@ begin
          last_error_code = null,
          updated_at = now()
    where event_key = btrim(p_event_key)
-     and status = 'sending';
+     and status = 'sending'
+  returning recipient_email into v_recipient;
 
-  return found;
+  v_updated := found;
+
+  -- A webhook can arrive before the email ID is saved on the outbox row.
+  -- Reconcile any early hard-bounce/complaint event now, but only for a
+  -- recipient belonging to this Nexora outbox message.
+  if v_updated and v_recipient is not null then
+    if exists (
+      select 1 from public.studioflow_resend_webhook_events e
+      where e.resend_email_id = p_resend_email_id
+        and e.event_type = 'email.complained'
+        and (e.recipient_email is null or e.recipient_email = v_recipient)
+    ) then
+      insert into public.studioflow_email_suppressions(email_address,reason,source_event_id)
+      select v_recipient,'complaint',e.event_id
+        from public.studioflow_resend_webhook_events e
+       where e.resend_email_id = p_resend_email_id
+         and e.event_type = 'email.complained'
+         and (e.recipient_email is null or e.recipient_email = v_recipient)
+       order by e.received_at desc
+       limit 1
+      on conflict(email_address) do update
+        set reason = 'complaint', source_event_id = excluded.source_event_id;
+    elsif exists (
+      select 1 from public.studioflow_resend_webhook_events e
+      where e.resend_email_id = p_resend_email_id
+        and e.event_type = 'email.bounced'
+        and lower(coalesce(e.event_data->>'bounce_type','')) = 'permanent'
+        and (e.recipient_email is null or e.recipient_email = v_recipient)
+    ) then
+      insert into public.studioflow_email_suppressions(email_address,reason,source_event_id)
+      select v_recipient,'hard_bounce',e.event_id
+        from public.studioflow_resend_webhook_events e
+       where e.resend_email_id = p_resend_email_id
+         and e.event_type = 'email.bounced'
+         and lower(coalesce(e.event_data->>'bounce_type','')) = 'permanent'
+         and (e.recipient_email is null or e.recipient_email = v_recipient)
+       order by e.received_at desc
+       limit 1
+      on conflict(email_address) do nothing;
+    end if;
+  end if;
+
+  return v_updated;
 end;
 $$;
 
@@ -309,9 +355,12 @@ begin
        and status <> 'complained'
        and (v_email = '' or recipient_email = v_email);
 
-    if coalesce(p_hard_bounce,false) and v_email <> '' then
+    if coalesce(p_hard_bounce,false) then
       insert into public.studioflow_email_suppressions(email_address,reason,source_event_id)
-      values(v_email,'hard_bounce',btrim(p_event_id))
+      select o.recipient_email,'hard_bounce',btrim(p_event_id)
+        from public.studioflow_transactional_email_outbox o
+       where o.resend_email_id = p_resend_email_id
+         and (v_email = '' or o.recipient_email = v_email)
       on conflict(email_address) do nothing;
     end if;
 
@@ -336,13 +385,14 @@ begin
      where resend_email_id = p_resend_email_id
        and (v_email = '' or recipient_email = v_email);
 
-    if v_email <> '' then
-      insert into public.studioflow_email_suppressions(email_address,reason,source_event_id)
-      values(v_email,'complaint',btrim(p_event_id))
-      on conflict(email_address) do update
-        set reason = 'complaint',
-            source_event_id = excluded.source_event_id;
-    end if;
+    insert into public.studioflow_email_suppressions(email_address,reason,source_event_id)
+    select o.recipient_email,'complaint',btrim(p_event_id)
+      from public.studioflow_transactional_email_outbox o
+     where o.resend_email_id = p_resend_email_id
+       and (v_email = '' or o.recipient_email = v_email)
+    on conflict(email_address) do update
+      set reason = 'complaint',
+          source_event_id = excluded.source_event_id;
   end if;
 
   update public.studioflow_resend_webhook_events
@@ -360,7 +410,7 @@ returns boolean
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 begin
   update public.studioflow_transactional_email_outbox
      set status = 'suppressed',
@@ -372,7 +422,7 @@ begin
      and status = 'sending';
   return found;
 end;
-$;
+$$;
 
 revoke all on function public.studioflow_email_claim(text,text,text,jsonb,uuid,text)
   from public, anon, authenticated;
