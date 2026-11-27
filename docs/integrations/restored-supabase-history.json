@@ -2532,6 +2532,15 @@
       "evidence": "Production workflow run 45984700148, job 140459416626, listed this version in both local and remote migration history for the reviewed production project.",
       "purpose": "Security Center evidence and report retention controls with bounded purge operations.",
       "git_blob_sha": "e2c900d63e3debd970d1ca516135a0e315b27f43"
+    },
+    {
+      "version": "20261127140000",
+      "file": "20261127140000_studioflow_resend_transactional_email.sql",
+      "name": "studioflow_resend_transactional_email",
+      "observed_at": "2026-11-27",
+      "evidence": "Confirmed applied on production project zilwgiuiygqqardzutxi by the read-only Supabase migration history and supabase migration list --remote on 2026-11-27; the transactional email outbox, Resend webhook events, suppression tables, required RPCs, RLS, table grants and service-role-only RPC grants were independently verified read-only.",
+      "purpose": "Records the already-applied transactional email outbox, Resend webhook ledger and suppression controls in the production migration history; this reconciliation does not re-run the migration.",
+      "git_blob_sha": "730ed202f4fce9371a078b9d3028c76d22fa1cd5"
     }
   ],
   "retimestamped_applied_migrations": [

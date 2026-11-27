@@ -1,5 +1,5 @@
 // Minimal local type declarations for the deployed Deno Edge runtime.
-declare const Deno:{env:{get(name:string):string|undefined};serve(handler:(request:Request)=>Response|Promise<Response>):void};
+declare const Deno:{env:{get(name:string):string|undefined};serve(handler:(request:Request)=>Response|Promise<Response>):void;test(name:string,fn:()=>void|Promise<void>):void};
 
 // Remote Deno imports are resolved by the deployed edge runtime, not by Node's
 // module resolution, so the local type check needs their public surface only.
@@ -16,4 +16,19 @@ declare module "https://esm.sh/@supabase/supabase-js@2" {
     key: string,
     options?: Record<string, unknown>,
   ): any;
+}
+
+
+declare module "npm:svix@1" {
+  export class Webhook {
+    constructor(secret: string);
+    verify(payload: string, headers: Record<string, string>): unknown;
+  }
+}
+
+declare module "https://esm.sh/standardwebhooks@1.0.0" {
+  export class Webhook {
+    constructor(secret: string);
+    verify(payload: string, headers: Record<string, string>): unknown;
+  }
 }

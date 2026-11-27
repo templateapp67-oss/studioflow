@@ -299,6 +299,7 @@ function loadPaymentsHandler(envOverrides = {}, claimNext = null, options = {}) 
     ['./payment-security.ts', 'supabase/functions/studioflow-payments/payment-security.ts'],
     ['./payment-link-security.ts', 'supabase/functions/studioflow-payments/payment-link-security.ts'],
     ['../_shared/webhookSecurity.ts', 'supabase/functions/_shared/webhookSecurity.ts'],
+    ['../_shared/safeLogger.ts', 'supabase/functions/_shared/safeLogger.ts'],
   ].filter(([needle]) => entry.includes(needle)).map(([, file]) => readFileSync(file, 'utf8'));
   const source = (sharedFiles.join('\n') + '\n' + entry)
     .replace(/^import .*from .*;\s*$/mg, '')

@@ -44,7 +44,7 @@ export function AuthPage({ compact = false, recovery = false, onRecovered, custo
   const [confirm, setConfirm] = useState(''); const [visible, setVisible] = useState(false);
   const [ref, setRef] = useState(()=>customer?captureCustomerReferral():captureReferral()); const [busy, setBusy] = useState(false);
   const [resetSent, setResetSent] = useState(false);
-  const [message, setMessage] = useState(() => readAuthUrlError(search, hash) || (loginParams.has('recovery') && !recovery ? 'Reset link expired or could not be verified. Request a new link using Forgot password.' : '')); const [confirmationPending, setConfirmationPending] = useState(false);
+  const [message, setMessage] = useState(() => readAuthUrlError(search, hash) || (loginParams.has('recovery') && !recovery ? 'Reset link expired or could not be verified. Request a new link using Forgot password.' : '')); const [confirmationPending, setConfirmationPending] = useState(false); const [otpPending,setOtpPending]=useState(false); const [otpToken,setOtpToken]=useState('');
 
   const normalizedRef = ref.trim().toUpperCase();
   const cleanOwnerAuthSearch = (() => {
@@ -60,6 +60,24 @@ export function AuthPage({ compact = false, recovery = false, onRecovered, custo
   const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setBusy(true); setMessage('');
     try {
+      if (otpPending) {
+        if (!/^\d{6}$/.test(otpToken)) throw new Error('Enter the six-digit verification code.');
+        const { data, error } = await supabase.auth.verifyOtp({
+          email: email.trim(),
+          token: otpToken,
+          type: 'signup',
+        });
+        if (error) throw error;
+        if (!data.session) throw new Error('Email verification did not create a session. Request a new code and try again.');
+        setOtpPending(false); setConfirmationPending(false); setOtpToken('');
+        if (invitationMode) { clearCustomerReferral(); location.assign('/?app=1&tab=rewards'); return; }
+        if (pricingReturnPath) { location.assign(pricingReturnPath); return; }
+        if (!compact && !customer && selectedTemplate && loginParams.get('create') !== '1') {
+          location.assign(redirectPath); return;
+        }
+        location.assign(redirectPath);
+        return;
+      }
       if ((signup || recovery) && password.length < 12) throw new Error('Use at least 12 characters for your password.');
       if ((signup || recovery) && new TextEncoder().encode(password).length > 72) throw new Error('Use a password of at most 72 bytes.');
       if (recovery) {
@@ -116,7 +134,7 @@ export function AuthPage({ compact = false, recovery = false, onRecovered, custo
         }
         return;
       }
-      if (signup && !result.data.session) { setConfirmationPending(true); setMessage('Check your email to confirm your account, then sign in. If you already have an account, use Sign in or Forgot password.'); }
+      if (signup && !result.data.session) { setConfirmationPending(true); setOtpPending(true); setOtpToken(''); setMessage('A six-digit verification code has been sent. Check your email and enter it below to verify and finish creating your account.'); }
     } catch (error) { setMessage(error instanceof Error ? error.message : (typeof (error as { message?: unknown })?.message === 'string' && (error as { message: string }).message) || 'Could not complete this request. Please try again.'); }
     finally { setBusy(false); }
   };
@@ -193,13 +211,13 @@ export function AuthPage({ compact = false, recovery = false, onRecovered, custo
     setMessage(error ? error.message : 'Confirmation email requested. Check your inbox and spam folder.'); setBusy(false);
   };
   const standardSignIn = !compact && !recovery && mode === 'signin' && !customer;
-  const pageHeading = recovery ? 'Choose a new password' : mode === 'forgot' ? 'Reset your password' : signup ? customer ? 'Create your customer account' : 'Create your salon account' : standardSignIn ? 'Sign in to NEXORA Salon OS.' : 'Welcome back';
+  const pageHeading = otpPending ? 'Verify your email address' : recovery ? 'Choose a new password' : mode === 'forgot' ? 'Reset your password' : signup ? customer ? 'Create your customer account' : 'Create your salon account' : standardSignIn ? 'Sign in to NEXORA Salon OS.' : 'Welcome back';
   const pageDescription = recovery ? 'Enter and confirm your new password to securely update your account.' : mode === 'forgot' ? 'Enter your registered email. We will send you a link to choose a new password. Check your inbox and spam folder.' : customer ? 'Sign in to book appointments and manage your bookings.' : standardSignIn ? 'Sign in to access your existing salon website, team and business information, with your account data available across devices.' : 'Your website, team and business data stay with your account across devices.';
   return <main className={compact ? '' : 'min-h-screen bg-[#f9f9ff] px-4 py-12 flex items-center justify-center'}>
     <section className="workspace-card w-full max-w-lg">
       <p className="eyebrow">NEXORA · Salon OS</p><h1 className="text-3xl font-bold mb-2">{pageHeading}</h1>
       <p className="muted mb-5">{pageDescription}</p>
-      {!recovery && mode !== 'forgot' && <div className="flex gap-3 mb-5"><button data-testid="auth-mode-signin" disabled={busy} type="button" className={signup ? 'secondary-action' : 'primary-action'} onClick={() => { setMode('signin'); setMessage(''); }}>Sign in</button><button data-testid="auth-mode-signup" disabled={busy} type="button" className={signup ? 'primary-action' : 'secondary-action'} onClick={() => { setMode('signup'); setMessage(''); }}>Sign up</button></div>}
+      {!recovery && mode !== 'forgot' && <div className="flex gap-3 mb-5"><button data-testid="auth-mode-signin" disabled={busy} type="button" className={signup ? 'secondary-action' : 'primary-action'} onClick={() => { setMode('signin'); setOtpPending(false); setOtpToken(''); setConfirmationPending(false); setMessage(''); }}>Sign in</button><button data-testid="auth-mode-signup" disabled={busy} type="button" className={signup ? 'primary-action' : 'secondary-action'} onClick={() => { setMode('signup'); setOtpPending(false); setOtpToken(''); setConfirmationPending(false); setMessage(''); }}>Sign up</button></div>}
       {!recovery && loginParams.has('passwordUpdated') && <p role="status" className="mb-4 rounded-lg bg-green-50 p-3 text-green-900">Password updated successfully. Sign in with your new password.</p>}
       {!recovery && mode !== 'forgot' && !signup && <>
         <button type="button" disabled={busy} onClick={() => void signInWithGoogle()} className="secondary-action w-full justify-center mb-3">
@@ -209,6 +227,28 @@ export function AuthPage({ compact = false, recovery = false, onRecovered, custo
         <p className="text-center text-xs text-slate-500 mb-4">or use email</p>
       </>}
       <form onSubmit={submit} className="space-y-4">
+        {otpPending ? <>
+          <p className="text-sm text-slate-700">Enter the six-digit code sent to <strong>{email}</strong>. It expires in 10 minutes.</p>
+          <label className="block">Email verification code
+            <input
+              data-testid="auth-email-otp"
+              className="workspace-input text-center tracking-[0.45em] text-xl font-semibold"
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="[0-9]{6}"
+              maxLength={6}
+              required
+              value={otpToken}
+              onChange={e=>setOtpToken(e.target.value.replace(/\D/g,'').slice(0,6))}
+              aria-label="Six-digit email verification code"
+            />
+          </label>
+          {message && <p data-testid="auth-message" role="status" className="text-sm p-3 rounded-lg bg-amber-50 text-amber-900">{message}</p>}
+          <button data-testid="auth-submit" type="submit" disabled={busy || !/^\d{6}$/.test(otpToken)} className="primary-action w-full justify-center disabled:opacity-60">{busy ? 'Verifying…' : 'Verify email'}</button>
+          <button type="button" disabled={busy} className="secondary-action w-full justify-center" onClick={() => void resend()}>Resend verification code</button>
+          <button type="button" disabled={busy} className="text-sm text-violet-700 underline" onClick={() => { setOtpPending(false); setOtpToken(''); setConfirmationPending(false); setMessage(''); }}>Change email address</button>
+        </> : <>
         {signup && !recovery && <><label className="block">Full name<input data-testid="auth-full-name" className="workspace-input" autoComplete="name" maxLength={150} value={name} onChange={e => setName(e.target.value)} required /></label>{!customer && <label className="block">Salon name<input data-testid="auth-salon-name" className="workspace-input" maxLength={150} value={salon} onChange={e => setSalon(e.target.value)} required /></label>}</>}
         {signup&&customer&&!recovery&&<label className="block">Date of Birth<input data-testid="auth-dob" className="workspace-input" type="date" required autoComplete="bday" min="1900-01-01" max={customerToday()} value={birthDate} onChange={e=>setBirthDate(e.target.value)}/><small>Your date of birth stays private and is not shared with your inviter.</small></label>}
         {signup&&customer&&!recovery&&<label className="block">WhatsApp number<div className="flex items-center gap-2"><span aria-label="India country code" className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 font-semibold">+91</span><input data-testid="auth-whatsapp" className="workspace-input flex-1 min-w-0" type="tel" required minLength={10} pattern="[1-9][0-9]{9}" inputMode="numeric" autoComplete="tel-national" placeholder="10-digit WhatsApp number" aria-label="WhatsApp number" maxLength={16} value={whatsapp} onChange={e=>setWhatsapp(whatsappNational(e.target.value))}/></div><small>Your number stays private and is not shared with your inviter.</small></label>}
@@ -231,6 +271,7 @@ export function AuthPage({ compact = false, recovery = false, onRecovered, custo
         <button data-testid="auth-submit" disabled={busy || (mode === 'forgot' && resetSent)} className="primary-action w-full justify-center disabled:opacity-60">{busy ? 'Please wait…' : recovery ? 'Save new password' : mode === 'forgot' ? resetSent ? 'Reset link requested — check email' : 'Send reset link' : signup ? 'Create account' : 'Sign in'}</button>
         {!recovery && mode === 'forgot' && <button type="button" disabled={busy} className="secondary-action w-full justify-center" onClick={() => { setMode('signin'); setMessage(''); setResetSent(false); }}>Back to sign in</button>}
         {confirmationPending && signup && <button type="button" disabled={busy} className="secondary-action" onClick={() => void resend()}>Resend confirmation email</button>}
+        </>}
       </form>
     </section>
   </main>;
