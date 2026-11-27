@@ -518,7 +518,7 @@ Deno.test("media validates project paths, actual metadata, size and staff regist
   // an attacker-chosen URL.
   const redirected = await handlers["register-media"]!({
     ...base,
-    fetcher: (_input) =>
+    fetcher: () =>
       Promise.resolve(
         new Response(null, { status: 301, headers: { Location: "https://evil.example/x.webp" } }),
       ),

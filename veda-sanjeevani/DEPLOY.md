@@ -2,7 +2,7 @@
 
 ## Before you begin
 
-You will need Node.js 20+, the Supabase CLI and Docker for local database tests. Production browser variables are **only** `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_SITE_URL`; never add a service-role key or provider secret to any `VITE_` variable. The Vercel SPA rewrite and baseline security headers are in `vercel.json`.
+You will need Node.js 20+, the Supabase CLI and Docker for local database tests. Production browser variables are **only** `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_SITE_URL`; never add a service-role key or provider secret to any `VITE_` variable. The Vercel SPA rewrite and baseline security headers are in `vercel.json`. The headers are pinned to the same fail-closed policy as the parent app: HSTS preload, `X-Frame-Options: DENY` with CSP `frame-ancestors 'none'`, and a fully locked-down `Permissions-Policy` (veda takes no payments, so `payment=()`). No consumer embeds this site in a frame today; if an intentional embedding consumer is added later, relax `frame-ancestors`/`X-Frame-Options` to that exact origin and note it here — do not revert to a wildcard.
 
 ## Supabase project setup
 

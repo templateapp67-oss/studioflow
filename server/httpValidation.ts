@@ -748,7 +748,8 @@ export const AI_RECOMMENDATIONS_SCHEMA: BodySchema = {
 };
 
 export const RECOVERY_CONSUME_SCHEMA: BodySchema = {
-  // 16–32 alphanumerics once separators are stripped; dashes/spaces allowed in transport.
+  // Server-side cap for transport: recovery codes are 16–32 alphanumerics once
+  // separators are stripped; dashes/spaces allowed on the wire, whole value ≤ 48 chars.
   code: s(48, { pattern: /^[A-Za-z0-9][A-Za-z0-9\-\s]{2,46}[A-Za-z0-9]$/ }),
 };
 

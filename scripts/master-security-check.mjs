@@ -28,6 +28,7 @@ const steps = [
   ['Meta WhatsApp webhook replay/idempotency (VM-executed handler)', 'scripts/verify-nexora-whatsapp-runtime.mjs'],
   ['Rate limiting + MFA fail-closed (429/Retry-After · AAL1 403 · ledger)', 'scripts/verify-rate-limit-mfa.mjs'],
   ['MFA recovery hardening (audit-log RPC · per-IP budget 429/503 · wire parity)', 'scripts/verify-mfa-recovery-hardening.mjs'],
+  ['MFA recovery round trip (client generate → AAL1 rejected → AAL2 issue → consume → atomic re-issue · hash parity · UI confirmation gate)', 'scripts/verify-recovery-roundtrip.mjs'],
   ['Route & sub-app parity (Express ≡ Vercel mounts · SSRF twin guards · veda auth matrix · documented contracts)', 'scripts/verify-route-parity.mjs'],
   ['AI endpoint hardening (schema + auth + fail-closed)', 'scripts/verify-ai-endpoint-hardening.mjs'],
 ];

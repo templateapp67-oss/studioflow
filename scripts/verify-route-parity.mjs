@@ -16,6 +16,9 @@
 //      → private table, with Turnstile fail-closed at the Edge layer and
 //      matching honeypot contracts on both layers.
 //   F. Docs: the end-to-end contract is written down.
+//   G. Veda header policy & deno/vitest drift (static): headers are pinned
+//      to the root fail-closed policy; the edge/frontend test contracts cannot
+//      silently change.
 //
 // Behavioral checks transpile the real modules; no network, no credentials.
 import assert from 'node:assert/strict';
@@ -271,4 +274,46 @@ ok('lead-capture end-to-end wiring: one shared Node handler on both runtimes, Ed
 }
 ok('end-to-end contracts are documented (docs/LEAD-CAPTURE-CONTRACT.md, docs/MFA-RECOVERY-CONTRACT.md)');
 
+/* ---------------- G. Veda header policy & deno task drift ----------------- */
+{
+  const vedaV = JSON.parse(readFileSync('veda-sanjeevani/vercel.json', 'utf8'));
+  const rootV = JSON.parse(readFileSync('vercel.json', 'utf8'));
+  const vedaBlock = (vedaV.headers || []).find((b) => b.source === '/(.*)');
+  const rootBlock = (rootV.headers || []).find((b) => b.source === '/(.*)');
+  assert.ok(vedaBlock, 'veda vercel.json must carry a /(.*) header block');
+  assert.ok(rootBlock, 'root vercel.json must carry a /(.*) header block');
+  const hadi = (block) => Object.fromEntries(block.headers.map((h) => [h.key, h.value]));
+  const veda = hadi(vedaBlock);
+  const root = hadi(rootBlock);
+  const HSTS = 'max-age=63072000; includeSubDomains; preload';
+  assert.equal(veda['Strict-Transport-Security'], HSTS, 'veda must set the full HSTS policy (preload)');
+  assert.equal(veda['Strict-Transport-Security'], root['Strict-Transport-Security'], 'HSTS must match root');
+  assert.equal(veda['X-Content-Type-Options'], 'nosniff');
+  assert.equal(veda['Referrer-Policy'], 'strict-origin-when-cross-origin');
+  assert.equal(veda['X-Frame-Options'], 'DENY', 'veda is not framed by any consumer — DENY like root');
+  assert.match(veda['Content-Security-Policy'], /frame-ancestors 'none'/, 'veda CSP must refuse framing');
+  assert.match(veda['Content-Security-Policy'], /default-src 'self'/);
+  assert.match(veda['Content-Security-Policy'], /object-src 'none'/);
+  assert.match(veda['Content-Security-Policy'], /upgrade-insecure-requests/);
+  // Permissions-Policy: everything disabled (veda has no payments/embeds); must
+  // match root's key set so a future drift (e.g. an added allowance) is deliberate.
+  for (const directive of ['accelerometer', 'autoplay', 'browsing-topics', 'camera', 'encrypted-media',
+    'fullscreen', 'geolocation', 'gyroscope', 'magnetometer', 'microphone', 'midi', 'payment',
+    'picture-in-picture', 'usb', 'xr-spatial-tracking']) {
+    assert.match(veda['Permissions-Policy'] || '', new RegExp(`${directive}=\(\)`),
+      `veda Permissions-Policy must disable ${directive} (no payments/embeds in veda)`);
+  }
+  // deno.json: the test/verify contract must keep existing.
+  const deno = JSON.parse(readFileSync('veda-sanjeevani/deno.json', 'utf8'));
+  assert.equal(deno.tasks?.test, 'deno test --allow-env --allow-net', 'deno.json test task drifted');
+  assert.equal(deno.tasks?.check, "deno check 'supabase/functions/**/*.ts'", 'deno.json check task drifted');
+  assert.ok(deno.tasks?.lint && deno.tasks?.verify, 'deno.json must keep lint and verify tasks');
+  // veda package.json must keep the frontend suite wired.
+  const pkg = JSON.parse(readFileSync('veda-sanjeevani/package.json', 'utf8'));
+  assert.equal(pkg.scripts?.test, 'vitest run');
+  assert.equal(pkg.scripts?.typecheck, 'tsc -b --pretty false');
+}
+ok('veda security headers pinned to the root fail-closed policy (HSTS preload, DENY + frame-ancestors none, locked Permissions-Policy) and deno/vitest test contracts locked in');
+
 console.log(`\nAll route parity checks passed (${checks.length} sections).`);
+
