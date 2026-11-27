@@ -77,6 +77,8 @@ Deno.serve(async(req:Request)=>{
       return {processed:jobs.length,results};
     };
     const queuePaymentReceipt=async(order:any,payment:any,settledBookingPayload:any)=>{
+      const paymentId=String(payment?.id||order?.payment_id||'');
+      if(!paymentId)return;
       try{
         const {data:booking,error:bookingError}=await service.from('studioflow_bookings')
           .select('id,owner_id,customer_id,payload,status')
