@@ -6,6 +6,8 @@
 // OPTIONS must remain reachable); do not expose a service-role bypass here.
 
 import { browserCorsHeaders, isAllowedBrowserOrigin } from '../_shared/browserCors.ts';
+import { createClient } from 'npm:@supabase/supabase-js@2.117.3';
+import { bookingEmailTemplate, sendTransactionalEmail } from '../_shared/resendEmail.ts';
 const BOOKING_EMAIL_CORS = 'authorization, apikey, content-type, x-client-info';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -102,16 +104,16 @@ Deno.serve(async (req: Request) => {
   }
 
   const resendApiKey = getEnv('RESEND_API_KEY');
-  const fromEmail = getEnv('RESEND_FROM_EMAIL') || 'StudioFlow <onboarding@resend.dev>';
+  const fromEmail = getEnv('RESEND_FROM_EMAIL');
 
   if (req.method === 'GET') {
     return jsonResponse({
       status: 'ok',
       service: 'studioflow-booking-emails',
-      configured: Boolean(resendApiKey),
+      configured: Boolean(resendApiKey && fromEmail),
       provider: 'resend',
       from: fromEmail,
-      mode: resendApiKey ? 'live' : 'unconfigured',
+      mode: resendApiKey && fromEmail ? 'live' : 'unconfigured',
     }, 200, origin);
   }
   if (req.method !== 'POST') return fail(405, 'POST method required', {}, origin);
@@ -188,57 +190,94 @@ Deno.serve(async (req: Request) => {
       }, origin);
     }
 
-    const salonName = cleanText(body.salonName || payload.salonName || 'StudioFlow Salon', 120);
-    const clientName = cleanText(payload.clientName || body.clientName || 'Guest', 120);
-    const serviceName = cleanText(payload.serviceName || body.serviceName || 'Salon Service', 160);
-    const stylistName = cleanText(payload.stylistName || body.stylistName || 'Specialist', 120);
-    const date = cleanText(payload.date || body.date || '', 40);
-    const time = cleanText(payload.time || body.time || '', 40);
-    const price = money(payload.servicePrice ?? body.servicePrice);
-    const paid = money(payload.amountPaid ?? body.amountPaid);
-    const balance = Math.max(0, price - paid);
-    const address = cleanText([body.salonAddress || payload.salonAddress, body.salonCity || payload.salonCity].filter(Boolean).join(', ') || 'Salon Studio', 240);
-    const phone = cleanText(body.salonPhone || payload.salonPhone || '', 32);
-    const phoneHref = phone.replace(/[^\d+]/g, '').slice(0, 24);
-    const ref = escapeHtml(bookingRef, 64);
-    const subject = type === 'reminder'
-      ? `Reminder: Your appointment tomorrow at ${salonName}`
-      : `Booking Confirmed: ${serviceName} at ${salonName} (${bookingRef})`;
-
-    const html = `<!DOCTYPE html><html><body style="margin:0;padding:24px;font-family:system-ui,-apple-system,sans-serif;background:#f8fafc;color:#1e293b;">
-      <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px;border:1px solid #e2e8f0;overflow:hidden;">
-        <div style="background:#0f172a;color:#ffffff;padding:28px 24px;text-align:center;">
-          <h1 style="margin:0;font-size:22px;font-weight:800;">${type === 'reminder' ? `See You Tomorrow at ${escapeHtml(salonName)}!` : 'Booking Confirmed!'}</h1>
-          <p style="margin:8px 0 0;font-size:14px;">${escapeHtml(salonName)}</p>
-        </div>
-        <div style="padding:24px;font-size:14px;line-height:1.6;">
-          <p>Namaste <strong>${escapeHtml(clientName)}</strong>, ${type === 'reminder' ? 'your salon visit is scheduled for tomorrow' : 'your booking is confirmed'}.</p>
-          <p><strong>Reference:</strong> ${ref}<br/><strong>Service:</strong> ${escapeHtml(serviceName)}<br/><strong>Specialist:</strong> ${escapeHtml(stylistName)}<br/><strong>Date &amp; Time:</strong> ${escapeHtml(date)} @ ${escapeHtml(time)} IST<br/><strong>Address:</strong> ${escapeHtml(address)}</p>
-          <p>Total: ₹${price.toLocaleString('en-IN')} | Paid: ₹${paid.toLocaleString('en-IN')} | Balance Due: ₹${balance.toLocaleString('en-IN')}</p>
-          ${phone ? `<p>Questions? Contact the salon at <a href="tel:${escapeHtml(phoneHref, 24)}">${escapeHtml(phone)}</a></p>` : ''}
-          <p>Please arrive 10 minutes before your slot and show reference ${ref} at reception.</p>
-        </div>
-      </div>
-    </body></html>`;
-    const text = `${salonName} - ${type === 'reminder' ? 'Appointment Reminder' : 'Booking Confirmation'}\n\n`
-      + `Client: ${clientName}\nReference: ${bookingRef}\nService: ${serviceName}\nSpecialist: ${stylistName}\n`
-      + `Date & Time: ${date} at ${time} IST\nAddress: ${address}\n`
-      + `Total: Rs. ${price} | Paid: Rs. ${paid} | Balance Due: Rs. ${balance}\n\n`
-      + `Please arrive 10 minutes prior to your appointment.\n${phone ? `Phone: ${phone}\n` : ''}`;
-
-    const resendResponse = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: fromEmail, to: [recipient], subject, html, text }),
-      signal: AbortSignal.timeout(15000),
-    });
-    const resendData = await resendResponse.json().catch(() => ({}));
-    if (!resendResponse.ok) {
-      const message = typeof resendData?.message === 'string' ? resendData.message : typeof resendData?.error === 'string' ? resendData.error : 'Failed to send email via Resend API.';
-      return fail(502, message, {}, origin);
+    if (!resendApiKey || !fromEmail) {
+      return fail(503, 'Transactional email sender is not configured.', {
+        notice: 'No email was sent. Verify the sender domain and configure RESEND_FROM_EMAIL.',
+      }, origin);
     }
-    if (typeof resendData?.id !== 'string') return fail(502, 'Email provider returned an incomplete delivery response.', {}, origin);
-    return jsonResponse({ success: true, delivered: true, emailId: resendData.id, to: recipient, type, subject }, 200, origin);
+    if (recipient.endsWith('@guest.in')) {
+      return fail(409, 'This booking has no customer email address. Add a valid email before sending.', {}, origin);
+    }
+
+    // The stored booking is authoritative. Client-supplied fields are only a
+    // legacy fallback for values not persisted by older booking records.
+    const salonName = cleanText(payload.salonName || body.salonName || 'NEXORA Salon', 120);
+    const clientName = cleanText(payload.clientName || 'Guest', 120);
+    const serviceName = cleanText(payload.serviceName || 'Salon Service', 160);
+    const stylistName = cleanText(payload.stylistName || '', 120);
+    const date = cleanText(payload.date || '', 80);
+    const time = cleanText(payload.time || '', 40);
+    const totalAmount = money(payload.servicePrice ?? 0);
+    const amountPaid = money(payload.amountPaid ?? 0);
+    const serviceType = cleanText(
+      payload.serviceType || payload.service_mode || payload.bookingType || payload.serviceMode || '',
+      40,
+    );
+    const homeAddress = cleanText(
+      payload.homeServiceAddress || payload.home_service_address ||
+      payload.customerAddress || payload.serviceAddress || '',
+      350,
+    );
+    const homeInstructions = cleanText(
+      payload.homeServiceInstructions || payload.home_service_instructions || '',
+      500,
+    );
+    const salonAddress = cleanText(
+      [payload.salonAddress || payload.branchAddress || body.salonAddress,
+       payload.salonCity || body.salonCity].filter(Boolean).join(', '),
+      350,
+    );
+    const salonPhone = cleanText(payload.salonPhone || body.salonPhone || '', 40);
+
+    const template = bookingEmailTemplate({
+      bookingId: bookingRef,
+      bookingReference: cleanText(payload.bookingReference || bookingRef, 80),
+      recipientEmail: recipient,
+      customerName: clientName,
+      salonName,
+      serviceName,
+      stylistName,
+      date,
+      time,
+      timeZone: cleanText(payload.timeZone || payload.time_zone || 'Asia/Kolkata', 60),
+      totalAmount,
+      amountPaid,
+      salonAddress,
+      salonPhone,
+      serviceType,
+      homeServiceAddress: homeAddress,
+      homeServiceInstructions: homeInstructions,
+    }, type === 'reminder');
+
+    const service = createClient(getEnv('SUPABASE_URL'), serviceKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const eventKey = `booking-${type}:${bookingRef}`;
+    const result = await sendTransactionalEmail(service, {
+      eventKey,
+      kind: type === 'reminder' ? 'booking_reminder' : 'booking_confirmation',
+      recipientEmail: recipient,
+      bookingId: bookingRef,
+      content: template,
+    });
+
+    if (!result.success) {
+      return fail(result.suppressed ? 409 : 502, result.error || 'Email could not be accepted by the provider.', {
+        suppressed: Boolean(result.suppressed),
+      }, origin);
+    }
+
+    return jsonResponse({
+      success: true,
+      delivered: false,
+      accepted: Boolean(result.accepted),
+      duplicate: Boolean(result.duplicate),
+      emailId: result.emailId,
+      to: recipient,
+      type,
+      subject: template.subject,
+      notice: result.notice || 'Email accepted by Resend; delivery will be confirmed by webhook.',
+    }, 200, origin);
   } catch {
     return fail(500, 'Internal email service error', {}, origin);
   }

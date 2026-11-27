@@ -616,6 +616,7 @@ exec "$STUDIOFLOW_NODE_BIN" "$@"
       'submit-landing-lead',
       'nexora-whatsapp-connect','nexora-whatsapp-webhook',
       'studioflow-payments','studioflow-whatsapp-booking','studioflow-booking-emails',
+      'resend-webhook','studioflow-auth-email-hook','studioflow-email-retry',
       'nexora-mobile-qr','studioflow-service-ai-images','studioflow-campaign-whatsapp',
       'studioflow-welcome-whatsapp','studioflow-tawk-connect',
       'studioflow-map-locations','iron-ink-public','snapshot-accounts',
