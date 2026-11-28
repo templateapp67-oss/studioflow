@@ -682,7 +682,7 @@ try{
   const fullyRecordedList=baseMigrationList;
   const fullyRecorded=runHistory(fullyRecordedList);
   assert.equal(fullyRecorded.status,0,fullyRecorded.stderr);
-  assert.equal(readFileSync(outputPath,'utf8'),'pending_migrations=0\\n');
+  assert.equal(readFileSync(outputPath,'utf8'),'pending_migrations=0\n');
 } finally {
   rmSync(historyOutputDirectory,{recursive:true,force:true});
 }
