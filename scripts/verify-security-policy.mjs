@@ -350,4 +350,11 @@ assert.ok(appInstallSource.includes("target: '_blank'"), 'external app/install o
 assert.ok(appInstallSource.includes("resolved.protocol !== 'https:' && resolved.protocol !== 'http:'"), 'app/install URLs must reject executable and non-web schemes');
 assert.ok(appInstallSource.includes("if (resolved.protocol !== 'https:') return { href: '#' }"), 'external HTTP overrides must not be opened from a secure site');
 assert.ok(appInstallSource.includes("resolved.searchParams.get('app') === '1'"), 'customer app routes must open outside the template preview frame');
+const announcementSource = readFileSync('src/components/PromotionalBanner.tsx', 'utf8');
+assert.ok(announcementSource.includes('customerAppRoute'), 'the app announcement action must not navigate the template preview iframe');
+assert.ok(announcementSource.includes("rel: 'noopener noreferrer'"), 'new-tab promotional actions must use noopener noreferrer');
+const customerWebsiteSource = readFileSync('src/components/CustomerSalonWebsite.tsx', 'utf8');
+assert.ok(customerWebsiteSource.includes('navigateCustomerAccount(`/?customer=1&auth=${mode}'), 'customer sign-in/signup routes must leave the embedded preview');
+const salonPreviewSource = readFileSync('src/components/SalonWebsitePreview.tsx', 'utf8');
+assert.ok(salonPreviewSource.includes('navigateCustomerAccount(`/?customer=1&return='), 'read-only preview account buttons must leave the embedded frame');
 console.log('PASS: enforcing CSP matches runtime integrations; same-origin public root app/storefront routes frame safely; private roots and every non-root route remain blocked.');
