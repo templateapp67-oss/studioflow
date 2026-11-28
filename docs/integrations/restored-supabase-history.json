@@ -2066,12 +2066,7 @@
     "relations": 273,
     "assessment": "Read-only owner-supplied live catalog; not a live migration dry-run or deployment."
   },
-  "release_pending_migrations": [
-    {
-      "file": "20261128000000_fix_studioflow_android_profile_permissions.sql",
-      "reason": "Grant authenticated EXECUTE on public.studioflow_android_profile() and USAGE on studioflow_android_private."
-    }
-  ],
+  "release_pending_migrations": [],
   "reviewed_feature_migrations": [
     {
       "file": "20261117130000_reconcile_template15_multiservice_booking.sql",
@@ -2591,6 +2586,15 @@
       "evidence": "Confirmed recorded as applied on production project zilwgiuiygqqardzutxi by read-only migration history. All 15 stored remote SQL statements reconstruct to the tracked source with whitespace normalization; the expected booking/cross-ledger function and trigger inventory was independently inspected read-only. This records observed database history only; it does not re-run SQL or authorize a new production apply.",
       "purpose": "Records the production-applied cross-ledger booking conflict guards in the applied-history ledger. No production data or schema was changed during this reconciliation.",
       "git_blob_sha": "b077e2e596f0d9b3c35611c03f7bdb1a2a0ab605"
+    },
+    {
+      "version": "20261128000000",
+      "file": "20261128000000_fix_studioflow_android_profile_permissions.sql",
+      "name": "fix_studioflow_android_profile_permissions",
+      "observed_at": "2026-11-28",
+      "evidence": "Read-only verification on 2026-11-28 for production project zilwgiuiygqqardzutxi: supabase migration list --remote reported 20261128000000 in both Local and Remote columns; the corresponding row exists in supabase_migrations.schema_migrations, and its stored SQL statements match the tracked migration source statement-for-statement after normalizing comments, whitespace and statement terminators. The authenticated/anon schema and function privileges were independently verified read-only. This ledger reconciliation did not execute SQL, run migration repair, or change production schema or data.",
+      "purpose": "Records the already-applied Android profile RPC permission grants in the reviewed applied-history ledger. This is metadata reconciliation only; it does not re-run the migration.",
+      "git_blob_sha": "d720a14a7d885f28261d406fd1963942ab545da2"
     }
   ],
   "retimestamped_applied_migrations": [
