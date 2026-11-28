@@ -34,9 +34,11 @@ assert.ok(modal.includes('validCheckoutAmount=Number.isFinite(Number(totalPrice)
 assert.ok(modal.includes('Payments are activated after this salon website is published.'), 'draft preview explains its payment gate');
 assert.ok(modal.includes('gatewayChecking'), 'website checkout has a loading state');
 
-assert.ok(customerFlow.includes('onlineAvailable={Boolean(checkout?.online)}'), 'customer app uses the same Razorpay readiness state');
+assert.ok(customerFlow.includes('onlineAvailable={Boolean(checkout?.online)&&validCheckoutAmount}'), 'customer app enables Razorpay only when the server reports readiness and the amount is valid');
 assert.ok(customerFlow.includes('validCheckoutAmount=Number.isFinite(total)&&total>0'), 'customer app validates the payable amount');
-assert.ok(customerFlow.includes('onlineMessage={checkout?.online ? undefined'), 'customer app explains unavailable Razorpay');
+assert.ok(customerFlow.includes('onlineMessage={!validCheckoutAmount ?'), 'customer app explains unavailable Razorpay and invalid checkout amounts');
+assert.ok(customerFlow.includes('const activeCheckout=await refreshCheckout()'), 'customer checkout rechecks server readiness immediately before reserving the booking');
+assert.ok(customerFlow.includes('Retry Razorpay availability'), 'customer checkout exposes an explicit retry when readiness is unavailable');
 assert.ok(customerFlow.includes('if(!session){setAuth(true);return;}'), 'customer app keeps authentication ahead of reservation');
 
 const sharedCalls = (templates.match(/<BookingModal\b/g) || []).length;
