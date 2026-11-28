@@ -3,6 +3,14 @@ const PRIVATE_ROOT_QUERY_KEYS = [
   'customer',
   'customer_ref',
   'owner',
+  'admin',
+  'staff',
+  'passwordUpdated',
+  'error_code',
+  'auth_code',
+  'state',
+  'session',
+  'reset',
   'panel',
   'create',
   'module',
@@ -35,7 +43,7 @@ export function isFrameableRootRequest(rawUrl, method = 'GET') {
   }
 
   if (url.pathname !== '/') return false;
-  if (PRIVATE_ROOT_QUERY_KEYS.some((key) => url.searchParams.has(key))) return false;
+  if ([...url.searchParams.keys()].some((key) => PRIVATE_ROOT_QUERY_KEYS.includes(key.toLowerCase()))) return false;
 
   const requestedSlug =
     url.searchParams.get('site') ||
