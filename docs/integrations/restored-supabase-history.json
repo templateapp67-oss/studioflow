@@ -2052,12 +2052,7 @@
     "relations": 273,
     "assessment": "Read-only owner-supplied live catalog; not a live migration dry-run or deployment."
   },
-  "release_pending_migrations": [
-    {
-      "file": "20261127143000_studioflow_web_checkout_receipts.sql",
-      "purpose": "Adds service-role-only web checkout and receipt delivery records. Deploy through the protected migration workflow after staging verification."
-    }
-  ],
+  "release_pending_migrations": [],
   "reviewed_feature_migrations": [
     {
       "file": "20261117130000_reconcile_template15_multiservice_booking.sql",
@@ -2541,6 +2536,15 @@
       "evidence": "Confirmed applied on production project zilwgiuiygqqardzutxi by the read-only Supabase migration history and supabase migration list --remote on 2026-11-27; the transactional email outbox, Resend webhook events, suppression tables, required RPCs, RLS, table grants and service-role-only RPC grants were independently verified read-only.",
       "purpose": "Records the already-applied transactional email outbox, Resend webhook ledger and suppression controls in the production migration history; this reconciliation does not re-run the migration.",
       "git_blob_sha": "730ed202f4fce9371a078b9d3028c76d22fa1cd5"
+    },
+    {
+      "version": "20261127143000",
+      "file": "20261127143000_studioflow_web_checkout_receipts.sql",
+      "name": "studioflow_web_checkout_receipts",
+      "observed_at": "2026-11-28",
+      "evidence": "Confirmed applied on production project zilwgiuiygqqardzutxi by the read-only Supabase migration history and Production workflow remote migration list. The booking checkout columns, studioflow_booking_receipts table with RLS, both checkout triggers, and service-role-only RPC/table grants were independently verified read-only on 2026-11-28.",
+      "purpose": "Records the already-applied web checkout and receipt-delivery schema in the reviewed applied-history ledger. This reconciliation does not re-run the migration or change production data.",
+      "git_blob_sha": "84ba4f20b04ea638236e9b5ba7613a5dae57cd20"
     }
   ],
   "retimestamped_applied_migrations": [
