@@ -71,10 +71,9 @@ type ExternalLinkProps = Pick<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'ta
 
 /** Custom absolute URLs must not navigate the embedded template preview frame. */
 function externalLinkProps(href: string): ExternalLinkProps {
-  if (!/^(?:[a-z][a-z0-9+.-]*:|\\/\\/)/i.test(href.trim())) return {};
   try {
     const currentOrigin = typeof window === 'undefined' ? 'https://nexorasalon.online' : window.location.origin;
-    return new URL(href, currentOrigin).origin === currentOrigin
+    return new URL(href.trim(), currentOrigin).origin === currentOrigin
       ? {}
       : { target: '_blank', rel: 'noopener noreferrer' };
   } catch {
