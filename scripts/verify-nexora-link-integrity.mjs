@@ -55,7 +55,10 @@ for (const document of DOCUMENTS) {
     assert.ok(value.length > 0, `${document.path} contains a link without a destination`);
     assert.ok(value !== '#', `${document.path} contains a placeholder link`);
     assert.ok(!value.toLowerCase().startsWith('javascript:'), `${document.path} contains a javascript link`);
-    assert.ok(!value.toLowerCase().startsWith('mailto:') || value.length > 8, `${document.path} contains an empty mail link`);
+    if (value.toLowerCase().startsWith('mailto:')) {
+      assert.ok(/^mailto:[^\s@?]+@[^\s@?.]+(?:\.[^\s@?.]+)+(?:\?.*)?$/i.test(value), `${document.path} contains a malformed mail link`);
+      continue;
+    }
 
     if (value.startsWith('http://') || value.startsWith('https://')) {
       // External links are allowed, but they must point at a real host.
