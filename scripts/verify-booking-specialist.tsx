@@ -2,7 +2,7 @@ import React from 'react';import {act,create} from 'react-test-renderer';import 
 import {BookingModal} from '../src/components/BookingModal';import {CATEGORY_TEMPLATES} from '../src/categoryTemplates';import {INITIAL_SALON_PROFILE} from '../src/mockData';import {supabase} from '../src/lib/supabase';
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;
 let eligibleIds:string[]=[];const calls:any[]=[];supabase.rpc=(async(name:string,args:any)=>{calls.push({name,args});if(name==='studioflow_public_branches')return {data:[],error:null};if(name==='studioflow_booking_specialists')return {data:{published:true,specialistIds:eligibleIds},error:null};return {data:[{time:'12:00',label:'12:00 PM',available:true,stylistId:'qa-staff'}],error:null};}) as any;
-globalThis.fetch=async()=>new Response(JSON.stringify({configured:true}),{headers:{'Content-Type':'application/json'}});
+globalThis.fetch=async()=>new Response(JSON.stringify({webCheckout:{online:true,venue:true,mode:'test'}}),{headers:{'Content-Type':'application/json'}});
 const text=(node:any):string=>typeof node==='string'?node:node?.children?.map(text).join('')||'';
 for(const template of Object.values(CATEGORY_TEMPLATES)){
  eligibleIds=template.stylists.map(st=>st.id);let editor:any;await act(async()=>{editor=create(<BookingModal isOpen onClose={()=>{}} profile={{...INITIAL_SALON_PROFILE,businessType:template.id,subdomain:'qa-salon'}} services={template.services} stylists={template.stylists} themeAccentHex="#ffffff"/>)});
@@ -13,7 +13,7 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
  await act(async()=>next.props.onClick());assert.equal(button('Continue to Guest Details').props.disabled,true,'Do not bypass real slot selection');
  await act(async()=>button('12:00 PM').props.onClick());assert.equal(button('Continue to Guest Details').props.disabled,false);
  await act(async()=>button('Continue to Guest Details').props.onClick());
- await act(async()=>{editor.root.findByProps({placeholder:'e.g. Aarti Sharma'}).props.onChange({target:{value:'QA Customer'}});editor.root.findByProps({placeholder:'98765 43210'}).props.onChange({target:{value:'9876543210'}});});
+ await act(async()=>{editor.root.findByProps({placeholder:'e.g. Aarti Sharma'}).props.onChange({target:{value:'QA Customer'}});editor.root.findByProps({placeholder:'98765 43210'}).props.onChange({target:{value:'9876543210'}});editor.root.findByProps({placeholder:'name@example.in'}).props.onChange({target:{value:'qa@example.invalid'}});});
  const form=editor.root.findAll(n=>typeof n.props.onSubmit==='function')[0];await act(async()=>form.props.onSubmit({preventDefault(){}}));
  assert.ok(button('Pay ₹'),'Guest form can advance to payment review without making payment');assert.equal(button('Pay ₹').props.style.color,'#1e293b');
  await act(async()=>editor.unmount());

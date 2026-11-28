@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 export const NEXORA_TAWK_WIDGET_URL =
   'https://embed.tawk.to/6af928650ca0f03c41f84ba9/1k7ekbjg3';
 const NEXORA_TAWK_WIDGET_SCRIPT_ID = 'nexora-tawk-widget-script';
+const SUPPORT_LOAD_DELAY_MS = 5000;
 
 type TawkWidgetApi = {
   customStyle?: { visibility?: {
@@ -31,9 +32,21 @@ export function NexoraTawkWidget() {
       else tawkApi.hideWidget?.();
     };
     const existingScript = document.getElementById(NEXORA_TAWK_WIDGET_SCRIPT_ID);
-    if (existingScript) {
-      tawkApi.showWidget?.();
-    } else {
+    let fallbackTimer: number | undefined;
+    const removeLoadListeners = () => {
+      window.removeEventListener('pointerdown', loadWidget);
+      window.removeEventListener('keydown', loadWidget);
+      window.removeEventListener('load', scheduleWidget);
+      if (fallbackTimer !== undefined) window.clearTimeout(fallbackTimer);
+    };
+
+    function loadWidget() {
+      removeLoadListeners();
+      if (document.getElementById(NEXORA_TAWK_WIDGET_SCRIPT_ID)) {
+        tawkApi.showWidget?.();
+        return;
+      }
+
       tawkWindow.Tawk_LoadStart = tawkWindow.Tawk_LoadStart ?? new Date();
       const script = document.createElement('script');
       script.id = NEXORA_TAWK_WIDGET_SCRIPT_ID;
@@ -42,11 +55,28 @@ export function NexoraTawkWidget() {
       script.charset = 'UTF-8';
       script.setAttribute('crossorigin', '*');
       script.onerror = () => script.remove();
-      const firstScript = document.getElementsByTagName('script')[0];
-      if (firstScript?.parentNode) firstScript.parentNode.insertBefore(script, firstScript);
-      else document.head.appendChild(script);
+      document.head.appendChild(script);
     }
-    return () => { pageIsActive = false; tawkApi.hideWidget?.(); };
+
+    function scheduleWidget() {
+      fallbackTimer = window.setTimeout(loadWidget, SUPPORT_LOAD_DELAY_MS);
+    }
+
+    if (existingScript) {
+      tawkApi.showWidget?.();
+    } else {
+      // Keep the third-party widget out of initial hydration on marketing pages.
+      window.addEventListener('pointerdown', loadWidget, { once: true, passive: true });
+      window.addEventListener('keydown', loadWidget, { once: true });
+      if (document.readyState === 'complete') scheduleWidget();
+      else window.addEventListener('load', scheduleWidget, { once: true });
+    }
+
+    return () => {
+      pageIsActive = false;
+      removeLoadListeners();
+      tawkApi.hideWidget?.();
+    };
   }, []);
   return null;
 }

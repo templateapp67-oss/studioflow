@@ -22,7 +22,7 @@ export const findSalonForBooking=<T extends Salon>(salons:T[],booking:{payload?:
   const slug=salonSlugOf(booking);
   return slug?salons.find(s=>s.slug.toLowerCase()===slug):undefined;
 };
-export type Booking={id:string;owner_id:string;status:string;branch_id?:string|null;starts_at?:string;ends_at?:string;hold_expires_at?:string;payload:any};
+export type Booking={id:string;owner_id:string;status:string;branch_id?:string|null;starts_at?:string;ends_at?:string;hold_expires_at?:string;web_checkout_method?:'online'|'venue'|null;payload:any};
 export type Slot={time:string;label:string;available?:boolean;stylistId:string;branchId?:string;branchName?:string};
 export const menu=(s:Salon)=>Array.isArray(s?.content?.services)?s?.content?.services:[];
 export const staff=(s:Salon)=>Array.isArray(s?.content?.stylists)?s?.content?.stylists:[];
