@@ -77,6 +77,7 @@ await act(async()=>directory.unmount());
 let resolveSlot!:(result:any)=>void;
 (supabase as any).rpc=(name:string)=>{
  if(name==='studioflow_public_branches')return Promise.resolve({data:[],error:null});
+ if(name==='studioflow_booking_specialists')return Promise.resolve({data:{published:true,specialistIds:['artist']},error:null});
  if(name==='studioflow_android_slots')return new Promise(resolve=>{resolveSlot=resolve});
  writes++;throw new Error(`Unexpected write RPC: ${name}`);
 };
