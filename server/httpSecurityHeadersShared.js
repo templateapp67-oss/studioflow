@@ -1,4 +1,5 @@
 const PRIVATE_ROOT_QUERY_KEYS = [
+  'app',
   'customer',
   'customer_ref',
   'owner',
@@ -35,8 +36,6 @@ export function isFrameableRootRequest(rawUrl, method = 'GET') {
 
   if (url.pathname !== '/') return false;
   if (PRIVATE_ROOT_QUERY_KEYS.some((key) => url.searchParams.has(key))) return false;
-
-  if (url.searchParams.get('app') === '1') return true;
 
   const requestedSlug =
     url.searchParams.get('site') ||
