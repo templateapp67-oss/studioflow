@@ -143,12 +143,12 @@ ok('webhookSecurity helper: tolerance clamp, event-id resolution, RPC mapping, f
 section = 'security headers: vercel.json and Express parity';
 // ---------------------------------------------------------------------------
 const vercel = JSON.parse(readFileSync('vercel.json', 'utf8'));
-const globalHeaders = vercel.headers.find((entry) => entry.source === '/(.*)' && Array.isArray(entry.headers)
+const globalHeaders = vercel.headers.find((entry) => entry.source === '/:path(.+)' && Array.isArray(entry.headers)
   && entry.headers.some((h) => h.key === 'Content-Security-Policy'));
-assert.ok(globalHeaders, 'vercel.json must keep a global /(.*) header block');
+assert.ok(globalHeaders, 'vercel.json must keep a strict non-root header block');
 const vercelByKey = Object.fromEntries(globalHeaders.headers.map((h) => [h.key, h.value]));
 
-const expressHeaders = await importTs('server/httpSecurityHeaders.ts');
+const expressHeaders = await import('../server/httpSecurityHeadersShared.js');
 const localByKey = expressHeaders.securityHeaders({ upgradeInsecureRequests: true });
 const vercelKeys = Object.keys(vercelByKey).sort();
 const localKeys = Object.keys(localByKey).sort();
@@ -179,7 +179,7 @@ assert.ok(vercelByKey['Content-Security-Policy'].includes('upgrade-insecure-requ
 const localOnlyHttp = expressHeaders.securityHeaders({});
 assert.ok(!('upgrade-insecure-requests' in {}) || true); // sanity
 assert.ok(!localOnlyHttp['Content-Security-Policy'].includes('upgrade-insecure-requests'), 'Express CSP must stay http-safe on localhost');
-ok('vercel.json and Express enforce identical strict headers (HSTS, nosniff, DENY, Referrer-Policy, Permissions-Policy, tight CSP)');
+ok('vercel.json non-root policy and Express default enforce identical strict headers; root same-origin framing is tested separately');
 
 const serverSource = readFileSync('server.ts', 'utf8');
 assert.ok(serverSource.includes("from \"./server/httpSecurityHeaders\""), 'server.ts must import the shared header module');

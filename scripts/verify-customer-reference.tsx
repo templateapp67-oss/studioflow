@@ -27,7 +27,7 @@ let homeTree:any;await act(async()=>{homeTree=create(<CustomerHome salons={[salo
 const recommendationPhoto=homeTree.root.findAllByType('button').find((b:any)=>b.props.className==='cr-pick-photo');assert.ok(recommendationPhoto);await act(async()=>recommendationPhoto.props.onClick());assert.equal(opening,salon.slug);
 const bookStyle=homeTree.root.findAllByType('button').find((b:any)=>b.props.children?.[0]?.trim?.()==='Book Style');await act(async()=>bookStyle.props.onClick());assert.equal(opening,salon.slug);assert.deepEqual(ids,['cut']);await act(async()=>homeTree.unmount());
 const calls:any[]=[];
-(supabase as any).rpc=async(name:string,args:any)=>{calls.push({name,args});if(name==='studioflow_android_slots')return{data:[{time:'11:00',label:'11:00 AM',available:true,stylistId:'stylist'}],error:null};if(name==='studioflow_list_reviews')return{data:{reviews:[]},error:null};return{data:null,error:null}};
+(supabase as any).rpc=async(name:string,args:any)=>{calls.push({name,args});if(name==='studioflow_public_branches')return{data:[],error:null};if(name==='studioflow_booking_specialists')return{data:{published:true,specialistIds:['stylist']},error:null};if(name==='studioflow_android_slots')return{data:[{time:'11:00',label:'11:00 AM',available:true,stylistId:'stylist'}],error:null};if(name==='studioflow_list_reviews')return{data:{reviews:[]},error:null};return{data:null,error:null}};
 const functionPrototype=Object.getPrototypeOf(supabase.functions);
 functionPrototype.invoke=async()=>({data:{webCheckout:{online:false,venue:false,mode:'test'}},error:null});
 let booking:any;await act(async()=>{booking=create(<CustomerBookingFlow salon={salon} initialIds={['cut','spa']} session={null} close={()=>{}} onCreated={()=>{}} onConfirmed={()=>{}}/>)});
@@ -60,7 +60,8 @@ functionPrototype.invoke=async(name:string,{body}:any)=>{
 };
 (supabase as any).rpc=async(name:string,args:any)=>{
  calls.push({name,args});
- if(name==='studioflow_android_slots')return{data:[{time:'11:00',label:'11:00 AM',available:true,stylistId:'stylist'}],error:null};
+ if(name==='studioflow_public_branches')return{data:[],error:null};
+ if(name==='studioflow_booking_specialists')return{data:{published:true,specialistIds:['stylist']},error:null};if(name==='studioflow_android_slots')return{data:[{time:'11:00',label:'11:00 AM',available:true,stylistId:'stylist'}],error:null};
  if(name==='studioflow_android_book'){created++;return{data:reservation,error:null};}
  return{data:null,error:null};
 };
@@ -113,7 +114,7 @@ await act(async()=>photoReview.root.findAllByProps({role:'tab'}).find((b:any)=>b
 assert.equal(photoReview.root.findByProps({alt:'Customer review photograph'}).props.src,'https://example.test/existing-review-image.jpg');assert.equal(photoReview.root.findByProps({alt:'Customer style gallery photo'}).props.src,'https://example.test/existing-review-image.jpg');await act(async()=>photoReview.unmount());console.log('PASS: existing shared review imageUrl appears in the customer style gallery and review card.');
 let demoCreated=0;confirmed=0;
 functionPrototype.invoke=async()=>{throw new Error('Demo must never invoke payments')};
-(supabase as any).rpc=async(name:string,args:any)=>{if(name==='studioflow_public_branches')return{data:[],error:null};if(name==='studioflow_android_slots')return{data:[{time:'11:00',label:'11:00 AM',available:true,stylistId:'stylist'}],error:null};assert.equal(name,'studioflow_demo_book');assert.deepEqual(args.p_services,['cut']);demoCreated++;return{data:{id:'demo',payload:{demo:true,servicePrice:0}},error:null}};
+(supabase as any).rpc=async(name:string,args:any)=>{if(name==='studioflow_public_branches')return{data:[],error:null};if(name==='studioflow_booking_specialists')return{data:{published:true,specialistIds:['stylist']},error:null};if(name==='studioflow_android_slots')return{data:[{time:'11:00',label:'11:00 AM',available:true,stylistId:'stylist'}],error:null};assert.equal(name,'studioflow_demo_book');assert.deepEqual(args.p_services,['cut']);demoCreated++;return{data:{id:'demo',payload:{demo:true,servicePrice:0}},error:null}};
 let demoFlow:any;await act(async()=>{demoFlow=create(<CustomerBookingFlow demo salon={salon} initialIds={['cut']} session={member} customerProfile={{full_name:'Demo Member',phone:'9876543210'}} close={()=>{}} onCreated={()=>{}} onConfirmed={()=>confirmed++}/>)});
 await act(async()=>demoFlow.root.findAllByType('button').find((b:any)=>b.props.children==='Continue to Specialist & Slot').props.onClick());
 await act(async()=>demoFlow.root.findAllByType('button').find((b:any)=>b.props.children?.[0]?.props?.children==='11:00 AM').props.onClick());
@@ -128,6 +129,7 @@ const branchSalon={...salon,content:{...salon.content,profile:{...salon.content.
 let branchDemo:any,branchSlotQueries=0;
 (supabase as any).rpc=async(name:string,args:any)=>{
  if(name==='studioflow_public_branches')return{data:branches,error:null};
+ if(name==='studioflow_branch_specialists')return{data:{published:true,specialistIds:['stylist']},error:null};
  if(name==='studioflow_branch_android_slots'){
   assert.equal(args.p_branch,'branch-two');branchSlotQueries++;
   return{data:[{time:'11:00',label:'11:00 AM',available:true,stylistId:'stylist'}],error:null};
@@ -149,6 +151,71 @@ assert.ok(branchDemo);assert.equal(confirmed,2);await act(async()=>demoFlow.unmo
 const demoCard=renderToStaticMarkup(<CustomerAppointments bookings={[{id:'demo-1',owner_id:'owner',status:'confirmed',payload:{demo:true,serviceName:'Demo haircut',servicePrice:0,amountPaid:0}}]} salons={[salon]} loading={false} error="" refresh={()=>{}} rebook={()=>{}} pay={()=>{throw new Error('Demo cannot pay')}} signIn={()=>{}} signedIn/>);
 assert.ok(demoCard.includes('₹0 DEMO'));assert.ok(!demoCard.includes('Pay 25% advance'));assert.ok(!demoCard.includes('Reschedule'));
 console.log('PASS: ₹0 demo summaries, including multi-location, save through isolated RPCs without payment or real reservation; demo card clearly labelled with payment actions hidden.');
+
+const replacedBranchSalon = {
+ ...salon,
+ content: {
+  ...salon.content,
+  profile: {...salon.content.profile,branches:[branches[0]]},
+  stylists: [...salon.content.stylists,{id:'foreign-staff',name:'Unassigned Tattoo Artist'}],
+ },
+};
+let hasProfessional = false;
+let nextDayOnly = false;
+const slotDates:string[] = [];
+functionPrototype.invoke=async()=>({data:{webCheckout:{online:false,venue:false,mode:'test'}},error:null});
+(supabase as any).rpc=async(name:string,args:any)=>{
+ if(name==='studioflow_public_branches')return{data:[branches[1]],error:null};
+ if(name==='studioflow_branch_specialists'){
+  assert.equal(args.p_branch,'branch-two','use the current public branch, not the published snapshot ID');
+  return{data:{published:true,specialistIds:hasProfessional&&args.p_service_id==='cut'?['stylist']:[]},error:null};
+ }
+ assert.equal(name,'studioflow_branch_android_slots');
+ assert.equal(args.p_branch,'branch-two');
+ slotDates.push(args.p_date);
+ if(nextDayOnly&&args.p_date!==istDate(2))return{data:[],error:null};
+ return{data:[
+  {time:'11:00',label:'11:00 AM',available:true,stylistId:'stylist'},
+  {time:'12:00',label:'12:00 PM',available:true,stylistId:'foreign-staff'},
+ ],error:null};
+};
+let locationBooking:any;
+const openLocationBooking=async(initialIds=['cut'])=>{
+ await act(async()=>{locationBooking=create(<CustomerBookingFlow salon={replacedBranchSalon} initialIds={initialIds} session={null} close={()=>{}} onCreated={()=>{}} onConfirmed={()=>{}}/>)});
+ const buttons=()=>locationBooking.root.findAllByType('button');
+ await act(async()=>buttons().find((b:any)=>b.props.children==='Continue to Specialist & Slot').props.onClick());
+ await act(async()=>buttons().find((b:any)=>b.props.children?.[0]==='Tomorrow').props.onClick());
+};
+await openLocationBooking();
+assert.equal(slotDates.length,0,'no slot lookup without an eligible professional');
+assert.match(JSON.stringify(locationBooking.toJSON()),/No professional with a booking schedule/);
+assert.doesNotMatch(JSON.stringify(locationBooking.toJSON()),/Unassigned Tattoo Artist/);
+await act(async()=>locationBooking.unmount());
+hasProfessional=true;
+await openLocationBooking();
+assert.equal(slotDates.at(-1),istDate(1),'Tomorrow requests the next IST date');
+assert.match(JSON.stringify(locationBooking.toJSON()),/11:00 AM/);
+assert.doesNotMatch(JSON.stringify(locationBooking.toJSON()),/12:00 PM|Unassigned Tattoo Artist/);
+await act(async()=>locationBooking.unmount());
+nextDayOnly=true;
+slotDates.length=0;
+await openLocationBooking(['cut','spa']);
+assert.match(JSON.stringify(locationBooking.toJSON()),/No scheduled professional can perform this combination/);
+assert.equal(slotDates.length,0);
+const findLocationButton=(lead:string)=>locationBooking.root.findAllByType('button').find((b:any)=>
+ (Array.isArray(b.props.children)?b.props.children.join(''):String(b.props.children)).startsWith(lead));
+assert.equal(findLocationButton('Continue with Published Spa'),undefined);
+await act(async()=>findLocationButton('Continue with Published Haircut only').props.onClick());
+assert.equal(slotDates.at(-1),istDate(1));
+await act(async()=>findLocationButton('Find next available date').props.onClick());
+assert.equal(slotDates.at(-1),istDate(2));
+assert.equal(locationBooking.root.findByProps({'aria-label':'Appointment date'}).props.value,istDate(1),
+ 'finding the first opening cannot change the customer’s selected date');
+await act(async()=>findLocationButton('Show slots for').props.onClick());
+assert.equal(locationBooking.root.findByProps({'aria-label':'Appointment date'}).props.value,istDate(2));
+assert.match(JSON.stringify(locationBooking.toJSON()),/11:00 AM/);
+await act(async()=>locationBooking.unmount());
+console.log('PASS: an unstaffed service can be excluded explicitly and the earliest verified future date is actionable.');
 
 const banners=homeBanners([salon]);assert.equal(banners.length,5);assert.equal(new Set(banners.map(b=>b.image)).size,5);assert.equal(homeBanners([]).length,5);
 assert.deepEqual(bannerStep(4,1),{index:3,direction:-1});assert.deepEqual(bannerStep(0,-1),{index:1,direction:1});

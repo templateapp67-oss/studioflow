@@ -1,30 +1,44 @@
 /**
- * Route legacy published-salon root URLs through the dynamic SSR function.
- *
- * The Vercel file system serves dist/index.html before vercel.json rewrites
- * are evaluated for "/", so a rewrite-only rule can silently return the SPA
- * shell (HTTP 200) instead of invoking api/storefront.ts.
- *
- * This lightweight Vercel Routing Middleware runs before the static file
- * lookup. It deliberately leaves platform/customer app query routes alone.
+ * Route published salon root URLs through the dynamic SSR function and apply
+ * request-scoped frame/security headers before Vercel serves the rewritten
+ * response. Only public same-origin app/storefront root documents may frame.
  */
+import {
+  isFrameableRootRequest,
+  securityHeaders,
+} from './server/httpSecurityHeadersShared.js';
 
-function continueRequest() {
-  return new Response(null, {
+function withSecurityHeaders(response, requestUrl, method) {
+  const headers = new Headers(response.headers);
+  const policy = securityHeaders({
+    upgradeInsecureRequests: true,
+    allowSameOriginFraming: isFrameableRootRequest(requestUrl, method),
+  });
+  for (const [name, value] of Object.entries(policy)) headers.set(name, value);
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+function continueRequest(requestUrl = '/', method = 'GET') {
+  return withSecurityHeaders(new Response(null, {
     headers: {
       'x-middleware-next': '1',
       'x-nexora-ssr-middleware': 'continue',
     },
-  });
+  }), requestUrl, method);
 }
 
-function rewriteRequest(destination) {
-  return new Response(null, {
+function rewriteRequest(destination, requestUrl, method) {
+  return withSecurityHeaders(new Response(null, {
     headers: {
       'x-middleware-rewrite': destination.toString(),
       'x-nexora-ssr-middleware': 'rewrite-root-site-query',
     },
-  });
+  }), requestUrl, method);
 }
 
 function validSlug(value) {
@@ -33,16 +47,16 @@ function validSlug(value) {
 }
 
 export default function middleware(request) {
+  const url = new URL(request.url);
   if (request.method !== 'GET' && request.method !== 'HEAD') {
-    return continueRequest();
+    return continueRequest(url, request.method);
   }
 
-  const url = new URL(request.url);
-  if (url.pathname !== '/') return continueRequest();
+  if (url.pathname !== '/') return continueRequest(url, request.method);
 
   // Owner, customer and OAuth entry points must continue to use the normal app.
   if (['app', 'customer', 'customer_ref'].some((key) => url.searchParams.has(key))) {
-    return continueRequest();
+    return continueRequest(url, request.method);
   }
 
   const requestedSlug =
@@ -51,7 +65,7 @@ export default function middleware(request) {
     url.searchParams.get('subdomain') ||
     '';
   const slug = validSlug(requestedSlug);
-  if (!slug) return continueRequest();
+  if (!slug) return continueRequest(url, request.method);
 
   const destination = new URL('/api/storefront', url);
   destination.searchParams.set('path', '/');
@@ -59,7 +73,7 @@ export default function middleware(request) {
   destination.searchParams.delete('s');
   destination.searchParams.delete('subdomain');
 
-  return rewriteRequest(destination);
+  return rewriteRequest(destination, url, request.method);
 }
 
 export const config = {

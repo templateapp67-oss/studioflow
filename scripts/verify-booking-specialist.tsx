@@ -53,3 +53,33 @@ assert.ok(calls.every(call=>['studioflow_android_slots','studioflow_mens_slots',
  (supabase as any).rpc=original;
 }
 console.log('PASS: specialist RPC outage falls back to the salon roster with a notice, matches multi-service assignment and keeps View Profile passive.');
+
+// A stale branch in the website content must never authorize a staff or slot lookup.
+{
+ const initialBranch={id:'stale',name:'Old location',city:'Jaipur',address:'',phone:'',isActive:true,operatingHours:[]};
+ const liveBranch={...initialBranch,id:'verified',name:'Live location'};
+ const branchesCalls:string[]=[];
+ let settleBranches:(value:any)=>void=()=>{};
+ (supabase as any).rpc=(name:string,args:any)=>{
+   branchesCalls.push(name);
+   if(name==='studioflow_public_branches')return new Promise(resolve=>{settleBranches=resolve;});
+   assert.equal(args.p_branch,liveBranch.id);
+   if(name==='studioflow_branch_specialists')return Promise.resolve({data:{published:true,specialistIds:[template.stylists[0].id]},error:null});
+   assert.equal(name,'studioflow_branch_available_slots');
+   return Promise.resolve({data:[],error:null});
+ };
+ let view:any;
+ await act(async()=>{view=create(<BookingModal isOpen onClose={()=>{}} profile={{...INITIAL_SALON_PROFILE,subdomain:'qa-legacy',branches:[initialBranch]}} services={template.services} stylists={template.stylists}/>);});
+ assert.deepEqual(branchesCalls,['studioflow_public_branches']);
+ await act(async()=>settleBranches({data:null,error:{message:'Network error'}}));
+ assert.deepEqual(branchesCalls,['studioflow_public_branches']);
+ const next=()=>view.root.findAllByType('button').find((node:any)=>text(node).includes('Continue to Date & Slot'));
+ assert.ok(next().props.disabled);
+ await act(async()=>view.root.findAllByType('button').find((node:any)=>text(node)==='Retry locations').props.onClick());
+ assert.deepEqual(branchesCalls,['studioflow_public_branches','studioflow_public_branches']);
+ await act(async()=>settleBranches({data:[liveBranch],error:null}));
+ assert.deepEqual(branchesCalls.slice(2),['studioflow_branch_specialists','studioflow_branch_available_slots']);
+ assert.equal(next().props.disabled,false);
+ await act(async()=>view.unmount());
+ console.log('PASS: storefront ignores stale draft locations, blocks requests during lookup failures and retries with the verified branch.');
+}

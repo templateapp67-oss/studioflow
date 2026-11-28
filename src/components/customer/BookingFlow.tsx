@@ -4,6 +4,7 @@ import type {Session} from '@supabase/supabase-js';
 import {X,ArrowLeft,CalendarDays,Clock,User,Phone,Mail,Scissors,MapPin,Pencil} from 'lucide-react';
 import {supabase} from '../../lib/supabase';
 import {parseBookingSlots,type BookingSlot} from '../../lib/bookingSlots';
+import {indiaDate} from '../../lib/bookingDates';
 import {bookingEmailValid,bookingMobileValid,payBookingDeposit,prepareWebCheckout,reconcileBookingPayment,webCheckoutStatus,type WebPaymentMethod} from '../../lib/platformPayments';
 import type {Appointment} from '../../types';
 import {BookingPaymentOptions,BookingReceiptActions} from './BookingReceiptActions';
@@ -11,6 +12,17 @@ import {clearPendingBookingFlow,savePendingBookingFlow} from '../../lib/authEntr
 import {AuthPage} from '../AuthPage';
 import {Salon,Slot,Booking,menu,staff,rupees,istDate,dateLabel,advance,message} from './model';
 import {Photo,ServiceCard,Notice} from './Parts';
+
+function readAppointmentSlots(slug:string,ids:string[],date:string,stylist:string,branchId:string){
+ const args={p_slug:slug,p_services:ids,p_date:date,p_stylist:stylist};
+ return branchId?supabase.rpc('studioflow_branch_android_slots',{...args,p_branch:branchId}):supabase.rpc('studioflow_android_slots',args);
+}
+
+function eligibleAppointmentSlots(data:unknown[],ids:string[],stylist:string,branchId:string){
+ return parseBookingSlots(data).filter((s):s is BookingSlot&{stylistId:string}=>
+  s.available&&typeof s.stylistId==='string'&&ids.includes(s.stylistId)
+  &&(stylist==='any'||s.stylistId===stylist)&&(!s.branchId||s.branchId===branchId));
+}
 export function useCustomerDialog(close:()=>void){const ref=useRef<HTMLElement>(null);const closeRef=useRef(close);closeRef.current=close;useEffect(()=>{if(typeof document==='undefined')return;const previous=document.activeElement as HTMLElement|null;const old=document.body.style.overflow;document.body.style.overflow='hidden';ref.current?.querySelector<HTMLElement>('button,input')?.focus();const key=(e:KeyboardEvent)=>{if(e.key==='Escape'){e.preventDefault();closeRef.current();}if(e.key==='Tab'){const controls=Array.from(ref.current?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href]')||[]) as HTMLElement[];const visible=controls.filter(x=>x.getClientRects().length);if(!visible.length)return;if(e.shiftKey&&document.activeElement===visible[0]){e.preventDefault();visible.at(-1)?.focus()}else if(!e.shiftKey&&document.activeElement===visible.at(-1)){e.preventDefault();visible[0]?.focus()}}};document.addEventListener('keydown',key);return()=>{document.body.style.overflow=old;document.removeEventListener('keydown',key);previous?.focus()};},[]);return ref;}
 async function qrRequest(action:string,id:string){const {data,error}=await supabase.functions.invoke('nexora-mobile-qr',{body:{action,bookingId:id}});if(error){let text=error.message;try{text=(await (error as any).context?.json())?.error||text}catch{}throw new Error(text)}if(data?.error)throw new Error(data.error);return data;}
 export function CustomerBookingFlow({salon,initialIds=[],initialStylist='any',initialDate,initialSlot,initialBranchId='',initialNotes='',initialStage,session,customerProfile,close,onCreated,onConfirmed,existing,demo=false}:{key?:React.Key;salon:Salon;initialIds?:string[];initialStylist?:string;initialDate?:string;initialSlot?:Slot;initialBranchId?:string;initialNotes?:string;initialStage?:'select'|'summary';session:Session|null;demo?:boolean;customerProfile?:{full_name:string;phone:string};close:()=>void;onCreated:()=>void;onConfirmed:()=>void;existing?:Booking}){
@@ -31,31 +43,88 @@ export function CustomerBookingFlow({salon,initialIds=[],initialStylist='any',in
  useEffect(()=>{content.current?.scrollTo({top:0,behavior:'auto'})},[stage,selectStep]);
  const initialSlotApplied=useRef(false);
  const request=useRef({finger:'',id:''});const ref=useCustomerDialog(()=>{if(!busy)close()});const serviceKey=JSON.stringify(ids);
+ const [locationCheck,setLocationCheck]=useState<{slug:string;error?:string}|null>(null);
+ const [eligibleStaff,setEligibleStaff]=useState<{key:string;ids:string[];servicesWithStaff?:string[];error?:string}|null>(null);
+ const activeBranches=branchChoices.filter((b:any)=>b.isActive!==false);
+ const locationReady=locationCheck?.slug===salon.slug&&!locationCheck.error
+  &&(!activeBranches.length||activeBranches.some((b:any)=>b.id===branchId));
+ const staffQueryKey=JSON.stringify([salon.slug,serviceKey,branchId]);
+ const currentStaff=eligibleStaff?.key===staffQueryKey?eligibleStaff:null;
+ const selectableStaff=locationReady&&currentStaff&&!currentStaff.error
+  ?stylists.filter(s=>currentStaff.ids.includes(s.id)):[];
+ const canCheckSlots=locationReady&&currentStaff&&!currentStaff.error&&currentStaff.ids.length>0
+  &&(stylist==='any'||currentStaff.ids.includes(stylist));
+ const availabilityError=locationCheck?.error||currentStaff?.error||slotError;
  const slotQueryKey=JSON.stringify([salon.slug,serviceKey,stylist,date,branchId,demo]);
+ const nextDateRequest=useRef(0);
+ const [nextDate,setNextDate]=useState<{checking?:boolean;date?:string;message?:string}>({});
+ useEffect(()=>{
+  setNextDate({});
+  return()=>{nextDateRequest.current++;};
+ },[slotQueryKey,retry]);
  const lastSlotQueryKey=useRef(slotQueryKey);
  const [validatedSlotQueryKey,setValidatedSlotQueryKey]=useState('');
  // A restored summary can render before its availability request completes.
  // Only enable the handoff after this exact selection has been revalidated.
- const slotVerified=!!slot&&!slotLoading&&validatedSlotQueryKey===slotQueryKey
+ const slotVerified=canCheckSlots&&!!slot&&!slotLoading&&validatedSlotQueryKey===slotQueryKey
   &&!(branchChoices.some((b:any)=>b.isActive!==false)&&!branchId)
   &&slots.some(s=>s.time===slot.time&&s.stylistId===slot.stylistId);
  useEffect(()=>{if(auth&&!session&&!existing)savePendingBookingFlow({salonSlug:salon.slug,ids,stylist,date,slot,branchId,notes,demo});},[auth,session?.user.id,existing,salon.slug,serviceKey,stylist,date,slot,branchId,notes,demo]);
- useEffect(()=>{if(!salon.slug)return;let active=true;void supabase.rpc('studioflow_public_branches',{p_slug:salon.slug}).then(({data,error})=>{if(!active)return;if(!error&&Array.isArray(data)&&data.some((b:any)=>typeof b?.id==='string'&&typeof b?.name==='string')){setBranchChoices(data.filter((b:any)=>typeof b?.id==='string'&&typeof b?.name==='string').map((b:any)=>({id:b.id,name:b.name,city:b.city||'',address:b.address||'',phone:b.phone||'',isActive:b.isActive!==false,operatingHours:b.operatingHours||[]})));}});return()=>{active=false}},[salon.slug,demo]);
- useEffect(()=>{const active=branchChoices.filter((b:any)=>b.isActive!==false);if(active.length===1)setBranchId(active[0].id);else if(active.length>1&&!active.some((b:any)=>b.id===branchId))setBranchId('');},[branchChoices,branchId]);
+ useEffect(()=>{
+  if(!salon.slug||reserved)return;
+  let active=true;
+  setLocationCheck(null);
+  void Promise.resolve(supabase.rpc('studioflow_public_branches',{p_slug:salon.slug})).then(({data,error})=>{
+   if(error||!Array.isArray(data)||!data.every(b=>typeof b?.id==='string'&&typeof b?.name==='string')){
+    throw new Error('Could not verify the salon location. Please retry.');
+   }
+   if(!active)return;
+   const locations=data.filter(b=>b.isActive!==false);
+   setBranchChoices(locations);
+   setBranchId(current=>locations.some(b=>b.id===current)?current:locations.length===1?locations[0].id:'');
+   setLocationCheck({slug:salon.slug});
+  }).catch(()=>{
+   if(active)setLocationCheck({slug:salon.slug,error:'Could not verify the salon location. Please retry.'});
+  });
+  return()=>{active=false;};
+ },[salon.slug,retry,reserved?.id]);
+ useEffect(()=>{
+  if(!locationReady||!ids.length||reserved)return;
+  let active=true;
+  setEligibleStaff(null);
+  void Promise.all(ids.map(id=>branchId
+   ?supabase.rpc('studioflow_branch_specialists',{p_slug:salon.slug,p_service_id:id,p_branch:branchId})
+   :supabase.rpc('studioflow_booking_specialists',{p_slug:salon.slug,p_service_id:id})))
+   .then(results=>{
+    if(!active)return;
+    if(results.some(({data,error})=>error||data?.published!==true||!Array.isArray(data.specialistIds))){
+     throw new Error('Could not verify the professionals for this service. Please retry.');
+    }
+    const matching=(results[0].data.specialistIds as unknown[]).filter(
+     (id):id is string=>typeof id==='string'&&results.every(({data})=>data.specialistIds.includes(id))
+    );
+    const servicesWithStaff=ids.filter((_,index)=>results[index].data.specialistIds.some((id:unknown)=>typeof id==='string'));
+    setEligibleStaff({key:staffQueryKey,ids:matching,servicesWithStaff});
+    setStylist(current=>current==='any'||matching.includes(current)?current:'any');
+   }).catch(()=>{
+    if(active)setEligibleStaff({key:staffQueryKey,ids:[],error:'Could not verify the professionals for this service. Please retry.'});
+   });
+  return()=>{active=false;};
+ },[staffQueryKey,locationReady,retry,reserved?.id]);
  useEffect(()=>{
   let active=true;
   if(reserved||!ids.length){setSlots([]);setValidatedSlotQueryKey('');setSlotLoading(false);return;}
-  if(branchChoices.filter((b:any)=>b.isActive!==false).length>1&&!branchId){setSlots([]);setSlot(null);setValidatedSlotQueryKey('');setSlotLoading(false);return;}
+  if(!canCheckSlots||!/^\d{4}-\d{2}-\d{2}$/.test(date)){setSlots([]);setValidatedSlotQueryKey('');setSlotLoading(false);setSlotError('');return;}
   const queryChanged=lastSlotQueryKey.current!==slotQueryKey;lastSlotQueryKey.current=slotQueryKey;
   if(queryChanged)setSlot(null);
   setSlotLoading(true);setSlotError('');setValidatedSlotQueryKey('');
-  const request=branchId?supabase.rpc('studioflow_branch_android_slots',{p_slug:salon.slug,p_services:ids,p_date:date,p_stylist:stylist,p_branch:branchId}):supabase.rpc('studioflow_android_slots',{p_slug:salon.slug,p_services:ids,p_date:date,p_stylist:stylist});
+  const request=readAppointmentSlots(salon.slug,ids,date,stylist,branchId);
   void request.then(({data,error})=>{
    if(!active)return;
    setSlotLoading(false);
    if(error||!Array.isArray(data)){setSlots([]);setSlot(null);setSlotError(error?message(error):'Could not load availability. Please retry.')}
    else {
-    const rows=parseBookingSlots(data).filter((s):s is BookingSlot&{stylistId:string}=>s.available&&typeof s.stylistId==='string');
+    const rows=eligibleAppointmentSlots(data,currentStaff!.ids,stylist,branchId);
     setSlots(rows);setValidatedSlotQueryKey(slotQueryKey);
     if(!initialSlotApplied.current){
      initialSlotApplied.current=true;
@@ -66,7 +135,31 @@ export function CustomerBookingFlow({salon,initialIds=[],initialStylist='any',in
    }
   },error=>{if(active){setSlotLoading(false);setSlots([]);setSlot(null);setSlotError(message(error));}});
   return()=>{active=false}
- },[salon.slug,serviceKey,stylist,date,retry,reserved?.id,branchId,branchChoices.length,demo,slotQueryKey]);
+ },[salon.slug,serviceKey,stylist,date,retry,reserved?.id,branchId,demo,slotQueryKey,canCheckSlots,currentStaff]);
+ async function findNextAvailableDate(){
+  if(!canCheckSlots||!currentStaff||nextDate.checking)return;
+  const selectedDay=new Date(`${date}T12:00:00+05:30`);
+  if(!Number.isFinite(selectedDay.getTime()))return;
+  const ticket=++nextDateRequest.current;
+  setNextDate({checking:true});
+  try{
+   const latest=istDate(90);
+   for(let offset=1;offset<=7;offset++){
+    const candidate=indiaDate(offset,selectedDay);
+    if(candidate>latest)break;
+    if(candidate<istDate())continue;
+    const {data,error}=await readAppointmentSlots(salon.slug,ids,candidate,stylist,branchId);
+    if(ticket!==nextDateRequest.current)return;
+    if(error||!Array.isArray(data))throw new Error('Could not check the next dates.');
+    if(eligibleAppointmentSlots(data,currentStaff.ids,stylist,branchId).length){
+     setNextDate({date:candidate});return;
+    }
+   }
+   setNextDate({message:'No availability found in the next 7 days for this selection.'});
+  }catch{
+   if(ticket===nextDateRequest.current)setNextDate({message:'Could not check the next dates. Please retry.'});
+  }
+ }
  useEffect(()=>{if(session){setAuth(false);setName(n=>n||customerProfile?.full_name||(typeof session.user.user_metadata?.full_name==='string'?session.user.user_metadata.full_name:''));setPhone(n=>n||customerProfile?.phone||'');}},[session?.user.id,customerProfile?.full_name,customerProfile?.phone]);
  useEffect(()=>{
   if(demo||existing)return;
@@ -198,6 +291,16 @@ export function CustomerBookingFlow({salon,initialIds=[],initialStylist='any',in
  {method==='online'&&checkout?.online&&checkout.mode==='test'&&<p>Razorpay Test Mode</p>}
  {!demo&&!validCheckoutAmount&&<Notice>The booking total must be greater than ₹0 for online checkout.</Notice>}
  {!demo&&!reserved&&!!coupon.code.trim()&&!coupon.quote&&<Notice>Apply or clear your coupon code before continuing.</Notice>}
+ </section><section className="cr-selection-panel" hidden={selectStep!==2}><div className="cr-step-title"><h3><span>2</span> Choose Professional</h3></div><div className="cr-stylist-select"><button className={stylist==='any'?'active':''} disabled={!canCheckSlots} onClick={()=>setStylist('any')}><span className="cr-avatar-placeholder"><User size={19}/></span><strong>Any Available</strong><small>First available professional</small></button>{selectableStaff.map(s=><button className={s.id===stylist?'active':''} key={s.id} onClick={()=>setStylist(s.id)}><Photo src={s.avatarUrl} alt="" className="cr-avatar-photo"/><strong>{s.name}</strong><small>{s.role}</small></button>)}</div>
+ <div className="cr-step-title"><h3><span>3</span> Select Date & Slot</h3><small>Live salon availability</small></div><div className="cr-day-select"><button className={date===istDate()?'active':''} onClick={()=>setDate(istDate())}>Today<small>{dateLabel(istDate())}</small></button><button className={date===istDate(1)?'active':''} onClick={()=>setDate(istDate(1))}>Tomorrow<small>{dateLabel(istDate(1))}</small></button><label><CalendarDays size={12}/> Calendar<input aria-label="Appointment date" type="date" min={istDate()} max={istDate(90)} value={date} onChange={e=>setDate(e.target.value)}/></label></div><div className="cr-row cr-slot-heading"><span><Clock size={12}/> Available Time Slots</span><small>{slots.length} slots available</small></div>{availabilityError?<><Notice>{availabilityError}</Notice><button className="cr-outline" onClick={()=>setRetry(x=>x+1)}>Retry availability</button></>:(!locationReady||!currentStaff||slotLoading)?<p role="status" className="cr-muted">Checking salon availability…</p>:!currentStaff.ids.length?<><Notice>{ids.length>1?'No scheduled professional can perform this combination at this location.':'No professional with a booking schedule is available for this service at this location. Contact the salon to check its staff schedule.'}</Notice>
+ {ids.length>1&&chosen.filter(service=>currentStaff.servicesWithStaff?.includes(service.id)).map(service=><button key={service.id} type="button" className="cr-outline" onClick={()=>{setIds([service.id]);setSlot(null);setStylist('any');setError('');}}>Continue with {service.name} only</button>)}</>:slots.length?<div className="cr-slot-grid">{slots.map(s=><button className={slot?.time===s.time&&slot?.stylistId===s.stylistId?'active':''} key={s.time+s.stylistId} onClick={()=>setSlot(s)} aria-pressed={slot?.time===s.time&&slot?.stylistId===s.stylistId}><strong>{s.label||s.time}</strong><small>{rupees(total)}</small></button>)}</div>:<><Notice>{ids.length?'No slots are available on this date for this selection.':'Choose your services to see available slots.'}</Notice>
+ {canCheckSlots&&<>{nextDate.date
+  ?<button type="button" className="cr-outline" onClick={()=>{setSlot(null);setDate(nextDate.date!);}}>Show slots for {dateLabel(nextDate.date)}</button>
+  :<button type="button" className="cr-outline" disabled={nextDate.checking} onClick={()=>void findNextAvailableDate()}>{nextDate.checking?'Checking next dates…':'Find next available date'}</button>}
+ {nextDate.message&&<Notice>{nextDate.message}</Notice>}</>}</>}</section></>:
+ stage==='summary'?<>{!reserved&&slotLoading&&<Notice>Checking salon availability…</Notice>}{!reserved&&availabilityError&&<><Notice>{availabilityError}</Notice><button className="cr-outline" onClick={()=>setRetry(x=>x+1)}>Retry slots</button></>}{!demo&&<BookingCoupon coupon={coupon} disabled={!!reserved||busy}/>}{!reserved&&services.some(s=>(p.bookingAddOnServiceIds||[]).includes(s.id))&&<section className="sf-booking-addons"><h3>Add-on services / customization</h3><p>Optional extras add their price and duration. Changing extras requires a new slot selection.</p>{services.filter(s=>(p.bookingAddOnServiceIds||[]).includes(s.id)).map(extra=><label key={extra.id}><input type="checkbox" checked={ids.includes(extra.id)} disabled={busy||(!ids.includes(extra.id)&&ids.length>=10)} onChange={e=>{const checked=e.target.checked;setIds(old=>checked?[...old,extra.id]:old.filter(id=>id!==extra.id));setSlot(null);setSelectStep(2);setStage('select');}}/>{extra.name} · ₹{extra.price} · {extra.durationMinutes} min</label>)}</section>}<SummaryBox n="1" title="SALON & VENUE" action={edit}><div className="cr-summary-venue"><Photo src={p.coverImageUrl} alt=""/><div><h3>{p.businessName}</h3><p><MapPin size={11}/>{[branch?.address||p.address,branch?.city||p.city].filter(Boolean).join(', ')}</p></div></div></SummaryBox><SummaryBox n="2" title={`SELECTED SERVICES (${chosen.length})`} action={edit}>{chosen.map(s=><div className="cr-summary-service" key={s.id}><div><b><Scissors size={12}/>{s.name}</b><small><Clock size={10}/>{s.durationMinutes} mins</small></div><strong>{rupees(s.price)}</strong></div>)}</SummaryBox><SummaryBox n="3" title="ASSIGNED PROFESSIONAL" action={edit}><div className="cr-row cr-start"><Photo src={actual?.avatarUrl} alt="" className="cr-avatar-photo"/><div><h3>{actual?.name||'Available professional'}</h3><p>{actual?.role||'Assigned from live availability'}</p></div></div></SummaryBox><SummaryBox n="4" title="DATE & APPOINTMENT WINDOW" action={edit}><div className="cr-window"><span className="cr-calendar-icon"><CalendarDays size={19}/></span><div><b>{date}</b><small>Slot: {slot?.label||slot?.time} IST</small></div><div><small>Duration</small><strong>{minutes} mins total</strong></div></div></SummaryBox><SummaryBox n="5" title="CONTACT FOR THIS APPOINTMENT"><div className="cr-form"><label><User size={12}/> Full name<input value={name} required minLength={2} maxLength={150} disabled={!!reserved} onChange={e=>setName(e.target.value)} autoComplete="name"/></label><label><Phone size={12}/> WhatsApp mobile number<input value={phone} required inputMode="tel" maxLength={20} disabled={!!reserved} onChange={e=>setPhone(e.target.value)} autoComplete="tel"/></label><label><Mail size={12}/> Email address<input type="email" required maxLength={254} disabled={!!reserved} value={email} autoComplete="email" onChange={event=>setEmail(event.target.value)} /></label></div></SummaryBox><SummaryBox n="6" title="SPECIAL INSTRUCTIONS"><textarea className="cr-notes" aria-label="Special instructions" placeholder="No special instructions added…" value={notes} disabled={!!reserved} maxLength={1000} onChange={e=>setNotes(e.target.value)}/></SummaryBox>{demo?<SummaryBox n="7" title="DEMO — NO PAYMENT"><p>Service list price: {rupees(total)}</p><div className="cr-total-row"><b>Demo amount payable</b><b>₹0</b></div><p>No advance or balance is due. This is a practice booking only.</p></SummaryBox>:<SummaryBox n="7" title="PAYMENT">
+ <BookingPaymentOptions method={method} onChange={setMethod} venue={!!checkout?.venue} locked={busy||!!reserved} />
+ {method==='online'&&checkout?.mode==='test'&&<p>Razorpay Test Mode</p>}
  <label className="flex items-center gap-2"><input type="checkbox" checked={whatsappConsent} disabled={busy||!!reserved} onChange={event=>setWhatsappConsent(event.target.checked)} /> Send my receipt on WhatsApp</label>
  </SummaryBox>}{!session&&<Notice>Sign in to confirm this appointment. Your selections stay here.</Notice>}</>:
  stage==='confirmed'&&confirmation?<><BookingReceiptActions booking={confirmation}/><button className="cr-primary cr-wide" onClick={onConfirmed}>View My Bookings</button></>:

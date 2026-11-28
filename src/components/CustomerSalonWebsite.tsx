@@ -110,6 +110,15 @@ function storefrontCanonicalUrl(profile:SalonProfile):string|undefined{
  const selector=current.searchParams.get('site')||current.searchParams.get('s')||current.searchParams.get('subdomain');
  return selector?current.origin+'/?site='+encodeURIComponent(selector):current.origin+current.pathname;
 }
+function navigateCustomerAccount(url: string): void {
+ if (typeof window === 'undefined') return;
+ if (window.self !== window.top) {
+  window.open(url, '_blank', 'noopener,noreferrer');
+  return;
+ }
+ window.location.assign(url);
+}
+
 function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGallery=[],policies,branding,loyaltyConfig,onManageDashboard,onCustomerAccount,customerSignedIn,customerName,customerPhotoUrl,onAddAppointment,readOnly,live}:SalonWebsitePreviewProps){
  useSeoMetadata(profile,storefrontCanonicalUrl(profile),Boolean(live));
  const {t}=useWebsiteLanguage();
@@ -218,7 +227,7 @@ function CustomerSalonWebsiteContent({profile,services,stylists,gallery:inputGal
   if(skincare && (!clinicBookingAvailable || !pool.length || (selected && !pool.some(item=>item.id===selected.id)))){ document.getElementById('contact')?.scrollIntoView({behavior:'smooth'}); return; }
   setDirectSlot(undefined);setService(selected||pool[0]);setChosen(current=>specialist||current);setBooking(true);
  };
- const customer=(mode:'signin'|'signup')=>onCustomerAccount?onCustomerAccount(mode):location.assign(`/?customer=1&auth=${mode}&return=${encodeURIComponent(profile.subdomain||'')}`);
+ const customer=(mode:'signin'|'signup')=>onCustomerAccount?onCustomerAccount(mode):navigateCustomerAccount(`/?customer=1&auth=${mode}&return=${encodeURIComponent(profile.subdomain||'')}`);
  const mapUrl=Number.isFinite(profile.latitude)&&Number.isFinite(profile.longitude)?`https://www.google.com/maps/search/?api=1&query=${profile.latitude},${profile.longitude}`:`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([profile.address,profile.city,profile.postalCode].filter(Boolean).join(', '))}`;
 
  const roopContact=roopMahal?roopMahalContactSummary(profile,mapUrl,wa):null;
