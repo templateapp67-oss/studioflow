@@ -13,13 +13,20 @@ export async function paymentRequest(action:string,data:Record<string,unknown>={
  if(result?.error)throw new Error(result.error);return result;
 }
 export type WebPaymentMethod = 'online' | 'venue';
-export const bookingEmailValid = (email: string) => email.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-export const bookingMobileValid = (phone: string) => /^(91)?[6-9]\d{9}$/.test(phone.replace(/\D/g, ''));
+export type WebCheckoutStatus = {
+ online: boolean;
+ venue: boolean;
+ mode: string;
+ onlineReason?: 'available' | 'credentials_missing' | 'mode_mismatch' | 'invalid_mode';
+ onlineMessage?: string;
+};
+export const bookingEmailValid = (email: string) => email.length <= 254 && /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email);
+export const bookingMobileValid = (phone: string) => /^(91)?[6-9]\\d{9}$/.test(phone.replace(/\\D/g, ''));
 
-export async function webCheckoutStatus(): Promise<{ online: boolean; venue: boolean; mode: string }> {
+export async function webCheckoutStatus(): Promise<WebCheckoutStatus> {
  const { data, error } = await supabase.functions.invoke('studioflow-payments', { method: 'GET' });
- if (error || !data?.webCheckout) throw new Error('Booking checkout is temporarily unavailable.');
- return data.webCheckout;
+ if (error || !data?.webCheckout) throw new Error('Booking checkout is temporarily unavailable. Please retry.');
+ return data.webCheckout as WebCheckoutStatus;
 }
 
 export async function prepareWebCheckout(bookingId: string, email: string, method: WebPaymentMethod, whatsapp: boolean): Promise<Appointment> {
