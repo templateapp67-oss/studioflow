@@ -2066,7 +2066,12 @@
     "relations": 273,
     "assessment": "Read-only owner-supplied live catalog; not a live migration dry-run or deployment."
   },
-  "release_pending_migrations": [],
+  "release_pending_migrations": [
+    {
+      "file": "20261128000000_fix_studioflow_android_profile_permissions.sql",
+      "reason": "Grant authenticated EXECUTE on public.studioflow_android_profile() and USAGE on studioflow_android_private."
+    }
+  ],
   "reviewed_feature_migrations": [
     {
       "file": "20261117130000_reconcile_template15_multiservice_booking.sql",

@@ -61,6 +61,8 @@ export interface BookingModalProps {
   initialCouponCode?: string;
   consultation?: ConsultationDetails;
   onAddAppointment?: (appointment: Appointment) => void | Promise<Appointment>;
+  customerSignedIn?: boolean;
+  onCustomerAccount?: (mode?: 'signin' | 'signup') => void;
   themeAccentHex?: string;
   onShowToast?: (toast: {
     id: string;
@@ -111,6 +113,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   initialCouponCode,
   consultation,
   onAddAppointment: inputOnAddAppointment,
+  customerSignedIn,
+  onCustomerAccount,
   themeAccentHex = '#0f172a',
   onShowToast,
   // Alias props
@@ -305,6 +309,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const isAuraCheckout=profile.businessType==='unisex_salon';
   const coupon=useBookingCoupon(profile.subdomain,bookingServiceIds,profile.businessType==='mens_hair_studio'?'studioflow_mens_coupon_quote':isAuraCheckout?'studioflow_aura_coupon_quote':'studioflow_coupon_quote');
   const totalPrice=serverTotal??coupon.quote?.finalPrice??subtotal;
+  const validCheckoutAmount=Number.isFinite(Number(totalPrice))&&Number(totalPrice)>0;
   // Step 2: Date & Time Slot
   const todayStr=indiaDate();
   const tomorrowStr=indiaDate(1);
@@ -354,6 +359,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [paidAmount,setPaidAmount]=useState(0);
   const [gatewayError,setGatewayError]=useState('');
   const [gatewayReady,setGatewayReady]=useState(false);
+  const [gatewayChecking,setGatewayChecking]=useState(false);
   const reservedBooking=useRef<Appointment|null>(null);
   const reservedRequest=useRef('');
   const [venueEnabled,setVenueEnabled]=useState(false);
@@ -364,22 +370,34 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [confirmedBooking, setConfirmedBooking] = useState<Appointment|null>(null);
 
   useEffect(() => {
-    if (!isOpen || isDraft || isTemplatePreview) return;
+    if (!isOpen || isTemplatePreview) {
+      setGatewayChecking(false);
+      return;
+    }
     let active = true;
     setGatewayReady(false);
     setVenueEnabled(false);
     setGatewayError('');
+    setGatewayChecking(!isDraft);
     setPaymentMethod('online');
     setConfirmedBooking(null);
     setWhatsappConsent(true);
+    if (isDraft) {
+      setGatewayError('Payments are activated after this salon website is published.');
+      return () => { active = false; };
+    }
     void webCheckoutStatus().then(status => {
       if (!active) return;
       setGatewayReady(status.online);
       setVenueEnabled(status.venue);
       setWebPaymentMode(status.mode);
+      setGatewayError(status.online ? '' : status.onlineMessage || 'Razorpay is currently unavailable.');
       if (!status.online && status.venue) setPaymentMethod('venue');
-      if (!status.online && !status.venue) setGatewayError('Checkout is unavailable. Contact the salon.');
-    }).catch(error => { if (active) setGatewayError(error.message); });
+    }).catch(error => {
+      if (active) setGatewayError(error instanceof Error ? error.message : 'Could not verify Razorpay availability. Please retry.');
+    }).finally(() => {
+      if (active) setGatewayChecking(false);
+    });
     return () => { active = false; };
   }, [isOpen, isDraft, isTemplatePreview]);
 
@@ -476,6 +494,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   // Confirm booking & generate reference
   const handleFinalSubmitBooking = async () => {
     if (isTemplatePreview) { setSubmitError('Template preview only. No appointment or payment can be created.'); return; }
+    if (isDraft) { setSubmitError('Publish this salon website before accepting real bookings or payments.'); return; }
+    if (paymentMethod === 'online' && !validCheckoutAmount) { setSubmitError('Razorpay checkout requires a payable amount above ₹0. Check the selected service prices and try again.'); return; }
+    if (customerSignedIn === false) {
+      setSubmitError('Sign in to securely create this booking and continue to Razorpay. Your selections are still saved in this form.');
+      onCustomerAccount?.('signin');
+      return;
+    }
     if (isSubmitting) return;
     setIsSubmitting(true); setSubmitError('');
     try {
@@ -520,8 +545,16 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
     if (!bookingEmailValid(guestEmail.trim()) || !validatePhone(guestPhone) || guestName.trim().length < 2)
       throw new Error('Enter your full name, WhatsApp number and valid email address.');
-    if (paymentMethod === 'online' ? !gatewayReady : !venueEnabled)
-      throw new Error(gatewayError || 'This payment option is unavailable.');
+    const activeCheckout = await webCheckoutStatus();
+    setGatewayReady(activeCheckout.online);
+    setVenueEnabled(activeCheckout.venue);
+    setWebPaymentMode(activeCheckout.mode);
+    setGatewayError(activeCheckout.online ? '' : activeCheckout.onlineMessage || 'Razorpay is currently unavailable.');
+    if (paymentMethod === 'online' ? !activeCheckout.online : !activeCheckout.venue) {
+      throw new Error(paymentMethod === 'online'
+        ? activeCheckout.onlineMessage || 'Razorpay checkout is unavailable.'
+        : 'Pay at Venue is not enabled for this salon.');
+    }
     const requestKey=JSON.stringify([bundleKey,selectedBranchId,selectedStylist.id,bookingDate,bookingTime,guestName.trim(),cleanPhone,guestEmail.trim(),paymentMethod,coupon.quote?.code]);
     if(reservedBooking.current&&reservedRequest.current!==requestKey)throw new Error('A booking is already reserved. Finish its payment or close this form and choose a new slot.');
     if(!reservedBooking.current){const reservation=await onAddAppointment(newApt);if(!reservation)throw new Error('Booking was not saved. Please retry.');reservedBooking.current=reservation;reservedRequest.current=requestKey;setServerTotal(reservation.servicePrice);setBookingRef(reservation.id);
@@ -1231,13 +1264,33 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               </div>
 
               {!isTemplatePreview && <>
-                <BookingPaymentOptions method={paymentMethod} onChange={setPaymentMethod} venue={venueEnabled} locked={isSubmitting || !!reservedBooking.current} />
-                {paymentMethod === 'online' && webPaymentMode === 'test' && <p className="text-sm">Razorpay Test Mode</p>}
+                <BookingPaymentOptions
+                  method={paymentMethod}
+                  onChange={setPaymentMethod}
+                  venue={venueEnabled && !isDraft}
+                  locked={isSubmitting || !!reservedBooking.current}
+                  onlineAvailable={gatewayReady && !gatewayChecking && !isDraft && validCheckoutAmount}
+                  onlineMessage={isDraft ? gatewayError : gatewayChecking ? 'Checking Razorpay availability…' : !validCheckoutAmount ? 'Razorpay requires a payable amount above ₹0.' : gatewayError}
+                />
+                {paymentMethod === 'online' && webPaymentMode === 'test' && gatewayReady && <p className="text-sm">Razorpay Test Mode</p>}
+                {customerSignedIn === false && !isDraft && (
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-violet-200 bg-violet-50 p-3 text-sm text-violet-950">
+                    <p>Sign in is required before a secure booking and payment can be created. Your selections remain in this form.</p>
+                    <button
+                      type="button"
+                      data-testid="booking-customer-signin"
+                      className="rounded-lg border border-violet-300 bg-white px-3 py-2 font-semibold"
+                      onClick={() => onCustomerAccount?.('signin')}
+                      disabled={!onCustomerAccount}
+                    >
+                      Sign in to continue
+                    </button>
+                  </div>
+                )}
+                {!validCheckoutAmount && <p role="alert" className="text-sm text-amber-800">A valid amount above ₹0 is required for online checkout.</p>}
                 <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={whatsappConsent} onChange={event => setWhatsappConsent(event.target.checked)} disabled={isSubmitting || !!reservedBooking.current} /> Send my booking receipt to this WhatsApp number</label>
               </>}
               {taxExcluded && <p role="note" className="p-3 rounded-xl bg-amber-50 text-amber-900 text-sm">GST is not included in the amount shown or calculated by this checkout. Please confirm the final tax and balance with the studio.</p>}
-              {gatewayError&&<p data-testid="booking-gateway-error" role="alert" className="p-3 rounded-xl bg-amber-50 text-amber-900 text-sm">{gatewayError}</p>}
-
               {submitError && <p data-testid="booking-submit-error" role="alert" className="rounded-xl bg-red-50 p-3 text-red-700 text-sm">{submitError}</p>}
               {reservedBooking.current&&paymentMethod==='online'&&<button type="button" disabled={isSubmitting} className="text-sm underline" onClick={async()=>{setIsSubmitting(true);setSubmitError('');try{const saved=await reconcileBookingPayment(reservedBooking.current!.id);setServerStatus(saved.status);setPaidAmount(saved.amountPaid);setBookingRef(saved.id);setServerTotal(saved.servicePrice);setConfirmedBooking(saved);setCurrentStep('confirmed');}catch(error){setSubmitError(error instanceof Error?error.message:'Could not verify payment');}finally{setIsSubmitting(false);}}}>Recheck payment status</button>}
               </motion.div>
@@ -1483,12 +1536,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   type="button"
                   data-testid="booking-pay-submit"
                   onClick={handleFinalSubmitBooking}
-                  disabled={!bookingServiceIds.length || !bookingTime || !specialistsReady || !specialistCheck?.published || !eligibleStylists.length || isSubmitting || isTemplatePreview || (paymentMethod==='online'?!gatewayReady:!venueEnabled) || coupon.busy || (!reservedBooking.current && !!coupon.code.trim() && !coupon.quote)}
+                  disabled={!bookingServiceIds.length || !bookingTime || !specialistsReady || !specialistCheck?.published || !eligibleStylists.length || (paymentMethod === 'online' && !validCheckoutAmount) || isSubmitting || isTemplatePreview || isDraft || gatewayChecking || coupon.busy || (!reservedBooking.current && !!coupon.code.trim() && !coupon.quote)}
                   className="flex-1 py-3.5 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95"
                   style={actionStyle}
                 >
                   <CalendarCheck className="w-4 h-4" />
-                  <span>{isTemplatePreview ? 'Demo preview — no payment' : isSubmitting ? 'Processing booking…' : paymentMethod === 'venue' ? 'Confirm & Pay at Venue' : `${reservedBooking.current ? 'Retry payment' : 'Pay'} ₹${totalPrice.toLocaleString('en-IN')}`}</span>
+                  <span>{isTemplatePreview ? 'Demo preview — no payment' : isDraft ? 'Preview only — publish to activate payments' : isSubmitting ? 'Processing booking…' : customerSignedIn === false ? 'Sign in to continue' : paymentMethod === 'venue' ? 'Confirm & Pay at Venue' : `${reservedBooking.current ? 'Retry payment' : 'Pay'} ₹${Number(totalPrice).toLocaleString('en-IN')}`}</span>
                 </button>
               </div>
             </>)}</footer>}

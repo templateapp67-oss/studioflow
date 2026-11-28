@@ -76,8 +76,9 @@ async function openCheckout(){
 }
 const payButton=()=>checkout.root.findAllByType('button').find((b:any)=>typeof b.props.children==='string'&&b.props.children.startsWith('Pay ₹'));
 await openCheckout();
-assert.equal(payButton().props.disabled,true);
-assert.equal(created,0,'Disabled payment configuration must not reserve a slot');
+assert.equal(payButton().props.disabled,false,'a click can refresh a stale/unknown payment capability');
+await act(async()=>payButton().props.onClick());
+assert.equal(created,0,'A failed click-time server capability check must not reserve a slot');
 await act(async()=>checkout.unmount());
 enabled=true;
 await openCheckout();
