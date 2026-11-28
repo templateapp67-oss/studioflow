@@ -202,8 +202,8 @@ assert.equal(wwwRedirect.destination, 'https://nexorasalon.online/$1', 'the cano
 
 // Only same-origin public root app/storefront documents can be framed.
 for (const [sampleUrl, expectedFrame] of [
-  ['/?app=1', 'SAMEORIGIN'],
-  ['/?app=1&install=1', 'SAMEORIGIN'],
+  ['/?app=1', 'DENY'],
+  ['/?app=1&install=1', 'DENY'],
   ['/?site=salon-preview-01', 'SAMEORIGIN'],
   ['/?s=salon-preview-01', 'SAMEORIGIN'],
   ['/?subdomain=salon-preview-01', 'SAMEORIGIN'],
@@ -212,6 +212,7 @@ for (const [sampleUrl, expectedFrame] of [
   ['/?customer=1', 'DENY'],
   ['/?customer_ref=abc', 'DENY'],
   ['/?app=1&customer_ref=abc', 'DENY'],
+  ['/?site=salon-preview-01&app=1', 'DENY'],
   ['/?app=1&owner=1', 'DENY'],
   ['/?app=1&panel=security', 'DENY'],
   ['/?app=1&create=1', 'DENY'],
@@ -348,4 +349,5 @@ assert.ok(appInstallSource.includes('noopener noreferrer'), 'external app/instal
 assert.ok(appInstallSource.includes("target: '_blank'"), 'external app/install overrides must not navigate the preview iframe');
 assert.ok(appInstallSource.includes("resolved.protocol !== 'https:' && resolved.protocol !== 'http:'"), 'app/install URLs must reject executable and non-web schemes');
 assert.ok(appInstallSource.includes("if (resolved.protocol !== 'https:') return { href: '#' }"), 'external HTTP overrides must not be opened from a secure site');
+assert.ok(appInstallSource.includes("resolved.searchParams.get('app') === '1'"), 'customer app routes must open outside the template preview frame');
 console.log('PASS: enforcing CSP matches runtime integrations; same-origin public root app/storefront routes frame safely; private roots and every non-root route remain blocked.');
