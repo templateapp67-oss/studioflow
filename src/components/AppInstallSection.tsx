@@ -1,6 +1,6 @@
 import './appInstallSection.css';
 /**
- * AppInstallSection — the one app-install banner used by all 14 website
+ * AppInstallSection — the shared app-install banner used by salon website
  * templates.
  *
  * It replaced a full-bleed, indigo-gradient panel that ignored the host
@@ -67,17 +67,20 @@ export interface AppInstallSectionProps {
   'aria-label'?: string;
 }
 
-type ExternalLinkProps = Pick<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'target' | 'rel'>;
+type SafeLinkProps = Pick<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'href' | 'target' | 'rel'>;
 
-/** Custom absolute URLs must not navigate the embedded template preview frame. */
-function externalLinkProps(href: string): ExternalLinkProps {
+/** Resolve app links against the current tenant origin; external HTTPS links leave the preview frame. */
+function safeAppLinkProps(href: string): SafeLinkProps {
+  const currentOrigin = typeof window === 'undefined' ? 'https://nexorasalon.online' : window.location.origin;
   try {
-    const currentOrigin = typeof window === 'undefined' ? 'https://nexorasalon.online' : window.location.origin;
-    return new URL(href.trim(), currentOrigin).origin === currentOrigin
-      ? {}
-      : { target: '_blank', rel: 'noopener noreferrer' };
+    const trimmed = href.trim();
+    const resolved = new URL(trimmed, currentOrigin);
+    if (resolved.protocol !== 'https:' && resolved.protocol !== 'http:') return { href: '#' };
+    if (resolved.origin === currentOrigin) return { href: trimmed };
+    if (resolved.protocol !== 'https:') return { href: '#' };
+    return { href: resolved.toString(), target: '_blank', rel: 'noopener noreferrer' };
   } catch {
-    return {};
+    return { href: '#' };
   }
 }
 
@@ -121,8 +124,8 @@ export function AppInstallSection({
   'aria-label': ariaLabel = 'Install and share Nexora customer app',
 }: AppInstallSectionProps) {
   const [notice, setNotice] = useState('');
-  const installLinkProps = externalLinkProps(installHref);
-  const openLinkProps = externalLinkProps(openHref);
+  const installLinkProps = safeAppLinkProps(installHref);
+  const openLinkProps = safeAppLinkProps(openHref);
 
   if (hidden) return null;
 
@@ -156,7 +159,6 @@ export function AppInstallSection({
         <a
           {...installLinkProps}
           className="app-install__media"
-          href={installHref}
           aria-label="Open the Nexora app install guide"
         >
           <img
@@ -183,11 +185,11 @@ export function AppInstallSection({
 
           <div className="app-install__actions">
             {installControl || (
-              <a {...installLinkProps} className="app-install__cta" href={installHref}>
+              <a {...installLinkProps} className="app-install__cta">
                 {installLabel}
               </a>
             )}
-            <a {...openLinkProps} className="app-install__cta app-install__cta--ghost" href={openHref}>
+            <a {...openLinkProps} className="app-install__cta app-install__cta--ghost">
               {openLabel}
             </a>
           </div>
