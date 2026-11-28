@@ -2066,21 +2066,7 @@
     "relations": 273,
     "assessment": "Read-only owner-supplied live catalog; not a live migration dry-run or deployment."
   },
-  "release_pending_migrations": [
-    {
-      "file": "20261127143001_booking_slot_availability_repair.sql",
-      "purpose": "Pending booking availability, staff assignment and branch schedule repair, unchanged from unapplied 20261127140001. Replaces scoped RPCs and records schedule provenance; existing legacy shifts require owner review. Listed for release planning only, not applied or approved for production."
-    },
-    {
-      "file": "20261127143100_iron_ink_availability_ist.sql",
-      "purpose": "Pending Iron Ink IST availability and booking conflict repair, unchanged from unapplied 20261127140100; conditionally updates the optional branch RPC only where installed. Depends on the preceding booking availability repair. Listed for release planning only, not applied or approved for production."
-    },
-    {
-      "file": "20261127143200_cross_ledger_booking_conflicts.sql",
-      "sha256": "11f264465e8b8ac62a642ffe389410764b5bfaf2bd029a64d39b38a0aef040bb",
-      "purpose": "Pending conservative owner-level conflict serialization between normalized and StudioFlow appointments; refuses unreviewed active legacy rows and conditionally installs only when the normalized schema exists. Must follow the two preceding repairs. Listed for release planning only, not applied or approved for production."
-    }
-  ],
+  "release_pending_migrations": [],
   "reviewed_feature_migrations": [
     {
       "file": "20261117130000_reconcile_template15_multiservice_booking.sql",
@@ -2124,15 +2110,6 @@
     }
   ],
   "post_export_applied_versions": [
-    {
-      "version": "20261125100000",
-      "file": "20261125100000_studioflow_auth_access_hardening.sql",
-      "name": "studioflow_auth_access_hardening",
-      "observed_at": "2026-11-26",
-      "evidence": "Confirmed in the remote supabase_migrations.schema_migrations history for project zilwgiuiygqqardzutxi; the remote history now contains this version, so the local-only pending set is empty. The corresponding local SQL source exists in main.",
-      "purpose": "Scoped staff invite delivery, private table and storage MFA policies, an authenticated Data API assurance check, and immutable booking identity on direct updates; applied to the remote production project and reconciled into the reviewed applied-history ledger.",
-      "git_blob_sha": "37f68184fc6b3194dae42936431b8d4f25b6e0da"
-    },
     {
       "version": "20261116100000",
       "file": "20261116100000_nexora_whatsapp_optional_profiles.sql",
@@ -2197,15 +2174,6 @@
       "git_blob_sha": "29901239635b72fd43f2402dd0ffef78a4e5f56c"
     },
     {
-      "version": "20261119080000",
-      "file": "20261119080000_staff_role_permissions.sql",
-      "name": "staff_role_permissions",
-      "observed_at": "2026-11-19",
-      "evidence": "Applied to project zilwgiuiygqqardzutxi on 2026-11-19 (role matrix functions, permission check helper, branch role constraint) and recorded in the remote supabase_migrations.schema_migrations history.",
-      "purpose": "Role-level permissions: canonical staff access-role normalizer, server-side permission matrix mirroring src/lib/staffPermissions.ts, caller branch-role helper, and a pinned branch role CHECK constraint with legacy value normalization. Additive and read-only; no RLS policy is widened.",
-      "git_blob_sha": "d1fc8a79337e024878c082a59e75149221db6135"
-    },
-    {
       "version": "20261119070000",
       "file": "20261119070000_unified_salon_crm.sql",
       "name": "unified_salon_crm",
@@ -2213,6 +2181,15 @@
       "evidence": "Confirmed against the live supabase_migrations.schema_migrations history (top of list) for project zilwgiuiygqqardzutxi; local SQL source already exists in the repo.",
       "purpose": "Additive unified salon CRM tables (crm_tasks, crm_contacts, crm_activities) in studioflow_android_private, owner-only RLS, with the owner CRM RPCs consumed by src.",
       "git_blob_sha": "7534812d812d8f127bd84dbd7a604546c3128e6f"
+    },
+    {
+      "version": "20261119080000",
+      "file": "20261119080000_staff_role_permissions.sql",
+      "name": "staff_role_permissions",
+      "observed_at": "2026-11-19",
+      "evidence": "Applied to project zilwgiuiygqqardzutxi on 2026-11-19 (role matrix functions, permission check helper, branch role constraint) and recorded in the remote supabase_migrations.schema_migrations history.",
+      "purpose": "Role-level permissions: canonical staff access-role normalizer, server-side permission matrix mirroring src/lib/staffPermissions.ts, caller branch-role helper, and a pinned branch role CHECK constraint with legacy value normalization. Additive and read-only; no RLS policy is widened.",
+      "git_blob_sha": "d1fc8a79337e024878c082a59e75149221db6135"
     },
     {
       "version": "20261119120000",
@@ -2258,15 +2235,6 @@
       "evidence": "Applied to project zilwgiuiygqqardzutxi on 2026-11-21. Verified live: anon has no SELECT on public.studioflow_websites, public_salon_websites exposes no owner_id column, studioflow_customer_catalog() returns salons without owner_id, and booking payloads carry salonSlug.",
       "purpose": "Anonymous storefront reads no longer carry a salon's owner UUID; bookings join on the public slug instead.",
       "git_blob_sha": "8389139eee2c78041896bb0cfaa9e930b8cbc2e4"
-    },
-    {
-      "version": "20261123082445",
-      "file": "20261123082445_studioflow_robust_website_publish.sql",
-      "name": "studioflow_robust_website_publish",
-      "observed_at": "2026-11-23",
-      "evidence": "Confirmed in supabase_migrations.schema_migrations on project zilwgiuiygqqardzutxi on 2026-11-23.",
-      "purpose": "Hardens studioflow_private.publish() checklist validation, collision-safe slug locking, and non-blocking partner_referrals/growth_onboarding updates.",
-      "git_blob_sha": "681fd451d9fb67eb24b3b531f304edcc27ffef57"
     },
     {
       "version": "20261122043650",
@@ -2422,6 +2390,15 @@
       "git_blob_sha": "317d7f62df064326806f3500f5fde587547d7867"
     },
     {
+      "version": "20261123082445",
+      "file": "20261123082445_studioflow_robust_website_publish.sql",
+      "name": "studioflow_robust_website_publish",
+      "observed_at": "2026-11-23",
+      "evidence": "Confirmed in supabase_migrations.schema_migrations on project zilwgiuiygqqardzutxi on 2026-11-23.",
+      "purpose": "Hardens studioflow_private.publish() checklist validation, collision-safe slug locking, and non-blocking partner_referrals/growth_onboarding updates.",
+      "git_blob_sha": "681fd451d9fb67eb24b3b531f304edcc27ffef57"
+    },
+    {
       "version": "20261124095101",
       "file": "20261124095101_studioflow_bookings_hold_expires_at_compat.sql",
       "name": "studioflow_bookings_hold_expires_at_compat",
@@ -2456,6 +2433,15 @@
       "evidence": "Production workflow run 45672308803, job 139412576712, listed this exact version in both local and remote columns for project zilwgiuiygqqardzutxi.",
       "purpose": "Records the applied shared lead rate-limit RPC in the repository ledger.",
       "git_blob_sha": "4366729c0a672cabfbbfe09795b9f03e22909e2d"
+    },
+    {
+      "version": "20261125100000",
+      "file": "20261125100000_studioflow_auth_access_hardening.sql",
+      "name": "studioflow_auth_access_hardening",
+      "observed_at": "2026-11-26",
+      "evidence": "Confirmed in the remote supabase_migrations.schema_migrations history for project zilwgiuiygqqardzutxi; the remote history now contains this version, so the local-only pending set is empty. The corresponding local SQL source exists in main.",
+      "purpose": "Scoped staff invite delivery, private table and storage MFA policies, an authenticated Data API assurance check, and immutable booking identity on direct updates; applied to the remote production project and reconciled into the reviewed applied-history ledger.",
+      "git_blob_sha": "37f68184fc6b3194dae42936431b8d4f25b6e0da"
     },
     {
       "version": "20261126120000",
@@ -2573,6 +2559,33 @@
       "evidence": "Confirmed applied on production project zilwgiuiygqqardzutxi by the read-only Supabase migration history and Production workflow remote migration list. The booking checkout columns, studioflow_booking_receipts table with RLS, both checkout triggers, and service-role-only RPC/table grants were independently verified read-only on 2026-11-28.",
       "purpose": "Records the already-applied web checkout and receipt-delivery schema in the reviewed applied-history ledger. This reconciliation does not re-run the migration or change production data.",
       "git_blob_sha": "84ba4f20b04ea638236e9b5ba7613a5dae57cd20"
+    },
+    {
+      "version": "20261127143001",
+      "file": "20261127143001_booking_slot_availability_repair.sql",
+      "name": "booking_slot_availability_repair",
+      "observed_at": "2026-11-28",
+      "evidence": "Confirmed recorded as applied on production project zilwgiuiygqqardzutxi by read-only migration history. All 49 stored remote SQL statements reconstruct to the tracked source with whitespace normalization; the booking availability function and trigger inventory was independently inspected read-only. This records observed database history only; it does not re-run SQL or authorize a new production apply.",
+      "purpose": "Records the production-applied booking slot availability and schedule-provenance repair in the applied-history ledger. No production data or schema was changed during this reconciliation.",
+      "git_blob_sha": "f576803f4478a681e3f326268ac006f318707338"
+    },
+    {
+      "version": "20261127143100",
+      "file": "20261127143100_iron_ink_availability_ist.sql",
+      "name": "iron_ink_availability_ist",
+      "observed_at": "2026-11-28",
+      "evidence": "Confirmed recorded as applied on production project zilwgiuiygqqardzutxi by read-only migration history. All 8 stored remote SQL statements reconstruct to the tracked source with whitespace normalization; the booking availability function and trigger inventory was independently inspected read-only. This records observed database history only; it does not re-run SQL or authorize a new production apply.",
+      "purpose": "Records the production-applied Iron Ink IST availability and booking-conflict repair in the applied-history ledger. No production data or schema was changed during this reconciliation.",
+      "git_blob_sha": "db1d743936a551f9fd290a89fba132ebf115e211"
+    },
+    {
+      "version": "20261127143200",
+      "file": "20261127143200_cross_ledger_booking_conflicts.sql",
+      "name": "cross_ledger_booking_conflicts",
+      "observed_at": "2026-11-28",
+      "evidence": "Confirmed recorded as applied on production project zilwgiuiygqqardzutxi by read-only migration history. All 15 stored remote SQL statements reconstruct to the tracked source with whitespace normalization; the expected booking/cross-ledger function and trigger inventory was independently inspected read-only. This records observed database history only; it does not re-run SQL or authorize a new production apply.",
+      "purpose": "Records the production-applied cross-ledger booking conflict guards in the applied-history ledger. No production data or schema was changed during this reconciliation.",
+      "git_blob_sha": "b077e2e596f0d9b3c35611c03f7bdb1a2a0ab605"
     }
   ],
   "retimestamped_applied_migrations": [
