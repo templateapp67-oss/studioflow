@@ -237,6 +237,25 @@ for (const path of NEXORA_ECOSYSTEM_ROUTES) {
 }
 
 /* The client renderer must own the same head as the build, from one source. */
+const aboutDocument = readFileSync('dist/about/index.html', 'utf8');
+for (const content of [
+  'Free salon website template demos',
+  'Android Salon Booking App',
+  '₹25,000',
+  '₹20,000',
+  'mailto:bestsinger11@gmail.com',
+  'https://wa.me/917852877721?text=',
+  'NEXORA Editorial Team',
+]) assert.ok(aboutDocument.includes(content), `About prerenders ${content}`);
+assert.ok(aboutDocument.includes('src="/nexora-about/salon-operations.webp"') && existsSync('dist/nexora-about/salon-operations.webp'), 'About artwork ships with the site');
+const aboutCatalog = aboutDocument.match(/<section id="free-salon-website-templates"[\s\S]*?<\/section>/)?.[0] ?? '';
+const aboutTemplateUrls = new Set(Array.from(aboutCatalog.matchAll(/href="(\/template-pages\/[^"]+\.html)"/g), (match) => match[1]));
+assert.equal(aboutTemplateUrls.size, 16, 'About links directly to all public template demos');
+for (const url of aboutTemplateUrls) assert.ok(existsSync('dist' + url), `Template demo exists at ${url}`);
+for (const id of ['salonos', 'free-salon-website-templates', 'android-salon-booking-app', 'about-faq']) {
+  assert.ok(aboutDocument.includes(`href="#${id}"`) && aboutDocument.includes(`id="${id}"`), `About section navigation resolves to ${id}`);
+}
+
 const page = readFileSync('src/components/nexora-landing/NexoraEcosystemPage.tsx', 'utf8');
 assert.ok(
   page.includes('<NexoraEcosystemSeoHead path={path} />'),

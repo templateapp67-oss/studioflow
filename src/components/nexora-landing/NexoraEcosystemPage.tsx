@@ -4,13 +4,14 @@ import { NexoraEcosystemSeoHead } from './NexoraEcosystemSeoHead';
 import { NexoraEcosystemHero } from './ecosystem/NexoraEcosystemHero';
 import { NEXORA_KNOWLEDGE_BASE_URL } from '../../lib/nexoraSupport';
 import { NEXORA_OFFICIAL_WHATSAPP_URL } from '../../lib/whatsappContact';
+import { NexoraAboutContent } from './NexoraAboutContent';
 import { NexoraGrowthPartnerRewardsPage } from './NexoraGrowthPartnerRewardsPage';
 
 const pageData = {
   '/about': {
-    title: 'About NEXORA Salon OS.',
-    heading: 'Built for salon businesses.',
-    intro: 'NEXORA Salon OS is a salon website builder and business-management platform for salons, spas and beauty businesses. Explore what the platform supports, who maintains its product guidance and how to contact the team.',
+    title: 'About NEXORA SalonOS',
+    heading: 'Salon management software, websites and Android booking apps.',
+    intro: 'Build a branded salon website, manage daily operations in NEXORA SalonOS, or buy a ready-made Android booking app for your salon, spa or beauty business.',
   },
   '/salon-onboarding': {
     title: 'Create Your Own Salon Brand With Nexora.',
@@ -61,16 +62,13 @@ export function NexoraEcosystemPage({ path }: { path: keyof typeof pageData }) {
       path={path}
       heading={page.heading}
       intro={page.intro}
-      primaryLabel={isOnboarding ? 'Explore Templates' : isAbout ? 'Contact NEXORA' : 'Explore Salon Growth'}
-      primaryHref={isOnboarding ? '#templates' : isAbout ? NEXORA_OFFICIAL_WHATSAPP_URL : '#growth'}
+      primaryLabel={isOnboarding ? 'Explore Templates' : isAbout ? 'Explore Free Template Demos' : 'Explore Salon Growth'}
+      primaryHref={isOnboarding ? '#templates' : isAbout ? '#free-salon-website-templates' : '#growth'}
       tagNumber={isAbout ? '04' : isOnboarding ? '01' : '02'}
     />
     <main>
       {isAbout ? <>
-        <section id="about-nexora" className="mx-auto max-w-6xl px-5 py-14">
-          <h2 className="text-3xl font-extrabold">What NEXORA does</h2>
-          <p className="mt-4 max-w-3xl leading-7 text-[#665d6c]">NEXORA brings a salon website and day-to-day business tools into one platform. Salon owners can choose from 16 website templates, customise services and staff details, publish a customer-facing website, and use supported tools for appointments, customers, billing, inventory, campaigns and reports. Available features depend on configuration and the published plan details.</p>
-        </section>
+        <NexoraAboutContent />
         <section id="editorial-team" className="border-t border-[#eee] bg-[#fcfafc] px-5 py-12">
           <div className="mx-auto max-w-6xl">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#84617a]">Editorial profile</p>
