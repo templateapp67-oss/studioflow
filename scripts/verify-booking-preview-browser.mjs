@@ -189,20 +189,22 @@ try {
     await modal.locator(frameSelector).waitFor({ state: 'attached' });
     const frame = page.frameLocator(frameSelector);
     const appCard = frame.locator('.app-install__card');
-    if (await appCard.count() === 0) {
+    if (id === 'mens_hair_studio') {
       // KeshKraft/Men's Hair Studio is the deliberately bespoke template:
-      // it does not render the shared app-install banner. Its account CTA
-      // stays in the iframe as a non-navigating preview notice.
-      assert.equal(id, 'mens_hair_studio', `${id}: only the bespoke men's template may omit the shared app banner`);
+      // it has a non-navigating account notice instead of the shared banner.
+      await frame.getByRole('button', { name: 'Manage your customer account' }).waitFor({ state: 'visible' });
       await frame.getByRole('button', { name: 'Manage your customer account' }).click();
       const accountNotice = frame.getByRole('status');
       await accountNotice.waitFor({ state: 'visible' });
       assert.match(await accountNotice.innerText(), /Customer accounts are enabled on the published studio\. This preview does not create an account\./);
+      assert.equal(await appCard.count(), 0, 'KeshKraft remains the documented bespoke no-banner template');
       await modal.getByRole('button', { name: 'Close template preview' }).click();
       await modal.waitFor({ state: 'hidden' });
       console.log('PASS mens_hair_studio: custom account CTA remains in the preview and never navigates the iframe');
       continue;
     }
+    // Aurelia and all other shared-banner templates render asynchronously
+    // inside the srcDoc portal. Wait for the actual banner, not an early count.
     await appCard.waitFor({ state: 'visible' });
 
     const appLinks = frame.locator('.app-install__actions > a');
