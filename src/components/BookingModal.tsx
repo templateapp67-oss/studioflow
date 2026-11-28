@@ -545,8 +545,16 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
     if (!bookingEmailValid(guestEmail.trim()) || !validatePhone(guestPhone) || guestName.trim().length < 2)
       throw new Error('Enter your full name, WhatsApp number and valid email address.');
-    if (paymentMethod === 'online' ? !gatewayReady : !venueEnabled)
-      throw new Error(gatewayError || 'This payment option is unavailable.');
+    const activeCheckout = await webCheckoutStatus();
+    setGatewayReady(activeCheckout.online);
+    setVenueEnabled(activeCheckout.venue);
+    setWebPaymentMode(activeCheckout.mode);
+    setGatewayError(activeCheckout.online ? '' : activeCheckout.onlineMessage || 'Razorpay is currently unavailable.');
+    if (paymentMethod === 'online' ? !activeCheckout.online : !activeCheckout.venue) {
+      throw new Error(paymentMethod === 'online'
+        ? activeCheckout.onlineMessage || 'Razorpay checkout is unavailable.'
+        : 'Pay at Venue is not enabled for this salon.');
+    }
     const requestKey=JSON.stringify([bundleKey,selectedBranchId,selectedStylist.id,bookingDate,bookingTime,guestName.trim(),cleanPhone,guestEmail.trim(),paymentMethod,coupon.quote?.code]);
     if(reservedBooking.current&&reservedRequest.current!==requestKey)throw new Error('A booking is already reserved. Finish its payment or close this form and choose a new slot.');
     if(!reservedBooking.current){const reservation=await onAddAppointment(newApt);if(!reservation)throw new Error('Booking was not saved. Please retry.');reservedBooking.current=reservation;reservedRequest.current=requestKey;setServerTotal(reservation.servicePrice);setBookingRef(reservation.id);
