@@ -27,22 +27,37 @@ export function resolveBookingSpecialists(ids: string[], published: Stylist[], f
   });
 }
 
+/** Match the published JSON catalogue's active/archived conventions. */
+export function isBookingServiceActive(service: { id: string } | null | undefined): boolean {
+  if (!service || typeof service !== 'object') return false;
+  const row = service as unknown as Record<string, unknown>;
+  const flag = (key: string, fallback: string) => String(row[key] ?? fallback).toLowerCase();
+  return typeof row.id === 'string' && row.id.trim().length > 0
+    && !['false', '0'].includes(flag('isActive', 'true'))
+    && !['false', '0'].includes(flag('is_active', 'true'))
+    && !['false', '0'].includes(flag('active', 'true'))
+    && !['inactive', 'archived', 'deleted'].includes(flag('status', 'active'))
+    && !['true', '1'].includes(flag('deleted', 'false'))
+    && !['true', '1'].includes(flag('archived', 'false'))
+    && !row.deletedAt && !row.deleted_at && !row.archivedAt && !row.archived_at;
+}
+
 /**
- * Client-side fallback used ONLY while the specialist RPC is unavailable (function not
- * deployed yet, stale PostgREST schema cache, network error). It mirrors the SQL rule from
- * migration 202611050001 so the step can still render staff cards instead of a dead end:
- * the specialist must be Available, scheduled at the chosen branch (when schedules are
- * listed) and assigned to EVERY selected service (a missing/empty assignment list means
- * "all services"). The server stays authoritative: it re-validates eligibility when slots
- * are fetched and again when the booking is created.
+ * Display-only fallback if the specialist RPC is unavailable, and for previews.
+ * Empty or exclusively stale assignments have the historical "all services" meaning;
+ * any active assignment remains a restriction across the complete catalogue. If no
+ * catalogue is supplied, do not guess which IDs are stale. The server remains
+ * authoritative when slots are fetched and when a reservation is created.
  */
-export function localEligibleSpecialists(stylists: Stylist[], serviceIds: string[], branchId = ''): Stylist[] {
+export function localEligibleSpecialists(stylists: Stylist[], serviceIds: string[], branchId = '', catalogue?: SalonService[]): Stylist[] {
+  const activeIds = catalogue && new Set(catalogue.filter(isBookingServiceActive).map(service => service.id));
   return stylists.filter(staff => {
     if (!staff || typeof staff.id !== 'string' || typeof staff.name !== 'string') return false;
-    if ((staff.status ?? 'Available') !== 'Available') return false;
-    if (branchId && staff.branchSchedules?.length && !staff.branchSchedules.some(item => item.branchId === branchId)) return false;
+    if ((staff.status ?? 'Available').toLowerCase() !== 'available') return false;
+    if (branchId && Array.isArray(staff.branchSchedules) && !staff.branchSchedules.some(item => item.branchId === branchId)) return false;
     const assigned = Array.isArray(staff.assignedServices) ? staff.assignedServices : [];
-    return !assigned.length || serviceIds.every(id => assigned.includes(id));
+    const valid = activeIds ? assigned.filter(id => activeIds.has(id)) : assigned;
+    return !valid.length || serviceIds.every(id => valid.includes(id));
   });
 }
 
@@ -70,8 +85,9 @@ export function previewDraftSpecialists(
   serviceIds: string[],
   businessType: BusinessTypeId,
   branchId = '',
+  catalogue?: SalonService[],
 ): Stylist[] {
   if (!serviceIds.length || !Array.isArray(stylists)) return [];
   const sameTemplate = stylists.filter(staff => staff?.isTemplateSeed !== true && (!staff?.businessType || staff.businessType === businessType));
-  return localEligibleSpecialists(sameTemplate, serviceIds, branchId);
+  return localEligibleSpecialists(sameTemplate, serviceIds, branchId, catalogue);
 }

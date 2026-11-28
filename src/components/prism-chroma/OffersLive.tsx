@@ -15,6 +15,7 @@ export function PrismOffersLive({
   retrying = false,
   onRetry,
   services,
+  bookingAvailable = true,
   onBookService,
 }: {
   offers: PrismOffer[];
@@ -23,6 +24,7 @@ export function PrismOffersLive({
   retrying?: boolean;
   onRetry?: () => void;
   services: SalonService[];
+  bookingAvailable?: boolean;
   onBookService: (serviceId?: string) => void;
 }) {
   const [copied, setCopied] = useState('');
@@ -76,7 +78,7 @@ export function PrismOffersLive({
                   </button>
                 )}
                 <div className="pc-offer-actions">
-                  {service ? (
+                  {service && bookingAvailable ? (
                     <button type="button" className="pc-btn pc-btn-gradient px-4 py-2.5 text-sm" onClick={() => onBookService(service.id)}>
                       Book {service.name} <ArrowUpRight size={14} aria-hidden="true" />
                     </button>

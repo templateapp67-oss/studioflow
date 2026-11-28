@@ -27,7 +27,7 @@ let homeTree:any;await act(async()=>{homeTree=create(<CustomerHome salons={[salo
 const recommendationPhoto=homeTree.root.findAllByType('button').find((b:any)=>b.props.className==='cr-pick-photo');assert.ok(recommendationPhoto);await act(async()=>recommendationPhoto.props.onClick());assert.equal(opening,salon.slug);
 const bookStyle=homeTree.root.findAllByType('button').find((b:any)=>b.props.children?.[0]?.trim?.()==='Book Style');await act(async()=>bookStyle.props.onClick());assert.equal(opening,salon.slug);assert.deepEqual(ids,['cut']);await act(async()=>homeTree.unmount());
 const calls:any[]=[];
-(supabase as any).rpc=async(name:string,args:any)=>{calls.push({name,args});if(name==='studioflow_android_slots')return{data:[{time:'11:00',label:'11:00 AM',stylistId:'stylist'}],error:null};if(name==='studioflow_list_reviews')return{data:{reviews:[]},error:null};return{data:null,error:null}};
+(supabase as any).rpc=async(name:string,args:any)=>{calls.push({name,args});if(name==='studioflow_android_slots')return{data:[{time:'11:00',label:'11:00 AM',available:true,stylistId:'stylist'}],error:null};if(name==='studioflow_list_reviews')return{data:{reviews:[]},error:null};return{data:null,error:null}};
 const functionPrototype=Object.getPrototypeOf(supabase.functions);
 functionPrototype.invoke=async()=>({data:{webCheckout:{online:false,venue:false,mode:'test'}},error:null});
 let booking:any;await act(async()=>{booking=create(<CustomerBookingFlow salon={salon} initialIds={['cut','spa']} session={null} close={()=>{}} onCreated={()=>{}} onConfirmed={()=>{}}/>)});
@@ -60,7 +60,7 @@ functionPrototype.invoke=async(name:string,{body}:any)=>{
 };
 (supabase as any).rpc=async(name:string,args:any)=>{
  calls.push({name,args});
- if(name==='studioflow_android_slots')return{data:[{time:'11:00',label:'11:00 AM',stylistId:'stylist'}],error:null};
+ if(name==='studioflow_android_slots')return{data:[{time:'11:00',label:'11:00 AM',available:true,stylistId:'stylist'}],error:null};
  if(name==='studioflow_android_book'){created++;return{data:reservation,error:null};}
  return{data:null,error:null};
 };
@@ -113,7 +113,7 @@ await act(async()=>photoReview.root.findAllByProps({role:'tab'}).find((b:any)=>b
 assert.equal(photoReview.root.findByProps({alt:'Customer review photograph'}).props.src,'https://example.test/existing-review-image.jpg');assert.equal(photoReview.root.findByProps({alt:'Customer style gallery photo'}).props.src,'https://example.test/existing-review-image.jpg');await act(async()=>photoReview.unmount());console.log('PASS: existing shared review imageUrl appears in the customer style gallery and review card.');
 let demoCreated=0;confirmed=0;
 functionPrototype.invoke=async()=>{throw new Error('Demo must never invoke payments')};
-(supabase as any).rpc=async(name:string,args:any)=>{if(name==='studioflow_android_slots')return{data:[{time:'11:00',label:'11:00 AM',stylistId:'stylist'}],error:null};assert.equal(name,'studioflow_demo_book');assert.deepEqual(args.p_services,['cut']);demoCreated++;return{data:{id:'demo',payload:{demo:true,servicePrice:0}},error:null}};
+(supabase as any).rpc=async(name:string,args:any)=>{if(name==='studioflow_public_branches')return{data:[],error:null};if(name==='studioflow_android_slots')return{data:[{time:'11:00',label:'11:00 AM',available:true,stylistId:'stylist'}],error:null};assert.equal(name,'studioflow_demo_book');assert.deepEqual(args.p_services,['cut']);demoCreated++;return{data:{id:'demo',payload:{demo:true,servicePrice:0}},error:null}};
 let demoFlow:any;await act(async()=>{demoFlow=create(<CustomerBookingFlow demo salon={salon} initialIds={['cut']} session={member} customerProfile={{full_name:'Demo Member',phone:'9876543210'}} close={()=>{}} onCreated={()=>{}} onConfirmed={()=>confirmed++}/>)});
 await act(async()=>demoFlow.root.findAllByType('button').find((b:any)=>b.props.children==='Continue to Specialist & Slot').props.onClick());
 await act(async()=>demoFlow.root.findAllByType('button').find((b:any)=>b.props.children?.[0]?.props?.children==='11:00 AM').props.onClick());
@@ -122,9 +122,33 @@ assert.ok(JSON.stringify(demoFlow.toJSON()).includes('DEMO — NO PAYMENT'));
 assert.ok(!JSON.stringify(demoFlow.toJSON()).includes('Nexora QR Payment'));
 await act(async()=>demoFlow.root.findAllByType('button').find((b:any)=>b.props.children==='Confirm Demo Booking — ₹0').props.onClick());
 assert.equal(demoCreated,1);assert.equal(confirmed,1);await act(async()=>demoFlow.unmount());
+// Multi-location practice follows the exact branch whose slots were checked.
+const branches=[{id:'branch-one',name:'First',isActive:true},{id:'branch-two',name:'Second',isActive:true}];
+const branchSalon={...salon,content:{...salon.content,profile:{...salon.content.profile,branches}}};
+let branchDemo:any,branchSlotQueries=0;
+(supabase as any).rpc=async(name:string,args:any)=>{
+ if(name==='studioflow_public_branches')return{data:branches,error:null};
+ if(name==='studioflow_branch_android_slots'){
+  assert.equal(args.p_branch,'branch-two');branchSlotQueries++;
+  return{data:[{time:'11:00',label:'11:00 AM',available:true,stylistId:'stylist'}],error:null};
+ }
+ assert.equal(name,'studioflow_branch_demo_book');
+ assert.equal(args.p_branch,'branch-two');assert.equal(args.p_stylist,'stylist');assert.equal(args.p_time,'11:00');assert.ok(args.p_request);
+ branchDemo=args;return{data:{id:'branch-demo',payload:{demo:true,servicePrice:0}},error:null};
+};
+await act(async()=>{demoFlow=create(<CustomerBookingFlow demo salon={branchSalon} initialIds={['cut']} session={member} customerProfile={{full_name:'Demo Member',phone:'9876543210'}} close={()=>{}} onCreated={()=>{}} onConfirmed={()=>confirmed++}/>)});
+const branchContinue=()=>demoFlow.root.findAllByType('button').find((b:any)=>b.props.children==='Continue to Specialist & Slot');
+assert.equal(branchContinue().props.disabled,true,'choose a branch before practice-slot lookup');
+await act(async()=>demoFlow.root.findByType('select').props.onChange({target:{value:'branch-two'}}));
+assert.ok(branchSlotQueries>0);
+await act(async()=>branchContinue().props.onClick());
+await act(async()=>demoFlow.root.findAllByType('button').find((b:any)=>b.props.children?.[0]?.props?.children==='11:00 AM').props.onClick());
+await act(async()=>demoFlow.root.findAllByType('button').find((b:any)=>b.props.children==='Confirm Booking').props.onClick());
+await act(async()=>demoFlow.root.findAllByType('button').find((b:any)=>b.props.children==='Confirm Demo Booking — ₹0').props.onClick());
+assert.ok(branchDemo);assert.equal(confirmed,2);await act(async()=>demoFlow.unmount());
 const demoCard=renderToStaticMarkup(<CustomerAppointments bookings={[{id:'demo-1',owner_id:'owner',status:'confirmed',payload:{demo:true,serviceName:'Demo haircut',servicePrice:0,amountPaid:0}}]} salons={[salon]} loading={false} error="" refresh={()=>{}} rebook={()=>{}} pay={()=>{throw new Error('Demo cannot pay')}} signIn={()=>{}} signedIn/>);
 assert.ok(demoCard.includes('₹0 DEMO'));assert.ok(!demoCard.includes('Pay 25% advance'));assert.ok(!demoCard.includes('Reschedule'));
-console.log('PASS: ₹0 demo summary saves through isolated RPC without payment or real reservation; demo card clearly labelled with payment actions hidden.');
+console.log('PASS: ₹0 demo summaries, including multi-location, save through isolated RPCs without payment or real reservation; demo card clearly labelled with payment actions hidden.');
 
 const banners=homeBanners([salon]);assert.equal(banners.length,5);assert.equal(new Set(banners.map(b=>b.image)).size,5);assert.equal(homeBanners([]).length,5);
 assert.deepEqual(bannerStep(4,1),{index:3,direction:-1});assert.deepEqual(bannerStep(0,-1),{index:1,direction:1});
@@ -146,7 +170,7 @@ for(const id of Object.keys(CATEGORY_TEMPLATES))assert.ok(CUSTOMER_CATEGORY_GROU
 const categorySalons:any[]=CUSTOMER_CATEGORY_GROUPS.map(g=>({slug:g.id,owner_id:g.id,content:{profile:{businessName:g.label+' QA Studio',businessType:g.types[0],coverImageUrl:'https://example.test/'+g.id+'.jpg'},services:[{id:g.id,name:g.label+' QA Service',price:300,durationMinutes:30}],stylists:[]}}));
 let groupedHome:any;await act(async()=>{groupedHome=create(<CustomerHome salons={categorySalons} favorites={[]} query="" setQuery={()=>{}} open={()=>{}} book={()=>{}} save={()=>{}} refresh={()=>{}}/>)});
 for(const group of CUSTOMER_CATEGORY_GROUPS){const tile=groupedHome.root.findAllByType('button').find((b:any)=>b.findAllByType('b').some((n:any)=>n.props.children===group.label));assert.ok(tile,group.label);await act(async()=>tile.props.onClick());const salons=groupedHome.root.findAllByProps({className:'cr-salon-card'});assert.equal(salons.length,1);assert.equal(salons[0].findByType('h4').props.children,group.label+' QA Studio');assert.ok(matchesCustomerCategory(categorySalons.find(s=>s.slug===group.id),group.id));}
-await act(async()=>groupedHome.unmount());console.log('PASS: prominent Hair/Barber/Beauty/Spa/Massage/Tattoo categories cover all 14 templates and each filters the correct published salon, with existing booking features preserved.');
+await act(async()=>groupedHome.unmount());console.log('PASS: prominent Hair/Barber/Beauty/Spa/Massage/Tattoo categories cover all 16 templates and each filters the correct published salon, with existing booking features preserved.');
 
 const spaKeyword=renderToStaticMarkup(<CustomerHome salons={[{...salon,content:{...salon.content,profile:{...salon.content.profile,businessName:'Wellness Studio',businessType:'ayurvedic_spa'}}}]} favorites={[]} query="spa" setQuery={()=>{}} open={()=>{}} book={()=>{}} save={()=>{}} refresh={()=>{}}/>);assert.equal((spaKeyword.match(/class="cr-salon-card"/g)||[]).length,1);console.log('PASS: category keywords such as spa find a published salon even when its name does not contain the category.');
 
@@ -162,7 +186,7 @@ const realHair={...salon,content:{...salon.content,profile:{...salon.content.pro
 const replacement=withTemplateDemos([realHair],templateMeta);assert.equal(replacement.length,16);assert.equal(replacement[0],realHair);assert.equal(replacement.some(s=>s.demoTemplateId==='hair_salon'),false);assert.equal(replacement.filter(s=>s.demoTemplateId).length,15);
 const allReal=templateMeta.map(t=>({...realHair,slug:t.id,content:{...realHair.content,profile:{...realHair.content.profile,businessType:t.id}}}));assert.deepEqual(withTemplateDemos(allReal,templateMeta),allReal);
 assert.equal(withTemplateDemos([],templateMeta.filter(t=>t.id!=='tattoo_studio')).some(s=>s.demoTemplateId==='tattoo_studio'),false,'Inactive templates must not reappear');
-console.log('PASS: all 14 demo categories contain services/images and safe website links; category filters stay populated; real publication replaces only its own template demo, all-real catalogue removes all demos; inactive templates excluded.');
+console.log('PASS: all 16 template demos contain services/images and safe website links; category filters stay populated; real publication replaces only its own template demo, all-real catalogue removes all demos; inactive templates excluded.');
 
 // Recommendations must actually overflow and both buttons must operate the same rail.
 const rail={scrollLeft:0,clientWidth:320,scrollWidth:1200,scrollBy({left}:{left:number}){this.scrollLeft=Math.max(0,Math.min(this.scrollWidth-this.clientWidth,this.scrollLeft+left));}};

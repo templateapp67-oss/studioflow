@@ -429,90 +429,68 @@ try {
   const liveFrame = page.frameLocator('iframe[title*="live desktop preview"]');
   await installInteractionObserver(liveFrame.locator('body'));
 
-  // These requests are read-only, but the modal is disposed as soon as it closes.
-  // Wait for their HTTP responses before closing to avoid browser ERR_ABORTED noise.
-  const paymentStatusResponsePromise = page.waitForResponse((response) => {
-    const requestUrl = new URL(response.url());
-    return requestUrl.pathname === '/functions/v1/studioflow-payments'
-      && response.request().method() === 'GET';
-  }, { timeout: 15000 });
-  const specialistLookupResponsePromise = page.waitForResponse((response) => {
-    const requestUrl = new URL(response.url());
-    return requestUrl.pathname === '/rest/v1/rpc/studioflow_booking_specialists'
-      && response.request().method() === 'POST';
-  }, { timeout: 15000 });
-  const availabilityReadResponsePromise = page.waitForResponse((response) => {
-    const requestUrl = new URL(response.url());
-    return requestUrl.pathname === '/rest/v1/rpc/studioflow_available_slots'
-      && response.request().method() === 'POST';
-  }, { timeout: 15000 });
-
+  // Template previews must be fully illustrative: opening the booking modal
+  // should not query live specialists/slots or contact the payment service.
+  const templateBookingRequests = [];
+  const observeTemplateBookingRequest = (request) => {
+    const url = new URL(request.url());
+    if (/\.supabase\.co$/i.test(url.hostname) && [
+      '/functions/v1/studioflow-payments',
+      '/rest/v1/rpc/studioflow_booking_specialists',
+      '/rest/v1/rpc/studioflow_available_slots',
+    ].includes(url.pathname)) templateBookingRequests.push(request.method() + ' ' + url.pathname);
+  };
+  page.on('request', observeTemplateBookingRequest);
   await bookButton.click();
   const bookingDialog = frame.getByTestId('booking-modal');
   await bookingDialog.waitFor({ state: 'visible' });
   assert.equal(await bookingDialog.getAttribute('aria-modal'), 'true',
     'template booking modal opens as an accessible modal dialog without submitting a booking');
+  assert.match(await bookingDialog.innerText(), /Template demo.*No real slot, appointment or payment/i);
 
-  const [paymentStatusResponse, specialistLookupResponse, availabilityReadResponse] = await Promise.all([
-    paymentStatusResponsePromise,
-    specialistLookupResponsePromise,
-    availabilityReadResponsePromise,
-  ]);
-  const paymentStatusHttpStatus = paymentStatusResponse.status();
-  const specialistLookupHttpStatus = specialistLookupResponse.status();
-  assert.equal(paymentStatusHttpStatus, 200,
-    'read-only payment capabilities return HTTP 200 in the preview');
-  assert.equal(specialistLookupHttpStatus, 200,
-    'read-only specialist eligibility lookup returns HTTP 200');
-  const availabilityReadHttpStatus = availabilityReadResponse.status();
-  assert.equal(availabilityReadHttpStatus, 200,
-    'read-only availability slot lookup returns HTTP 200');
-
-  // Continue through the booking UI using a deterministic read-only slot fixture.
+  // Continue through the locally generated example slots, never live availability.
   const continueToDate = bookingDialog.getByTestId('booking-next-datetime');
   await continueToDate.waitFor({ state: 'visible' });
   await page.waitForFunction(() => {
     const button = document.querySelector('iframe[title*="live desktop preview"]')
       ?.contentDocument?.querySelector('[data-testid="booking-next-datetime"]');
     return Boolean(button && !button.disabled);
-  }, { timeout: 10000 }).catch(async () => {
+  }, null, { timeout: 10000 }).catch(async () => {
     assert.equal(await continueToDate.isDisabled(), false,
-      'booking can continue after the read-only specialist eligibility check');
+      'booking can continue after the local specialist eligibility check');
   });
   await continueToDate.click();
   const bookingDateInput = bookingDialog.getByTestId('booking-date-input');
   await bookingDateInput.waitFor({ state: 'visible' });
-  const nextDateAvailabilityPromise = page.waitForResponse((response) => {
-    const requestUrl = new URL(response.url());
-    return requestUrl.pathname === '/rest/v1/rpc/studioflow_available_slots'
-      && response.request().method() === 'POST';
-  }, { timeout: 15000 });
   await bookingDialog.getByRole('button', { name: 'Tomorrow' }).click();
-  const nextDateAvailabilityResponse = await nextDateAvailabilityPromise;
-  assert.equal(nextDateAvailabilityResponse.status(), 200,
-    'changing appointment date refreshes read-only availability successfully');
+  assert.match(await bookingDialog.innerText(), /Example times/i,
+    'changing the date retains an explicit example-times label');
   const availableSlot = bookingDialog.locator('[data-testid="booking-slot-btn"][data-slot-available="true"]').first();
   await availableSlot.waitFor({ state: 'visible' });
   await availableSlot.click();
   const selectedSlotTime = await availableSlot.getAttribute('data-slot-time');
-  assert.equal(selectedSlotTime, '11:30', 'customer can select an available appointment slot');
+  assert.equal(selectedSlotTime, '10:00', 'customer can select an illustrative example slot');
   const continueToGuest = bookingDialog.getByTestId('booking-next-guest');
   await continueToGuest.waitFor({ state: 'visible' });
   assert.equal(await continueToGuest.isDisabled(), false, 'selected slot enables the guest-details step');
   await continueToGuest.click();
   const bookingGuestName = bookingDialog.getByTestId('booking-guest-name');
   const bookingGuestPhone = bookingDialog.getByTestId('booking-guest-phone');
-  const bookingGuestEmail = bookingDialog.getByTestId('booking-guest-email');
   await bookingGuestName.fill('Preview QA Guest');
   await bookingGuestPhone.fill('9876543210');
-  await bookingGuestEmail.fill('booking-audit@example.invalid');
   assert.equal(await bookingGuestName.inputValue(), 'Preview QA Guest', 'booking guest name input responds');
   assert.equal(await bookingGuestPhone.inputValue(), '9876543210', 'booking guest phone input responds');
-  assert.equal(await bookingGuestEmail.inputValue(), 'booking-audit@example.invalid', 'booking guest email input responds');
+  assert.equal(await bookingDialog.getByTestId('booking-guest-email').count(), 0, 'a preview does not collect a receipt email');
+  await bookingDialog.getByTestId('booking-next-payment').click();
+  const previewSubmit = bookingDialog.getByTestId('booking-pay-submit');
+  assert.equal(await previewSubmit.isDisabled(), true, 'template preview cannot reserve or take payment');
+  assert.match(await previewSubmit.innerText(), /Demo preview.*no payment/i);
 
   const frameEventEntries = await liveFrame.locator('body').evaluate(() => window.__nexoraInteractionEntries || []);
   await bookingDialog.getByRole('button', { name: 'Close booking dialog' }).click();
   await bookingDialog.waitFor({ state: 'hidden' });
+  page.off('request', observeTemplateBookingRequest);
+  assert.deepEqual(templateBookingRequests, [], 'template booking preview performs no live slot, specialist or payment lookups');
 
   // Resolve every requested image inside the preview iframe before page navigation.
   // Navigating with these lazy images still in flight creates benign ERR_ABORTED noise.
@@ -617,14 +595,10 @@ try {
     webpResponses: webpResponses.size,
     ownerSignupFormFieldsChecked: 4,
     customerSignupFormFieldsChecked: 5,
-    bookingGuestFormFieldsChecked: 3,
+    bookingGuestFormFieldsChecked: 2,
     bookingSlotSelected: selectedSlotTime,
     bookingSubmitted: false,
-    bookingReadOnlyHttpStatuses: {
-      paymentStatus: paymentStatusHttpStatus,
-      specialistEligibility: specialistLookupHttpStatus,
-      availability: availabilityReadHttpStatus,
-    },
+    templateBookingRemoteRequests: templateBookingRequests.length,
     previewFrameImagesChecked: previewImageResults.length,
     interactionEventEntries: interactionDurations.length,
     syntheticInteractionP75Ms: p75 === null ? 'not supported by this Chromium runtime' : Number(p75.toFixed(2)),

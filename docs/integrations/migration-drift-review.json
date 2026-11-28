@@ -298,6 +298,6 @@
     "deferred_feature_files": 15,
     "superseded_test_draft_files": 1,
     "pending_additive_runtime_migrations": 2,
-    "notes": "Classification is complete. Production dry-run, application of the two pending migrations, and real provider integration checks are separate release steps."
+    "notes": "Historical 17 November snapshot: classification was complete and two runtime migrations were then pending. This is not the current release plan; consult restored-supabase-history.json and the booking rollout runbook. Provider integration checks remain separate from synthetic tests."
   }
 }

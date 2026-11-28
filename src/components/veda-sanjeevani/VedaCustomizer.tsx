@@ -1483,8 +1483,8 @@ function BookingTab({
       <header className="vdc-panel__head">
         <h3>Booking handoff</h3>
         <p>
-          Guests can request a ritual on the website and confirm on WhatsApp, or use your booking sheet if it is switched
-          on. Nothing is marked booked until you or the booking system confirms it.
+          Guests can choose a ritual and check live times in the booking sheet, or contact you on WhatsApp. No
+          appointment or payment is created just by viewing the menu.
         </p>
       </header>
       <section className="vdc-card">

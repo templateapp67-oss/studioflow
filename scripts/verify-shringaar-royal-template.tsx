@@ -284,7 +284,7 @@ for (const copy of [
   defaults.reviewsHeading,
   defaults.galleryHeading,
   defaults.offerHeading,
-  'Book Consultation',
+  'Book Appointment',
 ]) {
   assert.ok(text.includes(copy), `Template 11 copy renders: ${copy}`);
 }
@@ -294,7 +294,8 @@ assert.ok(html.includes('before-after') || html.includes('sr-ba'), 'the before /
 assert.ok(html.includes('wa.me/919829033411'), 'WhatsApp booking path uses the onboarding number');
 assert.ok(html.includes('tel:+919829033411'), 'phone CTA uses the onboarding number');
 assert.ok(text.includes('complimentary trial look book'), 'the wedding-season offer shows its promo hook');
-assert.ok(text.includes('Reserve my date'), 'the offer banner carries its own CTA');
+assert.ok(text.includes('Enquire about this offer'), 'the unlinked offer leads to an enquiry, not an unrelated booking');
+assert.ok(html.includes('href="#sr-booking"') && html.includes('id="sr-booking"'), 'the offer enquiry has a real contact destination');
 assert.equal((html.match(/<iframe/g) || []).length, 0, 'no third-party iframe before the owner adds a map embed');
 assert.equal((html.match(/class="sf-reel-media"/g) || []).length, 5, 'platform reels remain part of the page');
 

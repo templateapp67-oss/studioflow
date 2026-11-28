@@ -641,5 +641,48 @@ export async function createOfflineMigratedDb({extraExtensions = {}} = {}) {
   const adminRevokeFile='supabase/migrations/20261127120000_revoke_app_admin_bootstrap_allowlist.sql';
   await applySqlText(readFileSync(adminRevokeFile,'utf8'),adminRevokeFile);
   await applySqlText(readFileSync(adminRevokeFile,'utf8'),adminRevokeFile);
+  // The backend-only bootstrap above has older variants of two tables. Align
+  // their empty fixture shape with the already-applied production migrations,
+  // then load the actual branch-catalogue helper rather than a permissive stub.
+  // Replaying the whole historical migration here would overwrite later RPCs.
+  await db.exec(`
+    alter table public.studioflow_services add column if not exists branch_ids uuid[];
+    alter table public.studioflow_android_requests add column if not exists fingerprint text not null;
+    alter table public.studioflow_android_requests drop constraint studioflow_android_requests_pkey;
+    alter table public.studioflow_android_requests add primary key(customer_id,request_id);
+  `);
+  const branchCatalogueSql=readFileSync('supabase/migrations/20261122063603_branch_service_catalogue_scope.sql','utf8');
+  const branchCatalogueHelper=branchCatalogueSql.match(/create or replace function studioflow_private\.service_catalogue_available_at_branch\([\s\S]*?\$function\$;/i)?.[0];
+  assert.ok(branchCatalogueHelper,'existing branch catalogue helper must be present');
+  await db.exec(branchCatalogueHelper);
+  await db.exec(`revoke all on function studioflow_private.service_catalogue_available_at_branch(uuid,jsonb,uuid) from public,anon,authenticated;
+    grant execute on function studioflow_private.service_catalogue_available_at_branch(uuid,jsonb,uuid) to postgres,service_role;`);
+  // Replay all three pending booking repairs after their existing branch,
+  // booking and Iron Ink prerequisites. This backend-only chain has a minimal
+  // legacy bookings placeholder, not the optional normalized schema. Replays
+  // must leave the canonical guard intact without pretending the cross-ledger
+  // trigger was installed; none of these SQL files is implied to be live.
+  const bookingFiles=[
+    'supabase/migrations/20261127143001_booking_slot_availability_repair.sql',
+    'supabase/migrations/20261127143100_iron_ink_availability_ist.sql',
+    'supabase/migrations/20261127143200_cross_ledger_booking_conflicts.sql',
+  ];
+  for (const file of bookingFiles) {
+    const sql=readFileSync(file,'utf8');
+    await applySqlText(sql,file);
+    await applySqlText(sql,file+' (second application)');
+  }
+  const optional=(await db.query(`select
+    exists(select 1 from pg_trigger where tgrelid='public.bookings'::regclass and tgname='zz_studioflow_normalized_cross_ledger_guard' and not tgisinternal) installed,
+    position('normalized_owner_conflict' in pg_get_functiondef('studioflow_private.guard_booking_conflict()'::regprocedure))>0 patched`)).rows[0];
+  assert.deepEqual(optional,{installed:false,patched:false},'backend-only replay must skip the optional guard');
+  // A partially installed normalized schema is different from a missing one:
+  // fail transactionally rather than hiding an unsupported deployment.
+  await db.exec('alter table public.bookings add column salon_id uuid');
+  try {
+    await assert.rejects(applySqlText(readFileSync(bookingFiles[2],'utf8'),bookingFiles[2]+' (partial schema)'),/prerequisites missing or changed/i);
+  } finally {
+    await db.exec('alter table public.bookings drop column salon_id');
+  }
   return {db, applied, applySqlText, applyFile, clientRpc, src};
 }

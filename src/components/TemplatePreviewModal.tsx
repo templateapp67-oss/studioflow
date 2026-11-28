@@ -24,6 +24,7 @@ import { isArchFlutterTemplate, type ArchFlutterCustomizerConfig, type Customize
 import { isVedaTemplate } from '../lib/vedaSanjeevaniCustomizer';
 import { DEFAULT_EXTRAS } from '../lib/workspaceDefaults';
 import { syncPreviewStyles } from '../lib/previewStyleSync';
+import { TemplateBookingPreview } from '../lib/templateBookingPreview';
 import { nexoraDisplayName, nexoraTemplateMeta, sortTemplatesByPriority } from '../lib/nexoraTemplateCatalogue';
 import { NexoraBrandMark } from './nexora/NexoraBrand';
 
@@ -180,7 +181,7 @@ export function TemplatePreviewModal({templateId, onSelectPreview, onClose, onCh
             }} style={{width:fluidDesktop ? '100%' : frameWidth,height:frameHeight ?? '100%',border:0,display:'block',transform:scale < 1 ? `scale(${scale})` : undefined,transformOrigin:'top left'}} className="bg-white"/>
           </div>
         </div>
-        {frameDocument?.getElementById('template-root') && createPortal(<AppErrorBoundary resetKey={templateId} onRecover={onClose}><Suspense fallback={<p className="p-8 text-center">Loading live template…</p>}><LiveWebsite key={`${templateId}-${customized ? 'custom' : 'demo'}`} readOnly previewDocument={frameDocument} profile={previewProfile} services={previewServices} stylists={previewStylists} loyaltyConfig={vedaWorkspace?.loyaltyConfig} onAddAppointment={async () => {throw new Error('This is a template demo. Customize and publish your salon to accept bookings.');}}/></Suspense></AppErrorBoundary>,frameDocument.getElementById('template-root')!)}
+        {frameDocument?.getElementById('template-root') && createPortal(<AppErrorBoundary resetKey={templateId} onRecover={onClose}><Suspense fallback={<p className="p-8 text-center">Loading live template…</p>}><TemplateBookingPreview.Provider value><LiveWebsite key={`${templateId}-${customized ? 'custom' : 'demo'}`} readOnly previewDocument={frameDocument} profile={previewProfile} services={previewServices} stylists={previewStylists} loyaltyConfig={vedaWorkspace?.loyaltyConfig} onAddAppointment={async () => {throw new Error('This is a template demo. Customize and publish your salon to accept bookings.');}}/></TemplateBookingPreview.Provider></Suspense></AppErrorBoundary>,frameDocument.getElementById('template-root')!)}
       </div>
       {customizerOpen && isMens && createPortal(<div className="fixed inset-0 z-[120] overflow-y-auto bg-[#f3eee5]" role="dialog" aria-modal="true" aria-label="Customize Template 15"><KeshKraftEditor workspace={{profile:previewProfile,services:previewServices,stylists:previewStylists,loyaltyConfig:vedaWorkspace?.loyaltyConfig}} onSave={next=>setVedaWorkspace(next)} onClose={()=>setCustomizerOpen(false)}/></div>,dialog.current!)}
       {customizerOpen && isVeda && createPortal(

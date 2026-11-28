@@ -645,6 +645,20 @@ const baseMigrationList=[
     return migration+' | '+remote+' | '+appliedAt;
   })
 ].join('\n');
+// A dry-run against a target that already recorded the new cross-ledger
+// migration must stop for reconciliation, not present the old plan as pending.
+const crossLedger='20261127143200';
+const unexpectedlyAppliedList=baseMigrationList.replace(
+  '`'+crossLedger+'` |  | ',
+  '`'+crossLedger+'` | `'+crossLedger+'` | `2026-11-27 00:00:00`',
+);
+assert.notEqual(unexpectedlyAppliedList,baseMigrationList,'the cross-ledger version is present as pending in the fixture');
+const unexpectedlyAppliedResult=spawnSync(process.execPath,['scripts/verify-supabase-migration-history.mjs'],{
+  env:buildCleanEnv({SUPABASE_MIGRATION_LIST_OUTPUT:unexpectedlyAppliedList}),encoding:'utf8',windowsHide:true,
+});
+assert.notEqual(unexpectedlyAppliedResult.status,0,'an unexpectedly applied cross-ledger migration requires reconciliation');
+assert.match(`${unexpectedlyAppliedResult.stdout||''}\n${unexpectedlyAppliedResult.stderr||''}`,/20261127143200/);
+
 const remoteOnlyResult=spawnSync(process.execPath,['scripts/verify-supabase-migration-history.mjs'],{
   env:buildCleanEnv({
     SUPABASE_MIGRATION_LIST_OUTPUT:baseMigrationList+'\n              | `20990101000000` | `2099-01-01 00:00:00`',

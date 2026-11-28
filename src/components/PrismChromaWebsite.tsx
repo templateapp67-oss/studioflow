@@ -264,8 +264,9 @@ export function PrismChromaWebsite({
 
   const bookServiceById = (id?: string) => {
     const found = id ? services.find((s) => s.id === id) : undefined;
-    onBook(found || firstService);
+    if (bookingAvailable && found) onBook(found);
   };
+  const canBookShade = (shade: PrismChromaShade) => Boolean(bookingAvailable && shade.linkedServiceId && services.some((service) => service.id === shade.linkedServiceId));
   const bookShade = (shade: PrismChromaShade) => bookServiceById(shade.linkedServiceId);
 
   /* Only link to sections that exist for this salon (no dead anchors). */
@@ -565,7 +566,7 @@ export function PrismChromaWebsite({
                 <h2 className="mt-3 text-[clamp(1.9rem,4.5vw,3rem)] font-extrabold">{config.shadesHeading}</h2>
                 <p className="pc-muted mt-3 max-w-2xl">{config.shadesSubtext}</p>
                 <div className="mt-8">
-                  <ShadeStudio shades={config.shades} fallbackImage={config.heroImageUrl} brandName={brandName} onBookShade={bookShade} />
+                  <ShadeStudio shades={config.shades} fallbackImage={config.heroImageUrl} brandName={brandName} onBookShade={bookShade} canBookShade={canBookShade} />
                 </div>
                 <div className="mt-10">
                   <h3 className="text-center text-[clamp(1.4rem,3vw,2rem)] font-extrabold">
@@ -575,7 +576,7 @@ export function PrismChromaWebsite({
                     Answer 3 small questions. We match a shade to your hair, your dream look and your home-care time.
                   </p>
                   <div className="mx-auto mt-6 max-w-3xl">
-                    <ShadeFinder shades={config.shades} brandName={brandName} fallbackImage={config.heroImageUrl} onBookShade={bookShade} />
+                    <ShadeFinder shades={config.shades} brandName={brandName} fallbackImage={config.heroImageUrl} onBookShade={bookShade} canBookShade={canBookShade} />
                   </div>
                 </div>
               </div>
@@ -683,7 +684,7 @@ export function PrismChromaWebsite({
                             <div className="flex flex-1 flex-col p-6">
                               <h3 className="pc-display text-xl font-extrabold">{pkg.tier}</h3>
                               <p className="pc-display pc-grad-text mt-2 text-3xl font-extrabold">
-                                {prismFormatInr(pkg.price + (carePlan ? pkg.carePlanAddon || 0 : 0))}
+                                {prismFormatInr((services.find((service) => service.id === pkg.linkedServiceId)?.price ?? pkg.price) + (carePlan ? pkg.carePlanAddon || 0 : 0))}
                               </p>
                               {carePlan && (pkg.carePlanAddon || 0) > 0 && (
                                 <p className="pc-muted text-xs font-semibold">Includes Care Plan (+{prismFormatInr(pkg.carePlanAddon || 0)})</p>
@@ -702,7 +703,7 @@ export function PrismChromaWebsite({
                                 ))}
                               </ul>
                               {bookingAvailable && (
-                                <button type="button" onClick={() => bookServiceById(pkg.linkedServiceId)} className="pc-btn pc-btn-gradient mt-6 w-full px-4 py-3 text-sm">Book {pkg.tier}</button>
+                                <button type="button" disabled={carePlan || !services.some((service) => service.id === pkg.linkedServiceId)} onClick={() => bookServiceById(pkg.linkedServiceId)} className="pc-btn pc-btn-gradient mt-6 w-full px-4 py-3 text-sm">{carePlan ? 'Contact us to add the care plan' : services.some((service) => service.id === pkg.linkedServiceId) ? `Book ${pkg.tier}` : 'Package unavailable online'}</button>
                               )}
                             </div>
                           </div>
@@ -734,10 +735,8 @@ export function PrismChromaWebsite({
                     retrying={siteRefreshing}
                     onRetry={onReloadSite}
                     services={services}
-                    onBookService={(id) => {
-                      const found = id ? services.find((service) => service.id === id) : undefined;
-                      onBook(found || firstService);
-                    }}
+                    bookingAvailable={bookingAvailable}
+                    onBookService={(id) => bookServiceById(id)}
                   />
                 </div>
               </MotionSection>

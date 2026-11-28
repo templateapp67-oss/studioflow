@@ -32,6 +32,8 @@ import { socialUrl } from '../lib/websiteContent';
 import { showcaseVideos } from '../lib/showcaseVideos';
 import { reelSource, socialVideoEmbedUrl, socialVideoSource } from '../lib/socialVideoSource';
 import { supabase } from '../lib/supabase';
+import {indiaDate, indiaDateLabel} from '../lib/bookingDates';
+import {TemplateBookingPreview,templatePreviewSlots} from '../lib/templateBookingPreview';
 import {
   LUXURY_EDITORIAL_COPY,
   LUXURY_EDITORIAL_IMAGES,
@@ -123,33 +125,12 @@ function formatInr(amount: number, currency = '₹'): string {
 }
 
 function nextBookableDays(count = 14): Array<{ iso: string; weekday: string; dayNum: string; month: string }> {
-  const out: Array<{ iso: string; weekday: string; dayNum: string; month: string }> = [];
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  for (let i = 0; i < count; i += 1) {
-    const d = new Date(start);
-    d.setDate(start.getDate() + i);
-    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    out.push({
-      iso,
-      weekday: i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : d.toLocaleDateString('en-IN', { weekday: 'short' }),
-      dayNum: String(d.getDate()).padStart(2, '0'),
-      month: d.toLocaleDateString('en-IN', { month: 'short' }),
-    });
-  }
-  return out;
+  return Array.from({length:count}, (_,i) => {
+    const iso=indiaDate(i);
+    return {iso,weekday:i===0?'Today':i===1?'Tomorrow':indiaDateLabel(iso,{weekday:'short'}),
+      dayNum:iso.slice(8,10),month:indiaDateLabel(iso,{month:'short'})};
+  });
 }
-
-const DEFAULT_STUDIO_SLOTS = [
-  { value: '10:00', label: '10:00 AM' },
-  { value: '11:00', label: '11:00 AM' },
-  { value: '12:00', label: '12:00 PM' },
-  { value: '13:30', label: '1:30 PM' },
-  { value: '15:00', label: '3:00 PM' },
-  { value: '16:30', label: '4:30 PM' },
-  { value: '17:30', label: '5:30 PM' },
-  { value: '18:30', label: '6:30 PM' },
-];
 
 function formatSlotLabel(hhmm: string): string {
   const match = String(hhmm || '').match(/^(\d{1,2}):(\d{2})/);
@@ -211,6 +192,7 @@ export const LuxuryEditorialWebsite: React.FC<LuxuryEditorialWebsiteProps> = ({
     !rawEmail || rawEmail === 'appointments@mirakihair.in' ? 'hello@ziyahairstudio.in' : rawEmail;
 
   const isEditorMode = Boolean(shared.isEditingActive && !shared.readOnly && shared.setProfile);
+  const isTemplatePreview = React.useContext(TemplateBookingPreview);
 
   // Mobile header drawer
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -455,9 +437,13 @@ export const LuxuryEditorialWebsite: React.FC<LuxuryEditorialWebsiteProps> = ({
   const [selectedServiceId, setSelectedServiceId] = useState<string>(() => coreServices[0]?.id || '');
   const [selectedStylistId, setSelectedStylistId] = useState<string>(() => femaleTeam[0]?.id || '');
   const [selectedDate, setSelectedDate] = useState<string>(() => bookableDays[0]?.iso || '');
-  const [selectedTime, setSelectedTime] = useState<string>('11:00');
-  const [liveSlots, setLiveSlots] = useState<Array<{ value: string; label: string }>>(DEFAULT_STUDIO_SLOTS);
+  const [selectedTime, setSelectedTime] = useState<string>('');
+  const [liveSlots, setLiveSlots] = useState<Array<{ value: string; label: string; stylistId: string }>>([]);
   const [loadingSlots, setLoadingSlots] = useState<boolean>(false);
+  const [slotError,setSlotError]=useState('');
+  const [deskBranches,setDeskBranches]=useState<Array<{id:string;name:string}>>([]);
+  const [deskBranch,setDeskBranch]=useState('');
+  const [branchState,setBranchState]=useState<'loading'|'ready'|'error'>(profile.subdomain?'loading':'ready');
   const [deskCouponCode, setDeskCouponCode] = useState<string>('');
   const [deskCouponNotice, setDeskCouponNotice] = useState<string>('');
   const [deskCouponDiscount, setDeskCouponDiscount] = useState<number | null>(null);
@@ -484,52 +470,53 @@ export const LuxuryEditorialWebsite: React.FC<LuxuryEditorialWebsiteProps> = ({
     [femaleTeam, selectedStylistId],
   );
 
-  // Fetch live available slots when published subdomain is present; fall back cleanly to studio IST slots
+  useEffect(() => {
+    let active=true;
+    const slug=String(profile.subdomain||'').trim();
+    if(!slug){setDeskBranches([]);setDeskBranch('');setBranchState('ready');return;}
+    setBranchState('loading');
+    void supabase.rpc('studioflow_public_branches',{p_slug:slug}).then(({data,error})=>{
+      if(!active)return;
+      if(error||!Array.isArray(data)){setBranchState('error');return;}
+      const branches=data.filter((item:any)=>item?.isActive!==false&&typeof item?.id==='string'&&typeof item?.name==='string');
+      setDeskBranches(branches);setDeskBranch(branches.length===1?branches[0].id:'');setBranchState('ready');
+    },()=>{if(active)setBranchState('error');});
+    return()=>{active=false;};
+  },[profile.subdomain]);
+
+  // The desk uses the same RPC contract as the shared booking modal. Never
+  // replace an error or an empty live response with invented "available" times.
   useEffect(() => {
     let active = true;
-    const slug = String(profile.subdomain || '').trim();
-    if (!slug || !selectedDate || !activeBookingService) {
-      setLiveSlots(DEFAULT_STUDIO_SLOTS);
-      return undefined;
+    const slug=String(profile.subdomain||'').trim();
+    setSelectedTime('');setLiveSlots([]);setSlotError('');
+    if(!selectedDate||!activeBookingService||!activeBookingStylist)return;
+    if(!slug){
+      setLoadingSlots(false);
+      if(isTemplatePreview){
+        const sample=templatePreviewSlots(selectedDate,[activeBookingStylist],activeBookingStylist.id,activeBookingService.durationMinutes)
+          .map(row=>({value:row.time,label:row.label,stylistId:row.stylistId}));
+        setLiveSlots(sample);setSelectedTime(sample[0]?.value||'');
+      }
+      return;
     }
+    if(branchState==='loading'){setLoadingSlots(true);return;}
+    if(branchState==='error'){setLoadingSlots(false);setSlotError('Locations could not be loaded. Continue to booking to retry.');return;}
+    if(deskBranches.length>1&&!deskBranch){setLoadingSlots(false);return;}
     setLoadingSlots(true);
-    Promise.resolve(
-      supabase.rpc('studioflow_available_slots', {
-        salon_slug: slug,
-        booking_date: selectedDate,
-        duration_minutes: activeBookingService.durationMinutes || 45,
-        stylist_id: activeBookingStylist?.id || null,
-        branch_id: null,
-      }),
-    )
-      .then((res) => {
-        if (!active) return;
-        const rows = Array.isArray(res?.data) ? res.data : [];
-        if (rows.length > 0) {
-          const parsed = rows
-            .map((item: unknown) => (typeof item === 'string' ? item : String((item as Record<string, unknown>)?.slot_time || (item as Record<string, unknown>)?.time || '')))
-            .filter(Boolean)
-            .map((val) => ({ value: val, label: formatSlotLabel(val) }));
-          if (parsed.length > 0) {
-            setLiveSlots(parsed);
-            if (!parsed.some((p) => p.value === selectedTime)) {
-              setSelectedTime(parsed[0].value);
-            }
-            return;
-          }
-        }
-        setLiveSlots(DEFAULT_STUDIO_SLOTS);
-      })
-      .catch(() => {
-        if (active) setLiveSlots(DEFAULT_STUDIO_SLOTS);
-      })
-      .finally(() => {
-        if (active) setLoadingSlots(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [profile.subdomain, selectedDate, activeBookingService, activeBookingStylist?.id]);
+    const request=deskBranch
+      ? supabase.rpc('studioflow_branch_available_slots',{p_slug:slug,p_service_id:activeBookingService.id,p_date:selectedDate,p_stylist:activeBookingStylist.id,p_branch:deskBranch})
+      : supabase.rpc('studioflow_available_slots',{p_slug:slug,p_service_id:activeBookingService.id,p_date:selectedDate,p_stylist_id:activeBookingStylist.id});
+    void request.then(({data,error})=>{
+      if(!active)return;
+      setLoadingSlots(false);
+      if(error||!Array.isArray(data)){setSlotError('Availability could not be loaded. Continue to booking to retry.');return;}
+      const parsed=data.filter((item:any)=>item?.available===true&&typeof item.time==='string'&&item.stylistId===activeBookingStylist.id)
+        .map((item:any)=>({value:item.time,label:item.label||formatSlotLabel(item.time),stylistId:item.stylistId}));
+      setLiveSlots(parsed);setSelectedTime(parsed[0]?.value||'');
+    },()=>{if(active){setLoadingSlots(false);setSlotError('Availability could not be loaded. Continue to booking to retry.');}});
+    return()=>{active=false;};
+  }, [profile.subdomain,isTemplatePreview,selectedDate,activeBookingService?.id,activeBookingService?.durationMinutes,activeBookingStylist?.id,deskBranch,deskBranches.length,branchState]);
 
   const handleVerifyDeskCoupon = async () => {
     const cleanCode = deskCouponCode.trim().toUpperCase();
@@ -576,11 +563,12 @@ export const LuxuryEditorialWebsite: React.FC<LuxuryEditorialWebsiteProps> = ({
   const handleBookingDeskSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const slot: DirectSalonSlot | undefined =
-      selectedDate && selectedTime
+      selectedDate && selectedTime && liveSlots.some(item=>item.value===selectedTime && item.stylistId===activeBookingStylist?.id)
         ? {
             date: selectedDate,
             time: selectedTime,
-            stylistId: activeBookingStylist?.id || femaleTeam[0]?.id || '',
+            stylistId: activeBookingStylist!.id,
+            branchId: deskBranch || undefined,
           }
         : undefined;
     onBook(
@@ -1685,18 +1673,9 @@ export const LuxuryEditorialWebsite: React.FC<LuxuryEditorialWebsiteProps> = ({
                         {isSampleGallery && <span>Best for: {meta.faceShape}</span>}
                       </div>
                       {bookingAvailable && (
-                        <button
-                          type="button"
-                          className="le-tile-book"
-                          onClick={() => {
-                            const matched = coreServices.find((s) =>
-                              photo.title.toLowerCase().includes(s.name.split(' ')[0].toLowerCase()),
-                            );
-                            onBook(matched || featuredService);
-                          }}
-                        >
-                          Try Style
-                        </button>
+                        <a className="le-tile-book" href="#services-section">
+                          Choose a haircut
+                        </a>
                       )}
                     </figcaption>
                   </figure>
@@ -1981,6 +1960,12 @@ export const LuxuryEditorialWebsite: React.FC<LuxuryEditorialWebsiteProps> = ({
                   </div>
                 </div>
 
+                {deskBranches.length>1&&<label className="le-field-group">Choose location
+                  <select aria-label="Booking location" className="le-select" value={deskBranch} onChange={event=>setDeskBranch(event.target.value)}>
+                    <option value="">Select a location</option>{deskBranches.map(branch=><option key={branch.id} value={branch.id}>{branch.name}</option>)}
+                  </select>
+                </label>}
+
                 {/* Step 3: Appointment Date */}
                 <div className="le-field-group">
                   <label htmlFor="ziya-booking-date" className="le-field-label">
@@ -2021,6 +2006,10 @@ export const LuxuryEditorialWebsite: React.FC<LuxuryEditorialWebsiteProps> = ({
                     <span>4. Pick Available Time Slot</span>
                     {loadingSlots && <small>Checking live slots…</small>}
                   </span>
+                  {!profile.subdomain&&<p role="status">{isTemplatePreview?'Template demo: example times only. No real appointment or payment.':'Publish this salon to check live availability.'}</p>}
+                  {slotError&&<p role="alert">{slotError}</p>}
+                  {!loadingSlots&&!slotError&&deskBranches.length>1&&!deskBranch&&<p>Choose a location to check live slots.</p>}
+                  {!loadingSlots&&!slotError&&!(deskBranches.length>1&&!deskBranch)&&!liveSlots.length&&<p>No available slots for this selection. You can choose another date in booking.</p>}
                   <div className="le-slot-grid" role="radiogroup" aria-label="Available time slots">
                     {liveSlots.map((slot) => (
                       <button
@@ -2424,16 +2413,9 @@ export const LuxuryEditorialWebsite: React.FC<LuxuryEditorialWebsiteProps> = ({
                 </span>
               </div>
               {bookingAvailable && (
-                <button
-                  type="button"
-                  className="le-btn le-btn-gold le-btn-sm"
-                  onClick={() => {
-                    setLightboxIndex(null);
-                    onBook(featuredService);
-                  }}
-                >
-                  Book This Haircut Style
-                </button>
+                <a className="le-btn le-btn-gold le-btn-sm" href="#services-section" onClick={() => setLightboxIndex(null)}>
+                  Choose a haircut
+                </a>
               )}
             </div>
           </div>

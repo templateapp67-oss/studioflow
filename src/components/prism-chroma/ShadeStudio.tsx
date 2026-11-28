@@ -20,11 +20,13 @@ export function ShadeStudio({
   fallbackImage,
   brandName,
   onBookShade,
+  canBookShade = () => true,
 }: {
   shades: PrismChromaShade[];
   fallbackImage: string;
   brandName: string;
   onBookShade: (shade: PrismChromaShade) => void;
+  canBookShade?: (shade: PrismChromaShade) => boolean;
 }) {
   const [activeId, setActiveId] = useState(shades[0]?.id || '');
   const [compareId, setCompareId] = useState('');
@@ -124,8 +126,8 @@ export function ShadeStudio({
           <span className="pc-shade-bigprice-note"> estimated · confirmed free at consult</span>
         </p>
         {active.careTip && <p className="pc-shade-caretip">Care tip: {active.careTip}</p>}
-        <button type="button" className="pc-btn pc-btn-gradient px-6 py-3 text-sm" onClick={() => onBookShade(active)}>
-          Book this shade <ArrowRight size={16} aria-hidden="true" />
+        <button type="button" className="pc-btn pc-btn-gradient px-6 py-3 text-sm" disabled={!canBookShade(active)} onClick={() => onBookShade(active)}>
+          {canBookShade(active) ? 'Book this shade' : 'Shade unavailable online'} <ArrowRight size={16} aria-hidden="true" />
         </button>
         {shades.length > 1 && (
           <div className="pc-compare-box">

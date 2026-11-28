@@ -52,7 +52,7 @@ assert.equal(buckets.rows.length,8,'StudioFlow, Template 12 and the NEXORA landi
 for(const b of bucketsUsed){assert.ok(['studioflow-media','nexora-customer-private','ink-logos','ink-gallery','ink-artists','ink-references','ink-blog','nexora-public-assets'].includes(b),'Unknown bucket reference: '+b);}
 const pub=await db.query(`select count(*)::int c from pg_publication_tables where pubname='supabase_realtime' and tablename in ('studioflow_websites','studioflow_templates','studioflow_bookings','studioflow_accounts','studioflow_demo_bookings','studioflow_customer_reward_claims')`);
 assert.equal(pub.rows[0].c,6,'Realtime publication complete');
-console.log(`PASS: live catalog serves all ${rpcs.length} client RPCs, ${new Set(tables).size} RLS tables, 8 buckets, 6 baseline realtime tables.`);
+console.log(`PASS: offline migrated catalog serves all ${rpcs.length} client RPCs, ${new Set(tables).size} RLS tables, 8 buckets, 6 baseline realtime tables.`);
 
 // Exercise the targeted, repeatable live catalog repair against a deliberately
 // stale Template 04 row. The service catalogue and every other template must

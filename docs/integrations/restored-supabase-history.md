@@ -1,5 +1,11 @@
 # StudioFlow WhatsApp migration reconciliation
 
+> Historical 17 November reconciliation, not the current release plan. Counts,
+> pending versions, account access and workflow details below describe that
+> earlier review. For the current booking release, including the three ordered
+> pending migrations and protected gates, use [the booking rollout runbook](../booking-availability-rollout.md)
+> and `restored-supabase-history.json`. Do not apply the historical two-file plan.
+
 The owner supplied both the applied migration history and a read-only live
 catalog export for project `zilwgiuiygqqardzutxi`. The live catalog was captured
 at 2026-11-17 06:05:08 UTC and still records the same 167 applied versions.

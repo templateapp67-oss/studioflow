@@ -24,11 +24,13 @@ export function ShadeFinder({
   brandName,
   fallbackImage,
   onBookShade,
+  canBookShade = () => true,
 }: {
   shades: PrismChromaShade[];
   brandName: string;
   fallbackImage: string;
   onBookShade: (shade: PrismChromaShade) => void;
+  canBookShade?: (shade: PrismChromaShade) => boolean;
 }) {
   const reduceMotion = useReducedMotion();
   const [step, setStep] = useState(0);
@@ -190,8 +192,8 @@ export function ShadeFinder({
               </p>
 
               <div className="pc-quiz-actions">
-                <button type="button" className="pc-btn pc-btn-gradient" onClick={() => onBookShade(shade)}>
-                  Book {shade.name} <ArrowRight size={16} aria-hidden="true" />
+                <button type="button" className="pc-btn pc-btn-gradient" disabled={!canBookShade(shade)} onClick={() => onBookShade(shade)}>
+                  {canBookShade(shade) ? `Book ${shade.name}` : 'Shade unavailable online'} <ArrowRight size={16} aria-hidden="true" />
                 </button>
                 <button type="button" className="pc-btn pc-btn-ghost" onClick={restart}>
                   <RotateCcw size={14} aria-hidden="true" /> Try again

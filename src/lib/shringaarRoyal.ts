@@ -770,16 +770,12 @@ export function resolveShringaarPackages(
   const usable = sanitizeShringaarServices(services);
   return (Array.isArray(packages) ? packages.filter(Boolean) : []).map((pkg) => {
     const tier = typeof pkg.tier === 'string' ? pkg.tier.trim() : '';
-    // The tier text is owner-entered. Escape it before building a RegExp so a
-    // value such as "(Gold" can never throw and blank the whole page.
-    const firstWord = tier.split(/\s+/)[0] || '';
-    const firstWordPattern = firstWord ? new RegExp(firstWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') : null;
-    const linked =
-      usable.find((service) => pkg.serviceId && service.id === pkg.serviceId) ||
-      usable.find((service) => service.name.trim().toLowerCase() === tier.toLowerCase()) ||
-      (firstWordPattern
-        ? usable.find((service) => /package|combo|bundle/i.test(`${service.category || ''} ${service.name}`) && firstWordPattern.test(service.name))
-        : undefined);
+    // Respect an explicit service ID. For older cards without one, an exact
+    // unique title is the only safe legacy match; never guess by a first word.
+    const exact = usable.filter((service) => service.name.trim().toLowerCase() === tier.toLowerCase());
+    const linked = pkg.serviceId
+      ? usable.find((service) => service.id === pkg.serviceId)
+      : exact.length === 1 ? exact[0] : undefined;
     return {
       ...pkg,
       livePrice: linked && linked.price != null ? linked.price : pkg.price ?? null,

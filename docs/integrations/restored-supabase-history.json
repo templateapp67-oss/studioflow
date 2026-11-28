@@ -1196,6 +1196,20 @@
       "new_file": "20261117061129_studioflow_shared_edge_rate_limits.sql",
       "sha256": "1a6959c61a16ebe7bb63bce6ec770719a95cbbccf88036324e23d6fc79d0acc8",
       "reason": "Live export confirms the shared Edge rate-limit table and functions are absent. Existing booking-email handler requires this service-only additive store."
+    },
+    {
+      "old_file": "20261127140001_booking_slot_availability_repair.sql",
+      "new_file": "20261127143001_booking_slot_availability_repair.sql",
+      "archived_file": "supabase/reconciled-migrations/20261127140001_booking_slot_availability_repair.sql",
+      "sha256": "ae448bd25aec58a4a552ed16b666eb42b963122b7dba5923133bf7c13f37676a",
+      "reason": "The original pending version was absent from production when checkout receipts 20261127143000 had already been applied. Retimestamp the identical unapplied SQL after that version; do not force older migrations or modify live history."
+    },
+    {
+      "old_file": "20261127140100_iron_ink_availability_ist.sql",
+      "new_file": "20261127143100_iron_ink_availability_ist.sql",
+      "archived_file": "supabase/reconciled-migrations/20261127140100_iron_ink_availability_ist.sql",
+      "sha256": "83ceff5450ae4aaf0460eadd3b0527ca23693f484338958fcd0798359cf92804",
+      "reason": "The original pending version was absent from production when checkout receipts 20261127143000 had already been applied. Retimestamp the identical unapplied SQL after the booking repair, preserving order."
     }
   ],
   "superseded_unapplied_migrations": [
@@ -2052,7 +2066,21 @@
     "relations": 273,
     "assessment": "Read-only owner-supplied live catalog; not a live migration dry-run or deployment."
   },
-  "release_pending_migrations": [],
+  "release_pending_migrations": [
+    {
+      "file": "20261127143001_booking_slot_availability_repair.sql",
+      "purpose": "Pending booking availability, staff assignment and branch schedule repair, unchanged from unapplied 20261127140001. Replaces scoped RPCs and records schedule provenance; existing legacy shifts require owner review. Listed for release planning only, not applied or approved for production."
+    },
+    {
+      "file": "20261127143100_iron_ink_availability_ist.sql",
+      "purpose": "Pending Iron Ink IST availability and booking conflict repair, unchanged from unapplied 20261127140100; conditionally updates the optional branch RPC only where installed. Depends on the preceding booking availability repair. Listed for release planning only, not applied or approved for production."
+    },
+    {
+      "file": "20261127143200_cross_ledger_booking_conflicts.sql",
+      "sha256": "11f264465e8b8ac62a642ffe389410764b5bfaf2bd029a64d39b38a0aef040bb",
+      "purpose": "Pending conservative owner-level conflict serialization between normalized and StudioFlow appointments; refuses unreviewed active legacy rows and conditionally installs only when the normalized schema exists. Must follow the two preceding repairs. Listed for release planning only, not applied or approved for production."
+    }
+  ],
   "reviewed_feature_migrations": [
     {
       "file": "20261117130000_reconcile_template15_multiservice_booking.sql",

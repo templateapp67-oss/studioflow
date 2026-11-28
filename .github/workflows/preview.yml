@@ -411,6 +411,12 @@ jobs:
           PLAYWRIGHT_PACKAGE_ROOT: /tmp/pw-runner
         run: node scripts/verify-nexora-interaction-responsiveness.mjs
 
+      - name: Verify template previews and customer directory bookings
+        env:
+          PREVIEW_URL: ${{ steps.resolve-preview.outputs.url }}
+          PLAYWRIGHT_PACKAGE_ROOT: /tmp/pw-runner
+        run: node scripts/verify-booking-preview-browser.mjs
+
       - name: Run Lighthouse mobile Core Web Vitals and SEO audit
         env:
           PREVIEW_URL: ${{ steps.resolve-preview.outputs.url }}

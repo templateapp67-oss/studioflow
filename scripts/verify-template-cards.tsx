@@ -185,6 +185,8 @@ assert.equal(page.root.findByType('dialog').props['data-preview-mode'],'windowed
  const {readFileSync}=await import('node:fs');
  const cardsSource=readFileSync('src/components/TemplatePreviewModal.tsx','utf8');
  assert.ok(cardsSource.includes('syncPreviewStyles'),'the preview modal mirrors host stylesheets live into the iframe');
+ assert.match(cardsSource,/<TemplateBookingPreview\.Provider value><LiveWebsite[\s\S]*?<\/TemplateBookingPreview\.Provider>/,
+  'the homepage iframe marks every template as an illustrative, non-writing booking preview');
  assert.ok(!/querySelectorAll\('link\[rel="stylesheet"\], style'\)/.test(cardsSource),'the one-time stylesheet copy (which missed lazy template CSS) is gone');
  assert.ok(readFileSync('src/components/WebsiteDeviceFrame.tsx','utf8').includes('syncPreviewStyles'),'the owner device preview frame uses the same live style sync');
  const syncSource=readFileSync('src/lib/previewStyleSync.ts','utf8');
