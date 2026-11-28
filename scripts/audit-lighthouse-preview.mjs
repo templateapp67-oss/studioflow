@@ -110,19 +110,19 @@ for (const route of routes) {
     if (initiallyExceedsBudget(rawMetrics(firstLhr))) {
       console.log(
         '::warning::Initial Lighthouse sample exceeded a mobile budget for ' + route
-        + '; collecting two independent samples and evaluating the median of three.',
+        + '; collecting two additional samples and evaluating the median of three.',
       );
       lighthouseRuns.push(await runLighthouse(), await runLighthouse());
     }
     const median = (values) => {
       const sorted = values.filter(Number.isFinite).sort((a, b) => a - b);
-      if (!sorted.length) return null;
+      if (sorted.length !== values.length) return null;
       const middle = Math.floor(sorted.length / 2);
       return sorted.length % 2
         ? sorted[middle]
         : (sorted[middle - 1] + sorted[middle]) / 2;
     };
-    // A budget still fails when at least two of three independent samples
+    // A budget still fails when at least two of three samples
     // miss it. The thresholds are unchanged; the median prevents a single
     // noisy simulated-throttling outlier from failing an otherwise healthy build.
     assert.equal(median([566, 53, 50]), 53, 'Lighthouse median must reject one isolated TBT outlier.');
