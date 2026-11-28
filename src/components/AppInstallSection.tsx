@@ -1,6 +1,6 @@
 import './appInstallSection.css';
 /**
- * AppInstallSection — the one app-install banner used by all 14 website
+ * AppInstallSection — the shared app-install banner used by salon website
  * templates.
  *
  * It replaced a full-bleed, indigo-gradient panel that ignored the host
@@ -67,6 +67,36 @@ export interface AppInstallSectionProps {
   'aria-label'?: string;
 }
 
+type SafeLinkProps = Pick<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'href' | 'target' | 'rel'>;
+
+/** Resolve app links against the current tenant origin; external HTTPS links leave the preview frame. */
+function safeAppLinkProps(href: string): SafeLinkProps {
+  // React SSR and some test renderers expose a partial window without location.
+  const currentOrigin =
+    typeof window !== 'undefined' && typeof window.location?.origin === 'string' && window.location.origin
+      ? window.location.origin
+      : 'https://nexorasalon.online';
+  try {
+    const trimmed = href.trim();
+    const resolved = new URL(trimmed, currentOrigin);
+    if (resolved.protocol !== 'https:' && resolved.protocol !== 'http:') return { href: '#' };
+    if (resolved.protocol !== 'https:' && resolved.origin !== currentOrigin) return { href: '#' };
+
+    // The customer app can contain authenticated account screens. Keep it
+    // outside the template-preview frame even though it is same-origin.
+    const customerAppRoute = resolved.pathname === '/' && resolved.searchParams.get('app') === '1';
+    if (resolved.origin === currentOrigin) {
+      return customerAppRoute
+        ? { href: trimmed, target: '_blank', rel: 'noopener noreferrer' }
+        : { href: trimmed };
+    }
+    if (resolved.protocol !== 'https:') return { href: '#' };
+    return { href: trimmed, target: '_blank', rel: 'noopener noreferrer' };
+  } catch {
+    return { href: '#' };
+  }
+}
+
 const DEFAULT_TITLE = (
   <>
     आपका salon, <span className="app-install__title-nowrap">अब आपके phone में.</span>
@@ -107,6 +137,8 @@ export function AppInstallSection({
   'aria-label': ariaLabel = 'Install and share Nexora customer app',
 }: AppInstallSectionProps) {
   const [notice, setNotice] = useState('');
+  const installLinkProps = safeAppLinkProps(installHref);
+  const openLinkProps = safeAppLinkProps(openHref);
 
   if (hidden) return null;
 
@@ -138,8 +170,8 @@ export function AppInstallSection({
     >
       <div className="app-install__card">
         <a
+          {...installLinkProps}
           className="app-install__media"
-          href={installHref}
           aria-label="Open the Nexora app install guide"
         >
           <img
@@ -166,11 +198,11 @@ export function AppInstallSection({
 
           <div className="app-install__actions">
             {installControl || (
-              <a className="app-install__cta" href={installHref}>
+              <a {...installLinkProps} className="app-install__cta">
                 {installLabel}
               </a>
             )}
-            <a className="app-install__cta app-install__cta--ghost" href={openHref}>
+            <a {...openLinkProps} className="app-install__cta app-install__cta--ghost">
               {openLabel}
             </a>
           </div>

@@ -167,12 +167,18 @@ for (const id of ALL_TEMPLATE_IDS.filter(id=>id!=='mens_hair_studio')) {
     installCta?.attribs.href === '/?app=1&install=1',
     `${id}: install CTA href is "${installCta?.attribs.href}", want the real install route`,
   );
+  check(installCta?.attribs.target === '_blank', `${id}: install CTA must leave an embedded preview frame`);
+  check(/noopener/.test(installCta?.attribs.rel || ''), `${id}: install CTA must protect the opener`);
+  check(/noreferrer/.test(installCta?.attribs.rel || ''), `${id}: install CTA must suppress referrer leakage`);
   const openCta = ctas.find((a) => /open app/i.test(textOf(a)));
   check(!!openCta, `${id}: "Open App" CTA missing`);
   check(
     openCta?.attribs.href === '/?app=1',
     `${id}: open CTA href is "${openCta?.attribs.href}", want /?app=1`,
   );
+  check(openCta?.attribs.target === '_blank', `${id}: open CTA must leave an embedded preview frame`);
+  check(/noopener/.test(openCta?.attribs.rel || ''), `${id}: open CTA must protect the opener`);
+  check(/noreferrer/.test(openCta?.attribs.rel || ''), `${id}: open CTA must suppress referrer leakage`);
 
   // No invented store listings or dead links anywhere in the banner.
   const sectionHtml = html.slice(

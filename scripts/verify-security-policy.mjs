@@ -4,8 +4,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const config = JSON.parse(readFileSync('vercel.json', 'utf8'));
-const globalHeaders = config.headers.find((entry) => entry.source === '/(.*)');
-assert.ok(globalHeaders, 'global security headers must exist');
+const globalHeaders = config.headers.find((entry) => entry.source === '/:path(.+)');
+assert.ok(globalHeaders, 'global security headers must cover every non-root path');
+assert.equal(globalHeaders.source, '/:path(.+)', 'the static deny policy must not also match the root app routes');
+const { default: routeStorefrontRequest } = await import('../middleware.js');
 const header = (key) => globalHeaders.headers.find((entry) => entry.key.toLowerCase() === key.toLowerCase())?.value;
 assert.equal(header('X-Content-Type-Options'), 'nosniff');
 assert.equal(header('X-Frame-Options'), 'DENY');
@@ -175,7 +177,6 @@ assert.ok(
 );
 
 // Exercise the actual Vercel Routing Middleware contract without a network call.
-const { default: routeStorefrontRequest } = await import('../middleware.js');
 const queryResponse = routeStorefrontRequest(new Request('https://preview.example/?site=Salon-Preview-01'));
 const rewriteTarget = queryResponse.headers.get('x-middleware-rewrite');
 assert.ok(rewriteTarget, 'a published salon root URL must rewrite to the SSR function');
@@ -198,21 +199,87 @@ assert.ok(wwwRedirect, 'the www host must redirect to the canonical origin');
 assert.equal(wwwRedirect.permanent, true, 'the canonical redirect must be permanent (308)');
 assert.equal(wwwRedirect.destination, 'https://nexorasalon.online/$1', 'the canonical redirect must preserve the path');
 
+
+// Only same-origin public salon storefront root documents can be framed.
+for (const [sampleUrl, expectedFrame] of [
+  ['/?app=1', 'DENY'],
+  ['/?app=1&install=1', 'DENY'],
+  ['/?site=salon-preview-01', 'SAMEORIGIN'],
+  ['/?site=salon-preview-01&auth=signup', 'DENY'],
+  ['/?site=salon-preview-01&admin=1', 'DENY'],
+  ['/?site=salon-preview-01&staff=1', 'DENY'],
+  ['/?site=salon-preview-01&owner=1', 'DENY'],
+  ['/?site=salon-preview-01&passwordUpdated=1', 'DENY'],
+  ['/?site=salon-preview-01&error_code=otp_expired', 'DENY'],
+  ['/?site=salon-preview-01&ADMIN=1', 'DENY'],
+  ['/?s=salon-preview-01', 'SAMEORIGIN'],
+  ['/?subdomain=salon-preview-01', 'SAMEORIGIN'],
+  ['/', 'DENY'],
+  ['/?app=0', 'DENY'],
+  ['/?customer=1', 'DENY'],
+  ['/?customer_ref=abc', 'DENY'],
+  ['/?app=1&customer_ref=abc', 'DENY'],
+  ['/?site=salon-preview-01&app=1', 'DENY'],
+  ['/?app=1&owner=1', 'DENY'],
+  ['/?app=1&panel=security', 'DENY'],
+  ['/?app=1&create=1', 'DENY'],
+  ['/?app=1&module=1', 'DENY'],
+  ['/?app=1&invite=1', 'DENY'],
+  ['/?app=1&recovery=1', 'DENY'],
+  ['/?app=1&auth=signup', 'DENY'],
+  ['/?app=1&token=secret-like-value', 'DENY'],
+  ['/?site=bad%2Fslug', 'DENY'],
+]) {
+  const response = routeStorefrontRequest(new Request(new URL(sampleUrl, 'https://nexorasalon.online')));
+  assert.equal(response.headers.get('X-Frame-Options'), expectedFrame, `frame policy for ${sampleUrl}`);
+  const frameAncestors = response.headers.get('Content-Security-Policy')
+    .split(';').map((part) => part.trim()).find((part) => part.startsWith('frame-ancestors '));
+  assert.equal(frameAncestors, expectedFrame === 'SAMEORIGIN' ? "frame-ancestors 'self'" : "frame-ancestors 'none'");
+  assert.equal(response.headers.get('X-Content-Type-Options'), 'nosniff');
+  assert.equal(response.headers.get('Strict-Transport-Security'), 'max-age=63072000; includeSubDomains; preload');
+}
+
+const nonGetRoot = routeStorefrontRequest(new Request('https://nexorasalon.online/?site=salon-preview-01', { method: 'POST' }));
+assert.equal(nonGetRoot.headers.get('X-Frame-Options'), 'DENY', 'non-GET/HEAD root requests must not be frameable');
+
 // Private/app paths and query flows must send X-Robots-Tag headers on Vercel too,
 // with rule precedence evaluated sequentially exactly as Vercel merges headers.
 const evaluateVercelHeaders = (rawUrl) => {
   const url = new URL(rawUrl, 'https://nexorasalon.online');
   const resolved = new Map();
   for (const entry of config.headers) {
-    const pattern = new RegExp(`^${entry.source}$`, 'i');
-    if (!pattern.test(url.pathname)) continue;
+    const matches = entry.source === '/:path(.+)'
+      ? url.pathname.length > 1
+      : new RegExp('^' + entry.source + '$', 'i').test(url.pathname);
+    if (!matches) continue;
     if (entry.has && !entry.has.every((cond) => cond.type === 'query' && url.searchParams.has(cond.key))) continue;
-    for (const h of entry.headers) {
-      resolved.set(h.key.toLowerCase(), h.value);
+    for (const h of entry.headers) resolved.set(h.key.toLowerCase(), h.value);
+  }
+
+  if (url.pathname === '/') {
+    // Root requests get their complete security header set from Vercel Routing Middleware.
+    const response = routeStorefrontRequest(new Request(url.toString()));
+    for (const key of [
+      'Strict-Transport-Security',
+      'X-Content-Type-Options',
+      'X-Frame-Options',
+      'Referrer-Policy',
+      'Permissions-Policy',
+      'Content-Security-Policy',
+    ]) {
+      const value = response.headers.get(key);
+      if (value) resolved.set(key.toLowerCase(), value);
     }
   }
   return resolved;
 };
+
+// Non-root application, account and API routes always retain the clickjacking deny policy.
+for (const path of ['/login', '/owner', '/staff/login', '/admin/demo-leads', '/api/storefront', '/pricing']) {
+  const headers = evaluateVercelHeaders(path);
+  assert.equal(headers.get('x-frame-options'), 'DENY', `X-Frame-Options must deny framing for ${path}`);
+  assert.ok(headers.get('content-security-policy')?.includes("frame-ancestors 'none'"), `CSP must deny framing for ${path}`);
+}
 
 assert.equal(globalHeaders.headers.find((entry) => entry.key.toLowerCase() === 'x-robots-tag'), undefined, 'catch-all /(.*) rule must not set or overwrite X-Robots-Tag');
 for (const [sampleUrl, expectedRobots] of [
@@ -294,4 +361,22 @@ const seoUpdater = readFileSync('src/lib/useSeoMetadata.ts', 'utf8');
 assert.ok(seoUpdater.includes('let existingSchema:'), 'client SEO updater must parse the existing server schema');
 assert.ok(seoUpdater.includes('...existingSchema'), 'client SEO updater must preserve SSR business subtype and offers');
 
-console.log('PASS: enforcing CSP matches runtime integrations; legacy routes remain intact; root salon selectors reach SSR before index.html while app/customer routes stay on the SPA shell.');
+const appInstallSource = readFileSync('src/components/AppInstallSection.tsx', 'utf8');
+assert.ok(appInstallSource.includes('noopener noreferrer'), 'external app/install overrides must open in a protected new tab');
+assert.ok(appInstallSource.includes("target: '_blank'"), 'external app/install overrides must not navigate the preview iframe');
+assert.ok(appInstallSource.includes("resolved.protocol !== 'https:' && resolved.protocol !== 'http:'"), 'app/install URLs must reject executable and non-web schemes');
+assert.ok(appInstallSource.includes("if (resolved.protocol !== 'https:') return { href: '#' }"), 'external HTTP overrides must not be opened from a secure site');
+assert.ok(appInstallSource.includes("resolved.searchParams.get('app') === '1'"), 'customer app routes must open outside the template preview frame');
+const announcementSource = readFileSync('src/components/PromotionalBanner.tsx', 'utf8');
+assert.ok(announcementSource.includes('customerAppRoute'), 'the app announcement action must not navigate the template preview iframe');
+assert.ok(announcementSource.includes("rel: 'noopener noreferrer'"), 'new-tab promotional actions must use noopener noreferrer');
+const customerWebsiteSource = readFileSync('src/components/CustomerSalonWebsite.tsx', 'utf8');
+assert.ok(customerWebsiteSource.includes('navigateCustomerAccount(`/?customer=1&auth=${mode}'), 'customer sign-in/signup routes must leave the embedded preview');
+const salonPreviewSource = readFileSync('src/components/SalonWebsitePreview.tsx', 'utf8');
+assert.ok(salonPreviewSource.includes('navigateCustomerAccount(`/?customer=1&return='), 'read-only preview account buttons must leave the embedded frame');
+const customerHeaderSource = readFileSync('src/components/CustomerWebsiteHeader.tsx', 'utf8');
+assert.ok(customerHeaderSource.includes("window.self !== window.top"), 'embedded customer headers must detect preview frames');
+assert.equal((customerHeaderSource.match(/\.\.\.appInstallLinkProps/g) || []).length, 4, 'all four template mobile app links must use the frame-safe target');
+assert.ok(customerWebsiteSource.includes("window.open(url, '_blank', 'noopener,noreferrer')"), 'shared customer website auth links must open a new tab when framed');
+assert.ok(salonPreviewSource.includes("window.open(url, '_blank', 'noopener,noreferrer')"), 'template editor preview auth links must open a new tab when framed');
+console.log('PASS: enforcing CSP matches runtime integrations; same-origin public root app/storefront routes frame safely; private roots and every non-root route remain blocked.');

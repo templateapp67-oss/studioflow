@@ -87,6 +87,15 @@ const PinkyNailsFaqEditor = React.lazy(() => import('./PinkyNailsFaqEditor').the
 const InteractiveMapSetup = React.lazy(() => import('./InteractiveMapSetup').then((module) => ({ default: module.InteractiveMapSetup })));
 const TestimonialModal = React.lazy(() => import('./ClientTestimonials').then((module) => ({ default: module.TestimonialModal })));
 
+function navigateCustomerAccount(url: string): void {
+ if (typeof window === 'undefined') return;
+ if (window.self !== window.top) {
+  window.open(url, '_blank', 'noopener,noreferrer');
+  return;
+ }
+ window.location.assign(url);
+}
+
 export interface SalonWebsitePreviewProps {
   profile: SalonProfile;
   setProfile?: React.Dispatch<React.SetStateAction<SalonProfile>>;
@@ -1083,7 +1092,7 @@ const SalonWebsiteEditor: React.FC<SalonWebsitePreviewProps> = ({
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              {readOnly&&<nav aria-label="Customer account" className="flex flex-wrap items-center gap-2 text-xs"><button className="border rounded-xl px-3 py-2 font-semibold" onClick={()=>onCustomerAccount?onCustomerAccount('signin'):location.assign(`/?customer=1&return=${encodeURIComponent(activeProfile.subdomain||'')}`)}>Customer Login</button><button className="border rounded-xl px-3 py-2 font-semibold" onClick={()=>onCustomerAccount?onCustomerAccount('signup'):location.assign(`/?customer=1&auth=signup&return=${encodeURIComponent(activeProfile.subdomain||'')}`)}>Sign up</button>{customerSignedIn&&<a className="underline" href={`/?customer=1&return=${encodeURIComponent(activeProfile.subdomain||'')}`}>My bookings</a>}</nav>}
+              {readOnly&&<nav aria-label="Customer account" className="flex flex-wrap items-center gap-2 text-xs"><button className="border rounded-xl px-3 py-2 font-semibold" onClick={()=>onCustomerAccount?onCustomerAccount('signin'):navigateCustomerAccount(`/?customer=1&return=${encodeURIComponent(activeProfile.subdomain||'')}`)}>Customer Login</button><button className="border rounded-xl px-3 py-2 font-semibold" onClick={()=>onCustomerAccount?onCustomerAccount('signup'):navigateCustomerAccount(`/?customer=1&auth=signup&return=${encodeURIComponent(activeProfile.subdomain||'')}`)}>Sign up</button>{customerSignedIn&&<a className="underline" href={`/?customer=1&return=${encodeURIComponent(activeProfile.subdomain||'')}`} target="_blank" rel="noopener noreferrer">My bookings</a>}</nav>}
               <div className="hidden lg:flex flex-col text-right">
                 <span className="text-[11px] font-mono text-slate-400">Direct Appointments</span>
                 <span className="text-xs font-bold font-mono">

@@ -5,6 +5,7 @@ import { spawn } from 'node:child_process';
 import { request as httpRequest } from 'node:http';
 import { createServer } from 'node:net';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { securityHeaders } from '../server/httpSecurityHeadersShared.js';
 
 assert.ok(existsSync('dist/server.cjs'), 'Run npm run build before verify-production-routes.mjs');
 const probe = createServer();
@@ -49,14 +50,28 @@ try {
   assert.equal(httpApexRes.headers.location, 'https://nexorasalon.online/partner-rewards');
 
   const vercelConfig = JSON.parse(readFileSync('vercel.json', 'utf8'));
-  const baselineHeaders = vercelConfig.headers.find(({ source }) => source === '/(.*)').headers;
+  const baselineRule = vercelConfig.headers.find(({ source }) => source === '/:path(.+)');
+  assert.ok(baselineRule, 'Vercel strict static headers must cover every non-root path');
+  const baselineHeaders = baselineRule.headers;
   const homeResponse = await rawGet('/');
-  for (const name of ['X-Content-Type-Options', 'X-Frame-Options', 'Referrer-Policy']) {
-    const value = baselineHeaders.find(({ key }) => key === name)?.value;
-    assert.ok(value, name + ' is set in Vercel');
-    assert.equal(homeResponse.headers[name.toLowerCase()], value, name + ' matches Vercel in Express');
+  const expectedRootHeaders = securityHeaders();
+  for (const name of ['Strict-Transport-Security', 'X-Content-Type-Options', 'X-Frame-Options', 'Referrer-Policy', 'Permissions-Policy', 'Content-Security-Policy']) {
+    assert.ok(expectedRootHeaders[name], name + ' is present in the shared Express header contract');
+    assert.equal(homeResponse.headers[name.toLowerCase()], expectedRootHeaders[name], name + ' matches the shared root middleware/Express contract');
+    assert.ok(baselineHeaders.some(({ key }) => key === name), name + ' is present in the Vercel non-root static rule');
   }
   assert.equal(homeResponse.headers['x-powered-by'], undefined);
+
+  // Only public storefront root documents are frameable; customer app/auth
+  // and every non-root route retain strict clickjacking protection.
+  const publicStorefrontResponse = await rawGet('/?site=frame-policy-probe');
+  assert.equal(publicStorefrontResponse.headers['x-frame-options'], 'SAMEORIGIN');
+  assert.match(publicStorefrontResponse.headers['content-security-policy'] || '', /frame-ancestors 'self'/);
+  for (const path of ['/login', '/owner', '/staff/login', '/admin/demo-leads', '/api/storefront', '/?app=1', '/?app=1&install=1', '/?customer=1']) {
+    const response = await rawGet(path);
+    assert.equal(response.headers['x-frame-options'], 'DENY', `${path} remains unframeable`);
+    assert.match(response.headers['content-security-policy'] || '', /frame-ancestors 'none'/, `${path} CSP blocks framing`);
+  }
 
   // Verify live /robots.txt and /sitemap.xml responses.
   let route = await get('/robots.txt');
