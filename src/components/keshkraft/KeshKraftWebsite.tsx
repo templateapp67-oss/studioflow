@@ -969,6 +969,8 @@ export function KeshKraftWebsite(props: SalonWebsitePreviewProps) {
           initialStylist={barber}
           initialCouponCode={coupon}
           onAddAppointment={props.onAddAppointment}
+          customerSignedIn={props.customerSignedIn}
+          onCustomerAccount={props.onCustomerAccount}
           themeAccentHex="#b08a61"
         />
       )}
