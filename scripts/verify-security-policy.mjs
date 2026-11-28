@@ -346,4 +346,6 @@ assert.ok(seoUpdater.includes('...existingSchema'), 'client SEO updater must pre
 const appInstallSource = readFileSync('src/components/AppInstallSection.tsx', 'utf8');
 assert.ok(appInstallSource.includes('noopener noreferrer'), 'external app/install overrides must open in a protected new tab');
 assert.ok(appInstallSource.includes("target: '_blank'"), 'external app/install overrides must not navigate the preview iframe');
+assert.ok(appInstallSource.includes("resolved.protocol !== 'https:' && resolved.protocol !== 'http:'"), 'app/install URLs must reject executable and non-web schemes');
+assert.ok(appInstallSource.includes("if (resolved.protocol !== 'https:') return { href: '#' }"), 'external HTTP overrides must not be opened from a secure site');
 console.log('PASS: enforcing CSP matches runtime integrations; same-origin public root app/storefront routes frame safely; private roots and every non-root route remain blocked.');
