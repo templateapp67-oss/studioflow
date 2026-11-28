@@ -19,7 +19,7 @@ assert.ok(edge.includes('onlineMessage'), 'server exposes a human-readable readi
 assert.ok(edge.includes('webCheckout:{online:webOnline,venue:webVenue,mode:expectedWebMode,onlineReason,onlineMessage}'), 'status GET reports the online capability');
 
 assert.ok(payments.includes('export type WebCheckoutStatus'), 'frontend status response is typed');
-assert.ok(payments.includes("functions.invoke('studioflow-payments', { method: 'GET' })'), 'checkout reads the server-side capability endpoint');
+assert.ok(payments.includes("functions.invoke('studioflow-payments', { method: 'GET' })"), 'checkout reads the server-side capability endpoint');
 
 assert.ok(options.includes('onlineAvailable?: boolean'), 'payment radio supports server readiness');
 assert.ok(options.includes('disabled={!onlineAvailable}'), 'unavailable Razorpay is visibly disabled');
