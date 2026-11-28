@@ -739,6 +739,9 @@ Return strictly valid JSON in this format:
     });
     // The NEXORA marketing routes ship their own prerendered documents too, so
     // the production server never answers them with the homepage shell.
+    app.get(/^\/about\/?$/, (_req, res) => {
+      res.sendFile(path.join(distPath, "about", "index.html"));
+    });
     app.get(/^\/salon-onboarding\/?$/, (_req, res) => {
       res.sendFile(path.join(distPath, "salon-onboarding", "index.html"));
     });

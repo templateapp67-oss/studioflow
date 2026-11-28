@@ -19,7 +19,7 @@ assert.ok(edge.includes('onlineMessage'), 'server exposes a human-readable readi
 assert.ok(edge.includes('webCheckout:{online:webOnline,venue:webVenue,mode:expectedWebMode,onlineReason,onlineMessage}'), 'status GET reports the online capability');
 
 assert.ok(payments.includes('export type WebCheckoutStatus'), 'frontend status response is typed');
-assert.ok(payments.includes("functions.invoke('studioflow-payments', { method: 'GET' })'), 'checkout reads the server-side capability endpoint');
+assert.ok(payments.includes("functions.invoke('studioflow-payments', { method: 'GET' })"), 'checkout reads the server-side capability endpoint');
 
 assert.ok(options.includes('onlineAvailable?: boolean'), 'payment radio supports server readiness');
 assert.ok(options.includes('disabled={!onlineAvailable}'), 'unavailable Razorpay is visibly disabled');
@@ -34,9 +34,9 @@ assert.ok(modal.includes('validCheckoutAmount=Number.isFinite(Number(totalPrice)
 assert.ok(modal.includes('Payments are activated after this salon website is published.'), 'draft preview explains its payment gate');
 assert.ok(modal.includes('gatewayChecking'), 'website checkout has a loading state');
 
-assert.ok(customerFlow.includes('onlineAvailable={Boolean(checkout?.online)}'), 'customer app uses the same Razorpay readiness state');
+assert.ok(customerFlow.includes('onlineAvailable={Boolean(checkout?.online)&&validCheckoutAmount}'), 'customer app uses the same Razorpay readiness and amount gate');
 assert.ok(customerFlow.includes('validCheckoutAmount=Number.isFinite(total)&&total>0'), 'customer app validates the payable amount');
-assert.ok(customerFlow.includes('onlineMessage={checkout?.online ? undefined'), 'customer app explains unavailable Razorpay');
+assert.ok(customerFlow.includes("onlineMessage={!validCheckoutAmount ? 'Razorpay requires a payable amount above ₹0.' : checkout?.online ? undefined"), 'customer app explains unavailable Razorpay');
 assert.ok(customerFlow.includes('if(!session){setAuth(true);return;}'), 'customer app keeps authentication ahead of reservation');
 
 const sharedCalls = (templates.match(/<BookingModal\b/g) || []).length;

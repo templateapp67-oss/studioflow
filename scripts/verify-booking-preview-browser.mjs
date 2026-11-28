@@ -238,6 +238,7 @@ try {
         context.waitForEvent('page'),
         appLinks.first().click(),
       ]);
+      await appTab.waitForURL(url => url.origin === base);
       await appTab.waitForLoadState('domcontentloaded');
       const appUrl = new URL(appTab.url());
       assert.equal(appUrl.origin, base, 'app install opens a new first-party tab');
@@ -251,6 +252,7 @@ try {
           context.waitForEvent('page'),
           customerLogin.first().click(),
         ]);
+        await accountTab.waitForURL(url => url.origin === base);
         await accountTab.waitForLoadState('domcontentloaded');
         const accountUrl = new URL(accountTab.url());
         assert.equal(accountUrl.origin, base, 'customer login opens a new first-party tab');
