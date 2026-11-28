@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       release_mode:
-        description: Choose one operation (dry_run checks only; apply_and_deploy releases DB, functions and website)
+        description: Choose one operation (deploy_only requires reviewed and current remote migration history)
         type: choice
         required: true
         default: dry_run
@@ -96,10 +96,12 @@ jobs:
       (
         github.event_name == 'push' ||
         (github.event_name == 'workflow_dispatch' &&
-          (inputs.release_mode == 'dry_run' || inputs.release_mode == 'apply_and_deploy'))
+          (inputs.release_mode == 'dry_run' || inputs.release_mode == 'apply_and_deploy' || inputs.release_mode == 'deploy_only'))
       )
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    outputs:
+      pending_migrations: ${{ steps.migration_history.outputs.pending_migrations }}
     environment:
       name: production-db
     env:
@@ -237,6 +239,7 @@ jobs:
       # Supabase CLI v3 compares migration timestamps in local files with the
       # remote supabase_migrations.schema_migrations table. This check is read-only.
       - name: Verify local and remote Supabase migration history
+        id: migration_history
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
@@ -368,14 +371,15 @@ jobs:
       (
         (github.event_name == 'push' &&
           needs.changes.outputs.migrations_changed == 'false' &&
-          needs.migrate.result == 'success') ||
+          needs.migrate.result == 'success' &&
+          needs.migrate.outputs.pending_migrations == '0') ||
         (github.event_name == 'workflow_dispatch' &&
           inputs.release_mode == 'apply_and_deploy' &&
           needs.migrate.result == 'success') ||
         (github.event_name == 'workflow_dispatch' &&
           inputs.release_mode == 'deploy_only' &&
-          inputs.release_mode != 'apply_and_deploy' &&
-          needs.migrate.result == 'skipped')
+          needs.migrate.result == 'success' &&
+          needs.migrate.outputs.pending_migrations == '0')
       )
     runs-on: windows-latest
     timeout-minutes: 35
