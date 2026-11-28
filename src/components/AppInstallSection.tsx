@@ -76,7 +76,12 @@ function safeAppLinkProps(href: string): SafeLinkProps {
     const trimmed = href.trim();
     const resolved = new URL(trimmed, currentOrigin);
     if (resolved.protocol !== 'https:' && resolved.protocol !== 'http:') return { href: '#' };
-    if (resolved.origin === currentOrigin) return { href: trimmed };
+    if (resolved.protocol !== 'https:' && resolved.origin !== currentOrigin) return { href: '#' };
+
+    // The customer app can contain authenticated account screens. Keep it
+    // outside the template-preview frame even though it is same-origin.
+    const customerAppRoute = resolved.pathname === '/' && resolved.searchParams.get('app') === '1';
+    if (resolved.origin === currentOrigin && !customerAppRoute) return { href: trimmed };
     if (resolved.protocol !== 'https:') return { href: '#' };
     return { href: resolved.toString(), target: '_blank', rel: 'noopener noreferrer' };
   } catch {
