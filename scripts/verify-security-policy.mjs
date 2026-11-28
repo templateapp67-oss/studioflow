@@ -236,13 +236,6 @@ for (const [sampleUrl, expectedFrame] of [
 const nonGetRoot = routeStorefrontRequest(new Request('https://nexorasalon.online/?site=salon-preview-01', { method: 'POST' }));
 assert.equal(nonGetRoot.headers.get('X-Frame-Options'), 'DENY', 'non-GET/HEAD root requests must not be frameable');
 
-// Non-root application, account and API routes always retain the clickjacking deny policy.
-for (const path of ['/login', '/owner', '/staff/login', '/admin/demo-leads', '/api/storefront', '/pricing']) {
-  const headers = evaluateVercelHeaders(path);
-  assert.equal(headers.get('x-frame-options'), 'DENY', `X-Frame-Options must deny framing for ${path}`);
-  assert.ok(headers.get('content-security-policy')?.includes("frame-ancestors 'none'"), `CSP must deny framing for ${path}`);
-}
-
 // Private/app paths and query flows must send X-Robots-Tag headers on Vercel too,
 // with rule precedence evaluated sequentially exactly as Vercel merges headers.
 const evaluateVercelHeaders = (rawUrl) => {
@@ -274,6 +267,13 @@ const evaluateVercelHeaders = (rawUrl) => {
   }
   return resolved;
 };
+
+// Non-root application, account and API routes always retain the clickjacking deny policy.
+for (const path of ['/login', '/owner', '/staff/login', '/admin/demo-leads', '/api/storefront', '/pricing']) {
+  const headers = evaluateVercelHeaders(path);
+  assert.equal(headers.get('x-frame-options'), 'DENY', `X-Frame-Options must deny framing for ${path}`);
+  assert.ok(headers.get('content-security-policy')?.includes("frame-ancestors 'none'"), `CSP must deny framing for ${path}`);
+}
 
 assert.equal(globalHeaders.headers.find((entry) => entry.key.toLowerCase() === 'x-robots-tag'), undefined, 'catch-all /(.*) rule must not set or overwrite X-Robots-Tag');
 for (const [sampleUrl, expectedRobots] of [
