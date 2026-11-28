@@ -5,7 +5,7 @@ const PRIVATE_ROOT_QUERY_KEYS = [
   'owner',
   'admin',
   'staff',
-  'passwordUpdated',
+  'passwordupdated',
   'error_code',
   'auth_code',
   'state',
