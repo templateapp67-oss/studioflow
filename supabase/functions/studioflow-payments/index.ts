@@ -8,7 +8,6 @@ import { claimWebhookEvent, finishWebhookEvent, resolveWebhookEventId, safeWebho
 import { safeLogger } from '../_shared/safeLogger.ts';
 import { sendBookingReceipts } from './booking-receipts.ts';
 import { paymentReceiptTemplate, sendTransactionalEmail } from '../_shared/resendEmail.ts';
-import { safeLogger } from '../_shared/safeLogger.ts';
 const PAYMENT_CORS_HEADERS = 'authorization,apikey,content-type,x-client-info,x-razorpay-signature,x-razorpay-event-id,x-worker-token';
 
 function env(name:string){
