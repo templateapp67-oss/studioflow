@@ -15,7 +15,7 @@ const [edge, payments, options, bookingModal, customerFlow, sharedTemplates, aur
 
 assert.ok(edge.includes("(env('BOOKING_RAZORPAY_MODE')||'test').toLowerCase()"), 'server normalizes configured Razorpay mode');
 for (const reason of ['credentials_missing', 'mode_mismatch', 'invalid_mode']) {
-  assert.ok(edge.includes(reason), \`server identifies \${reason}\`);
+  assert.ok(edge.includes(reason), `server identifies ${reason}`);
 }
 assert.ok(edge.includes('onlineMessage'), 'server returns a safe, human-readable checkout reason');
 assert.ok(edge.includes('webCheckout:{online:webOnline,venue:webVenue,mode:expectedWebMode,onlineReason,onlineMessage}'), 'status endpoint exposes checkout capability');
