@@ -130,6 +130,10 @@ export function NexoraAboutContent() {
           <p className="inline-flex items-center gap-2 text-sm font-bold text-[#f4d99d]"><Smartphone size={17} aria-hidden="true" /> Android development by App Creator</p>
           <h2 id="about-app-title" className="mt-3 max-w-3xl text-3xl font-extrabold tracking-tight sm:text-4xl">Android Salon Booking App</h2>
           <p className="mt-4 max-w-3xl leading-7 text-[#e7dbed]">Give customers a branded Android app to explore your salon or beauty parlour services and request appointments. Buy the ready-made app or enquire about the Android Studio source code for a client project.</p>
+          <figure className="mt-8 max-w-3xl overflow-hidden rounded-2xl border border-[#674f77]">
+            <img src="/nexora-about/android-salon-booking-app.webp" width={960} height={960} loading="lazy" decoding="async" className="aspect-[5/4] w-full object-cover object-top" alt="NEXORA Android salon booking app and beauty parlour website illustrated on a phone and laptop" />
+            <figcaption className="px-4 py-3 text-sm text-[#e7dbed]">Illustrated app and website examples. Use the links below for demos, source code and customization.</figcaption>
+          </figure>
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
             {appOffers.map(({ title, price, description, action, message }) => (
               <article key={title} className="flex flex-col rounded-2xl border border-[#674f77] bg-[#30213e] p-6 sm:p-8">
