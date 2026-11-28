@@ -651,19 +651,20 @@ const baseMigrationList=[
     return migration+' | '+remote+' | '+appliedAt;
   })
 ].join('\n');
-// A dry-run against a target that already recorded the new cross-ledger
-// migration must stop for reconciliation, not present the old plan as pending.
+// Production history currently records all three booking migrations as
+// applied. Simulate the inverse drift: the remote CLI reports the cross-ledger
+// version as pending even though the reviewed ledger records it as applied.
 const crossLedger='20261127143200';
-const unexpectedlyAppliedList=baseMigrationList.replace(
+const unexpectedlyPendingList=baseMigrationList.replace(
+  '`'+crossLedger+'` | `'+crossLedger+'` | `2026-11-19 00:00:00`',
   '`'+crossLedger+'` |  | ',
-  '`'+crossLedger+'` | `'+crossLedger+'` | `2026-11-27 00:00:00`',
 );
-assert.notEqual(unexpectedlyAppliedList,baseMigrationList,'the cross-ledger version is present as pending in the fixture');
-const unexpectedlyAppliedResult=spawnSync(process.execPath,['scripts/verify-supabase-migration-history.mjs'],{
-  env:buildCleanEnv({SUPABASE_MIGRATION_LIST_OUTPUT:unexpectedlyAppliedList}),encoding:'utf8',windowsHide:true,
+assert.notEqual(unexpectedlyPendingList,baseMigrationList,'the applied cross-ledger version is changed to pending in the fixture');
+const unexpectedlyPendingResult=spawnSync(process.execPath,['scripts/verify-supabase-migration-history.mjs'],{
+  env:buildCleanEnv({SUPABASE_MIGRATION_LIST_OUTPUT:unexpectedlyPendingList}),encoding:'utf8',windowsHide:true,
 });
-assert.notEqual(unexpectedlyAppliedResult.status,0,'an unexpectedly applied cross-ledger migration requires reconciliation');
-assert.match(`${unexpectedlyAppliedResult.stdout||''}\n${unexpectedlyAppliedResult.stderr||''}`,/20261127143200/);
+assert.notEqual(unexpectedlyPendingResult.status,0,'an unexpectedly pending cross-ledger migration requires reconciliation');
+assert.match(`${unexpectedlyPendingResult.stdout||''}\n${unexpectedlyPendingResult.stderr||''}`,/20261127143200/);
 
 const historyOutputDirectory=mkdtempSync(join(tmpdir(),'studioflow-migration-history-'));
 try{
@@ -676,12 +677,12 @@ try{
   assert.equal(checked.status,0,checked.stderr);
   assert.equal(readFileSync(outputPath,'utf8'),`pending_migrations=${pendingVersions.size}\n`);
   writeFileSync(outputPath,'');
-  const fullyRecordedList=[...pendingVersions].reduce((list,version)=>list.replace(
-    '`'+version+'` |  | ',
-    '`'+version+'` | `'+version+'` | `2026-11-27 00:00:00`',
-  ),baseMigrationList);
-  assert.notEqual(runHistory(fullyRecordedList).status,0,'newly recorded versions require reconciliation');
-  assert.equal(readFileSync(outputPath,'utf8'),'','an unreviewed history must not emit a deploy gate output');
+  // The reconciled production ledger has no pending migrations. A fully
+  // matched local/remote history must emit a zero-pending deploy gate output.
+  const fullyRecordedList=baseMigrationList;
+  const fullyRecorded=runHistory(fullyRecordedList);
+  assert.equal(fullyRecorded.status,0,fullyRecorded.stderr);
+  assert.equal(readFileSync(outputPath,'utf8'),'pending_migrations=0\\n');
 } finally {
   rmSync(historyOutputDirectory,{recursive:true,force:true});
 }
