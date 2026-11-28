@@ -10,7 +10,7 @@ import { NexoraGrowthPartnerRewardsPage } from './NexoraGrowthPartnerRewardsPage
 const pageData = {
   '/about': {
     title: 'About NEXORA SalonOS',
-    heading: 'Salon management software, websites and Android booking apps.',
+    heading: 'About NEXORA SalonOS',
     intro: 'Build a branded salon website, manage daily operations in NEXORA SalonOS, or buy a ready-made Android booking app for your salon, spa or beauty business.',
   },
   '/salon-onboarding': {
@@ -59,6 +59,7 @@ export function NexoraEcosystemPage({ path }: { path: keyof typeof pageData }) {
     <NexoraEcosystemSeoHead path={path} />
     <a className="nexora-site-skip" href="#nxe-hero-title">Skip to main content</a>
     <NexoraEcosystemHero
+      key={path}
       path={path}
       heading={page.heading}
       intro={page.intro}
@@ -66,7 +67,7 @@ export function NexoraEcosystemPage({ path }: { path: keyof typeof pageData }) {
       primaryHref={isOnboarding ? '#templates' : isAbout ? '#free-salon-website-templates' : '#growth'}
       tagNumber={isAbout ? '04' : isOnboarding ? '01' : '02'}
     />
-    <main>
+    <main id={isAbout ? 'about-nexora' : undefined}>
       {isAbout ? <>
         <NexoraAboutContent />
         <section id="editorial-team" className="border-t border-[#eee] bg-[#fcfafc] px-5 py-12">

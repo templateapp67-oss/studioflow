@@ -83,7 +83,7 @@ function motionAllowed() {
   }
 }
 
-export function useNexoraTitleDemote(wordCount: number): {
+export function useNexoraTitleDemote(wordCount: number, enabled: boolean): {
   heroRef: RefObject<HTMLElement | null>;
   copyRef: RefObject<HTMLDivElement | null>;
   titleRef: RefObject<HTMLHeadingElement | null>;
@@ -104,7 +104,7 @@ export function useNexoraTitleDemote(wordCount: number): {
    * never flashes at the box's left edge on frame 1.
    */
   useIsomorphicLayoutEffect(() => {
-    if (!motionAllowed()) return;
+    if (!enabled || !motionAllowed()) return;
 
     const hero = heroRef.current;
     const copy = copyRef.current;
@@ -141,10 +141,10 @@ export function useNexoraTitleDemote(wordCount: number): {
     title.style.setProperty('--nxh-k', scale.toFixed(3));
 
     setStage('prep');
-  }, []);
+  }, [enabled]);
 
   useEffect(() => {
-    if (startedRef.current || !motionAllowed()) return;
+    if (!enabled || startedRef.current || !motionAllowed()) return;
     startedRef.current = true;
 
     const timers: number[] = [];
@@ -177,7 +177,7 @@ export function useNexoraTitleDemote(wordCount: number): {
       cancelled = true;
       timers.forEach((timer) => window.clearTimeout(timer));
     };
-  }, [wordCount]);
+  }, [enabled, wordCount]);
 
   useEffect(() => {
     if (stage !== 'settled') return;
