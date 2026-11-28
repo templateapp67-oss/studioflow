@@ -28,11 +28,18 @@ Deno.serve(async(req:Request)=>{
   const respond=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{...cors,'Content-Type':'application/json'}});
   if(req.method==='OPTIONS')return new Response(null,{status:204,headers:cors});
   const creds=razorpayCredentials();
-  const expectedWebMode=env('BOOKING_RAZORPAY_MODE')||'test';
-  const webOnline=creds.configured&&creds.key.startsWith(`rzp_${expectedWebMode}_`)&&['test','live'].includes(expectedWebMode);
+  const expectedWebMode=(env('BOOKING_RAZORPAY_MODE')||'test').toLowerCase();
+  const validWebMode=expectedWebMode==='test'||expectedWebMode==='live';
+  const keyMatchesWebMode=validWebMode&&creds.key.startsWith(`rzp_${expectedWebMode}_`);
+  const webOnline=creds.configured&&keyMatchesWebMode;
   const webVenue=env('BOOKING_PAY_AT_VENUE_ENABLED')==='true';
+  const onlineReason=webOnline?'available':!validWebMode?'invalid_mode':!creds.configured?'credentials_missing':'mode_mismatch';
+  const onlineMessage=webOnline?'Razorpay checkout is ready.':
+    onlineReason==='credentials_missing'?'Razorpay is not configured on the payment server. The platform administrator must configure the gateway.':
+    onlineReason==='mode_mismatch'?'Razorpay key mode does not match BOOKING_RAZORPAY_MODE.':
+    'BOOKING_RAZORPAY_MODE must be either test or live.';
   if(req.method==='GET')return respond({configured:creds.configured,webhookConfigured:!!creds.webhookSecret,mode:creds.mode,
-    webCheckout:{online:webOnline,venue:webVenue,mode:expectedWebMode}});
+    webCheckout:{online:webOnline,venue:webVenue,mode:expectedWebMode,onlineReason,onlineMessage}});
   if(req.method!=='POST')return respond({error:'POST required'},405);
   try {
     const url=env('SUPABASE_URL')||Deno.env.get('SUPABASE_URL')||'';
