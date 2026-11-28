@@ -41,7 +41,9 @@ export function PromotionalBanner({
   const actionTargetProps = (() => {
     if (!safeHref) return {};
     try {
-      const currentOrigin = typeof window === 'undefined' ? 'https://nexorasalon.online' : window.location.origin;
+      const currentOrigin = typeof window !== 'undefined' && typeof window.location?.origin === 'string' && window.location.origin
+        ? window.location.origin
+        : 'https://nexorasalon.online';
       const resolved = new URL(safeHref, currentOrigin);
       const customerAppRoute = resolved.pathname === '/' && resolved.searchParams.get('app') === '1';
       return resolved.origin !== currentOrigin || customerAppRoute
