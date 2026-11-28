@@ -200,11 +200,12 @@ assert.equal(wwwRedirect.permanent, true, 'the canonical redirect must be perman
 assert.equal(wwwRedirect.destination, 'https://nexorasalon.online/$1', 'the canonical redirect must preserve the path');
 
 
-// Only same-origin public root app/storefront documents can be framed.
+// Only same-origin public salon storefront root documents can be framed.
 for (const [sampleUrl, expectedFrame] of [
   ['/?app=1', 'DENY'],
   ['/?app=1&install=1', 'DENY'],
   ['/?site=salon-preview-01', 'SAMEORIGIN'],
+  ['/?site=salon-preview-01&auth=signup', 'DENY'],
   ['/?s=salon-preview-01', 'SAMEORIGIN'],
   ['/?subdomain=salon-preview-01', 'SAMEORIGIN'],
   ['/', 'DENY'],
@@ -230,6 +231,16 @@ for (const [sampleUrl, expectedFrame] of [
   assert.equal(frameAncestors, expectedFrame === 'SAMEORIGIN' ? "frame-ancestors 'self'" : "frame-ancestors 'none'");
   assert.equal(response.headers.get('X-Content-Type-Options'), 'nosniff');
   assert.equal(response.headers.get('Strict-Transport-Security'), 'max-age=63072000; includeSubDomains; preload');
+}
+
+const nonGetRoot = routeStorefrontRequest(new Request('https://nexorasalon.online/?site=salon-preview-01', { method: 'POST' }));
+assert.equal(nonGetRoot.headers.get('X-Frame-Options'), 'DENY', 'non-GET/HEAD root requests must not be frameable');
+
+// Non-root application, account and API routes always retain the clickjacking deny policy.
+for (const path of ['/login', '/owner', '/staff/login', '/admin/demo-leads', '/api/storefront', '/pricing']) {
+  const headers = evaluateVercelHeaders(path);
+  assert.equal(headers.get('x-frame-options'), 'DENY', `X-Frame-Options must deny framing for ${path}`);
+  assert.ok(headers.get('content-security-policy')?.includes("frame-ancestors 'none'"), `CSP must deny framing for ${path}`);
 }
 
 // Private/app paths and query flows must send X-Robots-Tag headers on Vercel too,
@@ -357,4 +368,6 @@ const customerWebsiteSource = readFileSync('src/components/CustomerSalonWebsite.
 assert.ok(customerWebsiteSource.includes('navigateCustomerAccount(`/?customer=1&auth=${mode}'), 'customer sign-in/signup routes must leave the embedded preview');
 const salonPreviewSource = readFileSync('src/components/SalonWebsitePreview.tsx', 'utf8');
 assert.ok(salonPreviewSource.includes('navigateCustomerAccount(`/?customer=1&return='), 'read-only preview account buttons must leave the embedded frame');
+assert.ok(customerWebsiteSource.includes("window.open(url, '_blank', 'noopener,noreferrer')"), 'shared customer website auth links must open a new tab when framed');
+assert.ok(salonPreviewSource.includes("window.open(url, '_blank', 'noopener,noreferrer')"), 'template editor preview auth links must open a new tab when framed');
 console.log('PASS: enforcing CSP matches runtime integrations; same-origin public root app/storefront routes frame safely; private roots and every non-root route remain blocked.');
