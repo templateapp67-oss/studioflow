@@ -148,7 +148,7 @@ const globalHeaders = vercel.headers.find((entry) => entry.source === '/:path(.+
 assert.ok(globalHeaders, 'vercel.json must keep a strict non-root header block');
 const vercelByKey = Object.fromEntries(globalHeaders.headers.map((h) => [h.key, h.value]));
 
-const expressHeaders = await importTs('server/httpSecurityHeaders.ts');
+const expressHeaders = await import('../server/httpSecurityHeadersShared.js');
 const localByKey = expressHeaders.securityHeaders({ upgradeInsecureRequests: true });
 const vercelKeys = Object.keys(vercelByKey).sort();
 const localKeys = Object.keys(localByKey).sort();
