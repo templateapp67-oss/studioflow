@@ -5,6 +5,9 @@ The Supabase `studioflow-payments` function is deployed. Set these secrets in Su
 - `RAZORPAY_KEY_ID`
 - `RAZORPAY_KEY_SECRET`
 - `RAZORPAY_WEBHOOK_SECRET`
+- `BOOKING_RAZORPAY_MODE` — `test` or `live`, matching the key ID prefix (`rzp_test_` or `rzp_live_`).
+
+The public checkout-capability GET reports whether the server credential pair exists and whether the key prefix matches the configured mode; the booking UI displays the safe reason when online checkout is unavailable. `VITE_RAZORPAY_KEY_ID` is only an optional client-side consistency check and cannot enable server checkout by itself.
 
 Use matching test credentials for a test payment first. Enable automatic capture in the Razorpay dashboard. Register the webhook URL `https://zilwgiuiygqqardzutxi.supabase.co/functions/v1/studioflow-payments` for `payment.captured`, using the same webhook secret. Enable live credentials only after real test checkout and webhook verification succeed. Never put the secret in frontend environment variables or source.
 
