@@ -174,6 +174,78 @@ try {
   const ids = await page.locator('article[data-template-id]').evaluateAll(nodes => nodes.map(node => node.dataset.templateId));
   assert.deepEqual([...ids].sort(), expectedIds, 'all 16 known template cards are tested');
 
+  // Exercise the actual shared 16-template preview modal (srcDoc iframe), not
+  // only the direct storefront query route. Public salon preview content stays
+  // in the iframe; customer app/auth entry points must leave it in a new tab.
+  for (const id of expectedIds) {
+    const card = page.locator(`article[data-template-id="${id}"]`);
+    const previewButton = card.locator('button[aria-label^="Open full preview of"]').first();
+    await previewButton.waitFor({ state: 'visible' });
+    await previewButton.click();
+
+    const modal = page.locator('dialog[aria-labelledby="template-preview-title"]');
+    await modal.waitFor({ state: 'visible' });
+    const frameSelector = 'iframe[title*="live desktop preview"]';
+    await modal.locator(frameSelector).waitFor({ state: 'attached' });
+    const frame = page.frameLocator(frameSelector);
+    const appCard = frame.locator('.app-install__card');
+    await appCard.waitFor({ state: 'visible' });
+
+    const appLinks = frame.locator('.app-install__actions > a');
+    assert.equal(await appLinks.count(), 2, `${id}: customer app install and open links render`);
+    for (const [index, expectedQuery] of [[0, 'install=1'], [1, 'app=1']]) {
+      const link = appLinks.nth(index);
+      const href = new URL(await link.getAttribute('href'), base);
+      assert.equal(href.origin, base, `${id}: app link stays on the current Preview origin`);
+      assert.equal(href.searchParams.get('app'), '1', `${id}: app link uses the customer app route`);
+      if (expectedQuery === 'install=1') {
+        assert.equal(href.searchParams.get('install'), '1', `${id}: install CTA opens the install guide`);
+      }
+      assert.equal(await link.getAttribute('target'), '_blank', `${id}: app link must not navigate the template iframe`);
+      assert.match(await link.getAttribute('rel') || '', /noopener/, `${id}: app link uses noopener`);
+      assert.match(await link.getAttribute('rel') || '', /noreferrer/, `${id}: app link uses noreferrer`);
+    }
+
+    const announcementLink = frame.locator('.nexora-announcement a');
+    if (await announcementLink.count()) {
+      assert.equal(await announcementLink.first().getAttribute('target'), '_blank', `${id}: app announcement CTA opens outside preview iframe`);
+      assert.match(await announcementLink.first().getAttribute('rel') || '', /noopener noreferrer/, `${id}: announcement CTA protects the opener`);
+    }
+
+    if (id === 'hair_salon') {
+      directoryPhase = true;
+      const [appTab] = await Promise.all([
+        context.waitForEvent('page'),
+        appLinks.first().click(),
+      ]);
+      await appTab.waitForLoadState('domcontentloaded');
+      const appUrl = new URL(appTab.url());
+      assert.equal(appUrl.origin, base, 'app install opens a new first-party tab');
+      assert.equal(appUrl.searchParams.get('app'), '1', 'app install opens the customer app');
+      assert.equal(appUrl.searchParams.get('install'), '1', 'app install opens the install guide');
+      await appTab.close();
+
+      const customerLogin = frame.locator('[data-testid="site-customer-login"]');
+      if (await customerLogin.count()) {
+        const [accountTab] = await Promise.all([
+          context.waitForEvent('page'),
+          customerLogin.first().click(),
+        ]);
+        await accountTab.waitForLoadState('domcontentloaded');
+        const accountUrl = new URL(accountTab.url());
+        assert.equal(accountUrl.origin, base, 'customer login opens a new first-party tab');
+        assert.equal(accountUrl.searchParams.get('customer'), '1', 'customer login uses the protected auth route');
+        assert.equal(accountUrl.searchParams.get('auth'), 'signin', 'customer login opens sign-in');
+        await accountTab.close();
+      }
+      directoryPhase = false;
+    }
+
+    await modal.getByRole('button', { name: 'Close template preview' }).click();
+    await modal.waitFor({ state: 'hidden' });
+    console.log(`PASS ${id}: actual template preview iframe renders app banner and safe app-link targets`);
+  }
+
   async function exerciseSharedPreview(id) {
     const modal = page.getByTestId('booking-modal');
     await modal.waitFor({ state: 'visible' });
