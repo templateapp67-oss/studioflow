@@ -19,9 +19,18 @@ create trigger fixture_sync_service_money before insert or update on public.salo
 create table public.staff_schedules(staff_id uuid references public.staff(id),day_of_week smallint,start_time time,end_time time,is_off boolean not null default false,is_working boolean,unique(staff_id,day_of_week));
 create table public.staff_services(staff_id uuid references public.staff(id),service_id uuid references public.salon_services(id) on delete cascade,is_active boolean default true,primary key(staff_id,service_id));
 create table public.staff_leave_requests(staff_id uuid references public.staff(id),start_date date,end_date date,status text);
-create table public.bookings(id uuid primary key default gen_random_uuid(),salon_id uuid,staff_id uuid,appointment_date date,booking_date date,start_time time,end_time time,status text,booking_status text);
+-- owner_id is required in production; nullable here so the earlier RPC fixture
+-- can also exercise historical incomplete rows before the cross-ledger guard.
+create table public.bookings(id uuid primary key default gen_random_uuid(),owner_id uuid,salon_id uuid,staff_id uuid,appointment_date date,booking_date date,start_time time,end_time time,status text,booking_status text);
 alter table public.bookings enable row level security;
-revoke all on public.bookings from public,anon,authenticated;
+revoke all on public.bookings from public,anon,authenticated,service_role;
+-- The reviewed target lets authenticated owners manipulate only their rows;
+-- service_role bypasses RLS there. The fixture's explicit service policy
+-- emulates that bypass without changing cluster-wide role attributes.
+grant select,insert,update,delete on public.bookings to authenticated,service_role;
+create policy fixture_booking_owner on public.bookings for all to authenticated
+ using(owner_id=auth.uid()) with check(owner_id=auth.uid());
+create policy fixture_booking_service on public.bookings for all to service_role using(true) with check(true);
 
 create function public.nexora_catalog_uuid(p_salon_id uuid,p_kind text,p_raw text) returns uuid
 language plpgsql immutable strict set search_path=pg_catalog as $$

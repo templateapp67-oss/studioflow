@@ -14,8 +14,16 @@ const appliedVersions=new Set([
   ...history.applied_versions,
   ...(history.post_export_applied_versions||[]).map(record=>record.version)
 ]);
-const listedPending=(history.release_pending_migrations||[])
-  .map(record=>record.file.split('_',1)[0]).sort();
+const pendingInReleaseOrder=(history.release_pending_migrations||[]).map(record=>record.file);
+const bookingOrder=[
+  '20261127143001_booking_slot_availability_repair.sql',
+  '20261127143100_iron_ink_availability_ist.sql',
+  '20261127143200_cross_ledger_booking_conflicts.sql',
+];
+assert.deepEqual(pendingInReleaseOrder.filter(file=>bookingOrder.includes(file)),
+  bookingOrder.filter(file=>!appliedVersions.has(file.split('_',1)[0])),
+  'The protected remote migration check must preserve the pending booking, Ink, then cross-ledger order.');
+const listedPending=pendingInReleaseOrder.map(file=>file.split('_',1)[0]).sort();
 const localNotApplied=[...localSet].filter(version=>!appliedVersions.has(version)).sort();
 const appliedWithoutSource=[...appliedVersions].filter(version=>!localSet.has(version)).sort();
 assert.deepEqual(localNotApplied,listedPending,

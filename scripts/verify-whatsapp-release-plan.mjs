@@ -32,9 +32,18 @@ for(const record of postExportApplied){
     `Post-export migration source checksum changed: ${record.file}`);
 }
 const pending=active.filter(name=>!applied.has(name.split('_',1)[0])).sort();
-const reviewedPending=history.release_pending_migrations.map(r=>r.file).sort();
+const pendingInReleaseOrder=history.release_pending_migrations.map(r=>r.file);
+const reviewedPending=[...pendingInReleaseOrder].sort();
 assert.deepEqual(pending,reviewedPending,
   'Only explicitly listed release-pending migrations may be absent from the remote applied history');
+const bookingOrder=[
+  '20261127143001_booking_slot_availability_repair.sql',
+  '20261127143100_iron_ink_availability_ist.sql',
+  '20261127143200_cross_ledger_booking_conflicts.sql',
+];
+assert.deepEqual(pendingInReleaseOrder.filter(file=>bookingOrder.includes(file)),
+  bookingOrder.filter(file=>!applied.has(file.split('_',1)[0])),
+  'The pending booking, Ink and cross-ledger repairs must appear in that release order');
 // Reviewed feature migrations are the ones a human signed off before deploy.
 // Assert the invariant (each is a distinct, still-present, applied source)
 // rather than a fixed count, which only records how many existed at one time.
@@ -49,6 +58,8 @@ for(const record of history.reviewed_feature_migrations||[]){
 // New pending migrations must be newer than every migration already recorded as applied
 // (except pre-existing main entry explicitly marked legacy_pre_hotfix).
 const pendingMeta=new Map((history.release_pending_migrations||[]).map(r=>[r.file,r]));
+if(pending.includes(bookingOrder[2])) assert.match(pendingMeta.get(bookingOrder[2])?.sha256||'',/^[0-9a-f]{64}$/,
+  'The pending cross-ledger repair must carry its reviewed source checksum');
 const latest=[...applied].sort().at(-1);
 for(const file of pending){
   const meta=pendingMeta.get(file);
@@ -57,6 +68,11 @@ for(const file of pending){
   }
   const sql=readFileSync('supabase/migrations/'+file,'utf8');
   assert(!/drop\s+(?:schema|database|table)\b/i.test(sql),`Destructive pending SQL: ${file}`);
+  if(meta?.sha256){
+    assert.match(meta.sha256,/^[0-9a-f]{64}$/,`Invalid pending migration checksum: ${file}`);
+    assert.equal(createHash('sha256').update(sql.replace(/\r\n?/g,'\n')).digest('hex'),meta.sha256,
+      `Pending migration source checksum changed: ${file}`);
+  }
 }
 for(const record of [...history.deferred_feature_migrations,...history.superseded_unapplied_migrations]){
   assert(!active.includes(record.original_file),`Unreviewed source returned to auto-deploy: ${record.original_file}`);

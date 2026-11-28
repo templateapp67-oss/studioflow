@@ -657,16 +657,32 @@ export async function createOfflineMigratedDb({extraExtensions = {}} = {}) {
   await db.exec(branchCatalogueHelper);
   await db.exec(`revoke all on function studioflow_private.service_catalogue_available_at_branch(uuid,jsonb,uuid) from public,anon,authenticated;
     grant execute on function studioflow_private.service_catalogue_available_at_branch(uuid,jsonb,uuid) to postgres,service_role;`);
-  // Replay the two pending booking repairs after their existing branch, booking
-  // and Iron Ink prerequisites. Re-apply each to test the migration contract;
-  // this offline fixture does not imply that either SQL file is live.
-  for (const file of [
+  // Replay all three pending booking repairs after their existing branch,
+  // booking and Iron Ink prerequisites. This backend-only chain has a minimal
+  // legacy bookings placeholder, not the optional normalized schema. Replays
+  // must leave the canonical guard intact without pretending the cross-ledger
+  // trigger was installed; none of these SQL files is implied to be live.
+  const bookingFiles=[
     'supabase/migrations/20261127143001_booking_slot_availability_repair.sql',
     'supabase/migrations/20261127143100_iron_ink_availability_ist.sql',
-  ]) {
+    'supabase/migrations/20261127143200_cross_ledger_booking_conflicts.sql',
+  ];
+  for (const file of bookingFiles) {
     const sql=readFileSync(file,'utf8');
     await applySqlText(sql,file);
     await applySqlText(sql,file+' (second application)');
+  }
+  const optional=(await db.query(`select
+    exists(select 1 from pg_trigger where tgrelid='public.bookings'::regclass and tgname='zz_studioflow_normalized_cross_ledger_guard' and not tgisinternal) installed,
+    position('normalized_owner_conflict' in pg_get_functiondef('studioflow_private.guard_booking_conflict()'::regprocedure))>0 patched`)).rows[0];
+  assert.deepEqual(optional,{installed:false,patched:false},'backend-only replay must skip the optional guard');
+  // A partially installed normalized schema is different from a missing one:
+  // fail transactionally rather than hiding an unsupported deployment.
+  await db.exec('alter table public.bookings add column salon_id uuid');
+  try {
+    await assert.rejects(applySqlText(readFileSync(bookingFiles[2],'utf8'),bookingFiles[2]+' (partial schema)'),/prerequisites missing or changed/i);
+  } finally {
+    await db.exec('alter table public.bookings drop column salon_id');
   }
   return {db, applied, applySqlText, applyFile, clientRpc, src};
 }
