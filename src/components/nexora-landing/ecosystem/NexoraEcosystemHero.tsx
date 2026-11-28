@@ -104,12 +104,13 @@ export function NexoraEcosystemHero({
 }) {
   const { label } = NEXORA_ECOSYSTEM_SEO[path];
   const { words, trailing, keepWrapped } = splitTitle(heading);
-  const { heroRef, copyRef, titleRef, stage } = useNexoraTitleDemote(words.length, path !== '/about');
+  const isAbout = path === '/about';
+  const { heroRef, copyRef, titleRef, stage } = useNexoraTitleDemote(words.length, !isAbout);
 
   return (
     <section
       ref={heroRef}
-      className={`nxh-hero nxh-hero--${stage}`}
+      className={`nxh-hero nxh-hero--${stage}${isAbout ? ' nxh-hero--about' : ''}`}
       aria-labelledby="nxe-hero-title"
       /* One source for the timeline: CSS reads these, the hook schedules the
          stage changes from the same numbers. */
@@ -142,37 +143,41 @@ export function NexoraEcosystemHero({
             {label}
           </p>
 
-          <h1
-            className={`nxh-hero__title${keepWrapped ? ' nxh-hero__title--keep-wrap' : ''}`}
-            id="nxe-hero-title"
-            tabIndex={-1}
-            ref={titleRef}
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              alignItems: 'baseline',
-              justifyContent: 'flex-start',
-              width: '100%',
-              maxWidth: '100%',
-              whiteSpace: 'normal',
-              overflowWrap: 'anywhere',
-            }}
-          >
-            <span className="nxh-hero__prefix" aria-hidden="true">
-              {tagNumber} /
-            </span>
-            {words.map((word, index) => (
-              <span className="nxh-hero__word-mask" key={`${word}-${index}`}>
-                <span
-                  className="nxh-hero__word"
-                  style={{ '--nxh-word-delay': Math.round(index * NEXORA_TITLE_MOTION.wordStagger) } as CSSProperties}
-                >
-                  {word}
-                </span>
+          {isAbout ? (
+            <h1 className="nxh-hero__title" id="nxe-hero-title" tabIndex={-1} ref={titleRef}>{heading}</h1>
+          ) : (
+            <h1
+              className={`nxh-hero__title${keepWrapped ? ' nxh-hero__title--keep-wrap' : ''}`}
+              id="nxe-hero-title"
+              tabIndex={-1}
+              ref={titleRef}
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'baseline',
+                justifyContent: 'flex-start',
+                width: '100%',
+                maxWidth: '100%',
+                whiteSpace: 'normal',
+                overflowWrap: 'anywhere',
+              }}
+            >
+              <span className="nxh-hero__prefix" aria-hidden="true">
+                {tagNumber} /
               </span>
-            ))}
-            {trailing ? <span className="nxh-hero__period">{trailing}</span> : null}
-          </h1>
+              {words.map((word, index) => (
+                <span className="nxh-hero__word-mask" key={`${word}-${index}`}>
+                  <span
+                    className="nxh-hero__word"
+                    style={{ '--nxh-word-delay': Math.round(index * NEXORA_TITLE_MOTION.wordStagger) } as CSSProperties}
+                  >
+                    {word}
+                  </span>
+                </span>
+              ))}
+              {trailing ? <span className="nxh-hero__period">{trailing}</span> : null}
+            </h1>
+          )}
         </div>
 
         <div className="nxh-hero__copy" ref={copyRef}>
@@ -183,94 +188,109 @@ export function NexoraEcosystemHero({
               {primaryLabel}
               <ArrowRight size={16} strokeWidth={2.2} aria-hidden="true" />
             </a>
-            <a className="nxh-btn nxh-btn--ghost" href="/">
-              Back to Nexora
+            <a className="nxh-btn nxh-btn--ghost" href={isAbout ? '#android-salon-booking-app' : '/'}>
+              {isAbout ? 'Explore the Android Booking App' : 'Back to Nexora'}
             </a>
           </div>
 
-          <p
+          {!isAbout && <p
             className="nxh-hero__footnote nxh-reveal"
             style={{ '--nxh-reveal-delay': 180 } as CSSProperties}
           >
             16 ready-made salon templates
             <span className="nxh-hero__footnote-dot" aria-hidden="true" />
             Edit, preview and publish
-          </p>
+          </p>}
         </div>
 
-        <div className="nxh-hero__visual nxh-reveal" style={{ '--nxh-reveal-delay': 270 } as CSSProperties}>
-          <div className="nxh-phone">
-            <div className="nxh-phone__glare" aria-hidden="true" />
-            <div className="nxh-phone__frame">
-              <div className="nxh-phone__notch" aria-hidden="true" />
-              <div className="nxh-phone__screen">
-                <div className="nxh-phone__status" aria-hidden="true">
-                  <span className="nxh-phone__time">9:41</span>
-                  <span className="nxh-phone__status-icons">
-                    <i />
-                    <i />
-                    <i />
-                  </span>
-                </div>
-
-                <div className="nxh-phone__bar">
-                  <span className="nxh-phone__logo">ZIYA</span>
-                  <span className="nxh-phone__menu" aria-hidden="true">
-                    <i />
-                    <i />
-                  </span>
-                </div>
-
-                <div className="nxh-phone__shot">
-                  <img
-                    src="/templates/luxury-editorial/hero-680.webp"
-                    srcSet="/templates/luxury-editorial/hero-480.webp 480w, /templates/luxury-editorial/hero-680.webp 680w"
-                    sizes="(max-width: 640px) 212px, 248px"
-                    width={248}
-                    height={310}
-                    alt="Ziya Women's Hair Studio template hero: a stylist finishing a layered haircut in a rose-ivory studio"
-                    loading="eager"
-                    decoding="async"
-                  />
-                  <div className="nxh-phone__shot-copy">
-                    <p className="nxh-phone__shot-kicker">Women&apos;s hair studio</p>
-                    <p className="nxh-phone__shot-title">Precision cuts, softly done</p>
+        {isAbout ? (
+          <figure className="nxh-hero__visual nxh-about-artwork">
+            <img
+              src="/nexora-about/salon-management-and-booking.webp"
+              srcSet="/nexora-about/salon-management-and-booking-600.webp 600w, /nexora-about/salon-management-and-booking.webp 960w"
+              sizes="(max-width: 700px) calc(100vw - 40px), (max-width: 1080px) 540px, 48vw"
+              width={960}
+              height={960}
+              fetchPriority="high"
+              alt="NEXORA SalonOS illustration of a salon owner with an Android booking app and a salon website"
+            />
+            <figcaption>16 free template previews. Website publishing follows SalonOS plan terms.</figcaption>
+          </figure>
+        ) : (
+          <div className="nxh-hero__visual nxh-reveal" style={{ '--nxh-reveal-delay': 270 } as CSSProperties}>
+            <div className="nxh-phone">
+              <div className="nxh-phone__glare" aria-hidden="true" />
+              <div className="nxh-phone__frame">
+                <div className="nxh-phone__notch" aria-hidden="true" />
+                <div className="nxh-phone__screen">
+                  <div className="nxh-phone__status" aria-hidden="true">
+                    <span className="nxh-phone__time">9:41</span>
+                    <span className="nxh-phone__status-icons">
+                      <i />
+                      <i />
+                      <i />
+                    </span>
                   </div>
-                </div>
 
-                <div className="nxh-phone__body">
-                  <div className="nxh-phone__cta">Book an appointment</div>
-                  <ul className="nxh-phone__services">
-                    {PREVIEW_SERVICES.map((service) => (
-                      <li key={service}>
-                        <span className="nxh-phone__service-name">{service}</span>
-                        <span className="nxh-phone__service-plus" aria-hidden="true">
-                          +
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="nxh-phone__tabs" aria-hidden="true">
-                    <i className="is-active" />
-                    <i />
-                    <i />
+                  <div className="nxh-phone__bar">
+                    <span className="nxh-phone__logo">ZIYA</span>
+                    <span className="nxh-phone__menu" aria-hidden="true">
+                      <i />
+                      <i />
+                    </span>
+                  </div>
+
+                  <div className="nxh-phone__shot">
+                    <img
+                      src="/templates/luxury-editorial/hero-680.webp"
+                      srcSet="/templates/luxury-editorial/hero-480.webp 480w, /templates/luxury-editorial/hero-680.webp 680w"
+                      sizes="(max-width: 640px) 212px, 248px"
+                      width={248}
+                      height={310}
+                      alt="Ziya Women's Hair Studio template hero: a stylist finishing a layered haircut in a rose-ivory studio"
+                      loading="eager"
+                      decoding="async"
+                    />
+                    <div className="nxh-phone__shot-copy">
+                      <p className="nxh-phone__shot-kicker">Women&apos;s hair studio</p>
+                      <p className="nxh-phone__shot-title">Precision cuts, softly done</p>
+                    </div>
+                  </div>
+
+                  <div className="nxh-phone__body">
+                    <div className="nxh-phone__cta">Book an appointment</div>
+                    <ul className="nxh-phone__services">
+                      {PREVIEW_SERVICES.map((service) => (
+                        <li key={service}>
+                          <span className="nxh-phone__service-name">{service}</span>
+                          <span className="nxh-phone__service-plus" aria-hidden="true">
+                            +
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="nxh-phone__tabs" aria-hidden="true">
+                      <i className="is-active" />
+                      <i />
+                      <i />
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="nxh-glass-card nxh-reveal" style={{ '--nxh-reveal-delay': 360 } as CSSProperties}>
-            <span className="nxh-glass-card__badge">Template 01</span>
-            <p className="nxh-glass-card__name">Luxury Editorial</p>
-            <p className="nxh-glass-card__meta">Ziya Women&apos;s Hair Studio</p>
-          </div>
+            <div className="nxh-glass-card nxh-reveal" style={{ '--nxh-reveal-delay': 360 } as CSSProperties}>
+              <span className="nxh-glass-card__badge">Template 01</span>
+              <p className="nxh-glass-card__name">Luxury Editorial</p>
+              <p className="nxh-glass-card__meta">Ziya Women&apos;s Hair Studio</p>
+            </div>
 
-          <div className="nxh-glass-pill" aria-hidden="true">
-            <span className="nxh-glass-pill__dot" />
-            Live template preview
+            <div className="nxh-glass-pill" aria-hidden="true">
+              <span className="nxh-glass-pill__dot" />
+              Live template preview
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </section>
   );

@@ -238,6 +238,15 @@ for (const path of NEXORA_ECOSYSTEM_ROUTES) {
 
 /* The client renderer must own the same head as the build, from one source. */
 const aboutDocument = readFileSync('dist/about/index.html', 'utf8');
+const aboutHero = aboutDocument.match(/<section[^>]*aria-labelledby="nxe-hero-title"[\s\S]*?<\/section>/)?.[0] ?? '';
+assert.match(aboutHero, /<h1[^>]*>Salon management software for salons and spas<\/h1>/);
+assert.match(aboutHero, /href="#free-salon-website-templates"/);
+assert.match(aboutHero, /href="#android-salon-booking-app"/);
+assert.match(aboutHero, /src="\/nexora-about\/salon-management-and-booking\.webp"/);
+assert.doesNotMatch(aboutHero, /luxury-editorial\/hero-/);
+for (const image of ['salon-management-and-booking.webp', 'salon-management-and-booking-600.webp', 'android-salon-booking-app.webp']) {
+  assert.ok(aboutDocument.includes(`/nexora-about/${image}`) && existsSync(`dist/nexora-about/${image}`), `About includes the published image ${image}`);
+}
 for (const content of [
   'Free salon website template demos',
   'Android Salon Booking App',

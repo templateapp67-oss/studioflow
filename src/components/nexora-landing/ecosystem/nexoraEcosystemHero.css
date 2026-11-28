@@ -834,6 +834,74 @@
   box-shadow: 0 0 0 3px rgba(126, 224, 168, 0.18);
 }
 
+.nxh-hero--about .nxh-hero__inner {
+  row-gap: 20px;
+  padding-bottom: 68px;
+}
+
+.nxh-hero--about .nxh-hero__stage {
+  min-height: 0;
+}
+
+.nxh-hero--about .nxh-hero__title {
+  font-size: clamp(2.125rem, 4.5vw, 3.625rem);
+  overflow-wrap: anywhere;
+}
+
+.nxh-hero--about .nxh-hero__lead {
+  color: #e6def1;
+}
+
+.nxh-hero--about .nxh-hero__actions {
+  margin-top: 24px;
+}
+
+.nxh-hero--about .nxh-about-artwork {
+  gap: 0;
+  width: 100%;
+  max-width: 540px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.17);
+  border-radius: 20px;
+  background: #241a38;
+  box-shadow: 0 22px 50px rgba(10, 6, 22, 0.32);
+}
+
+.nxh-about-artwork img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 34 / 25;
+  object-fit: cover;
+  object-position: top;
+}
+
+.nxh-about-artwork figcaption {
+  justify-self: stretch;
+  padding: 12px 16px;
+  color: #e6def1;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+@media (min-width: 1081px) {
+  .nxh-hero--about .nxh-hero__stage {
+    grid-column: 1;
+    align-self: end;
+  }
+
+  .nxh-hero--about .nxh-hero__copy {
+    align-self: start;
+  }
+
+  .nxh-hero--about .nxh-about-artwork {
+    grid-row: 1 / span 2;
+  }
+}
+
 /* ---- Responsive ---------------------------------------------------------- */
 
 @media (max-width: 1080px) {

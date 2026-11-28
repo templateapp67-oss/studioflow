@@ -10,8 +10,8 @@ import { NexoraGrowthPartnerRewardsPage } from './NexoraGrowthPartnerRewardsPage
 const pageData = {
   '/about': {
     title: 'About NEXORA SalonOS',
-    heading: 'About NEXORA SalonOS',
-    intro: 'Build a branded salon website, manage daily operations in NEXORA SalonOS, or buy a ready-made Android booking app for your salon, spa or beauty business.',
+    heading: 'Salon management software for salons and spas',
+    intro: 'Manage online appointments, POS billing, customer records and staff with NEXORA SalonOS. Preview 16 salon website templates for free or explore the ready-made Android salon booking app.',
   },
   '/salon-onboarding': {
     title: 'Create Your Own Salon Brand With Nexora.',
@@ -63,7 +63,7 @@ export function NexoraEcosystemPage({ path }: { path: keyof typeof pageData }) {
       path={path}
       heading={page.heading}
       intro={page.intro}
-      primaryLabel={isOnboarding ? 'Explore Templates' : isAbout ? 'Explore Free Template Demos' : 'Explore Salon Growth'}
+      primaryLabel={isOnboarding ? 'Explore Templates' : isAbout ? 'Preview Free Salon Website Templates' : 'Explore Salon Growth'}
       primaryHref={isOnboarding ? '#templates' : isAbout ? '#free-salon-website-templates' : '#growth'}
       tagNumber={isAbout ? '04' : isOnboarding ? '01' : '02'}
     />
