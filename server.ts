@@ -46,7 +46,7 @@ import {
   BOOKING_DEPOSIT_SCHEMA,
 } from "./server/httpValidation";
 import { canonicalHostRedirect } from "./server/canonicalHost";
-import { securityHeaders } from "./server/httpSecurityHeaders";
+import { isFrameableRootRequest, securityHeaders } from "./server/httpSecurityHeaders";
 import { isForbiddenStaticAsset } from "./server/staticGuard";
 import { safeLogger } from "./server/safeLogger";
 import { robotsHeaderMiddleware, robotsTagForRequest } from "./server/robotsHeaders";
@@ -120,13 +120,6 @@ async function startServer() {
   if (trustProxy) app.set('trust proxy', trustProxy);
   app.disable('x-powered-by');
 
-  app.use((_req, res, next) => {
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-    next();
-  });
-
   // AI prompts are small; capping the body keeps a large payload from reaching
   // the provider or the JSON parser's memory.
   app.use(express.json({ limit: '256kb' }));
@@ -140,8 +133,11 @@ async function startServer() {
   // Baseline security headers on every response — API JSON, prerendered HTML,
   // static assets. vercel.json enforces the same values at the edge; the CSP
   // here omits `upgrade-insecure-requests` so plain-http localhost keeps working.
-  app.use((_req, res, next) => {
-    for (const [name, value] of Object.entries(securityHeaders())) res.setHeader(name, value);
+  app.use((req, res, next) => {
+    const allowSameOriginFraming = isFrameableRootRequest(req.originalUrl, req.method);
+    for (const [name, value] of Object.entries(securityHeaders({ allowSameOriginFraming }))) {
+      res.setHeader(name, value);
+    }
     next();
   });
 
