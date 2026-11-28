@@ -67,20 +67,21 @@ jobs:
             echo "Initial push: require the Supabase migration safety job."
             exit 0
           fi
-          # Capture separately so a failed git diff cannot be mistaken for
-          # an empty change list and accidentally allow a code-only deploy.
+          # Only changes to executable migration SQL or Supabase config
+          # block the website deploy. Ledger/docs/verifier-only changes still
+          # run the remote history validation below, but do not imply that the
+          # application requires a database apply before it can be deployed.
+          # Capture git diff separately so errors cannot look like an empty diff.
           changed_files="$(git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA" -- \
             supabase/migrations/ \
-            supabase/config.toml \
-            docs/integrations/restored-supabase-history.json \
-            scripts/verify-whatsapp-release-plan.mjs \
-            scripts/verify-supabase-migration-history.mjs)"
+            supabase/config.toml)"
           if [[ -n "$changed_files" ]]; then
             echo "migrations_changed=true" >> "$GITHUB_OUTPUT"
-            echo "This push changes migration sources or migration history evidence; run remote history validation and dry-run."
+            echo "This push changes executable migration sources or Supabase config; website deployment stays blocked until an approved release."
+            printf '%s\n' "$changed_files"
           else
             echo "migrations_changed=false" >> "$GITHUB_OUTPUT"
-            echo "No migration sources or history evidence changed; this is a code-only release."
+            echo "No executable migration SQL or Supabase config changed; website deployment may proceed after CI and remote dry-run pass."
           fi
 
   migrate:
