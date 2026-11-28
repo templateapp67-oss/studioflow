@@ -112,6 +112,6 @@ export function AureliaBeautyWebsite(props:SalonWebsitePreviewProps){
   {myBookings&&<SalonBookingsDialog profile={profile} onClose={()=>setMyBookings(false)}/>}
   {profileStylist&&<StylistProfile staff={profileStylist} profile={profile} slug={profile.subdomain} signedIn={props.customerSignedIn} demo={!profile.subdomain} services={services} onLogin={()=>props.onCustomerAccount?.('signin')} onClose={()=>setProfileStylist(undefined)} onBook={()=>{const staff=profileStylist;setProfileStylist(undefined);book(undefined,staff);}}/>}
   {activePhoto&&<div className="aurelia-overlay" role="dialog" aria-modal="true" aria-label="Aurelia gallery photo" onClick={()=>setActivePhoto(null)}><button onClick={()=>setActivePhoto(null)} aria-label="Close gallery"><X/></button><img src={activePhoto} alt="Aurelia gallery" onClick={e=>e.stopPropagation()}/></div>}
-  <BookingModal isOpen={booking} onClose={()=>setBooking(false)} profile={profile} services={services} stylists={stylists} initialService={selectedService} initialStylist={selectedStylist} onAddAppointment={props.onAddAppointment} themeAccentHex={profile.customAccentColor||'#D9B98F'}/>
+  <BookingModal isOpen={booking} onClose={()=>setBooking(false)} profile={profile} services={services} stylists={stylists} initialService={selectedService} initialStylist={selectedStylist} onAddAppointment={props.onAddAppointment} customerSignedIn={props.customerSignedIn} onCustomerAccount={props.onCustomerAccount} themeAccentHex={profile.customAccentColor||'#D9B98F'}/>
  </div>;
 }
