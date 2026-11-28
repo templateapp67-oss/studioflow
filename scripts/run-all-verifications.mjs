@@ -18,6 +18,7 @@ const OPTIONAL_ENV = new Map([
   ['verify-nexora-responsive-browser.mjs', ['BROWSER_TOOLS_ROOT', 'PREVIEW_URL']],
   ['verify-preview-browser-e2e.mjs', ['PLAYWRIGHT_PACKAGE_ROOT', 'PREVIEW_URL']],
   ['verify-nexora-interaction-responsiveness.mjs', ['PLAYWRIGHT_PACKAGE_ROOT', 'PREVIEW_URL']],
+  ['verify-booking-preview-browser.mjs', ['PLAYWRIGHT_PACKAGE_ROOT', 'PREVIEW_URL']],
   // Runs as a dedicated required CI job against a throwaway PostgreSQL service.
   ['verify-postgres-booking-concurrency.mjs', ['STUDIOFLOW_TEST_POSTGRES_URL', 'STUDIOFLOW_DISPOSABLE_POSTGRES']],
 ]);

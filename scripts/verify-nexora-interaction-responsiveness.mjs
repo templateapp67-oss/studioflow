@@ -455,9 +455,9 @@ try {
     const button = document.querySelector('iframe[title*="live desktop preview"]')
       ?.contentDocument?.querySelector('[data-testid="booking-next-datetime"]');
     return Boolean(button && !button.disabled);
-  }, { timeout: 10000 }).catch(async () => {
+  }, null, { timeout: 10000 }).catch(async () => {
     assert.equal(await continueToDate.isDisabled(), false,
-      'booking can continue after the read-only specialist eligibility check');
+      'booking can continue after the local specialist eligibility check');
   });
   await continueToDate.click();
   const bookingDateInput = bookingDialog.getByTestId('booking-date-input');
