@@ -39,8 +39,8 @@ assert.ok(customerFlow.includes('validCheckoutAmount=Number.isFinite(total)&&tot
 assert.ok(customerFlow.includes('onlineMessage={checkout?.online ? undefined'), 'customer app explains unavailable Razorpay');
 assert.ok(customerFlow.includes('if(!session){setAuth(true);return;}'), 'customer app keeps authentication ahead of reservation');
 
-const sharedCalls = (templates.match(/<BookingModal\\b/g) || []).length;
-const authCalls = (templates.match(/customerSignedIn=\\{customerSignedIn\\} onCustomerAccount=\\{onCustomerAccount\\}/g) || []).length;
+const sharedCalls = (templates.match(/<BookingModal\b/g) || []).length;
+const authCalls = (templates.match(/customerSignedIn=\{customerSignedIn\} onCustomerAccount=\{onCustomerAccount\}/g) || []).length;
 assert.equal(sharedCalls, 12, 'all shared template BookingModal call sites remain present');
 assert.equal(authCalls, sharedCalls, 'all shared template booking modals receive auth state');
 assert.ok(aurelia.includes('customerSignedIn={props.customerSignedIn} onCustomerAccount={props.onCustomerAccount}'), 'Aurelia receives customer auth state');
