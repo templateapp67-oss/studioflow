@@ -11,11 +11,14 @@ const toolsRoot = process.env.PLAYWRIGHT_PACKAGE_ROOT;
 const previewUrl = (process.env.PREVIEW_URL || '').trim();
 if (!toolsRoot || !previewUrl) throw new Error('PLAYWRIGHT_PACKAGE_ROOT and PREVIEW_URL are required.');
 const origin = new URL(previewUrl);
+assert.equal(origin.username || origin.password, '', 'browser audit URL cannot contain credentials');
 const local = process.env.STUDIOFLOW_BOOKING_BROWSER_LOCAL === '1';
 if (local) {
+  assert.ok(['http:', 'https:'].includes(origin.protocol), 'local browser audit requires HTTP or HTTPS');
   assert.ok(['127.0.0.1', 'localhost', '[::1]'].includes(origin.hostname), 'local browser audit requires a loopback host');
 } else {
   assert.equal(origin.protocol, 'https:', 'browser audit requires an HTTPS Preview deployment');
+  assert.equal(origin.port, '', 'hosted Preview must use the default HTTPS port');
   assert.match(origin.hostname, /(?:^|\.)vercel\.app$/i, 'browser audit is restricted to a Vercel Preview host');
 }
 const base = origin.origin;
@@ -155,7 +158,17 @@ try {
   page.setDefaultTimeout(30000);
   const pageErrors = [];
   page.on('pageerror', error => pageErrors.push(error.message));
-  const homepage = await page.goto(base + '/', { waitUntil: 'domcontentloaded', timeout: 60000 });
+  const allowedPaths = new Set(['/', '/?app=1', ...expectedIds.map(id => `/?template=${encodeURIComponent(id)}`)]);
+  async function openPreview(path) {
+    assert.ok(allowedPaths.has(path), 'only the fixed preview test paths are allowed');
+    const target = new URL(path, base);
+    assert.equal(target.origin, base, 'navigation cannot leave the validated Preview origin');
+    // The origin and every path are explicitly allowlisted; the route guard
+    // also blocks off-origin redirects and all first-party writes.
+    // nosemgrep: javascript.playwright.security.audit.playwright-goto-injection
+    return page.goto(target.href, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  }
+  const homepage = await openPreview('/');
   assert.equal(homepage?.status(), 200, 'homepage loads');
   await page.locator('[data-nexora-template-library]').waitFor({ state: 'visible' });
   const ids = await page.locator('article[data-template-id]').evaluateAll(nodes => nodes.map(node => node.dataset.templateId));
@@ -190,7 +203,7 @@ try {
     const writeStart = deniedWrites.length;
     const requestStart = supabaseCalls.length;
     const errorStart = pageErrors.length;
-    const response = await page.goto(`${base}/?template=${encodeURIComponent(id)}`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    const response = await openPreview(`/?template=${encodeURIComponent(id)}`);
     assert.equal(response?.status(), 200, `${id}: direct template loads`);
     await page.locator('[data-template-preview-toolbar]').waitFor({ state: 'visible' });
     let scenario;
@@ -238,7 +251,7 @@ try {
   const writeStart = deniedWrites.length;
   const requestStart = supabaseCalls.length;
   const errorStart = pageErrors.length;
-  const directory = await page.goto(`${base}/?app=1`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  const directory = await openPreview('/?app=1');
   assert.equal(directory?.status(), 200, 'customer directory loads');
   await page.getByText('Synthetic Published Salon', { exact: true }).first().waitFor({ state: 'visible' });
   await page.getByRole('button', { name: 'Book Style' }).first().click();
