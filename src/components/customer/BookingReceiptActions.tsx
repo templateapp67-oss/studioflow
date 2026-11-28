@@ -22,15 +22,33 @@ export function BookingReceiptActions({ booking }: { booking: Appointment }) {
   );
 }
 
-export function BookingPaymentOptions({ method, onChange, venue, locked }: {
-  method: 'online' | 'venue'; onChange: (method: 'online' | 'venue') => void; venue: boolean; locked: boolean;
+export function BookingPaymentOptions({ method, onChange, venue, locked, onlineAvailable = true, onlineMessage }: {
+  method: 'online' | 'venue';
+  onChange: (method: 'online' | 'venue') => void;
+  venue: boolean;
+  locked: boolean;
+  onlineAvailable?: boolean;
+  onlineMessage?: string;
 }) {
   return (
     <fieldset disabled={locked} className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-900">
       <legend className="px-1 font-semibold">Payment options</legend>
-      <label className="flex cursor-pointer items-center gap-2">
-        <input type="radio" checked={method === 'online'} onChange={() => onChange('online')} />
-        <span>Online payment · UPI, cards or netbanking via Razorpay</span>
+      <label className={`flex items-start gap-2 ${onlineAvailable ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}>
+        <input
+          type="radio"
+          checked={method === 'online'}
+          disabled={!onlineAvailable}
+          onChange={() => onChange('online')}
+          aria-describedby={!onlineAvailable ? 'razorpay-unavailable-reason' : undefined}
+        />
+        <span>
+          <span className="block">Online payment · UPI, cards or netbanking via Razorpay</span>
+          {!onlineAvailable && onlineMessage && (
+            <span id="razorpay-unavailable-reason" role="status" className="mt-1 block text-xs font-medium text-amber-800">
+              {onlineMessage}
+            </span>
+          )}
+        </span>
       </label>
       {venue && <label className="flex cursor-pointer items-center gap-2">
         <input type="radio" checked={method === 'venue'} onChange={() => onChange('venue')} />
