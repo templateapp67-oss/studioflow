@@ -165,7 +165,7 @@ try {
     assert.equal(target.origin, base, 'navigation cannot leave the validated Preview origin');
     // The origin and every path are explicitly allowlisted; the route guard
     // also blocks off-origin redirects and all first-party writes.
-    // nosemgrep: javascript.playwright.security.audit.playwright-goto-injection
+    // nosemgrep: javascript.playwright.security.audit.playwright-goto-injection.playwright-goto-injection
     return page.goto(target.href, { waitUntil: 'domcontentloaded', timeout: 60000 });
   }
   const homepage = await openPreview('/');

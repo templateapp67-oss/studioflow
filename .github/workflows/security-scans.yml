@@ -34,6 +34,9 @@ jobs:
       - name: Install Semgrep
         run: python -m pip install --disable-pip-version-check semgrep
 
+      - name: Verify Semgrep reporting
+        run: python -m unittest discover -s tests -p test_report_semgrep_ci.py
+
       - name: Scan application code for new findings
         env:
           EVENT_NAME: ${{ github.event_name }}
@@ -50,7 +53,14 @@ jobs:
             BASELINE_COMMIT="$(git rev-parse HEAD^)"
           fi
           git cat-file -e "${BASELINE_COMMIT}^{commit}"
-          semgrep scan --config p/default --error --metrics=off --baseline-commit "$BASELINE_COMMIT"
+          # Keep Semgrep's exit status authoritative while surfacing its findings
+          # as annotations (and retaining diagnostics if it cannot scan).
+          scan_status=0
+          semgrep scan --config p/default --error --metrics=off --baseline-commit "$BASELINE_COMMIT" --json \
+            > "$RUNNER_TEMP/semgrep-results.json" 2> "$RUNNER_TEMP/semgrep-stderr.log" || scan_status=$?
+          cat "$RUNNER_TEMP/semgrep-stderr.log"
+          python scripts/report_semgrep_ci.py "$RUNNER_TEMP/semgrep-results.json" "$RUNNER_TEMP/semgrep-stderr.log" "$scan_status"
+          exit "$scan_status"
 
   gitleaks:
     name: Gitleaks secret detection
