@@ -104,7 +104,7 @@ export function NexoraEcosystemHero({
 }) {
   const { label } = NEXORA_ECOSYSTEM_SEO[path];
   const { words, trailing, keepWrapped } = splitTitle(heading);
-  const { heroRef, copyRef, titleRef, stage } = useNexoraTitleDemote(words.length);
+  const { heroRef, copyRef, titleRef, stage } = useNexoraTitleDemote(words.length, path !== '/about');
 
   return (
     <section

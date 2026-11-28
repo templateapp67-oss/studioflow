@@ -10,6 +10,7 @@
 @source "./components/AppUpdateManager.tsx";
 @source "./components/UpdateNotificationSettings.tsx";
 @source "./components/nexora-landing/NexoraEcosystemPage.tsx";
+@source "./components/nexora-landing/NexoraAboutContent.tsx";
 
 @font-face {
   font-family: "Hanken Grotesk";

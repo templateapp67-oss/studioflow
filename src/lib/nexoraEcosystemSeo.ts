@@ -51,8 +51,8 @@ export interface NexoraEcosystemSeo {
 
 export const NEXORA_ECOSYSTEM_SEO: Readonly<Record<NexoraEcosystemPath, NexoraEcosystemSeo>> = {
   '/about': {
-    path: '/about', label: 'About NEXORA', title: 'About NEXORA Salon OS',
-    description: 'Learn about NEXORA Salon OS, its salon website and business tools, the team behind its product guidance, and verified support contacts.',
+    path: '/about', label: 'About NEXORA', title: 'Salon Management Software & Free Template Demos | NEXORA',
+    description: 'Explore NEXORA SalonOS, preview 16 salon website templates for free, and see Android salon booking app and Android Studio source code options.',
     ogImagePath: '/nexora-homepage-og.jpg', ogImageAlt: 'NEXORA Salon OS platform and salon website templates',
     themeColor: '#312347', contentMarker: 'NEXORA Editorial Team',
   },
