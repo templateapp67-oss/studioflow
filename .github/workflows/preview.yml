@@ -322,6 +322,7 @@ jobs:
         run: npm ci
 
       - name: Install pinned Playwright and Chromium
+        id: browser-tools
         run: |
           set -euo pipefail
           mkdir -p /tmp/pw-runner
@@ -592,6 +593,7 @@ jobs:
 
       - name: Run NEXORA responsive marketing and owner-route browser audit
         id: responsive-audit
+        if: always() && steps.browser-tools.outcome == 'success' && steps.resolve-preview.outputs.url != ''
         env:
           PREVIEW_URL: ${{ steps.resolve-preview.outputs.url }}
           BROWSER_TOOLS_ROOT: /tmp/pw-runner
