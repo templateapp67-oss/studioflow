@@ -2,7 +2,56 @@
 
 ## Status and release scope
 
-PR #191 is **not merged**. The following migrations are **pending, not approved or applied to production**. The database and matching client must be released together; the directory's branch-aware practice-booking RPC does not exist until the first migration is applied. Apply the exact files in this order:
+[PR #191](https://github.com/templateapp67-oss/studioflow/pull/191) merged at `238d69ea9457cf95bdd216937fbfa38e0c06a28a`. **Production booking release is on hold.** The tracked ledger still classifies the three files below as pending review. The protected production check reported all three versions recorded remotely. Treat their SQL, current schema and approval status as unverified.
+
+| Protected run (28 November 2026, UTC) | Observed result |
+| --- | --- |
+| [#133, 08:16](https://github.com/templateapp67-oss/studioflow/actions/runs/46124727322) | The reviewed remote history matched 217 local versions through `20261127143000`. The dry-run reported the database up to date for that earlier commit. |
+| [#134, 08:23](https://github.com/templateapp67-oss/studioflow/actions/runs/46125119065) | CI, including PostgreSQL concurrency, passed. The protected history list returned all three booking versions in its Remote column. The verifier stopped because the reviewed ledger still expected those versions to be pending. The dry-run, apply, Edge Functions deploy and Vercel deploy were skipped. |
+
+The protected list proves which versions the target reported. Record provenance does not establish whether SQL ran from the reviewed files. Reconcile with the operator and deployment audit trail, including who or what recorded each version, the timestamps, target, exact source hashes, and whether the changes were executed or merely recorded. Compare actual schema, function and trigger definitions, ACLs, RLS, and snapshot columns to a target-representative disposable rehearsal of the exact sources. Record the evidence privately. Keep the protected verifier’s acceptance rules and reviewed ledger unchanged until a maintainer has independently approved the reconciliation. If evidence is incomplete or definitions differ, stop for a reviewed forward recovery. Never reapply all three files, remove history or use a Vercel-only release to clear this incident.
+
+An authorized operator can collect these narrow, read-only provenance and schema fingerprints on the reviewed target and the disposable rehearsal. An absent row or a hash difference requires investigation. The statement fingerprint is of the CLI's stored statement array and should be compared with the same CLI's rehearsal output, not the hash of the SQL file. An empty statement array cannot prove source provenance.
+
+```sql
+begin read only;
+select version, name, cardinality(statements) as statement_count,
+       encode(sha256(convert_to(to_json(statements)::text, 'UTF8')), 'hex') as statement_array_sha256
+from supabase_migrations.schema_migrations
+where version in ('20261127143001', '20261127143100', '20261127143200')
+order by version;
+
+select n.nspname as schema_name, p.proname,
+       pg_get_function_identity_arguments(p.oid) as arguments,
+       encode(sha256(convert_to(pg_get_functiondef(p.oid), 'UTF8')), 'hex') as definition_sha256,
+       p.proacl, p.prosecdef
+from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+where (n.nspname, p.proname) in (
+  ('studioflow_private', 'guard_booking_conflict'),
+  ('studioflow_private', 'mark_branch_schedule_source'),
+  ('studioflow_private', 'guard_normalized_cross_ledger'),
+  ('studioflow_ink_private', 'validate_booking_write'),
+  ('public', 'studioflow_branch_demo_book'),
+  ('public', 'nexora_customer_booking_options'),
+  ('public', 'get_available_slots'),
+  ('public', 'get_branch_available_slots')
+)
+order by 1, 2, 3;
+
+select t.tgrelid::regclass as relation, t.tgname, t.tgenabled, pg_get_triggerdef(t.oid)
+from pg_trigger t
+where not t.tgisinternal and t.tgname in (
+  'studioflow_mark_branch_schedule_source', 'studioflow_booking_conflict_guard',
+  'zz_studioflow_normalized_cross_ledger_guard', 'studioflow_normalized_owner_membership_guard',
+  'studioflow_normalized_salon_identity_guard', 'studioflow_normalized_staff_identity_guard'
+)
+order by 1, 2;
+rollback;
+```
+
+Use the complete reviewed schema and ACL comparison for sign-off. These fingerprints cover selected entry points and guards, including optional objects whose presence must agree with the target's integration inventory.
+
+The database and matching client must be released together. The directory's branch-aware practice-booking RPC depends on the first migration. The reviewed dependency order is:
 
 1. `20261127143001_booking_slot_availability_repair.sql` repairs shared website/directory/Android/men's availability, records branch-shift provenance, repairs the optional normalized catalogue RPC and owner assignment writer, and adds an appointment conflict guard. Its original, unapplied filename was `20261127140001_booking_slot_availability_repair.sql`.
 2. `20261127143100_iron_ink_availability_ist.sql` follows it and repairs the separate, unpaid Iron Ink request flow. Its original, unapplied filename was `20261127140100_iron_ink_availability_ist.sql`. It only replaces the optional branch RPC if already installed; it does not install that feature.
@@ -112,9 +161,9 @@ The historical owner sync can also create separate deterministic and `staff:<edi
 ## Safe release sequence
 
 1. **Owner and integration review.** Refresh the 252-row/15-tenant inventory and obtain an explicit outcome for every current shift and day off; reconcile new, changed and deleted rows with the owners. Review normalized menu prices, service IDs/assignments, duplicate staff, owner/salon memberships, timezones and all external writers as described above. Have owners explicitly accept the owner-wide normalized concurrency restriction. Keep the confidential manifest and approvals outside this repository.
-2. **Staging and protected dry-run, before production release approval.** On an isolated, target-representative PostgreSQL/Supabase clone with synthetic data, ensure the already-deployed checkout receipt migration is present, apply **all three** exact pending files in order, and run the tests below. Include multi-session normalized/direct/website races, owner and staff transfers, timezones/DST, ACL/RLS, payment-settlement fixtures, the optional Ink branch variant if applicable, external writers and backup recovery. The previously available QA project was empty and was not migrated. Independently run the protected remote migration-history check and `supabase db push --dry-run` against the authorized production target with the exact reviewed SQL sources; inspect the complete output and require exactly the three pending files above in that order. A dry-run lists pending migrations; it does **not** execute or validate their SQL. A skipped Supabase Preview step is not a dry-run.
+2. **Staging and protected dry-run, before production release approval.** On an isolated, target-representative PostgreSQL/Supabase clone with synthetic data, ensure the already-deployed checkout receipt migration is present, apply **all three** exact pending files in order, and run the tests below. Include multi-session normalized/direct/website races, owner and staff transfers, timezones/DST, ACL/RLS, payment-settlement fixtures, the optional Ink branch variant if applicable, external writers and backup recovery. The previously available QA project was empty and was not migrated. Independently run the protected remote migration-history check and `supabase db push --dry-run` against the authorized production target with the exact reviewed SQL sources; inspect the complete output and require the exact pending list approved after target reconciliation. For a target with none of the booking files recorded, the list must contain all three in dependency order. A dry-run lists pending migrations; it does **not** execute or validate their SQL. A skipped Supabase Preview step is not a dry-run.
 
-   **Main-only limitation:** the current protected `Production` workflow runs only on `main`; it cannot dry-run this unmerged PR's pending files. Do not mistake a main dry-run that omits them for the required gate. The existing workflow can run against the exact reviewed release commit only after a separately authorized future merge, and must pass **before approval of the production apply**. If policy requires the dry-run before merge approval, first arrange a separately reviewed, protected, read-only exact-commit mechanism; none is supplied by this PR. Do not expose production credentials to untrusted PR code. This task did not run the protected dry-run and does not authorize a merge or apply.
+   **Current target discrepancy:** the protected `Production` workflow runs only on `main`. Run #134 used the merged booking source and stopped before the dry-run. First reconcile the recorded versions and review the current schema. On a reconciled target, the dry-run must match the independently approved ledger and release plan, including zero pending files if the exact sources are already verified as applied. A previous dry-run on a commit without these files does not satisfy the gate. Keep production credentials inside the protected workflow.
 3. **Separate authorization and freeze.** Only after the staging and exact-source protected dry-run evidence is reviewed, obtain independent production release approval and arrange a maintenance window. Quiesce canonical, normalized and Ink booking/reschedule/status writes, owner schedule/roster edits, organization membership/salon/staff/timezone changes, and external import writers. Coordinate payment captures, webhooks and settlement queues so they are safely paused or buffered without lost events. If writes cannot actually be stopped or the new client cannot be kept inaccessible, stop; no undocumented maintenance flag is assumed.
 4. **Backup and frozen preflight.** Take and verify a restorable encrypted full/PITR backup; export shift rows, both appointment ledgers, relevant function/trigger definitions, grants and RLS policies to protected storage. Record the target, exact commit, file checksums, owner manifest and restore point. Re-run the shift inventory above, resolve drift with owners and check current isolation, owner mapping and active data. For example:
 
@@ -156,7 +205,7 @@ The historical owner sync can also create separate deterministic and `staff:<edi
    ```
 
    Require zero active normalized rows for the first installation; if the count is nonzero, stop for owner review and a separately reviewed forward plan, not an improvised backfill. Investigate ambiguous owners, invalid zones, malformed or overlapping canonical bookings and mapping discrepancies. Confirm the already-applied Resend and checkout versions, all three proposed versions and both archived originals against the target's full history. If the target diverged or a newer migration exists, stop for reconciliation. Compare normalized RPCs, schemas/FKs, trigger ordering and ACLs to the reviewed target, including the checkout triggers and optional Ink branch RPC. Never force `--include-all`, execute archived SQL or alter remote history to make a dry-run pass.
-5. **Authorized apply.** After a separately authorized future merge and production approval, use the protected manual `apply_and_deploy` workflow. Its push applies `20261127143001_booking_slot_availability_repair.sql` **before** `20261127143100_iron_ink_availability_ist.sql`, followed by `20261127143200_cross_ledger_booking_conflicts.sql`, then deploys functions and client. Each file is transactional, but the three files are **not one transaction**; index creation and table locks require the freeze. Do not run them manually in the SQL editor or edit migration history. If either later migration fails after an earlier one commits, retain the freeze, inspect the actual ledger and logs, and agree a reviewed forward fix/retry; do not assume earlier commits rolled back.
+5. **Authorized release.** After provenance, staging, owner review, protected dry-run, freeze and rollback readiness are signed off, obtain separate production release approval. Use the protected manual `apply_and_deploy` workflow for the independently reviewed release plan, so Edge Functions and the client deploy together. A target with all three versions already recorded requires reconciliation or a reviewed forward fix before this step. For a target where all three are genuinely pending, the order is availability repair, Iron Ink, then cross-ledger conflicts. Each SQL file commits in its own transaction. If a later migration fails, keep writes frozen and inspect the actual ledger before any retry. Avoid manual SQL application or migration history edits.
 6. **Reconfirm and validate.** Under the freeze, save only owner-confirmed shifts/day-offs as `workspace`/`direct` using the manifest; leave all others `legacy`. Compare all rows and source totals with the manifest and investigate drift. Verify the three recorded versions, normalized/canonical and identity triggers, snapshot columns, index, function definitions, grants/RLS and optional-feature behavior. Exercise guest/owner availability, both race directions, reactivation, retry/rollback, owner transfer and payment/receipt simulations on authorized synthetic or staging tenants; check for private-row exposure. Do not create real customer bookings, send receipts or make real payments without explicit authorization. Release traffic only after validation; monitor slot loss, conflicts, deadlocks/retries, booking errors and settlement/refund-required alerts.
 7. **Recovery.** Keep writes frozen if validation fails. Database/application rollback is a separately reviewed **forward** recovery: use captured pre-release definitions, triggers and ACLs in a new migration, coordinate the client rollback, and account for any bookings/payments made after release. A forward recovery must handle the cross-ledger guard and snapshots explicitly; do not blindly drop snapshot/provenance columns, delete rows, overwrite later edits, disable triggers or change migration history. A full backup/PITR restore is a last resort under the incident runbook and needs separate authorization.
 
@@ -198,7 +247,7 @@ PREVIEW_URL='https://REVIEWED-PREVIEW.vercel.app' \
   node scripts/verify-nexora-interaction-responsiveness.mjs
 ```
 
-The hosted Preview job passed on the previous pushed head `b0211db`; a fresh release head must pass again. Record the numeric p75 and number of Event Timing entries from the job; if Chromium reports no supported samples, the p75 assertion is skipped and performance is **not** established merely by a green job.
+The [hosted Preview job](https://github.com/templateapp67-oss/studioflow/actions/runs/46120195387/job/140904424712) on pushed head `9778f42` recorded synthetic interaction p75 of **56 ms** across **34 Event Timing entries**, below the 200 ms target. The log reports zero failed requests, no submitted booking, and blocked writes of zero. The browser also passed the 16-template and synthetic directory checks. This evidence closes the missing hosted measurement. A fresh release head must be checked separately. If an audit returns no supported Event Timing samples, a green job alone does not establish performance.
 
 The earlier sandbox **local adaptation** changed a scratch copy to permit loopback, used packaged Chromium and fulfilled external assets locally; it replaced the p75 assertion with diagnostic logging. Two runs reported p75 of **880 ms** and **1472 ms** with aborted assets, and a later diagnostic reported **1544 ms** with zero failed requests. All exceed the 200 ms target; the scratch diagnostic's printed `PASS` is not a threshold pass. The local fixture, CPU and network differ from hosted Preview, so these results are not directly comparable and neither proves field performance. Do not weaken the checked-in hosted gate to make a local result green; investigate repeatable regressions and document the release owner's decision.
 

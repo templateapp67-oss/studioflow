@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {readFileSync,readdirSync} from 'node:fs';
+import {appendFileSync,readFileSync,readdirSync} from 'node:fs';
 
 const raw=process.env.SUPABASE_MIGRATION_LIST_OUTPUT||'';
 const localFiles=readdirSync('supabase/migrations')
@@ -101,6 +101,10 @@ for(const record of postExport){
     'Post-export version is recorded as applied in the ledger but missing from remote history: '+record.version);
   assert(localSet.has(record.version),
     'Post-export version is recorded as applied but its SQL source is missing locally: '+record.file);
+}
+
+if(process.env.GITHUB_OUTPUT){
+  appendFileSync(process.env.GITHUB_OUTPUT,`pending_migrations=${localOnly.length}\n`);
 }
 
 console.log(

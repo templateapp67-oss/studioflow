@@ -271,10 +271,10 @@ const expression=(job)=>{
 };
 // GitHub's expressions here deliberately use the JS-compatible comparison
 // subset. Exercise the actual folded job conditions, not a separate model.
-const run=(job,event,mode,changed,migrate='success',ci='success',changes='success',ref='refs/heads/main')=>{
+const run=(job,event,mode,changed,migrate='success',ci='success',changes='success',ref='refs/heads/main',pending='0')=>{
   const github={ref,event_name:event};
   const inputs={release_mode:mode};
-  const needs={ci:{result:ci},changes:{result:changes,outputs:{migrations_changed:String(changed)}},migrate:{result:migrate}};
+  const needs={ci:{result:ci},changes:{result:changes,outputs:{migrations_changed:String(changed)}},migrate:{result:migrate,outputs:{pending_migrations:pending}}};
   return new Function('github','inputs','needs','always',`return (${expression(job)});`)(github,inputs,needs,()=>true);
 };
 assert(run('migrate','workflow_dispatch','dry_run',false));
@@ -283,12 +283,13 @@ assert(run('migrate','workflow_dispatch','apply_and_deploy',false));
 assert(run('deploy','workflow_dispatch','apply_and_deploy',false));
 assert(!run('deploy','workflow_dispatch','apply_and_deploy',false,'failure'));
 assert(!run('deploy','workflow_dispatch','apply_and_deploy',false,'success','failure'));
-assert(!run('migrate','workflow_dispatch','deploy_only',false));
-assert(run('deploy','workflow_dispatch','deploy_only',false,'skipped'));
-assert(!run('deploy','workflow_dispatch','deploy_only',false,'skipped','failure'), 'deploy_only must require passing CI');
-assert(!run('deploy','workflow_dispatch','deploy_only',false,'skipped','success','failure'), 'deploy_only must require successful change detection');
+assert(run('migrate','workflow_dispatch','deploy_only',false));
+assert(run('deploy','workflow_dispatch','deploy_only',false));
+assert(!run('deploy','workflow_dispatch','deploy_only',false,'skipped'), 'deploy_only must verify remote history');
+assert(!run('deploy','workflow_dispatch','deploy_only',false,'success','failure'), 'deploy_only must require passing CI');
+assert(!run('deploy','workflow_dispatch','deploy_only',false,'success','success','failure'), 'deploy_only must require successful change detection');
 assert(!run('deploy','workflow_dispatch','deploy_only',false,'failure'), 'deploy_only must not bypass a failed migration job');
-assert(!run('deploy','workflow_dispatch','deploy_only',false,'skipped','success','success','refs/heads/arena/test'), 'manual release must never deploy a non-main ref');
+assert(!run('deploy','workflow_dispatch','deploy_only',false,'success','success','success','refs/heads/arena/test'), 'manual release must never deploy a non-main ref');
 assert(!run('migrate','workflow_dispatch','apply_and_deploy',false,'success','success','success','refs/heads/arena/test'), 'manual apply must never run on a non-main ref');
 assert(!run('migrate','workflow_dispatch','invalid',false));
 assert(!run('deploy','workflow_dispatch','invalid',false,'skipped'));
@@ -303,6 +304,11 @@ assert(!run('deploy','push',undefined,true,'success'));
 assert(run('migrate','push',undefined,false));
 assert(run('deploy','push',undefined,false,'success'));
 assert(!run('deploy','push',undefined,false,'failure'));
+for(const pending of ['3','']){
+  assert(!run('deploy','push',undefined,false,'success','success','success','refs/heads/main',pending));
+  assert(!run('deploy','workflow_dispatch','deploy_only',false,'success','success','success','refs/heads/main',pending));
+  assert(run('deploy','workflow_dispatch','apply_and_deploy',false,'success','success','success','refs/heads/main',pending));
+}
 
 // Run the actual change-detection shell with a mocked git command. A failed
 // diff must fail the changes job, not masquerade as a code-only release.
@@ -659,6 +665,27 @@ const unexpectedlyAppliedResult=spawnSync(process.execPath,['scripts/verify-supa
 assert.notEqual(unexpectedlyAppliedResult.status,0,'an unexpectedly applied cross-ledger migration requires reconciliation');
 assert.match(`${unexpectedlyAppliedResult.stdout||''}\n${unexpectedlyAppliedResult.stderr||''}`,/20261127143200/);
 
+const historyOutputDirectory=mkdtempSync(join(tmpdir(),'studioflow-migration-history-'));
+try{
+  const outputPath=join(historyOutputDirectory,'output');
+  const runHistory=(migrationList)=>spawnSync(process.execPath,['scripts/verify-supabase-migration-history.mjs'],{
+    env:buildCleanEnv({SUPABASE_MIGRATION_LIST_OUTPUT:migrationList,GITHUB_OUTPUT:outputPath}),
+    encoding:'utf8',windowsHide:true,
+  });
+  const checked=runHistory(baseMigrationList);
+  assert.equal(checked.status,0,checked.stderr);
+  assert.equal(readFileSync(outputPath,'utf8'),`pending_migrations=${pendingVersions.size}\n`);
+  writeFileSync(outputPath,'');
+  const fullyRecordedList=[...pendingVersions].reduce((list,version)=>list.replace(
+    '`'+version+'` |  | ',
+    '`'+version+'` | `'+version+'` | `2026-11-27 00:00:00`',
+  ),baseMigrationList);
+  assert.notEqual(runHistory(fullyRecordedList).status,0,'newly recorded versions require reconciliation');
+  assert.equal(readFileSync(outputPath,'utf8'),'','an unreviewed history must not emit a deploy gate output');
+} finally {
+  rmSync(historyOutputDirectory,{recursive:true,force:true});
+}
+
 const remoteOnlyResult=spawnSync(process.execPath,['scripts/verify-supabase-migration-history.mjs'],{
   env:buildCleanEnv({
     SUPABASE_MIGRATION_LIST_OUTPUT:baseMigrationList+'\n              | `20990101000000` | `2099-01-01 00:00:00`',
@@ -683,7 +710,7 @@ const duplicateRemoteOutput=`${duplicateRemoteResult.stdout||''}\n${duplicateRem
 assert(duplicateRemoteOutput.includes('duplicate remote migration history rows'),
   'duplicate remote failure must explain the duplicate history row: '+duplicateRemoteOutput);
 
-console.log('PASS: one release dropdown; all main pushes run remote migration-history validation and a read-only dry-run; only the approved apply_and_deploy mode applies migrations and deploys functions; deploy_only skips database changes; CI and migration failure block deployment; validated Supabase project references propagate to all hosted CLI steps.');
+console.log('PASS: only apply_and_deploy can apply migrations or deploy functions; both deploy_only and automatic website releases require a successful read-only migration check with zero reviewed pending migrations.');
 
 // --- Edge Function deployment contract -----------------------------------
 // Every function the Production workflow deploys must have an explicit
