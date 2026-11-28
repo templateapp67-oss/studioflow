@@ -161,25 +161,27 @@ const replacedBranchSalon = {
  },
 };
 let hasProfessional = false;
+let nextDayOnly = false;
 const slotDates:string[] = [];
 functionPrototype.invoke=async()=>({data:{webCheckout:{online:false,venue:false,mode:'test'}},error:null});
 (supabase as any).rpc=async(name:string,args:any)=>{
  if(name==='studioflow_public_branches')return{data:[branches[1]],error:null};
  if(name==='studioflow_branch_specialists'){
   assert.equal(args.p_branch,'branch-two','use the current public branch, not the published snapshot ID');
-  return{data:{published:true,specialistIds:hasProfessional?['stylist']:[]},error:null};
+  return{data:{published:true,specialistIds:hasProfessional&&args.p_service_id==='cut'?['stylist']:[]},error:null};
  }
  assert.equal(name,'studioflow_branch_android_slots');
  assert.equal(args.p_branch,'branch-two');
  slotDates.push(args.p_date);
+ if(nextDayOnly&&args.p_date!==istDate(2))return{data:[],error:null};
  return{data:[
   {time:'11:00',label:'11:00 AM',available:true,stylistId:'stylist'},
   {time:'12:00',label:'12:00 PM',available:true,stylistId:'foreign-staff'},
  ],error:null};
 };
 let locationBooking:any;
-const openLocationBooking=async()=>{
- await act(async()=>{locationBooking=create(<CustomerBookingFlow salon={replacedBranchSalon} initialIds={['cut']} session={null} close={()=>{}} onCreated={()=>{}} onConfirmed={()=>{}}/>)});
+const openLocationBooking=async(initialIds=['cut'])=>{
+ await act(async()=>{locationBooking=create(<CustomerBookingFlow salon={replacedBranchSalon} initialIds={initialIds} session={null} close={()=>{}} onCreated={()=>{}} onConfirmed={()=>{}}/>)});
  const buttons=()=>locationBooking.root.findAllByType('button');
  await act(async()=>buttons().find((b:any)=>b.props.children==='Continue to Specialist & Slot').props.onClick());
  await act(async()=>buttons().find((b:any)=>b.props.children?.[0]==='Tomorrow').props.onClick());
@@ -195,6 +197,25 @@ assert.equal(slotDates.at(-1),istDate(1),'Tomorrow requests the next IST date');
 assert.match(JSON.stringify(locationBooking.toJSON()),/11:00 AM/);
 assert.doesNotMatch(JSON.stringify(locationBooking.toJSON()),/12:00 PM|Unassigned Tattoo Artist/);
 await act(async()=>locationBooking.unmount());
+nextDayOnly=true;
+slotDates.length=0;
+await openLocationBooking(['cut','spa']);
+assert.match(JSON.stringify(locationBooking.toJSON()),/No scheduled professional can perform this combination/);
+assert.equal(slotDates.length,0);
+const findLocationButton=(lead:string)=>locationBooking.root.findAllByType('button').find((b:any)=>
+ (Array.isArray(b.props.children)?b.props.children.join(''):String(b.props.children)).startsWith(lead));
+assert.equal(findLocationButton('Continue with Published Spa'),undefined);
+await act(async()=>findLocationButton('Continue with Published Haircut only').props.onClick());
+assert.equal(slotDates.at(-1),istDate(1));
+await act(async()=>findLocationButton('Find next available date').props.onClick());
+assert.equal(slotDates.at(-1),istDate(2));
+assert.equal(locationBooking.root.findByProps({'aria-label':'Appointment date'}).props.value,istDate(1),
+ 'finding the first opening cannot change the customer’s selected date');
+await act(async()=>findLocationButton('Show slots for').props.onClick());
+assert.equal(locationBooking.root.findByProps({'aria-label':'Appointment date'}).props.value,istDate(2));
+assert.match(JSON.stringify(locationBooking.toJSON()),/11:00 AM/);
+await act(async()=>locationBooking.unmount());
+console.log('PASS: an unstaffed service can be excluded explicitly and the earliest verified future date is actionable.');
 
 const banners=homeBanners([salon]);assert.equal(banners.length,5);assert.equal(new Set(banners.map(b=>b.image)).size,5);assert.equal(homeBanners([]).length,5);
 assert.deepEqual(bannerStep(4,1),{index:3,direction:-1});assert.deepEqual(bannerStep(0,-1),{index:1,direction:1});
