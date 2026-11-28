@@ -355,6 +355,17 @@ try {
   await flow.getByRole('button', { name: 'Confirm Booking' }).click();
   assert.match(await flow.innerText(), /Synthetic Haircut/);
   assert.match(await flow.innerText(), /Final payable amount/);
+  await flow.getByText('Payment options').waitFor({ state: 'visible' });
+  await page.waitForFunction(() => {
+    const paymentDialog = [...document.querySelectorAll('[role="dialog"]')].find(node =>
+      node.textContent?.includes('Synthetic Haircut') && node.textContent?.includes('Payment options'));
+    const razorpay = [...(paymentDialog?.querySelectorAll('input[type="radio"]') || [])].find(input =>
+      input.closest('label')?.textContent?.includes('Razorpay'));
+    return Boolean(razorpay && !razorpay.disabled);
+  });
+  const razorpayOption = flow.getByRole('radio', { name: /Online payment.*Razorpay/ });
+  assert.equal(await razorpayOption.isDisabled(), false, 'server-ready Razorpay option is selectable in the customer app');
+  assert.ok(supabaseCalls.slice(requestStart).includes('GET /functions/v1/studioflow-payments'), 'customer app checked server checkout readiness');
   await flow.getByRole('button', { name: 'Sign in to continue' }).click();
   assert.match(await flow.innerText(), /Welcome back/i, 'a guest must authenticate before reservation');
   assert.ok(supabaseCalls.slice(requestStart).includes('POST /rest/v1/rpc/studioflow_android_slots'), 'directory used the synthetic availability fixture');
