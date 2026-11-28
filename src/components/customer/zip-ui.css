@@ -21,4 +21,13 @@
 @media(max-width:520px){.cr-zip-filter-dialog{border-radius:22px 22px 0 0;max-height:95dvh}.cr-zip-filter-dialog .cr-explore-advanced{gap:15px;padding:18px}.cr-zip-filter-dialog .cr-explore-advanced label:first-child{grid-column:1/-1}.cr-zip-filter-dialog>header{padding:18px}.cr-zip-filter-dialog>header h2{font-size:16px}}
 .cr-zip-booking-progress{display:flex;gap:12px;background:var(--cr-surface);padding:11px 23px;border-bottom:1px solid var(--cr-border)}.cr-zip-booking-progress span{flex:1;padding:5px 0 9px;border-bottom:3px solid var(--cr-border);font-size:10px;font-weight:700;color:var(--cr-muted);text-align:center}.cr-zip-booking-progress span[aria-current=step]{color:var(--cr-primary);border-color:var(--cr-primary)}.cr-zip-ui .cr-booking-dialog:has(.cr-zip-booking-progress) .cr-dialog-content{max-height:calc(92dvh - 240px)}.cr-zip-ui .cr-book-footer{width:100%}@media(max-width:520px){.cr-zip-booking-progress{padding:8px 17px;gap:8px}.cr-zip-booking-progress span{font-size:9px}.cr-zip-ui .cr-booking-dialog:has(.cr-zip-booking-progress) .cr-dialog-content{max-height:calc(96dvh - 230px)}}
 body:has(.cr-zip-ui){background:#f0edf8}body:has(.cr-zip-ui.cr-dark){background:#191522}
+.cr-app,.cr-zip-ui{width:100%;max-width:100vw;overflow-x:clip}
+.cr-app .cr-main,.cr-app .cr-recommendations,.cr-app .cr-discover,.cr-app .cr-zip-stories,.cr-app .cr-festival,.cr-app .cr-quick-services,.cr-app .cr-special-discounts,.cr-app .cr-last-minute{min-width:0;max-width:100%}
+.cr-app .cr-recommend-grid,.cr-app .cr-reels,.cr-app .cr-directory-salon-row,.cr-app .cr-discovery-row,.cr-app .cr-salon-scroll,.cr-app .cr-pills{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}
+.cr-app .cr-bottom-nav{max-width:100%;padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(max-width:520px){
+  .cr-app .cr-recommend-grid .cr-pick{flex:0 0 min(78vw,260px);min-width:0}
+  .cr-app .cr-quick-card{width:min(72vw,220px);min-width:min(72vw,220px)}
+  .cr-app .cr-salon-scroll>.cr-salon-card{width:min(82vw,280px);min-width:min(82vw,280px);flex-basis:min(82vw,280px)}
+}
 

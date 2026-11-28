@@ -20,7 +20,7 @@ const pageData = {
   },
   '/salon-growth': {
     title: 'Nexora SalonOS — Salon Customer Growth & Retention.',
-    heading: 'Build lasting customer relationships.',
+    heading: 'Build lasting salon customer relationships.',
     intro: 'Nexora helps salons organise customer relationships, create supported follow-up opportunities and manage salon operations. Results depend on your salon, configuration and customer consent.',
   },
   '/growth-partner-rewards': {

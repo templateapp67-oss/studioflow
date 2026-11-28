@@ -31,13 +31,14 @@ export function CustomerBookingFlow({salon,initialIds=[],initialStylist='any',in
  const [email,setEmail]=useState(existing?.payload?.clientEmail||session?.user.email||'');
  const [method,setMethod]=useState<WebPaymentMethod>('online');
  const [whatsappConsent,setWhatsappConsent]=useState(true);
- const [checkout,setCheckout]=useState<{online:boolean;venue:boolean;mode:string}|null>(null);
+ const [checkout,setCheckout]=useState<{online:boolean;venue:boolean;mode:string;onlineReason?:string;onlineMessage?:string}|null>(null);
  const [confirmation,setConfirmation]=useState<Appointment|null>(null);
  const inFlight=useRef(false);
  const p=salon.content.profile,chosen=services.filter(s=>ids.includes(s.id)),originalTotal=chosen.reduce((n,s)=>n+Number(s.price),0),minutes=chosen.reduce((n,s)=>n+Number(s.durationMinutes),0),actual=stylists.find(s=>s.id===slot?.stylistId)||stylists.find(s=>s.id===stylist);
  // Template 03 uses its own server-side coupon validation RPC.
  const isAuraCheckout=p.businessType==='unisex_salon';
  const coupon=useBookingCoupon(salon.slug,ids,isAuraCheckout?'studioflow_aura_coupon_quote':'studioflow_coupon_quote'),total=Number(reserved?.payload?.servicePrice??coupon.quote?.finalPrice??originalTotal);
+ const validCheckoutAmount=Number.isFinite(total)&&total>0;
  const [branchChoices,setBranchChoices]=useState<any[]>(salon.content.profile.branches||[]),[branchId,setBranchId]=useState(initialBranchId||((salon.content.profile.branches||[]).filter((b:any)=>b.isActive!==false).length===1?(salon.content.profile.branches||[]).find((b:any)=>b.isActive!==false)?.id||'':''));const branch=branchChoices.find((b:any)=>b.id===branchId);const [selectStep,setSelectStep]=useState(initialSlot&&(!initialSlot.branchId||initialSlot.branchId===branchId)?2:1),[serviceCategory,setServiceCategory]=useState('all');const content=useRef<HTMLDivElement>(null);
  useEffect(()=>{content.current?.scrollTo({top:0,behavior:'auto'})},[stage,selectStep]);
  const initialSlotApplied=useRef(false);
@@ -167,7 +168,13 @@ export function CustomerBookingFlow({salon,initialIds=[],initialStylist='any',in
    if(!active)return;
    setCheckout(status);
    if(!status.online&&status.venue)setMethod('venue');
-  }).catch(error=>{if(active)setError(message(error));});
+   if(!status.online)setError(status.onlineMessage||'Online payment is currently unavailable. Please contact the salon.');
+  }).catch(error=>{
+   if(!active)return;
+   const detail=message(error);
+   setCheckout({online:false,venue:false,mode:'unavailable',onlineMessage:detail});
+   setError(detail);
+  });
   return()=>{active=false};
  },[demo,existing]);
  useEffect(()=>{if(session)setEmail(current=>current||session.user.email||'');},[session?.user.email]);
@@ -183,6 +190,7 @@ export function CustomerBookingFlow({salon,initialIds=[],initialStylist='any',in
  async function pay(){
   if(inFlight.current)return;
   if(!reserved&&!slotVerified){setError('Please wait for availability or choose another slot.');return;}
+  if(!demo&&method==='online'&&!validCheckoutAmount){setError('Razorpay checkout requires a payable amount above ₹0. Check the selected service prices and try again.');return;}
   if(!session){setAuth(true);return;}
   if(!reserved&&branchChoices.some(b=>b.isActive!==false)&&!branchId){setError('Choose a location first.');return;}
   if(!reserved&&(!slot||name.trim().length<2||!bookingMobileValid(phone)||(!demo&&!bookingEmailValid(email.trim())))){
@@ -203,7 +211,9 @@ export function CustomerBookingFlow({salon,initialIds=[],initialStylist='any',in
 
    let booking=reserved;
    if(!booking){
-    if(method==='online'?!checkout?.online:!checkout?.venue)throw new Error('This payment option is unavailable.');
+    const activeCheckout=checkout??await webCheckoutStatus();
+    if(!checkout)setCheckout(activeCheckout);
+    if(method==='online'?!activeCheckout.online:!activeCheckout.venue)throw new Error(activeCheckout.onlineMessage||'This payment option is unavailable.');
     const finger=JSON.stringify([salon.slug,branchId,ids,date,slot,name.trim(),phone.trim(),notes,coupon.quote?.code]);
     if(request.current.finger!==finger)request.current={finger,id:crypto.randomUUID()};
     const fields={p_slug:salon.slug,p_services:ids,p_date:date,p_time:slot!.time,p_stylist:slot!.stylistId,
@@ -275,13 +285,22 @@ export function CustomerBookingFlow({salon,initialIds=[],initialStylist='any',in
   :<button type="button" className="cr-outline" disabled={nextDate.checking} onClick={()=>void findNextAvailableDate()}>{nextDate.checking?'Checking next dates…':'Find next available date'}</button>}
  {nextDate.message&&<Notice>{nextDate.message}</Notice>}</>}</>}</section></>:
  stage==='summary'?<>{!reserved&&slotLoading&&<Notice>Checking salon availability…</Notice>}{!reserved&&availabilityError&&<><Notice>{availabilityError}</Notice><button className="cr-outline" onClick={()=>setRetry(x=>x+1)}>Retry slots</button></>}{!demo&&<BookingCoupon coupon={coupon} disabled={!!reserved||busy}/>}{!reserved&&services.some(s=>(p.bookingAddOnServiceIds||[]).includes(s.id))&&<section className="sf-booking-addons"><h3>Add-on services / customization</h3><p>Optional extras add their price and duration. Changing extras requires a new slot selection.</p>{services.filter(s=>(p.bookingAddOnServiceIds||[]).includes(s.id)).map(extra=><label key={extra.id}><input type="checkbox" checked={ids.includes(extra.id)} disabled={busy||(!ids.includes(extra.id)&&ids.length>=10)} onChange={e=>{const checked=e.target.checked;setIds(old=>checked?[...old,extra.id]:old.filter(id=>id!==extra.id));setSlot(null);setSelectStep(2);setStage('select');}}/>{extra.name} · ₹{extra.price} · {extra.durationMinutes} min</label>)}</section>}<SummaryBox n="1" title="SALON & VENUE" action={edit}><div className="cr-summary-venue"><Photo src={p.coverImageUrl} alt=""/><div><h3>{p.businessName}</h3><p><MapPin size={11}/>{[branch?.address||p.address,branch?.city||p.city].filter(Boolean).join(', ')}</p></div></div></SummaryBox><SummaryBox n="2" title={`SELECTED SERVICES (${chosen.length})`} action={edit}>{chosen.map(s=><div className="cr-summary-service" key={s.id}><div><b><Scissors size={12}/>{s.name}</b><small><Clock size={10}/>{s.durationMinutes} mins</small></div><strong>{rupees(s.price)}</strong></div>)}</SummaryBox><SummaryBox n="3" title="ASSIGNED PROFESSIONAL" action={edit}><div className="cr-row cr-start"><Photo src={actual?.avatarUrl} alt="" className="cr-avatar-photo"/><div><h3>{actual?.name||'Available professional'}</h3><p>{actual?.role||'Assigned from live availability'}</p></div></div></SummaryBox><SummaryBox n="4" title="DATE & APPOINTMENT WINDOW" action={edit}><div className="cr-window"><span className="cr-calendar-icon"><CalendarDays size={19}/></span><div><b>{date}</b><small>Slot: {slot?.label||slot?.time} IST</small></div><div><small>Duration</small><strong>{minutes} mins total</strong></div></div></SummaryBox><SummaryBox n="5" title="CONTACT FOR THIS APPOINTMENT"><div className="cr-form"><label><User size={12}/> Full name<input value={name} required minLength={2} maxLength={150} disabled={!!reserved} onChange={e=>setName(e.target.value)} autoComplete="name"/></label><label><Phone size={12}/> WhatsApp mobile number<input value={phone} required inputMode="tel" maxLength={20} disabled={!!reserved} onChange={e=>setPhone(e.target.value)} autoComplete="tel"/></label><label><Mail size={12}/> Email address<input type="email" required maxLength={254} disabled={!!reserved} value={email} autoComplete="email" onChange={event=>setEmail(event.target.value)} /></label></div></SummaryBox><SummaryBox n="6" title="SPECIAL INSTRUCTIONS"><textarea className="cr-notes" aria-label="Special instructions" placeholder="No special instructions added…" value={notes} disabled={!!reserved} maxLength={1000} onChange={e=>setNotes(e.target.value)}/></SummaryBox>{demo?<SummaryBox n="7" title="DEMO — NO PAYMENT"><p>Service list price: {rupees(total)}</p><div className="cr-total-row"><b>Demo amount payable</b><b>₹0</b></div><p>No advance or balance is due. This is a practice booking only.</p></SummaryBox>:<SummaryBox n="7" title="PAYMENT">
- <BookingPaymentOptions method={method} onChange={setMethod} venue={!!checkout?.venue} locked={busy||!!reserved} />
- {method==='online'&&checkout?.mode==='test'&&<p>Razorpay Test Mode</p>}
+ <BookingPaymentOptions
+  method={method}
+  onChange={setMethod}
+  venue={!!checkout?.venue}
+  locked={busy||!!reserved}
+  onlineAvailable={Boolean(checkout?.online)&&validCheckoutAmount}
+  onlineMessage={!validCheckoutAmount ? 'Razorpay requires a payable amount above ₹0.' : checkout?.online ? undefined : checkout?.onlineMessage || (checkout ? 'Razorpay is unavailable for this salon right now.' : 'Checking Razorpay availability…')}
+ />
+ {method==='online'&&checkout?.online&&checkout.mode==='test'&&<p>Razorpay Test Mode</p>}
+ {!demo&&!validCheckoutAmount&&<Notice>The booking total must be greater than ₹0 for online checkout.</Notice>}
+ {!demo&&!reserved&&!!coupon.code.trim()&&!coupon.quote&&<Notice>Apply or clear your coupon code before continuing.</Notice>}
  <label className="flex items-center gap-2"><input type="checkbox" checked={whatsappConsent} disabled={busy||!!reserved} onChange={event=>setWhatsappConsent(event.target.checked)} /> Send my receipt on WhatsApp</label>
  </SummaryBox>}{!session&&<Notice>Sign in to confirm this appointment. Your selections stay here.</Notice>}</>:
  stage==='confirmed'&&confirmation?<><BookingReceiptActions booking={confirmation}/><button className="cr-primary cr-wide" onClick={onConfirmed}>View My Bookings</button></>:
  <div className="cr-qr-wrap"><section className="cr-qr-card"><h2>{qr?'Nexora QR Payment':'Razorpay Checkout'}</h2>{qr&&<div className="cr-qr-image"><img src={qr.imageUrl} alt="Secure payment QR code generated for this booking"/></div>}<p>Amount payable</p><strong className="cr-pay-amount">{rupees(payAmount)}</strong>{expires>0&&<div className="cr-hold-timer"><Clock size={12}/>{timeout?'Slot reservation expired':'Slot reserved for'}<b>{timeout?'Choose a new slot':`${Math.floor(left/60).toString().padStart(2,'0')}:${(left%60).toString().padStart(2,'0')}`}</b></div>}{!qr&&<button className="cr-outline cr-wide" disabled={busy||timeout} onClick={()=>void pay()}>{busy?'Please wait…':'Retry payment'}</button>}<button className="cr-primary cr-wide" disabled={busy||!reserved} onClick={()=>void reconcile()}>{busy?'Please wait…':'Recheck payment status'}</button></section></div>}
- </div>{!auth&&stage==='select'&&selectStep===1&&<footer className="cr-dialog-footer"><div className="cr-row"><div><strong>{chosen.length} selected · {minutes} mins</strong><small>{rupees(total)}</small></div><button className="cr-primary" disabled={!ids.length||(branchChoices.filter((b:any)=>b.isActive!==false).length>1&&!branchId)} onClick={()=>setSelectStep(2)}>Continue to Specialist & Slot</button></div></footer>}{!auth&&stage==='select'&&selectStep===2&&<footer className="cr-dialog-footer"><div className="cr-row"><div><strong>{chosen.length} Service{chosen.length===1?'':'s'} • {minutes} min</strong><small>{chosen.map(s=>s.name).join(', ')}</small></div><div><small>Total Amount</small><b>{rupees(total)}</b></div></div><div className="cr-row"><button className="cr-outline" disabled={busy} onClick={()=>setSelectStep(1)}>Back to Services</button><button className="cr-primary" disabled={!slotVerified||busy} onClick={summary}>Confirm Booking</button></div></footer>}{!auth&&stage==='summary'&&<footer className="cr-dialog-footer"><div className="cr-row"><span className="cr-muted">{demo?'Demo booking — no payment':'Final payable amount'}</span><b className="cr-purple">{demo?'₹0':rupees(total)}</b></div><button className="cr-primary cr-wide" disabled={busy||!chosen.length||(!reserved&&!slotVerified)||(!demo&&((!!session&&(method==='online'?!checkout?.online:!checkout?.venue))||coupon.busy||(!reserved&&!!coupon.code.trim()&&!coupon.quote)))} onClick={()=>void pay()}>{busy?'Please wait…':!session?'Sign in to continue':demo?'Confirm Demo Booking — ₹0':method==='venue'?'Confirm & Pay at Venue':`Pay ${rupees(total)} with Razorpay`}</button></footer>}
+ </div>{!auth&&stage==='select'&&selectStep===1&&<footer className="cr-dialog-footer"><div className="cr-row"><div><strong>{chosen.length} selected · {minutes} mins</strong><small>{rupees(total)}</small></div><button className="cr-primary" disabled={!ids.length||(branchChoices.filter((b:any)=>b.isActive!==false).length>1&&!branchId)} onClick={()=>setSelectStep(2)}>Continue to Specialist & Slot</button></div></footer>}{!auth&&stage==='select'&&selectStep===2&&<footer className="cr-dialog-footer"><div className="cr-row"><div><strong>{chosen.length} Service{chosen.length===1?'':'s'} • {minutes} min</strong><small>{chosen.map(s=>s.name).join(', ')}</small></div><div><small>Total Amount</small><b>{rupees(total)}</b></div></div><div className="cr-row"><button className="cr-outline" disabled={busy} onClick={()=>setSelectStep(1)}>Back to Services</button><button className="cr-primary" disabled={!slotVerified||busy} onClick={summary}>Confirm Booking</button></div></footer>}{!auth&&stage==='summary'&&<footer className="cr-dialog-footer"><div className="cr-row"><span className="cr-muted">{demo?'Demo booking — no payment':'Final payable amount'}</span><b className="cr-purple">{demo?'₹0':rupees(total)}</b></div><button className="cr-primary cr-wide" disabled={busy||!chosen.length||(!reserved&&!slotVerified)||(!demo&&((!!session&&(method==='online'?!checkout?.online:!checkout?.venue))||(method==='online'&&!validCheckoutAmount)||coupon.busy||(!reserved&&!!coupon.code.trim()&&!coupon.quote)))} onClick={()=>void pay()}>{busy?'Please wait…':!session?'Sign in to continue':demo?'Confirm Demo Booking — ₹0':method==='venue'?'Confirm & Pay at Venue':`Pay ${rupees(total)} with Razorpay`}</button></footer>}
  </section></div>
 }
 function SummaryBox({n,title,children,action}:{n:string;title:string;children:React.ReactNode;action?:()=>void}){return <section className="cr-summary-box"><header><h3>{n}. {title}</h3>{action&&<button onClick={action}><Pencil size={10}/> Change</button>}</header>{children}</section>}
