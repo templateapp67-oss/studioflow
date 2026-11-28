@@ -205,15 +205,16 @@ export function NexoraEcosystemHero({
 
         {isAbout ? (
           <figure className="nxh-hero__visual nxh-about-artwork">
-            <img
-              src="/nexora-about/salon-management-and-booking.webp"
-              srcSet="/nexora-about/salon-management-and-booking-600.webp 600w, /nexora-about/salon-management-and-booking.webp 960w"
-              sizes="(max-width: 700px) calc(100vw - 40px), (max-width: 1080px) 540px, 48vw"
-              width={960}
-              height={960}
-              fetchPriority="high"
-              alt="NEXORA SalonOS illustration of a salon owner with an Android booking app and a salon website"
-            />
+            <picture>
+              <source media="(max-width: 640px)" srcSet="/nexora-about/salon-management-and-booking-mobile.webp" />
+              <img
+                src="/nexora-about/salon-management-and-booking.webp"
+                width={960}
+                height={960}
+                fetchPriority="high"
+                alt="NEXORA SalonOS illustration of a salon owner with an Android booking app and a salon website"
+              />
+            </picture>
             <figcaption>16 free template previews. Website publishing follows SalonOS plan terms.</figcaption>
           </figure>
         ) : (

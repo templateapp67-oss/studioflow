@@ -844,6 +844,7 @@
 }
 
 .nxh-hero--about .nxh-hero__title {
+  display: block;
   font-size: clamp(2.125rem, 4.5vw, 3.625rem);
   overflow-wrap: anywhere;
 }
@@ -870,9 +871,13 @@
   box-shadow: 0 22px 50px rgba(10, 6, 22, 0.32);
 }
 
+.nxh-about-artwork picture,
 .nxh-about-artwork img {
   display: block;
   width: 100%;
+}
+
+.nxh-about-artwork img {
   height: auto;
   aspect-ratio: 34 / 25;
   object-fit: cover;
@@ -937,6 +942,11 @@
 }
 
 @media (max-width: 640px) {
+  .nxh-hero--about .nxh-hero__title,
+  .nxh-hero--about .nxh-hero__lead {
+    font-family: system-ui, sans-serif;
+  }
+
   .nxh-nav__inner {
     padding: 18px 20px 14px;
   }
