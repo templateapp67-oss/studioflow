@@ -510,6 +510,7 @@ const profile = {...publishedProfile};
 let reservations = 0;
 supabase.rpc = (async (name: string, args: any) => {
   calls.push({name, args});
+  if (name === 'studioflow_public_branches') return {data: [], error: null};
   if (name === 'studioflow_booking_specialists') return {data: {published: true, specialistIds: ['st-1']}, error: null};
   return {data: [{time: '10:30', label: '10:30 AM', available: true, stylistId: 'st-1'}], error: null};
 }) as any;
@@ -524,6 +525,7 @@ assert.equal(reservations, 0, 'time selection alone never reserves');
 await act(async () => ui.unmount());
 
 supabase.rpc = (async (name: string) => {
+  if (name === 'studioflow_public_branches') return {data: [], error: null};
   if (name === 'studioflow_booking_specialists') return {data: {published: true, specialistIds: ['st-1']}, error: null};
   return {data: null, error: {message: 'Availability service is offline'}};
 }) as any;
