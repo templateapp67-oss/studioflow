@@ -279,15 +279,20 @@ ok('end-to-end contracts are documented (docs/LEAD-CAPTURE-CONTRACT.md, docs/MFA
   const vedaV = JSON.parse(readFileSync('veda-sanjeevani/vercel.json', 'utf8'));
   const rootV = JSON.parse(readFileSync('vercel.json', 'utf8'));
   const vedaBlock = (vedaV.headers || []).find((b) => b.source === '/(.*)');
-  const rootBlock = (rootV.headers || []).find((b) => b.source === '/(.*)');
+  const rootBlock = (rootV.headers || []).find((b) => b.source === '/:path(.+)');
   assert.ok(vedaBlock, 'veda vercel.json must carry a /(.*) header block');
-  assert.ok(rootBlock, 'root vercel.json must carry a /(.*) header block');
+  assert.ok(rootBlock, 'root vercel.json must carry a strict non-root /:path(.+) header block');
   const hadi = (block) => Object.fromEntries(block.headers.map((h) => [h.key, h.value]));
   const veda = hadi(vedaBlock);
   const root = hadi(rootBlock);
   const HSTS = 'max-age=63072000; includeSubDomains; preload';
   assert.equal(veda['Strict-Transport-Security'], HSTS, 'veda must set the full HSTS policy (preload)');
   assert.equal(veda['Strict-Transport-Security'], root['Strict-Transport-Security'], 'HSTS must match root');
+  assert.equal(root['X-Frame-Options'], 'DENY', 'root non-root static policy denies framing');
+  assert.match(root['Content-Security-Policy'], /frame-ancestors 'none'/, 'root non-root static CSP denies framing');
+  assert.equal(root['X-Content-Type-Options'], 'nosniff');
+  assert.equal(root['Referrer-Policy'], 'strict-origin-when-cross-origin');
+
   assert.equal(veda['X-Content-Type-Options'], 'nosniff');
   assert.equal(veda['Referrer-Policy'], 'strict-origin-when-cross-origin');
   assert.equal(veda['X-Frame-Options'], 'DENY', 'veda is not framed by any consumer — DENY like root');
@@ -313,7 +318,7 @@ ok('end-to-end contracts are documented (docs/LEAD-CAPTURE-CONTRACT.md, docs/MFA
   assert.equal(pkg.scripts?.test, 'vitest run');
   assert.equal(pkg.scripts?.typecheck, 'tsc -b --pretty false');
 }
-ok('veda security headers pinned to the root fail-closed policy (HSTS preload, DENY + frame-ancestors none, locked Permissions-Policy) and deno/vitest test contracts locked in');
+ok('veda and root non-root static security headers remain fail-closed; root storefront same-origin framing is request-scoped in middleware; deno/vitest contracts stay locked');
 
 console.log(`\nAll route parity checks passed (${checks.length} sections).`);
 
