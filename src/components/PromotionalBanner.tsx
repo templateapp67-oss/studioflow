@@ -38,6 +38,19 @@ export function PromotionalBanner({
     (/^(\/(?!\/)|#[\w-])/.test(actionHref) || /^https:\/\//i.test(actionHref))
       ? actionHref
       : undefined;
+  const actionTargetProps = (() => {
+    if (!safeHref) return {};
+    try {
+      const currentOrigin = typeof window === 'undefined' ? 'https://nexorasalon.online' : window.location.origin;
+      const resolved = new URL(safeHref, currentOrigin);
+      const customerAppRoute = resolved.pathname === '/' && resolved.searchParams.get('app') === '1';
+      return resolved.origin !== currentOrigin || customerAppRoute
+        ? { target: '_blank' as const, rel: 'noopener noreferrer' }
+        : {};
+    } catch {
+      return {};
+    }
+  })();
   if (
     !enabled ||
     !text.trim() ||
@@ -50,7 +63,7 @@ export function PromotionalBanner({
   return (
     <aside className={"nexora-announcement " + className} aria-label={label}>
       <span>{text}</span>
-      {safeHref && actionLabel && <a href={safeHref}>{actionLabel}</a>}
+      {safeHref && actionLabel && <a href={safeHref} {...actionTargetProps}>{actionLabel}</a>}
       <button
         type="button"
         aria-label="Dismiss announcement"
