@@ -947,6 +947,11 @@
     font-family: system-ui, sans-serif;
   }
 
+  .nxh-hero--about .nxh-about-artwork {
+    grid-template-columns: minmax(0, 44%) minmax(0, 1fr);
+    max-width: 380px;
+  }
+
   .nxh-nav__inner {
     padding: 18px 20px 14px;
   }
