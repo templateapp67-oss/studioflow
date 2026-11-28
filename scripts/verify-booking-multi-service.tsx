@@ -112,7 +112,7 @@ fail=false;await click(button('Retry specialist check'));assert.equal(button('Co
 // Reject an old eligibility response after the bundle changed.
 delay=true;await click(label('Select service Haircut'));assert.equal(button('Continue to Date & Slot').props.disabled,true);
 delay=false;empty=true;await click(label('Select service Haircut'));assert.equal(button('Continue to Date & Slot').props.disabled,true);
-await act(async()=>pending.forEach(resolve=>resolve(null)));assert.equal(button('Continue to Date & Slot').props.disabled,true);assert.match(text(ui.toJSON()),/No specialist can handle all selected services/);
+await act(async()=>pending.forEach(resolve=>resolve(null)));assert.equal(button('Continue to Date & Slot').props.disabled,true);assert.match(text(ui.toJSON()),/No professional with verified working hours/);
 await act(async()=>ui.unmount());
 assert.deepEqual(toggleBookingService(['cut'],'cut'),[]);assert.equal(toggleBookingService(Array.from({length:10},(_,i)=>String(i)),'11').length,10);assert.equal(summarizeBookingServices(services).subtotal,1200);
 console.log('PASS: multi-select/deselect/limit, totals & full coupon-adjusted amount, full bundle payload, all-service staff eligibility, stale-parent profile loading, click-only preview, return preservation, empty/error/retry/stale-response guards. Mocked Razorpay open, dismiss, retry and confirmation receipt passed.');

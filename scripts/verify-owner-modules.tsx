@@ -35,3 +35,39 @@ await act(async()=>{team=create(<OwnerWorkspace profile={INITIAL_SALON_PROFILE} 
 assert.ok(team.root.findAll((n:any)=>n.props['aria-current']==='page').some((n:any)=>n.props.title==='6. Team & specialists'));
 await act(async()=>team.unmount());
 console.log('PASS: all 14 templates expose 18 guided steps + 11 business tools, with the Template 03 content tool visible only for Aura (12 tools / 30 modules); hero upload controls and branding; owner module link opens Team step 06.');
+
+const { BranchStaffScheduleEditor } = await import('../src/components/BranchStaffScheduleEditor');
+const { supabase } = await import('../src/lib/supabase');
+const ownerId='owner-with-legacy-location';
+const branchId='canonical-location';
+const existing={...template.stylists[0],isTemplateSeed:false,branchSchedules:[{branchId:'other-location',schedule:[]}]};
+const seed={...template.stylists[1],isTemplateSeed:true};
+(supabase as any).from=(table:string)=>{
+ assert.equal(table,'branches');
+ const query={select:()=>query,eq:(column:string,value:unknown)=>{
+   if(column==='site_id')assert.equal(value,ownerId);
+   return query;
+ },order:()=>query,then:(resolve:any)=>Promise.resolve({data:[{id:branchId,name:'Legacy live location',is_active:true}],error:null}).then(resolve)};
+ return query;
+};
+let saved=[existing,seed];
+let editor:any;
+await act(async()=>{editor=create(<BranchStaffScheduleEditor ownerId={ownerId} stylists={saved} setStylists={(update:any)=>{saved=update(saved);}}/>);});
+assert.ok(text(editor.toJSON()).includes('Legacy live location'));
+assert.equal(editor.root.findAllByType('option').some((option:any)=>option.props.value===seed.id),false);
+const monday=editor.root.findAllByType('input').find((input:any)=>input.props.type==='checkbox');
+await act(async()=>monday.props.onChange({target:{checked:true}}));
+const submit=()=>editor.root.findByType('form');
+assert.ok(editor.root.findByProps({type:'submit'}).props.disabled,'Times require explicit entry');
+await act(async()=>{
+ editor.root.findByProps({'aria-label':'Monday start'}).props.onChange({target:{value:'10:00'}});
+ editor.root.findByProps({'aria-label':'Monday end'}).props.onChange({target:{value:'18:00'}});
+});
+assert.equal(saved[0],existing,'Nothing is written before owner submits');
+await act(async()=>submit().props.onSubmit({preventDefault(){}}));
+assert.deepEqual(saved[0].branchSchedules?.[1].schedule[0],{day:'Monday',enabled:true,fromTime:'10:00',toTime:'18:00'});
+assert.equal(saved[0].branchSchedules?.[1].branchId,branchId);
+assert.deepEqual(saved[0].branchSchedules?.[0],existing.branchSchedules[0]);
+assert.equal(saved[1],seed);
+await act(async()=>editor.unmount());
+console.log('PASS: owner can save an explicit schedule against a legacy location’s canonical ID without changing other locations or demo staff.');

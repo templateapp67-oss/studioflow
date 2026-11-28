@@ -184,26 +184,40 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [previewStylistId, setPreviewStylistId] = useState<string | null>(null);
   const isDraft = React.useContext(OwnerDraftBookingPreview);
   const isTemplatePreview = React.useContext(TemplateBookingPreview);
-  const [branchChoices, setBranchChoices] = useState<SalonBranch[]>(isTemplatePreview ? [] : profile.branches || []);
+  const [branchResult, setBranchResult] = useState<{slug:string;attempt:number;rows:SalonBranch[];failed?:boolean}>();
+  const [branchRetry, setBranchRetry] = useState(0);
   const [selectedBranchId, setSelectedBranchId] = useState('');
+  const usesLiveBranches = !isDraft && !isTemplatePreview;
+  const liveBranches = branchResult?.slug === profile.subdomain && branchResult.attempt === branchRetry ? branchResult : undefined;
+  const branchReady = !usesLiveBranches || Boolean(liveBranches && !liveBranches.failed);
+  const branchChoices = React.useMemo(() => {
+    if (isTemplatePreview) return [];
+    return (usesLiveBranches ? liveBranches?.rows : profile.branches)?.filter(branch => branch.isActive !== false) || [];
+  }, [usesLiveBranches, liveBranches, profile.branches, isTemplatePreview]);
   const selectedBranch = branchChoices.find(branch => branch.id === selectedBranchId);
   useEffect(() => {
-    if (!isOpen || isDraft || isTemplatePreview || !profile.subdomain) return;
+    if (!isOpen) { setBranchResult(undefined); return; }
+    if (!usesLiveBranches || !profile.subdomain) return;
     let active = true;
-    const fallback = profile.branches || [];
-    void supabase.rpc('studioflow_public_branches', { p_slug: profile.subdomain }).then(({ data, error }) => {
-      if (!active) return;
-      const rows = !error && Array.isArray(data) ? data.filter((branch: any) => typeof branch?.id === 'string' && typeof branch?.name === 'string') : [];
-      const branches: SalonBranch[] = rows.length ? rows.map((branch: any) => ({
-        id: branch.id, name: branch.name, city: branch.city || '', address: branch.address || '', phone: branch.phone || '',
-        isActive: branch.isActive !== false, operatingHours: branch.operatingHours || [],
-      })) : fallback;
-      setBranchChoices(branches.filter(branch => branch.isActive !== false));
-      const requested = initialSlot?.branchId;
-      setSelectedBranchId(requested && branches.some(branch => branch.id === requested) ? requested : branches.length === 1 ? branches[0].id : '');
-    });
+    const slug = profile.subdomain;
+    const load = async () => {
+      try {
+        const { data, error } = await supabase.rpc('studioflow_public_branches', { p_slug: slug });
+        if (error || !Array.isArray(data) || data.some(branch => typeof branch?.id !== 'string' || !branch.id || typeof branch?.name !== 'string')) {
+          throw new Error('Booking locations could not be verified');
+        }
+        if (!active) return;
+        const rows: SalonBranch[] = data.filter(branch => branch.isActive !== false);
+        const requested = initialSlot?.branchId;
+        setSelectedBranchId(current => rows.find(branch => branch.id === (requested || current))?.id || (rows.length === 1 ? rows[0].id : ''));
+        setBranchResult({ slug, attempt: branchRetry, rows });
+      } catch {
+        if (active) setBranchResult({ slug, attempt: branchRetry, rows: [], failed: true });
+      }
+    };
+    void load();
     return () => { active = false; };
-  }, [isOpen, isDraft, isTemplatePreview, profile.subdomain, profile.branches, initialSlot?.branchId]);
+  }, [isOpen, usesLiveBranches, profile.subdomain, initialSlot?.branchId, branchRetry]);
   useEffect(() => {
     if (!branchChoices.some(branch => branch.id === selectedBranchId)) setSelectedBranchId(branchChoices.length === 1 ? branchChoices[0].id : '');
   }, [branchChoices, selectedBranchId]);
@@ -211,7 +225,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [specialistCheck,setSpecialistCheck]=useState<{key:string;ids:string[];stylists:Stylist[];published:boolean;error:string;fallback?:boolean}|null>(null);
   const [specialistRetry,setSpecialistRetry]=useState(0);
   const specialistKey=JSON.stringify([isDraft,isTemplatePreview,profile.subdomain,profile.businessType,bundleKey,selectedBranchId]);
-  const specialistsReady=specialistCheck?.key===specialistKey&&!specialistCheck.error;
+  const specialistsReady=branchReady&&specialistCheck?.key===specialistKey&&!specialistCheck.error;
   // Draft preview must use only the staff records supplied by the salon owner.
   // Never fall back to template/demo staff when an owner has no team yet.
   const draftRoster=inputStylists??aliasStylistsList??[];
@@ -245,6 +259,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       setSelectedStylist(current=>current.id===ANY_SPECIALIST.id||ids.includes(current.id)?current:ANY_SPECIALIST);
       return()=>{active=false;};
     }
+    if(!branchReady)return;
     if(!bookingServiceIds.length){setSpecialistCheck(empty);return;}
     if(branchChoices.length>1&&!selectedBranchId){setSpecialistCheck({...empty,error:'Choose a location first.'});return;}
     void Promise.all(bookingServiceIds.map(id=>selectedBranchId
@@ -278,7 +293,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         setSpecialistCheck({...empty,error:error?.message||'Could not check specialists. Please retry.'});
       });
     return()=>{active=false;};
-  },[isOpen,isDraft,isTemplatePreview,specialistKey,specialistRetry,branchChoices.length,draftPreviewStylists]);
+  },[isOpen,isDraft,isTemplatePreview,specialistKey,specialistRetry,branchReady,branchChoices.length,draftPreviewStylists]);
   const chooseService=(service:SalonService)=>{
     if(reservedBooking.current||isSubmitting)return;
     setSelectedServiceIds(ids=>toggleBookingService(ids,service.id));
@@ -744,7 +759,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               exit={reducedMotion ? undefined : { opacity: 0, x: -10 }}
               className="flex flex-col gap-4"
             >
-              {branchChoices.length > 0 ? <label className="block rounded-xl border border-slate-200 bg-white p-3 text-xs font-bold text-slate-700">1. Choose location
+              {!branchReady ? <div role="status" className="p-3 rounded-xl border">
+                {liveBranches?.failed ? <>Booking locations could not be verified. <button type="button" className="underline" onClick={()=>setBranchRetry(current=>current+1)}>Retry locations</button></> : 'Checking booking locations…'}
+              </div> : branchChoices.length > 0 ? <label className="block rounded-xl border border-slate-200 bg-white p-3 text-xs font-bold text-slate-700">1. Choose location
                 <select value={selectedBranchId} onChange={event=>{setSelectedBranchId(event.target.value);setSelectedStylist(ANY_SPECIALIST);setBookingTime('');}} className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2.5 text-sm font-medium" required>
                   {branchChoices.length>1&&<option key="branch-placeholder" value="">Select a location</option>}{branchChoices.map(branch=><option key={branch.id} value={branch.id}>{branch.name}{branch.city?` · ${branch.city}`:''}</option>)}
                 </select>
@@ -872,11 +889,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   <StaffPortfolio staff={previewStylist} services={services}/>
                 </section>}
 
-                {!specialistsReady&&<p role="status" className="text-xs text-slate-700 mt-3">{specialistCheck?.key===specialistKey&&specialistCheck.error?specialistCheck.error:'Checking specialists for all selected services…'}</p>}
+                {branchReady&&!specialistsReady&&<p role="status" className="text-xs text-slate-700 mt-3">{specialistCheck?.key===specialistKey&&specialistCheck.error?specialistCheck.error:'Checking specialists for all selected services…'}</p>}
                 {specialistsReady&&specialistCheck?.fallback&&<p role="status" className="text-xs text-amber-800 mt-3">Live specialist check is unavailable, so this salon's listed specialists are shown instead. Availability is still verified by the salon when you pick a time.</p>}
                 {specialistCheck?.key===specialistKey&&specialistCheck.error&&<button type="button" className="text-xs underline" onClick={()=>setSpecialistRetry(n=>n+1)}>Retry specialist check</button>}
                 {specialistsReady&&!specialistCheck!.published&&eligibleStylists.length>0&&<p role="status" className="text-xs text-amber-800 mt-3">Preview team from the salon dashboard. Online booking will be available after this website is published.</p>}
-                {specialistsReady&&!eligibleStylists.length&&<p role="status" className="text-xs text-amber-800 mt-3">{!bookingServiceIds.length?'Choose services to see specialists.':specialistCheck!.published?'No specialist can handle all selected services at this location. Adjust your selection or contact the salon.':draftRoster.length?'No staff are assigned to this service yet. The owner can update the team in Team Management.':'No staff profiles have been added to this draft yet. Add staff in Team Management.'}</p>}
+                {specialistsReady&&!eligibleStylists.length&&<p role="status" className="text-xs text-amber-800 mt-3">{!bookingServiceIds.length?'Choose services to see specialists.':specialistCheck!.published?'No professional with verified working hours is available for this selection at this location. Try a single service or contact the salon.':draftRoster.length?'No staff are assigned to this service yet. The owner can update the team in Team Management.':'No staff profiles have been added to this draft yet. Add staff in Team Management.'}</p>}
                 <p className="text-xs text-slate-700 mt-3">Only specialists eligible for every selected service are listed. Changing services resets to Any Available Specialist. View Profile never changes your selection.</p>
                 <p role="status" className="text-xs text-slate-700 mt-3">Selected specialist: <strong>{selectedStylist.name}</strong>. Use Continue to Date &amp; Slot below.</p>
               </div>
