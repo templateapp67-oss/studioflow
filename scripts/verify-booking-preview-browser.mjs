@@ -137,6 +137,10 @@ try {
         if (url.pathname === '/rest/v1/rpc/studioflow_public_branches' && Object.keys(body).length === 1) {
           return route.fulfill({ status: 200, headers: cors, contentType: 'application/json', body: '[]' });
         }
+        if (url.pathname === '/rest/v1/rpc/studioflow_booking_specialists'
+          && Object.keys(body).sort().join(',') === 'p_service_id,p_slug' && body.p_service_id === 'cut') {
+          return route.fulfill({ status: 200, headers: cors, contentType: 'application/json', body: '{"published":true,"specialistIds":["stylist"]}' });
+        }
         if (url.pathname === '/rest/v1/rpc/studioflow_android_slots'
           && Object.keys(body).sort().join(',') === 'p_date,p_services,p_slug,p_stylist'
           && /^\d{4}-\d{2}-\d{2}$/.test(body.p_date) && body.p_stylist === 'any'
