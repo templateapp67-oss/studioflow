@@ -28,7 +28,7 @@ Deno.serve(async(req:Request)=>{
   const respond=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{...cors,'Content-Type':'application/json'}});
   if(req.method==='OPTIONS')return new Response(null,{status:204,headers:cors});
   const creds=razorpayCredentials();
-  const expectedWebMode=env('BOOKING_RAZORPAY_MODE')||'test';
+  const expectedWebMode=env('BOOKING_RAZORPAY_MODE')||creds.mode;
   const webOnline=creds.configured&&creds.key.startsWith(`rzp_${expectedWebMode}_`)&&['test','live'].includes(expectedWebMode);
   const webVenue=env('BOOKING_PAY_AT_VENUE_ENABLED')==='true';
   if(req.method==='GET')return respond({configured:creds.configured,webhookConfigured:!!creds.webhookSecret,mode:creds.mode,

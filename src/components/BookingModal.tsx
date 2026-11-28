@@ -1466,7 +1466,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   type="button"
                   data-testid="booking-pay-submit"
                   onClick={handleFinalSubmitBooking}
-                  disabled={!bookingServiceIds.length || !bookingTime || !specialistsReady || !specialistCheck?.published || !eligibleStylists.length || isSubmitting || isTemplatePreview || (paymentMethod==='online'?!gatewayReady:!venueEnabled) || coupon.busy || (!reservedBooking.current && !!coupon.code.trim() && !coupon.quote)}
+                  disabled={!bookingServiceIds.length || !bookingTime || !specialistsReady || !specialistCheck?.published || !eligibleStylists.length || isSubmitting || isTemplatePreview || coupon.busy || (!reservedBooking.current && !!coupon.code.trim() && !coupon.quote)}
                   className="flex-1 py-3.5 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95"
                   style={actionStyle}
                 >

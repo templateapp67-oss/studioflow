@@ -39,7 +39,8 @@ export async function sendBookingReceipts(service: SupabaseClient, env: Env, boo
       job.channel === 'admin_email' ? env('BOOKING_ADMIN_EMAIL') : details.email;
     if (!recipient) return retry();
 
-    const mode = env('BOOKING_RAZORPAY_MODE') || 'test';
+    const key = env('RAZORPAY_KEY_ID') || env('RZP_KEY_ID') || env('RAZORPAY_KEY');
+    const mode = env('BOOKING_RAZORPAY_MODE') || (key.startsWith('rzp_live_') ? 'live' : 'test');
     if (mode !== 'live') {
       const allowlist = env(whatsapp ? 'BOOKING_TEST_WHATSAPP_RECIPIENTS' : 'BOOKING_TEST_EMAIL_RECIPIENTS')
         .toLowerCase().split(',').map(value => value.trim());
