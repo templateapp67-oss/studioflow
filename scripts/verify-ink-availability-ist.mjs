@@ -25,7 +25,7 @@ await db.query("insert into public.studioflow_websites values($1,'ink-test',$2,n
 await db.exec(readFileSync('supabase/migrations/20261113120946_template12_iron_ink.sql','utf8'));
 await db.query("select set_config('request.jwt.claim.sub',$1,false)",[site]);
 await db.query('select public.seed_template12($1)',[site]);
-const migration=readFileSync('supabase/migrations/20261127140100_iron_ink_availability_ist.sql','utf8');
+const migration=readFileSync('supabase/migrations/20261127143100_iron_ink_availability_ist.sql','utf8');
 await db.exec(migration);await db.exec(migration);
 assert.equal((await db.query("select to_regprocedure('public.get_branch_available_slots(uuid,uuid,date,integer,uuid)') is null value")).rows[0].value,true,'optional branch feature stays disabled');
 const artist=(await db.query('select id from public.ink_artists where site_id=$1 and is_active order by sort_order limit 1',[site])).rows[0].id;

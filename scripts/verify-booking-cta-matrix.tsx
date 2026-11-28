@@ -62,6 +62,9 @@ for(const template of Object.values(CATEGORY_TEMPLATES)){
   await act(async()=>modal.findAll((n:any)=>typeof n.props.onSubmit==='function')[0].props.onSubmit({preventDefault(){}}));
   assert.match(text(modal),/Template demo/);
   const submit=modal.findByProps({'data-testid':'booking-pay-submit'});assert.equal(submit.props.disabled,true,`${template.id}: demo cannot take payment`);
+  assert.equal(modal.findAllByProps({'data-testid':'booking-guest-email'}).length,0,`${template.id}: preview does not request a receipt email`);
+  await act(async()=>submit.props.onClick());
+  assert.equal(writes,0,`${template.id}: even a directly invoked preview submit cannot reserve or pay`);
   console.log(`PASS template ${template.id}: service CTA → example slot → guest review; no payment`);
  } finally {await act(async()=>ui.unmount());}
 }

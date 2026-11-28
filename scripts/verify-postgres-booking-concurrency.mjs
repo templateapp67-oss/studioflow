@@ -52,8 +52,12 @@ try {
   await setup.query(matchDefinition(normalizedSync,/create or replace function public\.sync_owner_template_catalogue\(\)[\s\S]*?end \$\$;/i,'normalized owner sync'));
   await setup.query('create trigger trg_owner_editor_state_catalogue_sync after insert or update of state on public.owner_editor_state for each row execute function public.sync_owner_template_catalogue()');
   await setup.query(sqlFile('supabase/migrations/20261113120946_template12_iron_ink.sql'));
-  const bookingRepair=sqlFile('supabase/migrations/20261127140001_booking_slot_availability_repair.sql');
-  const inkRepair=sqlFile('supabase/migrations/20261127140100_iron_ink_availability_ist.sql');
+  // Production already has checkout receipts. Reproduce that order, including
+  // its actual payment settlement and receipt triggers, before the repairs.
+  await setup.query(sqlFile('backend/studioflow-payments-realtime.sql'));
+  await setup.query(sqlFile('supabase/migrations/20261127143000_studioflow_web_checkout_receipts.sql'));
+  const bookingRepair=sqlFile('supabase/migrations/20261127143001_booking_slot_availability_repair.sql');
+  const inkRepair=sqlFile('supabase/migrations/20261127143100_iron_ink_availability_ist.sql');
   // Exercise the real transactional migrations in release order, then replay
   // the complete ordered pair rather than repeating each file in isolation.
   await setup.query(bookingRepair); await setup.query(inkRepair);
@@ -112,7 +116,7 @@ try {
   await auth(a,alice); await auth(b,bob);
   const web=(c,time,stylist='one')=>c.query('select public.studioflow_branch_book($1,$2) value',['race-salon',JSON.stringify({serviceId:'cut',stylistId:stylist,date,time,branchId,clientName:'Test Customer',clientPhone:'9876543210'})]);
   const androidBook=(c,time,stylist='one',request=crypto.randomUUID())=>c.query('select public.studioflow_branch_android_book($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) value',['race-salon','["cut"]',date,time,stylist,'Test Customer','9876543210','',request,branchId]);
-  const clean=async()=>{await setup.query('delete from public.studioflow_android_requests');await setup.query('delete from public.studioflow_bookings');};
+  const clean=async()=>{await setup.query('delete from public.studioflow_android_requests');await setup.query('delete from public.studioflow_payment_orders');await setup.query('delete from public.studioflow_bookings');};
   const count=async()=>Number((await setup.query("select count(*) n from public.studioflow_bookings where status in ('pending','confirmed') and (status='confirmed' or hold_expires_at is null or hold_expires_at>now())")).rows[0].n);
   const insertDirect=(c,time,status='confirmed',hold=null,customer=bob)=>c.query(`insert into public.studioflow_bookings(owner_id,customer_id,stylist_id,starts_at,ends_at,status,hold_expires_at,payload,branch_id)
     values($1,$2,'one',($3::date+$4::time) at time zone 'Asia/Kolkata',($3::date+$4::time+interval '60 minutes') at time zone 'Asia/Kolkata',$5,$6,$7,$8) returning id`,[owner,customer,date,time,status,hold,JSON.stringify({serviceId:'cut',date,time,stylistId:'one'}),branchId]);
@@ -188,6 +192,51 @@ try {
   const independent=await Promise.race([web(b,'09:00','two'),delay(4000).then(()=>{throw new Error('different specialists blocked each other');})]);
   assert.ok(independent.rows[0].value);await a.query('commit');assert.equal(await count(),2);
   console.log('PASS: adjacent times and independent specialists are not falsely rejected.');
+
+  // The deployed checkout migration predates these repairs. Exercise its
+  // real venue and captured-payment triggers against the new conflict guard,
+  // with a second session competing for the same staff and time.
+  await clean();
+  await a.query('begin');
+  const venueBooking=(await web(a,'09:00')).rows[0].value;
+  await a.query('reset role'); // The Edge checkout RPC is service-only.
+  const venue=(await a.query('select public.studioflow_prepare_web_checkout($1,$2,$3,$4,$5) value',[venueBooking.id,alice,'alice@example.test','venue',true])).rows[0].value;
+  assert.equal(venue.status,'confirmed'); assert.equal(venue.paymentStatus,'pay_at_salon'); assert.equal(Number(venue.amountPaid),0);
+  pending=queryResult(web(b,'09:30'));
+  await assertBlocked(observer,b,a,pending,'venue confirmation versus new reservation');await a.query('commit');await auth(a,alice);
+  await rejectsResult(pending,/unavailable|booked|already has/i,'venue confirmation versus new reservation');
+  assert.equal(Number((await setup.query('select count(*) n from public.studioflow_booking_receipts where booking_id=$1',[venueBooking.id])).rows[0].n),3);
+  assert.equal(Number((await setup.query('select count(*) n from public.studioflow_payment_orders where booking_id=$1',[venueBooking.id])).rows[0].n),0);
+
+  await clean();
+  await a.query('begin');
+  const onlineBooking=(await web(a,'09:00')).rows[0].value;
+  await a.query('reset role');
+  await a.query('select public.studioflow_prepare_web_checkout($1,$2,$3,$4,$5)',[onlineBooking.id,alice,'alice@example.test','online',true]);
+  const pricePaise=Math.round(Number(onlineBooking.servicePrice)*100);
+  await a.query('select public.studioflow_register_full_web_payment($1,$2,$3)',[onlineBooking.id,'order_checkoutfixture',pricePaise]);
+  const settled=(await a.query('select public.studioflow_settle_payment($1,$2,$3) value',['order_checkoutfixture','pay_checkoutfixture',pricePaise])).rows[0].value;
+  assert.equal(settled.status,'confirmed');assert.equal(settled.paymentStatus,'paid_full');assert.equal(Number(settled.amountPaid),pricePaise/100);
+  pending=queryResult(web(b,'09:30'));
+  await assertBlocked(observer,b,a,pending,'captured payment versus new reservation');await a.query('commit');await auth(a,alice);
+  await rejectsResult(pending,/unavailable|booked|already has/i,'captured payment versus new reservation');
+  assert.equal(Number((await setup.query('select count(*) n from public.studioflow_booking_receipts where booking_id=$1',[onlineBooking.id])).rows[0].n),3);
+
+  // Realistic late capture: the first reservation was committed, then expired;
+  // a competing booking holds the specialist lock while settlement waits.
+  await clean();
+  const lateBooking=(await web(a,'09:00')).rows[0].value;
+  await setup.query('select public.studioflow_prepare_web_checkout($1,$2,$3,$4,$5)',[lateBooking.id,alice,'alice@example.test','online',true]);
+  await setup.query('select public.studioflow_register_full_web_payment($1,$2,$3)',[lateBooking.id,'order_latefixture',pricePaise]);
+  await setup.query("update public.studioflow_bookings set hold_expires_at=now()-interval '1 minute' where id=$1",[lateBooking.id]);
+  await b.query('begin');await web(b,'09:00');
+  pending=queryResult(direct.query('select public.studioflow_settle_payment($1,$2,$3) value',['order_latefixture','pay_latefixture',pricePaise]));
+  await assertBlocked(observer,direct,b,pending,'late captured payment versus new reservation');await b.query('commit');
+  const late=await pending;
+  assert.ok(late.value,late.error?.message);assert.equal(late.value.rows[0].value.refund_required,true);
+  assert.equal(Number((await setup.query('select count(*) n from public.studioflow_booking_receipts where booking_id=$1',[lateBooking.id])).rows[0].n),0);
+  assert.equal(await count(),1);
+  console.log('PASS: deployed checkout receipt triggers, venue confirmation and full-payment settlement coexist with the new concurrency guard; a late capture requires refund.');
 
   await clean(); const original=(await insertDirect(setup,'10:00','confirmed',null,alice)).rows[0].id;
   await a.query('begin'); await a.query('select public.studioflow_android_reschedule($1,$2,$3,$4)',[original,date,'12:00','one']);

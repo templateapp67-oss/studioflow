@@ -67,6 +67,10 @@ for(const record of [...history.deferred_feature_migrations,...history.supersede
 for(const record of history.retimestamped_unapplied_migrations){
   assert(!active.includes(record.old_file));
   assert.equal(createHash('sha256').update(readFileSync('supabase/migrations/'+record.new_file,'utf8').replace(/\r\n?/g,'\n')).digest('hex'),record.sha256);
+  if(record.archived_file){
+    assert.equal(createHash('sha256').update(readFileSync(record.archived_file,'utf8').replace(/\r\n?/g,'\n')).digest('hex'),record.sha256,
+      `Retimestamped source differs from the archived original: ${record.old_file}`);
+  }
 }
 assert.equal(history.deferred_feature_migrations.length,15);
 assert.equal(history.superseded_unapplied_migrations.length,2);

@@ -99,6 +99,24 @@ await act(async()=>{resolveSlot({data:[],error:null});await Promise.resolve();})
 assert.match(text(directory.toJSON()),/selected slot is no longer available/i,'a stale restored slot returns to selection');
 assert.equal(buttons(directory.root,'Confirm Booking')[0].props.disabled,true);
 await act(async()=>directory.unmount());
+
+// The merged full-payment checkout must keep the same guard: a live restored
+// summary cannot reserve or open checkout while availability is unresolved.
+const functionsPrototype=Object.getPrototypeOf(supabase.functions),originalInvoke=functionsPrototype.invoke;
+let checkoutReads=0;
+functionsPrototype.invoke=async(name:string,options:any)=>{
+ assert.equal(name,'studioflow-payments');assert.equal(options.method,'GET');checkoutReads++;
+ return{data:{webCheckout:{online:true,venue:false,mode:'test'}},error:null};
+};
+await act(async()=>{directory=create(<CustomerBookingFlow {...restoredProps} demo={false}/>)});
+const livePay=()=>buttons(directory.root,'Pay ₹')[0];
+assert.ok(checkoutReads>0);assert.equal(livePay().props.disabled,true);
+await act(async()=>livePay().props.onClick());
+assert.equal(writes,0,'live checkout handler cannot reserve before slot revalidation');
+await act(async()=>{resolveSlot({data:[{...restoredSlot,available:true}],error:null});await Promise.resolve();});
+assert.equal(livePay().props.disabled,false,'valid restored slot enables configured checkout');
+await act(async()=>directory.unmount());
+functionsPrototype.invoke=originalInvoke;
 (supabase as any).rpc=async()=>({data:[],error:null});
 
 let invalidModal:any;

@@ -9,7 +9,8 @@ import type { ConsultationDetails } from "./dermacure/consultation";
 import {BookingCoupon,useBookingCoupon} from './BookingCoupon';
 import {useWebsiteLanguage} from './WebsiteLanguage';
 import type {DirectBookingSlot} from './SpecialistWeek';
-import { paymentRequest, payBookingDeposit, reconcileBookingPayment } from '../lib/platformPayments';
+import { bookingEmailValid, payBookingDeposit, prepareWebCheckout, reconcileBookingPayment, webCheckoutStatus, type WebPaymentMethod } from '../lib/platformPayments';
+import { BookingPaymentOptions, BookingReceiptActions } from './customer/BookingReceiptActions';
 import { supabase } from '../lib/supabase';
 import { sendBookingConfirmationEmail, sendBookingReminderEmail } from '../lib/emailService';
 import { bookingEmailFeedback } from '../lib/emailFeedback';
@@ -327,6 +328,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [guestPhone, setGuestPhone] = useState<string>('');
   const [guestEmail, setGuestEmail] = useState<string>('');
   const [guestPhoneError, setGuestPhoneError] = useState<string>('');
+  const [guestEmailError, setGuestEmailError] = useState('');
   const [guestNameError, setGuestNameError] = useState<string>('');
   const [rememberGuest, setRememberGuest] = useState<boolean>(true);
   const [isPrefilled, setIsPrefilled] = useState<boolean>(false);
@@ -339,10 +341,32 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [gatewayReady,setGatewayReady]=useState(false);
   const reservedBooking=useRef<Appointment|null>(null);
   const reservedRequest=useRef('');
-  useEffect(()=>{if(!isOpen||isDraft||isTemplatePreview)return;let active=true;setGatewayReady(false);setGatewayError('');paymentRequest('status').then(status=>{if(!active)return;setGatewayReady(status.configured);if(!status.configured)setGatewayError('Online payments need platform Razorpay configuration. Contact platform support.');}).catch(error=>{if(active)setGatewayError(error.message);});return()=>{active=false;};},[isOpen,isDraft,isTemplatePreview]);
+  const [venueEnabled,setVenueEnabled]=useState(false);
+  const [webPaymentMode,setWebPaymentMode]=useState('');
   const [serverStatus, setServerStatus] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'pay_at_salon' | 'pay_advance_token'>('pay_advance_token');
+  const [paymentMethod, setPaymentMethod] = useState<WebPaymentMethod>('online');
+  const [whatsappConsent, setWhatsappConsent] = useState(true);
+  const [confirmedBooking, setConfirmedBooking] = useState<Appointment|null>(null);
 
+  useEffect(() => {
+    if (!isOpen || isDraft || isTemplatePreview) return;
+    let active = true;
+    setGatewayReady(false);
+    setVenueEnabled(false);
+    setGatewayError('');
+    setPaymentMethod('online');
+    setConfirmedBooking(null);
+    setWhatsappConsent(true);
+    void webCheckoutStatus().then(status => {
+      if (!active) return;
+      setGatewayReady(status.online);
+      setVenueEnabled(status.venue);
+      setWebPaymentMode(status.mode);
+      if (!status.online && status.venue) setPaymentMethod('venue');
+      if (!status.online && !status.venue) setGatewayError('Checkout is unavailable. Contact the salon.');
+    }).catch(error => { if (active) setGatewayError(error.message); });
+    return () => { active = false; };
+  }, [isOpen, isDraft, isTemplatePreview]);
 
   // Step 6: Confirmation State
   const [bookingRef, setBookingRef] = useState<string>('');
@@ -406,8 +430,14 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       return;
     }
 
-    // Save to localStorage if rememberGuest is selected
-    if (rememberGuest) {
+    if (!isTemplatePreview && !bookingEmailValid(guestEmail.trim())) {
+      setGuestEmailError('Enter a valid email address for your booking receipt.');
+      return;
+    }
+    setGuestEmailError('');
+
+    // A template preview cannot create a booking and should not retain guest details.
+    if (rememberGuest && !isTemplatePreview) {
       try {
         localStorage.setItem(
           LOCAL_STORAGE_GUEST_KEY,
@@ -426,10 +456,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     setCurrentStep('payment');
   };
 
-  // Platform deposit: 25%, rounded up to the nearest paisa
   const taxExcluded = profile.businessType === 'makeup_studio' && profile.vogueNoir?.gstPricing === 'exclusive';
-  const advanceTokenAmount = Math.ceil(totalPrice * 100 * 0.25) / 100;
-  const remainingAmount = totalPrice - (paymentMethod === 'pay_advance_token' ? advanceTokenAmount : 0);
 
   // Confirm booking & generate reference
   const handleFinalSubmitBooking = async () => {
@@ -458,7 +485,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       branchName: selectedBranch?.name,
       clientName: guestName.trim() || 'Guest Client',
       clientPhone: `+91 ${cleanPhone}`,
-      clientEmail: guestEmail.trim() || `${cleanPhone}@guest.in`,
+      clientEmail: guestEmail.trim(),
       serviceId: selectedService!.id,
       serviceIds: bookingServiceIds,
       durationMinutes: totalMinutes,
@@ -476,49 +503,29 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       createdAt: new Date().toISOString()
     };
 
-    if (!gatewayReady) throw new Error(gatewayError || 'Payment gateway is loading. Please try again.');
-    const requestKey=JSON.stringify([bundleKey,selectedBranchId,selectedStylist.id,bookingDate,bookingTime,guestName.trim(),cleanPhone,coupon.quote?.code]);
+    if (!bookingEmailValid(guestEmail.trim()) || !validatePhone(guestPhone) || guestName.trim().length < 2)
+      throw new Error('Enter your full name, WhatsApp number and valid email address.');
+    if (paymentMethod === 'online' ? !gatewayReady : !venueEnabled)
+      throw new Error(gatewayError || 'This payment option is unavailable.');
+    const requestKey=JSON.stringify([bundleKey,selectedBranchId,selectedStylist.id,bookingDate,bookingTime,guestName.trim(),cleanPhone,guestEmail.trim(),paymentMethod,coupon.quote?.code]);
     if(reservedBooking.current&&reservedRequest.current!==requestKey)throw new Error('A booking is already reserved. Finish its payment or close this form and choose a new slot.');
-    if(!reservedBooking.current){const reservation=await onAddAppointment(newApt);if(!reservation)throw new Error('Booking was not saved. Please retry.');reservedBooking.current=reservation;reservedRequest.current=requestKey;setServerTotal(reservation.servicePrice);setBookingRef(reservation.id);}
+    if(!reservedBooking.current){const reservation=await onAddAppointment(newApt);if(!reservation)throw new Error('Booking was not saved. Please retry.');reservedBooking.current=reservation;reservedRequest.current=requestKey;setServerTotal(reservation.servicePrice);setBookingRef(reservation.id);
+      if(Number(reservation.servicePrice)!==totalPrice)throw new Error('The salon updated the payable amount. Review it before continuing.');
+    }
     if((consultation || initialBookingNote) && consultationMessage.trim()){
       const {error}=await supabase.rpc('studioflow_save_booking_message',{p_booking:reservedBooking.current.id,p_message:consultationMessage.trim()});
       if(error)throw new Error('Your booking is held, but your consultation message could not be saved. Retry before payment, or contact the clinic.');
     }
-    const saved=await payBookingDeposit(reservedBooking.current);
-    setBookingRef(saved.id);setServerStatus(saved.status);setPaidAmount(saved.amountPaid);setServerTotal(saved.servicePrice??totalPrice);setSelectedStylist(prev=>({...prev,name:saved.stylistName||prev.name}));
+    const prepared = await prepareWebCheckout(reservedBooking.current.id, guestEmail, paymentMethod, whatsappConsent);
+    const saved = prepared.status === 'confirmed' ? prepared : await payBookingDeposit(prepared, true);
+    if (saved.status !== 'confirmed') throw new Error('Booking confirmation is pending. Recheck payment status.');
+    setBookingRef(saved.id);
+    setServerStatus(saved.status);
+    setPaidAmount(saved.amountPaid);
+    setServerTotal(saved.servicePrice ?? totalPrice);
+    setSelectedStylist(prev => ({ ...prev, name: saved.stylistName || prev.name }));
+    setConfirmedBooking(saved);
     setCurrentStep('confirmed');
-
-    // Trigger automated booking confirmation email if guest provided email address
-    const targetEmail = (guestEmail || '').trim();
-    if (targetEmail && targetEmail.includes('@')) {
-      setRecipientEmailInput(targetEmail);
-      setIsSendingEmail(true);
-      setEmailStatusMessage(`Sending confirmation email to ${targetEmail}…`);
-      void sendBookingConfirmationEmail({
-        to: targetEmail,
-        clientName: guestName.trim() || 'Valued Guest',
-        clientPhone: `+91 ${cleanPhone}`,
-        bookingRef: saved.id || refNum,
-        serviceName,
-        servicePrice: totalPrice,
-        amountPaid: saved.amountPaid || paidAmount,
-        stylistName: saved.stylistName || selectedStylist.name,
-        date: bookingDate,
-        time: bookingTime,
-        salonName: profile.businessName || 'NEXORA Salon',
-        salonAddress: selectedBranch?.address || profile.address,
-        salonCity: selectedBranch?.city || profile.city,
-        salonPhone: selectedBranch?.phone || profile.phone,
-        salonWhatsapp: profile.whatsapp,
-        salonSlug: profile.subdomain,
-      }).then(res => {
-        setIsSendingEmail(false);
-        setEmailStatusMessage(bookingEmailFeedback(res, targetEmail, 'Confirmation'));
-      }).catch(err => {
-        setIsSendingEmail(false);
-        setEmailStatusMessage(err instanceof Error ? err.message : 'Email delivery failed');
-      });
-    }
 
     if (onShowToast) {
       onShowToast({
@@ -619,23 +626,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     navigator.clipboard?.writeText(code);
     setCopiedRef(true);
     setTimeout(() => setCopiedRef(false), 2000);
-  };
-
-  // Open WhatsApp prefilled confirmation
-  const handleSendWhatsAppConfirmation = () => {
-    const cleanPhone = sanitizeIndianPhone(guestPhone);
-    const msg = `Namaste ${guestName}! Your booking request with ${profile.businessName} is ${serverStatus || 'saved'}!\n\n` +
-      `📅 Date: ${bookingDate}\n` +
-      `⏰ Time: ${bookingTime} IST\n` +
-      `💇 Service: ${serviceName} (₹${totalPrice})\n` +
-      `👤 Specialist: ${selectedStylist.name}\n` +
-      `📍 Branch: ${selectedBranch?.name || profile.businessName}, ${selectedBranch?.address || profile.address}, ${selectedBranch?.city || profile.city}\n` +
-      `🔖 Reference: ${bookingRef}\n` +
-      `💳 Payment: ${`Paid ₹${paidAmount.toLocaleString('en-IN')} · Balance ₹${(totalPrice-paidAmount).toLocaleString('en-IN')}`}\n\n` +
-      `Thank you for booking with us!`;
-
-    const whatsappUrl = `https://api.whatsapp.com/send?phone=91${cleanPhone}&text=${encodeURIComponent(msg)}`;
-    window.open(whatsappUrl, '_blank');
   };
 
   // Open WhatsApp with pre-filled service, date, time shortcut
@@ -827,7 +817,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 <strong>{bookingServiceIds.length} services selected</strong>
                 <span>Total Price <b>₹{totalPrice.toLocaleString('en-IN')}</b></span>
                 <span>Total Duration <b>{totalMinutes} mins</b></span>
-                <span>25% advance <b>₹{advanceTokenAmount.toLocaleString('en-IN')}</b></span>
+                <span>Payable <b>₹{totalPrice.toLocaleString('en-IN')}</b></span>
                 {!bookingServiceIds.length&&<p>Select at least one service to continue.</p>}
               </section>
 
@@ -1048,7 +1038,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 <div>
                   <h4 className="font-bold text-sm text-slate-900">Guest Contact Information</h4>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    We will send booking pass and instant WhatsApp reminders to this number.
+                    Use the mobile number where you want to receive your booking receipt.
                   </p>
                 </div>
                 {isPrefilled && (
@@ -1129,26 +1119,28 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 )}
               </div>
 
-              {/* Email Address (Optional) */}
-              <div>
-                <label className="text-xs font-bold font-mono-caps text-slate-700 block mb-1">
-                  Email Address <span className="text-slate-400 font-normal">(Optional for calendar invite)</span>
-                </label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                  <input
-                    type="email"
-                    data-testid="booking-guest-email"
-                    value={guestEmail}
-                    onChange={(e) => setGuestEmail(e.target.value)}
-                    placeholder="name@example.in"
-                    className="w-full pl-9 pr-3 py-2.5 text-xs rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-slate-900 outline-none"
-                  />
+              {!isTemplatePreview && <>
+                <div>
+                  <label className="text-xs font-bold font-mono-caps text-slate-700 block mb-1">
+                    Email Address <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                    <input
+                      type="email"
+                      data-testid="booking-guest-email" required maxLength={254} autoComplete="email" disabled={!!reservedBooking.current}
+                      value={guestEmail}
+                      onChange={(e) => {setGuestEmail(e.target.value);setGuestEmailError('');}}
+                      placeholder="name@example.in"
+                      className="w-full pl-9 pr-3 py-2.5 text-xs rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-slate-900 outline-none"
+                    />
+                  </div>
                 </div>
-              </div>
+                {guestEmailError && <p role="alert" className="text-xs text-rose-700">{guestEmailError}</p>}
+              </>}
 
               {/* Persistent Guest Remember Checkbox */}
-              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+              {!isTemplatePreview && <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200">
                 <input
                   type="checkbox"
                   id="rememberGuestCheck"
@@ -1159,7 +1151,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 <label htmlFor="rememberGuestCheck" className="text-xs text-slate-600 cursor-pointer select-none">
                   Save my name and WhatsApp number for 1-click future bookings on this browser
                 </label>
-              </div>
+              </div>}
 
               </motion.form>
           )}
@@ -1221,12 +1213,16 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </div>
               </div>
 
-              {!isTemplatePreview&&<div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-sm"><strong>Secure platform checkout · 25% advance</strong><p className="mt-2">Pay ₹{advanceTokenAmount.toLocaleString('en-IN')} now via Razorpay. Balance ₹{(totalPrice-advanceTokenAmount).toLocaleString('en-IN')} {taxExcluded ? 'before GST ' : ''}is due at the salon.</p><p className="mt-2 text-xs">Your appointment confirms after the platform verifies payment. Unpaid reservations expire after 15 minutes.</p></div>}
+              {!isTemplatePreview && <>
+                <BookingPaymentOptions method={paymentMethod} onChange={setPaymentMethod} venue={venueEnabled} locked={isSubmitting || !!reservedBooking.current} />
+                {paymentMethod === 'online' && webPaymentMode === 'test' && <p className="text-sm">Razorpay Test Mode</p>}
+                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={whatsappConsent} onChange={event => setWhatsappConsent(event.target.checked)} disabled={isSubmitting || !!reservedBooking.current} /> Send my booking receipt to this WhatsApp number</label>
+              </>}
               {taxExcluded && <p role="note" className="p-3 rounded-xl bg-amber-50 text-amber-900 text-sm">GST is not included in the amount shown or calculated by this checkout. Please confirm the final tax and balance with the studio.</p>}
               {gatewayError&&<p data-testid="booking-gateway-error" role="alert" className="p-3 rounded-xl bg-amber-50 text-amber-900 text-sm">{gatewayError}</p>}
 
               {submitError && <p data-testid="booking-submit-error" role="alert" className="rounded-xl bg-red-50 p-3 text-red-700 text-sm">{submitError}</p>}
-              {reservedBooking.current&&<button type="button" disabled={isSubmitting} className="text-sm underline" onClick={async()=>{setIsSubmitting(true);setSubmitError('');try{const saved=await reconcileBookingPayment(reservedBooking.current!.id);setServerStatus(saved.status);setPaidAmount(saved.amountPaid);setBookingRef(saved.id);setCurrentStep('confirmed');}catch(error){setSubmitError(error instanceof Error?error.message:'Could not verify payment');}finally{setIsSubmitting(false);}}}>Recheck payment status</button>}
+              {reservedBooking.current&&paymentMethod==='online'&&<button type="button" disabled={isSubmitting} className="text-sm underline" onClick={async()=>{setIsSubmitting(true);setSubmitError('');try{const saved=await reconcileBookingPayment(reservedBooking.current!.id);setServerStatus(saved.status);setPaidAmount(saved.amountPaid);setBookingRef(saved.id);setServerTotal(saved.servicePrice);setConfirmedBooking(saved);setCurrentStep('confirmed');}catch(error){setSubmitError(error instanceof Error?error.message:'Could not verify payment');}finally{setIsSubmitting(false);}}}>Recheck payment status</button>}
               </motion.div>
           )}
 
@@ -1240,7 +1236,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               transition={reducedMotion ? {duration:0} : { duration: 0.3 }}
               className="flex flex-col items-center text-center gap-4 py-3"
             >
-              <p className="p-3 bg-amber-50 text-amber-900 rounded-xl text-sm">{serverStatus === 'confirmed' ? `Booking confirmed. Verified advance: ₹${paidAmount.toLocaleString('en-IN')}. Balance ${taxExcluded ? 'before GST ' : ''}due at salon: ₹${(totalPrice-paidAmount).toLocaleString('en-IN')}.` : 'Payment verification is pending. Check payment status before retrying.'}</p>
+              <p className="p-3 bg-amber-50 text-amber-900 rounded-xl text-sm">{serverStatus === 'confirmed' ? `Booking confirmed. Paid: ₹${paidAmount.toLocaleString('en-IN')}. Balance ${taxExcluded ? 'before GST ' : ''}due at salon: ₹${(totalPrice-paidAmount).toLocaleString('en-IN')}.` : 'Payment verification is pending. Check payment status before retrying.'}</p>
               {taxExcluded && <p role="note" className="text-sm text-amber-900">GST is not included in the checkout amount. Please confirm the final tax and balance with the studio.</p>}
               {/* Animated Celebratory Checkmark */}
               <div className="relative flex items-center justify-center">
@@ -1377,16 +1373,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </div>
               </div>
 
-              {/* WhatsApp Trigger Button */}
-              <button
-                type="button"
-                onClick={handleSendWhatsAppConfirmation}
-                className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-xs transition-colors"
-              >
-                <MessageSquare className="w-4 h-4" />
-                <span>Send Confirmation on WhatsApp</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </button>
+              {confirmedBooking && <BookingReceiptActions booking={confirmedBooking} />}
 
               {/* Bottom Actions */}
               <div className="flex gap-2 w-full pt-1">
@@ -1436,7 +1423,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   type="button"
                   data-testid="booking-next-guest"
                   onClick={() => setCurrentStep('guest')}
-                  disabled={!bookingTime || slotsLoading || !specialistsReady || !specialistCheck?.published || !eligibleStylists.length}
+                  disabled={!!reservedBooking.current || !bookingTime || slotsLoading || !specialistsReady || !specialistCheck?.published || !eligibleStylists.length}
                   className="flex-1 py-3 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95"
                   style={actionStyle}
                 >
@@ -1460,7 +1447,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   className="flex-1 py-3 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95"
                   style={actionStyle}
                 >
-                  <span>Review & Pay 25% Advance</span>
+                  <span>Review Booking & Payment</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
@@ -1469,7 +1456,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setCurrentStep('guest')}
-                  disabled={!bookingTime || slotsLoading || !specialistsReady || !specialistCheck?.published || !eligibleStylists.length}
+                  disabled={!!reservedBooking.current || !bookingTime || slotsLoading || !specialistsReady || !specialistCheck?.published || !eligibleStylists.length}
                   className="px-4 py-3 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-50 cursor-pointer flex items-center gap-1.5"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -1479,12 +1466,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   type="button"
                   data-testid="booking-pay-submit"
                   onClick={handleFinalSubmitBooking}
-                  disabled={!bookingServiceIds.length || !bookingTime || !specialistsReady || !specialistCheck?.published || !eligibleStylists.length || isSubmitting || isTemplatePreview || !gatewayReady || coupon.busy || (!reservedBooking.current && !!coupon.code.trim() && !coupon.quote)}
+                  disabled={!bookingServiceIds.length || !bookingTime || !specialistsReady || !specialistCheck?.published || !eligibleStylists.length || isSubmitting || isTemplatePreview || (paymentMethod==='online'?!gatewayReady:!venueEnabled) || coupon.busy || (!reservedBooking.current && !!coupon.code.trim() && !coupon.quote)}
                   className="flex-1 py-3.5 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95"
                   style={actionStyle}
                 >
                   <CalendarCheck className="w-4 h-4" />
-                  <span>{isTemplatePreview ? 'Demo preview — no payment' : isSubmitting ? 'Opening secure payment…' : `Pay ₹${advanceTokenAmount.toLocaleString('en-IN')} & Book`}</span>
+                  <span>{isTemplatePreview ? 'Demo preview — no payment' : isSubmitting ? 'Processing booking…' : paymentMethod === 'venue' ? 'Confirm & Pay at Venue' : `${reservedBooking.current ? 'Retry payment' : 'Pay'} ₹${totalPrice.toLocaleString('en-IN')}`}</span>
                 </button>
               </div>
             </>)}</footer>}

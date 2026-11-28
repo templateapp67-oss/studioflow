@@ -42,7 +42,7 @@ try {
   assert.deepEqual((await options([legacyA],restricted)).available_staff,[],'the old RPC compares a services ID with the different assignment ID');
   await assert.rejects(options([legacyA],noSchedule),/primary_staff_id|staff_time_off/i,'the old production-shaped conflict query references absent schema');
 
-  const migration=readFileSync('supabase/migrations/20261127140001_booking_slot_availability_repair.sql','utf8');
+  const migration=readFileSync('supabase/migrations/20261127143001_booking_slot_availability_repair.sql','utf8');
   const start=migration.indexOf('-- The separately deployed normalized storefront');
   const end=migration.indexOf('-- New helpers are private.',start);
   assert.ok(start>=0 && end>start,'the actual optional migration section exists');

@@ -166,12 +166,12 @@ assert.ok(payload.branches.every(branch=>branch.is_active));
 
 // The newer availability repair must also work when the optional Iron Ink
 // branch schema is installed. Reuse its actual helper definitions, not stubs.
-const repair=readFileSync('supabase/migrations/20261127140001_booking_slot_availability_repair.sql','utf8');
+const repair=readFileSync('supabase/migrations/20261127143001_booking_slot_availability_repair.sql','utf8');
 for(const name of ['booking_weekday','booking_time','booking_hours_enabled']){
  const body=repair.match(new RegExp(`create or replace function studioflow_private\\.${name}\\([\\s\\S]*?\\$\\$;`));
  assert.ok(body,`missing real helper ${name}`);await db.exec(body[0]);
 }
-const inkRepair=readFileSync('supabase/migrations/20261127140100_iron_ink_availability_ist.sql','utf8');
+const inkRepair=readFileSync('supabase/migrations/20261127143100_iron_ink_availability_ist.sql','utf8');
 await db.exec(inkRepair);await db.exec(inkRepair);
 const nextMonday=(await db.query('select ($1::date+7)::date value',[monday])).rows[0].value;
 const inkAt=(location)=>db.query('select * from public.get_branch_available_slots($1,$2,$3,$4,$5)',[siteId,ink.id,nextMonday,inkCategory.duration_min,location]).then(result=>result.rows);

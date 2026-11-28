@@ -28,13 +28,15 @@ const recommendationPhoto=homeTree.root.findAllByType('button').find((b:any)=>b.
 const bookStyle=homeTree.root.findAllByType('button').find((b:any)=>b.props.children?.[0]?.trim?.()==='Book Style');await act(async()=>bookStyle.props.onClick());assert.equal(opening,salon.slug);assert.deepEqual(ids,['cut']);await act(async()=>homeTree.unmount());
 const calls:any[]=[];
 (supabase as any).rpc=async(name:string,args:any)=>{calls.push({name,args});if(name==='studioflow_android_slots')return{data:[{time:'11:00',label:'11:00 AM',available:true,stylistId:'stylist'}],error:null};if(name==='studioflow_list_reviews')return{data:{reviews:[]},error:null};return{data:null,error:null}};
+const functionPrototype=Object.getPrototypeOf(supabase.functions);
+functionPrototype.invoke=async()=>({data:{webCheckout:{online:false,venue:false,mode:'test'}},error:null});
 let booking:any;await act(async()=>{booking=create(<CustomerBookingFlow salon={salon} initialIds={['cut','spa']} session={null} close={()=>{}} onCreated={()=>{}} onConfirmed={()=>{}}/>)});
 assert.deepEqual(calls.find(x=>x.name==='studioflow_android_slots').args.p_services,['cut','spa']);
 await act(async()=>booking.root.findAllByType('button').find((b:any)=>b.props.children==='Continue to Specialist & Slot').props.onClick());
 const slot=booking.root.findAllByType('button').find((b:any)=>b.props.children?.[0]?.props?.children==='11:00 AM');assert.ok(slot);await act(async()=>slot.props.onClick());
 const confirm=booking.root.findAllByType('button').find((b:any)=>b.props.children==='Confirm Booking');assert.equal(confirm.props.disabled,false);await act(async()=>confirm.props.onClick());
-const rendered=JSON.stringify(booking.toJSON());for(const text of ['BOOKING SUMMARY','SALON & VENUE','SELECTED SERVICES','ASSIGNED PROFESSIONAL','DATE & APPOINTMENT WINDOW','CONTACT FOR THIS APPOINTMENT','SPECIAL INSTRUCTIONS','PAYMENT METHOD & SLOT LOCK','Nexora QR Payment','25% Advance Deposit (Pay Now)'])assert.ok(rendered.includes(text),text);
-assert.ok(rendered.includes('₹112'),'25% of 448 is 112');
+const rendered=JSON.stringify(booking.toJSON());for(const text of ['BOOKING SUMMARY','SALON & VENUE','SELECTED SERVICES','ASSIGNED PROFESSIONAL','DATE & APPOINTMENT WINDOW','CONTACT FOR THIS APPOINTMENT','SPECIAL INSTRUCTIONS','PAYMENT','Online payment · UPI, cards or netbanking via Razorpay','Final payable amount'])assert.ok(rendered.includes(text),text);
+assert.ok(rendered.includes('₹448'),'The full service total is displayed');
 const signIn=booking.root.findAllByType('button').find((b:any)=>b.props.children==='Sign in to continue');await act(async()=>signIn.props.onClick());assert.equal(calls.some(x=>x.name==='studioflow_android_book'),false,'No anonymous booking reservation');assert.ok(JSON.stringify(booking.toJSON()).includes('Welcome back'));await act(async()=>booking.unmount());
 let salonTree:any;await act(async()=>{salonTree=create(<CustomerSalon salon={salon} salons={[salon]} saved={false} savedSlugs={[]} back={()=>{}} save={()=>{}} open={()=>{}} book={()=>{}} signedIn={false} onSignIn={()=>{}}/>)});
 for(const tab of ['Services','Stylists','Packages','Reviews','About'])assert.ok(salonTree.root.findAllByProps({role:'tab'}).some((n:any)=>n.props.children===tab));
@@ -42,23 +44,69 @@ const reviews=salonTree.root.findAllByProps({role:'tab'}).find((b:any)=>b.props.
 const bookings=renderToStaticMarkup(<CustomerAppointments bookings={[{id:'booking1',owner_id:'owner',status:'confirmed',payload:{serviceName:'Published Haircut',servicePrice:249,date:istDate(),time:'11:00',amountPaid:62.25,salonSlug:'real-published-salon'}}]} salons={[salon]} loading={false} error="" refresh={()=>{}} rebook={()=>{}} pay={()=>{}} signIn={()=>{}} signedIn/>);
 for(const value of ['My Salon Appointments','Upcoming','Completed','Cancelled','All Log','Published Salon','62.25'])assert.ok(bookings.includes(value),value);
 assert.equal(advance(259),64.75);assert.equal(advance(249.01),62.26);
-console.log('PASS: reference home sections and service CTA; five salon tabs and honest reviews; multi-service live-slot request; seven summary cards and 25% calculation; guest auth preserves selection without reserving; real booking filters and payment amounts.');
+console.log('PASS: reference home sections and service CTA; five salon tabs and honest reviews; multi-service live-slot request; checkout summary and full payable total; guest auth preserves selection without reserving; real booking filters and payment amounts.');
 let enabled=false,verified=false,confirmed=0,created=0;
-const functionPrototype=Object.getPrototypeOf(supabase.functions);
-functionPrototype.invoke=async(name:string,{body}:any)=>{if(name==='studioflow-payments'&&body.action==='status')return{data:{configured:enabled},error:null};if(body.action==='create')return{data:{imageUrl:'https://example.test/server-payment-qr.png',amount:11200,expires:Math.floor(Date.now()/1000)+900},error:null};if(body.action==='mode')return{data:{mode:'qr'},error:null};if(body.action==='reconcile')return{data:{status:verified?'confirmed':'pending'},error:null};throw new Error('Unexpected function call')};
-(supabase as any).rpc=async(name:string,args:any)=>{calls.push({name,args});if(name==='studioflow_android_slots')return{data:[{time:'11:00',label:'11:00 AM',available:true,stylistId:'stylist'}],error:null};if(name==='studioflow_android_book'){created++;return{data:{id:'booking-created',owner_id:'owner',status:'pending',hold_expires_at:new Date(Date.now()+900000).toISOString(),payload:{servicePrice:448,serviceName:'Haircut + Spa',date:istDate(),time:'11:00'}},error:null}}return{data:null,error:null}};
+const reservation={id:'booking-created',owner_id:'owner',status:'pending',
+ hold_expires_at:new Date(Date.now()+900000).toISOString(),
+ payload:{servicePrice:448,serviceName:'Haircut + Spa',date:istDate(),time:'11:00',clientPhone:'+919000000000'}};
+functionPrototype.invoke=async(name:string,{body}:any)=>{
+ assert.equal(name,'studioflow-payments');
+ if(!body)return{data:{webCheckout:{online:enabled,venue:false,mode:'test'}},error:null};
+ if(body.action==='prepareWebCheckout')return{data:{booking:{...reservation.payload,id:reservation.id,status:'pending'}},error:null};
+ if(body.action==='create')return{data:{keyId:'rzp_test_fixture',orderId:'order_fixture',amount:44800,currency:'INR'},error:null};
+ if(body.action==='reconcile')return{data:{booking:{...reservation.payload,id:reservation.id,
+   status:verified?'confirmed':'pending',amountPaid:verified?448:0,paymentId:verified?'pay_fixture':undefined}},error:null};
+ throw new Error('Unexpected function call');
+};
+(supabase as any).rpc=async(name:string,args:any)=>{
+ calls.push({name,args});
+ if(name==='studioflow_android_slots')return{data:[{time:'11:00',label:'11:00 AM',available:true,stylistId:'stylist'}],error:null};
+ if(name==='studioflow_android_book'){created++;return{data:reservation,error:null};}
+ return{data:null,error:null};
+};
 const member:any={user:{id:'member',email:'member@example.test',user_metadata:{full_name:'Test Member'}}};
-let checkout:any;await act(async()=>{checkout=create(<CustomerBookingFlow salon={salon} initialIds={['cut','spa']} session={member} close={()=>{}} onCreated={()=>{}} onConfirmed={()=>{confirmed++}}/>)});
-await act(async()=>checkout.root.findAllByType('button').find((b:any)=>b.props.children==='Continue to Specialist & Slot').props.onClick());
-await act(async()=>checkout.root.findAllByType('button').find((b:any)=>b.props.children?.[0]?.props?.children==='11:00 AM').props.onClick());
-await act(async()=>checkout.root.findAllByType('button').find((b:any)=>b.props.children==='Confirm Booking').props.onClick());
-await act(async()=>checkout.root.findByProps({autoComplete:'tel'}).props.onChange({target:{value:'9000000000'}}));
-function payButton(){return checkout.root.findAllByType('button').find((b:any)=>typeof b.props.children==='string'&&b.props.children.startsWith('Confirm & Pay'))}
-await act(async()=>payButton().props.onClick());assert.equal(created,0,'Disabled payment configuration must not reserve a slot');assert.ok(JSON.stringify(checkout.toJSON()).includes('Online payment has not been enabled'));
-enabled=true;await act(async()=>payButton().props.onClick());assert.equal(created,1);const reserve=calls.find(x=>x.name==='studioflow_android_book');assert.deepEqual(reserve.args.p_services,['cut','spa']);assert.equal(reserve.args.p_stylist,'stylist');assert.equal(reserve.args.p_time,'11:00');assert.ok(reserve.args.p_request);assert.equal(confirmed,0,'QR creation must not confirm payment');
-assert.equal(checkout.root.findByProps({alt:'Secure payment QR code generated for this booking'}).props.src,'https://example.test/server-payment-qr.png');
-const recheck=()=>checkout.root.findAllByType('button').find((b:any)=>b.props.children==='I Have Completed Payment');await act(async()=>recheck().props.onClick());assert.equal(confirmed,0,'User assertion must not confirm unpaid booking');verified=true;await act(async()=>recheck().props.onClick());assert.equal(confirmed,1,'Only trusted server confirmation completes booking');await act(async()=>checkout.unmount());
-console.log('PASS: unavailable payments create no reservation; authenticated reservation uses exact services, server stylist/slot and idempotency key; QR is server supplied; payment button requires trusted confirmation.');
+let checkout:any;
+async function openCheckout(){
+ await act(async()=>{checkout=create(<CustomerBookingFlow salon={salon} initialIds={['cut','spa']} session={member} close={()=>{}} onCreated={()=>{}} onConfirmed={()=>{confirmed++}}/>)});
+ await act(async()=>checkout.root.findAllByType('button').find((b:any)=>b.props.children==='Continue to Specialist & Slot').props.onClick());
+ await act(async()=>checkout.root.findAllByType('button').find((b:any)=>b.props.children?.[0]?.props?.children==='11:00 AM').props.onClick());
+ await act(async()=>checkout.root.findAllByType('button').find((b:any)=>b.props.children==='Confirm Booking').props.onClick());
+ await act(async()=>checkout.root.findByProps({autoComplete:'tel'}).props.onChange({target:{value:'9000000000'}}));
+}
+const payButton=()=>checkout.root.findAllByType('button').find((b:any)=>typeof b.props.children==='string'&&b.props.children.startsWith('Pay ₹'));
+await openCheckout();
+assert.equal(payButton().props.disabled,true);
+assert.equal(created,0,'Disabled payment configuration must not reserve a slot');
+await act(async()=>checkout.unmount());
+enabled=true;
+await openCheckout();
+let sdkOrder:any;
+(globalThis as any).Razorpay=class {
+ constructor(options:any){sdkOrder=options;}
+ on(){}
+ open(){sdkOrder.modal.ondismiss();}
+};
+await act(async()=>payButton().props.onClick());
+delete (globalThis as any).Razorpay;
+assert.equal(created,1);
+assert.equal(sdkOrder.amount,44800);
+const reserve=calls.find(x=>x.name==='studioflow_android_book');
+assert.deepEqual(reserve.args.p_services,['cut','spa']);
+assert.equal(reserve.args.p_stylist,'stylist');
+assert.equal(reserve.args.p_time,'11:00');
+assert.ok(reserve.args.p_request);
+assert.equal(confirmed,0,'Closing checkout must not confirm payment');
+const recheck=()=>checkout.root.findAllByType('button').find((b:any)=>b.props.children==='Recheck payment status');
+await act(async()=>recheck().props.onClick());
+assert.equal(confirmed,0,'User assertion must not confirm unpaid booking');
+verified=true;
+await act(async()=>recheck().props.onClick());
+assert.ok(JSON.stringify(checkout.toJSON()).includes('pay_fixture'));
+const view=checkout.root.findAllByType('button').find((b:any)=>b.props.children==='View My Bookings');
+await act(async()=>view.props.onClick());
+assert.equal(confirmed,1,'Only trusted server confirmation completes booking');
+await act(async()=>checkout.unmount());
+console.log('PASS: unavailable payments create no reservation; exact service, slot and amount reach checkout; only server verification confirms payment.');
 (supabase as any).rpc=async()=>({data:{reviews:[{id:'photo-review',name:'Actual Reviewer',rating:4,comment:'Actual review with photograph',imageUrl:'https://example.test/existing-review-image.jpg',verified:true}]},error:null});
 let photoReview:any;await act(async()=>{photoReview=create(<CustomerSalon salon={salon} salons={[salon]} saved={false} savedSlugs={[]} back={()=>{}} save={()=>{}} open={()=>{}} book={()=>{}} signedIn={false} onSignIn={()=>{}}/>)});
 await act(async()=>photoReview.root.findAllByProps({role:'tab'}).find((b:any)=>b.props.children==='Reviews').props.onClick());
@@ -74,9 +122,33 @@ assert.ok(JSON.stringify(demoFlow.toJSON()).includes('DEMO — NO PAYMENT'));
 assert.ok(!JSON.stringify(demoFlow.toJSON()).includes('Nexora QR Payment'));
 await act(async()=>demoFlow.root.findAllByType('button').find((b:any)=>b.props.children==='Confirm Demo Booking — ₹0').props.onClick());
 assert.equal(demoCreated,1);assert.equal(confirmed,1);await act(async()=>demoFlow.unmount());
+// Multi-location practice follows the exact branch whose slots were checked.
+const branches=[{id:'branch-one',name:'First',isActive:true},{id:'branch-two',name:'Second',isActive:true}];
+const branchSalon={...salon,content:{...salon.content,profile:{...salon.content.profile,branches}}};
+let branchDemo:any,branchSlotQueries=0;
+(supabase as any).rpc=async(name:string,args:any)=>{
+ if(name==='studioflow_public_branches')return{data:branches,error:null};
+ if(name==='studioflow_branch_android_slots'){
+  assert.equal(args.p_branch,'branch-two');branchSlotQueries++;
+  return{data:[{time:'11:00',label:'11:00 AM',available:true,stylistId:'stylist'}],error:null};
+ }
+ assert.equal(name,'studioflow_branch_demo_book');
+ assert.equal(args.p_branch,'branch-two');assert.equal(args.p_stylist,'stylist');assert.equal(args.p_time,'11:00');assert.ok(args.p_request);
+ branchDemo=args;return{data:{id:'branch-demo',payload:{demo:true,servicePrice:0}},error:null};
+};
+await act(async()=>{demoFlow=create(<CustomerBookingFlow demo salon={branchSalon} initialIds={['cut']} session={member} customerProfile={{full_name:'Demo Member',phone:'9876543210'}} close={()=>{}} onCreated={()=>{}} onConfirmed={()=>confirmed++}/>)});
+const branchContinue=()=>demoFlow.root.findAllByType('button').find((b:any)=>b.props.children==='Continue to Specialist & Slot');
+assert.equal(branchContinue().props.disabled,true,'choose a branch before practice-slot lookup');
+await act(async()=>demoFlow.root.findByType('select').props.onChange({target:{value:'branch-two'}}));
+assert.ok(branchSlotQueries>0);
+await act(async()=>branchContinue().props.onClick());
+await act(async()=>demoFlow.root.findAllByType('button').find((b:any)=>b.props.children?.[0]?.props?.children==='11:00 AM').props.onClick());
+await act(async()=>demoFlow.root.findAllByType('button').find((b:any)=>b.props.children==='Confirm Booking').props.onClick());
+await act(async()=>demoFlow.root.findAllByType('button').find((b:any)=>b.props.children==='Confirm Demo Booking — ₹0').props.onClick());
+assert.ok(branchDemo);assert.equal(confirmed,2);await act(async()=>demoFlow.unmount());
 const demoCard=renderToStaticMarkup(<CustomerAppointments bookings={[{id:'demo-1',owner_id:'owner',status:'confirmed',payload:{demo:true,serviceName:'Demo haircut',servicePrice:0,amountPaid:0}}]} salons={[salon]} loading={false} error="" refresh={()=>{}} rebook={()=>{}} pay={()=>{throw new Error('Demo cannot pay')}} signIn={()=>{}} signedIn/>);
 assert.ok(demoCard.includes('₹0 DEMO'));assert.ok(!demoCard.includes('Pay 25% advance'));assert.ok(!demoCard.includes('Reschedule'));
-console.log('PASS: ₹0 demo summary saves through isolated RPC without payment or real reservation; demo card clearly labelled with payment actions hidden.');
+console.log('PASS: ₹0 demo summaries, including multi-location, save through isolated RPCs without payment or real reservation; demo card clearly labelled with payment actions hidden.');
 
 const banners=homeBanners([salon]);assert.equal(banners.length,5);assert.equal(new Set(banners.map(b=>b.image)).size,5);assert.equal(homeBanners([]).length,5);
 assert.deepEqual(bannerStep(4,1),{index:3,direction:-1});assert.deepEqual(bannerStep(0,-1),{index:1,direction:1});
@@ -98,7 +170,7 @@ for(const id of Object.keys(CATEGORY_TEMPLATES))assert.ok(CUSTOMER_CATEGORY_GROU
 const categorySalons:any[]=CUSTOMER_CATEGORY_GROUPS.map(g=>({slug:g.id,owner_id:g.id,content:{profile:{businessName:g.label+' QA Studio',businessType:g.types[0],coverImageUrl:'https://example.test/'+g.id+'.jpg'},services:[{id:g.id,name:g.label+' QA Service',price:300,durationMinutes:30}],stylists:[]}}));
 let groupedHome:any;await act(async()=>{groupedHome=create(<CustomerHome salons={categorySalons} favorites={[]} query="" setQuery={()=>{}} open={()=>{}} book={()=>{}} save={()=>{}} refresh={()=>{}}/>)});
 for(const group of CUSTOMER_CATEGORY_GROUPS){const tile=groupedHome.root.findAllByType('button').find((b:any)=>b.findAllByType('b').some((n:any)=>n.props.children===group.label));assert.ok(tile,group.label);await act(async()=>tile.props.onClick());const salons=groupedHome.root.findAllByProps({className:'cr-salon-card'});assert.equal(salons.length,1);assert.equal(salons[0].findByType('h4').props.children,group.label+' QA Studio');assert.ok(matchesCustomerCategory(categorySalons.find(s=>s.slug===group.id),group.id));}
-await act(async()=>groupedHome.unmount());console.log('PASS: prominent Hair/Barber/Beauty/Spa/Massage/Tattoo categories cover all 14 templates and each filters the correct published salon, with existing booking features preserved.');
+await act(async()=>groupedHome.unmount());console.log('PASS: prominent Hair/Barber/Beauty/Spa/Massage/Tattoo categories cover all 16 templates and each filters the correct published salon, with existing booking features preserved.');
 
 const spaKeyword=renderToStaticMarkup(<CustomerHome salons={[{...salon,content:{...salon.content,profile:{...salon.content.profile,businessName:'Wellness Studio',businessType:'ayurvedic_spa'}}}]} favorites={[]} query="spa" setQuery={()=>{}} open={()=>{}} book={()=>{}} save={()=>{}} refresh={()=>{}}/>);assert.equal((spaKeyword.match(/class="cr-salon-card"/g)||[]).length,1);console.log('PASS: category keywords such as spa find a published salon even when its name does not contain the category.');
 
@@ -114,7 +186,7 @@ const realHair={...salon,content:{...salon.content,profile:{...salon.content.pro
 const replacement=withTemplateDemos([realHair],templateMeta);assert.equal(replacement.length,16);assert.equal(replacement[0],realHair);assert.equal(replacement.some(s=>s.demoTemplateId==='hair_salon'),false);assert.equal(replacement.filter(s=>s.demoTemplateId).length,15);
 const allReal=templateMeta.map(t=>({...realHair,slug:t.id,content:{...realHair.content,profile:{...realHair.content.profile,businessType:t.id}}}));assert.deepEqual(withTemplateDemos(allReal,templateMeta),allReal);
 assert.equal(withTemplateDemos([],templateMeta.filter(t=>t.id!=='tattoo_studio')).some(s=>s.demoTemplateId==='tattoo_studio'),false,'Inactive templates must not reappear');
-console.log('PASS: all 14 demo categories contain services/images and safe website links; category filters stay populated; real publication replaces only its own template demo, all-real catalogue removes all demos; inactive templates excluded.');
+console.log('PASS: all 16 template demos contain services/images and safe website links; category filters stay populated; real publication replaces only its own template demo, all-real catalogue removes all demos; inactive templates excluded.');
 
 // Recommendations must actually overflow and both buttons must operate the same rail.
 const rail={scrollLeft:0,clientWidth:320,scrollWidth:1200,scrollBy({left}:{left:number}){this.scrollLeft=Math.max(0,Math.min(this.scrollWidth-this.clientWidth,this.scrollLeft+left));}};

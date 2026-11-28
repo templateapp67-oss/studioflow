@@ -33,15 +33,19 @@ assert.equal(await signatureMatches(secret,message,signature),true);assert.equal
 // Booking flow uses the real component with isolated provider/API fixtures.
 const functionsPrototype=Object.getPrototypeOf(supabase.functions);const oldRpc=supabase.rpc,oldInvoke=functionsPrototype.invoke;
 (supabase as any).rpc=async(name:string)=>name==='studioflow_booking_specialists'?{data:{published:true,specialistIds:['stylist']},error:null}:name==='studioflow_public_branches'?{data:[],error:null}:{data:[{time:'11:00',label:'11:00 AM',available:true,stylistId:'stylist'}],error:null};
-let reservationCount=0;let capturedOrder:any;const paid={id:'fixture-booking',status:'confirmed',amountPaid:249.75,paymentStatus:'paid_deposit'};
-functionsPrototype.invoke=async(_name:string,{body}:any)=>({data:body.action==='status'?{configured:true}:body.action==='create'?{keyId:'rzp_test_fixture',orderId:'order_fixture',amount:24975,currency:'INR'}:{booking:paid},error:null});
-(globalThis as any).window={addEventListener(){},removeEventListener(){},Razorpay:class{constructor(options:any){capturedOrder=options;}on(){}open(){void capturedOrder.handler({razorpay_order_id:'order_fixture',razorpay_payment_id:'pay_fixture',razorpay_signature:'signature'});}}};
+let reservationCount=0;let capturedOrder:any;let hold:any;
+functionsPrototype.invoke=async(_name:string,{body}:any)=>({data:!body
+ ?{webCheckout:{online:true,venue:true,mode:'test'}}
+ :body.action==='prepareWebCheckout'?{booking:hold}
+ :body.action==='create'?{keyId:'rzp_test_fixture',orderId:'order_fixture',amount:99900,currency:'INR'}
+ :{booking:{...hold,status:'confirmed',amountPaid:999,paymentStatus:'paid_full',paymentId:'pay_fixture'}},error:null});
+(globalThis as any).Razorpay=class{constructor(options:any){capturedOrder=options;}on(){}open(){void capturedOrder.handler({razorpay_order_id:'order_fixture',razorpay_payment_id:'pay_fixture',razorpay_signature:'signature'});}};
 const services=[{...CATEGORY_TEMPLATES.hair_salon.services[0],id:'one',name:'First Service',price:500},{...CATEGORY_TEMPLATES.hair_salon.services[0],id:'two',name:'Second Service',price:999}];
 const text=(node:any):string=>typeof node==='string'?node:(node.children||[]).map(text).join(' ');
 const button=(root:any,label:string)=>root.findAll((node:any)=>node.type==='button'&&text(node).includes(label)).at(-1);
 let modal:any;
 try{
- await act(async()=>{modal=create(<BookingModal isOpen onClose={()=>{}} profile={{...INITIAL_SALON_PROFILE,subdomain:'fixture-salon'}} initialService={services[0]} services={services} stylists={[{...CATEGORY_TEMPLATES.hair_salon.stylists[0],id:'stylist'}]} onAddAppointment={async apt=>{reservationCount++;return {...apt,id:'fixture-booking'};}}/>);});
+ await act(async()=>{modal=create(<BookingModal isOpen onClose={()=>{}} profile={{...INITIAL_SALON_PROFILE,subdomain:'fixture-salon'}} initialService={services[0]} services={services} stylists={[{...CATEGORY_TEMPLATES.hair_salon.stylists[0],id:'stylist'}]} onAddAppointment={async apt=>{reservationCount++;hold={...apt,id:'fixture-booking'};return hold;}}/>);});
  const option=modal.root.findAll((node:any)=>node.type==='button'&&node.props.onClick&&text(node).includes('Second Service')).at(-1);
  await act(async()=>option.props.onClick());
  // Multi-select preserves the first service until explicitly deselected.
@@ -55,8 +59,9 @@ try{
  await act(async()=>modal.root.findByProps({placeholder:'e.g. Aarti Sharma'}).props.onChange({target:{value:'Fixture Client'}}));
  const phone=modal.root.findAll((node:any)=>node.type==='input'&&node.props.type==='tel')[0];
  await act(async()=>phone.props.onChange({target:{value:'9876543210'}}));
+ await act(async()=>modal.root.findByProps({placeholder:'name@example.in'}).props.onChange({target:{value:'qa@example.invalid'}}));
  await act(async()=>modal.root.findAll((node:any)=>node.props.onSubmit)[0].props.onSubmit(event));
- await act(async()=>button(modal.root,'& Book').props.onClick());
- assert.equal(reservationCount,1);assert.equal(capturedOrder.amount,24975);assert.equal(capturedOrder.order_id,'order_fixture');assert.ok(text(modal.toJSON()).includes('Booking confirmed. Verified advance'));
-}finally{if(modal)await act(async()=>modal.unmount());supabase.rpc=oldRpc;functionsPrototype.invoke=oldInvoke;}
-console.log('PASS: 14 design selections preserve owner content; inline zero/invalid/cancel; exact 25% paisa and HMAC; service → slot → client details → checkout → verified confirmation using isolated API fixtures.');
+ await act(async()=>button(modal.root,'Pay ₹').props.onClick());
+ assert.equal(reservationCount,1);assert.equal(capturedOrder.amount,99900);assert.equal(capturedOrder.order_id,'order_fixture');assert.ok(text(modal.toJSON()).includes('Booking confirmed. Paid'));
+}finally{if(modal)await act(async()=>modal.unmount());supabase.rpc=oldRpc;functionsPrototype.invoke=oldInvoke;delete (globalThis as any).Razorpay;}
+console.log('PASS: 14 design selections preserve owner content; inline zero/invalid/cancel; legacy deposit rounding and HMAC, full Razorpay checkout; service → slot → client details → checkout → verified confirmation using isolated API fixtures.');

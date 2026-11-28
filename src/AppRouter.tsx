@@ -6,20 +6,31 @@ import { NexoraPricingLandingPage } from './components/nexora-landing/NexoraPric
 import { NexoraPrivacyNoticePage } from './components/nexora-landing/NexoraPrivacyNoticePage';
 import { NexoraEcosystemPage } from './components/nexora-landing/NexoraEcosystemPage';
 import { NexoraPartnerRewardsPage } from './components/nexora-landing/NexoraPartnerRewardsPage';
-import { NexoraDemoLeadsAdmin } from './components/nexora-landing/admin/NexoraDemoLeadsAdmin';
 import { loadScreen } from './lib/loadScreen';
 import { capturePublicReferral } from './lib/publicReferral';
 import { AUTH_CALLBACK_QUERY_KEYS, hasAuthCallbackFragment } from './lib/authEntry';
 import { isAuthEntryPath } from './lib/authRoutes';
 import { inviteTokenFrom, isStaffRoute } from './lib/staffRoutes';
-import { StaffInviteAcceptPage } from './components/staff/StaffInviteAcceptPage';
-import { StaffLoginPage } from './components/staff/StaffLoginPage';
-import { StaffWorkspacePage } from './components/staff/StaffWorkspacePage';
 import { resolveSiteSlug } from './lib/resolveSite';
-import { StudioFlowSecurityCenterRoute } from './components/security/StudioFlowSecurityCenterRoute';
 import { hasPersistedAuthSession } from './lib/authStorage';
 
 const AccountSecurityPage = lazy(() => import('./components/AccountSecurityPage').then(module => ({ default: module.AccountSecurityPage })));
+
+const NexoraDemoLeadsAdmin = lazy(() =>
+  loadScreen(() => import('./components/nexora-landing/admin/NexoraDemoLeadsAdmin').then((module) => ({ default: module.NexoraDemoLeadsAdmin }))),
+);
+const StaffInviteAcceptPage = lazy(() =>
+  loadScreen(() => import('./components/staff/StaffInviteAcceptPage').then((module) => ({ default: module.StaffInviteAcceptPage }))),
+);
+const StaffLoginPage = lazy(() =>
+  loadScreen(() => import('./components/staff/StaffLoginPage').then((module) => ({ default: module.StaffLoginPage }))),
+);
+const StaffWorkspacePage = lazy(() =>
+  loadScreen(() => import('./components/staff/StaffWorkspacePage').then((module) => ({ default: module.StaffWorkspacePage }))),
+);
+const StudioFlowSecurityCenterRoute = lazy(() =>
+  loadScreen(() => import('./components/security/StudioFlowSecurityCenterRoute').then((module) => ({ default: module.StudioFlowSecurityCenterRoute }))),
+);
 
 const FullApplication = lazy(() =>
   loadScreen(() => import('./App').then((module) => ({ default: module.default }))),
@@ -74,6 +85,14 @@ function withNexoraPublicSupport(content: React.ReactNode) {
   return <>{content}<NexoraTawkWidget /></>;
 }
 
+function withApplicationLoading(content: React.ReactNode) {
+  return (
+    <Suspense fallback={<main className="grid min-h-screen place-items-center bg-white px-6 text-center text-sm font-semibold text-slate-700" role="status">Loading NEXORA…</main>}>
+      {content}
+    </Suspense>
+  );
+}
+
 export function AppRouter() {
   const [, setLocationTick] = useState(0);
   // Keep the first client render identical to the prerendered public homepage.
@@ -103,10 +122,10 @@ export function AppRouter() {
   // Staff entry points are rendered here, read-only and independent from the
   // owner bootstrap: no account load, no workspace fetch, no draft save.
   if (publicPath === '/staff/accept') {
-    return <StaffInviteAcceptPage token={inviteTokenFrom(window.location.search)} />;
+    return withApplicationLoading(<StaffInviteAcceptPage token={inviteTokenFrom(window.location.search)} />);
   }
-  if (publicPath === '/staff/login') return <StaffLoginPage />;
-  if (publicPath === '/staff') return <StaffWorkspacePage />;
+  if (publicPath === '/staff/login') return withApplicationLoading(<StaffLoginPage />);
+  if (publicPath === '/staff') return withApplicationLoading(<StaffWorkspacePage />);
 
   if (publicPath === '/salon-os') return withNexoraPublicSupport(<NexoraSalonLandingPage />);
   if (publicPath === '/pricing') return withNexoraPublicSupport(<NexoraPricingLandingPage />);
@@ -115,17 +134,13 @@ export function AppRouter() {
   if (publicPath === '/about' || publicPath === '/salon-onboarding' || publicPath === '/salon-growth' || publicPath === '/growth-partner-rewards') {
     return withNexoraPublicSupport(<NexoraEcosystemPage path={publicPath} />);
   }
-  if (publicPath === '/owner/security-center') return <StudioFlowSecurityCenterRoute mode="owner" />;
-  if (publicPath === '/admin/security-center') return <StudioFlowSecurityCenterRoute mode="admin" />;
+  if (publicPath === '/owner/security-center') return withApplicationLoading(<StudioFlowSecurityCenterRoute mode="owner" />);
+  if (publicPath === '/admin/security-center') return withApplicationLoading(<StudioFlowSecurityCenterRoute mode="admin" />);
 
-  if (publicPath === '/admin/demo-leads') return <NexoraDemoLeadsAdmin />;
+  if (publicPath === '/admin/demo-leads') return withApplicationLoading(<NexoraDemoLeadsAdmin />);
   if (!showApplication) return withNexoraPublicSupport(<PublicHomepage authenticated={authenticated} />);
 
-  return (
-    <Suspense fallback={<main className="grid min-h-screen place-items-center bg-white px-6 text-center text-sm font-semibold text-slate-700" role="status">Loading NEXORA…</main>}>
-      <FullApplication />
-    </Suspense>
-  );
+  return withApplicationLoading(<FullApplication />);
 }
 
 // Preserve business-referral signup behavior before a visitor follows a link to /login.

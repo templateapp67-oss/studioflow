@@ -661,8 +661,8 @@ export async function createOfflineMigratedDb({extraExtensions = {}} = {}) {
   // and Iron Ink prerequisites. Re-apply each to test the migration contract;
   // this offline fixture does not imply that either SQL file is live.
   for (const file of [
-    'supabase/migrations/20261127140001_booking_slot_availability_repair.sql',
-    'supabase/migrations/20261127140100_iron_ink_availability_ist.sql',
+    'supabase/migrations/20261127143001_booking_slot_availability_repair.sql',
+    'supabase/migrations/20261127143100_iron_ink_availability_ist.sql',
   ]) {
     const sql=readFileSync(file,'utf8');
     await applySqlText(sql,file);
