@@ -1,9 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import type { DaySchedule, SalonBranch, Stylist } from '../types';
+import { CATEGORY_TEMPLATES } from '../categoryTemplates';
 import { supabase } from '../lib/supabase';
 
 const DAYS: DaySchedule['day'][] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const clock = /^([01]\d|2[0-3]):[0-5]\d$/;
+const starterProfiles = Object.values(CATEGORY_TEMPLATES).flatMap(template => template.stylists);
+function isDemoProfile(person: Stylist): boolean {
+  if (typeof person.isTemplateSeed === 'boolean') return person.isTemplateSeed;
+  // Older workspace snapshots do not have the seed flag. The exact starter
+  // identity distinguishes them from an owner-created professional with the same name.
+  return starterProfiles.some(seed => seed.id === person.id && seed.name === person.name && seed.role === person.role);
+}
+
 type Location = Pick<SalonBranch, 'id' | 'name' | 'isActive'>;
 interface Props {
   ownerId?: string;
@@ -39,12 +48,12 @@ export const BranchStaffScheduleEditor: React.FC<Props> = ({ ownerId, branches, 
   const lookupReady = !needsLookup || lookup?.ownerId === ownerId;
   const activeBranches = (needsLookup ? (lookupReady ? lookup?.rows : []) : branches)?.filter(branch => branch.isActive) || [];
   const branch = activeBranches.find(item => item.id === branchId) || activeBranches[0];
-  const staff = stylists.filter(item => !item.isTemplateSeed);
+  const staff = stylists.filter(item => !isDemoProfile(item));
   const stylist = staff.find(item => item.id === staffId) || staff[0];
   const save = (schedule: DaySchedule[]) => {
     if (!branch || !stylist) return;
     setStylists(current => current.map(person => {
-      if (person.id !== stylist.id || person.isTemplateSeed) return person;
+      if (person.id !== stylist.id || isDemoProfile(person)) return person;
       const otherLocations = (person.branchSchedules || []).filter(item => item.branchId !== branch.id);
       return { ...person, branchSchedules: [...otherLocations, { branchId: branch.id, schedule }] };
     }));
@@ -55,7 +64,7 @@ export const BranchStaffScheduleEditor: React.FC<Props> = ({ ownerId, branches, 
     {!lookupReady ? <p role="status">Loading booking locations…</p>
       : needsLookup && lookup?.failed ? <p role="status">Booking locations could not be verified. <button type="button" onClick={() => { setLookup(undefined); setAttempt(value => value + 1); }}>Retry locations</button></p>
       : !branch ? <p role="status">No active booking location. {onLocationSetup && <button type="button" className="underline" onClick={onLocationSetup}>Open location setup</button>}</p>
-      : !stylist ? <p role="status">Add or confirm a real specialist in the team editor first.</p>
+      : !stylist ? <p role="status">Add a real specialist in the team editor first. Template demo profiles cannot take live shifts.</p>
       : <>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <label className="text-xs font-bold">Location<select value={branch.id} onChange={event => setBranchId(event.target.value)} className="mt-1 w-full rounded-lg border p-2 text-sm">{activeBranches.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
