@@ -71,7 +71,11 @@ type SafeLinkProps = Pick<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'href' 
 
 /** Resolve app links against the current tenant origin; external HTTPS links leave the preview frame. */
 function safeAppLinkProps(href: string): SafeLinkProps {
-  const currentOrigin = typeof window === 'undefined' ? 'https://nexorasalon.online' : window.location.origin;
+  // React SSR and some test renderers expose a partial window without location.
+  const currentOrigin =
+    typeof window !== 'undefined' && typeof window.location?.origin === 'string' && window.location.origin
+      ? window.location.origin
+      : 'https://nexorasalon.online';
   try {
     const trimmed = href.trim();
     const resolved = new URL(trimmed, currentOrigin);
@@ -83,11 +87,11 @@ function safeAppLinkProps(href: string): SafeLinkProps {
     const customerAppRoute = resolved.pathname === '/' && resolved.searchParams.get('app') === '1';
     if (resolved.origin === currentOrigin) {
       return customerAppRoute
-        ? { href: resolved.toString(), target: '_blank', rel: 'noopener noreferrer' }
+        ? { href: trimmed, target: '_blank', rel: 'noopener noreferrer' }
         : { href: trimmed };
     }
     if (resolved.protocol !== 'https:') return { href: '#' };
-    return { href: resolved.toString(), target: '_blank', rel: 'noopener noreferrer' };
+    return { href: trimmed, target: '_blank', rel: 'noopener noreferrer' };
   } catch {
     return { href: '#' };
   }
