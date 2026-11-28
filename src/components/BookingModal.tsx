@@ -480,7 +480,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const handleFinalSubmitBooking = async () => {
     if (isTemplatePreview) { setSubmitError('Template preview only. No appointment or payment can be created.'); return; }
     if (isDraft) { setSubmitError('Publish this salon website before accepting real bookings or payments.'); return; }
-    if (!validCheckoutAmount) { setSubmitError('The booking total must be greater than ₹0. Check the selected service prices and try again.'); return; }
+    if (paymentMethod === 'online' && !validCheckoutAmount) { setSubmitError('Razorpay checkout requires a payable amount above ₹0. Check the selected service prices and try again.'); return; }
     if (customerSignedIn === false) {
       setSubmitError('Sign in to securely create this booking and continue to Razorpay. Your selections are still saved in this form.');
       onCustomerAccount?.('signin');
@@ -1244,8 +1244,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   onChange={setPaymentMethod}
                   venue={venueEnabled && !isDraft}
                   locked={isSubmitting || !!reservedBooking.current}
-                  onlineAvailable={gatewayReady && !gatewayChecking && !isDraft}
-                  onlineMessage={isDraft ? gatewayError : gatewayChecking ? 'Checking Razorpay availability…' : gatewayError}
+                  onlineAvailable={gatewayReady && !gatewayChecking && !isDraft && validCheckoutAmount}
+                  onlineMessage={isDraft ? gatewayError : gatewayChecking ? 'Checking Razorpay availability…' : !validCheckoutAmount ? 'Razorpay requires a payable amount above ₹0.' : gatewayError}
                 />
                 {paymentMethod === 'online' && webPaymentMode === 'test' && gatewayReady && <p className="text-sm">Razorpay Test Mode</p>}
                 {customerSignedIn === false && !isDraft && (
@@ -1511,7 +1511,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   type="button"
                   data-testid="booking-pay-submit"
                   onClick={handleFinalSubmitBooking}
-                  disabled={!bookingServiceIds.length || !bookingTime || !specialistsReady || !specialistCheck?.published || !eligibleStylists.length || !validCheckoutAmount || isSubmitting || isTemplatePreview || isDraft || gatewayChecking || coupon.busy || (!reservedBooking.current && !!coupon.code.trim() && !coupon.quote)}
+                  disabled={!bookingServiceIds.length || !bookingTime || !specialistsReady || !specialistCheck?.published || !eligibleStylists.length || (paymentMethod === 'online' && !validCheckoutAmount) || isSubmitting || isTemplatePreview || isDraft || gatewayChecking || coupon.busy || (!reservedBooking.current && !!coupon.code.trim() && !coupon.quote)}
                   className="flex-1 py-3.5 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95"
                   style={actionStyle}
                 >
