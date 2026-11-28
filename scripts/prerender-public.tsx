@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { createServer } from 'vite';
 import { NEXORA_CATEGORIES, NEXORA_TEMPLATE_META, nexoraTemplatePagePath } from '../src/lib/nexoraTemplateCatalogue';
 import { NEXORA_PUBLIC_ORIGIN } from '../src/lib/publicSeo';
+import { NEXORA_ABOUT_ARTWORK } from '../src/lib/nexoraAboutArtwork';
 import { normalizeSeoDescription, normalizeSeoTitle } from '../src/lib/seoText';
 import { NEXORA_PUBLIC_TEMPLATES_BY_ID } from '../src/lib/nexoraPublicTemplates';
 import { NEXORA_LANDING_SEO, nexoraSalonLandingSchema } from '../src/lib/nexoraLandingContent';
@@ -274,11 +275,16 @@ for (const path of NEXORA_ECOSYSTEM_ROUTES) {
   }
   const canonical = nexoraEcosystemCanonicalUrl(path);
   const ogImage = `${NEXORA_PUBLIC_ORIGIN}${seo.ogImagePath}`;
+  const heroPreload = path === '/about'
+    ? `<link rel="preload" as="image" href="${NEXORA_ABOUT_ARTWORK.mobile}" type="image/avif" media="${escapeHtml(NEXORA_ABOUT_ARTWORK.mobileMedia)}" fetchpriority="high" />
+<link rel="preload" as="image" href="${NEXORA_ABOUT_ARTWORK.desktop}" type="image/webp" media="${escapeHtml(NEXORA_ABOUT_ARTWORK.desktopMedia)}" fetchpriority="high" />`
+    : '';
   const html = `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+${heroPreload}
 <title>${escapeHtml(seo.title)}</title>
 <meta name="description" content="${escapeHtml(seo.description)}" />
 <meta name="robots" content="index,follow" />

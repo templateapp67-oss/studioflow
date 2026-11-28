@@ -244,8 +244,9 @@ assert.match(aboutHero, /href="#free-salon-website-templates"/);
 assert.match(aboutHero, /href="#android-salon-booking-app"/);
 assert.match(aboutHero, /src="\/nexora-about\/salon-management-and-booking\.webp"/);
 assert.doesNotMatch(aboutHero, /luxury-editorial\/hero-/);
-assert.match(aboutHero, /<source media="\(max-width: 640px\)" srcSet="\/nexora-about\/salon-management-and-booking-mobile\.webp"/);
-for (const image of ['salon-management-and-booking.webp', 'salon-management-and-booking-mobile.webp', 'android-salon-booking-app.webp']) {
+assert.match(aboutHero, /<source [^>]*type="image\/avif"[^>]*srcSet="\/nexora-about\/salon-management-and-booking-mobile\.avif"/);
+assert.match(aboutDocument.split('</head>')[0], /<link rel="preload" as="image" href="\/nexora-about\/salon-management-and-booking-mobile\.avif"[^>]*fetchpriority="high"/);
+for (const image of ['salon-management-and-booking.webp', 'salon-management-and-booking-mobile.avif', 'salon-management-and-booking-mobile.webp', 'android-salon-booking-app.webp']) {
   assert.ok(aboutDocument.includes(`/nexora-about/${image}`) && existsSync(`dist/nexora-about/${image}`), `About includes the published image ${image}`);
 }
 for (const content of [

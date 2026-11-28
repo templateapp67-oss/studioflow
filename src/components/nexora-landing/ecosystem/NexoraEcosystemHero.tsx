@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
+import { NEXORA_ABOUT_ARTWORK } from '../../../lib/nexoraAboutArtwork';
 import { NEXORA_ECOSYSTEM_SEO, type NexoraEcosystemPath } from '../../../lib/nexoraEcosystemSeo';
 import { SiteHeader } from '../sections/SiteHeader';
 import { NexoraBreadcrumbs } from '../sections/NexoraBreadcrumbs';
@@ -206,9 +207,10 @@ export function NexoraEcosystemHero({
         {isAbout ? (
           <figure className="nxh-hero__visual nxh-about-artwork">
             <picture>
-              <source media="(max-width: 640px)" srcSet="/nexora-about/salon-management-and-booking-mobile.webp" />
+              <source media={NEXORA_ABOUT_ARTWORK.mobileMedia} type="image/avif" srcSet={NEXORA_ABOUT_ARTWORK.mobile} />
+              <source media={NEXORA_ABOUT_ARTWORK.mobileMedia} type="image/webp" srcSet={NEXORA_ABOUT_ARTWORK.mobileFallback} />
               <img
-                src="/nexora-about/salon-management-and-booking.webp"
+                src={NEXORA_ABOUT_ARTWORK.desktop}
                 width={960}
                 height={960}
                 fetchPriority="high"
