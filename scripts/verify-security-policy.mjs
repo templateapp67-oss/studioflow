@@ -368,6 +368,9 @@ const customerWebsiteSource = readFileSync('src/components/CustomerSalonWebsite.
 assert.ok(customerWebsiteSource.includes('navigateCustomerAccount(`/?customer=1&auth=${mode}'), 'customer sign-in/signup routes must leave the embedded preview');
 const salonPreviewSource = readFileSync('src/components/SalonWebsitePreview.tsx', 'utf8');
 assert.ok(salonPreviewSource.includes('navigateCustomerAccount(`/?customer=1&return='), 'read-only preview account buttons must leave the embedded frame');
+const customerHeaderSource = readFileSync('src/components/CustomerWebsiteHeader.tsx', 'utf8');
+assert.ok(customerHeaderSource.includes("window.self !== window.top"), 'embedded customer headers must detect preview frames');
+assert.equal((customerHeaderSource.match(/\.\.\.appInstallLinkProps/g) || []).length, 4, 'all four template mobile app links must use the frame-safe target');
 assert.ok(customerWebsiteSource.includes("window.open(url, '_blank', 'noopener,noreferrer')"), 'shared customer website auth links must open a new tab when framed');
 assert.ok(salonPreviewSource.includes("window.open(url, '_blank', 'noopener,noreferrer')"), 'template editor preview auth links must open a new tab when framed');
 console.log('PASS: enforcing CSP matches runtime integrations; same-origin public root app/storefront routes frame safely; private roots and every non-root route remain blocked.');
