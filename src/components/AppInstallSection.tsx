@@ -67,6 +67,21 @@ export interface AppInstallSectionProps {
   'aria-label'?: string;
 }
 
+type ExternalLinkProps = Pick<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'target' | 'rel'>;
+
+/** Custom absolute URLs must not navigate the embedded template preview frame. */
+function externalLinkProps(href: string): ExternalLinkProps {
+  if (!/^(?:[a-z][a-z0-9+.-]*:|\\/\\/)/i.test(href.trim())) return {};
+  try {
+    const currentOrigin = typeof window === 'undefined' ? 'https://nexorasalon.online' : window.location.origin;
+    return new URL(href, currentOrigin).origin === currentOrigin
+      ? {}
+      : { target: '_blank', rel: 'noopener noreferrer' };
+  } catch {
+    return {};
+  }
+}
+
 const DEFAULT_TITLE = (
   <>
     आपका salon, <span className="app-install__title-nowrap">अब आपके phone में.</span>
@@ -107,6 +122,8 @@ export function AppInstallSection({
   'aria-label': ariaLabel = 'Install and share Nexora customer app',
 }: AppInstallSectionProps) {
   const [notice, setNotice] = useState('');
+  const installLinkProps = externalLinkProps(installHref);
+  const openLinkProps = externalLinkProps(openHref);
 
   if (hidden) return null;
 
@@ -138,6 +155,7 @@ export function AppInstallSection({
     >
       <div className="app-install__card">
         <a
+          {...installLinkProps}
           className="app-install__media"
           href={installHref}
           aria-label="Open the Nexora app install guide"
@@ -166,11 +184,11 @@ export function AppInstallSection({
 
           <div className="app-install__actions">
             {installControl || (
-              <a className="app-install__cta" href={installHref}>
+              <a {...installLinkProps} className="app-install__cta" href={installHref}>
                 {installLabel}
               </a>
             )}
-            <a className="app-install__cta app-install__cta--ghost" href={openHref}>
+            <a {...openLinkProps} className="app-install__cta app-install__cta--ghost" href={openHref}>
               {openLabel}
             </a>
           </div>
