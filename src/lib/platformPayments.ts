@@ -20,8 +20,8 @@ export type WebCheckoutStatus = {
  onlineReason?: 'available' | 'credentials_missing' | 'mode_mismatch' | 'invalid_mode';
  onlineMessage?: string;
 };
-export const bookingEmailValid = (email: string) => email.length <= 254 && /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email);
-export const bookingMobileValid = (phone: string) => /^(91)?[6-9]\\d{9}$/.test(phone.replace(/\\D/g, ''));
+export const bookingEmailValid = (email: string) => email.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+export const bookingMobileValid = (phone: string) => /^(91)?[6-9]\d{9}$/.test(phone.replace(/\D/g, ''));
 
 export async function webCheckoutStatus(): Promise<WebCheckoutStatus> {
  const { data, error } = await supabase.functions.invoke('studioflow-payments', { method: 'GET' });
